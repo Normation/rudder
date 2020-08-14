@@ -22,7 +22,7 @@
 # @description Ensure that one or more lines are present in a file
 #
 # @parameter file  File name to edit (absolute path on the target node)
-# @parameter lines Line(s) to add in the file
+# @parameter lines Line(s) to add in the file
 # 
 # @class_prefix file_ensure_lines_present
 # @class_parameter file

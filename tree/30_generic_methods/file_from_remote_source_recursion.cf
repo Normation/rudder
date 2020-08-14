@@ -20,13 +20,8 @@
 # @description Ensure that a file or directory is copied from a policy server
 # @documentation This method requires that the policy server is configured to accept
 # copy of the source file or directory from the agents it will be applied to.
-# 
-# You have to write the full path of the file or directory on the policy server, for example:
-# ```
-# /home/myuser/mydirectory
-# ```
-# 
-# If you are using Rudder, you can download a file from the shared files with:
+#
+# You can download a file from the shared files with:
 # ```
 # /var/rudder/configuration-repository/shared-files/PATH_TO_YOUR_DIRECTORY_OR_FILE
 # ```

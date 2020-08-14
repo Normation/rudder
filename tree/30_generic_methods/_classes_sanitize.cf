@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name Classes sanitize
-# @description Sanitize a class prefix, ie error > repaired > kept and there cannot be any overlap
+# @description Sanitize a class prefix, i.e. error > repaired > kept and there cannot be any overlap
 # @documentation This bundle will undefine class ${prefix}_{kept,repaired,not_ok,ok,reached}
 # based on the overlapping of ${prefix}_{kept,repaired,not_ok,ok,reached}
 #
@@ -31,7 +31,7 @@ bundle agent _classes_sanitize(prefix)
   vars:
       "complete_suffix" slist => { "not_kept", "kept", "not_ok", "ok", "not_repaired", "repaired", "failed", "error" };
 
-    # this is a way to remove the class withouto side effect
+    # this is a way to remove the class without side effect
       "error_suffix"    slist => { "not_kept", "not_ok", "not_repaired", "failed", "error" };
       "repaired_suffix" slist => { "ok", "repaired", "not_kept" };
       "success_suffix"  slist => { "ok", "kept", "not_repaired" };

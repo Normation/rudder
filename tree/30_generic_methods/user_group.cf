@@ -20,7 +20,7 @@
 # @description Define secondary group for a user
 # @documentation Ensure that a user is within a group
 #
-# #### Behaviour
+# #### Behavior
 #
 # Ensure that the user belongs in the given secondary group (non-exclusive)
 #
@@ -43,8 +43,6 @@
 # @parameter group_name     Secondary group name for the user
 # @class_prefix user_group
 # @class_parameter user
-
-
 
 bundle agent user_group(user, group_name) {
   vars:

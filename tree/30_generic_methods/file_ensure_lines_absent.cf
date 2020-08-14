@@ -22,7 +22,7 @@
 # @description Ensure that a line is absent in a specific location
 #
 # @parameter file File name to edit (absolute path on the target node)
-# @parameter lines Line(s) to remove in the file
+# @parameter lines Line(s) to remove in the file
 #
 # @class_prefix file_ensure_lines_absent
 # @class_parameter file

@@ -22,7 +22,7 @@
 # @description Ensure that one parameter exists in a list of parameters, on one single line, in the right hand side of a key->values line
 # @documentation Edit the file, and ensure it contains the defined parameter in the list of values on the right hand side of a key->values line.
 # If the parameter is not there, it will be added at the end, separated by parameter_separator.
-# Optionnaly, you can define leading and closing character to enclose the parameters
+# Optionally, you can define leading and closing character to enclose the parameters
 # If the key does not exist in the file, it will be added in the file, along with the parameter
 #
 # #### Example

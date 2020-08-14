@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name Service action
-# @description Trigger an action on a service using the approriate tool
+# @description Trigger an action on a service using the appropriate tool
 # @action is-* commands are not actions, but all other commands are
 #
 # @documentation The `service_*` methods manage the services running on the system.
@@ -59,8 +59,8 @@
 # * systemd (any unkown action will be passed directly)
 # * upstart
 # * smf (for Solaris)
-# * service command (for non-boot actions, any unkown action will be passed directly)
-# * /etc/init.d scripts (for non-boot actions, any unkown action will be passed directly)
+# * service command (for non-boot actions, any unknown action will be passed directly)
+# * /etc/init.d scripts (for non-boot actions, any unknown action will be passed directly)
 # * SRC (for AIX) (for non-boot actions)
 # * chkconfig (for boot actions)
 # * update-rc.d (for boot actions)

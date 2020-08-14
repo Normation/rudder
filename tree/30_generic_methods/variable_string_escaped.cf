@@ -27,16 +27,16 @@
 #
 # With a variable defined by the generic method `variable_string`, named `my_prefix.my_variable` and valued to:
 #
-# ~~~~
+# ````
 #  something like [] that
-# ~~~~
+# ````
 #
 # Passing `my_prefix.my_variable` as `variable_name` parameter to this method will result in a
 # variable named `my_prefix.my_variable_escaped` and valued to:
 #
-# ~~~~
+# ````
 # something\ like\ \[\]\ that
-# ~~~~
+# ````
 #
 # @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
 #

@@ -25,7 +25,6 @@
 #
 # @class_prefix service_ensure_disabled_at_boot
 # @class_parameter service_name
-# This bundle will define a condition service_ensure_disabled_at_boot_${canonified_service_name}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent service_ensure_disabled_at_boot(service_name)
 {

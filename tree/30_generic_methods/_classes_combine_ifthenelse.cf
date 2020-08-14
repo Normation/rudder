@@ -24,12 +24,12 @@
 # If the 'test' call has a '_true' outcome then the 'then' result is copied to destination
 # If the 'test' call has a '_false' outcome then the 'else' result is copied to destination
 # 
-# 'then_outcome' and 'else_outcome' can be replaced by the litteral string "success" or "failure"
+# 'then_outcome' and 'else_outcome' can be replaced by the literal string "success" or "failure"
 # In such case, the outcome is respectively replaced by a call to _classes_success or _classes_failure
 #
-# @parameter test_prefix        The prefix of classes comming from the test method
-# @parameter then_outcome       The prefix of classes comming from the method called in the 'then' case (or the litteral 'success' or 'failure')
-# @parameter else_outcome       The prefix of classes comming from the method called in the 'else' case (or the litteral 'success' or 'failure')
+# @parameter test_prefix        The prefix of classes coming from the test method
+# @parameter then_outcome       The prefix of classes coming from the method called in the 'then' case (or the litteral 'success' or 'failure')
+# @parameter else_outcome       The prefix of classes coming from the method called in the 'else' case (or the litteral 'success' or 'failure')
 # @parameter destination_prefix The prefix of the destination class
 #
 # @class_prefix 

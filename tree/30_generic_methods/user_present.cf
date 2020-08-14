@@ -19,7 +19,7 @@
 # @name User present
 # @description Ensure a user exists on the system.
 # @documentation This method does not create the user's home directory.
-#  Primary group will be created and set with default one, following the useradd default behaviour.
+#  Primary group will be created and set with default one, following the useradd default behavior.
 #  As in most UNIX system default behavior user creation will fail if a group with
 #  the user name already exists.
 #

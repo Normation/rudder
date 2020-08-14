@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name Package install version compare (update optional)
-# @description Install a package or verify if it is installed in a specific version, or higher or lower version than a version specified, optionally test update or not (Debian-, Red Hat- or SuSE-like systems only)
+# @description Install a package or verify if it is installed in a specific version, or higher or lower version than a version specified, optionally test update or not (Debian-, Red Hat- or SUSE-like systems only)
 # @deprecated Use [package_present](#_package_present) instead.
 # @documentation *Example*:
 # ```

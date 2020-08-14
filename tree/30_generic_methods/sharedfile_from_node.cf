@@ -17,21 +17,18 @@
 #####################################################################################
 
 # @name Sharedfile from node
-# @description This method retreives a file shared from another Rudder node
-# @documentation This method retreives a file shared from a Rudder node using a unique file identifier.
+# @description This method retrieves a file shared from another Rudder node
+# @documentation This method retrieves a file shared from a Rudder node using a unique file identifier.
 #
-# The file will be downloaded using CFEngine protocol and copied into a new file.
+# The file will be downloaded using native agent protocol and copied into a new file.
 # The destination path must be the complete absolute path of the destination file.
 #
 # See [sharedfile_to_node](#_sharedfile_to_node) for a complete example. 
 #
-# *INFO*: Please note that this method must be used on an agent that is connected to
-# Rudder relay or server (>=4.1)
-#
-# @parameter source_uuid  which node to take the file from
-# @parameter file_id      unique name that was used to identify the file on the sender
+# @parameter source_uuid  Which node to take the file from
+# @parameter file_id      Unique name that was used to identify the file on the sender
 # @parameter_constraint file_id "regex" : "^[A-z0-9._-]+$"
-# @parameter file_path    where to put the file content
+# @parameter file_path    Where to put the file content
 # 
 # @class_prefix sharedfile_from_node
 # @class_parameter file_id

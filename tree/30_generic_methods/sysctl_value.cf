@@ -17,10 +17,10 @@
 #####################################################################################
 
 # @name Sysctl value
-# @description Enforce a value in sysctl (optionaly increase or decrease it)
+# @description Enforce a value in sysctl (optionally increase or decrease it)
 # @documentation Enforce a value in sysctl
 #
-# #### Behaviours
+# #### Behaviors
 #
 # Checks for the current value defined for the given key
 # If it is not set, this method attempts to set it in the file defined as argument
@@ -29,12 +29,12 @@
 # configuration is reloaded with `sysctl --system` and the 
 # resulting value is checked. 
 # If it is not taken into account by sysctl because
-# its overriden in another file or its an invalid key, the method returns an error
+# its overridden in another file or its an invalid key, the method returns an error
 #
 # #### Prerequisite
 #
 # This method requires an /etc/sysctl.d folder, and the `sysctl --system` option.
-# It does not support Debian 6 or earlier, Centos/RedHat 6 or earlier, SLES 11 or earlier,
+# It does not support Debian 6 or earlier, CentOS/RHEL 6 or earlier, SLES 11 or earlier,
 # Ubuntu 12_04 or earlier, AIX and Solaris.
 #
 # ##### Parameters
@@ -48,7 +48,7 @@
 #  `max`: The value is the maximal value we request: the value is only changed if the current value is higher than `value`
 #  `default` (default value): The value is strictly enforced.
 #
-# Comparision is numerical if possible, else alphanumerical
+# Comparison is numerical if possible, else alphanumerical
 # So 10 > 2, but Test10 < Test2
 #
 # #### Examples

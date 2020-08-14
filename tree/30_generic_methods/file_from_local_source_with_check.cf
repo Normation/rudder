@@ -18,7 +18,7 @@
 
 # @name File from local source with check
 # @description Ensure that a file or directory is copied from a local source if a check command succeeds
-# @documentation This method is a conditionnal file copy.
+# @documentation This method is a conditional file copy.
 #
 # It allows comparing the source and destination, and if they are different, call a command
 # with the source file path as argument, and only update the destination if the commands succeeds

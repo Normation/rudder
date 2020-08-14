@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name Variable dict from file type
-# @description Define a variable that contains key,value pairs (a dictionnary) from a JSON, CSV or YAML file
+# @description Define a variable that contains key,value pairs (a dictionary) from a JSON, CSV or YAML file
 # @documentation To use the generated variable, you must use the form `${variable_prefix.variable_name[key]}` with each name replaced with the parameters of this method.
 # 
 # Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
@@ -32,7 +32,7 @@
 # #### Examples
 # 
 # ```
-# # To read a json file with format autodetection 
+# # To read a json file with format auto detection 
 # variable_dict_from_file_type("prefix", "var", "/tmp/file.json", "");
 # # To force yaml reading on a non file without yaml extension
 # variable_dict_from_file_type("prefix", "var", "/tmp/file", "YAML");
@@ -51,7 +51,7 @@
 # @parameter variable_prefix The prefix of the variable name
 # @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
 # @parameter file_name       The file name to load data from
-# @parameter file_type       The file type, can be "JSON", "CSV", "YAML" or "auto" for autodection based on file extension, with a fallback to JSON (default is "auto")
+# @parameter file_type       The file type, can be "JSON", "CSV", "YAML" or "auto" for auto detection based on file extension, with a fallback to JSON (default is "auto")
 # @parameter_constraint file_type "allow_empty_string" : true
 # @parameter_constraint file_type "select" : [ "", "auto", "JSON", "YAML", "CSV" ]
 # 

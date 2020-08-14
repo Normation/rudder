@@ -18,20 +18,14 @@
 
 # @name File from remote source
 # @description Ensure that a file or directory is copied from a policy server
-# @documentation *Note*: This method uses CFEngine file copy protocol, and can only download files from
+# @documentation *Note*: This method uses the agent native file copy protocol, and can only download files from
 # the policy server. To download a file from an external source, you can use
 # HTTP with the [file_download](#_file_download) method.
 # 
 # This method requires that the policy server is configured to accept
 # copy of the source file from the agents it will be applied to.
-# 
-# 
-# You have to write the full path of the file on the policy server, for example:
-# ```
-# /home/myuser/myfile
-# ```
-# 
-# If you are using Rudder, you can download a file from the shared files with:
+#
+# You can download a file from the shared files with:
 # ```
 # /var/rudder/configuration-repository/shared-files/PATH_TO_YOUR_FILE
 # ```
