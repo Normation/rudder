@@ -16,9 +16,9 @@ import sys
 import os
 import codecs
 try:
-    from ConfigParser import ConfigParser
-except BaseException:
     from configparser import ConfigParser
+except ImportError:
+    from ConfigParser import SafeConfigParser as ConfigParser
 from pprint import pprint
 
 tags = [
@@ -205,7 +205,7 @@ def parse_method_metadata(content):
     if "class_parameter_id" in tags:
         try:
             res['class_parameter_id'] = bundle_args.index(
-                res['class_parameter']) + 1
+                res['class_parameter'])
         except BaseException:
             res['class_parameter_id'] = 0
             raise NcfError(

@@ -58,26 +58,22 @@ $(DOC_EXAMPLES):
 
 libs:
 	mkdir -p repos
-
 	[ -d repos/ncf ] || git clone git@github.com:Normation/ncf.git repos/ncf
 	cd repos/ncf && git pull
-
 	[ -d repos/dsc ] || git clone git@github.com:Normation/rudder-agent-windows.git repos/dsc \
 	 || mkdir -p repos/dsc/plugin/ncf/30_generic_methods/ repos/dsc/packaging/Files/share/initial-policy/ncf/30_generic_methods/
 	cd repos/dsc && git pull || true
+	tools/generate_lib tools/rudderc-dev.conf
 
 libs-docs: libs
-	mkdir -p target/docs
-	tools/generate_lib tools/rudderc-dev.conf
-	# FIXME replace with proper option
 	mkdir -p target/docs/std
+	# FIXME replace with proper option
 	cargo run -- -l info -c tools/rudderc-dev.conf -n simplest/technique.rl -f md
 	echo "" > target/docs/std/lib.adoc
 	for resource in $$(ls -1 target/docs/std/*.md); \
 	  do pandoc -t asciidoc -f commonmark $${resource} >> target/docs/std/lib.adoc; \
 	  echo "" >> target/docs/std/lib.adoc ;\
 	done
-
 
 docs: libs-docs
 	mkdir -p target/docs
