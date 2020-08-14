@@ -33,9 +33,9 @@
 # a `command_execution_once` has already been executed on this machine with the same
 # **Unique id**.
 #
-# **Execute** the command if it is the first occurence and:
+# **Execute** the command if it is the first occurrence and:
 # * If the parameter **Until** is `*any*`, it will consider the command as executed on the machine and define
-#   eiter:
+#   either:
 #   * `command_execution_once_${command}_repaired` if the return code is in **ok_codes**,
 #   * `command_execution_once_${command}_error` otherwise.
 # * If the parameter **Until** is *ok* and:
