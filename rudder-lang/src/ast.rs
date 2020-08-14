@@ -178,7 +178,7 @@ impl<'src> AST<'src> {
             ) {
                 self.errors.push(e);
             }
-            let getter = |k| self.context.variables.get(&k).map(VarKind::clone);
+            let getter = |k| self.context.get(&k);
             match Value::from_pvalue(&self.enum_list, &getter, value) {
                 Err(e) => self.errors.push(e),
                 Ok(val) => {

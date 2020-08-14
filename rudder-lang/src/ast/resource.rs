@@ -345,11 +345,7 @@ impl<'src> Statement<'src> {
         // we must not capture the context in this common getter since it is used
         // as mutable elsewhere in this function
         let common_getter = |ctx: &VarContext<'src>, k: Token<'src>| {
-            ctx
-                .variables
-                .get(&k)
-                .or_else(|| global_context.variables.get(&k))
-                .map(VarKind::clone)
+            ctx.get(&k).or_else(|| global_context.get(&k))
         };
         Ok(match st {
             PStatement::VariableDefinition(pmetadata, var, val) => {

@@ -25,7 +25,7 @@ pub enum VarKind<'src> {
 /// So this reference is asked by methods when they are needed.
 #[derive(Debug, Clone)]
 pub struct VarContext<'src> {
-    pub variables: HashMap<Token<'src>, VarKind<'src>>,
+    variables: HashMap<Token<'src>, VarKind<'src>>,
 }
 
 impl<'src> VarContext<'src> {
@@ -34,6 +34,11 @@ impl<'src> VarContext<'src> {
         VarContext {
             variables: HashMap::new(),
         }
+    }
+
+    /// Returns the type of a given variable or None if variable doesn't exist
+    pub fn get(&self, key: &Token<'src>) -> Option<VarKind<'src>> {
+        self.variables.get(key).map(VarKind::clone)
     }
 
     /// Iterator over all variables of this context.
