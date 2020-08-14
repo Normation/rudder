@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name Logger - legacy interface (DEPRECATED)
-# @description Standard logging output. This interface is for compatiblity with older generic methods and techniques, and is replaced by _log.
+# @description Standard logging output. This interface is for compatibility with older generic methods and techniques, and is replaced by _log.
 #
 # @parameter message              The common part of the message to display
 # @parameter old_class_prefix     The prefix of the class for different states (0.x version)

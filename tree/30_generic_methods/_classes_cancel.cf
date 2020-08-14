@@ -28,7 +28,7 @@
 bundle agent _classes_cancel(prefix)
 {
   vars:
-    # this is a way to remove the class withouto side effect
+    # this is a way to remove the class without side effect
       "ignored_kept"         string => "", classes => if_ok_cancel("${prefix}_kept");
       "ignored_not_kept"     string => "", classes => if_ok_cancel("${prefix}_not_kept");
       "ignored_repaired"     string => "", classes => if_ok_cancel("${prefix}_repaired");

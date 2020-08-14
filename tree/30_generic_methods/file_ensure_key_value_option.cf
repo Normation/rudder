@@ -26,7 +26,7 @@
 # @parameter file File name to edit (absolute path on the target node)
 # @parameter key Key to define
 # @parameter value Value to define
-# @parameter option Option for the spacing around the separator: strict, which prevent spacings (space or tabs) around separators, or lax which accepts any number of spaces around separators
+# @parameter option Option for the spacing around the separator: strict, which prevent spacing (space or tabs) around separators, or lax which accepts any number of spaces around separators
 # @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
 # @parameter_constraint separator "allow_whitespace_string" : true
 # @parameter_constraint option "select" : [ "strict", "lax" ]

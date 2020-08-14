@@ -118,8 +118,8 @@
 #
 # @parameter path                  Path of the file or directory
 # @parameter recursive             Recursive Should ACLs cleanup be recursive, "true" or "false" (defaults to "false")
-# @parameter user                  User acls, comma separeted, like: bob:+rwx, alice:-w
-# @parameter group                 Group acls, comma separeted, like: wheel:+wx, anon:-rwx
+# @parameter user                  User acls, comma separated, like: bob:+rwx, alice:-w
+# @parameter group                 Group acls, comma separated, like: wheel:+wx, anon:-rwx
 # @parameter other                 Other acls, like -x
 # 
 # @parameter_constraint recursive "select" : [ "", "true", "false" ]

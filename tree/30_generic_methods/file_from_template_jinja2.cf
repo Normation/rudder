@@ -54,22 +54,22 @@
 # You can extend the Jinja2 templating engine by adding custom FILTERS and TESTS in the script
 # `/var/rudder/configuration-repository/ncf/10_ncf_internals/modules/extensions/jinja2_custom.py`
 #
-# For instance, to add a filter to upperstring a string and a test if a number is odd, you can create
+# For instance, to add a filter to uppercase a string and a test if a number is odd, you can create
 # the file `/var/rudder/configuration-repository/ncf/10_ncf_internals/modules/extensions/jinja2_custom.py`
 # on your Rudder server with the following content:
 #
 # ```
-# def upperstring(input):
+# def uppercase(input):
 #     return input.upper()
 #
 # def odd(value):
 #     return True if (value % 2) else False
 #
-# FILTERS = {'upperstring': upperstring}
+# FILTERS = {'uppercase': uppercase}
 # TESTS = {'odd': odd}
 # ```
 #
-# These filters and tests will be usable in your jinja templates automatically.
+# These filters and tests will be usable in your jinja2 templates automatically.
 #
 # ##### Conditions
 #
@@ -86,7 +86,7 @@
 #
 # Note: You cannot use condition expressions here.
 #
-# You can also use other tests, for example other bilt-in ones or
+# You can also use other tests, for example other built-in ones or
 # those defined in `jinja2_custom.py`:
 #
 # ```jinja2
@@ -108,7 +108,7 @@
 # can be extended in `jinja2_custom.py`:
 #
 # ```jinja2
-# {{ vars.variable_prefix.my_variable | upperstring }}
+# {{ vars.variable_prefix.my_variable | uppercase }}
 # ```
 #
 # Will display the variable in uppercase.

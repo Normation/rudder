@@ -25,12 +25,19 @@
 #
 # #### Example
 #
-# If you want to run a job, at every hour and half-hour (0:00 and 0:30), with no spread across system, with an agent running with default schedule of 5 minutes, and making sure that the job is run (if the agent couldn't run it, then at the next agent execution the job should be run), you will call the method with the following parameters:
+# If you want to run a job, at every hour and half-hour (0:00 and 0:30),
+# with no spread across system, with an agent running with default schedule
+# of 5 minutes, and making sure that the job is run (if the agent couldn't
+# run it, then at the next agent execution the job should be run), you will
+# call the method with the following parameters:
 #
 # ```
 # schedule_simple("job_schedule_id", "5", "0", "0",  "0", "0", "0",  "30", "0", "0", "catchup")
-# ```
-# During each run right after o'clock and half-hour, this method will define the condition schedule_simple_job_schedule_id_repaired, that you can use as a condition for a generic method `command_execution`
+# ``
+#
+# During each run right after o'clock and half-hour, this method will define the condition
+# schedule_simple_job_schedule_id_repaired, that you can use as a condition for a generic
+# method `command_execution`
 #
 #
 #

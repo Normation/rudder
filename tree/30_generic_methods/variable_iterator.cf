@@ -18,7 +18,7 @@
 
 # @name Variable iterator
 # @description Define a variable that will be automatically iterated over
-# @documentation The generated variable is a special variable (slist in cfengine speaking) that is automatically
+# @documentation The generated variable is a special variable that is automatically
 # iterated over. When you call a generic method with this variable as a parameter, n calls will be made,
 # one for each items of the variable.
 # Note: there is a limit of 10000 items 

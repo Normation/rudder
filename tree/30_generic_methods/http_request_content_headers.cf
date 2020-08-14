@@ -18,7 +18,7 @@
 
 # @name HTTP request sending content with headers
 # @description Make an HTTP request with a specific header
-# @action We don't know when HTTP methods cause side effect, this can be an action or not depending on your server behaviour
+# @action We don't know when HTTP methods cause side effect, this can be an action or not depending on your server behavior
 # @documentation Perform a HTTP request on the URL, method and headers provided 
 # and send the content provided. Will return an error if the request failed.
 #

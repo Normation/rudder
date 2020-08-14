@@ -21,8 +21,8 @@
 # @deprecated Use [file_key_value_parameter_absent_in_list](#_file_key_value_parameter_absent_in_list) instead.
 # @description Ensure that a parameter doesn't exist in a list of parameters, on one single line, in the right hand side of a key->values line
 # @documentation Edit the file, and ensure it does not contain the defined parameter in the list of values on the right hand side of a key->values line.
-# If the parameter is there, it will be removed. Please note that the parameter can be a regular expression. It will also remove any whitespace character between the parameter and parameter_separator
-# Optionnaly, you can define leading and closing character to enclose the parameters
+# If the parameter is there, it will be removed. Please note that the parameter can be a regular expression. It will also remove any whitespace character between the `parameter` and `parameter_separator`
+# Optionally, you can define leading and closing character to enclose the parameters
 #
 # #### Example
 # 

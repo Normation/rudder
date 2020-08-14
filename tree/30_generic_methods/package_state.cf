@@ -26,13 +26,6 @@
 # The only drawback is that the agent will have to maintain double caches for package lists, which
 # may cause a little unneeded overhead.
 # 
-# #### Setup
-#
-# If you are using ncf inside Rudder, no specific setup is necessary.
-#
-# If your are using ncf without Rudder, you need to call the `initialization` bundle
-# before using package methods.
-# 
 # #### Package parameters
 # 
 # There is only one mandatory parameter, which is the package name to install.
@@ -102,7 +95,7 @@
 #
 # ##### slackpkg
 #
-# This package provider uses Slackware's installpkg and upgradepkg tools to manage 
+# This package provider uses Slackware's `installpkg` and `upgradepkg` tools to manage 
 # packages on the system
 #
 # ##### pkg
@@ -112,7 +105,7 @@
 # #### Examples
 # 
 # ```
-# # To install postgresql in version 9.1 for x86_64 atchitecture
+# # To install postgresql in version 9.1 for x86_64 architecture
 # package_present("postgresql", "9.1", "x86_64", "");
 # # To ensure postgresql is always in the latest available version
 # package_present("postgresql", "latest", "", "");

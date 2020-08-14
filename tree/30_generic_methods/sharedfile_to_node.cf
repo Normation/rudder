@@ -89,14 +89,11 @@
 # sharedfile_from_node("2bf1afdc-6725-4d3d-96b8-9128d09d353c", "application.properties", "/opt/application/etc/application.properties")
 # ```
 #
-# *INFO*: Please note that this method must be used on a Rudder agent (>=4.1) that is connected to
-# Rudder relay or server (>=4.1)
-#
-# @parameter target_uuid  which node to share the file with
-# @parameter file_id      unique name that will be used to identify the file on the receiver
+# @parameter target_uuid  Which node to share the file with
+# @parameter file_id      Unique name that will be used to identify the file on the receiver
 # @parameter_constraint file_id "regex" : "^[A-z0-9._-]+$"
-# @parameter file_path    path of the file to share
-# @parameter ttl          time to keep the file on the policy server in seconds or in human readable form (see long description)
+# @parameter file_path    Path of the file to share
+# @parameter ttl          Time to keep the file on the policy server in seconds or in human readable form (see long description)
 # @parameter_constraint ttl "regex" : "^(\\d+\\s*(days?|d))?(\\d+\\s*(hours?|h))?(\\d+\\s*(minutes?|m))?(\\d+\\s*(seconds?|s))?$"
 # 
 # @class_prefix sharedfile_to_node

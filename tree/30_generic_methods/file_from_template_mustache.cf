@@ -24,7 +24,7 @@
 # #### Syntax
 #
 # Mustache is a logic-less templating language, available in a lot of languages, and
-# used for file templating in CFEngine.
+# used for file templating in Rudder.
 # The mustache syntax reference is [https://mustache.github.io/mustache.5.html](https://mustache.github.io/mustache.5.html).
 #
 # We will here describe the way to get agent data into a template. Ass explained in the general templating
@@ -32,7 +32,7 @@
 #
 # The main specificity compared to standard mustache syntax of prefixes in all expanded values:
 #
-# * `classes` to access conditons
+# * `classes` to access conditions
 # * `vars` to access all variables
 #
 # ##### Classes

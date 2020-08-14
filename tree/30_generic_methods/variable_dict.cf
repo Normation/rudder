@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name Variable dict
-# @description Define a variable that contains key,value pairs (a dictionnary)
+# @description Define a variable that contains key,value pairs (a dictionary)
 # @documentation To use the generated variable, you must use the form `${variable_prefix.variable_name[key]}` with each name replaced with the parameters of this method.
 # 
 # Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 

@@ -17,14 +17,14 @@
 #####################################################################################
 
 # @name Variable dict from osquery
-# @description Define a variable that contains key,value pairs (a dictionnary) from an osquery query
+# @description Define a variable that contains key,value pairs (a dictionary) from an osquery query
 # @documentation To use the generated variable, you must use the form `${variable_prefix.variable_name[key]}` with each name replaced with the parameters of this method.
 # 
 # Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
 # Please note that only global variables are available within templates.
 #
-# This method will define a dict variable from the output os an osquery query.
-# The query will be executed at evera agent run, and its result will be usable as a standard
+# This method will define a dict variable from the output of an osquery query.
+# The query will be executed at every agent run, and its result will be usable as a standard
 # dict variable.
 #
 # #### Setup

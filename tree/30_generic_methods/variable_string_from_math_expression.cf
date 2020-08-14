@@ -18,7 +18,7 @@
 
 # The "Supported mathematical expressions" section comes from:
 # https://github.com/cfengine/documentation/blob/master/reference/functions/eval.markdown
-# licenced under http://creativecommons.org/licenses/by-sa/3.0/
+# licensed under http://creativecommons.org/licenses/by-sa/3.0/
 # Copyright 2017 Northern.tech AS
 
 # @name Variable string from math expression
@@ -30,7 +30,7 @@
 #
 # #### Usage
 #
-# This function will evaluate a mathematical expression that may contain variables and format the result according to the provided formatt string.
+# This function will evaluate a mathematical expression that may contain variables and format the result according to the provided format string.
 #
 # The formatting string uses the standard POSIX printf format.
 #

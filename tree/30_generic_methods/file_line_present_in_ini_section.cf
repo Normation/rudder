@@ -43,7 +43,7 @@ bundle agent file_line_present_in_ini_section(file, section, line)
 
   files:
       # If the section is not present in the file, firstly it will be added
-      # with a blank line in order to be catched for the lines to add after it.
+      # with a blank line in order to be caught for the lines to add after it.
       "${file}"
         create        => "true",
         edit_line     => ncf_insert_block("${section_and_blank_line}"),

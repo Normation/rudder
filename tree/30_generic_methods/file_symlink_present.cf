@@ -20,7 +20,7 @@
 # @description Create a symlink at a destination path and pointing to a source target except if a file or directory already exists.
 #
 # @parameter source      Source file (absolute path on the target node)
-# @parameter destination Destination file (absolute path on the target node)
+# @parameter destination Destination file (absolute path on the target node)
 # 
 # @class_prefix file_symlink_present
 # @class_parameter destination
