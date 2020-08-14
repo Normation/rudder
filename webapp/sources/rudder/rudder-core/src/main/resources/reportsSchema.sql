@@ -81,7 +81,6 @@ CREATE TABLE RudderSysEvents (
 
 CREATE INDEX executionTimeStamp_idx       ON RudderSysEvents (executionTimeStamp);
 CREATE INDEX composite_node_execution_idx ON RudderSysEvents (nodeId, executionTimeStamp);
-CREATE INDEX keyValue_idx                 ON RudderSysEvents (keyValue);
 CREATE INDEX ruleId_idx                   ON RudderSysEvents (ruleId);
 
 CREATE INDEX endRun_control_idx ON RudderSysEvents (id) WHERE eventType = 'control' and component = 'end';
