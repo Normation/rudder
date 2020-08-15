@@ -118,8 +118,10 @@ let connection.ip
 let connection.hostname
 
 # `match` global variables
-let match
+# this kind of declaration deosn't work at the moment
+#let match
 
+# We should probably remove those
 # `mon` global variables
 let mon.listening_ports
 let mon.listening_udp4_ports

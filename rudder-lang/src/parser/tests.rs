@@ -1193,6 +1193,7 @@ fn test_pdeclaration() {
 
 // ===== Functions used by other test modules =====
 
+// run a parser and expect it to work
 fn test_t<'a, F, X>(f: F, input: &'a str) -> X
 where
     F: Fn(PInput<'a>) -> PResult<X>,
@@ -1220,3 +1221,5 @@ pub fn penum_expression_t(input: &str) -> PEnumExpression {
 pub fn pidentifier_t(input: &str) -> Token {
     test_t(pidentifier, input)
 }
+
+pub fn pvariable_declaration_t(input: &str) -> (Token, PValue) { test_t(pvariable_declaration,input) }

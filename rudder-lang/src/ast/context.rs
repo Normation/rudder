@@ -15,6 +15,8 @@ pub enum VarKind<'src> {
     Enum(Token<'src>, Option<Token<'src>>),
     //     type
     Generic(Value<'src>),
+    // struct type (string could be token here)
+    Struct(HashMap<String,VarKind<'src>>),
 }
 
 // TODO forbid variables names like global enum items (or enum type)
@@ -53,12 +55,15 @@ impl<'src> VarContext<'src> {
         name: Token<'src>,
     ) -> Result<()> {
         if self.variables.contains_key(&name) {
-            fail!(
-                name,
-                "Variable {} already defined {}",
-                name,
-                self.variables.entry(name).key()
-            );
+            if let VarKind::Struct(_) = self.variables[&name] {
+            } else {
+                fail!(
+                    name,
+                    "Variable {} already defined {}",
+                    name,
+                    self.variables.entry(name).key()
+                );
+            }
         }
         // Do not allow a local name to hide a global name
         match upper_context {
@@ -93,40 +98,45 @@ impl<'src> VarContext<'src> {
     /// Inserts a key, value into its related parent content.
     /// Recursive function, meaning it goes deep to insert an element (possibly nested) and check it does not exist yet
     /// If the full path is exactly the same as any existing global variable, throws an error
-    fn push_new_variable(stored_ctx: &mut Value<'src>, new_var: &Value<'src>) -> Result<()> {
+    fn push_new_variable(stored_type: &mut HashMap<String,VarKind<'src>>, new_var: Value<'src>) -> Result<()> {
         let (key_to_push, value_to_push) = match new_var {
             // always has a single field
             Value::Struct(new_map) => new_map
-                .iter()
+                .into_iter()
                 .next()
-                .expect("Declared variable should never be empty"),
+                // Should not happen
+                .expect("Parsing should not generate empty struct"),
             _ => {
-                warn!("Object is declared twice");
-                return Ok(());
+                // Should not happen
+                panic!("Parsing should generate struct");
             }
         };
-        match stored_ctx {
-            Value::Struct(existing_map) => {
-                for (stored_k, stored_v) in existing_map.iter_mut() {
-                    if stored_k == key_to_push {
-                        // ie inner context is of type value, go deeper
-                        if let Value::Struct(_) = stored_v {
-                            return Self::push_new_variable(stored_v, value_to_push);
-                        } else {
-                            // Important context branch terminates here
-                            // ie element to push still has inner elements to push
-                            if let Value::Struct(_) = value_to_push {
-                                // do not do anything
-                                // element will be inserted, (5 lines down, existing_map.insert) everything is fine
-                            } else {
-                                warn!("Object {} is declared twice", key_to_push);
-                            }
+        match &value_to_push {
+            // go next depth level
+            Value::Struct(s) => {
+                if ! stored_type.contains_key(&key_to_push) {
+                    stored_type.insert(key_to_push.clone(),VarKind::Struct(HashMap::new()));
+                }
+                if let Some(stored_v) = stored_type.get_mut(&key_to_push) {
+                    match stored_v {
+                        VarKind::Struct(s_type) => {
+                            Self::push_new_variable(s_type, value_to_push);
+                        },
+                        _ => {
+                            // TODO we should have a way to have proper token for positioning here
+                            fail!(Token::from(""), "Variable {} is the wrong type", key_to_push);
                         }
                     }
                 }
-                existing_map.insert(key_to_push.to_owned(), value_to_push.clone());
-            }
-            _ => panic!("Context should always be of type Struct"),
+            },
+            // last level, insert
+            _ => {
+                if stored_type.contains_key(&key_to_push) {
+                    // TODO we should have a way to have proper token for positioning here
+                    fail!(Token::from(""), "Variable {} is a duplicate", key_to_push);
+                }
+                stored_type.insert(key_to_push.to_owned(), VarKind::Generic(value_to_push));
+            },
         };
         Ok(())
     }
@@ -138,40 +148,34 @@ impl<'src> VarContext<'src> {
         name: Token<'src>,
         value: Value<'src>,
     ) -> Result<()> {
-        if let Some(ref mut existing_kind) = self.variables.get_mut(&name) {
+        // check first
+        self.check_new_var(upper_context, name)?;
+        if let Value::Struct(struct_type) = &value {
+            // this is the first declaration of a struct typed magic var
+            // Maybe we want a more formal declaration (for example "let sys: Struct")
+            // or not and let this act as a namespace without the need to implement more
+            if ! self.variables.contains_key(&name) {
+                self.variables.insert(name, VarKind::Struct(HashMap::new()));
+            }
+        }
+        if let Some(existing_kind) = self.variables.get_mut(&name) {
             match existing_kind {
-                VarKind::Generic(ref mut existing_var) => {
-                    Self::push_new_variable(existing_var, &value)?
+                VarKind::Struct(existing_var) => {
+                    Self::push_new_variable(existing_var, value)?
                 }
-                // For now could as well be a panic since we are not currently allowing splitted enum declarations
-                VarKind::Enum(_, _) => unimplemented!(),
+                _ => { },
             };
         } else {
-            // now only the second part of this checker makes really sense here since the first check is already done
-            // (unless push_or_err_rec destroys the existing variable)
-            self.check_new_var(upper_context, name)?;
             self.variables.insert(name, VarKind::Generic(value));
         }
         Ok(())
     }
-
-    /*/// Create a constant in this context.
-        pub fn new_constant(
-            &mut self,
-            upper_context: Option<&VarContext<'src>>,
-            name: Token<'src>,
-            value: Value<'src>,
-        ) -> Result<()> {
-            self.new_var(upper_context, name)?;
-            self.variables.insert(name, VarKind::Constant(ptype,value));
-            Ok(())
-        }
-    */
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use maplit::hashmap;
     use crate::parser::{tests::*, *};
     use pretty_assertions::assert_eq;
 
@@ -210,117 +214,45 @@ mod tests {
 
     #[test]
     fn test_context_tree_generator() {
-        fn value_generator(input: Option<&str>) -> Value {
-            match input {
-                Some(s) => Value::from_static_pvalue(test_new_pvalue(s)),
-                None => Value::from_static_pvalue(PValue::generate_automatic(PType::String)),
-            }
-            .unwrap()
+        let string_value = VarKind::Generic(
+            Value::from_static_pvalue(PValue::generate_automatic(PType::String))
+                .unwrap());
+        fn add_variable<'a>(context: &mut VarContext<'a>, input: &'a str) -> Result<()> {
+            let (name,val) = pvariable_declaration_t(input);
+            let value = Value::from_static_pvalue(val)?;
+            context.new_variable(None, name, value)
+        }
+
+        let mut context = VarContext::new();
+
+        assert!(add_variable(&mut context, "let sys.windows").is_ok());
+        assert!(add_variable(&mut context, "let sys.windows").is_err()); // direct duplicate
+        assert!(add_variable(&mut context, "let sys.windows.win7").is_err()); // sub element of a string var
+        assert!(add_variable(&mut context, "let sys.linux.debian_9").is_ok()); // push inner into undeclared element
+        assert!(add_variable(&mut context, "let sys.linux.debian_10").is_ok());
+        assert!(add_variable(&mut context, "let sys.linux.debian_9").is_ok()); // inner non-direct duplicate // TODO should be error but using values in varking::generic makes it too hard to detect
+        assert!(add_variable(&mut context, "let sys.long.var.decl.ok").is_ok()); // deep nested element
+        assert!(add_variable(&mut context, "let sys.long.var.decl.ok_too").is_ok()); // push deep in nest element
+        assert!(add_variable(&mut context, "let sys.long.var.decl2").is_ok()); // post-push deep outer element
+        assert!(add_variable(&mut context, "let sys.linux").is_err()); // outtest non-direct duplicate
+
+        let os = hashmap! {
+            "long".into() => VarKind::Struct(hashmap! {
+                "var".into() => VarKind::Struct(hashmap! {
+                    "decl".into() => VarKind::Struct(hashmap! {
+                        "ok".into() => string_value.clone(),
+                        "ok_too".into() => string_value.clone(),
+                    }),
+                    "decl2".into() => string_value.clone(),
+                }),
+            }),
+            "linux".into() => VarKind::Struct(hashmap! {
+                "debian_9".into() => string_value.clone(),
+                "debian_10".into() => string_value.clone(),
+            }),
+            "windows".into() => string_value.clone(),
         };
 
-        let mut context = value_generator(Some("let sys"));
-
-        assert!(VarContext::push_new_variable(
-            &mut context,
-            &value_generator(Some("let sys.windows"))
-        )
-        .is_ok());
-        assert!(VarContext::push_new_variable(
-            &mut context,
-            &value_generator(Some("let sys.windows"))
-        )
-        .is_ok()); // direct duplicate
-        assert!(VarContext::push_new_variable(
-            &mut context,
-            &value_generator(Some("let sys.linux"))
-        )
-        .is_ok());
-        assert!(VarContext::push_new_variable(
-            &mut context,
-            &value_generator(Some("let sys.linux.debian_9"))
-        )
-        .is_ok()); // push inner into existing String element
-        assert!(VarContext::push_new_variable(
-            &mut context,
-            &value_generator(Some("let sys.linux.debian_10"))
-        )
-        .is_ok());
-        assert!(VarContext::push_new_variable(
-            &mut context,
-            &value_generator(Some("let sys.linux.debian_9"))
-        )
-        .is_ok()); // inner non-direct duplicate
-        assert!(VarContext::push_new_variable(
-            &mut context,
-            &value_generator(Some("let sys.long.var.decl.ok"))
-        )
-        .is_ok()); // deep nested element
-        assert!(VarContext::push_new_variable(
-            &mut context,
-            &value_generator(Some("let sys.long.var.decl.ok_too"))
-        )
-        .is_ok()); // push deep innest element
-        assert!(VarContext::push_new_variable(
-            &mut context,
-            &value_generator(Some("let sys.long.var.decl2"))
-        )
-        .is_ok()); // post-push deep outter element
-        assert!(VarContext::push_new_variable(
-            &mut context,
-            &value_generator(Some("let sys.linux"))
-        )
-        .is_ok()); // outtest non-direct duplicate
-
-        let os = [
-            (
-                String::from("long"),
-                Value::Struct(
-                    [(
-                        String::from("var"),
-                        Value::Struct(
-                            [
-                                (
-                                    String::from("decl"),
-                                    Value::Struct(
-                                        [
-                                            (String::from("ok"), value_generator(None)),
-                                            (String::from("ok_too"), value_generator(None)),
-                                        ]
-                                        .iter()
-                                        .cloned()
-                                        .collect(),
-                                    ),
-                                ),
-                                (String::from("decl2"), value_generator(None)),
-                            ]
-                            .iter()
-                            .cloned()
-                            .collect(),
-                        ),
-                    )]
-                    .iter()
-                    .cloned()
-                    .collect(),
-                ),
-            ),
-            (
-                String::from("linux"),
-                Value::Struct(
-                    [
-                        (String::from("debian_9"), value_generator(None)),
-                        (String::from("debian_10"), value_generator(None)),
-                    ]
-                    .iter()
-                    .cloned()
-                    .collect(),
-                ),
-            ),
-            (String::from("windows"), value_generator(None)),
-        ]
-        .iter()
-        .cloned()
-        .collect();
-
-        assert_eq!(context, Value::Struct(os));
+        assert_eq!(context.variables[&"sys".into()], VarKind::Struct(os));
     }
 }

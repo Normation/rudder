@@ -8,7 +8,7 @@ pub mod resource;
 pub mod value;
 
 use self::{
-    context::{VarContext, VarKind},
+    context::VarContext,
     enums::EnumList,
     resource::*,
     value::Value,
