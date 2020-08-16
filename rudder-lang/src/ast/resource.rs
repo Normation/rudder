@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::{
-    context::{VarContext, VarKind},
+    context::{VarContext, VarType},
     enums::{EnumExpression, EnumList},
     value::Value,
 };
@@ -93,7 +93,7 @@ fn create_default_context<'src>(
     let mut context = VarContext::new();
     let mut errors = Vec::new();
     for p in resource_parameters.iter().chain(parameters.iter()) {
-        if let Err(e) = context.new_variable(Some(global_context), p.name, p.value.clone()) {
+        if let Err(e) = context.add_variable(Some(global_context), p.name, &p.value) {
             errors.push(e);
         }
     }
@@ -325,7 +325,7 @@ fn push_default_parameters<'src>(
 }
 
 fn string_value<'src, VG>(getter: &VG, enum_list: &EnumList<'src>, pvalue: PValue<'src>) -> Result<Value<'src>>
-    where VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
+    where VG: Fn(Token<'src>) -> Option<VarType<'src>>,
 {
     let value = Value::from_pvalue(enum_list, &getter, pvalue)?;
     // check that definition use existing variables
@@ -355,16 +355,15 @@ impl<'src> Statement<'src> {
             PStatement::VariableDefinition(pmetadata, var, val) => {
                 let value = Value::from_pvalue(enum_list, &{ |x| common_getter(context,x) }, val)?;
                 match value {
-                    Value::Boolean(_, _) => context.new_enum_variable(
+                    Value::Boolean(_, _) => context.add_variable(
                         Some(global_context),
                         var,
-                        Token::new("stdlib", "boolean"),
-                        None,
+                        VarType::Boolean
                     )?,
                     _ => {
                         // check that definition use existing variables
                         value.context_check(&{ |x| common_getter(context,x) })?;
-                        context.new_variable(Some(global_context), var, value.clone())?;
+                        context.add_variable(Some(global_context), var, &value)?;
                     }
                 }
                 let (mut _errors, metadata) = create_metadata(pmetadata);
@@ -382,11 +381,10 @@ impl<'src> Statement<'src> {
             }) => {
                 if let Some(out_var) = outcome {
                     // outcome must be defined, token comes from internal compilation, no value known a compile time
-                    context.new_enum_variable(
+                    context.add_variable(
                         Some(global_context),
                         out_var,
-                        Token::new("internal", "outcome"),
-                        None,
+                        VarType::Enum(Token::new("internal", "outcome")),
                     )?;
                 }
                 children.insert(resource);

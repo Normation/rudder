@@ -18,6 +18,7 @@ use std::{
     cmp::Ordering,
     collections::{HashMap, HashSet},
 };
+use crate::ast::context::VarType;
 
 // TODO v2: type inference, compatibility metadata
 // TODO aliases
@@ -99,7 +100,7 @@ impl<'src> AST<'src> {
     fn add_enums(&mut self, enums: Vec<PEnum<'src>>) {
         for en in enums {
             if en.global {
-                if let Err(e) = self.context.new_enum_variable(None, en.name, en.name, None) {
+                if let Err(e) = self.context.add_variable(None, en.name, VarType::Enum(en.name)) {
                     self.errors.push(e);
                 }
             }
@@ -171,17 +172,17 @@ impl<'src> AST<'src> {
     /// Insert the variables definition into the global declaration space
     fn add_variables(&mut self, variable_declarations: Vec<(Token<'src>, PValue<'src>)>) {
         for (variable, value) in variable_declarations {
-            if let Err(e) = self.context.new_variable(
+            if let Err(e) = self.context.add_variable(
                 None,
                 variable,
-                Value::from_static_pvalue(value.clone()).unwrap(),
+                &Value::from_static_pvalue(value.clone()).unwrap(),
             ) {
                 self.errors.push(e);
             }
             let getter = |k| self.context.get(&k);
             match Value::from_pvalue(&self.enum_list, &getter, value) {
                 Err(e) => self.errors.push(e),
-                Ok(val) => {
+                Ok(val) => 
                     self.variable_declarations.insert(variable, val);
                 }
             }

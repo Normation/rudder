@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::{
-    context::VarKind,
+    context::VarType,
     enums::{EnumExpression, EnumList},
 };
 use crate::{error::*, parser::*};
@@ -100,7 +100,7 @@ impl<'src> Value<'src> {
         pvalue: PValue<'src>,
     ) -> Result<Value<'src>>
     where
-        VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
+        VG: Fn(Token<'src>) -> Option<VarType<'src>>,
     {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
@@ -141,7 +141,7 @@ impl<'src> Value<'src> {
     // TODO check where it is called
     pub fn context_check<VG>(&self, _getter: &VG) -> Result<()>
     where
-        VG: Fn(Token<'src>) -> Option<VarKind<'src>>,
+        VG: Fn(Token<'src>) -> Option<VarType<'src>>,
     {
         match self {
             Value::String(s) => {
