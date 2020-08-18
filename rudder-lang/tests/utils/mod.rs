@@ -83,7 +83,7 @@ fn compile_file(
                 technique_name.bright_yellow()
             );
             Ok(())
-        },
+        }
         Err(err) => {
             println!(
                 "{}: compilation of {} failed:\n{}",

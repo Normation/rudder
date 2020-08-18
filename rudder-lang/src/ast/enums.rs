@@ -6,10 +6,7 @@ use super::{
     enum_tree::{EnumItem, EnumTree},
     resource::Statement,
 };
-use crate::{
-    error::*,
-    parser::*,
-};
+use crate::{error::*, parser::*};
 use std::collections::{HashMap, HashSet};
 use toml::map::Map as TomlMap;
 use toml::Value as TomlValue;
@@ -344,22 +341,24 @@ impl<'src> EnumList<'src> {
         getter: &VG,
         expr: PEnumExpression<'src>,
     ) -> Result<EnumExpression<'src>>
-        where
-            VG: Fn(Token<'src>) -> Option<VarType<'src>>,
+    where
+        VG: Fn(Token<'src>) -> Option<VarType<'src>>,
     {
         let PEnumExpression { source, expression } = expr;
-        self.canonify_expression_part(getter, expression).map(
-            |x| EnumExpression{ source, expression: x }
-        )
+        self.canonify_expression_part(getter, expression)
+            .map(|x| EnumExpression {
+                source,
+                expression: x,
+            })
     }
-    
+
     fn canonify_expression_part<VG>(
         &self,
         getter: &VG,
         expr: PEnumExpressionPart<'src>,
     ) -> Result<EnumExpressionPart<'src>>
-        where
-            VG: Fn(Token<'src>) -> Option<VarType<'src>>,
+    where
+        VG: Fn(Token<'src>) -> Option<VarType<'src>>,
     {
         match expr {
             PEnumExpressionPart::Default(t) => Ok(EnumExpressionPart::Default(t)),

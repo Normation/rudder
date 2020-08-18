@@ -14,7 +14,7 @@ pub enum VarType<'src> {
     String,
     Number,
     Boolean,
-    List, // TODO should be subtypable / generic like struct
+    List,                                   // TODO should be subtypable / generic like struct
     Struct(HashMap<String, VarType<'src>>), // Token instead of string ?
 }
 
@@ -23,33 +23,45 @@ impl<'src> From<&Value<'src>> for VarType<'src> {
     fn from(val: &Value<'src>) -> Self {
         match val {
             Value::String(_) => VarType::String,
-            Value::Number(_,_) => VarType::Number,
-            Value::Boolean(_,_) => VarType::Boolean,
+            Value::Number(_, _) => VarType::Number,
+            Value::Boolean(_, _) => VarType::Boolean,
             Value::EnumExpression(_) => VarType::Boolean,
             Value::List(_) => VarType::List,
             Value::Struct(s) => {
-                let spec = s.iter().map(
-                    |(k,v)| (k.clone(), VarType::from(v))
-                ).collect::<HashMap<String, VarType<'src>>>();
+                let spec = s
+                    .iter()
+                    .map(|(k, v)| (k.clone(), VarType::from(v)))
+                    .collect::<HashMap<String, VarType<'src>>>();
                 VarType::Struct(spec)
-            },
+            }
         }
     }
 }
 
 impl<'src> VarType<'src> {
     /// Create a type from parsed tokens
-    pub fn from_ptype(var_type: Option<Token<'src>>, mut sub_elts: Vec<Token<'src>>) -> Result<VarType<'src>> {
+    pub fn from_ptype(
+        var_type: Option<Token<'src>>,
+        mut sub_elts: Vec<Token<'src>>,
+    ) -> Result<VarType<'src>> {
         Ok(if sub_elts.len() == 0 {
             match var_type {
                 None => VarType::String, // default type is String
-                Some(name) => { // supported named types
-                    if *name == "String" { VarType::String }
-                    else if *name == "Number" { VarType::Number }
-                    else if *name == "Boolean" { VarType::Boolean }
-                    else if *name == "List" { VarType::List }
-                    else if *name == "Struct" { VarType::Struct(HashMap::new()) }
-                    else { fail!(name, "{} is an invalid type", name) }
+                Some(name) => {
+                    // supported named types
+                    if *name == "String" {
+                        VarType::String
+                    } else if *name == "Number" {
+                        VarType::Number
+                    } else if *name == "Boolean" {
+                        VarType::Boolean
+                    } else if *name == "List" {
+                        VarType::List
+                    } else if *name == "Struct" {
+                        VarType::Struct(HashMap::new())
+                    } else {
+                        fail!(name, "{} is an invalid type", name)
+                    }
                 }
             }
         } else {
@@ -98,43 +110,43 @@ impl<'src> VarContext<'src> {
         &mut self,
         upper_context: Option<&VarContext<'src>>, // TODO maybe we should not have an upper context and just clone the context when needed
         name: Token<'src>,
-        type_value: T) -> Result<()>
-        where T: Into<VarType<'src>>
+        type_value: T,
+    ) -> Result<()>
+    where
+        T: Into<VarType<'src>>,
     {
         // disallow variable shadowing (TODO is that what we want ?)
         if let Some(gc) = upper_context {
             if gc.variables.contains_key(&name) {
                 fail!(
-                        name,
-                        "Variable {} hides global variable {}",
-                        name,
-                        gc.variables.get_key_value(&name).unwrap().0
-                    );
+                    name,
+                    "Variable {} hides global variable {}",
+                    name,
+                    gc.variables.get_key_value(&name).unwrap().0
+                );
             }
         }
         // disallow variable redefinition except for struct which extends the structure
         if self.variables.contains_key(&name) {
             let current = self.variables.get_mut(&name).unwrap();
             match current {
-                VarType::Struct(desc) => {
-                    match type_value.into() {
-                        VarType::Struct(new_desc) => {
-                            VarContext::extend_struct(name, desc, new_desc)?;
-                        }
-                        _ => fail!(
-                            name,
-                            "Variable {} extends a struct {} but is not a struct",
-                            name,
-                            self.variables.entry(name).key()
-                        )
+                VarType::Struct(desc) => match type_value.into() {
+                    VarType::Struct(new_desc) => {
+                        VarContext::extend_struct(name, desc, new_desc)?;
                     }
-                }
+                    _ => fail!(
+                        name,
+                        "Variable {} extends a struct {} but is not a struct",
+                        name,
+                        self.variables.entry(name).key()
+                    ),
+                },
                 _ => fail!(
                     name,
                     "Variable {} redefines an existing variable {}",
                     name,
                     self.variables.entry(name).key()
-                )
+                ),
             }
         } else {
             self.variables.insert(name, type_value.into());
@@ -143,44 +155,45 @@ impl<'src> VarContext<'src> {
     }
 
     /// extend a struct description with another struct description (recursive)
-    fn extend_struct(name: Token<'src>, desc: &mut HashMap<String, VarType<'src>>, new_desc: HashMap<String, VarType<'src>>) -> Result<()> {
-        for (k,v) in new_desc {
+    fn extend_struct(
+        name: Token<'src>,
+        desc: &mut HashMap<String, VarType<'src>>,
+        new_desc: HashMap<String, VarType<'src>>,
+    ) -> Result<()> {
+        for (k, v) in new_desc {
             match desc.get_mut(&k) {
-                None => { desc.insert(k, v); },
-                Some(VarType::Struct(subtype)) => {
-                    match v {
-                        VarType::Struct(new_subtype) => VarContext::extend_struct(name, subtype, new_subtype)?,
-                        _ => fail!(
-                            name,
-                            "Element {} is defined twice in {}",
-                            k, name
-                        ),
+                None => {
+                    desc.insert(k, v);
+                }
+                Some(VarType::Struct(subtype)) => match v {
+                    VarType::Struct(new_subtype) => {
+                        VarContext::extend_struct(name, subtype, new_subtype)?
                     }
+                    _ => fail!(name, "Element {} is defined twice in {}", k, name),
                 },
-                _ => fail!(
-                    name,
-                    "Element {} is defined twice in {}",
-                    k, name
-                ),
+                _ => fail!(name, "Element {} is defined twice in {}", k, name),
             }
         }
         Ok(())
     }
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use maplit::hashmap;
     use crate::parser::{tests::*, *};
+    use maplit::hashmap;
     use pretty_assertions::assert_eq;
 
     #[test]
     fn test_context() {
         let mut context = VarContext::new();
         assert!(context
-            .add_variable(None, pidentifier_t("var1"), VarType::Enum(pidentifier_t("enum1")))
+            .add_variable(
+                None,
+                pidentifier_t("var1"),
+                VarType::Enum(pidentifier_t("enum1"))
+            )
             .is_ok());
         assert!(context
             .add_variable(
@@ -209,7 +222,12 @@ mod tests {
     #[test]
     fn test_context_tree_generator() {
         fn add_variable<'a>(context: &mut VarContext<'a>, input: &'a str) -> Result<()> {
-            let PVariableDecl { metadata: _, name, sub_elts, var_type} = pvariable_declaration_t(input);
+            let PVariableDecl {
+                metadata: _,
+                name,
+                sub_elts,
+                var_type,
+            } = pvariable_declaration_t(input);
             let type_ = VarType::from_ptype(var_type, sub_elts).unwrap();
             context.add_variable(None, name, type_)
         }

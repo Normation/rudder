@@ -23,9 +23,15 @@ pub fn create_metadata(pmetadata: Vec<PMetadata>) -> (Vec<Error>, TomlMap<String
         // check that we have a real key=value table
         let table = match meta.values {
             TomlValue::Table(t) => t,
-            _ => { errors.push(err!(meta.source, "Metadata syntax error, must be a key=value")); continue }
+            _ => {
+                errors.push(err!(
+                    meta.source,
+                    "Metadata syntax error, must be a key=value"
+                ));
+                continue;
+            }
         };
-        for (key,value) in table {
+        for (key, value) in table {
             // Check for uniqueness and concat comments
             match output.entry(key) {
                 toml::map::Entry::Occupied(mut entry) => {
@@ -35,25 +41,26 @@ pub fn create_metadata(pmetadata: Vec<PMetadata>) -> (Vec<Error>, TomlMap<String
                         let comment = match entry.get() {
                             TomlValue::String(s1) => match value {
                                 TomlValue::String(s2) => s1.to_owned() + &s2,
-                                _ => { errors
-                                        .push(err!(meta.source, "Comment metadata must be of type string"));
-                                      continue },
-                            },
-                            _ => { errors.push(err!(
+                                _ => {
+                                    errors.push(err!(
                                         meta.source,
-                                        "Existing comment metadata must be of type string"
+                                        "Comment metadata must be of type string"
                                     ));
-                                    continue
+                                    continue;
+                                }
+                            },
+                            _ => {
+                                errors.push(err!(
+                                    meta.source,
+                                    "Existing comment metadata must be of type string"
+                                ));
+                                continue;
                             }
                         };
                         entry.insert(TomlValue::String(comment));
                     } else {
                         // if this is an existing key, there is an error
-                        errors.push(err!(
-                            meta.source,
-                            "metadata {} already defined",
-                            key,
-                        ));
+                        errors.push(err!(meta.source, "metadata {} already defined", key,));
                     }
                 }
                 toml::map::Entry::Vacant(entry) => {
@@ -324,8 +331,13 @@ fn push_default_parameters<'src>(
     Ok(())
 }
 
-fn string_value<'src, VG>(getter: &VG, enum_list: &EnumList<'src>, pvalue: PValue<'src>) -> Result<Value<'src>>
-    where VG: Fn(Token<'src>) -> Option<VarType<'src>>,
+fn string_value<'src, VG>(
+    getter: &VG,
+    enum_list: &EnumList<'src>,
+    pvalue: PValue<'src>,
+) -> Result<Value<'src>>
+where
+    VG: Fn(Token<'src>) -> Option<VarType<'src>>,
 {
     let value = Value::from_pvalue(enum_list, &getter, pvalue)?;
     // check that definition use existing variables
@@ -348,21 +360,23 @@ impl<'src> Statement<'src> {
     ) -> Result<Statement<'src>> {
         // we must not capture the context in this common getter since it is used
         // as mutable elsewhere in this function
-        let common_getter = |ctx: &VarContext<'src>, k: Token<'src>| {
-            ctx.get(&k).or_else(|| global_context.get(&k))
-        };
+        let common_getter =
+            |ctx: &VarContext<'src>, k: Token<'src>| ctx.get(&k).or_else(|| global_context.get(&k));
         Ok(match st {
-            PStatement::VariableDefinition(PVariableDef{metadata, name, value}) => {
-                let value = Value::from_pvalue(enum_list, &{ |x| common_getter(context,x) }, value)?;
+            PStatement::VariableDefinition(PVariableDef {
+                metadata,
+                name,
+                value,
+            }) => {
+                let value =
+                    Value::from_pvalue(enum_list, &{ |x| common_getter(context, x) }, value)?;
                 match value {
-                    Value::Boolean(_, _) => context.add_variable(
-                        Some(global_context),
-                        name,
-                        VarType::Boolean
-                    )?,
+                    Value::Boolean(_, _) => {
+                        context.add_variable(Some(global_context), name, VarType::Boolean)?
+                    }
                     _ => {
                         // check that definition use existing variables
-                        value.context_check(&{ |x| common_getter(context,x) })?;
+                        value.context_check(&{ |x| common_getter(context, x) })?;
                         context.add_variable(Some(global_context), name, &value)?;
                     }
                 }
@@ -389,11 +403,11 @@ impl<'src> Statement<'src> {
                 }
                 children.insert(resource);
                 let mut resource_params = map_vec_results(resource_params.into_iter(), |v| {
-                    Value::from_pvalue(enum_list, &{ |x| common_getter(context,x) }, v)
+                    Value::from_pvalue(enum_list, &{ |x| common_getter(context, x) }, v)
                 })?;
                 push_default_parameters(resource, None, parameter_defaults, &mut resource_params)?;
                 let mut state_params = map_vec_results(state_params.into_iter(), |v| {
-                    Value::from_pvalue(enum_list, &{ |x| common_getter(context,x) }, v)
+                    Value::from_pvalue(enum_list, &{ |x| common_getter(context, x) }, v)
                 })?;
                 push_default_parameters(
                     resource,
@@ -402,8 +416,12 @@ impl<'src> Statement<'src> {
                     &mut state_params,
                 )?;
                 // check that parameters use existing variables
-                map_results(resource_params.iter(), |p| p.context_check(&{ |x| common_getter(context,x) }))?;
-                map_results(state_params.iter(), |p| p.context_check(&{ |x| common_getter(context,x) }))?;
+                map_results(resource_params.iter(), |p| {
+                    p.context_check(&{ |x| common_getter(context, x) })
+                })?;
+                map_results(state_params.iter(), |p| {
+                    p.context_check(&{ |x| common_getter(context, x) })
+                })?;
                 let (mut _errors, metadata) = create_metadata(metadata);
                 Statement::StateDeclaration(StateDeclaration {
                     source,
@@ -416,18 +434,26 @@ impl<'src> Statement<'src> {
                     outcome,
                 })
             }
-            PStatement::Fail(f) => {
-                Statement::Fail(string_value(&{ |x| common_getter(context,x) }, enum_list, f)?)
-            }
-            PStatement::LogDebug(l) => {
-                Statement::LogDebug(string_value(&{ |x| common_getter(context,x) }, enum_list, l)?)
-            }
-            PStatement::LogInfo(l) => {
-                Statement::LogInfo(string_value(&{ |x| common_getter(context,x) }, enum_list, l)?)
-            }
-            PStatement::LogWarn(l) => {
-                Statement::LogWarn(string_value(&{ |x| common_getter(context,x) }, enum_list, l)?)
-            }
+            PStatement::Fail(f) => Statement::Fail(string_value(
+                &{ |x| common_getter(context, x) },
+                enum_list,
+                f,
+            )?),
+            PStatement::LogDebug(l) => Statement::LogDebug(string_value(
+                &{ |x| common_getter(context, x) },
+                enum_list,
+                l,
+            )?),
+            PStatement::LogInfo(l) => Statement::LogInfo(string_value(
+                &{ |x| common_getter(context, x) },
+                enum_list,
+                l,
+            )?),
+            PStatement::LogWarn(l) => Statement::LogWarn(string_value(
+                &{ |x| common_getter(context, x) },
+                enum_list,
+                l,
+            )?),
             PStatement::Return(r) => {
                 if r == Token::new("", "kept")
                     || r == Token::new("", "repaired")
@@ -446,7 +472,8 @@ impl<'src> Statement<'src> {
             PStatement::Case(case, v) => Statement::Case(
                 case,
                 map_vec_results(v.into_iter(), |(exp, sts)| {
-                    let expr = enum_list.canonify_expression(&{ |x| common_getter(context,x) }, exp)?;
+                    let expr =
+                        enum_list.canonify_expression(&{ |x| common_getter(context, x) }, exp)?;
                     Ok((
                         expr,
                         map_vec_results(sts.into_iter(), |st| {

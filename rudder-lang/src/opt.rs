@@ -6,7 +6,6 @@ use log::LevelFilter;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 pub struct IOOpt {

@@ -10,16 +10,16 @@ extern crate serde_json;
 #[macro_use]
 pub mod error;
 mod ast;
-pub mod io;
-pub mod opt;
 pub mod compile;
 pub mod generator;
+pub mod io;
+pub mod opt;
 pub use generator::Format;
+pub mod cfstrings;
 pub mod logger;
 mod parser;
-pub mod technique;
 pub mod rudderlang_lib;
-pub mod cfstrings;
+pub mod technique;
 
 use serde::Deserialize;
 use std::fmt;

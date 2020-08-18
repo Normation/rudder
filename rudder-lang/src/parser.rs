@@ -221,12 +221,10 @@ pub struct PEnumExpression<'src> {
     pub expression: PEnumExpressionPart<'src>,
 }
 fn penum_expression(i: PInput) -> PResult<PEnumExpression> {
-    penum_expression_part(i).map(
-        |(rest,expression)| {
-            let source = get_parsed_context(i, i, rest);
-            (rest, PEnumExpression { source, expression })
-        }
-    )
+    penum_expression_part(i).map(|(rest, expression)| {
+        let source = get_parsed_context(i, i, rest);
+        (rest, PEnumExpression { source, expression })
+    })
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -242,8 +240,14 @@ pub enum PEnumExpressionPart<'src> {
         Option<Token<'src>>,
         Token<'src>,
     ),
-    And(Box<PEnumExpressionPart<'src>>, Box<PEnumExpressionPart<'src>>),
-    Or(Box<PEnumExpressionPart<'src>>, Box<PEnumExpressionPart<'src>>),
+    And(
+        Box<PEnumExpressionPart<'src>>,
+        Box<PEnumExpressionPart<'src>>,
+    ),
+    Or(
+        Box<PEnumExpressionPart<'src>>,
+        Box<PEnumExpressionPart<'src>>,
+    ),
     Not(Box<PEnumExpressionPart<'src>>),
     Default(Token<'src>),
     NoDefault(Token<'src>),
@@ -577,26 +581,28 @@ pub struct PMetadata<'src> {
     pub values: TomlValue,
 }
 fn pmetadata(i: PInput) -> PResult<PMetadata> {
-    let (i0,_) = strip_spaces_and_comment(i)?;
-    let mut it = iterator(i0, delimited(tag("@"),not_line_ending,line_ending));
+    let (i0, _) = strip_spaces_and_comment(i)?;
+    let mut it = iterator(i0, delimited(tag("@"), not_line_ending, line_ending));
     let metadata_string = it.map(|v| *v.fragment()).collect::<Vec<&str>>().join("\n");
-    let (rest,_) = it.finish()?;
+    let (rest, _) = it.finish()?;
     if &metadata_string == "" {
-        return  Err(nom::Err::Error(PError {
+        return Err(nom::Err::Error(PError {
             context: None,
             kind: PErrorKind::NoMetadata,
         }));
     }
     let values = match toml::de::from_str(&metadata_string) {
         Ok(v) => v,
-        Err(e) => return Err(nom::Err::Error(PError {
-            context: None,
-            kind: PErrorKind::TomlError(i,e),
-        })),
+        Err(e) => {
+            return Err(nom::Err::Error(PError {
+                context: None,
+                kind: PErrorKind::TomlError(i, e),
+            }))
+        }
     };
 
-    let source = get_parsed_context(i,i0,rest);
-    let (rest,_) = strip_spaces_and_comment(rest)?;
+    let source = get_parsed_context(i, i0, rest);
+    let (rest, _) = strip_spaces_and_comment(rest)?;
     Ok((rest, PMetadata { source, values }))
 }
 
@@ -615,7 +621,7 @@ fn pcomment(i: PInput) -> PResult<PMetadata> {
         ),
         |x: PInput| x.to_string(),
     ))(i)?;
-    let source = get_parsed_context(i0,i0,i);
+    let source = get_parsed_context(i0, i0, i);
     let mut data = toml::map::Map::new();
     data.insert("comment".into(), TomlValue::String(lines.join("\n")));
     Ok((
@@ -885,7 +891,10 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
             PStatement::Return,
         ),
         map(preceded(sp(etag("fail")), pvalue), PStatement::Fail),
-        map(preceded(sp(etag("log_debug")), pvalue), PStatement::LogDebug),
+        map(
+            preceded(sp(etag("log_debug")), pvalue),
+            PStatement::LogDebug,
+        ),
         map(preceded(sp(etag("log_info")), pvalue), PStatement::LogInfo),
         map(preceded(sp(etag("log_warn")), pvalue), PStatement::LogWarn),
         map(etag("noop"), |_| PStatement::Noop),
@@ -1029,4 +1038,3 @@ fn pfile(i: PInput) -> PResult<PFile> {
 // tests must be at the end to be able to test macros
 #[cfg(test)]
 pub mod tests; // pub for use by other tests only
-

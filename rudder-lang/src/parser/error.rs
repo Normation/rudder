@@ -22,30 +22,30 @@ pub type PResult<'src, O> = IResult<PInput<'src>, O, PError<PInput<'src>>>;
 pub enum PErrorKind<I> {
     Nom(VerboseError<I>), // TODO remove this one
     #[cfg(test)]
-    NomTest(String),          // cannot be use outside of tests
+    NomTest(String), // cannot be use outside of tests
     ExpectedKeyword(&'static str), // anywhere (keyword type)
     ExpectedToken(&'static str), // anywhere (expected token)
-    InvalidEnumExpression,      // in enum expression
-    InvalidEscapeSequence,      // in string definition
-    InvalidFormat,              // in header
-    InvalidName(I),             // in identifier expressions (type of expression)
-    InvalidVariableReference,   // during string interpolation
-    NoMetadata,                 // Temporary error, always caught, should not happen
-    TomlError(I,toml::de::Error), // Error during toml parsing
-    UnsupportedMetadata(I),     // metadata or comments are not supported everywhere (metadata key)
-    UnterminatedDelimiter(I),   // after an opening delimiter (first delimiter)
-    UnterminatedOrInvalid(I),   // can't say whether a delimiter is missing or a statement format is invalid
-    Unparsed(I),                // cannot be parsed
+    InvalidEnumExpression, // in enum expression
+    InvalidEscapeSequence, // in string definition
+    InvalidFormat,        // in header
+    InvalidName(I),       // in identifier expressions (type of expression)
+    InvalidVariableReference, // during string interpolation
+    NoMetadata,           // Temporary error, always caught, should not happen
+    TomlError(I, toml::de::Error), // Error during toml parsing
+    UnsupportedMetadata(I), // metadata or comments are not supported everywhere (metadata key)
+    UnterminatedDelimiter(I), // after an opening delimiter (first delimiter)
+    UnterminatedOrInvalid(I), // can't say whether a delimiter is missing or a statement format is invalid
+    Unparsed(I),              // cannot be parsed
 }
 
 // This is the same thing as a closure (Fn() -> I) but I couldn't manage to cope with lifetime
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Context<I> {
     pub extractor: fn(I, I) -> I,
     pub text: I,
     pub token: I,
 }
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct PError<I> {
     pub context: Option<Context<I>>,
     pub kind: PErrorKind<I>,
@@ -261,4 +261,3 @@ pub fn fix_error_type<T>(res: PResult<T>) -> Result<T> {
         Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
     }
 }
-

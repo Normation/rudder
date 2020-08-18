@@ -7,18 +7,13 @@ pub mod enums;
 pub mod resource;
 pub mod value;
 
-use self::{
-    context::VarContext,
-    enums::EnumList,
-    resource::*,
-    value::Value,
-};
+use self::{context::VarContext, enums::EnumList, resource::*, value::Value};
+use crate::ast::context::VarType;
 use crate::{error::*, parser::*};
 use std::{
     cmp::Ordering,
     collections::{HashMap, HashSet},
 };
-use crate::ast::context::VarType;
 
 // TODO v2: type inference, compatibility metadata
 // TODO aliases
@@ -103,7 +98,10 @@ impl<'src> AST<'src> {
     fn add_enums(&mut self, enums: Vec<PEnum<'src>>) {
         for en in enums {
             if en.global {
-                if let Err(e) = self.context.add_variable(None, en.name, VarType::Enum(en.name)) {
+                if let Err(e) = self
+                    .context
+                    .add_variable(None, en.name, VarType::Enum(en.name))
+                {
                     self.errors.push(e);
                 }
             }
@@ -175,7 +173,11 @@ impl<'src> AST<'src> {
     /// Insert the variables definition into the global definition space
     fn add_variables(&mut self, variables: Vec<PVariableDef<'src>>) {
         for variable in variables {
-            let PVariableDef { metadata, name, value} = variable;
+            let PVariableDef {
+                metadata,
+                name,
+                value,
+            } = variable;
             if let Err(e) = self.context.add_variable(
                 None,
                 name,
@@ -196,13 +198,19 @@ impl<'src> AST<'src> {
     /// Insert the variables declarations into the global context
     fn add_magic_variables(&mut self, variables: Vec<PVariableDecl<'src>>) {
         for variable in variables {
-            let PVariableDecl { metadata, name, sub_elts, var_type} = variable;
+            let PVariableDecl {
+                metadata,
+                name,
+                sub_elts,
+                var_type,
+            } = variable;
             match VarType::from_ptype(var_type, sub_elts) {
-                Ok(_type) => 
-                    if let Err(e) = self.context.add_variable(None, name,_type) {
+                Ok(_type) => {
+                    if let Err(e) = self.context.add_variable(None, name, _type) {
                         self.errors.push(e);
-                    },
-                Err(e) => self.errors.push(e)
+                    }
+                }
+                Err(e) => self.errors.push(e),
             }
         }
     }

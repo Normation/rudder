@@ -47,11 +47,7 @@ impl fmt::Display for IOContext {
             "{}",
             &format!(
                 "{} of {:?} into {:?}. Format used is {}. Libraries path: {:?}.",
-                self.mode,
-                self.source,
-                self.dest,
-                self.format,
-                self.stdlib,
+                self.mode, self.source, self.dest, self.format, self.stdlib,
             )
         )
     }

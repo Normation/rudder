@@ -6,7 +6,7 @@ pub mod dsc;
 pub mod json;
 pub mod markdown;
 
-pub use self::{cfengine::CFEngine, dsc::DSC, markdown::Markdown, json::JSON};
+pub use self::{cfengine::CFEngine, dsc::DSC, json::JSON, markdown::Markdown};
 use crate::{ast::AST, error::*};
 use serde::de::{self, Deserialize, Deserializer};
 use std::{fmt, path::Path, str::FromStr};

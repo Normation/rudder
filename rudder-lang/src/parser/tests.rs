@@ -40,7 +40,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::InvalidName(i) => PErrorKind::InvalidName(*i.fragment()),
         PErrorKind::InvalidVariableReference => PErrorKind::InvalidVariableReference,
         PErrorKind::NoMetadata => PErrorKind::NoMetadata,
-        PErrorKind::TomlError(i,e) => PErrorKind::TomlError(*i.fragment(),e),
+        PErrorKind::TomlError(i, e) => PErrorKind::TomlError(*i.fragment(), e),
         PErrorKind::UnsupportedMetadata(i) => PErrorKind::UnsupportedMetadata(*i.fragment()),
         PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(*i.fragment()),
         PErrorKind::UnterminatedOrInvalid(i) => PErrorKind::UnterminatedOrInvalid(*i.fragment()),
@@ -374,7 +374,11 @@ fn test_penum_expression() {
             "",
             PEnumExpression {
                 source: "a=~T.bc".into(),
-                expression: PEnumExpressionPart::Compare(Some("a".into()), Some("T".into()), "bc".into())
+                expression: PEnumExpressionPart::Compare(
+                    Some("a".into()),
+                    Some("T".into()),
+                    "bc".into()
+                )
             }
         ))
     );
@@ -412,11 +416,13 @@ fn test_penum_expression() {
     );
     assert_eq!(
         map_res(penum_expression, "bc"),
-        Ok(("",
+        Ok((
+            "",
             PEnumExpression {
                 source: "bc".into(),
                 expression: PEnumExpressionPart::Compare(None, None, "bc".into())
-            }))
+            }
+        ))
     );
     assert_eq!(
         map_res(penum_expression, "bc..de"),
@@ -440,7 +446,13 @@ fn test_penum_expression() {
             "",
             PEnumExpression {
                 source: "..de".into(),
-                expression: PEnumExpressionPart::RangeCompare(None, None, None, Some("de".into()), "..".into())
+                expression: PEnumExpressionPart::RangeCompare(
+                    None,
+                    None,
+                    None,
+                    Some("de".into()),
+                    "..".into()
+                )
             }
         ))
     );
@@ -466,7 +478,13 @@ fn test_penum_expression() {
             "",
             PEnumExpression {
                 source: "bc..".into(),
-                expression: PEnumExpressionPart::RangeCompare(None, None, Some("bc".into()), None, "..".into())
+                expression: PEnumExpressionPart::RangeCompare(
+                    None,
+                    None,
+                    Some("bc".into()),
+                    None,
+                    "..".into()
+                )
             }
         ))
     );
@@ -520,7 +538,11 @@ fn test_penum_expression() {
                     Box::new(PEnumExpressionPart::Compare(None, None, "bc".into())),
                     Box::new(PEnumExpressionPart::Or(
                         Box::new(PEnumExpressionPart::Compare(None, None, "a".into())),
-                        Box::new(PEnumExpressionPart::Compare(Some("b".into()), None, "g".into()))
+                        Box::new(PEnumExpressionPart::Compare(
+                            Some("b".into()),
+                            None,
+                            "g".into()
+                        ))
                     )),
                 )
             }
@@ -740,11 +762,12 @@ fn test_pmetadata() {
     // Test with internal serde_toml structure to make sure we agree on this
     let test1 = "@key=\"value\"\n";
     let mut res = toml::map::Map::new();
-    res.insert("key".into(),TomlValue::String("value".into()));
+    res.insert("key".into(), TomlValue::String("value".into()));
     assert_eq!(
         map_res(pmetadata, test1),
-        Ok(("",
-            PMetadata{
+        Ok((
+            "",
+            PMetadata {
                 source: test1.into(),
                 values: TomlValue::Table(res)
             }
@@ -754,8 +777,9 @@ fn test_pmetadata() {
     let test2 = "@key1 = {\"key2\"=\"value\"}\n@key3 = 1234\n";
     assert_eq!(
         map_res(pmetadata, test2),
-        Ok(("",
-            PMetadata{
+        Ok((
+            "",
+            PMetadata {
                 source: test2.into(),
                 values: toml::de::from_str("key1 = {\"key2\"=\"value\"}\nkey3 = 1234\n").unwrap()
             }
@@ -763,16 +787,17 @@ fn test_pmetadata() {
     );
     let test3 = "@key1 = {\"key2\"=\"value\"}\n@key3 = 1234\n";
     assert_eq!(
-        map_res(pmetadata, &("  ".to_owned()+test3)),
-        Ok(("",
-            PMetadata{
+        map_res(pmetadata, &("  ".to_owned() + test3)),
+        Ok((
+            "",
+            PMetadata {
                 source: test3.into(),
                 values: toml::de::from_str("key1 = {\"key2\"=\"value\"}\nkey3 = 1234\n").unwrap()
             }
         ))
     );
-    assert!(pmetadata(PInput::new_extra("@key value\n","")).is_err());
-    assert!(pmetadata(PInput::new_extra("\n","")).is_err());
+    assert!(pmetadata(PInput::new_extra("@key value\n", "")).is_err());
+    assert!(pmetadata(PInput::new_extra("\n", "")).is_err());
 }
 
 #[test]
@@ -785,7 +810,7 @@ fn test_pmetadata_list() {
         Ok((
             "",
             vec![
-                PMetadata{
+                PMetadata {
                     source: "@key=\"value\"\n".into(),
                     values: toml::de::from_str("key=\"value\"").unwrap()
                 },
@@ -793,7 +818,7 @@ fn test_pmetadata_list() {
                     source: "##hello\n##Herman\n".into(),
                     values: toml::de::from_str("comment=\"hello\\nHerman\"").unwrap(),
                 },
-                PMetadata{
+                PMetadata {
                     source: "@key=123\n".into(),
                     values: toml::de::from_str("key=123").unwrap()
                 },
@@ -1072,7 +1097,7 @@ fn test_variable_declaration() {
             PVariableDecl {
                 metadata: Vec::new(),
                 name: "my_var".into(),
-                sub_elts: vec![ "sub".into(), "element".into(), "x".into()],
+                sub_elts: vec!["sub".into(), "element".into(), "x".into()],
                 var_type: None
             }
         ))
@@ -1084,7 +1109,7 @@ fn test_variable_declaration() {
             PVariableDecl {
                 metadata: Vec::new(),
                 name: "my_var".into(),
-                sub_elts: vec![ "sub".into(), "element".into(), "x".into()],
+                sub_elts: vec!["sub".into(), "element".into(), "x".into()],
                 var_type: Some("String".into())
             }
         ))
@@ -1135,13 +1160,11 @@ fn test_pstatement() {
         map_res(pstatement, "let my_var=\"string\"\n"),
         Ok((
             "",
-            PStatement::VariableDefinition(
-                PVariableDef {
-                    metadata: Vec::new(),
-                    name: "my_var".into(),
-                    value: PValue::String("\"".into(), "string".into())
-                }
-            )
+            PStatement::VariableDefinition(PVariableDef {
+                metadata: Vec::new(),
+                name: "my_var".into(),
+                value: PValue::String("\"".into(), "string".into())
+            })
         ))
     );
 
@@ -1149,13 +1172,11 @@ fn test_pstatement() {
         map_res(pstatement, "let my_var= a=~bc\n"),
         Ok((
             "",
-            PStatement::VariableDefinition(
-                PVariableDef {
-                    metadata: Vec::new(),
-                    name: "my_var".into(),
-                    value: PValue::EnumExpression(map_res(penum_expression, "a=~bc\n").unwrap().1)
-                }
-            )
+            PStatement::VariableDefinition(PVariableDef {
+                metadata: Vec::new(),
+                name: "my_var".into(),
+                value: PValue::EnumExpression(map_res(penum_expression, "a=~bc\n").unwrap().1)
+            })
         ))
     );
     let st = "case { ubuntu => f().g(), debian => a().b() }";

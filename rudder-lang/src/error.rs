@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use crate::logger::Backtrace;
 /// We write our own error type to have a consistent error type through all our code.
 /// We translate other types to this one when necessary.
 /// All case contain 4 elements:
@@ -12,7 +13,6 @@
 /// - List: aggregate compilation errors so that user can fix them all ant once
 ///
 use crate::parser::Token;
-use crate::logger::Backtrace;
 use colored::Colorize;
 use ngrammatic::CorpusBuilder;
 use std::{collections::HashMap, fmt, hash::Hash};
@@ -34,9 +34,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 impl Error {
     pub fn new(description: String) -> Self {
-        let  backtrace: Option<Backtrace> = match std::env::var("RUDDERC_BACKTRACE") {
+        let backtrace: Option<Backtrace> = match std::env::var("RUDDERC_BACKTRACE") {
             Ok(ref val) if val != "0" => Some(Backtrace::new()),
-            _ => None
+            _ => None,
         };
         Error::User((description, backtrace))
     }
@@ -188,35 +188,31 @@ where
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::User((msg, bt)) => {
-                write!(
-                    f,
-                    "{} at {}{}",
-                    "error".red(),
-                    msg,
-                    bt.as_ref().map_or("".to_owned(), |bt| bt.to_string())
-                )
-            },
-            Error::List(v) => {
-                write!(
-                    f,
-                    "{}:\n{}",
-                    "errors".red(),
-                    v.iter()
-                        .map(|(msg, bt)| format!(
-                            "{}{}",
-                            msg,
-                            bt.as_ref().map_or("".to_owned(), |bt| bt.to_string())
-                        ))
-                        .collect::<Vec<String>>()
-                        .join("\n")
-                )
-            }
+            Error::User((msg, bt)) => write!(
+                f,
+                "{} at {}{}",
+                "error".red(),
+                msg,
+                bt.as_ref().map_or("".to_owned(), |bt| bt.to_string())
+            ),
+            Error::List(v) => write!(
+                f,
+                "{}:\n{}",
+                "errors".red(),
+                v.iter()
+                    .map(|(msg, bt)| format!(
+                        "{}{}",
+                        msg,
+                        bt.as_ref().map_or("".to_owned(), |bt| bt.to_string())
+                    ))
+                    .collect::<Vec<String>>()
+                    .join("\n")
+            ),
         }
     }
 }
 
-// WARNING: the only purpose of this impl is to print a proper output in case of core::panic 
+// WARNING: the only purpose of this impl is to print a proper output in case of core::panic
 // should not be used otherwise
 // debug was called on Error which was breaking the compilation output in case core::panic was called
 impl fmt::Debug for Error {
@@ -224,12 +220,15 @@ impl fmt::Debug for Error {
         let err_msg = match self {
             Error::User((msg, _)) => msg.to_owned(),
             Error::List(v) => {
-                let errors = v.iter()
-                    .map(|(msg, bt)| format!(
-                        "{}{}",
-                        msg,
-                        bt.as_ref().map_or("".to_owned(), |bt| bt.to_string())
-                    ))
+                let errors = v
+                    .iter()
+                    .map(|(msg, bt)| {
+                        format!(
+                            "{}{}",
+                            msg,
+                            bt.as_ref().map_or("".to_owned(), |bt| bt.to_string())
+                        )
+                    })
                     .collect::<Vec<String>>()
                     .join("\n");
                 format!("(list) {}", errors)
@@ -239,15 +238,12 @@ impl fmt::Debug for Error {
     }
 }
 
-
 impl PartialEq for Error {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Error::User(a), Error::User(b)) => a.0 == b.0,
             (Error::List(a), Error::List(b)) => {
-                a.iter()
-                    .map(|(e, _)| e)
-                    .eq(b.iter().map(|(e, _)| e))
+                a.iter().map(|(e, _)| e).eq(b.iter().map(|(e, _)| e))
             }
             _ => false,
         }

@@ -7,7 +7,7 @@ use crate::{
     generator::new_generator,
     io::IOContext,
     parser::{Token, PAST},
-    rudderlang_lib::RudderlangLib
+    rudderlang_lib::RudderlangLib,
 };
 use colored::Colorize;
 use std::{fs, path::Path};
@@ -37,7 +37,10 @@ pub fn parse_file<'src>(
     }
 }
 
-pub fn technique_to_ast<'src>(ctx: &'src IOContext, sources: &'src Arena<String>) -> Result<AST<'src>> {
+pub fn technique_to_ast<'src>(
+    ctx: &'src IOContext,
+    sources: &'src Arena<String>,
+) -> Result<AST<'src>> {
     // add stdlib: resourcelib + corelib + oslib + cfengine_core
     let mut past = RudderlangLib::past(&ctx.stdlib, sources)?;
 

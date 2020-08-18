@@ -18,9 +18,7 @@ use log::*;
 use std::process::exit;
 use structopt::StructOpt;
 
-use rudderc::{
-    compile::compile_file, io, logger::Logger, opt::Opt, technique::generate, Action,
-};
+use rudderc::{compile::compile_file, io, logger::Logger, opt::Opt, technique::generate, Action};
 
 // MAIN
 
@@ -86,9 +84,9 @@ fn main() {
     info!("I/O context: {}", ctx);
 
     // Actual action
-    // TODO : check compiler github ; update geerators / translation 
+    // TODO : check compiler github ; update geerators / translation
     // json -> rl (/ cf / dsc ?)
-    // rl -> json / cf / dsc 
+    // rl -> json / cf / dsc
     let result = match action {
         Action::Compile => compile_file(&ctx, true),
         Action::Translate => generate(&ctx),

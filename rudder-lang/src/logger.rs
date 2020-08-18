@@ -40,7 +40,9 @@ impl Backtrace {
                 })
                 .and_then(|fmt_name| {
                     // do not put logger in the backtrace since it always ultimately calls panic_hook and print_backtrace
-                    if fmt_name.starts_with("rudderc::logger") || fmt_name.starts_with("rudderc::error::Error::new") {
+                    if fmt_name.starts_with("rudderc::logger")
+                        || fmt_name.starts_with("rudderc::error::Error::new")
+                    {
                         return None;
                     }
                     Some(format!(
@@ -75,7 +77,8 @@ impl Backtrace {
 /// Display backtrace to the final user
 impl fmt::Display for Backtrace {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let stringified_trace = self.0
+        let stringified_trace = self
+            .0
             .frames()
             .iter()
             .filter_map(|frame| {

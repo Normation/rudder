@@ -57,7 +57,7 @@ impl<'src> Token<'src> {
 
     pub fn from_lib(&self) -> bool {
         // Should do the trick for now, since we have no context in here to get libs/std/ filenames dynamically
-        // Should be updated at some point since it is errorprone 
+        // Should be updated at some point since it is errorprone
         [
             "command.rl",
             "condition.rl",
@@ -79,9 +79,9 @@ impl<'src> Token<'src> {
             "user.rl",
             "variable.rl",
             "windows.rl",
-        ].contains(&self.val.extra)
+        ]
+        .contains(&self.val.extra)
     }
-
 
     pub fn start_pos(&self) -> usize {
         self.val.location_offset()

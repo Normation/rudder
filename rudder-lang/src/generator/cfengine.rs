@@ -331,11 +331,10 @@ impl Generator for CFEngine {
                     resource
                         .metadata
                         .get(name)
-                        .and_then(|v|
-                            match v {
-                                TomlValue::String(s) => Some(s.to_owned()),
-                                _ => None,
-                            })
+                        .and_then(|v| match v {
+                            TomlValue::String(s) => Some(s.to_owned()),
+                            _ => None,
+                        })
                         .unwrap_or_else(|| "unknown".to_string())
                 };
 
