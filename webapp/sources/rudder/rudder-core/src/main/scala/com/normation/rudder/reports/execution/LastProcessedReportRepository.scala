@@ -61,10 +61,9 @@ trait LastProcessedReportRepository {
    * database.
    */
 
-  def getExecutionStatus : Box[Option[(Long,DateTime)]]
+  def getExecutionStatus: Box[Option[(Long, DateTime)]]
 
-  def setExecutionStatus (newId : Long, reportsDate : DateTime): Box[DB.StatusUpdate]
-
+  def setExecutionStatus(newId: Long, reportsDate: DateTime): Box[DB.StatusUpdate]
 }
 
 

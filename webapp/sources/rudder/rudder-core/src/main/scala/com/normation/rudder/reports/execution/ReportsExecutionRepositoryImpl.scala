@@ -38,6 +38,8 @@
 package com.normation.rudder.reports.execution
 
 
+
+
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 import com.normation.rudder.repository.jdbc.PostgresqlInClause
@@ -47,12 +49,12 @@ import com.normation.rudder.db.Doobie._
 import doobie._
 import doobie.implicits._
 import cats.implicits._
+import com.normation.errors.IOResult
+import com.normation.rudder.db.DB.UncomputedAgentRun
 import com.normation.utils.Control.sequence
 import zio._
-import com.normation.rudder.domain.reports.NodeExpectedReports
-import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.domain.reports.{ExpectedReportsSerialisation, NodeConfigId, NodeExpectedReports, NodeStatusReport}
 import org.joda.time.DateTime
-import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
 import com.normation.zio.ZioRuntime
 import zio.interop.catz._
 
@@ -64,6 +66,16 @@ final case class RoReportsExecutionRepositoryImpl (
 
   import Doobie._
   import db._
+
+  /**
+   * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
+   */
+  def getUnprocessedRuns(): IOResult[Seq[UncomputedAgentRun]] = {
+    transactIOResult(s"Error when getting unprocessed runs")(xa => query[DB.UncomputedAgentRun](
+      s"""SELECT nodeid, date, nodeconfigid, insertionid, insertiondate FROM ReportsExecution where compliancecomputatiodate is null"""
+    ).to[Vector].transact(xa))
+  }
+  def getNodesLastRunv2(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = ???
 
   /**
    * Retrieve last agent runs for the given nodes.
@@ -157,6 +169,13 @@ final case class WoReportsExecutionRepositoryImpl (
 ) extends WoReportsExecutionRepository with Loggable {
 
   import db._
+
+  def setComplianceComputationDate(runs: List[UncomputedAgentRun]): IOResult[Int] = {
+    val updateKeys = runs.map(x => (x.nodeId, x.date, x.nodeConfigId))
+    val sql = """UPDATE reportsexecution set compliancecomputatiodate = now() where nodeid = ? and date = ? and nodeconfigid = ?"""
+    transactIOResult(s"Error when updating compliance computation date for runs")(xa => Update[(String, DateTime, String)](sql).updateMany(updateKeys).transact(xa)
+    )
+  }
 
   def updateExecutions(runs : Seq[AgentRun]) : Seq[Box[AgentRun]] =  {
 

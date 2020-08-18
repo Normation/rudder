@@ -149,6 +149,14 @@ final object DB {
     def toAgentRun = RudderAgentRun(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId), isCompleted, insertionId)
   }
 
+  final case class UncomputedAgentRun(
+      nodeId       : String
+    , date         : DateTime
+    , nodeConfigId : String
+    , insertionId  : Long
+    , insertionDate: DateTime
+  )
+
   //////////
 
 final case class StatusUpdate(

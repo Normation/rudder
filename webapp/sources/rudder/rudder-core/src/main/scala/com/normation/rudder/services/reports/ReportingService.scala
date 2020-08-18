@@ -56,6 +56,8 @@ trait ReportingService {
    */
   def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules : Set[RuleId]): Box[Map[NodeId, NodeStatusReport]]
 
+  def findUncomputedNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]]
+
   /**
    * find rule status reports for a given rule.
    */

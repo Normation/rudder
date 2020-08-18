@@ -179,12 +179,14 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     override def nodeInfoService: NodeInfoService = testNodeInfoService
     override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = ???
     override def findNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
+    override def findUncomputedNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = ???
     override def getUserNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]] = ???
     override def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
     override def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = ???
     override def findUserNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
     override def findSystemNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
     override def getUserAndSystemNodeStatusReports(optNodeIds: Option[Set[NodeId]]): Box[(Map[NodeId, NodeStatusReport],Map[NodeId, NodeStatusReport])] = ???
+
 
   }
 

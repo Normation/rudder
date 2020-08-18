@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2020 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,32 +35,19 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.batch
+/*
+  First we need to mark all reports whose compliance was already computed as with a compliance
+  lastid in statusupdate tells us which reports were last considered
+  this is unfortunately quite a slow query on large systems
+*/
 
-import net.liftweb.common.Box
-import net.liftweb.util.Helpers.tryo
-import com.normation.rudder.reports.execution.ReportsExecutionService
+ALTER TABLE ReportsExecution
+ADD COLUMN insertiondate timestamp,
+ADD COLUMN  compliancecomputatiodate timestamp;
+
+UPDATE ReportsExecution set compliancecomputatiodate = now() where insertionId <= (select lastid from statusupdate);
+
+CREATE INDEX reportsexecution_uncomputedrun_idx on ReportsExecution (compliancecomputatiodate) where compliancecomputatiodate IS NULL;
 
 
-
-/**
- * That batch scheduler periodically store Nodes executions.
- *
- * The actual copy is delegated to
- *
- */
-object FindNewReportsExecution {
-  val SERVICE_NAME = "Store Agent Run Times"
-
-}
-class FindNewReportsExecution (
-    reportsExecutionService : ReportsExecutionService
-  , val updateInterval      : Int // in seconds
-) extends AbstractScheduler {
-
-  type T = Unit
-  lazy val executeTask: Long => Box[Unit]  = (processId:Long) => tryo{reportsExecutionService.findAndSaveExecutionsV2(processId)}
-  lazy val displayName : String = FindNewReportsExecution.SERVICE_NAME
-  lazy val propertyName : String = "rudder.batch.storeAgentRunTimes.updateInterval"
-
-}
+DROP INDEX reportsexecution_insertionid_idx;
