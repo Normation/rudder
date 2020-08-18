@@ -41,11 +41,12 @@ import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.domain.logger.{ReportLogger, TimingDebugLogger}
-import com.normation.rudder.domain.reports.NodeAndConfigId
+import com.normation.rudder.domain.reports.{NodeAndConfigId, NodeConfigId}
 import com.normation.rudder.repository.FindExpectedReportRepository
 import zio._
 import com.normation.zio._
 import com.normation.errors._
+import com.normation.rudder.db.DB.UncomputedAgentRun
 
 /**
  * Service for reading or storing execution of Nodes
@@ -62,6 +63,13 @@ trait RoReportsExecutionRepository {
    * See ticket http://www.rudder-project.org/redmine/issues/6005
    */
   def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]]
+
+  def getNodesLastRunv2(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]]
+
+  /**
+   * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
+   */
+  def getUnprocessedRuns(): IOResult[Seq[UncomputedAgentRun]]
 }
 
 
@@ -74,10 +82,12 @@ trait WoReportsExecutionRepository {
    * The logic is:
    * - a new execution (not present in backend) is inserted as provided
    * - a existing execution can only change the completion status from
-   *   "not completed" to "completed" (i.e: a completed execution can
-   *   not be un-completed).
+   * "not completed" to "completed" (i.e: a completed execution can
+   * not be un-completed).
    */
-  def updateExecutions(executions : Seq[AgentRun]) : Seq[Box[AgentRun]]
+  def updateExecutions(executions: Seq[AgentRun]): Seq[Box[AgentRun]]
+
+  def setComplianceComputationDate(runs: List[UncomputedAgentRun]): IOResult[Int]
 
 }
 
@@ -132,6 +142,47 @@ class CachedReportsExecutionRepository(
       cache.view.filterKeys { x => nodeIds.contains(x) }.toMap
     }) ?~! s"Error when trying to update the cache of Agent Runs informations"
   }).runNow
+
+
+
+  override def getUnprocessedRuns(): IOResult[Seq[UncomputedAgentRun]] = {
+    ???
+  }
+
+  /**
+   * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
+   */
+  def getNodesLastRunv2(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore.withPermit(IOResult.effect {
+    val n1 = System.currentTimeMillis
+    (for {
+      // Ohhhh, types are aweful here
+      unprocessedRuns <- readBackend.getUnprocessedRuns
+      // first evolution, get same behaviour than before, and returns only the last run per node
+      lastRunByNode = unprocessedRuns.groupBy(_.nodeId).map {
+        case (nodeid, seq) => (NodeId(nodeid), seq.sortBy(_.date).last)
+      }
+      agentsRuns =   lastRunByNode.map(x => (x._1, NodeAndConfigId(x._1, NodeConfigId(x._2.nodeConfigId))))
+
+      expectedReports <- findConfigs.getExpectedReports(agentsRuns.values.toSet).toIO
+
+      runs = agentsRuns.map { case (nodeId, nodeAndConfigId) =>
+        (nodeId,
+          Some(AgentRunWithNodeConfig(
+               AgentRunId(nodeId, lastRunByNode(nodeId).date)
+             , expectedReports.get(nodeAndConfigId).map(optionalExpectedReport => (nodeAndConfigId.version, optionalExpectedReport))
+             , true
+             , lastRunByNode(nodeId).insertionId)))}
+      // and finally mark them read. It's so much easier to do it now than to carry all data all the way long
+      _  <- writeBackend.setComplianceComputationDate(unprocessedRuns.toList)
+    } yield {
+      val n2 = System.currentTimeMillis
+      TimingDebugLogger.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
+      cache = cache ++ runs
+
+      cache.view.filterKeys { x => runs.contains(x) }.toMap
+    })
+  }).runNow
+
 
   override def updateExecutions(executions : Seq[AgentRun]) : Seq[Box[AgentRun]] = semaphore.withPermit(IOResult.effect {
     logger.trace(s"Update runs for nodes [${executions.map( _.agentRunId.nodeId.value ).mkString(", ")}]")
@@ -196,4 +247,6 @@ class CachedReportsExecutionRepository(
     cache = cache ++ results
     runs
   }).runNow
+
+  def setComplianceComputationDate(runs: List[UncomputedAgentRun]): IOResult[Int] = ???
 }

@@ -106,6 +106,66 @@ class ReportsExecutionService (
     (catchupFromDateTime, fromReportId, computeCatchupEndTime(catchupFromDateTime))
   }
 
+  // This is much simpler than before:
+  // * get unprocessed reports
+  // * process them
+  // * mark them as processed
+  // * save compliance
+  def findAndSaveExecutionsV2(processId : Long): Box[Option[DB.StatusUpdate]] = {
+    val startTime = DateTime.now()
+    statusUpdateRepository.getExecutionStatus match {
+      // Find it, start looking for new executions
+      case Full(Some((lastReportId,lastReportDate))) =>
+        if(idForCheck != 0 && lastReportId != idForCheck) {
+          logger.error(s"There is an inconsistency in the processed agent runs: last process report id should be ${idForCheck} " +
+            s"but the value ${lastReportId} was retrieve from base. Check that you don't have several Rudder application " +
+            s"using the same database, or report that message to you support")
+        }
+
+        // then find last reports id
+        reportsRepository.getHighestId() match {
+          case eb:EmptyBox =>
+            val fail = eb ?~! "Could not get Reports with highest id from the RudderSysEvents table"
+            logger.error(s"Could not get reports from the database, cause is: ${fail.messageChain}")
+            fail
+          case Full(maxReportId) =>
+            // ok, we'll manage reports from lastReportId to maxReportId - and this is only useful for changes
+
+            fetchRunsAndCompliance()
+
+            hookForChanges(lastReportId, maxReportId)
+
+            val executionTime = DateTime.now().getMillis() - startTime.getMillis
+            logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
+              s"Added or updated xxxxx agent runs")
+            idForCheck = maxReportId
+            statusUpdateRepository.setExecutionStatus(maxReportId, startTime).map( Some(_) )
+
+
+        }
+
+      // Executions status not initialized ... initialize it!
+      case Full(None) =>
+        reportsRepository.getReportsWithLowestId match {
+          case Full(Some((id, report))) =>
+            logger.debug(s"Initializing the status execution update to  id ${id}, date ${report.executionTimestamp}")
+            idForCheck = id
+            statusUpdateRepository.setExecutionStatus(id, report.executionTimestamp).map( Some(_) )
+          case Full(None) =>
+            logger.debug("There are no node execution in the database, cannot save the execution")
+            Full( None )
+          case eb:EmptyBox =>
+            val fail = eb ?~! "Could not get Reports with lowest id from the RudderSysEvents table"
+            logger.error(s"Could not get reports from the database, cause is: ${fail.messageChain}")
+            fail
+        }
+      case eb:EmptyBox =>
+        val fail = eb ?~! "Could not get node execution status"
+        logger.error(s"Could not get node executions reports from the RudderSysEvents table  cause is: ${fail.messageChain}")
+        fail
+    }
+  }
+
   def findAndSaveExecutions(processId : Long): Box[Option[DB.StatusUpdate]] = {
 
     val startTime = DateTime.now().getMillis()
@@ -210,7 +270,6 @@ class ReportsExecutionService (
         val fail = eb ?~! "Could not get node execution status"
         logger.error(s"Could not get node executions reports from the RudderSysEvents table  cause is: ${fail.messageChain}")
         fail
-
     }
   }
 
@@ -229,6 +288,8 @@ class ReportsExecutionService (
     val updateCompliance = {
       cachedCompliance.invalidate(updatedNodeIds) *>
       (for {
+
+        // we don't need anything before that actually
         runs <- cachedCompliance.findRuleNodeStatusReports(updatedNodeIds, Set()).toIO
         _    <- complianceRepos.saveRunCompliance(runs.values.toList)
       } yield ())
@@ -240,4 +301,38 @@ class ReportsExecutionService (
 
   }
 
+  def fetchRunsAndCompliance() = {
+    // fetch unprocessed run
+    // process
+    // update cache
+    // profit
+    val startCompliance = System.currentTimeMillis
+
+    val updateCompliance = {
+      for {
+        nodeWithCompliances <- cachedCompliance.findUncomputedNodeStatusReports().toIO
+        invalidate          <- cachedCompliance.invalidateWithCompliance(nodeWithCompliances.map { case (nodeid, compliance) => (nodeid, Some(compliance))}.toSeq)
+        _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList)
+      } yield ()
+    }
+    updateCompliance.runNow
+
+    import org.joda.time.Duration
+    logger.debug(s"Computing compliance in : ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startCompliance).toPeriod())}")
+  }
+
+  /*
+  * The hook method where the other method needing to happen when
+  * new reports are processed are called.
+  */
+  private[this] def hookForChanges(lowestId: Long, highestId: Long) : Unit = {
+    val startHooks = System.currentTimeMillis
+
+    // notify changes updates
+    cachedChanges.update(lowestId, highestId)
+
+    import org.joda.time.Duration
+    logger.debug(s"Hooks from changes updates time: ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startHooks).toPeriod())}")
+
+  }
 }

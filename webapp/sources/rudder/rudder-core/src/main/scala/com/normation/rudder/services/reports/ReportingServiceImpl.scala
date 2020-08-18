@@ -104,6 +104,9 @@ class CachedReportingServiceImpl(
   val confExpectedRepo = defaultFindRuleNodeStatusReports.confExpectedRepo
   val directivesRepo   = defaultFindRuleNodeStatusReports.directivesRepo
   val rulesRepo        = defaultFindRuleNodeStatusReports.rulesRepo
+
+  def findUncomputedNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = ???
+
 }
 
 /**
@@ -262,7 +265,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * It's a List and not a Set, because we want to keep the precedence in
    * invalidation request.
    */
-  private[this] val invalidateComplianceRequest = Queue.dropping[List[NodeId]](1).runNow
+  private[this] val invalidateComplianceRequest = Queue.dropping[List[(NodeId, Option[NodeStatusReport])]](1).runNow
 
   /**
    * We need a semaphore to protect queue content merge-update
@@ -275,12 +278,25 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   val updateCacheFromRequest: IO[Nothing, Unit] = invalidateComplianceRequest.take.flatMap(invalidatedIds =>
     // batch node processing by slice of batchSize.
     // Be careful, sliding default step is 1.
-    ZIO.foreach_(invalidatedIds.sliding(batchSize,batchSize).to(Iterable))(nodeIds =>
-      (for {
-        updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(nodeIds.toSet, Set()).toIO
-        _       <- IOResult.effectNonBlocking { cache = cache ++ updated }
-        _       <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${nodeIds.map(_.value).mkString(", ")}")
-      } yield ()).catchAll(err => ReportLoggerPure.Cache.error(s"Error when updating compliance cache for nodes: [${nodeIds.map(_.value).mkString(", ")}]: ${err.fullMsg}"))
+
+    ZIO.foreach_(invalidatedIds.sliding(batchSize,batchSize).to(Iterable))(nodeIdsWithOptionnalCompliance =>
+      // list is limited in size by construction.to batchSize
+      // i need to take the last one for each nodeid (if compliance is invalidated by a generation after its been computed, it still
+      // needs to be invalidated
+      // so groupBy NodeId, and take last element for each
+
+      {
+        val (nodeIdsWithoutCompliance, nodeIdsWithCompliance) = nodeIdsWithOptionnalCompliance.groupBy(_._1).map { case (nodeId, list) => (nodeId, list.last._2) }.partition(_._2.isDefined)
+
+        for {
+          updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(nodeIdsWithoutCompliance.keys.toSet, Set()).toIO
+          _       <- IOResult.effectNonBlocking {
+            cache = cache ++ updated
+            cache = cache ++ nodeIdsWithCompliance.map(x => (x._1, x._2.get))
+          }
+          _ <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${nodeIdsWithOptionnalCompliance.map(_._1).map(_.value).mkString(", ")}")
+        } yield ()
+      }.catchAll(err => ReportLoggerPure.Cache.error(s"Error when updating compliance cache for nodes: [${nodeIdsWithOptionnalCompliance.map(_._1).map(_.value).mkString(", ")}]: ${err.fullMsg}"))
     )
   )
 
@@ -312,9 +328,24 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       ReportLoggerPure.Cache.debug(s"Compliance cache: invalidation request for nodes: [${nodeIds.map { _.value }.mkString(",")}]") *>
       invalidateMergeUpdateSemaphore.withPermit(for {
         elements <- invalidateComplianceRequest.takeAll
-        allIds   =  (elements.flatten ++ nodeIds).distinct
+        allIds   =  (elements.flatten.toMap ++ nodeIds.map(ids => (ids, None))).toList
         _        <- invalidateComplianceRequest.offer(allIds)
       } yield ())
+    }
+  }
+
+  /**
+   * Invalidate some keys in the cache, and offer the compliance with it
+   * The update is computed asynchronously.
+   */
+  def invalidateWithCompliance(nodeWithCompliance: Seq[(NodeId, Option[NodeStatusReport])]): IOResult[Unit] = {
+    ZIO.when(nodeWithCompliance.nonEmpty) {
+      ReportLoggerPure.Cache.debug(s"Compliance cache: invalidation request for nodes with compliance: [${nodeWithCompliance.map(_._1).map { _.value }.mkString(",")}]") *>
+        invalidateMergeUpdateSemaphore.withPermit(for {
+          elements <- invalidateComplianceRequest.takeAll
+          allIds   =  (elements.flatten.toMap ++ nodeWithCompliance.toMap).toList
+          _        <- invalidateComplianceRequest.offer(allIds)
+        } yield ())
     }
   }
 
@@ -507,6 +538,83 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                            }
       t1                =  System.currentTimeMillis
       _                 =  TimingDebugLogger.trace(s"Compliance: get nodes last run : ${t1-t0}ms")
+      currentConfigs    <- confExpectedRepo.getCurrentExpectedsReports(nodeIds)
+      t2                =  System.currentTimeMillis
+      _                 =  TimingDebugLogger.trace(s"Compliance: get current expected reports: ${t2-t1}ms")
+      nodeConfigIdInfos <- confExpectedRepo.getNodeConfigIdInfos(nodeIds)
+      t3                =  System.currentTimeMillis
+      _                 =  TimingDebugLogger.trace(s"Compliance: get Node Config Id Infos: ${t3-t2}ms")
+    } yield {
+      ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos)
+    }
+  }
+
+
+  override def findUncomputedNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = {
+    /*
+     * This is the main logic point to computed reports.
+     *
+     * Compliance for a given node is a function of ONLY(expectedNodeConfigId, lastReceivedAgentRun).
+     *
+     * The logic is:
+     *
+     * - get the untreated reports
+     * - for these given nodes,
+     * - get the expected configuration right now
+     *   - errors may happen if the node does not exist (has been deleted)
+     *     => "no data for that node"
+     *
+     * If nodeConfigId(last run) == nodeConfigId(expected config)
+     *  => simple compare & merge
+     * else {
+     *   - expected reports INTERSECTION received report ==> compute the compliance on
+     *      received reports (with an expiration date)
+     *   - expected reports - received report ==> pending reports (with an expiration date)
+     *
+     * }
+     *
+     * All nodeIds get a value in the returnedMap, because:
+     * - getNodeRunInfos(nodeIds).keySet == nodeIds AND
+     * - runInfos.keySet == buildNodeStatusReports(runInfos,...).keySet
+     * So nodeIds === returnedMap.keySet holds
+     */
+    val t0 = System.currentTimeMillis
+    for {
+      complianceMode      <- getGlobalComplianceMode()
+      unexpectedMode      <- getUnexpectedInterpretation()
+      // get untreated runs
+      uncomputedRuns      <- getUnComputedNodeRunInfos(complianceMode)
+      t1                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.trace(s"Compliance: get uncomputed node run infos: ${t1-t0}ms")
+
+      // that gives us configId for runs, and expected configId (some may be in both set)
+      expectedConfigIds   =  uncomputedRuns.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfig.nodeConfigId) }
+      lastrunConfigId     =  uncomputedRuns.collect {
+        case (nodeId, Pending(_, Some(run), _)) => NodeAndConfigId(nodeId, run._2.nodeConfigId)
+        case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId)
+      }
+
+      t2                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t2-t0}ms")
+
+      // compute the status
+      nodeStatusReports   <- buildNodeStatusReports(uncomputedRuns, Set(), complianceMode.mode, unexpectedMode)
+
+      t2                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t2-t1}ms")
+    } yield {
+      nodeStatusReports
+    }
+  }
+
+
+  private[this] def getUnComputedNodeRunInfos(complianceMode: GlobalComplianceMode): Box[Map[NodeId, RunAndConfigInfo]] = {
+    val t0 = System.currentTimeMillis
+    for {
+      runs              <- agentRunRepository.getNodesLastRunv2().toBox
+      t1                =  System.currentTimeMillis
+      _                 =  TimingDebugLogger.trace(s"Compliance: get nodes last run : ${t1-t0}ms")
+      nodeIds           = runs.keys.toSet
       currentConfigs    <- confExpectedRepo.getCurrentExpectedsReports(nodeIds)
       t2                =  System.currentTimeMillis
       _                 =  TimingDebugLogger.trace(s"Compliance: get current expected reports: ${t2-t1}ms")

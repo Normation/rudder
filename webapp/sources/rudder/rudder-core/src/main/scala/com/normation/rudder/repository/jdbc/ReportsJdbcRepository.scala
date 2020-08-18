@@ -303,7 +303,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   }
 
   override def getHighestId() : Box[Long] = {
-    transactRunBox(xa => query[Long](s"select id from RudderSysEvents order by id desc limit 1").unique.transact(xa))
+    transactRunBox(xa => query[Long](s"""SELECT last_value FROM serial""").unique.transact(xa))
   }
 
   override def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Long, Reports)]] = {
