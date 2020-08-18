@@ -1000,30 +1000,33 @@ fn test_variable_definition() {
         map_res(pvariable_definition, r#"let my_var="value""#),
         Ok((
             "",
-            (
-                "my_var".into(),
-                PValue::String("\"".into(), "value".to_string())
-            )
+            PVariableDef {
+                metadata: Vec::new(),
+                name: "my_var".into(),
+                value: PValue::String("\"".into(), "value".to_string())
+            }
         ))
     );
     assert_eq!(
         map_res(pvariable_definition, r#"let my_var = "value" "#),
         Ok((
             "",
-            (
-                "my_var".into(),
-                PValue::String("\"".into(), "value".to_string())
-            )
+            PVariableDef {
+                metadata: Vec::new(),
+                name: "my_var".into(),
+                value: PValue::String("\"".into(), "value".to_string())
+            }
         ))
     );
     assert_eq!(
         map_res(pvariable_definition, "let my_var=\"val\nue\"\n"),
         Ok((
             "",
-            (
-                "my_var".into(),
-                PValue::String("\"".into(), "val\nue".to_string())
-            )
+            PVariableDef {
+                metadata: Vec::new(),
+                name: "my_var".into(),
+                value: PValue::String("\"".into(), "val\nue".to_string())
+            }
         ))
     );
     assert_eq!(
@@ -1033,6 +1036,58 @@ fn test_variable_definition() {
     assert_eq!(
         map_res(pvariable_definition, "my_var = :\n"),
         Err(("my_var = :", PErrorKind::ExpectedKeyword("let")))
+    );
+}
+
+#[test]
+fn test_variable_declaration() {
+    assert_eq!(
+        map_res(pvariable_declaration, "let my_var"),
+        Ok((
+            "",
+            PVariableDecl {
+                metadata: Vec::new(),
+                name: "my_var".into(),
+                sub_elts: Vec::new(),
+                var_type: None
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(pvariable_declaration, "let my_var: String"),
+        Ok((
+            "",
+            PVariableDecl {
+                metadata: Vec::new(),
+                name: "my_var".into(),
+                sub_elts: Vec::new(),
+                var_type: Some("String".into())
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(pvariable_declaration, "let my_var.sub.element.x"),
+        Ok((
+            "",
+            PVariableDecl {
+                metadata: Vec::new(),
+                name: "my_var".into(),
+                sub_elts: vec![ "sub".into(), "element".into(), "x".into()],
+                var_type: None
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(pvariable_declaration, "let my_var.sub.element.x: String"),
+        Ok((
+            "",
+            PVariableDecl {
+                metadata: Vec::new(),
+                name: "my_var".into(),
+                sub_elts: vec![ "sub".into(), "element".into(), "x".into()],
+                var_type: Some("String".into())
+            }
+        ))
     );
 }
 
@@ -1081,9 +1136,11 @@ fn test_pstatement() {
         Ok((
             "",
             PStatement::VariableDefinition(
-                Vec::new(),
-                "my_var".into(),
-                PValue::String("\"".into(), "string".into())
+                PVariableDef {
+                    metadata: Vec::new(),
+                    name: "my_var".into(),
+                    value: PValue::String("\"".into(), "string".into())
+                }
             )
         ))
     );
@@ -1093,9 +1150,11 @@ fn test_pstatement() {
         Ok((
             "",
             PStatement::VariableDefinition(
-                Vec::new(),
-                "my_var".into(),
-                PValue::EnumExpression(map_res(penum_expression, "a=~bc\n").unwrap().1)
+                PVariableDef {
+                    metadata: Vec::new(),
+                    name: "my_var".into(),
+                    value: PValue::EnumExpression(map_res(penum_expression, "a=~bc\n").unwrap().1)
+                }
             )
         ))
     );
@@ -1222,4 +1281,6 @@ pub fn pidentifier_t(input: &str) -> Token {
     test_t(pidentifier, input)
 }
 
-pub fn pvariable_declaration_t(input: &str) -> (Token, PValue) { test_t(pvariable_declaration,input) }
+pub fn pvariable_declaration_t(input: &str) -> PVariableDecl {
+    test_t(pvariable_declaration, input)
+}

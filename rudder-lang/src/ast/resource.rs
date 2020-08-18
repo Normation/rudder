@@ -352,22 +352,22 @@ impl<'src> Statement<'src> {
             ctx.get(&k).or_else(|| global_context.get(&k))
         };
         Ok(match st {
-            PStatement::VariableDefinition(pmetadata, var, val) => {
-                let value = Value::from_pvalue(enum_list, &{ |x| common_getter(context,x) }, val)?;
+            PStatement::VariableDefinition(PVariableDef{metadata, name, value}) => {
+                let value = Value::from_pvalue(enum_list, &{ |x| common_getter(context,x) }, value)?;
                 match value {
                     Value::Boolean(_, _) => context.add_variable(
                         Some(global_context),
-                        var,
+                        name,
                         VarType::Boolean
                     )?,
                     _ => {
                         // check that definition use existing variables
                         value.context_check(&{ |x| common_getter(context,x) })?;
-                        context.add_variable(Some(global_context), var, &value)?;
+                        context.add_variable(Some(global_context), name, &value)?;
                     }
                 }
-                let (mut _errors, metadata) = create_metadata(pmetadata);
-                Statement::VariableDefinition(metadata, var, value)
+                let (mut _errors, metadata) = create_metadata(metadata);
+                Statement::VariableDefinition(metadata, name, value)
             }
             PStatement::StateDeclaration(PStateDeclaration {
                 source,

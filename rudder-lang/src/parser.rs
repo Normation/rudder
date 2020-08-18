@@ -45,7 +45,8 @@ pub struct PAST<'src> {
     pub enum_aliases: Vec<PEnumAlias<'src>>,
     pub resources: Vec<PResourceDef<'src>>,
     pub states: Vec<PStateDef<'src>>,
-    pub variable_declarations: Vec<(Token<'src>, PValue<'src>)>,
+    pub variable_definitions: Vec<PVariableDef<'src>>,
+    pub variable_declarations: Vec<PVariableDecl<'src>>,
     pub parameter_defaults: Vec<(Token<'src>, Option<Token<'src>>, Vec<Option<PValue<'src>>>)>, // separate parameter defaults since they will be processed first
     pub parents: Vec<(Token<'src>, Token<'src>)>,
     pub aliases: Vec<PAliasDef<'src>>,
@@ -84,7 +85,8 @@ impl<'src> PAST<'src> {
                         .push((s.resource_name, Some(s.name), d));
                     self.states.push(s);
                 }
-                PDeclaration::GlobalVar(kv) => self.variable_declarations.push(kv),
+                PDeclaration::GlobalVar(kv) => self.variable_definitions.push(kv),
+                PDeclaration::MagicVar(kv) => self.variable_declarations.push(kv),
                 PDeclaration::Alias(a) => self.aliases.push(a),
             });
         Ok(())
@@ -702,51 +704,43 @@ fn presource_ref(i: PInput) -> PResult<(Token, Vec<PValue>)> {
 }
 
 /// A variable definition is a let var=value
-fn pvariable_definition(i: PInput) -> PResult<(Token, PValue)> {
+#[derive(Debug, PartialEq)]
+pub struct PVariableDef<'src> {
+    pub metadata: Vec<PMetadata<'src>>,
+    pub name: Token<'src>,
+    pub value: PValue<'src>,
+}
+fn pvariable_definition(i: PInput) -> PResult<PVariableDef> {
     wsequence!(
         {
+            metadata: pmetadata_list;
             _identifier: estag("let");
-            variable: pidentifier;
+            name: pidentifier;
             _t: etag("=");
             value: or_fail(pvalue, || PErrorKind::ExpectedKeyword("value"));
-        } => (variable, value)
+        } => PVariableDef { metadata, name, value }
     )(i)
 }
 
 /// Global variable declaration is used both for declaration of normal variables and reserved agents variables
-fn pvariable_declaration(i: PInput) -> PResult<(Token, PValue)> {
+/// It is a let namespace.var:type
+#[derive(Debug, PartialEq)]
+pub struct PVariableDecl<'src> {
+    pub metadata: Vec<PMetadata<'src>>,
+    pub name: Token<'src>,
+    pub sub_elts: Vec<Token<'src>>, // for struct items
+    pub var_type: Option<Token<'src>>,
+}
+fn pvariable_declaration(i: PInput) -> PResult<PVariableDecl> {
     wsequence!(
         {
+            metadata: pmetadata_list;
             _identifier: estag("let");
-            variable: or_fail(pidentifier, || PErrorKind::ExpectedKeyword("identifier"));
-            namespace_content: pvariable_namespace;
-        } => (variable, namespace_content)
+            name: or_fail(pidentifier, || PErrorKind::ExpectedKeyword("namespace"));
+            sub_elts: many0(preceded(sp(etag(".")), pidentifier));
+            var_type: opt(preceded(sp(etag(":")),pidentifier));
+        } => PVariableDecl { metadata, name, sub_elts, var_type }
     )(i)
-}
-
-fn pvariable_namespace(i: PInput) -> PResult<PValue> {
-    let (i, tokens) = many0(wsequence!(
-        {
-            _sep: etag(".");
-            value: or_fail(pidentifier, || PErrorKind::ExpectedToken("incomplete variable declaration (.)"));
-        } => value
-    ))(i)?;
-    Ok((i, PValue::Struct(fill_map_rec(tokens.iter().peekable()))))
-}
-
-fn fill_map_rec<'src>(
-    mut tokens: std::iter::Peekable<std::slice::Iter<Token<'src>>>,
-) -> HashMap<String, PValue<'src>> {
-    let mut map: HashMap<String, PValue> = HashMap::new();
-    if let Some(tk) = tokens.next() {
-        let tk_str = tk.fragment().to_owned();
-        if tokens.peek().is_some() {
-            map.insert(tk_str, PValue::Struct(fill_map_rec(tokens)));
-        } else {
-            map.insert(tk_str, PValue::generate_automatic(PType::String));
-        }
-    }
-    map
 }
 
 /// A call mode tell how a state must be applied
@@ -804,7 +798,7 @@ fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
 #[derive(Debug, PartialEq)]
 #[allow(clippy::large_enum_variant)]
 pub enum PStatement<'src> {
-    VariableDefinition(Vec<PMetadata<'src>>, Token<'src>, PValue<'src>),
+    VariableDefinition(PVariableDef<'src>),
     StateDeclaration(PStateDeclaration<'src>),
     //   case keyword, list (condition   ,       then)
     Case(
@@ -851,12 +845,7 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
         // One state
         map(pstate_declaration, PStatement::StateDeclaration),
         // Variable definition
-        map(
-            pair(pmetadata_list, pvariable_definition),
-            |(metadata, (variable, value))| {
-                PStatement::VariableDefinition(metadata, variable, value)
-            },
-        ),
+        map(pvariable_definition, PStatement::VariableDefinition),
         // case
         wsequence!(
             {
@@ -987,7 +976,8 @@ pub enum PDeclaration<'src> {
         ),
     ),
     State((PStateDef<'src>, Vec<Option<PValue<'src>>>)),
-    GlobalVar((Token<'src>, PValue<'src>)),
+    GlobalVar(PVariableDef<'src>),
+    MagicVar(PVariableDecl<'src>),
     Alias(PAliasDef<'src>),
 }
 fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
@@ -999,8 +989,8 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
             map(psub_enum, PDeclaration::SubEnum),
             map(presource_def, PDeclaration::Resource),
             map(pstate_def, PDeclaration::State),
-            map(pvariable_definition, PDeclaration::GlobalVar),
-            map(pvariable_declaration, PDeclaration::GlobalVar),
+            map(pvariable_definition, PDeclaration::GlobalVar), // definition must come before declaration
+            map(pvariable_declaration, PDeclaration::MagicVar),
             map(palias_def, PDeclaration::Alias),
         )),
         || PErrorKind::Unparsed(get_error_context(i, i)),

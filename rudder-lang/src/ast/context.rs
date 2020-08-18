@@ -18,6 +18,7 @@ pub enum VarType<'src> {
     Struct(HashMap<String, VarType<'src>>), // Token instead of string ?
 }
 
+/// Implement converion from value to type (a value already has a type)
 impl<'src> From<&Value<'src>> for VarType<'src> {
     fn from(val: &Value<'src>) -> Self {
         match val {
@@ -33,6 +34,32 @@ impl<'src> From<&Value<'src>> for VarType<'src> {
                 VarType::Struct(spec)
             },
         }
+    }
+}
+
+impl<'src> VarType<'src> {
+    /// Create a type from parsed tokens
+    pub fn from_ptype(var_type: Option<Token<'src>>, mut sub_elts: Vec<Token<'src>>) -> Result<VarType<'src>> {
+        Ok(if sub_elts.len() == 0 {
+            match var_type {
+                None => VarType::String, // default type is String
+                Some(name) => { // supported named types
+                    if *name == "String" { VarType::String }
+                    else if *name == "Number" { VarType::Number }
+                    else if *name == "Boolean" { VarType::Boolean }
+                    else if *name == "List" { VarType::List }
+                    else if *name == "Struct" { VarType::Struct(HashMap::new()) }
+                    else { fail!(name, "{} is an invalid type", name) }
+                }
+            }
+        } else {
+            // this is be a struct sub part
+            let first = sub_elts.remove(0);
+            let sub = VarType::from_ptype(var_type, sub_elts)?;
+            let mut map = HashMap::new();
+            map.insert(String::from(*first), sub);
+            VarType::Struct(map)
+        })
     }
 }
 
@@ -182,9 +209,9 @@ mod tests {
     #[test]
     fn test_context_tree_generator() {
         fn add_variable<'a>(context: &mut VarContext<'a>, input: &'a str) -> Result<()> {
-            let (name,val) = pvariable_declaration_t(input);
-            let value = Value::from_static_pvalue(val)?;
-            context.add_variable(None, name, &value)
+            let PVariableDecl { metadata: _, name, sub_elts, var_type} = pvariable_declaration_t(input);
+            let type_ = VarType::from_ptype(var_type, sub_elts).unwrap();
+            context.add_variable(None, name, type_)
         }
 
         let mut context = VarContext::new();

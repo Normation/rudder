@@ -28,9 +28,10 @@ use crate::ast::context::VarType;
 #[derive(Debug)]
 pub struct AST<'src> {
     errors: Vec<Error>,
+    // the context is used for variable lookup whereas variable_definitions is used for code generation
     pub context: VarContext<'src>,
     pub enum_list: EnumList<'src>,
-    pub variable_declarations: HashMap<Token<'src>, Value<'src>>,
+    pub variable_definitions: HashMap<Token<'src>, Value<'src>>,
     pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>, // also used as parameter list since that's all we have
     pub resource_list: HashSet<Token<'src>>,
     pub resources: HashMap<Token<'src>, ResourceDef<'src>>,
@@ -63,6 +64,7 @@ impl<'src> AST<'src> {
             sub_enums,
             resources,
             states,
+            variable_definitions,
             variable_declarations,
             parameter_defaults,
             parents,
@@ -72,7 +74,8 @@ impl<'src> AST<'src> {
         ast.add_enums(enums);
         ast.add_sub_enums(sub_enums);
         ast.add_enum_aliases(enum_aliases);
-        ast.add_variables(variable_declarations);
+        ast.add_variables(variable_definitions);
+        ast.add_magic_variables(variable_declarations);
         ast.add_default_values(parameter_defaults);
         ast.add_resource_list(&resources);
         let children = ast.create_children_list(parents);
@@ -89,7 +92,7 @@ impl<'src> AST<'src> {
             errors: Vec::new(),
             context: VarContext::new(),
             enum_list: EnumList::new(),
-            variable_declarations: HashMap::new(),
+            variable_definitions: HashMap::new(),
             parameter_defaults: HashMap::new(),
             resource_list: HashSet::new(),
             resources: HashMap::new(),
@@ -168,13 +171,14 @@ impl<'src> AST<'src> {
         }
     }
 
-    /// Insert variables types into the variables context
-    /// Insert the variables definition into the global declaration space
-    fn add_variables(&mut self, variable_declarations: Vec<(Token<'src>, PValue<'src>)>) {
-        for (variable, value) in variable_declarations {
+    /// Insert variables definition into the global context
+    /// Insert the variables definition into the global definition space
+    fn add_variables(&mut self, variables: Vec<PVariableDef<'src>>) {
+        for variable in variables {
+            let PVariableDef { metadata, name, value} = variable;
             if let Err(e) = self.context.add_variable(
                 None,
-                variable,
+                name,
                 &Value::from_static_pvalue(value.clone()).unwrap(),
             ) {
                 self.errors.push(e);
@@ -182,9 +186,23 @@ impl<'src> AST<'src> {
             let getter = |k| self.context.get(&k);
             match Value::from_pvalue(&self.enum_list, &getter, value) {
                 Err(e) => self.errors.push(e),
-                Ok(val) => 
-                    self.variable_declarations.insert(variable, val);
+                Ok(val) => {
+                    self.variable_definitions.insert(variable.name, val);
                 }
+            }
+        }
+    }
+
+    /// Insert the variables declarations into the global context
+    fn add_magic_variables(&mut self, variables: Vec<PVariableDecl<'src>>) {
+        for variable in variables {
+            let PVariableDecl { metadata, name, sub_elts, var_type} = variable;
+            match VarType::from_ptype(var_type, sub_elts) {
+                Ok(_type) => 
+                    if let Err(e) = self.context.add_variable(None, name,_type) {
+                        self.errors.push(e);
+                    },
+                Err(e) => self.errors.push(e)
             }
         }
     }

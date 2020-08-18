@@ -101,3 +101,12 @@ Pratique pour les upgrade de rudder.
 On compare des variables avec des enums de type différent car il y a un mécanisme d'héritage d'enum.
 On évite donc le = a connotation plus stricte
 
+
+TODO : 
+- let var = case {}
+- localisation des techniques, ex servicename: aix -> blah, debian -> blah ...
+- deepmerge vs shallow merge
+- ## = @comment -> @description && remove toml parsing
+- uuid alias of variable names / outcomes
+- variables de ressource
+
