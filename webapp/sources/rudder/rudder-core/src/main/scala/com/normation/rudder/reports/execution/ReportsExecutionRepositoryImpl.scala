@@ -72,7 +72,7 @@ final case class RoReportsExecutionRepositoryImpl (
    */
   def getUnprocessedRuns(): IOResult[Seq[UncomputedAgentRun]] = {
     transactIOResult(s"Error when getting unprocessed runs")(xa => query[DB.UncomputedAgentRun](
-      s"""SELECT nodeid, date, nodeconfigid, insertionid, insertiondate FROM ReportsExecution where compliancecomputatiodate is null"""
+      s"""SELECT nodeid, date, nodeconfigid, insertionid, insertiondate FROM ReportsExecution where compliancecomputationdate is null"""
     ).to[Vector].transact(xa))
   }
   def getNodesLastRunv2(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = ???
@@ -172,7 +172,7 @@ final case class WoReportsExecutionRepositoryImpl (
 
   def setComplianceComputationDate(runs: List[UncomputedAgentRun]): IOResult[Int] = {
     val updateKeys = runs.map(x => (x.nodeId, x.date, x.nodeConfigId))
-    val sql = """UPDATE reportsexecution set compliancecomputatiodate = now() where nodeid = ? and date = ? and nodeconfigid = ?"""
+    val sql = """UPDATE reportsexecution set compliancecomputationdate = now() where nodeid = ? and date = ? and nodeconfigid = ?"""
     transactIOResult(s"Error when updating compliance computation date for runs")(xa => Update[(String, DateTime, String)](sql).updateMany(updateKeys).transact(xa)
     )
   }

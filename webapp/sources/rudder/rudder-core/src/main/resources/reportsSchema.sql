@@ -120,14 +120,14 @@ CREATE TABLE ReportsExecution (
 , complete     boolean NOT NULL
 , nodeConfigId text
 , insertionId  bigint
-, insertiondate timestamp
+, insertiondate timestamp default now()
 , compliancecomputatiodate timestamp
 , PRIMARY KEY(nodeId, date)
 );
 
 CREATE INDEX reportsexecution_date_idx ON ReportsExecution (date);
 CREATE INDEX reportsexecution_nodeid_nodeconfigid_idx ON ReportsExecution (nodeId, nodeConfigId);
-CREATE INDEX reportsexecution_uncomputedrun_idx on ReportsExecution (compliancecomputatiodate) where compliancecomputatiodate IS NULL;
+CREATE INDEX reportsexecution_uncomputedrun_idx on ReportsExecution (compliancecomputationdate) where compliancecomputationdate IS NULL;
 
 ALTER TABLE reportsexecution set (autovacuum_vacuum_scale_factor = 0.05);
 

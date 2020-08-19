@@ -42,12 +42,12 @@
 */
 
 ALTER TABLE ReportsExecution
-ADD COLUMN insertiondate timestamp,
-ADD COLUMN  compliancecomputatiodate timestamp;
+ADD COLUMN insertiondate timestamp default now(),
+ADD COLUMN  compliancecomputationdate timestamp;
 
-UPDATE ReportsExecution set compliancecomputatiodate = now() where insertionId <= (select lastid from statusupdate);
+UPDATE ReportsExecution set compliancecomputationdate = now() where insertionId <= (select lastid from statusupdate);
 
-CREATE INDEX reportsexecution_uncomputedrun_idx on ReportsExecution (compliancecomputatiodate) where compliancecomputatiodate IS NULL;
+CREATE INDEX reportsexecution_uncomputedrun_idx on ReportsExecution (compliancecomputatinodate) where compliancecomputationdate IS NULL;
 
 
 DROP INDEX reportsexecution_insertionid_idx;
