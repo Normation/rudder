@@ -100,13 +100,13 @@ impl HashType {
         let value = match self {
             HashType::Sha256 => {
                 let mut hasher = Sha256::new();
-                hasher.input(bytes);
-                format!("{:x}", hasher.result())
+                hasher.update(bytes);
+                format!("{:x}", hasher.finalize())
             }
             HashType::Sha512 => {
                 let mut hasher = Sha512::new();
-                hasher.input(bytes);
-                format!("{:x}", hasher.result())
+                hasher.update(bytes);
+                format!("{:x}", hasher.finalize())
             }
         };
         Hash {

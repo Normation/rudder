@@ -3,6 +3,7 @@
     "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
     "timestamp": "2018-08-24T15:55:01+00:00"
   },
+  "config_id": "20180824-130007-3ad37587",
   "reports": [
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -926,7 +927,19 @@
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T11:58:13+00:00",
       "serial": 0
+    },
+    {
+      "start_datetime": "2017-08-24T15:55:01+00:00",
+      "rule_id": "rudder",
+      "directive_id": "run",
+      "component": "end",
+      "key_value": "20180824-130007-3ad37587",
+      "event_type": "control",
+      "msg": "End execution",
+      "policy": "Common",
+      "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
+      "execution_datetime": "2019-05-14T12:58:04+00:00",
+      "serial": 0
     }
   ]
 }
-

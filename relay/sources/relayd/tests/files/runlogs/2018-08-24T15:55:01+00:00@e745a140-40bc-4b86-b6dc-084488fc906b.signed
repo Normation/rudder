@@ -1,14 +1,15 @@
 MIME-Version: 1.0
-Content-Type: multipart/signed; protocol="application/x-pkcs7-signature"; micalg="sha-256"; boundary="----926A5FB82838D47131B1A993C088E79F"
+Content-Type: multipart/signed; protocol="application/x-pkcs7-signature"; micalg="sha-256"; boundary="----006E0C21185D1A0D73E6A00272A85EC9"
 
 This is an S/MIME signed message
 
-------926A5FB82838D47131B1A993C088E79F
+------006E0C21185D1A0D73E6A00272A85EC9
 Content-Type: text/plain
 
 2019-05-11T12:58:13+00:00 R: @@Common@@control@@rudder@@run@@0@@start@@20180824-130007-3ad37587@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#Start execution
 2019-05-11T13:58:13+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@ncf Initialization@@None@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#Configuration library initialization
 2019-05-11T14:58:13+00:00 was correct
+2019-05-11T13:58:13+00:00 R: @@Common@@
 2019-05-11T15:58:13+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Security parameters@@None@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#The internal environment security is acceptable
 2019-05-11T16:58:13+00:00 R: @@Common@@result_na@@hasPolicyServer-root@@common-root@@0@@Process checking@@None@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#Rudder agent proccesses check is done by the rudder-agent cron job
 2019-05-11T17:58:13+00:00 R: @@Common@@log_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@cron@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#Run action restart on service cron was repaired
@@ -78,8 +79,9 @@ Content-Type: text/plain
 2019-05-14T09:58:13+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Make sure syslog service runs@@rsyslog@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#Check if the service rsyslog is started was correct
 2019-05-14T10:58:13+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Make sure syslog service runs@@rsyslog@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#Ensure that service rsyslog is running was correct
 2019-05-14T11:58:13+00:00 R: @@Common@@result_na@@hasPolicyServer-root@@common-root@@0@@Monitoring@@None@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#No Rudder monitoring information to share with the server
+2019-05-14T12:58:04+00:00 R: @@Common@@control@@rudder@@run@@0@@end@@20180824-130007-3ad37587@@2017-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#End execution
 
-------926A5FB82838D47131B1A993C088E79F
+------006E0C21185D1A0D73E6A00272A85EC9
 Content-Type: application/x-pkcs7-signature; name="smime.p7s"
 Content-Transfer-Encoding: base64
 Content-Disposition: attachment; filename="smime.p7s"
@@ -88,22 +90,22 @@ MIIDmAYJKoZIhvcNAQcCoIIDiTCCA4UCAQExDzANBglghkgBZQMEAgEFADALBgkq
 hkiG9w0BBwExggNgMIIDXAIBATBOMDYxNDAyBgoJkiaJk/IsZAEBDCRlNzQ1YTE0
 MC00MGJjLTRiODYtYjZkYy0wODQ0ODhmYzkwNmICFAcBdt1r/3bO08VPAKL7kMem
 Xe5AMA0GCWCGSAFlAwQCAQUAoIHkMBgGCSqGSIb3DQEJAzELBgkqhkiG9w0BBwEw
-HAYJKoZIhvcNAQkFMQ8XDTE5MDUyNTE3NDQwOVowLwYJKoZIhvcNAQkEMSIEINRU
-PlKgallSgJx+M81+BXFQQ7ahs+3MczgButDzHSwVMHkGCSqGSIb3DQEJDzFsMGow
+HAYJKoZIhvcNAQkFMQ8XDTIwMDgxOTEzMjQxNFowLwYJKoZIhvcNAQkEMSIEIIlq
+e/qiOgerDVSgoA8Lc9G4LSR37Nf9q26eriNAAtFpMHkGCSqGSIb3DQEJDzFsMGow
 CwYJYIZIAWUDBAEqMAsGCWCGSAFlAwQBFjALBglghkgBZQMEAQIwCgYIKoZIhvcN
 AwcwDgYIKoZIhvcNAwICAgCAMA0GCCqGSIb3DQMCAgFAMAcGBSsOAwIHMA0GCCqG
-SIb3DQMCAgEoMA0GCSqGSIb3DQEBAQUABIICAEAb09t9dHSLNDWiGDWDn0b9mY0y
-hZrKnUU4LCV/dNDFetRc0CWDufU4hiGR5MgDwexeRS7Xw/kocpLBTAH0fEPCIDCV
-J1EIcpRGK2Pkvcnz2DiJ8kFaBj0IyBxb1nKGPHfK9o13LESfO/ALLnBN+pmc23nt
-MEreTrThV9o/iX/AaFz9q0Oqg0M3Qx2me2x0TeUhdbEwQxO1d5VmhuGj7W6lTuNU
-h62qDgCynQNPBa8rycdJcrDBav2zH35Fx3msazwxTRLyq5APvoDcKFcjLtMvGJn8
-Ci6pGJxNeUNi9jyG41tS0H+vzFPgh/15S959u8f3lzzMMU6yBpncolTdATCr0YgN
-4yFfpALnZMBueUi3sXPcCkvza9tx3ldLwrMBPZN8JerfxPUaBN8RNmHWJRapjMkn
-ixYjOY/nzHFEBtUJLUWMjhF6vWLWjYQSbb7YUbKo4OvHE+j82yQH9MzKbLZDGmo/
-FkddDfHYOZAMUP6sw33VG7ze/EAq0o9Z+T65VEG4wnKgrWrCfnudnSQ2BRxwFecS
-R21ktB0F7VdeZqaQRNWE2jqta7PGJ6Whc6Ipib8HeWROMBQb7Ksrbz5PvDwifMc/
-L5TNDDwSbIaR3t7xZX3kry4HO0jYGBmCN5INFLP9s7y8Q281KKmP7PxRplrhqv/7
-yaUbmvCVk54GvBU2
+SIb3DQMCAgEoMA0GCSqGSIb3DQEBAQUABIICAAY4JeBGDcBvgZN6ZEjmhWXFwFxe
+S0afprerpvaYBe8zaiBNcCHSyLuxXu8dtKX6cfGIuE6yMeFINTv6kVQht1SOC9rR
+ilxCqzgjJrbKOBa2ngIQ6D4N7Z0hfq1fYdG0NjuP27OZduilXxYC2DSDdgA549ge
+5sZTcSSfpV/fbMWpi0ZSaTTpBPGZx2DjgWSm2vTuJ3y67P5Ubvn+UFqVS9LC6Vz2
+78pcuwACqaF8nMqjie/GQ/VOY6FpzJe1dte8JS35chn5GHfMagJ8LOVZ0dO+X6if
+ePtWN08Kv9ad/+7H1WNWG6SUjlFgvda6ZumOzqcd4vat6DHQsDKJerVSUxrQ8b7Z
+q5UoeHxYq6RDKrBQ/1++esxfH7w75In0BNMZITYCity6LGgPKeONxplo+JqwpoDM
+sqja4TGC/q0fieNiD72iRotBphiS9OdoNM9D0NleUdtFeNXpUcM0TLE+hwHfo3AZ
+2RCx7VuvOdIoYtLX0j4fR/Kq7ZKJfCwKdWF86a13lbk2wN7LFVo+MjUGDq+Wgdxx
+AGQgZlSFdOswE7vckXYieaRDxUETCVOVxbIsS/YUkslbmijMU2+eqqa+Ris6kc5G
+bX7Y5FBwc76+dpo98b6wJZsxsVNT/ZsFc6D6crXJj0GpvVPIAEVofEAEh+/OwGU9
+yblAdPEhxN9/cqnd
 
-------926A5FB82838D47131B1A993C088E79F--
+------006E0C21185D1A0D73E6A00272A85EC9--
 

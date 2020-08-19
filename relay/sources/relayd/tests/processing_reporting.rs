@@ -4,8 +4,12 @@
 use diesel::{self, prelude::*, PgConnection};
 use filetime::{set_file_times, FileTime};
 use relayd::{
-    configuration::cli::CliConfiguration, data::report::QueryableReport, init_logger,
-    output::database::schema::ruddersysevents::dsl::*, start, stats::Stats,
+    configuration::cli::CliConfiguration,
+    data::report::QueryableReport,
+    init_logger,
+    output::database::schema::{reportsexecution::dsl::*, ruddersysevents::dsl::*},
+    start,
+    stats::Stats,
 };
 use reqwest;
 use serde_json;
@@ -35,6 +39,7 @@ pub fn start_number(db: &PgConnection, expected: usize) -> Result<(), ()> {
             return Ok(());
         }
     }
+
     Err(())
 }
 
@@ -42,6 +47,7 @@ pub fn start_number(db: &PgConnection, expected: usize) -> Result<(), ()> {
 fn it_reads_and_inserts_a_runlog() {
     let db = db_connection();
     diesel::delete(ruddersysevents).execute(&db).unwrap();
+    diesel::delete(reportsexecution).execute(&db).unwrap();
 
     assert!(start_number(&db, 0).is_ok());
 

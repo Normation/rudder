@@ -7,7 +7,9 @@ use crate::{
         Report, RunInfo,
     },
     error::Error,
+    output::database::schema::reportsexecution,
 };
+use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
@@ -17,11 +19,48 @@ use std::{
     path::Path,
     str::FromStr,
 };
+
 use tracing::{debug, error, warn};
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Insertable)]
+#[table_name = "reportsexecution"]
+/// Represents a runlog in the database
+pub struct InsertedRunlog {
+    #[column_name = "nodeid"]
+    pub node_id: String,
+    #[column_name = "date"]
+    pub date: DateTime<FixedOffset>,
+    #[column_name = "complete"]
+    pub complete: bool,
+    #[column_name = "nodeconfigid"]
+    pub node_config_id: String,
+    #[column_name = "insertionid"]
+    pub insertion_id: i64,
+    #[column_name = "insertiondate"]
+    pub insertion_date: Option<DateTime<FixedOffset>>,
+    #[column_name = "compliancecomputationdate"]
+    pub compliance_computation_date: Option<DateTime<FixedOffset>>,
+}
+
+impl InsertedRunlog {
+    pub fn new(runlog: &RunLog, insertion_id: i64) -> Self {
+        Self {
+            node_id: runlog.info.node_id.clone(),
+            date: runlog.info.timestamp,
+            complete: true,
+            node_config_id: runlog.config_id.clone(),
+            insertion_id,
+            // None means default value will be inserted, here current_timestamp
+            insertion_date: None,
+            compliance_computation_date: None,
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RunLog {
     pub info: RunInfo,
+    pub config_id: String,
     // Never empty vec
     pub reports: Vec<Report>,
 }
@@ -52,6 +91,7 @@ impl RunLog {
     pub fn without_types(&self, types: &HashSet<String>) -> Self {
         Self {
             info: self.info.clone(),
+            config_id: self.config_id.clone(),
             reports: self
                 .reports
                 .as_slice()
@@ -102,6 +142,13 @@ impl TryFrom<(RunInfo, Vec<RawReport>)> for RunLog {
             .ok_or(Error::InconsistentRunlog)?
             .start_datetime;
 
+        let config_id = reports
+            .iter()
+            .find(|r| r.event_type == "control" && r.component == "end")
+            .ok_or(Error::MissingEndRun)?
+            .key_value
+            .clone();
+
         for report in &reports {
             if info.node_id != report.node_id {
                 error!(
@@ -117,7 +164,11 @@ impl TryFrom<(RunInfo, Vec<RawReport>)> for RunLog {
                 );
             }
         }
-        Ok(Self { info, reports })
+        Ok(Self {
+            info,
+            reports,
+            config_id,
+        })
     }
 }
 
@@ -158,12 +209,34 @@ mod tests {
     fn it_removes_logs_in_runlog() {
         let mut filter = HashSet::new();
         let _ = filter.insert("log_info".to_string());
+        let end_run = Report {
+            start_datetime: DateTime::parse_from_str(
+                "2018-08-24 15:55:01+00:00",
+                "%Y-%m-%d %H:%M:%S%z",
+            )
+            .unwrap(),
+            rule_id: "rudder".into(),
+            directive_id: "run".into(),
+            component: "CRON Daemon".into(),
+            key_value: "20180824-130007-3ad37587".into(),
+            event_type: "control".into(),
+            msg: "End execution".into(),
+            policy: "Common".into(),
+            node_id: "root".into(),
+            serial: 0,
+            execution_datetime: DateTime::parse_from_str(
+                "2018-08-24 15:55:01+00:00",
+                "%Y-%m-%d %H:%M:%S%z",
+            )
+            .unwrap(),
+        };
         assert_eq!(
             RunLog {
                 info: RunInfo::from_str(
                     "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log"
                 )
                 .unwrap(),
+                config_id: "20180824-130007-3ad37587".to_string(),
                 reports: vec![
                     Report {
                         start_datetime: DateTime::parse_from_str(
@@ -206,7 +279,8 @@ mod tests {
                             "%Y-%m-%d %H:%M:%S%z"
                         )
                         .unwrap(),
-                    }
+                    },
+                    end_run.clone()
                 ]
             }
             .without_types(&filter),
@@ -215,27 +289,31 @@ mod tests {
                     "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log"
                 )
                 .unwrap(),
-                reports: vec![Report {
-                    start_datetime: DateTime::parse_from_str(
-                        "2018-08-24 15:55:01+00:00",
-                        "%Y-%m-%d %H:%M:%S%z"
-                    )
-                    .unwrap(),
-                    rule_id: "hasPolicyServer-root".into(),
-                    directive_id: "common-root".into(),
-                    component: "CRON Daemon".into(),
-                    key_value: "None".into(),
-                    event_type: "result_repaired".into(),
-                    msg: "Cron daemon status was repaired".into(),
-                    policy: "Common".into(),
-                    node_id: "root".into(),
-                    serial: 0,
-                    execution_datetime: DateTime::parse_from_str(
-                        "2018-08-24 15:55:01+00:00",
-                        "%Y-%m-%d %H:%M:%S%z"
-                    )
-                    .unwrap(),
-                }]
+                config_id: "20180824-130007-3ad37587".to_string(),
+                reports: vec![
+                    Report {
+                        start_datetime: DateTime::parse_from_str(
+                            "2018-08-24 15:55:01+00:00",
+                            "%Y-%m-%d %H:%M:%S%z"
+                        )
+                        .unwrap(),
+                        rule_id: "hasPolicyServer-root".into(),
+                        directive_id: "common-root".into(),
+                        component: "CRON Daemon".into(),
+                        key_value: "None".into(),
+                        event_type: "result_repaired".into(),
+                        msg: "Cron daemon status was repaired".into(),
+                        policy: "Common".into(),
+                        node_id: "root".into(),
+                        serial: 0,
+                        execution_datetime: DateTime::parse_from_str(
+                            "2018-08-24 15:55:01+00:00",
+                            "%Y-%m-%d %H:%M:%S%z"
+                        )
+                        .unwrap(),
+                    },
+                    end_run
+                ]
             }
         );
     }

@@ -71,3 +71,4 @@
 2019-05-14T09:58:13+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Make sure syslog service runs@@rsyslog@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#Check if the service rsyslog is started was correct
 2019-05-14T10:58:13+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@Make sure syslog service runs@@rsyslog@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#Ensure that service rsyslog is running was correct
 2019-05-14T11:58:13+00:00 R: @@Common@@result_na@@hasPolicyServer-root@@common-root@@0@@Monitoring@@None@@2018-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#No Rudder monitoring information to share with the server
+2019-05-14T12:58:04+00:00 R: @@Common@@control@@rudder@@run@@0@@end@@20180824-130007-3ad37587@@2017-08-24 15:55:01+00:00##e745a140-40bc-4b86-b6dc-084488fc906b@#End execution

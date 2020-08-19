@@ -21,6 +21,8 @@ pub enum Error {
     InvalidFile(PathBuf),
     #[error("inconsistent run log")]
     InconsistentRunlog,
+    #[error("missing endRun report")]
+    MissingEndRun,
     #[error("empty run log")]
     EmptyRunlog,
     #[error("missing id in certificate")]

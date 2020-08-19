@@ -5,10 +5,9 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use diesel::{self, prelude::*};
 use flate2::read::GzDecoder;
 use openssl::{stack::Stack, x509::X509};
-use relayd::data::node::NodesList;
 use relayd::{
     configuration::{main::DatabaseConfig, Secret},
-    data::{report::QueryableReport, RunInfo, RunLog},
+    data::{node::NodesList, report::QueryableReport, RunInfo, RunLog},
     input::signature,
     output::database::{schema::ruddersysevents::dsl::*, *},
 };

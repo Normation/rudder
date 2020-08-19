@@ -3,7 +3,7 @@
 
 use crate::{
     configuration::main::DatabaseConfig,
-    data::{report::QueryableReport, RunLog},
+    data::{report::QueryableReport, runlog::InsertedRunlog, RunLog},
     Error,
 };
 use diesel::{
@@ -32,6 +32,19 @@ pub mod schema {
             nodeid -> Text,
             executiontimestamp -> Nullable<Timestamptz>,
             serial -> Integer,
+        }
+    }
+
+    table! {
+        // (nodeid, date) is the primary key
+        reportsexecution(nodeid, date) {
+            nodeid -> Text,
+            date -> Timestamptz,
+            complete -> Bool,
+            nodeconfigid -> Text,
+            insertionid -> Nullable<BigInt>,
+            insertiondate -> Nullable<Timestamptz>,
+            compliancecomputationdate -> Nullable<Timestamptz>,
         }
     }
 }
@@ -76,7 +89,10 @@ pub fn insert_runlog(
     runlog: &RunLog,
     behavior: InsertionBehavior,
 ) -> Result<RunlogInsertion, Error> {
-    use self::schema::ruddersysevents::dsl::*;
+    use self::schema::{
+        reportsexecution::dsl::*,
+        ruddersysevents::dsl::{nodeid, *},
+    };
     let report_span = span!(Level::TRACE, "database");
     let _report_enter = report_span.enter();
 
@@ -107,15 +123,24 @@ pub fn insert_runlog(
                     .and(ruleid.eq(&first_report.rule_id))
                     .and(directiveid.eq(&first_report.directive_id)),
             )
-            .limit(1)
-            .load::<QueryableReport>(connection)?
-            .is_empty();
+            .first::<QueryableReport>(connection)
+            .optional()?
+            .is_none();
 
         if behavior == InsertionBehavior::AllowDuplicate || new_runlog {
             trace!("Inserting runlog {:#?}", runlog);
-            insert_into(ruddersysevents)
+            let report_id = insert_into(ruddersysevents)
                 .values(&runlog.reports)
+                .get_results::<QueryableReport>(connection)?
+                .get(0)
+                .expect("inserted runlog cannot be empty")
+                .id;
+
+            let runlog_info = InsertedRunlog::new(&runlog, report_id);
+            insert_into(reportsexecution)
+                .values(runlog_info)
                 .execute(connection)?;
+
             Ok(RunlogInsertion::Inserted)
         } else {
             error!(
@@ -135,10 +160,11 @@ pub fn insert_runlog(
 mod tests {
     use super::*;
     use crate::{
-        configuration::Secret, data::report::QueryableReport,
-        output::database::schema::ruddersysevents::dsl::*,
+        configuration::Secret,
+        data::report::QueryableReport,
+        output::database::schema::{reportsexecution::dsl::*, ruddersysevents::dsl::*},
     };
-    use diesel;
+    use diesel::dsl::count;
 
     pub fn db() -> PgPool {
         let db_config = DatabaseConfig {
@@ -155,6 +181,8 @@ mod tests {
         let db = &*pool.get().unwrap();
 
         diesel::delete(ruddersysevents).execute(db).unwrap();
+        diesel::delete(reportsexecution).execute(db).unwrap();
+
         let results = ruddersysevents
             .limit(1)
             .load::<QueryableReport>(db)
@@ -177,7 +205,13 @@ mod tests {
             .limit(100)
             .load::<QueryableReport>(db)
             .unwrap();
-        assert_eq!(results.len(), 71);
+        assert_eq!(results.len(), 72);
+
+        let results: i64 = reportsexecution
+            .select(count(insertionid))
+            .first(db)
+            .unwrap();
+        assert_eq!(results, 1);
 
         // Test inserting twice the same runlog
 
@@ -190,6 +224,12 @@ mod tests {
             .limit(100)
             .load::<QueryableReport>(db)
             .unwrap();
-        assert_eq!(results.len(), 71);
+        assert_eq!(results.len(), 72);
+
+        let results: i64 = reportsexecution
+            .select(count(insertionid))
+            .first(db)
+            .unwrap();
+        assert_eq!(results, 1);
     }
 }

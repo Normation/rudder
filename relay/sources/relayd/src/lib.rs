@@ -47,10 +47,9 @@ use tracing::{debug, error, info};
 use tracing_log::LogTracer;
 use tracing_subscriber::{
     filter::EnvFilter,
-    fmt::Subscriber,
     fmt::{
         format::{Format, Full, NewRecorder},
-        Formatter,
+        Formatter, Subscriber,
     },
     reload::Handle,
 };
