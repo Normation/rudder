@@ -461,7 +461,7 @@ def generate_lib(resource_name, resource, lib_dir):
     out.write("resource " + resource_name + "(" + ", ".join(params) + ")\n")
     out.write("\n\n")
 
-    for state in resource["states"]:
+    for state in sorted(resource["states"], key=lambda item: item["state"]):
         fmt_attribute(
             out, "description", multiline_quoted(
                 state["description"]))
