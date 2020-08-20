@@ -121,7 +121,7 @@ CREATE TABLE ReportsExecution (
 , nodeConfigId text
 , insertionId  bigint
 , insertiondate timestamp default now()
-, compliancecomputatiodate timestamp
+, compliancecomputationdate timestamp
 , PRIMARY KEY(nodeId, date)
 );
 
