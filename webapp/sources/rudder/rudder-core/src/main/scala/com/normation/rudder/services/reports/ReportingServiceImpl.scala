@@ -105,7 +105,7 @@ class CachedReportingServiceImpl(
   val directivesRepo   = defaultFindRuleNodeStatusReports.directivesRepo
   val rulesRepo        = defaultFindRuleNodeStatusReports.rulesRepo
 
-  def findUncomputedNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = ???
+  def findUncomputedNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = defaultFindRuleNodeStatusReports.findUncomputedNodeStatusReports()
 
 }
 
