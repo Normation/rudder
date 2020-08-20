@@ -45,6 +45,17 @@ Hence metadata that can be anything available in the language
 TOML is a well known format, and has battle tester parsers.
 Let's support it instead of creating our own format.
 
+* lifetime 'src
+Most of the data structures contain a reference to parsed code.
+So there is a lifetime everywhere that is in fact the same.
+That's why we chose to name it 'src to make it easy to catch and separate from other lifetimes.
+
+* default value for parameters
+They are useful for resources and states because be define configurations.
+So users expect to provide minimal information and have meaningful defaults.
+Implementation is that rudder-lang explicitly put the default value on the caller side when there the user did not provide one.
+This is because it is easier to detect null value at compile time than at execution time (think cfengine).
+
 * json read method
 
 * iterators
@@ -60,11 +71,6 @@ Les données globales n'ont pas a etre définies dans l'ordre car il peut être 
 l'ordre de chargement des fichier et les définition globales car elles peuvent être écrites ar plusieurs personnes.
 
 * incompatibilité entre states d'une meme resource
-
-* lifetime 'src
-Most of the data structures contain a reference to parsed code.
-So there is a lifetime everywhere that is in fact the same.
-That's why we chose to name it 'src to make it easy to catch and separate from other lifetimes.
 
 * comment = medatata
 Pour permettre une interraction simple avec le format json de technique, on ne crée pas de cas spécifique pour les commentaire.
@@ -87,10 +93,6 @@ evitons les imprevus et la possibilité de tourner indéfiniment
 
 * noms uniques à travers les types : enums, variables, resource, states
 evitons les confusions, on pourra toujours en réautoriser a posteriori
-
-* paramètre par défaut
-nécessaire dans les resources et les states car nous définissons des configurations.
-Les utilisateurs s'attendent à ce qu'on leur fournisse des valeurs par défaut correspondant au cas le plus courant lorsque c'est possible.
 
 * @format=x
 Avoir une ligne strictement parsée présente en début de fichier permet de détecter de l'extérieur la version actuelle du format du code.
