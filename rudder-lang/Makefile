@@ -39,7 +39,7 @@ install: build
 
 test-docs: $(DOC_EXAMPLES)
 
-test:
+test: libs
 	# fires rudderc unit / integration tests
 	cargo test
 	# fires a technique compilation using explicit parameters: path                format verbosity json-output

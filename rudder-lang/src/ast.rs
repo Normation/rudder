@@ -205,8 +205,8 @@ impl<'src> AST<'src> {
                 var_type,
             } = variable;
             match VarType::from_ptype(var_type, sub_elts) {
-                Ok(_type) => {
-                    if let Err(e) = self.context.add_variable(None, name, _type) {
+                Ok(type_) => {
+                    if let Err(e) = self.context.add_variable(None, name, type_) {
                         self.errors.push(e);
                     }
                 }

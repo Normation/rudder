@@ -591,6 +591,7 @@ fn pmetadata(i: PInput) -> PResult<PMetadata> {
             kind: PErrorKind::NoMetadata,
         }));
     }
+    println!("meadata: {}", &metadata_string);
     let values = match toml::de::from_str(&metadata_string) {
         Ok(v) => v,
         Err(e) => {

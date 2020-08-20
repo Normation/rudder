@@ -376,6 +376,21 @@ def config_value(config, key, default):
 ##############
 
 
+def stringify(value):
+    if isinstance(value, bool) or isinstance(value, int):
+        return str(value).lower()
+    elif isinstance(value, str) or (sys.version_info[0] == 2 and isinstance(value, unicode)):
+        return quoted(escaped(value))
+    elif isinstance(value, dict):
+        out_value = [ stringify(k) + ": " + stringify(value[k]) for k in value.keys() ]
+        return "{ " + ", ".join(out_value)  + " }"
+    elif isinstance(value, list):
+        out_value = [ stringify(e) for e in value ]
+        return "[ " + ", ".join(out_value) + " ]"
+    else:
+        raise Exception("Unsupported type error: " + str(type(value)))
+    
+
 def fmt_parameter(out, parameter):
     out.write(
         "@parameter." +
@@ -396,12 +411,7 @@ def fmt_parameter(out, parameter):
     for constraint in parameter["constraints"]:
         value = parameter["constraints"][constraint]
         # toml without a toml lib
-        if isinstance(value, bool) or isinstance(value, int):
-            out_value = str(value).lower()
-        elif isinstance(value, str):
-            out_value = quoted(escaped(value))
-        else:
-            out_value = str(value)
+        out_value = stringify(value)
 
         fmt_attribute(
             out,
