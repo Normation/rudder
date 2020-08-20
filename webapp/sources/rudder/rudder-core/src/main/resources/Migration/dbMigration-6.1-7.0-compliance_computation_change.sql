@@ -47,7 +47,7 @@ ADD COLUMN  compliancecomputationdate timestamp;
 
 UPDATE ReportsExecution set compliancecomputationdate = now() where insertionId <= (select lastid from statusupdate);
 
-CREATE INDEX reportsexecution_uncomputedrun_idx on ReportsExecution (compliancecomputatinodate) where compliancecomputationdate IS NULL;
+CREATE INDEX reportsexecution_uncomputedrun_idx on ReportsExecution (compliancecomputationdate) where compliancecomputationdate IS NULL;
 
 
 DROP INDEX reportsexecution_insertionid_idx;
