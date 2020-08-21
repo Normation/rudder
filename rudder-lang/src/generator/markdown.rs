@@ -47,20 +47,20 @@ impl Markdown {
                     o => format!("`{}`", o),
                 })
                 .collect::<Vec<String>>();
-            out.push(format!("* possible values: {}", options.join(", ")))
+            out.push(options.join(", "))
         } else {
             for (constraint, value) in constraints {
                 match constraint.as_str() {
                     "allow_empty_string" if value.as_bool().unwrap() => {
-                        out.push("* can be empty".to_string())
+                        out.push("<b>can</b> be empty".to_string())
                     }
                     "allow_whitespace_string" if value.as_bool().unwrap() => {
-                        out.push("* can contain only white-space chars".to_string())
+                        out.push("can contain only white-space chars".to_string())
                     }
                     "max_length" if value.as_integer().unwrap() != 16384 => {
-                        out.push(format!("* max length: {}", value.as_integer().unwrap()))
+                        out.push(format!("max length: {}", value.as_integer().unwrap()))
                     }
-                    "regex" => out.push(format!("* must match: `{}`", value.as_str().unwrap())),
+                    "regex" => out.push(format!("must match: `{}`", value.as_str().unwrap())),
                     _ => (),
                 }
             }
@@ -74,12 +74,16 @@ impl Markdown {
         let mut out = vec![];
         if let Some(params) = metadata.get("parameter") {
             for (parameter, properties) in params.as_table().unwrap().iter() {
-                out.push(format!("#### {}", parameter));
-                // FIXME hardcode others?
-                if let Some(constraints) = properties.get("constraints").and_then(|a| a.as_table())
+                let constraints = if let Some(constraints) =
+                    properties.get("constraints").and_then(|a| a.as_table())
                 {
-                    out.extend(Self::render_constraints(&constraints).iter().cloned());
-                }
+                    format!(" ({})", Self::render_constraints(&constraints).join(", "))
+                } else {
+                    "".to_string()
+                };
+
+                out.push(format!("#### {}{}", parameter, constraints));
+                // FIXME hardcode others?
 
                 if let Some(description) = properties.get("description") {
                     out.push(description.as_str().unwrap().to_string());

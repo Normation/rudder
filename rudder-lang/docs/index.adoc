@@ -106,4 +106,15 @@ include::integration.adoc[leveloffset=+1]
 
 == Standard library
 
+By default, resource and state parameters:
+
+* cannot be empty
+* cannot contain only white-spaces
+* have a max size of 16384 chars
+
+Exceptions are explicitly specified in the doc.
+
+States marked as actions represent actions that will be executed
+at every run. You should generally add a condition when using them.
+
 include::../target/docs/std/lib.adoc[leveloffset=+1]
