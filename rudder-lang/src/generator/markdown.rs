@@ -2,7 +2,8 @@
 
 /// Generates markdown
 use super::Generator;
-use crate::{ast::*, error::*};
+use crate::{ast::resource::StateDef, ast::*, error::*};
+use std::cmp::Ordering;
 use std::{collections::HashMap, fs::File, io::Write, path::Path};
 
 pub struct Markdown {}
@@ -136,10 +137,18 @@ impl Markdown {
 
             out.push("## States".to_string());
 
-            // FIXME densify information
-            // FIXME: render order
-            // deprecated in the end
-            for (state_name, state) in resource.states.iter() {
+            let mut states = resource.states.values().collect::<Vec<&StateDef>>();
+            // Order alphanumerically, but put deprecated states at the end
+            states.sort_by(|a, b| {
+                match (a.metadata.get("deprecated"), b.metadata.get("deprecated")) {
+                    (Some(_), Some(_)) => b.name.cmp(&a.name),
+                    (None, Some(_)) => Ordering::Less,
+                    (Some(_), None) => Ordering::Greater,
+                    (None, None) => b.name.cmp(&a.name),
+                }
+            });
+
+            for state in states {
                 let platforms = if let Some(targets) = state
                     .metadata
                     .get("supported_targets")
@@ -169,12 +178,7 @@ impl Markdown {
                     "".to_string()
                 };
 
-                out.push(format!(
-                    "### {}{}{}",
-                    state_name.fragment(),
-                    platforms,
-                    action
-                ));
+                out.push(format!("### {}{}{}", state.name, platforms, action));
 
                 if let Some(deprecation) = state.metadata.get("deprecated") {
                     out.push(format!(
@@ -195,7 +199,7 @@ impl Markdown {
                 out.push(format!(
                     "```rudder-lang\n{}.{}({})\n```",
                     resource_signature,
-                    state_name.fragment(),
+                    state.name,
                     state_params.join(", ")
                 ));
 
