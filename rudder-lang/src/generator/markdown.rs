@@ -136,7 +136,48 @@ impl Markdown {
             // FIXME: render order
             // deprecated in the end
             for (state_name, state) in resource.states.iter() {
-                out.push(format!("### {}", state_name.fragment()));
+                let platforms = if let Some(targets) = state
+                    .metadata
+                    .get("supported_targets")
+                    .and_then(|a| a.as_array())
+                {
+                    let targets = targets
+                        .iter()
+                        .map(|t| match t.as_str().unwrap() {
+                            "cf" => "unix",
+                            "dsc" => "windows",
+                            _ => unreachable!(),
+                        })
+                        .collect::<Vec<&str>>();
+                    format!(" [{}]", targets.join(", "))
+                } else {
+                    "".to_string()
+                };
+
+                let action = if state
+                    .metadata
+                    .get("action")
+                    .and_then(|a| a.as_bool())
+                    .unwrap_or(false)
+                {
+                    " (action)".to_string()
+                } else {
+                    "".to_string()
+                };
+
+                out.push(format!(
+                    "### {}{}{}",
+                    state_name.fragment(),
+                    platforms,
+                    action
+                ));
+
+                if let Some(deprecation) = state.metadata.get("deprecated") {
+                    out.push(format!(
+                        "WARNING: *DEPRECATED*: {}",
+                        deprecation.as_str().unwrap()
+                    ));
+                }
 
                 if let Some(description) = state.metadata.get("description") {
                     out.push(description.as_str().unwrap().to_string());
@@ -153,26 +194,6 @@ impl Markdown {
                     state_name.fragment(),
                     state_params.join(", ")
                 ));
-
-                if let Some(deprecation) = state.metadata.get("deprecated") {
-                    out.push(format!("* *deprecated*: {}", deprecation.as_str().unwrap()));
-                }
-
-                if let Some(targets) = state
-                    .metadata
-                    .get("supported_targets")
-                    .and_then(|a| a.as_array())
-                {
-                    let targets = targets
-                        .iter()
-                        .map(|t| match t.as_str().unwrap() {
-                            "cf" => "Unix",
-                            "dsc" => "Windows",
-                            _ => unreachable!(),
-                        })
-                        .collect::<Vec<&str>>();
-                    out.push(format!("* supported platform(s): {}", targets.join(", ")));
-                }
 
                 if let Some(documentation) = state.metadata.get("documentation") {
                     out.push(documentation.as_str().unwrap().to_string());
