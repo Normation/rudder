@@ -47,20 +47,20 @@ impl Markdown {
                     o => format!("`{}`", o),
                 })
                 .collect::<Vec<String>>();
-            out.push(format!("* possible values: {}", options.join(", ")))
+            out.push(options.join(", "))
         } else {
             for (constraint, value) in constraints {
                 match constraint.as_str() {
                     "allow_empty_string" if value.as_bool().unwrap() => {
-                        out.push("* can be empty".to_string())
+                        out.push("can be empty".to_string())
                     }
                     "allow_whitespace_string" if value.as_bool().unwrap() => {
-                        out.push("* can contain only white-space chars".to_string())
+                        out.push("can contain only white-space chars".to_string())
                     }
                     "max_length" if value.as_integer().unwrap() != 16384 => {
-                        out.push(format!("* max length: {}", value.as_integer().unwrap()))
+                        out.push(format!("max length: {}", value.as_integer().unwrap()))
                     }
-                    "regex" => out.push(format!("* must match: `{}`", value.as_str().unwrap())),
+                    "regex" => out.push(format!("must match: `{}`", value.as_str().unwrap())),
                     _ => (),
                 }
             }
@@ -74,12 +74,16 @@ impl Markdown {
         let mut out = vec![];
         if let Some(params) = metadata.get("parameter") {
             for (parameter, properties) in params.as_table().unwrap().iter() {
-                out.push(format!("#### {}", parameter));
-                // FIXME hardcode others?
-                if let Some(constraints) = properties.get("constraints").and_then(|a| a.as_table())
+                let constraints = if let Some(constraints) =
+                    properties.get("constraints").and_then(|a| a.as_table())
                 {
-                    out.extend(Self::render_constraints(&constraints).iter().cloned());
-                }
+                    format!(" ({})", Self::render_constraints(&constraints).join(", "))
+                } else {
+                    "".to_string()
+                };
+
+                out.push(format!("#### {}{}", parameter, constraints));
+                // FIXME hardcode others?
 
                 if let Some(description) = properties.get("description") {
                     out.push(description.as_str().unwrap().to_string());
@@ -136,7 +140,48 @@ impl Markdown {
             // FIXME: render order
             // deprecated in the end
             for (state_name, state) in resource.states.iter() {
-                out.push(format!("### {}", state_name.fragment()));
+                let platforms = if let Some(targets) = state
+                    .metadata
+                    .get("supported_targets")
+                    .and_then(|a| a.as_array())
+                {
+                    let targets = targets
+                        .iter()
+                        .map(|t| match t.as_str().unwrap() {
+                            "cf" => "unix",
+                            "dsc" => "windows",
+                            _ => unreachable!(),
+                        })
+                        .collect::<Vec<&str>>();
+                    format!(" [{}]", targets.join(", "))
+                } else {
+                    "".to_string()
+                };
+
+                let action = if state
+                    .metadata
+                    .get("action")
+                    .and_then(|a| a.as_bool())
+                    .unwrap_or(false)
+                {
+                    " (action)".to_string()
+                } else {
+                    "".to_string()
+                };
+
+                out.push(format!(
+                    "### {}{}{}",
+                    state_name.fragment(),
+                    platforms,
+                    action
+                ));
+
+                if let Some(deprecation) = state.metadata.get("deprecated") {
+                    out.push(format!(
+                        "WARNING: *DEPRECATED*: {}",
+                        deprecation.as_str().unwrap()
+                    ));
+                }
 
                 if let Some(description) = state.metadata.get("description") {
                     out.push(description.as_str().unwrap().to_string());
@@ -153,26 +198,6 @@ impl Markdown {
                     state_name.fragment(),
                     state_params.join(", ")
                 ));
-
-                if let Some(deprecation) = state.metadata.get("deprecated") {
-                    out.push(format!("* *deprecated*: {}", deprecation.as_str().unwrap()));
-                }
-
-                if let Some(targets) = state
-                    .metadata
-                    .get("supported_targets")
-                    .and_then(|a| a.as_array())
-                {
-                    let targets = targets
-                        .iter()
-                        .map(|t| match t.as_str().unwrap() {
-                            "cf" => "Unix",
-                            "dsc" => "Windows",
-                            _ => unreachable!(),
-                        })
-                        .collect::<Vec<&str>>();
-                    out.push(format!("* supported platform(s): {}", targets.join(", ")));
-                }
 
                 if let Some(documentation) = state.metadata.get("documentation") {
                     out.push(documentation.as_str().unwrap().to_string());

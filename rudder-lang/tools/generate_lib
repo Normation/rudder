@@ -86,7 +86,8 @@ def get_methods_filenames(parent_dir):
                 get_methods_filenames(os.path.join(parent_dir, dir))
 
         for file in files:
-            if file.endswith(".cf") and not file.startswith("_"):
+            if (file.endswith(".cf") or file.endswith(
+                    ".ps1")) and not file.startswith("_"):
                 filenames.append(os.path.join(root, file))
     return filenames
 
@@ -382,14 +383,15 @@ def stringify(value):
     elif isinstance(value, str) or (sys.version_info[0] == 2 and isinstance(value, unicode)):
         return quoted(escaped(value))
     elif isinstance(value, dict):
-        out_value = [ stringify(k) + ": " + stringify(value[k]) for k in value.keys() ]
-        return "{ " + ", ".join(out_value)  + " }"
+        out_value = [stringify(k) + ": " + stringify(value[k])
+                     for k in value.keys()]
+        return "{ " + ", ".join(out_value) + " }"
     elif isinstance(value, list):
-        out_value = [ stringify(e) for e in value ]
+        out_value = [stringify(e) for e in value]
         return "[ " + ", ".join(out_value) + " ]"
     else:
         raise Exception("Unsupported type error: " + str(type(value)))
-    
+
 
 def fmt_parameter(out, parameter):
     out.write(
@@ -469,6 +471,9 @@ def generate_lib(resource_name, resource, lib_dir):
             fmt_attribute(
                 out, "documentation", multiline_quoted(
                     state["documentation"]))
+        if "action" in state:
+            fmt_attribute(
+                out, "action", stringify(True))
         fmt_attribute(
             out, "source_file", quoted(
                 escaped(
