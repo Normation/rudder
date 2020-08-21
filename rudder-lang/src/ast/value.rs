@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::{
-    context::Type,
+    context::VarContext,
     enums::{EnumExpression, EnumList},
 };
 use crate::{error::*, parser::*};
@@ -130,35 +130,30 @@ impl<'src> From<&Constant<'src>> for Value<'src> {
 }
 
 impl<'src> Value<'src> {
-    pub fn from_pvalue<VG>(
+    pub fn from_pvalue(
         enum_list: &EnumList<'src>,
-        getter: &VG,
+        context: &VarContext<'src>,
         pvalue: PValue<'src>,
-    ) -> Result<Self>
-    where
-        VG: Fn(Token<'src>) -> Option<Type<'src>>,
-    {
+    ) -> Result<Self> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
             PValue::Number(pos, n) => Ok(Value::Number(pos, n)),
             PValue::Boolean(pos, b) => Ok(Value::Boolean(pos, b)),
             PValue::EnumExpression(e) => Ok(Value::EnumExpression(
-                enum_list.canonify_expression(getter, e)?,
+                enum_list.canonify_expression(context, e)?,
             )),
             PValue::List(l) => Ok(Value::List(map_vec_results(l.into_iter(), |x| {
-                Value::from_pvalue(enum_list, getter, x)
+                Value::from_pvalue(enum_list, context, x)
             })?)),
             PValue::Struct(s) => Ok(Value::Struct(map_hashmap_results(
                 s.into_iter(),
-                |(k, v)| Ok((k, Value::from_pvalue(enum_list, getter, v)?)),
+                |(k, v)| Ok((k, Value::from_pvalue(enum_list, context, v)?)),
             )?)),
         }
     }
 
     // TODO check where it is called
-    pub fn context_check<VG>(&self, _getter: &VG) -> Result<()>
-    where
-        VG: Fn(Token<'src>) -> Option<Type<'src>>,
+    pub fn context_check(&self, context: &VarContext<'src>) -> Result<()>
     {
         match self {
             Value::String(s) => {

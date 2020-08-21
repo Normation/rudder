@@ -11,7 +11,7 @@ use self::{context::VarContext, enums::EnumList, resource::*, value::Value, valu
 use crate::ast::context::Type;
 use crate::{error::*, parser::*};
 use std::{
-    cmp::Ordering,
+    cmp::Ordering, rc::Rc,
     collections::{HashMap, HashSet},
 };
 
@@ -24,7 +24,7 @@ use std::{
 pub struct AST<'src> {
     errors: Vec<Error>,
     // the context is used for variable lookup whereas variable_definitions is used for code generation
-    pub context: VarContext<'src>,
+    pub context: Rc<VarContext<'src>>,
     pub enum_list: EnumList<'src>,
     pub variable_definitions: HashMap<Token<'src>, Value<'src>>,
     pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>, // also used as parameter list since that's all we have
@@ -85,7 +85,7 @@ impl<'src> AST<'src> {
     fn new() -> AST<'src> {
         AST {
             errors: Vec::new(),
-            context: VarContext::new(),
+            context: Rc::new(VarContext::new(None)),
             enum_list: EnumList::new(),
             variable_definitions: HashMap::new(),
             parameter_defaults: HashMap::new(),
@@ -96,11 +96,11 @@ impl<'src> AST<'src> {
 
     /// Insert all initial enums
     fn add_enums(&mut self, enums: Vec<PEnum<'src>>) {
+        let context = Rc::get_mut(&mut self.context).expect("Context has not been allocated before enums !");
         for en in enums {
             if en.global {
-                if let Err(e) = self
-                    .context
-                    .add_variable(None, en.name, Type::Enum(en.name))
+                if let Err(e) = context
+                    .add_variable_declaration(en.name, Type::Enum(en.name))
                 {
                     self.errors.push(e);
                 }
@@ -172,20 +172,18 @@ impl<'src> AST<'src> {
     /// Insert variables definition into the global context
     /// Insert the variables definition into the global definition space
     fn add_variables(&mut self, variables: Vec<PVariableDef<'src>>) {
+        let context = Rc::get_mut(&mut self.context).expect("Context has not been allocated before variables !");
         for variable in variables {
             let PVariableDef {
                 metadata,
                 name,
                 value,
             } = variable;
-            let getter = |k| self.context.get(&k);
-            match Value::from_pvalue(&self.enum_list, &getter, value) {
+            match Value::from_pvalue(&self.enum_list, context, value) {
                 Err(e) => self.errors.push(e),
-                Ok(val) => {
-                    if let Err(e) = self.context.add_variable(None, name, &val) {
-                        self.errors.push(e);
-                    }
-                    self.variable_definitions.insert(variable.name, val);
+                Ok(val) => match context.add_variable_declaration(name, Type::from_value(&val)) {
+                    Err(e) => self.errors.push(e),
+                    Ok(()) => { self.variable_definitions.insert(name, val); }
                 }
             }
         }
@@ -193,6 +191,7 @@ impl<'src> AST<'src> {
 
     /// Insert the variables declarations into the global context
     fn add_magic_variables(&mut self, variables: Vec<PVariableDecl<'src>>) {
+        let context = Rc::get_mut(&mut self.context).expect("Context has not been allocated before magic variables !");
         for variable in variables {
             let PVariableDecl {
                 metadata,
@@ -202,7 +201,7 @@ impl<'src> AST<'src> {
             } = variable;
             match Type::from_ptype(type_, sub_elts) {
                 Ok(var_type) => {
-                    if let Err(e) = self.context.add_variable(None, name, var_type) {
+                    if let Err(e) = context.add_variable_declaration(name, var_type) {
                         self.errors.push(e);
                     }
                 }
@@ -329,7 +328,7 @@ impl<'src> AST<'src> {
                 res,
                 states,
                 res_children,
-                &self.context,
+                self.context.clone(),
                 &self.parameter_defaults,
                 &self.enum_list,
             );

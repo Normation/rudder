@@ -5,6 +5,7 @@ use super::value::Value;
 use super::value::Constant;
 use crate::{error::*, parser::Token, parser::PType};
 use std::collections::{hash_map, HashMap};
+use std::rc::Rc;
 
 /// Types some data can take
 /// TODO: isn't this the same as a PType
@@ -16,45 +17,6 @@ pub enum Type<'src> {
     Boolean,
     List,                                   // TODO should be subtypable / generic like struct
     Struct(HashMap<String, Type<'src>>), // Token instead of string ?
-}
-
-/// Implement conversion from value to type (a value already has a type)
-impl<'src> From<&Value<'src>> for Type<'src> {
-    fn from(val: &Value<'src>) -> Self {
-        match val {
-            Value::String(_) => Type::String,
-            Value::Number(_, _) => Type::Number,
-            Value::Boolean(_, _) => Type::Boolean,
-            Value::EnumExpression(_) => Type::Boolean,
-            Value::List(_) => Type::List,
-            Value::Struct(s) => {
-                let spec = s
-                    .iter()
-                    .map(|(k, v)| (k.clone(), v.into()))
-                    .collect::<HashMap<String, Type<'src>>>();
-                Type::Struct(spec)
-            }
-        }
-    }
-}
-
-impl<'src> From<&Constant<'src>> for Type<'src> {
-    /// A constant necessarily has a type
-    fn from(val: &Constant<'src>) -> Self {
-        match val {
-            Constant::String(_, _) => Type::String,
-            Constant::Number(_, _) => Type::Number,
-            Constant::Boolean(_, _) => Type::Boolean,
-            Constant::List(_) => Type::List,
-            Constant::Struct(s) => {
-                let spec = s
-                    .iter()
-                    .map(|(k, v)| (k.clone(), v.into()))
-                    .collect::<HashMap<String, Type<'src>>>();
-                Type::Struct(spec)
-            }
-        }
-    }
 }
 
 impl<'src> Type<'src> {
@@ -82,6 +44,41 @@ impl<'src> Type<'src> {
             Type::Struct(map)
         })
     }
+
+    /// Find the type of a given value
+    pub fn from_value(val: &Value<'src>) -> Self {
+        match val {
+            Value::String(_) => Type::String,
+            Value::Number(_, _) => Type::Number,
+            Value::Boolean(_, _) => Type::Boolean,
+            Value::EnumExpression(_) => Type::Boolean,
+            Value::List(_) => Type::List,
+            Value::Struct(s) => {
+                let spec = s
+                    .iter()
+                    .map(|(k, v)| (k.clone(), Type::from_value(v)))
+                    .collect::<HashMap<String, Type<'src>>>();
+                Type::Struct(spec)
+            }
+        }
+    }
+
+    /// Find the type of a given constant
+    pub fn from_constant(val: &Constant<'src>) -> Self {
+        match val {
+            Constant::String(_, _) => Type::String,
+            Constant::Number(_, _) => Type::Number,
+            Constant::Boolean(_, _) => Type::Boolean,
+            Constant::List(_) => Type::List,
+            Constant::Struct(s) => {
+                let spec = s
+                    .iter()
+                    .map(|(k, v)| (k.clone(), Type::from_constant(v)))
+                    .collect::<HashMap<String, Type<'src>>>();
+                Type::Struct(spec)
+            }
+        }
+    }
 }
 
 // TODO forbid variables names like global enum items (or enum type)
@@ -92,54 +89,71 @@ impl<'src> Type<'src> {
 /// So this reference is asked by methods when they are needed.
 #[derive(Debug, Clone)]
 pub struct VarContext<'src> {
-    variables: HashMap<Token<'src>, Type<'src>>,
+    parent: Option<Rc<VarContext<'src>>>,
+    types: HashMap<Token<'src>, Type<'src>>,
+    definitions: HashMap<Token<'src>, Value<'src>>,
 }
 
 impl<'src> VarContext<'src> {
     /// Constructor
-    pub fn new() -> VarContext<'static> {
+    pub fn new(parent: Option<Rc<VarContext>>) -> VarContext {
         VarContext {
-            variables: HashMap::new(),
+            parent,
+            types: HashMap::new(),
+            definitions: HashMap::new(),
         }
     }
 
     /// Returns the type of a given variable or None if variable doesn't exist
-    pub fn get(&self, key: &Token<'src>) -> Option<Type<'src>> {
+    pub fn get_type(&self, key: &Token<'src>) -> Option<Type<'src>> {
         // clone should not be necessary, but i don't know how to handle lifetime hell without it
-        self.variables.get(key).map(Type::clone)
+        self.types
+            .get(key)
+            .map(Type::clone)
+            .or_else(
+                || self.parent.clone()
+                    .and_then(|p| p.get_type(key))
+            )
     }
 
     /// Iterator over all variables of this context.
     pub fn iter(&self) -> hash_map::Iter<Token<'src>, Type<'src>> {
-        self.variables.iter()
+        self.types.iter()
     }
 
-    /// Add a knew variable knowing its type (or its value which its convertible to type)
-    pub fn add_variable<T>(
-        &mut self,
-        upper_context: Option<&VarContext<'src>>, // TODO maybe we should not have an upper context and just clone the context when needed
-        name: Token<'src>,
-        type_value: T,
-    ) -> Result<()>
-    where
-        T: Into<Type<'src>>,
-    {
+    fn must_not_exist(&self, name: &Token<'src>) -> Result<()> {
         // disallow variable shadowing (TODO is that what we want ?)
-        if let Some(gc) = upper_context {
-            if gc.variables.contains_key(&name) {
-                fail!(
-                    name,
-                    "Variable {} hides global variable {}",
-                    name,
-                    gc.variables.get_key_value(&name).unwrap().0
-                );
-            }
+        if let Some(parent) = &self.parent {
+            parent.must_not_exist(name)?;
         }
+        // disallow variable redefinition
+        if self.get_type(name).is_some() {
+            fail!(
+                name,
+                "Variable {} hides existing an variable {}",
+                name,
+                self.types.get_key_value(&name).unwrap().0
+            );
+        }
+        Ok(())
+    }
+
+    /// Add a knew variable knowing its type
+    pub fn add_variable_declaration(
+        &mut self,
+        name: Token<'src>,
+        type_: Type<'src>,
+    ) -> Result<()> {
+        // disallow variable shadowing (TODO is that what we want ?)
+        if let Some(parent) = &self.parent {
+            parent.must_not_exist(&name)?;
+        }
+
         // disallow variable redefinition except for struct which extends the structure
-        if self.variables.contains_key(&name) {
-            let current = self.variables.get_mut(&name).unwrap();
+        if self.types.contains_key(&name) {
+            let current = self.types.get_mut(&name).unwrap();
             match current {
-                Type::Struct(desc) => match type_value.into() {
+                Type::Struct(desc) => match type_ {
                     Type::Struct(new_desc) => {
                         VarContext::extend_struct(name, desc, new_desc)?;
                     }
@@ -147,18 +161,18 @@ impl<'src> VarContext<'src> {
                         name,
                         "Variable {} extends a struct {} but is not a struct",
                         name,
-                        self.variables.entry(name).key()
+                        self.types.entry(name).key()
                     ),
                 },
                 _ => fail!(
                     name,
                     "Variable {} redefines an existing variable {}",
                     name,
-                    self.variables.entry(name).key()
+                    self.types.entry(name).key()
                 ),
             }
         } else {
-            self.variables.insert(name, type_value.into());
+            self.types.insert(name, type_);
         }
         Ok(())
     }
@@ -196,32 +210,28 @@ mod tests {
 
     #[test]
     fn test_context() {
-        let mut context = VarContext::new();
+        let mut context = VarContext::new(None);
         assert!(context
-            .add_variable(
-                None,
+            .add_variable_declaration(
                 pidentifier_t("var1"),
                 Type::Enum(pidentifier_t("enum1"))
             )
             .is_ok());
         assert!(context
-            .add_variable(
-                None,
+            .add_variable_declaration(
                 pidentifier_t("var2"),
                 Type::Enum(pidentifier_t("enum1"))
             )
             .is_ok());
-        let mut c = VarContext::new();
+        let mut c = VarContext::new(Some(Rc::new(context)));
         assert!(c
-            .add_variable(
-                Some(&context),
+            .add_variable_declaration(
                 pidentifier_t("var3"),
                 Type::Enum(pidentifier_t("enum2"))
             )
             .is_ok());
         assert!(c
-            .add_variable(
-                Some(&context),
+            .add_variable_declaration(
                 pidentifier_t("var4"),
                 Type::Enum(pidentifier_t("enum1"))
             )
@@ -238,10 +248,10 @@ mod tests {
                 type_,
             } = pvariable_declaration_t(input);
             let type_ = Type::from_ptype(type_, sub_elts).unwrap();
-            context.add_variable(None, name, type_)
+            context.add_variable_declaration(name, type_)
         }
 
-        let mut context = VarContext::new();
+        let mut context = VarContext::new(None);
 
         assert!(add_variable(&mut context, "let sys.windows").is_ok());
         assert!(add_variable(&mut context, "let sys.windows").is_err()); // direct duplicate
@@ -271,6 +281,6 @@ mod tests {
             "windows".into() => Type::String,
         };
 
-        assert_eq!(context.variables[&"sys".into()], Type::Struct(os));
+        assert_eq!(context.types[&"sys".into()], Type::Struct(os));
     }
 }

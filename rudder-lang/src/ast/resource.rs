@@ -8,6 +8,7 @@ use super::{
 };
 use crate::{error::*, parser::*};
 use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 use toml::map::Map as TomlMap;
 use toml::Value as TomlValue;
 
@@ -93,14 +94,13 @@ fn create_parameters<'src>(
 
 /// Create a local context from a list of parameters
 fn create_default_context<'src>(
-    global_context: &VarContext<'src>,
-    resource_parameters: &[Parameter<'src>],
+    parent_context: Rc<VarContext<'src>>,
     parameters: &[Parameter<'src>],
 ) -> (Vec<Error>, VarContext<'src>) {
-    let mut context = VarContext::new();
+    let mut context = VarContext::new(Some(parent_context));
     let mut errors = Vec::new();
-    for p in resource_parameters.iter().chain(parameters.iter()) {
-        if let Err(e) = context.add_variable(Some(global_context), p.name, p.type_.clone()) {
+    for p in parameters.iter() {
+        if let Err(e) = context.add_variable_declaration(p.name, p.type_.clone()) {
             errors.push(e);
         }
     }
@@ -115,6 +115,7 @@ pub struct ResourceDef<'src> {
     pub parameters: Vec<Parameter<'src>>,
     pub states: HashMap<Token<'src>, StateDef<'src>>,
     pub children: HashSet<Token<'src>>,
+    pub context: Rc<VarContext<'src>>,
 }
 
 impl<'src> ResourceDef<'src> {
@@ -122,7 +123,7 @@ impl<'src> ResourceDef<'src> {
         resource_declaration: PResourceDef<'src>,
         pstates: Vec<PStateDef<'src>>,
         mut children: HashSet<Token<'src>>,
-        context: &VarContext<'src>,
+        parent_context: Rc<VarContext<'src>>,
         parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>,
         enum_list: &EnumList<'src>,
     ) -> (Vec<Error>, Option<Self>) {
@@ -140,14 +141,17 @@ impl<'src> ResourceDef<'src> {
         let (mut errors, metadata) = create_metadata(pmetadata);
         // create final version of states
         let mut states = HashMap::new();
+        // Create context from parent
+        let (mut errors2, mut_context) = create_default_context(parent_context, parameters.as_slice());
+        errors.append(&mut errors2);
+        let context = Rc::new(mut_context);
         for st in pstates {
             let state_name = st.name;
             let (err, state) = StateDef::from_pstate_def(
                 st,
                 name,
                 &mut children,
-                &parameters,
-                context,
+                context.clone(),
                 parameter_defaults,
                 enum_list,
             );
@@ -164,6 +168,7 @@ impl<'src> ResourceDef<'src> {
                 parameters,
                 states,
                 children,
+                context,
             }),
         )
     }
@@ -176,7 +181,7 @@ pub struct StateDef<'src> {
     pub metadata: TomlMap<String, TomlValue>,
     pub parameters: Vec<Parameter<'src>>,
     pub statements: Vec<Statement<'src>>,
-    pub context: VarContext<'src>,
+    pub context: Rc<VarContext<'src>>,
     //pub is_alias: bool,
 }
 
@@ -185,8 +190,7 @@ impl<'src> StateDef<'src> {
         pstate: PStateDef<'src>,
         resource_name: Token<'src>,
         children: &mut HashSet<Token<'src>>,
-        resource_parameters: &[Parameter<'src>],
-        global_context: &VarContext<'src>,
+        parent_context: Rc<VarContext<'src>>,
         parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>,
         enum_list: &EnumList<'src>,
     ) -> (Vec<Error>, Option<Self>) {
@@ -200,7 +204,7 @@ impl<'src> StateDef<'src> {
         };
         let (mut errors, metadata) = create_metadata(pstate.metadata);
         let (errs, mut context) =
-            create_default_context(global_context, &resource_parameters, &parameters);
+            create_default_context(parent_context, &parameters);
         errors.extend(errs);
         // create final version of statements
         let mut statements = Vec::new();
@@ -209,7 +213,6 @@ impl<'src> StateDef<'src> {
                 &mut context,
                 children,
                 st0,
-                global_context,
                 parameter_defaults,
                 enum_list,
             ) {
@@ -224,7 +227,7 @@ impl<'src> StateDef<'src> {
                 metadata,
                 parameters,
                 statements,
-                context,
+                context: Rc::new(context),
             }),
         )
     }
@@ -244,7 +247,7 @@ impl<'src> Parameter<'src> {
     ) -> Result<Self> {
         let type_ = Type::from_ptype(p.ptype, Vec::new())?;
         if let Some(val) = default {
-            if type_ != val.into() {
+            if type_ != Type::from_constant(val) {
                 fail!(p.name, "Default value for {} doesn't match its type", p.name);
             }
         }
@@ -256,7 +259,7 @@ impl<'src> Parameter<'src> {
 
     /// returns an error if the value has an incompatible type
     pub fn value_match(&self, param_ref: &Value) -> Result<()> {
-        if self.type_ != param_ref.into() {
+        if self.type_ != Type::from_value(param_ref) {
             fail!(
                 self.name,
                 "Parameter {} is of type {:?}",
@@ -328,17 +331,15 @@ fn push_default_parameters<'src>(
     Ok(())
 }
 
-fn string_value<'src, VG>(
-    getter: &VG,
+fn string_value<'src>(
+    context: &VarContext<'src>,
     enum_list: &EnumList<'src>,
     pvalue: PValue<'src>,
 ) -> Result<Value<'src>>
-where
-    VG: Fn(Token<'src>) -> Option<Type<'src>>,
 {
-    let value = Value::from_pvalue(enum_list, &getter, pvalue)?;
+    let value = Value::from_pvalue(enum_list, context, pvalue)?;
     // check that definition use existing variables
-    value.context_check(&getter)?;
+    value.context_check(context)?;
     // we must have a string
     match &value {
         Value::String(_) => Ok(value),
@@ -351,30 +352,24 @@ impl<'src> Statement<'src> {
         context: &'b mut VarContext<'src>,
         children: &'b mut HashSet<Token<'src>>,
         st: PStatement<'src>,
-        global_context: &'b VarContext<'src>,
         parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>,
         enum_list: &EnumList<'src>,
     ) -> Result<Self> {
-        // we must not capture the context in this common getter since it is used
-        // as mutable elsewhere in this function
-        let common_getter =
-            |ctx: &VarContext<'src>, k: Token<'src>| ctx.get(&k).or_else(|| global_context.get(&k));
         Ok(match st {
             PStatement::VariableDefinition(PVariableDef {
                 metadata,
                 name,
                 value,
             }) => {
-                let value =
-                    Value::from_pvalue(enum_list, &{ |x| common_getter(context, x) }, value)?;
+                let value = Value::from_pvalue(enum_list, &context, value)?;
                 match value {
                     Value::Boolean(_, _) => {
-                        context.add_variable(Some(global_context), name, Type::Boolean)?
+                        context.add_variable_declaration(name, Type::Boolean)?
                     }
                     _ => {
                         // check that definition use existing variables
-                        value.context_check(&{ |x| common_getter(context, x) })?;
-                        context.add_variable(Some(global_context), name, &value)?;
+                        value.context_check(context)?;
+                        context.add_variable_declaration(name, Type::from_value(&value))?;
                     }
                 }
                 let (mut _errors, metadata) = create_metadata(metadata);
@@ -392,19 +387,18 @@ impl<'src> Statement<'src> {
             }) => {
                 if let Some(out_var) = outcome {
                     // outcome must be defined, token comes from internal compilation, no value known a compile time
-                    context.add_variable(
-                        Some(global_context),
+                    context.add_variable_declaration(
                         out_var,
                         Type::Enum(Token::new("internal", "outcome")),
                     )?;
                 }
                 children.insert(resource);
                 let mut resource_params = map_vec_results(resource_params.into_iter(), |v| {
-                    Value::from_pvalue(enum_list, &{ |x| common_getter(context, x) }, v)
+                    Value::from_pvalue(enum_list, context, v)
                 })?;
                 push_default_parameters(resource, None, parameter_defaults, &mut resource_params)?;
                 let mut state_params = map_vec_results(state_params.into_iter(), |v| {
-                    Value::from_pvalue(enum_list, &{ |x| common_getter(context, x) }, v)
+                    Value::from_pvalue(enum_list, context, v)
                 })?;
                 push_default_parameters(
                     resource,
@@ -414,10 +408,10 @@ impl<'src> Statement<'src> {
                 )?;
                 // check that parameters use existing variables
                 map_results(resource_params.iter(), |p| {
-                    p.context_check(&{ |x| common_getter(context, x) })
+                    p.context_check(context)
                 })?;
                 map_results(state_params.iter(), |p| {
-                    p.context_check(&{ |x| common_getter(context, x) })
+                    p.context_check(context)
                 })?;
                 let (mut _errors, metadata) = create_metadata(metadata);
                 Statement::StateDeclaration(StateDeclaration {
@@ -432,22 +426,22 @@ impl<'src> Statement<'src> {
                 })
             }
             PStatement::Fail(f) => Statement::Fail(string_value(
-                &{ |x| common_getter(context, x) },
+                context,
                 enum_list,
                 f,
             )?),
             PStatement::LogDebug(l) => Statement::LogDebug(string_value(
-                &{ |x| common_getter(context, x) },
+                context,
                 enum_list,
                 l,
             )?),
             PStatement::LogInfo(l) => Statement::LogInfo(string_value(
-                &{ |x| common_getter(context, x) },
+                context,
                 enum_list,
                 l,
             )?),
             PStatement::LogWarn(l) => Statement::LogWarn(string_value(
-                &{ |x| common_getter(context, x) },
+                context,
                 enum_list,
                 l,
             )?),
@@ -470,7 +464,7 @@ impl<'src> Statement<'src> {
                 case,
                 map_vec_results(v.into_iter(), |(exp, sts)| {
                     let expr =
-                        enum_list.canonify_expression(&{ |x| common_getter(context, x) }, exp)?;
+                        enum_list.canonify_expression(context, exp)?;
                     Ok((
                         expr,
                         map_vec_results(sts.into_iter(), |st| {
@@ -478,7 +472,6 @@ impl<'src> Statement<'src> {
                                 context,
                                 children,
                                 st,
-                                global_context,
                                 parameter_defaults,
                                 enum_list,
                             )
