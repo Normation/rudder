@@ -849,7 +849,7 @@ fn test_pparameter() {
             (
                 PParameter {
                     name: "hello".into(),
-                    ptype: Some(PValue::generate_automatic(PType::String))
+                    ptype: Some(PType::String)
                 },
                 None
             )
@@ -866,7 +866,7 @@ fn test_pparameter() {
             (
                 PParameter {
                     name: "hello".into(),
-                    ptype: Some(PValue::generate_automatic(PType::String)),
+                    ptype: Some(PType::String),
                 },
                 None
             )
@@ -879,7 +879,7 @@ fn test_pparameter() {
             (
                 PParameter {
                     name: "hello".into(),
-                    ptype: Some(PValue::generate_automatic(PType::String)),
+                    ptype: Some(PType::String),
                 },
                 Some(PValue::String("\"".into(), "default".to_string()))
             )
@@ -949,7 +949,7 @@ fn test_presource_def() {
                     parameters: vec![
                         PParameter {
                             name: "p1".into(),
-                            ptype: Some(PValue::generate_automatic(PType::String)),
+                            ptype: Some(PType::String),
                         },
                         PParameter {
                             name: "p2".into(),
@@ -1067,50 +1067,50 @@ fn test_variable_definition() {
 #[test]
 fn test_variable_declaration() {
     assert_eq!(
-        map_res(pvariable_declaration, "let my_var"),
+        map_res(pvariable_declaration, "let my_var1"),
         Ok((
             "",
             PVariableDecl {
                 metadata: Vec::new(),
-                name: "my_var".into(),
+                name: "my_var1".into(),
                 sub_elts: Vec::new(),
-                var_type: None
+                type_: None
             }
         ))
     );
     assert_eq!(
-        map_res(pvariable_declaration, "let my_var: String"),
+        map_res(pvariable_declaration, "let my_var2: string"),
         Ok((
             "",
             PVariableDecl {
                 metadata: Vec::new(),
-                name: "my_var".into(),
+                name: "my_var2".into(),
                 sub_elts: Vec::new(),
-                var_type: Some("String".into())
+                type_: Some(PType::String)
             }
         ))
     );
     assert_eq!(
-        map_res(pvariable_declaration, "let my_var.sub.element.x"),
+        map_res(pvariable_declaration, "let my_var3.sub.element.x"),
         Ok((
             "",
             PVariableDecl {
                 metadata: Vec::new(),
-                name: "my_var".into(),
+                name: "my_var3".into(),
                 sub_elts: vec!["sub".into(), "element".into(), "x".into()],
-                var_type: None
+                type_: None
             }
         ))
     );
     assert_eq!(
-        map_res(pvariable_declaration, "let my_var.sub.element.x: String"),
+        map_res(pvariable_declaration, "let my_var4.sub.element.x: string"),
         Ok((
             "",
             PVariableDecl {
                 metadata: Vec::new(),
-                name: "my_var".into(),
+                name: "my_var4".into(),
                 sub_elts: vec!["sub".into(), "element".into(), "x".into()],
-                var_type: Some("String".into())
+                type_: Some(PType::String)
             }
         ))
     );

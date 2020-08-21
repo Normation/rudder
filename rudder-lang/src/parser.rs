@@ -519,17 +519,19 @@ fn pstruct(i: PInput) -> PResult<HashMap<String, PValue>> {
 
 /// A PType is the type a variable or a parameter can take.
 /// Its only purpose is to be a PValue construction helper
+use std::marker::PhantomData;
 #[derive(Debug, PartialEq, Copy, Clone)]
-pub enum PType {
+pub enum PType<'src> {
     String,
     Number,
     Boolean,
     Struct,
     List,
+    Phantom(PhantomData<Token<'src>>), // phantomdata to force lifetime since we'll add some soon
 }
 /// PValue is a typed value of the content of a variable or a parameter.
 /// Must be cloneable because it is copied during default values expansion
-// TODO separate value from type and handle automatic values (variable declaration)
+// TODO sep,arate value from type and handle automatic values (variable declaration)
 #[derive(Debug, PartialEq, Clone)]
 #[allow(clippy::large_enum_variant)]
 pub enum PValue<'src> {
@@ -539,17 +541,6 @@ pub enum PValue<'src> {
     EnumExpression(PEnumExpression<'src>),
     Struct(HashMap<String, PValue<'src>>),
     List(Vec<PValue<'src>>),
-}
-impl<'src> PValue<'src> {
-    pub fn generate_automatic(ptype: PType) -> PValue<'static> {
-        match ptype {
-            PType::String => PValue::String(Token::new("", ""), "Automatic".to_owned()),
-            PType::Number => PValue::Number(Token::new("", ""), 0.0),
-            PType::Boolean => PValue::Boolean(Token::new("", ""), false),
-            PType::Struct => PValue::Struct(HashMap::new()),
-            PType::List => PValue::List(Vec::new()),
-        }
-    }
 }
 fn pvalue(i: PInput) -> PResult<PValue> {
     alt((
@@ -563,13 +554,14 @@ fn pvalue(i: PInput) -> PResult<PValue> {
     ))(i)
 }
 
-fn ptype(i: PInput) -> PResult<PValue> {
+// TODO missing complex struct parser
+fn ptype(i: PInput) -> PResult<PType> {
     alt((
-        value(PValue::generate_automatic(PType::String), etag("string")),
-        value(PValue::generate_automatic(PType::Number), etag("num")),
-        value(PValue::generate_automatic(PType::Boolean), etag("boolean")),
-        value(PValue::generate_automatic(PType::Struct), etag("struct")),
-        value(PValue::generate_automatic(PType::List), etag("list")),
+        value(PType::String, etag("string")),
+        value(PType::Number, etag("num")),
+        value(PType::Boolean, etag("boolean")),
+        value(PType::Struct, etag("struct")),
+        value(PType::List, etag("list")),
     ))(i)
 }
 
@@ -591,7 +583,7 @@ fn pmetadata(i: PInput) -> PResult<PMetadata> {
             kind: PErrorKind::NoMetadata,
         }));
     }
-    println!("meadata: {}", &metadata_string);
+
     let values = match toml::de::from_str(&metadata_string) {
         Ok(v) => v,
         Err(e) => {
@@ -646,7 +638,7 @@ fn pmetadata_list(i: PInput) -> PResult<Vec<PMetadata>> {
 #[derive(Debug, PartialEq)]
 pub struct PParameter<'src> {
     pub name: Token<'src>,
-    pub ptype: Option<PValue<'src>>,
+    pub ptype: Option<PType<'src>>,
 }
 // return a pair because we will store the default value separately
 fn pparameter(i: PInput) -> PResult<(PParameter, Option<PValue>)> {
@@ -723,6 +715,7 @@ fn pvariable_definition(i: PInput) -> PResult<PVariableDef> {
             metadata: pmetadata_list;
             _identifier: estag("let");
             name: pidentifier;
+            // TODO a type could be added here (but mostly useless since there is a value)
             _t: etag("=");
             value: or_fail(pvalue, || PErrorKind::ExpectedKeyword("value"));
         } => PVariableDef { metadata, name, value }
@@ -736,7 +729,7 @@ pub struct PVariableDecl<'src> {
     pub metadata: Vec<PMetadata<'src>>,
     pub name: Token<'src>,
     pub sub_elts: Vec<Token<'src>>, // for struct items
-    pub var_type: Option<Token<'src>>,
+    pub type_: Option<PType<'src>>,
 }
 fn pvariable_declaration(i: PInput) -> PResult<PVariableDecl> {
     wsequence!(
@@ -745,8 +738,8 @@ fn pvariable_declaration(i: PInput) -> PResult<PVariableDecl> {
             _identifier: estag("let");
             name: or_fail(pidentifier, || PErrorKind::ExpectedKeyword("namespace"));
             sub_elts: many0(preceded(sp(etag(".")), pidentifier));
-            var_type: opt(preceded(sp(etag(":")),pidentifier));
-        } => PVariableDecl { metadata, name, sub_elts, var_type }
+            type_: opt(preceded(sp(etag(":")),ptype));
+        } => PVariableDecl { metadata, name, sub_elts, type_ }
     )(i)
 }
 

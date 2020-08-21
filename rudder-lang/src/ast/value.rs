@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::{
-    context::VarType,
+    context::Type,
     enums::{EnumExpression, EnumList},
 };
 use crate::{error::*, parser::*};
@@ -15,25 +15,9 @@ pub struct StringObject<'src> {
     pub data: Vec<PInterpolatedElement>,
 }
 impl<'src> StringObject<'src> {
-    pub fn from_pstring(pos: Token<'src>, s: String) -> Result<StringObject> {
+    pub fn from_pstring(pos: Token<'src>, s: String) -> Result<Self> {
         let data = parse_string(&s[..])?;
         Ok(StringObject { pos, data })
-    }
-
-    pub fn from_static_pstring(pos: Token<'src>, s: String) -> Result<StringObject> {
-        let obj = StringObject::from_pstring(pos, s.clone())?;
-        if obj.is_static() {
-            Ok(obj)
-        } else {
-            fail!(pos, "Dynamic data (eg: variables) is forbidden in '{}'", s)
-        }
-    }
-
-    pub fn is_static(&self) -> bool {
-        self.data.iter().fold(true, |b, pie| match pie {
-            PInterpolatedElement::Static(_) => b,
-            PInterpolatedElement::Variable(_) => false,
-        })
     }
 
     pub fn append(&mut self, other: StringObject<'src>) {
@@ -84,6 +68,38 @@ impl<'src> TryFrom<&StringObject<'src>> for String {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum Constant<'src> {
+    String(Token<'src>, String),
+    Number(Token<'src>, f64),
+    Boolean(Token<'src>, bool),
+    List(Vec<Constant<'src>>),
+    Struct(HashMap<String, Constant<'src>>),
+}
+impl<'src> Constant<'src> {
+    pub fn from_pvalue(pvalue: PValue<'src>) -> Result<Self> {
+        match pvalue {
+            // TODO use source instead of pos
+            PValue::String(pos, s) => {
+                let so = StringObject::from_pstring(pos, s)?;
+                let value = String::try_from(&so)?;
+                Ok(Constant::String(so.pos, value))
+            },
+            PValue::Number(pos, n) => Ok(Constant::Number(pos, n)),
+            PValue::Boolean(pos, b) => Ok(Constant::Boolean(pos, b)),
+            PValue::EnumExpression(e) => fail!(e.source, "Enum expression are not allowed in constants"),
+            PValue::List(l) => Ok(Constant::List(map_vec_results(
+                l.into_iter(),
+                Constant::from_pvalue,
+            )?)),
+            PValue::Struct(s) => Ok(Constant::Struct(map_hashmap_results(
+                s.into_iter(),
+                |(k, v)| Ok((k, Constant::from_pvalue(v)?)),
+            )?)),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Value<'src> {
     //     position   format  variables
     String(StringObject<'src>),
@@ -93,14 +109,34 @@ pub enum Value<'src> {
     List(Vec<Value<'src>>),
     Struct(HashMap<String, Value<'src>>),
 }
+
+impl<'src> From<&Constant<'src>> for Value<'src> {
+    fn from(val: &Constant<'src>) -> Self {
+        match val {
+            Constant::String(p, s) => Value::String(
+                StringObject{ pos: p.clone(), data: vec![PInterpolatedElement::Static(s.clone())] }
+            ),
+            Constant::Number(p, f) => Value::Number(p.clone(), f.clone()),
+            Constant::Boolean(p, b) => Value::Boolean(p.clone(), b.clone()),
+            Constant::List(l) => Value::List(l.iter().map(Value::from).collect()),
+            Constant::Struct(s) => {
+                let spec = s
+                    .iter()
+                    .map(|(k, v)| (k.clone(), v.into()));
+                Value::Struct(spec.collect())
+            }
+        }
+    }
+}
+
 impl<'src> Value<'src> {
     pub fn from_pvalue<VG>(
         enum_list: &EnumList<'src>,
         getter: &VG,
         pvalue: PValue<'src>,
-    ) -> Result<Value<'src>>
+    ) -> Result<Self>
     where
-        VG: Fn(Token<'src>) -> Option<VarType<'src>>,
+        VG: Fn(Token<'src>) -> Option<Type<'src>>,
     {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
@@ -119,29 +155,10 @@ impl<'src> Value<'src> {
         }
     }
 
-    pub fn from_static_pvalue(pvalue: PValue<'src>) -> Result<Value<'src>> {
-        match pvalue {
-            PValue::String(pos, s) => Ok(Value::String(StringObject::from_static_pstring(pos, s)?)),
-            PValue::Number(pos, n) => Ok(Value::Number(pos, n)),
-            PValue::Boolean(pos, b) => Ok(Value::Boolean(pos, b)),
-            // TODO replace with real thing / the only accepted expression is true or false
-            PValue::EnumExpression(_) => Ok(Value::Number("".into(), 1.)),
-            //PValue::EnumExpression(e) => fail!(e.token(), "Enum expression are not allowed in static context"),
-            PValue::List(l) => Ok(Value::List(map_vec_results(
-                l.into_iter(),
-                Value::from_static_pvalue,
-            )?)),
-            PValue::Struct(s) => Ok(Value::Struct(map_hashmap_results(
-                s.into_iter(),
-                |(k, v)| Ok((k, Value::from_static_pvalue(v)?)),
-            )?)),
-        }
-    }
-
     // TODO check where it is called
     pub fn context_check<VG>(&self, _getter: &VG) -> Result<()>
     where
-        VG: Fn(Token<'src>) -> Option<VarType<'src>>,
+        VG: Fn(Token<'src>) -> Option<Type<'src>>,
     {
         match self {
             Value::String(s) => {

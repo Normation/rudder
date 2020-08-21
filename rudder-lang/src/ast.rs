@@ -7,8 +7,8 @@ pub mod enums;
 pub mod resource;
 pub mod value;
 
-use self::{context::VarContext, enums::EnumList, resource::*, value::Value};
-use crate::ast::context::VarType;
+use self::{context::VarContext, enums::EnumList, resource::*, value::Value, value::Constant};
+use crate::ast::context::Type;
 use crate::{error::*, parser::*};
 use std::{
     cmp::Ordering,
@@ -27,7 +27,7 @@ pub struct AST<'src> {
     pub context: VarContext<'src>,
     pub enum_list: EnumList<'src>,
     pub variable_definitions: HashMap<Token<'src>, Value<'src>>,
-    pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>, // also used as parameter list since that's all we have
+    pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>, // also used as parameter list since that's all we have
     pub resource_list: HashSet<Token<'src>>,
     pub resources: HashMap<Token<'src>, ResourceDef<'src>>,
 }
@@ -100,7 +100,7 @@ impl<'src> AST<'src> {
             if en.global {
                 if let Err(e) = self
                     .context
-                    .add_variable(None, en.name, VarType::Enum(en.name))
+                    .add_variable(None, en.name, Type::Enum(en.name))
                 {
                     self.errors.push(e);
                 }
@@ -144,7 +144,7 @@ impl<'src> AST<'src> {
                         // We know in which enum we shoud be
                         Some(name) => self.errors.push(err!(
                             se.name,
-                            "Enum {} item {} not found when trying to define sub enum {}",
+                            "EnType::fromum {} item {} not found when trying to define sub enum {}",
                             name,
                             se.name,
                             get_suggestion_message(
@@ -178,17 +178,13 @@ impl<'src> AST<'src> {
                 name,
                 value,
             } = variable;
-            if let Err(e) = self.context.add_variable(
-                None,
-                name,
-                &Value::from_static_pvalue(value.clone()).unwrap(),
-            ) {
-                self.errors.push(e);
-            }
             let getter = |k| self.context.get(&k);
             match Value::from_pvalue(&self.enum_list, &getter, value) {
                 Err(e) => self.errors.push(e),
                 Ok(val) => {
+                    if let Err(e) = self.context.add_variable(None, name, &val) {
+                        self.errors.push(e);
+                    }
                     self.variable_definitions.insert(variable.name, val);
                 }
             }
@@ -202,11 +198,11 @@ impl<'src> AST<'src> {
                 metadata,
                 name,
                 sub_elts,
-                var_type,
+                type_,
             } = variable;
-            match VarType::from_ptype(var_type, sub_elts) {
-                Ok(type_) => {
-                    if let Err(e) = self.context.add_variable(None, name, type_) {
+            match Type::from_ptype(type_, sub_elts) {
+                Ok(var_type) => {
+                    if let Err(e) = self.context.add_variable(None, name, var_type) {
                         self.errors.push(e);
                     }
                 }
@@ -248,7 +244,7 @@ impl<'src> AST<'src> {
                     defaults.into_iter(), //.filter(Option::is_some),
                     |def| {
                         Ok(match def {
-                            Some(pvalue) => Some(Value::from_static_pvalue(pvalue)?),
+                            Some(pvalue) => Some(Constant::from_pvalue(pvalue)?),
                             None => None,
                         })
                     },

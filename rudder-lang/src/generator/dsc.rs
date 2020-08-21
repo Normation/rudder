@@ -11,6 +11,7 @@ use std::{collections::HashMap, ffi::OsStr, fs::File, io::Write, path::Path};
 use toml::Value as TomlValue;
 
 use crate::error::*;
+use crate::ast::context::Type;
 
 /*
     DSC parameter types:
@@ -471,14 +472,14 @@ impl DSC {
         Ok(metadatas)
     }
 
-    pub fn format_param_type(&self, value: &Value) -> String {
-        String::from(match value {
-            Value::String(_) => "string",
-            Value::Number(_, _) => "long",
-            Value::Boolean(_, _) => "bool",
-            Value::EnumExpression(_) => "enum_expression",
-            Value::List(_) => "list",
-            Value::Struct(_) => "struct",
+    pub fn format_param_type(&self, type_: &Type) -> String {
+        String::from(match type_ {
+            Type::String => "string",
+            Type::Number => "long",
+            Type::Boolean => "bool",
+            Type::List => "list",
+            Type::Struct(_) => "struct",
+            _ => panic!("Phantom type should never be created !")
         })
     }
 }
@@ -525,7 +526,7 @@ impl Generator for DSC {
                     .map(|p| {
                         format!(
                             "    [Parameter(Mandatory=$True)]  [{}] ${}",
-                            uppercase_first_letter(&self.format_param_type(&p.value)),
+                            uppercase_first_letter(&self.format_param_type(&p.type_)),
                             pascebab_case(p.name.fragment())
                         )
                     })

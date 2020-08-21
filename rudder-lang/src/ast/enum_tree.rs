@@ -88,7 +88,7 @@ impl<'src> EnumTree<'src> {
     }
 
     /// create a new enum tree with a single level of children
-    pub fn new(penum: PEnum<'src>) -> Result<EnumTree<'src>> {
+    pub fn new(penum: PEnum<'src>) -> Result<Self> {
         let PEnum {
             name,
             items,

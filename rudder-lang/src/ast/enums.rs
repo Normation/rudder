@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::{
-    context::VarType,
+    context::Type,
     enum_tree::{EnumItem, EnumTree},
     resource::Statement,
 };
@@ -239,11 +239,11 @@ impl<'src> EnumList<'src> {
     /// Get variable enum type, if the variable doesn't exist or isn't an enum, return an error
     fn get_var_enum<VG>(&self, getter: &VG, variable: Token<'src>) -> Result<Token<'src>>
     where
-        VG: Fn(Token<'src>) -> Option<VarType<'src>>,
+        VG: Fn(Token<'src>) -> Option<Type<'src>>,
     {
         match getter(variable) {
             None => fail!(variable, "The variable {} doesn't exist", variable),
-            Some(VarType::Enum(e)) => Ok(e),
+            Some(Type::Enum(e)) => Ok(e),
             Some(_) => fail!(variable, "The variable {} is not an enum", variable),
         }
     }
@@ -274,7 +274,7 @@ impl<'src> EnumList<'src> {
         my_be_boolean: bool,
     ) -> Result<(Token<'src>, Token<'src>, Token<'src>)>
     where
-        VG: Fn(Token<'src>) -> Option<VarType<'src>>,
+        VG: Fn(Token<'src>) -> Option<Type<'src>>,
     {
         match (variable, tree_name) {
             (None, None) => {
@@ -342,7 +342,7 @@ impl<'src> EnumList<'src> {
         expr: PEnumExpression<'src>,
     ) -> Result<EnumExpression<'src>>
     where
-        VG: Fn(Token<'src>) -> Option<VarType<'src>>,
+        VG: Fn(Token<'src>) -> Option<Type<'src>>,
     {
         let PEnumExpression { source, expression } = expr;
         self.canonify_expression_part(getter, expression)
@@ -358,7 +358,7 @@ impl<'src> EnumList<'src> {
         expr: PEnumExpressionPart<'src>,
     ) -> Result<EnumExpressionPart<'src>>
     where
-        VG: Fn(Token<'src>) -> Option<VarType<'src>>,
+        VG: Fn(Token<'src>) -> Option<Type<'src>>,
     {
         match expr {
             PEnumExpressionPart::Default(t) => Ok(EnumExpressionPart::Default(t)),
@@ -533,7 +533,7 @@ impl<'it, 'src> VariableIterator<'it, 'src> {
     fn new(
         variable: Token<'src>,
         items: &'it HashSet<EnumItem<'src>>,
-    ) -> VariableIterator<'it, 'src> {
+    ) -> Self {
         let mut iterator = items.iter();
         VariableIterator {
             variable,
@@ -736,7 +736,7 @@ mod tests {
     #[test]
     fn test_canonify() {
         let mut elist = EnumList::new();
-        let getter = |_| Some(VarType::Enum("T".into()));
+        let getter = |_| Some(Type::Enum("T".into()));
         elist
             .add_enum(penum_t("global enum T { a, b, c }"))
             .unwrap();
@@ -772,7 +772,7 @@ mod tests {
     #[test]
     fn test_listvars() {
         let mut elist = EnumList::new();
-        let getter = |_| Some(VarType::Enum("T".into()));
+        let getter = |_| Some(Type::Enum("T".into()));
         elist
             .add_enum(penum_t("global enum T { a, b, c }"))
             .unwrap();

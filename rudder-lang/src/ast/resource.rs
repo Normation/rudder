@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::{
-    context::{VarContext, VarType},
+    context::{VarContext, Type},
     enums::{EnumExpression, EnumList},
-    value::Value,
+    value::Value, value::Constant,
 };
 use crate::{error::*, parser::*};
 use std::collections::{HashMap, HashSet};
@@ -76,7 +76,7 @@ pub fn create_metadata(pmetadata: Vec<PMetadata>) -> (Vec<Error>, TomlMap<String
 /// Create function/resource/state parameter definition from parsed parameters.
 fn create_parameters<'src>(
     pparameters: Vec<PParameter<'src>>,
-    parameter_defaults: &[Option<Value<'src>>],
+    parameter_defaults: &[Option<Constant<'src>>],
 ) -> Result<Vec<Parameter<'src>>> {
     if pparameters.len() != parameter_defaults.len() {
         panic!(
@@ -100,7 +100,7 @@ fn create_default_context<'src>(
     let mut context = VarContext::new();
     let mut errors = Vec::new();
     for p in resource_parameters.iter().chain(parameters.iter()) {
-        if let Err(e) = context.add_variable(Some(global_context), p.name, &p.value) {
+        if let Err(e) = context.add_variable(Some(global_context), p.name, p.type_.clone()) {
             errors.push(e);
         }
     }
@@ -123,9 +123,9 @@ impl<'src> ResourceDef<'src> {
         pstates: Vec<PStateDef<'src>>,
         mut children: HashSet<Token<'src>>,
         context: &VarContext<'src>,
-        parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
+        parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>,
         enum_list: &EnumList<'src>,
-    ) -> (Vec<Error>, Option<ResourceDef<'src>>) {
+    ) -> (Vec<Error>, Option<Self>) {
         let PResourceDef {
             name,
             metadata: pmetadata,
@@ -187,9 +187,9 @@ impl<'src> StateDef<'src> {
         children: &mut HashSet<Token<'src>>,
         resource_parameters: &[Parameter<'src>],
         global_context: &VarContext<'src>,
-        parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
+        parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>,
         enum_list: &EnumList<'src>,
-    ) -> (Vec<Error>, Option<StateDef<'src>>) {
+    ) -> (Vec<Error>, Option<Self>) {
         // create final version of metadata and parameters
         let parameters = match create_parameters(
             pstate.parameters,
@@ -234,40 +234,37 @@ impl<'src> StateDef<'src> {
 #[derive(Debug)]
 pub struct Parameter<'src> {
     pub name: Token<'src>,
-    pub value: Value<'src>,
+    pub type_: Type<'src>,
 }
 
 impl<'src> Parameter<'src> {
     pub fn from_pparameter(
         p: PParameter<'src>,
-        default: &Option<Value<'src>>,
-    ) -> Result<Parameter<'src>> {
-        let value = match p.ptype {
-            Some(t) => Value::from_static_pvalue(t)?,
-            None => match default {
-                Some(val) => val.clone(),
-                // if no default value, define an empty string
-                // may be better to store an option directly
-                None => Value::from_static_pvalue(PValue::generate_automatic(PType::String))?,
-            },
-        };
+        default: &Option<Constant<'src>>,
+    ) -> Result<Self> {
+        let type_ = Type::from_ptype(p.ptype, Vec::new())?;
+        if let Some(val) = default {
+            if type_ != val.into() {
+                fail!(p.name, "Default value for {} doesn't match its type", p.name);
+            }
+        }
         Ok(Parameter {
             name: p.name,
-            value,
+            type_,
         })
     }
 
     /// returns an error if the value has an incompatible type
     pub fn value_match(&self, param_ref: &Value) -> Result<()> {
-        match (&self.value, param_ref) {
-            (Value::String(_), Value::String(_)) => Ok(()),
-            (t, _v) => fail!(
+        if self.type_ != param_ref.into() {
+            fail!(
                 self.name,
-                "Parameter {} is not of the type {:?}",
+                "Parameter {} is of type {:?}",
                 self.name,
-                t
-            ),
+                self.type_,
+            );
         }
+        Ok(())
     }
 }
 
@@ -314,7 +311,7 @@ pub enum Statement<'src> {
 fn push_default_parameters<'src>(
     resource: Token<'src>,
     state: Option<Token<'src>>,
-    param_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
+    param_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>,
     params: &mut Vec<Value<'src>>,
 ) -> Result<()> {
     let emptyvec = Vec::new();
@@ -323,7 +320,7 @@ fn push_default_parameters<'src>(
     if diff > 0 {
         map_results(defaults.iter().skip(params.len()), |param| {
             if let Some(p) = param {
-                (*params).push(p.clone());
+                (*params).push(p.into());
             };
             Ok(())
         })?;
@@ -337,7 +334,7 @@ fn string_value<'src, VG>(
     pvalue: PValue<'src>,
 ) -> Result<Value<'src>>
 where
-    VG: Fn(Token<'src>) -> Option<VarType<'src>>,
+    VG: Fn(Token<'src>) -> Option<Type<'src>>,
 {
     let value = Value::from_pvalue(enum_list, &getter, pvalue)?;
     // check that definition use existing variables
@@ -355,9 +352,9 @@ impl<'src> Statement<'src> {
         children: &'b mut HashSet<Token<'src>>,
         st: PStatement<'src>,
         global_context: &'b VarContext<'src>,
-        parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Value<'src>>>>,
+        parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>,
         enum_list: &EnumList<'src>,
-    ) -> Result<Statement<'src>> {
+    ) -> Result<Self> {
         // we must not capture the context in this common getter since it is used
         // as mutable elsewhere in this function
         let common_getter =
@@ -372,7 +369,7 @@ impl<'src> Statement<'src> {
                     Value::from_pvalue(enum_list, &{ |x| common_getter(context, x) }, value)?;
                 match value {
                     Value::Boolean(_, _) => {
-                        context.add_variable(Some(global_context), name, VarType::Boolean)?
+                        context.add_variable(Some(global_context), name, Type::Boolean)?
                     }
                     _ => {
                         // check that definition use existing variables
@@ -398,7 +395,7 @@ impl<'src> Statement<'src> {
                     context.add_variable(
                         Some(global_context),
                         out_var,
-                        VarType::Enum(Token::new("internal", "outcome")),
+                        Type::Enum(Token::new("internal", "outcome")),
                     )?;
                 }
                 children.insert(resource);
