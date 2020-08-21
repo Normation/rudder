@@ -52,7 +52,7 @@ impl Markdown {
             for (constraint, value) in constraints {
                 match constraint.as_str() {
                     "allow_empty_string" if value.as_bool().unwrap() => {
-                        out.push("<b>can</b> be empty".to_string())
+                        out.push("can be empty".to_string())
                     }
                     "allow_whitespace_string" if value.as_bool().unwrap() => {
                         out.push("can contain only white-space chars".to_string())
