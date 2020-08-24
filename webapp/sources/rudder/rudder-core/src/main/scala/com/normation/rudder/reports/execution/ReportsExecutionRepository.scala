@@ -47,6 +47,7 @@ import zio._
 import com.normation.zio._
 import com.normation.errors._
 import com.normation.rudder.db.DB.UncomputedAgentRun
+import org.joda.time.DateTime
 
 /**
  * Service for reading or storing execution of Nodes
@@ -70,6 +71,8 @@ trait RoReportsExecutionRepository {
    * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
    */
   def getUnprocessedRuns(): IOResult[Seq[UncomputedAgentRun]]
+
+  def getLastComputedRun(nodeIds: Set[NodeId]): Box[Map[NodeId, (NodeAndConfigId, DateTime)]]
 }
 
 
@@ -144,6 +147,19 @@ class CachedReportsExecutionRepository(
   }).runNow
 
 
+  def getLastComputedNodeRun(nodeIds: Set[NodeId]) : Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
+    for {
+      lastProcessedRuns <- readBackend.getLastComputedRun(nodeIds)
+
+
+      // find the nodeconfiguration from the nodeconfigid
+      expectedReports <- findConfigs.getExpectedReports(lastProcessedRuns.values.map(x => x._1).toSet)
+// ok, i'm loosing myself here. I need to simplify this code
+      // at some point we need to get the reports that goes with the run, and not simply the reportsexecution
+      // and compute. The code is running circle aroudn that, it should be straitforward
+    } yield {
+    }
+  }
 
   override def getUnprocessedRuns(): IOResult[Seq[UncomputedAgentRun]] = {
     ???

@@ -59,7 +59,7 @@ class FindNewReportsExecution (
 ) extends AbstractScheduler {
 
   type T = Unit
-  lazy val executeTask: Long => Box[Unit]  = (processId:Long) => tryo{reportsExecutionService.findAndSaveExecutionsV2(processId)}
+  lazy val executeTask: Long => Box[Unit]  = (processId:Long) => tryo{reportsExecutionService.findAndSaveExecutions(processId)}
   lazy val displayName : String = FindNewReportsExecution.SERVICE_NAME
   lazy val propertyName : String = "rudder.batch.storeAgentRunTimes.updateInterval"
 
