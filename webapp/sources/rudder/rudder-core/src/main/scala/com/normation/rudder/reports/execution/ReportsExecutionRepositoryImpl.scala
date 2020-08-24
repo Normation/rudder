@@ -53,7 +53,7 @@ import com.normation.errors.IOResult
 import com.normation.rudder.db.DB.UncomputedAgentRun
 import com.normation.utils.Control.sequence
 import zio._
-import com.normation.rudder.domain.reports.{ExpectedReportsSerialisation, NodeConfigId, NodeExpectedReports, NodeStatusReport}
+import com.normation.rudder.domain.reports.{ExpectedReportsSerialisation, NodeAndConfigId, NodeConfigId, NodeExpectedReports, NodeStatusReport}
 import org.joda.time.DateTime
 import com.normation.zio.ZioRuntime
 import zio.interop.catz._
@@ -76,6 +76,29 @@ final case class RoReportsExecutionRepositoryImpl (
     ).to[Vector].transact(xa))
   }
   def getNodesLastRunv2(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = ???
+
+
+  /**
+   * For initialization of cache, fetch the last agent run that was computed, with the agent execution time
+   *
+   */
+  def getLastComputedRun(nodeIds: Set[NodeId]): Box[Map[NodeId, (NodeAndConfigId, DateTime)]] = {
+    val query: ConnectionIO[Map[NodeId, (NodeAndConfigId, DateTime)]] = for {
+      runs <-  (fr"""SELECT nodeid, date, nodeconfigid, true, insertionid
+                  |FROM ReportsExecution where (nodeid, date) in
+                  |( SELECT nodeid, max(date)) FROM ReportsExecution where compliancecomputationdate is not null group by nodeid)""".stripMargin).query[DB.AgentRun].to[Vector]
+    } yield {
+      runs.flatMap { case run =>
+        val nodeId = NodeId(run.nodeId)
+        if (nodeIds.contains(nodeId)) {
+          Some(nodeId, (NodeAndConfigId(nodeId, NodeConfigId(run.nodeConfigId.get)), run.date))
+        } else {
+          None
+        }
+      }.toMap
+    }
+    transactRunBox(xa => query.transact(xa))
+  }
 
   /**
    * Retrieve last agent runs for the given nodes.

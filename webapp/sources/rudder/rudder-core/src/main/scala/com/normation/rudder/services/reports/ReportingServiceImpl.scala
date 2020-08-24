@@ -46,9 +46,7 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.NodeStatusReport
-import com.normation.rudder.domain.reports.RuleStatusReport
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.{NodeStatusReport, RuleStatusReport, _}
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -77,6 +75,31 @@ object ReportingServiceUtils {
   }
 }
 
+
+/**
+ * Action that can be done on the Compliance Cache
+ * The queue receive action, that are processed in FIFO, to change the cache content
+ * All the possible actions are:
+ * * insert a node in the cache (when a new node is accepted)
+ * * remove a node from the cache (when the node is deleted)
+ * * initialize compliance
+ * * update compliance with a new run (with the new compliance)
+ * * update node configuration (after a policy generation, with new nodeconfiguration)
+ * * set the node in node answer state (with the new compliance?)
+ */
+sealed trait CacheComplianceQueueAction
+
+case class InsertNodeInCache(nodeId: NodeId) extends CacheComplianceQueueAction
+
+case class RemoveNodeInCache(nodeId: NodeId) extends CacheComplianceQueueAction
+
+case class InitializeCompliance(nodeId: NodeId, nodeCompliance: NodeStatusReport) extends CacheComplianceQueueAction // do we need this?
+
+case class UpdateCompliance(nodeId: NodeId, nodeCompliance: NodeStatusReport) extends CacheComplianceQueueAction
+
+case class UpdateNodeConfiguration(nodeId: NodeId, nodeConfiguration: NodeExpectedReports) extends CacheComplianceQueueAction
+
+case class SetNodeNoAnswer(nodeId: NodeId, actionDate: DateTime) extends CacheComplianceQueueAction
 /**
  * Defaults non-cached version of the reporting service.
  * Just the composition of the two defaults implementation.
@@ -254,7 +277,13 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   /**
    * The cache is managed node by node.
    * A missing nodeId mean that the cache wasn't initialized for
-   * that node.
+   * that node, and should fail
+   *
+   * Initialization of cache is a real question:
+   * * node doesn't have report yet
+   * * we restart Rudder, after upgrade, we don't have the new runs - none
+   * * we restart Rudder, in normal mode: we take the last (most recent execution) *computed*
+   * * * we may have outdated info in this case, but that's not an ssue as it will restore itself really fast
    */
   private[this] var cache = Map.empty[NodeId, NodeStatusReport]
 
