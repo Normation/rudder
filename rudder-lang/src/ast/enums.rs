@@ -4,7 +4,6 @@
 use super::{
     context::Type, context::VarContext,
     enum_tree::{EnumItem, EnumTree},
-    resource::Statement,
 };
 use crate::{error::*, parser::*};
 use std::collections::{HashMap, HashSet};
@@ -446,9 +445,9 @@ impl<'src> EnumList<'src> {
 
     /// Evaluates a set of expressions possible outcome to check for missing cases and redundancy
     /// Variable context is here to guess variable type and to properly evaluate variables that are constant
-    pub fn evaluate(
+    pub fn evaluate<T>(
         &self,
-        cases: &[(EnumExpression<'src>, Vec<Statement<'src>>)],
+        cases: &[(EnumExpression<'src>, T)],
         case_name: Token<'src>,
     ) -> Vec<Error> {
         // keep only cases that are not default (default must be the last case and cases must not be empty)
@@ -879,29 +878,29 @@ mod tests {
             .canonify_expression(&context, penum_expression_t("..k"))
             .unwrap();
         let cases1 = [
-            (e1.clone(), Vec::new()),
-            (e2.clone(), Vec::new()),
-            (e3.clone(), Vec::new()),
+            (e1.clone(), Vec::new() as Vec<i32>),
+            (e2.clone(), Vec::new() as Vec<i32>),
+            (e3.clone(), Vec::new() as Vec<i32>),
         ];
         assert_eq!(
             elist.evaluate(&cases1[..], Token::from("test1")),
             Vec::new()
         );
-        let cases2 = [(e2.clone(), Vec::new()), (e3.clone(), Vec::new())];
+        let cases2 = [(e2.clone(), Vec::new() as Vec<i32>), (e3.clone(), Vec::new())];
         assert_eq!(elist.evaluate(&cases2[..], Token::from("test2")).len(), 1);
         let cases3 = [
-            (e1.clone(), Vec::new()),
-            (e2.clone(), Vec::new()),
-            (e3.clone(), Vec::new()),
-            (e3.clone(), Vec::new()),
+            (e1.clone(), Vec::new() as Vec<i32>),
+            (e2.clone(), Vec::new() as Vec<i32>),
+            (e3.clone(), Vec::new() as Vec<i32>),
+            (e3.clone(), Vec::new() as Vec<i32>),
         ];
         assert_eq!(elist.evaluate(&cases3[..], Token::from("test3")).len(), 1);
         let cases4 = [
-            (e1.clone(), Vec::new()),
-            (e3.clone(), Vec::new()),
-            (e4.clone(), Vec::new()),
-            (e5.clone(), Vec::new()),
-            (e6.clone(), Vec::new()),
+            (e1.clone(), Vec::new() as Vec<i32>),
+            (e3.clone(), Vec::new() as Vec<i32>),
+            (e4.clone(), Vec::new() as Vec<i32>),
+            (e5.clone(), Vec::new() as Vec<i32>),
+            (e6.clone(), Vec::new() as Vec<i32>),
         ];
         assert_eq!(
             elist.evaluate(&cases4[..], Token::from("test4")),

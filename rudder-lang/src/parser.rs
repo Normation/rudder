@@ -46,6 +46,7 @@ pub struct PAST<'src> {
     pub resources: Vec<PResourceDef<'src>>,
     pub states: Vec<PStateDef<'src>>,
     pub variable_definitions: Vec<PVariableDef<'src>>,
+    pub variable_extensions: Vec<PVariableExt<'src>>,
     pub variable_declarations: Vec<PVariableDecl<'src>>,
     pub parameter_defaults: Vec<(Token<'src>, Option<Token<'src>>, Vec<Option<PValue<'src>>>)>, // separate parameter defaults since they will be processed first
     pub parents: Vec<(Token<'src>, Token<'src>)>,
@@ -86,6 +87,7 @@ impl<'src> PAST<'src> {
                     self.states.push(s);
                 }
                 PDeclaration::GlobalVar(kv) => self.variable_definitions.push(kv),
+                PDeclaration::GlobalVarExt(kv) => self.variable_extensions.push(kv),
                 PDeclaration::MagicVar(kv) => self.variable_declarations.push(kv),
                 PDeclaration::Alias(a) => self.aliases.push(a),
             });
@@ -565,6 +567,72 @@ fn ptype(i: PInput) -> PResult<PType> {
     ))(i)
 }
 
+/// A complex value is a generic RValue, ie anything that is equivalent to a value.
+/// Currently only supported in let variables
+#[derive(Debug, PartialEq, Clone)]
+pub struct PComplexValue<'src> {
+    pub source: Token<'src>,
+    // nested complex values not supported
+    pub cases: Vec<(PEnumExpression<'src>, Option<PValue<'src>>)>,
+}
+/// A single case in a case switch
+fn pvalue_case(i: PInput) -> PResult<(PEnumExpression, Option<PValue>)> {
+    alt((
+        map(etag("nodefault"), |t| {
+            (
+                PEnumExpression {
+                    source: Token::from(t),
+                    expression: PEnumExpressionPart::NoDefault(Token::from(t)),
+                },
+                None,
+            )
+        }),
+        wsequence!(
+            {
+                expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
+                _x: ftag("=>");
+                value: or_fail(pvalue, || PErrorKind::ExpectedToken("case statement"));
+            } => (expr,Some(value))
+        ),
+    ))(i)
+}
+fn pcomplex_value(i: PInput) -> PResult<PComplexValue> {
+    alt((
+        wsequence!(
+            {
+                metadata: pmetadata_list; // metadata is invalid here, check it after the 'if' tag below
+                case: estag("if");
+                _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into()));
+                value_case: pvalue_case;
+                :source(case..)
+            } => PComplexValue { source, cases: vec![value_case] }
+        ),
+        wsequence!(
+            {
+                metadata: pmetadata_list; // metadata is invalid here, check it after the 'case' tag below
+                case: etag("case");
+                _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into()));
+                cases: delimited_list("{", pvalue_case, ",", "}" );
+                :source(case..)
+            } => PComplexValue { source, cases }
+        ),
+        |i| {
+            let (j, res) = pvalue(i)?;
+            let source = get_parsed_context(i, i, j);
+            Ok((j, PComplexValue {
+                source,
+                cases: vec![(
+                    PEnumExpression {
+                        source: "".into(),
+                        expression: PEnumExpressionPart::Default("".into()),
+                    },
+                    Some(res)
+                )],
+            }))
+        }
+    ))(i)
+}
+
 /// A metadata is a key/value pair that gives properties to the statement that follows.
 /// Currently metadata is not used by the compiler, just parsed, but that may change.
 #[derive(Debug, PartialEq)]
@@ -707,18 +775,36 @@ fn presource_ref(i: PInput) -> PResult<(Token, Vec<PValue>)> {
 pub struct PVariableDef<'src> {
     pub metadata: Vec<PMetadata<'src>>,
     pub name: Token<'src>,
-    pub value: PValue<'src>,
+    pub value: PComplexValue<'src>,
 }
 fn pvariable_definition(i: PInput) -> PResult<PVariableDef> {
     wsequence!(
         {
             metadata: pmetadata_list;
-            _identifier: estag("let");
+            _let: estag("let");
             name: pidentifier;
             // TODO a type could be added here (but mostly useless since there is a value)
             _t: etag("=");
-            value: or_fail(pvalue, || PErrorKind::ExpectedKeyword("value"));
+            value: or_fail(pcomplex_value, || PErrorKind::ExpectedKeyword("value"));
         } => PVariableDef { metadata, name, value }
+    )(i)
+}
+
+/// A variable extension is a var=value without let
+#[derive(Debug, PartialEq)]
+pub struct PVariableExt<'src> {
+    pub metadata: Vec<PMetadata<'src>>,
+    pub name: Token<'src>,
+    pub value: PComplexValue<'src>,
+}
+fn pvariable_extension(i: PInput) -> PResult<PVariableExt> {
+    wsequence!(
+        {
+            metadata: pmetadata_list;
+            name: pidentifier;
+            _t: etag("=");
+            value: or_fail(pcomplex_value, || PErrorKind::ExpectedKeyword("value"));
+        } => PVariableExt { metadata,  name, value }
     )(i)
 }
 
@@ -799,6 +885,7 @@ fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
 #[allow(clippy::large_enum_variant)]
 pub enum PStatement<'src> {
     VariableDefinition(PVariableDef<'src>),
+    VariableExtension(PVariableExt<'src>),
     StateDeclaration(PStateDeclaration<'src>),
     //   case keyword, list (condition   ,       then)
     Case(
@@ -846,6 +933,8 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
         map(pstate_declaration, PStatement::StateDeclaration),
         // Variable definition
         map(pvariable_definition, PStatement::VariableDefinition),
+        // Variable extension
+        map(pvariable_extension, PStatement::VariableExtension),
         // case
         wsequence!(
             {
@@ -980,12 +1069,15 @@ pub enum PDeclaration<'src> {
     ),
     State((PStateDef<'src>, Vec<Option<PValue<'src>>>)),
     GlobalVar(PVariableDef<'src>),
+    GlobalVarExt(PVariableExt<'src>),
     MagicVar(PVariableDecl<'src>),
     Alias(PAliasDef<'src>),
 }
 fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
     end_of_pfile(i)?;
     or_fail(
+        // Note: most of this alt element start with a metadata
+        // it would be more efficient to factor it out
         alt((
             map(penum_alias, PDeclaration::EnumAlias), // alias must come before enum since they start with the same tag
             map(penum, PDeclaration::Enum),
@@ -995,6 +1087,7 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
             map(pvariable_definition, PDeclaration::GlobalVar), // definition must come before declaration
             map(pvariable_declaration, PDeclaration::MagicVar),
             map(palias_def, PDeclaration::Alias),
+            map(pvariable_extension, PDeclaration::GlobalVarExt), // extension should come last
         )),
         || PErrorKind::Unparsed(get_error_context(i, i)),
     )(i)

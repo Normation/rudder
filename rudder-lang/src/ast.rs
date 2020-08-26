@@ -7,7 +7,7 @@ pub mod enums;
 pub mod resource;
 pub mod value;
 
-use self::{context::VarContext, enums::EnumList, resource::*, value::Value, value::Constant};
+use self::{context::VarContext, enums::EnumList, resource::*, value::*};
 use crate::ast::context::Type;
 use crate::{error::*, parser::*};
 use std::{
@@ -17,7 +17,6 @@ use std::{
 
 // TODO v2: type inference, compatibility metadata
 // TODO aliases
-// TODO check that parameter type match parameter default
 // TODO check state call compatibility
 
 #[derive(Debug)]
@@ -26,7 +25,7 @@ pub struct AST<'src> {
     // the context is used for variable lookup whereas variable_definitions is used for code generation
     pub context: Rc<VarContext<'src>>,
     pub enum_list: EnumList<'src>,
-    pub variable_definitions: HashMap<Token<'src>, Value<'src>>,
+    pub variable_definitions: HashMap<Token<'src>, ComplexValue<'src>>,
     pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>, // also used as parameter list since that's all we have
     pub resource_list: HashSet<Token<'src>>,
     pub resources: HashMap<Token<'src>, ResourceDef<'src>>,
@@ -60,6 +59,7 @@ impl<'src> AST<'src> {
             resources,
             states,
             variable_definitions,
+            variable_extensions,
             variable_declarations,
             parameter_defaults,
             parents,
@@ -70,6 +70,7 @@ impl<'src> AST<'src> {
         ast.add_sub_enums(sub_enums);
         ast.add_enum_aliases(enum_aliases);
         ast.add_variables(variable_definitions);
+        ast.add_variable_extensions(variable_extensions);
         ast.add_magic_variables(variable_declarations);
         ast.add_default_values(parameter_defaults);
         ast.add_resource_list(&resources);
@@ -179,12 +180,32 @@ impl<'src> AST<'src> {
                 name,
                 value,
             } = variable;
-            match Value::from_pvalue(&self.enum_list, context, value) {
+            match ComplexValue::from_pcomplex_value(&self.enum_list, context, value) {
                 Err(e) => self.errors.push(e),
-                Ok(val) => match context.add_variable_declaration(name, Type::from_value(&val)) {
+                Ok(val) => match Type::from_complex_value(&val) {
                     Err(e) => self.errors.push(e),
-                    Ok(()) => { self.variable_definitions.insert(name, val); }
+                    Ok(type_) => match context.add_variable_declaration(name, type_) {
+                        Err(e) => self.errors.push(e),
+                        Ok(()) => { self.variable_definitions.insert(name, val); }
+                    }
                 }
+            }
+        }
+    }
+
+    /// Add the variables extensions to the global definition space
+    fn add_variable_extensions(&mut self, variables: Vec<PVariableExt<'src>>) {
+        for variable in variables {
+            let PVariableExt {
+                metadata,
+                name,
+                value,
+            } = variable;
+            match self.variable_definitions.get_mut(&name) {
+                None => self.errors.push(err!(name, "Variable {} has never been defined", name)),
+                Some(v) => if let Err(e) = v.extend(&self.enum_list, &self.context, value) {
+                    self.errors.push(e);
+                },
             }
         }
     }

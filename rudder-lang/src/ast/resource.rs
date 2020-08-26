@@ -4,7 +4,7 @@
 use super::{
     context::{VarContext, Type},
     enums::{EnumExpression, EnumList},
-    value::Value, value::Constant,
+    value::*,
 };
 use crate::{error::*, parser::*};
 use std::collections::{HashMap, HashSet};
@@ -290,7 +290,7 @@ pub struct StateDeclaration<'src> {
 #[allow(clippy::large_enum_variant)]
 pub enum Statement<'src> {
     // TODO should we split variable definition and enum definition ? this would probably help generators
-    VariableDefinition(TomlMap<String, TomlValue>, Token<'src>, Value<'src>),
+    VariableDefinition(TomlMap<String, TomlValue>, Token<'src>, ComplexValue<'src>),
     // one state
     StateDeclaration(StateDeclaration<'src>),
     //   keyword    list of condition          then
@@ -357,23 +357,25 @@ impl<'src> Statement<'src> {
     ) -> Result<Self> {
         Ok(match st {
             PStatement::VariableDefinition(PVariableDef {
-                metadata,
-                name,
-                value,
-            }) => {
-                let value = Value::from_pvalue(enum_list, &context, value)?;
-                match value {
-                    Value::Boolean(_, _) => {
-                        context.add_variable_declaration(name, Type::Boolean)?
-                    }
-                    _ => {
-                        // check that definition use existing variables
-                        value.context_check(context)?;
-                        context.add_variable_declaration(name, Type::from_value(&value))?;
-                    }
+                                               metadata,
+                                               name,
+                                               value,
+                                           }) => {
+                let value = ComplexValue::from_pcomplex_value(enum_list, &context, value)?;
+                value.context_check(context)?;
+                context.add_variable_declaration(name, Type::from_complex_value(&value)?)?;
+                let (mut errors, metadata) = create_metadata(metadata);
+                if !errors.is_empty() {
+                    return Err(Error::from_vec(errors));
                 }
-                let (mut _errors, metadata) = create_metadata(metadata);
                 Statement::VariableDefinition(metadata, name, value)
+            }
+            PStatement::VariableExtension(PVariableExt {
+                                               metadata,
+                                               name,
+                                               value,
+                                           }) => {
+                unimplemented!()
             }
             PStatement::StateDeclaration(PStateDeclaration {
                 source,

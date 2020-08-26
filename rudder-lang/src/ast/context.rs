@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use super::value::Value;
-use super::value::Constant;
+use super::value::*;
 use crate::{error::*, parser::Token, parser::PType};
 use std::collections::{hash_map, HashMap};
 use std::rc::Rc;
+use std::fmt;
+use std::fmt::{Display, Formatter};
 
 /// Types some data can take
 /// TODO: isn't this the same as a PType
@@ -17,6 +18,20 @@ pub enum Type<'src> {
     Boolean,
     List,                                   // TODO should be subtypable / generic like struct
     Struct(HashMap<String, Type<'src>>), // Token instead of string ?
+}
+
+impl<'src> Display for Type<'src> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", match self {
+            Type::Enum(t) => format!("enum {}",t),
+            Type::String => "string".into(),
+            Type::Number => "number".into(),
+            Type::Boolean => "boolean".into(),
+            Type::List => "list".into(),
+            // TODO proper struct type format
+            Type::Struct(s) => "struct".into(),
+        })
+    }
 }
 
 impl<'src> Type<'src> {
@@ -61,6 +76,12 @@ impl<'src> Type<'src> {
                 Type::Struct(spec)
             }
         }
+    }
+
+    /// Find the type of a given complex value
+    pub fn from_complex_value(val: &ComplexValue<'src>) -> Result<Self> {
+        // just keep first item since type is checked later
+        Ok(Type::from_value(val.first_value()?))
     }
 
     /// Find the type of a given constant

@@ -758,6 +758,53 @@ fn test_pvalue() {
 }
 
 #[test]
+fn test_pcomplex_value() {
+    let src = "\"\"\"This is a string\"\"\"";
+    assert_eq!(
+        map_res(pcomplex_value, src),
+        Ok((
+            "",
+            PComplexValue{
+                source: src.into(),
+                cases: vec![(
+                    PEnumExpression {
+                        source: "".into(),
+                        expression: PEnumExpressionPart::Default("".into()),
+                    },
+                    Some(PValue::String("\"\"\"".into(), "This is a string".to_string()))
+                )]
+            }
+        ))
+    );
+    let src = "case { debian9 => \"str\", debian10 => \"str10\" }";
+    assert_eq!(
+        map_res(pcomplex_value, src),
+        Ok((
+            "",
+            PComplexValue{
+                source: src.into(),
+                cases: vec![
+                    (
+                        PEnumExpression {
+                            source: "debian9 ".into(),
+                            expression: PEnumExpressionPart::Compare(None, None, "debian9".into()),
+                        },
+                        Some(PValue::String("\"".into(), "str".to_string()))
+                    ),
+                    (
+                        PEnumExpression {
+                            source: "debian10 ".into(),
+                            expression: PEnumExpressionPart::Compare(None, None, "debian10".into()),
+                        },
+                        Some(PValue::String("\"".into(), "str10".to_string()))
+                    ),
+                ]
+            }
+        ))
+    );
+}
+
+#[test]
 fn test_pmetadata() {
     // Test with internal serde_toml structure to make sure we agree on this
     let test1 = "@key=\"value\"\n";
@@ -1028,7 +1075,7 @@ fn test_variable_definition() {
             PVariableDef {
                 metadata: Vec::new(),
                 name: "my_var".into(),
-                value: PValue::String("\"".into(), "value".to_string())
+                value: map_res(pcomplex_value, "\"value\"").unwrap().1,
             }
         ))
     );
@@ -1039,7 +1086,7 @@ fn test_variable_definition() {
             PVariableDef {
                 metadata: Vec::new(),
                 name: "my_var".into(),
-                value: PValue::String("\"".into(), "value".to_string())
+                value: map_res(pcomplex_value, "\"value\"").unwrap().1,
             }
         ))
     );
@@ -1050,7 +1097,7 @@ fn test_variable_definition() {
             PVariableDef {
                 metadata: Vec::new(),
                 name: "my_var".into(),
-                value: PValue::String("\"".into(), "val\nue".to_string())
+                value: map_res(pcomplex_value, "\"val\nue\"").unwrap().1,
             }
         ))
     );
@@ -1163,7 +1210,7 @@ fn test_pstatement() {
             PStatement::VariableDefinition(PVariableDef {
                 metadata: Vec::new(),
                 name: "my_var".into(),
-                value: PValue::String("\"".into(), "string".into())
+                value: map_res(pcomplex_value, "\"string\"").unwrap().1,
             })
         ))
     );
@@ -1175,7 +1222,7 @@ fn test_pstatement() {
             PStatement::VariableDefinition(PVariableDef {
                 metadata: Vec::new(),
                 name: "my_var".into(),
-                value: PValue::EnumExpression(map_res(penum_expression, "a=~bc\n").unwrap().1)
+                value: map_res(pcomplex_value, "a=~bc\n").unwrap().1,
             })
         ))
     );
