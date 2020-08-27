@@ -669,7 +669,7 @@ class TestQueryProcessor extends Loggable {
         {"objectType":"environmentVariable","attribute":"name.value","comparator":"eq","value":"SHELL=/bin/sh"}
       ]}
       """).openOrThrowException("For tests"),
-      s(1) :: Nil)
+      s(1) :: s(4) :: Nil)
 
     val q2 = TestQuery(
       "q2",
@@ -805,7 +805,7 @@ class TestQueryProcessor extends Loggable {
         { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"jsonSelect", "value":"user:$.[?(@.accepted==true)]" }
       ] }
       """).openOrThrowException("For tests"),
-      s(5) :: Nil)
+      s(4) :: s(5) :: Nil)
 
     val q2 = TestQuery(
       "q2", // city is exactly New York
@@ -857,7 +857,7 @@ class TestQueryProcessor extends Loggable {
         ,  {"objectType":"environmentVariable","attribute":"name.value","comparator":"eq","value":"SHELL=/bin/sh"}
       ] }
       """).openOrThrowException("For tests"),
-      Nil)
+      s(4) :: Nil)
     val q2 = TestQuery(
       "q2", // select nodes with user.accepted = true OR environment variable SHELL=/bin/sh
       parser("""
@@ -866,7 +866,7 @@ class TestQueryProcessor extends Loggable {
         ,  {"objectType":"environmentVariable","attribute":"name.value","comparator":"eq","value":"SHELL=/bin/sh"}
       ] }
       """).openOrThrowException("For tests"),
-      s(1) :: s(5) :: Nil)
+      s(1) :: s(4) :: s(5) :: Nil)
 
     testQueries( q1 :: q2 :: Nil, false)
   }

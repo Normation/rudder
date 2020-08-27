@@ -125,6 +125,11 @@ createTimestamp: 20070101000000Z
 serializedNodeProperty: {"name":"foo","value":""}
 serializedNodeProperty: {"name":"liar","value":{"k":"v","name":"datacenter","value":"I'm not a datacenter!"}}
 serializedNodeProperty: {"name":"number","value":42,"provider":"datasources"}
+serializedNodeProperty: {"name":"user","value": {
+    "id": "xxxxxx",
+    "accepted": true
+  }
+ }
 
 dn: nodeId=node5,ou=Nodes,cn=rudder-configuration
 objectClass: top
@@ -363,6 +368,7 @@ agentName: {"agentType":"cfengine-community","version":"4.2.0-jessie0","security
 policyServerId:root-policy-server
 nodeHostname: node4.normation.com
 ipHostNumber: 127.0.0.1
+environmentVariable: {"name":"SHELL","value":"/bin/sh"}
 
 dn: nodeId=node5,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
