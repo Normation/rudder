@@ -401,7 +401,7 @@ class DependencyAndDeletionServiceImpl(
           case rule if(rule.isEnabledStatus && rule.directiveIds.size > 0) => rule.directiveIds.map(id => (rule, id))
         }.flatten
         //group by target, and check if target is enable
-        ZIO.foreach(enabledCr.groupBy { case (rule,id) => id }) { case (id, seq) =>
+        ZIO.foreach(enabledCr.groupBy { case (rule,id) => id }.toSeq) { case (id, seq) =>
           for {
             optPair <- roDirectiveRepository.getActiveTechniqueAndDirective(id).chainError(s"Error when retrieving directive with ID ${id.value}'")
             // here, if we don't have a directive for the ID, we assume it's a directive that was

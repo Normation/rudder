@@ -128,7 +128,7 @@ class GitParseRules(
                  }
                }
     } yield {
-      rules
+      rules.toList
     }
   }
 }
@@ -153,7 +153,7 @@ class GitParseGlobalParameters(
                    p.startsWith(root.directoryPath) &&
                    p.endsWith(".xml")
                  }
-      xmls   <- ZIO.foreach(paths.toSeq) { paramPath =>
+      xmls   <- ZIO.foreach(paths) { paramPath =>
                   GitFindUtils.getFileContent(repo.db, revTreeId, paramPath){ inputStream =>
                     ParseXml(inputStream, Some(paramPath))
                   }
@@ -167,7 +167,7 @@ class GitParseGlobalParameters(
                     }
                 }
     } yield {
-      params
+      params.toList
     }
   }
 }

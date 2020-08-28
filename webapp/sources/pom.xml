@@ -387,16 +387,15 @@ limitations under the License.
       We declare cats in "test" here, because it is not directly needed
       in any project before rudder.
     -->
-    <monix-version>3.0.0</monix-version>
-    <cats-version>2.0.0</cats-version>
+    <cats-version>2.1.1</cats-version>
     <specs2-version>4.9.3</specs2-version>
-    <doobie-version>0.8.8</doobie-version>
-    <fs2-version>2.1.0</fs2-version>
-    <http4s-version>0.21.0-M6</http4s-version>
+    <doobie-version>0.9.0</doobie-version>
+    <fs2-version>2.3.0</fs2-version>
+    <http4s-version>0.21.4</http4s-version>
     <shapeless-version>2.3.3</shapeless-version>
-    <cats-effect-version>2.0.0</cats-effect-version>
-    <dev-zio-version>1.0.0-RC18-2</dev-zio-version>
-    <zio-cats-version>2.0.0.0-RC12</zio-cats-version>
+    <cats-effect-version>2.1.4</cats-effect-version>
+    <dev-zio-version>1.0.1</dev-zio-version>
+    <zio-cats-version>2.1.4.0</zio-cats-version>
 
     <!--
       Hack to make scalac jvm parameters like RAM configurable.

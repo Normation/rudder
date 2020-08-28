@@ -64,8 +64,7 @@ class SchedulerTest extends Specification {
       val prog = ZIO.accessM[Clock with TestClock] { testClock =>
         // in RC18-2, we need to sleep as long as we adjusted
         def adjust(d: Duration) = {
-          testClock.get[TestClock.Service].adjust(d) *>
-          testClock.get[Clock.Service].sleep(d)
+          testClock.get[TestClock.Service].adjust(d)
         }
         def take(q: Queue[Long], r: Ref[List[Long]]): UIO[Unit] = {
           for {

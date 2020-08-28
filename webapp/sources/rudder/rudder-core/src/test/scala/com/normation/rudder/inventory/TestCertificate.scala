@@ -63,7 +63,7 @@ import com.normation.inventory.provisioning.fusion.FusionReportUnmarshaller
 import com.normation.zio._
 import zio._
 import zio.syntax._
-import zio.duration._
+import zio.duration.  _
 
 @RunWith(classOf[JUnitRunner])
 class TestCertificate extends Specification with Loggable {

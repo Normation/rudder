@@ -1045,7 +1045,7 @@ object BuildNodeConfiguration extends Loggable {
 
       val nodeConfigsProg = for {
         counters          <- Counters.make()
-        ncp               <- ZIO.foreachParN(maxParallelism)(nodeContexts.toIterable) { case (nodeId, context) =>
+        ncp               <- ZIO.foreachParN(maxParallelism)(nodeContexts.toSeq) { case (nodeId, context) =>
 
                               (for {
                                 t1_0           <- nanoTime

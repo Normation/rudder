@@ -136,13 +136,13 @@ class ItemArchiveManagerImpl(
       // Get Map of all categories grouped by parent categories
       categories  <- roRuleCategoryeRepository.getRootCategory.map(_.childrenMap)
       cleanedRoot <- cleanExistingDirectory(gitRuleCategoryArchiver.getRootDirectory)
-      saved       <- ZIO.foreach(categories) {
-                       case (parentCategories, categories ) =>
+      _           <- ZIO.foreach_(categories) {
+                       case (parentCategories, cats) =>
                          // Archive each category
-                         ZIO.foreach(categories) { category =>
+                         ZIO.foreach(cats) { category =>
                              gitRuleCategoryArchiver.archiveRuleCategory(category,parentCategories, gitCommit = None)
                          }
-                       }
+                     }
       commitId    <- gitRuleCategoryArchiver.commitRuleCategories(modId, commiter, reason)
     } yield {
       commitId
@@ -203,7 +203,7 @@ class ItemArchiveManagerImpl(
       )
 
       //now, we try to save the active techniques - we only
-      val activeTechniquesInErrorIO: UIO[List[(Seq[ActiveTechniqueNotArchived], Seq[DirectiveNotArchived])]]  = ZIO.foreach(activeTechniques.filterNot(_.isSystem)) { activeTechnique =>
+      val activeTechniquesInErrorIO: UIO[Set[(Seq[ActiveTechniqueNotArchived], Seq[DirectiveNotArchived])]]  = ZIO.foreach(activeTechniques.filterNot(_.isSystem)) { activeTechnique =>
         gitActiveTechniqueArchiver.archiveActiveTechnique(activeTechnique,categories.reverse, gitCommit = None).foldM(
           err => (Seq(ActiveTechniqueNotArchived(activeTechnique.id, err)), Seq.empty[DirectiveNotArchived]).succeed
           // in case of success, we can still have directive not archived

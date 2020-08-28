@@ -113,7 +113,7 @@ class ReadPluginPackageInfo(path: String) {
   }
 
   def decode(plugin: JsonPluginFile): IOResult[List[Either[RudderError, JsonPluginDef]]] = {
-    ZIO.foreach(plugin.plugins) { case (name, jvalue) =>
+    ZIO.foreach(plugin.plugins.toList) { case (name, jvalue) =>
       decodeOne(jvalue).mapError(err => Chained(s"Error when decoding plugin information for entry '${name}'", err)).either
     }
   }
@@ -128,4 +128,6 @@ class ReadPluginPackageInfo(path: String) {
       else List().succeed
     }
   }
+
+
 }

@@ -282,7 +282,7 @@ trait RoNodeGroupRepository {
    * Return all categories
    * @return
    */
-  def getAllGroupCategories(includeSystem: Boolean = false) : IOResult[List[NodeGroupCategory]]
+  def getAllGroupCategories(includeSystem: Boolean = false) : IOResult[Seq[NodeGroupCategory]]
 
   /**
    * Get a group category by its id

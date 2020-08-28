@@ -384,10 +384,11 @@ class AutomaticReportsCleaning(
       }
     }
   }
+  import zio.duration._
 
   (for {
     ttl   <- deleteLogttl
-    dur   =  zio.duration.Duration(ttl.toLong, scala.concurrent.duration.MINUTES)
+    dur   =  ttl.toLong.minutes
     batch <- if(ttl < 1) {
                ScheduledJobLoggerPure.info(s"Disable automatic database deletion of log reports sinces property '${deleteLogReportPropertyName}' is 0 or negative") *>
                UIO.unit

@@ -104,7 +104,7 @@ import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.services.policies.PropertyParser
 import org.bouncycastle.cert.X509CertificateHolder
-import zio._
+import zio.{Tag => _, _}
 import zio.syntax._
 
 final case class RestExtractorService (

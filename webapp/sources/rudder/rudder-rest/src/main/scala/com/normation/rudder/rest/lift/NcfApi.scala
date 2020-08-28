@@ -38,16 +38,11 @@
 package com.normation.rudder.rest.lift
 
 import better.files.File
-import com.normation.box._
-import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.ncf.CheckConstraint
-import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.Technique
 import com.normation.rudder.ncf.TechniqueReader
@@ -67,6 +62,11 @@ import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
+import com.normation.box._
+import com.normation.cfclerk.services.GitRepositoryProvider
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.errors.IOResult
+import com.normation.rudder.ncf.ResourceFile
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JObject

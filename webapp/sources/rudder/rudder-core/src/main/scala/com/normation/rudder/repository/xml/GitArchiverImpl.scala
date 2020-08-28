@@ -376,7 +376,7 @@ class GitActiveTechniqueArchiverImpl(
     for {
       uptFile   <- newActiveTechniqueFile(activeTechnique.techniqueName, parents)
       gitPath   =  toGitPath(uptFile)
-      archive   <- writeXml(
+      _         <- writeXml(
                        uptFile
                      , activeTechniqueSerialisation.serialise(activeTechnique)
                      , "Archived technique library template: " + uptFile.getPath
@@ -384,13 +384,13 @@ class GitActiveTechniqueArchiverImpl(
       //strategy for callbaack:
       //if at least one callback is in error, we don't execute the others and the full ActiveTechnique is in error.
       //if none is in error, we are going to next step
-      callbacks <- ZIO.foreach(uptModificationCallback) { _.onArchive(activeTechnique, parents, gitCommit) }
-      commit    <- gitCommit match {
+      callbacks <- ZIO.foreach(uptModificationCallback.toList) { _.onArchive(activeTechnique, parents, gitCommit) }
+      _         <- gitCommit match {
                      case Some((modId, commiter, reason)) => commitAddFile(modId, commiter, gitPath, s"Archive of technique library template for technique name '${activeTechnique.techniqueName.value}'${GET(reason)}")
                      case None => UIO.unit
                    }
     } yield {
-      (GitPath(gitPath), callbacks.flatten)
+      (GitPath(gitPath), callbacks.toSeq.flatten)
     }
   }
 
@@ -404,7 +404,7 @@ class GitActiveTechniqueArchiverImpl(
                     deleted <- IOResult.effect(FileUtils.forceDelete(atFile))
                     _       =  logPure.debug(s"Deleted archived technique library template: ${atFile.getPath}")
                     gitPath =  toGitPath(atFile)
-                    callbacks <- ZIO.foreach(uptModificationCallback) { _.onDelete(ptName, parents, None) }
+                    callbacks <- ZIO.foreach(uptModificationCallback.toList) { _.onDelete(ptName, parents, None) }
                     commited <- gitCommit match {
                                   case Some((modId, commiter, reason)) =>
                                     commitRmFile(modId, commiter, gitPath, s"Delete archive of technique library template for technique name '${ptName.value}'${GET(reason)}")

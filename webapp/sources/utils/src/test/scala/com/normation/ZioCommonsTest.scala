@@ -350,7 +350,7 @@ object TestJavaLockWithZio {
           .mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex))
       )(_ =>
         log(s"Release lock '${name}'") *>
-        blocking.blocking(IO.effect(this.unlock())).provideLayer(blockingEnv).catchAll(t => log(s"${t.getClass.getName}:${t.getMessage}") *> ZIO.foreach(t.getStackTrace) { s => log(s.toString) }).unit
+        blocking.blocking(IO.effect(this.unlock())).provideLayer(blockingEnv).catchAll(t => log(s"${t.getClass.getName}:${t.getMessage}") *> ZIO.foreach(t.getStackTrace.toList) { s => log(s.toString) }).unit
       )(_ =>
         log(s"Do things in lock '${name}'") *>
         block

@@ -1023,7 +1023,7 @@ class InventoryMapper(
          , process
          , serverRoles = serverRoles
          , timezone = timezone
-         , customProperties = customProperties.flatten
+         , customProperties = customProperties.toList.flatten
        )
     }
   }
