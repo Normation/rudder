@@ -353,20 +353,19 @@ final case class RestExtractorService (
     Full(values.map(NodeId(_)))
   }
 
-  def parseSectionVal(xml:JValue) : Box[SectionVal] = {
+  def parseSectionVal(root:JValue) : Box[SectionVal] = {
 
     def parseSectionName(section:JValue) : Box[String] = {
       section \ "name" match {
         case JString(sectionName) => Full(sectionName)
-        case a => Failure("Missing required attribute 'name' for <section>: " + section)
+        case a => Failure(s"A section should be an object with a 'name' element, you got: ${net.liftweb.json.compactRender(section)}")
       }
     }
 
     def parseSection(section:JValue) : Box[(String, SectionVal)] = {
-      section match {
-        case JNothing       => Failure("Missing required tag <section> in: " + xml)
-        case JObject( JField("section",values) :: Nil) => recValParseSection(values)
-        case _              => Failure("Found several <section> tag in XML, but only one root section is allowed: " + xml)
+      section \ "section" match {
+        case values : JObject => recValParseSection(values)
+        case _ => Failure(s"A 'section' section should be an object containing a 'section' element (ie: { 'section' : ... }), you got: ${net.liftweb.json.compactRender(section)}")
       }
 
     }
@@ -375,21 +374,25 @@ final case class RestExtractorService (
       section \ "sections" match {
         case JNothing => Full(Map())
         case JArray(sections) => (sequence (sections.toSeq) (parseSection)).map(_.groupMap(_._1)(_._2))
-        case a => Failure("Missing required attribute 'name' for <section>: " + section)
+        case a => Failure(s"A 'sections' element in a section should either be empty (no child section), or an array of section element, you got: ${net.liftweb.json.compactRender(a)}")
       }
     }
 
     def parseVar (varSection :JValue) : Box[(String,String)] = {
-      varSection match {
-        case JObject( JField("var", JObject(JField("name",JString(varName)) :: JField("value",JString(varValue)) :: Nil)) :: Nil) => Full((varName,varValue))
-        case a => Failure("Missing required attribute 'name' for <section>: " + varSection)
+      varSection \ "var" match {
+        case varObject : JObject =>
+          (varObject \ "name", varObject \ "value") match {
+            case (JString(varName), JString(varValue)) => Full((varName,varValue))
+            case _ => Failure(s"A var object should be an object containing a 'name' and a 'value' element (ie: { 'name' : ..., 'value' : ... }), you got: ${net.liftweb.json.compactRender(varObject)}")
+          }
+        case _ => Failure(s"A 'var' section should be an object containing a 'var' element, containing an object with a 'name' and 'value' element (ie: { 'var' : { 'name' : ..., 'value' : ... } }, you got: ${net.liftweb.json.compactRender(varSection)}")
       }
     }
     def parseSectionVars(section:JValue) : Box[Map[String,String]] = {
       section \ "vars" match {
         case JNothing => Full(Map())
-        case JArray(vars) => (sequence (vars.toSeq) (parseVar)).map(_.toMap)
-        case a => Failure("Missing required attribute 'name' for <section>: " + section)
+        case JArray(vars) => (sequence(vars)(parseVar)).map(_.toMap)
+        case a => Failure(s"A 'vars' element in a section should either be empty (no variable), or an array of var sections, you got: ${net.liftweb.json.compactRender(a)}")
       }
     }
 
@@ -404,12 +407,7 @@ final case class RestExtractorService (
     }
 
     for {
-      root <- xml match {
-        case JNothing       => Failure("Missing required tag <section> in: " + xml)
-        case JObject( JField("section",values) :: Nil) => Full(values)
-        case _              => Failure("Found several <section> tag in XML, but only one root section is allowed: " + xml)
-      }
-      (_ , sectionVal) <- recValParseSection(root)
+      (_ , sectionVal) <- parseSection(root)
     } yield {
       sectionVal
     }
