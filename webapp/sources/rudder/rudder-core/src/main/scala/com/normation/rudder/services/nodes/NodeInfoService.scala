@@ -532,26 +532,29 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     cache.view.mapValues(_._2.node).toMap.succeed
   }.toBox
 
-  override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicats: Seq[NodeInfoMatcher], composition: CriterionComposition): Box[Set[LDAPNodeInfo]] = {
+  override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): Box[Set[LDAPNodeInfo]] = {
     def comp(a: Boolean, b: Boolean) = composition match {
         case And => a && b
         case Or  => a || b
     }
-    // utliity to combine predicats according to comp
+    // utliity to combine predicates according to comp
     def combine(a: NodeInfoMatcher, b: NodeInfoMatcher) = new NodeInfoMatcher {
       override def matches(node: NodeInfo): Boolean = comp(a.matches(node), b.matches(node))
     }
 
-    // if there is no predicats (ie no specific filter on NodeInfo), we don't have to filter and and we can get all Nodes information for all ids we got
-    val p =
-      if(predicats.isEmpty) {
-        new NodeInfoMatcher { override def matches(node: NodeInfo): Boolean = true  }
+    // if there is no predicates (ie no specific filter on NodeInfo), we should just keep nodes from our list
+    def predicate(nodeInfo : NodeInfo) = {
+      val contains = nodeIds.contains(nodeInfo.id)
+      if (predicates.isEmpty) {
+        contains
       } else {
-        predicats.reduceLeft(combine)
+        val validPredicates = predicates.reduceLeft(combine).matches(nodeInfo)
+        comp(contains,validPredicates)
       }
+    }
 
     withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
-      cache.collect { case(k, (x,y)) if(nodeIds.contains(k) && p.matches(y)) => x }.toSet.succeed
+      cache.values.collect{ case (x, y) if predicate(y) => x}.toSet.succeed
     }
   }.toBox
 

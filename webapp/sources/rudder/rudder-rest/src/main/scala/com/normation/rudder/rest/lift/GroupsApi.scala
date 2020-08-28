@@ -388,9 +388,9 @@ class GroupApiService2 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val modId = ModificationId(uuidGen.newUuid)
     val actor = RestUtils.getActor(req)
-    val groupId = NodeGroupId(req.param("id").getOrElse(uuidGen.newUuid))
+    val groupIdBox = restExtractor.extractId(req)(x => Full(NodeGroupId(x))).map(_.getOrElse(NodeGroupId(uuidGen.newUuid)))
 
-    def actualGroupCreation(change: NodeGroupChangeRequest) = {
+    def actualGroupCreation(change: NodeGroupChangeRequest, groupId: NodeGroupId) = {
       ( for {
         reason   <- restExtractor.extractReason(req)
         saveDiff <- writeGroup.create(change.newGroup, change.category.getOrElse(readGroup.getRootCategory.id), modId, actor, reason).toBox
@@ -414,13 +414,13 @@ class GroupApiService2 (
 
     // decide if we should create a new rule or clone an existing one
     // Return the source rule to use in each case.
-    def createOrClone(actor: EventActor, restGroup: RestGroup, id: NodeGroupId, name: String, sourceIdParam: Option[List[String]]): Box[NodeGroupChangeRequest] = {
+    def createOrClone(actor: EventActor, restGroup: RestGroup, groupId: NodeGroupId, name: String, sourceIdParam: Option[List[String]]): Box[NodeGroupChangeRequest] = {
       sourceIdParam match {
         case Some(sourceId :: Nil) =>
           // clone existing rule
           for {
             (group, cat) <- readGroup.getNodeGroup(NodeGroupId(sourceId)).toBox ?~!
-              s"Could not create group ${name} (id:${id.value}) by cloning group '${sourceId}')"
+              s"Could not create group ${name} (id:${groupId.value}) by cloning group '${sourceId}')"
             updated      <- restGroup.updateGroup(group).toBox
           } yield {
             // in that case, we take rest category and if empty, we default to cloned group category
@@ -461,18 +461,19 @@ class GroupApiService2 (
     }
 
     (for {
-      group  <- restGroup ?~! s"Could extract values from request"
-      name   <- Box(group.name) ?~! "Missing mandatory value for group name"
-      change <- createOrClone(actor, group, groupId, name, req.params.get("source"))
+      group   <- restGroup ?~! s"Could extract values from request"
+      name    <- Box(group.name) ?~! "Missing mandatory value for group name"
+      groupId <- groupIdBox
+      change  <- createOrClone(actor, group, groupId, name, req.params.get("source"))
     } yield {
-      actualGroupCreation(change)
+      actualGroupCreation(change, groupId)
     }) match {
-      case Full(resp)   =>
+      case Full(resp)  =>
         resp
       case eb: EmptyBox =>
         val fail = eb ?~ (s"Error when creating new rule" )
-        toJsonError(Some(groupId.value), fail.messageChain)
-    }
+          toJsonError(groupIdBox.toOption.map(_.value), fail.messageChain)
+        }
   }
 
   def groupDetails(id:String, req:Req, apiVersion: ApiVersion) = {
@@ -568,7 +569,7 @@ class GroupApiService5 (
   def createGroup(restGroup: Box[RestGroup], req:Req, apiVersion: ApiVersion) = {
     val restGroupChecked =
       restGroup match {
-          case Full(RestGroup(_,_,_,None,_,_,_)) => Failure("Cannot create a group with an empty query")
+          case Full(RestGroup(_,_,_,_,None,_,_,_)) => Failure("Cannot create a group with an empty query")
           case a => a
       }
     apiService2.createGroup(restGroupChecked, req, apiVersion)

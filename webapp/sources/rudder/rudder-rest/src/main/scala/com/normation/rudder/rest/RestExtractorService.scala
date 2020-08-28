@@ -571,6 +571,7 @@ final case class RestExtractorService (
 
   def extractGroup (params : Map[String,List[String]]) : Box[RestGroup] = {
     for {
+      id          <- extractOneValue(params, "id")()
       name        <- extractOneValue(params, "displayName")(toMinimalSizeString(3))
       description <- extractOneValue(params, "description")()
       enabled     <- extractOneValue(params, "enabled")( toBoolean)
@@ -580,7 +581,7 @@ final case class RestExtractorService (
       category    <- extractOneValue(params, "category")(toGroupCategoryId)
       properties  <- extractGroupProperties(params)
     } yield {
-      RestGroup(name,description,properties,query,dynamic,enabled,category)
+      RestGroup(id,name,description,properties,query,dynamic,enabled,category)
     }
   }
 
@@ -869,6 +870,7 @@ final case class RestExtractorService (
 
   def extractGroupFromJSON (json : JValue) : Box[RestGroup] = {
     for {
+      id          <- extractJsonString(json, "id")
       name        <- extractJsonString(json, "displayName", toMinimalSizeString(3))
       description <- extractJsonString(json, "description")
       properties  <- extractGroupPropertiesFromJSON(json)
@@ -885,7 +887,7 @@ final case class RestExtractorService (
                      }
       category    <- extractJsonString(json, "category", toGroupCategoryId)
     } yield {
-      RestGroup(name,description,properties.map(_.toList),query,dynamic,enabled,category)
+      RestGroup(id,name,description,properties.map(_.toList),query,dynamic,enabled,category)
     }
   }
 

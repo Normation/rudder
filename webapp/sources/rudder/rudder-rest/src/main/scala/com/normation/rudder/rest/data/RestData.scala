@@ -218,7 +218,8 @@ final case class DirectiveUpdate(
 )
 
 final case class RestGroup(
-      name        : Option[String] = None
+      id          : Option[String] = None
+    , name        : Option[String] = None
     , description : Option[String] = None
     , properties  : Option[List[GroupProperty]]
     , query       : Option[Query] = None
