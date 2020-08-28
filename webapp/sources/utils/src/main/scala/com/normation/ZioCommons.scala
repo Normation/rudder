@@ -62,7 +62,7 @@ object errors {
     def printError(t: Throwable): UIO[Unit] = {
       val print = (s:String) => IO.effect(System.err.println(s))
       //here, we must run.unit, because if it fails we can't do much more (and the app is certainly totally broken)
-      (print(s"${t.getClass.getName}:${t.getMessage}") *> IO.foreach(t.getStackTrace)(st => print(st.toString))).run.unit
+      (print(s"${t.getClass.getName}:${t.getMessage}") *> IO.foreach(t.getStackTrace.toList)(st => print(st.toString))).run.unit
     }
     effectUioUnit(printError(_))(effect)
   }
@@ -243,7 +243,7 @@ object errors {
   /**
    * Accumulate results of a ZIO execution in a ValidateNel
    */
-  implicit class AccumulateErrorsNEL[A](val in: Iterable[A]) extends AnyVal {
+  implicit class AccumulateErrorsNEL[A, Col[+X] <: Iterable[X]](val in: Col[A]) extends AnyVal {
 
 
     private def transform[R, E, B](seq: ZIO[R, Nothing, List[Either[E, B]]]) = {
@@ -257,7 +257,7 @@ object errors {
      * Execute sequentially and accumulate errors
      */
     def accumulateNEL[R, E, B](f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
-      transform(ZIO.foreach(in){ x => f(x).either }).untraced
+      transform(ZIO.foreach(in.toList){ x => f(x).either }).untraced
     }
 
     def accumulateNELPure[R, E, B](f: A => Either[E, B]): Either[NonEmptyList[E], List[B]] = {
@@ -269,7 +269,7 @@ object errors {
      * Execute in parallel, non ordered, and accumulate error, using at max N fibers
      */
     def accumulateParNELN[R, E, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
-      transform(ZIO.foreachParN(n)(in){ x => f(x).either }).untraced
+      transform(ZIO.foreachParN(n)(in.toList){ x => f(x).either }).untraced
     }
   }
 

@@ -367,11 +367,11 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
         TimingDebugLogger.debug(s"Getting node info entries: ${t1-t0}ms")
 
         for {
-          res <- ZIO.foreach(nodes) { case (id, nodeEntry) => mapOneNode(id, nodeEntry, nodeInventories, machineInventories) }
+          res <- ZIO.foreach(nodes.toSeq) { case (id, nodeEntry) => mapOneNode(id, nodeEntry, nodeInventories, machineInventories) }
           map = res.flatten.toMap
           // here, we must ensure that root ID is on the list, else chaos ensue.
           // If root is missing, invalidate the case
-          ok <- if(map.get(Constants.ROOT_POLICY_SERVER_ID).isEmpty) {
+          ok <- if(!map.contains(Constants.ROOT_POLICY_SERVER_ID)) {
                 val msg = "'root' node is missing from the list of nodes. Rudder can not work in that state. We clear the cache now to try" +
                           "to auto-correct the problem. If it persists, try to run 'rudder agent inventory && rudder agent run' " +
                           "from the root server and check /var/log/rudder/webapp/ logs for additionnal information."
@@ -456,7 +456,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                       }
                     }
 
-                    ZIO.foreach(nodeInventories) { case (id, nodeEntry) =>
+                    ZIO.foreach(nodeInventories.toMap) { case (id, nodeEntry) =>
                       val machineInfo = for {
                                           containerDn  <- nodeEntry(A_CONTAINER_DN)
                                           machineEntry <- machineInventories.get(containerDn)
@@ -468,7 +468,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                       } yield {
                         (nodeInfo.id, nodeInfo)
                       }
-                    }.map( _.toMap)
+                    }
                   }
       } yield {
         res

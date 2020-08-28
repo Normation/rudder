@@ -101,8 +101,8 @@ class NodeCountHistorizationTest extends Specification with BeforeAfter  {
     val prog = ZIO.accessM[Clock with TestClock] { testClock =>
       for {
         refMetrics <- Ref.make(FrequentNodeMetrics(1,2,3,4,5))
+        _          <- testClock.get[Clock.Service].sleep(t).fork
         _          <- testClock.get[TestClock.Service].setTime(t)
-        _          <- testClock.get[Clock.Service].sleep(t)
         service    <- makeService(rootDir, refMetrics, testClock)
         commit     <- service.fetchDataAndLog("initilize logs")
       } yield commit

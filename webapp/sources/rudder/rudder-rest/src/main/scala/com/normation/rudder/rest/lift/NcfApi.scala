@@ -57,7 +57,6 @@ import com.normation.box._
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.IOResult
-import com.normation.errors.effectUioUnit
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
 import net.liftweb.json.JsonAST.JArray

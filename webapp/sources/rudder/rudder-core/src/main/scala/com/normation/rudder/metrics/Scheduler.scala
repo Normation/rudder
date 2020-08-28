@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit
 import com.normation.errors._
 import zio._
 import zio.clock.Clock
-import zio.duration.Duration
+import zio.duration._
 import zio.syntax._
 
 

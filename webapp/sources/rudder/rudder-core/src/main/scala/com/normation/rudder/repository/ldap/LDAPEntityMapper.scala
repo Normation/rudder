@@ -270,7 +270,7 @@ class LDAPEntityMapper(
     val keys =  inventoryEntry.valuesFor(A_PKEYS).map(Some(_))
     for {
       agentsName     <- {
-                         val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
+                         val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_)).toList
                          ZIO.foreach(agents.zipAll(keys,None,None)) {
                            case (Some(agent),key) => AgentInfoSerialisation.parseCompatNonJson(agent,key)
                            case (None,key)        => (Err.MissingMandatory(s"There was a public key defined for Node ${nodeId.value},"+
@@ -329,7 +329,7 @@ class LDAPEntityMapper(
       // fetch the inventory datetime of the object
       val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map(_.dateTime) getOrElse(DateTime.now)
       NodeInfo(
-          node.copy(properties = overrideProperties(node.id, node.properties, properties.flatten))
+          node.copy(properties = overrideProperties(node.id, node.properties, properties.toList.flatten))
         , inventoryEntry(A_HOSTNAME).getOrElse("")
         , machineInfo
         , osDetails

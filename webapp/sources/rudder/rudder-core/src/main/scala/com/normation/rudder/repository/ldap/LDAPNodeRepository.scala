@@ -95,14 +95,14 @@ class WoLDAPNodeRepository(
   }
 
   def updateNodeKeyInfo(nodeId: NodeId, agentKey: Option[SecurityToken], agentKeyStatus: Option[KeyStatus], modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Unit] = {
-    def updateInfo(oldInfo: (List[AgentInfo], KeyStatus), agentKey: Option[SecurityToken], agentKeyStatus: Option[KeyStatus]): (List[AgentInfo], KeyStatus) = {
+    def updateInfo(oldInfo: (Seq[AgentInfo], KeyStatus), agentKey: Option[SecurityToken], agentKeyStatus: Option[KeyStatus]): (List[AgentInfo], KeyStatus) = {
       val agents = agentKey match {
         case None    => oldInfo._1
         case Some(k) => oldInfo._1.map { _.copy(securityToken = k) }
       }
       val status = agentKeyStatus.getOrElse(oldInfo._2)
 
-      (agents, status)
+      (agents.toList, status)
     }
     import com.normation.inventory.ldap.core.LDAPConstants.{A_KEY_STATUS, A_AGENTS_NAME}
     if(agentKey.isEmpty && agentKeyStatus.isEmpty) UIO.unit

@@ -419,7 +419,7 @@ class InternalLDAPQueryProcessor(
         case Some(dms) => for {
           // Ok, do the computation here
           _      <- logPure.ifTraceEnabled {
-                      ZIO.foreach(dms) { case (dnType, dns) =>
+                      ZIO.foreach_(dms) { case (dnType, dns) =>
                         logPure.trace(s"/// ${dnType} ==> ${dns.map(_.getRDN).mkString(", ")}")
                       }
                     }
@@ -483,7 +483,7 @@ class InternalLDAPQueryProcessor(
    */
   private[this] def createLDAPObjects(query: LDAPNodeQuery, debugId: Long) : IOResult[Map[DnType, Map[String, LDAPObjectType]]] = {
     ZIO.foreach(query.objectTypesFilters) { case(dnType, mapOtSubQueries) =>
-      val sq = ZIO.foreach(mapOtSubQueries) { case (ot, listSubQueries) =>
+      val sq = ZIO.foreach(mapOtSubQueries.toSeq) { case (ot, listSubQueries) =>
 
         val subqueries = ZIO.foreach(listSubQueries) { case SubQuery(subQueryId, dnType, objectTypeName, filters) =>
           (unspecialiseFilters(filters) match {
@@ -624,7 +624,7 @@ class InternalLDAPQueryProcessor(
                  //now, each filter individually
         _        <- logPure.debug("[%s] |--- or (base filter): %s".format(debugId, entries.size))
         _        <- logPure.trace("[%s] |--- or (base filter): %s".format(debugId, entries.map( _.dn.getRDN  ).mkString(", ")))
-        specials <- ZIO.foreach(sf){ case (k, filters) => baseQuery(con, filters) }
+        specials <- ZIO.foreach(sf.toSeq){ case (k, filters) => baseQuery(con, filters) }
         sFlat    =  specials.flatten
         _        <- logPure.debug("[%s] |--- or (special filter): %s".format(debugId, sFlat.size))
         _        <- logPure.trace("[%s] |--- or (special filter): %s".format(debugId, sFlat.map( _.dn.getRDN  ).mkString(", ")))

@@ -178,7 +178,7 @@ class PrepareTemplateVariablesImpl(
       preparedTemplate <- prepareTechniqueTemplate(
                               agentNodeProps
                             , agentNodeConfig.config.policies
-                            , parameters
+                            , parameters.toList
                             , allSystemVars
                             , templates
                             , generationTime.getMillis

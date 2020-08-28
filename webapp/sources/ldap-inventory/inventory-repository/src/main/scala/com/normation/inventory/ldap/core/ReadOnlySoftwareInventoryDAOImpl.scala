@@ -57,7 +57,7 @@ class ReadOnlySoftwareDAOImpl(
   mapper:InventoryMapper
 ) extends ReadOnlySoftwareDAO {
 
-  private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]): IOResult[List[Software]] = {
+  private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]): IOResult[Seq[Software]] = {
     for {
       entries <- con.searchOne(inventoryDitService.getSoftwareBaseDN, OR(ids map {x:SoftwareUuid => EQ(A_SOFTWARE_UUID,x.value) }:_*)).map(_.toVector)
       soft    <- ZIO.foreach(entries) { entry =>

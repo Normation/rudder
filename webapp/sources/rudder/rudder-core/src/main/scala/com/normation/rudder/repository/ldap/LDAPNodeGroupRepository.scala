@@ -184,7 +184,7 @@ class RoLDAPNodeGroupRepository(
     }
   }
 
-  def getAllGroupCategories(includeSystem:Boolean = false) : IOResult[List[NodeGroupCategory]] = {
+  def getAllGroupCategories(includeSystem:Boolean = false) : IOResult[Seq[NodeGroupCategory]] = {
     groupLibMutex.readLock { for {
       con             <- ldap
       filter          =  if(includeSystem) IS(OC_GROUP_CATEGORY) else AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)),IS(OC_GROUP_CATEGORY))

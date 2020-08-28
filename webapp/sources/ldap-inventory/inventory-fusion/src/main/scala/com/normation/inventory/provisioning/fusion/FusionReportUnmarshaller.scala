@@ -355,6 +355,7 @@ class FusionReportUnmarshaller(
       }
     }
 
+
     /*
      * Process agents. We want to keep the maximum number of agents,
      * ie if there's two agents, and XML for one is not valid, still
@@ -364,7 +365,7 @@ class FusionReportUnmarshaller(
      * agent is ignored).
      *
      */
-    val agentList = ZIO.foreach(xml \\ "AGENT") { agentXML =>
+    val agentList = ZIO.foreach((xml \\ "AGENT").toList) { agentXML =>
       val agent = for {
          agentName <- boxFromOption(optText(agentXML \ "AGENT_NAME"), "could not parse agent name (tag AGENT_NAME) from rudder specific inventory")
          agentType <- ZIO.fromEither(AgentType.fromValue(agentName))
@@ -530,6 +531,9 @@ class FusionReportUnmarshaller(
       }
     }
   }
+
+
+
 
   // ******************************************** //
   // parsing implementation details for each tags //

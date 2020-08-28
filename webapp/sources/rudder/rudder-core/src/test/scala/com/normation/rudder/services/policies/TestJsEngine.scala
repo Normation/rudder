@@ -74,9 +74,6 @@ class TestJsEngine extends Specification {
   val get4scriptVariable   = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS} 2+2"))
   val infiniteloopVariable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}while(true){}"))
 
-  val setFooVariable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}var foo = 'some value'; foo"))
-  val getFooVariable = variableSpec.toVariable(Seq(s"${JsEngine.DEFAULT_EVAL}foo"))
-
   val policyFile = this.getClass.getClassLoader.getResource("rudder-js.policy")
 
   /**
@@ -219,14 +216,24 @@ class TestJsEngine extends Specification {
     }
 
     "not be able to access the content of a previously setted var" in {
-      val (res1, res2) = contextEnabled { engine =>
-        (engine.eval(setFooVariable, JsRudderLibBinding.Crypt)
-        ,engine.eval(getFooVariable, JsRudderLibBinding.Crypt)
-        ).succeed
-      }.getOrElse(throw new RuntimeException("test"))
+      val setFooVariable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}var foo = 'some value'; foo"))
+      val getFooVariable = variableSpec.toVariable(Seq(s"${JsEngine.DEFAULT_EVAL}foo"))
 
-      (res1.runNow must beEqualTo(variableSpec.toVariable(Seq("some value")))) and
-      (res2.either.runNow must beFailure("(?s)Invalid script.*foo.*Variable test.*".r))
+      // ok in same eval
+      val ok = contextEnabled { engine =>
+        engine.eval(setFooVariable, JsRudderLibBinding.Crypt)
+      }
+
+      // not ok if two eval
+      val ko = contextEnabled { engine =>
+        for {
+          _ <- engine.eval(setFooVariable, JsRudderLibBinding.Crypt)
+          r <- engine.eval(getFooVariable, JsRudderLibBinding.Crypt)
+        } yield r
+      }
+
+      (ok must beVariableValue(v => v == "some value")) and
+      (ko must beFailure("(?s)Invalid script.*foo.*Variable test.*".r))
     }
 
   }
