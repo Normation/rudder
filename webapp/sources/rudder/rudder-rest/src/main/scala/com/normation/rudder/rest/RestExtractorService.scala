@@ -569,6 +569,7 @@ final case class RestExtractorService (
 
   def extractGroup (params : Map[String,List[String]]) : Box[RestGroup] = {
     for {
+      id          <- extractOneValue(params, "id")()
       name        <- extractOneValue(params, "displayName")(toMinimalSizeString(3))
       description <- extractOneValue(params, "description")()
       enabled     <- extractOneValue(params, "enabled")( toBoolean)
@@ -577,7 +578,7 @@ final case class RestExtractorService (
       _           <- if (query.map(_.criteria.size > 0).getOrElse(true)) Full("Query has at least one criteria") else Failure("Query should containt at least one criteria")
       category    <- extractOneValue(params, "category")(toGroupCategoryId)
     } yield {
-      RestGroup(name,description,query,dynamic,enabled,category)
+      RestGroup(id,name,description,query,dynamic,enabled,category)
     }
   }
 
@@ -842,6 +843,7 @@ final case class RestExtractorService (
 
   def extractGroupFromJSON (json : JValue) : Box[RestGroup] = {
     for {
+      id          <- extractJsonString(json, "id")
       name        <- extractJsonString(json, "displayName", toMinimalSizeString(3))
       description <- extractJsonString(json, "description")
       enabled     <- extractJsonBoolean(json, "enabled")
@@ -851,7 +853,7 @@ final case class RestExtractorService (
       _           <- if (query.criteria.size > 0) Full("Query has at least one criteria") else Failure("Query should containt at least one criteria")
       category    <- extractJsonString(json, "category", toGroupCategoryId)
     } yield {
-      RestGroup(name,description,Some(query),dynamic,enabled,category)
+      RestGroup(id,name,description,Some(query),dynamic,enabled,category)
     }
   }
 
