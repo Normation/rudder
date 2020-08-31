@@ -103,7 +103,7 @@ final case class RoReportsExecutionRepositoryImpl (
                     reportsexecution where (nodeid, insertionid) in (
                       select nodeid, max(insertionid) as insertionid
                         from reportsexecution
-                        and nodeid in """ ++
+                        where nodeid in """ ++
               Fragment.const(s"""(values ${nodes.mkString(",")} )""") ++
               fr"""
                         GROUP BY nodeid
