@@ -38,6 +38,7 @@ pub use token::PInput;
 // ===== Public interfaces =====
 
 /// PAST is just a global structure that contain all parsed data sorted sequentially per type.
+/// Pseudo AST, since it's not a Tree
 #[derive(Debug, Default)]
 pub struct PAST<'src> {
     pub enums: Vec<PEnum<'src>>,
@@ -1134,7 +1135,7 @@ fn end_of_pfile(i: PInput) -> PResult<()> {
     Ok((i, ()))
 }
 
-/// A PFile is the result of a single file parsing
+/// A PFile is the result of a single file parsing (this is an AST)
 /// It contains a valid header and top level declarations.
 #[derive(Debug, PartialEq)]
 pub struct PFile<'src> {

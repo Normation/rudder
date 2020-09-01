@@ -1,9 +1,9 @@
 use crate::{
-    ast::{
+    ir::{
         enums::EnumExpressionPart,
         resource::{ResourceDef, StateDeclaration, Statement},
-        value::Value as ASTValue,
-        AST,
+        value::Value as IRValue,
+        IR2,
     },
     technique::*,
 };
@@ -12,9 +12,9 @@ use std::convert::TryFrom;
 use std::str;
 use toml::{map::Map, value::Value as TOMLValue};
 
-impl<'src> From<&AST<'src>> for Technique {
-    fn from(ast: &AST<'src>) -> Self {
-        let resources = ast
+impl<'src> From<&IR2<'src>> for Technique {
+    fn from(ir: &IR2<'src>) -> Self {
+        let resources = ir
             .resources
             .iter()
             .filter_map(|(tk, res)| {
@@ -63,7 +63,7 @@ impl<'src> From<&AST<'src>> for Technique {
                 state
                     .statements
                     .iter()
-                    .flat_map(|stmt| statement_to_method_call(ast, stmt, "any".to_owned()))
+                    .flat_map(|stmt| statement_to_method_call(ir, stmt, "any".to_owned()))
                     .collect::<Vec<MethodCall>>()
             })
             .collect::<Vec<MethodCall>>();
@@ -95,11 +95,11 @@ fn extract_meta_string(map: &Map<String, TOMLValue>, field: &str) -> String {
         .to_owned()
 }
 
-fn format_expr(ast: &AST, expr: &EnumExpressionPart) -> String {
+fn format_expr(ir: &IR2, expr: &EnumExpressionPart) -> String {
     let expr = match expr {
         EnumExpressionPart::And(e1, e2) => {
-            let mut lexpr = format_expr(ast, &*e1);
-            let mut rexpr = format_expr(ast, &*e2);
+            let mut lexpr = format_expr(ir, &*e1);
+            let mut rexpr = format_expr(ir, &*e2);
             if lexpr.contains("|") {
                 lexpr = format!("({})", lexpr);
             }
@@ -109,17 +109,17 @@ fn format_expr(ast: &AST, expr: &EnumExpressionPart) -> String {
             format!("{}.{}", lexpr, rexpr)
         }
         EnumExpressionPart::Or(e1, e2) => {
-            format!("({}|{})", format_expr(ast, &*e1), format_expr(ast, &*e2))
+            format!("({}|{})", format_expr(ir, &*e1), format_expr(ir, &*e2))
         }
         EnumExpressionPart::Not(e) => {
-            let mut expr = format_expr(ast, &*e);
+            let mut expr = format_expr(ir, &*e);
             if expr.contains('|') || expr.contains('.') {
                 expr = format!("!({})", expr);
             }
             format!("!{}", expr)
         }
         EnumExpressionPart::Compare(var, tree, item) => {
-            if let Some(true) = ast.enum_list.enum_is_global(*var) {
+            if let Some(true) = ir.enum_list.enum_is_global(*var) {
                 // FIXME: We need some translation here since not all enums are available in cfengine (ex debian_only)
                 item.fragment().to_string() // here
             } else {
@@ -140,8 +140,8 @@ fn format_expr(ast: &AST, expr: &EnumExpressionPart) -> String {
     }
 }
 
-fn fetch_params_as_value(ast: &AST, s: &StateDeclaration, method_name: &str) -> Vec<Value> {
-    let resource = ast
+fn fetch_params_as_value(ir: &IR2, s: &StateDeclaration, method_name: &str) -> Vec<Value> {
+    let resource = ir
         .resources
         .get(&s.resource)
         .expect(&format!("Called resource '{}' is not defined", *s.resource));
@@ -167,7 +167,7 @@ fn fetch_params_as_value(ast: &AST, s: &StateDeclaration, method_name: &str) -> 
         .iter()
         .chain(s.state_params.iter())
         .map(|p| {
-            if let ASTValue::String(ref o) = p {
+            if let IRValue::String(ref o) = p {
                 if let Ok(value) = String::try_from(o) {
                     return value;
                 }
@@ -184,11 +184,11 @@ fn fetch_params_as_value(ast: &AST, s: &StateDeclaration, method_name: &str) -> 
         .collect::<Vec<Value>>()
 }
 
-fn statement_to_method_call(ast: &AST, stmt: &Statement, condition: String) -> Vec<MethodCall> {
+fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Vec<MethodCall> {
     match stmt {
         Statement::StateDeclaration(s) => {
             let method_name = format!("{}_{}", *s.resource, *s.state);
-            let parameters = fetch_params_as_value(ast, s, &method_name);
+            let parameters = fetch_params_as_value(ir, s, &method_name);
             vec![MethodCall {
                 parameters,
                 condition,
@@ -202,7 +202,7 @@ fn statement_to_method_call(ast: &AST, stmt: &Statement, condition: String) -> V
                 stmts
                     .iter()
                     .flat_map(|stmt| {
-                        statement_to_method_call(ast, stmt, format_expr(ast, &enum_expr.expression))
+                        statement_to_method_call(ir, stmt, format_expr(ir, &enum_expr.expression))
                     })
                     .collect::<Vec<MethodCall>>()
             })

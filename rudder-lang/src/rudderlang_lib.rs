@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    ast::{resource::ResourceDef, resource::StateDef, AST},
+    ir::{resource::ResourceDef, resource::StateDef, IR1},
     compile::parse_file,
     error::*,
     parser::{Token, PAST},
@@ -16,10 +16,10 @@ use toml::Value as TomlValue;
 use typed_arena::Arena;
 use walkdir::WalkDir;
 
-pub struct RudderlangLib<'src>(AST<'src>);
+pub struct RudderlangLib<'src>(IR1<'src>);
 
 impl<'src> core::ops::Deref for RudderlangLib<'src> {
-    type Target = AST<'src>;
+    type Target = IR1<'src>;
 
     fn deref(self: &Self) -> &Self::Target {
         &self.0
@@ -28,10 +28,10 @@ impl<'src> core::ops::Deref for RudderlangLib<'src> {
 
 impl<'src> RudderlangLib<'src> {
     /// Parse all `.rl` files recursively to allow future layout changes.
-    /// parse the whole library and returns the AST tree
+    /// parse the whole library and returns the IR
     pub fn new(stdlib_dir: &'src Path, sources: &'src Arena<String>) -> Result<Self> {
         let past = Self::parse(stdlib_dir, sources)?;
-        Ok(Self(AST::from_past(past)?))
+        Ok(Self(IR1::from_past(past)?))
     }
 
     /// parse the whole library and pushes it into the input PAST

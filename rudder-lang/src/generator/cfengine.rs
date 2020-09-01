@@ -3,7 +3,7 @@
 
 use super::Generator;
 use crate::{
-    ast::{enums::EnumExpressionPart, resource::*, value::*, *},
+    ir::{enums::EnumExpressionPart, resource::*, value::*, *},
     error::*,
     generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise},
     parser::*,
@@ -61,7 +61,7 @@ impl CFEngine {
         })
     }
 
-    fn format_case_expr(&mut self, gc: &AST, case: &EnumExpressionPart) -> Result<Condition> {
+    fn format_case_expr(&mut self, gc: &IR2, case: &EnumExpressionPart) -> Result<Condition> {
         Ok(match case {
             EnumExpressionPart::And(e1, e2) => {
                 let mut lexpr = self.format_case_expr(gc, e1)?;
@@ -119,7 +119,7 @@ impl CFEngine {
     // TODO use in_class everywhere
     fn format_statement(
         &mut self,
-        gc: &AST,
+        gc: &IR2,
         st: &Statement,
         in_class: String,
     ) -> Result<Vec<Promise>> {
@@ -275,7 +275,7 @@ impl Generator for CFEngine {
     // TODO methods differ if this is a technique generation or not
     fn generate(
         &mut self,
-        gc: &AST,
+        gc: &IR2,
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
         policy_metadata: bool,

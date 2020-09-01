@@ -3,7 +3,7 @@
 
 use super::Generator;
 use crate::{
-    ast::{enums::EnumExpressionPart, resource::*, value::*, *},
+    ir::{enums::EnumExpressionPart, resource::*, value::*, *},
     parser::*,
 };
 
@@ -11,7 +11,7 @@ use std::{collections::HashMap, ffi::OsStr, fs::File, io::Write, path::Path};
 use toml::Value as TomlValue;
 
 use crate::error::*;
-use crate::ast::context::Type;
+use crate::ir::context::Type;
 
 /*
     DSC parameter types:
@@ -88,7 +88,7 @@ impl DSC {
         })
     }
 
-    fn format_case_expr(&mut self, gc: &AST, case: &EnumExpressionPart) -> Result<String> {
+    fn format_case_expr(&mut self, gc: &IR2, case: &EnumExpressionPart) -> Result<String> {
         Ok(match case {
             EnumExpressionPart::And(e1, e2) => {
                 let mut lexpr = self.format_case_expr(gc, e1)?;
@@ -170,7 +170,7 @@ impl DSC {
 
     fn get_method_parameters(
         &mut self,
-        gc: &AST,
+        gc: &IR2,
         state_decl: &StateDeclaration,
     ) -> Result<(String, String, bool)> {
         // depending on whether class_parameters should only be used for meta_generic_methods or not
@@ -260,7 +260,7 @@ impl DSC {
     // TODO use in_class everywhere
     fn format_statement(
         &mut self,
-        gc: &AST,
+        gc: &IR2,
         st: &Statement,
         condition_content: String,
     ) -> Result<String> {
@@ -488,7 +488,7 @@ impl Generator for DSC {
     // TODO methods differ if this is a technique generation or not
     fn generate(
         &mut self,
-        gc: &AST,
+        gc: &IR2,
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
         technique_metadata: bool,

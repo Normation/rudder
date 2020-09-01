@@ -9,7 +9,7 @@ extern crate serde_json;
 
 #[macro_use]
 pub mod error;
-mod ast;
+mod ir;
 pub mod compile;
 pub mod generator;
 pub mod io;

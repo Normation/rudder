@@ -2,7 +2,7 @@
 
 /// Generates markdown
 use super::Generator;
-use crate::{ast::resource::StateDef, ast::*, error::*};
+use crate::{ir::resource::StateDef, ir::*, error::*};
 use std::cmp::Ordering;
 use std::{collections::HashMap, fs::File, io::Write, path::Path};
 
@@ -17,7 +17,7 @@ impl Generator for Markdown {
     // TODO methods differ if this is a technique generation or not
     fn generate(
         &mut self,
-        gc: &AST,
+        gc: &IR2,
         _source_file: Option<&Path>,
         _dest_file: Option<&Path>,
         _policy_metadata: bool,
@@ -94,9 +94,9 @@ impl Markdown {
         out
     }
 
-    /// renders doc from an AST, with an optional resource filter
-    /// When filter resource is None the whole AST is rendered
-    fn render(gc: &AST, resource_filter: Option<String>) -> Result<HashMap<String, String>> {
+    /// renders doc from an IR, with an optional resource filter
+    /// When filter resource is None the whole IR is rendered
+    fn render(gc: &IR2, resource_filter: Option<String>) -> Result<HashMap<String, String>> {
         let mut files: HashMap<String, String> = HashMap::new();
 
         for (resource_name, resource) in gc.resources.iter() {

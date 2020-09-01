@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::Generator;
-use crate::{ast::AST, error::*, technique::Technique};
+use crate::{ir::IR2, error::*, technique::Technique};
 use std::convert::From;
 use std::{fs::File, io::Write, path::Path};
 
@@ -12,7 +12,7 @@ impl Generator for JSON {
     // TODO methods differ if this is a technique generation or not
     fn generate(
         &mut self,
-        gc: &AST,
+        gc: &IR2,
         _source_file: Option<&Path>,
         dest_file: Option<&Path>,
         _policy_metadata: bool,

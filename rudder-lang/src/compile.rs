@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    ast::AST,
+    ir::IR1, ir::IR2,
     error::*,
     generator::new_generator,
     io::IOContext,
@@ -37,10 +37,10 @@ pub fn parse_file<'src>(
     }
 }
 
-pub fn technique_to_ast<'src>(
+pub fn technique_to_ir<'src>(
     ctx: &'src IOContext,
     sources: &'src Arena<String>,
-) -> Result<AST<'src>> {
+) -> Result<IR2<'src>> {
     // add stdlib: resourcelib + corelib + oslib + cfengine_core
     let mut past = RudderlangLib::past(&ctx.stdlib, sources)?;
 
@@ -54,21 +54,21 @@ pub fn technique_to_ast<'src>(
 
     parse_file(&mut past, &sources, &ctx.source)?;
 
-    // finish parsing into AST
+    // finish parsing into IR
     info!("|- {}", "Generating intermediate code".bright_green());
-    let ast = AST::from_past(past)?;
+    let ir1 = IR1::from_past(past)?;
 
     // check that everything is OK
     info!("|- {}", "Semantic verification".bright_green());
-    ast.analyze()?;
+    let ir2 = IR2::from_ir1(ir1)?;
 
-    Ok(ast)
+    Ok(ir2)
 }
 
 /// Compile a file from rudder-lang to cfengine
 pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<()> {
     let sources = Arena::new();
-    let ast = technique_to_ast(ctx, &sources)?;
+    let ir = technique_to_ir(ctx, &sources)?;
 
     // generate final output
     info!("|- {}", "Generating output code".bright_green());
@@ -79,5 +79,5 @@ pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<()> {
         (None, None)
     };
     let mut generator = new_generator(&ctx.format)?;
-    generator.generate(&ast, input_file, output_file, technique)
+    generator.generate(&ir, input_file, output_file, technique)
 }

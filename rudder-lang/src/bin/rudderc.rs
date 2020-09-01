@@ -5,7 +5,9 @@
 
 //!  Principle:
 //!  1-  rl -> PAST::add_file() -> PAST
-//!         -> AST::from_past -> AST
+//!         -> IR1::from_past -> IR1
+//!         -> IR2::from_ir1 -> IR2
+//!         -> ...
 //!         -> generate() -> cfengine/json/...
 //!
 //!  2- json technique -> translate() -> rl

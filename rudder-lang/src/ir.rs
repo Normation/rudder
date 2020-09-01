@@ -9,7 +9,6 @@ pub mod value;
 pub mod variable;
 
 use self::{context::*, enums::EnumList, resource::*, value::*};
-use crate::ast::context::Type;
 use crate::{error::*, parser::*};
 use std::{
     cmp::Ordering, rc::Rc,
@@ -20,8 +19,16 @@ use std::{
 // TODO aliases
 // TODO check state call compatibility
 
+/// An IR1 is the first intermediate representation
+/// - the context is filled with all global variables: enum, definition and magics
+/// - enums list are checked for existence, non duplication and validity
+/// - variable definition are checked for non duplication, their type is known, extension are merged
+/// - variable declaration (aka magic) are checked for non duplication
+/// - default values are guaranteed to be constant
+/// - parameter type are known
+/// - resources also have their IR
 #[derive(Debug)]
-pub struct AST<'src> {
+pub struct IR1<'src> {
     errors: Vec<Error>,
     // the context is used for variable lookup whereas variable_definitions is used for code generation
     pub context: Rc<VarContext<'src>>,
@@ -49,10 +56,10 @@ where
         .map(Result::unwrap)
         .collect()
 }
-impl<'src> AST<'src> {
-    /// Produce the final AST data structure.
+impl<'src> IR1<'src> {
+    /// Produce the IR1 data structure.
     /// Call this when all files have been parsed.
-    pub fn from_past(past: PAST) -> Result<AST> {
+    pub fn from_past(past: PAST<'src>) -> Result<Self> {
         let PAST {
             enum_aliases,
             enums,
@@ -66,26 +73,26 @@ impl<'src> AST<'src> {
             parents,
             aliases: _aliases,
         } = past;
-        let mut ast = AST::new();
-        ast.add_enums(enums);
-        ast.add_sub_enums(sub_enums);
-        ast.add_enum_aliases(enum_aliases);
-        ast.add_variables(variable_definitions);
-        ast.add_variable_extensions(variable_extensions);
-        ast.add_magic_variables(variable_declarations);
-        ast.add_default_values(parameter_defaults);
-        ast.add_resource_list(&resources);
-        let children = ast.create_children_list(parents);
-        ast.add_resources(resources, states, children);
-        //ast.add_aliases(aliases);
-        if ast.errors.is_empty() {
-            Ok(ast)
+        let mut ir = IR1::new();
+        ir.add_enums(enums);
+        ir.add_sub_enums(sub_enums);
+        ir.add_enum_aliases(enum_aliases);
+        ir.add_variables(variable_definitions);
+        ir.add_variable_extensions(variable_extensions);
+        ir.add_magic_variables(variable_declarations);
+        ir.add_default_values(parameter_defaults);
+        ir.add_resource_list(&resources);
+        let children = ir.create_children_list(parents);
+        ir.add_resources(resources, states, children);
+        //ir.add_aliases(aliases);
+        if ir.errors.is_empty() {
+            Ok(ir)
         } else {
-            Err(Error::from_vec(ast.errors))
+            Err(Error::from_vec(ir.errors))
         }
     }
-    fn new() -> AST<'src> {
-        AST {
+    fn new() -> IR1<'src> {
+        IR1 {
             errors: Vec::new(),
             context: Rc::new(VarContext::new(None)),
             enum_list: EnumList::new(),
@@ -239,22 +246,22 @@ impl<'src> AST<'src> {
         for (resource, state, defaults) in parameter_defaults {
             // parameters with default values must be the last ones
             if let Err(e) = defaults.iter()
-                .fold(Ok(None), |status, pv|
-                    match (status, pv) {
-                        (Ok(None), None)       => Ok(None),
-                        (Ok(None), Some(x))    => Ok(Some(x)),
-                        (Ok(Some(_)), Some(y)) => Ok(Some(y)),
-                        //default followed by non default
-                        (Ok(Some(_)), None)    => {
-                            match state {
-                                Some(s) => self.errors.push(err!(s,"Parameter default for state {} followed by parameter without default",s)),
-                                None => self.errors.push(err!(resource,"Parameter default for resource {} followed by parameter without default",resource)),
-                            };
-                            Ok(None)
-                        },
-                        (Err(e), _)            => Err(e),
-                    }
-                )
+                                    .fold(Ok(None), |status, pv|
+                                        match (status, pv) {
+                                            (Ok(None), None) => Ok(None),
+                                            (Ok(None), Some(x)) => Ok(Some(x)),
+                                            (Ok(Some(_)), Some(y)) => Ok(Some(y)),
+                                            //default followed by non default
+                                            (Ok(Some(_)), None) => {
+                                                match state {
+                                                    Some(s) => self.errors.push(err!(s,"Parameter default for state {} followed by parameter without default",s)),
+                                                    None => self.errors.push(err!(resource,"Parameter default for resource {} followed by parameter without default",resource)),
+                                                };
+                                                Ok(None)
+                                            },
+                                            (Err(e), _) => Err(e),
+                                        }
+                                    )
             { self.errors.push(e); } // -> no default values
             self.parameter_defaults.insert(
                 (resource, state),
@@ -359,8 +366,187 @@ impl<'src> AST<'src> {
             }
         }
     }
+}
 
-    /// binding_check function dependance: compares library and user function's parameters. if diff, output an error
+/// An IR2 is the second intermediate representation
+/// It takes everything from IR1 plus :
+/// - every identifier cannot be a reserved word
+/// - a variable name cannot conflict with something else (resource, enum, constant, ...)
+/// - resource and state call must point to existing elements
+/// - cases must be complete an non overlapping
+/// - resource cannot make a loop (it cannot contain itself)
+/// This is currently identical to IR1, but it may diverge in the future
+/// Moreover having a different structure helps having clear compilation steps and smaller tests.
+#[derive(Debug)]
+pub struct IR2<'src> {
+    // the context is used for variable lookup whereas variable_definitions is used for code generation
+    pub context: Rc<VarContext<'src>>,
+    pub enum_list: EnumList<'src>,
+    pub variable_definitions: HashMap<Token<'src>, ComplexValue<'src>>,
+    pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>, // also used as parameter list since that's all we have
+    pub resource_list: HashSet<Token<'src>>,
+    pub resources: HashMap<Token<'src>, ResourceDef<'src>>,
+}
+
+impl<'src> IR2<'src> {
+    pub fn from_ir1(ir1: IR1<'src>) -> Result<Self> {
+        let IR1 { errors, context, enum_list, variable_definitions, parameter_defaults, resource_list, resources} = ir1;
+        let ir2 = IR2 { context, enum_list, variable_definitions, parameter_defaults, resource_list, resources };
+
+        // Analyze step 1: no prerequisite
+        let mut errors = Vec::new();
+        // analyze resources
+        for (rn, resource) in ir2.resources.iter() {
+            // check resource name
+            errors.push(ir2.invalid_identifier_check(*rn));
+            for (sn, state) in resource.states.iter() {
+                // check status name
+                errors.push(ir2.invalid_identifier_check(*sn));
+                for st in state.statements.iter() {
+                    // check for resources and state existence
+                    // check for matching parameter and type
+                    errors.push(ir2.binding_check(st));
+                    // check for variable names in statements
+                    errors.push(ir2.invalid_variable_statement_check(st));
+                    // check for enum expression validity
+                    errors.push(ir2.enum_expression_check(&state.context, st));
+                    // check for case validity
+                    errors.push(ir2.cases_check(&state.context, st, true));
+                }
+            }
+        }
+        // analyze global vars
+        // TODO what about local var ?
+        for (name, _value) in ir2.context.iter() {
+            // check for invalid variable name
+            errors.push(ir2.invalid_variable_check(*name, true));
+        }
+        // analyse enum names
+        for e in ir2.enum_list.enum_iter() {
+            errors.push(ir2.invalid_identifier_check(*e));
+        }
+        // analyse enum items
+        for e in ir2.enum_list.global_item_iter() {
+            errors.push(ir2.invalid_identifier_check(*e));
+        }
+        // Stop here if there is any error
+        fix_results(errors.into_iter())?;
+
+        // Analyze step 2: step 1 must have passed
+        errors = Vec::new();
+        for (rname, resource) in ir2.resources.iter() {
+            // check that resource definition is not recursive
+            errors.push(ir2.children_check(*rname, &resource.children, 0));
+        }
+        fix_results(errors.into_iter())?;
+        Ok(ir2)
+    }
+
+    // invalid enum
+    // invalid enum item
+    // invalid resource
+    // invalid state
+    // -> invalid identifier
+
+    // and invalid identifier is
+    // - invalid namespace TODO
+    // - a type name : string int struct list
+    // - an existing keyword in the language: if case enum global default resource state fail log return noop
+    // - a reserved keyword for future language: format comment dict json enforce condition audit let
+    fn invalid_identifier_check(&self, name: Token<'src>) -> Result<()> {
+        if vec![
+            // old list
+            // "struct", "list", "if", "case", "enum", "global", "default", "resource",
+            // "fail", "log", "return", "noop", "format", "comment",
+            // "json", "enforce", "audit",
+            // TODO
+            // header
+            "format",
+            // enums
+            "enum",
+            "global",
+            "items",
+            "alias",
+            // types
+            "num",
+            "struct",
+            "list", // "string", "boolean", // should not be used
+            // variables
+            "let",
+            "resource", // "state", // should not be used
+            // flow statements
+            "if",
+            "case",
+            "default",
+            "nodefault",
+            "fail",
+            "log",
+            "log_debug",
+            "log_info",
+            "log_warn",
+            "return",
+            "noop",
+            // historical invalid identifiers
+            "comment",
+            "json",
+            "enforce",
+            "audit", //"dict", "condition"
+        ]
+            .contains(&name.fragment())
+        {
+            fail!(
+                name,
+                "Name {} is a reserved keyword and cannot be used here",
+                name
+            );
+        }
+        Ok(())
+    }
+
+    // an invalid variable is :
+    // - invalid identifier
+    // - an enum name / except global enum var
+    // - a global enum item name
+    // - a resource name
+    // - true / false
+    fn invalid_variable_check(&self, name: Token<'src>, global: bool) -> Result<()> {
+        self.invalid_identifier_check(name)?;
+        if let Some(is_global) = self.enum_list.enum_is_global(name) {
+            if !global || !is_global {
+                // there is already a global variable for each global enum
+                fail!(
+                    name,
+                    "Variable name {} cannot be used because it is an enum name",
+                    name
+                );
+            }
+        }
+        if let Some(e) = self.enum_list.global_enum(name) {
+            fail!(
+                name,
+                "Variable name {} cannot be used because it is an item of the global enum {}",
+                name,
+                e
+            );
+        }
+        if self.resources.contains_key(&name) {
+            fail!(
+                name,
+                "Variable name {} cannot be used because it is a resource name",
+                name
+            );
+        }
+        if vec!["true", "false"].contains(&name.fragment()) {
+            fail!(
+                name,
+                "Variable name {} cannot be used because it is a boolean identifier",
+                name
+            );
+        }
+        Ok(())
+    }
+
+    /// binding_check function dependence: compares library and user function's parameters. if diff, output an error
     fn parameters_count_check(
         &self,
         resource: Token<'src>,
@@ -444,6 +630,29 @@ impl<'src> AST<'src> {
         }
     }
 
+    // same a above but for the variable definition statement
+    fn invalid_variable_statement_check(&self, st: &Statement<'src>) -> Result<()> {
+        match st {
+            Statement::VariableDefinition(var) => self.invalid_variable_check(var.name, false),
+            _ => Ok(()),
+        }
+    }
+
+    fn enum_expression_check(&self, context: &VarContext, statement: &Statement) -> Result<()> {
+        match statement {
+            Statement::Case(case, cases) => {
+                let errors = self.enum_list.evaluate(cases, *case);
+                if !errors.is_empty() {
+                    return Err(Error::from_vec(errors));
+                }
+                fix_results(cases.iter().flat_map(|(_cond, sts)| {
+                    sts.iter().map(|st| self.enum_expression_check(context, st))
+                }))
+            }
+            _ => Ok(()),
+        }
+    }
+
     fn cases_check(
         &self,
         variables: &VarContext,
@@ -494,21 +703,6 @@ impl<'src> AST<'src> {
         Ok(())
     }
 
-    fn enum_expression_check(&self, context: &VarContext, statement: &Statement) -> Result<()> {
-        match statement {
-            Statement::Case(case, cases) => {
-                let errors = self.enum_list.evaluate(cases, *case);
-                if !errors.is_empty() {
-                    return Err(Error::from_vec(errors));
-                }
-                fix_results(cases.iter().flat_map(|(_cond, sts)| {
-                    sts.iter().map(|st| self.enum_expression_check(context, st))
-                }))
-            }
-            _ => Ok(()),
-        }
-    }
-
     fn children_check(
         &self,
         name: Token<'src>,
@@ -537,166 +731,6 @@ impl<'src> AST<'src> {
         Ok(())
     }
 
-    // invalid enum
-    // invalid enum item
-    // invalid resource
-    // invalid state
-    // -> invalid identifier
-
-    // and invalid identifier is
-    // - invalid namespace TODO
-    // - a type name : string int struct list
-    // - an existing keyword in the language: if case enum global default resource state fail log return noop
-    // - a reserved keyword for future language: format comment dict json enforce condition audit let
-    fn invalid_identifier_check(&self, name: Token<'src>) -> Result<()> {
-        if vec![
-            // old list
-            // "struct", "list", "if", "case", "enum", "global", "default", "resource",
-            // "fail", "log", "return", "noop", "format", "comment",
-            // "json", "enforce", "audit",
-            // TODO
-            // header
-            "format",
-            // enums
-            "enum",
-            "global",
-            "items",
-            "alias",
-            // types
-            "num",
-            "struct",
-            "list", // "string", "boolean", // should not be used
-            // variables
-            "let",
-            "resource", // "state", // should not be used
-            // flow statements
-            "if",
-            "case",
-            "default",
-            "nodefault",
-            "fail",
-            "log",
-            "log_debug",
-            "log_info",
-            "log_warn",
-            "return",
-            "noop",
-            // historical invalid identifiers
-            "comment",
-            "json",
-            "enforce",
-            "audit", //"dict", "condition"
-        ]
-        .contains(&name.fragment())
-        {
-            fail!(
-                name,
-                "Name {} is a reserved keyword and cannot be used here",
-                name
-            );
-        }
-        Ok(())
-    }
-
-    // an invalid variable is :
-    // - invalid identifier
-    // - an enum name / except global enum var
-    // - a global enum item name
-    // - a resource name
-    // - true / false
-    fn invalid_variable_check(&self, name: Token<'src>, global: bool) -> Result<()> {
-        self.invalid_identifier_check(name)?;
-        if let Some(is_global) = self.enum_list.enum_is_global(name) {
-            if !global || !is_global {
-                // there is already a global variable for each global enum
-                fail!(
-                    name,
-                    "Variable name {} cannot be used because it is an enum name",
-                    name
-                );
-            }
-        }
-        if let Some(e) = self.enum_list.global_enum(name) {
-            fail!(
-                name,
-                "Variable name {} cannot be used because it is an item of the global enum {}",
-                name,
-                e
-            );
-        }
-        if self.resources.contains_key(&name) {
-            fail!(
-                name,
-                "Variable name {} cannot be used because it is a resource name",
-                name
-            );
-        }
-        if vec!["true", "false"].contains(&name.fragment()) {
-            fail!(
-                name,
-                "Variable name {} cannot be used because it is a boolean identifier",
-                name
-            );
-        }
-        Ok(())
-    }
-
-    // same a above but for the variable definition statement
-    fn invalid_variable_statement_check(&self, st: &Statement<'src>) -> Result<()> {
-        match st {
-            Statement::VariableDefinition(var) => self.invalid_variable_check(var.name, false),
-            _ => Ok(()),
-        }
-    }
-
-    pub fn analyze(&self) -> Result<()> {
-        // Analyze step 1: no prerequisite
-        let mut errors = Vec::new();
-        // analyze resources
-        for (rn, resource) in self.resources.iter() {
-            // check resource name
-            errors.push(self.invalid_identifier_check(*rn));
-            for (sn, state) in resource.states.iter() {
-                // check status name
-                errors.push(self.invalid_identifier_check(*sn));
-                for st in state.statements.iter() {
-                    // check for resources and state existence
-                    // check for matching parameter and type
-                    errors.push(self.binding_check(st));
-                    // check for variable names in statements
-                    errors.push(self.invalid_variable_statement_check(st));
-                    // check for enum expression validity
-                    errors.push(self.enum_expression_check(&state.context, st));
-                    // check for case validity
-                    errors.push(self.cases_check(&state.context, st, true));
-                }
-            }
-        }
-        // analyze global vars
-        // TODO what about local var ?
-        for (name, _value) in self.context.iter() {
-            // check for invalid variable name
-            errors.push(self.invalid_variable_check(*name, true));
-        }
-        // analyse enum names
-        for e in self.enum_list.enum_iter() {
-            errors.push(self.invalid_identifier_check(*e));
-        }
-        // analyse enum items
-        for e in self.enum_list.global_item_iter() {
-            errors.push(self.invalid_identifier_check(*e));
-        }
-        // Stop here if there is any error
-        fix_results(errors.into_iter())?;
-
-        // Analyze step 2: step 1 must have passed
-        errors = Vec::new();
-        for (rname, resource) in self.resources.iter() {
-            // check that resource definition is not recursive
-            errors.push(self.children_check(*rname, &resource.children, 0));
-        }
-        fix_results(errors.into_iter())
-    }
 }
 
 fn match_parameters(pdef: &[Parameter], pref: &[Value], identifier: Token) -> Result<()> {

@@ -7,18 +7,18 @@ pub mod json;
 pub mod markdown;
 
 pub use self::{cfengine::CFEngine, dsc::DSC, json::JSON, markdown::Markdown};
-use crate::{ast::AST, error::*};
+use crate::{ir::IR2, error::*};
 use serde::de::{self, Deserialize, Deserializer};
 use std::{fmt, path::Path, str::FromStr};
 
-/// A generator is something that can generate final code for a given language from an AST
+/// A generator is something that can generate final code for a given language from an IR
 /// We want at least cfengine, dsc, mgmt
 pub trait Generator {
     /// If file is None: Generate code for everything that has been parsed
     /// If file is some: Only generate code for a single source file (for incremental generation or for integration with existing files)
     fn generate(
         &mut self,
-        gc: &AST,
+        gc: &IR2,
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
         technique_metadata: bool,
