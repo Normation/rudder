@@ -6,8 +6,9 @@ pub mod enum_tree;
 pub mod enums;
 pub mod resource;
 pub mod value;
+pub mod variable;
 
-use self::{context::VarContext, enums::EnumList, resource::*, value::*};
+use self::{context::*, enums::EnumList, resource::*, value::*};
 use crate::ast::context::Type;
 use crate::{error::*, parser::*};
 use std::{
@@ -197,7 +198,6 @@ impl<'src> AST<'src> {
     fn add_variable_extensions(&mut self, variables: Vec<PVariableExt<'src>>) {
         for variable in variables {
             let PVariableExt {
-                metadata,
                 name,
                 value,
             } = variable;
@@ -480,12 +480,12 @@ impl<'src> AST<'src> {
                     ); // just because it is hard to generate
                 }
             }
-            Statement::VariableDefinition(_, v, _) => {
+            Statement::VariableDefinition(var) => {
                 if !first_level {
                     fail!(
-                        v,
+                        var.name,
                         "Variable definition {} within case are forbidden at the moment",
-                        v
+                        var.name
                     ); // because it is hard to check that variables are always defined
                 }
             }
@@ -644,7 +644,7 @@ impl<'src> AST<'src> {
     // same a above but for the variable definition statement
     fn invalid_variable_statement_check(&self, st: &Statement<'src>) -> Result<()> {
         match st {
-            Statement::VariableDefinition(_, name, _) => self.invalid_variable_check(*name, false),
+            Statement::VariableDefinition(var) => self.invalid_variable_check(var.name, false),
             _ => Ok(()),
         }
     }

@@ -737,6 +737,8 @@ pub struct PResourceDef<'src> {
     pub metadata: Vec<PMetadata<'src>>,
     pub name: Token<'src>,
     pub parameters: Vec<PParameter<'src>>,
+    pub variable_definitions: Vec<PVariableDef<'src>>,
+    pub variable_extensions: Vec<PVariableExt<'src>>,
 }
 // separate default parameters and parents because they are stored separately
 fn presource_def(i: PInput) -> PResult<(PResourceDef, Vec<Option<PValue>>, Option<Token>)> {
@@ -747,15 +749,43 @@ fn presource_def(i: PInput) -> PResult<(PResourceDef, Vec<Option<PValue>>, Optio
             name: pidentifier;
             param_list: delimited_list("(", pparameter, ",", ")");
             parent: opt(preceded(sp(etag(":")),pidentifier));
+            vars: presource_body;
         } => {
             let (parameters, parameter_defaults) = param_list.into_iter().unzip();
             (PResourceDef {
                       metadata,
                       name,
                       parameters,
+                      variable_definitions: vars.0,
+                      variable_extensions: vars.1,
             },
             parameter_defaults,
             parent)
+        }
+    )(i)
+}
+
+/// A resource reference identifies a unique resource.
+fn presource_body(i: PInput) -> PResult<(Vec<PVariableDef>, Vec<PVariableExt>)> {
+    enum BodyVar<'src> { Def(PVariableDef<'src>), Ext(PVariableExt<'src>) }
+    map(opt(delimited(
+            sp(etag("{")),
+            many0(alt((
+                map(pvariable_definition, |x| BodyVar::Def(x)),
+                map(pvariable_extension, |x| BodyVar::Ext(x)),
+            ))),
+            sp(etag("}"))
+        )),
+        |x| {
+            match x {
+                None => (Vec::new(), Vec::new()),
+                Some(list) => {
+                    let(def, ext) : (Vec<BodyVar>,Vec<BodyVar>) = list.into_iter().partition(|x| match x { BodyVar::Def(_) => true, _=> false });
+                    let def = def.into_iter().map(|x| match x { BodyVar::Def(d) => d, _ => panic!("BUG") }).collect::<Vec<PVariableDef>>();
+                    let ext = ext.into_iter().map(|x| match x { BodyVar::Ext(d) => d, _ => panic!("BUG") }).collect::<Vec<PVariableExt>>();
+                    (def, ext)
+                },
+            }
         }
     )(i)
 }
@@ -790,21 +820,21 @@ fn pvariable_definition(i: PInput) -> PResult<PVariableDef> {
     )(i)
 }
 
-/// A variable extension is a var=value without let
+/// A variable extension is a var=value without let, and no metadata
 #[derive(Debug, PartialEq)]
 pub struct PVariableExt<'src> {
-    pub metadata: Vec<PMetadata<'src>>,
     pub name: Token<'src>,
     pub value: PComplexValue<'src>,
 }
 fn pvariable_extension(i: PInput) -> PResult<PVariableExt> {
     wsequence!(
         {
-            metadata: pmetadata_list;
+            //metadata: pmetadata_list;
             name: pidentifier;
             _t: etag("=");
             value: or_fail(pcomplex_value, || PErrorKind::ExpectedKeyword("value"));
-        } => PVariableExt { metadata,  name, value }
+            //_fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into()));
+        } => PVariableExt { name, value }
     )(i)
 }
 

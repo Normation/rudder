@@ -4,7 +4,7 @@
 use super::{
     context::{VarContext, Type},
     enums::{EnumExpression, EnumList},
-    value::*,
+    value::*, variable::*,
 };
 use crate::{error::*, parser::*};
 use std::collections::{HashMap, HashSet};
@@ -17,6 +17,7 @@ use toml::Value as TomlValue;
 ///! - Error vec: data partially created, you may continue
 
 /// Create single final metadata table from parsed metadata list
+///TODO this should be somewhere else
 pub fn create_metadata(pmetadata: Vec<PMetadata>) -> (Vec<Error>, TomlMap<String, TomlValue>) {
     let mut errors = Vec::new();
     let mut output = TomlMap::new();
@@ -116,6 +117,7 @@ pub struct ResourceDef<'src> {
     pub states: HashMap<Token<'src>, StateDef<'src>>,
     pub children: HashSet<Token<'src>>,
     pub context: Rc<VarContext<'src>>,
+    pub variable_definitions: VariableDefList<'src>,
 }
 
 impl<'src> ResourceDef<'src> {
@@ -131,6 +133,8 @@ impl<'src> ResourceDef<'src> {
             name,
             metadata: pmetadata,
             parameters: pparameters,
+            variable_definitions,
+            variable_extensions,
         } = resource_declaration;
         // create final version of parameters
         let parameters = match create_parameters(pparameters, &parameter_defaults[&(name, None)]) {
@@ -142,8 +146,22 @@ impl<'src> ResourceDef<'src> {
         // create final version of states
         let mut states = HashMap::new();
         // Create context from parent
-        let (mut errors2, mut_context) = create_default_context(parent_context, parameters.as_slice());
+        let (mut errors2, mut mut_context) = create_default_context(parent_context, parameters.as_slice());
         errors.append(&mut errors2);
+        // Add variables
+        let mut vars = VariableDefList::new();
+        for var in variable_definitions {
+            match vars.append(var, &mut mut_context, enum_list) {
+                Err(e) => errors.push(e),
+                _ => {},
+            }
+        }
+        for var in variable_extensions {
+            match vars.extend(var, &mut mut_context, enum_list) {
+                Err(e) => errors.push(e),
+                _ => {},
+            }
+        }
         let context = Rc::new(mut_context);
         for st in pstates {
             let state_name = st.name;
@@ -169,6 +187,7 @@ impl<'src> ResourceDef<'src> {
                 states,
                 children,
                 context,
+                variable_definitions: vars,
             }),
         )
     }
@@ -290,7 +309,7 @@ pub struct StateDeclaration<'src> {
 #[allow(clippy::large_enum_variant)]
 pub enum Statement<'src> {
     // TODO should we split variable definition and enum definition ? this would probably help generators
-    VariableDefinition(TomlMap<String, TomlValue>, Token<'src>, ComplexValue<'src>),
+    VariableDefinition(VariableDef<'src>),
     // one state
     StateDeclaration(StateDeclaration<'src>),
     //   keyword    list of condition          then
@@ -356,26 +375,12 @@ impl<'src> Statement<'src> {
         enum_list: &EnumList<'src>,
     ) -> Result<Self> {
         Ok(match st {
-            PStatement::VariableDefinition(PVariableDef {
-                                               metadata,
-                                               name,
-                                               value,
-                                           }) => {
-                let value = ComplexValue::from_pcomplex_value(enum_list, &context, value)?;
-                value.context_check(context)?;
-                context.add_variable_declaration(name, Type::from_complex_value(&value)?)?;
-                let (mut errors, metadata) = create_metadata(metadata);
-                if !errors.is_empty() {
-                    return Err(Error::from_vec(errors));
-                }
-                Statement::VariableDefinition(metadata, name, value)
+            PStatement::VariableDefinition(def) => {
+                let var = VariableDef::from_pvariable_definition(def, context, enum_list)?;
+                Statement::VariableDefinition(var)
             }
-            PStatement::VariableExtension(PVariableExt {
-                                               metadata,
-                                               name,
-                                               value,
-                                           }) => {
-                unimplemented!()
+            PStatement::VariableExtension(ext) => {
+                fail!(ext.name, "Variable extensions are not supported in states at {}", ext.name);
             }
             PStatement::StateDeclaration(PStateDeclaration {
                 source,

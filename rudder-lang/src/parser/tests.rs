@@ -949,6 +949,8 @@ fn test_presource_def() {
                     metadata: Vec::new(),
                     name: "hello".into(),
                     parameters: vec![],
+                    variable_definitions: vec![],
+                    variable_extensions: vec![],
                 },
                 vec![],
                 None
@@ -964,6 +966,25 @@ fn test_presource_def() {
                     metadata: Vec::new(),
                     name: "hello2".into(),
                     parameters: vec![],
+                    variable_definitions: vec![],
+                    variable_extensions: vec![],
+                },
+                vec![],
+                None
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(presource_def, "resource  hello3 ( ) { }"),
+        Ok((
+            "",
+            (
+                PResourceDef {
+                    metadata: Vec::new(),
+                    name: "hello3".into(),
+                    parameters: vec![],
+                    variable_definitions: vec![],
+                    variable_extensions: vec![],
                 },
                 vec![],
                 None
@@ -979,9 +1000,28 @@ fn test_presource_def() {
                     metadata: Vec::new(),
                     name: "hello2".into(),
                     parameters: vec![],
+                    variable_definitions: vec![],
+                    variable_extensions: vec![],
                 },
                 vec![],
                 Some("hello3".into())
+            )
+        ))
+    );
+    assert_eq!(
+        map_res(presource_def, "resource  hello3 ( ): hello4 { } "),
+        Ok((
+            "",
+            (
+                PResourceDef {
+                    metadata: Vec::new(),
+                    name: "hello3".into(),
+                    parameters: vec![],
+                    variable_definitions: vec![],
+                    variable_extensions: vec![],
+                },
+                vec![],
+                Some("hello4".into())
             )
         ))
     );
@@ -1003,12 +1043,34 @@ fn test_presource_def() {
                             ptype: None,
                         }
                     ],
+                    variable_definitions: vec![],
+                    variable_extensions: vec![],
                 },
                 vec![None, None],
                 None
             )
         ))
     );
+    println!("parsing hello5");
+    assert_eq!(
+        map_res(presource_def, "resource  hello5 ( ) { let var = \"value\" var = \"bad extension\"}"),
+        Ok((
+            "",
+            (
+                PResourceDef {
+                    metadata: Vec::new(),
+                    name: "hello5".into(),
+                    parameters: vec![],
+                    variable_definitions: vec![map_res(pvariable_definition, "let var = \"value\"").unwrap().1],
+                    variable_extensions: vec![map_res(pvariable_extension, "var = \"bad extension\" ").unwrap().1],
+                    //variable_extensions: vec![],
+                },
+                vec![],
+                None
+            )
+        ))
+    );
+    println!("done hello5");
 }
 
 #[test]
@@ -1108,6 +1170,20 @@ fn test_variable_definition() {
     assert_eq!(
         map_res(pvariable_definition, "my_var = :\n"),
         Err(("my_var = :", PErrorKind::ExpectedKeyword("let")))
+    );
+}
+
+#[test]
+fn test_variable_extension() {
+    assert_eq!(
+        map_res(pvariable_extension, r#"my_var="value""#),
+        Ok((
+            "",
+            PVariableExt {
+                name: "my_var".into(),
+                value: map_res(pcomplex_value, "\"value\"").unwrap().1,
+            }
+        ))
     );
 }
 
