@@ -90,16 +90,12 @@ object ReportingServiceUtils {
 sealed trait CacheComplianceQueueAction
 
 case class InsertNodeInCache(nodeId: NodeId) extends CacheComplianceQueueAction
-
 case class RemoveNodeInCache(nodeId: NodeId) extends CacheComplianceQueueAction
-
 case class InitializeCompliance(nodeId: NodeId, nodeCompliance: NodeStatusReport) extends CacheComplianceQueueAction // do we need this?
-
 case class UpdateCompliance(nodeId: NodeId, nodeCompliance: NodeStatusReport) extends CacheComplianceQueueAction
-
-case class UpdateNodeConfiguration(nodeId: NodeId, nodeConfiguration: NodeExpectedReports) extends CacheComplianceQueueAction
-
+case class UpdateNodeConfiguration(nodeId: NodeId, nodeConfiguration: NodeExpectedReports) extends CacheComplianceQueueAction // convert the nodestatursreport to pending, with info from last run
 case class SetNodeNoAnswer(nodeId: NodeId, actionDate: DateTime) extends CacheComplianceQueueAction
+
 /**
  * Defaults non-cached version of the reporting service.
  * Just the composition of the two defaults implementation.
@@ -313,7 +309,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * It's a List and not a Set, because we want to keep the precedence in
    * invalidation request.
    */
-  private[this] val invalidateComplianceRequest = Queue.dropping[List[(NodeId, Option[NodeStatusReport])]](1).runNow
+  private[this] val invalidateComplianceRequest = Queue.dropping[List[(NodeId, CacheComplianceQueueAction)]](1).runNow
 
   /**
    * We need a semaphore to protect queue content merge-update
@@ -321,20 +317,20 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   private[this] val invalidateMergeUpdateSemaphore = Semaphore.make(1).runNow
 
   /**
-   * Update logic. We take message from queue one at a time, and update cache.
+   * Update logic. We take message from queue one at a time, and process.
    */
   val updateCacheFromRequest: IO[Nothing, Unit] = invalidateComplianceRequest.take.flatMap(invalidatedIds =>
     // batch node processing by slice of batchSize.
     // Be careful, sliding default step is 1.
 
-    ZIO.foreach_(invalidatedIds.sliding(batchSize,batchSize).to(Iterable))(nodeIdsWithOptionnalCompliance =>
+    ZIO.foreach_(invalidatedIds.sliding(batchSize,batchSize).to(Iterable))(queueAction =>
       // list is limited in size by construction.to batchSize
       // i need to take the last one for each nodeid (if compliance is invalidated by a generation after its been computed, it still
       // needs to be invalidated
       // so groupBy NodeId, and take last element for each
 
       {
-        val (nodeIdsWithoutCompliance, nodeIdsWithCompliance) = nodeIdsWithOptionnalCompliance.groupBy(_._1).map { case (nodeId, list) => (nodeId, list.last._2) }.partition(_._2.isDefined)
+        val (nodeIdsWithoutCompliance, nodeIdsWithCompliance) = queueAction.groupBy(_._1).map { case (nodeId, list) => (nodeId, list.last._2) }.partition(_._2.isDefined)
 
         for {
           updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(nodeIdsWithoutCompliance.keys.toSet, Set()).toIO
@@ -342,9 +338,9 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
             cache = cache ++ updated
             cache = cache ++ nodeIdsWithCompliance.map(x => (x._1, x._2.get))
           }
-          _ <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${nodeIdsWithOptionnalCompliance.map(_._1).map(_.value).mkString(", ")}")
+          _ <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${queueAction.map(_._1).map(_.value).mkString(", ")}")
         } yield ()
-      }.catchAll(err => ReportLoggerPure.Cache.error(s"Error when updating compliance cache for nodes: [${nodeIdsWithOptionnalCompliance.map(_._1).map(_.value).mkString(", ")}]: ${err.fullMsg}"))
+      }.catchAll(err => ReportLoggerPure.Cache.error(s"Error when updating compliance cache for nodes: [${queueAction.map(_._1).map(_.value).mkString(", ")}]: ${err.fullMsg}"))
     )
   )
 
@@ -383,19 +379,22 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   }
 
   /**
-   * Invalidate some keys in the cache, and offer the compliance with it
-   * The update is computed asynchronously.
+   * invalidate with an action to do something
+   * order is important
    */
-  def invalidateWithCompliance(nodeWithCompliance: Seq[(NodeId, Option[NodeStatusReport])]): IOResult[Unit] = {
-    ZIO.when(nodeWithCompliance.nonEmpty) {
-      ReportLoggerPure.Cache.debug(s"Compliance cache: invalidation request for nodes with compliance: [${nodeWithCompliance.map(_._1).map { _.value }.mkString(",")}]") *>
+  def invalidateWithAction(actions: Seq[(NodeId, CacheComplianceQueueAction)]): IOResult[Unit] = {
+    ZIO.when(actions.nonEmpty) {
+      ReportLoggerPure.Cache.debug(s"Compliance cache: invalidation request for nodes with action: [${actions.map(_._1).map { _.value }.mkString(",")}]") *>
         invalidateMergeUpdateSemaphore.withPermit(for {
-          elements <- invalidateComplianceRequest.takeAll
-          allIds   =  (elements.flatten.toMap ++ nodeWithCompliance.toMap).toList
-          _        <- invalidateComplianceRequest.offer(allIds)
+          elements     <- invalidateComplianceRequest.takeAll
+          allActions   =  (elements.flatten ++ actions)
+          _            <- invalidateComplianceRequest.offer(allActions)
         } yield ())
     }
   }
+
+
+
 
   /**
    * Look in the cache for compliance for given nodes.
@@ -636,11 +635,11 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       _                   =  TimingDebugLogger.trace(s"Compliance: get uncomputed node run infos: ${t1-t0}ms")
 
       // that gives us configId for runs, and expected configId (some may be in both set)
-      expectedConfigIds   =  uncomputedRuns.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfig.nodeConfigId) }
-      lastrunConfigId     =  uncomputedRuns.collect {
-        case (nodeId, Pending(_, Some(run), _)) => NodeAndConfigId(nodeId, run._2.nodeConfigId)
-        case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId)
-      }
+       // expectedConfigIds   =  uncomputedRuns.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfig.nodeConfigId) }
+      //lastrunConfigId     =  uncomputedRuns.collect {
+      //  case (nodeId, Pending(_, Some(run), _)) => NodeAndConfigId(nodeId, run._2.nodeConfigId)
+      //  case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId)
+      //}
 
       t2                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t2-t0}ms")

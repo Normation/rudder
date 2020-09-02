@@ -150,6 +150,15 @@ final case class NoExpectedReport(
 ) extends ErrorNoConfigData
 
 /*
+ * The run doesn't provide an expected report: it is probably broken
+ * we assume it is the current expected report, but more important,
+ * we must complain loudly to the users
+ */
+final case class RunWithoutExpectedReport(
+                                           lastRunDateTime: DateTime
+                                         , expectedConfig : NodeExpectedReports
+                                         )
+/*
  * No Rules defined, but run was ok
  */
 final case class NoUserRulesDefined(
@@ -166,6 +175,7 @@ final case class NoUserRulesDefined(
  */
 final case class NoReportInInterval(
     expectedConfig: NodeExpectedReports
+                                   , lastComputationDate: DateTime // tells us when we decided this status last
 ) extends NoReport
 
 /*
@@ -180,7 +190,9 @@ final case class Pending(
     expectedConfig     : NodeExpectedReports
   , optLastRun         : Option[(DateTime, NodeExpectedReports)]
   , expirationDateTime : DateTime
-) extends NoReport with ExpiringStatus
+                                // , lastComputationDate: DateTime // tells us when we decided this status last
+
+                        ) extends NoReport with ExpiringStatus
 
 /*
  * the case where we have a version on the run,

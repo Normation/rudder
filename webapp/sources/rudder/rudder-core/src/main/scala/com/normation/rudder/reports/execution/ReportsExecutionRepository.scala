@@ -88,7 +88,7 @@ trait WoReportsExecutionRepository {
    * "not completed" to "completed" (i.e: a completed execution can
    * not be un-completed).
    */
-  def updateExecutions(executions: Seq[AgentRun]): Seq[Box[AgentRun]]
+ // def updateExecutions(executions: Seq[AgentRun]): Seq[Box[AgentRun]]
 
   def setComplianceComputationDate(runs: List[UncomputedAgentRun]): IOResult[Int]
 
@@ -199,7 +199,7 @@ class CachedReportsExecutionRepository(
     })
   }).runNow
 
-
+/*
   override def updateExecutions(executions : Seq[AgentRun]) : Seq[Box[AgentRun]] = semaphore.withPermit(IOResult.effect {
     logger.trace(s"Update runs for nodes [${executions.map( _.agentRunId.nodeId.value ).mkString(", ")}]")
     val n1 = System.currentTimeMillis
@@ -262,7 +262,7 @@ class CachedReportsExecutionRepository(
 
     cache = cache ++ results
     runs
-  }).runNow
+  }).runNow*/
 
   def setComplianceComputationDate(runs: List[UncomputedAgentRun]): IOResult[Int] = ???
 }

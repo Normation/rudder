@@ -199,7 +199,7 @@ final case class WoReportsExecutionRepositoryImpl (
     transactIOResult(s"Error when updating compliance computation date for runs")(xa => Update[(String, DateTime, String)](sql).updateMany(updateKeys).transact(xa)
     )
   }
-
+/*
   def updateExecutions(runs : Seq[AgentRun]) : Seq[Box[AgentRun]] =  {
 
     //
@@ -269,7 +269,7 @@ final case class WoReportsExecutionRepositoryImpl (
       case Right(None)      =>
         None
     })
-  }
+  }*/
 
 }
 
