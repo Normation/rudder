@@ -167,7 +167,7 @@ impl<'src> EnumTree<'src> {
     }
 
     /// return true if the item is defined in this tree
-    pub fn is_item_defined(&self, item: &Token<'src>) -> bool {
+    pub fn item_has_children(&self, item: &Token<'src>) -> bool {
         self.children.contains_key(item)
     }
 

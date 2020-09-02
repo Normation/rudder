@@ -3,7 +3,7 @@ use crate::{
         enums::EnumExpressionPart,
         resource::{ResourceDef, StateDeclaration, Statement},
         value::Value as IRValue,
-        IR2,
+        ir2::IR2,
     },
     technique::*,
 };

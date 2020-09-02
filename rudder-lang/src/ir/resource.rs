@@ -81,11 +81,9 @@ fn create_parameters<'src>(
     parameter_defaults: &[Option<Constant<'src>>],
 ) -> Result<Vec<Parameter<'src>>> {
     if pparameters.len() != parameter_defaults.len() {
-        panic!(
-            "BUG: parameter count should not differ from default count: expected {}, found {}",
-            parameter_defaults.len(),
-            pparameters.len()
-        );
+        // this happens when a resource or a state has been defined twice
+        // just ignore since the error is handled somewhere else and we don't have error context here
+        return Ok(Vec::new());
     }
     map_vec_results(
         pparameters.into_iter().zip(parameter_defaults.iter()),

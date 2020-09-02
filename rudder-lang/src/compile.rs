@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    ir::IR1, ir::IR2,
+    ir::ir1::IR1, ir::ir2::IR2,
     error::*,
     generator::new_generator,
     io::IOContext,

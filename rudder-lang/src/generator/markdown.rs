@@ -2,7 +2,7 @@
 
 /// Generates markdown
 use super::Generator;
-use crate::{ir::resource::StateDef, ir::*, error::*};
+use crate::{ir::resource::StateDef, ir::ir2::IR2, error::*};
 use std::cmp::Ordering;
 use std::{collections::HashMap, fs::File, io::Write, path::Path};
 

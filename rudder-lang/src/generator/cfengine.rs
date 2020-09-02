@@ -3,7 +3,7 @@
 
 use super::Generator;
 use crate::{
-    ir::{enums::EnumExpressionPart, resource::*, value::*, *},
+    ir::{enums::EnumExpressionPart, resource::*, value::*, ir2::IR2},
     error::*,
     generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise},
     parser::*,

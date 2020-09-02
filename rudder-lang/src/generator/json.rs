@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::Generator;
-use crate::{ir::IR2, error::*, technique::Technique};
+use crate::{ir::ir2::IR2, error::*, technique::Technique};
 use std::convert::From;
 use std::{fs::File, io::Write, path::Path};
 

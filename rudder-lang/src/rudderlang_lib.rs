@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    ir::{resource::ResourceDef, resource::StateDef, IR1},
+    ir::{resource::ResourceDef, resource::StateDef, ir1::IR1},
     compile::parse_file,
     error::*,
     parser::{Token, PAST},

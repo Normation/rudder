@@ -93,7 +93,7 @@ impl<'src> EnumList<'src> {
 
     /// check for item duplicates and insert reference into global list if needed
     fn add_to_global(
-        global_items: &mut HashMap<Token<'src>, Token<'src>>,
+        &mut self,
         global: bool,
         name: Token<'src>,
         items: &[(Vec<PMetadata<'src>>, Token<'src>)],
@@ -105,8 +105,11 @@ impl<'src> EnumList<'src> {
         // local list, if this is not a global enum
         let mut local_item_list = HashMap::new();
         let item_list = if global {
-            global_items
+            &mut self.global_items
         } else {
+            if let Some(e) = self.enums.get(&name) {
+                local_item_list.extend(e.item_iter().map(|x| (x.clone(), name.clone())));
+            };
             &mut local_item_list
         };
         // check for key name duplicate and insert reference
@@ -140,7 +143,7 @@ impl<'src> EnumList<'src> {
                 self.enums.entry(e.name).key()
             );
         }
-        Self::add_to_global(&mut self.global_items, e.global, e.name, &e.items)?;
+        self.add_to_global(e.global, e.name, &e.items)?;
         let name = e.name;
         let tree = EnumTree::new(e)?;
         self.enums.insert(name, tree);
@@ -161,18 +164,19 @@ impl<'src> EnumList<'src> {
         };
 
         // find tree object
-        if let Some(tree) = self.enums.get_mut(&tree_name) {
+        let is_global = if let Some(tree) = self.enums.get(&tree_name) {
             // check that we do not extend twice the same entry
-            if tree.is_item_defined(&e.name) {
+            if tree.item_has_children(&e.name) {
                 fail!(e.name, "Sub enum {} is already defined", e.name);
             }
-            // check for key name duplicate and insert reference
-            Self::add_to_global(&mut self.global_items, tree.global, tree_name, &e.items)?;
-            // insert keys
-            tree.extend(e)?;
+            tree.global
         } else {
             fail!(e.name, "Enum {} doesn't exist for {}", tree_name, e.name);
-        }
+        };
+        // check for key name duplicate and insert reference
+        self.add_to_global(is_global, tree_name, &e.items)?;
+        // insert keys
+        self.enums.get_mut(&tree_name).expect("BUG: tree disapeared from 2 lines above").extend(e)?;
         Ok(None)
     }
 

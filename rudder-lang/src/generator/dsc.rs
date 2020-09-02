@@ -3,7 +3,7 @@
 
 use super::Generator;
 use crate::{
-    ir::{enums::EnumExpressionPart, resource::*, value::*, *},
+    ir::{enums::EnumExpressionPart, resource::*, value::*, ir2::IR2},
     parser::*,
 };
 
