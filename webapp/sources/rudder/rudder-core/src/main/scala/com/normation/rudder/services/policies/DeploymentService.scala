@@ -63,7 +63,7 @@ import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
-import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import com.normation.rudder.services.reports.{CacheComplianceQueueAction, CachedFindRuleNodeStatusReports, UpdateNodeConfiguration}
 import com.normation.rudder.services.policies.write.PolicyWriterService
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.appconfig.FeatureSwitch
@@ -357,7 +357,8 @@ trait PromiseGenerationService {
 
       /// now, if there was failed config or failed write, time to show them
       //invalidate compliance may be very very long - make it async
-      _                     =  ZioRuntime.runNow(IOResult.effect(invalidateComplianceCache (updatedNodesId)).run.unit.forkDaemon)
+      invalidationActions   = expectedReports.map(x => (x.nodeId, UpdateNodeConfiguration(x.nodeId, x)))
+      _                     =  ZioRuntime.runNow(IOResult.effect(invalidateComplianceCache (invalidationActions)).run.unit.forkDaemon)
 
       _                     =  {
                                  PolicyGenerationLogger.timing.info("Timing summary:")
@@ -613,7 +614,7 @@ trait PromiseGenerationService {
    * After updates of everything, notify compliace cache
    * that it should forbid what it knows about the updated nodes
    */
-  def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit
+  def invalidateComplianceCache(actions: Seq[(NodeId, CacheComplianceQueueAction)]): Unit
 
   /**
    * Store groups and directive in the database
@@ -1355,8 +1356,8 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
     }.toList
   }
 
-  override def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit = {
-    complianceCache.invalidate(nodeIds).runNow
+  override def invalidateComplianceCache(actions: Seq[(NodeId, CacheComplianceQueueAction)]): Unit = {
+    complianceCache.invalidateWithAction(actions).runNow
   }
 
   override def saveExpectedReports(

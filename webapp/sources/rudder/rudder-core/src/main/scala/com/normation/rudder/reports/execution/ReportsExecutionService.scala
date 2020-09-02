@@ -42,8 +42,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.FindNewReportsExecution
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.repository.ReportsRepository
-import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
-import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
+import com.normation.rudder.services.reports.{CachedFindRuleNodeStatusReports, CachedNodeChangesServiceImpl, UpdateCompliance}
 import com.normation.utils.Control
 import org.joda.time.DateTime
 import org.joda.time.format.PeriodFormat
@@ -53,7 +52,6 @@ import com.normation.rudder.repository.ComplianceRepository
 import com.normation.errors._
 
 import scala.concurrent.duration.FiniteDuration
-
 import com.normation.zio._
 
 // message for the queue: what nodes were updated?
@@ -156,8 +154,8 @@ class ReportsExecutionService (
     val updateCompliance = {
       for {
         nodeWithCompliances <- cachedCompliance.findUncomputedNodeStatusReports().toIO
-        invalidate          <- cachedCompliance.invalidateWithCompliance(nodeWithCompliances.map { case (nodeid, compliance) => (nodeid, Some(compliance))}.toSeq)
-        _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList)
+        invalidate          <- cachedCompliance.invalidateWithAction(nodeWithCompliances.map { case (nodeid, compliance) => (nodeid, UpdateCompliance(nodeid, compliance))}.toSeq)
+        _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList) // unsure if here or in the queue
       } yield ()
     }
     updateCompliance.runNow
