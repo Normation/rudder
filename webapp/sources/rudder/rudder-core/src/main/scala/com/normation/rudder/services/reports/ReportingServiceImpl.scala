@@ -306,10 +306,15 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
 
     ZIO.foreach_(invalidatedIds.sliding(batchSize,batchSize).to(Iterable))(queueAction =>
       // list is limited in size by construction.to batchSize
-      // i need to take the last one for each nodeid (if compliance is invalidated by a generation after its been computed, it still
-      // needs to be invalidated
-      // so groupBy NodeId, and take last element for each
+      // need to takewhile same time, until it's emptied.
+      // several strategy:
+      // * we have a compliance: yeah, put it in the cache
+      // * new policy generation, a new nodeexpectedreports is available: compute compliance for last run of the node, based on this nodeexpectedreports
+      // * node deletion: remove from the cache
+      // * invalidate cache: ???
+      // * no report from the node (compliance expires): recompute compliance
 
+      // as a first approach, they could simply findRuleNodeStatusReports
       {
         val (nodeIdsWithoutCompliance, nodeIdsWithCompliance) = queueAction.groupBy(_._1).map { case (nodeId, list) => (nodeId, list.last._2) }.partition(_._2.isDefined)
 
