@@ -87,7 +87,7 @@ object ReportingServiceUtils {
  * * update node configuration (after a policy generation, with new nodeconfiguration)
  * * set the node in node answer state (with the new compliance?)
  */
-sealed trait CacheComplianceQueueAction
+sealed trait CacheComplianceQueueAction {val nodeId:NodeId }
 
 case class InsertNodeInCache(nodeId: NodeId) extends CacheComplianceQueueAction
 case class RemoveNodeInCache(nodeId: NodeId) extends CacheComplianceQueueAction
@@ -315,7 +315,18 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       // * no report from the node (compliance expires): recompute compliance
 
       // as a first approach, they could simply findRuleNodeStatusReports
+
+
       {
+        val groupedActions = groupQueueActionByType(queueAction)
+
+        for {
+          actions <- groupedActions
+          _       <- performAction(actions)
+        } yield {
+
+        }
+        /*
         val (nodeIdsWithoutCompliance, nodeIdsWithCompliance) = queueAction.groupBy(_._1).map { case (nodeId, list) => (nodeId, list.last._2) }.partition(_._2.isDefined)
 
         for {
@@ -325,7 +336,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
             cache = cache ++ nodeIdsWithCompliance.map(x => (x._1, x._2.get))
           }
           _ <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${queueAction.map(_._1).map(_.value).mkString(", ")}")
-        } yield ()
+        } yield ()*/
       }.catchAll(err => ReportLoggerPure.Cache.error(s"Error when updating compliance cache for nodes: [${queueAction.map(_._1).map(_.value).mkString(", ")}]: ${err.fullMsg}"))
     )
   )
@@ -333,6 +344,40 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   // start updating
   updateCacheFromRequest.forever.forkDaemon.runNow
 
+
+  private[this] def performAction(actions: List[CacheComplianceQueueAction]) = {
+    // get type of action
+    actions.headOption match {
+      case None => ReportLoggerPure.Cache.debug("Nothing to do")
+      case Some(t) => t match {
+        case update:UpdateCompliance =>
+          IOResult.effectNonBlocking {
+            cache = cache ++ actions.map { case x: UpdateCompliance => (x.nodeId, x.nodeCompliance) }
+          }
+        case delete: RemoveNodeInCache =>
+          IOResult.effectNonBlocking {
+            cache = cache.removedAll(actions.map { case x: RemoveNodeInCache => (x.nodeId) })
+          }
+
+        // need to compute compliance
+        case _ =>
+          val impactedNodeIds = actions.map(x => x.nodeId)
+          for {
+            updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(impactedNodeIds.toSet, Set()).toIO
+            _       <- IOResult.effectNonBlocking {
+              cache = cache ++ updated
+            }
+            _ <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${impactedNodeIds.map(_.value).mkString(", ")}")
+          } yield ()
+      }
+    }
+  }
+  /**
+   * Group all actions queue by the same type, keeping the global order.
+   */
+  private[this] def groupQueueActionByType(l: List[CacheComplianceQueueAction]): List[List[CacheComplianceQueueAction]] = {
+    l.headOption.map{x => val (h,t)=l.span{x.getClass==_.getClass}; h::groupQueueActionByType(t)}.getOrElse(Nil)
+  }
 
   private[this] def cacheToLog(c: Map[NodeId, NodeStatusReport]): String = {
     import com.normation.rudder.domain.logger.ComplianceDebugLogger.RunAndConfigInfoToLog
