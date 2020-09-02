@@ -37,7 +37,10 @@
 #editRuleZone{
   font-size:14px;
 }
-
+#clone {
+  margin-left:20px;
+  float:left;
+}
 #ruleComplianceTab {
   padding-left: 10px;
   padding-right: 10px;
@@ -72,16 +75,11 @@ label.rule-info + div{
   width: calc(100% - 50px);
   left: 50px;
 }
-.new-icon.category:before{
-  content:"Add category";
-}
 .content-wrapper .btn.btn-box-tool{
   padding-left:2px;
   padding-right:2px;
 }
-.new-icon.category + .btn.btn-box-tool > .fa{
-  margin-left:0;
-}
+
 .recentChange_refresh{
   float: right;
   position: absolute;
@@ -102,21 +100,18 @@ label.rule-info + div{
 .targetContainer {
   min-height: 65px;
 }
+#details{
+  background-color: #fff;
+  padding-left:0;
+  padding-right:0;
+  font-size:14px;
+}
 #details .dataTables_wrapper{
   margin: 10px 0 20px 0;
   float: left;
   width: 100%;
 }
-@media (min-width: 991px) and (max-width: 1300px){
-  .new-icon.category:before{
-    content:"Add";
-    position:relative;
-    left:2px;
-  }
-  .new-icon.category:after{
-    content:"";
-  }
-}
+
 @media (max-width: 767px){
   .skin-yellow.sidebar-collapse .rule-footer,.skin-yellow .rule-footer {
     width: 100%;
@@ -346,4 +341,27 @@ ul.applied-list > .add-target > .fa{
 }
 .jstree .jstree-hovered.jstree-clicked{
   background-color: rgb(231, 244, 249);
+}
+
+/* STATIC INIT */
+#actions_zone , .dataTables_length , .dataTables_filter {
+  display: inline-block;
+}
+.greenCompliance {
+  background-color: #5cb85c
+}
+.orangeCompliance  {
+  background-color: #FF6600
+}
+.redCompliance  {
+  background-color: #c9302c
+}
+.noCompliance   {
+  background-color:#b4b4b4;
+}
+.applyingCompliance {
+  background-color:#5bc0de;
+}
+.compliance {
+  text-align: center;
 }

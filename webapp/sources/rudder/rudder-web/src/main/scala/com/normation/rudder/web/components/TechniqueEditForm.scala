@@ -581,7 +581,7 @@ class TechniqueEditForm(
       NodeSeq.Empty
     }
     else {
-      val html = <div id="notifications" class="notify">
+      val html = <div id="notifications">
         <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul></div>
       html
     }

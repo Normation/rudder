@@ -34,10 +34,31 @@
 *
 *************************************************************************************
 */
+#editForm {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 50px);
+}
+#headerBar ~ .content-wrapper #editForm{
+  height: calc(100VH - 80px);
+}
+#policyConfiguration,
+#policyConfiguration > form{
+  height: 100%;
+  background-color: #fff;
+}
+#policyConfiguration > form{
+  display: flex;
+  flex-direction: column;
+}
 .section-title {
   border-bottom-color: #f08004 ;
 }
-
+#techniqueDetails{
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 #versionTable > thead > tr > th:last-child,
 #versionTable > tbody > tr > td:last-child{
   display: none;
@@ -66,7 +87,11 @@
   margin-right:4px !important;
 }
 #technicalDetails{
-  padding:0 30px 12px 30px;
+  padding: 6px 10px;
+  margin-bottom: 0;
+}
+#technicalDetails td{
+  line-height: 1.2em;
 }
 #technicalDetails > .directiveTechnicalInfo:first-child{
   margin-top:0;
@@ -79,7 +104,7 @@
   overflow-x:hidden;
 }
 #directiveRulesTab {
-  margin-top: 20px;
+  min-height: calc(100vh - 200px);
 }
 #directiveRulesTab .box {
   border: 1px solid #ddd;
@@ -117,20 +142,12 @@
 #grid_rules_grid_zone tr.head th {
     padding: 4px 6px;
 }
-#edit-box{
-  padding:10px;
-  overflow-y:auto;
-  overflow-x:hidden;
-}
 .version-group{
   float:left;
   padding:0 0 0 15px;
 }
 .version-group select.form-control{
   margin-right:5px;
-}
-.new-icon.tech:before{
-  content:"Edit techniques";
 }
 .btn.new-icon.no-icon:after{
   content: "";
@@ -140,8 +157,29 @@
   padding-left:2px;
   padding-right:2px;
 }
-.new-icon.tech + .btn.btn-box-tool > .fa{
-  margin-left:0;
+#versionTable thead tr {
+  border: 1px solid #666 !important;
+  padding: 0px;
+  list-style: none inside none;
+  font-weight: bold;
+  background-color: #666;
+  color: #FFF;
+  font-size: 13px;
+}
+#versionTable thead tr th {
+  padding: 3px;
+  text-align: center;
+}
+#versionTable tbody tr {
+  border: 1px solid #666 !important;
+  padding: 4px 3px;
+  margin: 0px;
+  padding: 0px;
+  list-style: none inside none;
+  font-size: 12px;
+}
+#versionTable tbody tr td {
+  text-align: center;
 }
 #versionTable .fa-gear{
   font-size: 18px;
@@ -176,15 +214,6 @@
   float:left;
   width:100%;
 }
-@media (min-width: 991px) and (max-width: 1300px){
-  .new-icon.tech:before{
-    content:"Edit";
-    position:relative;
-  }
-  .new-icon.tech:after{
-    content:"";
-  }
-}
 .radio > label > input{
   top: -2px;
 }
@@ -216,4 +245,23 @@
 .policymode-group .global-mode.enforce:before{
   content: "enforce";
   color: #9bc832;
+}
+/* === PARAMETERS === */
+.directiveAddGroup{
+  margin-top: 15px;
+}
+/* === OVERRIDE TEMPLATE === */
+.main-header.no-header,
+.main-header.no-header + .main-navbar{
+  display: none !important;
+}
+.main-header.no-header ~ .main-details{
+  background: transparent;
+}
+#directiveInfo > .form-group:first-child,
+#directiveInfo > .form-group:first-child .wbBaseFieldLabel{
+  margin-top: 0;
+}
+#notifications.main-alert + #isDisabled{
+  display: none !important;
 }

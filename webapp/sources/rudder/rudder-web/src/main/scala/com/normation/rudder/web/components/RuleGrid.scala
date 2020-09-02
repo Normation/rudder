@@ -73,21 +73,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.xml._
 
-object RuleGrid {
-  def staticInit =
-    <head>
-      <style type="text/css">
-        #actions_zone , .dataTables_length , .dataTables_filter {{ display: inline-block; }}
-        .greenCompliance {{ background-color: #5cb85c }}
-        .orangeCompliance  {{ background-color: #FF6600 }}
-        .redCompliance  {{ background-color: #c9302c }}
-        .noCompliance   {{ background-color:#b4b4b4; }}
-        .applyingCompliance {{ background-color:#5bc0de; }}
-        .compliance {{ text-align: center; }}
-      </style>
-    </head>
-}
-
 /**
  * An ADT to denote if a column should be display or not,
  * or if is should be decided from config service.

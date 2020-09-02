@@ -1095,7 +1095,7 @@ ul.graph-legend > li.legend:hover{
 #editForm table{
   width:100%;
 }
-#techniqueLibraryTree ul.jstree-container-ul.jstree-children, #activeTechniquesTree ul.jstree-container-ul.jstree-children{
+#techniqueLibraryTree ul.jstree-container-ul.jstree-children{
   padding: 0 15px;
 }
 
@@ -1271,12 +1271,6 @@ ul.graph-legend > li.legend:hover{
   padding:0;
   border:none;
 }
-#details{
-  background-color: #fff;
-  padding-left:0;
-  padding-right:0;
-  font-size:14px;
-}
 .content-wrapper #nodePropertiesTab_wrapper label {
   margin-bottom: 0;
   font-weight: normal;
@@ -1290,58 +1284,13 @@ ul.graph-legend > li.legend:hover{
   margin-left:0 !important;
   margin-right:4px !important;
 }
-#technicalDetails{
-  padding:0 30px 12px 30px;
-}
-#technicalDetails > .directiveTechnicalInfo:first-child{
-  margin-top:0;
-}
+
 .directiveTree {
   padding-left: 10px;
   padding-right: 10px;
   padding: 0 10px;
   overflow-y:auto;
   overflow-x:hidden;
-}
-#directiveRulesTab {
-  margin-top: 20px;
-}
-#directiveRulesTab .box {
-  border: 1px solid #ddd;
-}
-#directiveRulesTab .box-header.with-border {
-  background-color: #f4f4f4;
-}
-#directiveRulesTab .rudder-form  input[type=checkbox] + .label-radio + .check-icon{
-  right: 7px;
-  font-size: 12px;
-  top: calc(50% - 6px);
-}
-#directiveRulesTab ul > li.rudder-form > .input-group label.form-control {
-  padding-right: 20px;
-  padding-left: 6px;
-}
-#directiveRulesTab .only-tags a.all{
-  font-size: 10px;
-  width:15px;
-}
-#directiveRulesTab .only-tags a.key{
-  font-size: 10px;
-  width:80px;
-}
-#directiveRulesTab .only-tags a.value{
-  font-size: 10px;
-  width:80px;
-}
-
-#editForm{
-  padding:0;
-}
-
-@media (min-width: 992px){
-  #boxDirectiveTree,#editForm{
-    margin-bottom:0;
-  }
 }
 .content-wrapper .filters-container .input-group{
   width: 100%;
@@ -1470,7 +1419,7 @@ label.text-fit{
 }
 .skin-yellow .tooltip > .tooltip-inner {
   background-color: #fff;
-  padding: 10px !important;
+  padding: 0px !important;
   padding-bottom: 8px !important;
   color: #222D32;
   text-align: left !important;
@@ -3143,7 +3092,8 @@ table a > i.fa-pencil:hover{
 }
 
 .ui-tabs-nav > .ui-tabs-tab.ui-tabs-active > a,
- .nav-tabs-custom > .nav-tabs > li.active > a {
+.nav-tabs-custom > .nav-tabs > li.active > a,
+.ui-tabs-nav > .ui-tabs-tab.active > a{
   color  : #333 !important;
   cursor : default;
 }
@@ -3161,7 +3111,8 @@ table a > i.fa-pencil:hover{
   z-index: 1;
 }
 .ui-tabs-nav > .ui-tabs-tab.ui-tabs-active:before,
-.nav-tabs-custom > .nav-tabs > li.active:before{
+.nav-tabs-custom > .nav-tabs > li.active:before,
+.ui-tabs-nav > .ui-tabs-tab.active:before{
   background-color : #3c8dbc;
 }
 

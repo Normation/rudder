@@ -67,14 +67,6 @@
 .tags-container.noTags{
   margin-bottom:0;
 }
-#activeTechniquesTree{
-  overflow-y: auto;
-  overflow-x: hidden;
-  margin: 0 -10px;
-  padding: 0 20px 0 5px;
-  width: calc(100% + 20px);
-  transition-duration: .2s;
-}
 .filterTag .panel-default{
   margin-top:10px;
   box-shadow:none !important;

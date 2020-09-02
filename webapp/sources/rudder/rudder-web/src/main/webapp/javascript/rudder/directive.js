@@ -37,20 +37,13 @@
 
 $(document).ready(function(){
   var treeId = '#activeTechniquesTree';
-  var formId = '#edit-box';
   var storageTreeId = 'directiveTreeSettings_nodesState'
-  $(window).on('resize',function(){
-    adjustHeight(treeId);
-    adjustHeight(formId,"#directiveToolbar");
-  });
   $(treeId).on("searchtag.jstree",function(e, data){
 	  data.res.length>0 ? $('#activeTechniquesTree_alert').hide() : $('#activeTechniquesTree_alert').show();
-    adjustHeight(treeId);
   });
   $(treeId).on("clear_search.jstree",function(e, data){
     $('#activeTechniquesTree_alert').hide();
     $(this).jstree(true).show_all();
-    adjustHeight(treeId);
   });
   $(treeId).on('close_node.jstree', function(e, data){
     updateTreeSettings(storageTreeId, data, false);
@@ -59,3 +52,19 @@ $(document).ready(function(){
     updateTreeSettings(storageTreeId, data, true);
   });
 });
+
+function navScroll(event, target, container){
+  if(event) event.preventDefault();
+  var container       = $(container);
+  var target          = $(target);
+  var paddingTop      = 10; // Substract padding-top of the container
+  var anchorDiff      = 20; // Used to trigger the scrollSpy feature
+  var containerOffset = container.offset().top;
+  var targetOffset    = target.offset().top - paddingTop;
+  var offsetDiff      = targetOffset - containerOffset;
+  var scrollTop       = container.scrollTop()
+  if(Math.abs(offsetDiff) > anchorDiff){
+    container.animate({ scrollTop: scrollTop + offsetDiff + anchorDiff }, 200);
+  }
+  return false;
+}

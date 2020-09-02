@@ -48,10 +48,12 @@ var bootstrapScrollspy = $.fn.scrollspy.noConflict();
 var bootstrapTab = $.fn.tab.noConflict();
 var bootstrapAffix = $.fn.affix.noConflict();
 var bootstrapModal = $.fn.modal.noConflict();
+
 $.fn.bsModal = bootstrapModal;
 $.fn.bsTooltip = bootstrapTooltip;
 $.fn.bsPopover = bootstrapPopover;
 $.fn.bsTab = bootstrapTab;
+$.fn.bsScrollSpy = bootstrapScrollspy;
 /**
  * Instanciate the tooltip
  * For each element having the "tooltipable" class, when hovering it will look for it's
@@ -553,7 +555,7 @@ function createTextAgentPolicyMode(isNode, currentPolicyMode, explanation){
   var policyMode = currentPolicyMode.toLowerCase();
   var nodeOrDirective = isNode ? "node" : "directive";
   var labelType = "label-"+policyMode;
-  var span = "<span class='label-text " + labelType + " glyphicon glyphicon-question-sign' data-toggle='tooltip' data-placement='top' data-html='true' title=''></span>"
+  var span = "<span class='label-text " + labelType + " glyphicon glyphicon-question-sign' data-toggle='tooltip' data-placement='top' data-html='true' title='' data-container='body'></span>"
   var badge = $(span).get(0);
   var tooltip = policyModeTooltip(nodeOrDirective, policyMode, explanation);
   badge.setAttribute("title", tooltip);
