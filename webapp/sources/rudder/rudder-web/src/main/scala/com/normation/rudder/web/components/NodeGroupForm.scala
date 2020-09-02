@@ -181,7 +181,7 @@ class NodeGroupForm(
     val displayCompliance = DisplayColumn.FromConfig
     val ruleGrid = new RuleGrid("rules_for_current_group", None, false, None, displayCompliance, displayCompliance)
     val rules = dependencyService.targetDependencies(target).map( _.rules.toSet.filter(!_.isSystem).map(_.id)).toOption
-    RuleGrid.staticInit ++ ruleGrid.rulesGridWithUpdatedInfo(None, false, false) ++ Script(OnLoad(ruleGrid.asyncDisplayAllRules(rules).applied))
+    ruleGrid.rulesGridWithUpdatedInfo(None, false, false) ++ Script(OnLoad(ruleGrid.asyncDisplayAllRules(rules).applied))
   }
   private[this] val groupNameString = nodeGroup.fold(
     t => rootCategory.allTargets.get(t).map(_.name).getOrElse(t.target)

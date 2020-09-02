@@ -63,7 +63,6 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
       $scope.searchTree($scope.directiveTreeId);
       if($scope.fullPage){
         $timeout(function() {
-        adjustHeight($scope.directiveTreeId);
         },0);
       }
     } else {
@@ -172,9 +171,6 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
     $scope.showFilters = state;
     if($scope.showFilters){
       $('.input-key').focus();
-    }
-    if($scope.fullPage){
-      adjustHeight($scope.directiveTreeId);
     }
   }
   
@@ -295,9 +291,6 @@ app.controller('filterTagCtrl', function ($scope, $http, $location, $timeout, $r
         return true;
       }
     );
-  }
-  if($scope.fullPage){
-    adjustHeight($scope.directiveTreeId);
   }
 });
 
