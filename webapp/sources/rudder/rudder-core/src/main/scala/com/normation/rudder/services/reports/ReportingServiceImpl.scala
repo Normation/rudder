@@ -91,7 +91,7 @@ sealed trait CacheComplianceQueueAction {val nodeId:NodeId }
 
 case class InsertNodeInCache(nodeId: NodeId) extends CacheComplianceQueueAction
 case class RemoveNodeInCache(nodeId: NodeId) extends CacheComplianceQueueAction
-case class InitializeCompliance(nodeId: NodeId, nodeCompliance: NodeStatusReport) extends CacheComplianceQueueAction // do we need this?
+case class InitializeCompliance(nodeId: NodeId, nodeCompliance: Option[NodeStatusReport]) extends CacheComplianceQueueAction // do we need this?
 case class UpdateCompliance(nodeId: NodeId, nodeCompliance: NodeStatusReport) extends CacheComplianceQueueAction
 case class UpdateNodeConfiguration(nodeId: NodeId, nodeConfiguration: NodeExpectedReports) extends CacheComplianceQueueAction // convert the nodestatursreport to pending, with info from last run
 case class SetNodeNoAnswer(nodeId: NodeId, actionDate: DateTime) extends CacheComplianceQueueAction
@@ -304,9 +304,8 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     // batch node processing by slice of batchSize.
     // Be careful, sliding default step is 1.
 
-    ZIO.foreach_(invalidatedIds.sliding(batchSize,batchSize).to(Iterable))(queueAction =>
-      // list is limited in size by construction.to batchSize
-      // need to takewhile same time, until it's emptied.
+
+    ZIO.foreach_(groupQueueActionByType(invalidatedIds.map(x => x._2)).to(Iterable))(actions =>
       // several strategy:
       // * we have a compliance: yeah, put it in the cache
       // * new policy generation, a new nodeexpectedreports is available: compute compliance for last run of the node, based on this nodeexpectedreports
@@ -318,26 +317,12 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
 
 
       {
-        val groupedActions = groupQueueActionByType(queueAction)
 
-        for {
-          actions <- groupedActions
-          _       <- performAction(actions)
-        } yield {
 
-        }
-        /*
-        val (nodeIdsWithoutCompliance, nodeIdsWithCompliance) = queueAction.groupBy(_._1).map { case (nodeId, list) => (nodeId, list.last._2) }.partition(_._2.isDefined)
-
-        for {
-          updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(nodeIdsWithoutCompliance.keys.toSet, Set()).toIO
-          _       <- IOResult.effectNonBlocking {
-            cache = cache ++ updated
-            cache = cache ++ nodeIdsWithCompliance.map(x => (x._1, x._2.get))
-          }
-          _ <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${queueAction.map(_._1).map(_.value).mkString(", ")}")
-        } yield ()*/
-      }.catchAll(err => ReportLoggerPure.Cache.error(s"Error when updating compliance cache for nodes: [${queueAction.map(_._1).map(_.value).mkString(", ")}]: ${err.fullMsg}"))
+        (for {
+          _  <- performAction(actions)
+        } yield ()).catchAll(err => ReportLoggerPure.Cache.error(s"Error when updating compliance cache for nodes: [${actions.map(_.nodeId).map(_.value).mkString(", ")}]: ${err.fullMsg}"))
+      }
     )
   )
 
@@ -345,7 +330,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   updateCacheFromRequest.forever.forkDaemon.runNow
 
 
-  private[this] def performAction(actions: List[CacheComplianceQueueAction]) = {
+  private[this] def performAction(actions: List[CacheComplianceQueueAction]): IOResult[Unit] = {
     // get type of action
     actions.headOption match {
       case None => ReportLoggerPure.Cache.debug("Nothing to do")
@@ -397,7 +382,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   /**
    * Invalidate some keys in the cache. This method returns immediatly.
    * The update is computed asynchronously.
-   */
+   *//*
   def invalidate(nodeIds: Set[NodeId]): IOResult[Unit] = {
     ZIO.when(nodeIds.nonEmpty) {
       ReportLoggerPure.Cache.debug(s"Compliance cache: invalidation request for nodes: [${nodeIds.map { _.value }.mkString(",")}]") *>
@@ -407,7 +392,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         _        <- invalidateComplianceRequest.offer(allIds)
       } yield ())
     }
-  }
+  }*/
 
   /**
    * invalidate with an action to do something
@@ -490,7 +475,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         // starting with nodeIds, is all accepted node passed in parameter,
         // we don't miss node ids not yet in cache
         requireUpdate =  nodeIds -- upToDate.keySet
-        _             <- invalidate(requireUpdate).unit.toBox
+        _             <- invalidateWithAction(requireUpdate.toSeq.map(x => (x, SetNodeNoAnswer(x, DateTime.now())))).unit.toBox
       } yield {
         ReportLogger.Cache.debug(s"Compliance cache to reload (expired, missing):[${requireUpdate.map(_.value).mkString(" , ")}]")
         if (ReportLogger.Cache.isTraceEnabled) {
@@ -526,7 +511,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     cache = Map()
     ReportLogger.Cache.debug("Compliance cache cleared")
     //reload it for future use
-    nodeInfoService.getAll.flatMap { nodeIds => Full(invalidate(nodeIds.keySet).unit.runNow) }
+    //nodeInfoService.getAll.flatMap { nodeIds => Full(invalidate(nodeIds.keySet).unit.runNow) }
   }
 }
 
