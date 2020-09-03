@@ -175,7 +175,7 @@ final case class NoUserRulesDefined(
  */
 final case class NoReportInInterval(
     expectedConfig: NodeExpectedReports
-                                   , lastComputationDate: DateTime // tells us when we decided this status last
+    //                               , lastComputationDate: DateTime // tells us when we decided this status last
 ) extends NoReport
 
 /*

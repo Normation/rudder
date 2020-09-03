@@ -72,7 +72,7 @@ trait RoReportsExecutionRepository {
    */
   def getUnprocessedRuns(): IOResult[Seq[UncomputedAgentRun]]
 
-  def getLastComputedRun(nodeIds: Set[NodeId]): Box[Map[NodeId, (NodeAndConfigId, DateTime)]]
+  //def getLastComputedRun(nodeIds: Set[NodeId]): Box[Map[NodeId, (NodeAndConfigId, DateTime)]]
 }
 
 
@@ -146,7 +146,7 @@ class CachedReportsExecutionRepository(
     }) ?~! s"Error when trying to update the cache of Agent Runs informations"
   }).runNow
 
-
+/*
   def getLastComputedNodeRun(nodeIds: Set[NodeId]) : Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
     for {
       lastProcessedRuns <- readBackend.getLastComputedRun(nodeIds)
@@ -159,7 +159,7 @@ class CachedReportsExecutionRepository(
       // and compute. The code is running circle aroudn that, it should be straitforward
     } yield {
     }
-  }
+  }*/
 
   override def getUnprocessedRuns(): IOResult[Seq[UncomputedAgentRun]] = {
     ???
