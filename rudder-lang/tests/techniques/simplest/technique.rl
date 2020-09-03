@@ -3,6 +3,7 @@
 @name = "simplest"
 @description = "rudderlang simplest for a complete loop"
 @version = "1.0"
+@category = "ncf_techniques"
 @parameters = []
 
 resource simplest()

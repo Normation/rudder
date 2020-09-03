@@ -1,22 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+mod syntax;
+
 use super::Generator;
 use crate::{
-    ir::{enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
+    error::*,
+    generator::dsc::syntax::{
+        pascebab_case, Call, Function, Method, Parameter, Parameters, Policy,
+    },
+    ir::{context::Type, enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
     parser::*,
+    technique::fetch_method_parameters,
     ActionResult, Format,
 };
-
 use std::{
     collections::HashMap,
-    ffi::OsStr,
     path::{Path, PathBuf},
 };
 use toml::Value as TomlValue;
 
-use crate::error::*;
-use crate::ir::context::Type;
+type Condition = String;
 
 /*
     DSC parameter types:
@@ -62,10 +66,12 @@ impl DSC {
         let var = format!("{}{}", prefix, id);
         self.var_prefixes.insert(prefix.to_string(), var);
     }
+
     fn reset_cases(&mut self) {
         // TODO this make case in case fail
         self.current_cases = Vec::new();
     }
+
     fn reset_context(&mut self) {
         self.var_prefixes = HashMap::new();
         self.return_condition = None;
@@ -122,7 +128,6 @@ impl DSC {
             }
             EnumExpressionPart::Compare(var, e, item) => {
                 if let Some(true) = gc.enum_list.enum_is_global(*e) {
-                    println!("some: {}", item.fragment());
                     // We probably need some translation here since not all enums are available in cfengine (ex debian_only)
                     item.fragment().to_string() // here
                 } else {
@@ -147,115 +152,26 @@ impl DSC {
         })
     }
 
-    fn get_class_parameter(
-        &self,
-        state_def: &StateDef,
-        generic_method_name: &str,
-    ) -> Result<(String, usize)> {
-        // if one day several class_parameters are used as they previously were, get the relative code from this commit
-        // 89651a6a8a05475eabccefc23e4fe23235a7e011 . This file, line 170
-        match state_def.metadata.get("class_parameter") {
-            Some(TomlValue::Table(parameters)) if parameters.len() == 1 => {
-                let p = parameters.iter().next().unwrap();
-                let p_index = match p.1 {
-                    TomlValue::Integer(n) => *n as usize,
-                    _ => {
-                        return Err(Error::new(
-                            "Expected value type for class parameters metadata: Number".to_owned(),
-                        ))
-                    }
-                };
-                Ok((p.0.to_owned(), p_index))
-            }
-            _ => Err(Error::new(format!(
-                "Generic methods should have 1 class parameter (not the case for {})",
-                generic_method_name
-            ))),
-        }
-    }
-
-    fn get_method_parameters(
-        &mut self,
-        gc: &IR2,
-        state_decl: &StateDeclaration,
-    ) -> Result<(String, String, bool)> {
-        // depending on whether class_parameters should only be used for meta_generic_methods or not
-        // might better handle relative errors as panic! rather than Error::User
-
-        let state_def = match gc.resources.get(&state_decl.resource) {
+    fn get_state_def<'src>(
+        gc: &'src IR2,
+        state_decl: &'src StateDeclaration,
+    ) -> Result<&'src StateDef<'src>> {
+        match gc.resources.get(&state_decl.resource) {
             Some(r) => match r.states.get(&state_decl.state) {
-                Some(s) => s,
-                None => panic!(
+                Some(s) => Ok(s),
+                None => Err(Error::new(format!(
                     "No method relies on the \"{}\" state for \"{}\"",
                     state_decl.state.fragment(),
                     state_decl.resource.fragment()
-                ),
+                ))),
             },
-            None => panic!(
-                "No method relies on the \"{}\" resource",
-                state_decl.resource.fragment()
-            ),
-        };
-
-        let generic_method_name = &format!(
-            "{}_{}",
-            state_decl.resource.fragment(),
-            state_decl.state.fragment(),
-        );
-
-        let mut param_names = state_def
-            .parameters
-            .iter()
-            .map(|p| p.name.fragment())
-            .collect::<Vec<&str>>();
-
-        let is_dsc_supported: bool = match state_def.metadata.get("supported_targets") {
-            Some(TomlValue::Array(parameters)) => {
-                let mut is_dsc_listed = false;
-                for p in parameters {
-                    if let TomlValue::String(s) = p {
-                        if s == "dsc" {
-                            is_dsc_listed = true;
-                            break;
-                        }
-                    } else {
-                        return Err(Error::new(
-                            "Expected value type for supported_targets metadata: String".to_owned(),
-                        ));
-                    }
-                }
-                is_dsc_listed
-            }
-            _ => {
+            None => {
                 return Err(Error::new(format!(
-                    "{} Generic method has no \"supported_formats\" metadata",
-                    generic_method_name
+                    "No method relies on the \"{}\" resource",
+                    state_decl.resource.fragment()
                 )))
             }
-        };
-
-        let class_param = self.get_class_parameter(state_def, generic_method_name)?;
-
-        param_names.insert(class_param.1, &class_param.0);
-
-        // TODO setup mode and output var by calling ... bundle
-        let params_string = map_strings_results(
-            state_decl
-                .resource_params
-                .iter()
-                .chain(state_decl.state_params.iter())
-                .enumerate(),
-            |(i, x)| {
-                self.parameter_to_dsc(
-                    x,
-                    param_names.get(i).unwrap_or_else(|| {
-                        panic!("Wrong parameter count for method {}", generic_method_name)
-                    }),
-                )
-            },
-            " ",
-        )?;
-        Ok((params_string, class_param.0, is_dsc_supported))
+        }
     }
 
     // TODO simplify expression and remove uselesmap_strings_results conditions for more readable cfengine
@@ -269,117 +185,106 @@ impl DSC {
         gc: &IR2,
         st: &Statement,
         condition_content: String,
-    ) -> Result<String> {
+    ) -> Result<Vec<Call>> {
         match st {
             Statement::StateDeclaration(sd) => {
                 if let Some(var) = sd.outcome {
                     self.new_var(&var);
                 }
+
+                let method_name = &format!("{}-{}", sd.resource.fragment(), sd.state.fragment());
+                let mut parameters = fetch_method_parameters(gc, sd, |name, value| {
+                    Parameter::method_parameter(name, value)
+                });
+                let state_def = Self::get_state_def(gc, sd)?;
+                let class_param_index = state_def.class_parameter_index(method_name)?;
+                if parameters.len() < class_param_index {
+                    return Err(Error::new(format!(
+                        "Class param index is out of bounds for {}",
+                        method_name
+                    )));
+                }
+                // tmp -1, index of lib generator is off 1
+                let class_param = parameters.remove(class_param_index);
+                let is_dsc_supported = state_def
+                    .supported_formats(method_name)?
+                    .contains(&"dsc".to_owned());
+
                 let component = match sd.metadata.get("component") {
-                    // TODO use static_to_string
                     Some(TomlValue::String(s)) => s.to_owned(),
                     _ => "any".to_string(),
                 };
 
-                let (params_formatted_str, class_param, is_dsc_gm) =
-                    self.get_method_parameters(gc, sd)?;
-
-                let condition = self.format_condition(condition_content)?;
-
-                let na_call = format!(
-                    r#"  _rudder_common_report_na -ComponentName "{}" -ComponentKey "{}" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly"#,
-                    component, class_param
-                );
-
-                let call = if is_dsc_gm {
-                    format!(
-                        r#"  $LocalClasses = Merge-ClassContext $LocalClasses $({} {} -ComponentName "{}" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly"#,
-                        pascebab_case(&component),
-                        params_formatted_str,
-                        component,
-                    )
-                } else {
-                    na_call.clone()
-                };
-
-                if condition == "any" {
-                    Ok(call)
-                } else {
-                    let formatted_condition = &format!("\n  $Condition = \"any.({})\"\n  if (Evaluate-Class $Condition $LocalClasses $SystemClasses) {{", condition);
-                    Ok(if is_dsc_gm {
-                        format!(
-                            "{}\n  {}\n  }} else {{\n  {}\n  }}",
-                            formatted_condition, call, na_call
-                        )
-                    } else {
-                        format!("{}\n  {}\n  }}\n", formatted_condition, call)
-                    })
-                }
+                Ok(Method::new()
+                    .resource(sd.resource.fragment().to_string())
+                    .state(sd.state.fragment().to_string())
+                    .parameters(Parameters(parameters))
+                    .class_parameter(class_param.clone())
+                    .component(component)
+                    .supported(is_dsc_supported)
+                    .condition(self.format_condition(condition_content)?) // TODO
+                    .source(sd.source.fragment())
+                    .build())
             }
             Statement::Case(_case, vec) => {
                 self.reset_cases();
-                map_strings_results(
-                    vec.iter(),
-                    |(case, vst)| {
-                        let condition_content = self.format_case_expr(gc, &case.expression)?;
-                        map_strings_results(
-                            vst.iter(),
-                            |st| self.format_statement(gc, st, condition_content.clone()),
-                            "",
-                        )
-                    },
-                    "",
-                )
+                let mut res = vec![];
+
+                for (case, vst) in vec {
+                    let case_exp = self.format_case_expr(gc, &case.expression)?;
+                    for st in vst {
+                        res.append(&mut self.format_statement(gc, st, case_exp.clone())?);
+                    }
+                }
+                Ok(res)
             }
-            Statement::Fail(msg) => Ok(format!(
-                "      \"method_call\" usebundle => ncf_fail({});\n",
-                self.parameter_to_dsc(msg, "Fail")?
-            )),
-            Statement::LogDebug(msg) => Ok(format!(
-                "      \"method_call\" usebundle => ncf_log({});\n",
-                self.parameter_to_dsc(msg, "Log")?
-            )),
-            Statement::LogInfo(msg) => Ok(format!(
-                "      \"method_call\" usebundle => ncf_log({});\n",
-                self.parameter_to_dsc(msg, "Log")?
-            )),
-            Statement::LogWarn(msg) => Ok(format!(
-                "      \"method_call\" usebundle => ncf_log({});\n",
-                self.parameter_to_dsc(msg, "Log")?
-            )),
+            Statement::Fail(msg) => Ok(vec![Call::abort(
+                Parameters::new()
+                    .message("policy_fail")
+                    .message(&self.value_to_string(msg, true)?), //self.parameter_to_dsc(msg, "Fail")?,
+            )]),
+            Statement::LogDebug(msg) => Ok(vec![Call::log(
+                Parameters::new()
+                    .message("log_debug")
+                    .message(&self.value_to_string(msg, true)?)
+                    //self.parameter_to_dsc(msg, "Log")?,
+                    .message("None")
+                    // TODO: unique class prefix
+                    .message("log_debug"),
+            )]),
+            Statement::LogInfo(msg) => Ok(vec![Call::log(
+                Parameters::new()
+                    .message("log_info")
+                    .message(&self.value_to_string(msg, true)?)
+                    .message("None")
+                    // TODO: unique class prefix
+                    .message("log_info"),
+            )]),
+            Statement::LogWarn(msg) => Ok(vec![Call::log(
+                Parameters::new()
+                    .message("log_warn")
+                    .message(&self.value_to_string(msg, true)?)
+                    .message("None")
+                    // TODO: unique class prefix
+                    .message("log_warn"),
+            )]),
             Statement::Return(outcome) => {
-                let outcome_str = if outcome.fragment() == "kept" {
-                    "success"
-                } else if outcome.fragment() == "repaired" {
-                    "repaired"
-                } else {
-                    "error"
-                };
-                let content = format!(
-                    r#"    $State = [ComplianceStatus]::result_{}
-    $Classes = _rudder_common_report -TechniqueName $TechniqueName  -Status $State -ReportId $ReportId -ComponentName "TODO" -ComponentKey "TODO" -Message "TODO" -MessageInfo "TODO" -MessageVerbose "TODO" -report:"TODO"
-    @{{"status" = $State; "classes" = $Classes}}
-"#,
-                    outcome_str
-                );
                 // handle end of bundle
                 self.return_condition = Some(match self.current_cases.last() {
                     None => "!any".into(),
                     Some(c) => format!("!({})", c),
                 });
-                Ok(content)
+                let status = match outcome.fragment() {
+                    "kept" => "success",
+                    "repaired" => "repaired",
+                    _ => "error",
+                };
+                Ok(vec![Call::outcome(status, Parameters::new())]) // use bundle ?
             }
-            Statement::Noop => Ok(String::new()),
-            _ => Ok(String::new()),
+            Statement::Noop => Ok(Vec::new()),
+            // TODO Statement::VariableDefinition()
+            _ => Ok(Vec::new()),
         }
-    }
-
-    fn format_condition(&mut self, condition: String) -> Result<String> {
-        self.current_cases.push(condition.clone());
-        Ok(match &self.return_condition {
-            None => condition,
-            Some(c) => format!("({}) -and ({})", c, condition),
-        })
     }
 
     fn value_to_string(&mut self, value: &Value, string_delim: bool) -> Result<String> {
@@ -404,7 +309,7 @@ impl DSC {
                         }
                     })
                     .collect::<Vec<String>>()
-                    .join(""),
+                    .concat(),
                 delim
             ),
             Value::Float(_, n) => format!("{}", n),
@@ -426,68 +331,23 @@ impl DSC {
         })
     }
 
-    fn generate_parameters_metadatas<'src>(&mut self, parameters: Option<TomlValue>) -> String {
-        let mut params_str = String::new();
-
-        let get_param_field = |param: &TomlValue, entry: &str| -> String {
-            if let TomlValue::Table(param) = &param {
-                if let Some(val) = param.get(entry) {
-                    match val {
-                        TomlValue::String(s) => return format!("{:?}: {:?}", entry, s),
-                        _ => {}
-                    }
-                }
-            }
-            "".to_owned()
-        };
-
-        if let Some(TomlValue::Array(parameters)) = parameters {
-            parameters.iter().for_each(|param| {
-                params_str.push_str(&format!(
-                    "# @parameter {{ {}, {}, {} }}\n",
-                    get_param_field(param, "name"),
-                    get_param_field(param, "id"),
-                    get_param_field(param, "constraints")
-                ));
-            });
-        };
-        params_str
-    }
-
-    fn generate_ncf_metadata(&mut self, _name: &Token, resource: &ResourceDef) -> Result<String> {
-        let mut meta = resource.metadata.clone();
-        // removes parameters from meta and returns it formatted
-        let parameters: String = self.generate_parameters_metadatas(meta.remove("parameters"));
-        // description must be the last field
-        let mut map = map_hashmap_results(meta.iter(), |(n, v)| match v {
-            TomlValue::String(s) => Ok((n, s)),
-            _ => Err(err!(_name, "Expecting string parameters")),
-        })?;
-        let mut metadatas = String::new();
-        let mut push_metadata = |entry: &str| {
-            if let Some(val) = map.remove(&entry.to_string()) {
-                metadatas.push_str(&format!("# @{} {:#?}\n", entry, val));
-            }
-        };
-        push_metadata("name");
-        push_metadata("description");
-        push_metadata("version");
-        metadatas.push_str(&parameters);
-        for (key, val) in map.iter() {
-            metadatas.push_str(&format!("# @{} {}\n", key, val));
-        }
-        Ok(metadatas)
+    fn format_condition(&mut self, condition: String) -> Result<Condition> {
+        self.current_cases.push(condition.clone());
+        Ok(match &self.return_condition {
+            None => condition,
+            Some(c) => format!("({}) -and ({})", c, condition),
+        })
     }
 
     pub fn format_param_type(&self, type_: &Type) -> String {
         String::from(match type_ {
-            Type::String => "string",
-            Type::Float => "double",
-            Type::Integer => "double",
-            Type::Boolean => "bool",
-            Type::List => "list",
-            Type::Struct(_) => "struct",
-            _ => panic!("Phantom type should never be created !"),
+            Type::String => "String",
+            Type::Float => "Double",
+            Type::Integer => "Int",
+            Type::Boolean => "Bool",
+            Type::List => "Array", // actually needs implementation work
+            Type::Struct(_) => "Hashtable", // actually needs implementation work
+            Type::Enum(_) => unimplemented!(),
         })
     }
 }
@@ -499,128 +359,85 @@ impl Generator for DSC {
         gc: &IR2,
         source_file: &str,
         dest_file: Option<&Path>,
-        technique_metadata: bool,
+        policy_metadata: bool,
     ) -> Result<Vec<ActionResult>> {
         let mut files: Vec<ActionResult> = Vec::new();
         // TODO add global variable definitions
-        for (rn, res) in gc.resources.iter() {
-            for (sn, state) in res.states.iter() {
+        for (resource_name, resource) in gc.resources.iter() {
+            for (state_name, state) in resource.states.iter() {
                 // This condition actually rejects every file that is not the input filename
                 // therefore preventing from having an output in another directory
                 // Solutions: check filename rather than path, or accept everything that is not from crate root lib
-                if source_file != sn.file() {
+                if source_file != state_name.file() {
                     // means it's a lib file, not the file we want to generate
                     continue;
                 }
                 self.reset_context();
 
-                // get header
-                let header = match files
-                    .iter()
-                    .find(|f| f.destination == dest_file.map(|o| PathBuf::from(o)))
-                {
-                    Some(s) if s.content.is_some() => s.content.as_ref().unwrap().to_string(),
-                    _ => {
-                        if technique_metadata {
-                            self.generate_ncf_metadata(rn, res)? // TODO dsc
-                        } else {
-                            String::new()
-                        }
-                    }
-                };
-
-                // get parameters
-                let method_parameters: String = res
+                // get parameters, default params are hardcoded for now
+                let formatted_parameters: Vec<String> = resource
                     .parameters
                     .iter()
                     .chain(state.parameters.iter())
                     .map(|p| {
                         format!(
-                            "    [Parameter(Mandatory=$True)]  [{}] ${}",
-                            uppercase_first_letter(&self.format_param_type(&p.type_)),
+                            "[Parameter(Mandatory=$True)]  [{}] ${}",
+                            &self.format_param_type(&p.type_),
                             pascebab_case(p.name.fragment())
                         )
                     })
-                    .collect::<Vec<String>>()
-                    .join(",\n");
+                    .chain(vec![
+                        "[Parameter(Mandatory=$False)] [Switch] $AuditOnly".to_owned(),
+                        "[Parameter(Mandatory=$True)]  [String] $ReportId".to_owned(),
+                        "[Parameter(Mandatory=$True)]  [String] $TechniqueName".to_owned(),
+                    ])
+                    .collect::<Vec<String>>();
 
-                // add default dsc parameters
-                let parameters: String = format!(
-                    r#"{},
-    [Parameter(Mandatory=$False)] [Switch] $AuditOnly,
-    [Parameter(Mandatory=$True)]  [String] $ReportId,
-    [Parameter(Mandatory=$True)]  [String] $TechniqueName"#,
-                    method_parameters,
-                );
+                let fn_name = format!("{} {}", resource_name.fragment(), state_name.fragment(),);
 
-                // get methods
-                let methods = &state
+                let mut function = Function::agent(fn_name.clone())
+                    .parameters(formatted_parameters.clone())
+                    // Standard variables for all techniques
+                    .scope(vec![
+                        Call::variable("$LocalClasses", "New-ClassContext"),
+                        Call::variable("$ResourcesDir", "$PSScriptRoot + \"\\resources\""),
+                    ]);
+
+                for methods in state
                     .statements
                     .iter()
-                    .map(|st| self.format_statement(gc, st, "any".to_string()))
-                    .collect::<Result<Vec<String>>>()?
-                    .join("\n");
-                // merge header + parameters + methods with technique file body
-                let content = format!(
-                    r#"# generated by rudder-lang
-{header}
-function {resource_name}-{state_name} {{
-  [CmdletBinding()]
-  param (
-{parameters}
-  )
-  
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+                    .flat_map(|statement| self.format_statement(gc, statement, "any".to_string()))
+                {
+                    function.push_scope(methods);
+                }
 
-{methods}
-}}"#,
-                    header = header,
-                    resource_name = pascebab_case(rn.fragment()),
-                    state_name = pascebab_case(sn.fragment()),
-                    parameters = parameters,
-                    methods = methods
-                );
+                let extract = |name: &str| {
+                    resource
+                        .metadata
+                        .get(name)
+                        .and_then(|v| match v {
+                            TomlValue::String(s) => Some(s.to_owned()),
+                            _ => None,
+                        })
+                        .unwrap_or_else(|| "unknown".to_string())
+                };
+
+                let content: String = if policy_metadata {
+                    Policy::new()
+                        .name(extract("name"))
+                        .version(extract("version"))
+                        .function(function)
+                        .to_string()
+                } else {
+                    function.to_string()
+                };
                 files.push(ActionResult::new(
                     Format::DSC,
                     dest_file.map(|o| PathBuf::from(o)),
-                    Some(content.to_string()),
+                    Some(content),
                 ));
             }
         }
         Ok(files)
     }
-}
-
-fn uppercase_first_letter(s: &str) -> String {
-    let mut c = s.chars();
-    match c.next() {
-        None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-    }
-}
-
-fn pascebab_case(s: &str) -> String {
-    let chars = s.chars();
-
-    let mut pascebab = String::new();
-    let mut is_next_uppercase = true;
-    for c in chars {
-        let next = match c {
-            ' ' | '_' | '-' => {
-                is_next_uppercase = true;
-                String::from("-")
-            }
-            c => {
-                if is_next_uppercase {
-                    is_next_uppercase = false;
-                    c.to_uppercase().to_string()
-                } else {
-                    c.to_string()
-                }
-            }
-        };
-        pascebab.push_str(&next);
-    }
-    pascebab
 }

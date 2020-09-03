@@ -2,9 +2,10 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::{
-    context::{VarContext, Type},
+    context::{Type, VarContext},
     enums::{EnumExpression, EnumList},
-    value::*, variable::*,
+    value::*,
+    variable::*,
 };
 use crate::{error::*, parser::*};
 use std::collections::{HashMap, HashSet};
@@ -124,7 +125,10 @@ impl<'src> ResourceDef<'src> {
         pstates: Vec<PStateDef<'src>>,
         mut children: HashSet<Token<'src>>,
         parent_context: Rc<VarContext<'src>>,
-        parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>,
+        parameter_defaults: &HashMap<
+            (Token<'src>, Option<Token<'src>>),
+            Vec<Option<Constant<'src>>>,
+        >,
         enum_list: &EnumList<'src>,
     ) -> (Vec<Error>, Option<Self>) {
         let PResourceDef {
@@ -144,20 +148,21 @@ impl<'src> ResourceDef<'src> {
         // create final version of states
         let mut states = HashMap::new();
         // Create context from parent
-        let (mut errors2, mut mut_context) = create_default_context(parent_context, parameters.as_slice());
+        let (mut errors2, mut mut_context) =
+            create_default_context(parent_context, parameters.as_slice());
         errors.append(&mut errors2);
         // Add variables
         let mut vars = VariableDefList::new();
         for var in variable_definitions {
             match vars.append(var, &mut mut_context, enum_list) {
                 Err(e) => errors.push(e),
-                _ => {},
+                _ => {}
             }
         }
         for var in variable_extensions {
             match vars.extend(var, &mut mut_context, enum_list) {
                 Err(e) => errors.push(e),
-                _ => {},
+                _ => {}
             }
         }
         let context = Rc::new(mut_context);
@@ -208,7 +213,10 @@ impl<'src> StateDef<'src> {
         resource_name: Token<'src>,
         children: &mut HashSet<Token<'src>>,
         parent_context: Rc<VarContext<'src>>,
-        parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>,
+        parameter_defaults: &HashMap<
+            (Token<'src>, Option<Token<'src>>),
+            Vec<Option<Constant<'src>>>,
+        >,
         enum_list: &EnumList<'src>,
     ) -> (Vec<Error>, Option<Self>) {
         // create final version of metadata and parameters
@@ -220,8 +228,7 @@ impl<'src> StateDef<'src> {
             Err(e) => return (vec![e], None),
         };
         let (mut errors, metadata) = create_metadata(pstate.metadata);
-        let (errs, mut context) =
-            create_default_context(parent_context, &parameters);
+        let (errs, mut context) = create_default_context(parent_context, &parameters);
         errors.extend(errs);
         // create final version of statements
         let mut statements = Vec::new();
@@ -248,6 +255,36 @@ impl<'src> StateDef<'src> {
             }),
         )
     }
+
+    pub fn class_parameter_index(&self, method_name: &str) -> Result<usize> {
+        match self.metadata.get("class_parameter_index") {
+            Some(TomlValue::Integer(n)) => Ok(*n as usize),
+            Some(_) => Err(Error::new(format!(
+                "Expected 'class_parameter_index' metadata to be a number for '{}' method",
+                method_name
+            ))),
+            None => Err(Error::new(format!(
+                "Expected 'class_parameter_index' metadata for '{}' method",
+                method_name
+            ))),
+        }
+    }
+
+    pub fn supported_formats(&self, method_name: &str) -> Result<Vec<String>> {
+        match self.metadata.get("supported_targets") {
+            Some(TomlValue::Array(parameters)) => parameters
+                .iter()
+                .map(|p| match p {
+                    TomlValue::String(s) => Ok(s.to_owned()),
+                    _ => Err(Error::new(
+                        format!("Expected 'supported_targets' metadata elements to be strings for '{}' method", method_name),
+                    ))
+                })
+                .collect::<Result<Vec<String>>>(),
+            Some(_) => Err(Error::new(format!("Expected 'supported_targets' metadata to be an array for '{}' method", method_name))),
+            None => Err(Error::new(format!("Expected 'supported_targets' metadata for '{}' method", method_name)))
+        }
+    }
 }
 
 /// A single parameter for a resource or a state
@@ -258,14 +295,15 @@ pub struct Parameter<'src> {
 }
 
 impl<'src> Parameter<'src> {
-    pub fn from_pparameter(
-        p: PParameter<'src>,
-        default: &Option<Constant<'src>>,
-    ) -> Result<Self> {
+    pub fn from_pparameter(p: PParameter<'src>, default: &Option<Constant<'src>>) -> Result<Self> {
         let type_ = Type::from_ptype(p.ptype, Vec::new())?;
         if let Some(val) = default {
             if type_ != Type::from_constant(val) {
-                fail!(p.name, "Default value for {} doesn't match its type", p.name);
+                fail!(
+                    p.name,
+                    "Default value for {} doesn't match its type",
+                    p.name
+                );
             }
         }
         Ok(Parameter {
@@ -352,8 +390,7 @@ fn string_value<'src>(
     context: &VarContext<'src>,
     enum_list: &EnumList<'src>,
     pvalue: PValue<'src>,
-) -> Result<Value<'src>>
-{
+) -> Result<Value<'src>> {
     let value = Value::from_pvalue(enum_list, context, pvalue)?;
     // check that definition use existing variables
     value.context_check(context)?;
@@ -369,7 +406,10 @@ impl<'src> Statement<'src> {
         context: &'b mut VarContext<'src>,
         children: &'b mut HashSet<Token<'src>>,
         st: PStatement<'src>,
-        parameter_defaults: &HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>,
+        parameter_defaults: &HashMap<
+            (Token<'src>, Option<Token<'src>>),
+            Vec<Option<Constant<'src>>>,
+        >,
         enum_list: &EnumList<'src>,
     ) -> Result<Self> {
         Ok(match st {
@@ -378,7 +418,11 @@ impl<'src> Statement<'src> {
                 Statement::VariableDefinition(var)
             }
             PStatement::VariableExtension(ext) => {
-                fail!(ext.name, "Variable extensions are not supported in states at {}", ext.name);
+                fail!(
+                    ext.name,
+                    "Variable extensions are not supported in states at {}",
+                    ext.name
+                );
             }
             PStatement::StateDeclaration(PStateDeclaration {
                 source,
@@ -412,12 +456,8 @@ impl<'src> Statement<'src> {
                     &mut state_params,
                 )?;
                 // check that parameters use existing variables
-                map_results(resource_params.iter(), |p| {
-                    p.context_check(context)
-                })?;
-                map_results(state_params.iter(), |p| {
-                    p.context_check(context)
-                })?;
+                map_results(resource_params.iter(), |p| p.context_check(context))?;
+                map_results(state_params.iter(), |p| p.context_check(context))?;
                 let (mut _errors, metadata) = create_metadata(metadata);
                 Statement::StateDeclaration(StateDeclaration {
                     source,
@@ -430,26 +470,10 @@ impl<'src> Statement<'src> {
                     outcome,
                 })
             }
-            PStatement::Fail(f) => Statement::Fail(string_value(
-                context,
-                enum_list,
-                f,
-            )?),
-            PStatement::LogDebug(l) => Statement::LogDebug(string_value(
-                context,
-                enum_list,
-                l,
-            )?),
-            PStatement::LogInfo(l) => Statement::LogInfo(string_value(
-                context,
-                enum_list,
-                l,
-            )?),
-            PStatement::LogWarn(l) => Statement::LogWarn(string_value(
-                context,
-                enum_list,
-                l,
-            )?),
+            PStatement::Fail(f) => Statement::Fail(string_value(context, enum_list, f)?),
+            PStatement::LogDebug(l) => Statement::LogDebug(string_value(context, enum_list, l)?),
+            PStatement::LogInfo(l) => Statement::LogInfo(string_value(context, enum_list, l)?),
+            PStatement::LogWarn(l) => Statement::LogWarn(string_value(context, enum_list, l)?),
             PStatement::Return(r) => {
                 if r == Token::new("", "kept")
                     || r == Token::new("", "repaired")
@@ -468,8 +492,7 @@ impl<'src> Statement<'src> {
             PStatement::Case(case, v) => Statement::Case(
                 case,
                 map_vec_results(v.into_iter(), |(exp, sts)| {
-                    let expr =
-                        enum_list.canonify_expression(context, exp)?;
+                    let expr = enum_list.canonify_expression(context, exp)?;
                     Ok((
                         expr,
                         map_vec_results(sts.into_iter(), |st| {

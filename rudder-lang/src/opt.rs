@@ -419,16 +419,9 @@ mod tests {
     #[test]
     // tests if logging sets up as expected (backtrace, format, log levels etc)
     fn cli_to_context() {
-        // TODO stabilize production conf file, then delete this test.
-        //Will be an error for now, to prevent errors at generation on live servers
-        // assert_err_msg(
-        //     "rudderc technique read -b",
-        //     "Could not parse (probably faulty) toml config file:.. Check why, update prod until no errors",
-        // );
-
         // err, config file does not exist
         assert_err_msg(
-            "rudderc technique read -c DOESNOTEXIST",
+            "rudderc compile -c DOESNOTEXIST",
             "Could not read toml config file: No such file or directory (os error 2)",
         );
 
@@ -440,7 +433,7 @@ mod tests {
 
         // should be an error: no input file defined
         assert_err_msg(
-            "rudderc technique read -c ./tools/rudderc-dev.conf",
+            "rudderc compile -c ./tools/rudderc-dev.conf",
             "Commands: no input or input does not match any existing file",
         );
 
@@ -489,7 +482,7 @@ mod tests {
             false,
         );
 
-        // compile format check
+        // // compile format check
         assert_ok(
             "rudderc compile -c ./tools/rudderc-dev.conf -f cf -i simplest/technique.rl -o simplest/try_technique.randomext",
             IOContext {

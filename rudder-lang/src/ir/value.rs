@@ -37,7 +37,7 @@ impl<'src> StringObject<'src> {
                 PInterpolatedElement::Variable(v) => var_formatter(v),
             })
             .collect::<Vec<String>>()
-            .join("")
+            .concat()
     }
 }
 
@@ -64,7 +64,7 @@ impl<'src> TryFrom<&StringObject<'src>> for String {
                 _ => "".into(),
             })
             .collect::<Vec<String>>()
-            .join(""))
+            .concat())
     }
 }
 

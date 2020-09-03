@@ -6,12 +6,14 @@ use crate::{
     error::*,
     generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise, MAX_INT, MIN_INT},
     ir::{enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
+    // generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise},
+    // ir::{enums::EnumExpressionPart, resource::*, value::*, *},
     parser::*,
-    ActionResult, Format,
+    ActionResult,
+    Format,
 };
 use std::{
     collections::HashMap,
-    ffi::OsStr,
     path::{Path, PathBuf},
 };
 use toml::Value as TomlValue;
@@ -254,7 +256,7 @@ impl CFEngine {
                         }
                     })
                     .collect::<Vec<String>>()
-                    .join(""),
+                    .concat(),
                 delim
             ),
             Value::Float(_, n) => format!("{}", n),

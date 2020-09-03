@@ -3,7 +3,7 @@
 @name="condition any bsd"
 @description="Kernel simplest"
 @category = "ncf_techniques"
-@version = 0
+@version = "1.0"
 @parameters=[]
 
 resource condition_anybsd()

@@ -2,13 +2,12 @@ use crate::{
     ir::{
         enums::EnumExpressionPart,
         ir2::IR2,
-        resource::{ResourceDef, StateDeclaration, Statement},
+        resource::{ResourceDef, Statement},
         value::Value as IRValue,
     },
     technique::*,
 };
 use std::convert::From;
-use std::convert::TryFrom;
 use std::str;
 use toml::{map::Map, value::Value as TOMLValue};
 
@@ -142,55 +141,12 @@ fn format_expr(ir: &IR2, expr: &EnumExpressionPart) -> String {
     }
 }
 
-fn fetch_params_as_value(ir: &IR2, s: &StateDeclaration, method_name: &str) -> Vec<Value> {
-    let resource = ir
-        .resources
-        .get(&s.resource)
-        .expect(&format!("Called resource '{}' is not defined", *s.resource));
-    let parameter_names = resource
-        .parameters
-        .iter()
-        .chain(
-            resource
-                .states
-                .get(&s.state)
-                .expect(&format!(
-                    "Called state '{}' is not defined for '{}'",
-                    s.state.fragment(),
-                    s.resource.fragment()
-                ))
-                .parameters
-                .iter(),
-        )
-        .map(|p| p.name.fragment())
-        .collect::<Vec<&str>>();
-    let parameter_values = s
-        .resource_params
-        .iter()
-        .chain(s.state_params.iter())
-        .map(|p| {
-            if let IRValue::String(ref o) = p {
-                if let Ok(value) = String::try_from(o) {
-                    return value;
-                }
-            }
-            panic!("Expected string for '{}' parameter type", method_name)
-        })
-        .collect::<Vec<String>>();
-    // there should be no issue here since
-    // both iterators should be of same size bc parameters are checked at AST creation time
-    parameter_names
-        .iter()
-        .zip(parameter_values)
-        .map(|(name, value)| Value::new(name, &value))
-        .collect::<Vec<Value>>()
-}
-
 fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Vec<MethodCall> {
     match stmt {
         Statement::StateDeclaration(s) => {
             let method_name = format!("{}_{}", *s.resource, *s.state);
-            let parameters = fetch_params_as_value(ir, s, &method_name);
+            let parameters =
+                fetch_method_parameters(ir, s, |name, value| Parameter::new(name, value));
             vec![MethodCall {
                 parameters,
                 condition,

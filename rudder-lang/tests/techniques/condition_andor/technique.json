@@ -6,6 +6,7 @@
         "description": "Kernel simplest",
         "version": "1.0",
         "bundle_name": "condition_andor",
+        "category": "ncf_techniques",
         "bundle_args": [],
         "parameter": [],
         "method_calls": [

@@ -230,7 +230,7 @@ impl Promise {
             .iter()
             .map(|c| format!("    # {}\n", c))
             .collect::<Vec<String>>()
-            .join("");
+            .concat();
 
         if self.attributes.is_empty() {
             format!("{}\"{}\";", comment, self.promiser)

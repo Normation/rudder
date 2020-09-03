@@ -2,7 +2,8 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::{
-    context::Type, context::VarContext,
+    context::Type,
+    context::VarContext,
     enum_tree::{EnumItem, EnumTree},
 };
 use crate::{error::*, parser::*};
@@ -240,8 +241,11 @@ impl<'src> EnumList<'src> {
     }
 
     /// Get variable enum type, if the variable doesn't exist or isn't an enum, return an error
-    fn get_var_enum(&self, context: &VarContext<'src>, variable: Token<'src>) -> Result<Token<'src>>
-    {
+    fn get_var_enum(
+        &self,
+        context: &VarContext<'src>,
+        variable: Token<'src>,
+    ) -> Result<Token<'src>> {
         match context.get_type(&variable) {
             None => fail!(variable, "The variable {} doesn't exist", variable),
             Some(Type::Enum(e)) => Ok(e),
@@ -273,8 +277,7 @@ impl<'src> EnumList<'src> {
         tree_name: Option<Token<'src>>,
         value: Token<'src>,
         my_be_boolean: bool,
-    ) -> Result<(Token<'src>, Token<'src>, Token<'src>)>
-    {
+    ) -> Result<(Token<'src>, Token<'src>, Token<'src>)> {
         match (variable, tree_name) {
             (None, None) => {
                 if let Some(tree_name) = self.global_items.get(&value) {
@@ -301,7 +304,11 @@ impl<'src> EnumList<'src> {
                 }
             }
             (None, Some(t)) => {
-                let tree = match self.enums.get(&t) {
+                let content = match self.global_items.get(&t) {
+                    Some(parent) => self.enums.get(parent),
+                    None => self.enums.get(&t),
+                };
+                let tree = match content {
                     None => fail!(t, "Enum {} doesn't exist or is not global", t),
                     Some(tree) => tree,
                 };
@@ -339,8 +346,7 @@ impl<'src> EnumList<'src> {
         &self,
         context: &VarContext<'src>,
         expr: PEnumExpression<'src>,
-    ) -> Result<EnumExpression<'src>>
-    {
+    ) -> Result<EnumExpression<'src>> {
         let PEnumExpression { source, expression } = expr;
         self.canonify_expression_part(context, expression)
             .map(|x| EnumExpression {
@@ -353,8 +359,7 @@ impl<'src> EnumList<'src> {
         &self,
         context: &VarContext<'src>,
         expr: PEnumExpressionPart<'src>,
-    ) -> Result<EnumExpressionPart<'src>>
-    {
+    ) -> Result<EnumExpressionPart<'src>> {
         match expr {
             PEnumExpressionPart::Default(t) => Ok(EnumExpressionPart::Default(t)),
             PEnumExpressionPart::NoDefault(t) => Ok(EnumExpressionPart::NoDefault(t)),
@@ -525,10 +530,7 @@ struct VariableIterator<'it, 'src> {
 }
 
 impl<'it, 'src> VariableIterator<'it, 'src> {
-    fn new(
-        variable: Token<'src>,
-        items: &'it HashSet<EnumItem<'src>>,
-    ) -> Self {
+    fn new(variable: Token<'src>, items: &'it HashSet<EnumItem<'src>>) -> Self {
         let mut iterator = items.iter();
         VariableIterator {
             variable,
@@ -732,8 +734,12 @@ mod tests {
     fn test_canonify() {
         let mut elist = EnumList::new();
         let mut context = VarContext::new(None);
-        context.add_variable_declaration("T".into(), Type::Enum("T".into())).expect("Test init");
-        context.add_variable_declaration("var".into(), Type::Enum("T".into())).expect("Test init");
+        context
+            .add_variable_declaration("T".into(), Type::Enum("T".into()))
+            .expect("Test init");
+        context
+            .add_variable_declaration("var".into(), Type::Enum("T".into()))
+            .expect("Test init");
         elist
             .add_enum(penum_t("global enum T { a, b, c }"))
             .unwrap();
@@ -770,8 +776,12 @@ mod tests {
     fn test_listvars() {
         let mut elist = EnumList::new();
         let mut context = VarContext::new(None);
-        context.add_variable_declaration("T".into(), Type::Enum("T".into())).expect("Test init");
-        context.add_variable_declaration("var".into(), Type::Enum("T".into())).expect("Test init");
+        context
+            .add_variable_declaration("T".into(), Type::Enum("T".into()))
+            .expect("Test init");
+        context
+            .add_variable_declaration("var".into(), Type::Enum("T".into()))
+            .expect("Test init");
         elist
             .add_enum(penum_t("global enum T { a, b, c }"))
             .unwrap();
@@ -847,7 +857,9 @@ mod tests {
     fn test_evaluation() {
         let mut elist = EnumList::new();
         let mut context = VarContext::new(None);
-        context.add_variable_declaration("T".into(), Type::Enum("T".into())).expect("Test init");
+        context
+            .add_variable_declaration("T".into(), Type::Enum("T".into()))
+            .expect("Test init");
         elist
             .add_enum(penum_t("global enum T { a, b, c }"))
             .unwrap();
@@ -890,7 +902,10 @@ mod tests {
             elist.evaluate(&cases1[..], Token::from("test1")),
             Vec::new()
         );
-        let cases2 = [(e2.clone(), Vec::new() as Vec<i32>), (e3.clone(), Vec::new())];
+        let cases2 = [
+            (e2.clone(), Vec::new() as Vec<i32>),
+            (e3.clone(), Vec::new()),
+        ];
         assert_eq!(elist.evaluate(&cases2[..], Token::from("test2")).len(), 1);
         let cases3 = [
             (e1.clone(), Vec::new() as Vec<i32>),

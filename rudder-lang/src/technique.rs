@@ -10,6 +10,7 @@ pub use read::technique_read;
 use crate::{
     cfstrings,
     error::*,
+    ir::{ir2::IR2, resource::StateDeclaration, value::Value},
     rudderlang_lib::{LibMethod, RudderlangLib},
 };
 use colored::Colorize;
@@ -20,6 +21,7 @@ use serde::{
     Deserialize, Serialize, Serializer,
 };
 use std::{
+    convert::TryFrom,
     fmt,
     str::{self, FromStr},
 };
@@ -216,7 +218,7 @@ impl InterpolatedParameter {
 #[derive(Serialize, Deserialize)]
 pub struct MethodCall {
     #[serde(default)]
-    parameters: Vec<Value>,
+    parameters: Vec<Parameter>,
     #[serde(rename = "class_context")]
     condition: String,
     method_name: String,
@@ -252,7 +254,11 @@ impl MethodCall {
             call = format!("if {} => {}", self.format_condition(&lib)?, call);
         }
 
-        let class_parameter = &self.parameters[lib_method.class_param_index()].value;
+        let class_param_index = lib_method.class_param_index();
+        if self.parameters.len() < class_param_index {
+            return Err(Error::new("Class param index is out of bounds".to_owned()));
+        }
+        let class_parameter = &self.parameters[class_param_index].value;
         let canonic_parameter = cfstrings::canonify(class_parameter);
         let outcome = format!(" as {}_{}", lib_method.class_prefix(), canonic_parameter);
 
@@ -287,7 +293,10 @@ impl MethodCall {
             static ref ANY_RE: Regex = Regex::new(r"(any\.)").unwrap();
         }
         // remove `any.` from condition
-        let anyless_condition = ANY_RE.replace_all(&self.condition, "");
+        let anyless_condition = ANY_RE
+            .replace_all(&self.condition, "")
+            // rudder-lang format expects `&` as AND operator, rather than `.`
+            .replace(".", "&");
         let mut errs = Vec::new();
         // replace all matching words as classes
         let result = CONDITION_RE.replace_all(&anyless_condition, |caps: &Captures| {
@@ -326,7 +335,7 @@ impl MethodCall {
 #[derive(Serialize, Deserialize, Default)]
 struct Resource {
     name: String,
-    state: Value,
+    state: Parameter,
 }
 impl Resource {
     fn to_rudderlang(&self) -> Result<String> {
@@ -336,15 +345,15 @@ impl Resource {
     }
 }
 
-#[derive(Serialize, Deserialize, Default)]
-struct Value {
+#[derive(Serialize, Deserialize, Default, Debug)]
+struct Parameter {
     name: String, // not used in rudder-lang
     value: String,
     #[serde(skip_deserializing, rename = "$errors")]
     // only useful when coupled with technique editor
     errors: Vec<String>,
 }
-impl Value {
+impl Parameter {
     fn new(name: &str, value: &str) -> Self {
         Self {
             name: name.to_owned(),
@@ -369,6 +378,56 @@ impl Value {
             false => (format!("{:#?}", self.value), None),
         })
     }
+}
+
+// generic function that is used by rudderd from multiple places to retrieve parameters in various formats
+pub fn fetch_method_parameters<F, P>(ir: &IR2, s: &StateDeclaration, f: F) -> Vec<P>
+where
+    F: Fn(&str, &str) -> P,
+{
+    let resource = ir
+        .resources
+        .get(&s.resource)
+        .expect(&format!("Called resource '{}' is not defined", *s.resource));
+    let parameter_names = resource
+        .parameters
+        .iter()
+        .chain(
+            resource
+                .states
+                .get(&s.state)
+                .expect(&format!(
+                    "Called state '{}' is not defined for '{}'",
+                    s.state.fragment(),
+                    s.resource.fragment()
+                ))
+                .parameters
+                .iter(),
+        )
+        .map(|p| p.name.fragment())
+        .collect::<Vec<&str>>();
+    let parameter_values = s
+        .resource_params
+        .iter()
+        .chain(s.state_params.iter())
+        .map(|p| match p {
+            Value::String(ref o) => {
+                if let Ok(value) = String::try_from(o) {
+                    return value;
+                }
+                let method_name = format!("{}_{}", *s.resource, *s.state);
+                panic!("Expected string for '{}' parameter type", method_name)
+            }
+            _ => unimplemented!(),
+        })
+        .collect::<Vec<String>>();
+    // there should be no issue here since
+    // both iterators should be of same size bc parameters are checked at AST creation time
+    parameter_names
+        .iter()
+        .zip(parameter_values)
+        .map(|(name, value)| f(name, &value))
+        .collect::<Vec<P>>()
 }
 
 #[cfg(test)]
