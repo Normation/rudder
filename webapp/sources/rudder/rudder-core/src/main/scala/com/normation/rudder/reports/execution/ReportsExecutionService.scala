@@ -156,6 +156,7 @@ class ReportsExecutionService (
         nodeWithCompliances <- cachedCompliance.findUncomputedNodeStatusReports().toIO
         invalidate          <- cachedCompliance.invalidateWithAction(nodeWithCompliances.map { case (nodeid, compliance) => (nodeid, UpdateCompliance(nodeid, compliance))}.toSeq)
         _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList) // unsure if here or in the queue
+        _                   <- cachedCompliance.outDatedCompliance()
       } yield ()
     }
     updateCompliance.runNow

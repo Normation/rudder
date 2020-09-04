@@ -77,7 +77,7 @@ class AgentRunsTest extends DBCommon {
 
   sequential
 
-
+/*
   "Execution repo" should {
     val runs = Seq(
         AgentRun(AgentRunId(n1, runMinus2), Some(NodeConfigId("nodeConfig_n1_v1")), true, 12)
@@ -104,7 +104,7 @@ class AgentRunsTest extends DBCommon {
     }
   }
 
-
+*/
   val n = (0 to 6).map(i => NodeId("n" + i))
   val initRuns = Seq(
       AgentRun(AgentRunId(n(0), runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), true, 12)
@@ -123,9 +123,9 @@ class AgentRunsTest extends DBCommon {
    */
   step {
     cleanTables
-    woRunRepo.updateExecutions(initRuns)
+   // woRunRepo.updateExecutions(initRuns)
   }
-
+/*
   "Updating execution" should {
 
     "correctly close and let closed existing execution" in {
@@ -157,6 +157,6 @@ class AgentRunsTest extends DBCommon {
       res.flatten must contain(exactly((news ++ updated):_*))
 
     }
-  }
+  }*/
 
 }

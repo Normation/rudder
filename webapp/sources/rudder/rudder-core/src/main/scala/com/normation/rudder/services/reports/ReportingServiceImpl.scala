@@ -95,6 +95,7 @@ case class InitializeCompliance(nodeId: NodeId, nodeCompliance: Option[NodeStatu
 case class UpdateCompliance(nodeId: NodeId, nodeCompliance: NodeStatusReport) extends CacheComplianceQueueAction
 case class UpdateNodeConfiguration(nodeId: NodeId, nodeConfiguration: NodeExpectedReports) extends CacheComplianceQueueAction // convert the nodestatursreport to pending, with info from last run
 case class SetNodeNoAnswer(nodeId: NodeId, actionDate: DateTime) extends CacheComplianceQueueAction
+case class ExpiredCompliance(nodeId: NodeId) extends CacheComplianceQueueAction
 
 /**
  * Defaults non-cached version of the reporting service.
@@ -175,15 +176,15 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
               val runInfo = systemreport.runInfo match {
                 // Classic case with data we need, build NoUserRulesDefined
                 case a : ExpectedConfigAvailable with LastRunAvailable =>
-                  NoUserRulesDefined(a.lastRunDateTime, a.expectedConfig, a.lastRunConfigId, a.lastRunConfigInfo)
+                  NoUserRulesDefined(a.lastRunDateTime, a.expectedConfig, a.lastRunConfigId, a.lastRunConfigInfo, a.expirationDateTime)
 
                 // Pending case / maybe we should keep pending
-                case pending @ Pending(expectedConfig, optLastRun, _)  =>
-                  optLastRun match {
+                case pending @ Pending(expectedConfig, optLastRun, _)  => pending
+                  /*optLastRun match {
                     case Some((lastRunDate,lastRunConfigInfo)) =>
                       NoUserRulesDefined(lastRunDate, expectedConfig, lastRunConfigInfo.nodeConfigId, Some(lastRunConfigInfo))
                     case None => pending
-                  }
+                  }*/
                 // Case we don't have enough information to build data / or state is worse than 'no rules'
                 case _: NoReportInInterval | _ : ReportsDisabledInInterval | _ : ErrorNoConfigData =>
                   systemreport.runInfo
@@ -301,10 +302,6 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * Update logic. We take message from queue one at a time, and process.
    */
   val updateCacheFromRequest: IO[Nothing, Unit] = invalidateComplianceRequest.take.flatMap(invalidatedIds =>
-    // batch node processing by slice of batchSize.
-    // Be careful, sliding default step is 1.
-
-
     ZIO.foreach_(groupQueueActionByType(invalidatedIds.map(x => x._2)).to(Iterable))(actions =>
       // several strategy:
       // * we have a compliance: yeah, put it in the cache
@@ -378,22 +375,6 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     }.mkString("\n", "\n", "")
   }
 
-
-  /**
-   * Invalidate some keys in the cache. This method returns immediatly.
-   * The update is computed asynchronously.
-   *//*
-  def invalidate(nodeIds: Set[NodeId]): IOResult[Unit] = {
-    ZIO.when(nodeIds.nonEmpty) {
-      ReportLoggerPure.Cache.debug(s"Compliance cache: invalidation request for nodes: [${nodeIds.map { _.value }.mkString(",")}]") *>
-      invalidateMergeUpdateSemaphore.withPermit(for {
-        elements <- invalidateComplianceRequest.takeAll
-        allIds   =  (elements.flatten.toMap ++ nodeIds.map(ids => (ids, None))).toList
-        _        <- invalidateComplianceRequest.offer(allIds)
-      } yield ())
-    }
-  }*/
-
   /**
    * invalidate with an action to do something
    * order is important
@@ -409,9 +390,19 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     }
   }
 
+  /**
+   * Find in cache all outdated compliance, and add to queue to recompute them
+   */
+  def outDatedCompliance(): IOResult[Unit] = {
+    val now = DateTime.now
+    val nodeWithOutdatedCompliance = cache.filter { case (id, compliance) => compliance.statusInfo match {
+      case t: ExpiringStatus => t.expirationDateTime.isBefore(now)
+      case _ => false
+    } }.toSeq
 
-
-
+    // send outdated message to queue
+    invalidateWithAction(nodeWithOutdatedCompliance.map(x => (x._1, ExpiredCompliance(x._1))))
+  }
   /**
    * Look in the cache for compliance for given nodes.
    * Only data from cache is used, and even then are filtered out for expired data, so
@@ -462,11 +453,11 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
          upToDate     =  inCache.filter { case (_, report) =>
                            val expired = report.runInfo match {
                              case t : ExpiringStatus => t.expirationDateTime.isBefore(now)
-                             case UnexpectedVersion(_, _, lastRunExpiration, _, _)
+                             case UnexpectedVersion(_, _, lastRunExpiration, _, _, _)
                                                      => lastRunExpiration.isBefore(now)
-                             case UnexpectedNoVersion(_, _, lastRunExpiration, _, _)
+                             case UnexpectedNoVersion(_, _, lastRunExpiration, _, _,_)
                                                      => lastRunExpiration.isBefore(now)
-                             case UnexpectedUnknowVersion(_, _, _, expectedExpiration)
+                             case UnexpectedUnknowVersion(_, _, _, expectedExpiration,_)
                                                      => expectedExpiration.isBefore(now)
                              case _                  => false
                            }

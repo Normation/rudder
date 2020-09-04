@@ -392,25 +392,25 @@ object NodeStatusReportSerialization {
         ( ( "type"           -> "NoExpectedReport" )
         ~ ("lastRunConfigId" -> id.map( _.value )  )
         )
-      case NoReportInInterval(e) =>
+      case NoReportInInterval(e, _) =>
         ( ( "type"             -> "NoReportInInterval" )
         ~ ( "expectedConfigId" -> e.nodeConfigId.value )
         )
-      case ReportsDisabledInInterval(e) =>
+      case ReportsDisabledInInterval(e, _) =>
         ( ( "type"             -> "ReportsDisabled"   )
         ~ ( "expectedConfigId" -> e.nodeConfigId.value)
         )
-      case UnexpectedVersion(t, id, _, e, _) =>
+      case UnexpectedVersion(t, id, _, e, _, _) =>
         ( ( "type"             -> "UnexpectedVersion"       )
         ~ ( "expectedConfigId" -> e.nodeConfigId.value      )
         ~ ( "runConfigId"      -> id.get.nodeConfigId.value )
         )
-      case UnexpectedNoVersion(_, id, _, e, _) =>
+      case UnexpectedNoVersion(_, id, _, e, _, _) =>
         ( ( "type"             -> "UnexpectedNoVersion" )
         ~ ( "expectedConfigId" -> e.nodeConfigId.value  )
         ~ ( "runConfigId"      -> id.value              )
         )
-      case UnexpectedUnknowVersion(_, id, e, _) =>
+      case UnexpectedUnknowVersion(_, id, e, _, _) =>
         ( ( "type"             -> "UnexpectedUnknownVersion" )
         ~ ( "expectedConfigId" -> e.nodeConfigId.value       )
         ~ ( "runConfigId"      -> id.value                   )
@@ -425,7 +425,7 @@ object NodeStatusReportSerialization {
         ~ ( "expectedConfigId" -> e.nodeConfigId.value       )
         ~ ( "runConfigId"      -> e.nodeConfigId.value       )
         )
-      case NoUserRulesDefined(_, e, _, _) =>
+      case NoUserRulesDefined(_, e, _, _, _) =>
         ( ( "type"             -> "NoUserRulesDefined" )
         ~ ( "expectedConfigId" -> e.nodeConfigId.value       )
         ~ ( "runConfigId"      -> e.nodeConfigId.value       )
