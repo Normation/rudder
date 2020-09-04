@@ -96,13 +96,13 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     )
   , (
       buildNode("n2")
-    , run("n2", NoReportInInterval(null))
-    , run("n2", NoReportInInterval(null))
+    , run("n2", NoReportInInterval(null, expired))
+    , run("n2", NoReportInInterval(null, expired))
     )
   , (
       buildNode("n3")
-    , run("n3", ReportsDisabledInInterval(null))
-    , run("n3", ReportsDisabledInInterval(null))
+    , run("n3", ReportsDisabledInInterval(null, expired))
+    , run("n3", ReportsDisabledInInterval(null, expired))
     )
   , (
       buildNode("n4")
@@ -111,18 +111,18 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     )
   , (
       buildNode("n5")
-    , run("n5", UnexpectedVersion(null, Some(expected("n5")), expired, null, expired))
-    , run("n5", UnexpectedVersion(null, Some(expected("n5")), stillOk, null, stillOk))
+    , run("n5", UnexpectedVersion(null, Some(expected("n5")), expired, null, expired, expired))
+    , run("n5", UnexpectedVersion(null, Some(expected("n5")), stillOk, null, stillOk, expired))
     )
   , (
       buildNode("n6")
-    , run("n6", UnexpectedNoVersion(null, NodeConfigId("x"), expired, null, expired))
-    , run("n6", UnexpectedNoVersion(null, NodeConfigId("x"), stillOk, null, stillOk))
+    , run("n6", UnexpectedNoVersion(null, NodeConfigId("x"), expired, null, expired, expired))
+    , run("n6", UnexpectedNoVersion(null, NodeConfigId("x"), stillOk, null, stillOk, expired))
     )
   , (
       buildNode("n7")
-    , run("n7", UnexpectedUnknowVersion(null, NodeConfigId("x"), null, expired))
-    , run("n7", UnexpectedUnknowVersion(null, NodeConfigId("x"), null, stillOk))
+    , run("n7", UnexpectedUnknowVersion(null, NodeConfigId("x"), null, expired, expired))
+    , run("n7", UnexpectedUnknowVersion(null, NodeConfigId("x"), null, stillOk, expired))
     )
   , (
       buildNode("n8")
