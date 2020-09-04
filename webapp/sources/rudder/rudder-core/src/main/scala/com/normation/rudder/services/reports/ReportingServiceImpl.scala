@@ -349,7 +349,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
             _       <- IOResult.effectNonBlocking {
               cache = cache ++ updated
             }
-            _ <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${impactedNodeIds.map(_.value).mkString(", ")}")
+            _ <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${updated.keys.map(_.value).mkString(", ")}")
           } yield ()
       }
     }
@@ -400,6 +400,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       case _ => false
     } }.toSeq
 
+    ReportLoggerPure.Cache.debug(s"Compliance cache is expired for nodes: ${nodeWithOutdatedCompliance.map(_._1.value).mkString(", ")}") *>
     // send outdated message to queue
     invalidateWithAction(nodeWithOutdatedCompliance.map(x => (x._1, ExpiredCompliance(x._1))))
   }
