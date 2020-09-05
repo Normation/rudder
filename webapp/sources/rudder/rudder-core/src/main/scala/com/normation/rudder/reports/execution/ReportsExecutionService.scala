@@ -40,7 +40,7 @@ package com.normation.rudder.reports.execution
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.FindNewReportsExecution
-import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.domain.logger.{ReportLogger, ReportLoggerPure}
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.services.reports.{CachedFindRuleNodeStatusReports, CachedNodeChangesServiceImpl, UpdateCompliance}
 import com.normation.utils.Control
@@ -109,13 +109,15 @@ class ReportsExecutionService (
           case Full(maxReportId) =>
             // ok, we'll manage reports from lastReportId to maxReportId - and this is only useful for changes
 
-            fetchRunsAndCompliance()
-
-            hookForChanges(lastReportId, maxReportId)
-
-            val executionTime = DateTime.now().getMillis() - startTime.getMillis
-            logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
-              s"Added or updated xxxxx agent runs")
+            for {
+              nodes         <- fetchRunsAndCompliance()
+              _             = hookForChanges(lastReportId, maxReportId)
+              executionTime = DateTime.now().getMillis() - startTime.getMillis
+              _             = logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
+                                 s"Added or updated ${nodes.size} agent runs")
+            } yield {
+              nodes
+            }
             idForCheck = maxReportId
             statusUpdateRepository.setExecutionStatus(maxReportId, startTime).map( Some(_) )
 
@@ -144,25 +146,27 @@ class ReportsExecutionService (
     }
   }
 
-  def fetchRunsAndCompliance() = {
+  def fetchRunsAndCompliance(): IOResult[Seq[NodeId]] = {
     // fetch unprocessed run
     // process
     // update cache
     // profit
-    val startCompliance = System.currentTimeMillis
+    import org.joda.time.Duration
 
-    val updateCompliance = {
+
+    {
+      val startCompliance     = System.currentTimeMillis
       for {
         nodeWithCompliances <- cachedCompliance.findUncomputedNodeStatusReports().toIO
         invalidate          <- cachedCompliance.invalidateWithAction(nodeWithCompliances.map { case (nodeid, compliance) => (nodeid, UpdateCompliance(nodeid, compliance))}.toSeq)
+        _                   <-  ReportLoggerPure.Cache.debug(s"Invalidated and updated compliance for nodes ${nodeWithCompliances.map(_._1.value).mkString(",")}")
         _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList) // unsure if here or in the queue
         _                   <- cachedCompliance.outDatedCompliance()
-      } yield ()
+        _                   = ReportLoggerPure.Cache.debug(s"Computing compliance in : ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startCompliance).toPeriod())}")
+      } yield {
+        nodeWithCompliances.map(_._1).toSeq
+      }
     }
-    updateCompliance.runNow
-
-    import org.joda.time.Duration
-    logger.debug(s"Computing compliance in : ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startCompliance).toPeriod())}")
   }
 
   /*
