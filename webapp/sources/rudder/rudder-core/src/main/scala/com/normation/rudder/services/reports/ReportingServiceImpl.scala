@@ -311,11 +311,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       // * no report from the node (compliance expires): recompute compliance
 
       // as a first approach, they could simply findRuleNodeStatusReports
-
-
       {
-
-
         (for {
           _  <- performAction(actions)
         } yield ()).catchAll(err => ReportLoggerPure.Cache.error(s"Error when updating compliance cache for nodes: [${actions.map(_.nodeId).map(_.value).mkString(", ")}]: ${err.fullMsg}"))
@@ -328,12 +324,14 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
 
 
   private[this] def performAction(actions: List[CacheComplianceQueueAction]): IOResult[Unit] = {
+    ReportLoggerPure.Cache.debug(s"Performing action ${actions.headOption}") *>
     // get type of action
-    actions.headOption match {
+      (actions.headOption match {
       case None => ReportLoggerPure.Cache.debug("Nothing to do")
       case Some(t) => t match {
         case update:UpdateCompliance =>
           IOResult.effectNonBlocking {
+            ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${actions.map(_.nodeId.value).mkString(", ")}")
             cache = cache ++ actions.map { case x: UpdateCompliance => (x.nodeId, x.nodeCompliance) }
           }
         case delete: RemoveNodeInCache =>
@@ -349,10 +347,10 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
             _       <- IOResult.effectNonBlocking {
               cache = cache ++ updated
             }
-            _ <- ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${updated.keys.map(_.value).mkString(", ")}")
+            _ <- ReportLoggerPure.Cache.debug(s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}")
           } yield ()
       }
-    }
+    })
   }
   /**
    * Group all actions queue by the same type, keeping the global order.
@@ -641,16 +639,6 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       uncomputedRuns      <- getUnComputedNodeRunInfos(complianceMode)
       t1                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.trace(s"Compliance: get uncomputed node run infos: ${t1-t0}ms")
-
-      // that gives us configId for runs, and expected configId (some may be in both set)
-       // expectedConfigIds   =  uncomputedRuns.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfig.nodeConfigId) }
-      //lastrunConfigId     =  uncomputedRuns.collect {
-      //  case (nodeId, Pending(_, Some(run), _)) => NodeAndConfigId(nodeId, run._2.nodeConfigId)
-      //  case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId)
-      //}
-
-      t2                  =  System.currentTimeMillis
-      _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t2-t0}ms")
 
       // compute the status
       nodeStatusReports   <- buildNodeStatusReports(uncomputedRuns, Set(), complianceMode.mode, unexpectedMode)
