@@ -330,8 +330,8 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       case None => ReportLoggerPure.Cache.debug("Nothing to do")
       case Some(t) => t match {
         case update:UpdateCompliance =>
+          ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${actions.map(_.nodeId.value).mkString(", ")}") *>
           IOResult.effectNonBlocking {
-            ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${actions.map(_.nodeId.value).mkString(", ")}")
             cache = cache ++ actions.map { case x: UpdateCompliance => (x.nodeId, x.nodeCompliance) }
           }
         case delete: RemoveNodeInCache =>
