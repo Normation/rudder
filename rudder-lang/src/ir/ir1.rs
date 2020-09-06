@@ -465,6 +465,6 @@ mod tests {
 
     // TODO
     // test_resource_body
-    /// - resources also have their IR
+    // - resources also have their IR
     // test_state
 }
