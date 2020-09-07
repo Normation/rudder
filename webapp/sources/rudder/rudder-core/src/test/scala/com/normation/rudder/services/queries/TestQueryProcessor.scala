@@ -881,7 +881,16 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: s(4) :: s(5) :: Nil)
 
-    testQueries( q1 :: q2 :: Nil, false)
+    val q3 = TestQuery(
+      "q3", // select no nodes because that property name doesn't exists
+      parser("""
+      { "select":"node", "composition" : "Or", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"hasKey", "value":"No node with that prop" }
+      ] }
+      """).openOrThrowException("For tests"),
+      Nil)
+
+    testQueries( q1 :: q2 :: q3 :: Nil, false)
   }
 
   @Test def nodePropertiesFailingReq(): Unit = {
