@@ -901,10 +901,15 @@ class InternalLDAPQueryProcessor(
       // Get the other filters, by only removing those with 'node' objectType ... maybe we could do a partition here, or even do it above
       subQueries       =  groupedSetFilter.view.mapValues(_.view.filterKeys { _ != "node" }.toMap).filterNot( _._2.isEmpty).toMap
     } yield {
-      // at that point, it may happen that nodeFilters and otherFilters are empty. In that case, we add a
-      // "get all nodes" query and all filters will be done in node info.
-
-      val mainFilters = if(groupedSetFilter.isEmpty) { Some(Set[ExtendedFilter](LDAPFilter(BuildFilter.ALL))) } else { nodeFilters }
+      // at that point, it may happen that nodeFilters and otherFilters are empty
+      val mainFilters = if(groupedSetFilter.isEmpty) {
+        query.composition match {
+          // In that case, we add a "get all nodes" query and all filters will be done in node info.
+          case And => Some(Set[ExtendedFilter](LDAPFilter(BuildFilter.ALL)))
+          // In that case, We should return no Nodes from this query and we will only query nodes with filters from node info.
+          case Or => None
+        }
+      } else { nodeFilters }
 
       val nodeInfos = nodeInfoFilters.map { case QueryFilter.NodeInfo(c, comp, value) => c.matches(comp, value)}
       LDAPNodeQuery(mainFilters, query.composition, subQueries, nodeInfos)
