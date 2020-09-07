@@ -1,13 +1,13 @@
 @format=0
 
-let rights = "g+x"
-
 resource deb()
 
 deb state technique()
 {
   # list of possible statements
   @info="i am a metadata"
+  let rights = "g+x"
+
 
   permissions("/tmp").dirs("root", "x$${root}i${user}2","g+w") as outvar
   
