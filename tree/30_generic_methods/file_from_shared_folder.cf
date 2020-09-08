@@ -21,9 +21,10 @@
 #
 # @parameter source      Source file (path, relative to /var/rudder/configuration-repository/shared-files)
 # @parameter destination Destination file (absolute path on the target node)
-# @parameter hash_type   Hash algorithm used to check if file is updated (md5, sha1, sha256). Only used on Windows, ignored on Unix.
-# @parameter_constraint hash_type "select" : [ "md5", "sha1", "sha256" ]
-#
+# @parameter hash_type   Hash algorithm used to check if file is updated (sha256, sha512). Only used on Windows, ignored on Unix. default is sha256
+# # keep md5 and sha1 to support old generic methods, also add a default so you don't have to enter a value on linux, md5/sha1 should go to default
+# @parameter_constraint hash_type "select" : [ "", "sha256", "sha512", "md5", "sha1" ]
+# @parameter_constraint hash_type "allow_empty_string" : true
 # @class_prefix file_from_shared_folder
 # @class_parameter destination
 
