@@ -33,7 +33,7 @@ pub struct InsertedRunlog {
     #[column_name = "complete"]
     pub complete: bool,
     #[column_name = "nodeconfigid"]
-    pub node_config_id: String,
+    pub node_config_id: Option<String>,
     #[column_name = "insertionid"]
     pub insertion_id: i64,
     #[column_name = "insertiondate"]
@@ -57,10 +57,13 @@ impl InsertedRunlog {
     }
 }
 
+/// We want to allow invalid runlogs as much as possible
+/// to let the webapp give meaningful feedback to the user.
+/// The only constraint is that the runlog contains at least one proper report.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RunLog {
     pub info: RunInfo,
-    pub config_id: String,
+    pub config_id: Option<String>,
     // Never empty vec
     pub reports: Vec<Report>,
 }
@@ -142,12 +145,15 @@ impl TryFrom<(RunInfo, Vec<RawReport>)> for RunLog {
             .ok_or(Error::InconsistentRunlog)?
             .start_datetime;
 
+        // Try to extract a configId from start or end control reports
         let config_id = reports
             .iter()
-            .find(|r| r.event_type == "control" && r.component == "end")
-            .ok_or(Error::MissingEndRun)?
-            .key_value
-            .clone();
+            .find(|r| r.event_type == "control" && (r.component == "start" || r.component == "end"))
+            .map(|r| r.key_value.clone());
+
+        if config_id.is_none() {
+            warn!("Missing start/end control reports in runlog, no config id available");
+        }
 
         for report in &reports {
             if info.node_id != report.node_id {
@@ -236,7 +242,7 @@ mod tests {
                     "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log"
                 )
                 .unwrap(),
-                config_id: "20180824-130007-3ad37587".to_string(),
+                config_id: Some("20180824-130007-3ad37587".to_string()),
                 reports: vec![
                     Report {
                         start_datetime: DateTime::parse_from_str(
@@ -289,7 +295,7 @@ mod tests {
                     "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log"
                 )
                 .unwrap(),
-                config_id: "20180824-130007-3ad37587".to_string(),
+                config_id: Some("20180824-130007-3ad37587".to_string()),
                 reports: vec![
                     Report {
                         start_datetime: DateTime::parse_from_str(

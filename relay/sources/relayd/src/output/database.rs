@@ -41,7 +41,7 @@ pub mod schema {
             nodeid -> Text,
             date -> Timestamptz,
             complete -> Bool,
-            nodeconfigid -> Text,
+            nodeconfigid -> Nullable<Text>,
             insertionid -> Nullable<BigInt>,
             insertiondate -> Nullable<Timestamptz>,
             compliancecomputationdate -> Nullable<Timestamptz>,
