@@ -47,6 +47,8 @@ import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiAccount
 import com.normation.errors.RudderError
+import com.normation.rudder.ncf.ResourceFileService
+import com.normation.rudder.ncf.ResourceFileState.Untouched
 import com.normation.rudder.ncf.TechniqueReader
 import zio._
 import com.normation.zio._
@@ -78,6 +80,7 @@ class CheckNcfTechniqueUpdate(
   , uuidGen        : StringUuidGenerator
   , techLibUpdate  : UpdateTechniqueLibrary
   , techniqueReader: TechniqueReader
+  , resourceFileService: ResourceFileService
 ) extends BootstrapChecks {
 
   override val description = "Regenerate all ncf techniques"
@@ -95,8 +98,13 @@ class CheckNcfTechniqueUpdate(
 
         methods    <- techniqueReader.readMethodsMetadataFile
         techniques <- techniqueReader.readTechniquesMetadataFile
+        techniquesWithResources <-
+          ZIO.foreach(techniques) {
+            technique =>
+              resourceFileService.getResources(technique).map(r => technique.copy(ressources = r.filter(_.state == Untouched)))
+          }
         // Actually write techniques
-        written    <- ZIO.foreach(techniques)( t =>
+        written    <- ZIO.foreach(techniquesWithResources)( t =>
                         techniqueWrite.writeTechnique(t, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value)).chainError(s"An error occured while writing technique ${t.bundleName.value}")
                       )
                                                         // Update technique library once all technique are updated
