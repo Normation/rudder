@@ -78,7 +78,11 @@ def check_output(command, env = {}):
   command_env["PATH"] = os.environ['PATH']
   process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=None, env=command_env)
   output, error = process.communicate()
-  output = output.decode("UTF-8", "ignore")
+  lines = output.decode("UTF-8", "ignore").split("\n")
+  for index, line in enumerate(lines):
+    if line.startswith("{"):
+      output = "\n".join(lines[index:])
+      break;
   error = error.decode("UTF-8", "ignore")
   retcode = process.poll()
   if retcode == 0:
