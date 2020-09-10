@@ -7,7 +7,7 @@ pub mod json;
 pub mod markdown;
 
 pub use self::{cfengine::CFEngine, dsc::DSC, json::JSON, markdown::Markdown};
-use crate::{ir::ir2::IR2, error::*};
+use crate::{error::*, ir::ir2::IR2};
 use serde::de::{self, Deserialize, Deserializer};
 use std::{fmt, path::Path, str::FromStr};
 
@@ -68,9 +68,9 @@ impl FromStr for Format {
             "cf" | "cfengine" => Ok(Format::CFEngine),
             "dsc" | "ps1" => Ok(Format::DSC),
             "json" => Ok(Format::JSON),
+            // RudderLang is an error, not a compilation format
             "rl" => Ok(Format::RudderLang),
             "md" => Ok(Format::Markdown),
-            // RudderLang is an error, not a compilation format
             _ => Err(Error::new(format!("Could not parse format {}", format))),
         }
     }

@@ -72,7 +72,7 @@ fn compile_file(
         stdlib: PathBuf::from("libs/"),
         source: source.to_path_buf(),
         dest: dest.to_path_buf(),
-        mode: Action::Compile,
+        action: Action::Compile,
         format: format.clone(),
     };
     match rudderc::compile::compile_file(&io, true) {

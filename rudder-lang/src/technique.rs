@@ -23,10 +23,10 @@ pub fn generate(context: &IOContext) -> Result<()> {
     let sources: Arena<String> = Arena::new();
     let lib = RudderlangLib::new(&context.stdlib, &sources)?;
     let rudderlang_technique = Technique::from_json(&context)?.to_rudderlang(&lib)?;
-    let output_path = context.dest.to_string_lossy();
+    let output_path = context.output.to_string_lossy();
 
     // will disapear soon, return string directly
-    fs::write(&context.dest, rudderlang_technique).map_err(|e| err_wrapper(&output_path, e))?;
+    fs::write(&context.output, rudderlang_technique).map_err(|e| err_wrapper(&output_path, e))?;
     Ok(())
 }
 
@@ -59,7 +59,7 @@ pub struct Technique {
 impl Technique {
     /// creates a Technique that will be used to generate a string representation of a rudderlang or json technique
     fn from_json(context: &IOContext) -> Result<Self> {
-        let input_path = &context.source.to_string_lossy();
+        let input_path = &context.input.to_string_lossy();
 
         info!(
             "{} from {}",
@@ -74,7 +74,7 @@ impl Technique {
         );
 
         let json_str =
-            &fs::read_to_string(&context.source).map_err(|e| err_wrapper(input_path, e))?;
+            &fs::read_to_string(&context.input).map_err(|e| err_wrapper(input_path, e))?;
 
         serde_json::from_str::<Self>(json_str)
             .map_err(|e| Error::new(format!("Technique from JSON: {}", e)))
