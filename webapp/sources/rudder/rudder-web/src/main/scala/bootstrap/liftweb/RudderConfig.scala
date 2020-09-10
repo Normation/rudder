@@ -98,6 +98,7 @@ import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.migration._
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
+import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.TechniqueArchiverImpl
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
@@ -1095,6 +1096,7 @@ object RudderConfig extends Loggable {
 
   val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")
 
+  val resourceFileService = new ResourceFileService(gitRepo)
   lazy val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
   lazy val rudderApi = {
     import com.normation.rudder.rest.lift._
@@ -1106,7 +1108,7 @@ object RudderConfig extends Loggable {
         new ComplianceApi(restExtractorService, complianceAPIService)
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService5, groupApiService6, groupInheritedProperties)
       , new DirectiveApi(roDirectiveRepository, restExtractorService, directiveApiService2, stringUuidGenerator)
-      , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, restExtractorService, techniqueSerializer, stringUuidGenerator, gitRepo)
+      , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, restExtractorService, techniqueSerializer, stringUuidGenerator, gitRepo, resourceFileService)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeInheritedProperties)
       , new ParameterApi(restExtractorService, parameterApiService2)
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
@@ -2072,6 +2074,7 @@ object RudderConfig extends Loggable {
         , uuidGen
         , updateTechniqueLibrary
         , ncfTechniqueReader
+        , resourceFileService
       )
     , new ResumePolicyUpdateRunning(
           asyncDeploymentAgent

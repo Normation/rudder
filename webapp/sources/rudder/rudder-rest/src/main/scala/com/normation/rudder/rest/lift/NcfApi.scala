@@ -61,6 +61,7 @@ import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
 import net.liftweb.json.JsonAST.JArray
 import com.normation.rudder.ncf.CheckConstraint
+import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.Technique
 import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
@@ -80,6 +81,7 @@ class NcfApi(
   , techniqueSerializer : TechniqueSerializer
   , uuidGen             : StringUuidGenerator
   , gitReposProvider    : GitRepositoryProvider
+  , resourceFileService : ResourceFileService
 ) extends LiftApiModuleProvider[API] with Loggable{
 
   import com.normation.rudder.rest.RestUtils._
@@ -117,80 +119,30 @@ class NcfApi(
     implicit val dataName = "resources"
     def process(version: ApiVersion, path: ApiPath, techniqueInfo: (String,String), req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
-      import zio.syntax._
-      import com.normation.errors.Inconsistency
-      def getAllFiles(file : File):List[String] = {
-        if (file.exists) {
-          if (file.isRegularFile) {
-            file.toString() :: Nil
-          } else {
-            file.children.toList.flatMap(getAllFiles)
-          }
-        } else {
-          Nil
-        }
-      }
 
-      import scala.jdk.CollectionConverters._
       import net.liftweb.json.JsonDSL._
-      import ResourceFileState._
-
-      def toResource(resourcesPath: String)(fullPath : String, state: ResourceFileState): Option[ResourceFile] = {
-        // workaround https://issues.rudder.io/issues/17977 - if the fullPath does not start by resourcePath,
-        // it's a bug from jgit filtering: ignore that file
-        val relativePath = fullPath.stripPrefix(s"${resourcesPath}/")
-        if(relativePath == fullPath) None
-        else Some(ResourceFile(relativePath, state))
-      }
+      import zio.syntax._
 
       def serializeResourceWithState( resource : ResourceFile) = {
         (("name" -> resource.path) ~ ("state" -> resource.state.value))
       }
 
       val action = if (newTechnique) { "newTechniqueResources" } else { "techniqueResources" }
-      def getRessourcesStatus = {
 
-        for {
-          resourcesPath <- if (newTechnique) {
-                              s"workspace/${techniqueInfo._1}/${techniqueInfo._2}/resources".succeed
-                           } else {
-                             for {
-                               optTechnique <- techniqueReader.readTechniquesMetadataFile.map(_.find(_.bundleName.value == techniqueInfo._1))
-                               category <- optTechnique.map(_.category.succeed).getOrElse(Inconsistency(s"No technique found when looking for technique '${techniqueInfo._1}' resources").fail)
-                             } yield {
-                               s"techniques/${category}/${techniqueInfo._1}/${techniqueInfo._2}/resources"
-                             }
-                           }
 
-          status      <- GitFindUtils.getStatus(gitReposProvider.git, List(resourcesPath)).chainError(
-                           s"Error when getting status of resource files of technique ${techniqueInfo._1}/${techniqueInfo._2}"
-                         )
-          resourceDir =  File(gitReposProvider.db.getDirectory.getParent, resourcesPath)
-          allFiles    <- IOResult.effect(s"Error when getting all resource files of technique ${techniqueInfo._1}/${techniqueInfo._2} ") {
-                           getAllFiles(resourceDir)
-                         }
-        } yield {
+      val resources =
+        (if (newTechnique) {
+          resourceFileService.getResourcesFromDir(s"workspace/${techniqueInfo._1}/${techniqueInfo._2}/resources", techniqueInfo._1, techniqueInfo._2)
+        } else {
+          for {
+            optTechnique <- techniqueReader.readTechniquesMetadataFile.map(_.find(_.bundleName.value == techniqueInfo._1))
+            resources <- optTechnique.map(resourceFileService.getResources).getOrElse(Inconsistency(s"No technique found when looking for technique '${techniqueInfo._1}' resources").fail)
+          } yield {
+            resources
+          }
+        }).map(r => JArray(r.map(serializeResourceWithState)))
 
-          val toResourceFixed = toResource(resourceDir.pathAsString) _
-
-          // New files not added
-          val added = status.getUntracked.asScala.toList.flatMap(toResourceFixed(_, New))
-          // Files modified and not added
-          val modified = status.getModified.asScala.toList.flatMap(toResourceFixed(_, Modified))
-          // Files deleted but not removed from git
-          val removed = status.getMissing.asScala.toList.flatMap(toResourceFixed(_, Deleted))
-
-          val filesNotCommitted = modified ::: added ::: removed
-
-          // We want to get all files from the resource directory and remove all added/modified/deleted files so we can have the list of all files not modified
-          val untouched = allFiles.filterNot(f => filesNotCommitted.exists(_.path == f)).flatMap(toResourceFixed(_, Untouched))
-
-          // Create a new list with all a
-          JArray((filesNotCommitted ::: untouched).map(serializeResourceWithState))
-        }
-      }
-
-      resp(getRessourcesStatus.toBox, req, "Could not get resource state of technique")(action)
+      resp(resources.toBox, req, "Could not get resource state of technique")(action)
     }
   }
 
