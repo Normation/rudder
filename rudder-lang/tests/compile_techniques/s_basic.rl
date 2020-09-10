@@ -2,7 +2,8 @@
 
 @name="Configure NTP"
 @description="test"
-@version="1.0"
+@category="ncf_technique"
+@version = 0
 @parameters=[]
 
 resource Configure_NTP()

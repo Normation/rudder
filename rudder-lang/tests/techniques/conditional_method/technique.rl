@@ -1,9 +1,9 @@
 # This file has been generated with rltranslate
 @format=0
-
 @name="conditional method"
 @description="one method with several conditons"
-@version="1.0"
+@version = 0
+@category = "ncf_technique"
 @parameters=[]
 
 resource conditional_method()

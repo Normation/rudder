@@ -1,9 +1,9 @@
 use crate::{
     ir::{
         enums::EnumExpressionPart,
+        ir2::IR2,
         resource::{ResourceDef, StateDeclaration, Statement},
         value::Value as IRValue,
-        ir2::IR2,
     },
     technique::*,
 };
@@ -77,7 +77,7 @@ impl<'src> From<&IR2<'src>> for Technique {
                 bundle_name: extract_meta_string(meta, "name"),
                 description: extract_meta_string(meta, "description"),
                 name: extract_meta_string(meta, "name"),
-                version: extract_meta_string(meta, "version"),
+                version: extract_meta_integer(meta, "version"),
                 category: extract_meta_string(meta, "category"),
                 interpolated_parameters,
                 method_calls,
@@ -93,6 +93,14 @@ fn extract_meta_string(map: &Map<String, TOMLValue>, field: &str) -> String {
         .as_str()
         .expect(&format!("Expected type string for '{}' metadata", field))
         .to_owned()
+}
+
+fn extract_meta_integer(map: &Map<String, TOMLValue>, field: &str) -> String {
+    map.get(field)
+        .expect(&format!("Missing '{}' metadata", field))
+        .as_integer()
+        .expect(&format!("Expected type integer for '{}' metadata", field))
+        .to_string()
 }
 
 fn format_expr(ir: &IR2, expr: &EnumExpressionPart) -> String {

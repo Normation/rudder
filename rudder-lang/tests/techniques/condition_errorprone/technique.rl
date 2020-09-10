@@ -2,9 +2,9 @@
 
 @name="condition_errorprone"
 @description=""
-@version="1.0"
-@parameters= [
-]
+@version = 0
+@category = "ncf_technique"
+@parameters= []
 
 resource condition_errorprone()
 

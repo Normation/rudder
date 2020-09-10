@@ -1,9 +1,9 @@
 # This file has been generated with rltranslate
 @format=0
-
 @name="condition any bsd"
 @description="Kernel simplest"
-@version="1.0"
+@category = "ncf_technique"
+@version = 0
 @parameters=[]
 
 resource condition_anybsd()

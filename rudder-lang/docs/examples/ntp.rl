@@ -2,7 +2,7 @@
 
 @name="Configure NTP"
 @description="test"
-@version="1.0"
+@version = 0
 @parameters=[]
 
 resource Configure_NTP()

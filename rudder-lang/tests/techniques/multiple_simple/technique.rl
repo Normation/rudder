@@ -1,9 +1,9 @@
 # This file has been generated with rltranslate
 @format=0
-
 @name="multiple_simple"
 @description=""
-@version="1.0"
+@category = "ncf_technique"
+@version = 0
 @parameters=[]
 
 resource multiple_simple()

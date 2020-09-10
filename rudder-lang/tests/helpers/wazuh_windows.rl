@@ -2,7 +2,8 @@
 @format = 0
 @name = "Wazuh windows install"
 @description = ""
-@version = "1.0"
+@category = "ncf_technique"
+@version = 0
 @parameters = []
 
 resource Wazuh_windows_install()

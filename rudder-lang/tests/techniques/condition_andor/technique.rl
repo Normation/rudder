@@ -2,7 +2,8 @@
 @format = 0
 @name = "condition andor"
 @description = "Kernel simplest"
-@version = "1.0"
+@category = "ncf_technique"
+@version = 0
 @parameters = []
 
 resource condition_andor()

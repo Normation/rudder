@@ -2,10 +2,11 @@
 @format=0
 @name="CIS redhat7 - Enable Service"
 @description="test"
-@version="1.0"
+@category = "ncf_technique"
+@version = 0
 @parameters= [
-  { "name": "service", "id": "981a5b9d-b062-4011-8dff-df1810cb2fe6", "description": "", "constraints": "" },
-]
+@  { "name" = "service", "id" = "981a5b9d-b062-4011-8dff-df1810cb2fe6", "description" = "" },
+@]
 
 resource CIS_redhat7___Enable_Service(service)
 

@@ -106,7 +106,11 @@ pub struct TechniqueData {
     bundle_name: String,
     description: String,
     name: String,
-    #[serde(default)] // >=6.1
+    #[serde(
+        default,
+        serialize_with = "string_into_u8",
+        deserialize_with = "string_from_u8"
+    )] // >=6.1
     version: String,
     #[serde(rename = "parameter")]
     interpolated_parameters: Vec<InterpolatedParameter>,
@@ -144,7 +148,7 @@ impl TechniqueData {
 @format = 0
 @name = "{name}"
 @description = "{description}"
-@version = "{version}"
+@version = {version}
 @parameters = [{parameters_meta}]
 
 resource {bundle_name}({parameter_list})
