@@ -743,19 +743,34 @@ class TechniqueArchiverImpl (
   def commitTechnique(technique : Technique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
 
     val techniqueGitPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}"
-    // additionnal files to delete, for migration purpose.
+    val filesToAdd = (
+      "metadata.xml" +:
+      "technique.cf" +:
+      "technique.ps1" +:
+      "technique.json" +:
+      technique.ressources.collect {
+      case ResourceFile(path, action) if action == ResourceFileState.New | action == ResourceFileState.Modified =>
+        s"resources/${path}"
+      }
+    ).map(file =>  s"${techniqueGitPath}/$file")
+
+    // appart resources, additionnal files to delete are for migration purpose.
     val filesToDelete =
       s"ncf/50_techniques/${technique.bundleName.value}" +:
-        s"dsc/ncf/50_techniques/${technique.bundleName.value}" +: Nil
+      s"dsc/ncf/50_techniques/${technique.bundleName.value}" +:
+      technique.ressources.collect {
+        case ResourceFile(path, ResourceFileState.Deleted) =>
+          s"${techniqueGitPath}/resources/${path}"
+      }
     (for {
       ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-      // we want to add anything modified under technique path, because it's likelly the reality - if not, bug is
-      // elsewhere and we need to correct what caused the bad add/delete.
-      _       <- IOResult.effect (gitRepo.git.add.addFilepattern(techniqueGitPath).call())
-      _       <- IOResult.effect (gitRepo.git.add.setUpdate(true).addFilepattern(techniqueGitPath).call())
+
+      added <- ZIO.foreach(filesToAdd) { f =>
+        IOResult.effect(gitRepo.git.add.addFilepattern(f).call())
+      }
       removed <- ZIO.foreach(filesToDelete) { f =>
-                   IOResult.effect(gitRepo.git.rm.addFilepattern(f).call())
-                 }
+        IOResult.effect(gitRepo.git.rm.addFilepattern(f).call())
+      }
       commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield ()).chainError(s"error when committing Technique '${technique.name}/${technique.version}").unit
   }
