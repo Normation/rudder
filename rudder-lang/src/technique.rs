@@ -10,86 +10,47 @@ pub use read::technique_read;
 use crate::{
     cfstrings,
     error::*,
-    io::IOContext,
     rudderlang_lib::{LibMethod, RudderlangLib},
 };
 use colored::Colorize;
 use lazy_static::lazy_static;
 use regex::{Captures, Regex};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{fs, io::Read, str};
-use typed_arena::Arena;
-
-// might change later
-pub type TechniqueFmt = String;
+use serde::{
+    de::{self, Deserializer, Unexpected},
+    Deserialize, Serialize, Serializer,
+};
+use std::str;
 
 // Techniques are limited subsets of CFEngine in JSON representation
 // that only carry method calls and Rudder metadata
-/// generates a technique to either rudderlang or json format, using our own library
-pub fn generate(context: &IOContext) -> Result<()> {
-    let sources: Arena<String> = Arena::new();
-    let lib = RudderlangLib::new(&context.stdlib, &sources)?;
-    let rudderlang_technique = Technique::from_json(&context)?.to_rudderlang(&lib)?;
 
-    // will disapear soon, return string directly
-    // let output_path = context.output.unwrap().to_string_lossy();
-    // fs::write(&context.output, rudderlang_technique).map_err(|e| err_wrapper(&output_path, e))?;
-    Ok(())
-}
-
-fn string_into_u8<S>(v: &str, s: S) -> std::result::Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    s.serialize_u8(
-        v.parse()
-            .expect("Version type cannot be parsed into an integer"),
-    )
-}
-
-fn string_from_u8<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let res = u8::deserialize(deserializer)?;
-    Ok(res.to_string())
-}
+// might change later
+pub type TechniqueFmt = String;
 
 /// Every Technique substructure has only 1 purpose: represent a Technique as json or rudderlang string
 #[derive(Serialize, Deserialize)]
 pub struct Technique {
     r#type: String,
-    #[serde(serialize_with = "string_into_u8", deserialize_with = "string_from_u8")]
-    version: String,
+    version: u8,
     data: TechniqueData,
 }
 impl Technique {
     /// creates a Technique that will be used to generate a string representation of a rudderlang or json technique
-    fn from_json(context: &IOContext) -> Result<Self> {
-        let (input, content) = match &context.input {
-            Some(file_path) => {
-                let input = file_path.to_string_lossy().to_string();
-                let content = fs::read_to_string(file_path).map_err(|e| err_wrapper(&input, e))?;
-                (input, content)
-            }
-            None => {
-                let mut buffer = String::new();
-                std::io::stdin()
-                    .read_to_string(&mut buffer)
-                    .map_err(|e| err_wrapper("STDIN", e))?;
-                ("STDIN".to_owned(), buffer)
-            }
-        };
-
-        info!(
-            "{} from {}",
-            "Processing generation".bright_green(),
-            input.bright_yellow(),
-        );
+    pub fn from_json(input: &str, content: &str, is_technique_data: bool) -> Result<Self> {
         info!("|- {} {}", "Parsing".bright_green(), input.bright_yellow());
 
-        serde_json::from_str::<Self>(&content)
-            .map_err(|e| Error::new(format!("Technique from JSON: {}", e)))
+        if is_technique_data {
+            let data = serde_json::from_str::<TechniqueData>(content)
+                .map_err(|e| Error::new(format!("Technique from JSON: {}", e)))?;
+            Ok(Self {
+                r#type: "ncf_techniques".to_owned(),
+                version: 2,
+                data,
+            })
+        } else {
+            serde_json::from_str::<Self>(content)
+                .map_err(|e| Error::new(format!("Technique from JSON: {}", e)))
+        }
     }
 
     pub fn to_json(&self) -> Result<TechniqueFmt> {
@@ -102,13 +63,12 @@ impl Technique {
             .map_err(|e| Error::new(format!("Technique to JSON: {}", e)))
     }
 
-    fn to_rudderlang(&self, lib: &RudderlangLib) -> Result<String> {
+    pub fn to_rudderlang(&self, lib: &RudderlangLib) -> Result<TechniqueFmt> {
         info!(
             "|- {} (translation phase)",
             "Generating rudderlang code".bright_green()
         );
 
-        // TODO generate wrapper too
         self.data.to_rudderlang(lib)
     }
 }
@@ -118,18 +78,17 @@ pub struct TechniqueData {
     bundle_name: String,
     description: String,
     name: String,
-    #[serde(
-        default,
-        serialize_with = "string_into_u8",
-        deserialize_with = "string_from_u8"
-    )] // >=6.1
     version: String,
     #[serde(rename = "parameter")]
     interpolated_parameters: Vec<InterpolatedParameter>,
+    #[serde(default = "default_category")] // >=6.2
     category: String,
     method_calls: Vec<MethodCall>,
     #[serde(default)] // >=6.2
     resources: Vec<Resource>,
+}
+fn default_category() -> String {
+    "ncf_techniques".to_owned()
 }
 impl TechniqueData {
     fn to_rudderlang(&self, lib: &RudderlangLib) -> Result<String> {
@@ -214,8 +173,10 @@ impl MethodCall {
         let param_count = 1 + lib_method.state.parameters.len();
         if params.len() != param_count {
             return Err(Error::new(format!(
-                "Method {} is expected to have {} parameters",
-                self.method_name, param_count
+                "Method {} is expected to have {} parameters, found {}",
+                self.method_name,
+                param_count,
+                params.len()
             )));
         }
         let state_params: Vec<String> = params

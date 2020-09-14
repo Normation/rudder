@@ -368,7 +368,7 @@ def read_config(filename):
 
 def config_value(config, key, default):
     try:
-        return config["shared"][key].replace("\"", "")
+        return config.get("shared", key).replace("\"", "")
     except BaseException:
         return default
 

@@ -258,6 +258,7 @@ impl Logs {
             Ok(data) => (true, data, Vec::new()),
             Err(e) => (false, Vec::new(), e.clean_format_list()),
         };
+
         let dest_files = &data
             .iter()
             .filter_map(|res| res.destination.as_ref().map(|d| format!("'{:?}'", d)))
@@ -272,8 +273,9 @@ impl Logs {
 
         // remove data if it has been written to a file to avoid duplicate content
         self.print_to_file(&mut data, action);
-        match self {
-            Logs::JSON => {
+        match (self, is_success) {
+            // what should be printed to styderr in case of an error ?
+            (Logs::JSON, _) => {
                 let status = if is_success { "success" } else { "failure" };
                 let output = LogsFmtOk {
                     action: format!("{}", action),
@@ -288,18 +290,22 @@ impl Logs {
                     .map_err(|e| format!("Building JSON output led to an error: {}", e))
                     .unwrap(); // dev error if this does not work
                 println!("{}", fmtoutput);
-            }
-            Logs::Terminal => {
                 if is_success {
-                    println!("{} written", dest_files);
-                } else {
-                    println!(
-                        "An error occurred, could not create {} from '{}'",
-                        dest_files, source
-                    );
+                    eprintln!(
+                        "An error occurred, could not create content from '{}' because: '{}'",
+                        output.source,
+                        output.errors.join(" ; ")
+                    )
                 }
             }
-            Logs::None => (),
+            // TODO where should errors be printed? see once logging system implemented
+            (Logs::Terminal, true) => println!("{} written", dest_files),
+            (Logs::None, true) => (),
+            (_, false) => eprintln!(
+                "An error occurred, could not create content from '{}' because: '{}'",
+                source,
+                errors.join(" ; ")
+            ),
         }
     }
 

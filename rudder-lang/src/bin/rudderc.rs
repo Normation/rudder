@@ -90,21 +90,12 @@ fn main() {
     // TODO collect logs in ram rather than directly printing it
     let action_result = match action {
         Action::Compile => compile(&ctx, true),
-        // TODO Migrate: call cf_to_json perl script then call json->rl == Technique generate()
         Action::Migrate => migrate(&ctx),
         Action::ReadTechnique => technique_read(&ctx),
-        // TODO Generate: call technique generate then compile into all formats + json wrapper: { rl: "", dsc: "", cf: "", errors:{} }
         Action::GenerateTechnique => technique_generate(&ctx),
     };
     let action_status = action_result.is_ok();
-    output.print(
-        action,
-        match &ctx.input {
-            Some(path) => path.to_string_lossy().to_string(),
-            None => "STDIN".to_owned(),
-        },
-        action_result,
-    );
+    output.print(action, ctx.input, action_result);
     if action_status {
         exit(1)
     }

@@ -2,7 +2,7 @@
 @format=0
 @name="parameters mult"
 @description="technique using multiple parameters"
-@category = "ncf_technique"
+@category = "ncf_techniques"
 @version = 0
 @parameters=[
 @  {"name" = "paramtest", "id" = "d74a03dd-5b0b-4b06-8dcf-b4e0cb387c60", "description" = ""},

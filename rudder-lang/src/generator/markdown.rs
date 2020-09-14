@@ -18,7 +18,7 @@ impl Generator for Markdown {
     fn generate(
         &mut self,
         gc: &IR2,
-        _source_file: Option<&Path>,
+        _source_file: &str,
         _dest_file: Option<&Path>,
         _policy_metadata: bool,
     ) -> Result<Vec<ActionResult>> {

@@ -2,7 +2,7 @@
 
 @name="Configure NTP"
 @description="test"
-@category="ncf_technique"
+@category="ncf_techniques"
 @version = 0
 @parameters=[]
 

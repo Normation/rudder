@@ -2,7 +2,7 @@
 @format=0
 @name = "normal"
 @description = "ewf"
-@category = "ncf_technique"
+@category = "ncf_techniques"
 @version = 0
 @parameters = [
 @  { "name" = "parameter wdd", "id" = "c6e6cc3a-9ce8-4889-bccc-6bfc1b091d0d", "description" = "" },

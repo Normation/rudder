@@ -1,5 +1,5 @@
 {
-  "type": "ncf_technique",
+  "type": "ncf_techniques",
   "version": 1,
   "data": {
     "bundle_name": "CIS_9_1_configure_cron",

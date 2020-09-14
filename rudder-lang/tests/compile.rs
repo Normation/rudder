@@ -13,8 +13,8 @@
 /// example of files that should succeed: s_errors.rl s_errors.rl.cf
 // TODO: compare both result and generated output (.rl.cf) in separated tests
 // Note: 2 ways a test fails:
-// - either rudderc::compile() and expected result don't match
-// - or rudderc::compile() was not called at all (file does not exist or filename format is wrong)
+// - either rudderc::compile_file() and expected result don't match
+// - or rudderc::compile_file() was not called at all (file does not exist or filename format is wrong)
 mod utils;
 use utils::*;
 

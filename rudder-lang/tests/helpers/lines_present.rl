@@ -2,7 +2,7 @@
 @format = 0
 @name = "CIS redhat7 - Ensure lines present in file"
 @description = ""
-@category = "ncf_technique"
+@category = "ncf_techniques"
 @version = 0
 @parameters = [
 @  { "name" = "lines", "id" = "7e9a3aa5-a697-4f88-8d3d-a02e27e1b5f8", "description" = "" },

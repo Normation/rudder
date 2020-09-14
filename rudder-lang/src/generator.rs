@@ -19,7 +19,7 @@ pub trait Generator {
     fn generate(
         &mut self,
         gc: &IR2,
-        source_file: Option<&Path>,
+        source_file: &str,
         dest_file: Option<&Path>,
         technique_metadata: bool,
     ) -> Result<Vec<ActionResult>>;

@@ -1,13 +1,16 @@
 {
-  "type": "ncf_technique",
+  "type": "ncf_techniques",
   "version": 2,
   "data": {
     "bundle_name": "simplest",
     "description": "rudderlang simplest for a complete loop",
     "name": "simplest",
-    "version": 0,
+    "version": "1.0",
     "parameter": [],
-    "category": "ncf_technique",
+    "category": "ncf_techniques",
+    "bundle_args": [
+      "12"
+    ],
     "method_calls": [
       {
         "parameters": [

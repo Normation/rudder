@@ -3,7 +3,10 @@
 
 use super::{context::*, enums::EnumList, resource::*, value::*};
 use crate::{error::*, parser::*};
-use std::{rc::Rc, collections::{HashMap, HashSet}};
+use std::{
+    collections::{HashMap, HashSet},
+    rc::Rc,
+};
 
 /// An IR1 is the first intermediate representation
 /// - the context is filled with all global variables: enum, definition and magics
@@ -20,27 +23,28 @@ pub struct IR1<'src> {
     pub context: Rc<VarContext<'src>>,
     pub enum_list: EnumList<'src>,
     pub variable_definitions: HashMap<Token<'src>, ComplexValue<'src>>,
-    pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>, // also used as parameter list since that's all we have
+    pub parameter_defaults:
+        HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>, // also used as parameter list since that's all we have
     pub resource_list: HashSet<Token<'src>>,
     pub resources: HashMap<Token<'src>, ResourceDef<'src>>,
 }
 
 pub fn vec_collect_results<I, F, X, Y>(it: I, f: F, errors: &mut Vec<Error>) -> Vec<Y>
-    where
-        I: Iterator<Item = X>,
-        F: FnMut(X) -> Result<Y>,
+where
+    I: Iterator<Item = X>,
+    F: FnMut(X) -> Result<Y>,
 {
     it.map(f)
-      .filter(|r| {
-          if let Err(e) = r {
-              errors.push(e.clone());
-              false
-          } else {
-              true
-          }
-      })
-      .map(Result::unwrap)
-      .collect()
+        .filter(|r| {
+            if let Err(e) = r {
+                errors.push(e.clone());
+                false
+            } else {
+                true
+            }
+        })
+        .map(Result::unwrap)
+        .collect()
 }
 impl<'src> IR1<'src> {
     /// Produce the IR1 data structure.
@@ -91,12 +95,11 @@ impl<'src> IR1<'src> {
 
     /// Insert all initial enums
     fn add_enums(&mut self, enums: Vec<PEnum<'src>>) {
-        let context = Rc::get_mut(&mut self.context).expect("Context has not been allocated before enums !");
+        let context =
+            Rc::get_mut(&mut self.context).expect("Context has not been allocated before enums !");
         for en in enums {
             if en.global {
-                if let Err(e) = context
-                    .add_variable_declaration(en.name, Type::Enum(en.name))
-                {
+                if let Err(e) = context.add_variable_declaration(en.name, Type::Enum(en.name)) {
                     self.errors.push(e);
                 }
             }
@@ -167,7 +170,8 @@ impl<'src> IR1<'src> {
     /// Insert variables definition into the global context
     /// Insert the variables definition into the global definition space
     fn add_variables(&mut self, variables: Vec<PVariableDef<'src>>) {
-        let context = Rc::get_mut(&mut self.context).expect("Context has not been allocated before variables !");
+        let context = Rc::get_mut(&mut self.context)
+            .expect("Context has not been allocated before variables !");
         for variable in variables {
             let PVariableDef {
                 metadata,
@@ -180,9 +184,11 @@ impl<'src> IR1<'src> {
                     Err(e) => self.errors.push(e),
                     Ok(type_) => match context.add_variable_declaration(name, type_) {
                         Err(e) => self.errors.push(e),
-                        Ok(()) => { self.variable_definitions.insert(name, val); }
-                    }
-                }
+                        Ok(()) => {
+                            self.variable_definitions.insert(name, val);
+                        }
+                    },
+                },
             }
         }
     }
@@ -190,22 +196,24 @@ impl<'src> IR1<'src> {
     /// Add the variables extensions to the global definition space
     fn add_variable_extensions(&mut self, variables: Vec<PVariableExt<'src>>) {
         for variable in variables {
-            let PVariableExt {
-                name,
-                value,
-            } = variable;
+            let PVariableExt { name, value } = variable;
             match self.variable_definitions.get_mut(&name) {
-                None => self.errors.push(err!(name, "Variable {} has never been defined", name)),
-                Some(v) => if let Err(e) = v.extend(&self.enum_list, &self.context, value) {
-                    self.errors.push(e);
-                },
+                None => self
+                    .errors
+                    .push(err!(name, "Variable {} has never been defined", name)),
+                Some(v) => {
+                    if let Err(e) = v.extend(&self.enum_list, &self.context, value) {
+                        self.errors.push(e);
+                    }
+                }
             }
         }
     }
 
     /// Insert the variables declarations into the global context
     fn add_magic_variables(&mut self, variables: Vec<PVariableDecl<'src>>) {
-        let context = Rc::get_mut(&mut self.context).expect("Context has not been allocated before magic variables !");
+        let context = Rc::get_mut(&mut self.context)
+            .expect("Context has not been allocated before magic variables !");
         for variable in variables {
             let PVariableDecl {
                 metadata,
@@ -335,7 +343,9 @@ impl<'src> IR1<'src> {
         for res in resources {
             let name = res.name;
             // if this is a duplicate, just ignore, the case has already been handled in add_resource_list
-            if self.resources.contains_key(&name) { continue }
+            if self.resources.contains_key(&name) {
+                continue;
+            }
             // or else because we have not stopped on duplicate resources
             let states = state_list.remove(&name).unwrap_or_else(Vec::new);
             let res_children = children.remove(&name).unwrap_or_else(HashSet::new);
@@ -377,7 +387,8 @@ mod tests {
 
     fn parse_str<'src>(name: &'src str, source: &'src str) -> Result<IR1<'src>> {
         let mut past = PAST::new();
-        past.add_file(name, source).expect("Test should use valid syntax");
+        past.add_file(name, source)
+            .expect("Test should use valid syntax");
         IR1::from_past(past)
     }
 
@@ -390,22 +401,22 @@ mod tests {
         parse_str_ok(&mut source, "global_enum1", "global enum G { a, b, c }\n");
         parse_str_err(&mut source, "global_enum2", "global enum G { d, e, f }\n"); // enum names are unique
         parse_str_err(&mut source, "global_enum3", "global enum H { a, b, c }\n"); // global enum items are unique
-        parse_str_err(&mut source, "global_enum4", "items in a { b, c }\n");       // global enum items are unique within tree
+        parse_str_err(&mut source, "global_enum4", "items in a { b, c }\n"); // global enum items are unique within tree
         parse_str_ok(&mut source, "global_enum5", "items in a { aa, ab }\n");
 
-        parse_str_ok(&mut source, "enum1", "enum E { a, b, c }\n");       // non global enum item are not globally unique
+        parse_str_ok(&mut source, "enum1", "enum E { a, b, c }\n"); // non global enum item are not globally unique
         parse_str_ok(&mut source, "enum2", "enum F { d, e, f, g }\n");
-        parse_str_err(&mut source, "enum3", "items in g { ga, gb }\n");   // non global enum item need an enum identifier
+        parse_str_err(&mut source, "enum3", "items in g { ga, gb }\n"); // non global enum item need an enum identifier
         parse_str_ok(&mut source, "enum4", "items in F.g { ga, gb }\n");
         parse_str_err(&mut source, "enum5", "items in F.f { ga, gb }\n"); // enum items are unique within tree
 
-        parse_str_err(&mut source, "enum_var1", "let G=\"x\"\n");  // global enum automatically declare an variable
+        parse_str_err(&mut source, "enum_var1", "let G=\"x\"\n"); // global enum automatically declare an variable
         parse_str_ok(&mut source, "enum_var2", "let E=\"x\"\n");
 
-        parse_str_err(&mut source, "enum_alias1", "enum alias A=G\n");    // alias are for items
-        parse_str_err(&mut source, "enum_alias2", "enum alias a=G.a\n");  // global alias are unique like items are unique
-        parse_str_err(&mut source, "enum_alias3", "enum alias a=E.a\n");  // non global alias are unique like items are unique
-        parse_str_err(&mut source, "enum_alias3", "enum alias w=X.a\n");  // alias must reference existing item
+        parse_str_err(&mut source, "enum_alias1", "enum alias A=G\n"); // alias are for items
+        parse_str_err(&mut source, "enum_alias2", "enum alias a=G.a\n"); // global alias are unique like items are unique
+        parse_str_err(&mut source, "enum_alias3", "enum alias a=E.a\n"); // non global alias are unique like items are unique
+        parse_str_err(&mut source, "enum_alias3", "enum alias w=X.a\n"); // alias must reference existing item
         parse_str_ok(&mut source, "enum_alias4", "enum alias ax=G.a\n");
         parse_str_ok(&mut source, "enum_alias5", "enum alias ay=E.a\n");
         parse_str_ok(&mut source, "enum_alias6", "enum alias az=F.ga\n");
@@ -419,7 +430,7 @@ mod tests {
         let mut source = "@format=0\n".to_string();
 
         parse_str_ok(&mut source, "magic1", "let m\n");
-        parse_str_err(&mut source, "magic2", "let m\n");      // variable cannot be overridden
+        parse_str_err(&mut source, "magic2", "let m\n"); // variable cannot be overridden
         parse_str_ok(&mut source, "magic3", "let n.m\n");
         parse_str_ok(&mut source, "magic4", "let n.n\n");
         parse_str_ok(&mut source, "magic5", "let o.m.m\n");
@@ -431,8 +442,16 @@ mod tests {
         parse_str_err(&mut source, "var4", "let v\n");
 
         parse_str_ok(&mut source, "complex0", "global enum complete { X, Y }\n");
-        parse_str_ok(&mut source, "complex1", "let c1 = case { X => \"val\", default => \"val2\" }\n");
-        parse_str_ok(&mut source, "complex2", "let c2 = case { X => \"val\", Y => \"val2\" }\n");
+        parse_str_ok(
+            &mut source,
+            "complex1",
+            "let c1 = case { X => \"val\", default => \"val2\" }\n",
+        );
+        parse_str_ok(
+            &mut source,
+            "complex2",
+            "let c2 = case { X => \"val\", Y => \"val2\" }\n",
+        );
 
         parse_str_ok(&mut source, "ext1", "v=if X => \"val\"\n");
     }
@@ -445,13 +464,17 @@ mod tests {
 
         parse_str_ok(&mut source, "resource1", "resource r(x) {}\n");
         parse_str_err(&mut source, "resource2", "resource r(x) {}\n"); // redefining the same resource is forbidden
-        parse_str_err(&mut source, "resource3", "resource r() {}\n");  // redefining a resource with different parameters is forbidden
+        parse_str_err(&mut source, "resource3", "resource r() {}\n"); // redefining a resource with different parameters is forbidden
         parse_str_ok(&mut source, "resource4", "resource s(x)\n");
         parse_str_ok(&mut source, "resource5", "resource t(x:string,y) {}\n");
         parse_str_err(&mut source, "resource6", "resource u(x=\"str\",y) {}\n"); // default values must come last
         parse_str_ok(&mut source, "resource7", "resource u(y,x=\"str\") {}\n");
-        parse_str_err(&mut source, "resource8", "resource v(y,x=value) {}\n");   // default values must be constant
-        parse_str_err(&mut source, "resource9", "resource v(y,x=\"${value}\") {}\n"); // default values must be constant
+        parse_str_err(&mut source, "resource8", "resource v(y,x=value) {}\n"); // default values must be constant
+        parse_str_err(
+            &mut source,
+            "resource9",
+            "resource v(y,x=\"${value}\") {}\n",
+        ); // default values must be constant
     }
 
     /// - resources hierarchy is created

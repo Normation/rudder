@@ -1,5 +1,5 @@
 {
-    "type": "ncf_technique",
+    "type": "ncf_techniques",
     "version": 1,
     "data": {
         "name": "conditional method",
@@ -15,9 +15,9 @@
                 "method_name": "http_request_check_status_headers",
                 "parameters": [
                     {
-                      "name": "type",
-                      "value": "GET",
-                      "$errors": []
+                        "name": "type",
+                        "value": "GET",
+                        "$errors": []
                     },
                     {
                         "name": "url",

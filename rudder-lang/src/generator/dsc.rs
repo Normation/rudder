@@ -8,7 +8,11 @@ use crate::{
     ActionResult, Format,
 };
 
-use std::{collections::HashMap, ffi::OsStr, path::Path};
+use std::{
+    collections::HashMap,
+    ffi::OsStr,
+    path::{Path, PathBuf},
+};
 use toml::Value as TomlValue;
 
 use crate::error::*;
@@ -195,8 +199,8 @@ impl DSC {
 
         let generic_method_name = &format!(
             "{}_{}",
+            state_decl.resource.fragment(),
             state_decl.state.fragment(),
-            state_decl.resource.fragment()
         );
 
         let mut param_names = state_def
@@ -493,7 +497,7 @@ impl Generator for DSC {
     fn generate(
         &mut self,
         gc: &IR2,
-        source_file: Option<&Path>,
+        source_file: &str,
         dest_file: Option<&Path>,
         technique_metadata: bool,
     ) -> Result<Vec<ActionResult>> {
@@ -504,16 +508,16 @@ impl Generator for DSC {
                 // This condition actually rejects every file that is not the input filename
                 // therefore preventing from having an output in another directory
                 // Solutions: check filename rather than path, or accept everything that is not from crate root lib
-                let file_to_create = match get_dest_file(source_file, sn.file(), dest_file) {
-                    Some(file) => file,
-                    None => continue,
-                };
+                if source_file != sn.file() {
+                    // means it's a lib file, not the file we want to generate
+                    continue;
+                }
                 self.reset_context();
 
                 // get header
                 let header = match files
                     .iter()
-                    .find(|f| f.destination == Some(file_to_create.clone().into()))
+                    .find(|f| f.destination == dest_file.map(|o| PathBuf::from(o)))
                 {
                     Some(s) if s.content.is_some() => s.content.as_ref().unwrap().to_string(),
                     _ => {
@@ -579,7 +583,7 @@ function {resource_name}-{state_name} {{
                 );
                 files.push(ActionResult::new(
                     Format::DSC,
-                    Some(file_to_create.into()),
+                    dest_file.map(|o| PathBuf::from(o)),
                     Some(content.to_string()),
                 ));
             }
@@ -619,55 +623,4 @@ fn pascebab_case(s: &str) -> String {
         pascebab.push_str(&next);
     }
     pascebab
-}
-
-fn get_dest_file(input: Option<&Path>, cur_file: &str, output: Option<&Path>) -> Option<String> {
-    let dest_file = match input {
-        Some(filepath) => {
-            if filepath.file_name() != Some(&OsStr::new(cur_file)) {
-                return None;
-            }
-            // can unwrap here since if source_file is Some, so does dest_file (see end of compile.rs)
-            match output.unwrap().to_str() {
-                Some(dest_filename) => dest_filename,
-                None => cur_file,
-            }
-        }
-        None => cur_file,
-    };
-    Some(dest_file.to_owned())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use pretty_assertions::assert_eq;
-
-    #[test]
-    fn dest_file() {
-        assert_eq!(
-            get_dest_file(
-                Some(Path::new("/path/my_file.rl")),
-                "my_file.rl",
-                Some(Path::new(""))
-            ),
-            Some("".to_owned())
-        );
-        assert_eq!(
-            get_dest_file(
-                Some(Path::new("/path/my_file.rl")),
-                "my_file.rl",
-                Some(Path::new("/output/file.rl.dsc"))
-            ),
-            Some("/output/file.rl.dsc".to_owned())
-        );
-        assert_eq!(
-            get_dest_file(
-                Some(Path::new("/path/my_file.rl")),
-                "wrong_file.rl",
-                Some(Path::new("/output/file.rl.dsc"))
-            ),
-            None
-        );
-    }
 }

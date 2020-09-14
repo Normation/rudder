@@ -63,7 +63,7 @@ impl fmt::Debug for Action {
     }
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct ActionResult {
     pub format: Format,
     pub destination: Option<PathBuf>, // None means it will be printed to stdout

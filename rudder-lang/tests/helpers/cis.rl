@@ -2,7 +2,7 @@
 @format=0
 @name="CIS redhat7 - Enable Service"
 @description="test"
-@category = "ncf_technique"
+@category = "ncf_techniques"
 @version = 0
 @parameters= [
 @  { "name" = "service", "id" = "981a5b9d-b062-4011-8dff-df1810cb2fe6", "description" = "" },

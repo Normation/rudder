@@ -1,5 +1,5 @@
 {
-    "type": "ncf_technique",
+    "type": "ncf_techniques",
     "version": 1,
     "data": {
         "name": "parameters mult err",
@@ -28,9 +28,9 @@
                 "method_name": "package_absent",
                 "parameters": [
                     {
-                    "name": "package",
-                    "value": "vpn",
-                    "$errors": []
+                        "name": "package",
+                        "value": "vpn",
+                        "$errors": []
                     },
                     {
                         "name": "version",

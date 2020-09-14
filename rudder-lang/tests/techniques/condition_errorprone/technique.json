@@ -1,5 +1,5 @@
 {
-    "type": "ncf_technique",
+    "type": "ncf_techniques",
     "version": 1,
     "data": {
         "name": "condition_errorprone",
@@ -15,9 +15,9 @@
                 "method_name": "command_execution",
                 "parameters": [
                     {
-                      "name": "command",
-                      "value": "pwd",
-                      "$errors": []
+                        "name": "command",
+                        "value": "pwd",
+                        "$errors": []
                     }
                 ]
             }

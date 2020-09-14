@@ -2,7 +2,7 @@
 @format=0
 @name="condition any bsd"
 @description="Kernel simplest"
-@category = "ncf_technique"
+@category = "ncf_techniques"
 @version = 0
 @parameters=[]
 

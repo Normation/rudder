@@ -2,7 +2,7 @@
 @format=0
 @name="multiple_simple"
 @description=""
-@category = "ncf_technique"
+@category = "ncf_techniques"
 @version = 0
 @parameters=[]
 

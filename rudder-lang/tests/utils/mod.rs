@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use rudderc::{Action, Format};
+use rudderc::{io, Action, Format};
 
 const RLFILES_PATH: &str = "tests/compile_techniques";
 const TESTFILES_PATH: &str = "tests/tmp";
@@ -41,7 +41,7 @@ fn test_file(source: &Path, dest: &Path, technique_name: &str, format: &Format) 
     let result = compile(&source, &dest, technique_name, format);
     assert_eq!(
         result.is_ok(),
-        should_compile(technique_name),
+        should_compile_file(technique_name),
         "{}: {} assertion is not true. Generator result (lhs) differs from expectations (rhs)",
         "\nError (test)".bright_red().bold(),
         technique_name.bright_yellow(),
@@ -49,7 +49,7 @@ fn test_file(source: &Path, dest: &Path, technique_name: &str, format: &Format) 
 }
 
 /// Tool function extracting expected compilation result
-fn should_compile(technique_name: &str) -> bool {
+fn should_compile_file(technique_name: &str) -> bool {
     match &technique_name[..2] {
         "s_" => true,
         "f_" => false,
@@ -68,9 +68,12 @@ fn compile(
     technique_name: &str,
     format: &Format,
 ) -> Result<(), String> {
+    let (input, input_content) = io::get_content(&Some(source.to_path_buf()))
+        .expect(&format!("Could not get content from '{:?}'", source));
     let io = rudderc::io::IOContext {
         stdlib: PathBuf::from("libs/"),
-        input: Some(source.to_path_buf()),
+        input,
+        input_content,
         output: Some(dest.to_path_buf()),
         action: Action::Compile,
         format: format.clone(),

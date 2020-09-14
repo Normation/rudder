@@ -36,12 +36,12 @@ Default and main behavior. +
 For now *compile* purpose is to generate a _cfengine_ technique from a _rudder-lang_ technique. +
 Upcoming versions of _rudderc-lang_ will support generation of several other formats like _DSC_ or _JSON_.
 
-===== Simple view of the `compile()` process
+===== Simple view of the `compile_file()` process
 
 [align=center]
-image::compile.svg[compile() steps]
+image::compile.svg[compile_file() steps]
 
-===== Complete view of the `compile()` process
+===== Complete view of the `compile_file()` process
 
 ====== Part 1 - Parsing and abstract syntax tree creation 
 

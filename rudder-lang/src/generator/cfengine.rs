@@ -9,7 +9,11 @@ use crate::{
     parser::*,
     ActionResult, Format,
 };
-use std::{collections::HashMap, ffi::OsStr, path::Path};
+use std::{
+    collections::HashMap,
+    ffi::OsStr,
+    path::{Path, PathBuf},
+};
 use toml::Value as TomlValue;
 
 mod syntax;
@@ -284,7 +288,7 @@ impl Generator for CFEngine {
     fn generate(
         &mut self,
         gc: &IR2,
-        source_file: Option<&Path>,
+        source_file: &str,
         dest_file: Option<&Path>,
         policy_metadata: bool,
     ) -> Result<Vec<ActionResult>> {
@@ -295,11 +299,10 @@ impl Generator for CFEngine {
                 // This condition actually rejects every file that is not the input filename
                 // therefore preventing from having an output in another directory
                 // Solutions: check filename rather than path, or accept everything that is not from crate root lib
-                let file_to_create = match get_dest_file(source_file, state_name.file(), dest_file)
-                {
-                    Some(file) => file,
-                    None => continue,
-                };
+                if source_file != state_name.file() {
+                    // means it's a lib file, not the file we are interested to generate
+                    continue;
+                }
                 self.reset_context();
 
                 // Result bundle
@@ -354,70 +357,18 @@ impl Generator for CFEngine {
                         .bundle(bundle);
                     files.push(ActionResult::new(
                         Format::CFEngine,
-                        Some(file_to_create.into()),
+                        dest_file.map(|o| PathBuf::from(o)),
                         Some(policy.to_string()),
                     ));
                 } else {
                     files.push(ActionResult::new(
                         Format::CFEngine,
-                        Some(file_to_create.into()),
+                        dest_file.map(|o| PathBuf::from(o)),
                         Some(bundle.to_string()),
                     ));
                 }
             }
         }
-
         Ok(files)
-    }
-}
-
-fn get_dest_file(input: Option<&Path>, cur_file: &str, output: Option<&Path>) -> Option<String> {
-    let dest_file = match input {
-        Some(filepath) => {
-            if filepath.file_name() != Some(&OsStr::new(cur_file)) {
-                return None;
-            }
-            // can unwrap here since if source_file is Some, so does dest_file (see end of compile.rs)
-            match output.unwrap().to_str() {
-                Some(dest_filename) => dest_filename,
-                None => cur_file,
-            }
-        }
-        None => cur_file,
-    };
-    Some(dest_file.to_owned())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use pretty_assertions::assert_eq;
-
-    #[test]
-    fn dest_file() {
-        assert_eq!(
-            get_dest_file(
-                Some(Path::new("/path/my_file.rl")),
-                "my_file.rl",
-                Some(Path::new(""))
-            ),
-            Some("".to_owned())
-        );
-        assert_eq!(
-            get_dest_file(
-                Some(Path::new("/path/my_file.rl")),
-                "my_file.rl",
-                Some(Path::new("/output/file.rl.cf"))
-            ),
-            Some("/output/file.rl.cf".to_owned())
-        );
-        assert_eq!(
-            get_dest_file(
-                Some(Path::new("/path/my_file.rl")),
-                "wrong_file.rl",
-                Some(Path::new("/output/file.rl.cf"))
-            ),
-            None
-        );
     }
 }

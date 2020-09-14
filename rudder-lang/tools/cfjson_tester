@@ -25,7 +25,6 @@ def print_json(function, filename, json_to_format, is_python_error=False):
     formatted_json = { "function": function, "file": filename,  "error": json_to_format }
   print(json.dumps(formatted_json, indent=2) + ',')
 
-
 def ncf_to_json(cf_file, json_translation):
   methods_data = ncf.get_all_generic_methods_metadata(ncf_tools)
   methods = methods_data["data"]["generic_methods"]

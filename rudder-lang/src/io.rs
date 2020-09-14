@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{error::*, generator::Format, opt::Options, Action};
+use crate::{error::*, generator::Format, opt::Options, parser::Token, Action};
+use colored::Colorize;
 use serde::Deserialize;
-use std::{fmt, path::PathBuf, str::FromStr};
+use std::{fmt, fs, io::Read, path::PathBuf, str::FromStr};
 
 #[derive(Clone, Debug, Deserialize)]
 struct LibsConfig {
@@ -33,7 +34,8 @@ struct Config {
 pub struct IOContext {
     // GenericOption reflection
     pub stdlib: PathBuf,
-    pub input: Option<PathBuf>,
+    pub input: String,
+    pub input_content: String,
     pub output: Option<PathBuf>,
     // Unique fields
     pub format: Format,
@@ -66,7 +68,8 @@ impl IOContext {
             Action::Migrate => config.migrate,
             Action::ReadTechnique => config.technique_read,
         };
-        let input = get_input(&action_config.input, &opt.input, opt.stdin)?;
+        let (input, input_str, input_content) =
+            get_input(&action_config.input, &opt.input, opt.stdin)?;
         let (output, format) = get_output(
             &action_config.output,
             action,
@@ -76,13 +79,35 @@ impl IOContext {
             format,
         )?;
 
-        Ok(IOContext {
+        Ok(Self {
             stdlib: config.libs.stdlib.clone(),
-            input,
+            input: input_str,
+            input_content,
             output,
             action,
             format,
         })
+    }
+
+    pub fn with_content(&self, input_content: String) -> Self {
+        Self {
+            input_content,
+            ..self.clone()
+        }
+    }
+
+    pub fn with_format(&self, format: Format) -> Self {
+        Self {
+            format,
+            ..self.clone()
+        }
+    }
+
+    pub fn with_input(&self, input: &str) -> Self {
+        Self {
+            input: input.to_owned(),
+            ..self.clone()
+        }
     }
 }
 impl fmt::Display for IOContext {
@@ -103,14 +128,15 @@ fn get_input(
     config_path: &Option<PathBuf>,
     input: &Option<PathBuf>,
     is_stdin: bool,
-) -> Result<Option<PathBuf>> {
+) -> Result<(Option<PathBuf>, String, String)> {
     if is_stdin {
         if input.is_some() {
             info!("Input file not used because of the --stdin option");
         }
-        return Ok(None);
+        let (input_str, content) = get_content(&None)?;
+        return Ok((None, input_str, content));
     }
-    Ok(Some(match (input, config_path) {
+    let input = Some(match (input, config_path) {
         (Some(i), _) if i.is_file() => i.to_owned(),
         (Some(i), Some(c)) => {
             let path = c.join(i);
@@ -128,7 +154,9 @@ fn get_input(
                 "Commands: no input or input does not match any existing file".to_owned(),
             ))
         }
-    }))
+    });
+    let (input_str, content) = get_content(&input)?;
+    Ok((input, input_str, content))
 }
 
 /// get explicit output file
@@ -211,6 +239,52 @@ fn get_output_format(
         (_, Some(fmt)) => Ok((format!("{}", fmt), fmt)),
         (_, None) => {
             panic!("Commands: format should have been defined earlier in program execution")
+        }
+    }
+}
+
+/// Add a single file content to the sources and parse it
+/// Returns the filename and file content
+pub fn get_content<'src>(path: &Option<PathBuf>) -> Result<(String, String)> {
+    match path {
+        Some(file_path) => {
+            // TODO check: is full path required or is filename-only better (cleaner)?
+            let filename = match file_path.file_name() {
+                Some(file) => {
+                    let file = file.to_string_lossy().to_string();
+                    info!(
+                        "|- {} from {}",
+                        "Reading".bright_green(),
+                        file.bright_yellow()
+                    );
+                    file
+                }
+                None => {
+                    return Err(Error::new(format!(
+                        "{:?} file does not exist or is invalid",
+                        path
+                    )))
+                }
+            };
+            match fs::read_to_string(file_path) {
+                Ok(content) => Ok((filename, content)),
+                Err(e) => Err(err!(Token::new(&filename, ""), "{}", e)),
+            }
+        }
+        // None means expect input from STDIN (see Opt methods)
+        None => {
+            let mut buffer = String::new();
+            match std::io::stdin().read_to_string(&mut buffer) {
+                Ok(_) => {
+                    info!(
+                        "|- {} from {}",
+                        "Reading".bright_green(),
+                        "STDIN".bright_yellow()
+                    );
+                    Ok(("STDIN".to_owned(), buffer))
+                }
+                Err(e) => Err(err!(Token::new("STDIN", ""), "{}", e)),
+            }
         }
     }
 }

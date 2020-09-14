@@ -2,8 +2,9 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    compile::parse_file,
+    compile,
     error::*,
+    io,
     ir::{ir1::IR1, resource::ResourceDef, resource::StateDef},
     parser::{Token, PAST},
 };
@@ -54,12 +55,12 @@ impl<'src> RudderlangLib<'src> {
         let mut past = PAST::new();
         let walker = WalkDir::new(stdlib_dir)
             .into_iter()
-            .filter(|r| r.as_ref().map(|e| is_rl_file(e.path())).unwrap_or(true));
+            .filter(|r| r.as_ref().map(|e| is_rl_file(e.path())).unwrap_or(false));
         for entry in walker {
             match entry {
                 Ok(entry) => {
-                    let path = entry.into_path();
-                    parse_file(&mut past, sources, &Some(path))?;
+                    let (filename, content) = io::get_content(&Some(entry.into_path()))?;
+                    past = compile::parse_content(past, &filename, &content, sources)?;
                 }
                 Err(err) => {
                     return Err(err!(

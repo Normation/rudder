@@ -226,7 +226,6 @@ impl Technique {
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -400,10 +399,20 @@ mod tests {
             ),
         };
     }
-    fn assert_ok(cli: &str, ctx: IOContext) {
+    fn assert_ok(cli: &str, ctx: IOContext, test_content: bool) {
         match opt_new(cli).extract_parameters() {
             Err(e) => assert!(false, format!("expected ok, got err: '{}'", e)),
-            Ok(context) => assert_eq!(context, ctx),
+            Ok(context) => {
+                assert_eq!(context.stdlib, ctx.stdlib);
+                assert_eq!(context.input, ctx.input);
+                assert_eq!(context.output, ctx.output);
+                assert_eq!(context.format, ctx.format);
+                assert_eq!(context.action, ctx.action);
+                if test_content {
+                    // cannot test input_content properly unless we read each file, not the purpose of the test
+                    assert_eq!(context.input_content, ctx.input_content);
+                }
+            }
         };
     }
 
@@ -437,52 +446,33 @@ mod tests {
 
         // real technique path: tests/techniques/simplest/technique.rl.
         // conf input folder: tests/techniques
+        // input specified so should ignore stdin default
         assert_ok(
             "rudderc technique read -c ./tools/rudderc-dev.conf -i simplest/technique.rl",
             IOContext {
                 stdlib: PathBuf::from("libs/"),
-                input: Some(PathBuf::from("tests/techniques/simplest/technique.rl")),
+                input: "technique.rl".to_owned(),
+                input_content: "IGNORED FIELD".to_owned(),
                 output: Some(PathBuf::from("tests/techniques/simplest/technique.json")), // based on input + updated extension
                 format: Format::JSON,
                 action: Action::ReadTechnique,
             },
-        );
-
-        // stdin / stdout are default behavior so no need to explicitely call options.
-        // It is working if input / output = None.
-        assert_ok(
-            "rudderc technique generate -c ./tools/rudderc-dev.conf",
-            IOContext {
-                stdlib: PathBuf::from("libs/"),
-                input: None,  // no input since stdin option
-                output: None, // no output since stdout option
-                format: Format::JSON,
-                action: Action::GenerateTechnique,
-            },
+            false,
         );
 
         // specify output, output dir exists, output file does not exist and wrong extension
+        // input specified so should ignore stdin default
         assert_ok(
             "rudderc technique generate -c ./tools/rudderc-dev.conf -i simplest/technique.rl -o simplest/try_technique.randomext",
             IOContext {
                 stdlib: PathBuf::from("libs/"),
-                input: Some(PathBuf::from("tests/techniques/simplest/technique.rl")),
+                input: "technique.rl".to_owned(),
+                input_content: "IGNORED FIELD".to_owned(),
                 output: Some(PathBuf::from("tests/techniques/simplest/try_technique.json")), // based on input + updated extension
                 format: Format::JSON,
                 action: Action::GenerateTechnique,
             },
-        );
-
-        // if stdin / stdout conflicts with input / output options : priority to the former
-        assert_ok(
-            "rudderc technique generate -c ./tools/rudderc-dev.conf --stdin -i simplest/technique.rl -o simplest/try_technique.randomext --stdout",
-            IOContext {
-                stdlib: PathBuf::from("libs/"),
-                input: None,  // no input since stdin option
-                output: None, // no output since stdout option
-                format: Format::JSON,
-                action: Action::GenerateTechnique,
-            },
+            false,
         );
 
         // compile format check
@@ -490,11 +480,13 @@ mod tests {
             "rudderc compile -c ./tools/rudderc-dev.conf -f cf -i simplest/technique.rl -o simplest/try_technique.randomext",
             IOContext {
                 stdlib: PathBuf::from("libs/"),
-                input: Some(PathBuf::from("tests/techniques/simplest/technique.rl")),
+                input: "technique.rl".to_owned(),
+                input_content: "IGNORED FIELD".to_owned(),
                 output: Some(PathBuf::from("tests/techniques/simplest/try_technique.rl.cf")), // updated extension
                 format: Format::CFEngine,
                 action: Action::Compile,
             },
+            false,
         );
 
         // compile format check
@@ -502,11 +494,15 @@ mod tests {
             "rudderc compile -c ./tools/rudderc-dev.conf -f cf -i simplest/technique.rl -o simplest/try_technique.randomext",
             IOContext {
                 stdlib: PathBuf::from("libs/"),
-                input: Some(PathBuf::from("tests/techniques/simplest/technique.rl")),
+                input: "technique.rl".to_owned(),
+                input_content: "IGNORED FIELD".to_owned(),
                 output: Some(PathBuf::from("tests/techniques/simplest/try_technique.rl.cf")), // updated extension
                 format: Format::CFEngine,
                 action: Action::Compile,
             },
+            false,
         );
+
+        // TODO specifically test input_content
     }
 }

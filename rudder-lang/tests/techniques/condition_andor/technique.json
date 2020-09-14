@@ -1,5 +1,5 @@
 {
-    "type": "ncf_technique",
+    "type": "ncf_techniques",
     "version": 1,
     "data": {
         "name": "condition andor",
@@ -15,9 +15,9 @@
                 "method_name": "kernel_module_loaded",
                 "parameters": [
                     {
-                      "name": "name",
-                      "value": "test",
-                      "$errors": []
+                        "name": "name",
+                        "value": "test",
+                        "$errors": []
                     }
                 ]
             }

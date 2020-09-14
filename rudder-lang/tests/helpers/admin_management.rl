@@ -2,7 +2,7 @@
 @format = 0
 @name = "Administrators Management"
 @description = "test"
-@category = "ncf_technique"
+@category = "ncf_techniques"
 @version = 0
 @parameters = [
 @  { "name" = "login_name", "id" = "bbe964b5-5b0a-436d-90ed-8faf7c841b11", "description" = "Login for the user" }

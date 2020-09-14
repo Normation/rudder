@@ -13,13 +13,13 @@ impl Generator for JSON {
     fn generate(
         &mut self,
         gc: &IR2,
-        _source_file: Option<&Path>,
+        _source_file: &str,
         dest_file: Option<&Path>,
         _policy_metadata: bool,
     ) -> Result<Vec<ActionResult>> {
         let content = Technique::from(gc).to_json()?;
         Ok(vec![ActionResult::new(
-            Format::DSC,
+            Format::JSON,
             match dest_file {
                 Some(path) => path.to_str().map(|refstr| refstr.into()),
                 None => None,

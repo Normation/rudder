@@ -70,14 +70,14 @@ impl<'src> From<&IR2<'src>> for Technique {
 
         Technique {
             // can't determine a particular technique type yet
-            r#type: "ncf_technique".to_owned(),
-            version: 2.to_string(),
+            r#type: "ncf_techniques".to_owned(),
+            version: 2,
             data: TechniqueData {
                 // no bundle name, could be useful if several resources (sum)
                 bundle_name: extract_meta_string(meta, "name"),
                 description: extract_meta_string(meta, "description"),
                 name: extract_meta_string(meta, "name"),
-                version: extract_meta_integer(meta, "version"),
+                version: extract_meta_string(meta, "version"),
                 category: extract_meta_string(meta, "category"),
                 interpolated_parameters,
                 method_calls,
@@ -93,14 +93,6 @@ fn extract_meta_string(map: &Map<String, TOMLValue>, field: &str) -> String {
         .as_str()
         .expect(&format!("Expected type string for '{}' metadata", field))
         .to_owned()
-}
-
-fn extract_meta_integer(map: &Map<String, TOMLValue>, field: &str) -> String {
-    map.get(field)
-        .expect(&format!("Missing '{}' metadata", field))
-        .as_integer()
-        .expect(&format!("Expected type integer for '{}' metadata", field))
-        .to_string()
 }
 
 fn format_expr(ir: &IR2, expr: &EnumExpressionPart) -> String {

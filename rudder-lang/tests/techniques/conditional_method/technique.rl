@@ -3,7 +3,7 @@
 @name="conditional method"
 @description="one method with several conditons"
 @version = 0
-@category = "ncf_technique"
+@category = "ncf_techniques"
 @parameters=[]
 
 resource conditional_method()

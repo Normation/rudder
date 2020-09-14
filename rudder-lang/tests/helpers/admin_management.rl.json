@@ -13,7 +13,7 @@
         "description": "Login for the user"
       }
     ],
-    "category": "ncf_technique",
+    "category": "ncf_techniques",
     "method_calls": [
       {
         "parameters": [

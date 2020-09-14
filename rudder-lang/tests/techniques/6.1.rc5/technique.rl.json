@@ -1,11 +1,11 @@
 {
-  "type": "ncf_technique",
+  "type": "ncf_techniques",
   "version": 2,
   "data": {
     "bundle_name": "normal",
     "description": "ewf",
     "name": "normal",
-    "version": 0,
+    "version": "1.0",
     "parameter": [
       {
         "id": "c6e6cc3a-9ce8-4889-bccc-6bfc1b091d0d",
