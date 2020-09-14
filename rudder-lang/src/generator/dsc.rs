@@ -5,9 +5,10 @@ use super::Generator;
 use crate::{
     ir::{enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
     parser::*,
+    ActionResult, Format,
 };
 
-use std::{collections::HashMap, ffi::OsStr, fs::File, io::Write, path::Path};
+use std::{collections::HashMap, ffi::OsStr, path::Path};
 use toml::Value as TomlValue;
 
 use crate::error::*;
@@ -495,8 +496,8 @@ impl Generator for DSC {
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
         technique_metadata: bool,
-    ) -> Result<()> {
-        let mut files: HashMap<String, String> = HashMap::new();
+    ) -> Result<Vec<ActionResult>> {
+        let mut files: Vec<ActionResult> = Vec::new();
         // TODO add global variable definitions
         for (rn, res) in gc.resources.iter() {
             for (sn, state) in res.states.iter() {
@@ -510,9 +511,12 @@ impl Generator for DSC {
                 self.reset_context();
 
                 // get header
-                let header = match files.get(&file_to_create) {
-                    Some(s) => s.to_string(),
-                    None => {
+                let header = match files
+                    .iter()
+                    .find(|f| f.destination == Some(file_to_create.clone().into()))
+                {
+                    Some(s) if s.content.is_some() => s.content.as_ref().unwrap().to_string(),
+                    _ => {
                         if technique_metadata {
                             self.generate_ncf_metadata(rn, res)? // TODO dsc
                         } else {
@@ -573,25 +577,14 @@ function {resource_name}-{state_name} {{
                     parameters = parameters,
                     methods = methods
                 );
-                files.insert(file_to_create, content);
+                files.push(ActionResult::new(
+                    Format::DSC,
+                    Some(file_to_create.into()),
+                    Some(content.to_string()),
+                ));
             }
         }
-
-        // create file if needed
-        if files.is_empty() {
-            match dest_file {
-                Some(filename) => File::create(filename).expect("Could not create output file"),
-                None => return Err(Error::new("No file to create".to_owned())),
-            };
-        }
-
-        // write to file
-        for (name, content) in files.iter() {
-            let mut file = File::create(name).expect("Could not create output file");
-            file.write_all(content.as_bytes())
-                .expect("Could not write content into output file");
-        }
-        Ok(())
+        Ok(files)
     }
 }
 

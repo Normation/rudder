@@ -7,7 +7,7 @@ pub mod json;
 pub mod markdown;
 
 pub use self::{cfengine::CFEngine, dsc::DSC, json::JSON, markdown::Markdown};
-use crate::{error::*, ir::ir2::IR2};
+use crate::{error::*, ir::ir2::IR2, ActionResult};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::{fmt, path::Path, str::FromStr};
 
@@ -22,7 +22,7 @@ pub trait Generator {
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
         technique_metadata: bool,
-    ) -> Result<()>;
+    ) -> Result<Vec<ActionResult>>;
 }
 
 pub fn new_generator(format: &Format) -> Result<Box<dyn Generator>> {

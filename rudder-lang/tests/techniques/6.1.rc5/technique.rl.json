@@ -1,0 +1,38 @@
+{
+  "type": "ncf_technique",
+  "version": 2,
+  "data": {
+    "bundle_name": "normal",
+    "description": "ewf",
+    "name": "normal",
+    "version": 0,
+    "parameter": [
+      {
+        "id": "c6e6cc3a-9ce8-4889-bccc-6bfc1b091d0d",
+        "name": "parameter wdd",
+        "description": ""
+      },
+      {
+        "id": "d74a03dd-5b0b-4b06-8dcf-b4e0cb387c60",
+        "name": "paramtest",
+        "description": ""
+      }
+    ],
+    "category": "",
+    "method_calls": [
+      {
+        "parameters": [
+          {
+            "name": "condition_prefix",
+            "value": "mycond",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "condition_once",
+        "component": "Condition once"
+      }
+    ],
+    "resources": []
+  }
+}

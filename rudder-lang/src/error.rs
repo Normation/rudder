@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::logger::Backtrace;
 /// We write our own error type to have a consistent error type through all our code.
 /// We translate other types to this one when necessary.
 /// All case contain 4 elements:
@@ -12,6 +11,7 @@ use crate::logger::Backtrace;
 /// - Compilation error: usually we can skip what we are doing and go to next iteration
 /// - List: aggregate compilation errors so that user can fix them all ant once
 ///
+use crate::output::Backtrace;
 use crate::parser::Token;
 use colored::Colorize;
 use ngrammatic::CorpusBuilder;

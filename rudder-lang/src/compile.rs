@@ -12,30 +12,54 @@ use crate::{
     ActionResult,
 };
 use colored::Colorize;
-use std::{fs, path::Path};
+use std::{
+    fs,
+    io::Read,
+    path::{Path, PathBuf},
+};
 use typed_arena::Arena;
 
 /// Add a single file content to the sources and parse it
 pub fn parse_file<'src>(
     past: &mut PAST<'src>,
     sources: &'src Arena<String>,
-    path: &Path,
+    path: &Option<PathBuf>,
 ) -> Result<()> {
-    let filename = sources.alloc(match path.file_name() {
-        Some(file) => file.to_string_lossy().to_string(),
-        None => return Err(Error::new(format!("{:?} should be a .rl file", path))),
-    });
-    info!(
-        "|- {} {}",
-        "Parsing".bright_green(),
-        filename.bright_yellow()
-    );
-    match fs::read_to_string(path) {
-        Ok(content) => {
-            let content_str = sources.alloc(content);
-            past.add_file(filename, content_str)
+    match path {
+        Some(file_path) => {
+            let filename = sources.alloc(match file_path.file_name() {
+                Some(file) => file.to_string_lossy().into(),
+                None => return Err(Error::new(format!("{:?} should be a .rl file", path))),
+            });
+            info!(
+                "|- {} {}",
+                "Parsing".bright_green(),
+                filename.bright_yellow()
+            );
+            match fs::read_to_string(file_path) {
+                Ok(content) => {
+                    let content_str = sources.alloc(content);
+                    past.add_file(filename, content_str)
+                }
+                Err(e) => Err(err!(Token::new(filename, ""), "{}", e)),
+            }
         }
-        Err(e) => Err(err!(Token::new(filename, ""), "{}", e)),
+        None => {
+            sources.alloc("STDIN".to_owned());
+            info!(
+                "|- {} {}",
+                "Parsing".bright_green(),
+                "STDIN".bright_yellow()
+            );
+            let mut buffer = String::new();
+            match std::io::stdin().read_to_string(&mut buffer) {
+                Ok(content) => {
+                    let content_str = sources.alloc(buffer);
+                    past.add_file("STDIN", content_str)
+                }
+                Err(e) => Err(err!(Token::new("STDIN", ""), "{}", e)),
+            }
+        }
     }
 }
 
@@ -48,10 +72,13 @@ pub fn technique_to_ir<'src>(
 
     // read and add files
     info!(
-        "{} of {} into {}",
+        "{} of {}",
         "Processing compilation".bright_green(),
-        ctx.input.to_string_lossy().bright_yellow(),
-        ctx.output.to_string_lossy().bright_yellow()
+        match &ctx.input {
+            Some(input) => input.to_string_lossy(),
+            None => "STDIN".into(),
+        }
+        .bright_yellow(),
     );
 
     parse_file(&mut past, &sources, &ctx.input)?;
@@ -68,20 +95,27 @@ pub fn technique_to_ir<'src>(
 }
 
 /// Compile a file from rudder-lang to cfengine / dsc / json
-pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<Vec<ActionResult>> {
+pub fn compile(ctx: &IOContext, technique: bool) -> Result<Vec<ActionResult>> {
     let sources = Arena::new();
     let ir = technique_to_ir(ctx, &sources)?;
 
     // generate final output
     info!("|- {}", "Generating output code".bright_green());
+    let input = match &ctx.input {
+        Some(i) => Some(i.as_path()),
+        None => None,
+    };
+    let output = match &ctx.output {
+        Some(o) => Some(o.as_path()),
+        None => None,
+    };
+
     let (input_file, output_file) = if technique {
         // TODO this should be a technique name not a file name
-        (Some(ctx.input.as_path()), Some(ctx.output.as_path()))
+        (input, output)
     } else {
         (None, None)
     };
     let mut generator = new_generator(&ctx.format)?;
-    generator.generate(&ir, input_file, output_file, technique)?;
-    // TODO fill action result directly
-    Ok(vec![ActionResult::default()])
+    generator.generate(&ir, input_file, output_file, technique)
 }

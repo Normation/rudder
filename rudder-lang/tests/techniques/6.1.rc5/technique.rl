@@ -13,5 +13,5 @@
 resource normal(parameter_wdd,paramtest)
 normal state technique() {
   @component = "Condition once"
-  condition("mycond").once() dfffas condition_once_mycond
+  condition("mycond").once() as condition_once_mycond
 }
