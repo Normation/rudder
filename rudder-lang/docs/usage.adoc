@@ -14,65 +14,159 @@ Optionally add rudderc to your path `export PATH=$PATH:/opt/rudder/bin/rudderc` 
 
 === Usage
 
-`rudderc` has 2 features:
+`rudderc` has 4 features, called actions that will generate code. The action you need fully depend on the format you have and the output format you want:
 
-* Compile which is the default behavior: takes a _RL_ technique as an input and generates the desired 
-* Translate which is the alternative mode:  takes a _JSON_ technique as an input and generates a _rudder-lang_ technique (_.rl_) 
+* compile: generates either a DSC / CFEngine technique from a RudderLang technique
+* migrate: generates a RudderLang technique from a JSON technique (same object format Technique Editor produces)
+* technique read: generates a JSON technique (same object format Technique Editor produces) from a RudderLang technique
+* technique generate: generates a JSON object that comes with RudderLang + DSC + CFEngine technique from a JSON technique
+It is worth noting that `--stdin` and `--stdout` options are default behavior for `technique generate` and `technique read`
 
-Any information log is displayed to `SDTOUT`, errors should be printed to `STDERR`
+JSON output ( which includes logs) is handled. It is optional for compile and migrate but is default behavior for `technique read` and `technique generate`.
+By default all logs but `error` are printed to `STDOUT`. `error` logs are printed to `STDERR`.
 
 [align=center]
 image::rudderc-simple.svg[rudderc abilities]
 
 .The CLI usage (`rudderc --help` or `rudderc -h` output slightly modified)
 ----
+Rudderc (4) available actions are callable through subcommands, namely <technique read>, <technique generate>, <migrate>, <compile>,
+allowing it to perform generation or translation from / into the following formats : [JSON, RudderLang, CFengine, DSC].
+
+Run `rudderc <SUBCOMMAND> --help` to access its inner options and flags helper
+
+Example: rudderc technique generate -c confs/my.conf -i techniques/technique.json -f rudderlang
+
 USAGE:
-    rudderc [FLAGS] [OPTIONS]
+    rudderc <SUBCOMMAND>
 
 FLAGS:
+    -h, --help       
+            Prints help information
+
+    -V, --version    
+            Prints version information
+
+
+SUBCOMMANDS:
+    compile      Generates either a DSC / CFEngine technique (`--format` option) from a RudderLang technique
+    help         Prints this message or the help of the given subcommand(s)
+    migrate      Generates a RudderLang technique from a CFEngine technique
+    technique    A technique can either be used with one of the two following subcommands: `read` (from rudderlang
+                 to json) or `generate` (from json to cfengine or dsc or rudderlang)
+----
+_rudderc_ abilities / subcommands are called *actions*, that all share several flags and options
+.Shared FLAGS / OPTIONS:
+----
+FLAGS:
+    -b, --backtrace    Generates a backtrace in case an error occurs
     -h, --help         Prints help information
-    -j, --json-log     Use json logs instead of human readable output
-    -t, --translate    Use technique translation mode rather than default compilation mode
+        --stdin        Takes stdin as an input rather than using a file. Overwrites input file option
+        --stdout       Takes stdout as an output rather than using a file. Overwrites output file option. Dismiss logs directed to stdout. Errors are kept since they are printed to stderr
     -V, --version      Prints version information
 
 OPTIONS:
-    -c, --config-file <config-file>
-            Path of the configuration file to use.
-            A configuration file is required (containing at least stdlib path)
-            [default: /opt/rudder/etc/rudderc.conf]
-
-    -f, --format <format>
-            Enforce a compiler output format (overrides configuration format and manual technique extension)
-            [possible values: cf, dsc, json]
-
-    -l, --log-level <log-level>
-            rudderc output logs verbosity
-            [default: warn]
-            [possible values: off, trace, debug, info, warn, error]
-
-    -s, --source <source>
-            Input file path. Overwrites base input
-
-    -n, --technique-name <technique-name>
-            Technique name to use for both input (if no input provided) and output (if no output or provided), based on configuration file paths
-
-    -d, --dest <dest>
-            Output file path, overrides config and technique-name.
-            If neither an output nor a configuration file output path is set, source path is used
-
-    -o, --output-technique-name <output-technique-name>
-            Technique name to use for output (if no output provided), based on configuration file path
+    -c, --config-file <config-file>    Path of the configuration file to use. A configuration file is required
+                                       (containing at least stdlib and generic_methods paths) [default:
+                                       /opt/rudder/etc/rudderc.conf]
+    -i, --input <file>                 Input file path.
+                                       If option path does not exist, concat config input with option.
+    -l, --log-level <log-level>        rudderc output logs verbosity [default: warn]  [possible values: off, trace,
+                                       debug, info, warn, error]
+    -o, --output <file>                Output file path.
+                                       If option path does not exist, concat config output with option. Else base output on input.
 ----
+
+But some actions come with their own flags and options (listed below) on top of the previously mentioned:
+
+.The first action, compile:
+----
+Generates a JSON object that comes with RudderLang + DSC + CFEngine technique from a JSON technique
+
+USAGE:
+    rudderc compile [FLAGS] [OPTIONS]
+
+FLAGS:
+    -j, --json-logs                     Use json logs instead of human readable output
+                                        This option will print a single JSON object that will contain logs, errors and generated data (or the file where it has been generated).
+                                        Whichever action is chosen, JSON output format is always the same.
+                                        However, some fields (data and destination file) could be set to `null`, make sure to handle `null`s properly
+                                        Note that NO_COLOR specs apply by default for json output.
+                                        Also note that setting NO_COLOR manually in your env will also work
+
+OPTIONS:
+    -f, --format <format>              Enforce a compiler output format (overrides configuration format).
+                                       [possible values: cf, cfengine, dsc, json]
+
+...
+----
+.The second action, migrate:
+----
+Generates a RudderLang technique from a CFEngine technique
+
+USAGE:
+    rudderc migrate [FLAGS] [OPTIONS]
+
+FLAGS:
+    -j, --json-logs    Use json logs instead of human readable output
+                       This option will print a single JSON object that will contain logs, errors and generated data (or the file where it has been generated).
+                       Whichever action is chosen, JSON output format is always the same. However, some fields (data and destination file) could be set to `null`, make sure to handle `null`s properly
+                       Note that NO_COLOR specs apply by default for json output.
+                       Also note that setting NO_COLOR manually in your env will also work
+----
+.The third action, technique read (`read` is a subcommand of the `technique` subcommand):
+----
+Generates a JSON technique from a RudderLang technique
+
+USAGE:
+    rudderc technique read [FLAGS] [OPTIONS]
+
+...
+----
+.The fourth action, technique generate (`generate` is a subcommand of the `technique` subcommand):
+----
+Generates a JSON object that comes with RudderLang + DSC + CFEngine technique from a JSON technique
+
+USAGE:
+    rudderc technique generate [FLAGS] [OPTIONS]
+
+...
+----
+
 
 Most options are pretty straightforward but some explanations might help:
 
 * Flags and options must be written in `kebab-case`
 * A configuration file is required because _rudderc_ needs its own libraries to work (default path should point to an already working _Rudder_ configuration if _rudder agent_ was installed like previously suggested)
-* Unlike the prevailing `--source` (`-s`) and `--dest` (`-d`) options, the `--technique-name <technique joined>` (`-n`) and `--technique-output-name <technique joined>` (`-o`) options makes use of the configuration file input and output paths and concatenates the `<technique joined>` to these
-* `--source` > configuration source + `--technique-name` > configuration source if it is a file
-* `--dest` > configuration dest + `--technique-name` (`-n`) > configuration dest if it is a file > `--source` as destination with updated format
-* `--format` (`-f`) > configuration format > `--dest` technique extension
-* Log levels are ordered (trace > debug > info > warn > error)
+* Configuration can define flags and options but CLI will always overwrite config defined ones. ie: CLI `--output` > config `output`
+* `--stdin` > `--input`
+* `--stdout` > --output > `input` as destination with updated extension
+* `--format` > `--output` technique extension
+* `--log-levels` are ordered (trace > debug > info > warn > error) which means `info` includes `warn` and `error`
+* `--stdin` is designed to work with pipes (ex: `cat file.rl` | rudderc compile -c file.conf -f cf`), it won't wait for an input. Higher priority than `--input` option
+* `--stdout` will dismiss any kind of logs, including errors. Only thing that will be printed to terminal is the expected result. If empty, try again with a log, there is an error. Higher priority than `--output` option
+
+==== Options: how are input, output and format dealt with:
+
+Internally for input the compiler looks for an existing file until it founds one, in the following order:
+* solely from the CLI input option
+* join configuration action input as dir + CLI input option
+* solely from the configuration action input (if the file exists)
+* if none worked, error
+
+Internally for output, the compiler looks for an existing path to write a file on, until it founds one:
+* solely from the CLI output option
+* join configuration action output as dir + CLI output option
+* solely from the configuration action output
+* uses input and only updates the extension 
+* if none worked, error
+
+Internally for format when required (`compile`):
+* for any action but `compile`, format is set by the program 
+* compile action: explicit CLI `--format` option. Note that values are limited. 
+* compile action: output file extension is used
+* if none worked, error
+
 
 ==== Configuration file
 
@@ -84,75 +178,70 @@ Entire _rudder-lang_ environment is already set up alongside the agent: this inc
 [source,toml]
 ----
 [shared]
-    stdlib="libs/" # only required field for rudderc --compile
-    ncf_generic_methods="/usr/share/ncf/tree/30_generic_methods/"
-    dsc_generic_methods="/var/rudder/configuration-repository/dsc/ncf/30_generic_methods/"
+stdlib="libs/"
+cfengine_methods="repos/ncf/tree/30_generic_methods/"
+alt_cfengine_methods="repos/dsc/plugin/ncf/30_generic_methods/"
+dsc_methods="repos/dsc/packaging/Files/share/initial-policy/ncf/30_generic_methods/"
 
 [compile]
-    source="./tests/test_files/tester/"
-    dest="./tests/test_files/tester/"
-    # format="dsc"
+input="tests/techniques/simplest/technique.rl"
+output="tests/techniques/simplest/technique.rl.cf"
 
-[translate]
-    source="tests/test_files/tester/"
-    dest="tests/test_files/tester/"
-    # format="dsc" # format here will just be ignored as translate can only generate rudder-lang
+[migrate]
+input="tests/techniques/simplest/technique.cf"
+output="tests/techniques/simplest/technique.cf.rl"
+
+[technique_read]
+input="tests/techniques/simplest/technique.rl"
+output="tests/techniques/simplest/technique.rl.json"
+
+[technique_generate]
+input="tests/techniques/simplest/technique.json"
+output="tests/techniques/simplest/technique_array.json"
 
 [testing_loop]
-    cfengine="/opt/rudder/bin/cf-promises"
-    ncf_tools="/usr/share/ncf/tools/"
-    py_modules="tools/"
+cfengine="/opt/rudder/bin/cf-promises"
+ncf_tools="repos/ncf/tools/"
+py_modules="tools/"
+
+
 ----
 
 The configuration file can be used to shorten arguments.
 
-The `source` and `dest` fields from both `[translate]` and `[compile]` can either be filled with a path or a file.
-
-===== Configuration file set with directories
-
-[source,toml]
-----
-...
-
-[compile]
-    source="rl/"
-    dest="cf/"
-----
-
-Paths will respectively be prepended to _rudderc_ `-n` and `-o` options
-
-===== Configuration file set with files
-
-Paths will be used as they are, since they already define a single technique.
-
-Note that `-n` and `-o` _rudderc_ options will use the config specified directories and only override technique name
+There is a table for each action (`compile`, `technique_read`, `technique_generate`, `migrate`), that can hold their own two limited fields: `input` and `output`.
+Meaningful usage is that these two fields are paths that are completed by CLI filenames: `--input <file>` / `--output <file>` CLI options.
+In other words: config options are paths (directories), to which is joined the cli option.
+But configure it using a file and not use the CLI options will work.
 
 ==== Compilation example
 
 1. Required: a config file to work on a local environment: 
 
-.tools/myconf
+.tools/my.conf
 [source,toml]
 ----
 [shared]
-    stdlib="libs/" # only required field for rudderc --compile
+stdlib="libs/"
+cfengine_methods="repos/ncf/tree/30_generic_methods/"
+alt_cfengine_methods="repos/dsc/plugin/ncf/30_generic_methods/"
+dsc_methods="repos/dsc/packaging/Files/share/initial-policy/ncf/30_generic_methods/"
 ----
 
 2. CLI full version
 ----
-rudderc --json-log --log-level debug --config-file tools/myconf --source rl/technique.rl --dest dsc/technique.rl.dsc --format dsc
+rudderc compile --json-log --log-level debug --config-file tools/my.conf --input tests/techniques/technique.rl --output tests/techniques/technique.rl.dsc --format dsc
 ----
 
 3. CLI shortened version
 ----
-rudderc -j -l debug -c tools/myconf -n technique.rl -o technique.rl.dsc -f dsc
+rudderc compile -j -l debug -c tools/my.conf -i tests/techniques/technique.rl -f dsc
 ----
 
 What it means:
 
-* Compile is the default behavior, therefore it has no dedicated option.
-* Compiles `./rl/technique.rl` (`-s`) into `./dsc/technique.rl.dsc` (`-d`),
-* Use the configuration file located at `./tools/myconf` (`-c`),
+* Compiles `tests/techniques/technique.rl` (`-i`) into `tests/techniques/technique.rl.dsc` (output based on input),
+* Use the configuration file located at `./tools/my.conf` (`-c`),
 * Output technique format is DSC (`--format`). Note that this parameter is optional since `-d` defines the right technique format by its extension
 * Output log format is JSON (`-j`),
 * The following log levels: error, warn, info, debug will be printed to the terminal
@@ -168,48 +257,18 @@ By using an adapted configuration file, it can be simplified:
     stdlib="libs/" # only required field for rudderc
 
 [compile]
-    source="rl/technique.rl"
-    dest="dsc/technique.rl.dsc"
-    format="dsc"
+    input="tests/techniques/"
+    output="tests/techniques/"
 ----
 
 Lightest compilation using CLI.
 ----
-rudderc -j -l debug -c tools/myconf
----- 
-
-Or using `rl` and `dsc` directories with other techniques:
-----
-rudderc -j -l debug -c tools/myconf -n another.rl -o another_from_rl.rl.dsc
----- 
-
-==== Translation example
-
-1. Required: a config file to work on a local environment: 
-.tools/myconf
-[source,toml]
-----
-[shared]
-    stdlib="libs/" # only required field for rudderc --compile
+rudderc -j -l debug -c tools/myconf -i technique.rl
 ----
 
-2. CLI full version
-----
-rudderc --json-log --log-level debug --config-file tools/myconf --translate --source json/technique.json --dest rl/from_json.rl
-----
+Input will be a concatenation of config and cli: `tests/techniques/technique.rl`. Output still based on input.
 
-3. CLI shortened version
-----
-rudderc -tj -l debug -c tools/myconf -s technique.json -d rl/from_json.rl
-----
-
-What it means:
-- Translate (`-t`) `./json/technique.json` (`-s`) into `./rl/from_json.rl` (`-d`),
-- Use the configuration file located at `./tools/myconf` (`-c`),
-- Output log format is JSON (`-j`),
-- The following log levels: error, warn will be printed to the terminal
-
-4. CLI + config lightened version
+5. config + CLI shortest version
 
 By using an adapted configuration file, it can be simplified:
 
@@ -219,20 +278,49 @@ By using an adapted configuration file, it can be simplified:
 [shared]
     stdlib="libs/" # only required field for rudderc
 
-[translate]
-    source="json/technique.json"
-    dest="rl/from_json.rl"
+[compile]
+    input="rl/technique.rl"
+    output="dsc/technique.rl.dsc"
 ----
 
-Lightest translation using CLI.
+Lightest compilation using CLI.
 ----
-rudderc -tj -l warn -c tools/myconf
----- 
+rudderc -j -l debug -c tools/myconf
+----
 
-Or using `json` and `rl` directories with other techniques:
+==== JSON Output
+
+If you decided to go with the `--json-output` option, it means output will consist of a single JSON object:
+
+.STDOUT
+[source,json]
 ----
-rudderc -tj -l warn -c tools/myconf -n another.json -o another_from_json.rl
----- 
+{
+  "action": "compile",
+  "time": "1600331631367",
+  "status": "success",
+  "source": "tests/techniques/simplest/technique.rl",
+  "logs": [],
+  "data": [
+    {
+      "format": "DSC",
+      "destination": "tests/techniques/6.1.rc5/technique.dsc",
+      "content": null
+    }
+  ],
+  "errors": []
+}
+----
+
+* Output always use the same squeleton which is the one you just read.
+* `data` field:
+** Length always 0 in case of error # TODO check for technique generate
+** Length always 3 when `technique generate called`
+** Length always 1 in any other case since other actions only generate 1 format
+* `content` field is null if its content has succesfully been written to a file
+* `destination` field is null if content is directly written in the JSON
+* `errors` field is an array of strings
+# TODO log field
 
 == Using the Technique Editor
 

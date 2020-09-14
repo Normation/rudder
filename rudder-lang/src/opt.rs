@@ -108,12 +108,11 @@ pub struct Options {
     pub log_level: LevelFilter,
 
     /// Takes stdin as an input rather than using a file. Overwrites input file option
-    ///
-    /// Please note that the directory must exist in order to create the output.
     #[structopt(long)]
     pub stdin: bool,
 
-    /// Takes stdout as an output rather than using a file. Overwrites output file option. Dismiss logs including errors
+    /// Takes stdout as an output rather than using a file. Overwrites output file option. Dismiss logs directed to stdout.
+    /// Errors are kept since they are printed to stderr
     #[structopt(long)]
     pub stdout: bool,
 
@@ -195,7 +194,17 @@ impl Technique {
 
     fn extract_parameters(&self) -> Result<IOContext> {
         match self {
-            Self::Read { options } => IOContext::new(self.as_action(), options, Some(Format::JSON)),
+            Self::Read { options } => {
+                // exception: stdin + stdout are set by default
+                let mut options = options.clone();
+                if options.input.is_none() {
+                    options.stdin = true;
+                }
+                if options.output.is_none() && options.stdin {
+                    options.stdout = true;
+                }
+                IOContext::new(self.as_action(), &options, Some(Format::JSON))
+            }
             Self::Generate { options } => {
                 // exception: stdin + stdout are set by default
                 let mut options = options.clone();
