@@ -792,14 +792,16 @@ class WoLDAPNodeGroupRepository(
           case Some(diff) =>
             actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason).chainError("Error when logging modification as an event")
         }
-        autoArchive  <- (if(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if modification are present
-          for {
-            parent   <- getNodeGroupCategory(nodeGroup.id)
-            parents  <- getParents_NodeGroupCategory(parent.id)
-            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-            archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some((modId, commiter, reason)))
-          } yield archived
-        } else Full("ok")).succeed
+
+        autoArchive  <-
+          ZIO.when (autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if modification are present
+            for {
+              parent   <- getNodeGroupCategory(nodeGroup.id)
+              parents  <- getParents_NodeGroupCategory(parent.id)
+              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+              archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some((modId, commiter, reason)))
+            } yield archived
+          }
       } yield {
         optDiff
       }
