@@ -57,8 +57,8 @@ import com.normation.box._
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.IOResult
+import com.normation.errors.Inconsistency
 import com.normation.rudder.ncf.ResourceFile
-import com.normation.rudder.ncf.ResourceFileState
 import net.liftweb.json.JsonAST.JArray
 import com.normation.rudder.ncf.CheckConstraint
 import com.normation.rudder.ncf.ResourceFileService
@@ -66,7 +66,6 @@ import com.normation.rudder.ncf.Technique
 import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
-import com.normation.rudder.repository.xml.GitFindUtils
 import com.normation.rudder.rest.TwoParam
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JObject

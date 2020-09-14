@@ -48,6 +48,7 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiAccount
 import com.normation.errors.RudderError
 import com.normation.rudder.ncf.ResourceFileService
+import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.ResourceFileState.Untouched
 import com.normation.rudder.ncf.TechniqueReader
 import zio._
@@ -101,12 +102,13 @@ class CheckNcfTechniqueUpdate(
         techniquesWithResources <-
           ZIO.foreach(techniques) {
             technique =>
-              resourceFileService.getResources(technique).map(r => technique.copy(ressources = r.filter(_.state == Untouched)))
+              // Keep only non New Ressources
+              resourceFileService.getResources(technique).map(r => technique.copy(ressources = r.filterNot(_.state == ResourceFileState.New).map(_.copy(state = Untouched))))
           }
         // Actually write techniques
-        written    <- ZIO.foreach(techniquesWithResources)( t =>
-                        techniqueWrite.writeTechnique(t, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value)).chainError(s"An error occured while writing technique ${t.bundleName.value}")
-                      )
+        written    <- ZIO.foreach(techniquesWithResources) { t =>
+          techniqueWrite.writeTechnique(t, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value)).chainError(s"An error occured while writing technique ${t.bundleName.value}")
+        }
                                                         // Update technique library once all technique are updated
         libUpdate   <- techLibUpdate.update(ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value), Some(s"Update Technique library after updating all techniques at start up")).toIO.chainError( s"An error occured during techniques update after update of all techniques from the editor")
 
