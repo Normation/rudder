@@ -43,7 +43,6 @@ import better.files.File
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
 import cats.data.NonEmptyList
-import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.Version
