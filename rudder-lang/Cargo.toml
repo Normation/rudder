@@ -16,7 +16,7 @@ path = "src/bin/rudderc.rs"
 colored = "2"
 env_logger = "0.7"
 lazy_static = "1"
-log = "0.4"
+log = { version = "0.4", features = ["serde" ] }
 maplit = "1"
 ngrammatic = "0.3"
 nom = "5"

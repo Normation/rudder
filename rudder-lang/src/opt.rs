@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{error::*, generator::Format, io::IOContext, logger::Logger, Action};
+use crate::{error::Result, generator::Format, io::IOContext, logger::Output, Action};
 use log::LevelFilter;
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -42,21 +42,21 @@ pub enum Opt {
     },
 }
 impl Opt {
-    pub fn extract_logging_infos(&self) -> (Logger, LevelFilter, bool) {
+    pub fn extract_logging_infos(&self) -> (Output, LevelFilter, bool) {
         match self {
             Self::Compile {
                 options, json_log, ..
             } => {
                 let logger = match json_log {
-                    true => Logger::Json,
-                    false => Logger::Terminal,
+                    true => Output::JSON,
+                    false => Output::Terminal,
                 };
                 (logger, options.log_level, options.backtrace)
             }
             Self::Migrate { options, json_log } => {
                 let logger = match json_log {
-                    true => Logger::Json,
-                    false => Logger::Terminal,
+                    true => Output::JSON,
+                    false => Output::Terminal,
                 };
                 (logger, options.log_level, options.backtrace)
             }
@@ -99,11 +99,11 @@ pub enum Technique {
     },
 }
 impl Technique {
-    fn extract_logging_infos(&self) -> (Logger, LevelFilter, bool) {
-        // might be Logger::JSON instead
+    fn extract_logging_infos(&self) -> (Output, LevelFilter, bool) {
+        // might be Output::JSON instead
         match self {
-            Self::Read { options } => (Logger::Json, options.log_level, options.backtrace),
-            Self::Generate { options, .. } => (Logger::Json, options.log_level, options.backtrace),
+            Self::Read { options } => (Output::JSON, options.log_level, options.backtrace),
+            Self::Generate { options, .. } => (Output::JSON, options.log_level, options.backtrace),
         }
     }
 

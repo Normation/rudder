@@ -20,7 +20,14 @@ use log::*;
 use std::process::exit;
 use structopt::StructOpt;
 
-use rudderc::{compile::compile_file, io, logger::Logger, opt::Opt, technique::generate, Action};
+use rudderc::{
+    compile::compile_file,
+    error::Error,
+    migrate::migrate,
+    opt::Opt,
+    technique::{generate_technique, read_technique},
+    Action, ActionResult,
+};
 
 // MAIN
 
@@ -54,18 +61,23 @@ use rudderc::{compile::compile_file, io, logger::Logger, opt::Opt, technique::ge
 /// Rudder language compiler
 
 // TODO use termination
+// TODO log infos into ram to put into logs
 
 fn main() {
     let command = Opt::from_args();
-    let (logger, log_level, has_backtrace) = command.extract_logging_infos();
+    let (output, log_level, has_backtrace) = command.extract_logging_infos();
     let action = command.to_action();
     // Initialize logger
-    logger.init(log_level, action, has_backtrace);
+    output.init(log_level, action, has_backtrace);
 
     let ctx = command.extract_parameters().unwrap_or_else(|e| {
         error!("{}", e);
         // required before returning in order to have proper logging
-        logger.end(false, "input not set", "output not set");
+        output.print(
+            action,
+            "input not set",
+            Err(Error::new("Not set yet".to_owned())),
+        );
         exit(1);
     });
 
@@ -77,7 +89,8 @@ fn main() {
     // compile = rl -> cf / dsc
     // generate = json -> rl / cf / dsc
     // TODO make the right calls
-    let result = match action {
+    // TODO collect logs in ram rather than directly printing it
+    let action_result = match action {
         Action::Compile => compile_file(&ctx, true),
         // TODO Migrate: call cf_to_json perl script then call json->rl == Technique generate()
         Action::Migrate => unimplemented!(),
@@ -86,19 +99,28 @@ fn main() {
         // TODO Generate: call technique generate then compile into all formats + json wrapper: { rl: "", dsc: "", cf: "", errors:{} }
         Action::GenerateTechnique => unimplemented!(),
     };
-    match &result {
-        Err(e) => error!("{}", e),
-        Ok(_) => info!(
-            "{} {}",
-            format!("{:?}", action).bright_green(),
-            "OK".bright_cyan()
-        ),
-    };
-    logger.end(result.is_ok(), ctx.input.display(), ctx.output.display());
-    if result.is_err() {
+    // these logs should disappear since output will take care of it (to only print json or in terminal, not a mix)
+    // match &action_result {
+    //     Ok(_) => info!(
+    //         "{} {}",
+    //         format!("{:?}", action).bright_green(),
+    //         "OK".bright_cyan()
+    //     ),
+    //     Err(e) => error!("{}", e),
+    // };
+    let action_status = action_result.is_ok();
+    output.print(action, ctx.input.display(), action_result);
+    if action_status {
         exit(1)
     }
 }
+
+// prévu refonte cli + tests dsc
+// en pratique la refonte cli a soulevé pas mal de questions:
+// passer de : créer un fichier dans un format particulier dans un fichier
+// à : 4 actions possibles, peut generer +rs formats dans un json wrappé, qui contient possiblement les logs (qui sont mal formattés actuellement), ou des fichiers directement etc
+// -> impl action system
+// lié à çá le souci de logs
 
 // Phase 2
 // - function, measure(=fact), action

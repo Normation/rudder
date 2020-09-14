@@ -2,6 +2,10 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 mod from_ir;
+mod generate;
+mod read;
+pub use generate::generate_technique;
+pub use read::read_technique;
 
 use crate::{
     cfstrings,
@@ -15,6 +19,9 @@ use regex::{Captures, Regex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fs, str};
 use typed_arena::Arena;
+
+// might change later
+pub type TechniqueFmt = String;
 
 // Techniques are limited subsets of CFEngine in JSON representation
 // that only carry method calls and Rudder metadata
@@ -80,7 +87,7 @@ impl Technique {
             .map_err(|e| Error::new(format!("Technique from JSON: {}", e)))
     }
 
-    pub fn to_json(&self) -> Result<String> {
+    pub fn to_json(&self) -> Result<TechniqueFmt> {
         info!(
             "|- {} (translation phase)",
             "Generating JSON code".bright_green()

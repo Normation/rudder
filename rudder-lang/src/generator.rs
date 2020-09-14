@@ -8,7 +8,7 @@ pub mod markdown;
 
 pub use self::{cfengine::CFEngine, dsc::DSC, json::JSON, markdown::Markdown};
 use crate::{error::*, ir::ir2::IR2};
-use serde::de::{self, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::{fmt, path::Path, str::FromStr};
 
 /// A generator is something that can generate final code for a given language from an IR
@@ -35,7 +35,7 @@ pub fn new_generator(format: &Format) -> Result<Box<dyn Generator>> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Format {
     // rudder_lang usage is only internal to handle translation. Not a compilation format
     RudderLang,
@@ -81,6 +81,6 @@ impl<'de> Deserialize<'de> for Format {
         D: Deserializer<'de>,
     {
         let strfmt = String::deserialize(deserializer)?;
-        Format::from_str(&strfmt).map_err(de::Error::custom)
+        Format::from_str(&strfmt).map_err(serde::de::Error::custom)
     }
 }

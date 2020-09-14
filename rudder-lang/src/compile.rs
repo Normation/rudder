@@ -9,6 +9,7 @@ use crate::{
     ir::ir2::IR2,
     parser::{Token, PAST},
     rudderlang_lib::RudderlangLib,
+    ActionResult,
 };
 use colored::Colorize;
 use std::{fs, path::Path};
@@ -66,8 +67,8 @@ pub fn technique_to_ir<'src>(
     Ok(ir2)
 }
 
-/// Compile a file from rudder-lang to cfengine
-pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<()> {
+/// Compile a file from rudder-lang to cfengine / dsc / json
+pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<Vec<ActionResult>> {
     let sources = Arena::new();
     let ir = technique_to_ir(ctx, &sources)?;
 
@@ -80,5 +81,7 @@ pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<()> {
         (None, None)
     };
     let mut generator = new_generator(&ctx.format)?;
-    generator.generate(&ir, input_file, output_file, technique)
+    generator.generate(&ir, input_file, output_file, technique)?;
+    // TODO fill action result directly
+    Ok(vec![ActionResult::default()])
 }
