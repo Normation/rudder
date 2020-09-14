@@ -209,10 +209,14 @@ object FillTemplateThreadUnsafe {
                     } else {
                       StringTemplateLogger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]") *>
                       IOResult.effectNonBlocking(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]"){
-                        // directly set the array of values in place of values one by one (and let ST build back the array, mutating its map for values
-                        // each time. Also: ST really need an array, so we use an array seq in STVariable (for immutability) and unwrappe it here to
+                        // if there is only one value in the value array, only set unique head value or else we encounter https://issues.rudder.io/issues/18205
+                        // to sum up, if we pass an array here, StringTemplate will treat it as an array, and not an unique value, hence in the case of 18025,
+                        // the Boolean value is used in a condition and string template will only check if the array is empty or notr and not look at the boolean value
+                        // if we have more than one value, directly set the array of values in place of values one by one (and let ST build back the array, mutating its map for values
+                        // each time. Also: ST really need an array, so we use an array seq in STVariable (for immutability) and unwrap it here to
                         // avoid the cost of translation.
-                        template.setAttribute(variable.name, variable.values.unsafeArray)
+                        val value = if (variable.values.size == 1) {variable.values.head} else { variable.values.unsafeArray }
+                        template.setAttribute(variable.name, value)
                       }.untraced
                     }
                   }.untraced
