@@ -1,0 +1,72 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+bundle agent root_integrity_check
+{
+  vars:
+      "key_destination"  string => "${sys.workdir}/ppkeys/root-${sys.key_digest}.pub";
+
+  classes:
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+
+    root_server::
+
+      "${g.rudder_configuration_repository}"
+        create => "true",
+        action => WarnOnly,
+        classes => if_else("rudder_integrity_ok", "rudder_integrity_failed");
+
+      "${g.rudder_configuration_repository}/.git/index.lock"
+        delete       => tidy,
+        file_select  => ncf_minutes_old("5"),
+        classes      => classes_generic("rudder_git_lock"),
+        comment      => "Delete the git locking file in the configuration-repository if older than 5 minutes";
+
+  methods:
+    root_server::
+      "link the key" usebundle => disable_reporting;
+      "link the key" usebundle => file_create_symlink("${sys.workdir}/ppkeys/localhost.pub", "${key_destination}"),
+                       comment => "Creating a link of the server key to itself to allow auto-copy";
+      "link the key" usebundle => enable_reporting; 
+
+
+    pass3.root_server.rudder_integrity_ok.!rudder_integrity_failed::
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "${server_roles_common.directiveId}", "Check configuration-repository folder", "None", "The ${g.rudder_configuration_repository} directory is present");
+
+    pass3.root_server.(!rudder_integrity_ok|rudder_integrity_failed)::
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "${server_roles_common.directiveId}", "Check configuration-repository folder", "None", "The required ${g.rudder_configuration_repository} directory is absent, central server will not operate properly");
+
+    pass3.(root_server.!rudder_git_lock_repaired.!rudder_git_lock_failed)::
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "${server_roles_common.directiveId}", "Check configuration-repository GIT lock", "None", "The ${g.rudder_configuration_repository} git lock file is not present or not older than 5 minutes");
+
+    pass3.(root_server.rudder_git_lock_repaired.!rudder_git_lock_failed)::
+      "any" usebundle => rudder_common_report("server-roles", "result_repaired", "${server_roles_common.directiveId}", "Check configuration-repository GIT lock", "None", "The ${g.rudder_configuration_repository} git lock file was older than 5 minutes and has been deleted");
+
+    pass3.(root_server.rudder_git_lock_failed)::
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "${server_roles_common.directiveId}", "Check configuration-repository GIT lock", "None", "The ${g.rudder_configuration_repository} git lock file is older than 5 minutes and could not be deleted, central server will not operate properly");
+
+    pass3.(policy_server.!root_server)::
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "${server_roles_common.directiveId}", "Check configuration-repository folder", "None", "Nothing to check about the configuration-repository on relay servers");
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "${server_roles_common.directiveId}", "Check configuration-repository GIT lock", "None", "Nothing to check about configuration-repository git locking on relay servers");
+
+}

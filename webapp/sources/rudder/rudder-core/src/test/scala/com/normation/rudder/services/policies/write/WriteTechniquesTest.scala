@@ -37,8 +37,7 @@ package com.normation.rudder.services.policies.write
 import org.specs2.runner.JUnitRunner
 import org.junit.runner.RunWith
 import com.normation.BoxSpecMatcher
-import com.normation.cfclerk.domain.TechniqueResourceId
-import com.normation.cfclerk.domain.TechniqueTemplate
+import com.normation.cfclerk.domain.{TechniqueResourceId, TechniqueTemplate, Variable}
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.ParameterName
@@ -463,6 +462,43 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     }
   }
 
+  "We must ensure that boolean system value is correctly interpreted as a boolean" should {
+
+    def forceBooleanToFalse(systemVars: Map[String, Variable]) = {
+      systemVars("STORE_ALL_CENTRALIZED_LOGS_IN_FILE").copyWithSavedValue("false") match {
+        case Right(variable) => systemVars + ("STORE_ALL_CENTRALIZED_LOGS_IN_FILE" -> variable)
+        case _ => systemVars
+      }
+    }
+
+    val rnc = rootNodeConfig.copy(
+      policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll))
+      , nodeContext = forceBooleanToFalse(getSystemVars(root, allNodesInfo_cfeNode, groupLib))
+      , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+    )
+
+    val cfeNC = cfeNodeConfig.copy(
+      nodeInfo    = cfeNode
+      , policies    = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, gvd1, gvd2))
+      , nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
+    )
+
+    "correctly get the expected policy files" in {
+      val (rootPath, writter) = getPromiseWritter("cfe-node-sys-bool-false")
+      // Actually write the promise files for the root node
+      val writen = writter.writeTemplate(
+        root.id
+        , Set(root.id, cfeNode.id)
+        , Map(root.id -> rnc, cfeNode.id -> cfeNC)
+        , Map(root.id -> rnc.nodeInfo, cfeNode.id -> cfeNC.nodeInfo)
+        , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-sys-bool-false-cfg-id"))
+        , globalPolicyMode, DateTime.now, parallelism
+      )
+
+      (writen mustFull) and
+        compareWith(rootPath.getParentFile/root.id.value, "root-sys-var-false", Nil)
+    }
+  }
 
   "A CFEngine node, with 500 directives based on the same technique" should {
 

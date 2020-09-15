@@ -1,0 +1,108 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# This file is the main entry points for the bundle sequence for 
+# Rudder system directives. It is actually a list of method calls, and not
+# a bundle sequence, which allows to add the technique or directives 
+# names as promiser. 
+
+body file control {
+
+  inputs => {
+    "distributePolicy/1.0/common.cf",
+    "distributePolicy/1.0/rsyslogConf.cf",
+    "distributePolicy/1.0/propagatePromises.cf",
+    "distributePolicy/1.0/apache-acl.cf",
+    "common/1.0/common.cf",
+    "common/1.0/cf-serverd.cf",
+    "rudder-directives.cf",
+    "rudder-system-directives.cf",
+    "common/1.0/rudder-parameters.cf",
+    "common/1.0/rudder-groups.cf",
+    "common/1.0/hooks.cf",
+    "common/1.0/cron-setup.cf",
+    "common/1.0/site.cf",
+    "common/1.0/update.cf",
+    "common/1.0/monitoring.cf",
+    "common/1.0/restart-services.cf",
+    "common/1.0/internal-security.cf",
+    "common/1.0/environment-variables.cf",
+    "common/1.0/properties.cf",
+    "common/1.0/reporting-http.cf",
+    "inventory/1.0/fusionAgent.cf",
+    "server-roles/1.0/common.cf",
+    "server-roles/1.0/metrics-reporting.cf",
+    "server-roles/1.0/component-check.cf",
+    "server-roles/1.0/alive-check.cf",
+    "server-roles/1.0/service-check.cf",
+    "server-roles/1.0/integrity-check.cf",
+    "server-roles/1.0/network-check.cf",
+    "server-roles/1.0/password-check.cf",
+    "server-roles/1.0/postgres-check.cf",
+    "server-roles/1.0/logrotate-check.cf",
+    "server-roles/1.0/technique-reload.cf",
+    "server-roles/1.0/compress-webapp-log.cf",
+    "server-roles/1.0/compress-ldap-backups.cf",
+    "server-roles/1.0/servers-by-role.cf",
+    "server-roles/1.0/relayd.cf",
+  };
+
+}
+
+
+bundle agent rudder_system_directives {
+  # fully generated in bundle common va for iinitial promises
+  # The directive sequence will be correctly indented by the generated variable so we can support multiline variable
+  methods:
+      "distributePolicy/Distribute Policy"              usebundle => set_dry_run_mode("false");
+      "distributePolicy/Distribute Policy"              usebundle => run_root_distributePolicy;
+      "Rudder system policy: daily inventory/Inventory" usebundle => set_dry_run_mode("false");
+      "Rudder system policy: daily inventory/Inventory" usebundle => run_inventory_all;
+      "Rudder system policy: Server roles/Server Roles" usebundle => set_dry_run_mode("false");
+      "Rudder system policy: Server roles/Server Roles" usebundle => run_server_roles_directive;
+}
+bundle agent run_root_distributePolicy
+{
+  methods:
+      "distributePolicy/Distribute Policy" usebundle => rudder_reporting_context("root-distributePolicy","root-DP","distributePolicy");
+      "distributePolicy/Distribute Policy" usebundle => disable_reporting;
+      "distributePolicy/Distribute Policy" usebundle => install_rsyslogd;
+      "distributePolicy/Distribute Policy" usebundle => propagatePromises;
+      "distributePolicy/Distribute Policy" usebundle => sendInventoryToCmdb;
+      "distributePolicy/Distribute Policy" usebundle => apache_acl;
+      "distributePolicy/Distribute Policy" usebundle => clean_reporting_context;
+}
+bundle agent run_inventory_all
+{
+  methods:
+      "Rudder system policy: daily inventory/Inventory" usebundle => rudder_reporting_context("inventory-all","inventory-all","inventory");
+      "Rudder system policy: daily inventory/Inventory" usebundle => disable_reporting;
+      "Rudder system policy: daily inventory/Inventory" usebundle => doInventory;
+      "Rudder system policy: daily inventory/Inventory" usebundle => clean_reporting_context;
+}
+bundle agent run_server_roles_directive
+{
+  methods:
+      "Rudder system policy: Server roles/Server Roles" usebundle => rudder_reporting_context("server-roles-directive","server-roles","server-roles");
+      "Rudder system policy: Server roles/Server Roles" usebundle => disable_reporting;
+      "Rudder system policy: Server roles/Server Roles" usebundle => root_component_check;
+      "Rudder system policy: Server roles/Server Roles" usebundle => metrics_reporting;
+      "Rudder system policy: Server roles/Server Roles" usebundle => clean_reporting_context;
+
+}
+
