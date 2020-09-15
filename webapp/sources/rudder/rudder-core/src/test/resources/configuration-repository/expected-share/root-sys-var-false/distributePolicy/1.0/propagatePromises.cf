@@ -1,0 +1,321 @@
+#####################################################################################
+# Copyright 2011 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+
+#
+# Fetch the promises from the server to be available for others machines
+# Must not do it on the RootServer though...
+
+
+bundle agent propagatePromises
+{
+
+  vars:
+    any::
+      "server_data" string => "${server_info.policy_files}/share"; #actual directory with data to propagate
+      "client_data" string => "${g.rudder_var}/share/";  #where to put the files on the client when downloaded
+
+    pass2.root_server::
+      "ncf_common_sha_sum" string => execresult("${paths.path[find]} ${g.rudder_ncf_origin_common} -not -name ${g.rudder_ncf_hash_file} -type f -print0  | ${paths.path[sort]} -z | /usr/bin/xargs -0 /usr/bin/sha1sum | /usr/bin/sha1sum", "useshell");
+      "ncf_local_sha_sum"  string => execresult("${paths.path[find]} ${g.rudder_ncf_origin_local} -not -name ${g.rudder_ncf_hash_file} -type f -print0  | ${paths.path[sort]} -z | /usr/bin/xargs -0 /usr/bin/sha1sum | /usr/bin/sha1sum", "useshell");
+
+
+  classes:
+    !root_server::
+       # configure the Relay synchronization method
+       "sync_method_disabled" expression => strcmp("${distribute_policy_common.relay_sync_method}", "disable");
+       "sync_method_rsync"    expression => strcmp("${distribute_policy_common.relay_sync_method}", "rsync");
+       "sync_promises"        expression => strcmp("${distribute_policy_common.relay_sync_promises}", "true");
+       "sync_sharedfiles"     expression => strcmp("${distribute_policy_common.relay_sync_sharedfiles}", "true");
+
+       "disable_classic_promises"    expression => "sync_method_rsync|sync_method_disabled";
+       "disable_classic_sharedfiles" expression => "sync_method_rsync|sync_method_disabled";
+
+       "rsync_promises"              expression => "sync_promises.sync_method_rsync";
+       "rsync_sharedfiles"           expression => "sync_sharedfiles.sync_method_rsync";
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+    # Detect if relay-server protocols works ok (update is ok), but nothing to update (no node behind the relay)
+    # Class definition for no propagate promises transfer, but correct promises transfer -> folder for promises for relay is empty on the server, or folder inexistent
+    pass3::
+     "update_successful"                expression => "root_server|((rudder_ncf_hash_update_ok|(rudder_ncf_hash_update_repaired.rudder_ncf_common_updated_ok.rudder_ncf_local_updated_ok)).(rudder_promises_generated_tmp_file_kept|(rudder_promises_generated_tmp_file_repaired.config_ok)).!(rudder_promises_generated_tmp_file_error|rudder_ncf_common_update_error|rudder_ncf_local_update_error|no_update|rudder_ncf_hash_update_error))";
+
+     "sharedfiles_not_existent" expression => "update_successful.!shared_files_propagated"; # If shared-files doesn't exist, error class is defined, if it is empty, no class is defined
+     "sharedfiles_not_copied"   expression => "!update_successful.could_not_propagate_shared_files";
+
+
+  files:
+    (policy_server|role_rudder_relay_promises_only).!root_server.!disable_classic_promises::
+      "${client_data}"  #that's a loop on each files in client_inputs
+        copy_from    => remote("${server_info.policy_server}","${server_data}"),
+        depth_search => recurse_visible("inf"),
+        comment => "Fetching the promises to propagate",
+        classes => if_else("promises_propagated", "could_not_propagate_promises");
+
+    (policy_server|role_rudder_relay_promises_only).!root_server.!disable_classic_sharedfiles::
+      "${system_common.system_common}"
+        copy_from    => remote("${server_info.policy_server}","${system_common.system_common}"),
+        depth_search => recurse_visible("inf"),
+        comment => "Fetching the files shared for the promises execution",
+        classes => if_else("files_propagated", "could_not_propagate_files");
+
+    (policy_server|role_rudder_relay_promises_only).!root_server::
+      "${g.rudder_var}/shared-files/"
+        copy_from    => remote("${server_info.policy_server}","${g.rudder_var}/shared-files/${g.uuid}/shared-files"),
+        depth_search => recurse_visible("inf"),
+        comment => "Fetching files shared between agents",
+        classes => if_else("shared_files_propagated", "could_not_propagate_shared_files");
+
+      "${g.rudder_ncf_origin_local}"
+        copy_from    => remote("${server_info.policy_server}","${g.rudder_ncf_origin_local}"),
+        depth_search => recurse_visible("inf"),
+        comment      => "Fetching the ncf local to propagate",
+        classes      => if_else("ncf_local_promises_propagated", "could_not_propagate_ncf_local_promise");
+
+      "${g.rudder_ncf_origin_common}"
+        copy_from    => remote("${server_info.policy_server}","${g.rudder_ncf_origin_common}"),
+        depth_search => recurse_visible("inf"),
+        comment      => "Fetching the ncf common to propagate",
+        classes      => if_else("ncf_common_promises_propagated", "could_not_propagate_ncf_common_promise");
+
+      "${sys.workdir}/masterfiles"
+        copy_from    => remote("${server_info.policy_server}","${sys.workdir}/masterfiles"),
+        depth_search => recurse_visible("inf"),
+        file_select => no_license_dat, #We don't want to propagate a wrong license.dat
+        comment => "Fetching the bootstrap promises",
+        classes => if_else("masterfiles_propagated", "could_not_propagate_masterfiles");
+
+    enterprise_edition::
+      "${sys.workdir}/masterfiles/license.dat"
+        copy_from    => local_cp("${sys.workdir}/inputs/license.dat"),
+        comment      => "Putting the right license in the bootstrap",
+        classes      => if_else("license_copied", "could_not_copy_license");
+
+    # each run, update the hash files of ncf
+    # these hashes are used by node to know if they should update their copy of ncf
+    root_server.pass2::
+      "${g.rudder_ncf_origin_common_hash}"
+        create        => "true",
+        edit_defaults => empty,
+        edit_line     => insert_lines("${ncf_common_sha_sum}"),
+        comment       => "Update the hash of ncf common";
+
+      "${g.rudder_ncf_origin_local_hash}"
+        create        => "true",
+        edit_defaults => empty,
+        edit_line     => insert_lines("${ncf_local_sha_sum}"),
+        comment       => "Update the hash of ncf local";
+
+    policy_server::
+
+      "${g.rudder_base}/etc/nodeslist.json"
+        copy_from    => local_cp("${this.promise_dirname}/nodeslist.json"),
+        perms        => mog("640", "root", "rudder"),
+        comment => "Copying list of nodes under this policy server",
+        classes => if_else("nodeslist_copied", "could_not_copy_nodeslist");
+
+      "${g.rudder_var}/lib/relay/nodeslist.json"
+        copy_from    => local_cp("${this.promise_dirname}/nodeslist.json"),
+        perms        => mog("640", "root", "rudder"),
+        comment => "Copying list of nodes under this policy server",
+        classes => if_else("nodeslist_copied", "could_not_copy_nodeslist");
+
+  methods:
+    # Success if resources are updated or not changed (kept or repaired).
+    # root server have only nodelist to be updated
+    # relays have ncf, masterfiles nodelist and shared_files folder to be updated.
+    pass3.root_server.nodeslist_copied.!could_not_copy_nodeslist::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "${distribute_policy_common.directiveId}", "Synchronize resources", "None", "All resources have been updated");
+
+    pass3.!root_server.(shared_files_propagated|sharedfiles_not_existent).masterfiles_propagated.ncf_local_promises_propagated.ncf_common_promises_propagated.nodeslist_copied).!(sharedfiles_not_copied|could_not_propagate_masterfiles|could_not_propagate_ncf_local_promise|could_not_propagate_ncf_common_promise|could_not_copy_nodeslist))::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "${distribute_policy_common.directiveId}", "Synchronize resources", "None", "All resources have been synchronized");
+
+    pass3.sharedfiles_not_copied::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "${distribute_policy_common.directiveId}", "Synchronize resources", "None", "Cannot synchronize shared files");
+
+    pass3.root_server::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_na", "${distribute_policy_common.directiveId}", "Synchronize policies", "None", "Rudder server does not need to synchronize its policies");
+    pass3.(sync_method_disabled|(!sync_promises.sync_method_rsync))::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_na", "${distribute_policy_common.directiveId}", "Synchronize policies", "None", "Policies need to be synchronized by an external system");
+
+    pass3.could_not_propagate_promises.((!sync_method_rsync.!update_successful)|sync_method_rsync)::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "${distribute_policy_common.directiveId}", "Synchronize policies", "None", "Cannot synchronize policies");
+
+    pass3.promises_propagated.sync_method_rsync::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "${distribute_policy_common.directiveId}", "Synchronize policies", "None", "Policies synchronized using rsync");
+    pass3.(promises_propagated|(could_not_propagate_promises.update_successful)).!sync_method_rsync::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "${distribute_policy_common.directiveId}", "Synchronize policies", "None", "Policies synchronized using classic method");
+
+    pass3.root_server::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_na", "${distribute_policy_common.directiveId}", "Synchronize files", "None", "Rudder server does not need to synchronize its shared files");
+    pass3.(sync_method_disabled|(!sync_sharedfiles.sync_method_rsync))::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_na", "${distribute_policy_common.directiveId}", "Synchronize files", "None", "Shared files need to be synchronized by an external system");
+
+    pass3.could_not_propagate_files::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "${distribute_policy_common.directiveId}", "Synchronize files", "None", "Cannot propagate shared files");
+
+    pass3.files_propagated.sync_method_rsync::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "${distribute_policy_common.directiveId}", "Synchronize files", "None", "Shared files synchronized using rsync");
+    pass3.(files_propagated|(could_not_propagate_files.update_successful)).!sync_method_rsync::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "${distribute_policy_common.directiveId}", "Synchronize files", "None", "Shared files synchronized using classic method");
+
+    pass3.could_not_propagate_ncf_local_promise::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "${distribute_policy_common.directiveId}", "Synchronize resources", "None", "Cannot propagate local configuration library");
+
+    pass3.could_not_propagate_ncf_common_promise::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "${distribute_policy_common.directiveId}", "Synchronize resources", "None", "Cannot propagate common configuration library");
+
+    pass3.could_not_propagate_masterfiles::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "${distribute_policy_common.directiveId}", "Synchronize resources", "None", "Cannot propagate masterfiles");
+
+    pass3.could_not_copy_license::
+      "any" usebundle => rudder_common_report("DistributePolicy", "log_warn", "${distribute_policy_common.directiveId}", "Synchronize resources", "None", "Cannot copy local license");
+
+    pass3.could_not_copy_nodeslist::
+      "any" usebundle => rudder_common_report("DistributePolicy", "log_warn", "${distribute_policy_common.directiveId}", "Synchronize resources", "None", "Cannot copy local nodes list");
+
+  commands:
+    policy_server.!root_server.rsync_promises::
+      "/usr/bin/rsync --archive --checksum --compress --sparse --delete ${server_info.policy_server}:${server_data}/ ${client_data}"
+        classes => if_else("promises_propagated", "could_not_propagate_promises");
+    policy_server.!root_server.rsync_sharedfiles::
+      "/usr/bin/rsync --archive --checksum --compress --sparse --delete ${server_info.policy_server}:/${system_common.system_common} ${system_common.system_common}/"
+        classes => if_else("files_propagated", "could_not_propagate_files");
+
+}
+
+# Sending the inventory to the Rudder Server (or syncing with the server if we are a simple relay)
+# We cannot use list of paths (i.e. {"incoming", "accepted-nodes-updates"}) to send the inventories because it cause the transformer to fail
+# for some unknown reason, see https://www.rudder-project.org/redmine/issues/4094
+bundle agent sendInventoryToCmdb
+{
+
+  vars:
+    any::
+      "incoming_inventory_files" slist => findfiles("${g.rudder_inventories}/incoming/*.ocs", "${g.rudder_inventories}/incoming/*.ocs.gz");
+      "updates_inventory_files" slist => findfiles("${g.rudder_inventories}/accepted-nodes-updates/*.ocs", "${g.rudder_inventories}/accepted-nodes-updates/*.ocs.gz");
+    has_cmdb_endpoint::
+      "rudder_inventory_endpoint" string => "${distribute_policy_common.cmdb_endpoint}";
+    !has_cmdb_endpoint.!role_rudder_inventory_endpoint_server_defined::
+      "rudder_inventory_endpoint" string => "http://localhost:8080/endpoint/upload/";
+    !has_cmdb_endpoint.role_rudder_inventory_endpoint_server_defined::
+      "rudder_inventory_endpoint" string => "http://${rudder_servers_by_role.roles[rudder-inventory-endpoint]}:8080/endpoint/upload/";
+
+  classes:
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+      "disable_upload" expression => fileexists("/opt/rudder/etc/no_inventory_upload");
+
+  files:
+    # Root server and relay-top send to the endpoint, every other send as usual to their policy server
+    !disable_upload.(root_server|role_rudder_relay_top)::
+
+      "${incoming_inventory_files}"
+        transformer => "${this.promise_dirname}/send-clean.sh ${rudder_inventory_endpoint} ${this.promiser} ${g.rudder_inventories}/received/ ${g.rudder_inventories}/failed/",
+        classes => classes_generic("rudder_inventory_processing"),
+        ifvarclass => "!rudder_inventory_processing_error",
+        comment => "Processing a local inventory";
+
+      "${updates_inventory_files}"
+        transformer => "${this.promise_dirname}/send-clean.sh ${rudder_inventory_endpoint} ${this.promiser} ${g.rudder_inventories}/received/ ${g.rudder_inventories}/failed/",
+        classes => classes_generic("rudder_inventory_processing"),
+        ifvarclass => "!rudder_inventory_processing_error",
+        comment => "Processing a local inventory";
+
+    !disable_upload.policy_server.!(root_server|role_rudder_relay_top|role_rudder_relay_promises_only)::
+
+      "${g.rudder_inventories}/incoming"
+        transformer => "${g.rudder_curl} --tlsv1.2 --insecure --fail --silent --proxy '' --user rudder:rudder --upload-file ${this.promiser} https://${server_info.policy_server}/inventories/",
+        depth_search => recurse_visible(1),
+        file_select => all_inventory_files,
+        classes => classes_generic("rudder_inventory_relay"),
+        comment => "Sending an inventory to the root server";
+
+      "${g.rudder_inventories}/accepted-nodes-updates"
+        transformer => "${g.rudder_curl} --tlsv1.2 --insecure --fail --silent --proxy '' --user ${g.davuser}:${g.davpw} --upload-file ${this.promiser} https://${server_info.policy_server}/inventory-updates/",
+        depth_search => recurse_visible(1),
+        file_select => all_inventory_files,
+        classes => classes_generic("rudder_inventory_relay"),
+        comment => "Sending an inventory to the root server";
+
+    !disable_upload.policy_server.!(root_server|role_rudder_relay_top|role_rudder_relay_promises_only).!rudder_inventory_relay_error::
+
+      "${g.rudder_inventories}/incoming"
+        transformer => "/bin/rm -f ${this.promiser}",
+        depth_search => recurse_visible(1),
+        file_select => all_inventory_files,
+        classes => classes_generic("rudder_inventory_cleanup"),
+        comment => "Purging the received inventory files after processing";
+
+      "${g.rudder_inventories}/accepted-nodes-updates"
+        transformer => "/bin/rm -f ${this.promiser}",
+        depth_search => recurse_visible(1),
+        file_select => all_inventory_files,
+        classes => classes_generic("rudder_inventory_cleanup"),
+        comment => "Purging the received inventory files after processing";
+
+  methods:
+
+    pass3.(rudder_inventory_processing_repaired.!rudder_inventory_processing_error)::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "${distribute_policy_common.directiveId}", "Send inventories to Rudder server", "None", "Incoming inventories were successfully sent to the inventory API");
+
+    pass3.disable_upload::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_na", "${distribute_policy_common.directiveId}", "Send inventories to Rudder server", "None", "Sending inventories has been disabled");
+
+    pass3.rudder_inventory_processing_error::
+
+    pass3.((root_server|role_rudder_relay_top|role_rudder_relay_promises_only).!rudder_inventory_processing_repaired.!rudder_inventory_processing_error.!disable_upload)::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "${distribute_policy_common.directiveId}", "Send inventories to Rudder server", "None", "No inventory to send");
+
+    pass3.(rudder_inventory_relay_repaired.!rudder_inventory_relay_error)::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "${distribute_policy_common.directiveId}", "Send inventories to Rudder server", "None", "Incoming inventories were successfully relayed to the root server");
+
+    pass3.rudder_inventory_relay_error::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "${distribute_policy_common.directiveId}", "Send inventories to Rudder server", "None", "Cannot relay some inventories to the root server");
+
+    pass3.(policy_server.!(root_server|role_rudder_relay_top|role_rudder_relay_promises_only).!rudder_inventory_relay_repaired.!rudder_inventory_relay_error.!disable_upload)::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "${distribute_policy_common.directiveId}", "Send inventories to Rudder server", "None", "No inventory to relay");
+
+
+    pass3.(rudder_inventory_cleanup_repaired.!rudder_inventory_cleanup_error)::
+      "any" usebundle => rudder_common_report("DistributePolicy", "log_info", "${distribute_policy_common.directiveId}", "Send inventories to Rudder server", "None", "Sent incoming inventories were removed from local cache");
+
+    pass3.rudder_inventory_cleanup_error::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "${distribute_policy_common.directiveId}", "Send inventories to Rudder server", "None", "Cannot remove incoming inventories from local cache");
+
+}
+
+body file_select no_license_dat
+{
+        leaf_name => { "license\.dat" };
+        file_result => "!leaf_name";
+}
+
+body file_select all_inventory_files
+{
+        leaf_name => { "uuid\.hive" };
+        file_types => { "plain" };
+        file_result => "file_types.!leaf_name";
+}
+

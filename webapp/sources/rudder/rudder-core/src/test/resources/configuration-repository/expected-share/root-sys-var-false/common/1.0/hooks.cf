@@ -1,0 +1,740 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+
+# This file contains the collection of pre and post hooks for techniques
+# They all have a unique parameter, which is a JSON containing parameters, and all the list of reports, in the form
+# '{"parameters":{"name":"sudo","destination":"/etc/sudoers"},"reports":
+#[{"id":"32377fd7-02fd-43d0aab7-28460a91347b@@7aefa930-5493-4ec6-9d6b-f093b03ad709@@0","mode":"enforce", "technique":"sudoers", "name":"check_sudo_installed", "value":"None"},
+#  {"id":"92377fd7-02fd-43d0-aab7-28460a91347b@@9b575791-dc9b-409e-8841-e57f4b887e43@@0","mode":"audit", "technique":"sudoers", "name":"check_sudo_installed", "value":"None"}
+#  ]}';
+# By convention, if any of reports is in enforce, then the hook will perform the action, otherwise it will only audit
+
+
+# 
+# Ensure that a package is present
+# Parameters are:
+#     "name"      : Package Name
+#     "condition" : Condition on when to check the package (not mandatory)
+# Reports format is
+#     "id"        : Rule id
+#     "mode"      : enforce or audit
+#     "technique" : technique name
+#     "name"      : component name for reporting
+#     "value"     : component value for reporting
+bundle agent runhook_package(json) {
+  vars:
+      "definitions" data => parsejson("${json}");
+
+      "parameters"  data => mergedata("definitions[parameters]");
+
+      "reporting"   data => mergedata("definitions[reports]");
+
+      "reportkeys" slist => getindices("reporting");
+
+      "condition" string => "${parameters[condition]}";
+
+    pass1.is_enforce::
+      "set_dry_mode"   string => "false";
+
+    pass1.!is_enforce::
+      "set_dry_mode"   string => "true";
+
+    pass1.is_condition_defined::
+      "class_condition" string => "${conditions}";
+
+    pass1.!is_condition_defined::
+      "class_condition" string => "any";
+
+
+  classes:
+      "is_condition_defined"            not => strcmp("${conditions}", "");
+
+      # define if there is at least one enforce
+      "is_enforce"               expression => strcmp("${reporting[${reportkeys}][mode]}", "enforce");
+
+      # For reporting, detect each enforce/audit
+      "is_enforce_${reportkeys}" expression => strcmp("${reporting[${reportkeys}][mode]}", "enforce");
+
+
+    any::
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+
+  methods:
+    pass2::
+      "configure_dry_run_mode_${reporting[0][id]}"
+         usebundle => set_dry_run_mode("${set_dry_mode}");
+
+      # All GM reports at least a log_info, so we need to set the reporting context correctly
+      "set_reporting_context_for_GM"
+        usebundle => rudder_reporting_context_id("${reporting[0][id]}", "${reporting[0][technique]}");
+
+      "disable_reporting_sudo_pre_hook"
+         usebundle => disable_reporting;
+
+      "install_package"
+        usebundle  => package_present("${parameters[name]}", "", "", ""),
+        ifvarclass => "${class_condition}";
+
+      "reenable_reporting_sudo_pre_hook"
+         usebundle => enable_reporting;
+
+      # here we need to report correctly based on each mode for each directive
+      "reporting" 
+        usebundle  => _rudder_common_reports_generic_hooks("${reporting[${reportkeys}][technique]}", "package_present_${parameters[name]}", "${reporting[${reportkeys}][id]}", "${reporting[${reportkeys}][name]}", "${reporting[${reportkeys}][value]}", "Installing package ${parameters[name]}", "${reporting[${reportkeys}][mode]}"),
+        ifvarclass => "${class_condition}";
+
+      "na_report"
+        usebundle  => _rudder_common_report_hooks("${reporting[${reportkeys}][technique]}", "result_na", "${reporting[${reportkeys}][id]}", "${reporting[${reportkeys}][name]}", "${reporting[${reportkeys}][value]}", "Installing package ${parameters[name]}", "${reporting[${reportkeys}][mode]}"),
+        ifvarclass => "!${class_condition}";
+
+      "clean_reporting_context_${reporting[0][id]}"
+        usebundle  => clean_reporting_context;
+
+  reports:
+    inform.pass2::
+      "Executing hook runhook_package to install package ${parameters[name]} - Audit mode: ${set_dry_mode} - Condition is {class_condition}";
+
+}
+
+
+########################################################
+## Sudo Parameters specific hooks
+########################################################
+
+# This is a pre hook for sudoParameters
+# If any of report mode is enforce, then it will effectively check /etc/sudoers existance, and copy it to /etc/sudoers.rudder
+# If all are in audit mode, then it won't do anything
+# This method does not report at all
+bundle agent runhook_sudo_pre_hook(json) {
+  vars:
+      "definitions" data => parsejson("${json}");
+
+      "parameters"  data => mergedata("definitions[parameters]");
+
+      "reporting"   data => mergedata("definitions[reports]");
+
+      "reportkeys" slist => getindices("reporting");
+
+    pass1.is_enforce::
+      "set_dry_mode"  string => "false";
+
+    pass1.!is_enforce::
+      "set_dry_mode"  string => "true";
+
+  classes:
+      # define if there is at least one enforce
+      "is_enforce"            expression => strcmp("${reporting[${reportkeys}][mode]}", "enforce");
+
+      # For reporting, detect each enforce/audit
+      "is_enforce_${reportkeys}" expression => strcmp("${reporting[${reportkeys}][mode]}", "enforce");
+
+    is_enforce::
+      "sudoconfiguration_sudoers_present" expression => fileexists("/etc/sudoers");
+
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+    # Only copy /etc/sudoers if it exists (this is to avoid falling into an
+    # error report below)
+    sudoconfiguration_sudoers_present::
+      "/etc/sudoers.rudder"
+        copy_from => digest_cp("/etc/sudoers"),
+        perms     => mog("0440", "root", "0"),
+        classes   => kept_if_else("sudoconfiguration_sudoers_tmp_copy_kept", "sudoconfiguration_sudoers_tmp_copy_repaired", "sudoconfiguration_sudoers_tmp_copy_error"),
+        comment   => "Copying sudoers to a temporary file for editing";
+
+    # If there is no /etc/sudoers file, remove our local copy before
+    # rebuilding, so that success/repaired reports make sense for the
+    # /etc/sudoers file, not just for our copy of it, and set result classes
+    # as if we had set it up correctly.
+    !sudoconfiguration_sudoers_present::
+      "/etc/sudoers.rudder"
+        delete  => tidy,
+        classes => kept_if_else("sudoconfiguration_sudoers_tmp_copy_kept", "sudoconfiguration_sudoers_tmp_copy_repaired", "sudoconfiguration_sudoers_tmp_copy_error"),
+        comment => "Remove temporary copy of /etc/sudoers that Rudder keeps in /etc/sudoers.rudder";
+
+
+}
+
+
+#
+# This is the post hook for sudoParameters
+# The only real parameter useful in it is the report part for json
+# If any of report mode is enforce, then it will effectively check /etc/sudoers.rudder and copy it if successful to
+# /etc/sudoers
+# It reports, as hardcoded, to component sudoersFile, with value None
+bundle agent runhook_sudo_post_hook(json) {
+  vars:
+      "definitions" data => parsejson("${json}");
+
+      "parameters"  data => mergedata("definitions[parameters]");
+
+      "reporting"   data => mergedata("definitions[reports]");
+
+      "reportkeys" slist => getindices("reporting");
+
+    pass1.is_enforce::
+      "set_dry_mode"  string => "false";
+
+    pass1.!is_enforce::
+      "set_dry_mode"  string => "true";
+
+    pass1.visudo_use_strict_mode::
+      "strict_mode" string => "-s ";
+
+    pass1.!visudo_use_strict_mode::
+      "strict_mode" string => "";
+
+  classes:
+      # define if there is at least one enforce
+      "is_enforce"            expression => strcmp("${reporting[${reportkeys}][mode]}", "enforce");
+
+      # For reporting, detect each enforce/audit
+      "is_enforce_${reportkeys}" expression => strcmp("${reporting[${reportkeys}][mode]}", "enforce");
+
+    is_enforce::
+      # Check the version of visudo; if before 1.7 (so 1.6 or less), we need to use strict mode
+      # For version 1.7, bugs in the strict parsing prevent from using safely the strict mode (see http://www.sudo.ws/bugs/show_bug.cgi?id=519 )
+      # Versions after 1.7 don't need to have Aliases defined before they are used, and strict mode only checks that, so we can safely ignore it
+      # visudo -V can returns several lines, so we need to keep only the visudo version line
+      "visudo_use_strict_mode" expression => returnszero("/usr/sbin/visudo  -V | grep 'visudo version' | /bin/sed -e 's/visudo version \([0-9]\+\)\.\([0-9]\+\)\..*/\1 \2/p' | /usr/bin/awk '{ if(($1<1)||($1==1 && $2<=6)) { exit 0 }; exit 1 }'", "useshell");
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+    # We copy only if we are in enforce and file is valid
+    # If we are not in enforce, then the file has never been changed, so we cannot check nor validate anything.
+    pass3.sudoconfiguration_sudoers_valid.is_enforce::
+
+      "/etc/sudoers"
+        copy_from => digest_cp("/etc/sudoers.rudder"),
+        create => "true",
+        perms => mog("0440", "root", "0"),
+        classes => classes_generic("sudoconfiguration_sudoers_copy"),
+        comment => "Copying sudoers to its final home";
+
+  methods:
+    pass1::
+      "configure_dry_run_mode_${reporting[0][id]}" usebundle => set_dry_run_mode("${set_dry_mode}");
+
+    pass3.((sudoconfiguration_sudoers_copy_kept.!sudoconfiguration_sudoers_copy_repaired)|(dry_run.sudoparameters_sudoers_tmp_file_ok))::
+      "any" usebundle => _rudder_common_report_hooks("sudoParameters", "result_success", "${reporting[${reportkeys}][id]}", "sudoersFile", "None", "The sudoers file did not require any modification", "${reporting[${reportkeys}][mode]}");
+
+
+    pass3.!dry_run.sudoconfiguration_sudoers_copy_repaired::
+
+      "any" usebundle => _rudder_common_report_hooks("sudoParameters", "result_repaired", "${reporting[${reportkeys}][id]}", "sudoersFile", "None", "The sudoers file was fixed and successfully updated", "${reporting[${reportkeys}][mode]}");
+
+    pass3.(sudoconfiguration_sudoers_tmp_edit_error|sudoconfiguration_sudoers_copy_error|sudoconfiguration_sudoers_tmp_copy_error)::
+
+      "any" usebundle => _rudder_common_report_hooks("sudoParameters", "result_error", "${reporting[${reportkeys}][id]}", "sudoersFile", "None", "The sudoers file could NOT be edited!", "${reporting[${reportkeys}][mode]}");
+
+    pass3.!dry_run.sudoconfiguration_sudoers_invalid::
+      "any" usebundle => _rudder_common_report_hooks("sudoParameters", "result_error", "${reporting[${reportkeys}][id]}", "sudoersFile", "None", "The generated sudoers file is invalid. Not updating /etc/sudoers. This should not happen.", "${reporting[${reportkeys}][mode]}");
+
+
+  commands:
+    # if we don't have enforce, we don't run this command - so it's only if class is_enforce is set
+    pass2.sudoparameters_sudoers_tmp_file_ok.is_enforce::
+      "/usr/sbin/visudo"
+        args => "-c ${strict_mode} -f /etc/sudoers.rudder",
+        classes => cf2_if_else("sudoconfiguration_sudoers_valid", "sudoconfiguration_sudoers_invalid"),
+        comment => "Checking new sudoers validity";
+
+}
+
+
+########################################################
+## Package repository keys (RPM/APT) specific hooks
+########################################################
+
+# This is a pre hook for Package repository keys (RPM/APT)
+# If any of report mode is enforce, then it will effectively get all the keys in repos, 
+# create {repo_gpg_homedir}/. folder
+# If all are in audit mode, then it won't do anything
+# This method does not report at all
+bundle agent runhook_repoGpgKeyManagementGetKeys(json) {
+  vars:
+      "definitions" data => parsejson("${json}");
+
+      "reporting"   data => mergedata("definitions[reports]");
+
+      "reportkeys" slist => getindices("reporting");
+
+
+
+   # actual implementation
+
+      "repo_gpg_binary"   string => "/usr/bin/gpg",
+        comment => "The gpg binary used to verify the keys and enumerate the long hash from the RPM-s";
+
+      "repo_gpg_homedir"  string => "${g.rudder_var_tmp}/repo_gpg",
+        comment => "The temporary home directory of GPG, where it puts its trust.db, required to perform all queries by GPG.";
+
+
+      "repo_gpg_options"  string => "--homedir ${repo_gpg_homedir} --quiet --with-colon --keyid-format=long",
+        comment => "Common options to provide to either gpg reading the rpm -q's output or apt-key adv, which is forwarded to a gpg invocation";
+
+    repo_gpg_uses_rpm::
+      "repo_gpg_getallkeys" string => "${paths.rpm} -q gpg-pubkey --qf '%{description}\n' | ${repo_gpg_binary} ${repo_gpg_options}",
+        comment => "We use GPG to decode the whole PGP PUBLIC KEY BLOCK stored in %{description}, because rpm only stores the first 8 chars of the hash";
+
+    repo_gpg_uses_apt::
+      "repo_gpg_getallkeys" string => "${paths.apt_key} adv --fingerprint ${repo_gpg_options}",
+        comment => "'apt-key adv' is an invocation of gpg directly, so we can use the same parameters as for rpm and parse the same output format later via pipe";
+
+
+  classes:
+      # define if there is at least one enforce
+      "is_enforce"            expression => strcmp("${reporting[${reportkeys}][mode]}", "enforce");
+
+      # For reporting, detect each enforce/audit
+      "is_enforce_${reportkeys}" expression => strcmp("${reporting[${reportkeys}][mode]}", "enforce");
+
+      "repo_gpg_has_gpg_binary"
+        expression => isexecutable("${repo_gpg_binary}"),
+        comment    => "This defines if we have an executable gpg binary, necessary for gpg validation or enumerate the gpg keys on an RPM system";
+
+      "repo_gpg_has_awk_binary"
+        and     => { isvariable("paths.awk"), isexecutable("${paths.awk}") },
+        comment => "We use awk to parse gpg's output, so it's required to be present for this to work...";
+
+      "repo_gpg_uses_apt"
+        and     => { isvariable("paths.apt_key"), isexecutable("${paths.apt_key}"), "repo_gpg_has_awk_binary" },
+        comment => "We use apt if the path is known and is executable";
+
+      "repo_gpg_has_rpm"
+        and     => { isvariable("paths.rpm"), isexecutable("${paths.rpm}") },
+        comment => "Here we check if it's and rpm-based system, but this does not mean we actually can handle the actions: we just know we could run";
+
+      "repo_gpg_uses_rpm"
+        and     => { "repo_gpg_has_rpm", "repo_gpg_has_gpg_binary", "repo_gpg_has_awk_binary" },
+        comment => "We also need the GPG binary if on RPM-Based systems to check the long hash";
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+    is_enforce::
+      "${repo_gpg_homedir}/."
+        comment       => "Here we put our gpg keyring's home dir - required for gpg-related commands",
+        create        => "true",
+        perms         => m("0700"),
+        classes       => classes_generic("hook_repo_gpg_homedir_created");
+
+
+  commands:
+    repo_gpg_uses_apt|repo_gpg_uses_rpm::
+
+      "${repo_gpg_getallkeys} | ${paths.awk} -F ':' '$1 ~ /^pub/ { printf \"+hook_repo_gpg_key_%s_present\n\", tolower($5); }'"
+        comment    => "We use this module instead of looking up each gpg key, because each apt-key call takes about 3-5 seconds, so this way we have O(1) instead of O(n)...",
+        ifvarclass => "repo_gpg_has_awk_binary",
+        classes    => classes_generic("hook_repo_gpg_hashes_read"),
+        contain    => outputable,
+        module     => "true";
+}
+
+
+########################################################
+## SSH authorised keys specific hooks
+########################################################
+
+
+# Create the temporary ssh key files for all users, and create classes for all users that need their keys enforce
+# in the format ssh_key_distribution_<username>_to_flush , and check if user is present
+# with class ssh_key_distribution_user_<username>_exists
+# It also computes, for each user,
+#  - the homedir homedir[<username>]
+#  - the gid     gid[<username>]
+# It also contains the list of user to manage keys, in list "userlist"
+# And create empty temp key files in /var/rudder/tmp/check_ssh_key_distribution/ (${temp_ssh_key_path}/${userlist}.authorized_keys.tmp)
+bundle agent runhook_sshKeyDistribution_pre_hook(json) {
+  vars:
+      "definitions" data => parsejson("${json}");
+
+      "reporting"   data => mergedata("definitions[reports]");
+
+      "reportkeys" slist => getindices("reporting");
+
+
+      # Here we find all the bundles that are tagged as check_ssh_key_distribution_technique
+      # we need to remove the default: from the variable name, as it causes issues if used in variable name definition
+      # Note: I cannot remove the defaults: from the bundlesmatching directly
+      "raw_bundles" slist => bundlesmatching("default:check_ssh_key_distribution_.*", "check_ssh_key_distribution_technique");
+      "bundles"     slist => maplist(regex_replace("${this}", "default:", "", ""), "@{raw_bundles}");
+
+
+      # get all indices for each of the bundle
+      "array[${bundles}]" slist => getindices("${bundles}.sshkey_distribution_name");
+
+      # get the list of all users to manage in list userlist
+      # first, we put them in array (and ${bundles}_${array[${bundles}]} is canonified, so a valid name)
+      "data_userlist[${bundles}_${array[${bundles}]}]" string => "${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}";
+
+      "userlist"     slist => getvalues("data_userlist");
+
+
+      # Path to the temporary files created for the checking the files
+      "temp_ssh_key_path" string => "/var/rudder/tmp/check_ssh_key_distribution/";
+
+      # get the home dir for each users
+      # Only Linuxes (not Slackware), Solaris and FreeBSD support PAM/getent
+    pass1.(linux.!slackware)|solaris|freebsd::
+
+      "userdata_${userlist}"
+        string  => execresult("/usr/bin/getent passwd ${userlist}", "noshell");
+
+      # On systems without PAM, directly read entries from /etc/passwd instead (compatibility)
+    pass1.!((linux.!slackware)|solaris|freebsd)::
+
+      "userdata_${userlist}"
+        string  => execresult("/usr/bin/grep ^${userlist}: /etc/passwd", "noshell");
+
+    pass2::
+      "no_${userlist}"
+        int           => parsestringarray("userarray_${userlist}", "${userdata_${userlist}}", "", ":", "1000", "200000" ),
+        ifvarclass    => "ssh_key_distribution_user_${userlist}_exists";
+
+      "homedir[${userlist}]"
+        string        => "${userarray_${userlist}[${userlist}][5]}",
+        ifvarclass    => "ssh_key_distribution_user_${userlist}_exists";
+
+      "gid[${userlist}]"
+        string        => "${userarray_${userlist}[${userlist}][3]}",
+        ifvarclass    => "ssh_key_distribution_user_${userlist}_exists";
+
+  classes:
+    pass1::
+      # check if user is present on the system
+      "ssh_key_distribution_user_${userlist}_exists" expression => userexists("${userlist}"),
+            scope => "namespace";
+
+
+      "ssh_key_distribution_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_to_flush"     expression => strcmp("${${bundles}.sshkey_distribution_edit_type[${array[${bundles}]}]}", "true"),
+         scope => "namespace";
+
+    any::
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+
+  files:
+    pass2::
+      "${temp_ssh_key_path}/${userlist}.authorized_keys.tmp"
+        create        => "true",
+        edit_line     => delete_lines_matching(".*"),
+        perms         => mog("700", "${userlist}", "${runhook_sshKeyDistribution_pre_hook.gid[${userlist}]}"),
+        ifvarclass    => "ssh_key_distribution_user_${userlist}_exists",
+        comment       => "Create empty temps file for ssh keys management of user ${userlist}";
+
+}
+
+
+
+
+
+# Post hook for ssh Key Distribution Technique
+# Compares the ssh key file with the temporary one - if the considered file as changed, and flush is set, and any instance for this user is in enforce, replace the file
+# Note: if a key for a user in non compliant, in audit mode, then we prevent any flushing (though the class ssh_key_distribution_<user>_prevent_flush
+# It also do the last report for the directive, for flush per user
+bundle agent runhook_sshKeyDistribution_post_hook(json) {
+  vars:
+      "definitions" data => parsejson("${json}");
+
+      "reporting"   data => mergedata("definitions[reports]");
+
+      "reportkeys" slist => getindices("reporting");
+
+
+      # get size of generated tmp files
+      "tmp_ssh_file_size_${runhook_sshKeyDistribution_pre_hook.userlist}" int => filesize("${runhook_sshKeyDistribution_pre_hook.temp_ssh_key_path}/${runhook_sshKeyDistribution_pre_hook.userlist}.authorized_keys.tmp"),
+        ifvarclass    => "ssh_key_distribution_user_${runhook_sshKeyDistribution_pre_hook.userlist}_exists";
+
+
+     # get the size of the ssh key
+     "ssh_file_size_${runhook_sshKeyDistribution_pre_hook.userlist}" int => filesize("${runhook_sshKeyDistribution_pre_hook.homedir[${runhook_sshKeyDistribution_pre_hook.userlist}]}/.ssh/authorized_keys"),
+        ifvarclass    => "ssh_key_distribution_user_${runhook_sshKeyDistribution_pre_hook.userlist}_exists";
+
+      # Defines reporting status, based on ${audit_mode[${bundles}]}
+      "success[false]"  string => "result_success";
+      "success[true]"   string => "audit_compliant";
+      "na[false]"       string => "result_na";
+      "na[true]"        string => "audit_na";
+      "repaired[false]" string => "result_repaired";
+      "repaired[true]"  string => "audit_noncompliant";
+      "error[false]"    string => "result_error";
+      "error[true]"     string => "audit_noncompliant";
+
+      "technique_name"  string => "sshKeyDistribution";
+      "component_name"  string => "Flush SSH file";
+
+
+      # Here we find all the bundles that are tagged as check_ssh_key_distribution_technique
+      "raw_bundles" slist => bundlesmatching("default:check_ssh_key_distribution_.*", "check_ssh_key_distribution_technique");
+      "bundles"     slist => maplist(regex_replace("${this}", "default:", "", ""), "@{raw_bundles}");
+
+      # get all indices for each of the bundle
+      "array[${bundles}]" slist => getindices("${bundles}.sshkey_distribution_name");
+      "audit_mode[${bundles}]" string => "${${bundles}.is_audit_mode}";
+
+
+  classes:
+      # check if files have the same size
+      "same_size_for_${runhook_sshKeyDistribution_pre_hook.userlist}" expression => strcmp("${tmp_ssh_file_size_${runhook_sshKeyDistribution_pre_hook.userlist}}", "${ssh_file_size_${runhook_sshKeyDistribution_pre_hook.userlist}}");
+
+
+      # Identical files are if:
+      # No error/repair for a user + identical file size
+      "no_change_on_ssh_file_for_${runhook_sshKeyDistribution_pre_hook.userlist}" expression => "same_size_for_${runhook_sshKeyDistribution_pre_hook.userlist}.!(check_ssh_key_distribution_user_key_${runhook_sshKeyDistribution_pre_hook.userlist}_repaired|check_ssh_key_distribution_user_key_${runhook_sshKeyDistribution_pre_hook.userlist}_error)",
+          ifvarclass => "ssh_key_distribution_user_${runhook_sshKeyDistribution_pre_hook.userlist}_exists";
+
+      # file differents and  No error/repair for a user -> maybe need to flush
+      "same_keys_different_size_ssh_file_for_${runhook_sshKeyDistribution_pre_hook.userlist}" expression => "!same_size_for_${runhook_sshKeyDistribution_pre_hook.userlist}.!(check_ssh_key_distribution_user_key_${runhook_sshKeyDistribution_pre_hook.userlist}_repaired|check_ssh_key_distribution_user_key_${runhook_sshKeyDistribution_pre_hook.userlist}_error)",
+          ifvarclass => "ssh_key_distribution_user_${runhook_sshKeyDistribution_pre_hook.userlist}_exists";
+
+      # same sizes, but repaired -> could be that we repaired, and no need to flush - this will be settled when the copy of file will be done
+      "same_size_but_repaired_keys_${runhook_sshKeyDistribution_pre_hook.userlist}" expression => "same_size_for_${runhook_sshKeyDistribution_pre_hook.userlist}.(check_ssh_key_distribution_user_key_${runhook_sshKeyDistribution_pre_hook.userlist}_repaired|check_ssh_key_distribution_user_key_${runhook_sshKeyDistribution_pre_hook.userlist}_error)",
+          ifvarclass => "ssh_key_distribution_user_${runhook_sshKeyDistribution_pre_hook.userlist}_exists";
+
+      # different size and repaired/error -> yeah, we repaired
+      "ssh_keys_repaired_${runhook_sshKeyDistribution_pre_hook.userlist}" expression => "!same_size_for_${runhook_sshKeyDistribution_pre_hook.userlist}.(check_ssh_key_distribution_user_key_${runhook_sshKeyDistribution_pre_hook.userlist}_repaired|check_ssh_key_distribution_user_key_${runhook_sshKeyDistribution_pre_hook.userlist}_error)",
+          ifvarclass => "ssh_key_distribution_user_${runhook_sshKeyDistribution_pre_hook.userlist}_exists";
+
+
+      # define if there is at least one enforce
+      "is_enforce"            expression => strcmp("${reporting[${reportkeys}][mode]}", "enforce");
+
+      # For reporting, detect each enforce/audit
+      "is_enforce_${reportkeys}" expression => strcmp("${reporting[${reportkeys}][mode]}", "enforce");
+
+
+      # define for each bundle a class if in enforce
+      "enforce_mode_${bundles}" expression => strcmp("${audit_mode[${bundles}]}", "false");
+
+      # define the class "enforce_ssh_key_distribution_<username>_to_flush" for bundle not in audit mode, where we want to flush
+      "enforce_ssh_key_distribution_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_to_flush" expression => strcmp("${${bundles}.sshkey_distribution_edit_type[${array[${bundles}]}]}", "true"),
+         ifvarclass => "enforce_mode_${bundles}";
+
+      # audit is for all user that are to flush, but not the class enforce_ssh_key_distribution_<username>_to_flush set
+      "audit_ssh_key_distribution_${runhook_sshKeyDistribution_pre_hook.userlist}_to_flush" expression => "any",
+         ifvarclass => "!enforce_ssh_key_distribution_${runhook_sshKeyDistribution_pre_hook.userlist}_to_flush.ssh_key_distribution_${runhook_sshKeyDistribution_pre_hook.userlist}_to_flush";
+
+    any::
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+
+  files:
+       # replace file if size if same_keys_different_size_ssh_file_for_<user> or ssh_keys_repaired_<user> or same_size_but_repaired_keys_<user> and ssh_key_distribution_<username>_to_flush, and in ENFORCE (we need to know when enforce)
+      "${runhook_sshKeyDistribution_pre_hook.homedir[${runhook_sshKeyDistribution_pre_hook.userlist}]}/.ssh/authorized_keys"
+         copy_from  => copy_digest("${runhook_sshKeyDistribution_pre_hook.temp_ssh_key_path}/${runhook_sshKeyDistribution_pre_hook.userlist}.authorized_keys.tmp"),
+         classes    => classes_generic("post_hook_flush_ssh_${runhook_sshKeyDistribution_pre_hook.userlist}"),
+         comment    => "IN ENFORCE",
+         ifvarclass => "enforce_ssh_key_distribution_${runhook_sshKeyDistribution_pre_hook.userlist}_to_flush.(same_keys_different_size_ssh_file_for_${runhook_sshKeyDistribution_pre_hook.userlist}|ssh_keys_repaired_${runhook_sshKeyDistribution_pre_hook.userlist}|same_size_but_repaired_keys_${runhook_sshKeyDistribution_pre_hook.userlist}).!ssh_key_distribution_${runhook_sshKeyDistribution_pre_hook.userlist}_prevent_flush";
+
+
+      # auditing file replacement
+      "${runhook_sshKeyDistribution_pre_hook.homedir[${runhook_sshKeyDistribution_pre_hook.userlist}]}/.ssh/authorized_keys"
+         copy_from  => copy_digest("${runhook_sshKeyDistribution_pre_hook.temp_ssh_key_path}/${runhook_sshKeyDistribution_pre_hook.userlist}.authorized_keys.tmp"),
+         action     => WarnOnly,
+         classes    => classes_generic("post_hook_flush_ssh_${runhook_sshKeyDistribution_pre_hook.userlist}"),
+         ifvarclass => "audit_ssh_key_distribution_${runhook_sshKeyDistribution_pre_hook.userlist}_to_flush.(same_keys_different_size_ssh_file_for_${runhook_sshKeyDistribution_pre_hook.userlist}|ssh_keys_repaired_${runhook_sshKeyDistribution_pre_hook.userlist}|same_size_but_repaired_keys_${runhook_sshKeyDistribution_pre_hook.userlist}).!ssh_key_distribution_${runhook_sshKeyDistribution_pre_hook.userlist}_prevent_flush";
+
+
+    pass2::
+      # finally, delete the files
+      "${runhook_sshKeyDistribution_pre_hook.temp_ssh_key_path}/${runhook_sshKeyDistribution_pre_hook.userlist}.authorized_keys.tmp"
+            delete => tidy;
+
+  methods:
+    pass2::
+      # Do the reporting for the post hook
+      # User not present
+      "No user" usebundle     => rudder_common_report(
+          "${technique_name}", "result_error",
+          "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
+          "The user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} does not exists on this system, impossible to flush keys"
+        ),
+        ifvarclass => "!ssh_key_distribution_user_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_exists.enforce_mode_${bundles}.ssh_key_distribution_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_to_flush";
+
+      # User not present
+      "No user" usebundle     => rudder_common_report(
+          "${technique_name}", "result_error",
+          "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
+          "The user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} does not exists on this system"
+        ),
+        ifvarclass => "!ssh_key_distribution_user_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_exists.enforce_mode_${bundles}.!ssh_key_distribution_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_to_flush";
+
+      "No user" usebundle     => rudder_common_report(
+          "${technique_name}", "audit_noncompliant",
+          "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
+          "The user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} does not exists on this system"
+        ),
+        ifvarclass => "!ssh_key_distribution_user_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_exists.!enforce_mode_${bundles}";
+
+      # No flush requested -> NA
+      "No flush" usebundle     => rudder_common_report(
+          "${technique_name}", "${na[${audit_mode[${bundles}]}]}",
+          "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
+          "The keys for user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} were not requested to be flush"
+        ),
+        ifvarclass => "ssh_key_distribution_user_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_exists.!ssh_key_distribution_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_to_flush";
+
+       # File didn't change + no change -> success
+      "No change on user" usebundle     => rudder_common_report(
+          "${technique_name}", "${success[${audit_mode[${bundles}]}]}",
+          "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
+          "The keys for user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} were all correctly set"
+        ),
+        ifvarclass => "ssh_key_distribution_user_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_exists.ssh_key_distribution_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_to_flush.no_change_on_ssh_file_for_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}";
+
+      # We managed all the cases were we didn't actually try to copy the file. Now we handle reporting based on copy of temp file to final file
+
+
+
+       # File didn't change -> success
+      "No change on file" usebundle     => rudder_common_report(
+          "${technique_name}", "${success[${audit_mode[${bundles}]}]}",
+          "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
+          "The list of keys for user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} were correctly set"
+        ),
+        ifvarclass => "post_hook_flush_ssh_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_kept.!post_hook_flush_ssh_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_repaired";
+
+       # File changed - repaired (or non compliant) - but if repaired, it means it's been fixed
+      "changes on file" usebundle     => rudder_common_report(
+          "${technique_name}", "${repaired[${audit_mode[${bundles}]}]}",
+          "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
+          "The keys for user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} were flushed"
+        ),
+        ifvarclass => "post_hook_flush_ssh_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_repaired.!post_hook_flush_ssh_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_error";
+
+       # File could not be changed - repaired (or non compliant) - but if repaired, it means it's been fixed
+      "error on file" usebundle     => rudder_common_report(
+          "${technique_name}", "${error[${audit_mode[${bundles}]}]}",
+          "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
+          "The keys for user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} could not be flushed"
+        ),
+        ifvarclass => "post_hook_flush_ssh_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_error.!post_hook_flush_ssh_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_repaired";
+
+
+      # Finally, a key in audit mode was not compliant. We won't try to flush, as the result is unexpected
+      "error on key in audit" usebundle     => rudder_common_report(
+          "${technique_name}", "${error[${audit_mode[${bundles}]}]}",
+          "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
+          "The keys for user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} cannot be flushed - a key is not compliant for a directive in audit mode"
+        ),
+        ifvarclass => "ssh_key_distribution_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_prevent_flush.ssh_key_distribution_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_to_flush";
+}
+
+########################################################
+## Cron management specific hooks
+########################################################
+# 
+# Ensure that a process cron(d) is up and running
+#
+bundle agent runhook_cron_process_post_hook(json) {
+  vars:
+      "definitions" data => parsejson("${json}");
+
+      "parameters"  data => mergedata("definitions[parameters]");
+
+      "reporting"   data => mergedata("definitions[reports]");
+
+      "reportkeys" slist => getindices("reporting");
+
+
+    !redhat::
+
+      "cron_service" string => "cron";
+
+    redhat::
+
+      "cron_service" string => "crond";
+
+
+    pass1.is_enforce::
+      "set_dry_mode"   string => "false";
+
+    pass1.!is_enforce::
+      "set_dry_mode"   string => "true";
+
+
+
+  classes:
+      # define if there is at least one enforce
+      "is_enforce"               expression => strcmp("${reporting[${reportkeys}][mode]}", "enforce");
+
+      # For reporting, detect each enforce/audit
+      "is_enforce_${reportkeys}" expression => strcmp("${reporting[${reportkeys}][mode]}", "enforce");
+
+
+    any::
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+
+  methods:
+    pass2::
+      "configure_dry_run_mode_${reporting[0][id]}"
+         usebundle => set_dry_run_mode("${set_dry_mode}");
+
+      # All GM reports at least a log_info, so we need to set the reporting context correctly
+      "set_reporting_context_for_GM"
+        usebundle => rudder_reporting_context_id("${reporting[0][id]}", "${reporting[0][technique]}");
+
+      "disable_reporting_cron_post_hook"
+         usebundle => disable_reporting;
+
+    pass2.cron_restart::
+
+      "restart_cron" usebundle => service_restart("${cron_service}");
+
+    pass2::
+      "reenable_reporting_cron_post_hook"
+         usebundle => enable_reporting;
+
+      # here we need to report correctly based on each mode for each directive
+      "reporting" 
+        usebundle  => _rudder_common_reports_generic_hooks("${reporting[${reportkeys}][technique]}", "service_restart_${cron_service}", "${reporting[${reportkeys}][id]}", "${reporting[${reportkeys}][name]}", "${reporting[${reportkeys}][value]}", "Restarting service ${cron_service}", "${reporting[${reportkeys}][mode]}"),
+        ifvarclass => "cron_restart";
+
+      "na_report"
+        usebundle  => _rudder_common_report_hooks("${reporting[${reportkeys}][technique]}", "result_na", "${reporting[${reportkeys}][id]}", "${reporting[${reportkeys}][name]}", "${reporting[${reportkeys}][value]}", "Restarting service ${cron_service}", "${reporting[${reportkeys}][mode]}"),
+        ifvarclass => "!cron_restart";
+
+      "clean_reporting_context_${reporting[0][id]}"
+        usebundle  => clean_reporting_context;
+
+
+  processes:
+      "cron"
+        process_select => cron_bin,
+        restart_class => "cron_restart";
+}
