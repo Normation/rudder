@@ -476,7 +476,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     val rnc = rootNodeConfig.copy(
       policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll))
       , nodeContext = forceBooleanToFalse(getSystemVars(root, allNodesInfo_cfeNode, groupLib))
-      , parameters  = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
+      , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
 
     val cfeNC = cfeNodeConfig.copy(
