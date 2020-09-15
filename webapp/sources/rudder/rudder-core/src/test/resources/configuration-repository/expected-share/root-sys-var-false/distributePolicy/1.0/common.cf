@@ -1,0 +1,13 @@
+# Common variable for distribute policy system technique
+bundle common distribute_policy_common {
+  vars:
+    "directiveId"            string => "root-DP@@root-distributePolicy@@0";
+    "report_db_name"         string => "rudder";
+    "report_db_user"         string => "rudder";
+    "relay_sync_method"      string => "classic";
+    "relay_sync_promises"    string => "false";
+    "relay_sync_sharedfiles" string => "false";
+
+  classes:
+
+}
