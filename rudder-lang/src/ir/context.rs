@@ -2,11 +2,11 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::value::*;
-use crate::{error::*, parser::Token, parser::PType};
+use crate::{error::*, parser::PType, parser::Token};
 use std::collections::{hash_map, HashMap};
-use std::rc::Rc;
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use std::rc::Rc;
 
 /// Types some data can take
 /// TODO: isn't this the same as a PType
@@ -14,41 +14,45 @@ use std::fmt::{Display, Formatter};
 pub enum Type<'src> {
     Enum(Token<'src>),
     String,
-    Number,
+    Float,
+    Integer,
     Boolean,
-    List,                                   // TODO should be subtypable / generic like struct
+    List,                                // TODO should be subtypable / generic like struct
     Struct(HashMap<String, Type<'src>>), // Token instead of string ?
 }
 
 impl<'src> Display for Type<'src> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self {
-            Type::Enum(t) => format!("enum {}",t),
-            Type::String => "string".into(),
-            Type::Number => "number".into(),
-            Type::Boolean => "boolean".into(),
-            Type::List => "list".into(),
-            // TODO proper struct type format
-            Type::Struct(s) => "struct".into(),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Type::Enum(t) => format!("enum {}", t),
+                Type::String => "string".into(),
+                Type::Float => "float".into(),
+                Type::Integer => "integer".into(),
+                Type::Boolean => "boolean".into(),
+                Type::List => "list".into(),
+                // TODO proper struct type format
+                Type::Struct(s) => "struct".into(),
+            }
+        )
     }
 }
 
 impl<'src> Type<'src> {
     /// Create a type from parsed type
-    pub fn from_ptype(
-        type_: Option<PType<'src>>,
-        mut sub_elts: Vec<Token<'src>>,
-    ) -> Result<Self> {
+    pub fn from_ptype(type_: Option<PType<'src>>, mut sub_elts: Vec<Token<'src>>) -> Result<Self> {
         Ok(if sub_elts.len() == 0 {
             match type_ {
                 None => Type::String, // default type is String
                 Some(PType::String) => Type::String,
-                Some(PType::Number) => Type::Number,
+                Some(PType::Float) => Type::Float,
+                Some(PType::Integer) => Type::Integer,
                 Some(PType::Boolean) => Type::Boolean,
                 Some(PType::Struct) => Type::Struct(HashMap::new()),
                 Some(PType::List) => Type::List,
-                _ => panic!("Phantom type should never be created !")
+                _ => panic!("Phantom type should never be created !"),
             }
         } else {
             // this is a struct sub part
@@ -64,7 +68,8 @@ impl<'src> Type<'src> {
     pub fn from_value(val: &Value<'src>) -> Self {
         match val {
             Value::String(_) => Type::String,
-            Value::Number(_, _) => Type::Number,
+            Value::Float(_, _) => Type::Float,
+            Value::Integer(_, _) => Type::Integer,
             Value::Boolean(_, _) => Type::Boolean,
             Value::EnumExpression(_) => Type::Boolean,
             Value::List(_) => Type::List,
@@ -88,7 +93,8 @@ impl<'src> Type<'src> {
     pub fn from_constant(val: &Constant<'src>) -> Self {
         match val {
             Constant::String(_, _) => Type::String,
-            Constant::Number(_, _) => Type::Number,
+            Constant::Float(_, _) => Type::Float,
+            Constant::Integer(_, _) => Type::Integer,
             Constant::Boolean(_, _) => Type::Boolean,
             Constant::List(_) => Type::List,
             Constant::Struct(s) => {
@@ -131,10 +137,7 @@ impl<'src> VarContext<'src> {
         self.types
             .get(key)
             .map(Type::clone)
-            .or_else(
-                || self.parent.clone()
-                    .and_then(|p| p.get_type(key))
-            )
+            .or_else(|| self.parent.clone().and_then(|p| p.get_type(key)))
     }
 
     /// Iterator over all variables of this context.
@@ -160,11 +163,7 @@ impl<'src> VarContext<'src> {
     }
 
     /// Add a knew variable knowing its type
-    pub fn add_variable_declaration(
-        &mut self,
-        name: Token<'src>,
-        type_: Type<'src>,
-    ) -> Result<()> {
+    pub fn add_variable_declaration(&mut self, name: Token<'src>, type_: Type<'src>) -> Result<()> {
         // disallow variable shadowing (TODO is that what we want ?)
         if let Some(parent) = &self.parent {
             parent.must_not_exist(&name)?;
@@ -233,29 +232,17 @@ mod tests {
     fn test_context() {
         let mut context = VarContext::new(None);
         assert!(context
-            .add_variable_declaration(
-                pidentifier_t("var1"),
-                Type::Enum(pidentifier_t("enum1"))
-            )
+            .add_variable_declaration(pidentifier_t("var1"), Type::Enum(pidentifier_t("enum1")))
             .is_ok());
         assert!(context
-            .add_variable_declaration(
-                pidentifier_t("var2"),
-                Type::Enum(pidentifier_t("enum1"))
-            )
+            .add_variable_declaration(pidentifier_t("var2"), Type::Enum(pidentifier_t("enum1")))
             .is_ok());
         let mut c = VarContext::new(Some(Rc::new(context)));
         assert!(c
-            .add_variable_declaration(
-                pidentifier_t("var3"),
-                Type::Enum(pidentifier_t("enum2"))
-            )
+            .add_variable_declaration(pidentifier_t("var3"), Type::Enum(pidentifier_t("enum2")))
             .is_ok());
         assert!(c
-            .add_variable_declaration(
-                pidentifier_t("var4"),
-                Type::Enum(pidentifier_t("enum1"))
-            )
+            .add_variable_declaration(pidentifier_t("var4"), Type::Enum(pidentifier_t("enum1")))
             .is_ok());
     }
 

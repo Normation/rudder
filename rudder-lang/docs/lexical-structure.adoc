@@ -25,7 +25,8 @@ Sorted by category
 
 * types:
 ** `string` type definition, cf: <<string-type, String type>>
-** `num` type definition, cf: <<num-type, Num type>>
+** `float` type definition, cf: <<float-type, Float type>>
+** `integer` type definition, cf: <<integer-type, Integer type>>
 ** `boolean` type definition, cf: <<boolean-type, Boolean type>>
 ** `struct` type definition, cf: <<struct-type, Struct type>>
 ** `list` type definition, cf: <<list-type, List type>>
@@ -52,8 +53,8 @@ Sorted by category
 == Operators
 
 * `@` declares a metadata which is a key / value pair (syntax is `@key=value`). Cf <<metadata>>
-* `#` simple comment
-* `##` parsed comment. `##` comments are considered to be metadata and are parsed and kept.
+* `\#` simple comment
+* `\#\#` parsed comment. `\#\#` comments are considered to be metadata and are parsed and kept.
 * `|` or, `&` and, `!` not
 * `.` item in enum
 * `..` items range, in enum

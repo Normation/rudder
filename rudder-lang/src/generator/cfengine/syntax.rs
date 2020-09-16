@@ -15,6 +15,9 @@ use std::{collections::HashMap, fmt};
 // No need to handle all promises and attributes, we only need to support the ones we are
 // able to generate.
 
+pub const MIN_INT: i64 = -99_999_999_999;
+pub const MAX_INT: i64 = 99_999_999_999;
+
 pub fn quoted(s: &str) -> String {
     format!("\"{}\"", s)
 }

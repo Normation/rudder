@@ -3,9 +3,9 @@
 
 use super::Generator;
 use crate::{
-    ir::{enums::EnumExpressionPart, resource::*, value::*, ir2::IR2},
     error::*,
-    generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise},
+    generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise, MAX_INT, MIN_INT},
+    ir::{enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
     parser::*,
 };
 use std::{collections::HashMap, ffi::OsStr, fs::File, io::Write, path::Path};
@@ -252,7 +252,14 @@ impl CFEngine {
                     .join(""),
                 delim
             ),
-            Value::Number(_, n) => format!("{}", n),
+            Value::Float(_, n) => format!("{}", n),
+            Value::Integer(t, n) => {
+                if *n >= MIN_INT && *n <= MAX_INT {
+                    format!("{}", n)
+                } else {
+                    return Err(err!(t, "Integer overflow"));
+                }
+            }
             Value::Boolean(_, b) => format!("{}", b),
             Value::EnumExpression(_e) => unimplemented!(),
             Value::List(l) => format!(
@@ -332,6 +339,7 @@ impl Generator for CFEngine {
                         .metadata
                         .get(name)
                         .and_then(|v| match v {
+                            TomlValue::Integer(n) => Some(n.to_string()),
                             TomlValue::String(s) => Some(s.to_owned()),
                             _ => None,
                         })

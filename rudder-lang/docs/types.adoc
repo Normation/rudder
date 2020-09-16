@@ -4,20 +4,26 @@
 == string
 
 _rudder-lang_ supports multiline string format, interpolation, escaping sequences:
+
 * an escaped string is delimited by `"`
 * an unescaped string is delimited by `"""`
 * interpolation has the following syntax: `${...}`
 * supported escape sequences: `\\`, `\n`, `\r`, `\t`
 
-[#num-type]
-== num
+[#integer-type]
+== integer
 
-Internally represented by a float64
+Internally represented by a 64-bit signed integer.
+
+[#float-type]
+== float
+
+Internally represented by a double-precision 64-bit floating point number.
 
 [#boolean-type]
 == boolean
 
-true or false
+`true` or `false`
 
 Internally represented by the `boolean` exhaustive enum
 

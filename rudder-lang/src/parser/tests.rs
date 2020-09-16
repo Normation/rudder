@@ -712,7 +712,15 @@ fn test_pvalue() {
     );
     assert_eq!(
         map_res(pvalue, "12.5"),
-        Ok(("", PValue::Number("12.5".into(), 12.5)))
+        Ok(("", PValue::Float("12.5".into(), 12.5)))
+    );
+    assert_eq!(
+        map_res(pvalue, "12E3"),
+        Ok(("", PValue::Float("12E3".into(), 12000.0)))
+    );
+    assert_eq!(
+        map_res(pvalue, "12"),
+        Ok(("", PValue::Integer("12".into(), 12)))
     );
     assert_eq!(
         map_res(pvalue, r#"[ "hello", 12 ]"#),
@@ -720,7 +728,7 @@ fn test_pvalue() {
             "",
             PValue::List(vec![
                 PValue::String("\"".into(), "hello".into()),
-                PValue::Number("12".into(), 12.0),
+                PValue::Integer("12".into(), 12),
             ])
         ))
     );
@@ -740,14 +748,14 @@ fn test_pvalue() {
     assert_eq!(
         map_res(
             pvalue,
-            r#"{ "key": "value", "number": 12, "list": [ 12 ] }"#
+            r#"{ "key": "value", "number": 12, "list": [ 12.0 ] }"#
         ),
         Ok((
             "",
             PValue::Struct(hashmap! {
                 "key".into() => PValue::String("\"".into(), "value".into()),
-                "number".into() => PValue::Number("12".into(), 12.0),
-                "list".into() => PValue::List(vec![PValue::Number("12".into(), 12.0)]),
+                "number".into() => PValue::Integer("12".into(), 12),
+                "list".into() => PValue::List(vec![PValue::Float("12.0".into(), 12.0)]),
             })
         ))
     );
@@ -764,14 +772,17 @@ fn test_pcomplex_value() {
         map_res(pcomplex_value, src),
         Ok((
             "",
-            PComplexValue{
+            PComplexValue {
                 source: src.into(),
                 cases: vec![(
                     PEnumExpression {
                         source: "".into(),
                         expression: PEnumExpressionPart::Default("".into()),
                     },
-                    Some(PValue::String("\"\"\"".into(), "This is a string".to_string()))
+                    Some(PValue::String(
+                        "\"\"\"".into(),
+                        "This is a string".to_string()
+                    ))
                 )]
             }
         ))
@@ -781,7 +792,7 @@ fn test_pcomplex_value() {
         map_res(pcomplex_value, src),
         Ok((
             "",
-            PComplexValue{
+            PComplexValue {
                 source: src.into(),
                 cases: vec![
                     (
@@ -1053,7 +1064,10 @@ fn test_presource_def() {
     );
     println!("parsing hello5");
     assert_eq!(
-        map_res(presource_def, "resource  hello5 ( ) { let var = \"value\" var = \"bad extension\"}"),
+        map_res(
+            presource_def,
+            "resource  hello5 ( ) { let var = \"value\" var = \"bad extension\"}"
+        ),
         Ok((
             "",
             (
@@ -1061,8 +1075,16 @@ fn test_presource_def() {
                     metadata: Vec::new(),
                     name: "hello5".into(),
                     parameters: vec![],
-                    variable_definitions: vec![map_res(pvariable_definition, "let var = \"value\"").unwrap().1],
-                    variable_extensions: vec![map_res(pvariable_extension, "var = \"bad extension\" ").unwrap().1],
+                    variable_definitions: vec![
+                        map_res(pvariable_definition, "let var = \"value\"")
+                            .unwrap()
+                            .1
+                    ],
+                    variable_extensions: vec![
+                        map_res(pvariable_extension, "var = \"bad extension\" ")
+                            .unwrap()
+                            .1
+                    ],
                     //variable_extensions: vec![],
                 },
                 vec![],
@@ -1084,14 +1106,14 @@ fn test_presource_ref() {
         Ok(("", ("hello3".into(), vec![])))
     );
     assert_eq!(
-        map_res(presource_ref, "hello ( 12, 14 )"),
+        map_res(presource_ref, "hello ( 12, 14.5 )"),
         Ok((
             "",
             (
                 "hello".into(),
                 vec![
-                    PValue::Number("12".into(), 12.0),
-                    PValue::Number("14".into(), 14.0),
+                    PValue::Integer("12".into(), 12),
+                    PValue::Float("14.5".into(), 14.5),
                 ]
             )
         ))

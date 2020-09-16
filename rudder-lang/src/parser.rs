@@ -6,8 +6,8 @@ mod error;
 mod token;
 
 use nom::{
-    branch::*, bytes::complete::*, character::complete::*, combinator::*, error::*, multi::*,
-    number::complete::*, sequence::*,
+    branch::*, bytes::complete::*, character::complete::digit1, character::complete::*,
+    combinator::*, error::*, multi::*, number::complete::*, sequence::*,
 };
 use toml::Value as TomlValue;
 
@@ -29,7 +29,7 @@ pub use token::PInput;
 
 ///! All structures are public to be read directly by other modules.
 ///! Parsing errors must be avoided if possible since they are fatal.
-///! Keep the structure and handle the error in later analyser if possible.
+///! Keep the structure and handle the error in later analyzer if possible.
 ///!
 ///! All parsers should manage whitespace inside them.
 ///! All parser assume whitespaces at the beginning of the input have been removed.
@@ -470,13 +470,24 @@ fn pinterpolated_string(i: PInput) -> PResult<Vec<PInterpolatedElement>> {
     )))(i)
 }
 
-/// A number is currently represented by a float64
-fn pnumber(i: PInput) -> PResult<(Token, f64)> {
+/// A float is currently represented by a f64
+fn pfloat(i: PInput) -> PResult<(Token, f64)> {
     let (i, val) = recognize_float(i)?;
     #[allow(clippy::match_wild_err_arm)]
     match double::<&[u8], (&[u8], nom::error::ErrorKind)>(val.fragment().as_bytes()) {
-        Err(_) => panic!(format!("A parsed number cannot be reparsed: {:?}", val)),
+        Err(_) => panic!(format!("A parsed float cannot be reparsed: {:?}", val)),
         Ok((_, n)) => Ok((i, (val.into(), n))),
+    }
+}
+
+/// An integer is currently represented by a i64
+fn pinteger(i: PInput) -> PResult<(Token, i64)> {
+    let (i, val) = recognize(tuple((opt(alt((char('+'), char('-')))), digit1)))(i)?;
+    // must not be a float
+    let (_, _) = not(alt((tag("e"), tag("E"), tag("."))))(i)?;
+    match val.fragment().parse::<i64>() {
+        Ok(n) => Ok((i, (val.into(), n))),
+        Err(_) => panic!(format!("A parsed integer cannot be reparsed: {:?}", val)),
     }
 }
 
@@ -526,7 +537,8 @@ use std::marker::PhantomData;
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum PType<'src> {
     String,
-    Number,
+    Float,
+    Integer,
     Boolean,
     Struct,
     List,
@@ -534,12 +546,13 @@ pub enum PType<'src> {
 }
 /// PValue is a typed value of the content of a variable or a parameter.
 /// Must be cloneable because it is copied during default values expansion
-// TODO sep,arate value from type and handle automatic values (variable declaration)
+// TODO separate value from type and handle automatic values (variable declaration)
 #[derive(Debug, PartialEq, Clone)]
 #[allow(clippy::large_enum_variant)]
 pub enum PValue<'src> {
     String(Token<'src>, String),
-    Number(Token<'src>, f64),
+    Float(Token<'src>, f64),
+    Integer(Token<'src>, i64),
     Boolean(Token<'src>, bool),
     EnumExpression(PEnumExpression<'src>),
     Struct(HashMap<String, PValue<'src>>),
@@ -550,7 +563,8 @@ fn pvalue(i: PInput) -> PResult<PValue> {
         // Be careful of ordering here
         map(punescaped_string, |(x, y)| PValue::String(x, y)),
         map(pescaped_string, |(x, y)| PValue::String(x, y)),
-        map(pnumber, |(x, y)| PValue::Number(x, y)),
+        map(pinteger, |(x, y)| PValue::Integer(x, y)),
+        map(pfloat, |(x, y)| PValue::Float(x, y)),
         map(penum_expression, PValue::EnumExpression),
         map(plist, PValue::List),
         map(pstruct, PValue::Struct),
@@ -561,7 +575,8 @@ fn pvalue(i: PInput) -> PResult<PValue> {
 fn ptype(i: PInput) -> PResult<PType> {
     alt((
         value(PType::String, etag("string")),
-        value(PType::Number, etag("num")),
+        value(PType::Float, etag("float")),
+        value(PType::Integer, etag("integer")),
         value(PType::Boolean, etag("boolean")),
         value(PType::Struct, etag("struct")),
         value(PType::List, etag("list")),
@@ -620,17 +635,20 @@ fn pcomplex_value(i: PInput) -> PResult<PComplexValue> {
         |i| {
             let (j, res) = pvalue(i)?;
             let source = get_parsed_context(i, i, j);
-            Ok((j, PComplexValue {
-                source,
-                cases: vec![(
-                    PEnumExpression {
-                        source: "".into(),
-                        expression: PEnumExpressionPart::Default("".into()),
-                    },
-                    Some(res)
-                )],
-            }))
-        }
+            Ok((
+                j,
+                PComplexValue {
+                    source,
+                    cases: vec![(
+                        PEnumExpression {
+                            source: "".into(),
+                            expression: PEnumExpressionPart::Default("".into()),
+                        },
+                        Some(res),
+                    )],
+                },
+            ))
+        },
     ))(i)
 }
 
@@ -768,26 +786,44 @@ fn presource_def(i: PInput) -> PResult<(PResourceDef, Vec<Option<PValue>>, Optio
 
 /// A resource reference identifies a unique resource.
 fn presource_body(i: PInput) -> PResult<(Vec<PVariableDef>, Vec<PVariableExt>)> {
-    enum BodyVar<'src> { Def(PVariableDef<'src>), Ext(PVariableExt<'src>) }
-    map(opt(delimited(
+    enum BodyVar<'src> {
+        Def(PVariableDef<'src>),
+        Ext(PVariableExt<'src>),
+    }
+    map(
+        opt(delimited(
             sp(etag("{")),
             many0(alt((
                 map(pvariable_definition, |x| BodyVar::Def(x)),
                 map(pvariable_extension, |x| BodyVar::Ext(x)),
             ))),
-            sp(etag("}"))
+            sp(etag("}")),
         )),
-        |x| {
-            match x {
-                None => (Vec::new(), Vec::new()),
-                Some(list) => {
-                    let(def, ext) : (Vec<BodyVar>,Vec<BodyVar>) = list.into_iter().partition(|x| match x { BodyVar::Def(_) => true, _=> false });
-                    let def = def.into_iter().map(|x| match x { BodyVar::Def(d) => d, _ => panic!("BUG") }).collect::<Vec<PVariableDef>>();
-                    let ext = ext.into_iter().map(|x| match x { BodyVar::Ext(d) => d, _ => panic!("BUG") }).collect::<Vec<PVariableExt>>();
-                    (def, ext)
-                },
+        |x| match x {
+            None => (Vec::new(), Vec::new()),
+            Some(list) => {
+                let (def, ext): (Vec<BodyVar>, Vec<BodyVar>) =
+                    list.into_iter().partition(|x| match x {
+                        BodyVar::Def(_) => true,
+                        _ => false,
+                    });
+                let def = def
+                    .into_iter()
+                    .map(|x| match x {
+                        BodyVar::Def(d) => d,
+                        _ => panic!("BUG"),
+                    })
+                    .collect::<Vec<PVariableDef>>();
+                let ext = ext
+                    .into_iter()
+                    .map(|x| match x {
+                        BodyVar::Ext(d) => d,
+                        _ => panic!("BUG"),
+                    })
+                    .collect::<Vec<PVariableExt>>();
+                (def, ext)
             }
-        }
+        },
     )(i)
 }
 

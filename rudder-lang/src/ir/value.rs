@@ -70,7 +70,8 @@ impl<'src> TryFrom<&StringObject<'src>> for String {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Constant<'src> {
     String(Token<'src>, String),
-    Number(Token<'src>, f64),
+    Float(Token<'src>, f64),
+    Integer(Token<'src>, i64),
     Boolean(Token<'src>, bool),
     List(Vec<Constant<'src>>),
     Struct(HashMap<String, Constant<'src>>),
@@ -83,10 +84,13 @@ impl<'src> Constant<'src> {
                 let so = StringObject::from_pstring(pos, s)?;
                 let value = String::try_from(&so)?;
                 Ok(Constant::String(so.pos, value))
-            },
-            PValue::Number(pos, n) => Ok(Constant::Number(pos, n)),
+            }
+            PValue::Float(pos, n) => Ok(Constant::Float(pos, n)),
+            PValue::Integer(pos, n) => Ok(Constant::Integer(pos, n)),
             PValue::Boolean(pos, b) => Ok(Constant::Boolean(pos, b)),
-            PValue::EnumExpression(e) => fail!(e.source, "Enum expression are not allowed in constants"),
+            PValue::EnumExpression(e) => {
+                fail!(e.source, "Enum expression are not allowed in constants")
+            }
             PValue::List(l) => Ok(Constant::List(map_vec_results(
                 l.into_iter(),
                 Constant::from_pvalue,
@@ -103,7 +107,8 @@ impl<'src> Constant<'src> {
 pub enum Value<'src> {
     //     position   format  variables
     String(StringObject<'src>),
-    Number(Token<'src>, f64),
+    Float(Token<'src>, f64),
+    Integer(Token<'src>, i64),
     Boolean(Token<'src>, bool),
     EnumExpression(EnumExpression<'src>),
     List(Vec<Value<'src>>),
@@ -113,16 +118,16 @@ pub enum Value<'src> {
 impl<'src> From<&Constant<'src>> for Value<'src> {
     fn from(val: &Constant<'src>) -> Self {
         match val {
-            Constant::String(p, s) => Value::String(
-                StringObject{ pos: p.clone(), data: vec![PInterpolatedElement::Static(s.clone())] }
-            ),
-            Constant::Number(p, f) => Value::Number(p.clone(), f.clone()),
+            Constant::String(p, s) => Value::String(StringObject {
+                pos: p.clone(),
+                data: vec![PInterpolatedElement::Static(s.clone())],
+            }),
+            Constant::Float(p, f) => Value::Float(p.clone(), f.clone()),
+            Constant::Integer(p, f) => Value::Integer(p.clone(), f.clone()),
             Constant::Boolean(p, b) => Value::Boolean(p.clone(), b.clone()),
             Constant::List(l) => Value::List(l.iter().map(Value::from).collect()),
             Constant::Struct(s) => {
-                let spec = s
-                    .iter()
-                    .map(|(k, v)| (k.clone(), v.into()));
+                let spec = s.iter().map(|(k, v)| (k.clone(), v.into()));
                 Value::Struct(spec.collect())
             }
         }
@@ -137,7 +142,8 @@ impl<'src> Value<'src> {
     ) -> Result<Self> {
         match pvalue {
             PValue::String(pos, s) => Ok(Value::String(StringObject::from_pstring(pos, s)?)),
-            PValue::Number(pos, n) => Ok(Value::Number(pos, n)),
+            PValue::Float(pos, n) => Ok(Value::Float(pos, n)),
+            PValue::Integer(pos, n) => Ok(Value::Integer(pos, n)),
             PValue::Boolean(pos, b) => Ok(Value::Boolean(pos, b)),
             PValue::EnumExpression(e) => Ok(Value::EnumExpression(
                 enum_list.canonify_expression(context, e)?,
@@ -166,7 +172,8 @@ impl<'src> Value<'src> {
                     //                            },
                 })
             }
-            Value::Number(_, _) => unimplemented!(),
+            Value::Float(_, _) => unimplemented!(),
+            Value::Integer(_, _) => unimplemented!(),
             Value::Boolean(_, _) => unimplemented!(),
             Value::EnumExpression(_) => Ok(()), // check already done at enum creation
             Value::List(_) => unimplemented!(),

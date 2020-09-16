@@ -3,7 +3,7 @@
 
 use super::Generator;
 use crate::{
-    ir::{enums::EnumExpressionPart, resource::*, value::*, ir2::IR2},
+    ir::{enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
     parser::*,
 };
 
@@ -80,7 +80,8 @@ impl DSC {
                 );
                 format!(r#"-{} "{}""#, param_name, param_value)
             }
-            Value::Number(_, _) => unimplemented!(),
+            Value::Float(_, _) => unimplemented!(),
+            Value::Integer(_, _) => unimplemented!(),
             Value::Boolean(_, _) => unimplemented!(),
             Value::EnumExpression(_e) => "".into(), // TODO
             Value::List(_) => unimplemented!(),
@@ -401,7 +402,8 @@ impl DSC {
                     .join(""),
                 delim
             ),
-            Value::Number(_, n) => format!("{}", n),
+            Value::Float(_, n) => format!("{}", n),
+            Value::Integer(_, n) => format!("{}", n),
             Value::Boolean(_, b) => format!("{}", b),
             Value::EnumExpression(_e) => unimplemented!(),
             Value::List(l) => format!(
@@ -475,11 +477,12 @@ impl DSC {
     pub fn format_param_type(&self, type_: &Type) -> String {
         String::from(match type_ {
             Type::String => "string",
-            Type::Number => "long",
+            Type::Float => "double",
+            Type::Integer => "double",
             Type::Boolean => "bool",
             Type::List => "list",
             Type::Struct(_) => "struct",
-            _ => panic!("Phantom type should never be created !")
+            _ => panic!("Phantom type should never be created !"),
         })
     }
 }
