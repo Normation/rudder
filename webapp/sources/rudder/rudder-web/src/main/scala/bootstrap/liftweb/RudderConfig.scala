@@ -2076,10 +2076,6 @@ object RudderConfig extends Loggable {
         , ncfTechniqueReader
         , resourceFileService
       )
-    , new ResumePolicyUpdateRunning(
-          asyncDeploymentAgent
-        , uuidGen
-    )
     , new TriggerPolicyUpdate(
           asyncDeploymentAgent
         , uuidGen

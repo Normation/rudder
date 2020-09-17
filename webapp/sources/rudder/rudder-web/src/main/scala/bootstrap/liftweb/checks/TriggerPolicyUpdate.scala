@@ -46,8 +46,10 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.utils.StringUuidGenerator
 
 /**
- * Check at webapp startup if a policy update was requested when webapp was stopped
- * If flag file is present then start a new policy update
+ * Inconditionaly starts a policy generation at the start of the webapp
+ * Necessary for any changes that may happen (system variable change like dav password
+ * for instance)
+ * A policy generation only write files if something changed, so it's pretty safe
  * This needs to be achieved after all tasks that could modify configuration
  */
 class TriggerPolicyUpdate(
@@ -55,7 +57,7 @@ class TriggerPolicyUpdate(
   , uuidGen         : StringUuidGenerator
 ) extends BootstrapChecks {
 
-  override val description = "Trigger policy update if it was requested during shutdown"
+  override val description = "Trigger policy update automatically at start"
 
   override def checks() : Unit = {
 
@@ -65,10 +67,11 @@ class TriggerPolicyUpdate(
     try {
       if (file.exists) {
         // File exists, update policies
-        BootstrapLogger.logEffect.info(s"Flag file '${filePath}' found, Start a new policy update now")
+        BootstrapLogger.logEffect.info(s"Flag file '${filePath}' found, starts a new policy update now")
         asyncGeneration ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
       } else {
-        BootstrapLogger.logEffect.debug(s"Flag file '${filePath}' does not exist, No need to start a new policy update")
+        BootstrapLogger.logEffect.debug(s"Unconditionally starts a new policy update")
+        asyncGeneration ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
       }
     } catch {
       // Exception while checking the file existence
