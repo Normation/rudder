@@ -46,8 +46,10 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.utils.StringUuidGenerator
 
 /**
- * Check at webapp startup if a policy update was requested when webapp was stopped
- * If flag file is present then start a new policy update
+ * Inconditionaly starts a policy generation at the start of the webapp
+ * Necessary for any changes that may happen (system variable change like dav password
+ * for instance)
+ * A policy generation only write files if something changed, so it's pretty safe
  * This needs to be achieved after all tasks that could modify configuration
  */
 class TriggerPolicyUpdate(
@@ -55,26 +57,37 @@ class TriggerPolicyUpdate(
   , uuidGen         : StringUuidGenerator
 ) extends BootstrapChecks {
 
-  override val description = "Trigger policy update if it was requested during shutdown"
+  override val description = "Trigger policy update automatically at start"
 
   override def checks() : Unit = {
-
     val filePath = asyncGeneration.triggerPolicyUpdateFlagPath
-    // Check if the flag file is present, and start a new policy update if needed
+    // Check if the flag file is present, and purge it if so
     val file =  new File(filePath)
     try {
       if (file.exists) {
         // File exists, update policies
-        BootstrapLogger.logEffect.info(s"Flag file '${filePath}' found, Start a new policy update now")
-        asyncGeneration ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
-      } else {
-        BootstrapLogger.logEffect.debug(s"Flag file '${filePath}' does not exist, No need to start a new policy update")
+        BootstrapLogger.logEffect.info(s"Deprecated flag file '${filePath}' found, removing it")
+        if (file.delete) {
+          // Deleted, come back to normal
+          BootstrapLogger.logEffect.info(s"Flag file '${file.getPath}' successfully removed")
+        } else {
+          // File could not be deleted, seek for reason
+          if (!file.exists()) {
+            BootstrapLogger.logEffect.info(s"Flag file '${file.getPath}' has been removed")
+          } else {
+            BootstrapLogger.logEffect.error(s"Flag file '${file.getPath}' could not be removed, you may have to remove it manually, cause is: Permission denied or someone is actually editing the file")
+          }
+        }
       }
     } catch {
       // Exception while checking the file existence
       case e : Exception =>
         BootstrapLogger.logEffect.error(s"An error occurred while accessing flag file '${filePath}', cause is: ${e.getMessage}")
     }
+
+    BootstrapLogger.logEffect.debug(s"Unconditionally starts a new policy update")
+    asyncGeneration ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
+
   }
 
 }
