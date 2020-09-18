@@ -63,7 +63,14 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
   import db._
 
   def getAllOpenedNodes(): Seq[DB.SerializedNodes[Long]] = {
-    transactRun(xa => sql"select id, nodeid, nodename, nodedescription, starttime, endtime from nodes where endtime is null".query[DB.SerializedNodes[Long]].to[Vector].transact(xa))
+    transactRunEither(xa =>
+      sql"select id, nodeid, nodename, nodedescription, starttime, endtime from nodes where endtime is null".query[DB.SerializedNodes[Long]].to[Vector].transact(xa)
+    ) match {
+      case Right(x) => x
+      case Left(ex) =>
+        logger.error(s"Error when trying to get node for name historization: ${ex.getMessage}")
+        Seq()
+    }
   }
 
 
@@ -83,14 +90,18 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     updateQuery(nodes.map(_.id.value).toList ++ closable, "nodes", "nodeid") match {
       case None              =>  //nothing to do
       case Some(updateQuery) =>
-        transactRun(xa => (for {
+        transactRunEither(xa => (for {
           updated  <- updateQuery.update.run
           inserted <- Update[DB.SerializedNodes[Unit]](
                         "insert into nodes (nodeid, nodename, nodedescription, starttime, endtime) values (?, ?, ?, ?, ?)"
                       ).updateMany(nodes.map(DB.Historize.fromNode).toList)
         } yield {
           ()
-        }).transact(xa))
+        }).transact(xa)) match {
+          case Right(x) => x
+          case Left(ex) =>
+            logger.error(s"Error when trying to update node for name historization: ${ex.getMessage}")
+        }
     }
   }
 
@@ -117,7 +128,12 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       groups.map(x => (x, byIds.getOrElse(x.id, Nil)))
     }
 
-    transactRun(xa => action.transact(xa))
+    transactRunEither(xa => action.transact(xa)) match {
+      case Right(x) => x
+      case Left(ex) =>
+        logger.error(s"Error when trying to get groups for name historization: ${ex.getMessage}")
+        Seq()
+    }
   }
 
 
@@ -125,22 +141,32 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     updateQuery(groups.map(_.id.value).toList ++ closable, "groups", "groupid") match {
       case None              =>  //nothing to do
       case Some(updateQuery) =>
-        transactRun(xa => (for {
+        transactRunEither(xa => (for {
           updated  <- updateQuery.update.run
           inserted <- Update[DB.SerializedGroups[Unit]](
                         "insert into groups (groupid, groupname, groupdescription, nodecount, groupstatus, starttime, endtime) values (?, ?, ?, ?, ?, ?, ?)"
                       ).updateMany(groups.map(DB.Historize.fromNodeGroup).toList)
         } yield {
           ()
-        }).transact(xa))
+        }).transact(xa)) match {
+          case Right(x) => x
+          case Left(ex) =>
+            logger.error(s"Error when trying to update groupe for name historization: ${ex.getMessage}")
+        }
       }
   }
 
   def getAllOpenedDirectives(): Seq[DB.SerializedDirectives[Long]] = {
-    transactRun(xa => sql"""select id, directiveid, directivename, directivedescription, priority, techniquename,
+    transactRunEither(xa => sql"""select id, directiveid, directivename, directivedescription, priority, techniquename,
                   techniquehumanname, techniquedescription, techniqueversion, starttime, endtime
           from directives
-          where endtime is null""".query[DB.SerializedDirectives[Long]].to[Vector].transact(xa))
+          where endtime is null""".query[DB.SerializedDirectives[Long]].to[Vector].transact(xa)
+    ) match {
+      case Right(x) => x
+      case Left(ex) =>
+        logger.error(s"Error when trying to get directives for name historization: ${ex.getMessage}")
+        Seq()
+    }
   }
 
   def updateDirectives(
@@ -150,7 +176,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     updateQuery(directives.map(_._1.id.value).toList ++ closable, "directives", "directiveid") match {
       case None              =>  //nothing to do
       case Some(updateQuery) =>
-        transactRun(xa => (for {
+        transactRunEither(xa => (for {
           updated  <- updateQuery.update.run
           inserted <- Update[DB.SerializedDirectives[Unit]]("""
                         insert into directives (directiveid, directivename, directivedescription, priority, techniquename,
@@ -158,7 +184,11 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                       """).updateMany(directives.map(DB.Historize.fromDirective).toList)
         } yield {
           ()
-        }).transact(xa))
+        }).transact(xa)) match {
+      case Right(x) => x
+      case Left(ex) =>
+        logger.error(s"Error when trying to update directives for name historization: ${ex.getMessage}")
+    }
     }
   }
 
@@ -167,7 +197,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       Fragment.const(s"rulepkeyid in ( values ${joinIds.toList.map(x => s"(${x.toString})").mkString(",")} )")
     }
 
-    transactRun(xa => (for {
+    transactRunEither(xa => (for {
       rules      <- sql"""select rulepkeyid, ruleid, categoryid, name, shortdescription,
                                  longdescription, isenabled, starttime, endtime
                           from rules
@@ -191,7 +221,12 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
           , gMap.getOrElse(rule.id, Seq())
           , dMap.getOrElse(rule.id, Seq())
         ) )
-    }).transact(xa))
+    }).transact(xa)) match {
+      case Right(x) => x
+      case Left(ex) =>
+        logger.error(s"Error when trying to get rules for name historization: ${ex.getMessage}")
+        Seq()
+    }
   }
 
 
@@ -224,27 +259,43 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
     updateQuery(rules.map(_.id.value).toList ++ closable, "rules", "ruleid") match {
       case None              =>  //nothing to do
       case Some(updateQuery) =>
-        ZioRuntime.unsafeRun(for {
+        ZioRuntime.unsafeRun((for {
           updated  <- transactTask(xa => updateQuery.update.run.transact(xa))
           inserted <- ZIO.collectAll(rules.map(r => transactTask(xa => insertRule(now)(r).transact(xa))))
         } yield {
           ()
-        })
+        }).either) match {
+          case Right(x) => //
+          case Left(ex) =>
+            logger.error(s"Error when trying to update rules for name historization: ${ex.getMessage}")
+        }
     }
   }
 
   def getOpenedGlobalSchedule() : Option[DB.SerializedGlobalSchedule[Long]] = {
-    transactRun(xa => sql"select id, interval, splaytime, start_hour, start_minute, starttime, endtime from globalschedule where endtime is null".query[DB.SerializedGlobalSchedule[Long]].option.transact(xa))
+    transactRunEither(xa =>
+      sql"select id, interval, splaytime, start_hour, start_minute, starttime, endtime from globalschedule where endtime is null".
+        query[DB.SerializedGlobalSchedule[Long]].option.transact(xa)
+    ) match {
+      case Right(x) => x
+      case Left(ex) =>
+        logger.error(s"Error when trying to get global schedule config for name historization: ${ex.getMessage}")
+        None
+    }
   }
 
   def updateGlobalSchedule(interval: Int, splaytime: Int, start_hour: Int, start_minute: Int  ) : Unit = {
-      transactRun(xa => (for {
+      transactRunEither(xa => (for {
         updated  <- sql"update globalschedule set endtime = ${Some(DateTime.now)} where endtime is null".update.run
         inserted <- sql"""insert into globalschedule (interval, splaytime, start_hour, start_minute, starttime)
                           values($interval, $splaytime, $start_hour, $start_minute, ${DateTime.now})""".update.run
       } yield {
         ()
-      }).transact(xa))
+      }).transact(xa)) match {
+        case Right(x) => x
+        case Left(ex) =>
+          logger.error(s"Error when trying to update global schedule config for name historization: ${ex.getMessage}")
+      }
   }
 
 }

@@ -111,12 +111,18 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     if(sqlInit.trim.size > 0) {
       // Postgres'JDBC driver just accept multiple statement
       // in one query. No need to try to split ";" etc.
-      doobie.transactRun(xa => Update0(sqlInit, None).run.transact(xa))
+      doobie.transactRunEither(xa => Update0(sqlInit, None).run.transact(xa)) match {
+        case Right(x) => x
+        case Left(ex) => throw ex
+      }
     }
   }
 
   def cleanDb() = {
-    if(sqlClean.trim.size > 0) doobie.transactRun(xa => Update0(sqlClean, None).run.transact(xa))
+    if(sqlClean.trim.size > 0) doobie.transactRunEither(xa => Update0(sqlClean, None).run.transact(xa)) match {
+      case Right(x) => x
+      case Left(ex) => throw ex
+    }
 
     dataSource.close
   }
@@ -157,14 +163,20 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
 
   lazy val doobie = new Doobie(dataSource)
   def transacRun[T](query: Transactor[Task] => Task[T]) = {
-    doobie.transactRun(xa => query(xa))
+    doobie.transactRunEither(xa => query(xa)) match {
+        case Right(x) => x
+        case Left(ex) => throw ex
+      }
   }
   lazy val migrationEventLogRepository = new MigrationEventLogRepository(doobie)
 
   def insertLog(log: MigrationTestLog): Int = {
-  doobie.transactRun(xa => sql"""
+  doobie.transactRunEither(xa => sql"""
       insert into EventLog (creationDate, principal, eventType, severity, data, causeid)
       values (${log.timestamp}, ${log.principal}, ${log.eventType}, ${log.severity}, ${log.data}, ${log.cause})
-    """.update.withUniqueGeneratedKeys[Int]("id").transact(xa))
-}
+    """.update.withUniqueGeneratedKeys[Int]("id").transact(xa)) match {
+        case Right(x) => x
+        case Left(ex) => throw ex
+      }
+  }
 }
