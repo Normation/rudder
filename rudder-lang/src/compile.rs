@@ -2,10 +2,11 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    ir::ir1::IR1, ir::ir2::IR2,
     error::*,
     generator::new_generator,
     io::IOContext,
+    ir::ir1::IR1,
+    ir::ir2::IR2,
     parser::{Token, PAST},
     rudderlang_lib::RudderlangLib,
 };
@@ -48,11 +49,11 @@ pub fn technique_to_ir<'src>(
     info!(
         "{} of {} into {}",
         "Processing compilation".bright_green(),
-        ctx.source.to_string_lossy().bright_yellow(),
-        ctx.dest.to_string_lossy().bright_yellow()
+        ctx.input.to_string_lossy().bright_yellow(),
+        ctx.output.to_string_lossy().bright_yellow()
     );
 
-    parse_file(&mut past, &sources, &ctx.source)?;
+    parse_file(&mut past, &sources, &ctx.input)?;
 
     // finish parsing into IR
     info!("|- {}", "Generating intermediate code".bright_green());
@@ -74,7 +75,7 @@ pub fn compile_file(ctx: &IOContext, technique: bool) -> Result<()> {
     info!("|- {}", "Generating output code".bright_green());
     let (input_file, output_file) = if technique {
         // TODO this should be a technique name not a file name
-        (Some(ctx.source.as_path()), Some(ctx.dest.as_path()))
+        (Some(ctx.input.as_path()), Some(ctx.output.as_path()))
     } else {
         (None, None)
     };

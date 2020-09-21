@@ -56,27 +56,13 @@ use rudderc::{compile::compile_file, io, logger::Logger, opt::Opt, technique::ge
 // TODO use termination
 
 fn main() {
-    // Parse options
-    let opt = Opt::from_args();
-
-    // Compile is the default
-    let action = if opt.translate {
-        Action::Translate
-    } else {
-        Action::Compile
-    };
-
-    let logger = if opt.json_log {
-        Logger::Json
-    } else {
-        Logger::Terminal
-    };
-
+    let command = Opt::from_args();
+    let (logger, log_level, has_backtrace) = command.extract_logging_infos();
+    let action = command.to_action();
     // Initialize logger
-    logger.init(opt.log_level, action, opt.backtrace);
+    logger.init(log_level, action, has_backtrace);
 
-    // Load files
-    let ctx: io::IOContext = io::get(action, &opt.io).unwrap_or_else(|e| {
+    let ctx = command.extract_parameters().unwrap_or_else(|e| {
         error!("{}", e);
         // required before returning in order to have proper logging
         logger.end(false, "input not set", "output not set");
@@ -86,12 +72,19 @@ fn main() {
     info!("I/O context: {}", ctx);
 
     // Actual action
-    // TODO : check compiler github ; update geerators / translation
-    // json -> rl (/ cf / dsc ?)
-    // rl -> json / cf / dsc
+    // read = rl -> json
+    // migrate = cf -> rl
+    // compile = rl -> cf / dsc
+    // generate = json -> rl / cf / dsc
+    // TODO make the right calls
     let result = match action {
         Action::Compile => compile_file(&ctx, true),
-        Action::Translate => generate(&ctx),
+        // TODO Migrate: call cf_to_json perl script then call json->rl == Technique generate()
+        Action::Migrate => unimplemented!(),
+        // TODO: rl -> json + add a json wrapper : { data: {}, errors: {}}
+        Action::ReadTechnique => unimplemented!(),
+        // TODO Generate: call technique generate then compile into all formats + json wrapper: { rl: "", dsc: "", cf: "", errors:{} }
+        Action::GenerateTechnique => unimplemented!(),
     };
     match &result {
         Err(e) => error!("{}", e),
@@ -101,7 +94,7 @@ fn main() {
             "OK".bright_cyan()
         ),
     };
-    logger.end(result.is_ok(), ctx.source.display(), ctx.dest.display());
+    logger.end(result.is_ok(), ctx.input.display(), ctx.output.display());
     if result.is_err() {
         exit(1)
     }

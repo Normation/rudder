@@ -9,10 +9,10 @@ extern crate serde_json;
 
 #[macro_use]
 pub mod error;
-mod ir;
 pub mod compile;
 pub mod generator;
 pub mod io;
+mod ir;
 pub mod opt;
 pub use generator::Format;
 pub mod cfstrings;
@@ -26,8 +26,10 @@ use std::fmt;
 
 #[derive(Clone, Copy, PartialEq, Deserialize)]
 pub enum Action {
+    ReadTechnique,
+    GenerateTechnique,
+    Migrate,
     Compile,
-    Translate,
 }
 impl fmt::Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -35,8 +37,10 @@ impl fmt::Display for Action {
             f,
             "{}",
             match self {
+                Action::ReadTechnique => "read technique",
+                Action::GenerateTechnique => "generate technique",
+                Action::Migrate => "migrate",
                 Action::Compile => "compile",
-                Action::Translate => "translate",
             }
         )
     }
@@ -47,8 +51,10 @@ impl fmt::Debug for Action {
             f,
             "{}",
             match self {
+                Action::ReadTechnique => "Technique reading",
+                Action::GenerateTechnique => "Technique generation",
+                Action::Migrate => "Migration",
                 Action::Compile => "Compilation",
-                Action::Translate => "File translation",
             }
         )
     }
