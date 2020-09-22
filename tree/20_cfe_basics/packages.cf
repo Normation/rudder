@@ -32,6 +32,14 @@ body package_module zypper_pattern
       #default_options =>  {};
 }
 
+# Not upstream
+body package_module ips
+{
+      query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
+      query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
+      #default_options =>  {};
+}
+
 # Called by package_* generic methods
 bundle agent ncf_package(name, version, architecture, provider, state, options)
 {
@@ -110,11 +118,12 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
       "use_zypper_pattern_provider" expression => strcmp("zypper_pattern", "${provider}");
       "use_pkg_provider" expression => strcmp("pkg", "${provider}");
       "use_slackpkg_provider" expression => strcmp("slackpkg", "${provider}");
+      "use_ips_provider" expression => strcmp("ips", "${provider}");
       # Used in tests
       "use_test_provider" expression => strcmp("test", "${provider}");
 
     any::
-      "supported_provider" expression => "use_apt_provider|use_yum_provider|use_zypper_provider|use_pkg_provider|use_slackpkg_provider|use_test_provider|use_zypper_pattern_provider";
+      "supported_provider" expression => "use_apt_provider|use_yum_provider|use_zypper_provider|use_pkg_provider|use_slackpkg_provider|use_test_provider|use_zypper_pattern_provider|use_ips_provider";
 
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
@@ -325,6 +334,40 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
       "${name}"
           policy         => "${state}",
           package_module => slackpkg,
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+     #### ips ####
+
+    use_ips_provider.architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => ips,
+          architecture   => "${architecture}",
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_ips_provider.architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => ips,
+          architecture   => "${architecture}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_ips_provider.!architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => ips,
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_ips_provider.!architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => ips,
           options        => { "${options}" },
           classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
     

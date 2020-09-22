@@ -72,6 +72,9 @@ bundle common package_module_knowledge
     slackware::
       "platform_default" string => "slackpkg";
 
+    solaris::
+      "platform_default" string => "ips";
+
       # CFEngine 3.12.2+ and 3.14+ have new package module on Windows
     windows.cfengine_3_12.!(cfengine_3_12_0|cfengine_3_12_1)::
       "platform_default" string => "msiexec";

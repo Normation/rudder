@@ -25,9 +25,9 @@
 # @parameter_constraint version "allow_empty_string" : true
 # @parameter architecture Architecture of the package, can be an architecture name  or "default" (defaults to "default")
 # @parameter_constraint architecture "allow_empty_string" : true
-# @parameter provider Package provider to use, can be "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg" or "default" for system default package manager (defaults to "default")
+# @parameter provider Package provider to use, can be "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips" or "default" for system default package manager (defaults to "default")
 # @parameter_constraint provider "allow_empty_string" : true
-# @parameter_constraint provider "select" : [ "", "default", "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg" ]
+# @parameter_constraint provider "select" : [ "", "default", "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips" ]
 # @parameter state State of the package, can be "present" or "absent" (defaults to "present")
 # @parameter_constraint state "allow_empty_string" : true
 # @parameter_constraint state "select" : [ "", "present", "absent" ]

@@ -1,0 +1,85 @@
+#!/bin/sh
+
+LEVEL=0
+
+fatal () {
+    echo "ErrorMessage=$@"
+    exit 2
+}
+
+warn () {
+    [ $LEVEL -gt 0 ] && echo "[TRACE]: $*" >&2
+}
+
+supports_api_version () {
+    echo 1
+}
+
+get_package_data() {
+    if [ -f "${File}" ]
+    then
+        echo "PackageType=file"
+	# this probably doesn't work
+	echo "Name=${File}"
+    else
+        echo "PackageType=repo"
+	pkg list -H --no-refresh "${File}" | head -n1 | awk '{print "Name=" $1}'
+    fi
+}
+
+list_installed () {
+    arch=$(uname -p)
+    pkg list -H --no-refresh | awk '{print "Name=" $1 "\nVersion=" $2 "\nArchitecture=" "'${arch}'"}'
+}
+
+list_updates () {
+    # The difference between list-updates and list-updates-local
+    # is that list-updates expects to refresh from the upstream repo.
+    pkg refresh -q
+    list_updates_local
+}
+
+list_updates_local () {
+    arch=$(uname -p)
+    pkg list -H --no-refresh -u | awk '{print "Name=" $1 "\nVersion=" $2 "\nArchitecture=" "'${arch}'"}'
+}
+
+repo_install () {
+    # ignore architecture
+    [ "${Version}" != "" ] && Name="${Name}@${Version}"
+    pkg install -q --accept --no-refresh "${Name}"
+}
+
+file_install () {
+    fatal "File installation not supported"
+}
+
+remove () {
+    # ignore architecture
+    [ "${Version}" != "" ] && Name="${Name}@${Version}"
+    pkg uninstall -q --ignore-missing "${Name}"
+}
+
+# Cfengine passes data on STDIN. Absorb that and convert to shell variables.
+while IFS= read -r line; do
+  eval "$line"
+  # options can be passed multiple times so we need to avoid clobbering
+  # previous instances. Plus, what we really want to eval is the value of
+  # each option.
+  if [ -n "$options" ]; then
+    eval "$options"
+  fi
+done
+
+case "$1" in
+    supports-api-version) supports_api_version;;
+    repo-install) repo_install;;
+    file-install) file_install;;
+    remove) remove;;
+    list-installed) list_installed;;
+    list-updates) list_updates;;
+    list-updates-local) list_updates_local;;
+    get-package-data) get_package_data;;
+    *) fatal "Invalid operation";;
+esac
+
