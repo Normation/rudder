@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    error::*, generator::new_generator, io::IOContext, ir::ir1::IR1, ir::ir2::IR2, parser::PAST,
-    rudderlang_lib::RudderlangLib, ActionResult,
+    error::*, generator::new_generator, io::IOContext, ir::ir1::IR1, ir::ir2::IR2, logger::*,
+    parser::PAST, rudderlang_lib::RudderlangLib, ActionResult,
 };
 use colored::Colorize;
 use typed_arena::Arena;

@@ -14,8 +14,6 @@
 //!
 //!  3- ncf library -> generate_lib() -> resourcelib.rl + translate-config
 
-// imports log macros;
-use log::*;
 use std::process::exit;
 use structopt::StructOpt;
 
@@ -64,12 +62,11 @@ use rudderc::{
 
 fn main() {
     let command = Opt::from_args();
-    let (output, log_level, has_backtrace) = command.extract_logging_infos();
+    let (output, log_level, is_backtraced) = command.extract_logging_infos();
     let action = command.as_action();
     // Initialize logger and output
-    output.init(log_level, action, has_backtrace);
+    output.init(action, log_level, is_backtraced);
     let ctx = command.extract_parameters().unwrap_or_else(|e| {
-        error!("{}", e);
         // required before returning in order to have proper logging
         output.print(
             action,
@@ -80,7 +77,6 @@ fn main() {
         );
         exit(1);
     });
-    info!("I/O context: {}", ctx);
 
     // Actual action
     // read = rl -> json

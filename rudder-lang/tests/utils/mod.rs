@@ -38,7 +38,7 @@ pub fn test_real_file(technique_name: &str, format: &Format) {
 
 /// Core test function that actually compares the file compilation result to expected result
 fn test_file(source: &Path, dest: &Path, technique_name: &str, format: &Format) {
-    let result = compile(&source, &dest, technique_name, format);
+    let result = compile_file(&source, &dest, technique_name, format);
     assert_eq!(
         result.is_ok(),
         should_compile_file(technique_name),
@@ -62,7 +62,7 @@ fn should_compile_file(technique_name: &str) -> bool {
 }
 
 /// Compile technique from base crate and expose its result
-fn compile(
+fn compile_file(
     source: &Path,
     dest: &Path,
     technique_name: &str,

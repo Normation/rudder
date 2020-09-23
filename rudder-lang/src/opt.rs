@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{error::Result, generator::Format, io::IOContext, output::Logs, Action};
-use log::LevelFilter;
+use crate::{
+    error::Result, generator::Format, io::IOContext, logger::LogLevel, output::LogOutput, Action,
+};
 use serde::Deserialize;
 use std::{cmp::PartialEq, path::PathBuf};
 use structopt::StructOpt;
@@ -105,7 +106,7 @@ pub struct Options {
         possible_values = &["off", "trace", "debug", "info", "warn", "error"],
         default_value = "warn"
     )]
-    pub log_level: LevelFilter,
+    pub log_level: LogLevel,
 
     /// Takes stdin as an input rather than using a file. Overwrites input file option
     #[structopt(long)]
@@ -122,33 +123,33 @@ pub struct Options {
 }
 
 impl Opt {
-    pub fn extract_logging_infos(&self) -> (Logs, LevelFilter, bool) {
-        let (output, level, backtrace_enabled) = match self {
+    pub fn extract_logging_infos(&self) -> (LogOutput, LogLevel, bool) {
+        let (output, level, is_backtraced) = match self {
             Self::Compile {
                 options, json_logs, ..
             } => {
                 let output = match (json_logs, options.stdout) {
-                    (_, true) => Logs::None,
-                    (true, false) => Logs::JSON,
-                    (false, false) => Logs::Terminal,
+                    (_, true) => LogOutput::None,
+                    (true, false) => LogOutput::JSON,
+                    (false, false) => LogOutput::Raw,
                 };
                 (output, options.log_level, options.backtrace)
             }
             Self::Migrate { options, json_logs } => {
                 let output = match (json_logs, options.stdout) {
-                    (_, true) => Logs::None,
-                    (true, false) => Logs::JSON,
-                    (false, false) => Logs::Terminal,
+                    (_, true) => LogOutput::None,
+                    (true, false) => LogOutput::JSON,
+                    (false, false) => LogOutput::Raw,
                 };
                 (output, options.log_level, options.backtrace)
             }
             Self::Technique(t) => t.extract_logging_infos(),
         };
         // remove log colors if JSON format to make logs vec readable
-        if output == Logs::JSON {
+        if output == LogOutput::JSON {
             std::env::set_var("NO_COLOR", "1");
         }
-        (output, level, backtrace_enabled)
+        (output, level, is_backtraced)
     }
 
     pub fn extract_parameters(&self) -> Result<IOContext> {
@@ -173,19 +174,19 @@ impl Opt {
 }
 
 impl Technique {
-    fn extract_logging_infos(&self) -> (Logs, LevelFilter, bool) {
+    fn extract_logging_infos(&self) -> (LogOutput, LogLevel, bool) {
         match self {
             Self::Read { options } => {
                 let output = match options.stdout {
-                    true => Logs::None,
-                    false => Logs::JSON,
+                    true => LogOutput::None,
+                    false => LogOutput::JSON,
                 };
                 (output, options.log_level, options.backtrace)
             }
             Self::Generate { options, .. } => {
                 let output = match options.stdout {
-                    true => Logs::None,
-                    false => Logs::JSON,
+                    true => LogOutput::None,
+                    false => LogOutput::JSON,
                 };
                 (output, options.log_level, options.backtrace)
             }
@@ -255,7 +256,7 @@ mod tests {
                     stdin: true,
                     stdout: true,
                     output: Some(PathBuf::from("tests/techniques/6.1.rc5/technique.ee.cf")),
-                    log_level: LevelFilter::Warn,
+                    log_level: LogLevel::Warn,
                     backtrace: true,
                 },
             }))
@@ -269,7 +270,7 @@ mod tests {
                     stdin: false,
                     stdout: false,
                     output: None,
-                    log_level: LevelFilter::Warn, // default
+                    log_level: LogLevel::Warn, // default
                     backtrace: false,
                 },
             }))
@@ -344,49 +345,49 @@ mod tests {
     fn logging_infos() {
         assert_eq!(
             opt_new("rudderc technique read -b").extract_logging_infos(),
-            (Logs::JSON, LevelFilter::Warn, true),
+            (LogOutput::JSON, LogLevel::Warn, true),
         );
         assert_eq!(
             opt_new("rudderc technique read -l info").extract_logging_infos(),
-            (Logs::JSON, LevelFilter::Info, false),
+            (LogOutput::JSON, LogLevel::Info, false),
         );
         assert_eq!(
             opt_new("rudderc technique read --stdout").extract_logging_infos(),
-            (Logs::None, LevelFilter::Warn, false),
+            (LogOutput::None, LogLevel::Warn, false),
         );
         assert_eq!(
             opt_new("rudderc migrate").extract_logging_infos(),
-            (Logs::Terminal, LevelFilter::Warn, false),
+            (LogOutput::Raw, LogLevel::Warn, false),
         );
         assert_eq!(
             opt_new("rudderc compile").extract_logging_infos(),
-            (Logs::Terminal, LevelFilter::Warn, false),
+            (LogOutput::Raw, LogLevel::Warn, false),
         );
         assert_eq!(
             opt_new("rudderc migrate --stdout").extract_logging_infos(),
-            (Logs::None, LevelFilter::Warn, false),
+            (LogOutput::None, LogLevel::Warn, false),
         );
         assert_eq!(
             opt_new("rudderc compile --stdout").extract_logging_infos(),
-            (Logs::None, LevelFilter::Warn, false),
+            (LogOutput::None, LogLevel::Warn, false),
         );
         assert_eq!(
             opt_new("rudderc migrate -j").extract_logging_infos(),
-            (Logs::JSON, LevelFilter::Warn, false),
+            (LogOutput::JSON, LogLevel::Warn, false),
         );
         assert_eq!(
             opt_new("rudderc compile -j").extract_logging_infos(),
-            (Logs::JSON, LevelFilter::Warn, false),
+            (LogOutput::JSON, LogLevel::Warn, false),
         );
         // tricky one
         assert_eq!(
             opt_new("rudderc migrate -j --stdout").extract_logging_infos(),
-            (Logs::None, LevelFilter::Warn, false),
+            (LogOutput::None, LogLevel::Warn, false),
         );
         // tricky one
         assert_eq!(
             opt_new("rudderc compile --stdout -j").extract_logging_infos(),
-            (Logs::None, LevelFilter::Warn, false),
+            (LogOutput::None, LogLevel::Warn, false),
         );
     }
 

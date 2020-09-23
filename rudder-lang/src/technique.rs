@@ -11,6 +11,7 @@ use crate::{
     cfstrings,
     error::*,
     ir::{ir2::IR2, resource::StateDeclaration, value::Value},
+    logger::*,
     rudderlang_lib::{LibMethod, RudderlangLib},
 };
 use colored::Colorize;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{error::*, generator::Format, opt::Options, parser::Token, Action};
+use crate::{error::*, generator::Format, logger::*, opt::Options, parser::Token, Action};
 use colored::Colorize;
 use serde::Deserialize;
 use std::{fmt, fs, io::Read, path::PathBuf, str::FromStr};
@@ -79,14 +79,17 @@ impl IOContext {
             format,
         )?;
 
-        Ok(Self {
+        let ctx = Self {
             stdlib: config.libs.stdlib.clone(),
             input: input_str,
             input_content,
             output,
             action,
             format,
-        })
+        };
+        info!("I/O context: {}", ctx);
+
+        Ok(ctx)
     }
 
     pub fn with_content(&self, input_content: String) -> Self {

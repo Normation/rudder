@@ -208,7 +208,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fabed175da42fed1fa0746b0ea71f412aa9d35e76e95e59b192c64b9dc2bf8b"
 dependencies = [
  "cfg-if",
- "serde",
 ]
 
 [[package]]
@@ -363,7 +362,6 @@ dependencies = [
  "colored",
  "env_logger",
  "lazy_static",
- "log",
  "maplit",
  "ngrammatic",
  "nom",

@@ -6,6 +6,7 @@ use crate::{
     error::*,
     io,
     ir::{ir1::IR1, resource::ResourceDef, resource::StateDef},
+    logger::*,
     parser::{Token, PAST},
 };
 use colored::Colorize;

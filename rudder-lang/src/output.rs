@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{error::Result, Action, ActionResult};
+use crate::{error::Result, logger::*, Action, ActionResult};
 use colored::Colorize;
 use lazy_static::lazy_static;
-use log::LevelFilter;
 use regex::Regex;
 use serde::Serialize;
 use std::fmt::Display;
@@ -74,6 +73,8 @@ impl Backtrace {
             .unwrap_or("undefined")
             .to_owned()
     }
+
+    // TODO backtrace as vec, to print it into a backtrace field in the json format
 }
 
 /// Display backtrace to the final user
@@ -99,91 +100,39 @@ impl Display for Backtrace {
     }
 }
 
-// NOTE that LogsFmtPanic is hardcoded, not serializable structure to pass to it
-// struct LogsFmtPanic {
+// NOTE that OutputFmtPanic is hardcoded, not serializable structure to pass to it
+// struct OutputFmtPanic {
 //     status: String,
 //     message: String,
 // }
+/// Note that `source` field is either a file or `STDIN`. It can even be empty in some error cases
 #[derive(Serialize)]
-struct LogsFmtOk {
+struct OutputFmtOk {
     action: String,
+    source: String, // source file path or STDIN
     time: String,
     status: String, // either "success" or "failure"
-    source: String, // source file path or STDIN
-    logs: Logger,
+    logs: Logs,
     data: Vec<ActionResult>,
     errors: Vec<String>,
 }
 
-// This is subject to change. Would be better to find an existing log to variable solution
-// TODO impl proper ram-log
-#[derive(Serialize)]
-pub struct Logger(Vec<(LevelFilter, String)>);
-impl Logger {
-    pub fn init() -> Self {
-        Self(Vec::new())
-    }
-    // pub fn info(&mut self, msg: String) {
-    //     self.0.push((LevelFilter::Info, msg))
-    // }
-    // pub fn error(&mut self, msg: String) {
-    //     self.0.push((LevelFilter::Error, msg))
-    // }
-    // pub fn warn(&mut self, msg: String) {
-    //     self.0.push((LevelFilter::Warn, msg))
-    // }
-    // pub fn debug(&mut self, msg: String) {
-    //     self.0.push((LevelFilter::Debug, msg))
-    // }
-    // pub fn trace(&mut self, msg: String) {
-    //     self.0.push((LevelFilter::Trace, msg))
-    // }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Logs {
-    Terminal,
+pub enum LogOutput {
+    Raw,
     JSON,
     None,
 }
-impl Logs {
+impl LogOutput {
     /// Initialize the output generator
-    pub fn init(self, log_level: LevelFilter, action: Action, backtrace_enabled: bool) {
-        // Content called when panic! is encountered to close logger brackets and print error
-        Self::set_panic_hook(self, action, backtrace_enabled);
-        if self == Logs::None {
-            // do not print any logs if output is aalready stdout
-            return;
-        }
-
-        if backtrace_enabled {
+    pub fn init(self, action: Action, log_level: LogLevel, is_backtraced: bool) {
+        set_global_log_level(log_level);
+        // Content called if panic! is encountered to close logger brackets and print error
+        self.set_panic_hook(action, is_backtraced);
+        // enable rust backtrace if backtrace requested
+        if is_backtraced {
             std::env::set_var("RUDDERC_BACKTRACE", "1");
         }
-
-        let mut log_builder = env_logger::Builder::new();
-        // TODO integrate into log-ram
-        //     if self == Logs::JSON {
-        //         // prevents any output stylization from the colored crate
-        //         colored::control::set_override(false);
-        //         // Note: record .file() and line() allow to get the origin of the print
-        //         builder.format(move |buf, record| {
-        //             writeln!(
-        //                 buf,
-        //                 r#"    {{
-        //   "status": "{}",
-        //   "message": {:#?}
-        // }},"#,
-        //                 record.level().to_string().to_ascii_lowercase(),
-        //                 record.args().to_string()
-        //             )
-        //         });
-        //     }
-        log_builder
-            .filter(None, log_level)
-            .format_timestamp(None)
-            .format_level(false)
-            .format_module_path(false)
-            .init();
     }
 
     /// Trick function to get the core::PanicInfo.message content as a string
@@ -213,8 +162,7 @@ impl Logs {
 
     /// panic default format takeover to print either proper json format output
     /// or rudder-lang own error logging format
-    // TODO integrate into log-ram
-    fn set_panic_hook(self, action: Action, backtrace_enabled: bool) {
+    fn set_panic_hook(self, action: Action, is_backtraced: bool) {
         panic::set_hook(Box::new(move |panic_info| {
             let e_message = match panic_info.payload().downcast_ref::<&str>() {
                 Some(msg) => msg.to_string(), // PANIC!
@@ -224,32 +172,29 @@ impl Logs {
                 Some(loc) => format!(" at '{}:{}'", loc.file(), loc.line()),
                 None => "".to_owned(),
             };
-            let backtrace = match backtrace_enabled {
+            let backtrace = match is_backtraced {
                 true => Some(Backtrace::new()),
                 false => None,
             };
             let message = format!(
-                "{}: an unrecoverable error occurred{}: {}{}",
-                "rudderc failure".red().bold(),
+                "{}{}: {}",
+                "Unrecoverable RUDDERC failure".red().bold(),
                 location,
                 e_message,
-                backtrace.map_or("".to_owned(), |bt| bt.to_string())
             );
             match self {
-                Logs::JSON => println!(
-                    r#"{{
-      "result": {{
-        "status": "rudderc {}: unrecoverable error",
-        "message": "{}"
-      }}
-    }}
-  ]
-}},"#,
-                    action, message
-                ),
-                Logs::Terminal => error!("{}", message),
-                Logs::None => (),
+                LogOutput::None => (),
+                _ => error!("{}", message),
             };
+
+            self.print(
+                action,
+                String::new(),
+                Err(crate::error::Error::new(message)),
+            );
+
+            // TODO print backtrace somehow + somewhere else
+            backtrace.map_or((), |bt| println!("{}", bt));
         }));
     }
 
@@ -273,52 +218,50 @@ impl Logs {
 
         // remove data if it has been written to a file to avoid duplicate content
         self.print_to_file(&mut data, action);
-        match (self, is_success) {
-            // what should be printed to styderr in case of an error ?
-            (Logs::JSON, _) => {
-                let status = if is_success { "success" } else { "failure" };
-                let output = LogsFmtOk {
-                    action: format!("{}", action),
-                    time,
-                    status: status.to_owned(),
-                    source,
-                    logs: Logger::init(), // faked ; TODO, put logs in ram rather than print to stdout
-                    data: data.clone(),
-                    errors,
-                };
-                let fmtoutput = serde_json::to_string_pretty(&output)
-                    .map_err(|e| format!("Building JSON output led to an error: {}", e))
-                    .unwrap(); // dev error if this does not work
-                println!("{}", fmtoutput);
-                if !is_success {
-                    eprintln!(
-                        "An error occurred, could not create content from '{}' because: '{}'",
-                        output.source,
-                        output.errors.join(" ; ")
-                    )
-                }
-            }
-            // TODO where should errors be printed? see once logging system implemented
-            (Logs::Terminal, true) => println!("{} written", dest_files),
-            (Logs::None, true) => (),
-            (_, false) => eprintln!(
+
+        if !is_success {
+            let output = format!(
                 "An error occurred, could not create content from '{}' because: '{}'",
                 source,
                 errors.join(" ; ")
-            ),
+            );
+            error!("{}", output);
+            eprintln!("{}", output);
+        } else if is_success {
+            info!("Content written to {}", dest_files);
+        }
+        // must have cloneable logger, cannot safely clone `static mut`
+        // must be done last to avoid logs loss since logs are pushed to STATIC LOGS directly
+        let logger = clone_logs();
+
+        if self == LogOutput::JSON {
+            let status = if is_success { "success" } else { "failure" };
+            let output = OutputFmtOk {
+                action: format!("{}", action),
+                time,
+                status: status.to_owned(),
+                source,
+                logs: logger.clone(),
+                data: data.clone(),
+                errors,
+            };
+            let fmtoutput = serde_json::to_string_pretty(&output)
+                .map_err(|e| format!("Building JSON output led to an error: {}", e))
+                .unwrap(); // dev error if this does not work
+            println!("{}", fmtoutput);
         }
     }
 
     // print content into a file and if successfully written, remove it from payload
     fn print_to_file(&self, files: &mut Vec<ActionResult>, action: Action) {
-        if self == &Logs::None {
+        if self == &LogOutput::None {
             if action == Action::GenerateTechnique {
                 println!(
                     "{}",
                     serde_json::to_string_pretty(&files)
                         .map_err(|e| format!("Building JSON output led to an error: {}", e))
-                        .unwrap()
-                ) // dev error if this does not work);
+                        .unwrap() // dev error if this does not work
+                )
             } else if files[0].content.is_some() {
                 // no error, expected length = 1
                 println!("{}", &files[0].clone().content.unwrap());
@@ -327,6 +270,7 @@ impl Logs {
             }
         }
         // else
+        // note there might be no fle to print. ie technique generate
         for file in files.iter_mut() {
             if let (Some(dest), Some(content)) = (&file.destination, &file.content) {
                 let mut file_to_create = File::create(dest).expect("Could not create output file");
