@@ -1,0 +1,296 @@
+{
+    "bundles": {
+        "0": {
+            "line": [
+                6,
+                5
+            ],
+            "promiseTypes": {
+                "0": {
+                    "contexts": {
+                        "0": {
+                            "promises": {
+                                "0": {
+                                    "attributes": {
+                                        "0": {
+                                            "line": [
+                                                9,
+                                                8
+                                            ]
+                                        }
+                                    },
+                                    "line": [
+                                        9,
+                                        8
+                                    ]
+                                },
+                                "$insert": [
+                                    [
+                                        1,
+                                        {
+                                            "attributes": [
+                                                {
+                                                    "line": 9,
+                                                    "lval": "slist",
+                                                    "rval": {
+                                                        "type": "list",
+                                                        "value": []
+                                                    }
+                                                }
+                                            ],
+                                            "line": 9,
+                                            "promiser": "args"
+                                        }
+                                    ],
+                                    [
+                                        2,
+                                        {
+                                            "attributes": [
+                                                {
+                                                    "line": 10,
+                                                    "lval": "string",
+                                                    "rval": {
+                                                        "arguments": [
+                                                            {
+                                                                "type": "string",
+                                                                "value": "_"
+                                                            },
+                                                            {
+                                                                "type": "string",
+                                                                "value": "args"
+                                                            }
+                                                        ],
+                                                        "name": "join",
+                                                        "type": "functionCall"
+                                                    }
+                                                }
+                                            ],
+                                            "line": 10,
+                                            "promiser": "report_param"
+                                        }
+                                    ],
+                                    [
+                                        3,
+                                        {
+                                            "attributes": [
+                                                {
+                                                    "line": 11,
+                                                    "lval": "string",
+                                                    "rval": {
+                                                        "arguments": [
+                                                            {
+                                                                "type": "string",
+                                                                "value": "simplest_technique_${report_param}"
+                                                            }
+                                                        ],
+                                                        "name": "canonify",
+                                                        "type": "functionCall"
+                                                    }
+                                                }
+                                            ],
+                                            "line": 11,
+                                            "promiser": "full_class_prefix"
+                                        }
+                                    ],
+                                    [
+                                        4,
+                                        {
+                                            "attributes": [
+                                                {
+                                                    "line": 12,
+                                                    "lval": "string",
+                                                    "rval": {
+                                                        "arguments": [
+                                                            {
+                                                                "type": "string",
+                                                                "value": "$${full_class_prefix}"
+                                                            },
+                                                            {
+                                                                "type": "string",
+                                                                "value": "1000"
+                                                            }
+                                                        ],
+                                                        "name": "string_head",
+                                                        "type": "functionCall"
+                                                    }
+                                                }
+                                            ],
+                                            "line": 12,
+                                            "promiser": "class_prefix"
+                                        }
+                                    ]
+                                ]
+                            }
+                        }
+                    },
+                    "line": [
+                        8,
+                        7
+                    ]
+                },
+                "1": {
+                    "contexts": {
+                        "0": {
+                            "promises": {
+                                "0": {
+                                    "attributes": {
+                                        "0": {
+                                            "line": [
+                                                11,
+                                                19
+                                            ]
+                                        },
+                                        "1": {
+                                            "line": [
+                                                12,
+                                                20
+                                            ]
+                                        }
+                                    },
+                                    "line": [
+                                        11,
+                                        19
+                                    ]
+                                },
+                                "1": {
+                                    "attributes": {
+                                        "0": {
+                                            "line": [
+                                                13,
+                                                21
+                                            ]
+                                        },
+                                        "1": {
+                                            "line": [
+                                                14,
+                                                22
+                                            ]
+                                        }
+                                    },
+                                    "line": [
+                                        13,
+                                        21
+                                    ]
+                                },
+                                "$insert": [
+                                    [
+                                        2,
+                                        {
+                                            "attributes": [
+                                                {
+                                                    "line": 23,
+                                                    "lval": "usebundle",
+                                                    "rval": {
+                                                        "arguments": [
+                                                            {
+                                                                "arguments": [
+                                                                    {
+                                                                        "type": "string",
+                                                                        "value": "$${class_prefix}_file_absent_tmp"
+                                                                    }
+                                                                ],
+                                                                "name": "canonify",
+                                                                "type": "functionCall"
+                                                            }
+                                                        ],
+                                                        "name": "_classes_noop",
+                                                        "type": "functionCall"
+                                                    }
+                                                },
+                                                {
+                                                    "line": 24,
+                                                    "lval": "unless",
+                                                    "rval": {
+                                                        "arguments": [
+                                                            {
+                                                                "type": "string",
+                                                                "value": "debian"
+                                                            }
+                                                        ],
+                                                        "name": "concat",
+                                                        "type": "functionCall"
+                                                    }
+                                                }
+                                            ],
+                                            "line": 23,
+                                            "promiser": "File absent_${report_data.directive_id}_0"
+                                        }
+                                    ],
+                                    [
+                                        3,
+                                        {
+                                            "attributes": [
+                                                {
+                                                    "line": 25,
+                                                    "lval": "usebundle",
+                                                    "rval": {
+                                                        "arguments": [
+                                                            {
+                                                                "type": "string",
+                                                                "value": "Skipping method \\'File absent\\' with key parameter \\'tmp\\' since condition \\'debian\\' is not reached"
+                                                            },
+                                                            {
+                                                                "type": "string",
+                                                                "value": "tmp"
+                                                            },
+                                                            {
+                                                                "arguments": [
+                                                                    {
+                                                                        "type": "string",
+                                                                        "value": "$${class_prefix}_file_absent_tmp"
+                                                                    }
+                                                                ],
+                                                                "name": "canonify",
+                                                                "type": "functionCall"
+                                                            },
+                                                            {
+                                                                "arguments": [
+                                                                    {
+                                                                        "type": "string",
+                                                                        "value": "$${class_prefix}_file_absent_tmp"
+                                                                    }
+                                                                ],
+                                                                "name": "canonify",
+                                                                "type": "functionCall"
+                                                            },
+                                                            {
+                                                                "type": "string",
+                                                                "value": "@{args}"
+                                                            }
+                                                        ],
+                                                        "name": "log_rudder",
+                                                        "type": "functionCall"
+                                                    }
+                                                },
+                                                {
+                                                    "line": 26,
+                                                    "lval": "unless",
+                                                    "rval": {
+                                                        "arguments": [
+                                                            {
+                                                                "type": "string",
+                                                                "value": "debian"
+                                                            }
+                                                        ],
+                                                        "name": "concat",
+                                                        "type": "functionCall"
+                                                    }
+                                                }
+                                            ],
+                                            "line": 25,
+                                            "promiser": "File absent_${report_data.directive_id}_0"
+                                        }
+                                    ]
+                                ]
+                            }
+                        }
+                    },
+                    "line": [
+                        10,
+                        14
+                    ]
+                }
+            }
+        }
+    }
+}
