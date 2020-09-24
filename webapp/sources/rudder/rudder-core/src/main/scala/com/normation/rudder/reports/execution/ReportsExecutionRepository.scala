@@ -41,13 +41,12 @@ import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.domain.logger.{ReportLogger, TimingDebugLogger}
-import com.normation.rudder.domain.reports.{NodeAndConfigId, NodeConfigId}
+import com.normation.rudder.domain.reports.NodeAndConfigId
 import com.normation.rudder.repository.FindExpectedReportRepository
 import zio._
 import com.normation.zio._
 import com.normation.errors._
-import com.normation.rudder.db.DB.UncomputedAgentRun
-import org.joda.time.DateTime
+
 
 /**
  * Service for reading or storing execution of Nodes
@@ -65,12 +64,12 @@ trait RoReportsExecutionRepository {
    */
   def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]]
 
-  def getNodesLastRunv2(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]]
+  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]]
 
   /**
    * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
    */
-  def getUnprocessedRuns(): IOResult[Seq[UncomputedAgentRun]]
+  def getUnprocessedRuns(): IOResult[Seq[AgentRunWithoutCompliance]]
 
   //def getLastComputedRun(nodeIds: Set[NodeId]): Box[Map[NodeId, (NodeAndConfigId, DateTime)]]
 }
@@ -78,19 +77,9 @@ trait RoReportsExecutionRepository {
 
 trait WoReportsExecutionRepository {
 
-  /**
-   * Create or update the list of execution in the execution tables
-   * Only return execution which where actually changed in backend
-   *
-   * The logic is:
-   * - a new execution (not present in backend) is inserted as provided
-   * - a existing execution can only change the completion status from
-   * "not completed" to "completed" (i.e: a completed execution can
-   * not be un-completed).
-   */
- // def updateExecutions(executions: Seq[AgentRun]): Seq[Box[AgentRun]]
 
-  def setComplianceComputationDate(runs: List[UncomputedAgentRun]): IOResult[Int]
+  // Set the computation date of compliance for a run that had no compliance computed
+  def setComplianceComputationDate(runs: List[AgentRunWithoutCompliance]): IOResult[Int]
 
 }
 
@@ -146,45 +135,31 @@ class CachedReportsExecutionRepository(
     }) ?~! s"Error when trying to update the cache of Agent Runs informations"
   }).runNow
 
-/*
-  def getLastComputedNodeRun(nodeIds: Set[NodeId]) : Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
-    for {
-      lastProcessedRuns <- readBackend.getLastComputedRun(nodeIds)
-
-
-      // find the nodeconfiguration from the nodeconfigid
-      expectedReports <- findConfigs.getExpectedReports(lastProcessedRuns.values.map(x => x._1).toSet)
-// ok, i'm loosing myself here. I need to simplify this code
-      // at some point we need to get the reports that goes with the run, and not simply the reportsexecution
-      // and compute. The code is running circle aroudn that, it should be straitforward
-    } yield {
-    }
-  }*/
-
-  override def getUnprocessedRuns(): IOResult[Seq[UncomputedAgentRun]] = {
+  override def getUnprocessedRuns(): IOResult[Seq[AgentRunWithoutCompliance]] = {
     ???
   }
 
   /**
    * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
    */
-  def getNodesLastRunv2(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore.withPermit(IOResult.effect {
+  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore.withPermit(IOResult.effect {
     val n1 = System.currentTimeMillis
     (for {
-      // Ohhhh, types are aweful here
       unprocessedRuns <- readBackend.getUnprocessedRuns
       // first evolution, get same behaviour than before, and returns only the last run per node
-      lastRunByNode = unprocessedRuns.groupBy(_.nodeId).map {
-        case (nodeid, seq) => (NodeId(nodeid), seq.sortBy(_.date).last)
+      // ignore those without a nodeConfigId
+      lastRunByNode = unprocessedRuns.filter(_.nodeConfigVersion.isDefined).groupBy(_.agentRunId.nodeId).map {
+        case (nodeid, seq) => (nodeid, seq.sortBy(_.agentRunId.date).last)
       }
-      agentsRuns =   lastRunByNode.map(x => (x._1, NodeAndConfigId(x._1, NodeConfigId(x._2.nodeConfigId))))
+      // by construct, we do have a nodeConfigId
+      agentsRuns =   lastRunByNode.map(x => (x._1, NodeAndConfigId(x._1, x._2.nodeConfigVersion.get)))
 
       expectedReports <- findConfigs.getExpectedReports(agentsRuns.values.toSet).toIO
 
       runs = agentsRuns.map { case (nodeId, nodeAndConfigId) =>
         (nodeId,
           Some(AgentRunWithNodeConfig(
-               AgentRunId(nodeId, lastRunByNode(nodeId).date)
+               AgentRunId(nodeId, lastRunByNode(nodeId).agentRunId.date)
              , expectedReports.get(nodeAndConfigId).map(optionalExpectedReport => (nodeAndConfigId.version, optionalExpectedReport))
              , true
              , lastRunByNode(nodeId).insertionId)))}
@@ -199,70 +174,5 @@ class CachedReportsExecutionRepository(
     })
   }).runNow
 
-/*
-  override def updateExecutions(executions : Seq[AgentRun]) : Seq[Box[AgentRun]] = semaphore.withPermit(IOResult.effect {
-    logger.trace(s"Update runs for nodes [${executions.map( _.agentRunId.nodeId.value ).mkString(", ")}]")
-    val n1 = System.currentTimeMillis
-    val runs = writeBackend.updateExecutions(executions)
-    //update complete runs
-    val completed = runs.collect { case Full(x) if(x.isCompleted) => x }
-    logger.debug(s"Updating agent runs cache: [${completed.map(x => s"'${x.agentRunId.nodeId.value}' at '${x.agentRunId.date.toString()}'").mkString("," )}]")
-
-    // log errors
-    runs.foreach {
-      case Full(x) => //
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when updating node run information"
-        logger.error(e.messageChain)
-        e.rootExceptionCause.foreach(ex => logger.error(s"Exception was: ${ex.getMessage}"))
-    }
-
-    //we need to get NodeExpectedReports for new runs or runs with a different nodeConfigId
-    //so we complete run with existing node config in cache, and
-    //separate between the one completed and the one to query
-    // the one to query are on left, the one completed on right
-    val runWithConfigs = completed.map { x =>
-      x.nodeConfigVersion match {
-        case None            => //no need to try more things
-          Right(AgentRunWithNodeConfig(x.agentRunId, None, x.isCompleted, x.insertionId))
-        case Some(newConfig) =>
-          cache.get(x.agentRunId.nodeId) match {
-            case Some(Some(AgentRunWithNodeConfig(_, Some((oldConfig, Some(expected))), _, _))) if(oldConfig == newConfig) =>
-                Right(AgentRunWithNodeConfig(x.agentRunId, Some((oldConfig, Some(expected))), x.isCompleted, x.insertionId))
-            case _ =>
-                Left(AgentRunWithNodeConfig(x.agentRunId, x.nodeConfigVersion.map(c => (c, None)), x.isCompleted, x.insertionId))
-          }
-      }
-    }
-    val n2 = System.currentTimeMillis
-    TimingDebugLogger.trace(s"CachedReportsExecutionRepository: update execution in ${n2 - n1}ms")
-
-    //now, get back the one in left, and query for node config
-    val nodeAndConfigs = runWithConfigs.collect { case Left(AgentRunWithNodeConfig(id, Some((config, None)), _, _)) => NodeAndConfigId(id.nodeId, config)}
-
-    val results = (findConfigs.getExpectedReports(nodeAndConfigs.toSet) match {
-      case eb: EmptyBox =>
-        val e = eb ?~! s"Error when trying to find node configuration matching new runs for node/configId: ${nodeAndConfigs.map(x=> s"${x.nodeId.value}/${x.version.value}").mkString(", ")}"
-        logger.error(e.messageChain)
-        //return the whole list of runs unmodified
-        runWithConfigs.map {
-          case Left(x)  => (x.agentRunId.nodeId, Some(x))
-          case Right(x) => (x.agentRunId.nodeId, Some(x))
-        }
-      case Full(map) =>
-        runWithConfigs.map {
-          case Left(x)  =>
-            val configVersion = x.nodeConfigVersion.map(c => c.copy(_2 = map.get(NodeAndConfigId(x.agentRunId.nodeId, c._1)).flatten))
-            (x.agentRunId.nodeId, Some(x.copy(nodeConfigVersion = configVersion)))
-          case Right(x) => (x.agentRunId.nodeId, Some(x))
-        }
-    }).toMap
-    val n3 = System.currentTimeMillis
-    TimingDebugLogger.trace(s"CachedReportsExecutionRepository: compte result of update execution in ${n3 - n2}ms")
-
-    cache = cache ++ results
-    runs
-  }).runNow*/
-
-  def setComplianceComputationDate(runs: List[UncomputedAgentRun]): IOResult[Int] = ???
+  def setComplianceComputationDate(runs: List[AgentRunWithoutCompliance]): IOResult[Int] = ???
 }

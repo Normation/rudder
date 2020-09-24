@@ -406,7 +406,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    */
   def outDatedCompliance(): IOResult[Unit] = {
     val now = DateTime.now
-    val nodeWithOutdatedCompliance = cache.filter { case (id, compliance) => compliance.statusInfo match {
+    val nodeWithOutdatedCompliance = cache.filter { case (id, compliance) => compliance.runInfo match {
       case t: ExpiringStatus => t.expirationDateTime.isBefore(now)
       case _ => false
     } }.toSeq
@@ -667,7 +667,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   private[this] def getUnComputedNodeRunInfos(complianceMode: GlobalComplianceMode): Box[Map[NodeId, RunAndConfigInfo]] = {
     val t0 = System.currentTimeMillis
     for {
-      runs              <- agentRunRepository.getNodesLastRunv2().toBox
+      runs              <- agentRunRepository.getNodesAndUncomputedCompliance().toBox
       t1                =  System.currentTimeMillis
       _                 =  TimingDebugLogger.trace(s"Compliance: get nodes last run : ${t1-t0}ms")
       nodeIds           = runs.keys.toSet

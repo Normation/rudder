@@ -49,13 +49,10 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.reports.execution.{ AgentRun => RudderAgentRun }
-import com.normation.rudder.reports.execution.AgentRunId
+import com.normation.rudder.reports.execution.{AgentRunId, AgentRunWithoutCompliance, AgentRun => RudderAgentRun}
 import com.normation.rudder.repository.GitCommitId
 import com.normation.rudder.rule.category.RuleCategoryId
-
 import org.joda.time.DateTime
-
 import doobie._
 import com.normation.rudder.db.Doobie._
 import cats.implicits._
@@ -152,10 +149,12 @@ final object DB {
   final case class UncomputedAgentRun(
       nodeId       : String
     , date         : DateTime
-    , nodeConfigId : String
+    , nodeConfigId : Option[String]
     , insertionId  : Long
     , insertionDate: DateTime
-  )
+  ) {
+   def toAgentRunWithoutCompliance = AgentRunWithoutCompliance(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId), insertionId, insertionDate)
+  }
 
   //////////
 

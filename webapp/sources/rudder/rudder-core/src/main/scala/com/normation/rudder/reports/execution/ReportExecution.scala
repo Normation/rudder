@@ -68,3 +68,16 @@ final case class AgentRunWithNodeConfig (
   , isCompleted      : Boolean
   , insertionId      : Long
 )
+
+/**
+ * Unprocessed Run
+ * A run which we received, byt does not contain a complianceComputationDate
+ */
+final case class AgentRunWithoutCompliance (
+    agentRunId       : AgentRunId
+  , nodeConfigVersion: Option[NodeConfigId]
+  , insertionId      : Long
+  , insertionDate    : DateTime
+
+)
+
