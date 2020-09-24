@@ -164,8 +164,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = null
     def findUncomputedNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = null
 
-    //override def invalidate(nodeIds: Set[NodeId]) = ZIO.succeed(Map())
-
     def getUserNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = Full(Map())
     def getUserAndSystemNodeStatusReports(optNodeIds: Option[Set[NodeId]]) : Box[(Map[NodeId, NodeStatusReport], Map[NodeId, NodeStatusReport])] = Full((Map(), Map()))
     def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = None

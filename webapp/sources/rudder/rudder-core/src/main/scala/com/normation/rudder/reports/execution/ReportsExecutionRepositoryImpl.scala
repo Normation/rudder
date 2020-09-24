@@ -50,12 +50,9 @@ import doobie._
 import doobie.implicits._
 import cats.implicits._
 import com.normation.errors.IOResult
-import com.normation.rudder.db.DB.UncomputedAgentRun
 import com.normation.utils.Control.sequence
-import zio._
 import com.normation.rudder.domain.reports.{ExpectedReportsSerialisation, NodeAndConfigId, NodeConfigId, NodeExpectedReports, NodeStatusReport}
 import org.joda.time.DateTime
-import com.normation.zio.ZioRuntime
 import zio.interop.catz._
 
 final case class RoReportsExecutionRepositoryImpl (
@@ -70,12 +67,12 @@ final case class RoReportsExecutionRepositoryImpl (
   /**
    * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
    */
-  def getUnprocessedRuns(): IOResult[Seq[UncomputedAgentRun]] = {
+  def getUnprocessedRuns(): IOResult[Seq[AgentRunWithoutCompliance]] = {
     transactIOResult(s"Error when getting unprocessed runs")(xa => query[DB.UncomputedAgentRun](
       s"""SELECT nodeid, date, nodeconfigid, insertionid, insertiondate FROM ReportsExecution where compliancecomputationdate is null"""
-    ).to[Vector].transact(xa))
+    ).map(_.toAgentRunWithoutCompliance).to[Vector].transact(xa))
   }
-  def getNodesLastRunv2(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = ???
+  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = ???
 
 
   /**
@@ -91,7 +88,7 @@ final case class RoReportsExecutionRepositoryImpl (
       runs.flatMap { case run =>
         val nodeId = NodeId(run.nodeId)
         if (nodeIds.contains(nodeId)) {
-          Some(nodeId, (NodeAndConfigId(nodeId, NodeConfigId(run.nodeConfigId.get)), run.date))
+          Some((nodeId, (NodeAndConfigId(nodeId, NodeConfigId(run.nodeConfigId.get)), run.date)))
         } else {
           None
         }
@@ -193,83 +190,12 @@ final case class WoReportsExecutionRepositoryImpl (
 
   import db._
 
-  def setComplianceComputationDate(runs: List[UncomputedAgentRun]): IOResult[Int] = {
-    val updateKeys = runs.map(x => (x.nodeId, x.date, x.nodeConfigId))
+  def setComplianceComputationDate(runs: List[AgentRunWithoutCompliance]): IOResult[Int] = {
+    val updateKeys = runs.map(x => (x.agentRunId.nodeId.value, x.agentRunId.date, x.nodeConfigVersion.map(_.toString)))
     val sql = """UPDATE reportsexecution set compliancecomputationdate = now() where nodeid = ? and date = ? and nodeconfigid = ?"""
-    transactIOResult(s"Error when updating compliance computation date for runs")(xa => Update[(String, DateTime, String)](sql).updateMany(updateKeys).transact(xa)
+    transactIOResult(s"Error when updating compliance computation date for runs")(xa => Update[(String, DateTime, Option[String])](sql).updateMany(updateKeys).transact(xa)
     )
   }
-/*
-  def updateExecutions(runs : Seq[AgentRun]) : Seq[Box[AgentRun]] =  {
-
-    //
-    // Question: do we want to save an updated nodeConfigurationVersion ?
-    // for now, say we update all
-    //
-
-    /*
-     * Three cases:
-     * - already saved, completed: update them but keeping the "completed" state
-     * - already saved, not completed: update them with whatever we found
-     * - not already saved: insert them
-     *
-     * Note that each get-check-update_or_insert must be transactionnal, to
-     * not allow insert failure. But we don't need (at all) a big transaction
-     * wrapping ALL updates, quite the contrary.
-     * So the logic is near from an upsert, but with some more logic in the
-     * middle in case of update, to get the correct values for isCompleted/version
-     */
-
-    def updateOne(ar: AgentRun) = {
-      val dbar = DB.AgentRun(
-          ar.agentRunId.nodeId.value        // String
-        , ar.agentRunId.date                // DateTume
-        , ar.nodeConfigVersion.map(_.value) // Option[String]
-        , ar.isCompleted                    // Boolean
-        , ar.insertionId                    // Long
-     )
-
-      /*
-       * We return an Either[Option[AgentRun]], if None => no upsert done (no modification)
-       */
-      val action: ConnectionIO[Option[DB.AgentRun]] = for {
-        select <- sql"""select nodeid, date, nodeconfigid, complete, insertionid
-                        from reportsexecution
-                        where nodeid=${dbar.nodeId} and date=${dbar.date}
-                     """.query[DB.AgentRun].option
-        result <- select match {
-                      case None =>
-                          (sql"""insert into reportsexecution (nodeid, date, nodeconfigid, complete, insertionid)
-                                 values (${dbar.nodeId}, ${dbar.date}, ${dbar.nodeConfigId}, ${dbar.isCompleted}, ${dbar.insertionId})"""
-                                 .update.run.map(_ => dbar.some ) )
-                      case Some(existing) => // if it's exactly the same element, don't update it
-                       val reverted = existing.isCompleted && !dbar.isCompleted
-                       if( reverted || existing == dbar ) { // does nothing if equals or isCompleted reverted to false
-                         none[DB.AgentRun].pure[ConnectionIO]
-                       } else {
-                         val version = dbar.nodeConfigId.orElse(existing.nodeConfigId)
-                         val completed = dbar.isCompleted || existing.isCompleted
-                         sql"""update reportsexecution set nodeconfigid=${version}, complete=${completed}, insertionid=${dbar.insertionId}
-                               where nodeid=${dbar.nodeId} and date=${dbar.date}""".update.run.map(_ => dbar.some)
-                        }
-                    }
-      } yield {
-        result
-      }
-
-      transactTask(xa => action.transact(xa).either)
-    }
-
-
-    ZioRuntime.unsafeRun(ZIO.collectAll(runs.toList.map(updateOne))).flatMap(x => x match {
-      case Left(ex)        =>
-        Some(Failure(s"Error when updating last agent runs information: ${ex.getMessage()}"))
-      case Right(Some(res)) =>
-        Some(Full(res.toAgentRun))
-      case Right(None)      =>
-        None
-    })
-  }*/
 
 }
 
