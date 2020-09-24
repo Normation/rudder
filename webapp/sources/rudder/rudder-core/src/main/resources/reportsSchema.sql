@@ -117,7 +117,6 @@ ALTER TABLE archivedruddersysevents set (autovacuum_vacuum_scale_factor = 0.005)
 CREATE TABLE ReportsExecution (
   nodeId       text NOT NULL
 , date         timestamp with time zone NOT NULL
-, complete     boolean NOT NULL
 , nodeConfigId text
 , insertionId  bigint
 , insertiondate timestamp default now()
