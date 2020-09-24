@@ -350,7 +350,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
                          }
               _ <- ReportLoggerPure.Cache.debug(s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}")
             } yield ()
-          }.map(x => x.head)
+          }.unit
           /*for {
             updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(impactedNodeIds.toSet, Set()).toIO
             _       <- IOResult.effectNonBlocking {
