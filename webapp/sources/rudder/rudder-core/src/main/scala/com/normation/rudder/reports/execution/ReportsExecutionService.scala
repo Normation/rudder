@@ -53,6 +53,7 @@ import com.normation.errors._
 
 import scala.concurrent.duration.FiniteDuration
 import com.normation.zio._
+import com.normation.box._
 
 // message for the queue: what nodes were updated?
 final case class InvalidateComplianceCacheMsg(updatedNodeIds: Set[NodeId])
@@ -110,7 +111,7 @@ class ReportsExecutionService (
             // ok, we'll manage reports from lastReportId to maxReportId - and this is only useful for changes
 
             for {
-              nodes         <- fetchRunsAndCompliance()
+              nodes         <- fetchRunsAndCompliance().toBox
               _             = hookForChanges(lastReportId, maxReportId)
               executionTime = DateTime.now().getMillis() - startTime.getMillis
               _             = logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
