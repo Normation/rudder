@@ -180,11 +180,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
 
                 // Pending case / maybe we should keep pending
                 case pending @ Pending(expectedConfig, optLastRun, _)  => pending
-                  /*optLastRun match {
-                    case Some((lastRunDate,lastRunConfigInfo)) =>
-                      NoUserRulesDefined(lastRunDate, expectedConfig, lastRunConfigInfo.nodeConfigId, Some(lastRunConfigInfo))
-                    case None => pending
-                  }*/
+
                 // Case we don't have enough information to build data / or state is worse than 'no rules'
                 case _: NoReportInInterval | _ : ReportsDisabledInInterval | _ : ErrorNoConfigData =>
                   systemreport.runInfo
@@ -323,6 +319,10 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   updateCacheFromRequest.forever.forkDaemon.runNow
 
 
+  /**
+   * Do something with the action we received
+   * All actions must have *exactly* the *same* type
+   */
   private[this] def performAction(actions: List[CacheComplianceQueueAction]): IOResult[Unit] = {
     ReportLoggerPure.Cache.debug(s"Performing action ${actions.headOption}") *>
     // get type of action
@@ -342,13 +342,22 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         // need to compute compliance
         case _ =>
           val impactedNodeIds = actions.map(x => x.nodeId)
-          for {
+          ZIO.foreach(impactedNodeIds.grouped(batchSize).to(Seq)) { updatedNodes =>
+            for {
+              updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(updatedNodes.toSet, Set()).toIO
+              _       <- IOResult.effectNonBlocking {
+                           cache = cache ++ updated
+                         }
+              _ <- ReportLoggerPure.Cache.debug(s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}")
+            } yield ()
+          }.map(x => x.head)
+          /*for {
             updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(impactedNodeIds.toSet, Set()).toIO
             _       <- IOResult.effectNonBlocking {
               cache = cache ++ updated
             }
             _ <- ReportLoggerPure.Cache.debug(s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}")
-          } yield ()
+          } yield ()*/
       }
     })
   }
