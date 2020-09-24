@@ -43,7 +43,8 @@
 
 ALTER TABLE ReportsExecution
 ADD COLUMN insertiondate timestamp default now(),
-ADD COLUMN  compliancecomputationdate timestamp;
+ADD COLUMN  compliancecomputationdate timestamp,
+DROP COLUMN complete;
 
 UPDATE ReportsExecution set compliancecomputationdate = now() where insertionId <= (select lastid from statusupdate);
 

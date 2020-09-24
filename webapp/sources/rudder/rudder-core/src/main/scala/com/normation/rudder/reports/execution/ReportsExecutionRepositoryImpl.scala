@@ -191,7 +191,7 @@ final case class WoReportsExecutionRepositoryImpl (
   import db._
 
   def setComplianceComputationDate(runs: List[AgentRunWithoutCompliance]): IOResult[Int] = {
-    val updateKeys = runs.map(x => (x.agentRunId.nodeId.value, x.agentRunId.date, x.nodeConfigVersion.map(_.toString)))
+    val updateKeys = runs.map(x => (x.agentRunId.nodeId.value, x.agentRunId.date, x.nodeConfigVersion.map(_.value)))
     val sql = """UPDATE reportsexecution set compliancecomputationdate = now() where nodeid = ? and date = ? and nodeconfigid = ?"""
     transactIOResult(s"Error when updating compliance computation date for runs")(xa => Update[(String, DateTime, Option[String])](sql).updateMany(updateKeys).transact(xa)
     )
