@@ -361,15 +361,19 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         // need to compute compliance
         case _ =>
           val impactedNodeIds = actions.map(x => x.nodeId)
-          ZIO.foreach(impactedNodeIds.grouped(batchSize).to(Seq)) { updatedNodes =>
-            for {
-              updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(updatedNodes.toSet, Set()).toIO
-              _       <- IOResult.effectNonBlocking {
-                           cache = cache ++ updated
-                         }
-              _ <- ReportLoggerPure.Cache.debug(s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}")
-            } yield ()
-          }.unit
+          for {
+              x <- ZIO.foreach(impactedNodeIds.grouped(batchSize).to(Seq)) { updatedNodes =>
+                  for {
+                  updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(updatedNodes.toSet, Set()).toIO
+                  _       <- IOResult.effectNonBlocking {
+                  cache = cache ++ updated
+                }
+                _ <- ReportLoggerPure.Cache.debug(s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}")
+                } yield ()
+            }
+          } yield ()
+
+
           /*for {
             updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(impactedNodeIds.toSet, Set()).toIO
             _       <- IOResult.effectNonBlocking {
