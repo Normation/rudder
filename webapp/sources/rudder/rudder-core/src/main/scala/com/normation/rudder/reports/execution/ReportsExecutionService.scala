@@ -154,19 +154,16 @@ class ReportsExecutionService (
     // profit
     import org.joda.time.Duration
 
-
-    {
-      val startCompliance     = System.currentTimeMillis
-      for {
-        nodeWithCompliances <- cachedCompliance.findUncomputedNodeStatusReports().toIO
-        invalidate          <- cachedCompliance.invalidateWithAction(nodeWithCompliances.map { case (nodeid, compliance) => (nodeid, UpdateCompliance(nodeid, compliance))}.toSeq)
-        _                   <-  ReportLoggerPure.Cache.debug(s"Invalidated and updated compliance for nodes ${nodeWithCompliances.map(_._1.value).mkString(",")}")
-        _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList) // unsure if here or in the queue
-        _                   <- cachedCompliance.outDatedCompliance()
-        _                   = ReportLoggerPure.Cache.debug(s"Computing compliance in : ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startCompliance).toPeriod())}")
-      } yield {
-        nodeWithCompliances.map(_._1).toSeq
-      }
+    val startCompliance     = System.currentTimeMillis
+    for {
+      nodeWithCompliances <- cachedCompliance.findUncomputedNodeStatusReports().toIO
+      invalidate          <- cachedCompliance.invalidateWithAction(nodeWithCompliances.map { case (nodeid, compliance) => (nodeid, UpdateCompliance(nodeid, compliance))}.toSeq)
+      _                   <-  ReportLoggerPure.Cache.debug(s"Invalidated and updated compliance for nodes ${nodeWithCompliances.map(_._1.value).mkString(",")}")
+      _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList) // unsure if here or in the queue
+      _                   <- cachedCompliance.outDatedCompliance()
+      _                   = ReportLoggerPure.Cache.debug(s"Computing compliance in : ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startCompliance).toPeriod())}")
+    } yield {
+      nodeWithCompliances.map(_._1).toSeq
     }
   }
 

@@ -130,10 +130,6 @@ sealed trait LastRunAvailable extends RunAndConfigInfo {
   def lastRunConfigInfo: Option[NodeExpectedReports]
 }
 
-
-
-
-
 /*
  * Really, that node exists ?
  */
@@ -157,9 +153,9 @@ final case class NoExpectedReport(
  * we must complain loudly to the users
  */
 final case class RunWithoutExpectedReport(
-                                           lastRunDateTime: DateTime
-                                         , expectedConfig : NodeExpectedReports
-                                         )
+    lastRunDateTime: DateTime
+  , expectedConfig : NodeExpectedReports
+)
 /*
  * No Rules defined, but run was ok
  */
@@ -168,7 +164,7 @@ final case class NoUserRulesDefined(
   , expectedConfig : NodeExpectedReports
   , lastRunConfigId: NodeConfigId
   , lastRunConfigInfo: Option[NodeExpectedReports]
-                                   , expirationDateTime: DateTime
+  , expirationDateTime: DateTime
 ) extends NoReport with LastRunAvailable
 
 
@@ -178,8 +174,7 @@ final case class NoUserRulesDefined(
  */
 final case class NoReportInInterval(
     expectedConfig: NodeExpectedReports
-                                   , expirationDateTime: DateTime
-    //                               , lastComputationDate: DateTime // tells us when we decided this status last
+  , expirationDateTime: DateTime
 ) extends NoReport
 
 /*
@@ -195,9 +190,7 @@ final case class Pending(
     expectedConfig     : NodeExpectedReports
   , optLastRun         : Option[(DateTime, NodeExpectedReports)]
   , expirationDateTime : DateTime
-                                // , lastComputationDate: DateTime // tells us when we decided this status last
-
-                        ) extends NoReport with ExpiringStatus
+) extends NoReport with ExpiringStatus
 
 /*
  * the case where we have a version on the run,
@@ -210,7 +203,7 @@ final case class UnexpectedVersion(
   , lastRunExpiration : DateTime
   , expectedConfig    : NodeExpectedReports
   , expectedExpiration: DateTime
-                                  , expirationDateTime: DateTime
+  , expirationDateTime: DateTime
 ) extends Unexpected with LastRunAvailable {
   val lastRunConfigId = lastRunConfigInfo.get.nodeConfigId
 }
@@ -226,7 +219,7 @@ final case class UnexpectedNoVersion(
   , lastRunExpiration : DateTime
   , expectedConfig    : NodeExpectedReports
   , expectedExpiration: DateTime
-                                    , expirationDateTime: DateTime
+  , expirationDateTime: DateTime
 ) extends Unexpected with LastRunAvailable {
   val lastRunConfigInfo = None
 }
@@ -242,7 +235,7 @@ final case class UnexpectedUnknowVersion(
   , lastRunConfigId   : NodeConfigId
   , expectedConfig    : NodeExpectedReports
   , expectedExpiration: DateTime
-                                        , expirationDateTime: DateTime
+  , expirationDateTime: DateTime
 ) extends Unexpected with LastRunAvailable {
   val lastRunConfigInfo = None
 }

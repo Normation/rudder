@@ -37,9 +37,6 @@
 
 package com.normation.rudder.reports.execution
 
-
-
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 import com.normation.rudder.repository.jdbc.PostgresqlInClause

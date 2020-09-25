@@ -462,7 +462,8 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
          *  - Other cases: no expiration, ie a "missing report" can not expire (and that's what we want)
          *
          */
-         upToDate     =  inCache.filter { case (_, report) =>
+         upToDate     =  inCache.filter { case (nodeid, report) =>
+
                            val expired = report.runInfo match {
                              case t : ExpiringStatus => t.expirationDateTime.isBefore(now)
                              case UnexpectedVersion(_, _, lastRunExpiration, _, _, _)
