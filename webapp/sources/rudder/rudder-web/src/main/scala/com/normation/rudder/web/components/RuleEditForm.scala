@@ -326,6 +326,7 @@ class RuleEditForm(
               , onClickCategory  = None
               , onClickTechnique = None
               , onClickDirective = Some((_,t,d) => directiveClick(t, d, globalMode.mode.name))
+              , None
               , addEditLink      = true
               , addActionBtns    = true
               , included         = selectedDirectiveIds
