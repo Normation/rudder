@@ -186,9 +186,9 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     }
   }
 
-  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(doobie, pgIn, 200)
-  lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(doobie, roAgentRun)
 
+  lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(doobie)
+  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(doobie, woAgentRun, findExpected, pgIn,200)
 
   lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo), () => Full(true)) {
     override def update(lowestId: Long, highestId: Long): Box[Unit] = Full(())
@@ -204,7 +204,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   lazy val updateRuns = {
     new ReportsExecutionService(
         reportsRepo
-      , woAgentRun
       , new LastProcessedReportRepositoryImpl(doobie)
       , dummyChangesCache
       , dummyComplianceCache

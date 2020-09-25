@@ -156,6 +156,13 @@ final object DB {
    def toAgentRunWithoutCompliance = AgentRunWithoutCompliance(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId), insertionId, insertionDate)
   }
 
+  def insertUncomputedAgentRun(runs: List[UncomputedAgentRun]): ConnectionIO[Int] = {
+    Update[DB.UncomputedAgentRun]("""
+      insert into reportsexecution
+        (nodeid, date, nodeconfigid, insertionid, insertiondate)
+      values (?,?,?, ?,?)
+    """).updateMany(runs)
+  }
   //////////
 
 final case class StatusUpdate(

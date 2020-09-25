@@ -71,7 +71,7 @@ final case class AgentRunWithNodeConfig (
 
 /**
  * Unprocessed Run
- * A run which we received, byt does not contain a complianceComputationDate
+ * A run which we received, but does not contain a complianceComputationDate
  */
 final case class AgentRunWithoutCompliance (
     agentRunId       : AgentRunId

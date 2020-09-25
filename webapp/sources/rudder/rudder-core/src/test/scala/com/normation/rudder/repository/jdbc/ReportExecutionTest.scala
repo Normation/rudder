@@ -37,21 +37,17 @@
 
 package com.normation.rudder.repository.jdbc
 
+import com.normation.{BoxSpecMatcher, errors}
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.db.DBCommon
-import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.reports.execution.AgentRun
-import com.normation.rudder.reports.execution.AgentRunId
-import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
+import com.normation.rudder.db.{DB, DBCommon}
 import com.normation.rudder.reports.execution.RoReportsExecutionRepositoryImpl
 import com.normation.rudder.reports.execution.WoReportsExecutionRepositoryImpl
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
 import doobie.implicits._
 import zio.interop.catz._
+import com.normation.box._
 
 /**
  *
@@ -59,7 +55,7 @@ import zio.interop.catz._
  *
  */
 @RunWith(classOf[JUnitRunner])
-class AgentRunsTest extends DBCommon {
+class AgentRunsTest extends DBCommon with BoxSpecMatcher {
 
   //clean data base
   def cleanTables() = {
@@ -67,95 +63,52 @@ class AgentRunsTest extends DBCommon {
   }
 
 
-  lazy val roRunRepo = new RoReportsExecutionRepositoryImpl(doobie, new PostgresqlInClause(2), 200)
-  lazy val woRunRepo = new WoReportsExecutionRepositoryImpl(doobie, roRunRepo)
 
+  lazy val woRunRepo = new WoReportsExecutionRepositoryImpl(doobie)
+  lazy val roRunRepo = new RoReportsExecutionRepositoryImpl(doobie,woRunRepo, null,  new PostgresqlInClause(2), 200)
 
-  val (n1, n2) = (NodeId("n1"), NodeId("n2"))
-  val runMinus2 = DateTime.now.minusMinutes(7)
-  val runMinus1 = DateTime.now.minusMinutes(2)
+  val nodes = Seq(NodeId("n1"), NodeId("n2"), NodeId("n3"))
 
+  val runBaseline = DateTime.now.minusMinutes(2)
+
+  val insertionTimeBaseline = DateTime.now.minusMinutes(1)
+
+  val runs = Seq(
+        DB.UncomputedAgentRun("node1", runBaseline.minusMinutes(5),  Some("NodeConfigId1"), 1, insertionTimeBaseline.minusMinutes(5))
+    ,   DB.UncomputedAgentRun("node1", runBaseline,                  Some("NodeConfigId1"), 2, insertionTimeBaseline)
+    ,   DB.UncomputedAgentRun("node2", runBaseline.minusMinutes(15), Some("NodeConfigId2"), 3, insertionTimeBaseline.minusMinutes(15))
+    ,   DB.UncomputedAgentRun("node2", runBaseline.minusMinutes(10), Some("NodeConfigId2"), 4, insertionTimeBaseline.minusMinutes(10))
+    ,   DB.UncomputedAgentRun("node2", runBaseline.minusMinutes(5),  Some("NodeConfigId2"), 5, insertionTimeBaseline.minusMinutes(5))
+    ,   DB.UncomputedAgentRun("node3", runBaseline.minusMinutes(15), Some("NodeConfigId3"), 6, insertionTimeBaseline.minusMinutes(15))
+    ,   DB.UncomputedAgentRun("node3", runBaseline.minusMinutes(5),  Some("NodeConfigId3"), 7, insertionTimeBaseline.minusMinutes(5))
+  )
   sequential
 
-/*
-  "Execution repo" should {
-    val runs = Seq(
-        AgentRun(AgentRunId(n1, runMinus2), Some(NodeConfigId("nodeConfig_n1_v1")), true, 12)
-      , AgentRun(AgentRunId(n1, runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), false, 42)
-    )
 
-    val results = runs.map(r => AgentRunWithNodeConfig(r.agentRunId, r.nodeConfigVersion.map(c => (c, None)), r.isCompleted, r.insertionId))
+  "insert runs" should {
+    "insert reports" in {
+      val q = DB.insertUncomputedAgentRun(runs.toList)
 
-    "correctly insert" in {
-      woRunRepo.updateExecutions(Seq(runs(0))) must beEqualTo( Seq(Full(runs(0)) ))
+      val r = transacRun(xa => q.transact(xa))
+
+      (r must be_==(7))
     }
 
-    "correctly find back" in {
-      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(results(0)))))
-    }
-
-    "correctly ignore incomplete" in {
-      //(woRunRepo.updateExecutions(runs) must beEqualTo( Full(Seq(runs(1))) )) and
-      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(results(0)))))
-    }
-
-    "don't find report when none was added" in {
-      roRunRepo.getNodesLastRun(Set(n2)) must beEqualTo(Full(Map(n2 -> None)))
+    "detect that we have the correct number of unprocessed run" in {
+      roRunRepo.getUnprocessedRuns().toBox.map(x => x.size) mustFullEq(7)
     }
   }
 
-*/
-  val n = (0 to 6).map(i => NodeId("n" + i))
-  val initRuns = Seq(
-      AgentRun(AgentRunId(n(0), runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), true, 12)
-    , AgentRun(AgentRunId(n(1), runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), false, 44)
-    , AgentRun(AgentRunId(n(2), runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), true, 64)
-    , AgentRun(AgentRunId(n(3), runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), true, 80)
-    , AgentRun(AgentRunId(n(4), runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), true, 97)
-    , AgentRun(AgentRunId(n(5), runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), true, 167)
-    , AgentRun(AgentRunId(n(6), runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), true, 167)
-  )
-
-  /*
-   * BE VERY CAREFUL: code just above the "should" is not
-   * executed when one's thinking. So if you have logic
-   * to exec before fragment, it MUST go in a step...
-   */
-  step {
-    cleanTables
-  }
-/*
-  "Updating execution" should {
-
-    "correctly close and let closed existing execution" in {
-      val news = Seq(
-          AgentRun(AgentRunId(n1, runMinus2.minusMinutes(10)), Some(NodeConfigId("nodeConfig_n1_v1")), true, 12)
-        , AgentRun(AgentRunId(n1, runMinus1.plusMinutes(5)), Some(NodeConfigId("nodeConfig_n1_v1")), false, 42)
-      )
-      val updated = Seq(
-          initRuns(0).copy(nodeConfigVersion = Some(NodeConfigId("nodeConfig_n1_v2")))
-        , initRuns(1).copy(isCompleted = true)
-        , initRuns(2).copy(insertionId = 218)
-      )
-      val notToUpdate = Seq(
-          //ignore if switch back to false
-          initRuns(3).copy(isCompleted = false) //not updated
-        , initRuns(3).copy(isCompleted = false, insertionId = 18435)
-        , initRuns(4).copy(isCompleted = false, nodeConfigVersion = Some(NodeConfigId("nodeConfig_n1_v2")))
-          //ignore if equals
-        , initRuns(6)
-      )
-      val all = news ++ updated ++ notToUpdate
-
-      val res = woRunRepo.updateExecutions(all)
-      //check for failure
-      res.collect { case eb:EmptyBox =>
-        val e = eb ?~! "error"
-        throw new Exception(e.messageChain)
-      }
-      res.flatten must contain(exactly((news ++ updated):_*))
-
+  "setting compliance computation date" should {
+    "update the values" in {
+      val result = woRunRepo.setComplianceComputationDate(runs.map(_.toAgentRunWithoutCompliance).toList)
+      result.toBox mustFullEq(7)
     }
-  }*/
+
+    "don't have any unprocessed runs after" in {
+      roRunRepo.getUnprocessedRuns().toBox.map(x => x.size) mustFullEq(0)
+    }
+  }
+
 
 }

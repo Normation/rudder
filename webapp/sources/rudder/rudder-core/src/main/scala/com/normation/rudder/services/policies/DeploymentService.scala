@@ -63,7 +63,7 @@ import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
-import com.normation.rudder.services.reports.{CacheComplianceQueueAction, CachedFindRuleNodeStatusReports, UpdateNodeConfiguration}
+import com.normation.rudder.services.reports.{CacheComplianceQueueAction, CachedFindRuleNodeStatusReports}
 import com.normation.rudder.services.policies.write.PolicyWriterService
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.appconfig.FeatureSwitch
@@ -357,7 +357,7 @@ trait PromiseGenerationService {
 
       /// now, if there was failed config or failed write, time to show them
       //invalidate compliance may be very very long - make it async
-      invalidationActions   = expectedReports.map(x => (x.nodeId, UpdateNodeConfiguration(x.nodeId, x)))
+      invalidationActions   = expectedReports.map(x => (x.nodeId, CacheComplianceQueueAction.UpdateNodeConfiguration(x.nodeId, x)))
       _                     =  ZioRuntime.runNow(IOResult.effect(invalidateComplianceCache (invalidationActions)).run.unit.forkDaemon)
 
       _                     =  {

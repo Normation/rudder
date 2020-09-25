@@ -688,8 +688,6 @@ object RudderConfig extends Loggable {
   val woApiAccountRepository : WoApiAccountRepository = woLDAPApiAccountRepository
 
   lazy val roAgentRunsRepository : RoReportsExecutionRepository = cachedAgentRunRepository
-  lazy val woAgentRunsRepository : WoReportsExecutionRepository = cachedAgentRunRepository
-
 
   lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles(agentRegister)
 
@@ -2252,11 +2250,9 @@ object RudderConfig extends Loggable {
    * Agent runs: we use a cache for them.
    */
   private[this] lazy val cachedAgentRunRepository = {
-    val roRepo = new RoReportsExecutionRepositoryImpl(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
+    val roRepo = new RoReportsExecutionRepositoryImpl(doobie, new WoReportsExecutionRepositoryImpl(doobie), findExpectedRepo, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
     new CachedReportsExecutionRepository(
         roRepo
-      , new WoReportsExecutionRepositoryImpl(doobie, roRepo )
-      , findExpectedRepo
     )
   }
 
@@ -2277,7 +2273,6 @@ object RudderConfig extends Loggable {
 
     new ReportsExecutionService(
       reportsRepository
-    , woAgentRunsRepository
     , updatesEntryJdbcRepository
     , recentChangesService
     , reportingServiceImpl

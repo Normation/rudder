@@ -42,8 +42,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.FindNewReportsExecution
 import com.normation.rudder.domain.logger.{ReportLogger, ReportLoggerPure}
 import com.normation.rudder.repository.ReportsRepository
-import com.normation.rudder.services.reports.{CachedFindRuleNodeStatusReports, CachedNodeChangesServiceImpl, UpdateCompliance}
-import com.normation.utils.Control
+import com.normation.rudder.services.reports.{CachedFindRuleNodeStatusReports, CachedNodeChangesServiceImpl}
 import org.joda.time.DateTime
 import org.joda.time.format.PeriodFormat
 import net.liftweb.common._
@@ -52,8 +51,8 @@ import com.normation.rudder.repository.ComplianceRepository
 import com.normation.errors._
 
 import scala.concurrent.duration.FiniteDuration
-import com.normation.zio._
 import com.normation.box._
+import com.normation.rudder.services.reports.CacheComplianceQueueAction.UpdateCompliance
 
 // message for the queue: what nodes were updated?
 final case class InvalidateComplianceCacheMsg(updatedNodeIds: Set[NodeId])
@@ -64,7 +63,6 @@ final case class InvalidateComplianceCacheMsg(updatedNodeIds: Set[NodeId])
  */
 class ReportsExecutionService (
     reportsRepository      : ReportsRepository
-  , writeExecutions        : WoReportsExecutionRepository
   , statusUpdateRepository : LastProcessedReportRepository
   , cachedChanges          : CachedNodeChangesServiceImpl
   , cachedCompliance       : CachedFindRuleNodeStatusReports
@@ -75,15 +73,6 @@ class ReportsExecutionService (
 
   val logger = ReportLogger
   var idForCheck: Long = 0
-
-  private[this] def computeCatchupEndTime(catchupFromDateTime: DateTime) : DateTime= {
-    // Get reports of the last id and before last report date plus the maxCatchup interval
-    if (catchupFromDateTime.plus(catchupInterval.toMillis).isAfter(DateTime.now)) {
-      DateTime.now
-    } else {
-      catchupFromDateTime.plus(catchupInterval.toMillis)
-    }
-  }
 
   // This is much simpler than before:
   // * get unprocessed reports
@@ -154,19 +143,16 @@ class ReportsExecutionService (
     // profit
     import org.joda.time.Duration
 
-
-    {
-      val startCompliance     = System.currentTimeMillis
-      for {
-        nodeWithCompliances <- cachedCompliance.findUncomputedNodeStatusReports().toIO
-        invalidate          <- cachedCompliance.invalidateWithAction(nodeWithCompliances.map { case (nodeid, compliance) => (nodeid, UpdateCompliance(nodeid, compliance))}.toSeq)
-        _                   <-  ReportLoggerPure.Cache.debug(s"Invalidated and updated compliance for nodes ${nodeWithCompliances.map(_._1.value).mkString(",")}")
-        _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList) // unsure if here or in the queue
-        _                   <- cachedCompliance.outDatedCompliance()
-        _                   = ReportLoggerPure.Cache.debug(s"Computing compliance in : ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startCompliance).toPeriod())}")
-      } yield {
-        nodeWithCompliances.map(_._1).toSeq
-      }
+    val startCompliance     = System.currentTimeMillis
+    for {
+      nodeWithCompliances <- cachedCompliance.findUncomputedNodeStatusReports().toIO
+      _                   <- cachedCompliance.invalidateWithAction(nodeWithCompliances.map { case (nodeid, compliance) => (nodeid, UpdateCompliance(nodeid, compliance))}.toSeq)
+      _                   <- ReportLoggerPure.Cache.debug(s"Invalidated and updated compliance for nodes ${nodeWithCompliances.map(_._1.value).mkString(",")}")
+      _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList) // unsure if here or in the queue
+      _                   <- cachedCompliance.outDatedCompliance()
+      _                   <- ReportLoggerPure.Cache.debug(s"Computing compliance in : ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startCompliance).toPeriod())}")
+    } yield {
+      nodeWithCompliances.map(_._1).toSeq
     }
   }
 

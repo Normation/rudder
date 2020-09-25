@@ -37,9 +37,6 @@
 
 package com.normation.rudder.reports.execution
 
-
-
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 import com.normation.rudder.repository.jdbc.PostgresqlInClause
@@ -49,14 +46,18 @@ import com.normation.rudder.db.Doobie._
 import doobie._
 import doobie.implicits._
 import cats.implicits._
-import com.normation.errors.IOResult
+import com.normation.errors.{BoxToIO, IOResult}
+import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.utils.Control.sequence
-import com.normation.rudder.domain.reports.{ExpectedReportsSerialisation, NodeAndConfigId, NodeConfigId, NodeExpectedReports, NodeStatusReport}
+import com.normation.rudder.domain.reports.{ExpectedReportsSerialisation, NodeAndConfigId, NodeConfigId, NodeExpectedReports}
+import com.normation.rudder.repository.FindExpectedReportRepository
 import org.joda.time.DateTime
 import zio.interop.catz._
 
 final case class RoReportsExecutionRepositoryImpl (
     db              : Doobie
+  , writeBackend    : WoReportsExecutionRepository
+  , findConfigs     : FindExpectedReportRepository
   , pgInClause      : PostgresqlInClause
   , jdbcMaxBatchSize: Int
 ) extends RoReportsExecutionRepository with Loggable {
@@ -72,7 +73,37 @@ final case class RoReportsExecutionRepositoryImpl (
       s"""SELECT nodeid, date, nodeconfigid, insertionid, insertiondate FROM ReportsExecution where compliancecomputationdate is null"""
     ).map(_.toAgentRunWithoutCompliance).to[Vector].transact(xa))
   }
-  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = ???
+
+  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
+    val n1 = System.currentTimeMillis
+    (for {
+      unprocessedRuns <- getUnprocessedRuns
+      // first evolution, get same behaviour than before, and returns only the last run per node
+      // ignore those without a nodeConfigId
+      lastRunByNode = unprocessedRuns.filter(_.nodeConfigVersion.isDefined).groupBy(_.agentRunId.nodeId).map {
+        case (nodeid, seq) => (nodeid, seq.sortBy(_.agentRunId.date).last)
+      }
+      // by construct, we do have a nodeConfigId
+      agentsRuns = lastRunByNode.map(x => (x._1, NodeAndConfigId(x._1, x._2.nodeConfigVersion.get)))
+
+      expectedReports <- findConfigs.getExpectedReports(agentsRuns.values.toSet).toIO
+
+      runs = agentsRuns.map { case (nodeId, nodeAndConfigId) =>
+        (nodeId,
+          Some(AgentRunWithNodeConfig(
+            AgentRunId(nodeId, lastRunByNode(nodeId).agentRunId.date)
+            , expectedReports.get(nodeAndConfigId).map(optionalExpectedReport => (nodeAndConfigId.version, optionalExpectedReport))
+            , true
+            , lastRunByNode(nodeId).insertionId)))
+      }
+      // and finally mark them read. It's so much easier to do it now than to carry all data all the way long
+      _ <- writeBackend.setComplianceComputationDate(unprocessedRuns.toList)
+    } yield {
+      val n2 = System.currentTimeMillis
+      TimingDebugLogger.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
+      runs
+    })
+  }
 
 
   /**
@@ -185,7 +216,6 @@ final case class RoReportsExecutionRepositoryImpl (
 
 final case class WoReportsExecutionRepositoryImpl (
     db            : Doobie
-  , readExecutions: RoReportsExecutionRepositoryImpl
 ) extends WoReportsExecutionRepository with Loggable {
 
   import db._

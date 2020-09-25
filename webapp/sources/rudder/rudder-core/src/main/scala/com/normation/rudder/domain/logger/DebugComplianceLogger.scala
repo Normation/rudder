@@ -91,11 +91,11 @@ object ComplianceDebugLogger extends Logger {
          s"expected NodeConfigId: not found |"+
          s" last run: nodeConfigId: ${lastRunConfigId.fold("none")(_.value)} received at ${lastRunDateTime}"
 
-      case NoReportInInterval(expectedConfigId, expirationDateTime) =>
+      case NoReportInInterval(expectedConfigId, _) =>
          s"expected NodeConfigId: ${expectedConfigId.toLog}|"+
          s" last run: none available (or too old)"
 
-      case ReportsDisabledInInterval(expectedConfigId, expirationDateTime) =>
+      case ReportsDisabledInInterval(expectedConfigId, _) =>
          s"expected NodeConfigId: ${expectedConfigId.toLog}|"+
          s" last run: none available (compliance mode is reports-disabled)]"
 
@@ -103,22 +103,22 @@ object ComplianceDebugLogger extends Logger {
         s"until ${expirationDateTime} expected NodeConfigId: ${expectedConfigId.toLog} |"+
         s" last run: ${optLastRun.fold("none (or too old)")(x => s"nodeConfigId: ${x._2.toLog} received at ${x._1}")}"
 
-      case UnexpectedVersion(lastRunDateTime, Some(lastRunConfigInfo), lastRunExpiration, expectedConfigId, expectedExpiration, expirationDateTime) =>
+      case UnexpectedVersion(lastRunDateTime, Some(lastRunConfigInfo), lastRunExpiration, expectedConfigId, _, _) =>
         s"expected NodeConfigId: ${expectedConfigId.toLog} |"+
         s" last run: nodeConfigInfo: ${lastRunConfigInfo.toLog} received at ${lastRunDateTime} |"+
         s" expired at ${lastRunExpiration}"
 
-      case UnexpectedUnknowVersion(lastRunDateTime, lastRunConfigId, expectedConfig, expectedExpiration, expirationDateTime) =>
+      case UnexpectedUnknowVersion(lastRunDateTime, lastRunConfigId, expectedConfig, expectedExpiration, _) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |"+
           s" last run: nodeConfigId: ${lastRunConfigId.value} received at ${lastRunDateTime} |"+
           s" expired at ${expectedExpiration}"
 
-      case NoUserRulesDefined(lastRunDateTime, expectedConfig,lastRunConfigId, expectedExpiration, expirationDateTime) =>
+      case NoUserRulesDefined(lastRunDateTime, expectedConfig,lastRunConfigId, expectedExpiration, _) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |"+
           s" last run: nodeConfigId: ${lastRunConfigId.value} received at ${lastRunDateTime} |"+
           s" expired at ${expectedExpiration}"
 
-      case UnexpectedNoVersion(lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfig, expectedExpiration, expirationDateTime) =>
+      case UnexpectedNoVersion(lastRunDateTime, _, lastRunExpiration, expectedConfig, _, _) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |"+
         s" last run: no configId, received at ${lastRunDateTime} |"+
         s" expired at ${lastRunExpiration}"

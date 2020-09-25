@@ -41,8 +41,6 @@ import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.domain.logger.{ReportLogger, TimingDebugLogger}
-import com.normation.rudder.domain.reports.NodeAndConfigId
-import com.normation.rudder.repository.FindExpectedReportRepository
 import zio._
 import com.normation.zio._
 import com.normation.errors._
@@ -71,7 +69,6 @@ trait RoReportsExecutionRepository {
    */
   def getUnprocessedRuns(): IOResult[Seq[AgentRunWithoutCompliance]]
 
-  //def getLastComputedRun(nodeIds: Set[NodeId]): Box[Map[NodeId, (NodeAndConfigId, DateTime)]]
 }
 
 
@@ -89,9 +86,7 @@ trait WoReportsExecutionRepository {
  */
 class CachedReportsExecutionRepository(
     readBackend : RoReportsExecutionRepository
-  , writeBackend: WoReportsExecutionRepository
-  , findConfigs : FindExpectedReportRepository
-) extends RoReportsExecutionRepository with WoReportsExecutionRepository with CachedRepository {
+) extends RoReportsExecutionRepository with CachedRepository {
 
   val logger = ReportLogger
   val semaphore = Semaphore.make(1).runNow
@@ -135,44 +130,19 @@ class CachedReportsExecutionRepository(
     }) ?~! s"Error when trying to update the cache of Agent Runs informations"
   }).runNow
 
-  override def getUnprocessedRuns(): IOResult[Seq[AgentRunWithoutCompliance]] = {
-    ???
-  }
+  def getUnprocessedRuns(): IOResult[Seq[AgentRunWithoutCompliance]] = readBackend.getUnprocessedRuns()
 
   /**
    * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
    */
   def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore.withPermit(IOResult.effect {
-    val n1 = System.currentTimeMillis
-    (for {
-      unprocessedRuns <- readBackend.getUnprocessedRuns
-      // first evolution, get same behaviour than before, and returns only the last run per node
-      // ignore those without a nodeConfigId
-      lastRunByNode = unprocessedRuns.filter(_.nodeConfigVersion.isDefined).groupBy(_.agentRunId.nodeId).map {
-        case (nodeid, seq) => (nodeid, seq.sortBy(_.agentRunId.date).last)
-      }
-      // by construct, we do have a nodeConfigId
-      agentsRuns =   lastRunByNode.map(x => (x._1, NodeAndConfigId(x._1, x._2.nodeConfigVersion.get)))
-
-      expectedReports <- findConfigs.getExpectedReports(agentsRuns.values.toSet).toIO
-
-      runs = agentsRuns.map { case (nodeId, nodeAndConfigId) =>
-        (nodeId,
-          Some(AgentRunWithNodeConfig(
-               AgentRunId(nodeId, lastRunByNode(nodeId).agentRunId.date)
-             , expectedReports.get(nodeAndConfigId).map(optionalExpectedReport => (nodeAndConfigId.version, optionalExpectedReport))
-             , true
-             , lastRunByNode(nodeId).insertionId)))}
-      // and finally mark them read. It's so much easier to do it now than to carry all data all the way long
-      _  <- writeBackend.setComplianceComputationDate(unprocessedRuns.toList)
+    for {
+      runs  <- readBackend.getNodesAndUncomputedCompliance()
     } yield {
-      val n2 = System.currentTimeMillis
-      TimingDebugLogger.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
       cache = cache ++ runs
 
       cache.view.filterKeys { x => runs.contains(x) }.toMap
-    })
+    }
   }).runNow
 
-  def setComplianceComputationDate(runs: List[AgentRunWithoutCompliance]): IOResult[Int] = ???
 }

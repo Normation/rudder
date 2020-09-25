@@ -87,16 +87,16 @@ object ReportingServiceUtils {
  * * update node configuration (after a policy generation, with new nodeconfiguration)
  * * set the node in node answer state (with the new compliance?)
  */
-sealed trait CacheComplianceQueueAction {val nodeId:NodeId }
-
-case class InsertNodeInCache(nodeId: NodeId) extends CacheComplianceQueueAction
-case class RemoveNodeInCache(nodeId: NodeId) extends CacheComplianceQueueAction
-case class InitializeCompliance(nodeId: NodeId, nodeCompliance: Option[NodeStatusReport]) extends CacheComplianceQueueAction // do we need this?
-case class UpdateCompliance(nodeId: NodeId, nodeCompliance: NodeStatusReport) extends CacheComplianceQueueAction
-case class UpdateNodeConfiguration(nodeId: NodeId, nodeConfiguration: NodeExpectedReports) extends CacheComplianceQueueAction // convert the nodestatursreport to pending, with info from last run
-case class SetNodeNoAnswer(nodeId: NodeId, actionDate: DateTime) extends CacheComplianceQueueAction
-case class ExpiredCompliance(nodeId: NodeId) extends CacheComplianceQueueAction
-
+sealed trait CacheComplianceQueueAction { def nodeId:NodeId }
+object CacheComplianceQueueAction {
+  final case class InsertNodeInCache      (nodeId: NodeId                                          ) extends CacheComplianceQueueAction
+  final case class RemoveNodeInCache      (nodeId: NodeId                                          ) extends CacheComplianceQueueAction
+  final case class InitializeCompliance   (nodeId: NodeId, nodeCompliance: Option[NodeStatusReport]) extends CacheComplianceQueueAction // do we need this?
+  final case class UpdateCompliance       (nodeId: NodeId, nodeCompliance: NodeStatusReport        ) extends CacheComplianceQueueAction
+  final case class UpdateNodeConfiguration(nodeId: NodeId, nodeConfiguration: NodeExpectedReports  ) extends CacheComplianceQueueAction // convert the nodestatursreport to pending, with info from last run
+  final case class SetNodeNoAnswer        (nodeId: NodeId, actionDate: DateTime                    ) extends CacheComplianceQueueAction
+  final case class ExpiredCompliance      (nodeId: NodeId                                          ) extends CacheComplianceQueueAction
+}
 /**
  * Defaults non-cached version of the reporting service.
  * Just the composition of the two defaults implementation.
@@ -316,6 +316,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   /**
    * Update logic. We take message from queue one at a time, and process.
    */
+
   val updateCacheFromRequest: IO[Nothing, Unit] = invalidateComplianceRequest.take.flatMap(invalidatedIds =>
     ZIO.foreach_(groupQueueActionByType(invalidatedIds.map(x => x._2)).to(Iterable))(actions =>
       // several strategy:
@@ -343,9 +344,10 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * All actions must have *exactly* the *same* type
    */
   private[this] def performAction(actions: List[CacheComplianceQueueAction]): IOResult[Unit] = {
+    import CacheComplianceQueueAction._
     ReportLoggerPure.Cache.debug(s"Performing action ${actions.headOption}") *>
     // get type of action
-      (actions.headOption match {
+    (actions.headOption match {
       case None => ReportLoggerPure.Cache.debug("Nothing to do")
       case Some(t) => t match {
         case update:UpdateCompliance =>
@@ -366,26 +368,20 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
                   for {
                   updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(updatedNodes.toSet, Set()).toIO
                   _       <- IOResult.effectNonBlocking {
-                  cache = cache ++ updated
-                }
-                _ <- ReportLoggerPure.Cache.debug(s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}")
+                                  cache = cache ++ updated
+                             }
+                _         <- ReportLoggerPure.Cache.debug(s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}")
                 } yield ()
             }
           } yield ()
 
-
-          /*for {
-            updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(impactedNodeIds.toSet, Set()).toIO
-            _       <- IOResult.effectNonBlocking {
-              cache = cache ++ updated
-            }
-            _ <- ReportLoggerPure.Cache.debug(s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}")
-          } yield ()*/
       }
     })
   }
   /**
    * Group all actions queue by the same type, keeping the global order.
+   * It is necessary to keep global order so that we serialize compliance in order
+   * and don't loose information
    */
   private[this] def groupQueueActionByType(l: List[CacheComplianceQueueAction]): List[List[CacheComplianceQueueAction]] = {
     l.headOption.map{x => val (h,t)=l.span{x.getClass==_.getClass}; h::groupQueueActionByType(t)}.getOrElse(Nil)
@@ -432,7 +428,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
 
     ReportLoggerPure.Cache.debug(s"Compliance cache is expired for nodes: ${nodeWithOutdatedCompliance.map(_._1.value).mkString(", ")}") *>
     // send outdated message to queue
-    invalidateWithAction(nodeWithOutdatedCompliance.map(x => (x._1, ExpiredCompliance(x._1))))
+    invalidateWithAction(nodeWithOutdatedCompliance.map(x => (x._1, CacheComplianceQueueAction.ExpiredCompliance(x._1))))
   }
   /**
    * Look in the cache for compliance for given nodes.
@@ -482,14 +478,9 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
          *
          */
          upToDate     =  inCache.filter { case (_, report) =>
+
                            val expired = report.runInfo match {
                              case t : ExpiringStatus => t.expirationDateTime.isBefore(now)
-                             case UnexpectedVersion(_, _, lastRunExpiration, _, _, _)
-                                                     => lastRunExpiration.isBefore(now)
-                             case UnexpectedNoVersion(_, _, lastRunExpiration, _, _,_)
-                                                     => lastRunExpiration.isBefore(now)
-                             case UnexpectedUnknowVersion(_, _, _, expectedExpiration,_)
-                                                     => expectedExpiration.isBefore(now)
                              case _                  => false
                            }
                            !expired
@@ -497,7 +488,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         // starting with nodeIds, is all accepted node passed in parameter,
         // we don't miss node ids not yet in cache
         requireUpdate =  nodeIds -- upToDate.keySet
-        _             <- invalidateWithAction(requireUpdate.toSeq.map(x => (x, SetNodeNoAnswer(x, DateTime.now())))).unit.toBox
+        _             <- invalidateWithAction(requireUpdate.toSeq.map(x => (x, CacheComplianceQueueAction.SetNodeNoAnswer(x, DateTime.now())))).unit.toBox
       } yield {
         ReportLogger.Cache.debug(s"Compliance cache to reload (expired, missing):[${requireUpdate.map(_.value).mkString(" , ")}]")
         if (ReportLogger.Cache.isTraceEnabled) {

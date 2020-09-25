@@ -97,12 +97,12 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   , (
       buildNode("n2")
     , run("n2", NoReportInInterval(null, expired))
-    , run("n2", NoReportInInterval(null, expired))
+    , run("n2", NoReportInInterval(null, stillOk))
     )
   , (
       buildNode("n3")
     , run("n3", ReportsDisabledInInterval(null, expired))
-    , run("n3", ReportsDisabledInInterval(null, expired))
+    , run("n3", ReportsDisabledInInterval(null, stillOk))
     )
   , (
       buildNode("n4")
@@ -112,17 +112,17 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   , (
       buildNode("n5")
     , run("n5", UnexpectedVersion(null, Some(expected("n5")), expired, null, expired, expired))
-    , run("n5", UnexpectedVersion(null, Some(expected("n5")), stillOk, null, stillOk, expired))
+    , run("n5", UnexpectedVersion(null, Some(expected("n5")), stillOk, null, stillOk, stillOk))
     )
   , (
       buildNode("n6")
     , run("n6", UnexpectedNoVersion(null, NodeConfigId("x"), expired, null, expired, expired))
-    , run("n6", UnexpectedNoVersion(null, NodeConfigId("x"), stillOk, null, stillOk, expired))
+    , run("n6", UnexpectedNoVersion(null, NodeConfigId("x"), stillOk, null, stillOk, stillOk))
     )
   , (
       buildNode("n7")
     , run("n7", UnexpectedUnknowVersion(null, NodeConfigId("x"), null, expired, expired))
-    , run("n7", UnexpectedUnknowVersion(null, NodeConfigId("x"), null, stillOk, expired))
+    , run("n7", UnexpectedUnknowVersion(null, NodeConfigId("x"), null, stillOk, stillOk))
     )
   , (
       buildNode("n8")
@@ -190,6 +190,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
   }
 
+
   /*
    * rule1/dir1 is applied on node1 and node2 and is both here (node1) and skipped (node2)
    */
@@ -210,7 +211,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     (n2 must beEqualTo(Full(cache.reports))) and
     (cache.updated must beEqualTo(List(id)))
   }
-/*
+
   "Cache should return expired compliance but also ask for renew" >> {
     val cache = new TestCache
     cache.reports = nodes.map { case (n, a, _) => (n.id, a) }.toMap
@@ -232,10 +233,10 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
     (n1 must beEqualTo(Full(Map()) )) and
     (n2 must beEqualTo(Full(cache.reports.filter(x => okId.contains(x._1))))) and
-    (cache.updated.size must beEqualTo(9 + 5)) //second time, only expired are invalidate
+    (cache.updated.size must beEqualTo(9 + 7)) //second time, only expired are invalidate
   }
 
-  "Cache should not return ask for renew of up tu date components" >> {
+  "Cache should not return ask for renew of up to date components" >> {
     val cache = new TestCache
     cache.reports = nodes.map { case (n, _, b) => (n.id, b) }.toMap
 
@@ -254,5 +255,5 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     (n1 must beEqualTo(Full(Map()) )) and
     (n2 must beEqualTo(Full(cache.reports))) and
     (cache.updated.size must beEqualTo(9)) //second time, only expired are invalidate: none here
-  }*/
+  }
 }

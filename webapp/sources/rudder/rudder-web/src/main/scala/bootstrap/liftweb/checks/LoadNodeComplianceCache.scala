@@ -40,9 +40,10 @@ package bootstrap.liftweb.checks
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.reports.{CachedFindRuleNodeStatusReports, InsertNodeInCache}
+import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import javax.servlet.UnavailableException
 import com.normation.box._
+import com.normation.rudder.services.reports.CacheComplianceQueueAction.InsertNodeInCache
 import net.liftweb.common.EmptyBox
 
 /**
