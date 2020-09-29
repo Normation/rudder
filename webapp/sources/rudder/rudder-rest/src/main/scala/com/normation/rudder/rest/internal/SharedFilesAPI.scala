@@ -382,26 +382,28 @@ class SharedFilesAPI(
             val path = File(s"/var/rudder/configuration-repository/workspace/${techniqueId}/${techniqueVersion}/resources")
             val pf = requestDispatch(path)
             pf.isDefinedAt(req.withNewPath(req.path.drop(3)))
-          case techniqueId :: techniqueVersion :: category =>
-            val path = File(s"/var/rudder/configuration-repository/techniques/${category}/${techniqueId}/${techniqueVersion}/resources")
+          case techniqueId :: techniqueVersion :: categories   =>
+            val path = File(s"/var/rudder/configuration-repository/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources")
             val pf = requestDispatch(path)
             pf.isDefinedAt(req.withNewPath(req.path.drop(req.path.partPath.size)))
-          case _ => false
+          case _                                               =>
+            false
         }
       }
       def apply(req: Req): () => Box[LiftResponse] =
         req.path.partPath match {
-          case "draft" :: techniqueId :: techniqueVersion  :: _ =>
+          case "draft" :: techniqueId :: techniqueVersion :: _ =>
             val path = File(s"/var/rudder/configuration-repository/workspace/${techniqueId}/${techniqueVersion}/resources")
             path.createIfNotExists(true,true)
             val pf = requestDispatch(path)
             pf.apply(req.withNewPath(req.path.drop(3)))
-          case techniqueId :: techniqueVersion  :: category =>
-            val path = File(s"/var/rudder/configuration-repository/techniques/${category.mkString("/")}/${techniqueId}/${techniqueVersion}/resources")
+          case techniqueId :: techniqueVersion :: categories   =>
+            val path = File(s"/var/rudder/configuration-repository/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources")
             path.createIfNotExists(true,true)
             val pf = requestDispatch(path)
             pf.apply(req.withNewPath(req.path.drop(req.path.partPath.size)))
-          case _ => ( () => Failure("invalid request on shared file api"))
+          case _                                               =>
+            ( () => Failure("invalid request on shared file api"))
       }
     }
 
