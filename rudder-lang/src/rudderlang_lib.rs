@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    ir::{resource::ResourceDef, resource::StateDef, ir1::IR1},
     compile::parse_file,
     error::*,
+    ir::{ir1::IR1, resource::ResourceDef, resource::StateDef},
     parser::{Token, PAST},
 };
 use colored::Colorize;
@@ -58,8 +58,8 @@ impl<'src> RudderlangLib<'src> {
         for entry in walker {
             match entry {
                 Ok(entry) => {
-                    let path = entry.path();
-                    parse_file(&mut past, sources, path)?;
+                    let path = entry.into_path();
+                    parse_file(&mut past, sources, &Some(path))?;
                 }
                 Err(err) => {
                     return Err(err!(

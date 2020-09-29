@@ -14,13 +14,19 @@
 //!
 //!  3- ncf library -> generate_lib() -> resourcelib.rl + translate-config
 
-use colored::Colorize;
 // imports log macros;
 use log::*;
 use std::process::exit;
 use structopt::StructOpt;
 
-use rudderc::{compile::compile_file, io, logger::Logger, opt::Opt, technique::generate, Action};
+use rudderc::{
+    compile::compile,
+    error::Error,
+    migrate::migrate,
+    opt::Opt,
+    technique::{technique_generate, technique_read},
+    Action,
+};
 
 // MAIN
 
@@ -54,48 +60,52 @@ use rudderc::{compile::compile_file, io, logger::Logger, opt::Opt, technique::ge
 /// Rudder language compiler
 
 // TODO use termination
+// TODO log infos into ram to put into logs
 
 fn main() {
     let command = Opt::from_args();
-    let (logger, log_level, has_backtrace) = command.extract_logging_infos();
-    let action = command.to_action();
-    // Initialize logger
-    logger.init(log_level, action, has_backtrace);
-
+    let (output, log_level, has_backtrace) = command.extract_logging_infos();
+    let action = command.as_action();
+    // Initialize logger and output
+    output.init(log_level, action, has_backtrace);
     let ctx = command.extract_parameters().unwrap_or_else(|e| {
         error!("{}", e);
         // required before returning in order to have proper logging
-        logger.end(false, "input not set", "output not set");
+        output.print(
+            action,
+            "Input not set".to_owned(),
+            Err(Error::new(
+                "Could not determine proper I/O from given parameters".to_owned(),
+            )),
+        );
         exit(1);
     });
-
     info!("I/O context: {}", ctx);
 
     // Actual action
     // read = rl -> json
     // migrate = cf -> rl
     // compile = rl -> cf / dsc
-    // generate = json -> rl / cf / dsc
-    // TODO make the right calls
-    let result = match action {
-        Action::Compile => compile_file(&ctx, true),
+    // generate = json -> json { rl + cf + dsc }
+    // TODO collect logs in ram rather than directly printing it
+    let action_result = match action {
+        Action::Compile => compile(&ctx, true),
         // TODO Migrate: call cf_to_json perl script then call json->rl == Technique generate()
-        Action::Migrate => unimplemented!(),
-        // TODO: rl -> json + add a json wrapper : { data: {}, errors: {}}
-        Action::ReadTechnique => unimplemented!(),
+        Action::Migrate => migrate(&ctx),
+        Action::ReadTechnique => technique_read(&ctx),
         // TODO Generate: call technique generate then compile into all formats + json wrapper: { rl: "", dsc: "", cf: "", errors:{} }
-        Action::GenerateTechnique => unimplemented!(),
+        Action::GenerateTechnique => technique_generate(&ctx),
     };
-    match &result {
-        Err(e) => error!("{}", e),
-        Ok(_) => info!(
-            "{} {}",
-            format!("{:?}", action).bright_green(),
-            "OK".bright_cyan()
-        ),
-    };
-    logger.end(result.is_ok(), ctx.input.display(), ctx.output.display());
-    if result.is_err() {
+    let action_status = action_result.is_ok();
+    output.print(
+        action,
+        match &ctx.input {
+            Some(path) => path.to_string_lossy().to_string(),
+            None => "STDIN".to_owned(),
+        },
+        action_result,
+    );
+    if action_status {
         exit(1)
     }
 }

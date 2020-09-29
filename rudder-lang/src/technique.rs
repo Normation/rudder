@@ -2,6 +2,10 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 mod from_ir;
+mod generate;
+mod read;
+pub use generate::technique_generate;
+pub use read::technique_read;
 
 use crate::{
     cfstrings,
@@ -13,8 +17,11 @@ use colored::Colorize;
 use lazy_static::lazy_static;
 use regex::{Captures, Regex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{fs, str};
+use std::{fs, io::Read, str};
 use typed_arena::Arena;
+
+// might change later
+pub type TechniqueFmt = String;
 
 // Techniques are limited subsets of CFEngine in JSON representation
 // that only carry method calls and Rudder metadata
@@ -23,10 +30,10 @@ pub fn generate(context: &IOContext) -> Result<()> {
     let sources: Arena<String> = Arena::new();
     let lib = RudderlangLib::new(&context.stdlib, &sources)?;
     let rudderlang_technique = Technique::from_json(&context)?.to_rudderlang(&lib)?;
-    let output_path = context.output.to_string_lossy();
 
     // will disapear soon, return string directly
-    fs::write(&context.output, rudderlang_technique).map_err(|e| err_wrapper(&output_path, e))?;
+    // let output_path = context.output.unwrap().to_string_lossy();
+    // fs::write(&context.output, rudderlang_technique).map_err(|e| err_wrapper(&output_path, e))?;
     Ok(())
 }
 
@@ -59,28 +66,33 @@ pub struct Technique {
 impl Technique {
     /// creates a Technique that will be used to generate a string representation of a rudderlang or json technique
     fn from_json(context: &IOContext) -> Result<Self> {
-        let input_path = &context.input.to_string_lossy();
+        let (input, content) = match &context.input {
+            Some(file_path) => {
+                let input = file_path.to_string_lossy().to_string();
+                let content = fs::read_to_string(file_path).map_err(|e| err_wrapper(&input, e))?;
+                (input, content)
+            }
+            None => {
+                let mut buffer = String::new();
+                std::io::stdin()
+                    .read_to_string(&mut buffer)
+                    .map_err(|e| err_wrapper("STDIN", e))?;
+                ("STDIN".to_owned(), buffer)
+            }
+        };
 
         info!(
             "{} from {}",
             "Processing generation".bright_green(),
-            input_path.bright_yellow(),
+            input.bright_yellow(),
         );
+        info!("|- {} {}", "Parsing".bright_green(), input.bright_yellow());
 
-        info!(
-            "|- {} {}",
-            "Parsing".bright_green(),
-            input_path.bright_yellow()
-        );
-
-        let json_str =
-            &fs::read_to_string(&context.input).map_err(|e| err_wrapper(input_path, e))?;
-
-        serde_json::from_str::<Self>(json_str)
+        serde_json::from_str::<Self>(&content)
             .map_err(|e| Error::new(format!("Technique from JSON: {}", e)))
     }
 
-    pub fn to_json(&self) -> Result<String> {
+    pub fn to_json(&self) -> Result<TechniqueFmt> {
         info!(
             "|- {} (translation phase)",
             "Generating JSON code".bright_green()

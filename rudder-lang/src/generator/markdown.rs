@@ -2,9 +2,9 @@
 
 /// Generates markdown
 use super::Generator;
-use crate::{ir::resource::StateDef, ir::ir2::IR2, error::*};
+use crate::{error::*, ir::ir2::IR2, ir::resource::StateDef, ActionResult, Format};
 use std::cmp::Ordering;
-use std::{collections::HashMap, fs::File, io::Write, path::Path};
+use std::path::{Path, PathBuf};
 
 pub struct Markdown {}
 impl Markdown {
@@ -21,15 +21,8 @@ impl Generator for Markdown {
         _source_file: Option<&Path>,
         _dest_file: Option<&Path>,
         _policy_metadata: bool,
-    ) -> Result<()> {
-        let files = Self::render(gc, None)?;
-
-        for (name, content) in files.iter() {
-            let mut file = File::create(name).expect("Could not create output file");
-            file.write_all(content.as_bytes())
-                .expect("Could not write content into output file");
-        }
-        Ok(())
+    ) -> Result<Vec<ActionResult>> {
+        Self::render(gc, None)
     }
 }
 
@@ -96,8 +89,8 @@ impl Markdown {
 
     /// renders doc from an IR, with an optional resource filter
     /// When filter resource is None the whole IR is rendered
-    fn render(gc: &IR2, resource_filter: Option<String>) -> Result<HashMap<String, String>> {
-        let mut files: HashMap<String, String> = HashMap::new();
+    fn render(gc: &IR2, resource_filter: Option<String>) -> Result<Vec<ActionResult>> {
+        let mut files: Vec<ActionResult> = Vec::new();
 
         for (resource_name, resource) in gc.resources.iter() {
             if let Some(ref name) = resource_filter {
@@ -108,7 +101,8 @@ impl Markdown {
 
             // one file by resource
             // FIXME proper destination
-            let resource_file = format!("target/docs/std/{}.md", resource_name.fragment());
+            let resource_file: PathBuf =
+                format!("target/docs/std/{}.md", resource_name.fragment()).into();
 
             let mut out = vec![];
             out.push(format!("# {}", resource_name.fragment()));
@@ -209,7 +203,11 @@ impl Markdown {
 
                 out.extend(Self::render_parameters(&state.metadata).iter().cloned());
             }
-            files.insert(resource_file, out.join("\n\n"));
+            files.push(ActionResult::new(
+                Format::Markdown,
+                Some(resource_file.into()),
+                Some(out.join("\n\n")),
+            ));
         }
 
         Ok(files)

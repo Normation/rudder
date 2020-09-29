@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::Generator;
-use crate::{ir::ir2::IR2, error::*, technique::Technique};
+use crate::{error::*, ir::ir2::IR2, technique::Technique, ActionResult, Format};
 use std::convert::From;
-use std::{fs::File, io::Write, path::Path};
+use std::path::Path;
 
 pub struct JSON;
 
@@ -16,12 +16,15 @@ impl Generator for JSON {
         _source_file: Option<&Path>,
         dest_file: Option<&Path>,
         _policy_metadata: bool,
-    ) -> Result<()> {
+    ) -> Result<Vec<ActionResult>> {
         let content = Technique::from(gc).to_json()?;
-        File::create(dest_file.expect("No destination to write on"))
-            .expect("Could not create output file")
-            .write_all(content.as_bytes())
-            .expect("Could not write content into output file");
-        Ok(())
+        Ok(vec![ActionResult::new(
+            Format::DSC,
+            match dest_file {
+                Some(path) => path.to_str().map(|refstr| refstr.into()),
+                None => None,
+            },
+            Some(content.to_string()),
+        )])
     }
 }

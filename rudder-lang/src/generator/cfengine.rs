@@ -7,8 +7,9 @@ use crate::{
     generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise, MAX_INT, MIN_INT},
     ir::{enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
     parser::*,
+    ActionResult, Format,
 };
-use std::{collections::HashMap, ffi::OsStr, fs::File, io::Write, path::Path};
+use std::{collections::HashMap, ffi::OsStr, path::Path};
 use toml::Value as TomlValue;
 
 mod syntax;
@@ -286,8 +287,8 @@ impl Generator for CFEngine {
         source_file: Option<&Path>,
         dest_file: Option<&Path>,
         policy_metadata: bool,
-    ) -> Result<()> {
-        let mut files: HashMap<String, String> = HashMap::new();
+    ) -> Result<Vec<ActionResult>> {
+        let mut files: Vec<ActionResult> = Vec::new();
         // TODO add global variable definitions
         for (resource_name, resource) in gc.resources.iter() {
             for (state_name, state) in resource.states.iter() {
@@ -351,27 +352,22 @@ impl Generator for CFEngine {
                         .name(extract("name"))
                         .version(extract("version"))
                         .bundle(bundle);
-                    files.insert(file_to_create, policy.to_string());
+                    files.push(ActionResult::new(
+                        Format::CFEngine,
+                        Some(file_to_create.into()),
+                        Some(policy.to_string()),
+                    ));
                 } else {
-                    files.insert(file_to_create, bundle.to_string());
+                    files.push(ActionResult::new(
+                        Format::CFEngine,
+                        Some(file_to_create.into()),
+                        Some(bundle.to_string()),
+                    ));
                 }
             }
         }
-        // create file if needed
-        if files.is_empty() {
-            match dest_file {
-                Some(filename) => File::create(filename).expect("Could not create output file"),
-                None => return Err(Error::new("No file to create".to_owned())),
-            };
-        }
 
-        // write to file
-        for (name, content) in files.iter() {
-            let mut file = File::create(name).expect("Could not create output file");
-            file.write_all(content.as_bytes())
-                .expect("Could not write content into output file");
-        }
-        Ok(())
+        Ok(files)
     }
 }
 

@@ -38,7 +38,7 @@ pub fn test_real_file(technique_name: &str, format: &Format) {
 
 /// Core test function that actually compares the file compilation result to expected result
 fn test_file(source: &Path, dest: &Path, technique_name: &str, format: &Format) {
-    let result = compile_file(&source, &dest, technique_name, format);
+    let result = compile(&source, &dest, technique_name, format);
     assert_eq!(
         result.is_ok(),
         should_compile(technique_name),
@@ -62,7 +62,7 @@ fn should_compile(technique_name: &str) -> bool {
 }
 
 /// Compile technique from base crate and expose its result
-fn compile_file(
+fn compile(
     source: &Path,
     dest: &Path,
     technique_name: &str,
@@ -70,12 +70,12 @@ fn compile_file(
 ) -> Result<(), String> {
     let io = rudderc::io::IOContext {
         stdlib: PathBuf::from("libs/"),
-        source: source.to_path_buf(),
-        dest: dest.to_path_buf(),
+        input: Some(source.to_path_buf()),
+        output: Some(dest.to_path_buf()),
         action: Action::Compile,
         format: format.clone(),
     };
-    match rudderc::compile::compile_file(&io, true) {
+    match rudderc::compile::compile(&io, true) {
         Ok(_) => {
             println!(
                 "{}: compilation of {}",

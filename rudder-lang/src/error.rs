@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::logger::Backtrace;
 /// We write our own error type to have a consistent error type through all our code.
 /// We translate other types to this one when necessary.
 /// All case contain 4 elements:
@@ -12,6 +11,7 @@ use crate::logger::Backtrace;
 /// - Compilation error: usually we can skip what we are doing and go to next iteration
 /// - List: aggregate compilation errors so that user can fix them all ant once
 ///
+use crate::output::Backtrace;
 use crate::parser::Token;
 use colored::Colorize;
 use ngrammatic::CorpusBuilder;
@@ -26,8 +26,6 @@ pub enum Error {
     //   Error list, for now it does not have backtrace
     List(Vec<(String, Option<Backtrace>)>),
 }
-
-// TODO add backtrace option for Errors : crate::logger::Backtrace::get()
 
 /// Redefine our own result type with fixed error type for readability.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -80,6 +78,17 @@ impl Error {
         let mut it = vec.into_iter().map(Result::unwrap_err);
         let first = it.next().unwrap();
         it.fold(first, |e0, e| e0.append(e))
+    }
+
+    pub fn clean_format_list(&self) -> Vec<String> {
+        // TODO escape and ansi
+        match self {
+            Error::User((err, _backtrace)) => vec![err.to_owned()],
+            Error::List(list) => list
+                .iter()
+                .map(|(err, _backtrace)| err.to_owned())
+                .collect::<Vec<String>>(),
+        }
     }
 }
 

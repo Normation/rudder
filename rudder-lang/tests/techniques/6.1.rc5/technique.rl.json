@@ -1,11 +1,11 @@
 {
   "type": "ncf_technique",
-  "version": 1,
+  "version": 2,
   "data": {
     "bundle_name": "normal",
     "description": "ewf",
     "name": "normal",
-    "version": "1.0",
+    "version": 0,
     "parameter": [
       {
         "id": "c6e6cc3a-9ce8-4889-bccc-6bfc1b091d0d",
@@ -13,23 +13,18 @@
         "description": ""
       },
       {
-          "name": "paramtest",
-          "id": "d74a03dd-5b0b-4b06-8dcf-b4e0cb387c60",
-          "constraints": {
-              "allow_whitespace_string": false,
-              "allow_empty_string": false,
-              "max_length": 16384
-          },
-          "type": "string"
+        "id": "d74a03dd-5b0b-4b06-8dcf-b4e0cb387c60",
+        "name": "paramtest",
+        "description": ""
       }
     ],
-    "category": "systemSettings/misc",
+    "category": "",
     "method_calls": [
       {
         "parameters": [
           {
-            "name": "cond",
-            "value": "test",
+            "name": "condition_prefix",
+            "value": "mycond",
             "$errors": []
           }
         ],
@@ -37,6 +32,7 @@
         "method_name": "condition_once",
         "component": "Condition once"
       }
-    ]
+    ],
+    "resources": []
   }
 }

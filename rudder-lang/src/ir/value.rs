@@ -2,7 +2,8 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::{
-    context::VarContext, context::Type,
+    context::Type,
+    context::VarContext,
     enums::{EnumExpression, EnumList},
 };
 use crate::{error::*, parser::*};
@@ -158,8 +159,7 @@ impl<'src> Value<'src> {
         }
     }
 
-    pub fn context_check(&self, context: &VarContext<'src>) -> Result<()>
-    {
+    pub fn context_check(&self, context: &VarContext<'src>) -> Result<()> {
         match self {
             Value::String(s) => {
                 map_results(s.data.iter(), |e| match e {
@@ -194,25 +194,28 @@ impl<'src> ComplexValue<'src> {
         context: &VarContext<'src>,
         pvalue: PComplexValue<'src>,
     ) -> Result<Self> {
-        let cases= map_vec_results(pvalue.cases.into_iter(),
-            |(case,value)| {
-                let case = enum_list.canonify_expression(context, case)?;
-                let value = match value {
-                    None => None,
-                    Some(v) => Some(Value::from_pvalue(enum_list, context, v)?),
-                };
-                Ok((case,value))
-            }
-        )?;
-        Ok(ComplexValue{ source: pvalue.source, cases })
+        let cases = map_vec_results(pvalue.cases.into_iter(), |(case, value)| {
+            let case = enum_list.canonify_expression(context, case)?;
+            let value = match value {
+                None => None,
+                Some(v) => Some(Value::from_pvalue(enum_list, context, v)?),
+            };
+            Ok((case, value))
+        })?;
+        Ok(ComplexValue {
+            source: pvalue.source,
+            cases,
+        })
     }
 
-    pub fn extend(&mut self,
-                  enum_list: &EnumList<'src>,
-                  context: &VarContext<'src>,
-                  pvalue: PComplexValue<'src>,
+    pub fn extend(
+        &mut self,
+        enum_list: &EnumList<'src>,
+        context: &VarContext<'src>,
+        pvalue: PComplexValue<'src>,
     ) -> Result<()> {
-        let ComplexValue{ source, mut cases } = ComplexValue::from_pcomplex_value(enum_list, context, pvalue)?;
+        let ComplexValue { source, mut cases } =
+            ComplexValue::from_pcomplex_value(enum_list, context, pvalue)?;
         self.cases.append(&mut cases);
         Ok(())
     }
@@ -225,29 +228,34 @@ impl<'src> ComplexValue<'src> {
             .ok_or_else(|| err!(self.source, "Case list doesn't have any value"))
     }
 
-    pub fn context_check(&self, context: &VarContext<'src>) -> Result<()>
-    {
-        map_results(self.cases.iter(),
-                    |x|
-                        match &x.1 {
-                            Some(v) => v.context_check(context),
-                            None => Ok(())
-                        }
-        )
+    pub fn context_check(&self, context: &VarContext<'src>) -> Result<()> {
+        map_results(self.cases.iter(), |x| match &x.1 {
+            Some(v) => v.context_check(context),
+            None => Ok(()),
+        })
     }
 
-    pub fn verify(&self, enum_list: &EnumList<'src>,) -> Result<()> {
+    pub fn verify(&self, enum_list: &EnumList<'src>) -> Result<()> {
         // check enums
         let mut errors = enum_list.evaluate(&self.cases, "TODO".into());
         // check type
-        let init_val = self.first_value().expect("Verify a complex value only after knowing it has values!"); // type should have already been extracted once
+        let init_val = self
+            .first_value()
+            .expect("Verify a complex value only after knowing it has values!"); // type should have already been extracted once
         let init_type = Type::from_value(init_val);
         for value in self.cases.iter() {
             if let Some(val) = &value.1 {
                 let type_ = Type::from_value(val);
                 if type_ != init_type {
                     // TODO implement Display for Value
-                    errors.push(err!(self.source, "{:?}:{} is not the same type as {:?}:{}", val, type_, init_val, init_type));
+                    errors.push(err!(
+                        self.source,
+                        "{:?}:{} is not the same type as {:?}:{}",
+                        val,
+                        type_,
+                        init_val,
+                        init_type
+                    ));
                 }
             }
         }
