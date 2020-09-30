@@ -98,6 +98,4 @@ pub enum Error {
     InvalidSharedFile(String),
     #[error("could not extract zip file: {0}")]
     Zip(#[from] zip::result::ZipError),
-    #[error("could not parse address: {0}")]
-    AddrParse(std::net::AddrParseError),
 }
