@@ -217,3 +217,287 @@ impl Technique {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::Error;
+    use pretty_assertions::assert_eq;
+
+    // syntaxic sugar + more accessible error message when useful
+    fn opt_new_r(params: &str) -> std::result::Result<Opt, String> {
+        Opt::from_iter_safe(params.split_whitespace()).map_err(|e| format!("{:?}", e.kind))
+    }
+    // syntaxic sugar + directly returns Opt. !! If error, panic
+    fn opt_new(params: &str) -> Opt {
+        Opt::from_iter(params.split_whitespace())
+    }
+
+    #[test]
+    // tests if cli parameters are handled properly (setup behavior, forbids unwanted ones etc)
+    fn cli() {
+        // TECHNIQUE READ + GENERAL
+        assert_eq!(
+            // full example works fine
+            opt_new_r("rudderc technique read -c tools/rudderc-dev.conf -i tests/techniques/6.1.rc5/technique.rl -o tests/techniques/6.1.rc5/technique.ee.cf -l warn -b --stdin --stdout"),
+            Ok(Opt::Technique(Technique::Read {
+                options: Options {
+                    config_file: PathBuf::from("tools/rudderc-dev.conf"),
+                    input: Some(PathBuf::from("tests/techniques/6.1.rc5/technique.rl")),
+                    stdin: true,
+                    stdout: true,
+                    output: Some(PathBuf::from("tests/techniques/6.1.rc5/technique.ee.cf")),
+                    log_level: LevelFilter::Warn,
+                    backtrace: true,
+                },
+            }))
+        );
+        assert_eq!(
+            opt_new_r("rudderc technique read"), // cleanest setup works and default are ok
+            Ok(Opt::Technique(Technique::Read {
+                options: Options {
+                    config_file: PathBuf::from("/opt/rudder/etc/rudderc.conf"), // default
+                    input: None,
+                    stdin: false,
+                    stdout: false,
+                    output: None,
+                    log_level: LevelFilter::Warn, // default
+                    backtrace: false,
+                },
+            }))
+        );
+        // technique read has no -j option
+        assert!(opt_new_r("rudderc technique read --json-logs").is_err());
+        // technique read has no -f option
+        assert_eq!(
+            opt_new_r("rudderc technique read --format"),
+            Err("UnknownArgument".into())
+        );
+        // log-level option limited possible values
+        assert!(opt_new_r("rudderc technique read --log-level doesnotexist").is_err());
+        // technique subcommand must be used with a subcommand
+        assert!(opt_new_r("rudderc technique --stdout").is_err());
+        // technique subcommand must be used with a subcommand
+        assert!(opt_new_r("rudderc technique").is_err());
+        // expected subcommand
+        assert!(opt_new_r("rudderc -c tools/rudderc-dev.conf -i tests/techniques/6.1.rc5/technique.rl -o tests/techniques/6.1.rc5/technique.ee.cf -l warn -b --stdin --stdout").is_err());
+        // subcommand ordering matters
+        assert!(opt_new_r("rudderc read technique").is_err());
+
+        // MIGRATE
+        // technique subcommand must be used with a subcommand
+        assert!(opt_new_r("rudderc technique migrate").is_err());
+        // migrate does not accepts format
+        assert_eq!(
+            opt_new_r("rudderc migrate --format"),
+            Err("UnknownArgument".into())
+        );
+        // migrate accepts json-logs
+        assert!(opt_new_r("rudderc migrate --json-logs").is_ok());
+
+        // GENERATE
+        // generate does not accepts json logs option
+        assert!(opt_new_r("rudderc technique generate --json-logs").is_err());
+        // generate does not accepts format option
+        assert_eq!(
+            opt_new_r("rudderc technique generate --format"),
+            Err("UnknownArgument".into())
+        );
+
+        // COMPILE
+        // compile accepts json logs option
+        assert!(opt_new_r("rudderc compile --json-logs").is_ok());
+        // compile accepts format option
+        assert!(opt_new_r("rudderc compile --format dsc").is_ok());
+        assert!(opt_new_r("rudderc compile --format cf").is_ok());
+        assert!(opt_new_r("rudderc compile --format cfengine").is_ok());
+        // compile format option requires a value
+        assert_eq!(
+            opt_new_r("rudderc compile --format"),
+            Err("EmptyValue".into())
+        );
+        // compile format option requires dsc / cfengine as a value, nothing else
+        assert_eq!(
+            opt_new_r("rudderc compile --format 42"),
+            Err("InvalidValue".into())
+        );
+        assert_eq!(
+            opt_new_r("rudderc compile --format json"),
+            Err("InvalidValue".into())
+        );
+        assert_eq!(
+            opt_new_r("rudderc compile --format rl"),
+            Err("InvalidValue".into())
+        );
+    }
+
+    #[test]
+    // tests if logging sets up as expected (backtrace, format, log levels etc)
+    fn logging_infos() {
+        assert_eq!(
+            opt_new("rudderc technique read -b").extract_logging_infos(),
+            (Logs::JSON, LevelFilter::Warn, true),
+        );
+        assert_eq!(
+            opt_new("rudderc technique read -l info").extract_logging_infos(),
+            (Logs::JSON, LevelFilter::Info, false),
+        );
+        assert_eq!(
+            opt_new("rudderc technique read --stdout").extract_logging_infos(),
+            (Logs::None, LevelFilter::Warn, false),
+        );
+        assert_eq!(
+            opt_new("rudderc migrate").extract_logging_infos(),
+            (Logs::Terminal, LevelFilter::Warn, false),
+        );
+        assert_eq!(
+            opt_new("rudderc compile").extract_logging_infos(),
+            (Logs::Terminal, LevelFilter::Warn, false),
+        );
+        assert_eq!(
+            opt_new("rudderc migrate --stdout").extract_logging_infos(),
+            (Logs::None, LevelFilter::Warn, false),
+        );
+        assert_eq!(
+            opt_new("rudderc compile --stdout").extract_logging_infos(),
+            (Logs::None, LevelFilter::Warn, false),
+        );
+        assert_eq!(
+            opt_new("rudderc migrate -j").extract_logging_infos(),
+            (Logs::JSON, LevelFilter::Warn, false),
+        );
+        assert_eq!(
+            opt_new("rudderc compile -j").extract_logging_infos(),
+            (Logs::JSON, LevelFilter::Warn, false),
+        );
+        // tricky one
+        assert_eq!(
+            opt_new("rudderc migrate -j --stdout").extract_logging_infos(),
+            (Logs::None, LevelFilter::Warn, false),
+        );
+        // tricky one
+        assert_eq!(
+            opt_new("rudderc compile --stdout -j").extract_logging_infos(),
+            (Logs::None, LevelFilter::Warn, false),
+        );
+    }
+
+    fn assert_err_msg(cli: &str, expect: &str) {
+        match opt_new(cli).extract_parameters() {
+            Err(Error::User((msg, _))) => assert_eq!(msg, expect),
+            _ => assert!(
+                false,
+                format!("expected error for '{}', but test result is ok", cli)
+            ),
+        };
+    }
+    fn assert_ok(cli: &str, ctx: IOContext) {
+        match opt_new(cli).extract_parameters() {
+            Err(e) => assert!(false, format!("expected ok, got err: '{}'", e)),
+            Ok(context) => assert_eq!(context, ctx),
+        };
+    }
+
+    #[test]
+    // tests if logging sets up as expected (backtrace, format, log levels etc)
+    fn cli_to_context() {
+        // TODO stabilize production conf file, then delete this test.
+        //Will be an error for now, to prevent errors at generation on live servers
+        // assert_err_msg(
+        //     "rudderc technique read -b",
+        //     "Could not parse (probably faulty) toml config file:.. Check why, update prod until no errors",
+        // );
+
+        // err, config file does not exist
+        assert_err_msg(
+            "rudderc technique read -c DOESNOTEXIST",
+            "Could not read toml config file: No such file or directory (os error 2)",
+        );
+
+        // err, config dir + input file does not exist
+        assert_err_msg(
+            "rudderc technique read -c ./tools/rudderc-dev.conf -i DOESNOTEXIST",
+            "Commands: input does not match any existing file",
+        );
+
+        // should be an error: no input file defined
+        assert_err_msg(
+            "rudderc technique read -c ./tools/rudderc-dev.conf",
+            "Commands: no input or input does not match any existing file",
+        );
+
+        // real technique path: tests/techniques/simplest/technique.rl.
+        // conf input folder: tests/techniques
+        assert_ok(
+            "rudderc technique read -c ./tools/rudderc-dev.conf -i simplest/technique.rl",
+            IOContext {
+                stdlib: PathBuf::from("libs/"),
+                input: Some(PathBuf::from("tests/techniques/simplest/technique.rl")),
+                output: Some(PathBuf::from("tests/techniques/simplest/technique.json")), // based on input + updated extension
+                format: Format::JSON,
+                action: Action::ReadTechnique,
+            },
+        );
+
+        // stdin / stdout are default behavior so no need to explicitely call options.
+        // It is working if input / output = None.
+        assert_ok(
+            "rudderc technique generate -c ./tools/rudderc-dev.conf",
+            IOContext {
+                stdlib: PathBuf::from("libs/"),
+                input: None,  // no input since stdin option
+                output: None, // no output since stdout option
+                format: Format::JSON,
+                action: Action::GenerateTechnique,
+            },
+        );
+
+        // specify output, output dir exists, output file does not exist and wrong extension
+        assert_ok(
+            "rudderc technique generate -c ./tools/rudderc-dev.conf -i simplest/technique.rl -o simplest/try_technique.randomext",
+            IOContext {
+                stdlib: PathBuf::from("libs/"),
+                input: Some(PathBuf::from("tests/techniques/simplest/technique.rl")),
+                output: Some(PathBuf::from("tests/techniques/simplest/try_technique.json")), // based on input + updated extension
+                format: Format::JSON,
+                action: Action::GenerateTechnique,
+            },
+        );
+
+        // if stdin / stdout conflicts with input / output options : priority to the former
+        assert_ok(
+            "rudderc technique generate -c ./tools/rudderc-dev.conf --stdin -i simplest/technique.rl -o simplest/try_technique.randomext --stdout",
+            IOContext {
+                stdlib: PathBuf::from("libs/"),
+                input: None,  // no input since stdin option
+                output: None, // no output since stdout option
+                format: Format::JSON,
+                action: Action::GenerateTechnique,
+            },
+        );
+
+        // compile format check
+        assert_ok(
+            "rudderc compile -c ./tools/rudderc-dev.conf -f cf -i simplest/technique.rl -o simplest/try_technique.randomext",
+            IOContext {
+                stdlib: PathBuf::from("libs/"),
+                input: Some(PathBuf::from("tests/techniques/simplest/technique.rl")),
+                output: Some(PathBuf::from("tests/techniques/simplest/try_technique.rl.cf")), // updated extension
+                format: Format::CFEngine,
+                action: Action::Compile,
+            },
+        );
+
+        // compile format check
+        assert_ok(
+            "rudderc compile -c ./tools/rudderc-dev.conf -f cf -i simplest/technique.rl -o simplest/try_technique.randomext",
+            IOContext {
+                stdlib: PathBuf::from("libs/"),
+                input: Some(PathBuf::from("tests/techniques/simplest/technique.rl")),
+                output: Some(PathBuf::from("tests/techniques/simplest/try_technique.rl.cf")), // updated extension
+                format: Format::CFEngine,
+                action: Action::Compile,
+            },
+        );
+    }
+}
