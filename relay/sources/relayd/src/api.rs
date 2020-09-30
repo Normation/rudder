@@ -22,7 +22,7 @@ use serde::Serialize;
 use std::{
     collections::HashMap,
     fmt::Display,
-    net::SocketAddr,
+    net::{SocketAddr, ToSocketAddrs},
     path::PathBuf,
     sync::{Arc, RwLock},
 };
@@ -263,12 +263,17 @@ pub fn run(
 
     info!("Starting API on {}", listen);
     // TODO graceful shutdown
-    future::result(listen.parse())
-        .map_err(|e| {
-            error!("{}", e);
-            ()
-        })
-        .and_then(|s: SocketAddr| warp::serve(routes_1).bind(s))
+    future::result(
+        listen
+            .to_socket_addrs()
+            .map_err(|e| {
+                // Log resolution error
+                error!("{}", e);
+            })
+            // Use first resolved address for now
+            .and_then(|mut a| a.next().ok_or(())),
+    )
+    .and_then(|s: SocketAddr| warp::serve(routes_1).bind(s))
 }
 
 fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
