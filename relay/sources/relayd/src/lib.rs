@@ -177,7 +177,7 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
 
         tokio::spawn(Stats::receiver(stats.clone(), rx_stats));
         tokio::spawn(api::run(
-            job_config.cfg.general.listen,
+            &job_config.cfg.general.listen,
             job_config.clone(),
             stats.clone(),
         ));
