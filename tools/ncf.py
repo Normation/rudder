@@ -464,7 +464,7 @@ def get_agents_support(method, content):
   agents = []
   if os.path.exists("/var/rudder/configuration-repository/dsc/ncf/30_generic_methods/" + method + ".ps1"):
     agents.append("dsc")
-  if not re.search(r'\n\s*bundle\s+agent\s+'+method+r'\b.*?\{\s*\}', content, re.DOTALL): # this matches an empty bundle content
+  if not re.search(r'\n\s*bundle\s+agent\s+'+method+r'\b[^{]*?\{\s*\}', content, re.DOTALL): # this matches an empty bundle content
     agents.append("cfengine-community")
   return agents
 
