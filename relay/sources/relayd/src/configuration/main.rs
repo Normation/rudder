@@ -11,7 +11,6 @@ use std::{
     convert::TryFrom,
     fmt,
     fs::read_to_string,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
     path::{Path, PathBuf},
     str::FromStr,
     time::Duration,
@@ -107,7 +106,7 @@ pub struct GeneralConfig {
     /// No possible sane default value
     pub node_id: NodeId,
     #[serde(default = "GeneralConfig::default_listen")]
-    pub listen: SocketAddr,
+    pub listen: String,
     /// None means using the number of available CPUs
     pub core_threads: Option<usize>,
     #[serde(default = "GeneralConfig::default_blocking_threads")]
@@ -123,8 +122,8 @@ impl GeneralConfig {
         PathBuf::from("/var/rudder/lib/ssl/allnodescerts.pem")
     }
 
-    fn default_listen() -> SocketAddr {
-        SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 3030)
+    fn default_listen() -> String {
+        "127.0.0.1:3030".to_string()
     }
 
     fn default_blocking_threads() -> usize {
@@ -461,6 +460,15 @@ mod tests {
         let empty = "";
         let config = empty.parse::<Configuration>();
         assert!(config.is_err());
+    }
+
+    #[test]
+    fn it_parses_listen_with_hostname() {
+        let default = "[general]\n\
+                       node_id = \"root\"\n\
+                       listen = \"relayd:3030\"";
+        let config = default.parse::<Configuration>().unwrap();
+        dbg!(&config);
     }
 
     #[test]
