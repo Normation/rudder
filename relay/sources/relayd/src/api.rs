@@ -17,7 +17,7 @@ use crate::{
     stats::Stats,
     JobConfig,
 };
-use futures::Future;
+use futures::{future, Future};
 use serde::Serialize;
 use std::{
     collections::HashMap,
@@ -94,7 +94,7 @@ impl<T: Serialize> ApiResponse<T> {
 }
 
 pub fn run(
-    listen: SocketAddr,
+    listen: &str,
     job_config: Arc<JobConfig>,
     stats: Arc<RwLock<Stats>>,
 ) -> impl Future<Item = (), Error = ()> {
@@ -263,7 +263,12 @@ pub fn run(
 
     info!("Starting API on {}", listen);
     // TODO graceful shutdown
-    warp::serve(routes_1).bind(listen)
+    future::result(listen.parse())
+        .map_err(|e| {
+            error!("{}", e);
+            ()
+        })
+        .and_then(|s: SocketAddr| warp::serve(routes_1).bind(s))
 }
 
 fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
