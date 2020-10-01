@@ -68,6 +68,7 @@ impl<'src> From<&IR2<'src>> for Technique {
             })
             .collect::<Vec<MethodCall>>();
 
+        // TODO unit tests
         Technique {
             // can't determine a particular technique type yet
             r#type: "ncf_techniques".to_owned(),
@@ -77,7 +78,8 @@ impl<'src> From<&IR2<'src>> for Technique {
                 bundle_name: extract_meta_string(meta, "name"),
                 description: extract_meta_string(meta, "description"),
                 name: extract_meta_string(meta, "name"),
-                version: extract_meta_string(meta, "version"),
+                // unwraping for now, TODO find better ways
+                version: Version::from_str(&extract_meta_string(meta, "version")).unwrap(),
                 category: extract_meta_string(meta, "category"),
                 interpolated_parameters,
                 method_calls,

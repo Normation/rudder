@@ -2,7 +2,7 @@
 @format = 0
 @name = "simplest"
 @description = "rudderlang simplest for a complete loop"
-@version = 1
+@version = "1.0"
 @parameters = []
 
 resource simplest()

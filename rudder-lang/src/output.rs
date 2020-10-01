@@ -290,7 +290,7 @@ impl Logs {
                     .map_err(|e| format!("Building JSON output led to an error: {}", e))
                     .unwrap(); // dev error if this does not work
                 println!("{}", fmtoutput);
-                if is_success {
+                if !is_success {
                     eprintln!(
                         "An error occurred, could not create content from '{}' because: '{}'",
                         output.source,

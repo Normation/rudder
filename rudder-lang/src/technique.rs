@@ -16,13 +16,65 @@ use colored::Colorize;
 use lazy_static::lazy_static;
 use regex::{Captures, Regex};
 use serde::{
-    de::{self, Deserializer, Unexpected},
+    de::{self, Deserializer},
     Deserialize, Serialize, Serializer,
 };
-use std::str;
+use std::{
+    fmt,
+    str::{self, FromStr},
+};
 
 // Techniques are limited subsets of CFEngine in JSON representation
 // that only carry method calls and Rudder metadata
+
+// required Version type de/serializer
+fn version_into_string<S>(v: &Version, s: S) -> std::result::Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    s.serialize_str(&v.to_string())
+}
+fn string_into_version<'de, D>(deserializer: D) -> std::result::Result<Version, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let str_version = String::deserialize(deserializer)?;
+    Version::from_str(&str_version).map_err(|e| de::Error::custom(e))
+}
+
+#[derive(Serialize, Deserialize, Copy, Clone)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
+struct Version(u8, u8);
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}.{}", self.0, self.1)
+    }
+}
+impl FromStr for Version {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        // expected format is "X.X", X being positive numbers
+        let values = s
+            .split(".")
+            .map(|value| {
+                value.parse::<u8>().map_err(|e| {
+                    Error::new(format!(
+                        "'{}' is not a valid version (composed of two positive integers): {}",
+                        s, e
+                    ))
+                })
+            })
+            .collect::<Result<Vec<u8>>>()?;
+        if values.len() != 2 {
+            return Err(Error::new(format!(
+                "version ('{}') is not composed of 2 integers",
+                s
+            )));
+        }
+        Ok(Version(values[0], values[1]))
+    }
+}
 
 // might change later
 pub type TechniqueFmt = String;
@@ -78,7 +130,11 @@ pub struct TechniqueData {
     bundle_name: String,
     description: String,
     name: String,
-    version: String,
+    #[serde(
+        serialize_with = "version_into_string",
+        deserialize_with = "string_into_version"
+    )] // >=6.1
+    version: Version,
     #[serde(rename = "parameter")]
     interpolated_parameters: Vec<InterpolatedParameter>,
     #[serde(default = "default_category")] // >=6.2
@@ -119,7 +175,8 @@ impl TechniqueData {
 @format = 0
 @name = "{name}"
 @description = "{description}"
-@version = {version}
+@version = "{version}"
+@category = "{category}"
 @parameters = [{parameters_meta}]
 
 resource {bundle_name}({parameter_list})
@@ -129,6 +186,7 @@ resource {bundle_name}({parameter_list})
             name = self.name,
             description = self.description,
             version = self.version,
+            category = self.category,
             parameters_meta = parameters_meta_fmt,
             bundle_name = self.bundle_name,
             parameter_list = parameter_list.join(", "),
@@ -310,5 +368,57 @@ impl Value {
             ),
             false => (format!("{:#?}", self.value), None),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[derive(Serialize, Deserialize, PartialEq, Debug)]
+    struct TestVersion {
+        #[serde(
+            serialize_with = "version_into_string",
+            deserialize_with = "string_into_version"
+        )] // >=6.1
+        version: Version,
+    }
+
+    #[test]
+    // tests if cli parameters are handled properly (setup behavior, forbids unwanted ones etc)
+    fn technique_version() {
+        let ok_1dot0 = r#"{"version": "1.0" }"#;
+        let ok_big = r#"{"version": "255.255" }"#;
+        let err_too_big = r#"{"version": "257.257" }"#;
+        let err_negative = r#"{"version": "-2.2" }"#;
+        let err_negative2 = r#"{"version": "2.-2" }"#;
+        let err_too_many = r#"{"version": "2.1.0.0" }"#;
+        let err_dot2 = r#"{"version": ".2" }"#;
+        let err_empty = r#"{"version": "" }"#;
+        let err_2 = r#"{"version": "2." }"#;
+        let err_x = r#"{"version": "1.X" }"#;
+        let err_char = r#"{"version": "XXXX" }"#;
+        assert_eq!(
+            TestVersion {
+                version: Version(1, 0),
+            },
+            serde_json::from_str::<TestVersion>(ok_1dot0).unwrap(),
+        );
+        assert_eq!(
+            TestVersion {
+                version: Version(255, 255),
+            },
+            serde_json::from_str::<TestVersion>(ok_big).unwrap(),
+        );
+        assert!(serde_json::from_str::<TestVersion>(err_negative).is_err());
+        assert!(serde_json::from_str::<TestVersion>(err_negative2).is_err());
+        assert!(serde_json::from_str::<TestVersion>(err_too_big).is_err());
+        assert!(serde_json::from_str::<TestVersion>(err_too_many).is_err());
+        assert!(serde_json::from_str::<TestVersion>(err_dot2).is_err());
+        assert!(serde_json::from_str::<TestVersion>(err_2).is_err());
+        assert!(serde_json::from_str::<TestVersion>(err_empty).is_err());
+        assert!(serde_json::from_str::<TestVersion>(err_x).is_err());
+        assert!(serde_json::from_str::<TestVersion>(err_char).is_err());
     }
 }
