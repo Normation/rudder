@@ -89,8 +89,8 @@ class Doobie(datasource: DataSource) {
     query(xa).mapError(ex => SystemError(errorMsg, ex))
   }
 
-  def transactRun[T](query: Transactor[Task] => Task[T]): T = {
-    ZioRuntime.unsafeRun(transactTask(query))
+  def transactRunEither[T](query: Transactor[Task] => Task[T]): Either[Throwable, T] = {
+    ZioRuntime.unsafeRun(transactTask(query).either)
   }
 
   def transactRunBox[T](q: Transactor[Task] => Task[T]): Box[T] = {
