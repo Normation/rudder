@@ -92,6 +92,7 @@ import net.liftweb.common.Full
 import org.joda.time.DateTime
 import zio._
 import zio.syntax._
+import com.normation.zio._
 
 /**
  * A newNodeManager hook is a class that accept callbacks.
@@ -870,10 +871,11 @@ class RefuseGroups(
  */
 class AcceptHostnameAndIp(
     override val name: String
-  , inventoryStatus  : InventoryStatus
-  , queryProcessor   : QueryProcessor
-  , ditQueryData     : DitQueryData
-  , policyServerNet  : PolicyServerManagementService
+  , inventoryStatus         : InventoryStatus
+  , queryProcessor          : QueryProcessor
+  , ditQueryData            : DitQueryData
+  , policyServerNet         : PolicyServerManagementService
+  , acceptDuplicateHostnames: IOResult[Boolean]
 ) extends UnitAcceptInventory {
 
   //return the list of ducplicated hostname from user input - we want that to be empty
@@ -924,9 +926,14 @@ class AcceptHostnameAndIp(
     val hostnames = sms.map( _.node.main.hostname)
 
     for {
-      authorizedNetworks   <- policyServerNet.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID) ?~! "Can not get authorized networks: check their configuration, and that rudder-init was done"
-      noDuplicateHostnames <- checkDuplicateString(hostnames, "hostname")
-      noDuplicateInDB      <- queryForDuplicateHostname(hostnames)
+      authorizedNetworks <- policyServerNet.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID) ?~! "Can not get authorized networks: check their configuration, and that rudder-init was done"
+      acceptDuplicated   <- acceptDuplicateHostnames.toBox
+      _                  <- if(acceptDuplicated) Full(()) else {
+                              for {
+                                noDuplicateHostnames <- checkDuplicateString(hostnames, "hostname")
+                                noDuplicateInDB      <- queryForDuplicateHostname(hostnames)
+                              } yield ()
+                            }
     } yield {
       sms
     }

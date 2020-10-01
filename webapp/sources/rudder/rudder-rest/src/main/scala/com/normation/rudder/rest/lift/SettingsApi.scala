@@ -128,6 +128,7 @@ class SettingsApi(
       RestGenerationMaxParallelism ::
       RestGenerationJsTimeout ::
       RestContinueGenerationOnError ::
+      RestNodeAcceptDuplicatedHostname ::
       Nil
 
   val allSettings_v8 = RestUseReverseDNS :: allSettings_v10
@@ -201,7 +202,8 @@ class SettingsApi(
         settings
       }
 
-      RestUtils.response(restExtractorService, "settings", None)(Full(data), req, s"Could not settings")("getAllSettings")
+      //sort settings alphanum
+      RestUtils.response(restExtractorService, "settings", None)(Full(data.sortBy(_.name)), req, s"Could not settings")("getAllSettings")
     }
   }
 
@@ -779,6 +781,13 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
     val key = "rudder_generation_continue_on_error"
     def get = configService.rudder_generation_continue_on_error()
     def set = (value : Boolean, _, _) => configService.set_rudder_generation_continue_on_error(value)
+  }
+
+  final case object RestNodeAcceptDuplicatedHostname extends RestBooleanSetting {
+    val startPolicyGeneration = false
+    val key = "node_accept_duplicated_hostname"
+    def get = configService.node_accept_duplicated_hostname()
+    def set = (value : Boolean, _, _) => configService.set_node_accept_duplicated_hostname(value)
   }
 
   // if the directive is missing for policy server, it may be because it misses dedicated allowed networks.
