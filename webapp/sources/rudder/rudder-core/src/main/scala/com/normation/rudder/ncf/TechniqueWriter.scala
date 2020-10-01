@@ -745,6 +745,7 @@ class TechniqueArchiverImpl (
     val techniqueGitPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}"
     val filesToAdd = (
       "metadata.xml" +:
+      "rudder_reporting.cf" +:
       "technique.cf" +:
       "technique.ps1" +:
       "technique.json" +:
