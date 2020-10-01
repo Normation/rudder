@@ -235,7 +235,10 @@ object GenerateCompliance {
       (fr"insert into nodecompliancecomposite (nodeid, runtimestamp, details) values (${run.nodeId}, ${run.runtime}, " ++ rules(run.rules) ++ fr")").update
     }
 
-    doobie.transactRun(xa => runs.toList.traverse(r => query(r).run).transact(xa))
+    doobie.transactRunEither(xa => runs.toList.traverse(r => query(r).run).transact(xa)) match {
+      case Right(x) => x
+      case Left(ex) => throw ex
+    }
   }
 
 
@@ -266,7 +269,10 @@ object GenerateCompliance {
 
     val query = (base ++ optNode ++ optRule).query[RES]
 
-    doobie.transactRun(xa => query.to[Vector].transact(xa))
+    doobie.transactRunEither(xa => query.to[Vector].transact(xa)) match {
+      case Right(x) => x
+      case Left(ex) => throw ex
+    }
 
   }
 
@@ -321,7 +327,10 @@ object GenerateCompliance {
     }).toList
 
 
-    doobie.transactRun(xa => Update[DATA](s"insert into nodecompliancelevels ($columnsString) values ($columnsPlaceholder)").updateMany(expanded).transact(xa))
+    doobie.transactRunEither(xa => Update[DATA](s"insert into nodecompliancelevels ($columnsString) values ($columnsPlaceholder)").updateMany(expanded).transact(xa)) match {
+      case Right(x) => x
+      case Left(ex) => throw ex
+    }
   }
 
   def getComplianceData(startDate: DateTime, endDate: DateTime, ruleId: Option[String], nodeId: Option[String]): Vector[(ComplianceLevel, Int)] = {
@@ -339,7 +348,10 @@ object GenerateCompliance {
     val groupby = Fragment.const(" group by index")
     val query = (base ++ interval ++ dates ++ optNode ++ optRule ++ groupby).query[(ComplianceLevel, Int)]
 
-    doobie.transactRun(xa => query.to[Vector].transact(xa))
+    doobie.transactRunEither(xa => query.to[Vector].transact(xa)) match {
+      case Right(x) => x
+      case Left(ex) => throw ex
+    }
   }
 
   def dataExample(runs: Seq[RunCompliance]): Unit = {

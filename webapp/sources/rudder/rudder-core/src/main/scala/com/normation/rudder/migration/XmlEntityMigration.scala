@@ -359,7 +359,7 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
         saved
       })
 
-      val res = doobie.transactRun(xa => exec.transact(xa).either)
+      val res = doobie.transactRunEither(xa => exec.transact(xa))
 
       res match {
         case Right(k) if(k.size < 1) =>

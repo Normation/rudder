@@ -247,21 +247,21 @@ class UpdateExpectedReportsJdbcRepository(
 
           val withFrag = Fragment.const(s"with tempnodeid (id) as (values ${confString.mkString(",")})")
           type A = Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]
-          val getConfigs: Either[Throwable, List[A]] = transactRun(xa => (
+          val getConfigs: Either[Throwable, List[A]] = transactRunEither(xa => (
             withFrag ++ fr"""
                            select nodeid, nodeconfigid, begindate, enddate, configuration
                            from nodeconfigurations
                            inner join tempnodeid on tempnodeid.id = nodeconfigurations.nodeid
                            where enddate is NULL"""
-            ).query[A].to[List].transact(xa).either)
+            ).query[A].to[List].transact(xa))
 
           type B = (NodeId, Vector[NodeConfigIdInfo])
-          val getInfos: Either[Throwable, List[B]] = transactRun(xa => (
+          val getInfos: Either[Throwable, List[B]] = transactRunEither(xa => (
             withFrag ++ fr"""
                               select node_id, config_ids from nodes_info
                               inner join tempnodeid on tempnodeid.id = nodes_info.node_id
                             """
-            ).query[B].to[List].transact(xa).either)
+            ).query[B].to[List].transact(xa))
 
           val time_0 = System.currentTimeMillis
           for {
@@ -289,7 +289,7 @@ class UpdateExpectedReportsJdbcRepository(
 
         // Do the actual change
 
-        val res = resultingNodeExpectedReports.map(batch => transactRun(xa => batch.sequence.transact(xa).either))
+        val res = resultingNodeExpectedReports.map(batch => transactRunEither(xa => batch.sequence.transact(xa)))
 
         res match {
           case Left(throwable) =>
@@ -406,7 +406,7 @@ class UpdateExpectedReportsJdbcRepository(
                  |]]""".stripMargin)
 
     (for {
-       i <- transactRun(xa => (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa).either)
+       i <- transactRunEither(xa => (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa))
     } yield {
        i
     }) match {
@@ -436,7 +436,7 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- transactRun(xa => (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa).either)
+      i <- transactRunEither(xa => (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa))
     } yield {
       i
     }) match  {
@@ -474,7 +474,7 @@ class UpdateExpectedReportsJdbcRepository(
                  |]]""".stripMargin)
 
     (for {
-       i <- transactRun(xa => (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa).either)
+       i <- transactRunEither(xa => (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa))
     } yield {
        i
     }) match {
@@ -504,7 +504,7 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- transactRun(xa => (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa).either)
+      i <- transactRunEither(xa => (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa))
     } yield {
       i
     }) match  {
@@ -531,7 +531,7 @@ class UpdateExpectedReportsJdbcRepository(
                    |]]""".stripMargin)
 
     (for {
-      i <- transactRun(xa => Update0(d1, None).run.transact(xa).either)
+      i <- transactRunEither(xa => Update0(d1, None).run.transact(xa))
     } yield {
       i
     }) match  {

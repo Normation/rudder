@@ -60,7 +60,7 @@ class RudderPropertiesRepositoryImpl(
   def getReportLoggerLastId: Box[Long] = {
 
     val sql = sql"select value from rudderproperties where name=${PROP_REPORT_LAST_ID}".query[Long].option
-    transactRun(xa => sql.transact(xa).either) match {
+    transactRunEither(xa => sql.transact(xa)) match {
       case Right(None) =>
           Empty
       case Right(Some(x)) =>
@@ -98,7 +98,7 @@ class RudderPropertiesRepositoryImpl(
       result
     }
 
-    transactRun(xa => sql.transact(xa).either) match {
+    transactRunEither(xa => sql.transact(xa)) match {
       case Right(x) => Full(newId)
       case Left(ex) => Failure(s"could not update lastId from database, cause is: ${ex.getMessage}", Full(ex), Empty)
     }

@@ -83,7 +83,10 @@ class TestManageMigration_5_6 extends DBCommon with BoxSpecMatcher {
     val  res = f()
 
     //delete line
-    doobie.transactRun(xa => sql"DELETE FROM MigrationEventLog WHERE id=${id}".update.run.transact(xa))
+    doobie. transactRunEither(xa => sql"DELETE FROM MigrationEventLog WHERE id=${id}".update.run.transact(xa)) match {
+      case Right(x) => //
+      case Left(ex) => throw ex
+    }
 
     res
   }
