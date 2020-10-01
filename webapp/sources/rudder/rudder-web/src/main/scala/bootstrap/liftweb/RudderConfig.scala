@@ -1464,6 +1464,7 @@ object RudderConfig extends Loggable {
     , queryProcessor
     , ditQueryDataImpl
     , psMngtService
+    , configService.node_accept_duplicated_hostname
   )
 
   private[this] lazy val historizeNodeStateOnChoice: UnitAcceptInventory with UnitRefuseInventory = new HistorizeNodeStateOnChoice(
