@@ -38,44 +38,49 @@
 package com.normation.rudder.rest.lift
 
 import better.files.File
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.ncf.TechniqueWriter
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.ApiVersion
-import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.{NcfApi => API}
-import com.normation.utils.StringUuidGenerator
-import net.liftweb.common.Box
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.Req
-import net.liftweb.json.JsonAST.JValue
 import com.normation.box._
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
-import com.normation.rudder.ncf.ResourceFile
-import net.liftweb.json.JsonAST.JArray
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.ncf.CheckConstraint
+import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.Technique
 import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
+import com.normation.rudder.ncf.TechniqueWriter
+import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
+import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.ApiVersion
+import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.TwoParam
+import com.normation.rudder.rest.{NcfApi => API}
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common.Box
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.Req
+import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonAST.JValue
 import zio.ZIO
 
 class NcfApi(
     techniqueWriter     : TechniqueWriter
   , techniqueReader     : TechniqueReader
   , techniqueRepository : TechniqueRepository
+  , readDirective       : RoDirectiveRepository
   , restExtractorService: RestExtractorService
   , techniqueSerializer : TechniqueSerializer
   , uuidGen             : StringUuidGenerator
@@ -331,6 +336,18 @@ class NcfApi(
         } )
     }
 
+    private def isTechniqueNameExist(name: TechniqueName, bundleName: BundleName) = {
+      for {
+        lib              <- readDirective.getFullDirectiveLibrary()
+        activeTechniques =  lib.allActiveTechniques.values.toSeq
+        userTechniques   <- techniqueReader.readTechniquesMetadataFile
+        names            = activeTechniques.map(_.techniqueName.value) ++ userTechniques.map(_.bundleName.value)
+
+      } yield {
+        names.contains(name.value) || names.contains(bundleName.value)
+      }
+    }
+
     val schema = API.CreateTechnique
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -342,6 +359,8 @@ class NcfApi(
           methodMap = methods.map(m => (m.id,m)).toMap
           technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap, true)
           internalId <- OptionnalJson.extractJsonString(json \ "technique", "internalId")
+          isNameTaken <- isTechniqueNameExist(TechniqueName(technique.name), technique.bundleName).toBox
+          _ <- if(isNameTaken) Failure(s"Technique name and ID must be unique. '${technique.name}' already used") else Full(())
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           resoucesMoved <- internalId.map( internalId => moveRessources(technique,internalId).toBox).getOrElse(Full("Ok"))
           updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor).toBox
