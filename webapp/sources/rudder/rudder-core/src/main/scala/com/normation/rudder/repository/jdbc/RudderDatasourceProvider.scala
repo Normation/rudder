@@ -67,8 +67,13 @@ class RudderDatasourceProvider(
   config.setUsername(username)
   config.setPassword(password)
   config.setMaximumPoolSize(if(maxPoolSize < 1) 1 else maxPoolSize)
-  config.setMinimumIdle(Math.max(java.lang.Runtime.getRuntime.availableProcessors()/2, 1))
   config.setAutoCommit(false)
+
+  // `connectionTimeout` is the time hikari wait when there is no connection available or base down before telling
+  // upward that there is no connection. It makes Rudder slow, and we prefer to be notified quickly that it was
+  // impossible to get a connection. Must be >=250ms. Rudder know how to handle that gracefullly.
+  config.setConnectionTimeout(250) // in milliseconds
+
 
   // since we use JDBC4 driver, we MUST NOT set `setConnectionTestQuery("SELECT 1")`
   // more over, it causes problems, see: https://issues.rudder.io/issues/14789
