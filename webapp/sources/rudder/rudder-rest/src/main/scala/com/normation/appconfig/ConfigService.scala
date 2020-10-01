@@ -200,6 +200,8 @@ trait ReadConfigService {
   def rudder_node_onaccept_default_policy_mode(): IOResult[Option[PolicyMode]]
   def rudder_node_onaccept_default_state(): IOResult[NodeState]
 
+  def node_accept_duplicated_hostname(): IOResult[Boolean]
+
   /**
    * What is the behavior to adopt regarding unexpected reports ?
    */
@@ -345,6 +347,10 @@ trait UpdateConfigService {
    */
   def set_rudder_node_onaccept_default_policy_mode(policyMode: Option[PolicyMode]): IOResult[Unit]
   def set_rudder_node_onaccept_default_state(nodeState: NodeState): IOResult[Unit]
+
+  def set_node_accept_duplicated_hostname(accept: Boolean): IOResult[Unit]
+
+
   def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : IOResult[Unit]
 
   /**
@@ -418,6 +424,7 @@ class LDAPBasedConfigService(
        rudder.generation.max.parallelism=x0.5
        rudder.generation.js.timeout=30
        rudder.generation.continue.on.error=false
+       node.accept.duplicated.hostname=false
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -684,10 +691,19 @@ class LDAPBasedConfigService(
    * - policy mode
    * - node lifecycle state
    */
-  def rudder_node_onaccept_default_policy_mode(): IOResult[Option[PolicyMode]] =get("rudder_node_onaccept_default_state")
+  def rudder_node_onaccept_default_policy_mode(): IOResult[Option[PolicyMode]] = get("rudder_node_onaccept_default_state")
   def set_rudder_node_onaccept_default_policy_mode(policyMode: Option[PolicyMode]): IOResult[Unit] = save("rudder_node_onaccept_default_state", policyMode)
   def rudder_node_onaccept_default_state(): IOResult[NodeState] = get("rudder_node_onaccept_default_policyMode")
   def set_rudder_node_onaccept_default_state(nodeState: NodeState): IOResult[Unit] = save("rudder_node_onaccept_default_policyMode", nodeState)
+
+  /*
+   * Do we allow duplicate hostname for nodes?
+   * (true: yes, duplicate hostname are accepted)
+   */
+  def node_accept_duplicated_hostname(): IOResult[Boolean] = get("node_accept_duplicated_hostname")
+  def set_node_accept_duplicated_hostname(accept: Boolean): IOResult[Unit] = save("node_accept_duplicated_hostname", accept)
+
+
 
   def rudder_compliance_unexpected_report_interpretation(): IOResult[UnexpectedReportInterpretation] = {
     for {

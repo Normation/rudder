@@ -144,6 +144,11 @@ settings:
       type: string
       example: "not defined"
       description: Send anonymous usage statistics
+    node_accept_duplicated_hostname:
+      type: boolean
+      example: false
+      description: Allow acceptation of a pending node when another one with the same hostname is already accepted
+      default: false
     node_onaccept_default_state:
       type: string
       enum:
