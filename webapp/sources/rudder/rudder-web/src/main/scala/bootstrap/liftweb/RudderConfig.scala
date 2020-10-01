@@ -1108,7 +1108,7 @@ object RudderConfig extends Loggable {
         new ComplianceApi(restExtractorService, complianceAPIService)
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService5, groupApiService6, groupInheritedProperties)
       , new DirectiveApi(roDirectiveRepository, restExtractorService, directiveApiService2, stringUuidGenerator)
-      , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, roDirectiveRepository, restExtractorService, techniqueSerializer, stringUuidGenerator, gitRepo, resourceFileService)
+      , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, restExtractorService, techniqueSerializer, stringUuidGenerator, gitRepo, resourceFileService)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeInheritedProperties)
       , new ParameterApi(restExtractorService, parameterApiService2)
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
