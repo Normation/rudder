@@ -73,26 +73,20 @@ import zio.blocking.Blocking
  */
 class Doobie(datasource: DataSource) {
 
-  // we must not leak catsIO anywhere
-  private[this] def transact[T](query: Transactor[Task] => Task[T]): Task[T] = {
-    val xa = ZManaged.make {
-      val ce = ZioRuntime.internal.platform.executor.asEC // our connect EC
-      for {
-        te <- ZIO.access[Blocking](_.get.blockingExecutor.asEC)  // our transaction EC
-      } yield {
-        Transactor.fromDataSource[Task](datasource, ce, Blocker.liftExecutionContext(te))
-      }
-    }(_ => effectUioUnit(())).provide(ZioRuntime.environment)
-
-    xa.use(xa => query(xa))
-  }
+  val xa = (for {
+    // zio.interop.catz._ provides a `zioContextShift`
+    // our transaction EC: wait for aquire/release connections, must accept blocking operations
+    te <- ZIO.access[Blocking](_.get.blockingExecutor.asEC)
+  } yield {
+    Transactor.fromDataSource[Task](datasource, te, Blocker.liftExecutionContext(te))
+  }).provide(ZioRuntime.environment).runNow
 
   def transactTask[T](query: Transactor[Task] => Task[T]): Task[T] = {
-    transact(query)
+    query(xa)
   }
 
   def transactIOResult[T](errorMsg: String)(query: Transactor[Task] => Task[T]): IOResult[T] = {
-    transact(query).mapError(ex => SystemError(errorMsg, ex))
+    query(xa).mapError(ex => SystemError(errorMsg, ex))
   }
 
   def transactRun[T](query: Transactor[Task] => Task[T]): T = {
