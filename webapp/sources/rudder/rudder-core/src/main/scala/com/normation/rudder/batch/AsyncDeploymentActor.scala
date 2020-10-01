@@ -51,7 +51,6 @@ import com.normation.eventlog.EventLogDetails
 
 import scala.xml.NodeSeq
 import com.normation.eventlog.ModificationId
-import java.io.File
 
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
@@ -174,49 +173,9 @@ final class AsyncDeploymentActor(
     )
   }
 
-  // That flag file is used to determine if a policy update was running when the webapp stopped so we can launch a new one when starting
-  val policyUpdateRunningFlagPath = "/opt/rudder/etc/policy-update-running"
+  // deprecated flag file to trigger policy generation at start
   val triggerPolicyUpdateFlagPath = "/opt/rudder/etc/trigger-policy-generation"
 
-  private[this] def createFlagFile = {
-    val file =  new File(policyUpdateRunningFlagPath)
-    try {
-        file.createNewFile()
-        PolicyGenerationLogger.manager.debug(s"Flag file '${policyUpdateRunningFlagPath}' created")
-    } catch {
-      // Exception while checking the file existence
-      case e : Exception =>
-        PolicyGenerationLogger.manager.error(s"An error occurred while creating flag file '${policyUpdateRunningFlagPath}', cause is: ${e.getMessage}")
-    }
-  }
-
-  private[this] def deleteFlagFile = {
-    val runningFile =  new File(policyUpdateRunningFlagPath)
-    val triggerFile = new File(triggerPolicyUpdateFlagPath)
-
-    for (file <- runningFile::triggerFile::Nil) {
-      try {
-        if (file.exists) {
-          // delete the file only if it is present
-          if (file.delete) {
-            // Deleted, come back to normal
-            PolicyGenerationLogger.manager.info(s"Flag file '${file.getPath}' successfully removed")
-          } else {
-            // File could not be deleted, seek for reason
-            if (!file.exists()) {
-              PolicyGenerationLogger.manager.warn(s"Flag file '${file.getPath}' could not be removed as it does not exist anymore")
-            } else {
-              PolicyGenerationLogger.manager.error(s"Flag file '${file.getPath}' could not be removed, you may have to remove it manually, cause is: Permission denied or someone is actually editing the file")
-            }
-          }
-        }
-      } catch {
-        // Exception while checking the file existence
-        case e: Exception =>
-          PolicyGenerationLogger.manager.error(s"An error occurred while deleting flag file '${file.getPath}', cause is: ${e.getMessage}")
-      }
-    }
-  }
   override protected def lowPriority = {
 
     //
@@ -224,7 +183,6 @@ final class AsyncDeploymentActor(
     //
     case AutomaticStartDeployment(modId, actor) => {
       implicit val a = actor
-      createFlagFile
 
       PolicyGenerationLogger.manager.trace("Policy updater: receive new automatic policy update request message")
 
@@ -266,7 +224,6 @@ final class AsyncDeploymentActor(
     case ManualStartDeployment(modId, actor, reason) => {
       implicit val a = actor
       implicit val r = Some(reason)
-      createFlagFile
 
       PolicyGenerationLogger.manager.trace("Policy updater: receive new manual policy update request message")
       currentDeployerState match {
@@ -308,7 +265,6 @@ final class AsyncDeploymentActor(
     // response from the deployer
     //
     case DeploymentResult(id, modId, startTime, endTime, result, actor, deploymentEventId) => {
-      deleteFlagFile
       //process the result
       result match {
         case e:EmptyBox =>
