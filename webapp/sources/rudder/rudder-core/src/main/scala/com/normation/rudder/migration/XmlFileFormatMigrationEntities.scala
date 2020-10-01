@@ -62,7 +62,7 @@ class MigrationEventLogRepository(val db: Doobie) {
   def getLastDetectionLine: Either[Throwable, Option[DB.MigrationEventLog[Long]]] = {
     val sql = sql"""select id, detectiontime, detectedfileformat, migrationstarttime, migrationendtime, migrationfileformat, description
                     from migrationeventlog order by id desc limit 1""".query[DB.MigrationEventLog[Long]].option
-    transactRun(xa => sql.transact(xa).either)
+    transactRunEither(xa => sql.transact(xa))
   }
 
   /**
@@ -71,7 +71,7 @@ class MigrationEventLogRepository(val db: Doobie) {
    */
   def setMigrationStartTime(id: Long, startTime: DateTime) : Either[Throwable,Int] = {
     val sql = sql"""update migrationeventlog set migrationstarttime = ${startTime} where id=${id}""".update
-    transactRun(xa => sql.run.transact(xa).either)
+    transactRunEither(xa => sql.run.transact(xa))
   }
 
   /**
@@ -80,7 +80,7 @@ class MigrationEventLogRepository(val db: Doobie) {
    */
   def setMigrationFileFormat(id: Long, fileFormat: Long, endTime: DateTime) : Either[Throwable, Int] = {
     val sql = sql"""update migrationeventlog set migrationfileformat=${fileFormat}, migrationendtime=${endTime} where id=${id}""".update
-    transactRun(xa => sql.run.transact(xa).either)
+    transactRunEither(xa => sql.run.transact(xa))
   }
 
   /**
@@ -90,7 +90,7 @@ class MigrationEventLogRepository(val db: Doobie) {
   def createNewStatusLine(fileFormat: Long, description: Option[String] = None) : Either[Throwable, DB.MigrationEventLog[Long]] = {
     val now = DateTime.now
     val sql = sql"""insert into migrationeventlog (detectiontime, detectedfileformat, description) values (${now}, ${fileFormat}, ${description})""".update
-    transactRun(xa => sql.withUniqueGeneratedKeys[Long]("id").transact(xa).either).map(id =>
+    transactRunEither(xa => sql.withUniqueGeneratedKeys[Long]("id").transact(xa)).map(id =>
       DB.MigrationEventLog[Long](id, now, fileFormat, None, None, None, description)
     )
   }
