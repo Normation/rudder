@@ -50,6 +50,7 @@ impl From<Result<(), Error>> for State {
 
 #[derive(Serialize, Debug, PartialEq, Eq)]
 pub struct Status {
+    #[serde(skip_serializing_if = "Option::is_none")]
     database: Option<State>,
     configuration: State,
 }
