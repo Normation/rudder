@@ -146,6 +146,10 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                        "MANAGED_NODES_KEY" , "CFEngine KEY (modulus with transformation) of nodes managed by the policy server"
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
+    , SystemVariableSpec(
+                       "POLICY_SERVER_KEY" , "CFEngine KEY (modulus with transformation) of the policy server"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
       // end
       //
       // The following variables contains information about all the nodes managed by
