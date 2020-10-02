@@ -46,9 +46,9 @@ paths:
     $ref: paths/shared-files.yml
   "/policies/{nodeId}/rules/dsc/rudder.zip":
     $ref: paths/policies.yml
-  "/relay-api/remote-run/nodes/{nodeId}":
+  "/remote-run/nodes/{nodeId}":
     $ref: paths/remote-run/node.yml
-  "/relay-api/remote-run/nodes":
+  "/remote-run/nodes":
     $ref: paths/remote-run/nodes.yml
-  "/relay-api/remote-run/nodes/all":
+  "/remote-run/all":
     $ref: paths/remote-run/all.yml
