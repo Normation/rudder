@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use super::CommandResult;
 use crate::{
-    error::*, generator::new_generator, io::IOContext, ir::ir1::IR1, ir::ir2::IR2, logger::*,
-    parser::PAST, rudderlang_lib::RudderlangLib, ActionResult,
+    error::*, generator::new_generator, io::IOContext, ir::ir1::IR1, ir::ir2::IR2, parser::PAST,
+    rudderlang_lib::RudderlangLib,
 };
 use colored::Colorize;
 use typed_arena::Arena;
@@ -43,7 +44,7 @@ pub fn technique_to_ir<'src>(
 }
 
 // compiles lib + file (from a string), used in generate too
-pub fn compile(ctx: &IOContext, is_technique: bool) -> Result<Vec<ActionResult>> {
+pub fn compile(ctx: &IOContext, is_technique: bool) -> Result<Vec<CommandResult>> {
     let sources = Arena::new();
     let ir = technique_to_ir(ctx, &sources)?;
     // generate final output

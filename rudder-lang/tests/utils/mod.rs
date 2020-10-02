@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use rudderc::{io, Action, Format};
+use rudderc::{command::Command, generator::Format, io};
 
 const RLFILES_PATH: &str = "tests/compile_techniques";
 const TESTFILES_PATH: &str = "tests/tmp";
@@ -75,10 +75,10 @@ fn compile_file(
         input,
         input_content,
         output: Some(dest.to_path_buf()),
-        action: Action::Compile,
+        command: Command::Compile,
         format: format.clone(),
     };
-    match rudderc::compile::compile(&io, true) {
+    match rudderc::command::compile(&io, true) {
         Ok(_) => {
             println!(
                 "{}: compilation of {}",

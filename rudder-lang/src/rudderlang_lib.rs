@@ -2,11 +2,10 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    compile,
+    command::compile,
     error::*,
     io,
     ir::{ir1::IR1, resource::ResourceDef, resource::StateDef},
-    logger::*,
     parser::{Token, PAST},
 };
 use colored::Colorize;

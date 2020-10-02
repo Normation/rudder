@@ -2,7 +2,9 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::Generator;
-use crate::{error::*, ir::ir2::IR2, technique::Technique, ActionResult, Format};
+use crate::{
+    command::CommandResult, error::*, generator::Format, ir::ir2::IR2, technique::Technique,
+};
 use std::convert::From;
 use std::path::Path;
 
@@ -16,9 +18,9 @@ impl Generator for JSON {
         _source_file: &str,
         dest_file: Option<&Path>,
         _policy_metadata: bool,
-    ) -> Result<Vec<ActionResult>> {
+    ) -> Result<Vec<CommandResult>> {
         let content = Technique::from(gc).to_json()?;
-        Ok(vec![ActionResult::new(
+        Ok(vec![CommandResult::new(
             Format::JSON,
             match dest_file {
                 Some(path) => path.to_str().map(|refstr| refstr.into()),

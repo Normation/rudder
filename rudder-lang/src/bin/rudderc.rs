@@ -1,32 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-#![allow(clippy::large_enum_variant)]
-
-//!  Principle:
+//!  Commands:
 //!  1-  rl -> PAST::add_file() -> PAST
 //!         -> IR1::from_past -> IR1
 //!         -> IR2::from_ir1 -> IR2
 //!         -> ...
-//!         -> generate() -> cfengine/json/...
+//!         -> compile() -> cfengine/dsc
 //!
-//!  2- json technique -> translate() -> rl
+//!  2- json technique -> save() -> rl technique
 //!
-//!  3- ncf library -> generate_lib() -> resourcelib.rl + translate-config
-
-use std::process::exit;
-use structopt::StructOpt;
-
-use rudderc::{
-    compile::compile,
-    error::Error,
-    migrate::migrate,
-    opt::Opt,
-    technique::{technique_generate, technique_read},
-    Action,
-};
-
-// MAIN
+//!  3- rl technique -> technique read() -> json technique
+//!
+//!  4- json technique -> technique generate() -> JSON wrapper { dsc + rl + cf }
 
 // Questions :
 // - compatibilité avec les techniques définissant des variables globales depuis une GM qui dépend d'une autre ?
@@ -36,10 +22,6 @@ use rudderc::{
 // - a quoi ressemblent les iterators ?
 // - arguments non ordonnés pour les resources et les states ?
 // - usage des alias: pour les children, pour les (in)compatibilités, pour le générateur?
-
-// Next steps:
-//
-//
 
 // TODO a state S on an object A depending on a condition on an object B is invalid if A is a descendant of B
 // TODO except if S is the "absent" state
@@ -55,21 +37,37 @@ use rudderc::{
 // completion (success or failure) log looks like this: "Compilation result": { "status": "str", "from": "str", "to": "str", "pwd": "str" }
 // `panic!` log looks like this: { "status": "str", "message": "str" } (a lightweight version of a default log)
 
+// Phase 2
+// - function, measure(=fact), command
+// - variable = anything
+// - optimize before generation (remove unused code, simplify expressions ..)
+// - inline native (cfengine, ...)
+// - remediation resource (phase 3: add some reactive concept)
+// - read templates and json a compile time
+
+#![allow(clippy::large_enum_variant)]
+
+use rudderc::{
+    command::{self, Command},
+    error::Error,
+    io::cli_parser::CLI,
+};
+use std::process::exit;
+use structopt::StructOpt;
+
 /// Rudder language compiler
 
 // TODO use termination
-// TODO log infos into ram to put into logs
-
 fn main() {
-    let command = Opt::from_args();
-    let (output, log_level, is_backtraced) = command.extract_logging_infos();
-    let action = command.as_action();
+    let cli = CLI::from_args();
+    let (output, log_level, is_backtraced) = cli.extract_logging_infos();
+    let command = cli.as_command();
     // Initialize logger and output
-    output.init(action, log_level, is_backtraced);
-    let ctx = command.extract_parameters().unwrap_or_else(|e| {
+    output.init(command, log_level, is_backtraced);
+    let ctx = cli.extract_parameters().unwrap_or_else(|e| {
         // required before returning in order to have proper logging
         output.print(
-            action,
+            command,
             "Input not set".to_owned(),
             Err(Error::new(
                 "Could not determine proper I/O from given parameters".to_owned(),
@@ -78,29 +76,19 @@ fn main() {
         exit(1);
     });
 
-    // Actual action
-    // read = rl -> json
-    // migrate = cf -> rl
-    // compile = rl -> cf / dsc
-    // generate = json -> json { rl + cf + dsc }
-    // TODO collect logs in ram rather than directly printing it
-    let action_result = match action {
-        Action::Compile => compile(&ctx, true),
-        Action::Migrate => migrate(&ctx),
-        Action::ReadTechnique => technique_read(&ctx),
-        Action::GenerateTechnique => technique_generate(&ctx),
+    let command_result = match command {
+        // compile = rl -> cf / dsc
+        Command::Compile => command::compile(&ctx, true),
+        // save = json -> rl
+        Command::Save => command::save(&ctx),
+        // read = rl -> json
+        Command::ReadTechnique => command::technique_read(&ctx),
+        // generate = json -> json { rl + cf + dsc }
+        Command::GenerateTechnique => command::technique_generate(&ctx),
     };
-    let action_status = action_result.is_ok();
-    output.print(action, ctx.input, action_result);
-    if action_status {
+    let command_status = command_result.is_ok();
+    output.print(command, ctx.input, command_result);
+    if command_status {
         exit(1)
     }
 }
-
-// Phase 2
-// - function, measure(=fact), action
-// - variable = anything
-// - optimize before generation (remove unused code, simplify expressions ..)
-// - inline native (cfengine, ...)
-// - remediation resource (phase 3: add some reactive concept)
-// - read templates and json a compile time

@@ -14,15 +14,15 @@ Optionally add rudderc to your path `export PATH=$PATH:/opt/rudder/bin/rudderc` 
 
 === Usage
 
-`rudderc` has 4 features, called actions that will generate code. The action you need fully depend on the format you have and the output format you want:
+`rudderc` has 4 features, called commands that will generate code. The command you need fully depend on the format you have and the output format you want:
 
 * compile: generates either a DSC / CFEngine technique from a RudderLang technique
-* migrate: generates a RudderLang technique from a JSON technique (same object format Technique Editor produces)
+* save: generates a RudderLang technique from a JSON technique (same object format Technique Editor produces)
 * technique read: generates a JSON technique (same object format Technique Editor produces) from a RudderLang technique
 * technique generate: generates a JSON object that comes with RudderLang + DSC + CFEngine technique from a JSON technique
 It is worth noting that `--stdin` and `--stdout` options are default behavior for `technique generate` and `technique read`
 
-JSON output ( which includes logs) is handled. It is optional for compile and migrate but is default behavior for `technique read` and `technique generate`.
+JSON output ( which includes logs) is handled. It is optional for compile and save but is default behavior for `technique read` and `technique generate`.
 By default all logs but `error` are printed to `STDOUT`. `error` logs are printed to `STDERR`.
 
 [align=center]
@@ -30,7 +30,7 @@ image::rudderc-simple.svg[rudderc abilities]
 
 .The CLI usage (`rudderc --help` or `rudderc -h` output slightly modified)
 ----
-Rudderc (4) available actions are callable through subcommands, namely <technique read>, <technique generate>, <migrate>, <compile>,
+Rudderc (4) available commands are callable through subcommands, namely <technique read>, <technique generate>, <save>, <compile>,
 allowing it to perform generation or translation from / into the following formats : [JSON, RudderLang, CFengine, DSC].
 
 Run `rudderc <SUBCOMMAND> --help` to access its inner options and flags helper
@@ -51,11 +51,11 @@ FLAGS:
 SUBCOMMANDS:
     compile      Generates either a DSC / CFEngine technique (`--format` option) from a RudderLang technique
     help         Prints this message or the help of the given subcommand(s)
-    migrate      Generates a RudderLang technique from a CFEngine technique
+    save      Generates a RudderLang technique from a CFEngine technique
     technique    A technique can either be used with one of the two following subcommands: `read` (from rudderlang
                  to json) or `generate` (from json to cfengine or dsc or rudderlang)
 ----
-_rudderc_ abilities / subcommands are called *actions*, that all share several flags and options
+_rudderc_ *commands* all share several flags and options
 .Shared FLAGS / OPTIONS:
 ----
 FLAGS:
@@ -77,9 +77,9 @@ OPTIONS:
                                        If option path does not exist, concat config output with option. Else base output on input.
 ----
 
-But some actions come with their own flags and options (listed below) on top of the previously mentioned:
+But some commands come with their own flags and options (listed below) on top of the previously mentioned:
 
-.The first action, compile:
+.The first command, compile:
 ----
 Generates a JSON object that comes with RudderLang + DSC + CFEngine technique from a JSON technique
 
@@ -89,7 +89,7 @@ USAGE:
 FLAGS:
     -j, --json-logs                     Use json logs instead of human readable output
                                         This option will print a single JSON object that will contain logs, errors and generated data (or the file where it has been generated).
-                                        Whichever action is chosen, JSON output format is always the same.
+                                        Whichever command is chosen, JSON output format is always the same.
                                         However, some fields (data and destination file) could be set to `null`, make sure to handle `null`s properly
                                         Note that NO_COLOR specs apply by default for json output.
                                         Also note that setting NO_COLOR manually in your env will also work
@@ -100,21 +100,21 @@ OPTIONS:
 
 ...
 ----
-.The second action, migrate:
+.The second command, save:
 ----
 Generates a RudderLang technique from a CFEngine technique
 
 USAGE:
-    rudderc migrate [FLAGS] [OPTIONS]
+    rudderc save [FLAGS] [OPTIONS]
 
 FLAGS:
     -j, --json-logs    Use json logs instead of human readable output
                        This option will print a single JSON object that will contain logs, errors and generated data (or the file where it has been generated).
-                       Whichever action is chosen, JSON output format is always the same. However, some fields (data and destination file) could be set to `null`, make sure to handle `null`s properly
+                       Whichever command is chosen, JSON output format is always the same. However, some fields (data and destination file) could be set to `null`, make sure to handle `null`s properly
                        Note that NO_COLOR specs apply by default for json output.
                        Also note that setting NO_COLOR manually in your env will also work
 ----
-.The third action, technique read (`read` is a subcommand of the `technique` subcommand):
+.The third command, technique read (`read` is a subcommand of the `technique` subcommand):
 ----
 Generates a JSON technique from a RudderLang technique
 
@@ -123,7 +123,7 @@ USAGE:
 
 ...
 ----
-.The fourth action, technique generate (`generate` is a subcommand of the `technique` subcommand):
+.The fourth command, technique generate (`generate` is a subcommand of the `technique` subcommand):
 ----
 Generates a JSON object that comes with RudderLang + DSC + CFEngine technique from a JSON technique
 
@@ -150,21 +150,21 @@ Most options are pretty straightforward but some explanations might help:
 
 Internally for input the compiler looks for an existing file until it founds one, in the following order:
 * solely from the CLI input option
-* join configuration action input as dir + CLI input option
-* solely from the configuration action input (if the file exists)
+* join configuration input as dir + CLI input option
+* solely from the configuration input (if the file exists)
 * if none worked, error
 
 Internally for output, the compiler looks for an existing path to write a file on, until it founds one:
 * solely from the CLI output option
-* join configuration action output as dir + CLI output option
-* solely from the configuration action output
+* join configuration output as dir + CLI output option
+* solely from the configuration output
 * uses input and only updates the extension 
 * if none worked, error
 
 Internally for format when required (`compile`):
-* for any action but `compile`, format is set by the program 
-* compile action: explicit CLI `--format` option. Note that values are limited. 
-* compile action: output file extension is used
+* for any command but `compile`, format is set by the program 
+* compile command: explicit CLI `--format` option. Note that values are limited. 
+* compile command: output file extension is used
 * if none worked, error
 
 
@@ -187,7 +187,7 @@ dsc_methods="repos/dsc/packaging/Files/share/initial-policy/ncf/30_generic_metho
 input="tests/techniques/simplest/technique.rl"
 output="tests/techniques/simplest/technique.rl.cf"
 
-[migrate]
+[save]
 input="tests/techniques/simplest/technique.cf"
 output="tests/techniques/simplest/technique.cf.rl"
 
@@ -209,7 +209,7 @@ py_modules="tools/"
 
 The configuration file can be used to shorten arguments.
 
-There is a table for each action (`compile`, `technique_read`, `technique_generate`, `migrate`), that can hold their own two limited fields: `input` and `output`.
+There is a table for each command (`compile`, `technique_read`, `technique_generate`, `save`), that can hold their own two limited fields: `input` and `output`.
 Meaningful usage is that these two fields are paths that are completed by CLI filenames: `--input <file>` / `--output <file>` CLI options.
 In other words: config options are paths (directories), to which is joined the cli option.
 But configure it using a file and not use the CLI options will work.
@@ -296,7 +296,7 @@ If you decided to go with the `--json-output` option, it means output will consi
 [source,json]
 ----
 {
-  "action": "compile",
+  "command": "compile",
   "time": "1600331631367",
   "status": "success",
   "source": "tests/techniques/simplest/technique.rl",
@@ -316,7 +316,7 @@ If you decided to go with the `--json-output` option, it means output will consi
 * `data` field:
 ** Length always 0 in case of error # TODO check for technique generate
 ** Length always 3 when `technique generate called`
-** Length always 1 in any other case since other actions only generate 1 format
+** Length always 1 in any other case since other commands only generate 1 format
 * `content` field is null if its content has succesfully been written to a file
 * `destination` field is null if content is directly written in the JSON
 * `errors` field is an array of strings

@@ -1,8 +1,8 @@
-# @name test_enrico_renomag
+# @name multiple_gms
 # @description 
 # @version 1.0
 
-bundle agent test_enrico
+bundle agent multiple_gms
 {
   methods:
     "File copy from remote source_context_0" usebundle => _method_reporting_context("File copy from remote source", "${tmp_knowledge.hello_path}");

@@ -11,7 +11,7 @@
 /// - Compilation error: usually we can skip what we are doing and go to next iteration
 /// - List: aggregate compilation errors so that user can fix them all ant once
 ///
-use crate::output::Backtrace;
+use crate::io::output::Backtrace;
 use crate::parser::Token;
 use colored::Colorize;
 use ngrammatic::CorpusBuilder;
@@ -97,7 +97,6 @@ impl Error {
 /// next iteration and aggregate errors.
 macro_rules! err {
     ($origin:expr, $ ( $ arg : tt ) *) => ({
-        use crate::error::Error;
         use colored::Colorize;
 
         Error::new(

@@ -8,9 +8,6 @@
     "version": "1.0",
     "parameter": [],
     "category": "ncf_techniques",
-    "bundle_args": [
-      "12"
-    ],
     "method_calls": [
       {
         "parameters": [
@@ -20,7 +17,7 @@
             "$errors": []
           }
         ],
-        "class_context": "any.(debian)",
+        "class_context": "any.(debian_family)",
         "method_name": "file_absent",
         "component": "File absent"
       }

@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{error::*, generator::Format, logger::*, opt::Options, parser::Token, Action};
+#[macro_use]
+pub mod logs;
+pub mod cli_parser;
+pub mod output;
+
+use self::cli_parser::Options;
+use crate::{command::Command, error::*, generator::Format, parser::Token};
 use colored::Colorize;
 use serde::Deserialize;
 use std::{fmt, fs, io::Read, path::PathBuf, str::FromStr};
@@ -23,7 +29,7 @@ struct Config {
     #[serde(rename = "shared")]
     libs: LibsConfig,
     compile: IOPaths,
-    migrate: IOPaths,
+    save: IOPaths,
     technique_generate: IOPaths,
     technique_read: IOPaths,
 }
@@ -39,11 +45,11 @@ pub struct IOContext {
     pub output: Option<PathBuf>,
     // Unique fields
     pub format: Format,
-    pub action: Action,
+    pub command: Command,
 }
 // TODO might try to merge io.rs in here
 impl IOContext {
-    pub fn new(action: Action, opt: &Options, format: Option<Format>) -> Result<Self> {
+    pub fn new(command: Command, opt: &Options, format: Option<Format>) -> Result<Self> {
         let config: Config = match std::fs::read_to_string(&opt.config_file) {
             Err(e) => {
                 return Err(Error::new(format!(
@@ -62,17 +68,17 @@ impl IOContext {
             },
         };
 
-        let action_config = match action {
-            Action::Compile => config.compile,
-            Action::GenerateTechnique => config.technique_generate,
-            Action::Migrate => config.migrate,
-            Action::ReadTechnique => config.technique_read,
+        let command_config = match command {
+            Command::Compile => config.compile,
+            Command::GenerateTechnique => config.technique_generate,
+            Command::Save => config.save,
+            Command::ReadTechnique => config.technique_read,
         };
         let (input, input_str, input_content) =
-            get_input(&action_config.input, &opt.input, opt.stdin)?;
+            get_input(&command_config.input, &opt.input, opt.stdin)?;
         let (output, format) = get_output(
-            &action_config.output,
-            action,
+            &command_config.output,
+            command,
             &input,
             &opt.output,
             opt.stdout,
@@ -84,7 +90,7 @@ impl IOContext {
             input: input_str,
             input_content,
             output,
-            action,
+            command,
             format,
         };
         info!("I/O context: {}", ctx);
@@ -120,7 +126,7 @@ impl fmt::Display for IOContext {
             "{}",
             &format!(
                 "{} of {:?} into {:?}. Output format is {}. Libraries path: {:?}.",
-                self.action, self.input, self.output, self.format, self.stdlib,
+                self.command, self.input, self.output, self.format, self.stdlib,
             )
         )
     }
@@ -165,7 +171,7 @@ fn get_input(
 /// get explicit output file
 fn get_output(
     config_path: &Option<PathBuf>,
-    action: Action,
+    command: Command,
     input: &Option<PathBuf>,
     argv_output: &Option<PathBuf>,
     is_stdout: bool,
@@ -175,8 +181,8 @@ fn get_output(
         warn!("commands: stdout option conflicts with output option. Priority to the former.");
     }
     // is_stdout OR exception for Generate Technique which is designed to work from stdin: default stdout unless output specified
-    if is_stdout || (action == Action::GenerateTechnique && argv_output == &None) {
-        return Ok((None, get_output_format(action, format, &None)?.1));
+    if is_stdout || (command == Command::GenerateTechnique && argv_output == &None) {
+        return Ok((None, get_output_format(command, format, &None)?.1));
     }
 
     let technique = Some(match (&argv_output, config_path, input) {
@@ -201,7 +207,7 @@ fn get_output(
     });
 
     // format is part of output file so it makes sense to return it from this function plus it needs to be defined here to update output if needed
-    let (format_as_str, format) = get_output_format(action, format, &technique)?;
+    let (format_as_str, format) = get_output_format(command, format, &technique)?;
     Ok((
         technique.map(|output| output.with_extension(&format_as_str)),
         format,
@@ -210,20 +216,20 @@ fn get_output(
 
 /// get explicit output. If no explicit output get default path + filename. I none, use input path (and update format). If none worked, error
 fn get_output_format(
-    action: Action,
+    command: Command,
     format: Option<Format>,
     output: &Option<PathBuf>,
 ) -> Result<(String, Format)> {
-    if action == Action::Compile && format.is_some() {
+    if command == Command::Compile && format.is_some() {
         info!("Command line format option used");
     }
 
-    // All formats but Compile are hardcoded in Opt implementation, so this is partly double check
-    match (action, format) {
-        (Action::Compile, Some(fmt)) if fmt == Format::CFEngine || fmt == Format::DSC => {
+    // All formats but Compile are hardcoded in CLI implementation, so this is partly double check
+    match (command, format) {
+        (Command::Compile, Some(fmt)) if fmt == Format::CFEngine || fmt == Format::DSC => {
             Ok((format!("{}.{}", "rl", fmt), fmt))
         }
-        (Action::Compile, _) => {
+        (Command::Compile, _) => {
             info!("Commands: missing or invalid format, deducing it from output file extension");
             let ext = match output {
                 Some(o) => o.extension(),
@@ -274,7 +280,7 @@ pub fn get_content<'src>(path: &Option<PathBuf>) -> Result<(String, String)> {
                 Err(e) => Err(err!(Token::new(&filename, ""), "{}", e)),
             }
         }
-        // None means expect input from STDIN (see Opt methods)
+        // None means expect input from STDIN (see CLI methods)
         None => {
             let mut buffer = String::new();
             match std::io::stdin().read_to_string(&mut buffer) {

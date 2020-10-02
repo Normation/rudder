@@ -1,232 +1,3 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2019-2020 Normation SAS
-
-use crate::{
-    error::Result, generator::Format, io::IOContext, logger::LogLevel, output::LogOutput, Action,
-};
-use serde::Deserialize;
-use std::{cmp::PartialEq, path::PathBuf};
-use structopt::StructOpt;
-
-#[derive(Debug, StructOpt, Deserialize, PartialEq)]
-#[structopt(rename_all = "kebab-case")]
-/// Rudderc abilities are callable through subcommands, namely <technique read>, <technique generate>, <migrate>, <compile>,
-/// allowing it to perform generation or translation from / into the following formats : [JSON, RudderLang, CFengine, DSC].
-///
-/// Run `rudderc <SUBCOMMAND> --help` to access its inner options and flags helper
-///
-/// Example:
-/// rudderc technique generate -c confs/my.conf -i techniques/technique.json -f rudderlang
-pub enum Opt {
-    Technique(Technique),
-    /// Generates a RudderLang technique from a CFEngine technique
-    Migrate {
-        #[structopt(flatten)]
-        options: Options,
-
-        /// Use json logs instead of human readable output
-        ///
-        /// This option will print a single JSON object that will contain logs, errors and generated data (or the file where it has been generated)
-        ///
-        /// JSON output format is always the same, whichever action is chosen.
-        /// However, some fields (data and destination file) could be set to `null`, make sure to handle `null`s properly.
-        ///
-        /// Note that NO_COLOR specs apply by default for json output.
-        ///
-        /// Also note that setting NO_COLOR manually in your env will also work
-        #[structopt(long, short)]
-        json_logs: bool,
-    },
-    /// Generates either a DSC / CFEngine technique (`--format` option) from a RudderLang technique
-    Compile {
-        #[structopt(flatten)]
-        options: Options,
-
-        /// Use json logs instead of human readable output
-        ///
-        /// This option will print a single JSON object that will contain logs, errors and generated data (or the file where it has been generated)
-        ///
-        /// JSON output format is always the same, whichever action is chosen.
-        /// However, some fields (data and destination file) could be set to `null`, make sure to handle `null`s properly.
-        ///
-        /// Note that NO_COLOR specs apply by default for json output.
-        ///
-        /// Also note that setting NO_COLOR manually in your env will also work
-        #[structopt(long, short)]
-        json_logs: bool,
-
-        /// Enforce a compiler output format (overrides configuration format)
-        #[structopt(long, short, possible_values = &["cf", "cfengine", "dsc"])]
-        format: Option<Format>,
-    },
-}
-
-/// A technique can either be used with one of the two following subcommands: `read` (from rudderlang to json) or `generate` (from json to cfengine or dsc or rudderlang)
-#[derive(Debug, StructOpt, Deserialize, PartialEq)]
-#[structopt(rename_all = "kebab-case")]
-pub enum Technique {
-    /// Generates a JSON technique from a RudderLang technique
-    Read {
-        #[structopt(flatten)]
-        options: Options,
-    },
-    /// Generates a JSON object that comes with RudderLang + DSC + CFEngine technique from a JSON technique
-    Generate {
-        #[structopt(flatten)]
-        options: Options,
-    },
-}
-
-#[derive(Clone, Debug, StructOpt, Deserialize, PartialEq)]
-#[structopt(rename_all = "kebab-case")]
-pub struct Options {
-    /// Path of the configuration file to use.
-    /// A configuration file is required (containing at least stdlib and generic_methods paths)
-    #[structopt(long, short, default_value = "/opt/rudder/etc/rudderc.conf")]
-    pub config_file: PathBuf,
-
-    /// Input file path.
-    ///
-    /// If option path does not exist, concat config input with option.
-    #[structopt(long, short)]
-    pub input: Option<PathBuf>,
-
-    /// Output file path.
-    ///
-    /// If option path does not exist, concat config output with option.
-    ///
-    ///Else base output on input.
-    #[structopt(long, short)]
-    pub output: Option<PathBuf>,
-
-    /// rudderc output logs verbosity.
-    #[structopt(
-        long,
-        short,
-        possible_values = &["off", "trace", "debug", "info", "warn", "error"],
-        default_value = "warn"
-    )]
-    pub log_level: LogLevel,
-
-    /// Takes stdin as an input rather than using a file. Overwrites input file option
-    #[structopt(long)]
-    pub stdin: bool,
-
-    /// Takes stdout as an output rather than using a file. Overwrites output file option. Dismiss logs directed to stdout.
-    /// Errors are kept since they are printed to stderr
-    #[structopt(long)]
-    pub stdout: bool,
-
-    /// Generates a backtrace in case an error occurs
-    #[structopt(long, short)]
-    pub backtrace: bool,
-}
-
-impl Opt {
-    pub fn extract_logging_infos(&self) -> (LogOutput, LogLevel, bool) {
-        let (output, level, is_backtraced) = match self {
-            Self::Compile {
-                options, json_logs, ..
-            } => {
-                let output = match (json_logs, options.stdout) {
-                    (_, true) => LogOutput::None,
-                    (true, false) => LogOutput::JSON,
-                    (false, false) => LogOutput::Raw,
-                };
-                (output, options.log_level, options.backtrace)
-            }
-            Self::Migrate { options, json_logs } => {
-                let output = match (json_logs, options.stdout) {
-                    (_, true) => LogOutput::None,
-                    (true, false) => LogOutput::JSON,
-                    (false, false) => LogOutput::Raw,
-                };
-                (output, options.log_level, options.backtrace)
-            }
-            Self::Technique(t) => t.extract_logging_infos(),
-        };
-        // remove log colors if JSON format to make logs vec readable
-        if output == LogOutput::JSON {
-            std::env::set_var("NO_COLOR", "1");
-        }
-        (output, level, is_backtraced)
-    }
-
-    pub fn extract_parameters(&self) -> Result<IOContext> {
-        match self {
-            Self::Compile {
-                options, format, ..
-            } => IOContext::new(self.as_action(), options, format.clone()),
-            Self::Migrate { options, .. } => {
-                IOContext::new(self.as_action(), options, Some(Format::RudderLang))
-            }
-            Self::Technique(t) => t.extract_parameters(),
-        }
-    }
-
-    pub fn as_action(&self) -> Action {
-        match self {
-            Self::Technique(technique) => technique.as_action(),
-            Self::Migrate { .. } => Action::Migrate,
-            Self::Compile { .. } => Action::Compile,
-        }
-    }
-}
-
-impl Technique {
-    fn extract_logging_infos(&self) -> (LogOutput, LogLevel, bool) {
-        match self {
-            Self::Read { options } => {
-                let output = match options.stdout {
-                    true => LogOutput::None,
-                    false => LogOutput::JSON,
-                };
-                (output, options.log_level, options.backtrace)
-            }
-            Self::Generate { options, .. } => {
-                let output = match options.stdout {
-                    true => LogOutput::None,
-                    false => LogOutput::JSON,
-                };
-                (output, options.log_level, options.backtrace)
-            }
-        }
-    }
-
-    fn extract_parameters(&self) -> Result<IOContext> {
-        match self {
-            Self::Read { options } => {
-                // exception: stdin + stdout are set by default
-                let mut options = options.clone();
-                if options.input.is_none() {
-                    options.stdin = true;
-                }
-                if options.output.is_none() && options.stdin {
-                    options.stdout = true;
-                }
-                IOContext::new(self.as_action(), &options, Some(Format::JSON))
-            }
-            Self::Generate { options } => {
-                // exception: stdin + stdout are set by default
-                let mut options = options.clone();
-                if options.input.is_none() {
-                    options.stdin = true;
-                }
-                if options.output.is_none() && options.stdin {
-                    options.stdout = true;
-                }
-                IOContext::new(self.as_action(), &options, Some(Format::JSON))
-            }
-        }
-    }
-
-    fn as_action(&self) -> Action {
-        match self {
-            Technique::Read { .. } => Action::ReadTechnique,
-            Technique::Generate { .. } => Action::GenerateTechnique,
-        }
-    }
-}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -234,12 +5,12 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     // syntaxic sugar + more accessible error message when useful
-    fn opt_new_r(params: &str) -> std::result::Result<Opt, String> {
-        Opt::from_iter_safe(params.split_whitespace()).map_err(|e| format!("{:?}", e.kind))
+    fn opt_new_r(params: &str) -> std::result::Result<CLI, String> {
+        CLI::from_iter_safe(params.split_whitespace()).map_err(|e| format!("{:?}", e.kind))
     }
-    // syntaxic sugar + directly returns Opt. !! If error, panic
-    fn opt_new(params: &str) -> Opt {
-        Opt::from_iter(params.split_whitespace())
+    // syntaxic sugar + directly returns CLI. !! If error, panic
+    fn opt_new(params: &str) -> CLI {
+        CLI::from_iter(params.split_whitespace())
     }
 
     #[test]
@@ -249,7 +20,7 @@ mod tests {
         assert_eq!(
             // full example works fine
             opt_new_r("rudderc technique read -c tools/rudderc-dev.conf -i tests/techniques/6.1.rc5/technique.rl -o tests/techniques/6.1.rc5/technique.ee.cf -l warn -b --stdin --stdout"),
-            Ok(Opt::Technique(Technique::Read {
+            Ok(CLI::Technique(Technique::Read {
                 options: Options {
                     config_file: PathBuf::from("tools/rudderc-dev.conf"),
                     input: Some(PathBuf::from("tests/techniques/6.1.rc5/technique.rl")),
@@ -263,7 +34,7 @@ mod tests {
         );
         assert_eq!(
             opt_new_r("rudderc technique read"), // cleanest setup works and default are ok
-            Ok(Opt::Technique(Technique::Read {
+            Ok(CLI::Technique(Technique::Read {
                 options: Options {
                     config_file: PathBuf::from("/opt/rudder/etc/rudderc.conf"), // default
                     input: None,
@@ -295,14 +66,14 @@ mod tests {
 
         // MIGRATE
         // technique subcommand must be used with a subcommand
-        assert!(opt_new_r("rudderc technique migrate").is_err());
-        // migrate does not accepts format
+        assert!(opt_new_r("rudderc technique save").is_err());
+        // save does not accepts format
         assert_eq!(
-            opt_new_r("rudderc migrate --format"),
+            opt_new_r("rudderc save --format"),
             Err("UnknownArgument".into())
         );
-        // migrate accepts json-logs
-        assert!(opt_new_r("rudderc migrate --json-logs").is_ok());
+        // save accepts json-logs
+        assert!(opt_new_r("rudderc save --json-logs").is_ok());
 
         // GENERATE
         // generate does not accepts json logs option
@@ -356,7 +127,7 @@ mod tests {
             (LogOutput::None, LogLevel::Warn, false),
         );
         assert_eq!(
-            opt_new("rudderc migrate").extract_logging_infos(),
+            opt_new("rudderc save").extract_logging_infos(),
             (LogOutput::Raw, LogLevel::Warn, false),
         );
         assert_eq!(
@@ -364,7 +135,7 @@ mod tests {
             (LogOutput::Raw, LogLevel::Warn, false),
         );
         assert_eq!(
-            opt_new("rudderc migrate --stdout").extract_logging_infos(),
+            opt_new("rudderc save --stdout").extract_logging_infos(),
             (LogOutput::None, LogLevel::Warn, false),
         );
         assert_eq!(
@@ -372,7 +143,7 @@ mod tests {
             (LogOutput::None, LogLevel::Warn, false),
         );
         assert_eq!(
-            opt_new("rudderc migrate -j").extract_logging_infos(),
+            opt_new("rudderc save -j").extract_logging_infos(),
             (LogOutput::JSON, LogLevel::Warn, false),
         );
         assert_eq!(
@@ -381,7 +152,7 @@ mod tests {
         );
         // tricky one
         assert_eq!(
-            opt_new("rudderc migrate -j --stdout").extract_logging_infos(),
+            opt_new("rudderc save -j --stdout").extract_logging_infos(),
             (LogOutput::None, LogLevel::Warn, false),
         );
         // tricky one
@@ -408,7 +179,7 @@ mod tests {
                 assert_eq!(context.input, ctx.input);
                 assert_eq!(context.output, ctx.output);
                 assert_eq!(context.format, ctx.format);
-                assert_eq!(context.action, ctx.action);
+                assert_eq!(context.command, ctx.command);
                 if test_content {
                     // cannot test input_content properly unless we read each file, not the purpose of the test
                     assert_eq!(context.input_content, ctx.input_content);
@@ -449,7 +220,7 @@ mod tests {
                 input_content: "IGNORED FIELD".to_owned(),
                 output: Some(PathBuf::from("tests/techniques/simplest/technique.json")), // based on input + updated extension
                 format: Format::JSON,
-                action: Action::ReadTechnique,
+                command: Command::ReadTechnique,
             },
             false,
         );
@@ -464,7 +235,7 @@ mod tests {
                 input_content: "IGNORED FIELD".to_owned(),
                 output: Some(PathBuf::from("tests/techniques/simplest/try_technique.json")), // based on input + updated extension
                 format: Format::JSON,
-                action: Action::GenerateTechnique,
+                command: Command::GenerateTechnique,
             },
             false,
         );
@@ -478,7 +249,7 @@ mod tests {
                 input_content: "IGNORED FIELD".to_owned(),
                 output: Some(PathBuf::from("tests/techniques/simplest/try_technique.rl.cf")), // updated extension
                 format: Format::CFEngine,
-                action: Action::Compile,
+                command: Command::Compile,
             },
             false,
         );
@@ -492,7 +263,7 @@ mod tests {
                 input_content: "IGNORED FIELD".to_owned(),
                 output: Some(PathBuf::from("tests/techniques/simplest/try_technique.rl.cf")), // updated extension
                 format: Format::CFEngine,
-                action: Action::Compile,
+                command: Command::Compile,
             },
             false,
         );

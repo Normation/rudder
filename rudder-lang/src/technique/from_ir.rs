@@ -1,11 +1,8 @@
-use crate::{
-    ir::{
-        enums::EnumExpressionPart,
-        ir2::IR2,
-        resource::{ResourceDef, Statement},
-        value::Value as IRValue,
-    },
-    technique::*,
+use super::*;
+use crate::ir::{
+    enums::EnumExpressionPart,
+    ir2::IR2,
+    resource::{ResourceDef, Statement},
 };
 use std::convert::From;
 use std::str;

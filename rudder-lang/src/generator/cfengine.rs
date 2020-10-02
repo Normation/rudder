@@ -3,14 +3,14 @@
 
 use super::Generator;
 use crate::{
+    command::CommandResult,
     error::*,
     generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise, MAX_INT, MIN_INT},
+    generator::Format,
     ir::{enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
     // generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise},
     // ir::{enums::EnumExpressionPart, resource::*, value::*, *},
     parser::*,
-    ActionResult,
-    Format,
 };
 use std::{
     collections::HashMap,
@@ -293,8 +293,8 @@ impl Generator for CFEngine {
         source_file: &str,
         dest_file: Option<&Path>,
         policy_metadata: bool,
-    ) -> Result<Vec<ActionResult>> {
-        let mut files: Vec<ActionResult> = Vec::new();
+    ) -> Result<Vec<CommandResult>> {
+        let mut files: Vec<CommandResult> = Vec::new();
         // TODO add global variable definitions
         for (resource_name, resource) in gc.resources.iter() {
             for (state_name, state) in resource.states.iter() {
@@ -357,13 +357,13 @@ impl Generator for CFEngine {
                         .name(extract("name"))
                         .version(extract("version"))
                         .bundle(bundle);
-                    files.push(ActionResult::new(
+                    files.push(CommandResult::new(
                         Format::CFEngine,
                         dest_file.map(|o| PathBuf::from(o)),
                         Some(policy.to_string()),
                     ));
                 } else {
-                    files.push(ActionResult::new(
+                    files.push(CommandResult::new(
                         Format::CFEngine,
                         dest_file.map(|o| PathBuf::from(o)),
                         Some(bundle.to_string()),

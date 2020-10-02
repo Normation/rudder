@@ -2,7 +2,9 @@
 
 /// Generates markdown
 use super::Generator;
-use crate::{error::*, ir::ir2::IR2, ir::resource::StateDef, ActionResult, Format};
+use crate::{
+    command::CommandResult, error::*, generator::Format, ir::ir2::IR2, ir::resource::StateDef,
+};
 use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 
@@ -21,7 +23,7 @@ impl Generator for Markdown {
         _source_file: &str,
         _dest_file: Option<&Path>,
         _policy_metadata: bool,
-    ) -> Result<Vec<ActionResult>> {
+    ) -> Result<Vec<CommandResult>> {
         Self::render(gc, None)
     }
 }
@@ -89,8 +91,8 @@ impl Markdown {
 
     /// renders doc from an IR, with an optional resource filter
     /// When filter resource is None the whole IR is rendered
-    fn render(gc: &IR2, resource_filter: Option<String>) -> Result<Vec<ActionResult>> {
-        let mut files: Vec<ActionResult> = Vec::new();
+    fn render(gc: &IR2, resource_filter: Option<String>) -> Result<Vec<CommandResult>> {
+        let mut files: Vec<CommandResult> = Vec::new();
 
         for (resource_name, resource) in gc.resources.iter() {
             if let Some(ref name) = resource_filter {
@@ -161,18 +163,18 @@ impl Markdown {
                     "".to_string()
                 };
 
-                let action = if state
+                let command = if state
                     .metadata
-                    .get("action")
+                    .get("command")
                     .and_then(|a| a.as_bool())
                     .unwrap_or(false)
                 {
-                    " (action)".to_string()
+                    " (command)".to_string()
                 } else {
                     "".to_string()
                 };
 
-                out.push(format!("### {}{}{}", state.name, platforms, action));
+                out.push(format!("### {}{}{}", state.name, platforms, command));
 
                 if let Some(deprecation) = state.metadata.get("deprecated") {
                     out.push(format!(
@@ -203,7 +205,7 @@ impl Markdown {
 
                 out.extend(Self::render_parameters(&state.metadata).iter().cloned());
             }
-            files.push(ActionResult::new(
+            files.push(CommandResult::new(
                 Format::Markdown,
                 Some(resource_file.into()),
                 Some(out.join("\n\n")),

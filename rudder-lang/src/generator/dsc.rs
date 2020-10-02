@@ -5,14 +5,15 @@ mod syntax;
 
 use super::Generator;
 use crate::{
+    command::CommandResult,
     error::*,
     generator::dsc::syntax::{
         pascebab_case, Call, Function, Method, Parameter, Parameters, Policy,
     },
+    generator::Format,
     ir::{context::Type, enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
     parser::*,
     technique::fetch_method_parameters,
-    ActionResult, Format,
 };
 use std::{
     collections::HashMap,
@@ -360,8 +361,8 @@ impl Generator for DSC {
         source_file: &str,
         dest_file: Option<&Path>,
         policy_metadata: bool,
-    ) -> Result<Vec<ActionResult>> {
-        let mut files: Vec<ActionResult> = Vec::new();
+    ) -> Result<Vec<CommandResult>> {
+        let mut files: Vec<CommandResult> = Vec::new();
         // TODO add global variable definitions
         for (resource_name, resource) in gc.resources.iter() {
             for (state_name, state) in resource.states.iter() {
@@ -431,7 +432,7 @@ impl Generator for DSC {
                 } else {
                     function.to_string()
                 };
-                files.push(ActionResult::new(
+                files.push(CommandResult::new(
                     Format::DSC,
                     dest_file.map(|o| PathBuf::from(o)),
                     Some(content),

@@ -1,17 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+mod cfstrings;
 mod from_ir;
-mod generate;
-mod read;
-pub use generate::technique_generate;
-pub use read::technique_read;
 
 use crate::{
-    cfstrings,
     error::*,
     ir::{ir2::IR2, resource::StateDeclaration, value::Value},
-    logger::*,
     rudderlang_lib::{LibMethod, RudderlangLib},
 };
 use colored::Colorize;
@@ -91,7 +86,7 @@ pub struct Technique {
 }
 impl Technique {
     /// creates a Technique that will be used to generate a string representation of a rudderlang or json technique
-    pub fn from_json(input: &str, content: &str, is_technique_data: bool) -> Result<Self> {
+    pub(super) fn from_json(input: &str, content: &str, is_technique_data: bool) -> Result<Self> {
         info!("|- {} {}", "Parsing".bright_green(), input.bright_yellow());
 
         if is_technique_data {
@@ -108,7 +103,7 @@ impl Technique {
         }
     }
 
-    pub fn to_json(&self) -> Result<TechniqueFmt> {
+    pub(super) fn to_json(&self) -> Result<TechniqueFmt> {
         info!(
             "|- {} (translation phase)",
             "Generating JSON code".bright_green()
@@ -118,7 +113,7 @@ impl Technique {
             .map_err(|e| Error::new(format!("Technique to JSON: {}", e)))
     }
 
-    pub fn to_rudderlang(&self, lib: &RudderlangLib) -> Result<TechniqueFmt> {
+    pub(super) fn to_rudderlang(&self, lib: &RudderlangLib) -> Result<TechniqueFmt> {
         info!(
             "|- {} (translation phase)",
             "Generating rudderlang code".bright_green()

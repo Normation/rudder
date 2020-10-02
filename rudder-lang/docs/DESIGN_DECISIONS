@@ -73,7 +73,7 @@ l'ordre de chargement des fichier et les définition globales car elles peuvent 
 * incompatibilité entre states d'une meme resource
 
 * comment = medatata
-Pour permettre une interraction simple avec le format json de technique, on ne crée pas de cas spécifique pour les commentaire.
+Pour permettre une interaction simple avec le format json de technique, on ne crée pas de cas spécifique pour les commentaire.
 
 * utf8
 parce que nous avons des utilisateurs finaux et pas nécessairement des développeurs
