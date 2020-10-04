@@ -139,7 +139,11 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
-                       "MANAGED_NODES_KEY" , "CFEngine KEY (modulus with transformation) of nodes managed by the policy server"
+                       "MANAGED_NODES_KEY" , "Hash of CFEngine KEY of nodes managed by the policy server"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
+                       "POLICY_SERVER_KEY" , "Hash of CFEngine KEY of the policy server"
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
       // end
