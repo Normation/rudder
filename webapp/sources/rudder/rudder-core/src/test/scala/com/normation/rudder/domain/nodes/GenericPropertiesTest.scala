@@ -44,7 +44,7 @@ import net.liftweb.common._
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner._
-import java.util.{HashMap => JMap}
+import java.util.{HashMap => JMap, ArrayList => JList}
 
 import com.normation.errors.PureResult
 
@@ -55,6 +55,12 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
     val jmap = new JMap[A,B]()
     tuples.foreach { case (a,b) => jmap.put(a, b) }
     jmap
+  }
+
+  def jlist[A](as: A*): JList[A] = {
+    val jlist = new JList[A]()
+    as.foreach(a => jlist.add(a))
+    jlist
   }
 
   implicit class GetPureResult[A](res: PureResult[A]) {
@@ -70,8 +76,19 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
     "recognize empty string" in {
       GenericProperty.parseValue("") must beRight(ConfigValueFactory.fromAnyRef(""))
     }
+    "recognize a string" in {
+      GenericProperty.parseValue("foo") must beRight(ConfigValueFactory.fromAnyRef("foo"))
+    }
     "correctly parse a json like file" in {
       GenericProperty.parseValue("""{"a":"b"}""") must beRight(ConfigValueFactory.fromMap(jmap(("a", "b"))))
+    }
+    "parse int as string" in {
+      GenericProperty.parseValue("1").map(_.getClass.getSimpleName) must beRight("Quoted") // Quoted is package private, didn't found another way
+    }
+    "parse array as array, keeping primitive types and objects" in {
+      GenericProperty.parseValue("""[1,true,2.43, "a", {"a": "b"} ]""") must beRight(ConfigValueFactory.fromIterable(
+        jlist(1, true, 2.43, "a", ConfigValueFactory.fromMap(jmap(("a", "b"))))
+      ))
     }
     "correctly parse in a empty json-like structure" in {
       GenericProperty.parseValue("""{}""") must beRight
@@ -114,6 +131,8 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
       val strings = List(
         ""
       , "some string"
+      , "1"
+      , "true"
       , """
         |# some things
         |plop
@@ -121,6 +140,13 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
       , "strange char: ${plop} $ @ ¹ \n [fsj] (abc) $foo"
       )
       strings must contain(check).foreach
+    }
+
+    val checkPrimitive = (s: AnyVal) => GenericProperty.parseValue(s.toString).map(GenericProperty.serializeToHocon) must beRight(s.toString)
+
+    "primitives like int and boolean are stringified" in {
+      val primitives = List[AnyVal](1, 2.42, true)
+      primitives must contain(checkPrimitive).forall
     }
 
     "be idempotent for values" in {

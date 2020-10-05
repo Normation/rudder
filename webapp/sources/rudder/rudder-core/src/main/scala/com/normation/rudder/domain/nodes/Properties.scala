@@ -252,7 +252,8 @@ object GenericProperty {
     else firstNonCommentChar(value) match {
       case None => // here, we need to return the original string, user may want to use a comment (in bash for ex) as value
         Right(ConfigValueFactory.fromAnyRef(value))
-      case Some(c) if(c == '{') =>
+      // root can be an object or an array
+      case Some(c) if(c == '{' || c == '[') =>
         parseSerialisedValue(value)
       case _ => // it's a string that should be understood as a string
         Right(ConfigValueFactory.fromAnyRef(value))
