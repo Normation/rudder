@@ -37,34 +37,38 @@
 
 package com.normation.rudder.rest
 
-import com.normation.rudder.domain.workflows._
-import net.liftweb.common._
-import com.normation.rudder.domain.policies._
-import net.liftweb.json._
 import com.normation.cfclerk.domain._
-import com.normation.rudder.services.modification.DiffService
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.parameters._
 import com.normation.inventory.domain._
-import com.normation.rudder.domain.servers.Srv
-import com.normation.rudder.rule.category.RuleCategory
-import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.api.ApiAccount
-import net.liftweb.json.JsonDSL._
-import com.normation.rudder.web.components.DateFormaterService
-import com.normation.rudder.rest.data._
-import com.normation.rudder.api.ApiAccountKind.{PublicApi => PublicApiAccount}
-import com.normation.rudder.api.ApiAccountKind.User
 import com.normation.rudder.api.ApiAccountKind.System
-import com.normation.rudder.api.ApiAuthorization.{None => NoAccess}
+import com.normation.rudder.api.ApiAccountKind.User
+import com.normation.rudder.api.ApiAccountKind.{PublicApi => PublicApiAccount}
+import com.normation.rudder.api.ApiAuthorization.ACL
 import com.normation.rudder.api.ApiAuthorization.RO
 import com.normation.rudder.api.ApiAuthorization.RW
-import com.normation.rudder.api.ApiAuthorization.ACL
+import com.normation.rudder.api.ApiAuthorization.{None => NoAccess}
+import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.domain.workflows._
+import com.normation.rudder.repository.FullActiveTechnique
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.rest.data._
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.services.healthcheck.HealthcheckResult
+import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
+import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
+import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
+import com.normation.rudder.services.modification.DiffService
+import com.normation.rudder.web.components.DateFormaterService
+import net.liftweb.common._
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json._
 import org.joda.time.DateTime
 
 /**
@@ -94,6 +98,8 @@ trait RestDataSerializer {
   def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, optRunDate:Option[DateTime], inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue
 
   def serializeTechnique(technique:FullActiveTechnique): JValue
+
+  def serializeHealthcheckResult(check: HealthcheckResult): JValue
 
 }
 
@@ -549,6 +555,16 @@ final case class RestDataSerializerImpl (
     )
   }
 
+  def serializeHealthcheckResult(check: HealthcheckResult): JValue = {
+    val status = check match {
+      case _:Critical => "Critical"
+      case _:Ok       => "Ok"
+      case _:Warning  => "Warning"
+    }
+    (   ( "msg"    ->  check.msg )
+      ~ ( "status" ->  status )
+    )
+  }
 }
 
 /*
