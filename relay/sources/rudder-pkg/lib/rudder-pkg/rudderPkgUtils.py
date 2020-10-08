@@ -132,30 +132,33 @@ def download(completeUrl, dst="", quiet=False):
         fileDst = dst
     fileDir = os.path.dirname(fileDst)
     createPath(fileDir)
-    r = requests.get(completeUrl, auth=(USERNAME, PASSWORD), stream=True)
-    columns = terminal_size()[1]
-    with open(fileDst, 'wb') as f:
-       bar_length = int(r.headers.get('content-length'))
-       if r.status_code == 200:
-           if bar_length is None: # no content length header
-               f.write(r.content)
-           else:
-               dl = 0
-               bar_length = int(bar_length)
-               for data in r.iter_content(chunk_size=4096):
-                   dl += len(data)
-                   f.write(data)
-                   if not quiet:
-                     done = int(50 * dl / bar_length)
-                     sys.stdout.write("\r%s%s[%s%s]"%(completeUrl, ' ' * (columns - len(completeUrl) - 53), '=' * done, ' ' * (50-done)))
-                     sys.stdout.flush()
-               if not quiet:
-                 sys.stdout.write("\n")
-       elif r.status_code == 401:
-           fail("Received a HTTP 401 Unauthorized error when trying to get %s. Please check your credentials in %s"%(completeUrl, CONFIG_PATH))
-       elif r.status_code > 400:
-           fail("Received a HTTP %s error when trying to get %s"%(r.status_code, completeUrl))
-    return fileDst
+    try:
+      r = requests.get(completeUrl, auth=(USERNAME, PASSWORD), stream=True)
+      columns = terminal_size()[1]
+      with open(fileDst, 'wb') as f:
+         bar_length = int(r.headers.get('content-length'))
+         if r.status_code == 200:
+             if bar_length is None: # no content length header
+                 f.write(r.content)
+             else:
+                 dl = 0
+                 bar_length = int(bar_length)
+                 for data in r.iter_content(chunk_size=4096):
+                     dl += len(data)
+                     f.write(data)
+                     if not quiet:
+                       done = int(50 * dl / bar_length)
+                       sys.stdout.write("\r%s%s[%s%s]"%(completeUrl, ' ' * (columns - len(completeUrl) - 53), '=' * done, ' ' * (50-done)))
+                       sys.stdout.flush()
+                 if not quiet:
+                   sys.stdout.write("\n")
+         elif r.status_code == 401:
+             fail("Received a HTTP 401 Unauthorized error when trying to get %s. Please check your credentials in %s"%(completeUrl, CONFIG_PATH))
+         elif r.status_code > 400:
+             fail("Received a HTTP %s error when trying to get %s"%(r.status_code, completeUrl))
+      return fileDst
+    except Exception as e:
+      fail("An error happened while downloading from %s:\n%s"%(completeUrl, e))
 
 """
     Make a HEAD request on the given url, return true if result is 200, false instead
