@@ -237,15 +237,27 @@ impl NodesList {
         self.neighbors_from(&self.my_id, nodes)
     }
 
+    /// Get all directly connected downstream policy servers
     pub fn my_sub_relays(&self) -> Vec<Host> {
         let mut relays = HashSet::new();
         for policy_server in self
             .list
             .data
             .values()
-            .filter_map(|v| self.list.data.get(&v.policy_server))
-            .filter(|v| v.policy_server == self.my_id)
-            .map(|v| v.hostname.clone())
+            // Extract policy servers
+            .filter_map(|node| {
+                let server_id = node.policy_server.clone();
+                self.list
+                    .data
+                    .get(&server_id)
+                    // (server_id, server)
+                    .map(|server| (server_id, server))
+            })
+            // Special case for root
+            // Skip if sub_relay is myself, otherwise we'll loop
+            .filter(|(server_id, _)| server_id != &self.my_id)
+            .filter(|(_, server)| server.policy_server == self.my_id)
+            .map(|(_, server)| server.hostname.clone())
         {
             let _ = relays.insert(policy_server);
         }
@@ -446,12 +458,23 @@ mod tests {
     }
 
     #[test]
+    fn it_gets_next_hops() {
+        let list = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None).unwrap();
+
+        assert_eq!(list.next_hop(&"root"), Ok(None));
+        assert_eq!(
+            list.next_hop("a745a140-40bc-4b86-b6dc-084488fc906b"),
+            Ok(Some("e745a140-40bc-4b86-b6dc-084488fc906b".to_string()))
+        );
+        assert_eq!(
+            list.next_hop("e745a140-40bc-4b86-b6dc-084488fc906b"),
+            Ok(None)
+        );
+    }
+
+    #[test]
     fn it_gets_sub_relays() {
-        let mut reference = vec![
-            "node1.rudder.local",
-            "node2.rudder.local",
-            "server.rudder.local",
-        ];
+        let mut reference = vec!["node1.rudder.local", "node2.rudder.local"];
         reference.sort();
 
         let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
