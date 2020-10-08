@@ -49,6 +49,6 @@ trait ComplianceRepository {
    * Any compliance not linked to a run ("no run in interval", etc) will
    * be ignore. Only saved compliance will be returned.
    */
-  def saveRunCompliance(compliance: List[NodeStatusReport]): IOResult[List[NodeStatusReport]]
+  def saveRunCompliance(compliance: List[NodeStatusReport]): IOResult[Unit]
 
 }
