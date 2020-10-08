@@ -100,7 +100,7 @@ class ComplianceJdbcRepository(
   /*
    * Save a list of node compliance reports
    */
-  override def saveRunCompliance(reports: List[NodeStatusReport]): IOResult[List[NodeStatusReport]] = {
+  override def saveRunCompliance(reports: List[NodeStatusReport]): IOResult[Unit] = {
 
     // Only compute compliance if we need to save complianceDetails or complianceLevels
     val runCompliances = if (getSaveComplianceDetails().getOrElse(false) || getSaveComplianceLevels().getOrElse(true)) {
@@ -185,20 +185,26 @@ class ComplianceJdbcRepository(
     transactIOResult("Error when saving node compliances:")(xa => (for {
       updated  <- saveComplianceDetails
       levels   <- saveComplianceLevels
-    } yield {
-      val saved = runCompliances.map(_.nodeId)
-      reports.filter(r => saved.contains(r.nodeId))
-    }).transact(xa)).foldM(
+    } yield ()).transact(xa)).foldM(
       err => {
-        // that message can be huge because it may contains whole nodecompliance json. Truncate it in error, and
-        // display whole in debub
-        effectUioUnit {
-          val msg = if(err.fullMsg.size > 200) { err.fullMsg.substring(0, 196) ++ "..." } else { err.fullMsg }
-          logger.error(" " + msg)
-          if(msg.endsWith("...")) {
-            logger.debug("Full error message was: " + err.fullMsg)
+        // we need to filter out `ERROR: duplicate key value violates unique constraint "nodecompliancelevels_pkey"`
+        // see https://issues.rudder.io/issues/18188 for details
+        val fullMsg = err.fullMsg
+        if(fullMsg.contains("""duplicate key value violates unique constraint "nodecompliancelevels_pkey"""")) {
+          effectUioUnit {
+            logger.debug(s"Ignored duplicate key violation, see: https://issues.rudder.io/issues/18188. Message is: " + fullMsg)
           }
-        } *> err.fail
+        } else {
+          // that message can be huge because it may contains whole nodecompliance json. Truncate it in error, and
+          // display whole in debub
+          effectUioUnit {
+            val msg = if(fullMsg.size > 200) { fullMsg.substring(0, 196) ++ "..." } else { fullMsg }
+            logger.error(" " + msg)
+            if(msg.endsWith("...")) {
+              logger.debug("Full error message was: " + fullMsg)
+            }
+          } *> err.fail
+        }
       },
       res => res.succeed
     )
