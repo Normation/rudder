@@ -26,7 +26,7 @@
 
       <div id="directiveFilter" ng-controller="filterTagCtrl" ng-cloak>
         <div class="header-filter">
-          <div class="input-group search-addon">
+          <div class="input-group search-addon main-filter">
             <div class="input-group-btn">
               <button type="button" class="btn btn-sm btn-default" aria-label="Bold" onclick="toggleTree('#activeTechniquesTree', this);">
                 <span class="fa fa-folder fa-folder-open"></span>
@@ -39,6 +39,7 @@
               </button>
             </div>
           </div>
+          <button class="btn btn-default more-filters" onclick="$('.filters-container').toggleClass('hidden');"></button>
         </div>
 
         <div class="filters-container">
@@ -64,7 +65,7 @@
                 </div>
               </div>
               <div class="only-tags">
-                <button class="btn btn-default btn-xs pull-right" ng-click="clearAllTags()" ng-hide="tags.length==0">
+                <button class="btn btn-default btn-xs pull-right clear-tags" ng-click="clearAllTags()" ng-hide="tags.length==0">
                   Clear all tags
                   <i class="fa fa-trash" aria-hidden="true"></i>
                 </button>
