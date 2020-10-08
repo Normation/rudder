@@ -330,7 +330,7 @@ def update_licenses(quiet=False):
                     utils.download(link, utils.LICENCES_PATH + "/" + os.path.basename(link), quiet)
 
 # TODO validate index sign if any?
-""" Download the index file on the repos """
+""" Download the index file on the repos and update licenses"""
 def update(quiet=False):
     utils.readConf()
     logger.debug('Updating the index')
@@ -347,6 +347,7 @@ def update(quiet=False):
             logger.debug("restoring %s from %s"%(utils.INDEX_PATH, utils.INDEX_PATH + ".bkp"))
             os.rename(utils.INDEX_PATH + ".bkp", utils.INDEX_PATH)
         utils.fail(e)
+    update_licenses(quiet)
 
 """
     Upgrade all plugins install in their latest compatible version

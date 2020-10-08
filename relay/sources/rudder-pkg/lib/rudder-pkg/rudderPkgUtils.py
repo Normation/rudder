@@ -145,16 +145,29 @@ class HTTPProxyDigestAuth(requests.auth.HTTPDigestAuth):
         r.register_hook('response', self.handle_407)
         return r
 
-def getRequest(url, stream):
+def getRequest(url, stream, timeout = 60):
   if (PROXY_URL == ""):
-    return requests.get(url, auth=(USERNAME, PASSWORD), stream=stream)
+    return requests.get(url, auth=(USERNAME, PASSWORD), stream=stream, timeout = timeout)
   else:
     proxies = { "https": PROXY_URL, "http": PROXY_URL }
     if (PROXY_USERNAME != "" and PROXY_PASSWORD != "" ):
       auth = HTTPProxyDigestAuth(PROXY_USERNAME, PROXY_PASSWORD)
-      return requests.get(url, proxies = proxies, auth = auth, stream=stream)
+      return requests.get(url, proxies = proxies, auth = auth, stream=stream, timeout = timeout)
     else:
-      return requests.get(url, auth=(USERNAME, PASSWORD), proxies = proxies, stream=stream)
+      return requests.get(url, auth=(USERNAME, PASSWORD), proxies = proxies, stream=stream, timeout = timeout)
+
+# Check if plugin URL defined in configuration file can be accessed, so we can fail early our cmmands
+def check_url():
+  try:
+    r = getRequest(URL, False, 5)
+    if r.status_code == 401:
+      fail("Received a HTTP 401 Unauthorized error when trying to get %s. Please check your credentials in %s"%(URL, CONFIG_PATH))
+    elif r.status_code > 400:
+      fail("Received a HTTP %s error when trying to get %s"%(r.status_code, URL))
+    else:
+      True
+  except Exception as e:
+    fail("An error occured while checking access to %s:\n%s"%(URL, e))
 
 """
    From a complete url, try to download a file. The destination path will be determined by the complete url
@@ -370,7 +383,7 @@ def extract_scripts(metadata,package_file):
 
 
 def run_script(name, script_dir, exist):
-  script = script_dir + "/" + name 
+  script = script_dir + "/" + name
   if os.path.isfile(script):
     if exist is None:
       param = ""
@@ -468,7 +481,7 @@ def list_plugin_name():
                 pluginName[metadata['name']] = (metadata['name'].replace("rudder-plugin-", ""), "")
     return pluginName
 
-############# Variables ############# 
+############# Variables #############
 """ Defining global variables."""
 
 CONFIG_PATH = "/opt/rudder/etc/rudder-pkg/rudder-pkg.conf"
