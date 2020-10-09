@@ -148,11 +148,13 @@ class InventoryMapper(
 
   def entryFromSoftware(soft:Software) : LDAPEntry = {
     val e = acceptedDit.SOFTWARE.SOFT.model(soft.id)
-    e.setOpt(soft.name,        A_NAME,         {x:String => x})
-    e.setOpt(soft.description, A_DESCRIPTION,  {x:String => x})
-    e.setOpt(soft.version,     A_SOFT_VERSION, {x:Version => x.value})
-    e.setOpt(soft.editor,      A_EDITOR,       {x:SoftwareEditor => x.name})
-    e.setOpt(soft.releaseDate, A_RELEASE_DATE, {x:DateTime => GeneralizedTime(x).toString})
+    e.setOpt(soft.name,          A_NAME,           {x:String => x})
+    e.setOpt(soft.description,   A_DESCRIPTION,    {x:String => x})
+    e.setOpt(soft.version,       A_SOFT_VERSION,   {x:Version => x.value})
+    e.setOpt(soft.editor,        A_EDITOR,         {x:SoftwareEditor => x.name})
+    e.setOpt(soft.releaseDate,   A_RELEASE_DATE,   {x:DateTime => GeneralizedTime(x).toString})
+    e.setOpt(soft.sourceName,    A_SOURCE_NAME,    {x:String => x})
+    e.setOpt(soft.sourceVersion, A_SOURCE_VERSION, {x:Version => x.value})
     soft.license.foreach { lic =>
       e +=! (A_LICENSE_NAME,lic.name)
       e.setOpt(lic.description,    A_LICENSE_DESC,        {x:String => x})
@@ -162,16 +164,20 @@ class InventoryMapper(
       e.setOpt(lic.oem,            A_LICENSE_OEM,         {x:String => x})
     }
     e
+
   }
 
   def softwareFromEntry(e:LDAPEntry) : InventoryMappingPure[Software] = {
     for {
       id <- acceptedDit.SOFTWARE.SOFT.idFromDN(e.dn)
-      name        = e(A_NAME)
-      desc        = e(A_DESCRIPTION)
-      version     = e(A_SOFT_VERSION).map(v => new Version(v))
-      releaseDate = e.getAsGTime(A_RELEASE_DATE) map { _.dateTime }
-      editor      = e(A_EDITOR) map { x => new SoftwareEditor(x) }
+      name           = e(A_NAME)
+      desc           = e(A_DESCRIPTION)
+      version        = e(A_SOFT_VERSION).map(v => new Version(v))
+      releaseDate    = e.getAsGTime(A_RELEASE_DATE) map { _.dateTime }
+      editor         = e(A_EDITOR) map { x => new SoftwareEditor(x) }
+      source_name    = e(A_SOURCE_NAME)
+      source_version = e(A_SOURCE_VERSION).map(v => new Version(v))
+
       //licence
       lic = e(A_LICENSE_NAME) map { name =>
         License(
@@ -184,7 +190,7 @@ class InventoryMapper(
         )
       }
     } yield {
-       Software(id,name,desc,version,editor,releaseDate,lic)
+       Software(id,name,desc,version,editor,releaseDate,lic, source_name, source_version)
     }
   }
 

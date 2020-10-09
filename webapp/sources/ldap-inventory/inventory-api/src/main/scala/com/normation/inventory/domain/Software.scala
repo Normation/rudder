@@ -49,11 +49,13 @@ final case class License(
 )
 
 final case class Software(
-  id:SoftwareUuid,
-  name :Option[String] = None,
-  description:Option[String] = None,
-  version : Option[Version] = None,
-  editor : Option[SoftwareEditor] = None,
-  releaseDate : Option[DateTime] = None,
-  license : Option[License] = None
+    id            : SoftwareUuid
+  , name          : Option[String]         = None
+  , description   : Option[String]         = None
+  , version       : Option[Version]        = None
+  , editor        : Option[SoftwareEditor] = None
+  , releaseDate   : Option[DateTime]       = None
+  , license       : Option[License]        = None
+  , sourceName    : Option[String]         = None
+  , sourceVersion : Option[Version]        = None
 )

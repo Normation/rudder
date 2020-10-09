@@ -139,6 +139,8 @@ object LDAPConstants {
   val A_MEMORY_TYPE = "memoryType"
   //software
   val A_RELEASE_DATE = "releaseDate"
+  val A_SOURCE_NAME = "sourceName"
+  val A_SOURCE_VERSION = "sourceVersion"
   val A_EDITOR = "editor"
   val A_SOFT_VERSION = "softwareVersion"
   val A_LICENSE_EXP = "licenseExpirationDate"
@@ -324,7 +326,7 @@ object LDAPConstants {
       may = Set(A_SOFT_VERSION,A_EDITOR, A_RELEASE_DATE,
           A_LICENSE_EXP,A_LICENSE_NAME,A_LICENSE_OEM,
           A_LICENSE_DESC,A_LICENSE_PRODUCT_ID,
-          A_LICENSE_PRODUCT_KEY) )
+          A_LICENSE_PRODUCT_KEY, A_SOURCE_VERSION, A_SOURCE_NAME) )
   OC +=(OC_CONTROLLER, OC(OC_PE),
       must = Set(A_CONTROLLER_NAME)
   )
