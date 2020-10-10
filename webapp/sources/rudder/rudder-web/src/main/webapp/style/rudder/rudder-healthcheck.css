@@ -1,0 +1,128 @@
+/*
+*************************************************************************************
+* Copyright 2020 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+.rudder-template > .one-col{
+  flex: 1;
+}
+.template-main{
+  flex-basis : initial !important;
+  flex: auto !important;
+}
+
+.checklist-container {
+  margin-top: 35px;
+  display: flex;
+  justify-content: center;
+}
+.checklist-container .check {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 20px;
+  padding: 5px;
+  transition: background-color .2s;
+}
+.checklist-container .check:hover {
+  background-color: #f9f9f9;
+}
+
+.circle {
+  width                : 20px;
+  height               : 20px;
+  -webkit-border-radius: 10px;
+  -moz-border-radius   : 10px;
+  border-radius        : 10px;
+  float                : right;
+  margin-left: 10px;
+}
+
+.ok-light {
+  background-color: #81D674;
+}
+
+.warning-light {
+  background-color: #F08004;
+}
+
+.critical-light {
+  background-color: #C80003;
+}
+
+.icon-info{
+  font-size:50px;
+  margin-right: 35px;
+}
+
+.critical-icon {
+  color: #C80003;
+}
+
+.warning-icon {
+  color: #F08004;
+}
+
+.ok-icon {
+  color: #81D674;
+}
+
+.global-msg {
+  margin-top: 20px;
+  font-size: 30px;
+}
+
+.btn-checks .fa{
+  margin-left: 10px;
+}
+
+.content-block {
+  text-align: center;
+}
+
+.btn-checks {
+  font-size: 16px !important;
+  margin-top: 40px;
+  background-color: transparent;
+  border-color: #3F9BFF;
+  color: #287bd6;
+  box-shadow: 0 2px 5px 0 rgba(96, 111, 152, 0.25);
+  transition-duration: .2s;
+  min-width: 170px;
+}
+
+.btn-checks:hover {
+  border-color: #337ab7;
+  color: #337ab7;
+}
