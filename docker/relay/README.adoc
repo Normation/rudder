@@ -1,0 +1,88 @@
+= relay
+
+== Summary
+
+These containers provide a full Rudder relay running in unprivileged
+read-only containers.
+
+Each service runs in its own container.
+
+The relay is almost stateless and the only data that needs to be persisted are:
+
+* Agent id and key pair
+* HTTP server key pair
+
+Everything else can be rebuilt dynamically.
+
+The containers are:
+
+* `cf-execd`: runs the agent every 5 minutes. In this context, it is actually only used as a data bus
+in the form of an rsync for data files, shared with other containers. Applying other policies is not supported.
+* `cf-serverd`: its mains role is to serve policy files (and other data files) to managed Unix nodes.
+It can also be used to trigger an agent run through remote-run (in this case it runs an agent
+to sync the data files).
+* `httpd`: acts as HTTPS endpoint, reverse proxy and network security layer
+* `relayd`: runs the core logic of the relay
+
+== Images
+
+Images are currently based on CentOS 8 and install Rudder 6.1 using rudder-setup.
+
+We use the standard packages (after disabling service management to allow
+packaging scripts calls to systemctl to succeed), even for httpd as we rely on
+changes made by our packaging scripts.
+
+We need several tricks to workaround docker and Rudder limitations:
+
+* To allow Rudder's packaging script to run correctly, we replace all service commands by `/bin/true` (in particular systemctl)
+* We can't share a single file between containers, so when we need to share and persist some files
+in a directory but not the others, we use a dedicated directory (namely `/agent_certs /node_id /httpd_conf /relayd_conf`)
+* We can't use agent initialization because of that (as we need to use symlinks in place of generated files), so
+the agent init (id ans key generation) is done by `cf-execd.sh`.
+* We need dynamic configuration reload. It is usually done by the agent through systemctl, but to
+replace it while limiting interactions between containers, we use inotify-based reload mechanism.
+* As we need to use server-generated config that hardcodes 127.0.0.1 for local calls on the server
+we dynamically edit the config at reload to use the container's name instead.
+
+We need to minimize upgrade scripts, which requires only storing necessary data
+in persistent volumes.
+
+The volumes that should be persisted:
+
+* agent_certs
+* node_id
+* httpd_certs
+
+== Run a relay
+
+We provide a docker-compose configuration example.
+
+You need to modify the `policy_server.dat` file to set the right policy server.
+You can also modify the relay's hostname (it is the `cf-execd`'s hostname),
+to set the hostname you want to see on the Rudder server.
+
+Then run:
+
+----
+docker-compose up
+----
+
+Accept the inventory, run `rudder server node-to-relay`. Everything
+should be automatically applied from now. Remote run on the relay works too.
+
+== TODO
+
+* [ ] See where to configure policy server (inside or outside of the containers?)
+* [ ] Upgrade procedure
+* [ ] Logs management
+* [ ] Random cf-execd/serverd start error?
+
+In the long term:
+
+* [ ] Replace current server role system by something simpler and configurable
+to allow customizing lightening and destination host and port for each service
+* [ ] Replace agent-based data sync with something HTTP based
+* [ ] Replace (or re-implement in relayd) cf-serverd's file copy protocol
+* [ ] Avoid the need for an agent totally and allow making a working relayd with
+relayd and (maybe) httpd.
+
