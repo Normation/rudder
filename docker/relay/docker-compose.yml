@@ -1,61 +1,125 @@
-version: "2"
+version: '2'
 services:
-    cf_execd:
-       read_only: true
-       build:
-         context: .
-         dockerfile: cf-execd.Dockerfile
-       volumes:
-          - cfengine_community:/var/rudder/cfengine-community/
-          - uuid_keys:/data
-          - ncf:/var/rudder/ncf
-          - shared:/var/rudder/share
-          - secure_httpd:/opt/rudder/etc/ssl/
-          - httpd_conf:/apache_conf_file
-          - relay_conf:/opt/rudder/etc/relayd
-          - nodelist:/var/rudder/lib/relay/
-       tmpfs:
-          - /var/rudder/tmp
-          - /var/backup/rudder
-          - /opt/rudder/var/fusioninventory
-          - /var/rudder/inventories
-       external_links:
-          - server
-    cf_serverd: 
-       read_only: true
-       build:
-         context: .
-         dockerfile: cf-serverd.Dockerfile
-       volumes:
-         - cfengine_community:/var/rudder/cfengine-community/
-         - uuid_keys:/data:ro
-         - ncf:/var/rudder/ncf:ro
-         - shared:/var/rudder/share:ro
-    relay:
-       read_only: true
-       build:
-         context: .
-         dockerfile: relay.Dockerfile
-       volumes:
-          - nodelist:/var/rudder/lib/relay:ro
-          - relay_conf:/opt/rudder/etc/relayd:ro
-       tmpfs:
-          - /var/rudder/reports
-          - /var/rudder/inventories
-    httpd:
-       build:
-         context: .
-         dockerfile: httpd.Dockerfile
-       volumes:
-          - httpd_conf:/apache_conf_file:ro
-          - secure_httpd:/opt/rudder/etc/ssl:ro
+  cf_execd:
+    hostname: 'relay'
+    read_only: true
+    build:
+      context: .
+      dockerfile: cf-execd.Dockerfile
+    volumes:
+      - 'agent_state:/var/rudder/cfengine-community/'
+      - 'agent_certs:/agent_certs'
+      - 'node_id:/node_id'
 
+      - 'policies_lib:/var/rudder/ncf'
+      - 'policies_src_lib:/usr/share/ncf/tree'
+      - 'policies_loc_lib:/var/rudder/configuration-repository/ncf'
+      - 'policies:/var/rudder/share'
+      - 'shared_folder:/var/rudder/configuration-repository/shared-files/'
+
+      - 'httpd_certs:/opt/rudder/etc/ssl/'
+      - 'httpd_conf:/httpd_conf'
+
+      - 'relayd_conf:/relayd_conf/'
+      - 'relayd_nodelist:/var/rudder/lib/relay/'
+      - 'relayd_certs:/var/rudder/lib/ssl/'
+    tmpfs:
+      - /var/rudder/tmp
+      - /var/rudder/modified-files
+      - /var/backup/rudder
+      - /opt/rudder/var/fusioninventory
+      - /var/rudder/inventories
+      - /var/rudder/reports
+      - /tmp
+      - /etc/cron.d
+      - /etc/logrotate.d
+      - /var/log
+  cf_serverd:
+    read_only: true
+    build:
+      context: .
+      dockerfile: cf-serverd.Dockerfile
+    ports:
+      - "5309:5309"
+    volumes_from:
+      # same as cf-execd to allow remote run
+      - 'cf_execd'
+    volumes:
+      - 'shared_files:/var/rudder/shared-files/:ro'
+    tmpfs:
+      # same as cf-execd to allow remote run
+      - /var/rudder/tmp
+      - /var/rudder/modified-files
+      - /var/backup/rudder
+      - /opt/rudder/var/fusioninventory
+      - /var/rudder/inventories
+      - /var/rudder/reports
+      - /tmp
+      - /etc/cron.d
+      - /etc/logrotate.d
+      - /var/log
+  relayd:
+    read_only: true
+    build:
+      context: .
+      dockerfile: relayd.Dockerfile
+    ports:
+      # remove?
+      - "127.0.0.1:3030:3030"
+    volumes:
+      - 'relayd_nodelist:/var/rudder/lib/relay:ro'
+      - 'relayd_certs:/var/rudder/lib/ssl:ro'
+      - 'relayd_conf:/relayd_conf/'
+      - 'inventories:/var/rudder/inventories'
+      - 'reports:/var/rudder/reports'
+      # can be recreated if the files are still shared
+      - 'shared_files:/var/rudder/shared-files/'
+      - 'shared_folder:/var/rudder/configuration-repository/shared-files/:ro'
+      # remote run
+      - 'agent_state:/var/rudder/cfengine-community/'
+      - 'agent_certs:/agent_certs:ro'
+      - 'node_id:/node_id:ro'
+      - 'policies_lib:/var/rudder/ncf:ro'
+  httpd:
+    read_only: true
+    build:
+      context: .
+      dockerfile: httpd.Dockerfile
+    ports:
+      - "443:443"
+    volumes:
+      # rw to edit the conf
+      - 'httpd_conf:/httpd_conf'
+      - 'httpd_certs:/opt/rudder/etc/ssl:ro'
+      - 'node_id:/node_id:ro'
+      # windows policies
+      - 'policies:/var/rudder/share:ro'
+      - 'inventories:/var/rudder/inventories'
+      - 'reports:/var/rudder/reports'
+    tmpfs:
+      - /var/log/httpd
+      - /var/log/rudder/apache2
+      - /run/httpd
+      # /tmp/davlock.db
+      - /tmp
 volumes:
-     cfengine_community:
-     uuid_keys:
-     ncf:
-     shared:
-     secure_httpd:
-     httpd_conf:
-     nodelist:
-     relay_conf:
+  agent_state:
+  agent_certs:
+  node_id:
+
+  policies_lib:
+  policies_src_lib:
+  policies_loc_lib:
+  policies:
+  shared_files:
+  shared_folder:
+
+  inventories:
+  reports:
+
+  httpd_certs:
+  httpd_conf:
+
+  relayd_nodelist:
+  relayd_certs:
+  relayd_conf:
