@@ -62,10 +62,30 @@
 .fit-height{
   height: 100% !important;
 }
+.btn.btn-outline-primary {
+  border: 1px solid #337ab7;
+  background-color: #fff;
+  transition-duration: .2s;
+  height: 34px;
+  position: relative;
+  display: inline-flex;
+  min-width: 110px;
+  align-items: center;
+}
+.btn.btn-outline-primary > i{
+  margin-left: 6px;
+  min-width: 18px;
+  align-self: center;
+}
+.btn.btn-outline-primary:hover {
+  color: #fff;
+  background-color: #337ab7;
+}
 /* === TEMPLATE === */
 .rudder-template{
   display: flex;
   color: #222D42;
+  font-size: 14px;
 }
 .rudder-template .header-title{
   display: flex;
@@ -117,6 +137,9 @@
   position: relative;
   z-index: 1;
   box-shadow: 8px 0px 10px -10px #00000050;
+}
+.rudder-template .template-sidebar.sidebar-right{
+  box-shadow: 8px 0px 10px 10px #00000050;
 }
 #headerBar ~ .content-wrapper .rudder-template .template-sidebar{
   height: calc(100VH - 80px);
@@ -225,8 +248,12 @@
   padding: 0;
   background-color: transparent !important;
   border: none !important;
+  cursor: pointer;
 }
-
+.rudder-template .template-main .main-navbar ul > li > a .badge,
+.rudder-template .template-main .main-details .badge{
+  background-color: #6c757d;
+}
 .rudder-template .template-main .main-alert{
   margin: 0 !important;
   border-radius: 0 !important;
