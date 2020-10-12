@@ -6,7 +6,6 @@ import os
 import io
 import re
 import shutil
-import requests as requests
 import logging
 import plugin
 import rpkg
@@ -306,7 +305,7 @@ Iterate through them to find all *.license files and *.key files.
 def update_licenses(quiet=False):
     utils.readConf()
     url = utils.URL.rstrip("/") + "/licenses"
-    r = requests.get(url, auth=(utils.USERNAME, utils.PASSWORD))
+    r = utils.getRequest(url, False)
     htmlElements = html.document_fromstring(r.text)
     htmlElements.make_links_absolute(url + "/", resolve_base_href=True)
 
@@ -321,7 +320,7 @@ def update_licenses(quiet=False):
     else:
         # Find the .licence and .key files under each folder
         for folderUrl in set(licenseFolders):
-            r = requests.get(folderUrl, auth=(utils.USERNAME, utils.PASSWORD))
+            r = utils.getRequest(folderUrl, False)
             htmlElements = html.document_fromstring(r.text)
             htmlElements.make_links_absolute(folderUrl + "/", resolve_base_href=True)
             for link in set([elem[2] for elem in htmlElements.iterlinks()]):
