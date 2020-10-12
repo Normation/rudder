@@ -109,6 +109,11 @@
 #
 # This package provider uses Solaris's pkg command to manage packages from IPS repositories on the system.
 # This provider doesn't support installation from a file.
+#
+# #### nimclient
+#
+# This package provider uses AIX's nim client to manage packages from nim
+# This provider doesn't support installation from a file.
 # 
 # #### Examples
 # 
@@ -133,9 +138,9 @@
 # @parameter_constraint version "allow_empty_string" : true
 # @parameter architecture Architecture of the package, can be an architecture name  or "default" (defaults to "default")
 # @parameter_constraint architecture "allow_empty_string" : true
-# @parameter provider Package provider to use, can be "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips" or "default" for system default package manager (defaults to "default")
+# @parameter provider Package provider to use, can be "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient" or "default" for system default package manager (defaults to "default")
 # @parameter_constraint provider "allow_empty_string" : true
-# @parameter_constraint provider "select" : [ "", "default", "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips" ]
+# @parameter_constraint provider "select" : [ "", "default", "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient" ]
 # @parameter state State of the package, can be "present" or "absent" (defaults to "present")
 # @parameter_constraint state "allow_empty_string" : true
 # @parameter_constraint state "select" : [ "", "present", "absent" ]

@@ -119,11 +119,12 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
       "use_pkg_provider" expression => strcmp("pkg", "${provider}");
       "use_slackpkg_provider" expression => strcmp("slackpkg", "${provider}");
       "use_ips_provider" expression => strcmp("ips", "${provider}");
+      "use_nimclient_provider" expression => strcmp("nimclient", "${provider}");
       # Used in tests
       "use_test_provider" expression => strcmp("test", "${provider}");
 
     any::
-      "supported_provider" expression => "use_apt_provider|use_yum_provider|use_zypper_provider|use_pkg_provider|use_slackpkg_provider|use_test_provider|use_zypper_pattern_provider|use_ips_provider";
+      "supported_provider" expression => "use_apt_provider|use_yum_provider|use_zypper_provider|use_pkg_provider|use_slackpkg_provider|use_test_provider|use_zypper_pattern_provider|use_ips_provider|use_nim_client";
 
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
@@ -370,7 +371,40 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => ips,
           options        => { "${options}" },
           classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
-    
+
+    #### nimclient ####
+ 
+    use_nimclient_provider.architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => nimclient,
+          architecture   => "${architecture}",
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_nimclient_provider.architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => nimclient,
+          architecture   => "${architecture}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_nimclient_provider.!architecture_specified.version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => nimclient,
+          version        => "${version}",
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+    use_nimclient_provider.!architecture_specified.!version_specified::
+      "${name}"
+          policy         => "${state}",
+          package_module => nimclient,
+          options        => { "${options}" },
+          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");       
     #### test ####
 
     use_test_provider.architecture_specified.version_specified::
