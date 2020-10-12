@@ -123,6 +123,7 @@ import com.normation.rudder.services._
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
 import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.eventlog._
+import com.normation.rudder.services.healthcheck._
 import com.normation.rudder.services.marshalling._
 import com.normation.rudder.services.modification.DiffService
 import com.normation.rudder.services.modification.DiffServiceImpl
@@ -1116,6 +1117,7 @@ object RudderConfig extends Loggable {
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
       , new SystemApi(restExtractorService, systemApiService11, rudderMajorVersion, rudderFullVersion, builtTimestamp)
       , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
+      , new HealthcheckApi(restExtractorService, restDataSerializer, healthcheckService)
         // info api must be resolved latter, because else it misses plugin apis !
     )
 
@@ -2030,6 +2032,8 @@ object RudderConfig extends Loggable {
       , HOOKS_D
       , HOOKS_IGNORE_SUFFIXES
   )
+
+  private[this] lazy val healthcheckService = new HealthcheckService(List(CheckCoreNumber))
 
   /**
    * Event log migration
