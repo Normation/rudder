@@ -714,6 +714,19 @@ object UserApi extends ApiModuleProvider[UserApi] {
   def endpoints = ca.mrvisser.sealerate.values[UserApi].toList.sortBy( _.z )
 }
 
+sealed trait HealthcheckApi extends EndpointSchema with GeneralApi with SortIndex
+object HealthcheckApi extends ApiModuleProvider[HealthcheckApi] {
+
+  // This endpoint run all checks to return the result
+  final case object GetHealthcheckResult extends HealthcheckApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
+    val description    = "Result of a health check run"
+    val (action, path) = GET / "healthcheck"
+  }
+
+  def endpoints = ca.mrvisser.sealerate.values[HealthcheckApi].toList.sortBy( _.z )
+
+}
+
 /*
  * All API.
  */
@@ -731,6 +744,7 @@ object AllApi {
     RuleApi.endpoints :::
     InventoryApi.endpoints :::
     InfoApi.endpoints :::
+    HealthcheckApi.endpoints :::
     // UserApi is not declared here, it will be contributed by plugin
     Nil
 }
