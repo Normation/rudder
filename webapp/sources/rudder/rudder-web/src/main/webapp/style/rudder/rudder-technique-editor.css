@@ -409,6 +409,9 @@ ul.tabs-list > li > .badge{
 ul.tabs-list > li > .badge.empty{
   opacity: .4;
 }
+.rudder-template.loaded{
+  display: flex !important;
+}
 .rudder-template .template-main .main-navbar ul > li > a{
   min-height: 23px;
 }

@@ -162,7 +162,7 @@
     </h1>
   </div>
 
-  <div class="rudder-template" ng-show="ui.loaded" ng-class="{'show-techniques':ui.showTechniques, 'show-methods':!ui.showTechniques, 'selected-technique' : selectedTechnique, 'no-technique' : !selectedTechnique}">
+  <div class="rudder-template" style="display: none;" ng-class="{'loaded': ui.loaded, 'show-techniques':ui.showTechniques, 'show-methods':!ui.showTechniques, 'selected-technique' : selectedTechnique, 'no-technique' : !selectedTechnique}">
     <div ng-if="fileManagerState.open" class="filemanager-container" ng-click="closeWindow($event,false)">
       <angular-filemanager></angular-filemanager>
     </div>
