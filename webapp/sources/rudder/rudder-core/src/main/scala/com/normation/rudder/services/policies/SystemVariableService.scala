@@ -387,7 +387,6 @@ class SystemVariableServiceImpl(
       val varManagedNodes      = systemVariableSpecService.get("MANAGED_NODES_NAME" ).toVariable(nodesWithCFEKey.map(_.hostname))
       val varManagedNodesId    = systemVariableSpecService.get("MANAGED_NODES_ID"   ).toVariable(nodesWithCFEKey.map(_.id.value))
       val varManagedNodesKey   = systemVariableSpecService.get("MANAGED_NODES_KEY"  ).toVariable(nodesWithCFEKey.map(_.securityTokenHash))
-      val varPolicyServerKey   = systemVariableSpecService.get("POLICY_SERVER_KEY" ).toVariable(Seq(nodeInfo.securityTokenHash))
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable(nodesWithCFEKey.map(_.localAdministratorAccountName).distinct.sorted)
 
@@ -464,7 +463,6 @@ class SystemVariableServiceImpl(
         , varManagedNodesAdmin
         , varManagedNodesIp
         , varManagedNodesKey
-        , varPolicyServerKey
         , varReportsDBname
         , varReportsDBuser
         , varSubNodesName
@@ -479,6 +477,12 @@ class SystemVariableServiceImpl(
     } else {
       Map()
     }
+
+    /* Get the policy server security token
+     * We are pretty certin to find a policy server, as it is checked earlier
+     * and there is by construct a securityToken
+     */
+    val varPolicyServerKey = systemVariableSpecService.get("POLICY_SERVER_KEY" ).toVariable(Seq(allNodeInfos(nodeInfo.policyServerId).securityTokenHash))
 
     logger.trace("System variables for node %s done".format(nodeInfo.id.value))
 
@@ -613,6 +617,7 @@ class SystemVariableServiceImpl(
         , varNodeGroups
         , varNodeGroupsClasses
         , varRudderInventoryVariables
+        , varPolicyServerKey
       ) map (x => (x.spec.name, x))
     }
 
