@@ -355,7 +355,7 @@ limitations under the License.
     <lift-version>3.4.1</lift-version>
     <slf4j-version>1.7.30</slf4j-version>
     <logback-version>1.2.3</logback-version>
-    <junit-version>4.12</junit-version>
+    <junit-version>4.13.1</junit-version>
     <jodatime-version>2.10.5</jodatime-version>
     <jodaconvert-version>2.2.1</jodaconvert-version>
     <commons-io-version>2.6</commons-io-version>
