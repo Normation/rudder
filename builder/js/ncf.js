@@ -28,24 +28,41 @@ var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospace
 // A directive to add a filter on the technique name controller
 // It should prevent having techniques with same name (case insensitive)
 // It should not check with the original name of the technique so we can change its case
-app.directive('techniquename', function($filter) {
+app.directive('techniquename', function($filter, $http, $q) {
   return {
     require: 'ngModel',
     link: function(scope, elm, attrs, ctrl) {
-      ctrl.$validators.techniqueName = function(modelValue, viewValue) {
+      ctrl.$asyncValidators.techniqueName = function(modelValue, viewValue) {
         if(viewValue===undefined) return false;
-         // Get all techniqueNames in lowercase
-         var techniqueNames = scope.techniques.map(function (technique,index) { return technique.name.toLowerCase()})
-         // Remove the original name from the technique names array
-         if (scope.originalTechnique !== undefined && scope.originalTechnique.name !== undefined) {
-           techniqueNames = $filter("filter")(techniqueNames, scope.originalTechnique.name.toLowerCase(), function(actual,expected) { return ! angular.equals(expected,actual)})
-         }
-         // technique name is ok if the current value is not in the array
-         return $.inArray(viewValue.toLowerCase(), techniqueNames) === -1
+        // Get all techniqueNames in lowercase
+        var request = $http.get('/rudder/secure/api/techniques').then(
+        function successCallback(techniques) {
+          // Technique provided by RUDDER
+          var activeTechniqueNames = techniques.data.data.techniques.map(function(a) {return a.name.toLowerCase();});
+          // Custom technique defined by user, display in editor
+          var customTechniqueNames = scope.techniques.map(function (technique,index) { return technique.name.toLowerCase()});
+          var allTechniques = activeTechniqueNames.concat(customTechniqueNames);
+           // Remove the original name from the technique names array
+          if (scope.originalTechnique !== undefined && scope.originalTechnique.name !== undefined) {
+            allTechniques = $filter("filter")(allTechniques, scope.originalTechnique.name.toLowerCase(), function(actual,expected) { return ! angular.equals(expected,actual)})
+          }
+          // technique name is ok if the current value is not in the array
+          var res = $.inArray(viewValue.toLowerCase(), allTechniques) === -1
+          if (!res) {
+            return $q.reject('Technique name must be unique, a provided technique already exists');
+          }
+          return true;
+        },
+        function errorCallback(error) {
+          errorNotification("Try to get all Techniques name, failed", error)
+          return $q.reject ("Try to get all Techniques name, failed");
+        });
+        return request;
       };
     }
   };
 });
+
 
 app.directive('focusOn', function() {
    return function(scope, elem, attr) {
@@ -69,7 +86,7 @@ app.directive('bundlename', function($filter) {
   return {
     require: 'ngModel',
     link: function(scope, elm, attrs, ctrl) {
-      ctrl.$validators.bundleName = function(modelValue, viewValue) {
+      ctrl.asyncValidators.bundleName = function(modelValue, viewValue) {
          // Get all bundleNames
          var bundleNames = scope.techniques.map(function (technique,index) { return technique.bundle_name})
          // Remove the original bundle name from the bundle names array
