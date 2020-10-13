@@ -194,7 +194,7 @@
               ng-class="{'active': isSelected(technique)}">
               <div class="item" ng-click="checkSelect(technique,selectTechnique)">
                 <span>{{technique.name}}</span>
-                <span class="cursor-help"
+                <span class="cursor-help popover-bs"
                   ng-if="hasDeprecatedMethod(technique)"
                   data-toggle="popover"
                   data-trigger="hover"
@@ -559,15 +559,16 @@
                         </div>
                       </div>
                     </div>
+
                     <div
-                    class="edit-method tooltip-bs"
+                    class="edit-method popover-bs"
                     ng-click="selectMethod(method_call)"
                     dnd-nodrag
-                    data-toggle="tooltip"
+                    data-toggle="popover"
                     data-trigger="hover"
                     data-container="body"
                     data-placement="left"
-                    data-title="{{getStatusTooltipMessage(method_call)}}"
+                    data-content="{{getStatusTooltipMessage(method_call)}}"
                     data-html="true"
                     data-delay='{"show":"400", "hide":"100"}'
                     >
@@ -835,9 +836,7 @@
     $(document).on('mouseover','.popover-bs',function(){
       $(this).bsPopover('show');
     });
-    $(document).on('mouseover','.tooltip-bs',function(){
-      $(this).bsTooltip('show');
-    });
+    $('.tooltip-bs').bsTooltip();
   });
 </script>
 </lift:surround>
