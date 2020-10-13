@@ -39,7 +39,6 @@ package com.normation.rudder.rest.lift
 
 import better.files.File
 import com.normation.box._
-import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.IOResult
@@ -54,7 +53,6 @@ import com.normation.rudder.ncf.Technique
 import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
-import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ApiVersion

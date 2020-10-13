@@ -165,7 +165,6 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     def saveDirective(inActiveTechniqueId: ActiveTechniqueId, directive: Directive, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DirectiveSaveDiff]]  = ???
     def saveSystemDirective(inActiveTechniqueId: ActiveTechniqueId, directive: Directive, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DirectiveSaveDiff]] = ???
     def delete(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = ???
-    def deleteSystemDirective(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = ???
     def addTechniqueInUserLibrary(categoryId: ActiveTechniqueCategoryId, techniqueName: TechniqueName, versions: Seq[TechniqueVersion], modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechnique] = ???
     def move(id: ActiveTechniqueId, newCategoryId: ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueId] = ???
     def changeStatus(id: ActiveTechniqueId, status: Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueId] = ???
@@ -175,6 +174,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     def saveActiveTechniqueCategory(category: ActiveTechniqueCategory, modificationId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueCategory] = ???
     def deleteCategory(id: ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty: Boolean): IOResult[ActiveTechniqueCategoryId] = ???
     def move(categoryId: ActiveTechniqueCategoryId, intoParent: ActiveTechniqueCategoryId, optionNewName: Option[ActiveTechniqueCategoryId], modificationId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueCategoryId] = ???
+    override def deleteSystemDirective(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = ???
   }
 
   def workflowLevelService: WorkflowLevelService = new WorkflowLevelService {

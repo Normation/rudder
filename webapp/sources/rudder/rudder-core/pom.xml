@@ -91,6 +91,14 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${rudder-version}</version>
     </dependency>
 
+    <!-- only for tests -->
+    <dependency>
+      <groupId>com.normation.inventory</groupId>
+      <artifactId>inventory-fusion</artifactId>
+      <version>${rudder-version}</version>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>com.normation</groupId>
       <artifactId>utils</artifactId>
