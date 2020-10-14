@@ -70,10 +70,6 @@ class TechniqueParser(
 
           val name = nameAttr.text
           for {
-            compatible <- (xml \ COMPAT_TAG).headOption match {
-                            case None       => Right(None)
-                            case Some(elem) => parseCompatibleTag(elem).map(x => Some(x))
-                          }
             rootSection <- sectionSpecParser.parseSectionsInPolicy(xml, id, name)
 
             description = nonEmpty((xml \ TECHNIQUE_DESCRIPTION).text).getOrElse(name)
@@ -142,7 +138,6 @@ class TechniqueParser(
               , rootSection
               , deprecationInfo
               , systemVariableSpecs
-              , compatible
               , isMultiInstance
               , longDescription
               , isSystem
@@ -342,26 +337,6 @@ class TechniqueParser(
       } yield {
         TechniqueTemplate(parsed._1, parsed._2, included)
       }
-    }
-  }
-  /**
-   * Parse a <compatible> marker
-   * @param xml example :
-   * <COMPATIBLE>
-   * <OS>Ubuntu</OS>
-   * <OS>debian-5</OS>
-   * <AGENT version=">= 3.5">cfengine-community</AGENT>
-   * </COMPATIBLE>
-   * @return A compatible variable corresponding to the entry xml
-   */
-  def parseCompatibleTag(xml: Node): Either[LoadTechniqueError, Compatible] = {
-    if(xml.label != COMPAT_TAG) Left(LoadTechniqueError.Parsing("CompatibleParser was expecting a <%s> xml and got:\n%s".format(COMPAT_TAG, xml)))
-    else {
-      val os = xml \ COMPAT_OS map (n =>
-        OperatingSystem(n.text, (n \ "@version").text))
-      val agents = xml \ COMPAT_AGENT map (n =>
-        Agent(n.text, (n \ "@version").text))
-      Right(Compatible(os, agents))
     }
   }
 

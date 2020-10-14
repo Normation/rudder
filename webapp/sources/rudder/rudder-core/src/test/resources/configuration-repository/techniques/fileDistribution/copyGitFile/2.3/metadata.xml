@@ -19,19 +19,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
   <MULTIINSTANCE>true</MULTIINSTANCE>
   <POLICYGENERATION>separated</POLICYGENERATION>
-  <COMPATIBLE>
-    <OS version=">= 4 (Etch)">Debian</OS>
-    <OS version=">= 4 (Nahant)">RHEL / CentOS</OS>
-    <OS version=">= 10 SP1 (Agama Lizard)">SuSE LES / DES / OpenSuSE</OS>
-    <AGENT version=">= 3.2.0">cfengine-community</AGENT>
-  </COMPATIBLE>
 
   <AGENT type="dsc">
     <BUNDLES>
       <NAME>copyFileFromSharedFolder_RudderUniqueID</NAME>
     </BUNDLES>
     <TMLS>
-      <TML name="copyFileFromSharedFolder.ps1"/>    
+      <TML name="copyFileFromSharedFolder.ps1"/>
     </TMLS>
   </AGENT>
 
@@ -43,7 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       <TML name="copyFileFromSharedFolder"/>
     </TMLS>
   </AGENT>
-    
+
   <TRACKINGVARIABLE>
     <SAMESIZEAS>COPYFILE_NAME</SAMESIZEAS>
   </TRACKINGVARIABLE>
@@ -133,7 +127,7 @@ path needs to contain the destination filename. The permissions defined below wi
         <CONSTRAINT>
           <DEFAULT>false</DEFAULT>
         </CONSTRAINT>
-      </SELECT1> 
+      </SELECT1>
       <SELECT1>
         <NAME>COPYFILE_COMPARE_METHOD</NAME>
         <DESCRIPTION>File comparison method</DESCRIPTION>

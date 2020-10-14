@@ -119,7 +119,6 @@ class RuleValServiceTest extends Specification {
       , makeRootSectionSpec
       , None
       , Set()
-      , None
       , false
       , ""
       , false
