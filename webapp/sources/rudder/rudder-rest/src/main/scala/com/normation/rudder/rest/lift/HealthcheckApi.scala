@@ -8,6 +8,7 @@ import com.normation.rudder.rest.RestDataSerializer
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.{HealthcheckApi => API}
+import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
 import com.normation.rudder.services.healthcheck.HealthcheckService
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -20,6 +21,7 @@ class HealthcheckApi (
     restExtractorService: RestExtractorService
   , serializer          : RestDataSerializer
   , healthcheckService  : HealthcheckService
+  , hcNotifService      : HealthcheckNotificationService
 ) extends LiftApiModuleProvider[API] {
 
   def schemas = API
@@ -39,15 +41,16 @@ class HealthcheckApi (
       implicit val action   = schema.name
       implicit val prettify = params.prettify
       val result = for {
-        checks <- healthcheckService.runAll.toBox
+        checks <- healthcheckService.runAll
+        _      <- hcNotifService.updateCacheFromExt(checks)
       } yield {
         checks.map(serializer.serializeHealthcheckResult)
       }
-      result match {
-        case Full(jsons) =>
-          RestUtils.toJsonResponse(None, JArray(jsons))
+      result.toBox match {
+        case Full(json) =>
+          RestUtils.toJsonResponse(None, JArray(json))
         case eb: EmptyBox =>
-          val message = (eb ?~ (s"Error when trying to run healthcheck")).msg
+          val message = (eb ?~ s"Error when trying to run healthcheck").messageChain
           RestUtils.toJsonError(None, message)("getHealthcheck",true)
       }
     }
