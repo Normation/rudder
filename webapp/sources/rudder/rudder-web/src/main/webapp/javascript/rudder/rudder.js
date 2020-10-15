@@ -862,3 +862,36 @@ function toggleMarkdownEditor(id) {
 function toggleOpacity(target) {
   $(target).toggleClass("half-opacity")
 }
+
+function navScroll(event, target, container){
+  if(event) event.preventDefault();
+  var container       = $(container);
+  var target          = $(target);
+  var paddingTop      = 10; // Substract padding-top of the container
+  var anchorDiff      = 20; // Used to trigger the scrollSpy feature
+  var containerOffset = container.offset().top;
+  var targetOffset    = target.offset().top - paddingTop;
+  var offsetDiff      = targetOffset - containerOffset;
+  var scrollTop       = container.scrollTop()
+  if(Math.abs(offsetDiff) > anchorDiff){
+    container.animate({ scrollTop: scrollTop + offsetDiff + anchorDiff }, 200);
+  }
+  return false;
+}
+
+function buildScrollSpyNav(){
+    $("#navbar-scrollspy > ul").html("");
+    var linkText, tmp, link, listItem;
+    var regex = /[^a-z0-9]/gmi
+    $(".page-title").each(function(){
+      linkText = $(this).text();
+      tmp      = linkText.replace(regex, "-");
+      $(this).attr('id', tmp);
+      link     = $("<a>");
+      listItem = $("<li>");
+      var targetLink = '#'+tmp;
+      link.attr("href","#"+tmp).text(linkText).on('click',function(event){navScroll(event, targetLink, '.main-details')});
+      listItem.addClass("ui-tabs-tab").append(link);
+      $("#navbar-scrollspy > ul").append(listItem);
+    });
+}

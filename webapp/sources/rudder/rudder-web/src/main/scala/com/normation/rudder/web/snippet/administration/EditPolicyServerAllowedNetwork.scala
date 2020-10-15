@@ -219,7 +219,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         "#addNetworkButton" #> SHtml.ajaxButton(<span class="glyphicon glyphicon-plus"></span>, add _ , ("id", s"addNetworkButton${policyServerId.value}")) &
         "#addaNetworkfield" #> SHtml.ajaxText(addNetworkField, addNetworkField = _, ("id", s"addaNetworkfield${policyServerId.value}")) &
         "#submitAllowedNetwork" #> {
-          (SHtml.ajaxSubmit("Save changes", process _,("id",s"submitAllowedNetwork${policyServerId.value}"), ("class","btn btn-default")): NodeSeq) ++ Script(
+          (SHtml.ajaxSubmit("Save changes", process _,("id",s"submitAllowedNetwork${policyServerId.value}"), ("class","btn btn-success")): NodeSeq) ++ Script(
             OnLoad (
               JsRaw(s"""
                 initInputAddress("${policyServerId.value}")

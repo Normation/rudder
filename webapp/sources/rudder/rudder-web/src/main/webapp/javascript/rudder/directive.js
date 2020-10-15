@@ -52,19 +52,3 @@ $(document).ready(function(){
     updateTreeSettings(storageTreeId, data, true);
   });
 });
-
-function navScroll(event, target, container){
-  if(event) event.preventDefault();
-  var container       = $(container);
-  var target          = $(target);
-  var paddingTop      = 10; // Substract padding-top of the container
-  var anchorDiff      = 20; // Used to trigger the scrollSpy feature
-  var containerOffset = container.offset().top;
-  var targetOffset    = target.offset().top - paddingTop;
-  var offsetDiff      = targetOffset - containerOffset;
-  var scrollTop       = container.scrollTop()
-  if(Math.abs(offsetDiff) > anchorDiff){
-    container.animate({ scrollTop: scrollTop + offsetDiff + anchorDiff }, 200);
-  }
-  return false;
-}
