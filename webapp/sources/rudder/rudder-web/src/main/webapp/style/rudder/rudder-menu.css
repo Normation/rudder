@@ -1687,6 +1687,11 @@ form .tooltip-content p {
   color: #337ab7;
   cursor:help;
 }
+.sidebar-collapse .plugin-icon.icon-info{
+  position: relative;
+  top: 8px;
+  left: -13px;
+}
 .content-wrapper label > .icon-info:hover{
   color: #286090;
 }
