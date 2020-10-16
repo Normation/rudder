@@ -211,16 +211,19 @@
   flex-basis: 100%;
 }
 .rudder-template .template-main .main-header,
+.rudder-template .one-col .main-header,
 .rudder-template .template-main .main-navbar,
 .rudder-template .template-main .main-details{
   background-color: #fff;
 }
 
-.rudder-template .template-main .main-header{
+.rudder-template .template-main .main-header,
+.rudder-template .one-col .main-header{
   padding: 15px;
   max-height: initial;
   position: static;
 }
+.rudder-template .one-col .main-header,
 .rudder-template.one-col .template-main .main-header{
   padding: 15px 30px;
 }
@@ -365,6 +368,77 @@
 }
 .rudder-template .template-main .jumbotron ol li{
   list-style: disc;
+}
+
+/* === ONE PAGE TEMPLATE === */
+.rudder-template .one-col {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 50px);
+  overflow: hidden;
+}
+.rudder-template .one-col .main-header{
+  border-bottom: 2px solid #e5e5e5;
+}
+.rudder-template .one-col-main {
+  display: flex;
+  overflow: hidden;
+}
+.rudder-template .one-col .sidebar-left ul.nav{
+  border: none !important;
+  padding-top: 25px;
+  min-width: 302px;
+}
+.rudder-template .one-col .sidebar-left ul.nav > li {
+  float: initial;
+  display: block;
+  width: 100%;
+}
+.rudder-template .one-col .sidebar-left ul.nav > li > a {
+  display: block;
+  width: 100%;
+  padding: 5px 30px;
+  border: none !important;
+  color: #9faabd;
+  transition: .2s;
+  max-width: 300px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  background-color: transparent !important;
+  position: relative;
+}
+.rudder-template .one-col .sidebar-left ul.nav > li > a:before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 4px;
+  left: 20px;
+  background-color: transparent;
+  transition-duration: .1s;
+}
+.rudder-template .one-col .sidebar-left ul.nav > li.active > a:before {
+  background-color: #3c8dbc;
+}
+.rudder-template .one-col .sidebar-left ul.nav > li.active > a {
+  opacity: 1;
+  color: #222D42;
+}
+.rudder-template .one-col .sidebar-left ul.nav > li > a:hover {
+  opacity: 1;
+  color: #3c8dbc;
+}
+.rudder-template .one-col .inner-portlet h3.page-title {
+  color: #222D42 !important;
+  border-bottom: 2px solid #d6deef;
+  margin-top: 20px;
+}
+.rudder-template .one-col .main-details > .inner-portlet:first-child h3.page-title {
+  margin-top: 0px;
+}
+.rudder-template .one-col .template-main .main-details{
+  padding-bottom: 100px;
 }
 
 @keyframes fadein {

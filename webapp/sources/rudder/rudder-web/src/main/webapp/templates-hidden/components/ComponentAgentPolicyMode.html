@@ -1,29 +1,24 @@
 <agentpolicymode-form>
-   <div>
-   <div class="row" id="auditMode" ng-controller="auditmodeCtrl">
-     <div class="col-xs-12">
-       <div id="agentPolicyMode" class="page-title">Node Policy Mode</div>
-     </div>
-     <div class="col-xs-12">
-       <div class="col-xs-12 callout-fade callout-info">
-         <div class="marker">
-           <span class="glyphicon glyphicon-info-sign"></span>
-         </div>
-         <p>
-           Configuration rules in Rudder can operate in one of two modes:
-         </p>
-         <ol>
-           <li><b>Audit</b>: the agent will examine configurations and report any differences, but will not make any changes</li>
-           <li><b>Enforce</b>: the agent will make changes to fix any configurations that differ from your directives</li>
-         </ol>
-         <p ng-if="isGlobalForm" ng-cloak>
-           This setting is a global switch and will apply to all nodes and all directives as the default mode. You may also override this mode on a per-node and per-directive basis.
-         </p>
-         <p ng-if="!isGlobalForm" ng-cloak>
-           By default all nodes and all directives operate in the global mode defined in <a href="" ng-click="redirect('/secure/administration/policyServerManagement#agentPolicyMode')">Settings</a>
-           , which is currently <b>{{globalConfiguration.policyMode}}</b>.
-         </p>
+   <div class="inner-portlet" id="auditMode" ng-controller="auditmodeCtrl">
+     <h3 id="agentPolicyMode" class="page-title">Node Policy Mode</h3>
+     <div class="col-xs-12 callout-fade callout-info">
+       <div class="marker">
+         <span class="glyphicon glyphicon-info-sign"></span>
        </div>
+       <p>
+         Configuration rules in Rudder can operate in one of two modes:
+       </p>
+       <ol>
+         <li><b>Audit</b>: the agent will examine configurations and report any differences, but will not make any changes</li>
+         <li><b>Enforce</b>: the agent will make changes to fix any configurations that differ from your directives</li>
+       </ol>
+       <p ng-if="isGlobalForm" ng-cloak>
+         This setting is a global switch and will apply to all nodes and all directives as the default mode. You may also override this mode on a per-node and per-directive basis.
+       </p>
+       <p ng-if="!isGlobalForm" ng-cloak>
+         By default all nodes and all directives operate in the global mode defined in <a href="" ng-click="redirect('/secure/administration/policyServerManagement#agentPolicyMode')">Settings</a>
+         , which is currently <b>{{globalConfiguration.policyMode}}</b>.
+       </p>
      </div>
      <lift:authz role="node_write">
        <form class="rudder-form no-shadow col-xs-12" ng-if="isGlobalForm || (!isGlobalForm && globalConfiguration.overrideMode)" ng-cloak>
@@ -81,7 +76,7 @@
            </div>
              <div class="col-xs-12 button-group-success">
                <span class="button-shape" ng-mouseover="pop=true" ng-mouseout="pop=false" ng-class="{disabled:$parent.nochange}">
-                 <button type="button" class="btn btn-default btn-primary-rudder" ng-class="{loading: $parent.saving === 1 }" ng-click="saveChanges()" ng-disabled="$parent.nochange" ng-mouseover="pop=true;">
+                 <button type="button" class="btn btn-success btn-primary-rudder" ng-class="{loading: $parent.saving === 1 }" ng-click="saveChanges()" ng-disabled="$parent.nochange" ng-mouseover="pop=true;">
                    <i class="fa fa-cog fa-spin" aria-hidden="true"></i>
                    <span class="sr-only">Saving...</span>
                     <span>Save changes</span>
@@ -112,7 +107,6 @@
          , or contact your Rudder administrator about this.
          </div>
        </div>
-     </div>
    </div>
 </agentpolicymode-form>
 
