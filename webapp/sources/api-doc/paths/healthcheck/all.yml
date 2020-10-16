@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Get all checks status
+  description: Run and get the result of all checks
+  operationId: getHealthcheckResult
+  responses:
+    "200":
+      description: Healthcheck information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getHealthcheckResult
+              data:
+                type: array
+                items:
+                  $ref: ../../components/schemas/check.yml
+
+  tags:
+    - Healthcheck
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/healthcheck/all.sh

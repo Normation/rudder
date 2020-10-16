@@ -42,6 +42,8 @@ tags:
     description: Nodes management
   - name: Inventories
     description: Inventory processing service
+  - name: Healthcheck
+    description: Internal health view
   - name: Parameters
     description: Global parameters
   - name: Settings
@@ -91,6 +93,8 @@ tags:
 
       Manage web interface customization.
 paths:
+  "/healthcheck":
+    $ref: paths/healthcheck/all.yml
   "/createnodes":
     $ref: paths/create-node/all.yml
   "/usermanagement/users":
