@@ -38,7 +38,7 @@
 </style>
 
 <div class="inner-portlet" id="cfagentSchedule">
-  <div class="page-title">Agent run schedule</div>
+  <h3 class="page-title">Agent run schedule</h3>
   <div class="portlet-content"  id="agentScheduleController" ng-controller="cfagentScheduleController">
     <div class="col-xs-12 callout-fade callout-info">
       <div class="marker">
@@ -105,7 +105,7 @@
         <lift:authz role="administration_write">
           <div class="form-group">
             <div class="pull-left control-label">
-              <button type="submit" class="btn btn-default" ng-click="save()" ng-disabled="isUnchanged()" id="cfagentScheduleSubmit">Save changes</button>
+              <button type="submit" class="btn btn-success" ng-click="save()" ng-disabled="isUnchanged()" id="cfagentScheduleSubmit">Save changes</button>
             </div>
           </div>
           <div id="scheduleMessage" class="pull-left">

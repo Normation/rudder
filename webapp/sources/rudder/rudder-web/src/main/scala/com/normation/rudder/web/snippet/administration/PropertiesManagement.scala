@@ -275,7 +275,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       } &
 
       "#changeMessageSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
+         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-success"))
       }
     ) apply (xml ++ Script(initJs(enabled)))
   }
@@ -337,7 +337,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       } &
 
       "#cfserverNetworkSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
+         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-success"))
       }
     ) apply (xml ++ Script(check()))
   }
@@ -381,7 +381,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } &
 
       "#enforceCertificateSubmit " #> {
-        SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
+        SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-success"))
       }
       ) apply (xml ++ Script(check()))
   }
@@ -527,7 +527,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
       } &
         "#relaySynchronizationSubmit " #> {
-          SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
+          SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-success"))
         }
     ) apply (xml ++ Script(check()))
   }
@@ -668,7 +668,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
         }&
           "#reportProtocolSubmit " #> {
-            SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
+            SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-success"))
           }
           &
           "#syslogProtocol" #> {
@@ -812,7 +812,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
       } &
       "#cfengineGlobalPropsSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
+         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-success"))
       }
     ) apply (xml ++ Script(check()))
   }
@@ -884,7 +884,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           }
         } &
       "#loggingConfigurationSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
+         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-success"))
       }
     ) apply (xml ++ Script(check()))
   }
@@ -950,7 +950,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           ) )
         }&
         "#generationHookCfpromiseSubmit " #> {
-          SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
+          SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-success"))
         }&
         "#generationHookCfpromiseSubmit *+" #> {
           Script(check())
@@ -1126,7 +1126,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
               )
             }&
             "#generationHookTriggerNodeUpdateSubmit " #> {
-              SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
+              SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-success"))
             }&
             "#generationHookTriggerNodeUpdateSubmit *+" #> {
               Script(check())
@@ -1167,7 +1167,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
             )
           }&
           "#sendMetricsSubmit " #> {
-            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
+            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-success"))
           }&
           "#sendMetricsSubmit *+" #> {
             Script(check())
@@ -1213,7 +1213,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
             )
           } &
           "#displayGraphsSubmit " #> {
-            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
+            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-success"))
           } &
           "#displayGraphsSubmit *+" #> {
             Script(check())
@@ -1259,7 +1259,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
             )
           } &
           "#displayColumnsSubmit " #> {
-            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
+            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-success"))
           } &
           "#displayColumnsSubmit *+" #> {
             check()
@@ -1311,7 +1311,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
             )
           } &
           "#directiveScriptEngineSubmit " #> {
-            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
+            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-success"))
           } &
           "#directiveScriptEngineSubmit *+" #> {
             Script(check())
@@ -1379,7 +1379,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
       "#nodeOnAcceptState" #> SHtml.ajaxSelectObj(states, Full(initNodeState), { (x:NodeState) => state = x; check}, ("id","nodeOnAcceptState")) &
       "#nodeOnAcceptPolicyMode" #> SHtml.ajaxSelectObj(modes, Full(initPolicyMode), { (x: Option[PolicyMode]) => policyMode = x; check}, ("id","nodeOnAcceptPolicyMode")) &
       "#nodeOnAcceptDefaultsSubmit" #> {
-        SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
+        SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-success"))
       } &
         "#nodeOnAcceptDefaultsSubmit *+" #> {
         Script(check())
@@ -1440,7 +1440,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
             )
           } &
           "#unexpectedReportInterpretationFormSubmit " #> {
-              SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"), ("disabled", "disabled"))
+              SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-success"), ("disabled", "disabled"))
           }
         )
 
