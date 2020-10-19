@@ -200,38 +200,6 @@ class DirectiveEditForm(
         logger.warn("could not find id for migration select version")
         "id_not_found"
     }
-    val (osCompatibility,agentCompatibility) : (NodeSeq,NodeSeq) = {
-      val osCompEmpty : NodeSeq =
-        <span>
-          Can be used on any system.
-        </span>
-      val agentCompEmpty : NodeSeq =
-        <span>
-          Can be used on any agent.
-        </span>
-      technique.compatible match {
-        case None =>
-          (osCompEmpty,agentCompEmpty)
-        case Some(comp) =>
-          val osComp =  comp.os match {
-            case Seq() =>
-              osCompEmpty
-            case oses =>
-                <span>
-                  {oses.mkString(", ")}
-                </span>
-          }
-          val agentComp = comp.agents match {
-            case Seq() =>
-              agentCompEmpty
-            case agent =>
-                <span>
-                  {agent.mkString(", ")}
-                </span>
-          }
-          (osComp,agentComp)
-      }
-    }
     val (disableMessage, enableBtn) = (fullActiveTechnique.isEnabled, directive._isEnabled) match{
       case(false, false) =>
         ( "This Directive and its Technique are disabled."
@@ -315,8 +283,6 @@ class DirectiveEditForm(
       "#notifications" #> updateAndDisplayNotifications() &
       "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-sm btn-primary" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">Technical Details</button> &
       "#isSingle *" #> showIsSingle &
-      "#compatibilityOs" #> osCompatibility &
-      "#compatibilityAgent" #> agentCompatibility &
       displayDeprecationWarning
     )(crForm) ++
     Script(OnLoad(

@@ -213,7 +213,6 @@ class TechniqueEditForm(
           case Some(t) =>
             (
               "#techniqueName" #> t.name &
-              "#compatibility" #> (if (!t.compatible.isEmpty) t.compatible.head.toHtml else NodeSeq.Empty) &
               "#techniqueDescription *" #> Script(OnLoad(JsRaw(s"""generateMarkdown(${Str(t.description).toJsCmd}, "#techniqueDescription")"""))) &
               "#techniqueLongDescription" #>  t.longDescription &
               "#isSingle *" #> showIsSingle(t)

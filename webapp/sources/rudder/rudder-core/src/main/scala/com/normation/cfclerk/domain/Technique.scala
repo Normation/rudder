@@ -174,7 +174,6 @@ final case class Technique(
   , rootSection            : SectionSpec //be careful to not split it from the TechniqueId, else you will not have the good spec for the version
   , deprecrationInfo       : Option[TechniqueDeprecationInfo]
   , systemVariableSpecs    : Set[SystemVariableSpec] = Set()
-  , compatible             : Option[Compatible] = None
   , isMultiInstance        : Boolean = false // true if we can have several instance of this policy
   , longDescription        : String = ""
   , isSystem               : Boolean = false

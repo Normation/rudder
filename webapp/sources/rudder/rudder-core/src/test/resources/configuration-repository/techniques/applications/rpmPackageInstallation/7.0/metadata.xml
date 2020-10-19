@@ -19,13 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
   It will ensure that the defined packages are installed, up-to-date or removed using the yum/zypper package manager.</DESCRIPTION>
 
-  <DEPRECATED>This technique is deprecated, use "Package Management" instead.</DEPRECATED>  
+  <DEPRECATED>This technique is deprecated, use "Package Management" instead.</DEPRECATED>
   <MULTIINSTANCE>true</MULTIINSTANCE>
-  <COMPATIBLE>
-    <OS version=">= 4 (Nahant)">RHEL / CentOS</OS>
-    <OS version=">= 10 SP1 (Agama Lizard)">SuSE LES / DES / OpenSuSE</OS>
-    <AGENT version=">= 3.4.0">cfengine-community</AGENT>
-  </COMPATIBLE>
 
   <BUNDLES>
     <NAME>check_rpm_package_installation</NAME>
@@ -42,7 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   <TRACKINGVARIABLE>
     <SAMESIZEAS>RPM_PACKAGE_REDLIST</SAMESIZEAS>
   </TRACKINGVARIABLE>
-  
+
   <SECTIONS>
     <SECTION name="ZMD process" component="true" />
     <SECTION name="Check interval" component="false">
@@ -143,7 +138,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       </SECTION>
       <SECTION name="Post-modification hook" component="true" componentKey="RPM_PACKAGE_REDLIST">
         <INPUT>
-          <NAME>RPM_PACKAGE_POST_HOOK_RUN</NAME> 
+          <NAME>RPM_PACKAGE_POST_HOOK_RUN</NAME>
           <DESCRIPTION>Should the command(s) below be run if the above package has been modified?</DESCRIPTION>
           <CONSTRAINT>
             <TYPE>boolean</TYPE>
@@ -162,4 +157,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     </SECTION>
   </SECTIONS>
 
-</TECHNIQUE>       
+</TECHNIQUE>
