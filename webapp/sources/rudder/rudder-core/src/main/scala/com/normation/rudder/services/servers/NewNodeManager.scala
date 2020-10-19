@@ -92,7 +92,6 @@ import net.liftweb.common.Full
 import org.joda.time.DateTime
 import zio._
 import zio.syntax._
-import com.normation.zio._
 
 /**
  * A newNodeManager hook is a class that accept callbacks.
