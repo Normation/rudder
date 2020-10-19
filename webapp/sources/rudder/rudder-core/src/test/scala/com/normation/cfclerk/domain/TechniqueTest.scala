@@ -58,17 +58,6 @@ class TechniqueTest extends Specification {
 
   val technique = techniqueParser.parseXml(readFile("testTechnique.xml"), id).getOrElse(throw new IllegalArgumentException("Technique XML must be valid for test"))
 
-
-  "Compatible OS and Agents" should {
-    val xml = <COMPATIBLE><OS>debian-5</OS><OS>windowsXP</OS><AGENT version=">= 3.5">cfengine-community</AGENT></COMPATIBLE>
-    val os = List(OperatingSystem("debian-5"), OperatingSystem("windowsXP"))
-    val agents = List(Agent("cfengine-community", ">= 3.5"))
-    val compatible = Compatible(os, agents)
-    "works so that parsing : " + xml + " yields " + compatible.toString in {
-      techniqueParser.parseCompatibleTag(xml) === Right(compatible)
-    }
-  }
-
   "The technique described" should {
 
     "have name 'Test technique'" in {
