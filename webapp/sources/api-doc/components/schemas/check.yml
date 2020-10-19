@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+required:
+  - msg
+  - status
+properties:
+  msg:
+    type: string
+    description: Message about the check
+    example: "Only 2GB of RAM left"
+  status:
+    type: string
+    description: The severity status of the check
+    enum:
+      - Critical
+      - Warning
+      - Ok
