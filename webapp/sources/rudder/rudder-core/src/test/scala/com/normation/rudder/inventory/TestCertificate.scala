@@ -40,6 +40,7 @@ import java.security.Security
 
 import better.files.Resource
 import com.normation.errors.IOResult
+import com.normation.errors.effectUioUnit
 import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.InventoryReport
@@ -62,6 +63,7 @@ import com.normation.inventory.provisioning.fusion.FusionReportUnmarshaller
 import com.normation.zio._
 import zio._
 import zio.syntax._
+import zio.duration._
 
 @RunWith(classOf[JUnitRunner])
 class TestCertificate extends Specification with Loggable {
@@ -69,12 +71,24 @@ class TestCertificate extends Specification with Loggable {
 
   val repository = scala.collection.mutable.Map[NodeId, FullInventory]()
 
+  // our callback logic to wait for save done
+  var saveDone = false
+  val callback = (_:InventoryReport) => effectUioUnit{ saveDone = true }
+  def waitSaveDone: Unit = {
+    while(!saveDone) { Thread.sleep(20)}
+  }
+  // end callback logic
+
   val parser = new FusionReportUnmarshaller(new StringUuidGeneratorImpl)
 
+
+  // we need a callback after add to avoid flappy tests
   val reportSaver = new ReportSaver[Seq[LDIFChangeRecord]] {
-    override def save(report: InventoryReport): IOResult[Seq[LDIFChangeRecord]] = IOResult.effect(
+    val postCommitCallback: InventoryReport => UIO[Unit] = callback
+    override def save(report: InventoryReport): IOResult[Seq[LDIFChangeRecord]] = IOResult.effect {
+      Thread.sleep(100) // false delay to be sure we match what is really inserted, not what is previously there
       repository += ((report.node.main.id, FullInventory(report.node, Some(report.machine))))
-    ).map(_ => Nil)
+    }.map(_ => Nil).tap(_ => postCommitCallback(report))
   }
 
   val fullInventoryRepo = new FullInventoryRepository[Seq[LDIFChangeRecord]] {
@@ -117,9 +131,8 @@ class TestCertificate extends Specification with Loggable {
   val linux = NodeId("baded9c8-902e-4404-96c1-278acca64e3a")
 
   // LINUX
-  "when a node is not in repository, it is not ok anymore to not have a signature with cfkey" in {
+  "when a linux node is not in repository, it is not ok anymore to not have a signature with cfkey" in {
     repository.remove(linux)
-
     val res = processor.saveInventory(SaveInventoryInfo(
         "linux-cfe-sign"
       , () => Resource.getAsStream("certificates/linux-cfe-sign.ocs")
@@ -130,14 +143,15 @@ class TestCertificate extends Specification with Loggable {
   }
 
   "when a node is not in repository, it is ok to have a signature with cfe-key" in {
-    repository.remove(linux)
+    repository.remove(linux) ; saveDone = false
 
     val res = processor.saveInventory(SaveInventoryInfo(
         "linux-cfe-sign"
       , () => Resource.getAsStream("certificates/linux-cfe-sign.ocs")
       , Some(() => Resource.getAsStream("certificates/linux-cfe-sign.ocs.sign"))
     )).runNow
-    Thread.sleep(10)
+
+    waitSaveDone
 
     (res must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
     (repository.get(linux) must beSome) and
@@ -161,13 +175,15 @@ class TestCertificate extends Specification with Loggable {
   }
 
   "when a node is not in repository, it is ok to have a signature with certificate" in {
-    repository.remove(windows)
+    repository.remove(windows); saveDone = false
 
     val res = processor.saveInventory(SaveInventoryInfo(
         "windows-same-certificate"
       , () => Resource.getAsStream("certificates/windows-same-certificate.ocs")
       , Some(() => Resource.getAsStream("certificates/windows-same-certificate.ocs.sign"))
     )).runNow
+
+    waitSaveDone
 
     (res must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
     (repository.get(windows) must beSome) and
@@ -178,12 +194,15 @@ class TestCertificate extends Specification with Loggable {
 
   "when a node is in repository with a registered key, it is ok to add it again with a signature" in {
     val start = repository(windows).node.agents.head.securityToken.key === Cert.OK
+    saveDone = false
 
     val res = processor.saveInventory(SaveInventoryInfo(
         "windows-same-certificate"
       , () => Resource.getAsStream("certificates/windows-same-certificate.ocs")
       , Some(() => Resource.getAsStream("certificates/windows-same-certificate.ocs.sign"))
     )).runNow
+
+    waitSaveDone
 
     (res must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
     (repository.get(windows) must beSome) and
@@ -192,6 +211,7 @@ class TestCertificate extends Specification with Loggable {
   }
 
   "when a node is in repository with a registered key, it is NOK to miss signature" in {
+
     val res = processor.saveInventory(SaveInventoryInfo(
         "windows-same-certificate"
       , () => Resource.getAsStream("certificates/windows-same-certificate.ocs")
@@ -204,12 +224,14 @@ class TestCertificate extends Specification with Loggable {
   // this one will be used to update certificate: sign new inventory with old key
   "when a node is in repository with a registered key; signature must match existing certificate, not the one in inventory" in {
     val start = repository(windows).node.agents.head.securityToken.key === Cert.OK
-
+    saveDone = false
     val res = processor.saveInventory(SaveInventoryInfo(
         "windows-new-certificate"
       , () => Resource.getAsStream("certificates/windows-new-certificate.ocs")
       , Some(() => Resource.getAsStream("certificates/windows-new-certificate.ocs.sign"))
     )).runNow
+
+    waitSaveDone
 
     (res must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
     (repository.get(windows) must beSome) and
