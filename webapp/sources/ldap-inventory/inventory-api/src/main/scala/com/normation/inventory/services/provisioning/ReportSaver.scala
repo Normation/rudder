@@ -130,7 +130,7 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
        */
       postPostCommitReport <- ZIO.foldLeft(postCommitPipeline)(commitedChange) { (currentChanges, postCommit) =>
         postCommit(postPreCommitReport, currentChanges).chainError(s"Error in postCommit pipeline with processor '${postCommit.name}'. The commit was done, we may be in a inconsistent state.")
-        }
+      }
 
       t3 <- UIO(System.currentTimeMillis)
       _  <- InventoryProcessingLogger.timing.trace(s"Post commit report: ${t3-t2} ms")
