@@ -304,7 +304,7 @@ class Archives extends DispatchSnippet with Loggable {
     ////////// Template filling //////////
 
     ("#"+archiveButtonId) #> {
-      SHtml.ajaxSubmit(archiveButtonName, archive _ , ("id" -> archiveButtonId), ("class","btn btn-default"))
+      SHtml.ajaxSubmit(archiveButtonName, archive _ , ("id" -> archiveButtonId), ("class","btn btn-primary btn-archive"))
     } &
     ("#"+archiveDateSelectId) #> {
       //we have at least "Choose an archive to restore..." and "get archive from current Git HEAD"
