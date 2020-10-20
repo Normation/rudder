@@ -33,7 +33,7 @@ app.directive('techniquename', function($filter, $http, $q) {
         if(viewValue===undefined) return false;
 
         // Get all techniqueNames in lowercase
-        var request = $http.get('/rudder/secure/api/techniques').then(
+        var request = $http.get(contextPath + '/secure/api/techniques').then(
         function successCallback(techniques) {
           // Technique provided by RUDDER
           var activeTechniqueNames = techniques.data.data.techniques.map(function(a) {return a.name.toLowerCase();});
@@ -118,7 +118,7 @@ app.directive('constraint', function($http, $q, $timeout) {
       var timeoutStatus = false;
       var timeout = $q.defer();
 
-      var request = $http.post("/rudder/secure/api/internal/techniques/parameter/check",data, { 'timeout' : timeout.promise }).then(
+      var request = $http.post(contextPath + "/secure/api/internal/techniques/parameter/check",data, { 'timeout' : timeout.promise }).then(
           function(successResult) {
             scope.parameter.$errors= [];
             if (! successResult.data.data.parameterCheck.result) {
@@ -334,7 +334,7 @@ function defineMethodClassContext (method_call) {
 }
 function updateResources() {
   var urlParam= ($scope.originalTechnique.bundle_name !== undefined) ?  $scope.selectedTechnique.bundle_name : "draft/" + $scope.selectedTechnique.internalId
-  var resourceUrl = '/rudder/secure/api/internal/techniques/' + urlParam +"/" + $scope.selectedTechnique.version +"/resources"
+  var resourceUrl = contextPath + '/secure/api/internal/techniques/' + urlParam +"/" + $scope.selectedTechnique.version +"/resources"
   $http.get(resourceUrl).then(
     function(response) {
       $scope.selectedTechnique.resources = response.data.data.resources;
@@ -350,7 +350,7 @@ function updateResources() {
 function updateFileManagerConf () {
   $scope.fileManagerState.updating = true;
   var urlParam= $scope.originalTechnique.bundle_name !== undefined ? $scope.selectedTechnique.bundle_name+"/" + $scope.selectedTechnique.version +"/" + $scope.selectedTechnique.category : "draft/" + $scope.selectedTechnique.internalId +"/" + $scope.selectedTechnique.version
-  var newUrl =  "/rudder/secure/api/resourceExplorer/"+ urlParam
+  var newUrl =  contextPath + "/secure/api/resourceExplorer/"+ urlParam
   updateResources()
 
   apiHandler.prototype.deferredHandler = function(data, deferred, code, defaultMsg) {
@@ -671,7 +671,7 @@ $scope.getTechniques = function () {
   $scope.techniques = [];
   $scope.generic_methods = {};
 
-  $http.get('/rudder/secure/api/internal/methods').success(function(response, status, headers, config) {
+  $http.get(contextPath + '/secure/api/internal/methods').success(function(response, status, headers, config) {
       if (response.data !== undefined && response.data.methods !== undefined) {
 
         $.each( response.data.methods, function(methodName, method) {
@@ -683,7 +683,7 @@ $scope.getTechniques = function () {
         errorNotification( "Error while fetching methods", "Data received via api are invalid")
       }
 
-      $http.get('/rudder/secure/api/internal/techniques').success(function(response, status, headers, config) {
+      $http.get(contextPath + '/secure/api/internal/techniques').success(function(response, status, headers, config) {
         if (response.data !== undefined && response.data.techniques !== undefined) {
 
           $.each( response.data.techniques, function(techniqueName, technique_raw) {
@@ -704,7 +704,7 @@ $scope.getTechniques = function () {
 
     }).error(handle_error(" while fetching methods")).then(function(){$scope.ui.loaded = true;})
 
-  $http.get('/rudder/secure/api/internal/techniques/categories').
+  $http.get(contextPath + '/secure/api/internal/techniques/categories').
   success(function(response, status, headers, config) {
 
     if (response.data !== undefined && response.data.techniqueCategories !== undefined) {
@@ -1315,7 +1315,7 @@ $scope.onImportFileChange = function (fileEl) {
 
   // Delete a technique
   $scope.deleteTechnique = function() {
-    $http.delete("/rudder/secure/api/internal/techniques/"+$scope.selectedTechnique.bundle_name+"/"+$scope.selectedTechnique.version, {params : {force : false}}).
+    $http.delete(contextPath + "/secure/api/internal/techniques/"+$scope.selectedTechnique.bundle_name+"/"+$scope.selectedTechnique.version, {params : {force : false}}).
       success(function(data, status, headers, config) {
         /* ===> TOAST
         ngToast.create({ content: "<b>Success!</b> Technique '" + $scope.originalTechnique.name + "' deleted!"});
@@ -1453,14 +1453,14 @@ $scope.onImportFileChange = function (fileEl) {
 
     var saveError = function(action, data) {
       return handle_error("while "+action+" Technique '"+ data.technique.name+"'")
-      
+
     }
 
     // Actually save the technique through API
     if ($scope.originalTechnique.bundle_name === undefined) {
-      $http.put("/rudder/secure/api/internal/techniques", data).success(saveSuccess).error(saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
+      $http.put(contextPath + "/secure/api/internal/techniques", data).success(saveSuccess).error(saveError("creating", data)).finally(function(){$scope.$broadcast('endSaving');});
     } else {
-      $http.post("/rudder/secure/api/internal/techniques", data).success(saveSuccess).error(saveError("updating", data)).finally(function(){$scope.$broadcast('endSaving');});
+      $http.post(contextPath + "/secure/api/internal/techniques", data).success(saveSuccess).error(saveError("updating", data)).finally(function(){$scope.$broadcast('endSaving');});
     }
   };
 
