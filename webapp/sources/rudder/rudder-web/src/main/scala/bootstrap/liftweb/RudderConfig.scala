@@ -430,6 +430,15 @@ object RudderConfig extends Loggable {
         "rudder"
     }
   }
+  val RUDDER_GROUP_OWNER_GENERATED_POLICIES = {
+    try {
+      config.getString("rudder.generated.policies.group.owner")
+    } catch {
+      case ex: Exception =>
+        ApplicationLogger.info("Property 'rudder.generated.policies.group.owner' is missing or empty in rudder.configFile. Default to 'rudder-policy-reader'.")
+        "rudder-policy-reader"
+    }
+  }
 
   // Roles definitions
   val RUDDER_SERVER_ROLES = Seq(
@@ -1782,6 +1791,8 @@ object RudderConfig extends Loggable {
     , writeAllAgentSpecificFiles
     , HOOKS_D
     , HOOKS_IGNORE_SUFFIXES
+    , RUDDER_CHARSET.value
+    , Some(RUDDER_GROUP_OWNER_GENERATED_POLICIES)
   )
 
   //must be here because of circular dependency if in techniqueRepository

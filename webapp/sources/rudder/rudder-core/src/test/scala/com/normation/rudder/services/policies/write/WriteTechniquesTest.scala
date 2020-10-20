@@ -135,6 +135,8 @@ object TestSystemData {
       , writeAllAgentSpecificFiles
       , "/we-don-t-want-hooks-here"
       , hookIgnore
+      , StandardCharsets.UTF_8
+      , None
     )
 
     (rootGeneratedPromisesDir, promiseWritter)

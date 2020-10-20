@@ -296,6 +296,11 @@ rudder.community.port=5309
 #   way of doing that and letting node knowing where to go look for their policies.
 # - policies generated for Rudder Root Server go into ***/var/rudder/cfengine-community/inputs***
 
+#
+# Group owner for generated policy files. Default: rudder-policy-reader
+#
+rudder.generated.policies.group.owner=rudder-policy-reader
+
 # - 'rudder.dir.backup' is the directory path where previous configuration of each node are stored
 # CAUTION: For performance and consistency, it is necessary that the rudder.dir.backup is on the same
 # filesystem as /var/rudder/share/ , otherwise the policies change for nodes is non-atomic (move becomes
