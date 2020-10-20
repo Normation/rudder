@@ -1,9 +1,15 @@
 package com.normation.rudder.services.healthcheck
 
+import java.io
 import java.lang.Runtime.getRuntime
+import java.io.File
 
+import better.files.File
+import better.files.File.root
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.logger.{HealthcheckLoggerPure => logger}
+import com.normation.rudder.hooks.Cmd
+import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
@@ -71,6 +77,56 @@ final object CheckCoreNumber extends Check {
       case i if i <= 0 => Critical(name, "No Core available")
       case 1 => Warning(name, s"Only one cores available")
       case n => Ok(name, s"${n} cores available")
+    }
+  }
+}
+
+final object CheckFreeSpace extends Check {
+  def name: CheckName = CheckName("Disk free space available")
+
+  final case class SpaceInfo(val path: String, val free: Long, val available: Long){
+    def percent: Long =
+      if (available != 0) {
+        (free * 100 / available)
+      } else {
+        0
+      }
+  }
+
+  def run: IOResult[HealthcheckResult] = {
+    val file          = root / "proc" / "mounts"
+    val mountsContent = file.lines.map(x => x.split(" ")(1)).toList
+
+    // We want to check `/var/*` if none exist take `/`
+    val partitionToCheck = {
+      val isParititionVar = mountsContent.filter(_.regionMatches(true, 0, "/var", 0, 4))
+      if (isParititionVar.isEmpty) List("/") else isParititionVar
+    }
+
+    for {
+      paritionSpaceInfos <- IOResult.effect {
+        partitionToCheck.map { x =>
+          val file = new io.File(x)
+          SpaceInfo(x, file.getUsableSpace, file.getTotalSpace)
+        }
+      }
+    } yield {
+      val pcSpaceLeft = paritionSpaceInfos.map(x => (x.path, x.percent)).sortBy(-_._2)
+      pcSpaceLeft match {
+        case h :: _ =>
+          val listMsgSpace = pcSpaceLeft.map(s => s"- ${s._1} -> ${s._2}%\n")
+          h._2 match {
+            case pr if pr < 5L  =>
+              val msg = s"Some space is under : \n- ${listMsgSpace}"
+              Critical(name, msg)
+            case pr if pr < 10L =>
+              val msg = s"Some space partition is under a warning level: \n- ${listMsgSpace}"
+              Warning(name, msg)
+            case _                =>
+              val msg = s"Space available is ok: \n- ${listMsgSpace}"
+              Ok(name, msg)
+          }
+      }
     }
   }
 }
