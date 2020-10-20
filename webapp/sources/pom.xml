@@ -369,7 +369,7 @@ limitations under the License.
     <asm-version>5.2</asm-version>
     <bcpkix-jdk15on-version>1.65</bcpkix-jdk15on-version>
     <silencer-lib-version>1.6.0</silencer-lib-version>
-    <better-files-version>3.8.0</better-files-version>
+    <better-files-version>3.9.1</better-files-version>
     <sourcecode-version>0.2.1</sourcecode-version>
     <quicklens-version>1.5.0</quicklens-version>
     <hikaricp-version>3.4.2</hikaricp-version>

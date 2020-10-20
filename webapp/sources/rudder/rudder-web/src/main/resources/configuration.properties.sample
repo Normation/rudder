@@ -367,6 +367,12 @@ rudder.batch.techniqueLibrary.updateInterval=5
 #
 rudder.dir.gitRoot=/var/rudder/configuration-repository
 
+#
+# Group owner for files created by rudder application in configuration-repository
+# directory (typically, configuration object serialization)
+#
+rudder.config.repo.new.file.group.owner=rudder
+
 ###############################
 # Dynamic group configuration  ######################################################
 ###############################

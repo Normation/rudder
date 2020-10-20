@@ -71,7 +71,8 @@ class GitRuleArchiverImpl(
   , ruleRootDir                            : String //relative path !
   , override val xmlPrettyPrinter          : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
-  , override val encoding                  : String = "UTF-8"
+  , override val encoding                  : String
+  , override val groupOwner                : String
 ) extends
   GitRuleArchiver with
   NamedZioLogger with
@@ -172,14 +173,15 @@ trait BuildCategoryPathName[T] {
  *
  */
 class GitActiveTechniqueCategoryArchiverImpl(
-    override val gitRepo                : GitRepositoryProvider
-  , override val gitRootDirectory       : File
-  , activeTechniqueCategorySerialisation: ActiveTechniqueCategorySerialisation
-  , techniqueLibraryRootDir             : String //relative path !
-  , override val xmlPrettyPrinter       : RudderPrettyPrinter
-  , override val gitModificationRepository : GitModificationRepository
-  , override val encoding               : String = "UTF-8"
-  , serializedCategoryName              : String = "category.xml"
+    override val gitRepo                  : GitRepositoryProvider
+  , override val gitRootDirectory         : File
+  , activeTechniqueCategorySerialisation  : ActiveTechniqueCategorySerialisation
+  , techniqueLibraryRootDir               : String //relative path !
+  , override val xmlPrettyPrinter         : RudderPrettyPrinter
+  , override val gitModificationRepository: GitModificationRepository
+  , override val encoding                 : String
+  , serializedCategoryName                : String
+  , override val groupOwner               : String
 ) extends
   GitActiveTechniqueCategoryArchiver with
   Loggable with
@@ -346,15 +348,16 @@ class UpdatePiOnActiveTechniqueEvent(
  * A specific trait to create archive of an active technique.
  */
 class GitActiveTechniqueArchiverImpl(
-    override val gitRepo           : GitRepositoryProvider
-  , override val gitRootDirectory  : File
-  , activeTechniqueSerialisation   : ActiveTechniqueSerialisation
-  , techniqueLibraryRootDir        : String //relative path !
-  , override val xmlPrettyPrinter  : RudderPrettyPrinter
-  , override val gitModificationRepository : GitModificationRepository
-  , override val encoding          : String = "UTF-8"
-  , val uptModificationCallback    : Buffer[ActiveTechniqueModificationCallback] = Buffer()
-  , val activeTechniqueFileName : String = "activeTechniqueSettings.xml"
+    override val gitRepo                  : GitRepositoryProvider
+  , override val gitRootDirectory         : File
+  , activeTechniqueSerialisation          : ActiveTechniqueSerialisation
+  , techniqueLibraryRootDir               : String //relative path !
+  , override val xmlPrettyPrinter         : RudderPrettyPrinter
+  , override val gitModificationRepository: GitModificationRepository
+  , val uptModificationCallback           : Buffer[ActiveTechniqueModificationCallback]
+  , override val encoding                 : String
+  , val activeTechniqueFileName           : String
+  , override val groupOwner               : String
 ) extends GitActiveTechniqueArchiver with NamedZioLogger with GitArchiverUtils with BuildCategoryPathName[ActiveTechniqueCategoryId] {
 
   override def loggerName: String = this.getClass.getName
@@ -463,13 +466,14 @@ class GitActiveTechniqueArchiverImpl(
  * A specific trait to create archive of an active technique.
  */
 class GitDirectiveArchiverImpl(
-    override val gitRepo           : GitRepositoryProvider
-  , override val gitRootDirectory  : File
-  , directiveSerialisation         : DirectiveSerialisation
-  , techniqueLibraryRootDir        : String //relative path !
-  , override val xmlPrettyPrinter  : RudderPrettyPrinter
-  , override val gitModificationRepository : GitModificationRepository
-  , override val encoding          : String = "UTF-8"
+    override val gitRepo                  : GitRepositoryProvider
+  , override val gitRootDirectory         : File
+  , directiveSerialisation                : DirectiveSerialisation
+  , techniqueLibraryRootDir               : String //relative path !
+  , override val xmlPrettyPrinter         : RudderPrettyPrinter
+  , override val gitModificationRepository: GitModificationRepository
+  , override val encoding                 : String
+  , override val groupOwner               : String
 ) extends GitDirectiveArchiver with NamedZioLogger with GitArchiverUtils with BuildCategoryPathName[ActiveTechniqueCategoryId] {
 
 
@@ -562,15 +566,16 @@ class GitDirectiveArchiverImpl(
  * with the root category being the file denoted by "nodeGroupLibrary
  */
 class GitNodeGroupArchiverImpl(
-    override val gitRepo          : GitRepositoryProvider
-  , override val gitRootDirectory : File
-  , nodeGroupSerialisation        : NodeGroupSerialisation
-  , nodeGroupCategorySerialisation: NodeGroupCategorySerialisation
-  , groupLibraryRootDir           : String //relative path !
-  , override val xmlPrettyPrinter : RudderPrettyPrinter
-  , override val gitModificationRepository : GitModificationRepository
-  , override val encoding         : String = "UTF-8"
-  , serializedCategoryName        : String = "category.xml"
+    override val gitRepo                  : GitRepositoryProvider
+  , override val gitRootDirectory         : File
+  , nodeGroupSerialisation                : NodeGroupSerialisation
+  , nodeGroupCategorySerialisation        : NodeGroupCategorySerialisation
+  , groupLibraryRootDir                   : String //relative path !
+  , override val xmlPrettyPrinter         : RudderPrettyPrinter
+  , override val gitModificationRepository: GitModificationRepository
+  , override val encoding                 : String
+  , serializedCategoryName                : String
+  , override val groupOwner               : String
 ) extends
   GitNodeGroupArchiver with
   NamedZioLogger with
@@ -776,13 +781,14 @@ class GitNodeGroupArchiverImpl(
  *
  */
 class GitParameterArchiverImpl(
-    override val gitRepo          : GitRepositoryProvider
-  , override val gitRootDirectory : File
-  , parameterSerialisation        : GlobalParameterSerialisation
-  , parameterRootDir              : String //relative path !
-  , override val xmlPrettyPrinter : RudderPrettyPrinter
-  , override val gitModificationRepository : GitModificationRepository
-  , override val encoding         : String = "UTF-8"
+    override val gitRepo                  : GitRepositoryProvider
+  , override val gitRootDirectory         : File
+  , parameterSerialisation                : GlobalParameterSerialisation
+  , parameterRootDir                      : String //relative path !
+  , override val xmlPrettyPrinter         : RudderPrettyPrinter
+  , override val gitModificationRepository: GitModificationRepository
+  , override val encoding                 : String
+  , override val groupOwner               : String
 ) extends
   GitParameterArchiver with
   NamedZioLogger with

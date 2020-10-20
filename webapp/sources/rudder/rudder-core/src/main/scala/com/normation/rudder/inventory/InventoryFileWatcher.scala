@@ -220,7 +220,7 @@ class InventoryFileWatcher(
 ) {
 
   def logDirPerm(dir: File, name: String) = {
-    if(dir.isDirectory && dir.isWriteable) {
+    if(dir.isDirectory && dir.isWritable) {
       InventoryProcessingLogger.logEffect.debug(s"${name} inventories directory [ok]: ${dir.pathAsString}")
     } else {
       InventoryProcessingLogger.logEffect.error(s"${name} inventories directory: ${dir.pathAsString} is not writable. Please check existence and file permission.")

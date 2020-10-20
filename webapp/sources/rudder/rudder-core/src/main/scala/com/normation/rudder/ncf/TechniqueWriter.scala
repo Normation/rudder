@@ -729,7 +729,8 @@ class TechniqueArchiverImpl (
   , override val xmlPrettyPrinter          : RudderPrettyPrinter
   , override val relativePath              : String
   , override val gitModificationRepository : GitModificationRepository
-  , personIdentservice : PersonIdentService
+  , personIdentservice                     : PersonIdentService
+  , override val groupOwner                : String
 ) extends GitArchiverUtils with TechniqueArchiver {
 
   override val encoding : String = "UTF-8"
