@@ -182,8 +182,11 @@ def parse_bundlefile_metadata(content, bundle_type):
             parameters.append({'name': param_name, 'description': match.group(4)})
             param_names.add(param_name)
           else:
-            parameter = json.loads(match.group(2))
-            parameters.append(parameter)
+            try:
+              parameter = json.loads(match.group(2))
+              parameters.append(parameter)
+            except:
+              print("Error while loading JSON " +match.group(2))
         if tag == "parameter_constraint":
           constraint = json.loads("{" + match.group(4)+ "}")
           # extend default_constraint if it was not already defined)

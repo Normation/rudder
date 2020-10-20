@@ -6,6 +6,7 @@ import os
 import sys
 import shutil
 import json
+import grp
 from pprint import pprint
 
 DEFAULT_NCF_DIR = '/usr/share/ncf'
@@ -13,6 +14,7 @@ DEFAULT_NCF_DIR = '/usr/share/ncf'
 NCF_DIR = os.path.dirname(os.path.realpath(__file__))
 NCF_TREE_DIR  = os.path.join(NCF_DIR, 'tree')
 NCF_TOOLS_DIR = os.path.join(NCF_DIR, 'tools')
+GROUP_OWNER = 'rudder'
 
 sys.path[0:0] = [NCF_TOOLS_DIR, DEFAULT_NCF_DIR]
 
@@ -63,10 +65,13 @@ def write_all_methods(path):
   methods = ncf.get_all_generic_methods_metadata()
 
   methodsFile = '/var/rudder/configuration-repository/ncf/generic_methods.json'
+  gid = grp.getgrnam(GROUP_OWNER)[2]
   if not os.path.exists(os.path.dirname(methodsFile)):
     os.makedirs(os.path.dirname(methodsFile))
+    os.chown(os.path.dirname(methodsFile), -1, gid)
   with open(methodsFile, 'w') as outfile:
     json.dump(methods["data"]["generic_methods"], outfile, indent=2)
+  os.chown(methodsFile, -1, gid)
 
 def write_all_techniques(path, migrate_old):
   techniques = ncf.get_all_techniques_metadata(True,migrate_old)
@@ -77,8 +82,8 @@ def write_all_techniques(path, migrate_old):
     techniqueFile = '/var/rudder/configuration-repository/techniques/'+category+"/"+ bundle_name +"/"+version+'/technique.json'
     if not os.path.exists(techniqueFile):
       with open('/var/rudder/configuration-repository/techniques/'+category+"/"+ bundle_name +"/"+version+'/technique.json', 'w') as outfile:
-       json.dump(technique, outfile, indent=2)
-
+        json.dump(technique, outfile, indent=2)
+      os.chown(techniqueFile, -1, grp.getgrnam(GROUP_OWNER)[2])
 
 
 def usage():
