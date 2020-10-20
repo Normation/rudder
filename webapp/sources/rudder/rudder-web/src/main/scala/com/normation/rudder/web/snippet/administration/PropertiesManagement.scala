@@ -96,6 +96,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     //If user does not have the Edit("administration") right, all inputs are disabled
     // else nothing is done because it enables what should not be.
     if(!CurrentUser.checkRights(AuthorizationType.Administration.Edit)) {
+
       S.appendJs(JsRaw(s"""$$("input, select").attr("disabled", "true")"""))
     }
     NodeSeq.Empty
@@ -113,14 +114,12 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "sendMetricsConfiguration" => sendMetricsConfiguration
     case "reportProtocolSection" => reportProtocolSection
     case "displayGraphsConfiguration" => displayGraphsConfiguration
-    case "displayRuleColumnConfiguration" => displayRuleColumnConfiguration
     case "directiveScriptEngineConfiguration" => directiveScriptEngineConfiguration
     case "unexpectedReportInterpretation" => unexpectedReportInterpretation
     case "onloadScript" => _ => disableInputs
     case "nodeOnAcceptDefaults" => nodeOnAcceptDefaultsConfiguration
     case "generationHookCfpromise" => generationHookCfpromise
     case "generationHookTriggerNodeUpdate" => generationHookTriggerNodeUpdate
-    case "enforceCertificateValidation" => enforceCertificateValidation
   }
 
 
@@ -146,7 +145,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       configService.set_rudder_ui_changeMessage_mandatory(mandatory).toBox.foreach(updateOk => initMandatory = Full(mandatory))
 
       configService.set_rudder_ui_changeMessage_explanation(explanation).toBox.foreach(updateOk => initExplanation = Full(explanation))
-      check() & JsRaw("""createSuccessNotification("Change audit logs configuration correctly updated")""")
+      check() & JsRaw("""createSuccessNotification("Audit logs configuration correctly updated")""")
     }
 
     // Check if there is no modification
@@ -284,20 +283,23 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
     //  initial values, updated on successfull submit
     var initDenyBadClocks = configService.cfengine_server_denybadclocks.toBox
+    var initEnforceCertificate = configService.rudder_verify_certificates().toBox
 
     // form values
     var denyBadClocks = initDenyBadClocks.getOrElse(false)
+    var enforceCertificate = initEnforceCertificate.getOrElse(false)
 
     def submit() = {
       configService.set_cfengine_server_denybadclocks(denyBadClocks).toBox.foreach(updateOk => initDenyBadClocks = Full(denyBadClocks))
+      configService.set_rudder_verify_certificates(enforceCertificate, CurrentUser.actor, genericReasonMessage).toBox.foreach(updateOk => initEnforceCertificate = Full(enforceCertificate))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
       startNewPolicyGeneration
-      check() & JsRaw("""createSuccessNotification("Network security options correctly updated")""")
+      check() & JsRaw("""createSuccessNotification("Security options correctly updated")""")
     }
 
     def noModif = (
-      initDenyBadClocks.map(_ == denyBadClocks).getOrElse(false)
+      initDenyBadClocks.map(_ == denyBadClocks).getOrElse(false) && initEnforceCertificate.map(_ == enforceCertificate).getOrElse(false)
     )
 
     def check() = {
@@ -336,55 +338,26 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
       } &
 
+      "#enforceCertificateValidation" #> {
+        initEnforceCertificate match {
+          case Full(value) =>
+            SHtml.ajaxCheckbox(
+              value
+              , (b : Boolean) => { enforceCertificate = b; check() }
+              , ("id","enforceCertificateValidation")
+            )
+          case eb: EmptyBox =>
+            val fail = eb ?~ "there was an error while fetching value of property: 'Certificate value' "
+            <div class="error">{fail.msg}</div>
+        }
+      } &
+
       "#cfserverNetworkSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-success"))
+         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-success space-top"))
       }
     ) apply (xml ++ Script(check()))
   }
 
-  def enforceCertificateValidation = { xml : NodeSeq =>
-
-    //  initial values, updated on successfull submit
-    var initEnforceCertificate = configService.rudder_verify_certificates().toBox
-
-    // form values
-    var enforceCertificate = initEnforceCertificate.getOrElse(false)
-
-    def submit() = {
-      configService.set_rudder_verify_certificates(enforceCertificate, CurrentUser.actor, genericReasonMessage).toBox.foreach(updateOk => initEnforceCertificate = Full(enforceCertificate))
-
-      // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
-      startNewPolicyGeneration
-      check() & JsRaw("""createSuccessNotification("Validation of policy server certificate correctly updated")""")
-    }
-
-    def noModif = (
-      initEnforceCertificate.map(_ == enforceCertificate).getOrElse(false)
-      )
-
-    def check() = {
-      Run(s"""$$("#enforceCertificateSubmit").prop('disabled', ${noModif});""")
-    }
-
-    ( "#enforceCertificateValidation" #> {
-      initEnforceCertificate match {
-        case Full(value) =>
-          SHtml.ajaxCheckbox(
-            value
-            , (b : Boolean) => { enforceCertificate = b; check() }
-            , ("id","enforceCertificateValidation")
-          )
-        case eb: EmptyBox =>
-          val fail = eb ?~ "there was an error while fetching value of property: 'Certificate value' "
-          <div class="error">{fail.msg}</div>
-      }
-    } &
-
-      "#enforceCertificateSubmit " #> {
-        SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-success"))
-      }
-      ) apply (xml ++ Script(check()))
-  }
 
   def relaySynchronizationMethodManagement = { xml : NodeSeq =>
     //  initial values, updated on successfull submit
@@ -1184,22 +1157,28 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
 
   def displayGraphsConfiguration = { xml : NodeSeq =>
 
-    ( configService.display_changes_graph().toBox match {
-      case Full(value) =>
-        var initDisplayGraphs = value
-        var currentdisplayGraphs = value
-        def noModif() = initDisplayGraphs == currentdisplayGraphs
+    ( (configService.display_changes_graph().toBox, configService.rudder_ui_display_ruleComplianceColumns().toBox) match {
+      case (Full(valueGraphs), Full(valueColumns)) =>
+        var initDisplayGraphs = valueGraphs
+        var currentDisplayGraphs = valueGraphs
+        var initDisplayColumns = valueColumns
+        var currentDisplayColumns = valueColumns
+
+        def noModif() = initDisplayGraphs == currentDisplayGraphs && initDisplayColumns == currentDisplayColumns
+
         def check() = {
           Run(s"""$$("#displayGraphsSubmit").attr("disabled",${noModif()});""")
         }
 
         def submit() = {
-          val save = configService.set_display_changes_graph(currentdisplayGraphs).toBox
-          val createNotification = save match {
-            case Full(_)  =>
-              initDisplayGraphs = currentdisplayGraphs
-              JsRaw("""createSuccessNotification("'display change graphs' property updated")""")
-            case eb: EmptyBox =>
+          val saveGraphs  = configService.set_display_changes_graph(currentDisplayGraphs).toBox
+          val saveColumns = configService.set_rudder_ui_display_ruleComplianceColumns(currentDisplayColumns).toBox
+          val createNotification = (saveGraphs, saveColumns) match {
+            case (Full(_), Full(_))  =>
+              initDisplayGraphs  = currentDisplayGraphs
+              initDisplayColumns = currentDisplayColumns
+              JsRaw("""createSuccessNotification("'Compliance display' properties updated")""")
+            case (_, _) =>
               JsRaw("""createErrorNotification("There was an error when updating the value of the 'display change graphs' property")""")
           }
           check & createNotification
@@ -1207,71 +1186,42 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
 
         ( "#displayGraphsCheckbox" #> {
             SHtml.ajaxCheckbox(
-                value
-              , (b : Boolean) => { currentdisplayGraphs = b; check}
+                valueGraphs
+              , (b : Boolean) => { currentDisplayGraphs = b; check}
               , ("id","displayGraphsCheckbox")
             )
           } &
           "#displayGraphsSubmit " #> {
             SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-success"))
           } &
-          "#displayGraphsSubmit *+" #> {
-            Script(check())
-          }
-        )
-      case eb: EmptyBox =>
-        ( "#displayGraphs" #> {
-          val fail = eb ?~ "there was an error while fetching value of property: 'display change graphs'"
-          logger.error(fail.messageChain)
-          <div class="error">{fail.messageChain}</div>
-        } )
-    } ) apply xml
-  }
-
-  def displayRuleColumnConfiguration = { xml : NodeSeq =>
-
-    ( configService.rudder_ui_display_ruleComplianceColumns().toBox match {
-      case Full(value) =>
-        var initDisplayColumns = value
-        var currentDisplayColumns = value
-        def noModif() = initDisplayColumns  == currentDisplayColumns
-        def check() = {
-          Run(s"""$$("#displayColumnsSubmit").prop( "checked", ${noModif()} );""")
-        }
-
-        def submit() = {
-          val save = configService.set_rudder_ui_display_ruleComplianceColumns(currentDisplayColumns).toBox
-          val createNotifcation = save match {
-            case Full(_)  =>
-              initDisplayColumns  = currentDisplayColumns
-              JsRaw("""createSuccessNotification("'Display compliance and recent changes columns on rule summary' property updated")""")
-            case eb: EmptyBox =>
-              JsRaw("""createErrorNotification("There was an error when updating the value of the 'Display compliance and recent changes columns on rule summary' property")""")
-          }
-          check & createNotifcation
-        }
-
-        ( "#displayColumnsCheckbox" #> {
+          "#displayColumnsCheckbox" #> {
             SHtml.ajaxCheckbox(
-                value
+              valueColumns
               , (b : Boolean) => { currentDisplayColumns = b; check}
               , ("id","displayColumnsCheckbox")
             )
           } &
-          "#displayColumnsSubmit " #> {
-            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-success"))
-          } &
-          "#displayColumnsSubmit *+" #> {
-            check()
+          "#displayGraphsSubmit *+" #> {
+            Script(check())
           }
         )
-      case eb: EmptyBox =>
-        ( "#displayColumns" #> {
-          val fail = eb ?~ "there was an error while fetching value of property: 'Display compliance and recent changes columns on rule summary'"
-          logger.error(fail.messageChain)
-          <div class="error">{fail.messageChain}</div>
+      case (eb: EmptyBox, _) =>
+        ( "#displayGraphs" #> {
+          val failGraphs  = eb ?~ "there was an error while fetching value of 'Display changes graph' property"
+          logger.error(failGraphs.messageChain)
+          <div class="error">
+            {failGraphs.messageChain}
+          </div>
         } )
-    } ) apply xml
+      case (_, eb: EmptyBox) =>
+        ( "#displayGraphs" #> {
+          val failColumns = eb ?~ "there was an error while fetching value of 'Display rule compliance columns' property"
+          logger.error(failColumns.messageChain)
+          <div class="error">
+            {failColumns.messageChain}
+          </div>
+        } )
+    } ) apply (xml ++ Script(Run(s"""$$("#displayGraphsSubmit").attr("disabled",true);""")))
   }
 
   def directiveScriptEngineConfiguration = { xml : NodeSeq =>

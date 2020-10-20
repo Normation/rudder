@@ -440,6 +440,9 @@
 .rudder-template .one-col .template-main .main-details{
   padding-bottom: 100px;
 }
+.rudder-template .one-col-main .inner-portlet h4.space-top {
+  color: #818ea5;
+}
 
 @keyframes fadein {
   0%   {opacity:  0; transform:translateX(-100px);}
