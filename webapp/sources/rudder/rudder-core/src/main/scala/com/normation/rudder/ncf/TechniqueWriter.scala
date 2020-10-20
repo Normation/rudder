@@ -411,13 +411,17 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
 
       }).mkString("\n")
 
-    val content =
+    val content = {
+      import net.liftweb.json._
+      import net.liftweb.json.JsonDSL._
+
       s"""# @name ${technique.name}
          |# @description ${technique.description.replaceAll("\\R", "\n# ")}
          |# @version ${technique.version.value}
-         |${technique.parameters.map(
-              p =>
-                s"""# @parameter { "name": "${p.name.value}", "id": "${p.id.value}", "description", "${p.description.replaceAll("\\R", "\n# ") }" }""" ).mkString("\n")}
+         |${technique.parameters.map { p =>
+            val param = ("name" -> p.name.value) ~ ("id" -> p.id.value) ~ ("description" -> p.description.replaceAll("\\R", "£# ") )
+            // for historical reason, we want to have real \n in the string, and not the char \n (because of how liftweb print them)
+            s"""# @parameter ${compactRender(param).replaceAll("£#","\n#")}""" }.mkString("\n")}
          |
          |bundle agent ${technique.bundleName.value}${bundleParams}
          |{
@@ -426,6 +430,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
          |  methods:
          |${methodCalls}
          |}""".stripMargin('|')
+    }
 
     implicit val charset = StandardCharsets.UTF_8
     val techFile = File(basePath) / "techniques"/ technique.category / technique.bundleName.value / technique.version.value / "technique.cf"
