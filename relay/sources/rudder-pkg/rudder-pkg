@@ -13,6 +13,7 @@ Usage:
     rudder package [--debug] list [--all]
     rudder package [--debug] update [--quiet]
     rudder package [--debug] licenses [--quiet]
+    rudder package [--debug] check-connection
     rudder package [--debug] rudder-postupgrade
     rudder package [--debug] check-compatibility
     rudder package [--debug] plugin save-status
@@ -55,6 +56,9 @@ Commands:
 
     licenses
         download all the licenses found on the given repo
+
+    check-connection
+       check whether the url to download plugins is reachable or not
 
     rudder-postupgrade
         execute plugins post install scripts (needed after a Rudder upgrade)
@@ -108,18 +112,25 @@ if __name__ == "__main__":
         else:
             rudderPkg.package_list_installed()
     elif args['update']:
+        utils.check_url()
         rudderPkg.update(args['--quiet'])
     elif args['upgrade-all']:
+        utils.check_url()
         if args['--nightly']:
             rudderPkg.upgrade_all("nightly", args['--quiet'])
         else:
             rudderPkg.upgrade_all("release", args['--quiet'])
 
     elif args['licenses']:
+        utils.check_url()
         rudderPkg.update_licenses(args['--quiet'])
+    elif args['check-connection']:
+        utils.check_url()
     elif args['search']:
+        utils.check_url()
         rudderPkg.package_search(args['<package>'])
     elif args['install']:
+        utils.check_url()
         if args['--version']:
             if args['--nightly']:
                 rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "nightly", args['--quiet'])
