@@ -2,9 +2,14 @@
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 type: object
 required:
+  - name
   - msg
   - status
 properties:
+  name:
+    type: string
+    description: Name of the check
+    example: "RAM available"
   msg:
     type: string
     description: Message about the check
