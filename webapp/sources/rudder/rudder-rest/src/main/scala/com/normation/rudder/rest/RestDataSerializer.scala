@@ -129,12 +129,7 @@ final case class RestDataSerializerImpl (
   }
 
   def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, optRunDate: Option[DateTime], inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue = {
-    val filteredLevel = if(apiVersion.value <= 4) {
-      CustomDetailLevel(MinimalDetailLevel, detailLevel.fields - "properties")
-    } else {
-      detailLevel
-    }
-    filteredLevel.toJson(nodeInfo, status, optRunDate, inventory, software)
+    detailLevel.toJson(apiVersion, nodeInfo, status, optRunDate, inventory, software)
   }
 
   def serializeInventory (inventory: FullInventory, status: String) : JValue = {
