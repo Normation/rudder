@@ -147,14 +147,14 @@ class HTTPProxyDigestAuth(requests.auth.HTTPDigestAuth):
 
 def getRequest(url, stream):
   if (PROXY_URL == ""):
-    return requests.get(completeUrl, auth=(USERNAME, PASSWORD), stream=stream)
+    return requests.get(url, auth=(USERNAME, PASSWORD), stream=stream)
   else:
     proxies = { "https": PROXY_URL, "http": PROXY_URL }
     if (PROXY_USERNAME != "" and PROXY_PASSWORD != "" ):
       auth = HTTPProxyDigestAuth(PROXY_USERNAME, PROXY_PASSWORD)
-      return requests.get(completeUrl, proxies = proxies, auth = auth, stream=stream)
+      return requests.get(url, proxies = proxies, auth = auth, stream=stream)
     else:
-      return requests.get(completeUrl, auth=(USERNAME, PASSWORD), proxies = proxies, stream=stream)
+      return requests.get(url, auth=(USERNAME, PASSWORD), proxies = proxies, stream=stream)
 
 """
    From a complete url, try to download a file. The destination path will be determined by the complete url
@@ -431,7 +431,7 @@ def install(metadata, package_file, exist):
 
 def readConf():
     # Repos specific variables
-    global URL, USERNAME, PASSWORD, PROXY_URL, PROXY_USER, PROXY_PASSWORD
+    global URL, USERNAME, PASSWORD, PROXY_URL, PROXY_USERNAME, PROXY_PASSWORD
     logger.debug('Reading conf file %s'%(CONFIG_PATH))
     try:
         config = configparser.RawConfigParser()
