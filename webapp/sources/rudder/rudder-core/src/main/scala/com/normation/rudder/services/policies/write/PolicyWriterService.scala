@@ -356,9 +356,6 @@ class PolicyWriterServiceImpl(
       readTemplateTime1    <- currentTimeMillis
       configAndPaths       <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeInfos, newPostfix, backupPostfix)
       pathsInfo            =  configAndPaths.map { _.paths }
-
-      configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeInfos, newPostfix, backupPostfix)
-      pathsInfo        =  configAndPaths.map { _.paths }
       // we need for yield that to free all agent specific resources
       _ <- for {
         pair <- for {
