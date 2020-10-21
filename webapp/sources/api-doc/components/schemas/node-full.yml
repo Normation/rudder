@@ -56,12 +56,12 @@ properties:
     type: string
     format: date
     example: "2020-02-29T14:48:28Z"
-    description: Date and time of the latest run, if one is available (node time)
+    description: Date and time of the latest run, if one is available (node time). Up to API v11, format was: "YYYY-MM-dd HH:mm".
   lastInventoryDate:
     type: string
     example: "2020-02-29T10:11:32Z"
     format: date
-    description: Date and time of the latest generated inventory, if one is available (node time)
+    description: Date and time of the latest generated inventory, if one is available (node time). Up to API v11, format was: "YYYY-MM-dd HH:mm".
   machine:
     description: Information about the underlying machine
     type: object
