@@ -7,12 +7,13 @@ use crate::{
     io,
     ir::{ir1::IR1, resource::ResourceDef, resource::StateDef},
     parser::{Token, PAST},
+    technique::outcome::ConditionOutcome,
 };
 use colored::Colorize;
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::path::Path;
-use std::str;
+use std::{path::Path, str, str::FromStr};
+use strum::IntoEnumIterator;
 use toml::Value as TomlValue;
 use typed_arena::Arena;
 use walkdir::WalkDir;
@@ -160,11 +161,16 @@ impl<'src> RudderlangLib<'src> {
         None
     }
 
-    pub fn cf_outcome(&self, cond: &str) -> Option<String> {
+    pub fn cf_outcome(&self, cond: &str) -> Option<(String, Vec<ConditionOutcome>)> {
         lazy_static! {
-            static ref CONDITION_RE: Regex = Regex::new(
-                r"(?U)^([\w${.}]+)(?:_(not_repaired|repaired|false|true|not_ok|ok|reached|error|failed|denied|timeout|success|not_kept|kept))?$"
-            ).unwrap();
+            static ref CONDITION_RE: Regex = Regex::new(&format!(
+                r"(?U)^([\w${{.}}]+)(?:_({}))?$",
+                ConditionOutcome::iter()
+                    .map(|outcome| outcome.to_string())
+                    .collect::<Vec<String>>()
+                    .join("|")
+            ))
+            .unwrap();
         }
 
         // rules:
@@ -174,25 +180,35 @@ impl<'src> RudderlangLib<'src> {
         // - you can end up with only ${}
         if let Some(caps) = CONDITION_RE.captures(cond) {
             let method = caps.get(1).unwrap().as_str();
-            let outcome = match caps.get(2) {
-                Some(res) => res.as_str(),
-                None => return Some(method.to_owned()),
+            let outcome: Vec<ConditionOutcome> = match caps.get(2) {
+                Some(res) => {
+                    // safe unwrap since it's directly deduced from the enum variants
+                    let outcome = ConditionOutcome::from_str(res.as_str()).unwrap();
+                    match outcome {
+                        ConditionOutcome::Kept | ConditionOutcome::Success => {
+                            vec![ConditionOutcome::Success]
+                        }
+                        ConditionOutcome::Error
+                        | ConditionOutcome::NotOk
+                        | ConditionOutcome::Failed
+                        | ConditionOutcome::Denied
+                        | ConditionOutcome::Timeout
+                        | ConditionOutcome::NotRepaired => vec![ConditionOutcome::Error],
+                        // by exception 2 possibilities
+                        ConditionOutcome::NotKept => {
+                            vec![ConditionOutcome::Error, ConditionOutcome::Repaired]
+                        }
+                        _ => vec![outcome],
+                    }
+                }
+                None => return Some((method.to_owned(), Vec::new())),
             };
-            if vec!["kept", "success"].iter().any(|x| x == &outcome) {
-                return Some(format!("{} =~ success", method));
-            } else if vec!["error", "not_ok", "failed", "denied", "timeout"]
+            let formatted_condition = outcome
                 .iter()
-                .any(|x| x == &outcome)
-            {
-                return Some(format!("{} =~ error", method));
-            } else if vec!["repaired", "ok", "reached", "true", "false"]
-                .iter()
-                .any(|x| x == &outcome)
-            {
-                return Some(format!("{} =~ {}", method, outcome));
-            } else if outcome == "not_kept" {
-                return Some(format!("({} =~ error | {} =~ repaired)", method, method));
-            }
+                .map(|o| format!("{} =~ {}", method, o))
+                .collect::<Vec<String>>()
+                .join("|");
+            return Some((formatted_condition, outcome));
         };
         None
     }

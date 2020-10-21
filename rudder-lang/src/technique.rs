@@ -3,6 +3,7 @@
 
 mod cfstrings;
 mod from_ir;
+pub mod outcome;
 
 use crate::{
     error::*,
@@ -226,7 +227,6 @@ impl MethodCall {
         let lib_method: LibMethod = lib.method_from_str(&self.method_name)?;
 
         let (mut params, template_vars) = self.format_parameters()?;
-        // check. note: replace `1` by resource param count? not yet, error if several parameters
         let param_count = lib_method.resource.parameters.len() + lib_method.state.parameters.len();
         if params.len() != param_count {
             return Err(Error::new(format!(
@@ -257,14 +257,14 @@ impl MethodCall {
         }
         let class_parameter = &self.parameters[class_param_index].value;
         let canonic_parameter = cfstrings::canonify(class_parameter);
-        let outcome = format!(" as {}_{}", lib_method.class_prefix(), canonic_parameter);
+        let alias = format!(" as {}_{}", lib_method.class_prefix(), canonic_parameter);
 
         Ok(format!(
             "{}@component = \"{}\"\n  {}{}",
             template_vars.join("\n  "),
             &self.component,
             call,
-            outcome
+            alias
         ))
     }
 
@@ -284,19 +284,33 @@ impl MethodCall {
         Ok((vars, template_vars))
     }
 
+    // TODO parse content so interpolated variables are handled properly
     fn format_condition(&self, lib: &RudderlangLib) -> Result<String> {
         lazy_static! {
             static ref CONDITION_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
             static ref ANY_RE: Regex = Regex::new(r"(any\.)").unwrap();
         }
         // remove `any.` from condition
-        let anyless_condition = ANY_RE
+        // if opened / closed brackets count is balanced, then it is not an interpolated dot (`.`) but a logcial AND
+        let mut bracket_balance: i8 = 0;
+        let updated_condition = ANY_RE
             .replace_all(&self.condition, "")
-            // rudder-lang format expects `&` as AND operator, rather than `.`
-            .replace(".", "&");
+            .chars()
+            .map(|c| {
+                match c {
+                    '{' => bracket_balance += 1,
+                    '}' => bracket_balance -= 1,
+                    _ => (),
+                };
+                if c == '.' && bracket_balance == 0 {
+                    return '&';
+                }
+                c
+            })
+            .collect::<String>();
         let mut errs = Vec::new();
         // replace all matching words as classes
-        let result = CONDITION_RE.replace_all(&anyless_condition, |caps: &Captures| {
+        let result = CONDITION_RE.replace_all(&updated_condition, |caps: &Captures| {
             match self.format_method(lib, &caps[1]) {
                 Ok(s) => s,
                 Err(e) => {
@@ -318,7 +332,7 @@ impl MethodCall {
             return system;
         }
         // return method if outcome
-        if let Some(outcome) = lib.cf_outcome(cond) {
+        if let Some((outcome, _)) = lib.cf_outcome(cond) {
             return Ok(outcome);
         }
         // else
@@ -369,8 +383,8 @@ impl Parameter {
         }
         Ok(match self.value.contains('$') {
             true => (
-                format!("p{}", template_len),
-                Some(format!("let p{} = {:#?}", template_len, self.value)),
+                format!("__p{}", template_len),
+                Some(format!("let __p{} = {:#?}", template_len, self.value)),
             ),
             false => (format!("{:#?}", self.value), None),
         })

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use crate::technique::outcome::ConditionOutcome;
 use std::fmt;
+
 /// This does not modelize full CFEngine syntax but only a subset of it, which is our
 /// execution target, plus some Rudder-specific metadata in comments.
 
@@ -339,7 +341,7 @@ impl Call {
         Call::new().component(CallType::Abort, format!("_abort {}", parameters))
     }
 
-    pub fn outcome(outcome: &str, parameters: Parameters) -> Self {
+    pub fn outcome(outcome: ConditionOutcome, parameters: Parameters) -> Self {
         Call::new().component(CallType::Outcome, format!("{} {}", outcome, parameters))
     }
 

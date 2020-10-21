@@ -105,7 +105,7 @@ impl CFStringElt {
 }
 
 pub fn parse_string(i: &str) -> IResult<&str, Vec<CFStringElt>> {
-    // There is a rest inside so this just serve as a guard
+    // There is a rest inside so this just serves as a guard
     all_consuming(alt((
         many1(alt((
             // variable ${}

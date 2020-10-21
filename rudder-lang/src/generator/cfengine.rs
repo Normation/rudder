@@ -11,6 +11,7 @@ use crate::{
     // generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise},
     // ir::{enums::EnumExpressionPart, resource::*, value::*, *},
     parser::*,
+    technique::outcome::ConditionOutcome,
 };
 use std::{
     collections::HashMap,
@@ -221,13 +222,16 @@ impl CFEngine {
                     None => "!any".into(),
                     Some(c) => format!("!({})", c),
                 });
-                Ok(vec![if *outcome == Token::new("", "kept") {
-                    Promise::usebundle("success", None, vec![])
-                } else if *outcome == Token::new("", "repaired") {
-                    Promise::usebundle("repaired", None, vec![])
-                } else {
-                    Promise::usebundle("error", None, vec![])
-                }])
+                let condition_outcome = match outcome {
+                    ConditionOutcome::Kept => ConditionOutcome::Success,
+                    ConditionOutcome::Repaired => ConditionOutcome::Repaired,
+                    _ => ConditionOutcome::Error,
+                };
+                return Ok(vec![Promise::usebundle(
+                    condition_outcome.to_string(),
+                    None,
+                    vec![],
+                )]);
             }
             Statement::Noop => Ok(vec![]),
             // TODO Statement::VariableDefinition()

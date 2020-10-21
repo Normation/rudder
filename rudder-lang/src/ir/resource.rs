@@ -7,9 +7,10 @@ use super::{
     value::*,
     variable::*,
 };
-use crate::{error::*, parser::*};
+use crate::{error::*, parser::*, technique::outcome::ConditionOutcome};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
+use std::str::FromStr;
 use toml::map::Map as TomlMap;
 use toml::Value as TomlValue;
 
@@ -360,7 +361,7 @@ pub enum Statement<'src> {
     LogInfo(Value<'src>),
     LogWarn(Value<'src>),
     // Return a specific outcome
-    Return(Token<'src>),
+    Return(ConditionOutcome),
     // Do nothing
     Noop,
 }
@@ -474,20 +475,16 @@ impl<'src> Statement<'src> {
             PStatement::LogDebug(l) => Statement::LogDebug(string_value(context, enum_list, l)?),
             PStatement::LogInfo(l) => Statement::LogInfo(string_value(context, enum_list, l)?),
             PStatement::LogWarn(l) => Statement::LogWarn(string_value(context, enum_list, l)?),
-            PStatement::Return(r) => {
-                if r == Token::new("", "kept")
-                    || r == Token::new("", "repaired")
-                    || r == Token::new("", "error")
-                {
-                    Statement::Return(r)
-                } else {
-                    fail!(
-                        r,
-                        "Can only return an outcome (kept, repaired or error) instead of {}",
-                        r
-                    )
-                }
-            }
+            PStatement::Return(outcome) => match ConditionOutcome::from_str(outcome.fragment()) {
+                Ok(ConditionOutcome::Kept) => Statement::Return(ConditionOutcome::Kept),
+                Ok(ConditionOutcome::Repaired) => Statement::Return(ConditionOutcome::Repaired),
+                Ok(ConditionOutcome::Error) => Statement::Return(ConditionOutcome::Error),
+                _ => fail!(
+                    outcome,
+                    "Can only return an outcome (kept, repaired or error). Instead, found: '{}'",
+                    outcome
+                ),
+            },
             PStatement::Noop => Statement::Noop,
             PStatement::Case(case, v) => Statement::Case(
                 case,

@@ -13,7 +13,7 @@ use crate::{
     generator::Format,
     ir::{context::Type, enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
     parser::*,
-    technique::fetch_method_parameters,
+    technique::{fetch_method_parameters, outcome::*},
 };
 use std::{
     collections::HashMap,
@@ -274,12 +274,12 @@ impl DSC {
                     None => "!any".into(),
                     Some(c) => format!("!({})", c),
                 });
-                let status = match outcome.fragment() {
-                    "kept" => "success",
-                    "repaired" => "repaired",
-                    _ => "error",
+                let condition_outcome = match outcome {
+                    ConditionOutcome::Kept => ConditionOutcome::Success,
+                    ConditionOutcome::Repaired => ConditionOutcome::Repaired,
+                    _ => ConditionOutcome::Error,
                 };
-                Ok(vec![Call::outcome(status, Parameters::new())]) // use bundle ?
+                Ok(vec![Call::outcome(condition_outcome, Parameters::new())]) // use bundle ?
             }
             Statement::Noop => Ok(Vec::new()),
             // TODO Statement::VariableDefinition()
