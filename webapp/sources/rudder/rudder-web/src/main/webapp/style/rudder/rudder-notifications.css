@@ -25,6 +25,10 @@
     animation-fill-mode: both
 }
 
+.rudder-notification .callout-fade > p{
+  white-space: pre-line;
+}
+
 @-webkit-keyframes bounceInRight {
     0%,
     60%,
