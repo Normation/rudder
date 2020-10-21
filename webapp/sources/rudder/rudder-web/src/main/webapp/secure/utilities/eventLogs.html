@@ -1,29 +1,40 @@
 <lift:surround with="common-layout" at="content">
 
   <head>
-    <title>Rudder - View logs</title>
+    <title>Rudder - Event logs</title>
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-template.css"/>
     <style>
+      .rudder-template > .one-col{
+        flex: 1;
+      }
+      .template-main{
+        flex-basis : initial !important;
+        flex: auto !important;
+      }
       pre.technical-details{
         white-space: pre-wrap;
       }
-      #filterLogs{
-        margin-bottom:12px;
+      #filterLogs {
+        margin-top: 10px;
+        color: #222D42AA;
       }
       .btn.showParameters{
         margin-bottom: 10px;
         min-width: 195px;
       }
+      .dataTables_filter label input{
+        margin-left: 8px;
+      }
     </style>
   </head>
-
-  <div class="portlet">
-    <div class="inner-portlet">
-      <div class="page-title">Event Logs</div>
-      <div class="portlet-content">
-
-        <div class="lift:administration.EventLogsViewer.display"></div>
-
-        <span id="eventLogsError"></span>
+  <div class="rudder-template">
+    <div class="one-col">
+      <div class="main-header">
+        <div class="header-title">
+          <h1>
+            <span>Event Logs</span>
+          </h1>
+        </div>
         <div id="filterLogs">
           Get event logs between
           <input type="text" class="pickStartInput form-control input-xs"/>
@@ -32,19 +43,31 @@
           <button id="filterLogsButton" type="button" class="btn btn-default btn-sm">Get events</button>
           <span id="limitEventDisplayer"></span>
         </div>
+        <span id="eventLogsError"></span>
+      </div>
+      <div class="one-col-main">
+        <div class="template-main">
+          <div class="main-container">
+            <div class="main-details">
+              <div class="inner-portlet">
+                <div class="portlet-content">
 
-        <table id="eventLogsGrid" class="display" cellspacing="0"></table>
+                  <table id="eventLogsGrid" class="display" cellspacing="0"></table>
 
-        <div id="eventDetailPopup" class="nodisplay">
-          <lift:ignore>
-            This div gets the content of the eventDetailPopup injected within
-          </lift:ignore>
+                  <div id="eventDetailPopup" class="nodisplay">
+                    <lift:ignore>
+                      This div gets the content of the eventDetailPopup injected within
+                    </lift:ignore>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-
       </div>
     </div>
   </div>
-
   <script id="rollbackBlock" type="text/template">
     <div class='rollbackDisplay'>
       <fieldset class='rollbackFieldSet'>
@@ -66,5 +89,6 @@
       </fieldset>
     </div>
   </script>
+  <div class="lift:administration.EventLogsViewer.display"></div>
 
 </lift:surround>
