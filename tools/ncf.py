@@ -185,7 +185,7 @@ def parse_bundlefile_metadata(content, bundle_type):
             parameter = json.loads(match.group(2))
             parameters.append(parameter)
         if tag == "parameter_constraint":
-          constraint = json.loads("{" + match.group(4)+ "}")
+          constraint = json.loads("{" + match.group(4).replace('\\', '\\\\') + "}")
           # extend default_constraint if it was not already defined)
           param_constraints.setdefault(match.group(3), default_constraint.copy()).update(constraint)
         if tag == "parameter_type":
