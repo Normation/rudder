@@ -38,6 +38,8 @@
 package com.normation.rudder.repository.xml
 
 import java.io.File
+import java.nio.charset.Charset
+import java.nio.file.attribute.PosixFilePermission
 
 import com.normation.NamedZioLogger
 import com.normation.cfclerk.services.GitRepositoryProvider
@@ -46,7 +48,6 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.GitArchiveLogger
 import com.normation.rudder.domain.logger.GitArchiveLoggerPure
 import com.normation.rudder.repository._
-import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
@@ -83,6 +84,11 @@ trait GitArchiverUtils {
   def gitModificationRepository : GitModificationRepository
 
   def newDateTimeTagString = (DateTime.now()).toString(ISODateTimeFormat.dateTime)
+
+  /*
+   * Group owner for XML files and directories created in /var/rudder/configuration-repository/
+   */
+  def groupOwner: String
 
 
   lazy val getRootDirectory : File = {
@@ -200,14 +206,29 @@ trait GitArchiverUtils {
     )
   }
 
-  def toGitPath(fsPath:File) = fsPath.getPath.replace(gitRootDirectory.getPath +"/","")
+  def toGitPath(fsPath: File) = fsPath.getPath.replace(gitRootDirectory.getPath +"/","")
 
   /**
-   * Write the given Elem (prettified) into given file, log the message
+   * Write the given Elem (prettified) into given file, log the message.
+   * File are written with the following rights:
+   * - for directories, rwxrwx---
+   * - for files: rw-rw----
+   * - for all, group owner: rudder
+   * Perms are defined in /opt/rudder/bin/rudder-fix-repository-configuration
    */
-  def writeXml(fileName:File, elem:Elem, logMessage:String) : IOResult[File] = {
+  def writeXml(fileName: File, elem: Elem, logMessage: String) : IOResult[File] = {
+    import java.nio.file.attribute.PosixFilePermission._
+    import java.nio.file.StandardOpenOption._
+    import better.files._
+    val filePerms = Set[PosixFilePermission](OWNER_READ, OWNER_WRITE, /* no exec, */ GROUP_READ, GROUP_WRITE /* no exec, */ )
+    val directoryPerms = Set[PosixFilePermission](OWNER_READ, OWNER_WRITE, OWNER_EXECUTE, GROUP_READ, GROUP_WRITE, GROUP_EXECUTE)
+
+    // an utility that write text in a file and create file parents if needed
+    // open file mode for create or overwrite mode
     IOResult.effect {
-      FileUtils.writeStringToFile(fileName, xmlPrettyPrinter.format(elem), encoding)
+      val file = fileName.toScala
+      file.parent.createDirectoryIfNotExists(true).setPermissions(directoryPerms).setGroup(groupOwner)
+      file.writeText(xmlPrettyPrinter.format(elem))(Seq(WRITE, TRUNCATE_EXISTING, CREATE), Charset.forName(encoding)).setPermissions(filePerms).setGroup(groupOwner)
       GitArchiveLogger.debug(logMessage)
       fileName
     }

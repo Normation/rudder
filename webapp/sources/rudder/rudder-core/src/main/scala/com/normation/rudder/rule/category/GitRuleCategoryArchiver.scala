@@ -124,8 +124,9 @@ class GitRuleCategoryArchiverImpl(
   , ruleCategoryRootDir                    : String //relative path !
   , override val xmlPrettyPrinter          : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
-  , override val encoding                  : String = "UTF-8"
-  , categoryFileName                       : String = "category.xml"
+  , override val encoding                  : String
+  , categoryFileName                       : String
+  , override val groupOwner                : String
 ) extends
   GitRuleCategoryArchiver with
   NamedZioLogger with

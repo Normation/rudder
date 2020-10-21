@@ -129,7 +129,7 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
                   if(parent.isDirectory) UIO.unit else Unexpected(s"Error: path '${parent.pathAsString}' must be a directory").fail
                 }
       _      <- IOResult.effectM{
-                  if(parent.isWriteable) UIO.unit else Unexpected(s"Error: path '${parent.pathAsString}' must be a writable directory").fail
+                  if(parent.isWritable) UIO.unit else Unexpected(s"Error: path '${parent.pathAsString}' must be a writable directory").fail
                 }
     } yield ()
   }

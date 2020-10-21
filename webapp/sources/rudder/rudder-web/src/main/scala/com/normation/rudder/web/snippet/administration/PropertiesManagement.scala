@@ -886,7 +886,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       import better.files._
       val hook = File("/opt/rudder/etc/hooks.d/policy-generation-node-ready/10-cf-promise-check")
 
-      val disabled = !(hook.exists() && hook.isWriteable)
+      val disabled = !(hook.exists() && hook.isWritable)
       val isEnabled = hook.isExecutable
 
       var initIsEnabled = isEnabled
@@ -999,7 +999,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
 
     def hasError(hook: File, props: TriggerProp): Option[String] = {
       (for {
-       _ <- if(hook.exists() && hook.isWriteable && hook.isRegularFile) { // ok
+       _ <- if(hook.exists() && hook.isWritable && hook.isRegularFile) { // ok
                  Right("ok")
                } else {
                  Left(s"Please check that file '${hook.pathAsString}' exists and is readable and writtable.")

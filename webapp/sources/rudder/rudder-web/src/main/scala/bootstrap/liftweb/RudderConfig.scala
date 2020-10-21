@@ -38,7 +38,6 @@
 package bootstrap.liftweb
 
 import java.io.File
-import java.nio.charset.StandardCharsets
 import java.security.Security
 import java.util.concurrent.TimeUnit
 
@@ -167,7 +166,14 @@ import org.joda.time.DateTimeZone
 import zio.syntax._
 import zio.duration._
 
+import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
+
+object RUDDER_CHARSET {
+  import java.nio.charset.StandardCharsets
+  def name = "UTF-8"
+  def value = StandardCharsets.UTF_8
+}
 
 /**
  * Define a resource for configuration.
@@ -413,6 +419,15 @@ object RudderConfig extends Loggable {
       case ex: Exception =>
         ApplicationLogger.info("Property 'rudder.batch.check.node.cache.interval' is missing or empty in rudder.configFile. Default to '15 s'.")
         Duration(15, TimeUnit.SECONDS)
+    }
+  }
+  val RUDDER_GROUP_OWNER_CONFIG_REPO = {
+    try {
+      config.getString("rudder.config.repo.new.file.group.owner")
+    } catch {
+      case ex: Exception =>
+        ApplicationLogger.info("Property 'rudder.config.repo.new.file.group.owner' is missing or empty in rudder.configFile. Default to 'rudder'.")
+        "rudder"
     }
   }
 
@@ -947,7 +962,7 @@ object RudderConfig extends Loggable {
         , () => globalComplianceModeService.getGlobalComplianceMode
       )
 
-  val techniqueArchiver = new TechniqueArchiverImpl(gitRepo,   new File(RUDDER_DIR_GITROOT) , prettyPrinter, "/", gitModificationRepository, personIdentService)
+  val techniqueArchiver = new TechniqueArchiverImpl(gitRepo, new File(RUDDER_DIR_GITROOT), prettyPrinter, "/", gitModificationRepository, personIdentService, RUDDER_GROUP_OWNER_CONFIG_REPO)
   val techniqueSerializer = new TechniqueSerializer(typeParameterService)
   val ncfTechniqueWriter = new TechniqueWriter(
       techniqueArchiver
@@ -971,6 +986,8 @@ object RudderConfig extends Loggable {
     , new File(RUDDER_DIR_GITROOT)
     , prettyPrinter
     , gitModificationRepository
+    , RUDDER_CHARSET.name
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
 
   lazy val pipelinedReportUnmarshaller : ReportUnmarshaller = {
@@ -1383,7 +1400,7 @@ object RudderConfig extends Loggable {
         |userManagement=User: <name> Login: <login>
         |# For userManagement version 2.0, prefer that pattern in new Directives:
         |userManagement/2.0: User 2.0 [LOGIN]
-        |""".stripMargin, StandardCharsets.UTF_8)
+        |""".stripMargin, RUDDER_CHARSET.value)
     }
 
     val relativePath = RUDDER_DIR_TECHNIQUES.substring(gitSlash.size, RUDDER_DIR_TECHNIQUES.size)
@@ -1514,6 +1531,8 @@ object RudderConfig extends Loggable {
     , rulesDirectoryName
     , prettyPrinter
     , gitModificationRepository
+    , RUDDER_CHARSET.name
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitRuleCategoryArchiver: GitRuleCategoryArchiver = new GitRuleCategoryArchiverImpl(
       gitRepo
@@ -1522,6 +1541,9 @@ object RudderConfig extends Loggable {
     , ruleCategoriesDirectoryName
     , prettyPrinter
     , gitModificationRepository
+    , RUDDER_CHARSET.name
+    , "category.xml"
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver = new GitActiveTechniqueCategoryArchiverImpl(
       gitRepo
@@ -1530,6 +1552,9 @@ object RudderConfig extends Loggable {
     , userLibraryDirectoryName
     , prettyPrinter
     , gitModificationRepository
+    , RUDDER_CHARSET.name
+    , "category.xml"
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitActiveTechniqueArchiver: GitActiveTechniqueArchiverImpl = new GitActiveTechniqueArchiverImpl(
       gitRepo
@@ -1538,6 +1563,10 @@ object RudderConfig extends Loggable {
     , userLibraryDirectoryName
     , prettyPrinter
     , gitModificationRepository
+    , Buffer()
+    , RUDDER_CHARSET.name
+    , "category.xml"
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitDirectiveArchiver: GitDirectiveArchiver = new GitDirectiveArchiverImpl(
       gitRepo
@@ -1546,6 +1575,8 @@ object RudderConfig extends Loggable {
     , userLibraryDirectoryName
     , prettyPrinter
     , gitModificationRepository
+    , RUDDER_CHARSET.name
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitNodeGroupArchiver: GitNodeGroupArchiver = new GitNodeGroupArchiverImpl(
       gitRepo
@@ -1555,6 +1586,9 @@ object RudderConfig extends Loggable {
     , groupLibraryDirectoryName
     , prettyPrinter
     , gitModificationRepository
+    , RUDDER_CHARSET.name
+    , "category.xml"
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitParameterArchiver: GitParameterArchiver = new GitParameterArchiverImpl(
       gitRepo
@@ -1563,6 +1597,8 @@ object RudderConfig extends Loggable {
     , parametersDirectoryName
     , prettyPrinter
     , gitModificationRepository
+    , RUDDER_CHARSET.name
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   ////////////// MUTEX FOR rwLdap REPOS //////////////
 

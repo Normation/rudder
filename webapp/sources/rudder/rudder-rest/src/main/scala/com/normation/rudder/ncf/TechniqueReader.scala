@@ -26,14 +26,15 @@ import zio.syntax._
 import com.normation.rudder.domain.eventlog.RudderEventActor
 
 class TechniqueReader(
-    restExtractor                 : RestExtractorService
-  , uuidGen                       : StringUuidGenerator
-  , personIdentService            : PersonIdentService
-  , override val gitRepo          : GitRepositoryProvider
-  , override val gitRootDirectory : java.io.File
-  , override val xmlPrettyPrinter : RudderPrettyPrinter
-  , override val gitModificationRepository : GitModificationRepository
-  , override val encoding         : String = "UTF-8"
+    restExtractor                         : RestExtractorService
+  , uuidGen                               : StringUuidGenerator
+  , personIdentService                    : PersonIdentService
+  , override val gitRepo                  : GitRepositoryProvider
+  , override val gitRootDirectory         : java.io.File
+  , override val xmlPrettyPrinter         : RudderPrettyPrinter
+  , override val gitModificationRepository: GitModificationRepository
+  , override val encoding                 : String
+  , override val groupOwner               : String
 ) extends GitArchiverUtils {
   import better.files.File.root
   override val relativePath     : String = "ncf"

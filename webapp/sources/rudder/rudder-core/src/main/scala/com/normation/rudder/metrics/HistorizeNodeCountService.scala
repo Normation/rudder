@@ -186,7 +186,7 @@ object WriteNodeCSV {
     IOResult.effect {
       if(base.exists) {
         if(base.isDirectory) {
-          if(base.isWriteable) {
+          if(base.isWritable) {
             ()
           } else {
             Unexpected(s"Metric directory '${directoryPath}' isn't writable. Please make it writable.'")
