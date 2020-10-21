@@ -152,7 +152,7 @@ def getRequest(url, stream):
     proxies = { "https": PROXY_URL, "http": PROXY_URL }
     if (PROXY_USERNAME != "" and PROXY_PASSWORD != "" ):
       auth = HTTPProxyDigestAuth(PROXY_USERNAME, PROXY_PASSWORD)
-      return requests.get(completeUrl, auth=(USERNAME, PASSWORD), proxies = proxies, auth = auth, stream=stream)
+      return requests.get(completeUrl, proxies = proxies, auth = auth, stream=stream)
     else:
       return requests.get(completeUrl, auth=(USERNAME, PASSWORD), proxies = proxies, stream=stream)
 
