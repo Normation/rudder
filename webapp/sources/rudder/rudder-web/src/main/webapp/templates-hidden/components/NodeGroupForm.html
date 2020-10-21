@@ -64,7 +64,9 @@
        <group-name></group-name>
       <div id="longDescriptionFieldMarkdownContainer" class="row form-group wbBaseFieldLabel">
         <label class="wbBaseFieldLabel"><span class="text-fit">Description</span>
-          <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
+          <lift:authz role="group_write">
+            <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
+          </lift:authz>
         </label>
         <div class="markdown">
           <div id="longDescriptionFieldMarkdown"></div>
