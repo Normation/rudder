@@ -208,7 +208,7 @@ def check_download(completeUrl):
     proxies = { "https": PROXY_URL }
     if (PROXY_USERNAME != "" and PROXY_PASSWORD != "" ):
       auth = HTTPProxyDigestAuth(PROXY_USERNAME, PROXY_PASSWORD)
-      r = requests.head(completeUrl, auth=(USERNAME, PASSWORD), proxies = proxies, auth = auth)
+      r = requests.head(completeUrl, proxies = proxies, auth = auth)
     else:
       r = requests.head(completeUrl, auth=(USERNAME, PASSWORD), proxies = proxies)
 
