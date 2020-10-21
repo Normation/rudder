@@ -33,7 +33,7 @@
 # it first (using [file_copy_from_remote_source](#_file_copy_from_remote_source)).
 #
 # It is common to use a specific folder to store those templates after copy,
-# for example in `${sys.workdir}/templates/`.
+# for example in `${sys.workdir}/tmp/templates/`.
 #
 # The data that will be used while expanding the template is the data available in
 # the agent at the time of expansion. That means:
@@ -80,13 +80,13 @@
 #
 # ```
 # # Copy the file from the policy server
-# file_copy_from_remote_source("/PATH_TO_MY_FILE/ntp.conf.mustache", "${sys.workdir}/templates/ntp.conf.mustache")
+# file_copy_from_remote_source("/PATH_TO_MY_FILE/ntp.conf.mustache", "${sys.workdir}/tmp/templates/ntp.conf.mustache")
 # # Define the `ntp` varibale in the `configuration` prefix from the json file
 # variable_dict_from_file("configuration", "ntp", "/tmp/ntp.json")
 # # Expand yout template
-# file_from_template_type("${sys.workdir}/templates/ntp.conf.mustache", "/etc/ntp.conf", "mustache")
+# file_from_template_type("${sys.workdir}/tmp/templates/ntp.conf.mustache", "/etc/ntp.conf", "mustache")
 # # or
-# # file_from_template_mustache("${sys.workdir}/templates/ntp.conf.mustache", "/etc/ntp.conf")
+# # file_from_template_mustache("${sys.workdir}/tmp/templates/ntp.conf.mustache", "/etc/ntp.conf")
 # ```
 #
 # The destination file will contain the expanded content, for example on a Linux node:
