@@ -277,19 +277,11 @@ $scope.capitaliseFirstLetter = function (string) {
 };
 
 function errorNotification (message,details) {
-  var errorMessage = '<b>An Error occured!</b> ' + message
+  var errorMessage = message
   if (details !== undefined) {
-    errorMessage += '<br/><b>Details:</b><pre class="error-pre">' + $('<div>').text(details).html() +"</pre>"
+    errorMessage += "\n\n Details: " + details
   }
-  /* ===> TOAST
-  ngToast.create({
-      content: errorMessage
-    , className: 'danger'
-    , dismissOnTimeout : false
-    , dismissButton : true
-    , dismissOnClick : false
-  });
-  */
+  createErrorNotification(errorMessage);
 }
 
 function handle_error ( actionName ) {
@@ -559,10 +551,7 @@ $scope.getSessionStorage = function(){
 
   if(storedSelectedTechnique !== null){
     //Restore selected technique and inform user
-    /* ===> TOAST
-    ngToast.create({ content: "<b>Info: </b> Technique restored from current session.", className: 'info'});
-    */
-
+    createInfoNotification("Technique restored from current session.")
     $scope.selectedTechnique = angular.copy(storedSelectedTechnique);
     updateFileManagerConf()
 
@@ -1317,9 +1306,7 @@ $scope.onImportFileChange = function (fileEl) {
   $scope.deleteTechnique = function() {
     $http.delete(contextPath + "/secure/api/internal/techniques/"+$scope.selectedTechnique.bundle_name+"/"+$scope.selectedTechnique.version, {params : {force : false}}).
       success(function(data, status, headers, config) {
-        /* ===> TOAST
-        ngToast.create({ content: "<b>Success!</b> Technique '" + $scope.originalTechnique.name + "' deleted!"});
-        */
+        createSuccessNotification("Technique '" + $scope.originalTechnique.name + "' deleted!")
         var index = $scope.techniques.findIndex(function(t){return t.bundle_name === $scope.originalTechnique.bundle_name});
         $scope.techniques.splice(index,1);
         $scope.ui.selectedMethods = [];
@@ -1418,13 +1405,9 @@ $scope.onImportFileChange = function (fileEl) {
       );
 
       if (invalidParametersArray.length > 0) {
-        /* ===> TOAST
-        ngToast.create({ content: "<b>Caution! </b> Some variables might be invalid (containing $() without . nor /):<br/>" + invalidParametersArray.join("<br/>"), className: 'warning'});
-        */
+        createWarningNotification("Some variables might be invalid (containing $() without . nor /):\n\n" + invalidParametersArray.join("\n"));
       }
-      /* ===> TOAST
-      ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
-      */
+      createSuccessNotification("Technique '" + technique.name + "' saved!");
 
       // Find index of the technique in the actual tree of technique (look for original technique)
       var index = $scope.techniques.findIndex(function(t){return t.bundle_name == origin_technique.bundle_name});
