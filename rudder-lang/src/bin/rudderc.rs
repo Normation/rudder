@@ -88,7 +88,7 @@ fn main() {
     };
     let command_status = command_result.is_ok();
     output.print(command, ctx.input, command_result);
-    if command_status {
+    if !command_status {
         exit(1)
     }
 }

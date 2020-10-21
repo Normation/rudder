@@ -226,7 +226,7 @@ fn get_output_format(
 
     // All formats but Compile are hardcoded in CLI implementation, so this is partly double check
     match (command, format) {
-        (Command::Compile, Some(fmt)) if fmt == Format::CFEngine || fmt == Format::DSC => {
+        (Command::Compile, Some(fmt)) if fmt == Format::CFEngine || fmt == Format::DSC || fmt == Format::Markdown => {
             Ok((format!("{}.{}", "rl", fmt), fmt))
         }
         (Command::Compile, _) => {

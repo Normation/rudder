@@ -132,7 +132,7 @@ def parse_method_metadata(content):
                         'name': param_name, 'description': match.group(4)}
                     param_names.add(param_name)
                 if tag == "parameter_constraint":
-                    constraint = json.loads("{" + match.group(4) + "}")
+                    constraint = json.loads("{" + match.group(4).replace('\\', '\\\\') + "}")
                     # extend default_constraint if it was not already defined)
                     param_constraints.setdefault(
                         match.group(3), default_constraint.copy()).update(constraint)

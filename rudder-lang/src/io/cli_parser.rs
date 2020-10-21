@@ -60,7 +60,7 @@ pub enum CLI {
         json_logs: bool,
 
         /// Enforce a compiler output format (overrides configuration format)
-        #[structopt(long, short, possible_values = &["cf", "cfengine", "dsc"])]
+        #[structopt(long, short, possible_values = &["cf", "cfengine", "dsc", "md"])]
         format: Option<Format>,
     },
 }
