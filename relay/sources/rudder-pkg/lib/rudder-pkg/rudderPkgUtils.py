@@ -1,5 +1,6 @@
 import os, logging, sys, re, hashlib, requests, json
 import distutils.spawn
+import requests.auth
 from pprint import pprint
 from pkg_resources import parse_version
 import fcntl, termios, struct, traceback
@@ -118,6 +119,43 @@ def dictToAsciiTable(data):
            break
     return outmsg
 
+
+# Use an authenticated proxy to access download.rudder.io, requests can only do basic auth, but we are not doing it here nonetheless
+# Got the code from a SO answer: https://stackoverflow.com/a/13520486/1939653
+class HTTPProxyDigestAuth(requests.auth.HTTPDigestAuth):
+    def handle_407(self, r):
+        """Takes the given response and tries digest-auth, if needed."""
+        num_407_calls = r.request.hooks['response'].count(self.handle_407)
+        s_auth = r.headers.get('Proxy-authenticate', '')
+        if 'digest' in s_auth.lower() and num_407_calls < 2:
+            self.chal = requests.auth.parse_dict_header(s_auth.replace('Digest ', ''))
+            # Consume content and release the original connection
+            # to allow our new request to reuse the same one.
+            r.content
+            r.raw.release_conn()
+            r.request.headers['Authorization'] = self.build_digest_header(r.request.method, r.request.url)
+            r.request.send(anyway=True)
+            _r = r.request.response
+            _r.history.append(r)
+            return _r
+        return r
+    def __call__(self, r):
+        if self.last_nonce:
+            r.headers['Proxy-Authorization'] = self.build_digest_header(r.method, r.url)
+        r.register_hook('response', self.handle_407)
+        return r
+
+def getRequest(url, stream):
+  if (PROXY_URL == ""):
+    return requests.get(url, auth=(USERNAME, PASSWORD), stream=stream)
+  else:
+    proxies = { "https": PROXY_URL, "http": PROXY_URL }
+    if (PROXY_USERNAME != "" and PROXY_PASSWORD != "" ):
+      auth = HTTPProxyDigestAuth(PROXY_USERNAME, PROXY_PASSWORD)
+      return requests.get(url, proxies = proxies, auth = auth, stream=stream)
+    else:
+      return requests.get(url, auth=(USERNAME, PASSWORD), proxies = proxies, stream=stream)
+
 """
    From a complete url, try to download a file. The destination path will be determined by the complete url
    after removing the prefix designing the repo url defined in the conf file.
@@ -133,7 +171,7 @@ def download(completeUrl, dst="", quiet=False):
     fileDir = os.path.dirname(fileDst)
     createPath(fileDir)
     try:
-      r = requests.get(completeUrl, auth=(USERNAME, PASSWORD), stream=True)
+      r = getRequest(completeUrl, True)
       columns = terminal_size()[1]
       with open(fileDst, 'wb') as f:
          bar_length = int(r.headers.get('content-length'))
@@ -164,8 +202,17 @@ def download(completeUrl, dst="", quiet=False):
     Make a HEAD request on the given url, return true if result is 200, false instead
 """
 def check_download(completeUrl):
+  if (PROXY_URL == ""):
     r = requests.head(completeUrl, auth=(USERNAME, PASSWORD))
-    return (r.status_code <= 301)
+  else:
+    proxies = { "https": PROXY_URL }
+    if (PROXY_USERNAME != "" and PROXY_PASSWORD != "" ):
+      auth = HTTPProxyDigestAuth(PROXY_USERNAME, PROXY_PASSWORD)
+      r = requests.head(completeUrl, proxies = proxies, auth = auth)
+    else:
+      r = requests.head(completeUrl, auth=(USERNAME, PASSWORD), proxies = proxies)
+
+  return (r.status_code <= 301)
 
 """
    Verify Hash
@@ -384,15 +431,18 @@ def install(metadata, package_file, exist):
 
 def readConf():
     # Repos specific variables
-    global URL, USERNAME, PASSWORD
+    global URL, USERNAME, PASSWORD, PROXY_URL, PROXY_USERNAME, PROXY_PASSWORD
     logger.debug('Reading conf file %s'%(CONFIG_PATH))
     try:
         config = configparser.RawConfigParser()
         config.read(CONFIG_PATH)
         REPO = config.sections()[0]
-        URL = config.get(REPO, 'url')
+        URL      = config.get(REPO, 'url')
         USERNAME = config.get(REPO, 'username')
         PASSWORD = config.get(REPO, 'password')
+        PROXY_URL      = config.get(REPO, 'proxy_url')
+        PROXY_USERNAME = config.get(REPO, 'proxy_username')
+        PROXY_PASSWORD = config.get(REPO, 'proxy_password')
         createPath(FOLDER_PATH)
         createPath(GPG_HOME)
     except Exception as e:
