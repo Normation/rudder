@@ -276,9 +276,8 @@
   display: flex;
   align-items: center;
 }
-
 .rudder-template .template-main .main-details{
-  padding: 10px 15px;
+  padding: 10px 30px;
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -286,6 +285,9 @@
   font-size: 14px;
   position: relative;
   height: 100%;
+}
+.rudder-template .template-sidebar + .template-main .main-details{
+  padding: 10px 15px;
 }
 .rudder-template.one-col .template-main .main-details,
 .rudder-template.one-col .template-main .main-navbar ul{
