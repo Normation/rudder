@@ -543,7 +543,7 @@ function directiveOverridenTooltip(explanation){
 
 function policyModeTooltip(kind, policyName, explanation){
   var tooltip = "" +
-    "<h4>Node Policy Mode </h4>" +
+    "<h4>Policy mode </h4>" +
     "<div class='tooltip-content policy-mode "+policyName+"'>"+
     "<p>This "+ kind +" is in <b>"+ policyName +"</b> mode.</p>"+
     "<p>"+ explanation +"</p>"+
