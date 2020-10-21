@@ -47,11 +47,20 @@
 }
 .content-wrapper .rudder-template .jstree{
   margin-top: 0;
+  padding: 0 0 0 10px;
 }
 .content-wrapper .rudder-template .jstree .jstree-anchor {
   display: inline-block;
   padding-right: 10px;
   word-break: break-word;
+  width: calc(100% - 15px);
+}
+.content-wrapper .rudder-template .jstree .jstree-anchor .btn.create{
+  float: right;
+  width: 25px;
+}
+.content-wrapper .rudder-template .jstree .jstree-anchor:hover .btn.create{
+  opacity: 1 !important;
 }
 .content-wrapper .rudder-template .jstree  .jstree-node{
   overflow: hidden;

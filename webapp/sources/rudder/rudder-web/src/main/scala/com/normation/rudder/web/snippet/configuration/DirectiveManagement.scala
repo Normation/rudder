@@ -169,6 +169,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                   , None
                   , Some(onClickActiveTechnique)
                   , Some(onClickDirective)
+                  , Some(newDirective)
                   , false
                   , false
                 )
