@@ -561,7 +561,8 @@ final case class RestDataSerializerImpl (
       case _:Ok       => "Ok"
       case _:Warning  => "Warning"
     }
-    (   ( "msg"    ->  check.msg )
+    (   ( "name"   ->  check.name.value)
+      ~ ( "msg"    ->  check.msg )
       ~ ( "status" ->  status )
     )
   }

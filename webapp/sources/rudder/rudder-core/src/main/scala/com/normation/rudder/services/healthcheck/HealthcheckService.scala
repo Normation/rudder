@@ -18,11 +18,14 @@ trait Check {
   def run: IOResult[HealthcheckResult]
 }
 
-sealed trait HealthcheckResult { def msg:String }
+sealed trait HealthcheckResult {
+  def msg:String
+  def name:CheckName
+}
 object HealthcheckResult {
-  final case class Ok(val msg: String) extends HealthcheckResult
-  final case class Warning(val msg: String) extends HealthcheckResult
-  final case class Critical(val msg: String) extends HealthcheckResult
+  final case class Ok(val name: CheckName, val msg: String) extends HealthcheckResult
+  final case class Warning(val name: CheckName, val msg: String) extends HealthcheckResult
+  final case class Critical(val name: CheckName, val msg: String) extends HealthcheckResult
 }
 
 class HealthcheckService(checks: List[Check]) {
@@ -31,7 +34,8 @@ class HealthcheckService(checks: List[Check]) {
      for {
        res <- c.run.catchAll { err =>
                 HealthcheckResult.Critical(
-                  s"A fatal error was encountered when running check '${c.name.value}': ${err.fullMsg}"
+                    CheckName("All checks run")
+                  , s"A fatal error was encountered when running check '${c.name.value}': ${err.fullMsg}"
                 ).succeed
               }
        _   <- logHealthcheck(c.name, res)
@@ -54,9 +58,9 @@ final object CheckCoreNumber extends Check {
     availableCores <- IOResult.effect(getRuntime.availableProcessors)
   } yield {
     availableCores match {
-      case i if i <= 0 => Critical("No Core available")
-      case 1 => Warning(s"Only one cores available")
-      case n => Ok(s"${n} cores available")
+      case i if i <= 0 => Critical(name, "No Core available")
+      case 1 => Warning(name, s"Only one cores available")
+      case n => Ok(name, s"${n} cores available")
     }
   }
 }
