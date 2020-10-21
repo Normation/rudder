@@ -127,6 +127,7 @@ object DisplayDirectiveTree extends Loggable {
     , onClickCategory : Option[FullActiveTechniqueCategory => JsCmd]
     , onClickTechnique: Option[(FullActiveTechniqueCategory, FullActiveTechnique) => JsCmd]
     , onClickDirective: Option[(FullActiveTechniqueCategory, FullActiveTechnique, Directive) => JsCmd]
+    , createDirective : Option[(Technique, FullActiveTechnique) => JsCmd]
     , addEditLink     : Boolean
     , addActionBtns   : Boolean
     , included        : Set[DirectiveId] = Set()
@@ -222,6 +223,10 @@ object DisplayDirectiveTree extends Loggable {
         //display information (name, etc) relative to last technique version
         val xml = activeTechnique.newestAvailableTechnique match {
           case Some(technique) =>
+            val btnCreateDirective = createDirective match {
+              case Some(newDirective) => <span class="btn btn-success btn-xs create" style="opacity: 0;" onclick={"event.preventDefault();event.stopPropagation();"++newDirective(technique, activeTechnique)} title="Create Directive with latest version"><i class="fa fa-plus"></i></span>
+              case None => NodeSeq.Empty
+            }
             val tooltipContent =
               s"""
               <h4>${technique.name}</h4>
@@ -230,13 +235,14 @@ object DisplayDirectiveTree extends Loggable {
                 ${agentCompat.techniqueText}
                 ${if(!activeTechnique.isEnabled){<div>This Technique is currently <b>disabled</b>.</div>}else{NodeSeq.Empty}}
               </div>"""
+
             val className = {
               val defaultClass  = "treeActiveTechniqueName bsTooltip"
               val disabledClass = if(!activeTechnique.isEnabled){"is-disabled"}else{""}
               val deprecatedClass = if(isDeprecated){"isDeprecated"}else{""}
               s"${defaultClass} ${disabledClass} ${deprecatedClass}"
             }
-            <span class={className} data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{agentCompat.icon}{technique.name}</span>
+            <span class={className} data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{agentCompat.icon}{technique.name}</span> ++ btnCreateDirective
           case None =>
             <span class="error">The technique with id ''{activeTechnique.techniqueName}'' is missing from repository</span>
         }
@@ -297,7 +303,6 @@ object DisplayDirectiveTree extends Loggable {
             NodeSeq.Empty
           }
         }
-
 
         val directiveTagsListHtml = <div>{directive.tags.tags.map(tag => <span class="tags-label"><i class="fa fa-tag"></i> <span class="tag-key">{tag.name.value}</span><span class="tag-separator"> = </span><span class="tag-value">{tag.value.value}</span></span>)}</div>
         val tagsTooltipContent    = s"""
@@ -402,6 +407,7 @@ object DisplayDirectiveTree extends Loggable {
             </div>
 
           """
+
           <span id={"badge-apm-"+tooltipId}>[BADGE]</span> ++
           <span class="treeDirective bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>
             <span class="techversion">
