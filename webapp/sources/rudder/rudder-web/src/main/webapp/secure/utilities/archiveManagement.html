@@ -1,197 +1,209 @@
 <lift:surround with="common-layout" at="content">
 
 <head>
-<title>Rudder - Policy Server Management</title>
-<style>
-<!--
-  .archiveAction {
-    display: inline-block;
-  }
-  .archiveAction .btn {
-    min-width: 180px;
-  }
-  .deca select.form-control {
-    min-width: 180px;
-    display:inline-block;
-    margin-bottom:20px;
-  }
-  #exportAllButton, #exportGroupLibraryButton, #exportRulesButton, #exportDirectiveLibraryButton {
-    margin-bottom: 10px;
-  }
--->
-</style>
-<script>
-//<![CDATA[
-  function enableIfNonEmpty(selectId, buttonId) {
-    $("#"+selectId).change(function () {
-      $("#" + selectId + " option:selected").each(function () {
-        if($(this).text() != "Choose an archive to restore...") {
-          $("#"+buttonId).prop("disabled", false);
-        } else {
-          $("#"+buttonId).prop("disabled", true);
-        }
+  <title>Rudder - Archives</title>
+  <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-template.css"/>
+  <style>
+    .rudder-template > .one-col{
+      flex: 1;
+    }
+    .template-main{
+      flex-basis : initial !important;
+      flex: auto !important;
+    }
+    .archiveAction {
+      display: inline-block;
+    }
+    .archiveAction .btn {
+      min-width: 180px;
+    }
+    .archiveAction select.form-control {
+      min-width: 180px;
+      display:inline-block;
+      margin-bottom: 10px;
+    }
+    .btn-archive {
+      margin-bottom: 20px;
+    }
+  </style>
+
+  <script>
+  //<![CDATA[
+    function enableIfNonEmpty(selectId, buttonId) {
+      $("#"+selectId).change(function () {
+        $("#" + selectId + " option:selected").each(function () {
+          if($(this).text() != "Choose an archive to restore...") {
+            $("#"+buttonId).prop("disabled", false);
+          } else {
+            $("#"+buttonId).prop("disabled", true);
+          }
+        })
       })
-    })
-  }
-//]]>
-</script>
+    }
+  //]]>
+  </script>
 
 </head>
-<div class="portlet">
-  <div class="portlet-contents">
 
-    <div class="inner-portlet">
-      <div class="page-title">Global archive</div>
-      <div class="portlet-content">
-        <div class="callout-fade callout-info">
-          <div class="marker">
-            <span class="glyphicon glyphicon-info-sign"></span>
-          </div>
-          Archive or restore settings (Groups, Rules, Directives and active Techniques) from Rudder to backup, restore or transfer items between Rudder instances.
-        </div>
-        <div class="deca">
-          <span class="lift:administration.Archives.allForm archiveAction" id="allForm">
-            <form class="lift:form.ajax">
-              <input id="exportAllButton" type="submit" value="[Export ALL]" />
-              <br/>
-              <select id="importAllSelect">
-                <option>2011-10-08 21:21:21</option>
-                <option>2011-10-09 21:21:21</option>
-                <option>2011-10-10 21:21:21</option>
-                <option>2011-10-11 21:21:21</option>
-              </select>
-              <input id="importAllButton"   type="submit" value="[Importt ALL]"  class="btn btn-default"/>
-              <input id="downloadAllButton" type="submit" value="[Download ALL]" class="btn btn-default"/>
-              <br/>
-              <span class="lift:Msg?allFormNotice" errorClass="text-danger">[error]</span>
-            </form>
-          </span>
-        </div>
+<div class="rudder-template">
+  <div class="one-col">
+    <div class="main-header">
+      <div class="header-title">
+        <h1>
+          <span>Archives</span>
+        </h1>
       </div>
     </div>
+    <div class="one-col-main">
+      <div class="template-main">
+        <div class="main-container">
+          <div class="main-details">
 
-    <div class="inner-portlet">
-      <div class="page-title">Archive groups</div>
-      <div class="portlet-content">
-        <div class="callout-fade callout-info">
-          <div class="marker">
-            <span class="glyphicon glyphicon-info-sign"></span>
-          </div>
-          <div>Archive or restore Groups only.</div>
-        </div>
-        <div class="deca">
-          <div class="lift:administration.Archives.groupLibraryForm archiveAction" id="groupLibraryForm">
-            <form class="lift:form.ajax">
-              <input id="exportGroupLibraryButton" type="submit" value="[Export GroupLibrary]" />
-              <br/>
-              <select id="importGroupLibrarySelect">
-                <option>2011-10-08 21:21:21</option>
-                <option>2011-10-09 21:21:21</option>
-                <option>2011-10-10 21:21:21</option>
-                <option>2011-10-11 21:21:21</option>
-              </select>
-              <input id="importGroupLibraryButton" type="submit"value="[Import GroupLibrary]" />
-              <input id="downloadGroupLibraryButton" type="submit" value="[Download GroupLibrary]" />
-              <br />
-              <span class="lift:Msg?groupLibraryFormNotice" errorClass="text-danger">[error]</span>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
+            <div class="inner-portlet">
+              <h3 class="page-title">Global archive</h3>
+              <div class="portlet-content">
+                <div class="callout-fade callout-info">
+                  <div class="marker">
+                    <span class="glyphicon glyphicon-info-sign"></span>
+                  </div>
+                  Archive or restore settings (Groups, Rules, Directives and active Techniques) from Rudder to backup, restore or transfer items between Rudder instances.
+                </div>
+                <span class="lift:administration.Archives.allForm archiveAction" id="allForm">
+                  <form class="lift:form.ajax">
+                    <input id="exportAllButton" type="submit" value="[Export ALL]" />
+                    <br/>
+                    <select id="importAllSelect">
+                      <option>2011-10-08 21:21:21</option>
+                      <option>2011-10-09 21:21:21</option>
+                      <option>2011-10-10 21:21:21</option>
+                      <option>2011-10-11 21:21:21</option>
+                    </select>
+                    <input id="importAllButton"   type="submit" value="[Importt ALL]"  class="btn btn-default"/>
+                    <input id="downloadAllButton" type="submit" value="[Download ALL]" class="btn btn-default"/>
+                    <br/>
+                    <span class="lift:Msg?allFormNotice" errorClass="text-danger">[error]</span>
+                  </form>
+                </span>
+              </div>
+            </div>
 
-    <div class="inner-portlet">
-      <div class="page-title">Archive Rules</div>
-      <div class="portlet-content">
-        <div class="callout-fade callout-info">
-          <div class="marker">
-            <span class="glyphicon glyphicon-info-sign"></span>
-          </div>
-          <div>Archive or restore Rules only.</div>
-        </div>
-        <div class="deca">
-          <div class="lift:administration.Archives.rulesForm archiveAction" id="rulesForm">
-            <form class="lift:form.ajax">
-             <input id="exportRulesButton" type="submit" value="[Export CR]" />
-              <br/>
-              <select id="importRulesSelect">
-                <option>2011-10-08 21:21:21</option>
-                <option>2011-10-09 21:21:21</option>
-                <option>2011-10-10 21:21:21</option>
-                <option>2011-10-11 21:21:21</option>
-              </select>
-              <input id="importRulesButton" type="submit" value="[Import Rules]" />
-              <input id="downloadRulesButton" type="submit" value="[Download Rules]" />
-              <br />
-              <span class="lift:Msg?rulesFormNotice" errorClass="text-danger">[error]</span>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
+            <div class="inner-portlet">
+              <h3 class="page-title">Archive groups</h3>
+              <div class="portlet-content">
+                <div class="callout-fade callout-info">
+                  <div class="marker">
+                    <span class="glyphicon glyphicon-info-sign"></span>
+                  </div>
+                  <div>Archive or restore Groups only.</div>
+                </div>
+                <div class="lift:administration.Archives.groupLibraryForm archiveAction" id="groupLibraryForm">
+                  <form class="lift:form.ajax">
+                    <input id="exportGroupLibraryButton" type="submit" value="[Export GroupLibrary]" />
+                    <br/>
+                    <select id="importGroupLibrarySelect">
+                      <option>2011-10-08 21:21:21</option>
+                      <option>2011-10-09 21:21:21</option>
+                      <option>2011-10-10 21:21:21</option>
+                      <option>2011-10-11 21:21:21</option>
+                    </select>
+                    <input id="importGroupLibraryButton" type="submit"value="[Import GroupLibrary]" />
+                    <input id="downloadGroupLibraryButton" type="submit" value="[Download GroupLibrary]" />
+                    <br />
+                    <span class="lift:Msg?groupLibraryFormNotice" errorClass="text-danger">[error]</span>
+                  </form>
+                </div>
+              </div>
+            </div>
 
-    <div class="inner-portlet">
-      <div class="page-title">Archive Directives and active Techniques</div>
-      <div class="portlet-content">
-        <div class="callout-fade callout-info">
-          <div class="marker">
-            <span class="glyphicon glyphicon-info-sign"></span>
-          </div>
-          <div>Archive or restore Directives and active Techniques only.</div>
-        </div>
-        <div class="deca">
-          <div class="lift:administration.Archives.directiveLibraryForm archiveAction" id="directiveLibraryForm">
-            <form class="lift:form.ajax">
-              <input id="exportDirectiveLibraryButton" type="submit" value="[Export DirectiveLibrary]"/>
-              <br/>
-              <select id="importDirectiveLibrarySelect">
-                <option>2011-10-08 21:21:21</option>
-                <option>2011-10-09 21:21:21</option>
-                <option>2011-10-10 21:21:21</option>
-                <option>2011-10-11 21:21:21</option>
-              </select>
-              <input id="importDirectiveLibraryButton"   type="submit" value="[Import DirectiveLibrary]" />
-              <input id="downloadDirectiveLibraryButton" type="submit" value="[Download DirectiveLibrary]" />
-              <br/>
-              <span class="lift:Msg?directiveLibraryFormNotice&errorClass=error">[error]</span>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
+            <div class="inner-portlet">
+              <h3 class="page-title">Archive Rules</h3>
+              <div class="portlet-content">
+                <div class="callout-fade callout-info">
+                  <div class="marker">
+                    <span class="glyphicon glyphicon-info-sign"></span>
+                  </div>
+                  <div>Archive or restore Rules only.</div>
+                </div>
+                <div class="lift:administration.Archives.rulesForm archiveAction" id="rulesForm">
+                  <form class="lift:form.ajax">
+                    <input id="exportRulesButton" type="submit" value="[Export CR]" />
+                    <br/>
+                    <select id="importRulesSelect">
+                      <option>2011-10-08 21:21:21</option>
+                      <option>2011-10-09 21:21:21</option>
+                      <option>2011-10-10 21:21:21</option>
+                      <option>2011-10-11 21:21:21</option>
+                    </select>
+                    <input id="importRulesButton" type="submit" value="[Import Rules]" />
+                    <input id="downloadRulesButton" type="submit" value="[Download Rules]" />
+                    <br />
+                    <span class="lift:Msg?rulesFormNotice" errorClass="text-danger">[error]</span>
+                  </form>
+                </div>
+              </div>
+            </div>
 
-    <div class="inner-portlet">
-      <div class="page-title">Archive Parameters</div>
-      <div class="portlet-content">
-        <div class="callout-fade callout-info">
-          <div class="marker">
-            <span class="glyphicon glyphicon-info-sign"></span>
-          </div>
-          <div>Archive or restore parameters only.</div>
-        </div>
-        <div class="deca">
-          <div class="lift:administration.Archives.parametersForm archiveAction" id="parametersForm">
-            <form class="lift:form.ajax">
-              <input id="exportParametersButton" type="submit" value="[Export Parameters]"/>
-              <br/>
-              <select id="importParametersSelect">
-                <option>2011-10-08 21:21:21</option>
-                <option>2011-10-09 21:21:21</option>
-                <option>2011-10-10 21:21:21</option>
-                <option>2011-10-11 21:21:21</option>
-              </select>
-              <input id="importParametersButton"   type="submit" value="[Import Parameters]" />
-              <input id="downloadParametersButton" type="submit" value="[Download Parameters]" />
-              <br/>
-              <span class="lift:Msg?parametersFormNotice&errorClass=error">[error]</span>
-            </form>
+            <div class="inner-portlet">
+              <h3 class="page-title">Archive Directives and active Techniques</h3>
+              <div class="portlet-content">
+                <div class="callout-fade callout-info">
+                  <div class="marker">
+                    <span class="glyphicon glyphicon-info-sign"></span>
+                  </div>
+                  <div>Archive or restore Directives and active Techniques only.</div>
+                </div>
+                <div class="lift:administration.Archives.directiveLibraryForm archiveAction" id="directiveLibraryForm">
+                  <form class="lift:form.ajax">
+                    <input id="exportDirectiveLibraryButton" type="submit" value="[Export DirectiveLibrary]"/>
+                    <br/>
+                    <select id="importDirectiveLibrarySelect">
+                      <option>2011-10-08 21:21:21</option>
+                      <option>2011-10-09 21:21:21</option>
+                      <option>2011-10-10 21:21:21</option>
+                      <option>2011-10-11 21:21:21</option>
+                    </select>
+                    <input id="importDirectiveLibraryButton"   type="submit" value="[Import DirectiveLibrary]" />
+                    <input id="downloadDirectiveLibraryButton" type="submit" value="[Download DirectiveLibrary]" />
+                    <br/>
+                    <span class="lift:Msg?directiveLibraryFormNotice&errorClass=error">[error]</span>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <div class="inner-portlet">
+              <h3 class="page-title">Archive Parameters</h3>
+              <div class="portlet-content">
+                <div class="callout-fade callout-info">
+                  <div class="marker">
+                    <span class="glyphicon glyphicon-info-sign"></span>
+                  </div>
+                  <div>Archive or restore parameters only.</div>
+                </div>
+                <div class="lift:administration.Archives.parametersForm archiveAction" id="parametersForm">
+                  <form class="lift:form.ajax">
+                    <input id="exportParametersButton" type="submit" value="[Export Parameters]"/>
+                    <br/>
+                    <select id="importParametersSelect">
+                      <option>2011-10-08 21:21:21</option>
+                      <option>2011-10-09 21:21:21</option>
+                      <option>2011-10-10 21:21:21</option>
+                      <option>2011-10-11 21:21:21</option>
+                    </select>
+                    <input id="importParametersButton"   type="submit" value="[Import Parameters]" />
+                    <input id="downloadParametersButton" type="submit" value="[Download Parameters]" />
+                    <br/>
+                    <span class="lift:Msg?parametersFormNotice&errorClass=error">[error]</span>
+                  </form>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
-
 
 </lift:surround>
 
