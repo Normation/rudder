@@ -9,8 +9,17 @@
 </div>
 
 <head>
+
   <title>Rudder - API accounts</title>
+  <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-template.css"/>
   <style>
+    .rudder-template > .one-col{
+      flex: 1;
+    }
+    .template-main{
+      flex-basis : initial !important;
+      flex: auto !important;
+    }
     form .ng-invalid-valid_empty {
       box-shadow : 0px 0px 1px 1px red;
     }
@@ -37,163 +46,174 @@
   </style>
   <script data-lift="with-cached-resource" src="/javascript/rudder/angular/apiAccount.js" ></script>
 </head>
-<div class="portlet" ng-app="accountManagement" id="accountManagement" data-lift="administration.ApiAccounts.body">
-  <div class="portlet-content" ng-cloak>
-    <div class="inner-portlet">
-      <div class="page-title">Configure allowed accounts</div>
-      <div class="portlet-content">
-        <div class="callout-fade callout-info">
-          <div class="marker">
-            <span class="glyphicon glyphicon-info-sign"></span>
-          </div>
-          <div>
-            <p>
-              Configure accounts allowed to connect to Rudder's REST API.
-            </p>
-            <p>
-              An account is composed of a name, used to identify its action (for example in event logs),
-              an authentication token which is the secret that will allow it to use Rudder's API, and
-              a description to explain the intent of that account.
-            </p>
-          </div>
+
+  <div class="rudder-template" ng-app="accountManagement" id="accountManagement" data-lift="administration.ApiAccounts.body">
+    <div class="one-col">
+      <div class="main-header">
+        <div class="header-title">
+          <h1>
+            <span>API accounts</span>
+          </h1>
         </div>
-        <div ng-controller="AccountCtrl">
-          <div ng-show="errorTable" style="width:100%; text-align:center; color:red" ng-cloak> {{errorTable.errorDetails}} </div>
-          <div class="clearfix">
-            <lift:authz role="administration_write">
-              <button ng-click="addAccount();" class="btn btn-success new-icon space-bottom space-top">
-                Create API Account
-              </button>
-            </lift:authz>
-            <div class="col-xs-2">
-              <select id="filter" class="form-control vresize float-inherit space-bottom space-top" ng-model="authFilter">
-                <option value="" disabled selected>Filter on access level</option>
-                <option value="">All accounts</option>
-                <option value="none">No access</option>
-                <option value="ro">Read only</option>
-                <option value="rw">Full access</option>
-                <option ng-disabled="!aclPlugin" value="acl"> Custom ACL {{ aclPlugin ? "" : "(Need plugin)"}}</option>
-              </select>
-            </div>
-            <button class="btn btn-box-tool btn-blue pull-right space-top space-bottom" ng-click="getAccounts()">Refresh <span class="fa fa-refresh"></span></button>
-          </div>
-          <table datatable="ng" dt-options="options" dt-column-defs="columns" id="accountGrid" >
-            <thead>
-              <tr class="head tablewidth">
-                <th >Account Name</th>
-                <th >Token</th>
-                <th >Expiration date</th>
-                <th >Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr ng-repeat="account in accounts | filter:filterAccount track by $index" ng-class="{'color1': $index%2!=0, 'color2': $index%2==0}">
-                <td class="align-middle">
-                  {{account.name}}
-                  <span ng-if="account.description" data-toggle="tooltip" data-placement="top" data-html="true" title={{account.description}} class="bsTooltip fa fa-question-circle info-icon ruddericon tooltipable"></span>
-                  <span class="badge badge-grey" data-original-title="" title="">{{authorisationName(account.authorizationType)}}</span>
-                </td>
-                <td>
-                  <button class="btn btn-default reload-token" ng-click="popupDeletion(account,regenerateAccount,'Regenerate token of')">
-                    <span class="fa fa-repeat"></span>
-                  </button>
-                  {{account.token}}
-                </td>
-                <td class="align-middle">
-                    {{account.expirationDateDefined ? account.expirationDate : "Never"}}
-                </td>
-                <td>
-                  <button class='btn btn-default' ng-click="popupCreation(account, $index)"><span class="fa fa-pencil"></span></button>
-                  <toggle on="Enabled" off="Disabled" ng-model="account.enabled" onstyle="btn-success" offstyle="btn-grey" ng-change="saveAccount(account,$index,false)" ></toggle>
-                  <button class='btn btn-danger delete-button' ng-click="popupDeletion(account,deleteAccount,'Delete');"><span class="fa fa-times-circle"></span></button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="accountGrid_pagination, paginatescala" >
-            <div id="accountGrid_paginate_area"></div>
-          </div>
-
-          <!-- pop-ups -->
-          <div class="modal fade" id="newAccountPopup" tabindex="-1" role="dialog">
-            <div class="modal-backdrop fade in" style="height: 100%;"></div>
-            <div class="modal-dialog" role="document">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <div class="close" data-dismiss="modal">
-                    <span aria-hidden="true">&times;</span>
-                    <span class="sr-only">Close</span>
+      </div>
+      <div class="one-col-main" ng-controller="AccountCtrl" ng-cloak>
+        <div class="template-main">
+          <div class="main-container">
+            <div class="main-details">
+              <div class="inner-portlet">
+                <div class="callout-fade callout-info">
+                  <div class="marker">
+                    <span class="glyphicon glyphicon-info-sign"></span>
                   </div>
-                  <h4 class="modal-title">
-                    {{formTitle(myNewAccount)}}
-                  </h4>
+                  <div>
+                    <p>
+                      Configure accounts allowed to connect to Rudder's REST API.
+                    </p>
+                    <p>
+                      An account is composed of a name, used to identify its action (for example in event logs),
+                      an authentication token which is the secret that will allow it to use Rudder's API, and
+                      a description to explain the intent of that account.
+                    </p>
+                  </div>
                 </div>
-                <div class="modal-body">
-                  <form name="newAccount">
-                      <div class="form-group" class="" ng-class="{'has-error': newAccount.$invalid && !newAccount.$pristine}">
-                          <label for="newAccount-name"><b>Name</b></label>
-                          <input id="newAccount-name" type="text" class="form-control float-inherit" valid-empty="valid-empty" ng-model="myNewAccount.name" name="newAccountName" id="newAccountName" ng-change="$(newAccountName).focus()">
-                          <div ng-show="errorPopup" class="text-danger">{{errorPopup.errorDetails}}</div>
-                      </div>
-                      <div class="form-group">
-                          <label for="newAccount-description">Description</label>
-                          <textarea id="newAccount-description" class="form-control vresize float-inherit" ng-model="myNewAccount.description"></textarea>
-                      </div>
-
-                      <div class="form-group">
-                          <label for="newAccount-expiration">Expiration date</label>
-                          <toggle on="Enabled" off="Disabled" ng-model="myNewAccount.expirationDateDefined" onstyle="btn-blue" offstyle="btn-grey" ></toggle>
-                          <input id="newAccount-expiration" ng-disabled="!(myNewAccount.expirationDateDefined)" type="text" ng-model="myNewAccount.expirationDate" class="form-control vresize float-inherit"/>
-                      </div>
-                      <div class="form-group">
-                          <label for="newAccount-access">Access level</label>
-                          <select id="newAccount-access" class="form-control vresize float-inherit" ng-model="myNewAccount.authorizationType">
-                            <option value="none">No access</option>
-                            <option value="ro">Read only</option>
-                            <option value="rw">Full access</option>
-                            <option ng-disabled="!aclPlugin" value="acl"> Custom ACL {{ aclPlugin ? "" : "(Need plugin)"}}</option>
-                          </select>
-                      </div>
-                  </form>
+                <div ng-show="errorTable" style="width:100%; text-align:center; color:red" ng-cloak> {{errorTable.errorDetails}} </div>
+                <div class="clearfix">
+                  <lift:authz role="administration_write">
+                    <button ng-click="addAccount();" class="btn btn-success new-icon space-bottom space-top">
+                      Create API Account
+                    </button>
+                  </lift:authz>
+                  <div class="col-xs-2">
+                    <select id="filter" class="form-control vresize float-inherit space-bottom space-top" ng-model="authFilter">
+                      <option value="" disabled selected>Filter on access level</option>
+                      <option value="">All accounts</option>
+                      <option value="none">No access</option>
+                      <option value="ro">Read only</option>
+                      <option value="rw">Full access</option>
+                      <option ng-disabled="!aclPlugin" value="acl"> Custom ACL {{ aclPlugin ? "" : "(Need plugin)"}}</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-box-tool btn-blue pull-right space-top space-bottom" ng-click="getAccounts()">Refresh <span class="fa fa-refresh"></span></button>
                 </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="newAccount.$setPristine();">Close</button>
-                  <input type="submit" class="btn btn-success" ng-disabled="newAccount.$invalid" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);newAccount.$setPristine();" value="{{defineActionName(formTitle(myNewAccount))}}">
+                <table datatable="ng" dt-options="options" dt-column-defs="columns" id="accountGrid" >
+                  <thead>
+                  <tr class="head tablewidth">
+                    <th >Account Name</th>
+                    <th >Token</th>
+                    <th >Expiration date</th>
+                    <th >Actions</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr ng-repeat="account in accounts | filter:filterAccount track by $index" ng-class="{'color1': $index%2!=0, 'color2': $index%2==0}">
+                    <td class="align-middle">
+                      {{account.name}}
+                      <span ng-if="account.description" data-toggle="tooltip" data-placement="top" data-html="true" title={{account.description}} class="bsTooltip fa fa-question-circle info-icon ruddericon tooltipable"></span>
+                      <span class="badge badge-grey" data-original-title="" title="">{{authorisationName(account.authorizationType)}}</span>
+                    </td>
+                    <td>
+                      <button class="btn btn-default reload-token" ng-click="popupDeletion(account,regenerateAccount,'Regenerate token of')">
+                        <span class="fa fa-repeat"></span>
+                      </button>
+                      {{account.token}}
+                    </td>
+                    <td class="align-middle">
+                      {{account.expirationDateDefined ? account.expirationDate : "Never"}}
+                    </td>
+                    <td>
+                      <button class='btn btn-default' ng-click="popupCreation(account, $index)"><span class="fa fa-pencil"></span></button>
+                      <toggle on="Enabled" off="Disabled" ng-model="account.enabled" onstyle="btn-success" offstyle="btn-grey" ng-change="saveAccount(account,$index,false)" ></toggle>
+                      <button class='btn btn-danger delete-button' ng-click="popupDeletion(account,deleteAccount,'Delete');"><span class="fa fa-times-circle"></span></button>
+                    </td>
+                  </tr>
+                  </tbody>
+                </table>
+                <div class="accountGrid_pagination, paginatescala" >
+                  <div id="accountGrid_paginate_area"></div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+        <!-- pop-ups -->
+        <div class="modal fade" id="newAccountPopup" tabindex="-1" role="dialog">
+          <div class="modal-backdrop fade in" style="height: 100%;"></div>
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                  <span aria-hidden="true">&times;</span>
+                  <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title">
+                  {{formTitle(myNewAccount)}}
+                </h4>
+              </div>
+              <div class="modal-body">
+                <form name="newAccount">
+                  <div class="form-group" class="" ng-class="{'has-error': newAccount.$invalid && !newAccount.$pristine}">
+                    <label for="newAccount-name"><b>Name</b></label>
+                    <input id="newAccount-name" type="text" class="form-control float-inherit" valid-empty="valid-empty" ng-model="myNewAccount.name" name="newAccountName" id="newAccountName" ng-change="$(newAccountName).focus()">
+                    <div ng-show="errorPopup" class="text-danger">{{errorPopup.errorDetails}}</div>
+                  </div>
+                  <div class="form-group">
+                    <label for="newAccount-description">Description</label>
+                    <textarea id="newAccount-description" class="form-control vresize float-inherit" ng-model="myNewAccount.description"></textarea>
+                  </div>
 
-          <div class="modal fade" id="oldAccountPopup" tabindex="-1" role="dialog">
-            <div class="modal-backdrop fade in" style="height: 100%;"></div>
-            <div class="modal-dialog" role="document">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <div class="close" data-dismiss="modal">
-                    <span aria-hidden="true">&times;</span>
-                    <span class="sr-only">Close</span>
+                  <div class="form-group">
+                    <label for="newAccount-expiration">Expiration date</label>
+                    <toggle on="Enabled" off="Disabled" ng-model="myNewAccount.expirationDateDefined" onstyle="btn-blue" offstyle="btn-grey" ></toggle>
+                    <input id="newAccount-expiration" ng-disabled="!(myNewAccount.expirationDateDefined)" type="text" ng-model="myNewAccount.expirationDate" class="form-control vresize float-inherit"/>
                   </div>
-                  <h4 class="modal-title">
-                    {{myOldAccount.actionName}} API Account '{{myOldAccount.name}}'
-                  </h4>
-                </div>
-                <div class="modal-body">
-                  <div class="row">
-                    <div class="col-lg-12 col-sm-12 col-xs-12">
-                      <h4 class="text-center" id="areYouSure">
-                        You are about to {{myOldAccount.actionName.toLowerCase()}} an API Account.
-                      </h4>
-                    </div>
+                  <div class="form-group">
+                    <label for="newAccount-access">Access level</label>
+                    <select id="newAccount-access" class="form-control vresize float-inherit" ng-model="myNewAccount.authorizationType">
+                      <option value="none">No access</option>
+                      <option value="ro">Read only</option>
+                      <option value="rw">Full access</option>
+                      <option ng-disabled="!aclPlugin" value="acl"> Custom ACL {{ aclPlugin ? "" : "(Need plugin)"}}</option>
+                    </select>
                   </div>
-                  <div class="alert alert-warning text-center space-top" role="alert">
-                    <span aria-hidden="true" class="glyphicon glyphicon-exclamation-sign"></span>
-                    <span>If you continue, any scripts using this will no longer be able to connect to Rudder's API.</span>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="newAccount.$setPristine();">Close</button>
+                <input type="submit" class="btn btn-success" ng-disabled="newAccount.$invalid" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);newAccount.$setPristine();" value="{{defineActionName(formTitle(myNewAccount))}}">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal fade" id="oldAccountPopup" tabindex="-1" role="dialog">
+          <div class="modal-backdrop fade in" style="height: 100%;"></div>
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                  <span aria-hidden="true">&times;</span>
+                  <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title">
+                  {{myOldAccount.actionName}} API Account '{{myOldAccount.name}}'
+                </h4>
+              </div>
+              <div class="modal-body">
+                <div class="row">
+                  <div class="col-lg-12 col-sm-12 col-xs-12">
+                    <h4 class="text-center" id="areYouSure">
+                      You are about to {{myOldAccount.actionName.toLowerCase()}} an API Account.
+                    </h4>
                   </div>
                 </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                  <button id="dialogRemoveButton" ng-click="myOldAccount.action(myOldAccount,myOldAccount.index)" class="btn" ng-class="{'btn btn-danger':myOldAccount.actionName=='Delete' , 'btn btn-primary':myOldAccount.actionName!='Delete'}">{{myOldAccount.actionName.split(' ')[0]}}</button>
+                <div class="alert alert-warning text-center space-top" role="alert">
+                  <span aria-hidden="true" class="glyphicon glyphicon-exclamation-sign"></span>
+                  <span>If you continue, any scripts using this will no longer be able to connect to Rudder's API.</span>
                 </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button id="dialogRemoveButton" ng-click="myOldAccount.action(myOldAccount,myOldAccount.index)" class="btn" ng-class="{'btn btn-danger':myOldAccount.actionName=='Delete' , 'btn btn-primary':myOldAccount.actionName!='Delete'}">{{myOldAccount.actionName.split(' ')[0]}}</button>
               </div>
             </div>
           </div>
@@ -201,7 +221,5 @@
       </div>
     </div>
   </div>
-</div>
-
 </lift:surround>
 

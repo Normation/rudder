@@ -236,6 +236,15 @@
 .rudder-template.one-col .template-main .main-header{
   padding: 15px 30px;
 }
+@media (max-width:1200px) {
+  .rudder-template .one-col .main-header,
+  .rudder-template.one-col .template-main .main-header{
+    padding: 15px;
+  }
+  .rudder-template .template-main .main-details{
+    padding: 10px 15px !important;
+  }
+}
 .rudder-template .template-main .main-header .header-description{
   margin-top: 10px;
   color: #222D42AA;
