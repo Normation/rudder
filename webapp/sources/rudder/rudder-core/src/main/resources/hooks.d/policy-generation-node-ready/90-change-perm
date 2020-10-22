@@ -1,12 +1,12 @@
 #!/bin/sh
 
-# Hooks parameter are passed by environment variable: 
+# Hooks parameter are passed by environment variable:
 #
-# - RUDDER_GENERATION_DATETIME   : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation start 
+# - RUDDER_GENERATION_DATETIME   : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation start
 # - RUDDER_NODE_ID               : the nodeId
 # - RUDDER_NODE_HOSTNAME         : the node fully qualified hostname
 # - RUDDER_NODE_POLICY_SERVER_ID : the node policy server id
-# - RUDDER_AGENT_TYPE            : agent type ("cfengine-community", "cfengine-nova" or "dsc")
+# - RUDDER_AGENT_TYPE            : agent type ("cfengine-community" or "dsc")
 # - RUDDER_POLICIES_DIRECTORY_NEW: new policies directory (for ex for nodes under root: /var/rudder/share/$RUDDER_NODE_ID/rules.new)
 
 # Correct directory permission

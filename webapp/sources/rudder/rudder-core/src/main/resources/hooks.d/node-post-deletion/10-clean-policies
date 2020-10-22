@@ -1,26 +1,26 @@
 #!/bin/sh
 
-# Hooks parameter are passed by environment variable: 
+# Hooks parameter are passed by environment variable:
 #
 # - RUDDER_NODE_ID: the nodeId
 # - RUDDER_NODE_HOSTNAME: the node fully qualified hostname
 # - RUDDER_NODE_POLICY_SERVER_ID: the node policy server id
-# - RUDDER_AGENT_TYPE : agent type ("cfengine-nova" or "cfengine-community")
+# - RUDDER_AGENT_TYPE : agent type ("cfengine-community" or "dsc")
 # - RUDDER_POLICIES_DIRECTORY_CURRENT: the full path of the base directory containing policies for that node
 # - RUDDER_POLICIES_DIRECTORY_NEW: the full path of the base directory containing next policies for that node (during a generation)
 # - RUDDER_POLICIES_DIRECTORY_ARCHIVE: the full path of the base directory containing previous policies for that node
 # - RUDDER_NODE_ROLES: a comma separated list of node's server role name
 
- 
+
 # Errors code on hooks are interpreted as follow:
 # - 0     : success, no log (appart if debug one)          , continue to next hook
 # - 1-31  : error  , error   log in /var/log/rudder/webapp/, stop processing
 # - 32-63 : warning, warning log in /var/log/rudder/webapp/, continue to next hook
-# - 64-255: reserved for futur use case. Behavior may change without notice. 
+# - 64-255: reserved for futur use case. Behavior may change without notice.
 
-# We want to delete node policies (ie /var/rudder/share/path/to/node/policy/even/with relays 
+# We want to delete node policies (ie /var/rudder/share/path/to/node/policy/even/with relays
 # and /var/rudder/backup/node-id
- 
+
 # we delete the parent of current (ie parent of(/.../node-id/rules)
 NODE_DIR="$(dirname ${RUDDER_POLICIES_DIRECTORY_CURRENT})"
 ARCHIVE_DIR="$(dirname ${RUDDER_POLICIES_DIRECTORY_ARCHIVE})"
@@ -33,15 +33,15 @@ for DIR in "${NODE_DIR}" "${ARCHIVE_DIR}"; do
     if [ "$(basename "${DIR}")" = "${RUDDER_NODE_ID}" ]; then
       # delete directory
       rm -rf "${DIR}"
-      if [ $? -ne 0 ]; then 
+      if [ $? -ne 0 ]; then
         echo "Error when deleting '${DIR}'"
         EXIT=32
-      fi 
-    else 
+      fi
+    else
       echo "Error when cleaning generated policies for deleted node ${RUDDER_NODE_ID}: directory '${DIR}' should have node id for name. Aborting"
       EXIT=32
     fi
   fi
 done
 
-exit ${EXIT} 
+exit ${EXIT}

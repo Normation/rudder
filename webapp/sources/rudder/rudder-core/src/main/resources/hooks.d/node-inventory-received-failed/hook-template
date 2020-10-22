@@ -2,10 +2,6 @@
 
 # Hooks parameter are passed by environment variable:
 #
-# - RUDDER_NODE_ID              : the nodeId
-# - RUDDER_NODE_HOSTNAME        : the node fully qualified hostname
-# - RUDDER_NODE_POLICY_SERVER_ID: the node policy server id
-# - RUDDER_AGENT_TYPE           : agent type ("cfengine-community" or "dsc")
 
 
 # Errors code on hooks are interpreted as follow:

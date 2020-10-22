@@ -1,0 +1,14 @@
+= node-post-acceptance
+
+== When/What ?
+
+This directory contains hooks executed after a node inventory was received but its processing
+failed.
+
+Typically, these hooks triggers action on other system, or to send notification.
+
+== Parameters
+
+Hooks parameters are passed by environment variable:
+
+- RUDDER_INVENTORY_PATH: failed inventory file
