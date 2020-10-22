@@ -50,7 +50,7 @@ import com.normation.zio.ZioRuntime
 import zio._
 import zio.syntax._
 import com.normation.zio._
-import org.apache.commons.lang.StringUtils
+import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.ArraySeq
 
