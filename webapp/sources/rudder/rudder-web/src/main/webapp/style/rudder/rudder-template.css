@@ -445,7 +445,8 @@
   border-bottom: 2px solid #d6deef;
   margin-top: 20px;
 }
-.rudder-template .one-col .main-details > .inner-portlet:first-child h3.page-title {
+.rudder-template .one-col .main-details > .inner-portlet:first-child h3.page-title,
+.rudder-template .one-col .main-details > div > .inner-portlet:first-child h3.page-title {
   margin-top: 0px;
 }
 .rudder-template .one-col .template-main .main-details{
