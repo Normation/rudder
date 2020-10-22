@@ -819,6 +819,21 @@ attributetype ( InventoryAttributes:400.57
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
+attributetype ( InventoryAttributes:400.58
+  NAME 'sourceName'
+  DESC 'Name of the source package (used on debian like systems)'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+
+attributetype ( InventoryAttributes:400.59
+  NAME 'sourceVersion'
+  DESC 'Version of the source package, used on debian like systems, for ex: v3.0.34-pre4'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
 #######################################################
 ################  Object Classes ######################
 #######################################################
@@ -1078,7 +1093,7 @@ objectclass ( InventoryObjectClasses:21
   STRUCTURAL
   MUST ( softwareId )
   MAY ( cn $ description $ releaseDate $ editor $ softwareVersion $
-        licenseExpirationDate $ licenseName $ licenseProductId $ licenseProductKey ) )
+        licenseExpirationDate $ licenseName $ licenseProductId $ licenseProductKey $ sourceName $ sourceVersion ) )
 
 
 objectclass ( InventoryObjectClasses:22

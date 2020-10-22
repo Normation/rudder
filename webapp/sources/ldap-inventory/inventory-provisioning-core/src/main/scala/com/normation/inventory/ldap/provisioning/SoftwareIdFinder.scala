@@ -90,9 +90,9 @@ class NameAndVersionIdFinder(
     } yield {
       //now merge back
       entities.foldLeft(MergedSoftware(Set(),Set())) { case(ms, s) =>
-        merged.find { x => x.name == s.name && x.version == s.version } match {
-          case None => ms.copy(newSoftware = ms.newSoftware+s)
+        merged.find { x => x.name == s.name && x.version == s.version && x.sourceName == s.sourceName && x.sourceVersion == s.sourceVersion  } match {
           case Some(x) => ms.copy(alreadySavedSoftware = ms.alreadySavedSoftware+x)
+          case None => ms.copy(newSoftware = ms.newSoftware+s)
         }
       }
     }

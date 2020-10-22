@@ -904,13 +904,17 @@ class FusionReportUnmarshaller(
     }
   }
 
-  def processSoftware(s : NodeSeq) : Software = Software(
-        id = SoftwareUuid(uuidGen.newUuid)
-      , name = optText(s\"NAME")
-      , version = optText(s\"VERSION").map(x => new Version(x) )
-      , description = optText(s\"COMMENTS")
-      , editor = optText(s\"PUBLISHER").map(e => new SoftwareEditor(e))
+  def processSoftware(s : NodeSeq) : Software = {
+    Software(
+        id            = SoftwareUuid(uuidGen.newUuid)
+      , name          = optText(s \ "NAME"          )
+      , version       = optText(s \ "VERSION"       ).map(x => new Version(x))
+      , description   = optText(s \ "COMMENTS"      )
+      , editor        = optText(s \ "PUBLISHER"     ).map(e => new SoftwareEditor(e))
+      , sourceName    = optText(s \ "SOURCE_NAME"   )
+      , sourceVersion = optText(s \ "SOURCE_VERSION").map(x => new Version(x))
     )
+  }
 
   /**
    * Process the bios, and return its, plus the system manufacturer and the system serial number
