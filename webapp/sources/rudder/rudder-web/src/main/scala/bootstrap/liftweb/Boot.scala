@@ -290,7 +290,6 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RudderConfig.restCompletion)
     LiftRules.statelessDispatch.append(RudderConfig.sharedFileApi)
     LiftRules.statelessDispatch.append(RudderConfig.eventLogApi)
-    LiftRules.statelessDispatch.append(RudderConfig.nodeDetailsApi)
 
     // REST API (all public/internal API)
     // we need to add "info" API here to have all used API (even plugins)

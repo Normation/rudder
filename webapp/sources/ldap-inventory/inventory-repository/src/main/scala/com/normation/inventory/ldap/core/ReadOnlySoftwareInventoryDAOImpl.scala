@@ -185,7 +185,7 @@ class ReadOnlySoftwareDAOImpl(
     val n1 = System.currentTimeMillis
     for {
 
-      con           <- ldap
+      con <- ldap
       n2 = System.currentTimeMillis
       _ <- TimingDebugLoggerPure.trace(s"init ldap: ${n2 - n1}ms")
       entries <- con.searchOne(inventoryDitService.getSoftwareBaseDN, EQ(A_NAME,softName )).map(_.toVector)
@@ -197,7 +197,6 @@ class ReadOnlySoftwareDAOImpl(
           soft <- ZIO.fromEither(mapper.softwareFromEntry(entry)).chainError(s"Error when mapping LDAP entry '${entry.dn}' to a software. Entry details: ${entry}")
           nodeEntries <- con.searchSub(dit.NODES.dn, BuildFilter.AND(IS(OC_NODE), EQ(A_SOFTWARE_DN, dit.SOFTWARE.SOFT.dn(soft.id).toString)), A_NODE_UUID)
           nodeIds <- ZIO.foreach(nodeEntries) { e => IOResult.effect(e(A_NODE_UUID).map(NodeId(_))).notOptional(s"Missing mandatory attribute '${A_NODE_UUID}'") }
-
         } yield {
           nodeIds.map((_,soft))
         }

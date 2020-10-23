@@ -1189,29 +1189,29 @@ var allColumns = {
 }
 
 
-  function callbackElement(oData, displayCompliance) {
-    var elem = $("<a></a>");
-    if("callback" in oData) {
-        elem.click(function(e) {
-          oData.callback(displayCompliance);
-          e.stopPropagation();
-        });
-        elem.attr("href","javascript://");
-    } else {
-        elem.attr("href",contextPath+'/secure/nodeManager/node/'+oData.id+'?displayCompliance='+displayCompliance);
-    }
-    return elem;
+function callbackElement(oData, displayCompliance) {
+  var elem = $("<a></a>");
+  if("callback" in oData) {
+      elem.click(function(e) {
+        oData.callback(displayCompliance);
+        e.stopPropagation();
+      });
+      elem.attr("href","javascript://");
+  } else {
+      elem.attr("href",contextPath+'/secure/nodeManager/node/'+oData.id+'?displayCompliance='+displayCompliance);
   }
+  return elem;
+}
+
 
 var dynColumns = []
-
-  var columns = [];
-
+var columns = [];
 
 function reloadTable(gridId) {
   var table = $('#'+gridId).DataTable();
   table.ajax.reload();
 }
+
 function createNodeTable(gridId, nope, contextPath, refresh) {
 
 
@@ -1233,7 +1233,7 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
        , "visible" : true
     }
     , "ajax" : {
-    "url" : contextPath + "/secure/api/nodeDetails"
+    "url" : contextPath + "/secure/api/nodes/details"
     , "type" : "POST"
     , "contentType": "application/json"
     , "data" : function(d) {
@@ -1270,118 +1270,94 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
   $("#first_line_header input").addClass("form-control")
 
 
- function addColumn(columnName, value) {
-  var table = $('#'+gridId).DataTable();
-   var data2 = table.rows().data();
-   var init = table.init();
-   table.destroy();
-   $('#'+gridId).empty();
-   if (columnName =="Property" || columnName =="Software" ) {
-     init.aoColumns.push(allColumns[columnName](value))
-     params["ajax"] =  {
-                          "url" : contextPath + "/secure/api/nodeDetails/"+columnName.toLowerCase()+"/"+value
-                        , "type" : "POST"
-                        , "contentType": "application/json"
-                        , "data" : function(d) {
-                             var data = d
-                                if (nodeIds !== undefined ) { data = $.extend({}, d, {"nodeIds": nodeIds} ) }
-                                  return JSON.stringify(data)
-                             }
-                             , "dataSrc" : function(d) {
-
-
-
-                                for ( index in data2.rows().data().toArray() ) {
-                                  var node = data2[index]
-
-
-                                  if (node[columnName.toLowerCase()] === undefined) {
-                                    node[columnName.toLowerCase()] = {}
-                                  }
-                                  node[columnName.toLowerCase()][value] = d[node.id]
-                                }
-
-                                return data2
-                             }
+  function addColumn(columnName, value) {
+    var table = $('#'+gridId).DataTable();
+    var data2 = table.rows().data();
+    var init = table.init();
+    table.destroy();
+    $('#'+gridId).empty();
+    if (columnName =="Property" || columnName =="Software" ) {
+      init.aoColumns.push(allColumns[columnName](value))
+      params["ajax"] = {
+          "url" : contextPath + "/secure/api/nodes/details/"+columnName.toLowerCase()+"/"+value
+        , "type" : "POST"
+        , "contentType": "application/json"
+        , "data" : function(d) {
+                     var data = d
+                     if (nodeIds !== undefined ) { data = $.extend({}, d, {"nodeIds": nodeIds} ) }
+                       return JSON.stringify(data)
+                   }
+        , "dataSrc" : function(d) {
+                        for ( index in data2.rows().data().toArray() ) {
+                          var node = data2[index]
+                          if (node[columnName.toLowerCase()] === undefined) {
+                            node[columnName.toLowerCase()] = {}
+                          }
+                          node[columnName.toLowerCase()][value] = d[node.id]
                         }
+                        return data2
+                      }
+      }
 
-     createTable(gridId,[], init.aoColumns, params, contextPath, refresh, "nodes");
-   } else {
-
-
-     init.aoColumns.push(allColumns[columnName])
-     dynColumns = dynColumns.filter(function(col) { return col != columnName})
-     delete params["ajax"];
-     createTable(gridId,data2, init.aoColumns, params, contextPath, refresh, "nodes");
-   }
-
-   $("#first_line_header input").addClass("form-control")
-   columnSelect(true);
-
- }
+      createTable(gridId,[], init.aoColumns, params, contextPath, refresh, "nodes");
+    } else {
+      init.aoColumns.push(allColumns[columnName])
+      dynColumns = dynColumns.filter(function(col) { return col != columnName})
+      delete params["ajax"];
+      createTable(gridId,data2, init.aoColumns, params, contextPath, refresh, "nodes");
+    }
+    $("#first_line_header input").addClass("form-control")
+    columnSelect(true);
+  }
 
   function removeColumn(columnIndex) {
-   var table = $('#'+gridId).DataTable();
+    var table = $('#'+gridId).DataTable();
     var data2 = table.rows().data();
     var init = table.init();
     table.destroy();
     $('#'+gridId).empty();
     dynColumns.push(init.aoColumns[columnIndex].title)
     init.aoColumns.splice(columnIndex, 1)
-
     delete params["ajax"];
     createTable(gridId,data2, init.aoColumns, params, contextPath, refresh, "nodes");
     $("#first_line_header input").addClass("form-control")
     columnSelect(true);
-
   }
 
-function columnSelect(editOpen) {
-
-  var table = $('#'+gridId).DataTable();
-   var init = table.init();
-$("#edit-columns").html($("<button class='btn btn-blue' > <i class='fa fa-pencil'></i> Edit columns</button>").click(function(){$("#select-columns").toggle()}))
-
- var select = "<div class='col-xs-12 row form-group'> <div class='col-xs-2' style='margin-left : -15px'  > <select placeholder='Select column to add' class='  form-control'>"
- for (var key in dynColumns) {
- value = dynColumns[key]
- select += "<option value='"+value+"'>"+value+"</option>"
- }
- select += "</select></div><div class='col-xs-2' style='margin-left : -15px'><input class='form-control' type='text'></div> <button class='btn btn-success'  ><i class='fa fa-plus-circle'> Add column</button></div>"
-
- editOpen ? $("#select-columns").show() : $("#select-columns").hide()
- $("#select-columns").html(select)
-
- var selectedColumns =""
- for (var key in init.aoColumns) {
-
-
-   var elem = $("<span class='rudder-label label-state' style='cursor: normal' >" + init.aoColumns[key].title + "  </span>")
-   elem.append($("<i class='fa fa-times' style='cursor: pointer'> </i>").hover(function() { $(this).parent().toggleClass("label-state label-error")}).click(function(value) { return function() {removeColumn(value)}}(key)))
-
-     $("#select-columns").append(elem)
- }
-
- if (dynColumns[0] != "Property" && dynColumns[0] !="Software" ) {
-   $("#select-columns input").parent().hide()
- }
- $("#select-columns select").change(function(e) {
-
- if (this.value =="Property" || this.value =="Software" ) {
-   $("#select-columns input").parent().show()
-
-   $("#select-columns input").attr('placeholder', this.value + " name" )
- } else {
-   $("#select-columns input").parent().hide()
- }})
- $("#select-columns div button").click(function(e) {
-
- addColumn($("#select-columns select").val(), $("#select-columns input").val())
-
- })
-}
- columnSelect(false)
-
+  function columnSelect(editOpen) {
+    var table = $('#'+gridId).DataTable();
+    var init = table.init();
+    $("#edit-columns").html($("<button class='btn btn-blue' > <i class='fa fa-pencil'></i> Edit columns</button>").click(function(){$("#select-columns").toggle()}))
+    var select = "<div class='col-xs-12 row form-group'> <div class='col-xs-2' style='margin-left : -15px'  > <select placeholder='Select column to add' class='  form-control'>"
+    for (var key in dynColumns) {
+      value = dynColumns[key]
+      select += "<option value='"+value+"'>"+value+"</option>"
+    }
+    select += "</select></div><div class='col-xs-2' style='margin-left : -15px'><input class='form-control' type='text'></div> <button class='btn btn-success'  ><i class='fa fa-plus-circle'> Add column</button></div>"
+    editOpen ? $("#select-columns").show() : $("#select-columns").hide()
+    $("#select-columns").html(select)
+    var selectedColumns =""
+    for (var key in init.aoColumns) {
+      var elem = $("<span class='rudder-label label-state' style='cursor: normal' >" + init.aoColumns[key].title + "  </span>")
+      elem.append($("<i class='fa fa-times' style='cursor: pointer'> </i>").hover(function() { $(this).parent().toggleClass("label-state label-error")}).click(function(value) { return function() {removeColumn(value)}}(key)))
+      $("#select-columns").append(elem)
+    }
+    if (dynColumns[0] != "Property" && dynColumns[0] !="Software" ) {
+      $("#select-columns input").parent().hide()
+    }
+    $("#select-columns select").change(function(e) {
+      if (this.value =="Property" || this.value =="Software" ) {
+        $("#select-columns input").parent().show()
+        $("#select-columns input").attr('placeholder', this.value + " name" )
+      } else {
+        $("#select-columns input").parent().hide()
+      }
+    })
+    $("#select-columns div button").click(function(e) {
+      addColumn($("#select-columns select").val(), $("#select-columns input").val())
+     })
+  }
+   columnSelect(false)
 }
 
 
