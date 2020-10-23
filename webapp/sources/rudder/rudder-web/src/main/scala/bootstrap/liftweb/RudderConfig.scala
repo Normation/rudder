@@ -92,6 +92,7 @@ import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.inventory.InventoryFileWatcher
 import com.normation.rudder.inventory.InventoryProcessor
+import com.normation.rudder.inventory.PostCommitInventoryHooks
 import com.normation.rudder.metrics._
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.migration._
@@ -1059,6 +1060,7 @@ object RudderConfig extends Loggable {
          new PendingNodeIfNodeWasRemoved(fullInventoryRepository)
       :: new PendingNodeIfNodeWasRemoved(fullInventoryRepository)
       :: new PostCommitLogger(ldifReportLogger)
+      :: new PostCommitInventoryHooks(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
       :: Nil
       )
   )
@@ -1110,6 +1112,8 @@ object RudderConfig extends Loggable {
       , WATCHER_WAIT_FOR_SIG
       , ".sign"
       , WATCHER_GARBAGE_OLD_INVENTORIES_PERIOD
+      , HOOKS_D
+      , HOOKS_IGNORE_SUFFIXES
     )
   }
 

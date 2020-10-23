@@ -49,6 +49,9 @@ import better.files._
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.inventory.domain.InventoryProcessingLogger
+import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.hooks.PureHooksLogger
+import com.normation.rudder.hooks.RunHooks
 import com.normation.zio.ZioRuntime
 
 import scala.concurrent.ExecutionContext
@@ -217,6 +220,8 @@ class InventoryFileWatcher(
   , waitForSig           : Duration
   , sigExtension         : String // signature file extension, most likely ".sign"
   , collectOldInventories: Duration // how often you check for old inventories
+  , HOOKS_D              : String
+  , HOOKS_IGNORE_SUFFIXES: List[String]
 ) {
 
   def logDirPerm(dir: File, name: String) = {
@@ -249,7 +254,7 @@ class InventoryFileWatcher(
     , ZioRuntime.environment
   )
   // service that will actually process files (queue for event from inotify/cron for missed files)
-  val fileProcessor = new ProcessFile(inventoryProcessor.saveInventory, received, failed, waitForSig, sigExtension)
+  val fileProcessor = new ProcessFile(inventoryProcessor.saveInventory, received, failed, waitForSig, sigExtension, HOOKS_D, HOOKS_IGNORE_SUFFIXES)
   // That reference holds watcher instance and scheduler fiber to be able to stop them if asked
   val ref = RefM.make(Option.empty[(Watchers,Fiber[Nothing, Nothing])]).runNow
   def startWatcher() = semaphore.withPermit(
@@ -317,16 +322,20 @@ final case class SaveInventoryInfo(
  * For that, it needs signature and inventory file.
  */
 class ProcessFile(
-    saveInventory: SaveInventoryInfo => IOResult[InventoryProcessStatus]
-  , received     : File
-  , failed       : File
-  , waitForSig   : Duration
-  , sigExtension : String // signature file extension, most likely ".sign"
+    saveInventory        : SaveInventoryInfo => IOResult[InventoryProcessStatus]
+  , received             : File
+  , failed               : File
+  , waitForSig           : Duration
+  , sigExtension         : String // signature file extension, most likely ".sign"
+  , HOOKS_D              : String
+  , HOOKS_IGNORE_SUFFIXES: List[String]
 ) {
   val sign = if(sigExtension.charAt(0) == '.') sigExtension else "."+sigExtension
 
   // time after the last mod event after which we consider that a file is written
   val fileWrittenThreshold = Duration(500, TimeUnit.MILLISECONDS)
+
+  val failedHook = new InventoryFailedHook(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
 
   /*
    * We need to track file that are currently processed by the backend, which can be quite long,
@@ -401,7 +410,6 @@ class ProcessFile(
     ZioRuntime.internal.unsafeRunSync(addFilePure(file))
   }
 
-
   /*
    * The logic is:
    * - when a file is created, we look if it's a sig or an inventory (ends by .sign or not)
@@ -436,10 +444,12 @@ class ProcessFile(
                          safeMove(inventory.moveTo(received / inventory.name)(File.CopyOptions(overwrite = true)))
                        case Right(x) =>
                          safeMove(signature.map(s => s.moveTo(failed / s.name)(File.CopyOptions(overwrite = true)))) *>
-                         safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true)))
+                         safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true))) *>
+                         failedHook.runHooks(failed / inventory.name)
                        case Left(x) =>
                          safeMove(signature.map(s => s.moveTo(failed / s.name)(File.CopyOptions(overwrite = true)))) *>
-                         safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true)))
+                         safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true))) *>
+                         failedHook.runHooks(failed / inventory.name)
                      }
       } yield {
         ()
@@ -509,5 +519,34 @@ class ProcessFile(
 
     // run program for that input file.
     lockProg.provide(ZioRuntime.environment)
+  }
+}
+
+
+class InventoryFailedHook(
+    HOOKS_D              : String
+  , HOOKS_IGNORE_SUFFIXES: List[String]
+) {
+  import scala.jdk.CollectionConverters._
+  import zio.duration._
+
+  def runHooks(file: File): UIO[Unit] = {
+    (for {
+      systemEnv <- IOResult.effect(System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq:_*))
+      hooks     <- RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-failed", HOOKS_IGNORE_SUFFIXES)
+      _         <- for {
+                     timeHooks0 <- currentTimeMillis
+                     res        <- RunHooks.asyncRun(
+                                       hooks
+                                     , HookEnvPairs.build(
+                                         ("RUDDER_INVENTORY_PATH", file.pathAsString)
+                                     )
+                                     , systemEnv
+                                     , 1.minutes // warn if a hook took more than a minute
+                                   )
+                     timeHooks1 <- currentTimeMillis
+                     _          <- PureHooksLogger.trace(s"Inventory failed hooks ran in ${timeHooks1 - timeHooks0} ms")
+                   } yield ()
+    } yield ()).catchAll(err => PureHooksLogger.error(err.fullMsg))
   }
 }
