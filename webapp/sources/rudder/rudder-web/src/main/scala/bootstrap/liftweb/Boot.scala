@@ -479,6 +479,10 @@ class Boot extends Loggable {
             "secure" / "utilities" / "eventLogs"
             >> LocGroup("utilitiesGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Administration.Read) )
+        , Menu("healthCheckHome", <span>Health check</span>) /
+            "secure" / "utilities" / "healthcheck"
+            >> LocGroup("utilitiesGroup")
+            >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Administration.Read) )
       )
     }
 
