@@ -390,13 +390,13 @@ limitations under the License.
     -->
     <cats-version>2.1.1</cats-version>
     <specs2-version>4.9.3</specs2-version>
-    <doobie-version>0.9.0</doobie-version>
-    <fs2-version>2.3.0</fs2-version>
-    <http4s-version>0.21.4</http4s-version>
+    <doobie-version>0.9.2</doobie-version>
+    <fs2-version>2.4.4</fs2-version>
+    <http4s-version>0.21.8</http4s-version>
     <shapeless-version>2.3.3</shapeless-version>
-    <cats-effect-version>2.1.4</cats-effect-version>
-    <dev-zio-version>1.0.1</dev-zio-version>
-    <zio-cats-version>2.1.4.0</zio-cats-version>
+    <cats-effect-version>2.2.0</cats-effect-version>
+    <dev-zio-version>1.0.3</dev-zio-version>
+    <zio-cats-version>2.2.0.1</zio-cats-version>
 
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
