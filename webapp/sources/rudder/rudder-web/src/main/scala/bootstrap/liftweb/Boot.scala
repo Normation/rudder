@@ -544,7 +544,8 @@ class Boot extends Loggable {
   private[this] def initPlugins(): List[RudderPluginDef] = {
     import scala.jdk.CollectionConverters._
 
-    val reflections = new Reflections("bootstrap.rudder.plugin")
+    val reflections = new Reflections("bootstrap.rudder.plugin", "com.normation.plugins")
+
     val modules = reflections.getSubTypesOf(classOf[RudderPluginModule]).asScala.map(c => c.getField("MODULE$").get(null).asInstanceOf[RudderPluginModule])
 
     val scalaPlugins = modules.toList.map(_.pluginDef).map(p => (p.name.value, p)).toMap
