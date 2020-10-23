@@ -1123,8 +1123,9 @@ object RudderConfig extends Loggable {
     ApiVersion(8  , true) ::
     ApiVersion(9  , true) ::
     ApiVersion(10 , true) ::
-    ApiVersion(11 , false) ::
-    ApiVersion(12 , false) ::
+    ApiVersion(11 , true) :: // rudder 5.0
+    ApiVersion(12 , false) :: // rudder 6.0, 6.1
+    ApiVersion(13 , false) :: // rudder 6.2
     Nil
 
   val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")
