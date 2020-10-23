@@ -21,11 +21,21 @@ trait Check {
 sealed trait HealthcheckResult {
   def msg:String
   def name:CheckName
+  def index: Int
 }
 object HealthcheckResult {
-  final case class Ok(val name: CheckName, val msg: String) extends HealthcheckResult
-  final case class Warning(val name: CheckName, val msg: String) extends HealthcheckResult
-  final case class Critical(val name: CheckName, val msg: String) extends HealthcheckResult
+  final case class Ok(val name: CheckName, val msg: String, val index: Int = 0) extends HealthcheckResult
+  final case class Warning(val name: CheckName, val msg: String, val index: Int = 1) extends HealthcheckResult
+  final case class Critical(val name: CheckName, val msg: String, val index: Int = 2) extends HealthcheckResult
+}
+
+object HealthcheckUtils {
+  def compareCheck(c1: HealthcheckResult, c2: HealthcheckResult): Boolean = {
+    (c1, c2) match {
+      case (c1, c2) if(c1.index == c2.index) => c1.msg >= c2.msg
+      case (c1, c2)  => c1.index >= c2.index
+    }
+  }
 }
 
 class HealthcheckService(checks: List[Check]) {
