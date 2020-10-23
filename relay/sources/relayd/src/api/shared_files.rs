@@ -9,7 +9,6 @@ use crate::{
 use bytes::IntoBuf;
 use chrono::Utc;
 use futures::future::Future;
-use hex;
 use humantime::parse_duration;
 use serde::{Deserialize, Serialize};
 use std::{

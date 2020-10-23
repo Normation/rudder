@@ -148,13 +148,7 @@ fn output_inventory_upstream(
             .or_else(move |e| match e {
                 OutputError::Permanent => failure(
                     path_clone2.clone(),
-                    job_config_clone
-                        .clone()
-                        .cfg
-                        .processing
-                        .inventory
-                        .directory
-                        .clone(),
+                    job_config_clone.cfg.processing.inventory.directory.clone(),
                     Event::InventoryRefused,
                     stats,
                 ),

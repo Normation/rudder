@@ -4,7 +4,6 @@
 mod common;
 
 use relayd::{configuration::cli::CliConfiguration, init_logger, start};
-use reqwest;
 use std::{fs::rename, thread};
 
 #[cfg(test)]

@@ -40,7 +40,6 @@ pub mod schema {
         reportsexecution(nodeid, date) {
             nodeid -> Text,
             date -> Timestamptz,
-            complete -> Bool,
             nodeconfigid -> Nullable<Text>,
             insertionid -> Nullable<BigInt>,
             insertiondate -> Nullable<Timestamptz>,

@@ -7,8 +7,8 @@ grant usage on sequence serial to rudderreports;
 grant select on table ruddersysevents to rudderreports;
 grant insert on table ruddersysevents to rudderreports;
 
-grant select on table ruddersysevents to reportsexecution;
-grant insert on table ruddersysevents to reportsexecution;
+grant select on table reportsexecution to rudderreports;
+grant insert on table reportsexecution to rudderreports;
 
 /* only for test databases */
 

@@ -292,7 +292,7 @@ mod tests {
             hostname: "ubuntu-18-04-64".to_string(),
             key_date: "2018-10-3118:21:43.653257143".to_string(),
             key_id: "B29D02BB".to_string(),
-            expires: Some(1580941341),
+            expires: Some(1_580_941_341),
         };
         let serialized = "header=rudder-signature-v1\nalgorithm=sha256\ndigest=8ca9efc5752e133e2e80e2661c176fa50f\nhash_value=a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f\nshort_pubkey=MIICCgKCAgEAuok8JTvRssiupO0IfH4OGnWFqQg5dmI/4JsCiPEUf78iFBwFFpwuNXDJXCKaHtpjuc3DAy9l7fmZ+bQmkfde+Qo3yAd2ZsId80TBZOy6uFQyl4ASLNgY8RKIFxD6+AsutI27KexSnL3QLCgywnheRv4Ur31a6MVY1xfSQnADruBBad+5SaF3hTpEcAMg2hDQsIcyR32MPRy9MOVmvBlgI2hZsgh9QQf9wTLxGuMw/pJKOPRwwFkk/5bhFBve2sL1OI0pRsM6i7SxNXRhM6NWlmObhP+Z7C6N7TY00Z+tizgETmYJ35llyInjc1i+0bWaj5p3cbSCVdQ5zomZ3L9XbsWmjl0P/cw06qqNPuLR799K+R1XgA94nUUzo2pVigPh6sj2XMS8FOWXMXy2TNEOA+NQV5+vYwIlUizvB/HHSc3WKqNGgCifdJBmJJ8QTg5cJE6s+91O99eMMAQ0Ecj+nY5QEYkbIn4gjNpojam3jyS72o0J4nlj4ECbR/rj6L5b+kj5F3DbYqSdLC+crKUIoBZH1msCuJcQ9Zk/YHw87iVyWoZOVtJUUaw3n8vH/YCWPBQRzZp+4zlyIYJIIz+V/FJZX5YNW9XgoeRG8Q0mOmLy0FbQUS/klYlpeW3PKLSQmcSLvrgZnhKMyhEohC0zOSqJU0ui4VUWY5tv1bhbTo8CAwEAAQ==\nhostname=ubuntu-18-04-64\nkeydate=2018-10-3118:21:43.653257143\nkeyid=B29D02BB\nexpires=1580941341\n";
 

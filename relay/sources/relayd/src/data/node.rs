@@ -4,7 +4,6 @@
 use crate::{error::Error, hashing::Hash};
 use openssl::{stack::Stack, x509::X509};
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_json;
 use std::{
     collections::{HashMap, HashSet},
     fs::{read, read_to_string},
@@ -430,12 +429,12 @@ mod tests {
             "node2.rudder.local",
             "server.rudder.local",
         ];
-        reference.sort();
+        reference.sort_unstable();
 
         let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
             .unwrap()
             .my_neighbors();
-        actual.sort();
+        actual.sort_unstable();
 
         assert_eq!(reference, actual);
     }
@@ -447,12 +446,12 @@ mod tests {
             "node2.rudder.local",
             "server.rudder.local",
         ];
-        reference.sort();
+        reference.sort_unstable();
 
         let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
             .unwrap()
             .my_neighbors();
-        actual.sort();
+        actual.sort_unstable();
 
         assert_eq!(reference, actual);
     }
@@ -475,12 +474,12 @@ mod tests {
     #[test]
     fn it_gets_sub_relays() {
         let mut reference = vec!["node1.rudder.local", "node2.rudder.local"];
-        reference.sort();
+        reference.sort_unstable();
 
         let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
             .unwrap()
             .my_sub_relays();
-        actual.sort();
+        actual.sort_unstable();
 
         assert_eq!(reference, actual);
     }

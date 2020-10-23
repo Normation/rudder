@@ -30,8 +30,6 @@ pub struct InsertedRunlog {
     pub node_id: String,
     #[column_name = "date"]
     pub date: DateTime<FixedOffset>,
-    #[column_name = "complete"]
-    pub complete: bool,
     #[column_name = "nodeconfigid"]
     pub node_config_id: Option<String>,
     #[column_name = "insertionid"]
@@ -47,7 +45,6 @@ impl InsertedRunlog {
         Self {
             node_id: runlog.info.node_id.clone(),
             date: runlog.info.timestamp,
-            complete: true,
             node_config_id: runlog.config_id.clone(),
             insertion_id,
             // None means default value will be inserted, here current_timestamp

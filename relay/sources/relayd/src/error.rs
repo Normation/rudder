@@ -2,12 +2,8 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::data::node::NodeId;
-use chrono;
-use diesel;
-use serde_json;
 use std::{io, num, path::PathBuf};
 use thiserror::Error;
-use toml;
 
 #[derive(Debug, Error)]
 pub enum Error {

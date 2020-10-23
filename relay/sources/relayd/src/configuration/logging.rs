@@ -4,7 +4,6 @@
 use crate::error::Error;
 use serde::Deserialize;
 use std::{fmt, fs::read_to_string, path::Path, str::FromStr};
-use toml;
 use tracing::debug;
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]

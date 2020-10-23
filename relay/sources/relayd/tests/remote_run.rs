@@ -4,7 +4,6 @@
 mod common;
 
 use relayd::{configuration::cli::CliConfiguration, init_logger, start};
-use reqwest;
 use std::{
     fs::{read_to_string, remove_file},
     thread, time,

@@ -15,7 +15,6 @@ use std::{
     str::FromStr,
     time::Duration,
 };
-use toml;
 use tracing::debug;
 
 pub type BaseDirectory = PathBuf;

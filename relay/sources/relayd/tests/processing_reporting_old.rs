@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 mod processing_reporting;
+
 use filetime::{set_file_times, FileTime};
 use relayd::{configuration::main::CleanupConfig, input::watch::cleanup};
 use std::{

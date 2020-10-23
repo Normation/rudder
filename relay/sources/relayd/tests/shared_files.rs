@@ -4,7 +4,6 @@
 use relayd::{
     configuration::cli::CliConfiguration, data::shared_file::Metadata, init_logger, start,
 };
-use reqwest;
 use std::{
     fs::{read_to_string, remove_file},
     str::FromStr,

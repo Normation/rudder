@@ -11,8 +11,6 @@ use relayd::{
     start,
     stats::Stats,
 };
-use reqwest;
-use serde_json;
 use std::{
     fs::{copy, create_dir_all, remove_dir_all},
     path::Path,
