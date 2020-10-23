@@ -69,9 +69,10 @@ fn main() {
         output.print(
             command,
             "Input not set".to_owned(),
-            Err(Error::new(
-                "Could not determine proper I/O from given parameters".to_owned(),
-            )),
+            Err(Error::new(format!(
+                "Could not determine proper I/O from given parameters: {}",
+                e
+            ))),
         );
         exit(1);
     });
@@ -86,9 +87,9 @@ fn main() {
         // generate = json -> json { rl + cf + dsc }
         Command::GenerateTechnique => command::technique_generate(&ctx),
     };
-    let command_status = command_result.is_ok();
+    let is_command_success = command_result.is_ok();
     output.print(command, ctx.input, command_result);
-    if !command_status {
+    if !is_command_success {
         exit(1)
     }
 }

@@ -2,15 +2,15 @@
     "type": "ncf_technique",
     "version": 2,
     "data": {
-        "name": "condition any bsd",
+        "name": "condition andor",
         "description": "Kernel simplest",
         "version": "1.0",
-        "bundle_name": "condition_anybsd",
+        "bundle_name": "condition_andor",
         "category": "ncf_techniques",
         "parameter": [],
         "method_calls": [
             {
-                "class_context": "(dragonfly|freebsd|netbsd|openbsd)",
+                "class_context": "any.((!debian|linux)|ubuntu.windows|(linux|ubuntu))",
                 "component": "Kernel module loaded",
                 "method_name": "kernel_module_loaded",
                 "parameters": [

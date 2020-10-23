@@ -42,14 +42,20 @@ test-docs: $(DOC_EXAMPLES)
 test: libs
 	# fires rudderc unit / integration tests
 	cargo test
-	# fires a technique compilation using explicit parameters: path                format verbosity json-output
-	cargo run -- -c tools/rudderc-dev.conf -s tests/techniques/simplest/technique.rl -f cf -l debug -j 
-	# fires a technique compilation using configuration file
-	cargo run -- -c tools/rudderc-dev.conf -n simplest/technique.rl
-	# fires a technique translation
-	cargo run -- -t -c tools/rudderc-dev.conf -s tests/helpers/6.1.2.json 
+	# saves a rudder-lang technique based on a json technique
+	cargo run -- save -c tools/rudderc-dev.conf -i tests/techniques/simplest/technique.json
+	# recreate a JSON technique based on the RL one
+	cargo run -- technique read -c tools/rudderc-dev.conf -i simplest/technique.rl
+	# fires a technique compilation into cfengine format
+	cargo run -- compile -c tools/rudderc-dev.conf -i simplest/technique.rl -o simplest/technique.cf
+	# Same, using a config file, and verbosity. Wrap it in JSON format output
+	cargo run -- compile -c tools/rudderc-dev.conf -i tests/techniques/simplest/technique.rl -f cf -l debug -j
+	# fires a technique compilation into dsc format
+	cargo run -- compile -c tools/rudderc-dev.conf -i tests/techniques/simplest/technique.rl -f dsc
+	# takes a json to create rl + cf + dsc techniques wrapped into JSON
+	cargo run -- technique generate -c tools/rudderc-dev.conf -i tests/techniques/simplest/technique.json
 	# fires a testing loop (--keep can be added)
-	tools/tester.sh --dev --keep ./tests/techniques/simplest/technique.cf
+	tools/tester.sh --dev --keep ./tests/techniques/simplest/technique
 
 
 $(DOC_EXAMPLES):

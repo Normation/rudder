@@ -1,6 +1,6 @@
 {
-  "type": "ncf_techniques",
-  "version": 1,
+  "type": "ncf_technique",
+  "version": 2,
   "data": {
     "bundle_name": "Single_database",
     "description": "",

@@ -1,26 +1,19 @@
 {
-    "type": "ncf_techniques",
-    "version": 1,
+    "type": "ncf_technique",
+    "version": 2,
     "data": {
-        "name": "parameters",
+        "bundle_name": "parameters",
         "description": "technique using parameters",
+        "name": "parameters",
         "version": "1.0",
         "parameter": [
             {
                 "name": "paramtest",
                 "id": "d74a03dd-5b0b-4b06-8dcf-b4e0cb387c60",
-                "constraints": {
-                    "allow_whitespace_string": false,
-                    "allow_empty_string": false,
-                    "max_length": 16384
-                },
-                "type": "string"
+                "description": "parameter test"
             }
         ],
-        "bundle_name": "parameters",
-        "bundle_args": [
-            "paramtest"
-        ],
+        "category": "ncf_techniques",
         "method_calls": [
             {
                 "class_context": "any",
@@ -28,7 +21,7 @@
                 "method_name": "package_absent",
                 "parameters": [
                     {
-                        "name": "package",
+                        "name": "name",
                         "value": "vpn",
                         "$errors": []
                     },

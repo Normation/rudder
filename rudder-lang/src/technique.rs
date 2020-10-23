@@ -25,6 +25,9 @@ use std::{
 // Techniques are limited subsets of CFEngine in JSON representation
 // that only carry method calls and Rudder metadata
 
+// might change later
+pub type TechniqueFmt = String;
+
 // required Version type de/serializer
 fn version_into_string<S>(v: &Version, s: S) -> std::result::Result<S::Ok, S::Error>
 where
@@ -74,9 +77,6 @@ impl FromStr for Version {
     }
 }
 
-// might change later
-pub type TechniqueFmt = String;
-
 /// Every Technique substructure has only 1 purpose: represent a Technique as json or rudderlang string
 #[derive(Serialize, Deserialize)]
 pub struct Technique {
@@ -91,9 +91,9 @@ impl Technique {
 
         if is_technique_data {
             let data = serde_json::from_str::<TechniqueData>(content)
-                .map_err(|e| Error::new(format!("Technique from JSON: {}", e)))?;
+                .map_err(|e| Error::new(format!("Technique from JSON technique: {}", e)))?;
             Ok(Self {
-                r#type: "ncf_techniques".to_owned(),
+                r#type: "ncf_technique".to_owned(),
                 version: 2,
                 data,
             })
@@ -138,6 +138,7 @@ pub struct TechniqueData {
     #[serde(default = "default_category")] // >=6.2
     category: String,
     method_calls: Vec<MethodCall>,
+    // does not appear in labs. maybe skip only if empty?
     #[serde(default)] // >=6.2
     resources: Vec<Resource>,
 }
@@ -155,7 +156,7 @@ impl TechniqueData {
             .unzip();
         let parameters_meta_fmt = match parameters_meta.is_empty() {
             true => "".to_owned(),
-            false => format!("\n  {}\n", parameters_meta.join(",\n  ")),
+            false => format!("\n@  {}\n@", parameters_meta.join(",\n@  ")),
         };
 
         let calls = self
@@ -202,7 +203,7 @@ pub struct InterpolatedParameter {
 impl InterpolatedParameter {
     fn to_rudderlang(&self) -> Result<(String, String)> {
         let parameter_meta = format!(
-            r#"{{ "name": "{}", "id": "{}", "description": "{}" }}"#,
+            r#"{{ "name" = "{}", "id" = "{}", "description" = "{}" }}"#,
             self.name, self.id, self.description,
         );
         let parameter = self.name.replace("\"", "").replace(" ", "_").to_owned();
@@ -226,7 +227,7 @@ impl MethodCall {
 
         let (mut params, template_vars) = self.format_parameters()?;
         // check. note: replace `1` by resource param count? not yet, error if several parameters
-        let param_count = 1 + lib_method.state.parameters.len();
+        let param_count = lib_method.resource.parameters.len() + lib_method.state.parameters.len();
         if params.len() != param_count {
             return Err(Error::new(format!(
                 "Method {} is expected to have {} parameters, found {}",

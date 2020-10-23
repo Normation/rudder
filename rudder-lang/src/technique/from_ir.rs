@@ -67,14 +67,12 @@ impl<'src> From<&IR2<'src>> for Technique {
         // TODO unit tests
         Technique {
             // can't determine a particular technique type yet
-            r#type: "ncf_techniques".to_owned(),
+            r#type: "ncf_technique".to_owned(),
             version: 2,
             data: TechniqueData {
-                // no bundle name, could be useful if several resources (sum)
-                bundle_name: extract_meta_string(meta, "name"),
+                bundle_name: resource.name.to_owned(),
                 description: extract_meta_string(meta, "description"),
                 name: extract_meta_string(meta, "name"),
-                // unwraping for now, TODO find better ways
                 version: Version::from_str(&extract_meta_string(meta, "version")).unwrap(),
                 category: extract_meta_string(meta, "category"),
                 interpolated_parameters,
@@ -94,32 +92,31 @@ fn extract_meta_string(map: &Map<String, TOMLValue>, field: &str) -> String {
 }
 
 fn format_expr(ir: &IR2, expr: &EnumExpressionPart) -> String {
-    let expr = match expr {
+    match expr {
         EnumExpressionPart::And(e1, e2) => {
             let mut lexpr = format_expr(ir, &*e1);
             let mut rexpr = format_expr(ir, &*e2);
-            if lexpr.contains("|") {
+            if lexpr.contains('|') {
                 lexpr = format!("({})", lexpr);
             }
-            if rexpr.contains("|") {
+            if rexpr.contains('|') {
                 rexpr = format!("({})", rexpr);
             }
             format!("{}.{}", lexpr, rexpr)
         }
         EnumExpressionPart::Or(e1, e2) => {
-            format!("({}|{})", format_expr(ir, &*e1), format_expr(ir, &*e2))
+            format!("{}|{}", format_expr(ir, &*e1), format_expr(ir, &*e2))
         }
         EnumExpressionPart::Not(e) => {
             let mut expr = format_expr(ir, &*e);
             if expr.contains('|') || expr.contains('.') {
-                expr = format!("!({})", expr);
+                expr = format!("({})", expr);
             }
             format!("!{}", expr)
         }
         EnumExpressionPart::Compare(var, tree, item) => {
             if let Some(true) = ir.enum_list.enum_is_global(*var) {
-                // FIXME: We need some translation here since not all enums are available in cfengine (ex debian_only)
-                item.fragment().to_string() // here
+                ir.enum_list.get_item_cfengine_name(*var, *item)
             } else {
                 // TODO ADD PREFIX ?
                 // concat var name + item
@@ -130,11 +127,6 @@ fn format_expr(ir: &IR2, expr: &EnumExpressionPart) -> String {
         EnumExpressionPart::RangeCompare(var, tree, left, right) => unimplemented!(), // TODO
         EnumExpressionPart::Default(_) => "any".to_owned(),
         EnumExpressionPart::NoDefault(_) => "".to_owned(),
-    };
-    if &expr == "any" || expr.is_empty() {
-        expr
-    } else {
-        format!("any.({})", expr)
     }
 }
 

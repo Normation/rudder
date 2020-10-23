@@ -27,7 +27,6 @@ pub fn technique_generate(ctx: &IOContext) -> Result<Vec<CommandResult>> {
     )];
 
     let updated_ctx = &ctx.with_input("HEAP").with_content(technique_fmt);
-
     // push cfengine version to the final data object
     wrapped_technique.extend(compile(&updated_ctx.with_format(Format::CFEngine), true)?);
     // push dsc version to the final data object

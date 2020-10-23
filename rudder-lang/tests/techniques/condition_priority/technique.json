@@ -1,17 +1,16 @@
 {
-    "type": "ncf_techniques",
-    "version": 1,
+    "type": "ncf_technique",
+    "version": 2,
     "data": {
         "name": "condition andor",
         "description": "Kernel simplest",
         "version": "1.0",
         "bundle_name": "condition_andor",
         "category": "ncf_techniques",
-        "bundle_args": [],
         "parameter": [],
         "method_calls": [
             {
-                "class_context": "(debian|linux)|ubuntu.windows|(linux.ubuntu)",
+                "class_context": "any.(((!debian|linux)|ubuntu).windows|(linux|ubuntu))",
                 "component": "Kernel module loaded",
                 "method_name": "kernel_module_loaded",
                 "parameters": [

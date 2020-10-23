@@ -53,6 +53,15 @@ impl<'src> EnumList<'src> {
         self.enums.get(&e).and_then(|e| e.item_metadata.get(&i))
     }
 
+    /// Returns the item cfengine name (unchanged if no cfengine_name metadata)
+    pub fn get_item_cfengine_name(&self, var: Token<'src>, item: Token<'src>) -> String {
+        self.enum_item_metadata(var, item)
+            .and_then(|metadatas| metadatas.get("cfengine_name"))
+            .and_then(|cf_value| cf_value.as_str())
+            .unwrap_or(item.fragment())
+            .to_string()
+    }
+
     /// Returns the item if it is global and None otherwise
     pub fn global_enum(&self, e: Token<'src>) -> Option<&Token<'src>> {
         self.global_items.get(&e)
@@ -177,7 +186,10 @@ impl<'src> EnumList<'src> {
         // check for key name duplicate and insert reference
         self.add_to_global(is_global, tree_name, &e.items)?;
         // insert keys
-        self.enums.get_mut(&tree_name).expect("BUG: tree disapeared from 2 lines above").extend(e)?;
+        self.enums
+            .get_mut(&tree_name)
+            .expect("BUG: tree disapeared from 2 lines above")
+            .extend(e)?;
         Ok(None)
     }
 

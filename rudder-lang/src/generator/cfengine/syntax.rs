@@ -22,7 +22,7 @@ pub fn quoted(s: &str) -> String {
     format!("\"{}\"", s)
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PromiseType {
     Vars,
     Methods,
@@ -43,7 +43,7 @@ impl fmt::Display for PromiseType {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum AttributeType {
     UseBundle,
     Unless,
@@ -100,10 +100,12 @@ impl fmt::Display for AttributeType {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Promise {
     /// Comments in output file
     comments: Vec<String>,
+    /// Resource/state the promise calls
+    component: Option<String>,
     /// Type of the promise
     promise_type: PromiseType,
     /// Target of the promise
@@ -120,9 +122,14 @@ const FALSE_CLASSES: [&str; 4] = ["false", "!any", "concat(\"!any\")", "concat(\
 
 /// Promise constructors should allow avoiding common mistakes
 impl Promise {
-    pub fn new<T: Into<String>>(promise_type: PromiseType, promiser: T) -> Self {
+    pub fn new<T: Into<String>>(
+        promise_type: PromiseType,
+        component: Option<String>,
+        promiser: T,
+    ) -> Self {
         Self {
             promise_type,
+            component,
             promiser: promiser.into(),
             attributes: HashMap::new(),
             comments: vec![],
@@ -145,12 +152,12 @@ impl Promise {
 
     /// Shortcut for building a string variable with a raw value
     pub fn string_raw<T: Into<String>, S: AsRef<str>>(name: T, value: S) -> Self {
-        Promise::new(PromiseType::Vars, name).attribute(AttributeType::String, value.as_ref())
+        Promise::new(PromiseType::Vars, None, name).attribute(AttributeType::String, value.as_ref())
     }
 
     /// Shortcut for building an slist variable with a list of values to be quoted
     pub fn slist<T: Into<String>, S: AsRef<str>>(name: T, values: Vec<S>) -> Self {
-        Promise::new(PromiseType::Vars, name).attribute(
+        Promise::new(PromiseType::Vars, None, name).attribute(
             AttributeType::Slist,
             format!(
                 "{{{}}}",
@@ -164,8 +171,17 @@ impl Promise {
     }
 
     /// Shortcut for calling a bundle with parameters
-    pub fn usebundle<T: AsRef<str>>(bundle: T, parameters: Vec<String>) -> Self {
-        Promise::new(PromiseType::Methods, "method_call").attribute(
+    pub fn usebundle<T: AsRef<str>>(
+        bundle: T,
+        component: Option<&str>,
+        parameters: Vec<String>,
+    ) -> Self {
+        Promise::new(
+            PromiseType::Methods,
+            component.map(|s| s.to_owned()),
+            "method_call",
+        )
+        .attribute(
             AttributeType::UseBundle,
             format!("{}({})", bundle.as_ref(), parameters.join(", ")),
         )
@@ -218,7 +234,10 @@ impl Promise {
     fn format(&self, index: usize, padding: usize) -> String {
         let promiser = if self.promise_type == PromiseType::Methods {
             // Methods need to be unique
-            format!("{}_{}", UNIQUE_ID, index)
+            match self.component.clone() {
+                Some(method) => format!("{}_{}_{}", method, UNIQUE_ID, index),
+                None => format!("{}_{}", UNIQUE_ID, index),
+            }
         } else {
             self.promiser.clone()
         };
@@ -342,19 +361,23 @@ impl Method {
         // Reporting context
         let reporting_context = Promise::usebundle(
             "_method_reporting_context",
+            Some(&self.report_component),
             vec![
                 quoted(&self.report_component),
                 quoted(&self.report_parameter),
             ],
         )
-        .comment(format!("{}:", self.report_component,))
+        .comment(format!("{}:", self.report_component))
         .comment("")
-        .comment(format!("  {}", self.source,))
+        .comment(format!("  {}", self.source))
         .comment("");
 
         // Actual method call
-        let method =
-            Promise::usebundle(format!("{}_{}", self.resource, self.state), self.parameters);
+        let method = Promise::usebundle(
+            format!("{}_{}", self.resource, self.state),
+            Some(&self.report_component),
+            self.parameters,
+        );
 
         if has_condition {
             let na_condition = format!(
@@ -367,11 +390,11 @@ impl Method {
                 method.if_condition(self.condition.clone()),
                 // NA report
                 Promise::usebundle(
-                    "_classes_noop",
+                    "_classes_noop", Some(&self.report_component),
                     vec![na_condition.clone()],
                 )
                 .unless_condition(&self.condition),
-                Promise::usebundle("log_rudder", vec![
+                Promise::usebundle("log_rudder", Some(&self.report_component), vec![
                     quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &self.report_component, &self.report_parameter, self.condition)),
                     quoted(&self.report_parameter),
                     na_condition.clone(),
@@ -497,6 +520,7 @@ impl fmt::Display for Bundle {
 pub struct Policy {
     bundles: Vec<Bundle>,
     name: Option<String>,
+    description: Option<String>,
     version: Option<String>,
 }
 
@@ -505,6 +529,7 @@ impl Policy {
         Self {
             name: None,
             version: None,
+            description: None,
             bundles: Vec::new(),
         }
     }
@@ -519,6 +544,13 @@ impl Policy {
     pub fn version<T: Into<String>>(self, version: T) -> Self {
         Self {
             version: Some(version.into()),
+            ..self
+        }
+    }
+
+    pub fn description<T: Into<String>>(self, description: T) -> Self {
+        Self {
+            description: Some(description.into()),
             ..self
         }
     }
@@ -538,6 +570,9 @@ impl fmt::Display for Policy {
         if self.version.is_some() {
             writeln!(f, "# @version {}", self.version.as_ref().unwrap())?;
         }
+        if self.description.is_some() {
+            writeln!(f, "# @description {}", self.description.as_ref().unwrap())?;
+        }
 
         let mut sorted_bundles = self.bundles.clone();
         sorted_bundles.sort_by(|a, b| b.name.cmp(&a.name));
@@ -556,12 +591,12 @@ mod tests {
     #[test]
     fn format_promise() {
         assert_eq!(
-            Promise::new(PromiseType::Vars, "test")
+            Promise::new(PromiseType::Vars, None, "test")
                 .format(0, LONGUEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
             "\"test\";"
         );
         assert_eq!(
-            Promise::new(PromiseType::Vars, "test")
+            Promise::new(PromiseType::Vars, None, "test")
                 .comment("test".to_string())
                 .format(0, LONGUEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
             "    # test\n\"test\";"
@@ -587,7 +622,7 @@ mod tests {
                     .condition("debian".to_string())
                     .build()).to_string()
             ,
-            "bundle agent test {\n\n  methods:\n    # component:\n    # \n    #   \n    # \n    \"${report_data.directive_id}_0\"   usebundle => _method_reporting_context(\"component\", \"parameter\"),\n                                             if => concat(\"debian\");\n    \"${report_data.directive_id}_0\"   usebundle => package_present(vim),\n                                             if => concat(\"debian\");\n    \"${report_data.directive_id}_0\"   usebundle => _classes_noop(canonify(\"${class_prefix}_package_present_parameter\")),\n                                         unless => concat(\"debian\");\n    \"${report_data.directive_id}_0\"   usebundle => log_rudder(\"Skipping method \'component\' with key parameter \'parameter\' since condition \'debian\' is not reached\", \"parameter\", canonify(\"${class_prefix}_package_present_parameter\"), canonify(\"${class_prefix}_package_present_parameter\"), @{args}),\n                                         unless => concat(\"debian\");\n\n}"
+            "bundle agent test {\n\n  methods:\n    # component:\n    # \n    #   \n    # \n    \"component_${report_data.directive_id}_0\" usebundle => _method_reporting_context(\"component\", \"parameter\"),\n                                             if => concat(\"debian\");\n    \"component_${report_data.directive_id}_0\" usebundle => package_present(vim),\n                                             if => concat(\"debian\");\n    \"component_${report_data.directive_id}_0\" usebundle => _classes_noop(canonify(\"${class_prefix}_package_present_parameter\")),\n                                         unless => concat(\"debian\");\n    \"component_${report_data.directive_id}_0\" usebundle => log_rudder(\"Skipping method \'component\' with key parameter \'parameter\' since condition \'debian\' is not reached\", \"parameter\", canonify(\"${class_prefix}_package_present_parameter\"), canonify(\"${class_prefix}_package_present_parameter\"), @{args}),\n                                         unless => concat(\"debian\");\n\n}"
         );
     }
 
@@ -600,7 +635,7 @@ mod tests {
         assert_eq!(
             Bundle::agent("test")
             .parameters(vec!["file".to_string(), "lines".to_string()])
-            .promise_group(vec![Promise::usebundle("test", vec![])])
+            .promise_group(vec![Promise::usebundle("test", None, vec![])])
             .to_string(),
             "bundle agent test(file, lines) {\n\n  methods:\n    \"${report_data.directive_id}_0\"   usebundle => test();\n\n}"
         );

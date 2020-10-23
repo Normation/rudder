@@ -90,14 +90,13 @@ impl CFEngine {
             EnumExpressionPart::Not(e1) => {
                 let mut expr = self.format_case_expr(gc, e1)?;
                 if expr.contains('|') || expr.contains('&') {
-                    expr = format!("!({})", expr);
+                    expr = format!("({})", expr);
                 }
                 format!("!{}", expr)
             }
             EnumExpressionPart::Compare(var, e, item) => {
                 if let Some(true) = gc.enum_list.enum_is_global(*e) {
-                    // FIXME: We need some translation here since not all enums are available in cfengine (ex debian_only)
-                    item.fragment().to_string() // here
+                    gc.enum_list.get_item_cfengine_name(*var, *item)
                 } else {
                     // concat var name + item
                     let prefix = &self.var_prefixes[var.fragment()];
@@ -180,10 +179,12 @@ impl CFEngine {
             }
             Statement::Fail(msg) => Ok(vec![Promise::usebundle(
                 "_abort",
+                None,
                 vec![quoted("policy_fail"), self.value_to_string(msg, true)?],
             )]),
             Statement::LogDebug(msg) => Ok(vec![Promise::usebundle(
                 "log_rudder_mode",
+                None,
                 vec![
                     quoted("log_debug"),
                     self.value_to_string(msg, true)?,
@@ -194,6 +195,7 @@ impl CFEngine {
             )]),
             Statement::LogInfo(msg) => Ok(vec![Promise::usebundle(
                 "log_rudder_mode",
+                None,
                 vec![
                     quoted("log_info"),
                     self.value_to_string(msg, true)?,
@@ -204,6 +206,7 @@ impl CFEngine {
             )]),
             Statement::LogWarn(msg) => Ok(vec![Promise::usebundle(
                 "log_rudder_mode",
+                None,
                 vec![
                     quoted("log_warn"),
                     self.value_to_string(msg, true)?,
@@ -219,11 +222,11 @@ impl CFEngine {
                     Some(c) => format!("!({})", c),
                 });
                 Ok(vec![if *outcome == Token::new("", "kept") {
-                    Promise::usebundle("success", vec![])
+                    Promise::usebundle("success", None, vec![])
                 } else if *outcome == Token::new("", "repaired") {
-                    Promise::usebundle("repaired", vec![])
+                    Promise::usebundle("repaired", None, vec![])
                 } else {
-                    Promise::usebundle("error", vec![])
+                    Promise::usebundle("error", None, vec![])
                 }])
             }
             Statement::Noop => Ok(vec![]),
@@ -356,6 +359,7 @@ impl Generator for CFEngine {
                     let policy = Policy::new()
                         .name(extract("name"))
                         .version(extract("version"))
+                        .description(extract("description"))
                         .bundle(bundle);
                     files.push(CommandResult::new(
                         Format::CFEngine,

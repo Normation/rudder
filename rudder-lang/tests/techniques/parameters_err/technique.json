@@ -1,6 +1,6 @@
 {
-    "type": "ncf_techniques",
-    "version": 1,
+    "type": "ncf_technique",
+    "version": 2,
     "data": {
         "name": "parameters mult err",
         "description": "technique using multiple parameters",
@@ -9,12 +9,7 @@
             {
                 "name": "${coucou}",
                 "id": "ac15b0bd-a226-4ad7-b93c-5515cae507a1",
-                "constraints": {
-                    "allow_whitespace_string": false,
-                    "allow_empty_string": false,
-                    "max_length": 16384
-                },
-                "type": "string"
+                "description": "external parameter"
             }
         ],
         "bundle_name": "parameters_mult_err",

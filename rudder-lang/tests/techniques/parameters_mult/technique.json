@@ -1,64 +1,52 @@
 {
-    "type": "ncf_techniques",
-    "version": 1,
+    "type": "ncf_technique",
+    "version": 2,
     "data": {
-        "name": "parameters mult",
+        "bundle_name": "param_mult",
         "description": "technique using multiple parameters",
+        "name": "param_mult",
         "version": "1.0",
-        "parameter": [
-            {
-                "name": "paramtest",
-                "id": "d74a03dd-5b0b-4b06-8dcf-b4e0cb387c60",
-                "constraints": {
-                    "allow_whitespace_string": false,
-                    "allow_empty_string": false,
-                    "max_length": 16384
-                },
-                "type": "string"
-            },
-            {
-                "name": "12",
-                "id": "6e82d276-1181-4596-8fd8-bc3c007ae9ff",
-                "constraints": {
-                    "allow_whitespace_string": false,
-                    "allow_empty_string": false,
-                    "max_length": 16384
-                },
-                "type": "string"
-            }
-        ],
-        "bundle_name": "parameters_mult",
-        "bundle_args": [
-            "paramtest",
-            "12"
-        ],
+        "parameter": [],
+        "category": "ncf_techniques",
         "method_calls": [
             {
-                "class_context": "any",
-                "component": "Package absent",
-                "method_name": "package_absent",
                 "parameters": [
                     {
-                        "name": "package",
-                        "value": "vpn",
+                        "name": "path",
+                        "value": "target",
+                        "$errors": []
+                    }
+                ],
+                "class_context": "any.(linux)",
+                "method_name": "file_absent",
+                "component": "File absent"
+            },
+            {
+                "parameters": [
+                    {
+                        "name": "name",
+                        "value": "openvpn",
                         "$errors": []
                     },
                     {
                         "name": "version",
-                        "value": "",
+                        "value": "4.2",
                         "$errors": []
                     },
                     {
                         "name": "architecture",
-                        "value": "",
+                        "value": "archi",
                         "$errors": []
                     },
                     {
                         "name": "provider",
-                        "value": "",
+                        "value": "yum",
                         "$errors": []
                     }
-                ]
+                ],
+                "class_context": "any",
+                "method_name": "package_absent",
+                "component": "Package absent"
             }
         ]
     }

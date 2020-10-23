@@ -123,14 +123,13 @@ impl DSC {
             EnumExpressionPart::Not(e1) => {
                 let mut expr = self.format_case_expr(gc, e1)?;
                 if expr.contains(" -or ") || expr.contains(" -and ") {
-                    expr = format!("!({})", expr);
+                    expr = format!("({})", expr);
                 }
                 format!("!{}", expr)
             }
             EnumExpressionPart::Compare(var, e, item) => {
                 if let Some(true) = gc.enum_list.enum_is_global(*e) {
-                    // We probably need some translation here since not all enums are available in cfengine (ex debian_only)
-                    item.fragment().to_string() // here
+                    gc.enum_list.get_item_cfengine_name(*var, *item)
                 } else {
                     // Temporary keep this piece of code in case it has a purpose
                     // // concat var name + item

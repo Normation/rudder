@@ -7,3 +7,4 @@
 /tools/myrudderc.conf
 /repos
 /libs/std/
+/tests/techniques/*/technique.rl*

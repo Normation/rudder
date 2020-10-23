@@ -3,9 +3,9 @@
 """
 Cf and Json / rudder-lang compatibility tester
 Usage: 
-    cfjson_tester ncf-to-json [--config-file=<local_config_path.conf>] <file.cf> <new.json>
     cfjson_tester compare-json [--config-file=<local_config_path.conf>] <first.json> <new.json>
     cfjson_tester compare-cf [--config-file=<local_config_path.conf>] <first.cf> <new.cf>
+    cfjson_tester compare-dsc [--config-file=<local_config_path.conf>] <first.dsc> <new.dsc>
 """
 
 import sys
@@ -25,27 +25,14 @@ def print_json(function, filename, json_to_format, is_python_error=False):
     formatted_json = { "function": function, "file": filename,  "error": json_to_format }
   print(json.dumps(formatted_json, indent=2) + ',')
 
-def ncf_to_json(cf_file, json_translation):
-  methods_data = ncf.get_all_generic_methods_metadata(ncf_tools)
-  methods = methods_data["data"]["generic_methods"]
-
-  try:
-    with codecs.open(cf_file, encoding="utf-8") as fd:
-      content = fd.read()
-  except IOError as e:
-    print_json("ncf_to_json", cf_file, str(e), True)
-    exit(1)
-
-  try:
-    result = ncf.parse_technique_metadata(content)
-    technique = result["result"]
-    technique['method_calls'] = ncf.parse_technique_methods(cf_file, methods)
-  except ncf.NcfError as e:
-    print_json("ncf_to_json", cf_file, str(e), True)
-    exit(1)
-
-  with open(json_translation, "w") as fd:
-    fd.write(json.dumps(technique, indent=4))
+# for now ignore all `class_context` parenthesis differences, priorities should be handled correctly from within the program
+# depends (TE builtin condition type vs any.(manually written condition))
+# eventually check condition equivalence
+def filter_class_context(diff_values):
+  # remove all parenthesis
+  generated_filtered = ''.join(filter(lambda c: c not in ['(', ')'], diff_values[1]))
+  original_filtered = ''.join(filter(lambda c: c not in ['(', ')'], diff_values[0]))
+  return original_filtered == 'any.' + generated_filtered or original_filtered == generated_filtered
 
 
 def compare_json(first, second):
@@ -62,11 +49,12 @@ def compare_json(first, second):
     print_json("compare_json", first, str(e), True)
     exit(1)
   diff = jsondiff.diff(j1, j2, syntax="symmetric", marshal=True)
-  ## diff hacks
-  if 'bundle_name' in diff:
-    if diff['bundle_name'][0] + "_technique" == diff['bundle_name'][1]:
-      del diff['bundle_name']
-  ## print if diff
+  deep_del(diff, ['data', '$insert'], 'resources', lambda d: len(d['resources']) == 0)
+  deep_del(diff, ['data', 'method_calls'], 'class_context', lambda d: filter_class_context(d['class_context']))
+  # for now generated lib has no method specific resource parameter so it will take default resource parameter
+  deep_del(diff, ['data', 'method_calls', 'parameters'], 'name', lambda: True)
+  empty_dict_cleaner(diff)
+  # print if diff
   if len(diff) != 0:
     print_json("compare_json", second, diff)
     exit(1)
@@ -90,84 +78,153 @@ def load_cf(file_name):
     exit(1)
   return promises
 
-
 def compare_cf(first, second):
   j1 = load_cf(first)
   j2 = load_cf(second)
   diff = jsondiff.diff(j1, j2, syntax="symmetric", marshal=True)
-  remove_wilful_entries(diff)
+  remove_wilful_entries(first, diff)
   empty_dict_cleaner(diff)
   if diff and len(diff) != 0:
     print_json("compare_cf", second, diff)
+    exit(1)
 
 
-## deletes from diff list every i/o difference done on purpose (ie that are not a bug)
-def remove_wilful_entries(diff):
-  ## del name since `_technique` is always added
-  name = deep_get(diff, ['bundles'], 'name')
-  if name[0] + '_technique' == name[1]:
-    deep_del(diff, ['bundles'], 'name', 'name')
-  ## del sourcePath since it is not relevant
-  deep_del(diff, ['bundles'], 'sourcePath', 'sourcePath')
-  ## del superfluous if true equivalent condition
-  deep_del(diff, ['bundles', 'promiseTypes', 'contexts', 'promises', 'attributes', 'rval', 'arguments'], {'type': 'string', 'value': 'any'}, '$delete')
+def compare_dsc(first, second):
+  # TODO diffs 2 DSC files
+  return
 
-
+# recursively deletes empty entries. Is considered empty an empty object or an object that only holds a 'line' key
 def empty_dict_cleaner(diff_dict):
+  istodel=False
   if type(diff_dict) is dict:
-    for element in diff_dict.copy():
-      cur = diff_dict[element]
-      empty_dict_cleaner(cur)
-      if len(cur) == 0:
-        diff_dict.pop(element)
-        return
-      elif type(cur) is dict and len(cur) == 1 and 'line' in cur.keys():
-        diff_dict.pop(element)
-
-
-def deep_get(haystack, deep_list, needle, index=0):
-  if type(haystack) is list:
-    for elem in haystack:
-      deep_get(elem, deep_list, needle, index)
-  elif type(haystack) is tuple:
-    for elem in haystack:
-      deep_get(elem, deep_list, needle, index)
-  elif type(haystack) is dict and index < len(deep_list) and deep_list[index] in haystack:
-    for key, value in haystack[deep_list[index]].copy().items():
-      deep_get(value, deep_list, needle, index + 1)
-      if type(needle) is str and needle in value:
-        return value[needle]
-  return None
-
-
-## Warning1: only delete keys from dict!
-## Warning2: compare (needle) either from key or with dict content 
-def deep_del(haystack, deep_list, needle, delfrom, index=0):
-  ## consider list to be iterated on like any other dict content
-  istodel = False
-  if type(haystack) is list:
-    for elem in haystack:
-      istodel |= deep_del(elem, deep_list, needle, delfrom, index)
-  elif type(haystack) is tuple:
-    for elem in haystack:
-      istodel |= deep_del(elem, deep_list, needle, delfrom, index)
-  elif type(haystack) is dict and index < len(deep_list) and deep_list[index] in haystack:
-    for key, value in haystack[deep_list[index]].copy().items():
-      istodel |= deep_del(value, deep_list, needle, delfrom, index + 1)
-      ## remove seeked child content if needle is a string
-      if istodel and type(needle) is str and needle in value:
-        value.pop(needle)
-      ## remove content if needle has matched another dict
-      if istodel and delfrom == key:
-        haystack[deep_list[index]].pop(key)
-
-  if type(needle) is str and needle in haystack:
-    ## Will need to remove the child element (needle in haystack) from the parent as we recursively go back only from there (never deeper)
-    return True
-  if haystack == needle or (type(needle) is str and needle in haystack):
-    return True
+    for elem in diff_dict.copy():
+      cur = diff_dict[elem]
+      istodel |= empty_dict_cleaner(cur)
+      if type(cur) is dict:
+        if len(cur) == 0 or (type(cur) is dict and len(cur) == 1 and 'line' in cur.keys()):
+          istodel = True
+        else:
+          istodel = False
+        if istodel:
+          diff_dict.pop(elem)
+  elif type(diff_dict) is list:
+    for elem in diff_dict.copy():
+      istodel |= empty_dict_cleaner(elem)
+  elif type(diff_dict) is tuple:
+    for elem in diff_dict:
+      istodel |= empty_dict_cleaner(elem)
   return istodel
 
+
+# deletes from diff list every i/o difference done on purpose (ie that are not a bug)
+def remove_wilful_entries(file_name, diff):
+  # try:
+    promises_path = ['bundles', 'promiseTypes', 'contexts', 'promises']
+    # del name since `_technique` is always added
+    deep_del(diff, ['bundles'], 'name', lambda d: len(d['name']) == 2 and d['name'][0] + '_technique' == d['name'][1])
+    # del sourcePath since it is not relevant
+    deep_del(diff, ['bundles'], 'sourcePath', lambda d: 'sourcePath' in d)
+    # del lines that add vars on purpose when generating cfengine from rudder-lang
+    delete_vars_insertions = lambda d: del_from_array(d['$insert'], [], 'promiser', ['args', 'report_param', 'full_class_prefix', 'class_prefix'])
+    deep_del(diff, promises_path, '$insert', delete_vars_insertions)
+    # del superfluous if->true equivalent condition
+    is_if_any = lambda d: d['lval'] == 'if' and d['rval']['arguments'][0]['value'] == 'any'
+    deep_del(diff, promises_path + ['attributes', '$delete'], '$delete', is_if_any)
+    # del priority and 'any.' starting conditions
+    deep_del(diff, promises_path + ['attributes', 'rval', 'arguments'], 'value', lambda d: filter_class_context(d['value']))
+    # del lines that add log_rudder and _classes_noop
+    del_method_insertions = lambda d: del_from_array(d['$insert'], ['attributes', 'rval'], 'name', ['log_rudder', '_classes_noop'])
+    deep_del(diff, promises_path, '$insert', del_method_insertions)
+  # except Exception as e:
+  #   print_json("compare_cf", file_name, 'An error occurred while cleaning cf diffs: {}'.format(str(e)), True)
+  #   exit(1)
+
+def del_from_array(obj, deep_list, needle, values, deletion_offset=0):
+  for index, elem in enumerate(obj.copy()):
+    if get_if_contains(elem, deep_list, needle, values):
+      obj.pop(index - deletion_offset)
+      deletion_offset += 1
+  if len(obj) == 0:
+    return True
+  return False
+
+# always wrap deletion conditions in a try-exception in case obj format is not what expected
+def try_del_condition(f, obj):
+  try:
+    return f(obj)
+  except:
+    return False
+# Deletes haystack content from delfrom key, if needle (and values) match deep_list keys
+# IMPORTANT when delfrom is an array:
+  # 1. check from del_condition whether the whole object can be deleted (there could be unexpected values in it)
+  # 2. delete each inner element in del_condition - so that if the array is not deleted, expected values will
+  # del_from_array function solves this issue
+# this
+# USAGE
+  # deep_del({bundle: { name: 'test' }, ['bundle'], 'bundle', lambda d: d['name'] == 'test')
+  # will match name = 'test' in bundle, and delete parent entries up to 'bundle'
+  # OTOH deep_del({not_bundle: { name: 'test' }, ['bundle'], 'bundle', lambda d: d['name'] == 'test')
+  # will not match list path and will not delete anything
+# EXAMPLE + note:
+  # note that the following example works fine even with the missing path, but there is a lot more chances we match another '$insert'
+  # deep_del(diff, ['$insert'], '$insert', delete_purposeful_insertions)
+  # deep_del(diff, ['bundles', 'promiseTypes', 'contexts', 'promises', '$insert'], '$insert', delete_purposeful_insertions)
+# ARGUMENTS
+  # haystack: object to look into
+  # deep_list (array of string): ordered list of keys to search from
+  # delfrom: delfrom any self/parent of the matched needle (if matched)
+  # del_condition (function): check if elem matches deletion condition
+  # index is an internal counter
+def deep_del(haystack, deep_list, delfrom, del_condition, index=0):
+  istodel = False
+  # 1: get in dict, if content matches searched keys
+  if type(haystack) is dict:
+    if len(deep_list) == index and try_del_condition(del_condition, haystack):
+      istodel = True
+    elif index < len(deep_list) and deep_list[index] in haystack:
+      istodel |= deep_del(haystack[deep_list[index]], deep_list, delfrom, del_condition, index + 1)
+    # else go deeper to find next deep_list element / needle
+    else:
+      for _, value in haystack.items():
+        istodel |= deep_del(value, deep_list, delfrom, del_condition, index)
+    if istodel and delfrom in haystack:
+      haystack.pop(delfrom)
+      return False
+  # 2: get inner content until dict
+  elif type(haystack) is list or type(haystack) is tuple:
+    for elem in haystack:
+      istodel |= deep_del(elem, deep_list, delfrom, del_condition, index)
+  return istodel
+
+# Currently not used, but could be useful
+# checks if a key values pair exists in a given path (and returns the value found)
+# optionnaly takes an array of expected values, if no values given: returns first match
+# USAGE
+  # see deep del, similar behavior but returns the matched value rather than deleting a part of the dict
+# ARGUMENTS
+  # haystack: object to look into 
+  # deep_list (array of string): ordered list of keys to search from
+  # needle (string): the final key to look for withing deep_list matched object
+  # values (optional, array of string): match if needle value is contained in this array
+  # index is an internal counter
+def get_if_contains(haystack, deep_list, needle, values=None, index=0):
+  if type(haystack) is dict:
+    # if len not eq -> match path is wrong
+    if len(deep_list) == index and needle in haystack and (values is None or haystack[needle] in values):
+      return haystack[needle]
+    elif index < len(deep_list) and deep_list[index] in haystack:
+      return get_if_contains(haystack[deep_list[index]], deep_list, needle, values, index + 1)
+    # this part is important: out of index but allows to iterate on last elements which should include needle
+    for _, value in haystack.items():
+      ret = get_if_contains(value, deep_list, needle, values, index)
+      if ret is not None:
+        return ret # else keep iterating
+  elif type(haystack) is list or type(haystack) is tuple:
+    for elem in haystack:
+      ret = get_if_contains(elem, deep_list, needle, values, index)
+      if ret is not None:
+        return ret # else keep iterating
+  return None
 
 def load_config():
   cfg = configparser.ConfigParser()
@@ -200,9 +257,9 @@ if __name__ == "__main__":
     print_json('(Not defined yet)', '(Not defined yet)', 'An error occurred while importing ncf: {}'.format(str(e)), True)
     exit(1)
   
-  if arguments['ncf-to-json']:
-    ncf_to_json(arguments['<file.cf>'], arguments['<new.json>'])
-  elif arguments['compare-json']:
+  if arguments['compare-json']:
     compare_json(arguments['<first.json>'], arguments['<new.json>'])
   elif arguments['compare-cf']:
     compare_cf(arguments['<first.cf>'], arguments['<new.cf>'])
+  elif arguments['compare-dsc']:
+    compare_cf(arguments['<first.dsc>'], arguments['<new.dsc>'])

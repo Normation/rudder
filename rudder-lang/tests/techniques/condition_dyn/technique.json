@@ -1,21 +1,21 @@
 {
-    "type": "ncf_techniques",
-    "version": 1,
+    "type": "ncf_technique",
+    "version": 2,
     "data": {
         "name": "condition dyn",
         "description": "",
         "version": "1.0",
         "bundle_name": "condition_dyn",
-        "bundle_args": [],
+        "category": "ncf_technioues",
         "parameter": [],
         "method_calls": [
             {
-                "class_context": "any.(${coucou})",
+                "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false)",
                 "component": "Command execution",
                 "method_name": "command_execution",
                 "parameters": [
                     {
-                        "name": "name",
+                        "name": "command",
                         "value": "pwd",
                         "$errors": []
                     }

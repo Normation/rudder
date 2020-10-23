@@ -2,9 +2,9 @@
   "type": "ncf_technique",
   "version": 2,
   "data": {
-    "bundle_name": "simplest",
-    "description": "rudderlang simplest for a complete loop",
-    "name": "simplest",
+    "bundle_name": "cdt",
+    "description": "rudderlang cdt for a complete loop",
+    "name": "cdt",
     "version": "1.0",
     "parameter": [],
     "category": "ncf_techniques",
@@ -17,7 +17,7 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
+        "class_context": "any.(debian)",
         "method_name": "file_absent",
         "component": "File absent"
       }

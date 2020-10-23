@@ -1,0 +1,16 @@
+# @name CIS redhat7 - Disable kernel module loading
+# @description 
+# @version 1.0
+# @parameter { "name": "module", "id": "ef3a3cc4-ce02-44b0-a280-d1b90876506a" }
+
+
+bundle agent CIS_redhat7___Disable_kernel_module_loading(module)
+{
+  vars:
+    "resources_dir" string => "${this.promise_dirname}/resources";
+  methods:
+    "Condition from_variable_existence_${report_data.directive_id}_0" usebundle => _method_reporting_context("File absent", "skip_item_${report_data.canonified_directive_id}", "node.properties[skip][${report_data.directive_id}]"),
+                                                       if => concat("any");
+    "Condition from_variable_existence_${report_data.directive_id}_0" usebundle => condition_from_variable_existence("skip_item_${report_data.canonified_directive_id}", "node.properties[skip][${report_data.directive_id}]"),
+                                                       if => concat("any");
+}

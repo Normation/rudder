@@ -1,16 +1,21 @@
-# @name parameters mult
+# @name param_mult
 # @description technique using multiple parameters
 # @version 1.0
 # @parameter { "name": "paramtest", "id": "d74a03dd-5b0b-4b06-8dcf-b4e0cb387c60" }
-# @parameter { "name": "12", "id": "6e82d276-1181-4596-8fd8-bc3c007ae9ff" }
 
-bundle agent parameters_mult(paramtest,12)
-{
+bundle agent param_mult {
+
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "Package absent_${report_data.directive_id}_0" usebundle => _method_reporting_context("Package absent", "vpn"),
-                                                          if => concat("any");
-    "Package absent_${report_data.directive_id}_0" usebundle => package_absent("vpn", "", "", ""),
-                                                          if => concat("any");
+    "File absent_${report_data.directive_id}_0" usebundle => _method_reporting_context("File absent", "target"),
+                                             if => concat("linux");
+    "File absent_${report_data.directive_id}_0" usebundle => file_absent("target"),
+                                             if => concat("linux");
+
+    "Package absent_${report_data.directive_id}_1" usebundle => _method_reporting_context("Package absent", "openvpn"),
+                                             if => concat("any");
+    "Package absent_${report_data.directive_id}_1" usebundle => package_absent("openvpn", "4.2", "archi", "yum"),
+                                             if => concat("any");
+
 }

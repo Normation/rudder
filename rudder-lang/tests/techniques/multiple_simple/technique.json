@@ -1,13 +1,13 @@
 {
-    "type": "ncf_techniques",
-    "version": 1,
+    "type": "ncf_technique",
+    "version": 2,
     "data": {
         "name": "multiple_simple",
         "description": "",
         "version": "1.0",
         "bundle_name": "multiple_simple",
-        "bundle_args": [],
         "parameter": [],
+        "category": "ncf_techniques",
         "method_calls": [
             {
                 "class_context": "any",
@@ -15,7 +15,7 @@
                 "method_name": "file_absent",
                 "parameters": [
                     {
-                        "name": "dir",
+                        "name": "path",
                         "value": "/tmp",
                         "$errors": []
                     }
@@ -27,7 +27,7 @@
                 "method_name": "file_check_exists",
                 "parameters": [
                     {
-                        "name": "dir",
+                        "name": "path",
                         "value": "/tmp",
                         "$errors": []
                     }
@@ -39,7 +39,7 @@
                 "method_name": "file_present",
                 "parameters": [
                     {
-                        "name": "dir",
+                        "name": "path",
                         "value": "/tmp",
                         "$errors": []
                     }
@@ -51,12 +51,12 @@
                 "method_name": "directory_absent",
                 "parameters": [
                     {
-                        "name": "dir",
+                        "name": "target",
                         "value": "/tmp",
                         "$errors": []
                     },
                     {
-                        "name": "bool",
+                        "name": "recursive",
                         "value": "false",
                         "$errors": []
                     }
@@ -68,7 +68,7 @@
                 "method_name": "directory_present",
                 "parameters": [
                     {
-                        "name": "dir",
+                        "name": "target",
                         "value": "/tmp",
                         "$errors": []
                     }
@@ -80,7 +80,7 @@
                 "method_name": "directory_check_exists",
                 "parameters": [
                     {
-                        "name": "dir",
+                        "name": "target",
                         "value": "/tmp",
                         "$errors": []
                     }

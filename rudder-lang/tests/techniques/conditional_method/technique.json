@@ -1,21 +1,21 @@
 {
-    "type": "ncf_techniques",
-    "version": 1,
+    "type": "ncf_technique",
+    "version": 2,
     "data": {
         "name": "conditional method",
         "description": "one method with several conditons",
         "version": "1.0",
         "bundle_name": "conditional_method",
-        "bundle_args": [],
+        "category": "ncf_techniques",
         "parameter": [],
         "method_calls": [
             {
-                "class_context": "debian",
+                "class_context": "any.(debian)",
                 "component": "HTTP request check status with headers",
                 "method_name": "http_request_check_status_headers",
                 "parameters": [
                     {
-                        "name": "type",
+                        "name": "method",
                         "value": "GET",
                         "$errors": []
                     },
@@ -25,12 +25,12 @@
                         "$errors": []
                     },
                     {
-                        "name": "result",
+                        "name": "expected_status",
                         "value": "200",
                         "$errors": []
                     },
                     {
-                        "name": "?",
+                        "name": "headers",
                         "value": "",
                         "$errors": []
                     }
