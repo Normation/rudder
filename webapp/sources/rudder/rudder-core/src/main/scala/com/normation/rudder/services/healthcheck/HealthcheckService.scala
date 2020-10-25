@@ -2,17 +2,17 @@ package com.normation.rudder.services.healthcheck
 
 import java.io
 import java.lang.Runtime.getRuntime
-import java.io.File
 
-import better.files.File
 import better.files.File.root
 import com.normation.errors.IOResult
+import com.normation.errors.Inconsistency
 import com.normation.rudder.domain.logger.{HealthcheckLoggerPure => logger}
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
-import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
+import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
+import com.normation.rudder.services.nodes.NodeInfoService
 import zio.UIO
 import zio.ZIO
 import zio.syntax.ToZio
@@ -128,6 +128,36 @@ final object CheckFreeSpace extends Check {
           }
         case Nil =>
           Critical(name, "No partition found on the system")
+      }
+    }
+  }
+}
+
+final class CheckFileDescriptorLimit(val nodeInfoService: NodeInfoService) extends Check {
+  def name: CheckName = CheckName("File descriptor limit")
+  def run: IOResult[HealthcheckResult] = {
+    // Check the soft limit.
+    // That can be raise or lower by any user but cannot exceed the hard limit
+    val cmd = Cmd("/usr/bin/prlimit", "-n" ::  "-o"  :: "SOFT" :: "--noheadings" :: Nil, Map.empty)
+    for {
+      fdLimitCmd <- RunNuCommand.run(cmd)
+      res        <- fdLimitCmd.await
+
+      _          <- ZIO.when(res.code != 0) {
+                      Inconsistency(
+                        s"An error occurred while getting file descriptor soft limit with command '${cmd.display}':\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+                      ).fail
+                    }
+      limit      <- IOResult.effectNonBlocking(res.stdout.trim.toLong)
+    } yield {
+      val numNode = nodeInfoService.getNumberOfManagedNodes
+      limit match {
+        case limit if limit <= 10_000 =>
+          Critical(name, s"Limit opened File Descriptor is not enough: ${limit}")
+        case limit if limit <= (100 * numNode) =>
+          Warning(name, s"Limit opened File Descriptor may cause trouble: ${limit}")
+        case _ =>
+          Ok(name, s"Limit opened File Descriptor: ${limit}")
       }
     }
   }
