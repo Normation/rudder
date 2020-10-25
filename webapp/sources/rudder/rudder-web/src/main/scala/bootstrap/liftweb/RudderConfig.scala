@@ -582,6 +582,17 @@ object RudderConfig extends Loggable {
                                        s"be bigger than for 'metrics.node.scheduler.period.max' (${METRICS_NODES_MIN_PERIOD.render})")
   }
 
+  val RUDDER_HEALTHCHECK_PERIOD = try {
+    Duration.fromScala(scala.concurrent.duration.Duration(config.getString("metrics.healthcheck.scheduler.period")))
+  } catch {
+    case ex: ConfigException =>
+      ApplicationLogger.info("Property 'metrics.healthcheck.scheduler.period' is missing or empty in rudder.configFile. Default to 5mins.")
+      5.minutes
+    case ex: NumberFormatException =>
+      ApplicationLogger.error(s"Error when reading key: 'metrics.node.scheduler.period.max', defaulting to 5mins: ${ex.getMessage}")
+      5.minutes
+  }
+
   val RUDDER_LANG_EXEC_TEST_LOOP = {
     try {
       config.getBoolean("rudder.lang.test-loop.exec")
@@ -1147,7 +1158,7 @@ object RudderConfig extends Loggable {
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
       , new SystemApi(restExtractorService, systemApiService11, rudderMajorVersion, rudderFullVersion, builtTimestamp)
       , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
-      , new HealthcheckApi(restExtractorService, restDataSerializer, healthcheckService)
+      , new HealthcheckApi(restExtractorService, restDataSerializer, healthcheckService, healthcheckNotificationService)
         // info api must be resolved latter, because else it misses plugin apis !
     )
 
@@ -2085,6 +2096,7 @@ object RudderConfig extends Loggable {
   )
 
   private[this] lazy val healthcheckService = new HealthcheckService(List(CheckCoreNumber))
+  lazy val healthcheckNotificationService = new HealthcheckNotificationService(healthcheckService, RUDDER_HEALTHCHECK_PERIOD)
 
   /**
    * Event log migration
