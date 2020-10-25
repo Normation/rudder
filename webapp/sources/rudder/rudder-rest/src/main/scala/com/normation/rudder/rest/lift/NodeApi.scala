@@ -101,6 +101,8 @@ import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.services.nodes.MergeNodeProperties
+import net.liftweb.json.JObject
+import net.liftweb.json.JsonAST.JField
 import zio.duration._
 
 /*
@@ -134,6 +136,7 @@ class NodeApi (
       case API.UpdateNode               => UpdateNode
       case API.ListAcceptedNodes        => ListAcceptedNodes
       case API.ApplyPolicy              => ApplyPolicy
+      case API.GetNodesStatus           => GetNodesStatus
     })
   }
 
@@ -337,7 +340,35 @@ class NodeApi (
         }
       }
     }
+  }
 
+  object GetNodesStatus extends LiftApiModule0 {
+    val schema = API.GetNodesStatus
+    val restExtractor = restExtractorService
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val action = "getNodeStatus"
+      implicit val prettify = params.prettify
+      def errorMsg(ids: List[String]) = s"Error when trying to get status for nodes with IDs '${ids.mkString(",")}''"
+      (for {
+        ids      <- (restExtractorService.extractString("ids")(req)(ids => Full(ids.split(",").map(_.trim)))).map(_.map(_.toList).getOrElse(Nil)) ?~! "Error: 'ids' parameter not found"
+        accepted <- apiV2.nodeInfoService.getAll().map(_.keySet.map(_.value)) ?~! errorMsg(ids)
+        pending  <- apiV2.nodeInfoService.getPendingNodeInfos().map(_.keySet.map(_.value)) ?~! errorMsg(ids)
+      } yield {
+        val array = ids.map(id =>
+          if(accepted.contains(id))     JObject(JField(id, AcceptedInventory.name))
+          else if(pending.contains(id)) JObject(JField(id, AcceptedInventory.name))
+          else                          JObject(JField(id, "unknown"))
+        )
+        JArray(array)
+      }) match {
+        case Full(jarray) =>
+          toJsonResponse(None, jarray)
+        case eb : EmptyBox => {
+          val fail = eb ?~! s"An error occurred when trying to get nodes status"
+          toJsonError(None, fail.messageChain)
+        }
+      }
+    }
   }
 }
 

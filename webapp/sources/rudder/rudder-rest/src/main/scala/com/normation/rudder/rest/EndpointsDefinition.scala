@@ -238,6 +238,10 @@ object NodeApi extends ApiModuleProvider[NodeApi] {
     val description = "List all accepted nodes with configurable details level"
     val (action, path)  = GET / "nodes"
   }
+  final case object GetNodesStatus extends NodeApi with ZeroParam with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
+    val description = "Get the status (pending, accepted, unknown) of the comma separated list of nodes given by `ids` parameter"
+    val (action, path)  = GET / "nodes" / "status"
+  }
   final case object ListPendingNodes extends NodeApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "List all pending nodes with configurable details level"
     val (action, path)  = GET / "nodes" / "pending"
