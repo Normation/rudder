@@ -245,15 +245,15 @@
     padding: 10px 15px !important;
   }
 }
-.rudder-template .template-main .main-header .header-description{
+.rudder-template .main-header .header-description{
   margin-top: 10px;
   color: #222D42AA;
   font-size: 14px;
 }
-.rudder-template .template-main .main-header .header-description p{
+.rudder-template .main-header .header-description p{
   margin-bottom: 6px;
 }
-.rudder-template .template-main .main-header .header-description p:last-child{
+.rudder-template .main-header .header-description p:last-child{
   margin-bottom: 0;
 }
 .rudder-template .template-main .main-navbar ul{
