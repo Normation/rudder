@@ -1,12 +1,12 @@
 module View exposing (..)
 
 import DataTypes exposing (Check, Model, Msg(..), SeverityLevel(..))
-import Html exposing (Html, button, div, i, span, text)
+import Html exposing (Html, br, button, div, i, span, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
-import List exposing (any, map, sortWith)
+import List exposing (any, intersperse, map, sortWith)
 import List.Extra exposing (minimumWith)
-import String
+import String exposing (lines)
 
 compareSeverityLevel: SeverityLevel -> SeverityLevel -> Order
 compareSeverityLevel a b =
@@ -102,9 +102,10 @@ checksDisplay model h =
            \c ->
              let
                classNameCircle = (severityLevelToString c.level) ++ "-light circle "
+               msgCheck = intersperse (br [][]) (map text  (lines c.msg))
              in
                div [class "check"]
-               [ text c.msg, span [class classNameCircle][] ]
+               (msgCheck ++ [span [class classNameCircle][]])
 
      ) sortedChecks
   in

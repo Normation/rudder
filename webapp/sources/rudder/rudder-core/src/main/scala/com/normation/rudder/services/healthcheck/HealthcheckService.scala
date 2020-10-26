@@ -114,18 +114,20 @@ final object CheckFreeSpace extends Check {
       val pcSpaceLeft = paritionSpaceInfos.map(x => (x.path, x.percent)).sortBy(-_._2)
       pcSpaceLeft match {
         case h :: _ =>
-          val listMsgSpace = pcSpaceLeft.map(s => s"- ${s._1} -> ${s._2}%\n")
+          val listMsgSpace = pcSpaceLeft.map(s => s"- ${s._1} -> ${s._2}%").mkString("\n")
           h._2 match {
             case pr if pr < 5L  =>
-              val msg = s"Some space is under : \n- ${listMsgSpace}"
+              val msg = s"Some space is under :\n${listMsgSpace} available"
               Critical(name, msg)
             case pr if pr < 10L =>
-              val msg = s"Some space partition is under a warning level: \n- ${listMsgSpace}"
+              val msg = s"Some space partition is under a warning level:\n${listMsgSpace} available"
               Warning(name, msg)
             case _                =>
-              val msg = s"Space available is ok: \n- ${listMsgSpace}"
+              val msg = s"Space available is ok: \n${listMsgSpace} available"
               Ok(name, msg)
           }
+        case Nil =>
+          Critical(name, "No partition found on the system")
       }
     }
   }
