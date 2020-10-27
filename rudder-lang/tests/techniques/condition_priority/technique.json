@@ -2,10 +2,10 @@
     "type": "ncf_technique",
     "version": 2,
     "data": {
-        "name": "condition andor",
+        "name": "condition priority",
         "description": "Kernel simplest",
         "version": "1.0",
-        "bundle_name": "condition_andor",
+        "bundle_name": "condition_priority",
         "category": "ncf_techniques",
         "parameter": [],
         "method_calls": [
@@ -15,7 +15,7 @@
                 "method_name": "kernel_module_loaded",
                 "parameters": [
                     {
-                        "name": "name",
+                        "name": "module_name",
                         "value": "test",
                         "$errors": []
                     }

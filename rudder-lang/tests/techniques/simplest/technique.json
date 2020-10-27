@@ -12,7 +12,7 @@
       {
         "parameters": [
           {
-            "name": "path",
+            "name": "target",
             "value": "tmp",
             "$errors": []
           }

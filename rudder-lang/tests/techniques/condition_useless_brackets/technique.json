@@ -2,24 +2,34 @@
     "type": "ncf_technique",
     "version": 2,
     "data": {
-        "name": "condition andor",
-        "description": "Kernel simplest",
+        "bundle_name": "condition_useless_brackets",
+        "description": "dsc useless condition brackets",
+        "name": "condition useless brackets",
         "version": "1.0",
-        "bundle_name": "condition_andor",
-        "category": "ncf_techniques",
         "parameter": [],
+        "category": "ncf_techniques",
         "method_calls": [
             {
-                "class_context": "any.((!debian|linux)|ubuntu.windows|(linux|ubuntu))",
-                "component": "Kernel module loaded",
-                "method_name": "kernel_module_loaded",
                 "parameters": [
                     {
-                        "name": "name",
-                        "value": "test",
+                        "name": "tag",
+                        "value": "tagname",
+                        "$errors": []
+                    },
+                    {
+                        "name": "resourceName",
+                        "value": "file",
+                        "$errors": []
+                    },
+                    {
+                        "name": "scriptBlock",
+                        "value": "exists",
                         "$errors": []
                     }
-                ]
+                ],
+                "class_context": "any.(((!debian|linux)|ubuntu.windows|(linux|ubuntu)))",
+                "method_name": "dsc_built_in_resource",
+                "component": "DSC built-in resource"
             }
         ]
     }
