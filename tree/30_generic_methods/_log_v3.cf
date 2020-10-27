@@ -39,6 +39,6 @@ bundle agent _log_v3(message, class_parameter, old_class_prefix, class_prefix, a
   methods:
       # Report using the appropriate bundle(s)
       "wrapper for log_rudder"
-        usebundle => log_rudder("${message}", "${class_parameter}", "${old_class_prefix}", "${class_prefix}", "@{args}"),
+        usebundle => log_rudder("${message}", "", "${old_class_prefix}", "${class_prefix}", "@{args}"),
         comment   => "Call the log_rudder bundle for directive ${report_data.directive_id} with arguments ${old_class_prefix}, ${class_prefix}, @{args}";
 }
