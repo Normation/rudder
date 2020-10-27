@@ -70,12 +70,12 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   private[this] val parameterPopup = new LocalSnippet[CreateOrUpdateGlobalParameterPopup]
 
   def dispatch = {
-    case "display" => { _ =>  display }
+    case "display" => { _ =>  display() }
   }
 
   def display() : NodeSeq = {
     (for {
-      seq <- roParameterService.getAllGlobalParameters
+      seq <- roParameterService.getAllGlobalParameters()
     } yield {
       seq
     }) match {
@@ -111,7 +111,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
       ".createParameter *" #> (if(CurrentUser.checkRights(AuthorizationType.Parameter.Write)) {
           ajaxButton("Create Global Parameter", () => showPopup(GlobalParamModAction.Create, None) , ("class","btn btn-success new-icon space-bottom space-top"))
         } else NodeSeq.Empty)
-     ).apply(dataTableXml(gridName)) ++ Script(initJs)
+     ).apply(dataTableXml(gridName)) ++ Script(initJs())
   }
 
   private[this] def dataTableXml(gridName:String) = {

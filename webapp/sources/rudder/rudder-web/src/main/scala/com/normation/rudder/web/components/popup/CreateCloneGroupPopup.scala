@@ -34,14 +34,14 @@ class CreateCloneGroupPopup(
   private[this] val uuidGen               = RudderConfig.stringUuidGenerator
   private[this] val userPropertyService   = RudderConfig.userPropertyService
 
-  private[this] val categories = roNodeGroupRepository.getAllNonSystemCategories
+  private[this] val categories = roNodeGroupRepository.getAllNonSystemCategories()
   // Fetch the parent category, if any
   private[this] val parentCategoryId = nodeGroup.flatMap(x => roNodeGroupRepository.getNodeGroupCategory(x.id).toBox).map(_.id.value).getOrElse("")
 
   var createContainer = false
 
   def dispatch = {
-    case "popupContent" => { _ => popupContent }
+    case "popupContent" => { _ => popupContent() }
   }
 
   def popupContent() : NodeSeq = {
@@ -107,11 +107,11 @@ class CreateCloneGroupPopup(
           case Empty =>
             logger.error("An error occurred while saving the category")
             formTracker.addFormError(error("An error occurred while saving the category"))
-            onFailure
+            onFailure()
           case Failure(m,_,_) =>
             logger.error("An error occurred while saving the category:" + m)
             formTracker.addFormError(error(m))
-            onFailure
+            onFailure()
         }
       } else {
         // we are creating a group
@@ -145,11 +145,11 @@ class CreateCloneGroupPopup(
           case Empty =>
             logger.error("An error occurred while saving the group")
             formTracker.addFormError(error("An error occurred while saving the group"))
-            onFailure
+            onFailure()
           case Failure(m,_,_) =>
             logger.error("An error occurred while saving the group:" + m)
             formTracker.addFormError(error(m))
-            onFailure
+            onFailure()
         }
       }
     }

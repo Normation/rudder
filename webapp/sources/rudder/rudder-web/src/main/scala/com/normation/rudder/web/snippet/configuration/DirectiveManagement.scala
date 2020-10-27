@@ -79,7 +79,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   import DirectiveManagement._
 
   private[this] val techniqueRepository = RudderConfig.techniqueRepository
-  private[this] val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary
+  private[this] val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
   private[this] val getRules            = () => RudderConfig.roRuleRepository.getAll()
   private[this] val uuidGen             = RudderConfig.stringUuidGenerator
   private[this] val linkUtil      = RudderConfig.linkUtil
@@ -415,12 +415,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                     ).toBox match {
                       case Full(diff)   =>
                         currentDirectiveSettingForm.set(Empty)
-                        Replace(htmlId_policyConf, showDirectiveDetails) & JsRaw("""createTooltip();""") & onRemoveSuccessCallBack()
+                        Replace(htmlId_policyConf, showDirectiveDetails()) & JsRaw("""createTooltip();""") & onRemoveSuccessCallBack()
                       case eb: EmptyBox =>
                         val msg = (eb ?~! s"Error when trying to delete directive '${directive.name}' (${directive.id})").messageChain
                         //redisplay this form with the new error
                         currentDirectiveSettingForm.set(Failure(msg))
-                        Replace(htmlId_policyConf, showDirectiveDetails) & JsRaw("""createTooltip();""")
+                        Replace(htmlId_policyConf, showDirectiveDetails()) & JsRaw("""createTooltip();""")
                     }
                   }, ("class" ,"dangerButton")
                 )
@@ -448,7 +448,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] def newDirective(technique: Technique, activeTechnique: FullActiveTechnique)  = {
     configService.rudder_global_policy_mode().toBox match {
       case Full(globalMode) =>
-        val allDefaults = techniqueRepository.getTechniquesInfo.directivesDefaultNames
+        val allDefaults = techniqueRepository.getTechniquesInfo().directivesDefaultNames
         val directiveDefaultName = allDefaults.get(technique.id.toString).orElse(allDefaults.get(technique.id.name.value)).getOrElse(technique.name)
         val directive =
           Directive(
@@ -464,7 +464,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           )
         updateDirectiveSettingForm(activeTechnique, directive,None, true, globalMode)
         //Update UI
-        Replace(htmlId_policyConf, showDirectiveDetails) &
+        Replace(htmlId_policyConf, showDirectiveDetails()) &
         SetHtml(html_techniqueDetails, NodeSeq.Empty) &
         JsRaw("""createTooltip();""")
       case eb:EmptyBox =>
@@ -509,7 +509,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
 
     SetHtml(html_techniqueDetails, NodeSeq.Empty) &
-    Replace(htmlId_policyConf, showDirectiveDetails) &
+    Replace(htmlId_policyConf, showDirectiveDetails()) &
     JsRaw(
       s"""
         this.window.location.hash = "#" + JSON.stringify({'directiveId':'${directiveId.value}'})
@@ -533,7 +533,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       new DirectiveEditForm(
             htmlId_policyConf
           , technique
-          , activeTechnique.toActiveTechnique
+          , activeTechnique.toActiveTechnique()
           , activeTechnique
           , dir
           , oldDir
@@ -615,8 +615,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       currentTechnique = fullActiveTechnique.newestAvailableTechnique.map( fat => (fullActiveTechnique, fat.id.version) )
       currentDirectiveSettingForm.set(Empty)
       //Update UI
-      Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
-      Replace(htmlId_policyConf, showDirectiveDetails) &
+      Replace(html_techniqueDetails, techniqueDetails.applyAgain()) &
+      Replace(htmlId_policyConf, showDirectiveDetails()) &
       JsRaw("""createTooltip();""")
   }
 

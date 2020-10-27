@@ -70,12 +70,12 @@ class CATEGORY(
 
   lazy val rdn : RDN = this.rdn(this.rdnValue._1)
   lazy val dn = new DN(rdn, parentDN)
-  def model() : LDAPEntry = {
+  def model: LDAPEntry = {
     val mod = LDAPEntry(dn)
-    mod +=! (A_OC, OC.objectClassNames(objectClass).toSeq:_*)
-    mod +=! (A_NAME, name)
-    mod +=! (A_DESCRIPTION, description)
-    mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
+    mod.resetValuesTo(A_OC, OC.objectClassNames(objectClass).toSeq:_*)
+    mod.resetValuesTo(A_NAME, name)
+    mod.resetValuesTo(A_DESCRIPTION, description)
+    mod.resetValuesTo(A_IS_SYSTEM, isSystem.toLDAPString)
     mod
   }
 }
@@ -214,11 +214,11 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       , isSystem : Boolean
     ) : LDAPEntry = {
       val mod = LDAPEntry(new DN(buildRDN(uuid),parentDN))
-      mod +=! (A_OC, OC.objectClassNames(OC_ACTIVE_TECHNIQUE).toSeq:_*)
-      mod +=! (A_TECHNIQUE_UUID, techniqueName.value)
-      mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
-      mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
-      mod +=! (A_ACCEPTATION_DATETIME, compactRender(acceptationDateTimes))
+      mod.resetValuesTo(A_OC, OC.objectClassNames(OC_ACTIVE_TECHNIQUE).toSeq:_*)
+      mod.resetValuesTo(A_TECHNIQUE_UUID, techniqueName.value)
+      mod.resetValuesTo(A_IS_ENABLED, isEnabled.toLDAPString)
+      mod.resetValuesTo(A_IS_SYSTEM, isSystem.toLDAPString)
+      mod.resetValuesTo(A_ACCEPTATION_DATETIME, compactRender(acceptationDateTimes))
       mod
     }
 
@@ -227,8 +227,8 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
 
     def directiveModel(uuid:String, techniqueVersion:TechniqueVersion, parentDN:DN) : LDAPEntry = {
       val mod = LDAPEntry(new DN(new RDN(A_DIRECTIVE_UUID,uuid),parentDN))
-      mod +=! (A_TECHNIQUE_VERSION, techniqueVersion.toString)
-      mod +=! (A_OC, OC.objectClassNames(OC_DIRECTIVE).toSeq:_*)
+      mod.resetValuesTo(A_TECHNIQUE_VERSION, techniqueVersion.toString)
+      mod.resetValuesTo(A_OC, OC.objectClassNames(OC_DIRECTIVE).toSeq:_*)
       mod
     }
 
@@ -249,11 +249,11 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       category : String
     ) : LDAPEntry = {
       val mod = LDAPEntry(configRuleDN(uuid))
-      mod +=! (A_OC,OC.objectClassNames(OC_RULE).toSeq:_*)
-      mod +=! (A_NAME, name)
-      mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
-      mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
-      mod +=! (A_RULE_CATEGORY, category)
+      mod.resetValuesTo(A_OC,OC.objectClassNames(OC_RULE).toSeq:_*)
+      mod.resetValuesTo(A_NAME, name)
+      mod.resetValuesTo(A_IS_ENABLED, isEnabled.toLDAPString)
+      mod.resetValuesTo(A_IS_SYSTEM, isSystem.toLDAPString)
+      mod.resetValuesTo(A_RULE_CATEGORY, category)
       mod
     }
 
@@ -298,10 +298,10 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       , isSystem : Boolean = false
     ) : LDAPEntry = {
       val mod = LDAPEntry(ruleCategory.ruleCategoryDN(uuid, parentDN))
-      mod +=! (A_OC, OC.objectClassNames(OC_RULE_CATEGORY).toSeq:_*)
-      mod +=! (A_NAME, name)
-      mod +=! (A_DESCRIPTION, description)
-      mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
+      mod.resetValuesTo(A_OC, OC.objectClassNames(OC_RULE_CATEGORY).toSeq:_*)
+      mod.resetValuesTo(A_NAME, name)
+      mod.resetValuesTo(A_DESCRIPTION, description)
+      mod.resetValuesTo(A_IS_SYSTEM, isSystem.toLDAPString)
 
       mod
     }
@@ -321,12 +321,12 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       ) : LDAPEntry = {
 
       val mod = LDAPEntry(new DN(ruleTargetDN(uuid), parentDN))
-      mod +=! (A_OC, OC.objectClassNames(OC_SPECIAL_TARGET).toSeq:_*)
-      mod +=! (A_NAME, name)
-      mod +=! (A_DESCRIPTION, description)
-      mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
-      mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
-      mod +=! (A_RULE_TARGET, uuid)
+        mod.resetValuesTo(A_OC, OC.objectClassNames(OC_SPECIAL_TARGET).toSeq:_*)
+        mod.resetValuesTo(A_NAME, name)
+        mod.resetValuesTo(A_DESCRIPTION, description)
+        mod.resetValuesTo(A_IS_SYSTEM, isSystem.toLDAPString)
+        mod.resetValuesTo(A_IS_ENABLED, isEnabled.toLDAPString)
+        mod.resetValuesTo(A_RULE_TARGET, uuid)
 
 
       mod
@@ -372,18 +372,18 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
      */
     def groupModel(uuid:String, parentDN:DN, name:String, description : String, query: Option[Query], isDynamic : Boolean, srvList : Set[NodeId], isEnabled : Boolean, isSystem : Boolean) : LDAPEntry = {
       val mod = LDAPEntry(group.groupDN(uuid, parentDN))
-      mod +=! (A_OC, OC.objectClassNames(OC_RUDDER_NODE_GROUP).toSeq:_*)
-      mod +=! (A_NAME, name)
-      mod +=! (A_DESCRIPTION, description)
-      mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
-      mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
-      mod +=! (A_IS_DYNAMIC, isDynamic.toLDAPString)
-      mod +=! (A_NODE_UUID, srvList.map(x => x.value).toSeq:_*)
+      mod.resetValuesTo(A_OC, OC.objectClassNames(OC_RUDDER_NODE_GROUP).toSeq:_*)
+      mod.resetValuesTo(A_NAME, name)
+      mod.resetValuesTo(A_DESCRIPTION, description)
+      mod.resetValuesTo(A_IS_ENABLED, isEnabled.toLDAPString)
+      mod.resetValuesTo(A_IS_SYSTEM, isSystem.toLDAPString)
+      mod.resetValuesTo(A_IS_DYNAMIC, isDynamic.toLDAPString)
+      mod.resetValuesTo(A_NODE_UUID, srvList.map(x => x.value).toSeq:_*)
 
       query match {
         case None => // No query to add. Maybe we'd like to enforce that it is not activated
         case Some(q) =>
-          mod +=! (A_QUERY_NODE_GROUP, q.toJSONString)
+          mod.resetValuesTo(A_QUERY_NODE_GROUP, q.toJSONString)
       }
       mod
     }
@@ -441,9 +441,9 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     lazy val rdn : RDN = this.rdn(this.rdnValue._1)
     lazy val dn = new DN(rdn, BASE_DN)
 
-    def model() : LDAPEntry = {
+    def model: LDAPEntry = {
       val mod = LDAPEntry(dn)
-      mod +=! (A_OC, OC.objectClassNames(OC_NODES_CONFIG).toSeq:_*)
+      mod.resetValuesTo(A_OC, OC.objectClassNames(OC_NODES_CONFIG).toSeq:_*)
       mod
     }
 
@@ -498,7 +498,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
         name        : String
     ) : LDAPEntry = {
       val mod = LDAPEntry(parameterDN(name))
-      mod +=! (A_OC,OC.objectClassNames(OC_PARAMETER).toSeq:_*)
+      mod.resetValuesTo(A_OC,OC.objectClassNames(OC_PARAMETER).toSeq:_*)
       mod
     }
   }
@@ -519,7 +519,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
         name : RudderWebPropertyName
     ) : LDAPEntry = {
       val mod = LDAPEntry(propertyDN(name))
-      mod +=! (A_OC,OC.objectClassNames(OC_PROPERTY).toSeq:_*)
+      mod.resetValuesTo(A_OC,OC.objectClassNames(OC_PROPERTY).toSeq:_*)
       mod
     }
   }

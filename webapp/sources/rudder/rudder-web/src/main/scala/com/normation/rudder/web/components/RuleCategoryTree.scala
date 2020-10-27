@@ -96,7 +96,7 @@ class RuleCategoryTree(
   def resetSelected = selectedCategoryId = rootCategory.id
 
   def dispatch = {
-    case "tree" => { _ => tree }
+    case "tree" => { _ => tree() }
   }
 
   def refreshTree(newRoot : Box[RuleCategory]) : JsCmd =  {
@@ -130,7 +130,7 @@ class RuleCategoryTree(
   // Perform category selection, filter in the dataTable and display the name of the category
   def selectCategory() = {
     (for {
-      rootCategory <- roRuleCategoryRepository.getRootCategory.toBox
+      rootCategory <- roRuleCategoryRepository.getRootCategory().toBox
       fqdn         <- ruleCategoryService.bothFqdn(rootCategory, selectedCategoryId, true)
     } yield {
       fqdn
@@ -169,7 +169,7 @@ class RuleCategoryTree(
                         , CurrentUser.actor
                         , reason = None
                       ).chainError(s"Error while trying to move category with requested id '${sourceCatId}' to category id '${destCatId}'")
-            newRoot <- roRuleCategoryRepository.getRootCategory
+            newRoot <- roRuleCategoryRepository.getRootCategory()
           } yield {
             (category.id.value, newRoot)
           }).toBox match {

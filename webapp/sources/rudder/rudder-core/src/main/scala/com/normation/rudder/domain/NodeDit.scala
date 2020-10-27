@@ -64,14 +64,14 @@ class NodeDit(val BASE_DN:DN) extends AbstractDit {
 
         def nodeModel(uuid:NodeId) : LDAPEntry = {
             val mod = LDAPEntry(this.dn(uuid.value))
-            mod +=! (A_OC, OC.objectClassNames(OC_RUDDER_NODE).toSeq:_*)
+          mod.resetValuesTo(A_OC, OC.objectClassNames(OC_RUDDER_NODE).toSeq:_*)
             mod
         }
 
 
         def policyServerNodeModel(id: NodeId) : LDAPEntry = {
             val mod = LDAPEntry(this.dn(id.value))
-            mod +=! (A_OC, OC.objectClassNames(OC_POLICY_SERVER_NODE).toSeq:_*)
+          mod.resetValuesTo(A_OC, OC.objectClassNames(OC_POLICY_SERVER_NODE).toSeq:_*)
             mod
         }
       }

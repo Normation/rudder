@@ -344,7 +344,7 @@ class SettingsApi(
 final case object RestPolicyMode extends RestSetting[PolicyMode] {
     val key = "global_policy_mode"
     val startPolicyGeneration = true
-    def get = configService.rudder_policy_mode_name
+    def get = configService.rudder_policy_mode_name()
     def set = configService.set_rudder_policy_mode_name _
     def toJson(value : PolicyMode) : JValue = value.name
     def parseJson(json: JValue) = {

@@ -453,20 +453,20 @@ object NodeStatusReportSerialization {
   }
 
   implicit class RunComplianceInfoToJs(val x: (RunAndConfigInfo, RunComplianceInfo)) extends AnyVal {
-    def toJValue() = {
+    def toJValue = {
       (
         ( "run"    -> jsonRunInfo(x._1)    )
       ~ ( "status" -> jsonStatusInfo(x._2) )
       )
     }
 
-    def toJson() = prettyRender(toJValue)
+    def toJson = prettyRender(toJValue)
     def toCompactJson = compactRender(toJValue)
   }
 
   implicit class AggregatedStatusReportToJs(val x: AggregatedStatusReport) extends AnyVal {
-    def toJValue(): JValue = x.reports.toJValue()
-    def toJson() = prettyRender(toJValue)
+    def toJValue: JValue = x.reports.toJValue
+    def toJson = prettyRender(toJValue)
     def toCompactJson = compactRender(toJValue)
   }
 
@@ -474,7 +474,7 @@ object NodeStatusReportSerialization {
   implicit class SetRuleNodeStatusReportToJs(reports: Set[RuleNodeStatusReport]) {
     import ComplianceLevelSerialisation._
 
-    def toJValue(): JValue = {
+    def toJValue: JValue = {
 
       //here, I'm not sure that we want compliance or
       //compliance percents. Having a normalized value
@@ -519,7 +519,7 @@ object NodeStatusReportSerialization {
       }))
     }
 
-    def toJson() = prettyRender(toJValue)
+    def toJson = prettyRender(toJValue)
     def toCompactJson = compactRender(toJValue)
   }
 }

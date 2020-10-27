@@ -156,37 +156,37 @@ final case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:
 
       def genericModel(id:NodeId) : LDAPEntry = {
         val mod = model(id)
-        mod += (A_OC,OC.objectClassNames(OC_NODE).toSeq:_*)
+        mod.addValues(A_OC,OC.objectClassNames(OC_NODE).toSeq:_*)
         mod
       }
 
       def linuxModel(id:NodeId) : LDAPEntry = {
         val mod = model(id)
-        mod += (A_OC,OC.objectClassNames(OC_LINUX_NODE).toSeq:_*)
+        mod.addValues(A_OC,OC.objectClassNames(OC_LINUX_NODE).toSeq:_*)
         mod
       }
 
       def windowsModel(id:NodeId) : LDAPEntry = {
         val mod = model(id)
-        mod += (A_OC,OC.objectClassNames(OC_WINDOWS_NODE).toSeq:_*)
+        mod.addValues(A_OC,OC.objectClassNames(OC_WINDOWS_NODE).toSeq:_*)
         mod
       }
 
       def solarisModel(id:NodeId) : LDAPEntry = {
         val mod = model(id)
-        mod += (A_OC,OC.objectClassNames(OC_SOLARIS_NODE).toSeq:_*)
+        mod.addValues(A_OC,OC.objectClassNames(OC_SOLARIS_NODE).toSeq:_*)
         mod
       }
 
       def aixModel(id:NodeId) : LDAPEntry = {
         val mod = model(id)
-        mod += (A_OC,OC.objectClassNames(OC_AIX_NODE).toSeq:_*)
+        mod.addValues(A_OC,OC.objectClassNames(OC_AIX_NODE).toSeq:_*)
         mod
       }
 
       def bsdModel(id:NodeId) : LDAPEntry = {
         val mod = model(id)
-        mod += (A_OC,OC.objectClassNames(OC_BSD_NODE).toSeq:_*)
+        mod.addValues(A_OC,OC.objectClassNames(OC_BSD_NODE).toSeq:_*)
         mod
       }
 
@@ -276,7 +276,7 @@ class UUID_ENTRY[U <: Uuid](val entryObjectClass:String,val rdnAttributeName:Str
 
   def model(uuid:U) : LDAPEntry = {
     val mod = LDAPEntry(dn(uuid))
-    mod +=! (A_OC, OC.objectClassNames(entryObjectClass).toSeq:_*)
+    mod.resetValuesTo(A_OC, OC.objectClassNames(entryObjectClass).toSeq:_*)
     mod
   }
 }
@@ -289,9 +289,9 @@ class OU(ouName:String,parentDn:DN) extends ENTRY1("ou",ouName) {
 
   lazy val rdn : RDN = this.rdn(this.rdnValue._1)
   lazy val dn = new DN(rdn, parentDn)
-  def model() : LDAPEntry = {
+  def model: LDAPEntry = {
     val mod = LDAPEntry(dn)
-    mod +=! (A_OC, OC.objectClassNames(OC_OU).toSeq:_*)
+    mod.resetValuesTo(A_OC, OC.objectClassNames(OC_OU).toSeq:_*)
     mod
   }
 }
@@ -306,7 +306,7 @@ class ELT[U <: Uuid](eltObjectClass:String, override val rdnAttribute:Tuple1[Str
   def dn(uuid:U,y:String) = new DN(rdn(y), parentEntry.dn(uuid))
   def model( uuid:U, y:String ) : LDAPEntry = {
     val mod = LDAPEntry(new DN(rdn(y), parentEntry.dn(uuid)))
-    mod +=! (A_OC, OC.objectClassNames(eltObjectClass).toSeq:_*)
+    mod.resetValuesTo(A_OC, OC.objectClassNames(eltObjectClass).toSeq:_*)
     mod
   }
 }

@@ -366,7 +366,7 @@ class InMemoryNodeConfigurationHashRepository extends NodeConfigurationHashRepos
    */
   def deleteAllNodeConfigurations() : Box[Unit] = {
     val values = repository.keySet
-    repository.clear
+    repository.clear()
 
     Full(values.toSet)
   }
@@ -436,7 +436,7 @@ class LdapNodeConfigurationHashRepository(
   private[this] def toLdap(nodeConfigs: Set[NodeConfigurationHash]): LDAPEntry = {
     val caches = nodeConfigs.map{ x => NodeConfigurationHash.toJson(x) }
     val entry = rudderDit.NODE_CONFIGS.model
-    entry +=! (A_NODE_CONFIG, caches.toSeq:_*)
+    entry.resetValuesTo(A_NODE_CONFIG, caches.toSeq:_*)
     entry
   }
 

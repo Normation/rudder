@@ -105,7 +105,7 @@ trait Slf4jLDIFLogger extends LDIFFileLogger {
 
   val logger = LoggerFactory.getLogger(loggerName)
 
-  def rootDir() = {
+  def rootDir = {
     val dir = new File(ldifTraceRootDir)
     if(!dir.exists()) dir.mkdirs
     dir

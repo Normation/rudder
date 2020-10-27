@@ -174,9 +174,9 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         }) match {
           case Full(_) =>
             asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
-            Replace(allowedNetworksFormId, outerXml.applyAgain) &
+            Replace(allowedNetworksFormId, outerXml.applyAgain()) &
             successNotification
-          case e:EmptyBox => SetHtml(allowedNetworksFormId,errorMessage(s"#${allowedNetworksFormId}", e)(outerXml.applyAgain))
+          case e:EmptyBox => SetHtml(allowedNetworksFormId,errorMessage(s"#${allowedNetworksFormId}", e)(outerXml.applyAgain()))
         }
 
       } else Noop
@@ -185,14 +185,14 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     def delete(i:Long) : JsCmd = {
       allowedNetworks -= VH(i)
       allowedNetworksMap.put(policyServerId, allowedNetworks)
-      Replace(allowedNetworksFormId, outerXml.applyAgain)
+      Replace(allowedNetworksFormId, outerXml.applyAgain())
     }
 
     def add() : JsCmd = {
       allowedNetworks.append(VH(net = addNetworkField))
       addNetworkField = ""
       allowedNetworksMap.put(policyServerId, allowedNetworks)
-      Replace(allowedNetworksFormId, outerXml.applyAgain)
+      Replace(allowedNetworksFormId, outerXml.applyAgain())
     }
 
     //process the list of networks

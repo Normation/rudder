@@ -270,29 +270,29 @@ object LDAPConstants {
   /**
    * Machine types
    */
-  OC +=(OC_DEVICE, sup = OC(OC_TOP),
+  OC.createObjectClass(OC_DEVICE, sup = OC(OC_TOP),
       must = Set(A_NAME),
       may = Set(A_DESCRIPTION,A_SERIAL_NUMBER,"seeAlso","owner","ou","o","l"))
-  OC +=(OC_MACHINE, sup = OC(OC_DEVICE),
+  OC.createObjectClass(OC_MACHINE, sup = OC(OC_DEVICE),
       must = Set(A_MACHINE_UUID),
       may = Set(A_MB_UUID,A_MANUFACTURER,A_SERIAL_NUMBER))
 
-  OC +=(OC_PM)
-  OC +=(OC_VM)
-  OC +=(OC_VM_VIRTUALBOX, OC(OC_VM))
-  OC +=(OC_VM_XEN, OC(OC_VM))
-  OC +=(OC_VM_VMWARE, OC(OC_VM))
-  OC +=(OC_VM_SOLARIS_ZONE, OC(OC_VM))
-  OC +=(OC_VM_QEMU, OC(OC_VM))
-  OC +=(OC_VM_AIX_LPAR, OC(OC_VM))
-  OC +=(OC_VM_HYPERV, OC(OC_VM))
-  OC +=(OC_VM_BSDJAIL, OC(OC_VM))
-  OC +=(OC_VM_LXC, OC(OC_VM))
-  OC +=(OC_VM_VIRTUOZZO, OC(OC_VM))
-  OC +=(OC_VM_OPENVZ, OC(OC_VM))
+  OC.createObjectClass (OC_PM)
+  OC.createObjectClass (OC_VM)
+  OC.createObjectClass(OC_VM_VIRTUALBOX, OC(OC_VM))
+  OC.createObjectClass(OC_VM_XEN, OC(OC_VM))
+  OC.createObjectClass(OC_VM_VMWARE, OC(OC_VM))
+  OC.createObjectClass(OC_VM_SOLARIS_ZONE, OC(OC_VM))
+  OC.createObjectClass(OC_VM_QEMU, OC(OC_VM))
+  OC.createObjectClass(OC_VM_AIX_LPAR, OC(OC_VM))
+  OC.createObjectClass(OC_VM_HYPERV, OC(OC_VM))
+  OC.createObjectClass(OC_VM_BSDJAIL, OC(OC_VM))
+  OC.createObjectClass(OC_VM_LXC, OC(OC_VM))
+  OC.createObjectClass(OC_VM_VIRTUOZZO, OC(OC_VM))
+  OC.createObjectClass(OC_VM_OPENVZ, OC(OC_VM))
 
 
-  OC +=(OC_PE,
+  OC.createObjectClass(OC_PE,
       must = Set(),
       may = Set(A_NAME,A_DESCRIPTION,A_MODEL,A_SERIAL_NUMBER,A_FIRMWARE,A_QUANTITY,
                 A_SME_TYPE,A_STATUS,A_MANUFACTURER) )
@@ -314,40 +314,40 @@ object LDAPConstants {
             OC_VM_OPENVZ
   )
 
-  OC +=(OC_MEMORY, sup = OC(OC_PE),
+  OC.createObjectClass(OC_MEMORY, sup = OC(OC_PE),
       must =  Set(A_MEMORY_SLOT_NUMBER),
       may = Set(A_MEMORY_CAPACITY,A_MEMORY_CAPTION,
                 A_MEMORY_SPEED,A_MEMORY_TYPE) )
-  OC +=(OC_STORAGE, sup = OC(OC_PE),
+  OC.createObjectClass(OC_STORAGE, sup = OC(OC_PE),
       must = Set(A_STORAGE_NAME),
       may = Set(A_STORAGE_SIZE,A_STORAGE_FIRMWARE ) )
-  OC +=(OC_BIOS, OC(OC_PE),
+  OC.createObjectClass(OC_BIOS, OC(OC_PE),
       must = Set(A_BIOS_NAME),
       may = Set(A_SOFT_VERSION,A_EDITOR, A_RELEASE_DATE,
           A_LICENSE_EXP,A_LICENSE_NAME,A_LICENSE_OEM,
           A_LICENSE_DESC,A_LICENSE_PRODUCT_ID,
           A_LICENSE_PRODUCT_KEY, A_SOURCE_VERSION, A_SOURCE_NAME) )
-  OC +=(OC_CONTROLLER, OC(OC_PE),
+  OC.createObjectClass(OC_CONTROLLER, OC(OC_PE),
       must = Set(A_CONTROLLER_NAME)
   )
-  OC +=(OC_PORT,OC(OC_PE),
+  OC.createObjectClass(OC_PORT,OC(OC_PE),
       must = Set(A_PORT_NAME)
   )
-  OC +=(OC_PROCESSOR, OC(OC_PE),
+  OC.createObjectClass(OC_PROCESSOR, OC(OC_PE),
       must = Set(A_PROCESSOR_NAME),
       may = Set(A_PROCESSOR_SPEED,A_PROCESSOR_STEPPING,A_PROCESSOR_FAMILLY))
-  OC +=(OC_SLOT, OC(OC_PE),
+  OC.createObjectClass(OC_SLOT, OC(OC_PE),
       must = Set(A_SLOT_NAME)
   )
-  OC +=(OC_SOUND,OC(OC_PE),
+  OC.createObjectClass(OC_SOUND,OC(OC_PE),
       must = Set(A_SOUND_NAME)
   )
-  OC +=(OC_VIDEO, OC(OC_PE),
+  OC.createObjectClass(OC_VIDEO, OC(OC_PE),
       must = Set(A_VIDEO_NAME),
       may = Set(A_VIDEO_CHIPSET,A_MEMORY_CAPACITY,A_VIDEO_RESOLUTION) )
 
 
-  OC +=(OC_SOFTWARE,
+  OC.createObjectClass(OC_SOFTWARE,
       must = Set(A_SOFTWARE_UUID),
       may = Set(A_NAME,A_SOFT_VERSION,A_DESCRIPTION,A_EDITOR, A_RELEASE_DATE,
           A_LICENSE_EXP,A_LICENSE_NAME,A_LICENSE_OEM,
@@ -357,42 +357,42 @@ object LDAPConstants {
   /**
    * Node type (with OS)
    */
-  OC +=(OC_NODE, sup = OC(OC_TOP),
+  OC.createObjectClass(OC_NODE, sup = OC(OC_TOP),
       must = Set(A_NODE_UUID, A_OS_NAME, A_OS_FULL_NAME, A_OS_VERSION, A_OS_KERNEL_VERSION),
       may = Set(A_NAME,A_DESCRIPTION,A_PKEYS,A_AGENTS_NAME,
           A_CONTAINER_DN,A_SOFTWARE_DN,A_ACCOUNT,A_EV , A_PROCESS ,A_ROOT_USER,A_ARCH, A_LAST_LOGGED_USER, A_LAST_LOGGED_USER_TIME,
           A_HOSTNAME,A_OS_RAM,A_OS_SWAP, A_LIST_OF_IP, A_OS_SERVICE_PACK, A_SERVER_ROLE, A_KEY_STATUS,
           A_TIMEZONE_NAME, A_TIMEZONE_OFFSET, A_CUSTOM_PROPERTY) )
 
-  OC +=(OC_WINDOWS_NODE, sup = OC(OC_NODE),
+  OC.createObjectClass(OC_WINDOWS_NODE, sup = OC(OC_NODE),
       may = Set(A_WIN_USER_DOMAIN,A_WIN_COMPANY,A_WIN_KEY,A_WIN_ID) )
 
-  OC +=(OC_LE,
+  OC.createObjectClass(OC_LE,
       must = Set(),
       may = Set(A_NAME,A_DESCRIPTION) )
-  OC +=(OC_FS,
+  OC.createObjectClass(OC_FS,
       must = Set(A_MOUNT_POINT),
       may = Set(A_FILE_COUNT,
           A_FREE_SPACE, A_TOTAL_SPACE))
-  OC +=(OC_NET_IF, sup = OC(OC_TOP),
+  OC.createObjectClass(OC_NET_IF, sup = OC(OC_TOP),
       must = Set(A_NETWORK_NAME),
       may = Set(A_SPEED,A_NETIF_ADDRESS,
           A_NETIF_DHCP,A_NETIF_GATEWAY,A_NETIF_MASK,
           A_NETIF_SUBNET,A_NETIF_MAC,A_NETIF_TYPE,
           A_NETIF_TYPE_MIB))
-  OC +=(OC_VM_INFO,
+  OC.createObjectClass(OC_VM_INFO,
       must = Set(A_VM_ID),
       may = Set(A_VM_CPU,A_VM_MEMORY,A_VM_NAME,
           A_VM_OWNER, A_VM_STATUS, A_VM_SUBSYSTEM,
           A_VM_TYPE))
 
-  OC +=(OC_UNIX_NODE, sup = OC(OC_NODE))
-  OC +=(OC_LINUX_NODE, sup = OC(OC_UNIX_NODE))
-  OC +=(OC_SOLARIS_NODE, sup = OC(OC_UNIX_NODE))
-  OC +=(OC_AIX_NODE, sup = OC(OC_UNIX_NODE))
-  OC +=(OC_BSD_NODE, sup = OC(OC_UNIX_NODE))
+  OC.createObjectClass(OC_UNIX_NODE, sup = OC(OC_NODE))
+  OC.createObjectClass(OC_LINUX_NODE, sup = OC(OC_UNIX_NODE))
+  OC.createObjectClass(OC_SOLARIS_NODE, sup = OC(OC_UNIX_NODE))
+  OC.createObjectClass(OC_AIX_NODE, sup = OC(OC_UNIX_NODE))
+  OC.createObjectClass(OC_BSD_NODE, sup = OC(OC_UNIX_NODE))
 
-  OC +=(OC_OU,
+  OC.createObjectClass(OC_OU,
       must = Set("ou"),
       may = Set("userPassword", "searchGuide", "seeAlso",
                 "businessCategory", "x121Address", "registeredAddress",
@@ -403,7 +403,7 @@ object LDAPConstants {
                 "physicalDeliveryOfficeName", "st", "l", "description")
   )
 
-  OC +=(OC_DYN_GROUP,
+  OC.createObjectClass(OC_DYN_GROUP,
       must = Set(A_MEMBER_URL),
       may = Set(A_DESCRIPTION)
   )

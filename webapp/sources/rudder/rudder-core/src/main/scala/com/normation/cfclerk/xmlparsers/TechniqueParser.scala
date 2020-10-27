@@ -152,7 +152,7 @@ class TechniqueParser(
             _ <- technique.trackerVariableSpec.boundingVariable.toList.traverse { bound =>
                    if(
                        technique.rootSection.getAllVariables.exists { v => v.name == bound } ||
-                       systemVariableSpecService.getAll.exists { v => v.name == bound }
+                       systemVariableSpecService.getAll().exists { v => v.name == bound }
                    ) {
                      Right("ok")
                    } else {

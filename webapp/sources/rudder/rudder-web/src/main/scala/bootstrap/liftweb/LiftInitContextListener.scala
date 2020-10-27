@@ -124,7 +124,7 @@ class LiftInitContextListener extends ContextLoaderListener {
      */
 
     try {
-      RudderConfig.init
+      RudderConfig.init()
     } catch {
       case ex: Throwable =>
         System.err.println(s"[${org.joda.time.format.ISODateTimeFormat.dateTime().print(System.currentTimeMillis())}] " +

@@ -70,7 +70,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
     addChild(LDAPTree(child))
   }
 
-  override def toLDIFRecords() : Seq[LDIFRecord] = {
+  override def toLDIFRecords : Seq[LDIFRecord] = {
     Seq(root.toLDIFRecord) ++ _children.valuesIterator.toSeq.flatMap( _.toLDIFRecords)
   }
 

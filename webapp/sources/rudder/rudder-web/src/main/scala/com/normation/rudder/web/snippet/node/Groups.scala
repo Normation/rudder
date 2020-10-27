@@ -92,7 +92,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     Map(
         "head" -> head _
       , "detailsPopup" ->   { _ : NodeSeq =>  NodeGroupForm.staticBody }
-      , "initRightPanel" -> { _ : NodeSeq => initRightPanel }
+      , "initRightPanel" -> { _ : NodeSeq => initRightPanel() }
       , "groupHierarchy" -> groupHierarchy(boxGroupLib)
     )
   }
@@ -125,11 +125,11 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   def groupHierarchy(rootCategory: Box[FullNodeGroupCategory]) : CssSel = {
     (
       "#groupTree" #> buildGroupTree("")
-    & "#newItem"   #> groupNewItem
+    & "#newItem"   #> groupNewItem()
   )}
 
   def groupNewItem() : NodeSeq = {
-      SHtml.ajaxButton("Create", () => showPopup, ("class","btn btn-success new-icon pull-right"))
+      SHtml.ajaxButton("Create", () => showPopup(), ("class","btn btn-success new-icon pull-right"))
   }
 
   /**
@@ -260,7 +260,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   }
 
   private[this] def onSuccessCallback() = {
-    (id: String) => {refreshGroupLib; refreshTree(htmlTreeNodeId(id)) }
+    (id: String) => {refreshGroupLib(); refreshTree(htmlTreeNodeId(id)) }
   }
 
   /**
@@ -390,7 +390,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
             (category.id.value, result)
           }) match {
             case Full((id,res)) =>
-              refreshGroupLib
+              refreshGroupLib()
               (
                   refreshTree(htmlTreeNodeId(id))
                 & OnLoad(JsRaw("""setTimeout(function() { $("[catid=%s]").effect("highlight", {}, 2000);}, 100)""".format(sourceCatId)))

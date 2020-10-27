@@ -85,7 +85,7 @@ class Util {
     }
 
     <xml:group>{SHtml.text(filter, f => filter = f, "maxlength" -> "40"
-      )} {SHtml.submit("Filter", () => processFilter
+      )} {SHtml.submit("Filter", () => processFilter()
       )} <a href={redirectRoot}>Clear</a></xml:group>
   }
 

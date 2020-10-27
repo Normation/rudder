@@ -59,11 +59,11 @@ class JsonSelectTest extends Specification with BoxSpecMatcher with Loggable {
 
   "The selection" should {
     "fail if source is not a json" in {
-      JsonSelect.fromPath("$", """{ not a json!} ,pde at all!""") mustFails
+      JsonSelect.fromPath("$", """{ not a json!} ,pde at all!""").mustFails()
     }
 
     "fail if input path is not valid " in {
-      JsonSelect.fromPath("$$$..$", """not a json! missing quotes!""") mustFails
+      JsonSelect.fromPath("$$$..$", """not a json! missing quotes!""").mustFails()
     }
 
     "retrieve first" in {

@@ -230,7 +230,7 @@ class TechniqueAcceptationUpdater(
 
     (for {
       _                <- handleCategoriesUpdate(updatedCategories)
-      techLib          <- roActiveTechniqueRepo.getFullDirectiveLibrary
+      techLib          <- roActiveTechniqueRepo.getFullDirectiveLibrary()
       activeTechniques =  techLib.allActiveTechniques.map { case (_, at) => (at.techniqueName, at) }
       accepted         <- techniqueMods.accumulate { case (name, mod) =>
                             (mod, activeTechniques.get(name) ) match {

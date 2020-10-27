@@ -139,7 +139,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
   val repo = GitRepositoryProviderImpl.make(gitRoot.getAbsolutePath).runNow
 
   //post init hook
-  postInitHook
+  postInitHook()
 
   lazy val reader = new GitTechniqueReader(
                 policyParser
@@ -240,7 +240,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
 
   "if we modify policy cat1/p1_1/2.0, it" should {
     "have update technique" in {
-      reader.readTechniques() //be sure there is no current modification
+      reader.readTechniques //be sure there is no current modification
       val newPath = reader.canonizedRelativePath.map( _ + "/").getOrElse("") + "cat1/p1_1/2.0/newFile.st"
       val newFile = new File(gitRoot.getAbsoluteFile.getPath + "/" + newPath)
       FileUtils.writeStringToFile(newFile, "Some content for the new file", StandardCharsets.UTF_8)
@@ -253,7 +253,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
     }
 
     "and after a read, no more modification" in {
-      reader.readTechniques() //be sure there is no current modification
+      reader.readTechniques //be sure there is no current modification
       reader.getModifiedTechniques.size === 0
     }
 
@@ -263,7 +263,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
     "have update technique" in {
 
       val name = "libdir/file1.txt"  // no slash at the begining of git path
-      reader.readTechniques()
+      reader.readTechniques
       val newFile = new File(gitRoot.getAbsolutePath + "/" + name)
       FileUtils.writeStringToFile(newFile, "Some more content for the new file arg arg arg", StandardCharsets.UTF_8)
       val git = new Git(repo.db)

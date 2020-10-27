@@ -77,12 +77,12 @@ class RuleDisplayer (
       case Some(appManagement) =>
         Full(appManagement.rootCategory)
       case None =>
-        roCategoryRepository.getRootCategory.toBox
+        roCategoryRepository.getRootCategory().toBox
     }
   }
 
   private[this] var root : Box[RuleCategory]= {
-      getRootCategory
+      getRootCategory()
   }
 
   def dispatch = {
@@ -101,7 +101,7 @@ class RuleDisplayer (
 
   // refresh the rule category Tree
   private[this] def refreshTree = {
-    root = getRootCategory
+    root = getRootCategory()
     ruleCategoryTree.map(tree => SetHtml("categoryTreeParent", viewCategories(tree))).getOrElse(Noop)
   }
 
@@ -111,7 +111,7 @@ class RuleDisplayer (
           "categoryTree"
         , _
         , directive
-        , (() =>  check)
+        , (() =>  check())
         , ((c:RuleCategory) => showCategoryPopup(Some(c)))
         , ((c:RuleCategory) => showDeleteCategoryPopup(c))
         , () => refreshGrid
@@ -156,7 +156,7 @@ class RuleDisplayer (
     <div id="treeParent">
       {displaySubcategories}
       <div id="categoryTree">
-        {ruleCategoryTree.tree}
+        {ruleCategoryTree.tree()}
       </div>
     </div>
   }
@@ -352,7 +352,7 @@ class RuleDisplayer (
           , ruleToClone
           , ruleCategoryTree.getSelected
           , onSuccessCallback = onCreateRule
-        ).popupContent
+        ).popupContent()
      case eb:EmptyBox =>
        val fail = eb ?~! "Could not get root category"
        val msg = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
@@ -371,7 +371,7 @@ class RuleDisplayer (
         , category
         , ruleCategoryTree.getSelected
         , {(r : RuleCategory) =>
-            root = roCategoryRepository.getRootCategory.toBox
+            root = roCategoryRepository.getRootCategory().toBox
             ruleCategoryTree.refreshTree(root) & refreshGrid
           }
       )
@@ -384,7 +384,7 @@ class RuleDisplayer (
     val popupHtml =
       ruleCategoryTree match {
         case Full(ruleCategoryTree) =>
-          creationPopup(category,ruleCategoryTree).popupContent
+          creationPopup(category,ruleCategoryTree).popupContent()
         case eb:EmptyBox =>
           // Should not happen, the function will be called only if the rootCategory is Set
           val fail = eb ?~! "Could not get root category"

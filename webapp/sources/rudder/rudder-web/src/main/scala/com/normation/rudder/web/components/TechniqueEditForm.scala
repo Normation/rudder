@@ -136,7 +136,7 @@ class TechniqueEditForm(
   //////////////////////////// public methods ////////////////////////////
 
   def dispatch = {
-    case "showForm" => { _:NodeSeq => showForm }
+    case "showForm" => { _:NodeSeq => showForm() }
   }
 
   def showForm() : NodeSeq = {
@@ -306,7 +306,7 @@ class TechniqueEditForm(
   private[this] def onSuccess() : JsCmd = {
     //MUST BE THIS WAY, because the parent may change some reference to JsNode
     //and so, our AJAX could be broken
-    cleanTrackers
+    cleanTrackers()
     onSuccessCallback() & updateFormClientSide() &
     //show success popup
     successPopup
@@ -351,7 +351,7 @@ class TechniqueEditForm(
 
     def deleteActiveTechnique() : JsCmd = {
       if(formTrackerRemovePopup.hasErrors) {
-        onFailureRemovePopup
+        onFailureRemovePopup()
       } else {
         JsRaw("$('#deleteActionDialog').bsModal('hide');") &
         {
@@ -373,10 +373,10 @@ class TechniqueEditForm(
               successPopup
             case Empty => //arg.
               formTrackerRemovePopup.addFormError(error("An error occurred while deleting the Technique."))
-              onFailure
+              onFailure()
             case Failure(m,_,_) =>
               formTrackerRemovePopup.addFormError(error("An error occurred while deleting the Technique: " + m))
-              onFailure
+              onFailure()
           }
         }
       }
@@ -386,7 +386,7 @@ class TechniqueEditForm(
   }
 
   private[this] def dialogDeleteTree(htmlId:String,activeTechnique:ActiveTechnique) : NodeSeq = {
-    (new TechniqueTree(htmlId,activeTechnique.id, DontCare)).tree
+    (new TechniqueTree(htmlId,activeTechnique.id, DontCare)).tree()
   }
 
   ///////////// Enable / disable /////////////
@@ -394,7 +394,7 @@ class TechniqueEditForm(
   private[this] def disableButton(activeTechnique:ActiveTechnique) : Elem = {
     def switchActivation(status:Boolean)() : JsCmd = {
       if(formTrackerDisactivatePopup.hasErrors) {
-        onFailureDisablePopup
+        onFailureDisablePopup()
       } else {
         currentActiveTechnique = currentActiveTechnique.map(
             activeTechnique => activeTechnique.copy(_isEnabled = status))
@@ -420,7 +420,7 @@ class TechniqueEditForm(
 
   private[this] def dialogDisableTree(htmlId:String,activeTechnique:ActiveTechnique) : NodeSeq = {
     val switchFilterStatus = if(activeTechnique.isEnabled) OnlyDisableable else OnlyEnableable
-    (new TechniqueTree(htmlId,activeTechnique.id,switchFilterStatus)).tree
+    (new TechniqueTree(htmlId,activeTechnique.id,switchFilterStatus)).tree()
   }
 
   /////////////////////////////////////////////////////////////////////////
@@ -546,7 +546,7 @@ class TechniqueEditForm(
   /////////////////////////////////////////////////////////////////////////
 
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml(htmlId_technique, this.showCrForm )
+    SetHtml(htmlId_technique, this.showCrForm() )
   }
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
@@ -563,13 +563,13 @@ class TechniqueEditForm(
     } yield {
       save
     }) match {
-      case Full(x) => onSuccess
+      case Full(x) => onSuccess()
       case Empty =>
         formTracker.addFormError(error("An error occurred while saving the Technique"))
-        onFailure
+        onFailure()
       case f:Failure =>
         formTracker.addFormError(error("An error occurred while saving the Technique: " + f.messageChain))
-        onFailure
+        onFailure()
     }
   }
 

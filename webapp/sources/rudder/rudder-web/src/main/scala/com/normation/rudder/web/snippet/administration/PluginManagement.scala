@@ -78,7 +78,7 @@ class PluginManagement extends DispatchSnippet with Loggable {
       "data-plugin=baseclass" #> p.id &
       "data-plugin=version" #> p.version.toString &
       "data-plugin=description" #> p.description &
-      "data-plugin=statusInformation" #> p.statusInformation
+      "data-plugin=statusInformation" #> p.statusInformation()
     )(xml)
   }
 }

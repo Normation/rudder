@@ -96,7 +96,7 @@ class SequentialImmediateBootStrapChecks(_checkActions:BootstrapChecks*) extends
       s"${check.description}"
     }
     BootstrapLogger.logEffect.info(msg)
-    check.checks
+    check.checks()
     BootstrapLogger.logEffect.debug(msg + s": OK in [${formatter.print(new Duration(System.currentTimeMillis - start).toPeriod)}] ms")
   }
 

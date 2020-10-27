@@ -604,7 +604,7 @@ trait BuildHandler[REQ, RESP, T, P] {
   // of pattern matching of partial function, and Scala does what it want with them.
 
   def buildApi(): List[REQ => Option[() => RESP]] = {
-    apis.map { api =>
+    apis().map { api =>
       val endpoints = connectEndpoint.withVersion(api.schema, supportedVersions)
       // build the handlers for a given request
       // BUT be careful, the first part UNTIL the `yield { optEndpoint match...`

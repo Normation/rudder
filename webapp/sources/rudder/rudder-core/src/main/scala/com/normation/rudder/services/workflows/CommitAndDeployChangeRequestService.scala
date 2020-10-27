@@ -316,7 +316,7 @@ final case object CheckGlobalParameter extends CheckChanges[GlobalParameter]  {
           }
         }
         if ( initialFixed.targets != currentFixed.targets) {
-          debugLog(s"Rule ID ${initialFixed.id.value} target Groups have changed: original state from CR: ${initialFixed.targets.map(displayTarget)mkString("[ ", ", ", " ]")}, current value: ${currentFixed.targets.map(displayTarget).mkString("[ ", ", ", " ]")}")
+          debugLog(s"Rule ID ${initialFixed.id.value} target Groups have changed: original state from CR: ${initialFixed.targets.map(displayTarget).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.targets.map(displayTarget).mkString("[ ", ", ", " ]")}")
         }
 
         if ( initialFixed.isEnabledStatus != currentFixed.isEnabledStatus) {

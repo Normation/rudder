@@ -101,7 +101,7 @@ class CreateCloneDirectivePopup(
   private[this] val woDirectiveRepository = RudderConfig.woDirectiveRepository
 
   def dispatch = {
-    case "popupContent" => { _ => popupContent }
+    case "popupContent" => { _ => popupContent() }
   }
 
   def popupContent() : NodeSeq = {

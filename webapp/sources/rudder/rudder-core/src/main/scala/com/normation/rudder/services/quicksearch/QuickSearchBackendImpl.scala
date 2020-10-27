@@ -110,7 +110,7 @@ object QSDirectiveBackend extends Loggable {
 
     if(query.objectClass.contains(QSDirective) && attributes.nonEmpty) {
       for {
-        directiveLib <- repo.getFullDirectiveLibrary.toBox
+        directiveLib <- repo.getFullDirectiveLibrary().toBox
       } yield {
         (for {
           (at, dir) <- directiveLib.allDirectives.values
@@ -240,7 +240,7 @@ object QSLdapBackend {
         // merge node attribute for node entries with same node id
         val merged = nodes.groupBy( _.value_!(A_NODE_UUID)).filter(e => nodeIds.contains(e._1)).map { case (_, samenodes) =>
           samenodes.reduce[LDAPEntry] { case (n1, n2) =>
-            n2.attributes.foreach( a => n1 += a)
+            n2.attributes.foreach( a => n1 mergeAttribute a)
             n1
           }
         }
@@ -305,7 +305,7 @@ object QSLdapBackend {
   }
 
   implicit class QSAttributeLdapName(val a: QSAttribute) extends AnyVal {
-    def ldapName(): String = attributeNameMapping(a)
+    def ldapName: String = attributeNameMapping(a)
   }
 
   /**
@@ -459,7 +459,7 @@ object QSLdapBackend {
    */
   final implicit class QSObjectLDAPFilter(obj: QSObject)(implicit inventoryDit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit) {
 
-    def filter() = obj match {
+    def filter = obj match {
       case Common    => Nil
       case Node      => (  AND(IS(OC_NODE)             , Filter.create(s"entryDN:dnOneLevelMatch:=${ inventoryDit.NODES.dn.toString      }"))
                         :: AND(IS(OC_RUDDER_NODE)      , Filter.create(s"entryDN:dnOneLevelMatch:=${ nodeDit.     NODES.dn.toString      }")) :: Nil )

@@ -249,7 +249,7 @@ class DirectiveAPIService2 (
 
   def listDirectives() : Box[JValue] = {
     for {
-      fullLibrary <- readDirective.getFullDirectiveLibrary.toBox ?~! "Could not fetch Directives"
+      fullLibrary <- readDirective.getFullDirectiveLibrary().toBox ?~! "Could not fetch Directives"
       atDirectives = fullLibrary.allDirectives.values.filter(!_._2.isSystem)
       serializedDirectives = ( for {
           (activeTechnique, directive) <- atDirectives

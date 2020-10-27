@@ -7,8 +7,6 @@ import better.files.File.root
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.rudder.domain.logger.{HealthcheckLoggerPure => logger}
-import com.normation.rudder.hooks.Cmd
-import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
@@ -122,7 +120,7 @@ final object CheckFreeSpace extends Check {
             case pr if pr < 10L =>
               val msg = s"Some space partition is under a warning level:\n${listMsgSpace} available"
               Warning(name, msg)
-            case _                =>
+            case _              =>
               val msg = s"Space available is ok: \n${listMsgSpace} available"
               Ok(name, msg)
           }

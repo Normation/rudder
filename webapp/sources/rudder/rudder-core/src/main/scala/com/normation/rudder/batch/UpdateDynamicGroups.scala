@@ -151,7 +151,7 @@ class UpdateDynamicGroups(
 
         currentState match {
           case IdleGroupUpdater =>
-            dynGroupService.getAllDynGroups match {
+            dynGroupService.getAllDynGroups() match {
               case Full(groupIds) =>
                 updateId = updateId + 1
                 LAUpdateDyngroup ! StartDynamicUpdate(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groupIds.map(_.id)))

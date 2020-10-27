@@ -127,7 +127,7 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
   var logs6WithId : Seq[MigrationTestLog] = null
 
   override def initDb() = {
-    super.initDb
+    super.initDb()
 
     def insertLog(log: MigrationTestLog): Int = {
       transacRun(xa => sql"""
@@ -173,7 +173,7 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
     }
 
     "be correctly migrated" in {
-      val MigrationProcessResult(migrated, nbBataches) = migration.process.openOrThrowException("Bad migration in test")
+      val MigrationProcessResult(migrated, nbBataches) = migration.process().openOrThrowException("Bad migration in test")
       val logs = transacRun(xa => sql"""
         select id, eventtype, creationdate, principal, causeid, severity, data
         from eventlog

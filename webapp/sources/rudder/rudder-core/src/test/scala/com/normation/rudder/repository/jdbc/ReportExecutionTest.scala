@@ -122,7 +122,7 @@ class AgentRunsTest extends DBCommon {
    * to exec before fragment, it MUST go in a step...
    */
   step {
-    cleanTables
+    cleanTables()
     woRunRepo.updateExecutions(initRuns)
   }
 

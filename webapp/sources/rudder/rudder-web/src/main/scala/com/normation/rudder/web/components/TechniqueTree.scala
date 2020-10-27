@@ -73,7 +73,7 @@ class TechniqueTree(
   val getGrouLib                = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
   def dispatch = {
-    case "tree" => { _ => tree }
+    case "tree" => { _ => tree() }
   }
 
   def tree() : NodeSeq = {

@@ -456,10 +456,10 @@ object ExpectedReportsSerialisation {
   }
 
   implicit class NodeToJson(val n: NodeExpectedReports) extends AnyVal {
-    def toJValue() = {
+    def toJValue = {
       jsonNodeExpectedReports(JsonNodeExpectedReports(n.modes, n.ruleExpectedReports, n.overrides))
     }
-    def toJson() = prettyRender(toJValue)
+    def toJson = prettyRender(toJValue)
     def toCompactJson = compactRender(toJValue)
   }
 }

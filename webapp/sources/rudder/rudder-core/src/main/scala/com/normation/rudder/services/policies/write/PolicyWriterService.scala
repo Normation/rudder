@@ -177,7 +177,7 @@ class PolicyWriterServiceImpl(
 
     def generateNodePropertiesJson(properties : Seq[NodeProperty]): JValue = {
       import net.liftweb.json.JsonDSL._
-      ( "properties" -> properties.toDataJson())
+      ( "properties" -> properties.toDataJson)
     }
 
     val path = Constants.GENERATED_PROPERTY_DIR
@@ -195,7 +195,7 @@ class PolicyWriterServiceImpl(
     def generateParametersJson(parameters : Set[ParameterEntry]): JValue = {
       import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
       import net.liftweb.json.JsonDSL._
-      ( "parameters" -> parameters.toDataJson())
+      ( "parameters" -> parameters.toDataJson)
     }
 
     val file = File(agentNodeConfig.paths.newFolder, Constants.GENERATED_PARAMETER_FILE)
@@ -310,7 +310,7 @@ class PolicyWriterServiceImpl(
 
     val interestingNodeConfigs = allNodeConfigs.collect { case (nodeId, nodeConfiguration) if (nodesToWrite.contains(nodeId)) => nodeConfiguration }.toSeq
 
-    val techniqueIds           = interestingNodeConfigs.flatMap( _.getTechniqueIds ).toSet
+    val techniqueIds           = interestingNodeConfigs.flatMap( _.getTechniqueIds() ).toSet
 
     //debug - but don't fails for debugging !
     val logNodeConfigurations = ZIO.when(logNodeConfig.isDebugEnabled) {
@@ -362,7 +362,7 @@ class PolicyWriterServiceImpl(
           templates         <- readTemplateFromFileSystem(techniqueIds)
           resources         <- readResourcesFromFileSystem(techniqueIds)
           // Clearing cache
-          _                 <- IOResult.effect(fillTemplates.clearCache)
+          _                 <- IOResult.effect(fillTemplates.clearCache())
           readTemplateTime2 <- currentTimeMillis
           _                 <- timingLogger.debug(s"Paths computed and templates read in ${readTemplateTime2 - readTemplateTime1} ms")
 
@@ -438,7 +438,7 @@ class PolicyWriterServiceImpl(
       _                     <- timingLogger.debug(s"Parameters written in ${parametersWrittenTime - propertiesWrittenTime} ms")
 
 
-      _                     <- IOResult.effect(fillTemplates.clearCache)
+      _                     <- IOResult.effect(fillTemplates.clearCache())
       /// perhaps that should be a post-hook somehow ?
       // and perhaps we should have an AgentSpecific global pre/post write
 

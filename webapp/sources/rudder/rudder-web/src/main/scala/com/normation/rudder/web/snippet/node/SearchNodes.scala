@@ -209,7 +209,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   private[this] def showPopup() : JsCmd = {
     searchNodeComponent.get match {
-      case Full(r) => setCreationPopup(r.getQuery, r.getSrvList)
+      case Full(r) => setCreationPopup(r.getQuery(), r.getSrvList())
         //update UI
         SetHtml("createGroupContainer", createPopup) &
         JsRaw( """ createPopup("createGroupPopup") """)

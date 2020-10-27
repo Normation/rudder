@@ -1156,7 +1156,7 @@ object RudderConfig extends Loggable {
 
     val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled), None)
     modules.foreach { module =>
-      api.addModules(module.getLiftEndpoints)
+      api.addModules(module.getLiftEndpoints())
     }
     api
   }
@@ -1311,7 +1311,7 @@ object RudderConfig extends Loggable {
    * For now, we don't want to query server other
    * than the accepted ones.
    */
-  private[this] lazy val getSubGroupChoices = () => roLdapNodeGroupRepository.getAll.map( seq => seq.map(g => SubGroupChoice(g.id, g.name)))
+  private[this] lazy val getSubGroupChoices = () => roLdapNodeGroupRepository.getAll().map( seq => seq.map(g => SubGroupChoice(g.id, g.name)))
   private[this] lazy val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, getSubGroupChoices)
   private[this] lazy val queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
     override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
@@ -1499,7 +1499,7 @@ object RudderConfig extends Loggable {
     , queryProcessor
     , ditQueryDataImpl
     , psMngtService
-    , configService.node_accept_duplicated_hostname
+    , configService.node_accept_duplicated_hostname()
   )
 
   private[this] lazy val historizeNodeStateOnChoice: UnitAcceptInventory with UnitRefuseInventory = new HistorizeNodeStateOnChoice(

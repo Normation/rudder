@@ -399,7 +399,7 @@ object GenericProperty {
    * Implicit class to render properties to JSON
    */
   implicit class PropertyToJson(val x: GenericProperty[_]) extends AnyVal {
-    def toJson(): JObject = (
+    def toJson: JObject = (
         ( "name"     -> x.name  )
       ~ ( "value"    -> parse(x.value.render(ConfigRenderOptions.concise()) ) )
       ~ ( "provider" -> x.provider.map(_.value) )
@@ -411,11 +411,11 @@ object GenericProperty {
   implicit class JsonProperties(val props: Seq[GenericProperty[_]]) extends AnyVal {
     implicit def formats = DefaultFormats
 
-    def toApiJson(): JArray = {
-      JArray(props.map(_.toJson()).toList)
+    def toApiJson: JArray = {
+      JArray(props.map(_.toJson).toList)
     }
 
-    def toDataJson(): JObject = {
+    def toDataJson: JObject = {
       props.map(x => JField(x.name, x.jsonValue)).toList.sortBy { _.name }
     }
   }
@@ -612,11 +612,11 @@ object JsonPropertySerialisation {
   implicit class JsonNodePropertiesHierarchy(val props: List[NodePropertyHierarchy]) extends AnyVal {
     implicit def formats = DefaultFormats
 
-    def toApiJson(): JArray = {
+    def toApiJson: JArray = {
       JArray(props.sortBy(_.prop.name).map { p =>
         p.hierarchy match {
-          case Nil  => p.prop.toJson()
-          case list => p.prop.toJson() ~ ("hierarchy" -> JArray(list.map(_.toJson)))
+          case Nil  => p.prop.toJson
+          case list => p.prop.toJson ~ ("hierarchy" -> JArray(list.map(_.toJson)))
         }
       })
     }
@@ -632,14 +632,14 @@ object JsonPropertySerialisation {
             )
         }
 
-        p.prop.toJson() ~ ("hierarchy" -> parents) ~ ("origval" -> origval)
+        p.prop.toJson ~ ("hierarchy" -> parents) ~ ("origval" -> origval)
       })
     }
 
   }
 
   implicit class JsonParameter(val x: ParameterEntry) extends AnyVal {
-    def toJson(): JObject = (
+    def toJson: JObject = (
         ( "name"     -> x.parameterName )
       ~ ( "value"    -> x.escapedValue  )
     )
@@ -652,7 +652,7 @@ object JsonPropertySerialisation {
       JField(x.parameterName, x.escapedValue)
     }
 
-    def toDataJson(): JObject = {
+    def toDataJson: JObject = {
       parameters.map(dataJson(_)).toList.sortBy { _.name }
     }
   }

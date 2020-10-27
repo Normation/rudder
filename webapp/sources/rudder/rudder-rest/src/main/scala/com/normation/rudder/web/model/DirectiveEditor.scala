@@ -404,7 +404,7 @@ final case class MultivaluedSectionField(
 
     //ok, remove duplicate: swap current section with toKeep
     synchronized {
-      allSections.clear
+      allSections.clear()
       allSections ++= toKeep
     }
     ()

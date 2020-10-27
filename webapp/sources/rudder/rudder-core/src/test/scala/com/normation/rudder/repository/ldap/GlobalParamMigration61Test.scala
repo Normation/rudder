@@ -103,7 +103,7 @@ class GlobalParamMigration61Test extends Specification {
 
   // attribute that used to be set in GlobalParameter entry before 6.1.
   def setIs6_0(e: LDAPEntry): Unit = {
-    e +=! ("overridable", "TRUE")
+    e.resetValuesTo("overridable", "TRUE")
   }
 
   "Parsing a 6.0 parameter " should {
@@ -111,7 +111,7 @@ class GlobalParamMigration61Test extends Specification {
       val e = mapper.parameter2Entry(baseParam)
       val value = "{\"foo\":\"bar\"}"
       setIs6_0(e)
-      e +=! (A_PARAMETER_VALUE, value)
+      e.resetValuesTo(A_PARAMETER_VALUE, value)
 
       mapper.entry2Parameter(e).map(_.value).forceGet must beEqualTo(value.toConfigValue)
     }
@@ -120,7 +120,7 @@ class GlobalParamMigration61Test extends Specification {
       val e = mapper.parameter2Entry(baseParam)
       val value = "\"foo\""
       setIs6_0(e)
-      e +=! (A_PARAMETER_VALUE, value)
+      e.resetValuesTo(A_PARAMETER_VALUE, value)
 
       mapper.entry2Parameter(e).map(_.value).forceGet must beEqualTo(value.toConfigValue)
     }
@@ -129,7 +129,7 @@ class GlobalParamMigration61Test extends Specification {
       val e = mapper.parameter2Entry(baseParam)
       val value = "#foo"
       setIs6_0(e)
-      e +=! (A_PARAMETER_VALUE, value)
+      e.resetValuesTo(A_PARAMETER_VALUE, value)
 
       mapper.entry2Parameter(e).map(_.value).forceGet must beEqualTo(value.toConfigValue)
     }
@@ -138,7 +138,7 @@ class GlobalParamMigration61Test extends Specification {
       val e = mapper.parameter2Entry(baseParam)
       val value = "some value defined in 6.0"
       setIs6_0(e)
-      e +=! (A_PARAMETER_VALUE, value)
+      e.resetValuesTo(A_PARAMETER_VALUE, value)
 
       val ffx = mapper.parameter2Entry(mapper.entry2Parameter(e).forceGet)
       mapper.entry2Parameter(ffx).map(_.value).forceGet must beEqualTo(value.toConfigValue)
@@ -148,7 +148,7 @@ class GlobalParamMigration61Test extends Specification {
     "correctly unserialize a json as json" in {
       val e = mapper.parameter2Entry(baseParam)
       val value = "{\"foo\":\"bar\"}"
-      e +=! (A_PARAMETER_VALUE, value)
+      e.resetValuesTo(A_PARAMETER_VALUE, value)
 
       mapper.entry2Parameter(e).map(_.value.valueType()).forceGet must beEqualTo(ConfigValueType.OBJECT)
     }
@@ -156,7 +156,7 @@ class GlobalParamMigration61Test extends Specification {
     "correctly unserialize a quoted string as non quoted string" in {
       val e = mapper.parameter2Entry(baseParam)
       val value = "\"foo\""
-      e +=! (A_PARAMETER_VALUE, value)
+      e.resetValuesTo(A_PARAMETER_VALUE, value)
 
       mapper.entry2Parameter(e).map(_.valueAsString).forceGet must beEqualTo("foo")
     }
@@ -165,7 +165,7 @@ class GlobalParamMigration61Test extends Specification {
       val e = mapper.parameter2Entry(baseParam)
       val input = "in 6.1, value are quoted in LDAP"
       val value = "\""+input+"\""
-      e +=! (A_PARAMETER_VALUE, value)
+      e.resetValuesTo(A_PARAMETER_VALUE, value)
 
       val ffx = mapper.parameter2Entry(mapper.entry2Parameter(e).forceGet)
       mapper.entry2Parameter(ffx).map(_.valueAsString).forceGet must beEqualTo(input)

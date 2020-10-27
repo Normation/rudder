@@ -114,24 +114,24 @@ class LDAPEntityMapper(
       } else {
         nodeDit.NODES.NODE.nodeModel(node.id)
       }
-    entry +=! (A_NAME, node.name)
-    entry +=! (A_DESCRIPTION, node.description)
-    entry +=! (A_STATE, enc(node.state))
-    entry +=! (A_IS_SYSTEM, node.isSystem.toLDAPString)
+    entry.resetValuesTo(A_NAME, node.name)
+    entry.resetValuesTo(A_DESCRIPTION, node.description)
+    entry.resetValuesTo(A_STATE, enc(node.state))
+    entry.resetValuesTo(A_IS_SYSTEM, node.isSystem.toLDAPString)
 
     node.nodeReportingConfiguration.agentRunInterval match {
-      case Some(interval) => entry +=! (A_SERIALIZED_AGENT_RUN_INTERVAL, compactRender(serializeAgentRunInterval(interval)))
+      case Some(interval) => entry.resetValuesTo(A_SERIALIZED_AGENT_RUN_INTERVAL, compactRender(serializeAgentRunInterval(interval)))
       case _ =>
     }
 
     node.nodeReportingConfiguration.agentReportingProtocol match {
-      case Some(protocol) => entry +=! (A_AGENT_REPORTING_PROTOCOL, protocol.value)
+      case Some(protocol) => entry.resetValuesTo(A_AGENT_REPORTING_PROTOCOL, protocol.value)
       case _ =>
     }
 
     // for node properties, we ALWAYS filter-out properties coming from inventory,
     // because we don't want to store them there.
-    entry +=! (A_NODE_PROPERTY, node.properties.collect { case p if(p.provider != Some(NodeProperty.customPropertyProvider)) => p.toData}:_* )
+    entry.resetValuesTo(A_NODE_PROPERTY, node.properties.collect { case p if (p.provider != Some(NodeProperty.customPropertyProvider)) => p.toData}:_* )
 
     node.nodeReportingConfiguration.heartbeatConfiguration match {
       case Some(heatbeatConfiguration) =>
@@ -140,13 +140,13 @@ class LDAPEntityMapper(
           ( "overrides"       -> heatbeatConfiguration.overrides ) ~
           ( "heartbeatPeriod" -> heatbeatConfiguration.heartbeatPeriod)
         }
-        entry +=! (A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, compactRender(json))
+        entry.resetValuesTo(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, compactRender(json))
       case _ => // Save nothing if missing
     }
 
     for {
       mode <- node.policyMode
-    } entry += (A_POLICY_MODE, mode.name)
+    } entry.addValues(A_POLICY_MODE, mode.name)
 
     entry
   }
@@ -477,9 +477,9 @@ class LDAPEntityMapper(
    */
   def activeTechniqueCategory2ldap(category:ActiveTechniqueCategory, parentDN:DN) = {
     val entry = rudderDit.ACTIVE_TECHNIQUES_LIB.activeTechniqueCategoryModel(category.id.value, parentDN)
-    entry +=! (A_NAME, category.name)
-    entry +=! (A_DESCRIPTION, category.description)
-    entry +=! (A_IS_SYSTEM, category.isSystem.toLDAPString)
+    entry.resetValuesTo(A_NAME, category.name)
+    entry.resetValuesTo(A_DESCRIPTION, category.description)
+    entry.resetValuesTo(A_IS_SYSTEM, category.isSystem.toLDAPString)
     entry
   }
 
@@ -561,9 +561,9 @@ class LDAPEntityMapper(
    */
   def nodeGroupCategory2ldap(category:NodeGroupCategory, parentDN:DN) = {
     val entry = rudderDit.GROUP.groupCategoryModel(category.id.value, parentDN)
-    entry +=! (A_NAME, category.name)
-    entry +=! (A_DESCRIPTION, category.description)
-    entry +=! (A_IS_SYSTEM, category.isSystem.toLDAPString)
+    entry.resetValuesTo(A_NAME, category.name)
+    entry.resetValuesTo(A_DESCRIPTION, category.description)
+    entry.resetValuesTo(A_IS_SYSTEM, category.isSystem.toLDAPString)
     entry
   }
 
@@ -627,7 +627,7 @@ class LDAPEntityMapper(
     if(ApplicationLogger.isDebugEnabled && props.size != group.properties.size) {
       ApplicationLogger.debug(s"Some properties from group '${group.name}' (${group.id.value}) were ignored because their name was blank and it's forbidden")
     }
-    entry +=! (A_JSON_PROPERTY, props:_* )
+    entry.resetValuesTo(A_JSON_PROPERTY, props:_* )
     entry
   }
 
@@ -706,15 +706,15 @@ class LDAPEntityMapper(
         parentDN
     )
 
-    entry +=! (A_DIRECTIVE_VARIABLES, policyVariableToSeq(directive.parameters):_*)
-    entry +=! (A_NAME, directive.name)
-    entry +=! (A_DESCRIPTION, directive.shortDescription)
-    entry +=! (A_LONG_DESCRIPTION, directive.longDescription.toString)
-    entry +=! (A_PRIORITY, directive.priority.toString)
-    entry +=! (A_IS_ENABLED, directive.isEnabled.toLDAPString)
-    entry +=! (A_IS_SYSTEM, directive.isSystem.toLDAPString)
-    directive.policyMode.foreach ( mode => entry +=! (A_POLICY_MODE, mode.name) )
-    entry +=! (A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(directive.tags)))
+    entry.resetValuesTo(A_DIRECTIVE_VARIABLES, policyVariableToSeq(directive.parameters):_*)
+    entry.resetValuesTo(A_NAME, directive.name)
+    entry.resetValuesTo(A_DESCRIPTION, directive.shortDescription)
+    entry.resetValuesTo(A_LONG_DESCRIPTION, directive.longDescription.toString)
+    entry.resetValuesTo(A_PRIORITY, directive.priority.toString)
+    entry.resetValuesTo(A_IS_ENABLED, directive.isEnabled.toLDAPString)
+    entry.resetValuesTo(A_IS_SYSTEM, directive.isSystem.toLDAPString)
+    directive.policyMode.foreach ( mode => entry.resetValuesTo(A_POLICY_MODE, mode.name) )
+    entry.resetValuesTo(A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(directive.tags)))
     entry
   }
 
@@ -814,11 +814,11 @@ class LDAPEntityMapper(
       , rule.categoryId.value
     )
 
-    entry +=! (A_RULE_TARGET, rule.targets.map( _.target).toSeq :_* )
-    entry +=! (A_DIRECTIVE_UUID, rule.directiveIds.map( _.value).toSeq :_* )
-    entry +=! (A_DESCRIPTION, rule.shortDescription)
-    entry +=! (A_LONG_DESCRIPTION, rule.longDescription.toString)
-    entry +=! (A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(rule.tags)))
+    entry.resetValuesTo(A_RULE_TARGET, rule.targets.map( _.target).toSeq :_* )
+    entry.resetValuesTo(A_DIRECTIVE_UUID, rule.directiveIds.map( _.value).toSeq :_* )
+    entry.resetValuesTo(A_DESCRIPTION, rule.shortDescription)
+    entry.resetValuesTo(A_LONG_DESCRIPTION, rule.longDescription.toString)
+    entry.resetValuesTo(A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(rule.tags)))
 
     entry
   }
@@ -931,28 +931,28 @@ class LDAPEntityMapper(
 
   def apiAccount2Entry(principal:ApiAccount) : LDAPEntry = {
     val mod = LDAPEntry(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id))
-    mod +=! (A_OC, OC.objectClassNames(OC_API_ACCOUNT).toSeq:_*)
-    mod +=! (A_API_UUID, principal.id.value)
-    mod +=! (A_NAME, principal.name.value)
-    mod +=! (A_CREATION_DATETIME, GeneralizedTime(principal.creationDate).toString)
-    mod +=! (A_API_TOKEN, principal.token.value)
-    mod +=! (A_API_TOKEN_CREATION_DATETIME, GeneralizedTime(principal.tokenGenerationDate).toString)
-    mod +=! (A_DESCRIPTION, principal.description)
-    mod +=! (A_IS_ENABLED, principal.isEnabled.toLDAPString)
-    mod +=! (A_API_KIND, principal.kind.kind.name)
+    mod.resetValuesTo(A_OC, OC.objectClassNames(OC_API_ACCOUNT).toSeq:_*)
+    mod.resetValuesTo(A_API_UUID, principal.id.value)
+    mod.resetValuesTo(A_NAME, principal.name.value)
+    mod.resetValuesTo(A_CREATION_DATETIME, GeneralizedTime(principal.creationDate).toString)
+    mod.resetValuesTo(A_API_TOKEN, principal.token.value)
+    mod.resetValuesTo(A_API_TOKEN_CREATION_DATETIME, GeneralizedTime(principal.tokenGenerationDate).toString)
+    mod.resetValuesTo(A_DESCRIPTION, principal.description)
+    mod.resetValuesTo(A_IS_ENABLED, principal.isEnabled.toLDAPString)
+    mod.resetValuesTo(A_API_KIND, principal.kind.kind.name)
 
     principal.kind match {
       case ApiAccountKind.PublicApi(authz, exp) =>
         exp.foreach { e =>
-          mod +=! (A_API_EXPIRATION_DATETIME, GeneralizedTime(e).toString())
+          mod.resetValuesTo(A_API_EXPIRATION_DATETIME, GeneralizedTime(e).toString())
         }
         //authorisation
         authz match {
           case ApiAuthorization.ACL(acl) =>
-            mod +=! (A_API_AUTHZ_KIND, authz.kind.name)
-            mod +=! (A_API_ACL, serApiAcl(acl))
+            mod.resetValuesTo(A_API_AUTHZ_KIND, authz.kind.name)
+            mod.resetValuesTo(A_API_ACL, serApiAcl(acl))
           case x =>
-            mod +=! (A_API_AUTHZ_KIND, x.kind.name)
+            mod.resetValuesTo(A_API_AUTHZ_KIND, x.kind.name)
         }
       case _ => //nothing to add
     }
@@ -987,10 +987,10 @@ class LDAPEntityMapper(
     val entry = rudderDit.PARAMETERS.parameterModel(
         parameter.name
     )
-    entry +=! (A_PARAMETER_VALUE, parameter.value.serializeGlobalParameter)
-    entry +=! (A_DESCRIPTION, parameter.description)
+    entry.resetValuesTo(A_PARAMETER_VALUE, parameter.value.serializeGlobalParameter)
+    entry.resetValuesTo(A_DESCRIPTION, parameter.description)
     parameter.provider.foreach(p =>
-      entry +=! (A_PROPERTY_PROVIDER, p.value)
+      entry.resetValuesTo(A_PROPERTY_PROVIDER, p.value)
     )
     entry
   }
@@ -1018,8 +1018,8 @@ class LDAPEntityMapper(
     val entry = rudderDit.APPCONFIG.propertyModel(
         property.name
     )
-    entry +=! (A_PROPERTY_VALUE, property.value)
-    entry +=! (A_DESCRIPTION, property.description)
+    entry.resetValuesTo(A_PROPERTY_VALUE, property.value)
+    entry.resetValuesTo(A_DESCRIPTION, property.description)
     entry
   }
 

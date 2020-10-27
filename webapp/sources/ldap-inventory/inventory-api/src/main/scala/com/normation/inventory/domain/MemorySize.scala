@@ -47,7 +47,7 @@ package com.normation.inventory.domain
 final case class MemorySize(size:Long) extends AnyVal with Comparable[MemorySize] {
   override def toString() = "%s B".format(size)
 
-  def toStringMo() = {
+  def toStringMo = {
     val (value,unit) = MemorySize.prettyMo(this)
     value + " " + unit
   }

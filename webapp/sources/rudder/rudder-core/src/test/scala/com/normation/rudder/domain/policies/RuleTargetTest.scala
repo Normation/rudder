@@ -81,12 +81,12 @@ class RuleTargetTest extends Specification with Loggable {
       )
   )).toList
 
-  val unionTargets = groups.subsets.map{ gs =>
+  val unionTargets = groups.subsets().map{ gs =>
     val union = TargetUnion(gs.map(g => GroupTarget(g.id)))
     val serverList = gs.foldLeft(Set[NodeId]()) { case (res, g) => g.serverList union res}
     (union,serverList)
   }.toSet
-  val interTargets = groups.subsets.map{gs =>
+  val interTargets = groups.subsets().map{gs =>
     val inter =  TargetIntersection(gs.map(g => GroupTarget(g.id)))
     val serverList = gs.foldLeft(allNodeIds) { case (res, g) => g.serverList intersect res}
     (inter,serverList)

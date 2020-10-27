@@ -86,9 +86,9 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
     case r::_ =>
       //update RDN attribute content
       //start to delete old values, and then add new one (corner case with multivaluated attrs in rdn
-      for(attr:String <- r.getAttributeNames.toSet) this -= attr
+      for(attr:String <- r.getAttributeNames.toSet) this deleteAttribute attr
       for(i <- 0 until r.getAttributeNames.size) {
-        this += (r.getAttributeNames()(i),r.getAttributeValues()(i))
+        this.addValues(r.getAttributeNames()(i),r.getAttributeValues()(i))
       }
       Some(r)
     case _ => None
@@ -220,7 +220,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
    * attribute with given name is removed.
    * In all case, null and empty values are removed.
    */
-  def +=!(attributeName:String, values:String*) = {
+  def resetValuesTo(attributeName:String, values:String*) = {
     values match {
       case null =>
         _backed.removeAttribute(attributeName)
@@ -235,12 +235,13 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
   }
 
   /** add given value(s) to given attribute. Create the attribute if does not exist */
-  def +=(attribute:Attribute) =  _backed.addAttribute(attribute)
+  def mergeAttribute(attribute:Attribute) =  _backed.addAttribute(attribute)
 
-  def +=(attributeName:String, values:String*) =  _backed.addAttribute(new Attribute(attributeName, values.asJava))
+  /** add given attribute. If already present, existing values will be merged */
+  def addValues(attributeName:String, values:String*) =  _backed.addAttribute(new Attribute(attributeName, values.asJava))
 
   /** remove attribute */
-  def -=(attributeName:String) = _backed.removeAttribute(attributeName)
+  def deleteAttribute(attributeName:String) = _backed.removeAttribute(attributeName)
 
   //////  Standard methods (toString/equal etc) and LDIF method  //////
 
@@ -257,8 +258,8 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
    */
   def  setOpt[A](a:Option[A], attributeName:String, f:A => String) : Unit = {
     a match {
-      case None => this -= attributeName
-      case Some(x) => this +=! (attributeName, f(x))
+      case None => this.deleteAttribute(attributeName)
+      case Some(x) => this.resetValuesTo(attributeName, f(x))
     }
     () // unit is expected
   }
@@ -337,7 +338,7 @@ object LDAPEntry {
     val emptyAttrs = Buffer[String]()
     for(a <- target.attributes.toSeq) {
       if(!a.hasValue) {
-        target -= a.getName //remove the attribute
+        target deleteAttribute a.getName //remove the attribute
         emptyAttrs += a.getName
       }
     }

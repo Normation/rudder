@@ -52,10 +52,10 @@ class ClearCache extends DispatchSnippet with Loggable {
   private[this] val clearCacheService = RudderConfig.clearCacheService
 
   def dispatch = {
-    case "render" => clearCache
+    case "render" => clearCache()
   }
 
-  def clearCache : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+  def clearCache() : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
 
     // our process method returns a
     // JsCmd which will be sent back to the browser
@@ -69,7 +69,7 @@ class ClearCache extends DispatchSnippet with Loggable {
           JsRaw("""createSuccessNotification("Caches were successfully cleared")""")
 
       }
-      Replace("clearCacheForm", outerXml.applyAgain) & createNotification
+      Replace("clearCacheForm", outerXml.applyAgain()) & createNotification
     }
 
     //process the list of networks

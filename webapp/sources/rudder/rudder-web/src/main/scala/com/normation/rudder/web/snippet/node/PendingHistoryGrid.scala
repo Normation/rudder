@@ -91,7 +91,7 @@ object PendingHistoryGrid extends Loggable {
           var sOut = '<span id="'+id+'" class="sgridbph"/>';
           return sOut;
         }
-      """.replaceAll("#table_var#",jsVarNameForId)) &  OnLoad(
+      """.replaceAll("#table_var#",jsVarNameForId())) &  OnLoad(
         JsRaw("""
          #table_var# =  $('#pending_server_history').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
@@ -115,7 +115,7 @@ object PendingHistoryGrid extends Loggable {
           });
           $('.dataTables_filter input').attr("placeholder", "Filter");
           $("#new_servers_tab").tabs();
-          """.replaceAll("#table_var#",jsVarNameForId)
+          """.replaceAll("#table_var#",jsVarNameForId())
         ) & initJsCallBack(entries)
        )
   }
@@ -167,7 +167,7 @@ object PendingHistoryGrid extends Loggable {
         logger.error("I wanted a refuse node or accept node event, and got: " + ev)
         NodeSeq.Empty
     }
-    ("#history_lines" #> lines) apply (template)
+    ("#history_lines" #> lines) apply (template())
 
   }
 
@@ -205,7 +205,7 @@ object PendingHistoryGrid extends Loggable {
                 })
           """.format(
           SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory(deletedNodes) _)._2.toJsCmd).replaceAll("#table_var#",
-              jsVarNameForId))
+              jsVarNameForId()))
   }
 
   def displayPastInventory(deletedNodes : Map[NodeId, Seq[EventLog]])(s : String) : JsCmd = {

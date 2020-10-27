@@ -165,7 +165,10 @@ limitations under the License.
             <arg>-language:higherKinds</arg>         <!-- Allow higher-kinded types -->
             <arg>-language:implicitConversions</arg> <!-- Allow definition of implicit functions called views -->
             <arg>-Xcheckinit</arg>                   <!--  Wrap field accessors to throw an exception on uninitialized access. -->
-            <arg>-Xlint:_,-nonlocal-return,-nullary-unit,-missing-interpolator</arg> <!-- Xlint, minus non-local returns, nullary-units and missing interpolator (which brings false positive in Rudder) -->
+            <!-- Xlint, minus non-local returns, nullary-units and missing interpolator (which brings false positive in Rudder).
+                 For -byname-implicit, it's because of Doobie, see: https://gitter.im/tpolecat/doobie?at=5f59e618765d633c54e74d52
+            -->
+            <arg>-Xlint:_,-nonlocal-return,-nullary-unit,-missing-interpolator,-byname-implicit</arg>
             <arg>-Ywarn-dead-code</arg>              <!-- Warn when dead code is identified. -->
             <arg>-Ywarn-extra-implicit</arg>         <!-- Warn when more than one implicit parameter section is defined. -->
             <arg>-Ywarn-numeric-widen</arg>          <!-- Warn when numerics are widened. -->
@@ -349,7 +352,7 @@ limitations under the License.
     <rudder-major-version>6.2</rudder-major-version>
     <rudder-version>6.2.0~alpha1-SNAPSHOT</rudder-version>
 
-    <scala-version>2.13.2</scala-version>
+    <scala-version>2.13.3</scala-version>
     <scala-binary-version>2.13</scala-binary-version>
     <scala-xml-version>1.3.0</scala-xml-version>
     <lift-version>3.4.2</lift-version>
@@ -368,7 +371,7 @@ limitations under the License.
     <cglib-version>3.3.0</cglib-version>
     <asm-version>5.2</asm-version>
     <bcpkix-jdk15on-version>1.66</bcpkix-jdk15on-version>
-    <silencer-lib-version>1.6.0</silencer-lib-version>
+    <silencer-lib-version>1.7.1</silencer-lib-version>
     <better-files-version>3.9.1</better-files-version>
     <sourcecode-version>0.2.1</sourcecode-version>
     <quicklens-version>1.6.1</quicklens-version>

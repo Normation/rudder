@@ -122,7 +122,7 @@ class ComplianceTest extends Specification {
    */
   def read(filename:String, headers: List[String]): Box[List[Array[String]]] = {
     val is = this.getClass().getClassLoader().getResourceAsStream(filename)
-    val sqlLines = Source.fromInputStream(is).getLines.toList
+    val sqlLines = Source.fromInputStream(is).getLines().toList
     sqlLines match {
       case Nil | _ :: Nil | _ :: _ :: Nil =>
         Failure(s"The file ${filename} is empty or contains only headers")

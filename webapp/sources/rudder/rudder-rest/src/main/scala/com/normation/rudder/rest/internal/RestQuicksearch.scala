@@ -182,7 +182,7 @@ class RestQuicksearch (
        s"${t.originalNumber} found, only displaying the first ${t.returnedNumber}. Please refine your query."
     }
 
-    def toJson(): JObject = {
+    def toJson: JObject = {
       (
           ("type"    -> t.tpe.capitalize)
         ~ ("summary" -> desc            )
@@ -198,7 +198,7 @@ class RestQuicksearch (
     import com.normation.rudder.domain.policies.RuleId
     import com.normation.rudder.services.quicksearch.QuickSearchResultId._
 
-    def toJson(): JObject = {
+    def toJson: JObject = {
       import linkUtil._
       val url = r.id match {
         case QRNodeId(v)      => nodeLink(NodeId(v))

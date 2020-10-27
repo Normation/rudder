@@ -231,7 +231,7 @@ class EventLogDetailsGenerator(
   def displayDetails(event:EventLog,changeRequestId:Option[ChangeRequestId]): NodeSeq = {
 
     val groupLib = nodeGroupRepository.getFullGroupLibrary().toBox.openOr(return <div class="error">System error when trying to get the group library</div>)
-    val rootRuleCategory = ruleCatRepository.getRootCategory.toBox.openOr(return <div class="error">System error when trying to get the rule categories</div>)
+    val rootRuleCategory = ruleCatRepository.getRootCategory().toBox.openOr(return <div class="error">System error when trying to get the rule categories</div>)
 
     val generatedByChangeRequest =
       changeRequestId match {
@@ -599,7 +599,7 @@ class EventLogDetailsGenerator(
                 (
                   ".diffOldValue *" #> networksToXML(details.oldNetworks) &
                     ".diffNewValue *" #> networksToXML(details.newNetworks)
-                  )(authorizedNetworksXML)
+                  )(authorizedNetworksXML())
                 }
                 { reasonHtml }
                 { xmlParameters(event.id) }

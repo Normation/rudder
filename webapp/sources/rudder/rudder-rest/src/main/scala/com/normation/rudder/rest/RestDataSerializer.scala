@@ -293,7 +293,6 @@ final case class RestDataSerializerImpl (
   def serializeRuleChange(change : RuleChange): Box[JValue] = {
 
     def serializeRuleDiff(diff:ModifyRuleDiff,initialState:Rule) : JValue= {
-      implicit def convert[T] (value : T) : JValue = value
       def convertDirectives(dl : Set[DirectiveId]) : JValue = dl.map(_.value).toList
       def convertTargets(t : Set[RuleTarget]) : JValue = t.map(_.target).toList
 
@@ -396,7 +395,7 @@ final case class RestDataSerializerImpl (
   def serializeGroupChange(change : NodeGroupChange, apiVersion: ApiVersion): Box[JValue] = {
 
     def serializeNodeGroupDiff(diff:ModifyNodeGroupDiff,initialState:NodeGroup) : JValue= {
-      implicit def convert[T] (value : T) : JValue = value
+      implicit def convert[T] (value : GroupProperty) : JValue = value.toJson
       def convertNodeList(nl : Set[NodeId]) : JValue = nl.map(_.value).toList
       def convertQuery(q : Option[Query]) : JValue = q.map(_.toString)
 
@@ -406,7 +405,7 @@ final case class RestDataSerializerImpl (
       val serverList :JValue  = diff.modNodeList.map(displaySimpleDiff(_)(convertNodeList)).getOrElse(initialState.serverList.map(v => (v.value)).toList)
       val dynamic :JValue     = diff.modIsDynamic.map(displaySimpleDiff(_)).getOrElse(initialState.isDynamic)
       val enabled :JValue     = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
-      val properties: JValue  = diff.modProperties.map(displaySimpleDiff(_)).getOrElse(initialState.properties.toApiJson())
+      val properties: JValue  = diff.modProperties.map(displaySimpleDiff(_)).getOrElse(initialState.properties.toApiJson)
 
       ( ("id"          -> initialState.id.value)
       ~ ("displayName" -> name)
@@ -455,7 +454,6 @@ final case class RestDataSerializerImpl (
     def serializeDirectiveDiff(diff:ModifyDirectiveDiff,initialState:Directive, technique:Technique, initialRootSection: SectionSpec) : Box[JValue] = {
       // This is in a try/catch because directiveValToSectionVal may fail (it can throw exceptions, so we need to catch them)
       try {
-        implicit def convert[T] (value : T) : JValue =  value
         def convertParameters(sv : SectionVal) : JValue = serializeSectionVal(sv)
         val name :JValue             = diff.modName.map(displaySimpleDiff(_) ).getOrElse(initialState.name)
         val shortDescription :JValue = diff.modShortDescription.map(displaySimpleDiff(_)).getOrElse(initialState.shortDescription)
@@ -576,7 +574,7 @@ object ApiAccountSerialisation {
 
 
   implicit class Json(val account: ApiAccount) extends AnyVal {
-    def toJson(): JObject = {
+    def toJson: JObject = {
       val (expirationDate, authzType, acl) :  (Option[String],Option[String],Option[List[JsonApiAcl]]) = {
         account.kind match {
           case User | System => (None,None,None)

@@ -261,7 +261,7 @@ class RoLDAPNodeGroupRepository(
 
   def getParents_NodeGroupCategory(id:NodeGroupCategoryId) : IOResult[List[NodeGroupCategory]] = {
      //TODO : LDAPify that, we can have the list of all DN from id to root at the begining (just dn.getParent until rudderDit.NOE_GROUP.dn)
-    if(id == getRootCategory.id) Nil.succeed
+    if(id == getRootCategory().id) Nil.succeed
     else getParentGroupCategory(id).flatMap(parent =>
            getParents_NodeGroupCategory(parent.id).map(parents => parent :: parents)
          )
@@ -297,7 +297,7 @@ class RoLDAPNodeGroupRepository(
   def getCategoryHierarchy : IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
     for {
       allCats      <- getAllNonSystemCategories()
-      rootCat      =  getRootCategory
+      rootCat      =  getRootCategory()
       catsWithUPs  <- ZIO.foreach(allCats) { ligthCat =>
                         (for {
                           category <- getGroupCategory(ligthCat.id)

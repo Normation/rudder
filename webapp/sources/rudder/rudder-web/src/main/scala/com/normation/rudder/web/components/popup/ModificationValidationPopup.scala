@@ -215,7 +215,7 @@ class ModificationValidationPopup(
   private[this] val getGroupLib              = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
   def dispatch = {
-    case "popupContent" => { _ => popupContent }
+    case "popupContent" => { _ => popupContent() }
   }
 
   private[this] val disabled = item match {
@@ -633,7 +633,7 @@ class ModificationValidationPopup(
 
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
-    updateFormClientSide & JsRaw("""scrollToElementPopup('#notifications', 'confirmUpdateActionDialogconfirmUpdateActionDialog')""")
+    updateFormClientSide() & JsRaw("""scrollToElementPopup('#notifications', 'confirmUpdateActionDialogconfirmUpdateActionDialog')""")
   }
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {

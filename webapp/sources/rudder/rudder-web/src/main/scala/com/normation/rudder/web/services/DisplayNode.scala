@@ -105,7 +105,7 @@ object DisplayNode extends Loggable {
                          }
       nodeCompliance  <- asyncComplianceService.nodeCompliance(node.id, rules)
     } yield {
-      ComplianceLevelSerialisation.ComplianceLevelToJs(nodeCompliance).toJsArray()
+      ComplianceLevelSerialisation.ComplianceLevelToJs(nodeCompliance).toJsArray
     }
   }
 
@@ -718,7 +718,7 @@ object DisplayNode extends Loggable {
         ("PID", {x:Process => Text(x.pid.toString())}) ::
         ("% CPU", {x:Process => ?(x.cpuUsage.map(_.toString()))}) ::
         ("% Memory", {x:Process => ?(x.memory.map(_.toString()))}) ::
-        ("Virtual memory", {x:Process => ?(x.virtualMemory.map(memory => MemorySize(memory.toLong).toStringMo()))}) ::
+        ("Virtual memory", {x:Process => ?(x.virtualMemory.map(memory => MemorySize(memory.toLong).toStringMo))}) ::
         ("TTY", {x:Process => ?(x.tty)}) ::
         ("Started on", {x:Process => ?(x.started)}) ::
         ("Command", { x:Process => ?(x.commandName) }) ::
@@ -859,7 +859,7 @@ object DisplayNode extends Loggable {
       <div style="margin-top:7px">
         <span >
           {
-            SHtml.ajaxButton("Cancel", { () => { toggleDeletion } } , ("class", "btn btn-default"))
+            SHtml.ajaxButton("Cancel", { () => { toggleDeletion() } } , ("class", "btn btn-default"))
           }
           {
             SHtml.ajaxButton("Confirm", { () => {removeNode(nodeId) }}, ("class", "btn btn-danger") )

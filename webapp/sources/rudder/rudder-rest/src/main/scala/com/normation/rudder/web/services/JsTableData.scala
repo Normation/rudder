@@ -55,7 +55,7 @@ trait JsTableLine extends Loggable {
   def escapeHTML(s: String): JsExp = JsExp.strToJsExp(xml.Utility.escape(s))
 
   import com.normation.rudder.domain.reports.ComplianceLevelSerialisation._
-  def jsCompliance(compliance: ComplianceLevel) = compliance.toJsArray()
+  def jsCompliance(compliance: ComplianceLevel) = compliance.toJsArray
 
 }
 

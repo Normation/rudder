@@ -317,7 +317,7 @@ class ReportDisplayer(
       } else {
       for {
         report       <- getReports(node.id)
-        directiveLib <- directiveRepository.getFullDirectiveLibrary.toBox
+        directiveLib <- directiveRepository.getFullDirectiveLibrary().toBox
       } yield {
 
         val runDate : Option[DateTime] = report.runInfo match {
@@ -468,7 +468,7 @@ class ReportDisplayer(
 
   private[this] def getComplianceData(nodeId: NodeId, reportStatus: NodeStatusReport) = {
     for {
-      directiveLib <- directiveRepository.getFullDirectiveLibrary.toBox
+      directiveLib <- directiveRepository.getFullDirectiveLibrary().toBox
       allNodeInfos <- getAllNodeInfos()
       rules        <- ruleRepository.getAll(true).toBox
       globalMode   <- configService.rudder_global_policy_mode().toBox

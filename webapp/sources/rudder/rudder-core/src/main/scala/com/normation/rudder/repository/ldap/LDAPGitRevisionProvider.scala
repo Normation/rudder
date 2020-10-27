@@ -85,7 +85,7 @@ class LDAPGitRevisionProvider(
       entry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_TECHNIQUE_LIB_VERSION)
     } yield {
       entry.flatMap(_(A_TECHNIQUE_LIB_VERSION))
-    }) foldM(
+    }).foldM(
       err =>
         logPure.error(s"Error when trying to read persisted version of the current technique " +
           s"reference library revision to use. Using the last available from Git. Error was: ${err.fullMsg}") *> setID
@@ -114,8 +114,8 @@ class LDAPGitRevisionProvider(
       res <- opt match {
                case None       => logPure.error("The root entry of the user template library was not found, the current revision won't be persisted") *> UIO.unit
                case Some(root) =>
-                 root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
-                 root +=! (A_TECHNIQUE_LIB_VERSION, id.getName)
+                 root.addValues(A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
+                 root.resetValuesTo(A_TECHNIQUE_LIB_VERSION, id.getName)
                  con.save(root).unit
              }
     } yield {

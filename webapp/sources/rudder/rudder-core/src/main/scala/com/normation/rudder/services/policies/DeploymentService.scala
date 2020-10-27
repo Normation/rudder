@@ -237,7 +237,7 @@ trait PromiseGenerationService {
              allRules             <- findDependantRules() ?~! "Could not find dependant rules"
              fetch1Time           =  System.currentTimeMillis
              _                    =  PolicyGenerationLogger.timing.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
-             allNodeInfos         <- getAllNodeInfos.map( _.filter { case(_,n) =>
+             allNodeInfos         <- getAllNodeInfos().map( _.filter { case(_,n) =>
                                        if(n.state == NodeState.Ignored) {
                                          PolicyGenerationLogger.debug(s"Skipping node '${n.id.value}' because the node is in state '${n.state.name}'")
                                          false
@@ -254,11 +254,11 @@ trait PromiseGenerationService {
              allParameters        <- getAllGlobalParameters ?~! "Could not get global parameters"
              fetch5Time           =  System.currentTimeMillis
              _                    =  PolicyGenerationLogger.timing.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time} ms")
-             globalAgentRun       <- getGlobalAgentRun
+             globalAgentRun       <- getGlobalAgentRun()
              fetch6Time           =  System.currentTimeMillis
              _                    =  PolicyGenerationLogger.timing.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
              scriptEngineEnabled  <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
-             globalComplianceMode <- getGlobalComplianceMode
+             globalComplianceMode <- getGlobalComplianceMode()
              globalPolicyMode     <- getGlobalPolicyMode() ?~! "Cannot get the Global Policy Mode (Enforce or Verify)"
              nodeConfigCaches     <- getNodeConfigurationHash() ?~! "Cannot get the Configuration Cache"
              allNodeModes         =  buildNodeModes(allNodeInfos, globalComplianceMode, globalAgentRun, globalPolicyMode)
@@ -756,7 +756,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def getGlobalPolicyMode: () => Box[GlobalPolicyMode]
 
   override def findDependantRules() : Box[Seq[Rule]] = roRuleRepo.getAll(true).toBox
-  override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = nodeInfoService.getAll
+  override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = nodeInfoService.getAll()
   override def getDirectiveLibrary(): Box[FullActiveTechniqueCategory] = roDirectiveRepository.getFullDirectiveLibrary().toBox
   override def getGroupLibrary(): Box[FullNodeGroupCategory] = roNodeGroupRepository.getFullGroupLibrary().toBox
   override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = parameterService.getAllGlobalParameters()

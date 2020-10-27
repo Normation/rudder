@@ -142,7 +142,7 @@ class ShowNodeDetailsFromNode(
      () => getSchedule(nodeInfo)
      , saveSchedule(nodeInfo)
      , () => ()
-     , () => Some(getGlobalSchedule)
+     , () => Some(getGlobalSchedule())
    )
 
   def nodeStateEditForm(nodeInfo: NodeInfo) = new NodeStateForm(
@@ -166,10 +166,10 @@ class ShowNodeDetailsFromNode(
 
   def getGlobalSchedule() : Box[AgentRunInterval] = {
     for {
-      starthour <- configService.agent_run_start_hour
-      startmin  <- configService.agent_run_start_minute
-      splaytime <- configService.agent_run_splaytime
-      interval  <- configService.agent_run_interval
+      starthour <- configService.agent_run_start_hour()
+      startmin  <- configService.agent_run_start_minute()
+      splaytime <- configService.agent_run_splaytime()
+      interval  <- configService.agent_run_interval()
     } yield {
       AgentRunInterval(
             None
@@ -183,7 +183,7 @@ class ShowNodeDetailsFromNode(
 
   val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
   def getSchedule(nodeInfo : NodeInfo) : Box[AgentRunInterval] = {
-     Full( nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule.getOrElse(emptyInterval)))
+     Full( nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule().getOrElse(emptyInterval)))
   }
 
   def saveSchedule(nodeInfo : NodeInfo)( schedule: AgentRunInterval) : Box[Unit] = {

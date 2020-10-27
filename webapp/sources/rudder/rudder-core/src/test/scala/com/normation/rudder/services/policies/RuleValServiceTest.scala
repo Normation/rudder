@@ -116,7 +116,7 @@ class RuleValServiceTest extends Specification {
       , ""
       , AgentConfig(AgentType.CfeCommunity, Nil, Nil, Nil, Nil) :: Nil
       , TrackerVariableSpec(None)
-      , makeRootSectionSpec
+      , makeRootSectionSpec()
       , None
       , Set()
       , false

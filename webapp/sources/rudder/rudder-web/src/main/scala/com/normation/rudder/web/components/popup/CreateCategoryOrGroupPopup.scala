@@ -93,7 +93,7 @@ class CreateCategoryOrGroupPopup(
   var createContainer = false //issue #1190 always create a group by default
 
   def dispatch = {
-    case "popupContent" => { _ => popupContent }
+    case "popupContent" => { _ => popupContent() }
   }
 
   /**

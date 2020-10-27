@@ -78,7 +78,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
    */
   def sqlInit : String = {
     val is = this.getClass().getClassLoader().getResourceAsStream("reportsSchema.sql")
-    val sqlText = Source.fromInputStream(is).getLines.toSeq
+    val sqlText = Source.fromInputStream(is).getLines().toSeq
       .filterNot{ line => val s = line.trim(); s.isEmpty || s.startsWith("/*") || s.startsWith("*") }
       .map(s =>
         s
@@ -104,8 +104,8 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
    */
   def sqlClean : String = ""
 
-  override def beforeAll(): Unit = initDb
-  override def afterAll(): Unit = cleanDb
+  override def beforeAll(): Unit = initDb()
+  override def afterAll(): Unit = cleanDb()
 
   def initDb() = {
     if(sqlInit.trim.size > 0) {

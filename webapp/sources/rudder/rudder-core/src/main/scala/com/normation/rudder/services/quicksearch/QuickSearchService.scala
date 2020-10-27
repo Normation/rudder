@@ -77,7 +77,7 @@ class FullQuickSearchService(implicit
    */
   def search(token: String): Box[Set[QuickSearchResult]] = {
     for {
-      query   <- token.parse
+      query   <- token.parse()
       _       =  logger.debug(s"User query for '${token}', parsed as user query: '${query.userToken}' on objects: " +
                  s"'${query.objectClass.mkString(", ")}' and attributes '${query.attributes.mkString(", ")}'")
       results <- sequence(QSBackend.all.toSeq) { b =>

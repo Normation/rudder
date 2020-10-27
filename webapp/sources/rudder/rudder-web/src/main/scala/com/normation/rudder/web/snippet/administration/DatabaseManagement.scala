@@ -126,12 +126,12 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     SetHtml("oldestEntry", displayInProgress(reportsInterval.map( _._1 ))) &
     SetHtml("newestEntry", displayInProgress(reportsInterval.map( _._2 ))) &
     SetHtml("databaseSize" , databaseManager.getDatabaseSize().map(x =>
-      Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database"))
+      Text(MemorySize(x).toStringMo)).openOr(Text("Could not compute the size of the database"))
     ) &
     SetHtml("oldestArchivedEntry", displayInProgress(archivedReportsInterval.map( _._1 ))) &
     SetHtml("newestArchivedEntry", displayInProgress(archivedReportsInterval.map( _._2 ))) &
     SetHtml("archiveSize", databaseManager.getArchiveSize().map(x =>
-      Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database"))
+      Text(MemorySize(x).toStringMo)).openOr(Text("Could not compute the size of the database"))
     ) &
     SetHtml("archiveProgress", Text(archiveAction.progress)) &
     SetHtml("deleteProgress", Text(deleteAction.progress)) &
