@@ -97,24 +97,26 @@
 #
 #
 # @parameter source_template Source file containing a template to be expanded (absolute path on the target node)
-# @parameter destination     Destination file (absolute path on the target node)
+# @parameter path            Destination file (absolute path on the target node)
 # @parameter template_type   Template type (cfengine, jinja2 or mustache)
 #
+# @parameter_name path destination
+#
 # @class_prefix file_from_template
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_from_template_type(source_template, destination, template_type)
+bundle agent file_from_template_type(source_template, path, template_type)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_from_template_${destination}");
+      "old_class_prefix"  string => canonify("file_from_template_${path}");
 
-      "args"               slist => { "${source_template}", "${destination}", "${template_type}" };
+      "args"               slist => { "${source_template}", "${path}", "${template_type}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_from_template_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       # Only used in the jinja2 case
-      "full_inner_class_prefix" string => canonify("file_from_template_${source_template}_${destination}");
+      "full_inner_class_prefix" string => canonify("file_from_template_${source_template}_${path}");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
       # allow to avoid resolving the jinja2 bundle when not using jinja2, because of the special requirements
@@ -127,7 +129,7 @@ bundle agent file_from_template_type(source_template, destination, template_type
       "should_report"    expression => "${report_data.should_report}";
 
   files:
-    "${destination}"
+    "${path}"
       create          => "true",
       edit_template   => "${source_template}",
       template_method => "${template_type}",
@@ -138,7 +140,7 @@ bundle agent file_from_template_type(source_template, destination, template_type
   methods:
       "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
     is_jinja2.template_exists::
-      "template" usebundle => ${jinja2_bundle_name}("${source_template}", "${destination}");
+      "template" usebundle => ${jinja2_bundle_name}("${source_template}", "${path}");
 
     any::
       "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
@@ -150,11 +152,11 @@ bundle agent file_from_template_type(source_template, destination, template_type
 
     is_jinja2.template_exists::
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
-      "report" usebundle => _log_v3("Build file ${destination} from ${template_type} template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log_v3("Build file ${path} from ${template_type} template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     !(is_jinja2.template_exists)::
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Build file ${destination} from ${template_type} type template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Build file ${path} from ${template_type} type template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

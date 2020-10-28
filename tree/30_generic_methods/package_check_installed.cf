@@ -22,22 +22,24 @@
 # package is installed, or `package_check_installed_${file_name}_{not_ok, reached, not_kept, failed}` if
 # the package is not installed
 #
-# @parameter package_name Name of the package to check
+# @parameter name Name of the package to check
+#
+# @parameter_name name package_name
 #
 # @class_prefix package_check_installed
-# @class_parameter package_name
+# @class_parameter name
 
-bundle agent package_check_installed(package_name)
+bundle agent package_check_installed(name)
 {
   vars:
-      "old_class_prefix"        string => canonify("package_check_installed_${package_name}");
-      "args"                     slist => { "${package_name}" };
+      "old_class_prefix"        string => canonify("package_check_installed_${name}");
+      "args"                     slist => { "${name}" };
 
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("package_check_installed_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
-      "full_inner_class_prefix" string => canonify("package_install_${package_name}____latest_verify_false");
+      "full_inner_class_prefix" string => canonify("package_install_${name}____latest_verify_false");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
   classes:
@@ -48,7 +50,7 @@ bundle agent package_check_installed(package_name)
                         usebundle => disable_reporting;
 
       "check install with latest version"
-                        usebundle => package_install_version_cmp_update("${package_name}", "==", "latest", "verify", "false");
+                        usebundle => package_install_version_cmp_update("${name}", "==", "latest", "verify", "false");
 
       "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
                         ifvarclass => "should_report";
@@ -56,5 +58,5 @@ bundle agent package_check_installed(package_name)
       "copy old classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
       "report"
-        usebundle  => _log_v3("Check that package ${package_name} is installed", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Check that package ${name} is installed", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

@@ -21,13 +21,13 @@
 # @documentation
 # Test a variable content and create conditions depending on its value:
 # * If the variable **is found and its content matches** the given regex:
-#     * a `${condition_prefix}_true` condition,
+#     * a `${condition}_true` condition,
 #     * and **kept outcome** status
 # * If the variable **is found but its content does not match** the given regex:
-#     * a `${condition_prefix}_false` condition,
+#     * a `${condition}_false` condition,
 #     * and a **kept outcome** status
 # * If the variable **can not be found**:
-#     * a `${condition_prefix}_false` condition
+#     * a `${condition}_false` condition
 #     * and an **error outcome** status
 #
 # /!\ Regex for unix machine must be PCRE compatible and those for Windows agent must respect the .Net regex format.
@@ -35,19 +35,20 @@
 # * If you want to test a technique parameter, use the `technique_id` of the technique
 #   as variable prefix and the`parameter_name` as variable name.
 #
-# @parameter condition_prefix Prefix of the class (condition) generated
+# @parameter condition Prefix of the class (condition) generated
 # @parameter variable_name Complete name of the variable being tested, like my_prefix.my_variable
 # @parameter expected_match Regex to use to test if the variable content is compliant
+# 
+# @parameter_name condition condition_prefix
 #
 # @class_prefix condition_from_variable_match
-# @class_parameter condition_prefix
+# @class_parameter condition
 
-
-bundle agent condition_from_variable_match(condition_prefix, variable_name, expected_match)
+bundle agent condition_from_variable_match(condition, variable_name, expected_match)
 {
   vars:
-      "old_class_prefix"  string => canonify("condition_from_variable_match_${condition_prefix}");
-      "args"               slist => { "${condition_prefix}", "${variable_name}", "${expected_match}" };
+      "old_class_prefix"  string => canonify("condition_from_variable_match_${condition}");
+      "args"               slist => { "${condition}", "${variable_name}", "${expected_match}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("condition_from_variable_match_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -60,10 +61,10 @@ bundle agent condition_from_variable_match(condition_prefix, variable_name, expe
     pass2::
       "var_exists" expression => isvariable("${variable_name}");
 
-      "${condition_prefix}_true"  and => {regcmp("${expected_match}", "${${variable_name}}"), "var_exists"},
+      "${condition}_true"  and => {regcmp("${expected_match}", "${${variable_name}}"), "var_exists"},
                                        scope => "namespace";
 
-      "${condition_prefix}_false"  or => {"!${condition_prefix}_true", "!var_exists"},
+      "${condition}_false"  or => {"!${condition}_true", "!var_exists"},
                                        scope => "namespace";
 
   methods:
@@ -78,5 +79,5 @@ bundle agent condition_from_variable_match(condition_prefix, variable_name, expe
       "success" usebundle => _classes_success("${class_prefix}"),
         ifvarclass => "var_exists";
 
-      "report"  usebundle => _log("Create the condition ${condition_prefix}_{true,false} from the result of regex: /${expected_match}/ on variable ${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"  usebundle => _log("Create the condition ${condition}_{true,false} from the result of regex: /${expected_match}/ on variable ${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

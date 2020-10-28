@@ -19,27 +19,29 @@
 
 # @name File check if symlink
 # @description Checks if a file exists and is a symlink
-# @documentation This bundle will define a condition `file_check_symlink_${file_name}_{ok, reached, kept}` if the
-# file is a symlink, or `file_check_symlink_${file_name}_{not_ok, reached, not_kept, failed}` if
+# @documentation This bundle will define a condition `file_check_symlink_${path}_{ok, reached, kept}` if the
+# file is a symlink, or `file_check_symlink_${path}_{not_ok, reached, not_kept, failed}` if
 # the file is not a symlink or does not exist
 #
-# @parameter file_name File name (absolute path on the target node)
+# @parameter path File name (absolute path on the target node)
+#
+# @parameter_name path file_name
 # 
 # @class_prefix file_check_symlink
-# @class_parameter file_name
+# @class_parameter path
 
-bundle agent file_check_symlink(file_name)
+bundle agent file_check_symlink(path)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_check_symlink_${file_name}");
-      "args"               slist => { "${file_name}" };
+      "old_class_prefix"  string => canonify("file_check_symlink_${path}");
+      "args"               slist => { "${path}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_check_symlink_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
       "file_exists_and_is_symlink"  
-        expression => islink("${file_name}");
+        expression => islink("${path}");
 
   methods:
     file_exists_and_is_symlink::
@@ -56,5 +58,5 @@ bundle agent file_check_symlink(file_name)
 
     any::
       "report"
-        usebundle => _log_v3("Check if ${file_name} is a symlink", "${file_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Check if ${path} is a symlink", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

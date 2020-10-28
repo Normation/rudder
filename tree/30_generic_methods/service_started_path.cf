@@ -19,30 +19,33 @@
 # @name Service started with service path
 # @description Ensure that a service is running using the appropriate method, specifying the path of the service in the ps output, or using Windows task manager
 # 
-# @parameter service_name Service name (as recognized by systemd, init.d, Windows, etc...)
-# @parameter service_path Service with its path, as in the output from 'ps'
-
+# @parameter name Service name (as recognized by systemd, init.d, Windows, etc...)
+# @parameter path Service with its path, as in the output from 'ps'
+#
+# @parameter_name name service_name
+# @parameter_name path service_path
+#
 # @class_prefix service_started
-# @class_parameter service_name
+# @class_parameter name
 
-bundle agent service_started_path(service_name, service_path)
+bundle agent service_started_path(name, path)
 {
   vars:
 
-      "canonified_service_name"      string => canonify("${service_name}");
-      "canonified_service_path"      string => canonify("${service_path}");
+      "canonified_name"      string => canonify("${name}");
+      "canonified_path"      string => canonify("${path}");
 
-      "old_class_prefix"             string => "service_started_${canonified_service_name}";
+      "old_class_prefix"             string => "service_started_${canonified_name}";
 
-      "args"                          slist => { "${service_name}", "${service_path}" };
+      "args"                          slist => { "${name}", "${path}" };
       "report_param"                 string => join("_", args);
       "full_class_prefix"            string => canonify("service_started_${report_param}");
       "class_prefix"                 string => string_head("${full_class_prefix}", "1000");
 
-      "full_inner_class_prefix_start"      string => canonify("service_start_${service_name}");
+      "full_inner_class_prefix_start"      string => canonify("service_start_${name}");
       "inner_class_prefix_start"           string => string_head("${full_inner_class_prefix_start}", "1000");
 
-      "full_inner_class_prefix_is_active"  string => canonify("service_check_running_${service_path}");
+      "full_inner_class_prefix_is_active"  string => canonify("service_check_running_${path}");
       "inner_class_prefix_is_active"       string => string_head("${full_inner_class_prefix_is_active}", "1000");
 
   classes:
@@ -52,10 +55,10 @@ bundle agent service_started_path(service_name, service_path)
       "disable_reporting_${class_prefix}"
                        usebundle => disable_reporting;
 
-      "check running" usebundle  => service_check_running_ps("${service_path}");
+      "check running" usebundle  => service_check_running_ps("${path}");
 
       "start if not running"
-        usebundle  => service_start("${service_name}"),
+        usebundle  => service_start("${name}"),
         ifvarclass => "!${inner_class_prefix_is_active}_kept";
 
       "class copy if not running"
@@ -79,6 +82,6 @@ bundle agent service_started_path(service_name, service_path)
                               usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "report"
-        usebundle  => _log_v3("Ensure that service ${service_name} is running", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Ensure that service ${name} is running", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

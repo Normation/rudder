@@ -23,7 +23,7 @@
 # @documentation Edit (or create) the file, and ensure it contains an entry key -> value with arbitrary separator between the key and its value.
 # If the key is already present, the method will change the value associated with this key.
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter key Key to define
 # @parameter value Value to define
 # @parameter option Option for the spacing around the separator: strict, which prevent spacing (space or tabs) around separators, or lax which accepts any number of spaces around separators
@@ -31,14 +31,16 @@
 # @parameter_constraint separator "allow_whitespace_string" : true
 # @parameter_constraint option "select" : [ "strict", "lax" ]
 #
+# @parameter_name path file
+#
 # @class_prefix file_ensure_key_value
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_ensure_key_value_option(file, key, value, separator, option)
+bundle agent file_ensure_key_value_option(path, key, value, separator, option)
 {
   vars:
-      "old_class_prefix"        string => canonify("file_ensure_key_value_${file}");
-      "args"                     slist => { "${file}", "${key}", "${value}","${separator}", "${option}" };
+      "old_class_prefix"        string => canonify("file_ensure_key_value_${path}");
+      "args"                     slist => { "${path}", "${key}", "${value}","${separator}", "${option}" };
 
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("file_ensure_key_value_${report_param}");
@@ -52,12 +54,12 @@ bundle agent file_ensure_key_value_option(file, key, value, separator, option)
 
   methods:
       "disable_reporting_${class_prefix}"  usebundle => disable_reporting;
-      "action"             usebundle => file_key_value_present_option("${file}", "${key}", "${value}","${separator}", "${option}");
+      "action"             usebundle => file_key_value_present_option("${path}", "${key}", "${value}","${separator}", "${option}");
       "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
                           ifvarclass => "should_report";
       "class copy"         usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
-      "report"             usebundle => _log_v3("Ensure line in format key${separator}value in ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Ensure line in format key${separator}value in ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

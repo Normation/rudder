@@ -57,38 +57,40 @@
 # file_report_content("/etc/hosts", "rudder", "3");
 # ```
 #
-# @parameter target     File to report content from
+# @parameter path     File to report content from
 # @parameter regex      Regex to search in the file (empty for whole file)
 # @parameter_constraint regex "allow_empty_string" : true
 # @parameter context    Number of context lines when matching regex (default is 0)
 # @parameter_constraint context "allow_empty_string" : true
 # @parameter_constraint context "regex" : "^\d*$"
 #
+# @parameter_name path target
+#
 # @class_prefix file_report_content
-# @class_parameter target
+# @class_parameter path
 
-bundle agent file_report_content(target, regex, context)
+bundle agent file_report_content(path, regex, context)
 {
   vars:
     !pass1::
       # to avoid rewriting class prefix when setting default
-      "old_class_prefix"  string => canonify("file_report_content_${target}");
-      "args"               slist => { "${target}", "${regex}", "${context}" };
+      "old_class_prefix"  string => canonify("file_report_content_${path}");
+      "args"               slist => { "${path}", "${regex}", "${context}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_report_content_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
     pass1.file_exists::
-      "content" string => readfile("${target}", "0"),
+      "content" string => readfile("${path}", "0"),
                     if => "full_file";
-      "content" string => execresult("${paths.path[grep]} -E \"${regex}\" -C${context} \"${target}\"", "useshell"),
+      "content" string => execresult("${paths.path[grep]} -E \"${regex}\" -C${context} \"${path}\"", "useshell"),
                     if => "!full_file";
 
   defaults:
       "context" string => "0", if_match_regex => "";
 
   classes:
-      "file_exists" expression => fileexists("${target}");
+      "file_exists" expression => fileexists("${path}");
       "full_file"   expression => strcmp("${regex}", "");
 
       "pass2" expression => "pass1";
@@ -98,13 +100,13 @@ bundle agent file_report_content(target, regex, context)
     pass2.!file_exists::
       "error"   usebundle => _classes_failure("${old_class_prefix}");
       "error"   usebundle => _classes_failure("${class_prefix}");
-      "report"  usebundle => _log_v3("${target} does not exist", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"  usebundle => _log_v3("${path} does not exist", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     pass2.file_exists::
       "success" usebundle => _classes_success("${old_class_prefix}");
       "success" usebundle => _classes_success("${class_prefix}");
-      "report"  usebundle => _log_v3("${target} contains :${const.n}---${const.n}${content}---${const.n}file content report", "${target}", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report"  usebundle => _log_v3("${path} contains :${const.n}---${const.n}${content}---${const.n}file content report", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
                        if => "full_file";
-      "report"  usebundle => _log_v3("Searching for '${regex}' in ${target} gives:${const.n}---${const.n}${content}${const.n}---${const.n}file content report", "${target}", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report"  usebundle => _log_v3("Searching for '${regex}' in ${path} gives:${const.n}---${const.n}${content}${const.n}---${const.n}file content report", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
                        if => "!full_file";
 }

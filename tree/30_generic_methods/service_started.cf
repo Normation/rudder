@@ -19,19 +19,21 @@
 # @name Service started
 # @description Ensure that a service is running using the appropriate method
 #
-# @parameter service_name Service name (as recognized by systemd, init.d, etc...)
+# @parameter name Service name (as recognized by systemd, init.d, etc...)
 # 
+# @parameter_name name service_name
+#
 # @class_prefix service_started
-# @class_parameter service_name
+# @class_parameter name
 
-bundle agent service_started(service_name)
+bundle agent service_started(name)
 {
   vars:
-      "canonified_service_name" string => canonify("${service_name}");
+      "canonified_name" string => canonify("${name}");
 
-      "old_class_prefix"        string => "service_started_${canonified_service_name}";
+      "old_class_prefix"        string => "service_started_${canonified_name}";
 
-      "args"                     slist => { "${service_name}" };
+      "args"                     slist => { "${name}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("service_started_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
@@ -49,18 +51,18 @@ bundle agent service_started(service_name)
       "disable_reporting_${class_prefix}"
                       usebundle => disable_reporting;
     
-      "check_running" usebundle  => service_check_running("${service_name}");
+      "check_running" usebundle  => service_check_running("${name}");
 
       "start if not running"
-                      usebundle  => service_start("${service_name}"),
+                      usebundle  => service_start("${name}"),
                       ifvarclass => "!${inner_class_prefix_check}_kept";
 
       "class copy if not running"
-                      usebundle  => _classes_copy("service_start_${canonified_service_name}", "${old_class_prefix}"),
+                      usebundle  => _classes_copy("service_start_${canonified_name}", "${old_class_prefix}"),
                       ifvarclass => "!${inner_class_prefix_check}_kept";
 
       "class copy if not running"
-                      usebundle  => _classes_copy("service_start_${canonified_service_name}", "${class_prefix}"),
+                      usebundle  => _classes_copy("service_start_${canonified_name}", "${class_prefix}"),
                       ifvarclass => "!${inner_class_prefix_check}_kept";
 
       "class if running"
@@ -76,6 +78,6 @@ bundle agent service_started(service_name)
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
       "report"
-        usebundle  => _log_v3("Ensure that service ${service_name} is running", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Ensure that service ${name} is running", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

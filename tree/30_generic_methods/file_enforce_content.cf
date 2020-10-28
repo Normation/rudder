@@ -21,19 +21,21 @@
 # @deprecated Use [file_content](#_file_content) instead.
 # @description Enforce the content of a file
 #
-# @parameter file  File name to edit (absolute path on the target node)
-# @parameter lines Line(s) to add in the file - if lines is a list, please use @{lines} to pass the iterator rather than iterating over each values
-# @parameter enforce Enforce the file to contain only line(s) defined (true or false)
+# @parameter path      File name to edit (absolute path on the target node)
+# @parameter lines     Line(s) to add in the file - if lines is a list, please use @{lines} to pass the iterator rather than iterating over each values
+# @parameter enforce   Enforce the file to contain only line(s) defined (true or false)
+#
+# @parameter_name path file
 # 
 # @class_prefix file_ensure_lines_present
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_enforce_content(file, lines, enforce)
+bundle agent file_enforce_content(path, lines, enforce)
 {
   vars:
-      "canonified_file"    string => canonify("${file}");
+      "canonified_path"    string => canonify("${path}");
 
-      "old_class_prefix" string => canonify("file_ensure_lines_present_${file}");
+      "old_class_prefix" string => canonify("file_ensure_lines_present_${path}");
 
     # We need to detect if lines is an iterator or a scalar
     !pass1::
@@ -45,10 +47,10 @@ bundle agent file_enforce_content(file, lines, enforce)
       "length_list" int => "0";
 
     pass1.!islist::
-      "args"              slist => { "${file}", "${lines}", "${enforce}" };
+      "args"              slist => { "${path}", "${lines}", "${enforce}" };
 
     pass1.islist::
-      "args"              slist => { "${file}", "@{lines}", "${enforce}" };
+      "args"              slist => { "${path}", "@{lines}", "${enforce}" };
 
     pass1::
       "report_param"      string => join("_", args);
@@ -71,17 +73,17 @@ bundle agent file_enforce_content(file, lines, enforce)
       "disable_reporting_${class_prefix}"
                             usebundle => disable_reporting;
     !islist.pass2::
-      "action"              usebundle => file_content("${file}", "${lines}", "${enforce}");
+      "action"              usebundle => file_content("${path}", "${lines}", "${enforce}");
     islist.pass2::
-      "action"              usebundle => file_content("${file}", "@{lines}", "${enforce}");
+      "action"              usebundle => file_content("${path}", "@{lines}", "${enforce}");
     pass2::
       "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
                            ifvarclass => "should_report";
 
-      "class copy"          usebundle => _classes_copy("file_lines_present_${canonified_file}", "${old_class_prefix}"),
-                           ifvarclass => "file_lines_present_${canonified_file}_reached";
+      "class copy"          usebundle => _classes_copy("file_lines_present_${canonified_path}", "${old_class_prefix}"),
+                           ifvarclass => "file_lines_present_${canonified_path}_reached";
       "new result classes"  usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                            ifvarclass => "${inner_class_prefix}_reached";
-      "report"              usebundle => _log_v3("Insert content into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"              usebundle => _log_v3("Insert content into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

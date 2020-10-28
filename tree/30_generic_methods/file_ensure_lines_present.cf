@@ -21,18 +21,20 @@
 # @deprecated Use [file_lines_present](#_file_lines_present) instead.
 # @description Ensure that one or more lines are present in a file
 #
-# @parameter file  File name to edit (absolute path on the target node)
+# @parameter path  File name to edit (absolute path on the target node)
 # @parameter lines Line(s) to add in the file
+#
+# @parameter_name path file
 # 
 # @class_prefix file_ensure_lines_present
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_ensure_lines_present(file, lines)
+bundle agent file_ensure_lines_present(path, lines)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_ensure_lines_present_${file}");
+      "old_class_prefix"  string => canonify("file_ensure_lines_present_${path}");
 
-      "args"               slist => { "${file}", "${lines}" };
+      "args"               slist => { "${path}", "${lines}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_ensure_lines_present_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -48,12 +50,12 @@ bundle agent file_ensure_lines_present(file, lines)
   methods:
       "disable_reporting_${class_prefix}"
                               usebundle => disable_reporting;
-      "enforce lines content" usebundle => file_enforce_content("${file}", "${lines}", "false");
+      "enforce lines content" usebundle => file_enforce_content("${path}", "${lines}", "false");
       "reenable_reporting_${class_prefix}"
                               usebundle => enable_reporting,
                              ifvarclass => "should_report";
       "new result classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                              ifvarclass => "${inner_class_prefix}_reached";
 
-      "report"                usebundle => _log_v3("Append content if needed into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                usebundle => _log_v3("Append content if needed into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

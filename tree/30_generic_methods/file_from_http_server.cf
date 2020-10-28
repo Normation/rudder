@@ -26,31 +26,33 @@
 # It tries `curl` first, and `wget` as fallback.
 #
 # @parameter source      URL to download from
-# @parameter destination File destination (absolute path on the target node)
+# @parameter path File destination (absolute path on the target node)
+#
+# @parameter_name path destination
 #
 # @class_prefix file_from_http_server
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_from_http_server(source, destination)
+bundle agent file_from_http_server(source, path)
 {
 
   vars:
 
 
     _ncf_path_exists_curl::
-      "action_command"            string => "${ncf_paths.path[curl]} -f -s -L -o ${destination} ${source}";
+      "action_command"            string => "${ncf_paths.path[curl]} -f -s -L -o ${path} ${source}";
 
 
     !_ncf_path_exists_curl._stdlib_path_exists_wget::
-      "action_command"            string => "${paths.path[wget]} -O ${destination} ${source}";
+      "action_command"            string => "${paths.path[wget]} -O ${path} ${source}";
 
 
     any::
-      "canonified_destination"    string => canonify("${destination}");
+      "canonified_path"    string => canonify("${path}");
       "canonified_action_command" string => canonify("${action_command}");
 
-      "old_class_prefix"          string => "file_from_http_server_${canonified_destination}";
-      "args"                       slist => { "${source}", "${destination}" };
+      "old_class_prefix"          string => "file_from_http_server_${canonified_path}";
+      "args"                       slist => { "${source}", "${path}" };
       "report_param"              string => join("_", args);
       "full_class_prefix"         string => canonify("file_from_http_server_${report_param}");
       "class_prefix"              string => string_head("${full_class_prefix}", "1000");
@@ -58,7 +60,7 @@ bundle agent file_from_http_server(source, destination)
 
   classes:
 
-      "file_exists"    expression => fileexists("${destination}");
+      "file_exists"    expression => fileexists("${path}");
 
       "should_report"  expression => "${report_data.should_report}";
 
@@ -80,14 +82,14 @@ bundle agent file_from_http_server(source, destination)
       "new result classes"
                         usebundle => _classes_copy("command_execution_${canonified_action_command}", "${class_prefix}");
 
-      "report"          usebundle => _log_v3("Download ${source} into ${destination}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report"          usebundle => _log_v3("Download ${source} into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
                        ifvarclass => "${class_prefix}_reached";
 
 
     !_ncf_path_exists_curl.!_stdlib_path_exists_wget.!file_exists::
       "force_failure_class"       usebundle => _classes_failure("${old_class_prefix}");
       "new result classes"        usebundle => _classes_failure("${class_prefix}");
-      "report"                    usebundle => _log_v3("Unable to download ${source}: neither wget or curl are installed", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                    usebundle => _log_v3("Unable to download ${source}: neither wget or curl are installed", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 
     file_exists::
@@ -95,7 +97,7 @@ bundle agent file_from_http_server(source, destination)
                                  ifvarclass => "!command_execution_${canonified_action_command}_repaired";
       "new result classes"        usebundle => _classes_success("${class_prefix}"),
                                  ifvarclass => "!${class_prefix}_action_repaired";
-      "report"                    usebundle => _log_v3("File ${destination} already downloaded", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report"                    usebundle => _log_v3("File ${path} already downloaded", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
                                  ifvarclass => "!command_execution_${canonified_action_command}_repaired";
 
 }

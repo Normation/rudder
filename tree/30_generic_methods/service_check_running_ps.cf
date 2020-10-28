@@ -19,19 +19,21 @@
 # @name Service check running ps
 # @description Check if a service is running using ps
 #
-# @parameter service_regex Regular expression used to select a process in ps output
+# @parameter name Regular expression used to select a process in ps output
+#
+# @parameter_name name service_regex
 # 
 # @class_prefix service_check_running
-# @class_parameter service_regex
+# @class_parameter name
 
-bundle agent service_check_running_ps(service_regex)
+bundle agent service_check_running_ps(name)
 {
   vars:
-      "canonified_service_regex" string => canonify("${service_regex}");
+      "canonified_name"         string => canonify("${name}");
 
-      "old_class_prefix"        string => canonify("service_check_running_${service_regex}");
+      "old_class_prefix"        string => canonify("service_check_running_${name}");
 
-      "args"                     slist => { "${service_regex}" };
+      "args"                     slist => { "${name}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("service_check_running_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
@@ -48,17 +50,17 @@ bundle agent service_check_running_ps(service_regex)
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
-      "check_active"       usebundle => ncf_services("${service_regex}", "is-active-process");
+      "check_active"       usebundle => ncf_services("${name}", "is-active-process");
 
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
-      "class copy"         usebundle => _classes_copy("ncf_services_${canonified_service_regex}_is_active_process", "${old_class_prefix}"),
-                          ifvarclass => "ncf_services_${canonified_service_regex}_is_active_process_reached";
+      "class copy"         usebundle => _classes_copy("ncf_services_${canonified_name}_is_active_process", "${old_class_prefix}"),
+                          ifvarclass => "ncf_services_${canonified_name}_is_active_process_reached";
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
 
       "report"
-        usebundle  => _log_v3("Check if the service ${service_regex} is started using ps", "${service_regex}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Check if the service ${name} is started using ps", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

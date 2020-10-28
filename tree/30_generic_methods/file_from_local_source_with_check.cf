@@ -39,28 +39,30 @@
 # * If not, it will return an error
 #
 # @parameter source      Source file (absolute path on the target node)
-# @parameter destination Destination file (absolute path on the target node)
+# @parameter path         Destination file (absolute path on the target node)
 # @parameter check_command   Command to run, it will get the source path as argument
 # @parameter rc_ok       Return codes to be considered as valid, separated by a comma (default is 0)
 # @parameter_constraint  rc_ok "allow_empty_string" : true
+#
+# @parameter_name path destination
 # 
 # @class_prefix file_from_local_source_with_check
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_from_local_source_with_check(source, destination, check_command, rc_ok)
+bundle agent file_from_local_source_with_check(source, path, check_command, rc_ok)
 {
   vars:
-      "old_class_prefix" string => canonify("file_from_local_source_with_check_${destination}");
+      "old_class_prefix" string => canonify("file_from_local_source_with_check_${path}");
 
-      "args"              slist => { "${source}", "${destination}", "${check_command}", "${rc_ok}"};
+      "args"              slist => { "${source}", "${path}", "${check_command}", "${rc_ok}"};
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_from_local_source_with_check_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
-      "canonified_file"   string => canonify("${destination}");
+      "canonified_path"   string => canonify("${path}");
 
     pass1::
-      "full_inner_class_file_copy_prefix" string => canonify("file_from_local_source_${source}_${destination}");
+      "full_inner_class_file_copy_prefix" string => canonify("file_from_local_source_${source}_${path}");
       "inner_class_file_copy_prefix"      string => string_head("${full_inner_class_file_copy_prefix}", "1000");
 
       "full_inner_class_condition_prefix" string => canonify("condition_from_command_${old_class_prefix}_check_${check_command} \"${source}\"_${rc_ok}_999");
@@ -75,9 +77,9 @@ bundle agent file_from_local_source_with_check(source, destination, check_comman
 
   classes:
     agent::
-      "destination_exists" expression => fileexists("${destination}");
+      "destination_exists" expression => fileexists("${path}");
       # We might need to copy if destination file exists and diff is not 0, or there's no destination file
-      "copy_needed"               not => returnszero("${paths.path[diff]} \"${source}\" \"${destination}\"", "useshell"),
+      "copy_needed"               not => returnszero("${paths.path[diff]} \"${source}\" \"${path}\"", "useshell"),
                            ifvarclass => "destination_exists";
       "copy_needed"               not => "destination_exists";
 
@@ -93,9 +95,9 @@ bundle agent file_from_local_source_with_check(source, destination, check_comman
     pass2::
       "disable_reporting_${class_prefix}"
                        usebundle => disable_reporting;
-      "check"          usebundle => condition_from_command("file_from_local_source_with_check_${canonified_file}_check", "${check_command} \"${source}\"", "${rc_ok}", "999"),
+      "check"          usebundle => condition_from_command("file_from_local_source_with_check_${canonified_path}_check", "${check_command} \"${source}\"", "${rc_ok}", "999"),
                       ifvarclass => "copy_needed";
-      "copy"           usebundle => file_from_local_source("${source}", "${destination}"),
+      "copy"           usebundle => file_from_local_source("${source}", "${path}"),
                       ifvarclass => "${inner_class_condition_prefix}_kept"; # the condition from command true is equivalent to inner_class_prefix_kept
 
       "reenable_reporting_${class_prefix}"
@@ -107,7 +109,7 @@ bundle agent file_from_local_source_with_check(source, destination, check_comman
               ifvarclass => "!copy_needed";
 
 
-                            # here we are not using file_from_local_source_with_check_${canonified_file}_check_false as we want to allow any return code
+                            # here we are not using file_from_local_source_with_check_${canonified_path}_check_false as we want to allow any return code
                             # which is different from rc_ok as failure.
       "result" usebundle => _classes_failure("${old_class_prefix}"),
               ifvarclass => "${inner_class_condition_prefix}_error";
@@ -121,8 +123,8 @@ bundle agent file_from_local_source_with_check(source, destination, check_comman
               ifvarclass => "${inner_class_condition_prefix}_kept";
 
 
-      "report" usebundle => _log_v3("Copying ${destination} from local ${source} with check", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report" usebundle => _log_v3("Copying ${path} from local ${source} with check", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
               ifvarclass => "!${inner_class_condition_prefix}_failed";
-      "report" usebundle => _log_v3("Copying ${destination} from local ${source} failed at check command", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report" usebundle => _log_v3("Copying ${path} from local ${source} failed at check command", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
               ifvarclass => "${inner_class_condition_prefix}_failed";
 }

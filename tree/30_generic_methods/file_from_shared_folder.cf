@@ -26,23 +26,26 @@
 #
 #
 # @parameter source      Source file (path, relative to /var/rudder/configuration-repository/shared-files)
-# @parameter destination Destination file (absolute path on the target node)
+# @parameter path        Destination file (absolute path on the target node)
 # @parameter hash_type   Hash algorithm used to check if file is updated (sha256, sha512). Only used on Windows, ignored on Unix. default is sha256
 # # keep md5 and sha1 to support old generic methods, also add a default so you don't have to enter a value on linux, md5/sha1 should go to default
 # @parameter_constraint hash_type "select" : [ "", "sha256", "sha512", "md5", "sha1" ]
 # @parameter_constraint hash_type "allow_empty_string" : true
+#
+# @parameter_name path destination
+#
 # @class_prefix file_from_shared_folder
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_from_shared_folder(source, destination, hash_type)
+bundle agent file_from_shared_folder(source, path, hash_type)
 {
   vars:
-      "canonified_destination"  string => canonify("${destination}");
+      "canonified_path"         string => canonify("${path}");
 
-      "old_class_prefix"        string => "file_from_shared_folder_${canonified_destination}";
+      "old_class_prefix"        string => "file_from_shared_folder_${canonified_path}";
 
-      "args"                     slist => { "/var/rudder/configuration-repository/shared-files/${source}", "${destination}", "${hash_type}" };
-      "inner_args"               slist => { "/var/rudder/configuration-repository/shared-files/${source}", "${destination}" };
+      "args"                     slist => { "/var/rudder/configuration-repository/shared-files/${source}", "${path}", "${hash_type}" };
+      "inner_args"               slist => { "/var/rudder/configuration-repository/shared-files/${source}", "${path}" };
       "report_param"            string => join("_", args);
       "inner_report_param"      string => join("_", inner_args);
       "full_class_prefix"       string => canonify("file_from_shared_folder_${report_param}");
@@ -57,13 +60,13 @@ bundle agent file_from_shared_folder(source, destination, hash_type)
   methods:
       "disable_reporting_${class_prefix}"
                                usebundle => disable_reporting;
-      "copy without recursion" usebundle => file_copy_from_remote_source_recursion("/var/rudder/configuration-repository/shared-files/${source}", "${destination}", "inf");
+      "copy without recursion" usebundle => file_copy_from_remote_source_recursion("/var/rudder/configuration-repository/shared-files/${source}", "${path}", "inf");
       "reenable_reporting_${class_prefix}"
                                usebundle => enable_reporting,
                               ifvarclass => "should_report";
-      "class copy"             usebundle => _classes_copy("file_copy_from_remote_source_${canonified_destination}", "${old_class_prefix}");
+      "class copy"             usebundle => _classes_copy("file_copy_from_remote_source_${canonified_path}", "${old_class_prefix}");
       "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
 
-      "report"                 usebundle => _log_v3("Copying ${destination} from ${source}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                 usebundle => _log_v3("Copying ${path} from ${source}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

@@ -20,17 +20,19 @@
 # @description Install or update a package in its latest version available
 # @deprecated Use [package_present](#_package_present) instead.
 #
-# @parameter package_name Name of the package to install
+# @parameter name Name of the package to install
+#
+# @parameter_name name package_name
 #
 # @class_prefix package_install
-# @class_parameter package_name
+# @class_parameter name
 
-bundle agent package_install(package_name)
+bundle agent package_install(name)
 {
   vars:
-      "old_class_prefix"        string => canonify("package_install_${package_name}");
+      "old_class_prefix"        string => canonify("package_install_${name}");
 
-      "args"                     slist => { "${package_name}" };
+      "args"                     slist => { "${name}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("package_install_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
@@ -44,11 +46,11 @@ bundle agent package_install(package_name)
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
-      "install latest"     usebundle => package_install_version("${package_name}", "latest");
+      "install latest"     usebundle => package_install_version("${name}", "latest");
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
-      "report"             usebundle => _log_v3("Install package ${package_name}", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Install package ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

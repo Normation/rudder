@@ -56,17 +56,18 @@
 #
 # @parameter variable_prefix The prefix of the variable name
 # @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
-# @parameter commands        The augeas command(s)
+# @parameter commands        The augeas command(s) 
 # @parameter autoload        Deactivate the `autoload` option if you don't want augeas to charge all the files/lens, it's `true` by default.
 # @parameter_constraint autoload "allow_empty_string" : true
 # @parameter_constraint autoload "select" : [ "", "true", "false" ]
+#
 # @class_prefix file_augeas_commands
 # @class_parameter variable_name
 
 
 bundle agent file_augeas_commands(variable_prefix, variable_name, commands, autoload)
 {
- vars:
+ vars:       
      "old_class_prefix" string => canonify("file_augeas_commands_${variable_name}");
      "promisers" slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
      "class_prefix" string => canonify(join("_", "promisers"));
@@ -77,7 +78,6 @@ bundle agent file_augeas_commands(variable_prefix, variable_name, commands, auto
 
    pass1.autoload_defined::
      "${variable_prefix}.${variable_name}" string =>  execresult("printf \"${commands}\n\" | ${ncf_paths.path[augtool]}","useshell");
-
 
  defaults:
      "autoload" string => "true", if_match_regex => "";

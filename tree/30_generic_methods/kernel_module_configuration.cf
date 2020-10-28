@@ -41,7 +41,7 @@
 # #### Example:
 #
 #  To pass options to a broadcom module
-#  * `module_name` = b43
+#  * `name` = b43
 #  * `configuration` = options b43 nohwcrypt=1 qos=0
 #
 #  Will produce the resulting block in /etc/modprobe.d/managed\_by\_rudder.conf:
@@ -51,29 +51,31 @@
 #  ### b43 end section
 #  ```
 #
-# @parameter module_name Complete name of the kernel module, as seen by lsmod or listed in /proc/modules
+# @parameter name Complete name of the kernel module, as seen by lsmod or listed in /proc/modules
 # @parameter configuration Complete configuration block to put in /etc/modprobe.d/
 #
 # @parameter_constraint configuration "regex" : "^(alias|blacklist|install|options|remove|softdeps) +.*$"
 #
+# @parameter_name name module_name
+#
 # @class_prefix kernel_module_configuration
-# @class_parameter module_name
+# @class_parameter name
 
-bundle agent kernel_module_configuration(module_name, configuration)
+bundle agent kernel_module_configuration(name, configuration)
 {
   vars:
       "modprobe_dir"            string => "/etc/modprobe.d";
-      "canonified_module_name"  string => canonify("${module_name}");
+      "canonified_module_name"  string => canonify("${name}");
 
-      "old_class_prefix"        string => canonify("kernel_module_configuration_${module_name}");
-      "args"                     slist => { "${module_name}", "${configuration}" };
+      "old_class_prefix"        string => canonify("kernel_module_configuration_${name}");
+      "args"                     slist => { "${name}", "${configuration}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("kernel_module_configuration_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
       "conf_file"               string => "${modprobe_dir}/managed_by_rudder.conf";
-      "start_section"           string => "### ${module_name} start section";
-      "end_section"             string => "### ${module_name} end section";
+      "start_section"           string => "### ${name} start section";
+      "end_section"             string => "### ${name} end section";
       "inner_args"               slist => { "${conf_file}", "${start_section}", "${end_section}", "${configuration}" };
       "report_inner_param"      string => join("_", inner_args);
       "inner_class_prefix"      string => string_head(canonify("file_block_present_in_section_${report_inner_param}"), "1000");
@@ -96,6 +98,6 @@ bundle agent kernel_module_configuration(module_name, configuration)
     pass3::
       "result_classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
       "old_result_classes" usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}");
-      "report"             usebundle => _log_v3("Check that the kernel module ${module_name} configuration is correct", "${module_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Check that the kernel module ${name} configuration is correct", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 

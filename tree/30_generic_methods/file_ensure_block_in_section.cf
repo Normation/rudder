@@ -21,20 +21,22 @@
 # @deprecated Use [file_block_present_in_section](#_file_block_present_in_section) instead.
 # @description Ensure that a section contains exactly a text block
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter section_start Start of the section
 # @parameter section_end End of the section
 # @parameter block Block representing the content of the section
 #
+# @parameter_name path file
+#
 # @class_prefix file_ensure_block_in_section
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_ensure_block_in_section(file, section_start, section_end, block)
+bundle agent file_ensure_block_in_section(path, section_start, section_end, block)
 {
   vars:
-      "old_class_prefix"         string => canonify("file_ensure_block_in_section_${file}");
+      "old_class_prefix"         string => canonify("file_ensure_block_in_section_${path}");
 
-      "args"                      slist => { "${file}", "${section_start}", "${section_end}", "${block}" };
+      "args"                      slist => { "${path}", "${section_start}", "${section_end}", "${block}" };
       "report_param"             string => join("_", args);
       "full_class_prefix"        string => canonify("file_ensure_block_in_section_${report_param}");
       "class_prefix"             string => string_head("${full_class_prefix}", "1000");
@@ -42,7 +44,7 @@ bundle agent file_ensure_block_in_section(file, section_start, section_end, bloc
       "full_inner_class_prefix"  string => canonify("file_block_present_in_section_${report_param}");
       "inner_class_prefix"       string => string_head("${full_inner_class_prefix}", "1000");
 
-      "canonified_file"    string => canonify("${file}");
+      "canonified_path"    string => canonify("${path}");
 
 
   classes:
@@ -51,13 +53,13 @@ bundle agent file_ensure_block_in_section(file, section_start, section_end, bloc
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
-      "action"             usebundle => file_block_present_in_section("${file}", "${section_start}", "${section_end}", "${block}");
+      "action"             usebundle => file_block_present_in_section("${path}", "${section_start}", "${section_end}", "${block}");
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
-      "class copy"         usebundle => _classes_copy("file_block_present_in_section_${canonified_file}", "${old_class_prefix}"),
-                          ifvarclass => "file_block_present_in_section_${canonified_file}_reached";
+      "class copy"         usebundle => _classes_copy("file_block_present_in_section_${canonified_path}", "${old_class_prefix}"),
+                          ifvarclass => "file_block_present_in_section_${canonified_path}_reached";
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
-      "report"             usebundle => _log_v3("Insert text block into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Insert text block into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

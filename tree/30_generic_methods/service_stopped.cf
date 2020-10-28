@@ -19,20 +19,22 @@
 # @name Service stopped
 # @description Ensure that a service is stopped using the appropriate method
 #
-# @parameter service_name Service
+# @parameter name Service
 # 
+# @parameter_name name service_name
+#
 # @class_prefix service_stopped
-# @class_parameter service_name
+# @class_parameter name
 
-bundle agent service_stopped(service_name)
+bundle agent service_stopped(name)
 {
   vars:
 
-      "canonified_service_name"    string => canonify("${service_name}");
+      "canonified_name"    string => canonify("${name}");
 
-      "old_class_prefix"           string => "service_stopped_${canonified_service_name}";
+      "old_class_prefix"           string => "service_stopped_${canonified_name}";
 
-      "args"                        slist => { "${service_name}" };
+      "args"                        slist => { "${name}" };
       "report_param"               string => join("_", args);
       "full_class_prefix"          string => canonify("service_stopped_${report_param}");
       "class_prefix"               string => string_head("${full_class_prefix}", "1000");
@@ -51,12 +53,12 @@ bundle agent service_stopped(service_name)
          usebundle => disable_reporting;
 
       "check running"
-        usebundle  => service_check_running("${service_name}");
+        usebundle  => service_check_running("${name}");
 
       # If service_check_running has detected a process, it will result in
       # a success, so we have to stop the process
       "stop if running"
-        usebundle  => service_stop("${service_name}"),
+        usebundle  => service_stop("${name}"),
         ifvarclass => "${inner_class_prefix_check}_kept";
 
       # If service_check_running has no detected any process, it will not result
@@ -79,6 +81,6 @@ bundle agent service_stopped(service_name)
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
       "report"
-        usebundle  => _log_v3("Ensure that service ${service_name} is stopped", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Ensure that service ${name} is stopped", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

@@ -19,19 +19,21 @@
 
 # @name File check if block device
 # @description Checks if a file exists and is a block device
-# @documentation This bundle will define a condition `file_check_block_device_${file_name}_{ok, reached, kept}` if the
-# file is a block_device, or `file_check_block_device_${file_name}_{not_ok, reached, not_kept, failed}` if
+# @documentation This bundle will define a condition `file_check_block_device_${path}_{ok, reached, kept}` if the
+# file is a block_device, or `file_check_block_device_${path}_{not_ok, reached, not_kept, failed}` if
 # the file is not a block device or does not exist
 #
-# @parameter file_name File name (absolute path on the target node)
+# @parameter path File name (absolute path on the target node)
+#
+# @parameter_name path file_name
 # 
 # @class_prefix file_check_block_device
-# @class_parameter file_name
+# @class_parameter path
 
-bundle agent file_check_block_device(file_name)
+bundle agent file_check_block_device(path)
 {
     methods:
       "file_exists_and_is_block_device"
-        usebundle => file_check_special( "${file_name}", "block device");
+        usebundle => file_check_special( "${path}", "block device");
 
 }

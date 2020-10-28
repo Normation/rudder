@@ -21,19 +21,21 @@
 # @deprecated Use [file_line_present_in_ini_section](#_file_line_present_in_ini_section) instead.
 # @description Ensure that a line is present in a section in a specific location. The objective of this method is to handle INI-style files.
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter section Name of the INI-style section under which lines should be added (not including the [] brackets)
 # @parameter line Line to ensure is present inside the section
 #
+# @parameter_name path file
+#
 # @class_prefix file_ensure_line_present_in_ini_section
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_ensure_line_present_in_ini_section(file, section, line)
+bundle agent file_ensure_line_present_in_ini_section(path, section, line)
 {
   vars:
-      "old_class_prefix"        string => canonify("file_ensure_line_present_in_ini_section_${file}");
+      "old_class_prefix"        string => canonify("file_ensure_line_present_in_ini_section_${path}");
 
-      "args"                     slist => { "${file}", "${section}", "${line}" };
+      "args"                     slist => { "${path}", "${section}", "${line}" };
 
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("file_ensure_line_present_in_ini_section_${report_param}");
@@ -42,7 +44,7 @@ bundle agent file_ensure_line_present_in_ini_section(file, section, line)
       "full_inner_class_prefix" string => canonify("file_line_present_in_ini_section_${report_param}");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
-      "canonified_file"    string => canonify("${file}");
+      "canonified_path"    string => canonify("${path}");
 
 
   classes:
@@ -51,13 +53,13 @@ bundle agent file_ensure_line_present_in_ini_section(file, section, line)
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
-      "action"             usebundle => file_line_present_in_ini_section("${file}", "${section}", "${line}");
+      "action"             usebundle => file_line_present_in_ini_section("${path}", "${section}", "${line}");
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
-      "class copy"         usebundle => _classes_copy("file_line_present_in_ini_section_${canonified_file}", "${old_class_prefix}"),
-                          ifvarclass => "file_line_present_in_ini_section_${canonified_file}_reached";
+      "class copy"         usebundle => _classes_copy("file_line_present_in_ini_section_${canonified_path}", "${old_class_prefix}"),
+                          ifvarclass => "file_line_present_in_ini_section_${canonified_path}_reached";
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
-      "report"             usebundle => _log_v3("Insert line(s) into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Insert line(s) into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

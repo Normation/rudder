@@ -44,23 +44,25 @@
 # orange
 # ```
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter block Block(s) to add in the file
 #
+# @parameter_name path file
+#
 # @class_prefix file_block_present
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_block_present(file, block)
+bundle agent file_block_present(path, block)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_block_present_${file}");
-      "args"               slist => { "${file}", "${block}" };
+      "old_class_prefix"  string => canonify("file_block_present_${path}");
+      "args"               slist => { "${path}", "${block}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_block_present_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   files:
-      "${file}"
+      "${path}"
         create        => "true",
         edit_line     => ncf_insert_block("${block}"),
         edit_defaults => ncf_empty_select("false"),
@@ -69,5 +71,5 @@ bundle agent file_block_present(file, block)
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Insert text block into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Insert text block into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

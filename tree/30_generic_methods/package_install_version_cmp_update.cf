@@ -25,25 +25,27 @@
 #     "any" usebundle => package_install_version_cmp_update("postgresql", ">=", "9.1", "verify", "false");
 # ```
 #
-# @parameter package_name        Name of the package to install or verify
+# @parameter name                Name of the package to install or verify
 # @parameter version_comparator  Comparator between installed version and defined version, can be ==,<=,>=,<,>,!=
 # @parameter package_version     The version of the package to verify (can be "latest" for latest version)
 # @parameter action              Action to perform, can be add, verify (defaults to verify)
 # @parameter update_policy       While verifying packages, check against latest version ("true") or just installed ("false")
 # @parameter_constraint version_comparator  "select" : [ "==", "<=", ">=", "<", ">" , "!=" ]
-# 
+#
+# @parameter_name name package_name
+#
 # @class_prefix package_install
-# @class_parameter package_name
+# @class_parameter name
 
-bundle agent package_install_version_cmp_update(package_name, version_comparator, package_version, action, update_policy)
+bundle agent package_install_version_cmp_update(name, version_comparator, package_version, action, update_policy)
 {
   vars:
-      "canonified_package_name" string => canonify("${package_name}");
-      "old_class_prefix"        string => "package_install_${canonified_package_name}";
+      "canonified_name"         string => canonify("${name}");
+      "old_class_prefix"        string => "package_install_${canonified_name}";
 
     # don't rewrite the class prefix based on defaults
     !pass1::
-      "args"                     slist => { "${package_name}", "${version_comparator}", "${package_version}", "${action}", "${update_policy}" };
+      "args"                     slist => { "${name}", "${version_comparator}", "${package_version}", "${action}", "${update_policy}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("package_install_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
@@ -55,7 +57,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
       "update_policy" string => "add",            if_match_regex => "false";
 
   classes:
-      "local_package" expression => regcmp("(http:|file:)?/.*", "${package_name}");
+      "local_package" expression => regcmp("(http:|file:)?/.*", "${name}");
       "version_not_specified" expression => strcmp("latest", "${package_version}");
       "immediate" expression => strcmp("immediate", "${action}");
       "warn" expression => strcmp("warn", "${action}");
@@ -68,7 +70,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
     ## Debian support ##
     !version_not_specified.local_package.debian::
-      "${package_name}"
+      "${name}"
                         package_policy  => "${update_policy}",
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
@@ -78,7 +80,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
 
     !version_not_specified.!local_package.debian::
-      "${package_name}"
+      "${name}"
                         package_policy  => "${update_policy}",
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
@@ -88,14 +90,14 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
 
     version_not_specified.local_package.debian::
-      "${package_name}"
+      "${name}"
                         package_policy => "${update_policy}",
                         package_method => debian_local_install,
                         classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action         => policy("${action}");
 
     version_not_specified.!local_package.debian::
-      "${package_name}"
+      "${name}"
                         package_policy => "${update_policy}",
                         package_method => apt_get,
                         classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
@@ -103,7 +105,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
     ## RedHat support ##
     !version_not_specified.local_package.redhat::
-      "${package_name}"
+      "${name}"
                         package_policy  => "${update_policy}",
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
@@ -112,7 +114,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         action          => policy("${action}");
 
     !version_not_specified.!local_package.redhat::
-      "${package_name}"
+      "${name}"
                         package_policy  => "${update_policy}",
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
@@ -122,7 +124,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
 
     version_not_specified.local_package.redhat::
-      "${package_name}"
+      "${name}"
                         package_policy => "${update_policy}",
                         package_method => redhat_local_install,
                         classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
@@ -130,7 +132,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
 
     version_not_specified.!local_package.redhat::
-      "${package_name}"
+      "${name}"
                         package_policy => "${update_policy}",
                         package_method => yum_rpm_no_version,
                         classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
@@ -138,7 +140,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
     ## SUSE support ##
     !version_not_specified.local_package.SuSE::
-      "${package_name}"
+      "${name}"
                         package_policy  => "${update_policy}",
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
@@ -147,7 +149,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         action          => policy("${action}");
 
     !version_not_specified.!local_package.SuSE::
-      "${package_name}"
+      "${name}"
                         package_policy  => "${update_policy}",
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
@@ -157,7 +159,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
 
     version_not_specified.local_package.SuSE::
-      "${package_name}"
+      "${name}"
                         package_policy => "${update_policy}",
                         package_method => ncf_generic,
                         classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
@@ -165,7 +167,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
 
     version_not_specified.!local_package.SuSE::
-      "${package_name}"
+      "${name}"
                         package_policy => "${update_policy}",
                         package_method => ncf_generic,
                         classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
@@ -173,18 +175,18 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
   methods:
     (debian|redhat|SuSE).immediate.!update::
-      "Reports" usebundle => _log_v3("Install package ${package_name}", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log_v3("Install package ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
     (debian|redhat|SuSE).immediate.update::
-      "Reports" usebundle => _log_v3("Install or update package ${package_name} in version ${package_version}", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log_v3("Install or update package ${name} in version ${package_version}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
     (debian|redhat|SuSE).!immediate.!version_not_specified::
-      "Reports" usebundle => _log_v3("Verify that package ${package_name} is installed in version ${package_version}", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log_v3("Verify that package ${name} is installed in version ${package_version}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
     (debian|redhat|SuSE).!immediate.version_not_specified.update::
-      "Reports" usebundle => _log_v3("Verify that package ${package_name} is installed and up-to-date", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log_v3("Verify that package ${name} is installed and up-to-date", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
     (debian|redhat|SuSE).!immediate.version_not_specified.!update::
-      "Reports" usebundle => _log_v3("Verify that package ${package_name} is installed", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log_v3("Verify that package ${name} is installed", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     !(debian|redhat|SuSE)::
       "force failure class" usebundle => _classes_failure("${class_prefix}");
       "force failure class" usebundle => _classes_failure("${old_class_prefix}");
-      "report failure"      usebundle => _log_v3("Install or update package ${package_name} - systems other than Debian-, Red Hat- and SuSE-like are not currently supported", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report failure"      usebundle => _log_v3("Install or update package ${name} - systems other than Debian-, Red Hat- and SuSE-like are not currently supported", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

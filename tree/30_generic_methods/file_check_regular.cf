@@ -19,21 +19,23 @@
 
 # @name File check if regular 
 # @description Checks if a file exists and is a regular file
-# @documentation This bundle will define a condition `file_check_regular_${file_name}_{ok, reached, kept}` if the
-# file is a regular_file, or `file_check_regular_${file_name}_{not_ok, reached, not_kept, failed}` if
+# @documentation This bundle will define a condition `file_check_regular_${path}_{ok, reached, kept}` if the
+# file is a regular_file, or `file_check_regular_${path}_{not_ok, reached, not_kept, failed}` if
 # the file is not a regular file or does not exist
 #
-# @parameter file_name File name (absolute path on the target node)
+# @parameter path File name (absolute path on the target node)
+#
+# @parameter_name path file_name
 # 
 # @class_prefix file_check_regular
-# @class_parameter file_name
+# @class_parameter path
 
-bundle agent file_check_regular(file_name)
+bundle agent file_check_regular(path)
 {
 
   vars:
-      "old_class_prefix" string => canonify("file_check_regular_${file_name}");
-      "args"              slist => { "${file_name}" };
+      "old_class_prefix" string => canonify("file_check_regular_${path}");
+      "args"              slist => { "${path}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_check_regular_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -41,7 +43,7 @@ bundle agent file_check_regular(file_name)
 
   classes:
       "file_exists_and_is_regular"  
-        expression => isplain("${file_name}");
+        expression => isplain("${path}");
 
   methods:
     file_exists_and_is_regular::
@@ -58,5 +60,5 @@ bundle agent file_check_regular(file_name)
 
     any::
       "report"
-        usebundle => _log_v3("Check if ${file_name} is a regular file", "${file_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Check if ${path} is a regular file", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

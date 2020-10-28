@@ -44,33 +44,35 @@
 # file_report_content("/etc/hosts", "3");
 # ```
 #
-# @parameter target     File to report content from
+# @parameter path     File to report content from
 # @parameter limit      Number of lines to report (default is 10)
 # @parameter_constraint limit "allow_empty_string" : true
 # @parameter_constraint limit "regex" : "^\d*$"
 #
+# @parameter_name path target
+#
 # @class_prefix file_report_content_tail
-# @class_parameter target
+# @class_parameter path
 
-bundle agent file_report_content_tail(target, limit)
+bundle agent file_report_content_tail(path, limit)
 {
   vars:
     !pass1::
       # to avoid rewriting class prefix when setting default
-      "old_class_prefix"  string => canonify("file_report_content_tail_${target}");
-      "args"               slist => { "${target}", "${limit}" };
+      "old_class_prefix"  string => canonify("file_report_content_tail_${path}");
+      "args"               slist => { "${path}", "${limit}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_report_content_tail_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
     pass1.file_exists::
-      "content" string => execresult("${ncf_paths.path[tail]} -n${limit} \"${target}\"", "useshell");
+      "content" string => execresult("${ncf_paths.path[tail]} -n${limit} \"${path}\"", "useshell");
 
   defaults:
       "limit" string => "10", if_match_regex => "";
 
   classes:
-      "file_exists" expression => fileexists("${target}");
+      "file_exists" expression => fileexists("${path}");
 
       "pass2" expression => "pass1";
       "pass1" expression => "any";
@@ -79,10 +81,10 @@ bundle agent file_report_content_tail(target, limit)
     pass2.!file_exists::
       "error"   usebundle => _classes_failure("${old_class_prefix}");
       "error"   usebundle => _classes_failure("${class_prefix}");
-      "report"  usebundle => _log_v3("${target} does not exist", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"  usebundle => _log_v3("${path} does not exist", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     pass2.file_exists::
       "success" usebundle => _classes_success("${old_class_prefix}");
       "success" usebundle => _classes_success("${class_prefix}");
-      "report"  usebundle => _log_v3("${limit} last lines of ${target}:${const.n}---${const.n}${content}---${const.n}file content report", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"  usebundle => _log_v3("${limit} last lines of ${path}:${const.n}---${const.n}${content}---${const.n}file content report", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

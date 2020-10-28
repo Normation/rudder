@@ -76,22 +76,24 @@
 # service_restart("apache2");
 # ```
 #
-# @parameter service_name Name of the service
+# @parameter name Name of the service
 # @parameter action Action to trigger on the service (start, stop, restart, reload, ...)
+#
+# @parameter_name name service_name
 # 
 # @class_prefix service_action
-# @class_parameter service_name
+# @class_parameter name
 
-bundle agent service_action(service_name, action)
+bundle agent service_action(name, action)
 {
   vars:
 
-      "canonified_service_name"   string => canonify("${service_name}");
+      "canonified_name"   string => canonify("${name}");
       "canonified_action"         string => canonify("${action}");
 
-      "old_class_prefix"          string => "service_action_${canonified_service_name}";
+      "old_class_prefix"          string => "service_action_${canonified_name}";
 
-      "args"                      slist  => { "${service_name}", "${action}" };
+      "args"                      slist  => { "${name}", "${action}" };
       "report_param"              string => join("_", args);
       "full_class_prefix"         string => canonify("service_action_${report_param}");
       "class_prefix"              string => string_head("${full_class_prefix}", "1000");
@@ -107,7 +109,7 @@ bundle agent service_action(service_name, action)
       "disable_reporting_${class_prefix}"
                                usebundle => disable_reporting;
 
-      "action"                 usebundle => ncf_services("${service_name}", "${action}");
+      "action"                 usebundle => ncf_services("${name}", "${action}");
 
       "reenable_reporting_${class_prefix}"
                                usebundle => enable_reporting,
@@ -117,5 +119,5 @@ bundle agent service_action(service_name, action)
       "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                               ifvarclass => "${inner_class_prefix}_reached";
 
-      "report"                 usebundle => _log_v3("Run action ${action} on service ${service_name}", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                 usebundle => _log_v3("Run action ${action} on service ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

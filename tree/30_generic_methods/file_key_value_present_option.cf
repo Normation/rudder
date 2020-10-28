@@ -21,7 +21,7 @@
 # @documentation Edit (or create) the file, and ensure it contains an entry key -> value with arbitrary separator between the key and its value.
 # If the key is already present, the method will change the value associated with this key.
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter key Key to define
 # @parameter value Value to define
 # @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
@@ -29,14 +29,16 @@
 # @parameter_constraint separator "allow_whitespace_string" : true
 # @parameter_constraint option "select" : [ "strict", "lax" ]
 #
+# @parameter_name path file
+#
 # @class_prefix file_key_value_present
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_key_value_present_option(file, key, value, separator, option)
+bundle agent file_key_value_present_option(path, key, value, separator, option)
 {
   vars:
-      "old_class_prefix" string => canonify("file_key_value_present_${file}");
-      "args"              slist => { "${file}", "${key}", "${value}","${separator}", "${option}" };
+      "old_class_prefix" string => canonify("file_key_value_present_${path}");
+      "args"              slist => { "${path}", "${key}", "${value}","${separator}", "${option}" };
 
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_key_value_present_${report_param}");
@@ -45,10 +47,10 @@ bundle agent file_key_value_present_option(file, key, value, separator, option)
       "keys[${key}]" string => "${value}";
 
     pass1.strict_spacing::
-      "report_message" string => "Ensure line in format key${separator}value in ${file}";
+      "report_message" string => "Ensure line in format key${separator}value in ${path}";
 
     pass1.!strict_spacing::
-      "report_message" string => "Ensure line in format key ${separator} value in ${file}";
+      "report_message" string => "Ensure line in format key ${separator} value in ${path}";
 
   classes:
       "strict_spacing" expression => strcmp("option", "strict");
@@ -57,17 +59,17 @@ bundle agent file_key_value_present_option(file, key, value, separator, option)
       "pass1" expression => "any";
 
   files:
-      "${file}"
+      "${path}"
         create        => "true",
         edit_line     => ncf_maintain_keys_values_option("file_key_value_present_option.keys", "${separator}", "${option}"),
         edit_defaults => ncf_empty_select("false"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
         # This comment is necessary, see https://www.rudder-project.org/redmine/issues/10153
-        comment       => "Editing file ${file} to set ${key}${separator}${value}";
+        comment       => "Editing file ${path} to set ${key}${separator}${value}";
 
   methods:
     pass2::
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Ensure line in format key${separator}value in ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Ensure line in format key${separator}value in ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

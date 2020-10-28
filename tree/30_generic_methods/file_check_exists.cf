@@ -18,26 +18,28 @@
 
 # @name File check exists
 # @description Checks if a file exists
-# @documentation This bundle will define a condition `file_check_exists_${file_name}_{ok, reached, kept}` if the
-# file exists, or `file_check_exists_${file_name}_{not_ok, reached, not_kept, failed}` if
+# @documentation This bundle will define a condition `file_check_exists_${path}_{ok, reached, kept}` if the
+# file exists, or `file_check_exists_${path}_{not_ok, reached, not_kept, failed}` if
 # the file doesn't exists
 #
-# @parameter file_name File name (absolute path on the target node)
+# @parameter path File name (absolute path on the target node)
+#
+# @parameter_name path file_name
 # 
 # @class_prefix file_check_exists
-# @class_parameter file_name
+# @class_parameter path
 
-bundle agent file_check_exists(file_name)
+bundle agent file_check_exists(path)
 {
   vars:
-      "old_class_prefix" string => canonify("file_check_exists_${file_name}");
-      "args"              slist => { "${file_name}" };
+      "old_class_prefix" string => canonify("file_check_exists_${path}");
+      "args"              slist => { "${path}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_check_exists_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
-      "file_exists"  expression => fileexists("${file_name}");
+      "file_exists"  expression => fileexists("${path}");
 
   methods:
     file_exists::
@@ -49,5 +51,5 @@ bundle agent file_check_exists(file_name)
       "file_dont_exists"   usebundle => _classes_failure("${class_prefix}");
 
     any::
-      "report"             usebundle => _log_v3("Check if ${file_name} exists", "${file_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Check if ${path} exists", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

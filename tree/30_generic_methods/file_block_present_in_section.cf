@@ -23,25 +23,27 @@
 # * If the section exists, its content will be replaced if needed
 # * Otherwise it will be created at the end of the file
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter section_start Start of the section
 # @parameter section_end End of the section
 # @parameter block Block representing the content of the section
 #
+# @parameter_name path file
+#
 # @class_prefix file_block_present_in_section
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_block_present_in_section(file, section_start, section_end, block)
+bundle agent file_block_present_in_section(path, section_start, section_end, block)
 {
   vars:
-      "old_class_prefix" string => canonify("file_block_present_in_section_${file}");
-      "args"              slist => { "${file}", "${section_start}", "${section_end}", "${block}" };
+      "old_class_prefix" string => canonify("file_block_present_in_section_${path}");
+      "args"              slist => { "${path}", "${section_start}", "${section_end}", "${block}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_block_present_in_section_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   files:
-      "${file}"
+      "${path}"
         create        => "true",
         edit_line     => ncf_ensure_section_content_type("${section_start}", "${section_end}", "${block}", "preserve_block"),
         edit_defaults => ncf_empty_select("false"),
@@ -50,5 +52,5 @@ bundle agent file_block_present_in_section(file, section_start, section_end, blo
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Insert text block into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Insert text block into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

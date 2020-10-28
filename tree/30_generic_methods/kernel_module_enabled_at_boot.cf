@@ -33,25 +33,27 @@
 #  If you want to force the module to be loaded, use instead the method `kernel_module_loaded`.
 #  If you want to configure the module, use instead the method `kernel_module_configuration`.
 #
-# @parameter module_name Complete name of the kernel module, as seen by lsmod or listed in /proc/modules
+# @parameter name Complete name of the kernel module, as seen by lsmod or listed in /proc/modules
+#
+# @parameter_name name module_name
 #
 # @class_prefix kernel_module_enabled_at_boot
-# @class_parameter module_name
+# @class_parameter name
 
 
-bundle agent kernel_module_enabled_at_boot(module_name)
+bundle agent kernel_module_enabled_at_boot(name)
 {
   vars:
     systemd::
       "module_dir"              string => "/etc/modules-load.d";
     any::
-      "old_class_prefix"        string => canonify("kernel_module_enabled_at_boot_${module_name}");
-      "args"                     slist => { "${module_name}" };
+      "old_class_prefix"        string => canonify("kernel_module_enabled_at_boot_${name}");
+      "args"                     slist => { "${name}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("kernel_module_enabled_at_boot_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
-      "inner_args"               slist => { "${module_dir}/enabled_by_rudder.conf", "${module_name}" };
+      "inner_args"               slist => { "${module_dir}/enabled_by_rudder.conf", "${name}" };
       "report_inner_param"      string => join("_", inner_args);
       "inner_class_prefix"      string => string_head(canonify("file_ensure_lines_present_${report_inner_param}"), "1000");
 
@@ -65,17 +67,17 @@ bundle agent kernel_module_enabled_at_boot(module_name)
   methods:
     pass1.!pass2.systemd::
       "disable_reporting_${class_prefix}"    usebundle => disable_reporting;
-      "edit_modprobe_config_${class_prefix}" usebundle => file_ensure_lines_present("${module_dir}/enabled_by_rudder.conf", "${module_name}");
+      "edit_modprobe_config_${class_prefix}" usebundle => file_ensure_lines_present("${module_dir}/enabled_by_rudder.conf", "${name}");
       "reenable_reporting_${class_prefix}"   usebundle => enable_reporting,
         ifvarclass => "should_report";
 
     pass3.!systemd::
       "unsupported"                          usebundle => _classes_failure("${class_prefix}");
       "unsupported"                          usebundle => _classes_failure("${old_class_prefix}");
-      "report"                               usebundle => _log_v3("This method is not supported on non-systemd systems", "${module_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                               usebundle => _log_v3("This method is not supported on non-systemd systems", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     pass3.systemd::
       "result_classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
       "old_result_classes" usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}");
-      "report"             usebundle => _log_v3("Ensure that kernel module ${module_name} is enabled on the system", "${module_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Ensure that kernel module ${name} is enabled on the system", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

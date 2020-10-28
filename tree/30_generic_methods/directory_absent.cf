@@ -20,21 +20,23 @@
 # @description Ensure a directory's absence
 # @documentation If `recursive` is false, only an empty directory can be deleted.
 #
-# @parameter target     Directory to remove
+# @parameter path       Directory to remove
 # @parameter recursive  Should deletion be recursive, "true" or "false" (defaults to "false")
 # @parameter_constraint recursive "allow_empty_string" : true
+# 
+# @parameter_name path target
 #
 # @class_prefix directory_absent
-# @class_parameter target
+# @class_parameter path
 
-bundle agent directory_absent(target, recursive)
+bundle agent directory_absent(path, recursive)
 {
   vars:
-      "old_class_prefix" string => canonify("directory_absent_${target}");
+      "old_class_prefix" string => canonify("directory_absent_${path}");
 
     # don't rewrite the class prefix based on defaults
     !pass1::
-      "args"              slist => { "${target}", "${recursive}" };
+      "args"              slist => { "${path}", "${recursive}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("directory_absent_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -46,8 +48,8 @@ bundle agent directory_absent(target, recursive)
       "is_recursive" expression => strcmp("true", "${recursive}");
 
     pass2::
-      "directory_exists_after" expression => isdir("${target}");
-      "target_exists_after"    expression => fileexists("${target}");
+      "directory_exists_after" expression => isdir("${path}");
+      "path_exists_after"      expression => fileexists("${path}");
 
     any::
       "pass3" expression => "pass2";
@@ -57,14 +59,14 @@ bundle agent directory_absent(target, recursive)
   files:
 
     pass1.is_recursive::
-      "${target}/."
+      "${path}/."
         delete        => tidy,
         file_select   => all,
         depth_search  => recurse_with_base("inf"),
         classes       => classes_generic_two("${old_class_prefix}_inside", "${class_prefix}_inside");
 
     pass1::
-      "${target}/."
+      "${path}/."
         delete        => tidy,
         file_select   => all,
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
@@ -72,7 +74,7 @@ bundle agent directory_absent(target, recursive)
 
   methods:
 
-    # If target was not empty, we need to trigger an error manually as the files promise will be kept
+    # If path was not empty, we need to trigger an error manually as the files promise will be kept
     # Because of https://tracker.mender.io/browse/CFE-1570
     pass3.directory_exists_after::
       "fail_if_not_empty"   usebundle  => _classes_failure("${class_prefix}");
@@ -88,9 +90,9 @@ bundle agent directory_absent(target, recursive)
       "copy_inside_error"   usebundle  => _classes_copy("${old_class_prefix}_inside", "${old_class_prefix}"),
                             ifvarclass => "${old_class_prefix}_inside_error";
 
-      "report" usebundle => _log_v3("Remove directory ${target}", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log_v3("Remove directory ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   reports:
-    pass3.info.target_exists_after.!directory_exists_after::
-      "${configuration.info} Found a non-directory object with the name ${target} while ensuring this directory did not exist";
+    pass3.info.path_exists_after.!directory_exists_after::
+      "${configuration.info} Found a non-directory object with the name ${path} while ensuring this directory did not exist";
 }

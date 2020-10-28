@@ -26,7 +26,7 @@
 #
 # ##### Parameters
 #
-# `user`      : the user login
+# `login`      : the user login
 # `group_name`: secondary group name the user should belong to (non-exclusive)
 #
 # #### Examples
@@ -39,38 +39,41 @@
 # Note that it will make sure that user test is in group dev, but won't remove it
 # from other groups it may belong to
 #
-# @parameter user           User login
+# @parameter login           User login
 # @parameter group_name     Secondary group name for the user
+#
+# @parameter_name login user
+#
 # @class_prefix user_group
-# @class_parameter user
+# @class_parameter login
 
-bundle agent user_group(user, group_name) {
+bundle agent user_group(login, group_name) {
   vars:
-      "old_class_prefix"      string => canonify("user_group_${user}");
+      "old_class_prefix"      string => canonify("user_group_${login}");
 
-      "args"                   slist => { "${user}", "${group_name}" };
+      "args"                   slist => { "${login}", "${group_name}" };
       "report_param"          string => join("_", args);
       "full_class_prefix"     string => canonify("user_group_${report_param}");
       "class_prefix"          string => string_head("${full_class_prefix}", "1000");
 
-      "add_user_to_group_cmd"   string => "${paths.usermod} -a -G ${group_name} ${user}";
+      "add_user_to_group_cmd"   string => "${paths.usermod} -a -G ${group_name} ${login}";
       "full_inner_class_prefix" string => canonify("command_execution_${add_user_to_group_cmd}");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
 
     user_exists.group_exists::
-      "groups_test"           string => execresult("${ncf_paths.path[id]} -Gn ${user} # with ${group_name}", "useshell");
+      "groups_test"           string => execresult("${ncf_paths.path[id]} -Gn ${login} # with ${group_name}", "useshell");
       "current_groups"         slist => string_split("${groups_test}", " ", "999999");
 
     # if we needed to change the group, check groups afterwards
     pass2.!within_group::
-      "groups_test_post_change"   string => execresult("${ncf_paths.path[id]} -Gn ${user} #post change with ${group_name}", "useshell"),
+      "groups_test_post_change"   string => execresult("${ncf_paths.path[id]} -Gn ${login} #post change with ${group_name}", "useshell"),
                                       if => "${inner_class_prefix}_reached";
       "current_groups_post_change" slist => string_split("${groups_test_post_change}", " ", "999999"),
                                       if => "${inner_class_prefix}_reached";
       
   classes:
-      "user_exists"   expression => userexists("${user}");
+      "user_exists"   expression => userexists("${login}");
       "group_exists"  expression => groupexists("${group_name}");
 
       "should_report"     expression => "${report_data.should_report}";
@@ -110,7 +113,7 @@ bundle agent user_group(user, group_name) {
       "error" usebundle => _classes_failure("${class_prefix}");
 
       "report_failure"
-        usebundle => _log_v3("User ${user} or group ${group_name} don't exist,", "${user}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("User ${login} or group ${group_name} don't exist,", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
 
       
     pass3.user_exists.group_exists.!within_group::
@@ -127,5 +130,5 @@ bundle agent user_group(user, group_name) {
                      if => "!${inner_class_prefix}_error.group_corrected";
     pass3.user_exists.group_exists::
       "report"
-        usebundle => _log_v3("Secondary group ${group_name} for user ${user}", "${user}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Secondary group ${group_name} for user ${login}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

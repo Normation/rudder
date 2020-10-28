@@ -27,32 +27,34 @@
 #
 # Also, this method always result with a *success* outcome status.
 #
-# @parameter condition_prefix Prefix of the condition
+# @parameter condition Prefix of the condition
 # @parameter variable_name Complete name of the variable being tested, like my_prefix.my_variable
+# 
+# @parameter_name condition condition_prefix
 #
 # @class_prefix condition_from_variable_existence
-# @class_parameter condition_prefix
+# @class_parameter condition
 
-bundle agent condition_from_variable_existence(condition_prefix, variable_name)
+bundle agent condition_from_variable_existence(condition, variable_name)
 {
   vars:
-      "old_class_prefix"  string => canonify("condition_from_variable_existence_${condition_prefix}");
-      "args"               slist => { "${condition_prefix}", "${variable_name}" };
+      "old_class_prefix"  string => canonify("condition_from_variable_existence_${condition}");
+      "args"               slist => { "${condition}", "${variable_name}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("condition_from_variable_existence_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
 
-      "${condition_prefix}_true"  expression => isvariable("${variable_name}"),
+      "${condition}_true"  expression => isvariable("${variable_name}"),
             scope => "namespace";
 
-      "${condition_prefix}_false"  not => isvariable("${variable_name}"),
+      "${condition}_false"  not => isvariable("${variable_name}"),
             scope => "namespace";
 
   methods:
       "success" usebundle => _classes_success("${old_class_prefix}");
       "success" usebundle => _classes_success("${class_prefix}");
 
-      "report"  usebundle => _log_v3("Create the condition ${condition_prefix}_{true,false} from the existence of variable ${variable_name}", "${condition_prefix}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"  usebundle => _log_v3("Create the condition ${condition}_{true,false} from the existence of variable ${variable_name}", "${condition}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

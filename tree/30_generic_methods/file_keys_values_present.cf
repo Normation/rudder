@@ -71,25 +71,27 @@
 # key2 = value2
 # ```
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter keys Name of the dict structure (without "${}") containing the keys (keys of the dict), and values to define (values of the dict)
 # @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
 # @parameter_constraint separator "allow_whitespace_string" : true 
 #
+# @parameter_name path file
+#
 # @class_prefix file_keys_values_present
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_keys_values_present(file, keys, separator)
+bundle agent file_keys_values_present(path, keys, separator)
 {
   vars:
-      "old_class_prefix" string => canonify("file_keys_values_present_${file}");
-      "args"              slist => { "${file}", "${keys}", "${separator}" };
+      "old_class_prefix" string => canonify("file_keys_values_present_${path}");
+      "args"              slist => { "${path}", "${keys}", "${separator}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_keys_values_present_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   files:
-      "${file}"
+      "${path}"
         create        => "true",
         edit_line     => ncf_maintain_keys_values("${keys}", "${separator}"),
         edit_defaults => ncf_empty_select("false"),
@@ -98,5 +100,5 @@ bundle agent file_keys_values_present(file, keys, separator)
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Ensure lines in format key${separator}values into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Ensure lines in format key${separator}values into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

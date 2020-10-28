@@ -20,29 +20,31 @@
 # @description Create a symlink at a destination path and pointing to a source target. This is also possible to enforce its creation
 #
 # @parameter source      Source file (absolute path on the target node)
-# @parameter destination Destination file (absolute path on the target node)
+# @parameter path Destination file (absolute path on the target node)
 # @parameter enforce     Force symlink if file already exist (true or false)
-# 
+#
+# @parameter_name path destination
+#
 # @class_prefix file_symlink_present
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_symlink_present_option(source, destination, enforce)
+bundle agent file_symlink_present_option(source, path, enforce)
 {
   vars:
-      "old_class_prefix" string => canonify("file_symlink_present_${destination}");
-      "args"              slist => { "${source}", "${destination}", "${enforce}" };
+      "old_class_prefix" string => canonify("file_symlink_present_${path}");
+      "args"              slist => { "${source}", "${path}", "${enforce}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_symlink_present_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   files:
    # Symlink
-      "${destination}"
+      "${path}"
                     link_from         => ln_s("${source}"),
                     move_obstructions => "${enforce}",
                     classes           => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                    comment           => "Create the ${destination} symlink pointing to ${source}";
+                    comment           => "Create the ${path} symlink pointing to ${source}";
 
   methods:
-      "report" usebundle => _log_v3("Symlink ${destination} targeting ${source}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log_v3("Symlink ${path} targeting ${source}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

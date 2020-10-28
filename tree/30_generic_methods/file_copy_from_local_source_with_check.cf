@@ -23,21 +23,23 @@
 # @description Ensure that a file or directory is copied from a local source if a check command succeeds
 # @documentation This method is a conditional file copy.
 #
-# @parameter source      Source file (absolute path on the target node)
-# @parameter destination Destination file (absolute path on the target node)
+# @parameter source          Source file (absolute path on the target node)
+# @parameter path            Destination file (absolute path on the target node)
 # @parameter check_command   Command to run, it will get the source path as argument
-# @parameter rc_ok       Return codes to be considered as valid, separated by a comma (default is 0)
-# @parameter_constraint  rc_ok "allow_empty_string" : true
+# @parameter rc_ok           Return codes to be considered as valid, separated by a comma (default is 0)
+# @parameter_constraint      rc_ok "allow_empty_string" : true
+#
+# @parameter_name path destination
 # 
 # @class_prefix file_copy_from_local_source_with_check
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_copy_from_local_source_with_check(source, destination, check_command, rc_ok)
+bundle agent file_copy_from_local_source_with_check(source, path, check_command, rc_ok)
 {
   vars:
-      "old_class_prefix" string => canonify("file_copy_from_local_source_with_check_${destination}");
+      "old_class_prefix" string => canonify("file_copy_from_local_source_with_check_${path}");
 
-      "args"              slist => { "${source}", "${destination}", "${check_command}", "${rc_ok}" };
+      "args"              slist => { "${source}", "${path}", "${check_command}", "${rc_ok}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_copy_from_local_source_with_check_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -45,7 +47,7 @@ bundle agent file_copy_from_local_source_with_check(source, destination, check_c
       "full_inner_class_prefix" string => canonify("file_from_local_source_with_check_${report_param}");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
-      "canonified_file"   string => canonify("${destination}");
+      "canonified_path"   string => canonify("${path}");
 
 
   classes:
@@ -54,14 +56,14 @@ bundle agent file_copy_from_local_source_with_check(source, destination, check_c
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
-      "action"             usebundle => file_from_local_source_with_check("${source}", "${destination}", "${check_command}", "${rc_ok}");
+      "action"             usebundle => file_from_local_source_with_check("${source}", "${path}", "${check_command}", "${rc_ok}");
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
-      "class copy"         usebundle => _classes_copy("file_from_local_source_with_check_${canonified_file}", "${old_class_prefix}"),
-                          ifvarclass => "file_from_local_source_with_check_${canonified_file}_reached";
+      "class copy"         usebundle => _classes_copy("file_from_local_source_with_check_${canonified_path}", "${old_class_prefix}"),
+                          ifvarclass => "file_from_local_source_with_check_${canonified_path}_reached";
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
-      "report"            usebundle  => _log_v3("Copying ${destination} from local ${source} with check", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"            usebundle  => _log_v3("Copying ${path} from local ${source} with check", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

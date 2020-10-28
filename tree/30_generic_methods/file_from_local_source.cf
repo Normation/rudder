@@ -23,17 +23,19 @@
 # source, use the *File from local source recursion* method.
 #
 # @parameter source      Source file (absolute path on the target node)
-# @parameter destination Destination file (absolute path on the target node)
+# @parameter path        Destination file (absolute path on the target node)
+#
+# @parameter_name path destination
 #
 # @class_prefix file_from_local_source
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_from_local_source(source, destination)
+bundle agent file_from_local_source(source, path)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_from_local_source_${destination}");
+      "old_class_prefix"  string => canonify("file_from_local_source_${path}");
 
-      "args"               slist => { "${source}", "${destination}" };
+      "args"               slist => { "${source}", "${path}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_from_local_source_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -47,11 +49,11 @@ bundle agent file_from_local_source(source, destination)
   methods:
       "disable_reporting_${class_prefix}"
                                usebundle => disable_reporting;
-      "copy without recursion" usebundle => file_from_local_source_recursion("${source}", "${destination}", "0");
+      "copy without recursion" usebundle => file_from_local_source_recursion("${source}", "${path}", "0");
       "reenable_reporting_${class_prefix}"
                                usebundle => enable_reporting,
                               ifvarclass => "should_report";
       "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
-      "report"                 usebundle => _log_v3("Copying ${destination} from local ${source}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                 usebundle => _log_v3("Copying ${path} from local ${source}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

@@ -202,19 +202,21 @@
 # ```
 #
 # @parameter source_template Source file containing a template to be expanded (absolute path on the target node)
-# @parameter destination     Destination file (absolute path on the target node)
+# @parameter path            Destination file (absolute path on the target node)
+#
+# @parameter_name path destination
 #
 # @class_prefix file_from_template
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_from_template_jinja2(source_template, destination)
+bundle agent file_from_template_jinja2(source_template, path)
 {
 
   vars:
 
-      "old_class_prefix"  string => canonify("file_from_template_${destination}");
+      "old_class_prefix"  string => canonify("file_from_template_${path}");
 
-      "args"              slist  => { "${source_template}", "${destination}" };
+      "args"              slist  => { "${source_template}", "${path}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_from_template_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -222,11 +224,11 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "jinja2_script"     string => "${sys.workdir}/modules/templates/jinja2-templating.py";
       "datastate_tpl"     string => "${sys.workdir}/modules/templates/datastate.json.tpl";
       "datastate_file"    string => "${source_template}.datastate.${this.promiser_pid}.json";
-      "destination_canon" string => canonify("${destination}");
+      "destination_canon" string => canonify("${path}");
       "destination_tmp"   string => "${source_template}.${this.promiser_pid}.new";
 
 
-      "full_inner_class_prefix" string => canonify("file_copy_from_local_source_${destination_tmp}_${destination}");
+      "full_inner_class_prefix" string => canonify("file_copy_from_local_source_${destination_tmp}_${path}");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
       # Here we put the output into the errors variable. As the stdout is sent to a file, the output is only stderr,
@@ -257,7 +259,7 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
       # Use a file copy to avoid any file size limitations of CFEngine variables.
     pass2.templating_ok::
-      "copy file"    usebundle => file_copy_from_local_source("${destination_tmp}", "${destination}");
+      "copy file"    usebundle => file_copy_from_local_source("${destination_tmp}", "${path}");
     pass2.templating_ok::
       "copy classes"        usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
       "copy new classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
@@ -277,9 +279,9 @@ bundle agent file_from_template_jinja2(source_template, destination)
 
       "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
                              ifvarclass => "should_report";
-      "report"              usebundle  => _log_v3("Build file ${destination} from jinja2 template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"              usebundle  => _log_v3("Build file ${path} from jinja2 template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
       # Report errors
-      "report" usebundle  => log_rudder_mode("log_warn", "Jinja templating failed with the following error:${const.endl}${errors}", "${destination}", "${class_prefix}"),
+      "report" usebundle  => log_rudder_mode("log_warn", "Jinja templating failed with the following error:${const.endl}${errors}", "${path}", "${class_prefix}"),
                 ifvarclass => "state_dumped_${destination_canon}_ok.!templating_ok";
 }
 

@@ -18,26 +18,28 @@
 
 # @name Directory check exists
 # @description Checks if a directory exists
-# @documentation This bundle will define a condition `directory_check_exists_${directory_name}_{ok, reached, kept}` if the
-# directory exists, or `directory_check_exists_${directory_name}_{not_ok, reached, not_kept, failed}` if
+# @documentation This bundle will define a condition `directory_check_exists_${path}_{ok, reached, kept}` if the
+# directory exists, or `directory_check_exists_${path}_{not_ok, reached, not_kept, failed}` if
 # the directory doesn't exists
 #
-# @parameter directory_name Full path of the directory to check
+# @parameter path     Full path of the directory to check
 # 
+# @parameter_name path directory_name
+#
 # @class_prefix directory_check_exists
-# @class_parameter directory_name
+# @class_parameter path
 
-bundle agent directory_check_exists(directory_name)
+bundle agent directory_check_exists(path)
 {
   vars:
-      "old_class_prefix" string => canonify("directory_check_exists_${directory_name}");
-      "args"               slist => { "${directory_name}" };
+      "old_class_prefix" string => canonify("directory_check_exists_${path}");
+      "args"               slist => { "${path}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("directory_check_exists_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
-      "directory_exists" expression => isdir("${directory_name}");
+      "directory_exists" expression => isdir("${path}");
 
   methods:
     directory_exists::
@@ -49,5 +51,5 @@ bundle agent directory_check_exists(directory_name)
       "directory_doesnt_exists" usebundle => _classes_failure("${class_prefix}");
 
     any::
-      "report"                  usebundle => _log_v3("Check if directory ${directory_name} exists", "${directory_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                  usebundle => _log_v3("Check if directory ${path} exists", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

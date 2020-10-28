@@ -19,19 +19,21 @@
 # @name File key-value in INI section
 # @description Ensure that a key-value pair is present in a section in a specific location. The objective of this method is to handle INI-style files.
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter section Name of the INI-style section under which the line should be added or modified (not including the [] brackets)
 # @parameter name Name of the key to add or edit
 # @parameter value Value of the key to add or edit
 #
+# @parameter_name path file
+#
 # @class_prefix file_key_value_present_in_ini_section
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_key_value_present_in_ini_section(file, section, name, value)
+bundle agent file_key_value_present_in_ini_section(path, section, name, value)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_key_value_present_in_ini_section_${file}");
-      "args"               slist => { "${file}", "${section}", "${name}", "${value}" };
+      "old_class_prefix"  string => canonify("file_key_value_present_in_ini_section_${path}");
+      "args"               slist => { "${path}", "${section}", "${name}", "${value}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_key_value_present_in_ini_section_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -44,7 +46,7 @@ bundle agent file_key_value_present_in_ini_section(file, section, name, value)
       "file_present" expression => fileexists("${file}");
 
   files:
-      "${file}"
+      "${path}"
         create        => "true",
         edit_line     => insert_lines("[${section}]
 "),
@@ -54,11 +56,11 @@ bundle agent file_key_value_present_in_ini_section(file, section, name, value)
         edit_line     => set_variable_values_ini("file_key_value_present_in_ini_section.content", "${section}"),
         edit_defaults => ncf_empty_select("false"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-        comment       => "Editing file ${file} to set ${name} = ${value} in section ${section}";
+        comment       => "Editing file ${path} to set ${name} = ${value} in section ${section}";
 
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Set line key=value in section ${section} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Set line key=value in section ${section} into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 

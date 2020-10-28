@@ -19,36 +19,39 @@
 
 # @name File check is hardlink
 # @description Checks if two files are the same (hard links)
-# @documentation This bundle will define a condition `file_check_hardlink_${file_name_1}_{ok, reached, kept}` if the
-# two files `${file_name_1}` and `${file_name_2}` are hard links of each other, or `file_check_hardlink_${file_name_1}_{not_ok, reached, not_kept, failed}` if
+# @documentation This bundle will define a condition `file_check_hardlink_${path}_{ok, reached, kept}` if the
+# two files `${path}` and `${path_2}` are hard links of each other, or `file_check_hardlink_${path}_{not_ok, reached, not_kept, failed}` if
 # if the files are not hard links.
 #
-# @parameter file_name_1   File name #1 (absolute path on the target node)
-# @parameter file_name_2   File name #2 (absolute path on the target node)
-# 
+# @parameter path   File name #1 (absolute path on the target node)
+# @parameter path_2   File name #2 (absolute path on the target node)
+#
+# @parameter_name path file_name_1
+# @parameter_name path_2 file_name_2
+#
 # @class_prefix file_check_hardlink
-# @class_parameter file_name_1
+# @class_parameter path
 
-bundle agent file_check_hardlink(file_name_1, file_name_2)
+bundle agent file_check_hardlink(path, path_2)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_check_hardlink_${file_name_1}");
-      "args"               slist => { "${file_name_1}", "${file_name_2}" };
+      "old_class_prefix"  string => canonify("file_check_hardlink_${path}");
+      "args"               slist => { "${path}", "${path_2}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_check_hardlink_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
 
 
-      "file_1_devno"        string => filestat("${file_name_1}", "devno");
-      "file_1_ino"          string => filestat("${file_name_1}", "ino");
-      "file_2_devno"        string => filestat("${file_name_2}", "devno");
-      "file_2_ino"          string => filestat("${file_name_2}", "ino");
+      "file_1_devno"        string => filestat("${path}", "devno");
+      "file_1_ino"          string => filestat("${path}", "ino");
+      "file_2_devno"        string => filestat("${path_2}", "devno");
+      "file_2_ino"          string => filestat("${path_2}", "ino");
 
 
   classes:
-      "file_1_exists"           expression => fileexists("${file_name_1}");
-      "file_2_exists"           expression => fileexists("${file_name_2}");
+      "file_1_exists"           expression => fileexists("${path}");
+      "file_2_exists"           expression => fileexists("${path_2}");
       "files_match_device"      expression => strcmp("${file_1_devno}", "${file_2_devno}");
       "files_match_inode"       expression => strcmp("${file_1_ino}",   "${file_2_ino}");
       "files_are_hardlinks"     expression => "file_1_exists.file_2_exists.files_match_device.files_match_inode";
@@ -69,5 +72,5 @@ bundle agent file_check_hardlink(file_name_1, file_name_2)
 
     any::
       "report"
-        usebundle => _log_v3("Check if ${file_name_1} and ${file_name_2} are the same", "${file_name_1}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Check if ${path} and ${path_2} are the same", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

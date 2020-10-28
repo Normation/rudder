@@ -73,20 +73,22 @@
 # key2 = value2
 # ```
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter keys Name of the dict structure (without "${}") containing the keys (keys of the dict), and values to define (values of the dict)
 # @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
 # @parameter_constraint separator "allow_whitespace_string" : true 
 #
+# @parameter_name path file
+#
 # @class_prefix file_ensure_keys_values
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_ensure_keys_values(file, keys, separator)
+bundle agent file_ensure_keys_values(path, keys, separator)
 {
   vars:
-      "old_class_prefix"         string => canonify("file_ensure_keys_values_${file}");
+      "old_class_prefix"         string => canonify("file_ensure_keys_values_${path}");
 
-      "args"                      slist => { "${file}", "${keys}", "${separator}" };
+      "args"                      slist => { "${path}", "${keys}", "${separator}" };
       "report_param"             string => join("_", args);
       "full_class_prefix"        string => canonify("file_ensure_keys_values_${report_param}");
       "class_prefix"             string => string_head("${full_class_prefix}", "1000");
@@ -95,7 +97,7 @@ bundle agent file_ensure_keys_values(file, keys, separator)
       "inner_class_prefix"       string => string_head("${full_inner_class_prefix}", "1000");
 
 
-      "canonified_file"          string => canonify("${file}");
+      "canonified_path"          string => canonify("${path}");
 
 
   classes:
@@ -104,13 +106,13 @@ bundle agent file_ensure_keys_values(file, keys, separator)
   methods:
       "disable_reporting_${class_prefix}"
                               usebundle => disable_reporting;
-      "action"                usebundle => file_keys_values_present("${file}", "${keys}", "${separator}");
+      "action"                usebundle => file_keys_values_present("${path}", "${keys}", "${separator}");
       "reenable_reporting_${class_prefix}"
                               usebundle => enable_reporting,
                              ifvarclass => "should_report";
-      "class copy"            usebundle => _classes_copy("file_keys_values_present_${canonified_file}", "${old_class_prefix}"),
-                             ifvarclass => "file_keys_values_present_${canonified_file}_reached";
+      "class copy"            usebundle => _classes_copy("file_keys_values_present_${canonified_path}", "${old_class_prefix}"),
+                             ifvarclass => "file_keys_values_present_${canonified_path}_reached";
       "new result classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                              ifvarclass => "${inner_class_prefix}_reached";
-      "report"                usebundle => _log_v3("Ensure lines in format key${separator}values into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                usebundle => _log_v3("Ensure lines in format key${separator}values into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

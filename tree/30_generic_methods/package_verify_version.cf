@@ -19,23 +19,26 @@
 # @name Package verify version
 # @description Verify if a package is installed in a specific version
 #
-# @parameter package_name    Name of the package to verify
-# @parameter package_version Version of the package to verify (can be "latest" for latest version)
+# @parameter name    Name of the package to verify
+# @parameter version Version of the package to verify (can be "latest" for latest version)
+#
+# @parameter_name name package_name
+# @parameter_name name package_version
 #
 # @class_prefix package_install
-# @class_parameter package_name
+# @class_parameter name
 
-bundle agent package_verify_version(package_name, package_version)
+bundle agent package_verify_version(name, version)
 {
   vars:
-      "old_class_prefix"        string => canonify("package_install_${package_name}");
-      "args"                     slist => { "${package_name}", "${package_version}" };
+      "old_class_prefix"        string => canonify("package_install_${name}");
+      "args"                     slist => { "${name}", "${version}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("package_install_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
-      # call is to package_install_version_cmp("${package_name}", "==", "${package_version}", "verify");
-      "full_inner_class_prefix"  string => canonify("package_install_${package_name}_==_${package_version}_verify");
+      # call is to package_install_version_cmp("${name}", "==", "${version}", "verify");
+      "full_inner_class_prefix"  string => canonify("package_install_${name}_==_${version}_verify");
       "inner_class_prefix"       string => string_head("${full_inner_class_prefix}", "1000");
 
   classes:
@@ -44,11 +47,11 @@ bundle agent package_verify_version(package_name, package_version)
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
-      "package verify"     usebundle => package_install_version_cmp("${package_name}", "==", "${package_version}", "verify");
+      "package verify"     usebundle => package_install_version_cmp("${name}", "==", "${version}", "verify");
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
     "new result classes"   usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
-    "report"               usebundle => _log_v3("Verify that package ${package_name} is installed in version ${package_version}", "${package_name}", "${old_class_prefix}", "", @{args});
+    "report"               usebundle => _log_v3("Verify that package ${name} is installed in version ${version}", "${name}", "${old_class_prefix}", "", @{args});
 }

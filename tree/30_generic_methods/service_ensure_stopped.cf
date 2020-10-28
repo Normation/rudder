@@ -21,24 +21,26 @@
 # @rename service_stopped
 # @deprecated Use [service_stopped](#_service_stopped) instead.
 #
-# @parameter service_name Service
+# @parameter name Service
 # 
+# @parameter_name name service_name
+#
 # @class_prefix service_ensure_stopped
-# @class_parameter service_name
+# @class_parameter name
 
-bundle agent service_ensure_stopped(service_name)
+bundle agent service_ensure_stopped(name)
 {
   vars:
 
-      "canonified_service_name"      string => canonify("${service_name}");
+      "canonified_name"      string => canonify("${name}");
 
-      "old_class_prefix"             string => "service_ensure_stopped_${canonified_service_name}";
+      "old_class_prefix"             string => "service_ensure_stopped_${canonified_name}";
 
       "class_prefix"                 string => "${old_class_prefix}";
 
-      "args"                          slist => { "${service_name}" };
+      "args"                          slist => { "${name}" };
 
-      "full_inner_class_prefix"      string => canonify("service_stopped_${service_name}");
+      "full_inner_class_prefix"      string => canonify("service_stopped_${name}");
       "inner_class_prefix"           string => string_head("${full_inner_class_prefix}", "1000");
 
 
@@ -50,7 +52,7 @@ bundle agent service_ensure_stopped(service_name)
       "disable_reporting_${class_prefix}"
                          usebundle => disable_reporting;
 
-    "action"             usebundle => service_stopped("${service_name}");
+    "action"             usebundle => service_stopped("${name}");
       "reenable_reporting_${class_prefix}"
                          usebundle => enable_reporting,
                         ifvarclass => "should_report";
@@ -59,6 +61,6 @@ bundle agent service_ensure_stopped(service_name)
     "class copy"         usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                         ifvarclass => "${inner_class_prefix}_reached";
     "report"
-        usebundle  => _log_v3("Ensure that service ${service_name} is stopped", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Ensure that service ${name} is stopped", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

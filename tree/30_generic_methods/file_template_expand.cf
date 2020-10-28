@@ -22,25 +22,27 @@
 # @description This is a bundle to expand a template in a specific location
 #
 # @parameter tml_file File name (with full path within the framework) of the template file
-# @parameter target_file File name (with full path) where to expand the template
+# @parameter path File name (with full path) where to expand the template
 # @parameter mode Mode of destination file
 # @parameter owner Owner of destination file
 # @parameter group Group of destination file
 #
+# @parameter_name path target_file
+#
 # @class_prefix file_template_expand
-# @class_parameter target_file
+# @class_parameter path
 
-bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
+bundle agent file_template_expand(tml_file, path, mode, owner, group)
 {
   vars:
-      "old_class_prefix" string => canonify("file_template_expand_${target_file}");
-      "args"              slist => { "${tml_file}", "${target_file}", "${mode}", "${owner}", "${group}" };
+      "old_class_prefix" string => canonify("file_template_expand_${path}");
+      "args"              slist => { "${tml_file}", "${path}", "${mode}", "${owner}", "${group}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_template_expand_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   files:
-      "${target_file}"
+      "${path}"
         create        => "true",
         edit_template => "${sys.workdir}/inputs/${tml_file}",
         edit_defaults => ncf_empty_select("true"),
@@ -50,5 +52,5 @@ bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
   methods:
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Expand template ${tml_file} into ${target_file} with perms ${mode}, ${owner}, ${group}", "${target_file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Expand template ${tml_file} into ${path} with perms ${mode}, ${owner}, ${group}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

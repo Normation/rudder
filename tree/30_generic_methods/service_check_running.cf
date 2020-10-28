@@ -19,19 +19,21 @@
 # @name Service check running
 # @description Check if a service is running using the appropriate method
 #
-# @parameter service_name  Process name
-# 
+# @parameter name  Process name
+#
+# @parameter_name name service_name
+#
 # @class_prefix service_check_running
-# @class_parameter service_name
+# @class_parameter name
 
-bundle agent service_check_running(service_name)
+bundle agent service_check_running(name)
 {
   vars:
-      "canonified_service_name" string => canonify("${service_name}");
+      "canonified_name"         string => canonify("${name}");
 
-      "old_class_prefix"        string => canonify("service_check_running_${service_name}");
+      "old_class_prefix"        string => canonify("service_check_running_${name}");
 
-      "args"                     slist => { "${service_name}" };
+      "args"                     slist => { "${name}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("service_check_running_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
@@ -47,15 +49,15 @@ bundle agent service_check_running(service_name)
   methods:
       "disable_reporting_${class_prefix}"
                              usebundle => disable_reporting;
-      "check_active"         usebundle => ncf_services("${service_name}", "is-active");
+      "check_active"         usebundle => ncf_services("${name}", "is-active");
 
       "reenable_reporting_${class_prefix}"
                              usebundle => enable_reporting,
                             ifvarclass => "should_report";
-      "class copy"           usebundle => _classes_copy("ncf_services_${canonified_service_name}_is_active", "${old_class_prefix}"),
-                            ifvarclass => "ncf_services_${canonified_service_name}_is_active_reached";
+      "class copy"           usebundle => _classes_copy("ncf_services_${canonified_name}_is_active", "${old_class_prefix}"),
+                            ifvarclass => "ncf_services_${canonified_name}_is_active_reached";
       "new result classes"   usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                             ifvarclass => "${inner_class_prefix}_reached";
 
-      "report"             usebundle => _log_v3("Check if the service ${service_name} is started", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Check if the service ${name} is started", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

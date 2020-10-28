@@ -21,21 +21,23 @@
 # @action
 # @documentation See [service_action](#_service_action) for documentation.
 #
-# @parameter service_name Name of the service
+# @parameter name Name of the service
 # 
+# @parameter_name name service_name
+#
 # @class_prefix service_restart
-# @class_parameter service_name
+# @class_parameter name
 
-bundle agent service_restart(service_name)
+bundle agent service_restart(name)
 {
   vars:
-      "old_class_prefix"         string => canonify("service_restart_${service_name}");
+      "old_class_prefix"         string => canonify("service_restart_${name}");
 
-      "args"                      slist => { "${service_name}" };
-      "full_class_prefix"        string => canonify("service_restart_${service_name}");
+      "args"                      slist => { "${name}" };
+      "full_class_prefix"        string => canonify("service_restart_${name}");
       "class_prefix"             string => string_head("${full_class_prefix}", "1000");
 
-      "full_inner_class_prefix"  string => canonify("service_action_${service_name}_restart");
+      "full_inner_class_prefix"  string => canonify("service_action_${name}_restart");
       "inner_class_prefix"       string => string_head("${full_inner_class_prefix}", "1000");
 
   classes:
@@ -44,7 +46,7 @@ bundle agent service_restart(service_name)
   methods:
       "disable_reporting_${class_prefix}"
                               usebundle => disable_reporting;
-      "restart always"        usebundle => service_restart_if("${service_name}","any");
+      "restart always"        usebundle => service_restart_if("${name}","any");
 
       "reenable_reporting_${class_prefix}"
                               usebundle => enable_reporting,
@@ -52,5 +54,5 @@ bundle agent service_restart(service_name)
       # old_class_prefix in service_restart_if is the same as in service_restart
       "new result classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
-      "report"                usebundle => _log_v3("Restart service ${service_name}", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                usebundle => _log_v3("Restart service ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

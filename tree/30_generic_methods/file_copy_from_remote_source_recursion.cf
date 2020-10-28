@@ -30,17 +30,19 @@
 # ```
 #
 # @parameter source      Source file (absolute path on the policy server)
-# @parameter destination Destination file (absolute path on the target node)
+# @parameter path        Destination file (absolute path on the target node)
 # @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
+#
+# @parameter_name path destination
 # 
 # @class_prefix file_copy_from_remote_source
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_copy_from_remote_source_recursion(source, destination, recursion)
+bundle agent file_copy_from_remote_source_recursion(source, path, recursion)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_copy_from_remote_source_${destination}");
-      "args"               slist => { "${source}", "${destination}", "${recursion}" };
+      "old_class_prefix"  string => canonify("file_copy_from_remote_source_${path}");
+      "args"               slist => { "${source}", "${path}", "${recursion}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_copy_from_remote_source_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -48,7 +50,7 @@ bundle agent file_copy_from_remote_source_recursion(source, destination, recursi
       "full_inner_class_prefix" string => canonify("file_from_remote_source_${report_param}");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
-      "canonified_file"    string => canonify("${destination}");
+      "canonified_path"    string => canonify("${path}");
 
 
   classes:
@@ -57,14 +59,14 @@ bundle agent file_copy_from_remote_source_recursion(source, destination, recursi
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
-      "action"             usebundle => file_from_remote_source_recursion("${source}", "${destination}", "${recursion}");
+      "action"             usebundle => file_from_remote_source_recursion("${source}", "${path}", "${recursion}");
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
-      "class copy"         usebundle => _classes_copy("file_from_remote_source_${canonified_file}", "${old_class_prefix}"),
-                          ifvarclass => "file_from_remote_source_${canonified_file}_reached";
+      "class copy"         usebundle => _classes_copy("file_from_remote_source_${canonified_path}", "${old_class_prefix}"),
+                          ifvarclass => "file_from_remote_source_${canonified_path}_reached";
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
-      "report"            usebundle  => _log_v3("Copying ${destination} from remote ${source}, recursion level ${recursion}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"            usebundle  => _log_v3("Copying ${path} from remote ${source}, recursion level ${recursion}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

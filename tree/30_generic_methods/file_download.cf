@@ -26,23 +26,25 @@
 # It tries `curl` first, and `wget` as fallback.
 #
 # @parameter source      URL to download from
-# @parameter destination File destination (absolute path on the target node)
+# @parameter path        File destination (absolute path on the target node)
+#
+# @parameter_name path   destination
 # 
 # @class_prefix file_download
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_download(source, destination)
+bundle agent file_download(source, path)
 {
 
   vars:
 
 
     any::
-      "canonified_destination"    string => canonify("${destination}");
+      "canonified_path"           string => canonify("${path}");
 
-      "old_class_prefix"          string => "file_download_${canonified_destination}";
+      "old_class_prefix"          string => "file_download_${canonified_path}";
 
-      "args"                       slist => { "${source}", "${destination}" };
+      "args"                       slist => { "${source}", "${path}" };
       "report_param"              string => join("_", args);
       "full_class_prefix"         string => canonify("file_download_${report_param}");
       "class_prefix"              string => string_head("${full_class_prefix}", "1000");
@@ -57,14 +59,14 @@ bundle agent file_download(source, destination)
   methods:
       "disable_reporting_${class_prefix}"
                                usebundle => disable_reporting;
-      "action"                 usebundle => file_from_http_server("${source}", "${destination}");
+      "action"                 usebundle => file_from_http_server("${source}", "${path}");
       "reenable_reporting_${class_prefix}"
                                usebundle => enable_reporting,
                               ifvarclass => "should_report";
-      "class copy"             usebundle => _classes_copy("file_from_http_server_${canonified_destination}", "${old_class_prefix}"),
-                              ifvarclass => "file_from_http_server_${canonified_destination}_reached";
+      "class copy"             usebundle => _classes_copy("file_from_http_server_${canonified_path}", "${old_class_prefix}"),
+                              ifvarclass => "file_from_http_server_${canonified_path}_reached";
       "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                               ifvarclass => "${inner_class_prefix}_reached";
-      "report"                 usebundle => _log_v3("Download ${source} into ${destination}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                 usebundle => _log_v3("Download ${source} into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

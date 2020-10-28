@@ -39,7 +39,7 @@
 # file_ensure_key_value_parameter_in_list("/etc/default/grub", "GRUB_CMDLINE", "=", "dom0_max_vcpus=32", " ", "\"", "\"");
 # ```
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter key Full key name
 # @parameter key_value_separator character used to separate key and value in a key-value line
 # @parameter parameter String representing the sub-value to ensure is present in the list of parameters that form the value part of that line
@@ -51,15 +51,17 @@
 # @parameter_constraint leading_char_separator "allow_empty_string" : true
 # @parameter_constraint closing_char_separator "allow_empty_string" : true
 #
+# @parameter_name path file
+#
 # @class_prefix file_ensure_key_value_parameter_in_list
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_ensure_key_value_parameter_in_list(file, key, key_value_separator, parameter, parameter_separator, leading_char_separator, closing_char_separator)
+bundle agent file_ensure_key_value_parameter_in_list(path, key, key_value_separator, parameter, parameter_separator, leading_char_separator, closing_char_separator)
 {
   vars:
-      "old_class_prefix"        string => canonify("file_ensure_key_value_parameter_in_list_${file}");
+      "old_class_prefix"        string => canonify("file_ensure_key_value_parameter_in_list_${path}");
 
-      "args"                     slist => { "${file}", "${key}", "${key_value_separator}", "${parameter}", "${parameter_separator}", "${leading_char_separator}", "${closing_char_separator}" };
+      "args"                     slist => { "${path}", "${key}", "${key_value_separator}", "${parameter}", "${parameter_separator}", "${leading_char_separator}", "${closing_char_separator}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("file_ensure_key_value_parameter_in_list_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
@@ -68,7 +70,7 @@ bundle agent file_ensure_key_value_parameter_in_list(file, key, key_value_separa
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
 
-      "canonified_file"    string => canonify("${file}");
+      "canonified_path"    string => canonify("${path}");
 
 
   classes:
@@ -77,13 +79,13 @@ bundle agent file_ensure_key_value_parameter_in_list(file, key, key_value_separa
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
-      "action"             usebundle => file_key_value_parameter_present_in_list("${file}", "${key}", "${key_value_separator}", "${parameter_regex}", "${parameter_separator}", "${leading_char_separator}", "${closing_char_separator}");
+      "action"             usebundle => file_key_value_parameter_present_in_list("${path}", "${key}", "${key_value_separator}", "${parameter_regex}", "${parameter_separator}", "${leading_char_separator}", "${closing_char_separator}");
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
-    "class copy"           usebundle => _classes_copy("file_key_value_parameter_present_in_list_${canonified_file}", "${old_class_prefix}"),
-                          ifvarclass => "file_key_value_parameter_present_in_list_${canonified_file}_reached";
+    "class copy"           usebundle => _classes_copy("file_key_value_parameter_present_in_list_${canonified_path}", "${old_class_prefix}"),
+                          ifvarclass => "file_key_value_parameter_present_in_list_${canonified_path}_reached";
     "new result classes"   usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
-    "report"               usebundle => _log_v3("Ensure parameters in line ${key}${key_value_separator} values in ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"               usebundle => _log_v3("Ensure parameters in line ${key}${key_value_separator} values in ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

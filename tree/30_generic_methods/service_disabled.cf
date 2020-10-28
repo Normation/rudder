@@ -19,22 +19,24 @@
 # @name Service disabled at boot
 # @description Force a service not to be enabled at boot
 #
-# @parameter service_name Service name (as recognized by systemd, init.d, etc...)
+# @parameter name Service name (as recognized by systemd, init.d, etc...)
+#
+# @parameter_name name service_name
 #
 # @class_prefix service_disabled
-# @class_parameter service_name
+# @class_parameter name
 
-bundle agent service_disabled(service_name)
+bundle agent service_disabled(name)
 {
   vars:
 
 
     any::
-      "canonified_service_name" string => canonify("${service_name}");
+      "canonified_name"         string => canonify("${name}");
 
-      "old_class_prefix"        string => "service_disabled_${canonified_service_name}";
+      "old_class_prefix"        string => "service_disabled_${canonified_name}";
 
-      "args"                     slist => { "${service_name}" };
+      "args"                     slist => { "${name}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("service_disabled_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
@@ -51,23 +53,23 @@ bundle agent service_disabled(service_name)
         usebundle => disable_reporting;
 
       "disable_at_boot"
-        usebundle => service_check_disabled_at_boot("${service_name}");
+        usebundle => service_check_disabled_at_boot("${name}");
 
       "undefine_at_boot"
-        usebundle => ncf_services("${service_name}", "disable"),
-        ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_not_ok";
+        usebundle => ncf_services("${name}", "disable"),
+        ifvarclass => "service_check_disabled_at_boot_${canonified_name}_not_ok";
 
       "already undefined"
         usebundle  => _classes_success("${old_class_prefix}"),
-        ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_ok";
+        ifvarclass => "service_check_disabled_at_boot_${canonified_name}_ok";
 
       "already undefined"
         usebundle  => _classes_success("${class_prefix}"),
-        ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_ok";
+        ifvarclass => "service_check_disabled_at_boot_${canonified_name}_ok";
 
       "copy classes"
-        usebundle  => _classes_copy("ncf_services_${canonified_service_name}_disable", "${old_class_prefix}"),
-        ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_not_ok";
+        usebundle  => _classes_copy("ncf_services_${canonified_name}_disable", "${old_class_prefix}"),
+        ifvarclass => "service_check_disabled_at_boot_${canonified_name}_not_ok";
 
       "copy classes"
         usebundle  => _classes_copy("${inner_class_prefix}_disable", "${class_prefix}"),
@@ -77,6 +79,6 @@ bundle agent service_disabled(service_name)
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
       "report"
-        usebundle => _log_v3("Ensure service ${service_name} is disabled at boot", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Ensure service ${name} is disabled at boot", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

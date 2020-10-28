@@ -19,20 +19,22 @@
 
 # @name File check is FIFO/Pipe
 # @description Checks if a file exists and is a FIFO/Pipe
-# @documentation This bundle will define a condition `file_check_FIFO_pipe_${file_name}_{ok, reached, kept}` if the
-# file is a FIFO, or `file_check_FIFO_pipe_${file_name}_{not_ok, reached, not_kept, failed}` if
+# @documentation This bundle will define a condition `file_check_FIFO_pipe_${path}_{ok, reached, kept}` if the
+# file is a FIFO, or `file_check_FIFO_pipe_${path}_{not_ok, reached, not_kept, failed}` if
 # the file is not a fifo or does not exist
 #
-# @parameter file_name File name (absolute path on the target node)
+# @parameter path File name (absolute path on the target node)
+#
+# @parameter_name path file_name
 # 
 # @class_prefix file_check_FIFO_pipe
-# @class_parameter file_name
+# @class_parameter path
 
-bundle agent file_check_FIFO_pipe(file_name)
+bundle agent file_check_FIFO_pipe(path)
 {
 
   methods:
       "file_exists"
-        usebundle => file_check_special("${file_name}", "FIFO/pipe");
+        usebundle => file_check_special("${path}", "FIFO/pipe");
 
 }

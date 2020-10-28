@@ -22,18 +22,20 @@
 # @description Create a symlink at a destination path and pointing to a source target except if a file or directory already exists.
 #
 # @parameter source      Source file (absolute path on the target node)
-# @parameter destination Destination file (absolute path on the target node)
+# @parameter path        Destination file (absolute path on the target node)
+#
+# @parameter_name path   destination
 # 
 # @class_prefix file_create_symlink
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_create_symlink(source, destination)
+bundle agent file_create_symlink(source, path)
 {
   vars:
-      "old_class_prefix" string => canonify("file_create_symlink_${destination}");
+      "old_class_prefix" string => canonify("file_create_symlink_${path}");
 
 
-      "args"               slist => { "${source}", "${destination}" };
+      "args"               slist => { "${source}", "${path}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_create_symlink_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -49,12 +51,12 @@ bundle agent file_create_symlink(source, destination)
   methods:
       "disable_reporting_${class_prefix}"
                                usebundle => disable_reporting;
-      "create without enforce" usebundle => file_create_symlink_enforce("${source}", "${destination}", "false");
+      "create without enforce" usebundle => file_create_symlink_enforce("${source}", "${path}", "false");
       "reenable_reporting_${class_prefix}"
                                usebundle => enable_reporting,
                               ifvarclass => "should_report";
       "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                               ifvarclass => "${inner_class_prefix}_reached";
 
-      "report"                 usebundle => _log_v3("Symlink ${destination} targeting ${source} (without overwrite)", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                 usebundle => _log_v3("Symlink ${path} targeting ${source} (without overwrite)", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

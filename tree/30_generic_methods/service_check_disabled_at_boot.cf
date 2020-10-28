@@ -19,20 +19,22 @@
 # @name Service check disabled at boot
 # @description Check if a service is set to not start at boot using the appropriate method
 #
-# @parameter service_name  Service name (as recognized by systemd, init.d, etc...)
+# @parameter name  Service name (as recognized by systemd, init.d, etc...)
 # 
+# @parameter_name name service_name
+#
 # @class_prefix service_check_disabled_at_boot
-# @class_parameter service_name
-# This bundle will define a condition service_check_disabled_at_boot_${service_name}_{kept,ok,not_ok,failed,reached}
+# @class_parameter name
+# This bundle will define a condition service_check_disabled_at_boot_${name}_{kept,ok,not_ok,failed,reached}
 
-bundle agent service_check_disabled_at_boot(service_name)
+bundle agent service_check_disabled_at_boot(name)
 {
   vars:
-      "canonified_service_name" string => canonify("${service_name}");
+      "canonified_name"         string => canonify("${name}");
 
-      "old_class_prefix"        string => "service_check_disabled_at_boot_${canonified_service_name}";
+      "old_class_prefix"        string => "service_check_disabled_at_boot_${canonified_name}";
 
-      "args"                     slist => { "${service_name}" };
+      "args"                     slist => { "${name}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("service_check_disabled_at_boot_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
@@ -48,21 +50,21 @@ bundle agent service_check_disabled_at_boot(service_name)
   methods:
       "disable_reporting_${class_prefix}"
                              usebundle => disable_reporting;
-      "check_enabled"        usebundle => ncf_services("${service_name}", "is-enabled");
+      "check_enabled"        usebundle => ncf_services("${name}", "is-enabled");
 
       "reenable_reporting_${class_prefix}"
                              usebundle => enable_reporting,
                             ifvarclass => "should_report";
       "success"              usebundle => _classes_success("${old_class_prefix}"),
-                            ifvarclass => "ncf_services_${canonified_service_name}_is_enabled_not_ok";
+                            ifvarclass => "ncf_services_${canonified_name}_is_enabled_not_ok";
       "success"              usebundle => _classes_success("${class_prefix}"),
                             ifvarclass => "${inner_class_prefix}_not_ok";
 
       "failure"              usebundle => _classes_failure("${old_class_prefix}"),
-                            ifvarclass => "ncf_services_${canonified_service_name}_is_enabled_ok";
+                            ifvarclass => "ncf_services_${canonified_name}_is_enabled_ok";
       "failure"              usebundle => _classes_failure("${class_prefix}"),
                             ifvarclass => "${inner_class_prefix}_ok";
 
-      "reports" usebundle => _log_v3("Check if service ${service_name} is disabled at boot", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "reports" usebundle => _log_v3("Check if service ${name} is disabled at boot", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

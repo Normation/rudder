@@ -21,20 +21,22 @@
 # @deprecated Use [file_key_value_present_in_ini_section](#_file_key_value_present_in_ini_section) instead.
 # @description Ensure that a key-value pair is present in a section in a specific location. The objective of this method is to handle INI-style files.
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter section Name of the INI-style section under which the line should be added or modified (not including the [] brackets)
 # @parameter name Name of the key to add or edit
 # @parameter value Value of the key to add or edit
 #
+# @parameter_name path file
+#
 # @class_prefix file_ensure_key_value_present_in_ini_section
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_ensure_key_value_present_in_ini_section(file, section, name, value)
+bundle agent file_ensure_key_value_present_in_ini_section(path, section, name, value)
 {
   vars:
-      "old_class_prefix"        string => canonify("file_ensure_key_value_present_in_ini_section_${file}");
+      "old_class_prefix"        string => canonify("file_ensure_key_value_present_in_ini_section_${path}");
 
-      "args"                     slist => { "${file}", "${section}", "${name}", "${value}" };
+      "args"                     slist => { "${path}", "${section}", "${name}", "${value}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("file_ensure_key_value_present_in_ini_section_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
@@ -42,7 +44,7 @@ bundle agent file_ensure_key_value_present_in_ini_section(file, section, name, v
       "full_inner_class_prefix" string => canonify("file_key_value_present_in_ini_section_${report_param}");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
-      "canonified_file"    string => canonify("${file}");
+      "canonified_path"    string => canonify("${path}");
 
   classes:
       "should_report"    expression => "${report_data.should_report}";
@@ -50,14 +52,14 @@ bundle agent file_ensure_key_value_present_in_ini_section(file, section, name, v
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
-      "action"             usebundle => file_key_value_present_in_ini_section("${file}", "${section}", "${name}", "${value}");
+      "action"             usebundle => file_key_value_present_in_ini_section("${path}", "${section}", "${name}", "${value}");
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
-      "class copy"         usebundle => _classes_copy("file_key_value_present_in_ini_section_${canonified_file}", "${old_class_prefix}"),
-                          ifvarclass => "file_key_value_present_in_ini_section_${canonified_file}_reached";
+      "class copy"         usebundle => _classes_copy("file_key_value_present_in_ini_section_${canonified_path}", "${old_class_prefix}"),
+                          ifvarclass => "file_key_value_present_in_ini_section_${canonified_path}_reached";
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
-      "report"            usebundle  => _log_v3("Set value for key in section ${section} into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"            usebundle  => _log_v3("Set value for key in section ${section} into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 

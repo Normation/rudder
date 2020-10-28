@@ -21,27 +21,29 @@
 # @deprecated Use [service_restart](#_service_restart) with a condition
 # @documentation See [service_action](#_service_action) for documentation.
 #
-# @parameter service_name Name of the service
+# @parameter name Name of the service
 # @parameter trigger_class class(es) which will trigger the restart of Service "(package_service_installed|service_conf_changed)" by example
 # 
+# @parameter_name name service_name
+#
 # @class_prefix service_restart
-# @class_parameter service_name
+# @class_parameter name
 
-bundle agent service_restart_if(service_name, trigger_class)
+bundle agent service_restart_if(name, trigger_class)
 {
   vars:
 
-      "canonified_service_name"      string => canonify("${service_name}");
+      "canonified_name"      string => canonify("${name}");
 
-      "old_class_prefix"             string => "service_restart_${canonified_service_name}";
+      "old_class_prefix"             string => "service_restart_${canonified_name}";
 
-      "args"                          slist => { "${service_name}",  "${trigger_class}" };
+      "args"                          slist => { "${name}",  "${trigger_class}" };
 
       "report_param"                 string => join("_", args);
       "full_class_prefix"            string => canonify("service_restart_${report_param}");
       "class_prefix"                 string => string_head("${full_class_prefix}", "1000");
 
-      "full_inner_class_prefix"      string => canonify("service_action_${service_name}_restart");
+      "full_inner_class_prefix"      string => canonify("service_action_${name}_restart");
       "inner_class_prefix"           string => string_head("${full_inner_class_prefix}", "1000");
 
   classes:
@@ -59,7 +61,7 @@ bundle agent service_restart_if(service_name, trigger_class)
                                    # parenthesis used to negate all the classes
                                    ifvarclass => "!(${trigger_class})";
 
-      "restart"                    usebundle  => service_action("${service_name}", "restart"),
+      "restart"                    usebundle  => service_action("${name}", "restart"),
                                    ifvarclass => "${trigger_class}";
 
       "class copy"                 usebundle  => _classes_copy("${inner_class_prefix}", "${old_class_prefix}"),
@@ -72,5 +74,5 @@ bundle agent service_restart_if(service_name, trigger_class)
                                     usebundle => enable_reporting,
                                    ifvarclass => "should_report";
 
-      "report"                     usebundle  => _log_v3("Restart service ${canonified_service_name} if '${trigger_class}' condition defined", "${service_name}", "service_restart_${canonified_service_name}", "${class_prefix}", @{args});
+      "report"                     usebundle  => _log_v3("Restart service ${canonified_name} if '${trigger_class}' condition defined", "${name}", "service_restart_${canonified_name}", "${class_prefix}", @{args});
 }

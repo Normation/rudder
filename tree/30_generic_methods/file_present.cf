@@ -19,25 +19,27 @@
 # @name File present
 # @description Create a file if it doesn't exist
 #
-# @parameter target     File to create (absolute path on the target node)
+# @parameter path     File to create (absolute path on the target node)
+#
+# @parameter_name path target
 #
 # @class_prefix file_present
-# @class_parameter target
+# @class_parameter path
 
-bundle agent file_present(target)
+bundle agent file_present(path)
 {
   vars:
-      "old_class_prefix" string => canonify("file_present_${target}");
-      "args"              slist => { "${target}" };
+      "old_class_prefix" string => canonify("file_present_${path}");
+      "args"              slist => { "${path}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_present_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   files:
-    "${target}"
+    "${path}"
       create        => "true",
       classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "report" usebundle => _log_v3("Presence of file ${target}", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report" usebundle => _log_v3("Presence of file ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

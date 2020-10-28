@@ -23,25 +23,27 @@
 # Otherwise, simply call [service_stopped](#_service_stopped)
 # @documentation See [service_action](#_service_action) for documentation.
 #
-# @parameter service_name Name of the service
+# @parameter name Name of the service
 # 
+# @parameter_name name service_name
+#
 # @class_prefix service_stop
-# @class_parameter service_name
+# @class_parameter name
 
-bundle agent service_stop(service_name)
+bundle agent service_stop(name)
 {
   vars:
 
-      "canonified_service_name" string => canonify("${service_name}");
+      "canonified_name" string => canonify("${name}");
 
-      "old_class_prefix"        string => "service_stop_${canonified_service_name}";
+      "old_class_prefix"        string => "service_stop_${canonified_name}";
 
-      "args"                     slist => { "${service_name}" };
+      "args"                     slist => { "${name}" };
 
-      "full_class_prefix"       string => canonify("service_stop_${service_name}");
+      "full_class_prefix"       string => canonify("service_stop_${name}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
-      "full_inner_class_prefix" string => canonify("service_action_${service_name}_stop");
+      "full_inner_class_prefix" string => canonify("service_action_${name}_stop");
       "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
 
   classes:
@@ -51,7 +53,7 @@ bundle agent service_stop(service_name)
       "disable_reporting_${class_prefix}"
                    usebundle => disable_reporting;
 
-      "stop"       usebundle => service_action("${service_name}", "stop");
+      "stop"       usebundle => service_action("${name}", "stop");
 
       "reenable_reporting_${class_prefix}"
                    usebundle => enable_reporting,
@@ -61,6 +63,6 @@ bundle agent service_stop(service_name)
 
       "class copy" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
-      "report"     usebundle => _log_v3("Stop service ${service_name}", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"     usebundle => _log_v3("Stop service ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

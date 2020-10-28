@@ -19,30 +19,32 @@
 # @name File line in XML section
 # @description Ensure that a line is present in a tag in a specific location. The objective of this method is to handle XML-style files. Note that if the tag is not present in the file, it won't be added, and the edition will fail.
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter tag Name of the XML tag under which lines should be added (not including the <> brackets)
 # @parameter line Line to ensure is present inside the section
 #
+# @parameter_name path file
+#
 # @class_prefix file_line_present_in_xml_tag
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_line_present_in_xml_tag(file, tag, line)
+bundle agent file_line_present_in_xml_tag(path, tag, line)
 {
   vars:
-      "old_class_prefix" string => canonify("file_line_present_in_xml_tag_${file}");
-      "args"              slist => { "${file}", "${tag}", "${line}" };
+      "old_class_prefix" string => canonify("file_line_present_in_xml_tag_${path}");
+      "args"              slist => { "${path}", "${tag}", "${line}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_line_present_in_xml_tag_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
-      "opening_tag_exists" expression => regline("\s*<${tag}>\s*", "${file}");
-      "closing_tag_exists" expression => regline("\s*</${tag}>\s*", "${file}");
+      "opening_tag_exists" expression => regline("\s*<${tag}>\s*", "${path}");
+      "closing_tag_exists" expression => regline("\s*</${tag}>\s*", "${path}");
       "tags_present"       expression => "opening_tag_exists.closing_tag_exists";
 
   files:
     tags_present::
-      "${file}"
+      "${path}"
         edit_line     => ensure_line_in_xml_tag("${tag}", "${line}"),
         edit_defaults => ncf_empty_select("false"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
@@ -55,5 +57,5 @@ bundle agent file_line_present_in_xml_tag(file, tag, line)
     any::
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Insert line(s) in xml tag into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Insert line(s) in xml tag into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

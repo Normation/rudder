@@ -20,29 +20,31 @@
 # @name File check is special
 # @description Checks if a file exists and is a special file
 #
-# @parameter file_name File name
+# @parameter path      File name
 # @parameter file_type File type to check, can be "block device", "character device", "directory", "FIFO/pipe", "regular file", "socket", "symlink"
 # 
+# @parameter_name path file_name
+#
 # @class_prefix file_check
-# @class_parameter file_name
-# This bundle will define a condition file_check_${file_type}_${file_name}_{ok, reached, kept} if the
-# file is a special file of type ${file_type}, or file_check_${file_type}_${file_name}_{not_ok, reached, not_kept, failed} if
+# @class_parameter path
+# This bundle will define a condition file_check_${file_type}_${path}_{ok, reached, kept} if the
+# file is a special file of type ${file_type}, or file_check_${file_type}_${path}_{not_ok, reached, not_kept, failed} if
 # the file is not a special file or does not exist
 
-bundle agent file_check_special(file_name, file_type)
+bundle agent file_check_special(path, file_type)
 {
   vars:
-      "file_has_type"       string => filestat("${file_name}", "type");
+      "file_has_type"       string => filestat("${path}", "type");
 
-      "old_class_prefix"    string => canonify("file_check_${file_type}_${file_name}");
+      "old_class_prefix"    string => canonify("file_check_${file_type}_${path}");
 
-      "args"                 slist => { "${file_name}", "${file_type}" };
+      "args"                 slist => { "${path}", "${file_type}" };
       "report_param"        string => join("_", args);
       "full_class_prefix"   string => canonify("file_check_${report_param}");
       "class_prefix"        string => string_head("${full_class_prefix}", "1000");
 
   classes:
-      "file_exists"     expression => fileexists("${file_name}");
+      "file_exists"     expression => fileexists("${path}");
       "file_is_special" expression => strcmp("${file_has_type}", "${file_type}");
       "exists_special"  expression => "file_exists.file_is_special";
 
@@ -62,5 +64,5 @@ bundle agent file_check_special(file_name, file_type)
 
     any::
       "report"
-        usebundle => _log_v3("Check if ${file_name} exists and is a ${file_type}", "${file_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Check if ${path} exists and is a ${file_type}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

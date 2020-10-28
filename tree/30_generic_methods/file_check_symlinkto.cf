@@ -19,33 +19,35 @@
 
 # @name         File check is symlink to
 # @description  Checks if first file is symlink to second file
-# @documentation This bundle will define a condition `file_check_symlinkto_${target}_{ok, reached, kept}` if the file `${symlink}`
+# @documentation This bundle will define a condition `file_check_symlinkto_${target}_{ok, reached, kept}` if the file `${path}`
 # is a symbolic link to `${target}`, or `file_check_symlinkto_${target}_{not_ok, reached, not_kept, failed}` if
 # if it is not a symbolic link, or any of the files does not exist. The symlink's path is resolved to the 
 # absolute path and checked against the target file's path, which must also be an absolute path.
 #
-# @parameter symlink Symbolic link (absolute path on the target node)
+# @parameter path Symbolic link (absolute path on the target node)
 # @parameter target Target file (absolute path on the target node)
+#
+# @parameter_name path symlink
 # 
 # @class_prefix file_check_symlinkto
-# @class_parameter symlink
+# @class_parameter path
 
-bundle agent file_check_symlinkto(symlink, target)
+bundle agent file_check_symlinkto(path, target)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_check_symlinkto_${symlink}");
-      "args"               slist => { "${symlink}", "${target}" };
+      "old_class_prefix"  string => canonify("file_check_symlinkto_${path}");
+      "args"               slist => { "${path}", "${target}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_check_symlinkto_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
 
-      "real_path"           string => execresult("/bin/readlink -f \"${symlink}\"", "noshell");
+      "real_path"           string => execresult("/bin/readlink -f \"${path}\"", "noshell");
 
   classes:
       "file_exists"         expression => fileexists("${target}");
       "symlink_to_file"     expression => strcmp("${real_path}", "${target}");
-      "is_symlink"          expression => islink("${symlink}");
+      "is_symlink"          expression => islink("${path}");
       "is_ok"               expression => "file_exists.is_symlink.symlink_to_file";
 
   methods:
@@ -62,6 +64,6 @@ bundle agent file_check_symlinkto(symlink, target)
 
     any::
       "report"
-        usebundle => _log_v3("Check if ${symlink} points to ${target}", "${symlink}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Check if ${path} points to ${target}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

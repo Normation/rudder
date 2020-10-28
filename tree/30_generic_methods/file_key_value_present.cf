@@ -21,17 +21,19 @@
 # @documentation Edit (or create) the file, and ensure it contains an entry key -> value with arbitrary separator between the key and its value.
 # If the key is already present, the method will change the value associated with this key.
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter key Key to define
 # @parameter value Value to define
 # @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
 # @parameter_constraint separator "allow_whitespace_string" : true
 #
+# @parameter_name path file
+#
 # @class_prefix file_key_value_present
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_key_value_present(file, key, value, separator)
+bundle agent file_key_value_present(path, key, value, separator)
 {
   methods:
-      "action" usebundle => file_key_value_present_option("${file}", "${key}", "${value}", "${separator}", "lax");
+      "action" usebundle => file_key_value_present_option("${path}", "${key}", "${value}", "${separator}", "lax");
 }

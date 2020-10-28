@@ -25,28 +25,30 @@
 #     "any" usebundle => package_remove("htop");
 # ```
 #
-# @parameter package_name        Name of the package to remove
+# @parameter name        Name of the package to remove
+#
+# @parameter_name name package_name
 #
 # @class_prefix package_remove
-# @class_parameter package_name
+# @class_parameter name
 
-bundle agent package_remove(package_name)
+bundle agent package_remove(name)
 {
   vars:
-      "canonified_package_name" string => canonify("${package_name}");
-      "old_class_prefix"        string => "package_remove_${canonified_package_name}";
-      "args"                     slist => { "${package_name}" };
+      "canonified_name"         string => canonify("${name}");
+      "old_class_prefix"        string => "package_remove_${canonified_name}";
+      "args"                    slist => { "${name}" };
 
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("package_remove_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
   packages:
-      "${package_name}"
+      "${name}"
                         package_policy  => "delete",
                         package_method  => generic,
                         classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "placeholder"        usebundle => _log_v3("Remove package ${package_name}", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "placeholder"        usebundle => _log_v3("Remove package ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

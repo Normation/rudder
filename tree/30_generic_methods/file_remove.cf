@@ -21,18 +21,20 @@
 # @rename file_absent
 # @deprecated Use [file_absent](#_file_absent) instead.
 #
-# @parameter target     File to remove (absolute path on the target node)
+# @parameter path     File to remove (absolute path on the target node)
+#
+# @parameter_name path target
 #
 # @class_prefix file_remove
-# @class_parameter target
+# @class_parameter path
 
-bundle agent file_remove(target)
+bundle agent file_remove(path)
 {
   vars:
-      "canonified_target"    string => canonify("${target}");
+      "canonified_path"    string => canonify("${path}");
 
-      "old_class_prefix"  string => canonify("file_remove_${target}");
-      "args"               slist => { "${target}" };
+      "old_class_prefix"  string => canonify("file_remove_${path}");
+      "args"               slist => { "${path}" };
 
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_remove_${report_param}");
@@ -49,13 +51,13 @@ bundle agent file_remove(target)
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
-      "action"             usebundle => file_absent("${target}");
+      "action"             usebundle => file_absent("${path}");
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
-      "class copy"         usebundle => _classes_copy("file_absent_${canonified_target}", "${old_class_prefix}"),
-                          ifvarclass => "file_absent_${canonified_target}_reached";
+      "class copy"         usebundle => _classes_copy("file_absent_${canonified_path}", "${old_class_prefix}"),
+                          ifvarclass => "file_absent_${canonified_path}_reached";
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
-      "report"             usebundle => _log_v3("Remove file ${target}", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Remove file ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

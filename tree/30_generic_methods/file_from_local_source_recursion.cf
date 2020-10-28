@@ -26,17 +26,19 @@
 # * *1,2,3,...* will force the maximal level of recursion to copy
 #
 # @parameter source      Source file (absolute path on the target node)
-# @parameter destination Destination file (absolute path on the target node)
+# @parameter path Destination file (absolute path on the target node)
 # @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
 #
+# @parameter_name path destination
+# 
 # @class_prefix file_from_local_source
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_from_local_source_recursion(source, destination, recursion)
+bundle agent file_from_local_source_recursion(source, path, recursion)
 {
   vars:
-      "old_class_prefix" string => canonify("file_from_local_source_${destination}");
-      "args"              slist => { "${source}", "${destination}", "${recursion}" };
+      "old_class_prefix" string => canonify("file_from_local_source_${path}");
+      "args"              slist => { "${source}", "${path}", "${recursion}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_from_local_source_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -46,7 +48,7 @@ bundle agent file_from_local_source_recursion(source, destination, recursion)
       # so we need to detect if we want to copy a folder or a file
       # If we check if it is a file, the class will always be true
       # event if was in fact a directory. Then, we test if it is a dir.
-      "is_dir_copy"  expression => isdir("${destination}");
+      "is_dir_copy"  expression => isdir("${path}");
       # We won't be able to know if it is really a directory
       # or not before the first iteration
       "iteration_2"  expression => "iteration_1";
@@ -54,12 +56,12 @@ bundle agent file_from_local_source_recursion(source, destination, recursion)
 
   files:
    !is_dir_copy::
-      "${destination}"
+      "${path}"
         copy_from    => ncf_local_cp_method("${source}", "digest"),
         classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
    is_dir_copy::
-      "${destination}"
+      "${path}"
         copy_from    => ncf_local_cp_method("${source}", "digest"),
         depth_search => recurse("${recursion}"),
         classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
@@ -69,9 +71,9 @@ bundle agent file_from_local_source_recursion(source, destination, recursion)
     # directory (to apply recursion) or a file
     iteration_2.!is_dir_copy::
       "report"
-        usebundle  => _log_v3("Copying ${destination} from ${source}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Copying ${path} from ${source}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     iteration_2.is_dir_copy::
       "report"
-        usebundle  => _log_v3("Copying ${destination} from local ${source}, recursion level ${recursion}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Copying ${path} from local ${source}, recursion level ${recursion}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

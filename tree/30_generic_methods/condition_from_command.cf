@@ -19,19 +19,19 @@
 # @name Condition from command
 # @description Execute a command and create result conditions depending on its exit code
 # @documentation
-# This method executes a command, and defines a `${condition_prefix}_true` or a
-#  `${condition_prefix}_false` condition depending on the result of the command:
+# This method executes a command, and defines a `${condition}_true` or a
+#  `${condition}_false` condition depending on the result of the command:
 #
 # * If the exit code **is in the "True codes"** list, this will produce a
 #    kept outcome and a
-#    `${condition_prefix}_true` condition,
+#    `${condition}_true` condition,
 # * If the exit code **is in the "False codes"** list, this will produce a
 #    kept outcome and a
-#    `${condition_prefix}_false` condition,
+#    `${condition}_false` condition,
 # * If the exit code **is not in "True codes" nor in "False codes"**, or if
 #    the command can not be found, it will produce an
 #    error outcome and
-#    and no condition from `${condition_prefix}`
+#    and no condition from `${condition}`
 #
 #
 # The created condition is global to the agent.
@@ -69,19 +69,19 @@
 # * Rudder will automatically "canonify" the given **Condition prefix** at execution time,
 #   which means that all non `[a-zA-Z0-9_]` characters will be replaced by an underscore.
 #
-# @parameter condition_prefix   The condition name
+# @parameter condition          The condition name
 # @parameter command            The command to run
 # @parameter true_codes         List of codes that produce a true status separated with commas (ex: 1,2,5)
 # @parameter false_codes        List of codes that produce a false status separated with commas (ex: 3,4,6)
 #
 # @class_prefix condition_from_command
-# @class_parameter condition_prefix
+# @class_parameter condition
 
-bundle agent condition_from_command(condition_prefix, command, true_codes, false_codes)
+bundle agent condition_from_command(condition, command, true_codes, false_codes)
 {
   vars:
-      "old_class_prefix"  string => canonify("condition_from_command_${condition_prefix}");
-      "args"               slist => { "${condition_prefix}", "${command}", "${true_codes}", "${false_codes}" };
+      "old_class_prefix"  string => canonify("condition_from_command_${condition}");
+      "args"               slist => { "${condition}", "${command}", "${true_codes}", "${false_codes}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("condition_from_command_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -102,11 +102,11 @@ bundle agent condition_from_command(condition_prefix, command, true_codes, false
       "restore_dry_run_${class_prefix}" usebundle => pop_dry_run_mode();
     pass3::
       "report"
-        usebundle  => _log_v3("Execute the test command ${command} to create ${condition_prefix}_{true,false}", "${condition_prefix}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Execute the test command ${command} to create ${condition}_{true,false}", "${condition}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
     pass1.!pass2::
       "${command}"
         contain      => in_shell,
-        classes      => classes_generic_return_boolean_list_two("${old_class_prefix}", "${class_prefix}", "${condition_prefix}", @{true_list}, @{false_list});
+        classes      => classes_generic_return_boolean_list_two("${old_class_prefix}", "${class_prefix}", "${condition}", @{true_list}, @{false_list});
 }

@@ -22,22 +22,25 @@
 # @deprecated Use [service_started_path](#_service_started_path) instead.
 
 # 
-# @parameter service_name Service name (as recognized by systemd, init.d, Windows, etc...)
-# @parameter service_path Service with its path, as in the output from 'ps'
+# @parameter name Service name (as recognized by systemd, init.d, Windows, etc...)
+# @parameter path Service with its path, as in the output from 'ps'
+#
+# @parameter_name name service_name
+# @parameter_name path service_path
 
 # @class_prefix service_ensure_running
-# @class_parameter service_name
+# @class_parameter name
 
-bundle agent service_ensure_running_path(service_name, service_path)
+bundle agent service_ensure_running_path(name, path)
 {
   vars:
 
-      "canonified_service_name"      string => canonify("${service_name}");
-      "canonified_service_path"      string => canonify("${service_path}");
+      "canonified_name"              string => canonify("${name}");
+      "canonified_path"      string => canonify("${path}");
 
-      "old_class_prefix"             string => "service_ensure_running_${canonified_service_name}";
+      "old_class_prefix"             string => "service_ensure_running_${canonified_name}";
 
-      "args"                          slist => { "${service_name}", "${service_path}" };
+      "args"                          slist => { "${name}", "${path}" };
       "report_param"                 string => join("_", args);
       "full_class_prefix"            string => canonify("service_ensure_running_${report_param}");
       "class_prefix"                 string => string_head("${full_class_prefix}", "1000");
@@ -52,7 +55,7 @@ bundle agent service_ensure_running_path(service_name, service_path)
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
-      "action"             usebundle => service_started_path("${service_name}", "${service_path}");
+      "action"             usebundle => service_started_path("${name}", "${path}");
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
@@ -62,7 +65,7 @@ bundle agent service_ensure_running_path(service_name, service_path)
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                           ifvarclass => "${inner_class_prefix}_reached";
       "report"
-                          usebundle  => _log_v3("Ensure that service ${service_name} is running", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+                          usebundle  => _log_v3("Ensure that service ${name} is running", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 
 }

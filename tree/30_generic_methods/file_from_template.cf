@@ -25,16 +25,18 @@
 # templates usage.
 #
 # @parameter source_template Source file containing a template to be expanded (absolute path on the target node)
-# @parameter destination     Destination file (absolute path on the target node)
+# @parameter path     Destination file (absolute path on the target node)
+#
+# @parameter_name path destination
 #
 # @class_prefix file_from_template
-# @class_parameter destination
+# @class_parameter path
 
-bundle agent file_from_template(source_template, destination)
+bundle agent file_from_template(source_template, path)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_from_template_${destination}");
-      "args"               slist => { "${source_template}", "${destination}" };
+      "old_class_prefix"  string => canonify("file_from_template_${path}");
+      "args"               slist => { "${source_template}", "${path}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("file_from_template_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -44,7 +46,7 @@ bundle agent file_from_template(source_template, destination)
     "template_exists" expression => fileexists("${source_template}");
 
   files:
-    "${destination}"
+    "${path}"
       create          => "true",
       edit_template   => "${source_template}",
       edit_defaults   => ncf_empty_select("true"),
@@ -60,6 +62,6 @@ bundle agent file_from_template(source_template, destination)
     any::
       "sanitize"        usebundle => _classes_sanitize("${old_class_prefix}");
       "sanitize"        usebundle => _classes_sanitize("${class_prefix}");
-      "report"          usebundle => _log_v3("Build file ${destination} from template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"          usebundle => _log_v3("Build file ${path} from template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

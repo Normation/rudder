@@ -21,22 +21,24 @@
 # @deprecated Use [service_disabled_at_boot](#_service_disabled_at_boot) instead.
 # @description Force a service not to be enabled at boot
 #
-# @parameter service_name Service name (as recognized by systemd, init.d, etc...)
+# @parameter name Service name (as recognized by systemd, init.d, etc...)
+#
+# @parameter_name name service_name
 #
 # @class_prefix service_ensure_disabled_at_boot
-# @class_parameter service_name
+# @class_parameter name
 
-bundle agent service_ensure_disabled_at_boot(service_name)
+bundle agent service_ensure_disabled_at_boot(name)
 {
   vars:
 
 
     any::
-      "canonified_service_name" string => canonify("${service_name}");
+      "canonified_name"         string => canonify("${name}");
 
-      "old_class_prefix"        string => "service_ensure_disabled_at_boot_${canonified_service_name}";
+      "old_class_prefix"        string => "service_ensure_disabled_at_boot_${canonified_name}";
 
-      "args"                     slist => { "${service_name}" };
+      "args"                     slist => { "${name}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("service_ensure_disabled_at_boot_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
@@ -52,15 +54,15 @@ bundle agent service_ensure_disabled_at_boot(service_name)
   methods:
       "disable_reporting_${class_prefix}"
                          usebundle => disable_reporting;
-    "action"             usebundle => service_disabled("${service_name}");
+    "action"             usebundle => service_disabled("${name}");
       "reenable_reporting_${class_prefix}"
                          usebundle => enable_reporting,
                          ifvarclass => "should_report";
-    "class copy"         usebundle => _classes_copy("service_disabled_${canonified_service_name}", "${old_class_prefix}"),
-                         ifvarclass => "service_disabled_${canonified_service_name}_reached";
+    "class copy"         usebundle => _classes_copy("service_disabled_${canonified_name}", "${old_class_prefix}"),
+                         ifvarclass => "service_disabled_${canonified_name}_reached";
     "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
                          ifvarclass => "${inner_class_prefix}_reached";
     "report"
-        usebundle => _log_v3("Ensure service ${service_name} is disabled at boot", "${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Ensure service ${name} is disabled at boot", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

@@ -19,13 +19,13 @@
 # @name Condition from expression persistent
 # @description Create a new condition that persists across runs
 # @documentation
-# This method evaluates an expression (=condition combination), and produces a `${condition_prefix}_true`
-# or a `${condition_prefix}_false` condition depending on the result on the expression,
+# This method evaluates an expression (=condition combination), and produces a `${condition}_true`
+# or a `${condition}_false` condition depending on the result on the expression,
 # which will lasts for the **Duration** time:
 #
 # * This method always result with a *success* outcome status
-# * If the expression evaluation results in a "defined" state, this will define a `${condition_prefix}_true` condition,
-# * If the expression evaluation results in an "undefined" state, this will produce a `${condition_prefix}_false` condition.
+# * If the expression evaluation results in a "defined" state, this will define a `${condition}_true` condition,
+# * If the expression evaluation results in an "undefined" state, this will produce a `${condition}_false` condition.
 #
 #
 # Calling this method with a condition expression transforms a complex expression into a single class condition.
@@ -57,28 +57,30 @@
 # Rudder will automatically "canonify" the given **Condition prefix** at execution time,
 # which means that all non `[a-zA-Z0-9_]` characters will be replaced by an underscore.
 #
-# @parameter condition_prefix     The condition prefix
+# @parameter condition            The condition prefix
 # @parameter condition_expression The expression evaluated to create the condition (use 'any' to always evaluate to true)
 # @parameter duration             The persistence suffix in minutes
 #
+# @parameter_name condition condition_prefix
+# 
 # @class_prefix condition_from_expression_persistent
-# @class_parameter condition_prefix
+# @class_parameter condition
  
-bundle agent condition_from_expression_persistent(condition_prefix, condition_expression, duration)
+bundle agent condition_from_expression_persistent(condition, condition_expression, duration)
 {
   vars:
-      "old_class_prefix"  string => canonify("condition_from_expression_persistent_${condition_prefix}");
-      "args"               slist => { "${condition_prefix}", "${condition_expression}", "${duration}" };
+      "old_class_prefix"  string => canonify("condition_from_expression_persistent_${condition}");
+      "args"               slist => { "${condition}", "${condition_expression}", "${duration}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("condition_from_expression_persistent_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
-      "${condition_prefix}_true"   expression => "${condition_expression}",
+      "${condition}_true"   expression => "${condition_expression}",
                                   persistence => "${duration}",
                                         scope => "namespace";
 
-      "${condition_prefix}_false"  expression => "!(${condition_expression})",
+      "${condition}_false"  expression => "!(${condition_expression})",
                                   persistence => "${duration}",
                                         scope => "namespace";
 
@@ -86,5 +88,5 @@ bundle agent condition_from_expression_persistent(condition_prefix, condition_ex
       "success" usebundle => _classes_success("${old_class_prefix}");
       "success" usebundle => _classes_success("${class_prefix}");
 
-      "report"  usebundle => _log_v3("Create the persistent condition ${condition_prefix}_{true,false} with ${condition_expression}", "${condition_prefix}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"  usebundle => _log_v3("Create the persistent condition ${condition}_{true,false} with ${condition_expression}", "${condition}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

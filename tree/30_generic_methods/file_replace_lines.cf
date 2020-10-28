@@ -37,26 +37,28 @@
 # file_replace_lines("/PATH_TO_MY_FILE/file", "<my>(.*)<pattern>", "my ${match.1} pattern")
 # ```
 #
-# @parameter file File name to edit (absolute path on the target node)
+# @parameter path File name to edit (absolute path on the target node)
 # @parameter line Line to match in the file
 # @parameter replacement Line to add in the file as a replacement
 #
+# @parameter_name path file
+#
 # @class_prefix file_replace_lines
-# @class_parameter file
+# @class_parameter path
 
-bundle agent file_replace_lines(file, line, replacement)
+bundle agent file_replace_lines(path, line, replacement)
 {
   vars:
     pass1::
-      "old_class_prefix"  string => canonify("file_replace_lines_${file}");
+      "old_class_prefix"  string => canonify("file_replace_lines_${path}");
 
     # If replacement contains ${match.x}, it would not evaluate to anything outside of file promises, so we
     # need to exclude it from class prefix
     pass1.replacement_non_eval::
-      "args"               slist => { "${file}", "${line}" };
+      "args"               slist => { "${path}", "${line}" };
 
     pass1.!replacement_non_eval::
-      "args"               slist => { "${file}", "${line}", "${replacement}" };
+      "args"               slist => { "${path}", "${line}", "${replacement}" };
 
     pass1::
       "report_param"      string => join("_", args);
@@ -76,7 +78,7 @@ bundle agent file_replace_lines(file, line, replacement)
 
   files:
     pass2::
-      "${file}"
+      "${path}"
         create        => "false",
         edit_line     => regex_replace("${line}", "${replacement}"),
         edit_defaults => ncf_empty_select("false"),
@@ -86,5 +88,5 @@ bundle agent file_replace_lines(file, line, replacement)
     pass2::
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Replace lines with replacement into ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"   usebundle => _log_v3("Replace lines with replacement into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

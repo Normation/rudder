@@ -25,26 +25,28 @@
 #     "any" usebundle => package_install_version_cmp("postgresql", ">=", "9.1", "verify");
 # ```
 #
-# @parameter package_name        Name of the package to install or verify
+# @parameter name                Name of the package to install or verify
 # @parameter version_comparator  Comparator between installed version and defined version, can be ==,<=,>=,<,>,!=
 # @parameter package_version     The version of the package to verify (can be "latest" for latest version)
 # @parameter action              Action to perform, can be add, verify (defaults to verify)
 # @parameter_constraint version_comparator  "select" : [ "==", "<=", ">=", "<", ">" , "!=" ]
-# 
+#
+# @parameter_name name package_name
+#
 # @class_prefix package_install
-# @class_parameter package_name
+# @class_parameter name
 
-bundle agent package_install_version_cmp(package_name, version_comparator, package_version, action)
+bundle agent package_install_version_cmp(name, version_comparator, package_version, action)
 {
   vars:
-      "old_class_prefix"        string => canonify("package_install_${package_name}");
+      "old_class_prefix"        string => canonify("package_install_${name}");
 
-      "args"                     slist => { "${package_name}", "${version_comparator}", "${package_version}", "${action}" };
+      "args"                     slist => { "${name}", "${version_comparator}", "${package_version}", "${action}" };
       "report_param"            string => join("_", args);
       "full_class_prefix"       string => canonify("package_install_${report_param}");
       "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
-      # call is to package_install_version_cmp_update("${package_name}", "${version_comparator}", "${package_version}", "${action}", "true")
+      # call is to package_install_version_cmp_update("${name}", "${version_comparator}", "${package_version}", "${action}", "true")
       "full_inner_class_prefix"  string => canonify("package_install_${report_param}_true");
       "inner_class_prefix"       string => string_head("${full_inner_class_prefix}", "1000");
 
@@ -54,11 +56,11 @@ bundle agent package_install_version_cmp(package_name, version_comparator, packa
   methods:
       "disable_reporting_${class_prefix}"
                            usebundle => disable_reporting;
-      "install or update"  usebundle => package_install_version_cmp_update("${package_name}", "${version_comparator}", "${package_version}", "${action}", "true");
+      "install or update"  usebundle => package_install_version_cmp_update("${name}", "${version_comparator}", "${package_version}", "${action}", "true");
       "reenable_reporting_${class_prefix}"
                            usebundle => enable_reporting,
                           ifvarclass => "should_report";
       "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
-      "report"             usebundle => _log_v3("Install package ${package_name} version ${version_comparator} ${package_version}", "${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log_v3("Install package ${name} version ${version_comparator} ${package_version}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
