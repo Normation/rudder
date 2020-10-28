@@ -75,7 +75,7 @@ final case class AgentRunInterval(
   , splaytime  : Int
 ) {
 
-  def json() = {
+  def json = {
 
     val overrideValue = overrides.map(_.toString).getOrElse("null")
     val splayHour = splaytime / 60

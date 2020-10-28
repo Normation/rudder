@@ -99,11 +99,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private[this] val giveReasonPopup = new LocalSnippet[GiveReasonPopup]
 
   def dispatch = {
-    case "head" => { _ => head }
-    case "systemLibrary" => { _ => systemLibrary }
-    case "userLibrary" => { _ => userLibrary }
+    case "head" => { _ => head() }
+    case "systemLibrary" => { _ => systemLibrary() }
+    case "userLibrary" => { _ => userLibrary() }
     case "bottomPanel" => { _ => showBottomPanel }
-    case "userLibraryAction" => { _ => userLibraryAction }
+    case "userLibraryAction" => { _ => userLibraryAction() }
     case "reloadTechniqueButton" =>  { _ => reloadTechniqueLibrary(false) }
     case "reloadTechniqueLibrary" => { _ => reloadTechniqueLibrary(true) }
   }
@@ -125,7 +125,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         technique,
         activeTechnique,
         currentTechniqueCategoryDetails.get.map( _.getCategory ),
-        { () => Replace(htmlId_activeTechniquesTree, userLibrary) }
+        { () => Replace(htmlId_activeTechniquesTree, userLibrary()) }
         //we don't need/want an error callback here - the error is managed in the form.
     )))
   }
@@ -138,7 +138,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
               htmlId_bottomPanel,
               category,
               rootCategoryId,
-              { () => Replace(htmlId_activeTechniquesTree, userLibrary) }
+              { () => Replace(htmlId_activeTechniquesTree, userLibrary()) }
           )
         }
       )
@@ -153,7 +153,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   private[this] def setCreationPopup : Unit = {
     creationPopup.set(Full(new CreateActiveTechniqueCategoryPopup(
-      onSuccessCallback = { () => refreshTree })))
+      onSuccessCallback = { () => refreshTree() })))
   }
 
   private[this] def setGiveReasonPopup(s : ActiveTechniqueId, d : ActiveTechniqueCategoryId) : Unit = {
@@ -367,14 +367,14 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           <h3>Technique details</h3>
           <p>Click on a Technique to display its details</p>
         </div>
-      case Full(form) => form.showForm
+      case Full(form) => form.showForm()
     }
   }
 
   def showUserCategoryDetails() : NodeSeq = {
     currentTechniqueCategoryDetails.get  match {
       case e:EmptyBox => <div id={htmlId_bottomPanel}><p>Click on a category from the user library to display its details and edit its properties</p></div>
-      case Full(form) => form.showForm
+      case Full(form) => form.showForm()
     }
   }
 
@@ -513,13 +513,13 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
  }
 
   private[this] def refreshTree() : JsCmd =  {
-    Replace(htmlId_techniqueLibraryTree, systemLibrary) &
-    Replace(htmlId_activeTechniquesTree, userLibrary) &
+    Replace(htmlId_techniqueLibraryTree, systemLibrary()) &
+    Replace(htmlId_activeTechniquesTree, userLibrary()) &
     OnLoad(After(TimeSpan(100), JsRaw("""createTooltip();""")))
   }
 
   private[this] def refreshActiveTreeLibrary() : JsCmd =  {
-    Replace(htmlId_activeTechniquesTree, userLibrary)
+    Replace(htmlId_activeTechniquesTree, userLibrary())
   }
 
   private[this] def refreshBottomPanel(id:ActiveTechniqueId) : JsCmd = {
@@ -796,7 +796,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
         val processAction =
           if (isTechniqueLibraryPage) {
-            refreshTree
+            refreshTree()
           } else {
             Noop
           }

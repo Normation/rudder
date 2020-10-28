@@ -299,7 +299,7 @@ class Boot extends Loggable {
       val endpoints = schemas.flatMap(RudderConfig.apiDispatcher.withVersion(_, RudderConfig.ApiVersions))
       new InfoApi(RudderConfig.restExtractorService, RudderConfig.ApiVersions, endpoints)
     }
-    RudderConfig.rudderApi.addModules(infoApi.getLiftEndpoints)
+    RudderConfig.rudderApi.addModules(infoApi.getLiftEndpoints())
     LiftRules.statelessDispatch.append(RudderConfig.rudderApi.getLiftRestApi())
 
     // URL rewrites
@@ -362,9 +362,9 @@ class Boot extends Loggable {
 
     // All the following is related to the sitemap
     val nodeManagerMenu =
-      Menu("NodeManagerHome", <i class="fa fa-sitemap"></i> ++ <span>Node management</span>: NodeSeq) /
+      (Menu("NodeManagerHome", <i class="fa fa-sitemap"></i> ++ <span>Node management</span>: NodeSeq) /
         "secure" / "nodeManager" / "index"  >> TestAccess( ()
-            => userIsAllowed("/secure/index",AuthorizationType.Node.Read) ) submenus (
+            => userIsAllowed("/secure/index",AuthorizationType.Node.Read) )).submenus (
 
           Menu("List Nodes", <span>List nodes</span>) /
             "secure" / "nodeManager" / "nodes"
@@ -392,9 +392,9 @@ class Boot extends Loggable {
 
     def policyMenu = {
       val name = "configuration"
-      Menu(name+"ManagerHome", <i class="fa fa-pencil"></i> ++ <span>{name.capitalize} policy</span>: NodeSeq) /
+      (Menu(name+"ManagerHome", <i class="fa fa-pencil"></i> ++ <span>{name.capitalize} policy</span>: NodeSeq) /
         "secure" / (name+"Manager") / "index" >> TestAccess ( ()
-            => userIsAllowed("/secure/index",AuthorizationType.Configuration.Read) ) submenus (
+            => userIsAllowed("/secure/index",AuthorizationType.Configuration.Read) )).submenus (
 
           Menu(name+"RuleManagement", <span>Rules</span>) /
             "secure" / (name+"Manager") / "ruleManagement"
@@ -419,9 +419,9 @@ class Boot extends Loggable {
     }
 
     def administrationMenu =
-      Menu("AdministrationHome", <i class="fa fa-gear"></i> ++ <span>Settings</span>: NodeSeq) /
+      (Menu("AdministrationHome", <i class="fa fa-gear"></i> ++ <span>Settings</span>: NodeSeq) /
         "secure" / "administration" / "index" >> TestAccess ( ()
-            => userIsAllowed("/secure/index",AuthorizationType.Administration.Read, AuthorizationType.Technique.Read) ) submenus (
+            => userIsAllowed("/secure/index",AuthorizationType.Administration.Read, AuthorizationType.Technique.Read) )).submenus (
 
           Menu("policyServerManagement", <span>General</span>) /
             "secure" / "administration" / "policyServerManagement"
@@ -460,15 +460,15 @@ class Boot extends Loggable {
     def utilitiesMenu = {
       // if we can't get the workflow property, default to false
       // (don't give rights if you don't know)
-      def workflowEnabled = RudderConfig.configService.rudder_workflow_enabled.either.runNow.getOrElse(false)
-      Menu("UtilitiesHome", <i class="fa fa-wrench"></i> ++ <span>Utilities</span>: NodeSeq) /
+      def workflowEnabled = RudderConfig.configService.rudder_workflow_enabled().either.runNow.getOrElse(false)
+      (Menu("UtilitiesHome", <i class="fa fa-wrench"></i> ++ <span>Utilities</span>: NodeSeq) /
         "secure" / "utilities" / "index" >>
         TestAccess ( () =>
           if ((workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Validator.Read) || CurrentUser.checkRights(AuthorizationType.Deployer.Read))) || CurrentUser.checkRights(AuthorizationType.Administration.Read) || CurrentUser.checkRights(AuthorizationType.Technique.Read))
             Empty
           else
              Full(RedirectWithState("/secure/index", redirection))
-        ) submenus (
+        )).submenus (
 
           Menu("archivesManagement", <span>Archives</span>) /
             "secure" / "utilities" / "archiveManagement"

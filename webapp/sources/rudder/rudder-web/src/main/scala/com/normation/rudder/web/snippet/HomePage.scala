@@ -123,7 +123,7 @@ object HomePage {
   def initNodeInfos(): Box[Map[NodeId, NodeInfo]] = {
     TimingDebugLogger.debug(s"Start timing homepage")
     val n1 = System.currentTimeMillis
-    val n = nodeInfosService.getAll
+    val n = nodeInfosService.getAll()
     val n2 = System.currentTimeMillis
     TimingDebugLogger.debug(s"Getting node infos: ${n2 - n1}ms")
     n
@@ -143,27 +143,27 @@ class HomePage extends Loggable {
   private[this] val roRuleRepo       = RudderConfig.roRuleRepository
 
   def pendingNodes(html : NodeSeq) : NodeSeq = {
-    displayCount(() => countPendingNodes, "pending nodes")
+    displayCount(() => countPendingNodes(), "pending nodes")
   }
 
   def acceptedNodes(html : NodeSeq) : NodeSeq = {
-    displayCount(() => countAcceptedNodes, "accepted nodes")
+    displayCount(() => countAcceptedNodes(), "accepted nodes")
   }
 
   def rules(html : NodeSeq) : NodeSeq = {
-    displayCount(() => countAllRules, "rules")
+    displayCount(() => countAllRules(), "rules")
   }
 
   def directives(html : NodeSeq) : NodeSeq = {
-    displayCount(() => countAllDirectives,"directives")
+    displayCount(() => countAllDirectives(),"directives")
   }
 
   def groups(html : NodeSeq) : NodeSeq = {
-    displayCount(() => countAllGroups,"groups")
+    displayCount(() => countAllGroups(),"groups")
   }
 
   def techniques(html : NodeSeq) : NodeSeq = {
-    displayCount(() => countAllTechniques,"techniques")
+    displayCount(() => countAllTechniques(),"techniques")
   }
 
   def getAllCompliance: NodeSeq = {
@@ -174,7 +174,7 @@ final case object DisabledChartType extends ChartType
 final case class ColoredChartType(value: Double) extends ChartType
 
     ( for {
-      nodeInfos <- HomePage.initNodeInfos
+      nodeInfos <- HomePage.initNodeInfos()
       n2 = System.currentTimeMillis
       userRules <- roRuleRepo.getIds().toBox
       n3 = System.currentTimeMillis
@@ -320,7 +320,7 @@ final case class ColoredChartType(value: Double) extends ChartType
     val osNames = JsObj(osTypes.map {os => (S.?("os.name." + os.name), Str(os.name))}:_*)
 
     ( for {
-      nodeInfos <- HomePage.initNodeInfos
+      nodeInfos <- HomePage.initNodeInfos()
     } yield {
       val machines = nodeInfos.values.map { _.machine.map(_.machineType) match {
                         case Some(_: VirtualMachineType) => "Virtual"
@@ -349,7 +349,7 @@ final case class ColoredChartType(value: Double) extends ChartType
   def rudderAgentVersion() = {
 
      val n4 = System.currentTimeMillis
-     val agents = getRudderAgentVersion match {
+     val agents = getRudderAgentVersion() match {
        case Full(x) => x
        case eb: EmptyBox =>
          val e = eb ?~! "Error when getting installed agent version on nodes"
@@ -387,7 +387,7 @@ final case class ColoredChartType(value: Double) extends ChartType
 
     for {
       con              <- ldap
-      nodeInfos        <- HomePage.initNodeInfos.toIO
+      nodeInfos        <- HomePage.initNodeInfos().toIO
       n2               =  System.currentTimeMillis
       agentSoftEntries <-  con.searchOne(acceptedNodesDit.SOFTWARE.dn, OR(AgentType.allValues.toList.map(t => SUB(A_NAME, null, Array(t.inventorySoftwareName), null)):_*))
       agentSoftDn      =  agentSoftEntries.map(_.dn.toString).toSet

@@ -54,7 +54,7 @@ trait CheckMigrationXmlFileFormat extends BootstrapChecks {
   override def checks() : Unit = {
 
     val async = Future {
-      controler.migrate()
+      controler.migrate
     }
 
     async.onComplete( res => res match {

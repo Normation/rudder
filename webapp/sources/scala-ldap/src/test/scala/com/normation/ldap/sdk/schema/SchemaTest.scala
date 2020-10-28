@@ -42,10 +42,10 @@ class SchemaTest extends Specification {
    *  `- L1_2
    *       `- L1_2_0
    */
-  OC.+=("L1_0").+=("L1_1").+=("L1_2").
-     +=("L1_0_0", sup = OC("L1_0")).+=("L1_0_1", sup = OC("L1_0")).+=("L1_0_2", sup = OC("L1_0")).
-     +=("L1_0_0_0", sup =  OC("L1_0_0")).
-     +=("L1_2_0", sup =  OC("L1_2"))
+  OC.createObjectClass("L1_0").createObjectClass("L1_1").createObjectClass("L1_2").
+     createObjectClass("L1_0_0", sup = OC("L1_0")).createObjectClass("L1_0_1", sup = OC("L1_0")).createObjectClass("L1_0_2", sup = OC("L1_0")).
+     createObjectClass("L1_0_0_0", sup =  OC("L1_0_0")).
+     createObjectClass("L1_2_0", sup =  OC("L1_2"))
 
   "top" >> (
     (OC.demux() must beEmpty) and

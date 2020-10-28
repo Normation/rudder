@@ -64,7 +64,7 @@ trait SystemVariableSpecService {
   /**
    * Get the list of all known system vars spec
    */
-  def getAll() : Seq[SystemVariableSpec]
+  def getAll(): Seq[SystemVariableSpec]
 }
 
 

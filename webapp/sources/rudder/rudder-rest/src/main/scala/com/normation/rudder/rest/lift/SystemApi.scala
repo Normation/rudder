@@ -558,7 +558,7 @@ class SystemApiService11(
   }
 
   private[this] def listTags(list:() => IOResult[Map[DateTime, GitArchiveId]], archiveType:String) : Either[String, JField] = {
-    list().either.runNow fold(
+    list().either.runNow.fold(
       err =>
         Left(s"Error when trying to list available archives for ${archiveType}. Error was: ${err.fullMsg}")
     , map =>
@@ -577,7 +577,7 @@ class SystemApiService11(
       restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore latest archive required from REST API"),false)
     } yield {
       restored
-    }).either.runNow fold(
+    }).either.runNow.fold(
       err =>
         Left(s"Error when trying to restore the latest archive for ${archiveType}. Error was: ${err.fullMsg}")
      , x =>
@@ -591,7 +591,7 @@ class SystemApiService11(
       restored   <- restore(commiter,newModId,RestUtils.getActor(req),Some("Restore archive from latest commit on HEAD required from REST API"), false)
     } yield {
       restored
-    }).either.runNow fold(
+    }).either.runNow.fold(
       err =>
         Left(s"Error when trying to restore the latest archive for ${archiveType}. Error was: ${err.fullMsg}")
      , x =>
@@ -609,7 +609,7 @@ class SystemApiService11(
       restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore archive for date time %s requested from REST API".format(datetime)),false)
     } yield {
       restored
-    }).either.runNow fold(
+    }).either.runNow.fold(
       err =>
         Left(s"Error when trying to restore archive '${datetime}' for ${archiveType}. Error was: ${err.fullMsg}")
     , x   =>
@@ -623,7 +623,7 @@ class SystemApiService11(
       archiveId  <- archive(committer,newModId,RestUtils.getActor(req),Some("Create new archive requested from REST API"),false)
     } yield {
       archiveId
-    }).either.runNow fold (
+    }).either.runNow.fold (
       err =>
         Left(s"Error when trying to archive '${archiveType}'. Error: ${err.fullMsg}")
     , x => {

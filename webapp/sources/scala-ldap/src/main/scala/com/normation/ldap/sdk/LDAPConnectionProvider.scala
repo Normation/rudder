@@ -62,7 +62,7 @@ final class InternalConnection[LDAP <: RoLDAPConnection](provider: LDAPConnectio
 trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
 
   protected def newConnection : ZIO[Blocking, LDAPRudderError, LDAP]
-  protected def getInternalConnection() : ZIO[Blocking, LDAPRudderError, LDAP]
+  protected def getInternalConnection : ZIO[Blocking, LDAPRudderError, LDAP]
   protected def releaseInternalConnection(con:LDAP) : UIO[Unit]
   protected def releaseDefuncInternalConnection(con:LDAP) : UIO[Unit]
 
@@ -197,12 +197,12 @@ trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProv
   override def close : UIO[Unit] = {
     semaphore.withPermit(for {
       c <- connection.get
-      _ <- c.fold(UIO.unit)(c => UIO.effectTotal(c.close))
+      _ <- c.fold(UIO.unit)(c => UIO.effectTotal(c.close()))
       _ <- connection.set(None)
     } yield ())
   }
 
-  protected def getInternalConnection(): LDAPIOResult[LDAP] = {
+  protected def getInternalConnection: LDAPIOResult[LDAP] = {
     semaphore.withPermit(
       for {
         c <- connection.get
@@ -246,7 +246,7 @@ trait PooledConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionP
   }
 
   override def close : UIO[Unit] = UIO.effectTotal(pool.close)
-  protected def getInternalConnection() = newConnection
+  protected def getInternalConnection = newConnection
   protected def releaseInternalConnection(con:LDAP) : UIO[Unit] = {
     UIO.effectTotal(pool.releaseConnection(con.backed))
   }

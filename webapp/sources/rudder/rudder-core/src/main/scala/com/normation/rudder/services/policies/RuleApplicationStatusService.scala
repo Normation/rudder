@@ -76,7 +76,7 @@ class RuleApplicationStatusServiceImpl extends RuleApplicationStatusService {
           if(disabled.isEmpty) {
             FullyApplied
           } else if(rule.directiveIds.size - disabled.size > 0) {
-            PartiallyApplied(disabled.toSeq.map{ case(at,d) => (at.toActiveTechnique,d) })
+            PartiallyApplied(disabled.toSeq.map{ case(at,d) => (at.toActiveTechnique(),d) })
           } else {
             NotAppliedNoPI
           }

@@ -155,11 +155,11 @@ class RuleGrid(
   import DisplayColumn._
   private[this] val showComplianceAndChangesColumn = columnCompliance match {
     case Force(display) => display
-    case FromConfig     => configService.rudder_ui_display_ruleComplianceColumns.toBox.openOr(true)
+    case FromConfig     => configService.rudder_ui_display_ruleComplianceColumns().toBox.openOr(true)
   }
   private[this] val showChangesGraph = showComplianceAndChangesColumn && (graphRecentChanges match {
     case Force(display) => display
-    case FromConfig => configService.display_changes_graph.toBox.openOr(true)
+    case FromConfig => configService.display_changes_graph().toBox.openOr(true)
   })
 
   def reportTemplate: NodeSeq = ChooseTemplate(
@@ -467,7 +467,7 @@ class RuleGrid(
                 case None =>
                   Failure(s"Can not find Technique for activeTechnique with name ${activeTechnique.techniqueName} referenced in Rule with ID ${rule.id.value}")
                 case Some(technique) =>
-                  Full((directive, activeTechnique.toActiveTechnique, technique))
+                  Full((directive, activeTechnique.toActiveTechnique(), technique))
               }
             case None => //it's an error if the directive ID is defined and found but it is not attached to an activeTechnique
               val error = Failure(s"Can not find Directive with ID '${id.value}' referenced in Rule with ID '${rule.id.value}'")

@@ -76,9 +76,9 @@ class CheckApiTokenAutorizationKind(
       // we are looking for entries where A_API_ACL is not defined
       // we also want to exclude already ported ACL, ie the one where A_API_KIND is defined to something else than "public"
       ZIO.when(!e.hasAttribute(A_API_AUTHZ_KIND) && e(A_API_KIND).getOrElse(ApiAccountType.PublicApi.name) == ApiAccountType.PublicApi.name ) {
-        e += (A_API_AUTHZ_KIND, DEFAULT_AUTHZ.name)
+        e.addValues(A_API_AUTHZ_KIND, DEFAULT_AUTHZ.name)
         val name = e(A_NAME).orElse(e(A_API_UUID)).getOrElse("")
-        ldap.save(e) foldM (
+        ldap.save(e).foldM (
           err =>
             BootstrapLogger.logPure.error(s"Error when trying to add default '${DEFAULT_AUTHZ.name.toUpperCase}' authorization level to API token ${name}. Error was: ${err.fullMsg}")
         , ok  =>

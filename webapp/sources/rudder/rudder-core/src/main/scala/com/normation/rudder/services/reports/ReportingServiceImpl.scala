@@ -220,7 +220,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
 
   def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = {
     for {
-      reports    <- getUserNodeStatusReports
+      reports    <- getUserNodeStatusReports()
       compliance =  computeComplianceFromReports(reports)
     } yield {
       compliance
@@ -336,7 +336,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
 
       for {
         // disabled nodes are ignored
-        allNodeIds    <- nodeInfoService.getAll.map( _.filter { case(_,n) => n.state != NodeState.Ignored }.keySet )
+        allNodeIds    <- nodeInfoService.getAll().map( _.filter { case(_,n) => n.state != NodeState.Ignored }.keySet )
         //only try to update nodes that are accepted in Rudder
         nodeIds       =  nodeIdsToCheck.intersect(allNodeIds)
         inCache       =  cache.filter { case(id, _) => nodeIds.contains(id) }
@@ -417,7 +417,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     cache = Map()
     ReportLogger.Cache.debug("Compliance cache cleared")
     //reload it for future use
-    nodeInfoService.getAll.flatMap { nodeIds => Full(invalidate(nodeIds.keySet).unit.runNow) }
+    nodeInfoService.getAll().flatMap { nodeIds => Full(invalidate(nodeIds.keySet).unit.runNow) }
   }
 }
 

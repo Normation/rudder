@@ -131,9 +131,9 @@ trait ReadConfigService {
    */
   def rudder_compliance_mode(): IOResult[GlobalComplianceMode] = {
     for {
-        name     <- rudder_compliance_mode_name
+        name     <- rudder_compliance_mode_name()
         modeName <- ComplianceModeName.parse(name).toIO
-        period   <- rudder_compliance_heartbeatPeriod
+        period   <- rudder_compliance_heartbeatPeriod()
     } yield {
       GlobalComplianceMode(modeName,period)
     }
@@ -148,8 +148,8 @@ trait ReadConfigService {
    */
   def rudder_global_policy_mode(): IOResult[GlobalPolicyMode] = {
     for {
-        mode        <- rudder_policy_mode_name
-        overridable <- rudder_policy_overridable
+        mode        <- rudder_policy_mode_name()
+        overridable <- rudder_policy_overridable()
     } yield {
       GlobalPolicyMode(mode, if(overridable) PolicyModeOverrides.Always else PolicyModeOverrides.Unoverridable)
     }
@@ -437,7 +437,7 @@ class LDAPBasedConfigService(
 
   private[this] def get[T](name: String)(implicit converter: RudderWebProperty => T) : IOResult[T] = {
     for {
-      params <- repos.getConfigParameters
+      params <- repos.getConfigParameters()
       param  <- params.find( _.name.value == name) match {
                   case None =>
                     val configName = name.replaceAll("_", ".")

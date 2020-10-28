@@ -73,7 +73,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
   private[this] val currentRuleDisplayer = new LocalSnippet[RuleDisplayer]
 
   override def mainDispatch = {
-    RudderConfig.configService.rudder_ui_changeMessage_enabled.toBox match {
+    RudderConfig.configService.rudder_ui_changeMessage_enabled().toBox match {
       case Full(changeMsgEnabled) =>
         Map(
             "head" -> { _:NodeSeq => head(changeMsgEnabled) }
@@ -112,7 +112,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
               return true;
             }
         """) &
-        OnLoad(parseJsArg(changeMsgEnabled))
+        OnLoad(parseJsArg(changeMsgEnabled)())
       ) }
     </head>
     }

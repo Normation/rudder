@@ -76,7 +76,7 @@ class NodeGroupCategoryForm(
   private[this] val uuidGen                   = RudderConfig.stringUuidGenerator
   private[this] val categoryHierarchyDisplayer= RudderConfig.categoryHierarchyDisplayer
 
-  val categories = roGroupCategoryRepository.getAllNonSystemCategories.toBox match {
+  val categories = roGroupCategoryRepository.getAllNonSystemCategories().toBox match {
     case eb:EmptyBox =>
       val f = eb  ?~! "Can not get Group root category"
       logger.error(f.messageChain)
@@ -95,7 +95,7 @@ class NodeGroupCategoryForm(
   }
 
   def dispatch = {
-    case "showForm" => { _ => showForm }
+    case "showForm" => { _ => showForm() }
   }
 
   def showForm() : NodeSeq = {

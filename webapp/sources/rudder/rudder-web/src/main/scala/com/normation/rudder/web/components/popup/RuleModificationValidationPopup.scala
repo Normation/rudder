@@ -105,7 +105,7 @@ class RuleModificationValidationPopup(
   val validationNeeded = workflowService.needExternalValidation()
 
   def dispatch = {
-    case "popupContent" => { _ => popupContent }
+    case "popupContent" => { _ => popupContent() }
   }
 
   def popupContent() : NodeSeq = {

@@ -126,14 +126,14 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def changeMessageConfiguration = { xml : NodeSeq =>
 
     // initial values
-    var initEnabled = configService.rudder_ui_changeMessage_enabled.toBox
-    var initMandatory = configService.rudder_ui_changeMessage_mandatory.toBox
-    var initExplanation = configService.rudder_ui_changeMessage_explanation.toBox
+    var initEnabled = configService.rudder_ui_changeMessage_enabled().toBox
+    var initMandatory = configService.rudder_ui_changeMessage_mandatory().toBox
+    var initExplanation = configService.rudder_ui_changeMessage_explanation().toBox
 
     // mutable, default values won't be used (if error in property => edit form is not displayed)
     var enabled = initEnabled.getOrElse(false)
-    var mandatory = configService.rudder_ui_changeMessage_mandatory.toBox.getOrElse(false)
-    var explanation = configService.rudder_ui_changeMessage_explanation.toBox.getOrElse("Please enter a reason explaining this change.")
+    var mandatory = configService.rudder_ui_changeMessage_mandatory().toBox.getOrElse(false)
+    var explanation = configService.rudder_ui_changeMessage_explanation().toBox.getOrElse("Please enter a reason explaining this change.")
 
     def submit() = {
 
@@ -282,7 +282,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def cfserverNetworkConfiguration = { xml : NodeSeq =>
 
     //  initial values, updated on successfull submit
-    var initDenyBadClocks = configService.cfengine_server_denybadclocks.toBox
+    var initDenyBadClocks = configService.cfengine_server_denybadclocks().toBox
     var initEnforceCertificate = configService.rudder_verify_certificates().toBox
 
     // form values
@@ -294,7 +294,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       configService.set_rudder_verify_certificates(enforceCertificate, CurrentUser.actor, genericReasonMessage).toBox.foreach(updateOk => initEnforceCertificate = Full(enforceCertificate))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
-      startNewPolicyGeneration
+      startNewPolicyGeneration()
       check() & JsRaw("""createSuccessNotification("Security options correctly updated")""")
     }
 
@@ -361,10 +361,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   def relaySynchronizationMethodManagement = { xml : NodeSeq =>
     //  initial values, updated on successfull submit
-    var initRelaySyncMethod = configService.relay_server_sync_method.toBox
+    var initRelaySyncMethod = configService.relay_server_sync_method().toBox
     // Be careful, we store negative value
-    var initRelaySyncPromises = configService.relay_server_syncpromises.toBox
-    var initRelaySyncSharedFiles = configService.relay_server_syncsharedfiles.toBox
+    var initRelaySyncPromises = configService.relay_server_syncpromises().toBox
+    var initRelaySyncSharedFiles = configService.relay_server_syncsharedfiles().toBox
 
     // form values
     var relaySyncMethod = initRelaySyncMethod.getOrElse(Classic)
@@ -387,7 +387,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       configService.set_relay_server_syncsharedfiles(relaySyncSharedFiles).toBox.foreach(updateOk => initRelaySyncSharedFiles = Full(relaySyncSharedFiles))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
-      startNewPolicyGeneration
+      startNewPolicyGeneration()
       check() & JsRaw("""createSuccessNotification("Relay servers synchronization methods correctly updated")""")
     }
 
@@ -410,7 +410,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               def radioHtml(method:RelaySynchronizationMethod) : NodeSeq = {
                 val label = method.value
                 val inputId = label+"-id"
-                val ajaxCall = SHtml.ajaxCall(Str(""), _ => setRelaySyncMethodJs(label) & check )._2.toJsCmd
+                val ajaxCall = SHtml.ajaxCall(Str(""), _ => setRelaySyncMethodJs(label) & check() )._2.toJsCmd
                 val inputCheck = if (initRelaySyncMethod == method) {
                   <input id={inputId} type="radio" name="relaySync" onclick={ajaxCall} checked=""/>
                 } else {
@@ -508,9 +508,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   def reportProtocolSection = { xml: NodeSeq =>
     //  initial values, updated on successful submit
-    var initSyslogProtocol = configService.rudder_syslog_protocol.toBox
-    var initReportProtocol = configService.rudder_report_protocol_default.toBox
-    var initDisabledSyslog  = configService.rudder_syslog_protocol_disabled.toBox
+    var initSyslogProtocol = configService.rudder_syslog_protocol().toBox
+    var initReportProtocol = configService.rudder_report_protocol_default().toBox
+    var initDisabledSyslog  = configService.rudder_syslog_protocol_disabled().toBox
 
     // form values
     var syslogProtocol = initSyslogProtocol.getOrElse(SyslogUDP)
@@ -540,7 +540,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       configService.set_rudder_syslog_protocol_disabled(disabledSyslog, actor, None).toBox.foreach(updateOk => initDisabledSyslog = Full(disabledSyslog))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
-      startNewPolicyGeneration
+      startNewPolicyGeneration()
       check() & JsRaw("""createSuccessNotification("Reporting protocol correctly updated")""")
     }
 
@@ -608,7 +608,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               def radioHtml(protocol : AgentReportingProtocol, disabledSyslog : Boolean): NodeSeq = {
                 val (label,value) = labelAndValue(protocol,disabledSyslog)
                 val inputId = value + "-id"
-                val ajaxCall = SHtml.ajaxCall(Str(""), _ => displayDisableSyslogSectionJS(value) & check)._2.toJsCmd
+                val ajaxCall = SHtml.ajaxCall(Str(""), _ => displayDisableSyslogSectionJS(value) & check())._2.toJsCmd
                 val inputCheck = if (initReport == protocol && initDisabled == disabledSyslog) {
                     <input id={inputId} type="radio" name="reportProtocol" onclick={ajaxCall} checked=""/>
                 } else {
@@ -650,7 +650,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                 def radioHtml(syslogProtocol: SyslogProtocol): NodeSeq = {
                   val value = syslogProtocol.value
                   val inputId = value + "-id"
-                  val ajaxCall = SHtml.ajaxCall(Str(""), _ => checkSyslogProtocol(value) & check)._2.toJsCmd
+                  val ajaxCall = SHtml.ajaxCall(Str(""), _ => checkSyslogProtocol(value) & check())._2.toJsCmd
                   val inputCheck = if (initSyslog == syslogProtocol) {
                       <input id={inputId} type="radio" name="syslogProtocol" onclick={ajaxCall} checked=""/>
                   } else {
@@ -687,9 +687,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   val agentScheduleEditForm = new AgentScheduleEditForm(
-      () => getSchedule
+      () => getSchedule()
     , saveSchedule
-    , () => startNewPolicyGeneration
+    , () => startNewPolicyGeneration()
   )
 
   val complianceModeEditForm = {
@@ -699,7 +699,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       , (complianceMode) => {
           configService.set_rudder_compliance_mode(complianceMode,CurrentUser.actor,genericReasonMessage).toBox
         }
-      , () => startNewPolicyGeneration
+      , () => startNewPolicyGeneration()
       , globalMode
     )
   }
@@ -708,10 +708,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
   def getSchedule() : Box[AgentRunInterval] = {
     for {
-      starthour <- configService.agent_run_start_hour
-      startmin  <- configService.agent_run_start_minute
-      splaytime <- configService.agent_run_splaytime
-      interval  <- configService.agent_run_interval
+      starthour <- configService.agent_run_start_hour()
+      startmin  <- configService.agent_run_start_minute()
+      splaytime <- configService.agent_run_splaytime()
+      interval  <- configService.agent_run_interval()
     } yield {
       AgentRunInterval(
             None
@@ -743,7 +743,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def cfengineGlobalProps = { xml : NodeSeq =>
 
     //  initial values, updated on successful submit
-    var initModifiedFilesTtl = configService.cfengine_modified_files_ttl.toBox
+    var initModifiedFilesTtl = configService.cfengine_modified_files_ttl().toBox
     // form values
     var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30).toString
 
@@ -753,7 +753,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         val intModifiedFilesTtl = Integer.parseInt(modifiedFilesTtl)
         configService.set_cfengine_modified_files_ttl(intModifiedFilesTtl).toBox.foreach(updateOk => initModifiedFilesTtl = Full(intModifiedFilesTtl))
         // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
-        startNewPolicyGeneration
+        startNewPolicyGeneration()
         check() & JsRaw("""createSuccessNotification("File retention settings correctly updated")""")
       } catch {
         case ex:NumberFormatException =>
@@ -793,8 +793,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def loggingConfiguration = { xml : NodeSeq =>
 
     //  initial values, updated on successfull submit
-    var initStoreAllCentralizedLogsInFile = configService.rudder_store_all_centralized_logs_in_file.toBox
-    var initCfengineOutputsTtl = configService.cfengine_outputs_ttl.toBox
+    var initStoreAllCentralizedLogsInFile = configService.rudder_store_all_centralized_logs_in_file().toBox
+    var initCfengineOutputsTtl = configService.cfengine_outputs_ttl().toBox
     // form values
     var storeAllCentralizedLogsInFile  = initStoreAllCentralizedLogsInFile.getOrElse(false)
     var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(7).toString
@@ -811,7 +811,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       configService.set_rudder_store_all_centralized_logs_in_file(storeAllCentralizedLogsInFile).toBox.foreach(updateOk => initStoreAllCentralizedLogsInFile = Full(storeAllCentralizedLogsInFile))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
-      startNewPolicyGeneration
+      startNewPolicyGeneration()
       val notifMessage =  storeAllCentralizedLogsInFile match {
         case true  => "Logging will be enabled during the next agent run on this server (5 minutes maximum)"
         case false => "Logging will be disabled during the next agent run on this server (5 minutes maximum)"
@@ -894,7 +894,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       def noModif() = initIsEnabled == currentIsEnabled
       def check() = {
         S.notice("generationHookCfpromiseMsg","")
-        Run(s"""$$("#generationHookCfpromiseSubmit").attr("disabled",${noModif});""")
+        Run(s"""$$("#generationHookCfpromiseSubmit").attr("disabled",${noModif()});""")
       }
       def submit() = {
         // exec must be set/unset for all users
@@ -912,13 +912,13 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           case Left(ex) =>
             <span class="error">There was an error when updating the value of the 'check generated policies' property: {ex.getMessage}</span>
         } )
-        check
+        check()
       }
 
       ( "#generationHookCfpromiseCheckbox" #> {
           addDisabled(disabled)(SHtml.ajaxCheckbox(
               isEnabled
-            , (b : Boolean) => { currentIsEnabled = b; check}
+            , (b : Boolean) => { currentIsEnabled = b; check()}
             , ("id","generationHookCfpromiseCheckbox")
           ) )
         }&
@@ -1058,7 +1058,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
               case ex: NumberFormatException => msg += "Error: percent of nodes must be an int"
             }
             S.notice("generationHookTriggerNodeUpdateMsg", <span class="error">{msg.mkString("; ")}</span>)
-            Run(s"""$$("#generationHookTriggerNodeUpdateSubmit").attr("disabled",${noModif});""")
+            Run(s"""$$("#generationHookTriggerNodeUpdateSubmit").attr("disabled",${noModif()});""")
           }
 
           def submit() = {
@@ -1070,13 +1070,13 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
               case Left(s) =>
                 s"There was an error when updating the value of the 'trigger node update' property: ${s}"
             } )
-            check
+            check()
           }
 
           ( "#generationHookTriggerNodeUpdateCheckbox" #> {
             SHtml.ajaxCheckbox(
                 isEnabled
-              , (b : Boolean) => { currentIsEnabled = b; check}
+              , (b : Boolean) => { currentIsEnabled = b; check()}
               , ("id","generationHookTriggerNodeUpdateCheckbox")
             )
           }&
@@ -1110,7 +1110,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
   }
 
   def sendMetricsConfiguration = { xml : NodeSeq =>
-    ( configService.send_server_metrics.toBox match {
+    ( configService.send_server_metrics().toBox match {
       case Full(value) =>
         var initSendMetrics = value
         var currentSendMetrics = value
@@ -1124,18 +1124,18 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
             case Full(_)  =>
               initSendMetrics = currentSendMetrics
               // start a promise generation, Since we may have change the mode, if we got there it mean that we need to redeploy
-              startNewPolicyGeneration
+              startNewPolicyGeneration()
               JsRaw("""createSuccessNotification("'send server metrics' property updated")""")
             case eb: EmptyBox =>
               JsRaw("""createErrorNotification("There was an error when updating the value of the 'send server metrics' property")""")
           }
-          check & createNotification
+          check() & createNotification
         }
 
         ( "#sendMetricsCheckbox" #> {
             SHtml.ajaxCheckbox(
                 value.getOrElse(false)
-              , (b : Boolean) => { currentSendMetrics = Some(b); check}
+              , (b : Boolean) => { currentSendMetrics = Some(b); check()}
               , ("id","sendMetricsCheckbox")
             )
           }&
@@ -1181,13 +1181,13 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
             case (_, _) =>
               JsRaw("""createErrorNotification("There was an error when updating the value of the 'display change graphs' property")""")
           }
-          check & createNotification
+          check() & createNotification
         }
 
         ( "#displayGraphsCheckbox" #> {
             SHtml.ajaxCheckbox(
                 valueGraphs
-              , (b : Boolean) => { currentDisplayGraphs = b; check}
+              , (b : Boolean) => { currentDisplayGraphs = b; check()}
               , ("id","displayGraphsCheckbox")
             )
           } &
@@ -1197,7 +1197,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
           "#displayColumnsCheckbox" #> {
             SHtml.ajaxCheckbox(
               valueColumns
-              , (b : Boolean) => { currentDisplayColumns = b; check}
+              , (b : Boolean) => { currentDisplayColumns = b; check()}
               , ("id","displayColumnsCheckbox")
             )
           } &
@@ -1244,7 +1244,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
               initSavedValued = x
               // If we disable this feature we want to start policy generation because some data may be invalid
               if (x == Disabled) {
-                startNewPolicyGeneration
+                startNewPolicyGeneration()
               }
               JsRaw("""createSuccessNotification("'directive script engine' property updated. The feature will be loaded as soon as you go to another page or reload this one.")""")
             case eb: EmptyBox =>
@@ -1256,7 +1256,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
         ( "#directiveScriptEngineCheckbox" #> {
             SHtml.ajaxCheckbox(
                 x == Enabled
-              , (b : Boolean) => { if(b) { x = Enabled } else { x = Disabled }; check}
+              , (b : Boolean) => { if(b) { x = Enabled } else { x = Disabled }; check()}
               , ("id","directiveScriptEngineCheckbox")
             )
           } &
@@ -1326,8 +1326,8 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
         check() & createNotification
       }
 
-      "#nodeOnAcceptState" #> SHtml.ajaxSelectObj(states, Full(initNodeState), { (x:NodeState) => state = x; check}, ("id","nodeOnAcceptState")) &
-      "#nodeOnAcceptPolicyMode" #> SHtml.ajaxSelectObj(modes, Full(initPolicyMode), { (x: Option[PolicyMode]) => policyMode = x; check}, ("id","nodeOnAcceptPolicyMode")) &
+      "#nodeOnAcceptState" #> SHtml.ajaxSelectObj(states, Full(initNodeState), { (x:NodeState) => state = x; check()}, ("id","nodeOnAcceptState")) &
+      "#nodeOnAcceptPolicyMode" #> SHtml.ajaxSelectObj(modes, Full(initPolicyMode), { (x: Option[PolicyMode]) => policyMode = x; check()}, ("id","nodeOnAcceptPolicyMode")) &
       "#nodeOnAcceptDefaultsSubmit" #> {
         SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-success"))
       } &
@@ -1378,14 +1378,14 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
         ( "#allowsDuplicate" #> {
             SHtml.ajaxCheckbox(
                 x.isSet(AllowsDuplicate)
-              , (b : Boolean) => { if(b) { x = x.set(AllowsDuplicate) } else { x = x.unset(AllowsDuplicate) }; check}
+              , (b : Boolean) => { if(b) { x = x.set(AllowsDuplicate) } else { x = x.unset(AllowsDuplicate) }; check()}
               , ("id","allowsDuplicate")
             )
           } &
           "#unboundVarValues" #> {
             SHtml.ajaxCheckbox(
                 x.isSet(UnboundVarValues)
-              , (b : Boolean) => { if(b) { x = x.set(UnboundVarValues) } else { x = x.unset(UnboundVarValues) }; check}
+              , (b : Boolean) => { if(b) { x = x.set(UnboundVarValues) } else { x = x.unset(UnboundVarValues) }; check()}
               , ("id","unboundVarValues")
             )
           } &

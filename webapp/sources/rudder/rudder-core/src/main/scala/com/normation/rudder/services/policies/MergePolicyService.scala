@@ -253,7 +253,7 @@ final object MergePolicyService {
     // remark: now that trackingKeyVariable is independant from serial, it could just
     // be given as a method from the draft (no need for more info)
     val updatedTrackingKeyValues = deduplicateDrafts.map { d =>
-      val (trackingKeyVariable, trackedVariable) = d.getDirectiveVariable
+      val (trackingKeyVariable, trackedVariable) = d.getDirectiveVariable()
 
       val values = {
         // Only multi-instance policy may have a trackingKeyVariable with high cardinal

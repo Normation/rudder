@@ -239,7 +239,7 @@ object QSObject {
   // - by type
   // - then by name
   implicit class QSObjectOrder(val o: QSObject) extends AnyVal {
-    def order() = o match {
+    def order = o match {
       case Common    => 0
       case Node      => 1
       case Group     => 2

@@ -68,26 +68,26 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
   "Basic add and close for nodes" should {
 
     "found nothing at begining" in {
-      repos.getAllOpenedNodes must haveSize[Seq[DB.SerializedNodes[Long]]](0)
+      repos.getAllOpenedNodes() must haveSize[Seq[DB.SerializedNodes[Long]]](0)
     }
 
     "be able to add and found" in {
       val op1 = repos.updateNodes(Seq(NodeConfigData.node1), Seq())
-      val op2 = repos.getAllOpenedNodes
+      val op2 = repos.getAllOpenedNodes()
 
       (op1 === (())) and (op2.size === 1) and (op2.head.nodeId === "node1")
     }
 
     "be able to close and found new ones" in {
       val op1 = service.updateNodes(Set(NodeConfigData.node2)).openOrThrowException("that test should not throw")
-      val op2 = repos.getAllOpenedNodes
+      val op2 = repos.getAllOpenedNodes()
 
       (op1 === (())) and (op2.size === 1) and (op2.head.nodeId === "node2")
     }
 
     "check that policy servers are ignored (not sure why)" in {
       val op1 = service.updateNodes(Set(NodeConfigData.root)).openOrThrowException("that test should not throw")
-      val op2 = repos.getAllOpenedNodes
+      val op2 = repos.getAllOpenedNodes()
 
       (op1 === (())) and (op2.size === 0)
     }
@@ -129,7 +129,7 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
     }
 
     "be able to add and found" in {
-      val op1 = repos.updateDirectives(Seq((NodeConfigData.d1, NodeConfigData.fat1.toActiveTechnique, NodeConfigData.t1)), Seq())
+      val op1 = repos.updateDirectives(Seq((NodeConfigData.d1, NodeConfigData.fat1.toActiveTechnique(), NodeConfigData.t1)), Seq())
       val op2 = repos.getAllOpenedDirectives()
 
       (op1 === (())) and (op2.size === 1) and (op2.head.directiveId === "d1")

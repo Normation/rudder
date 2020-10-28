@@ -998,7 +998,7 @@ class WoLDAPDirectiveRepository(
       oldTechnique    <- getUPTEntry(con, uactiveTechniqueId).notOptional(s"Technique with id '${uactiveTechniqueId.value}' was not found")
       activeTechnique =  LDAPEntry(oldTechnique.backed)
       saved           <- {
-                           activeTechnique +=! (A_IS_ENABLED, status.toLDAPString)
+        activeTechnique.resetValuesTo(A_IS_ENABLED, status.toLDAPString)
                            userLibMutex.writeLock { con.save(activeTechnique) }
                          }
       optDiff         <- diffMapper.modChangeRecords2TechniqueDiff(oldTechnique, saved).toIO.chainError(
@@ -1028,7 +1028,7 @@ class WoLDAPDirectiveRepository(
       saved           <- {
                            val oldAcceptations = mapper.unserializeAcceptations(activeTechnique(A_ACCEPTATION_DATETIME).getOrElse(""))
                            val json = JsonAST.compactRender(mapper.serializeAcceptations(oldAcceptations ++ datetimes))
-                           activeTechnique.+=!(A_ACCEPTATION_DATETIME, json)
+                           activeTechnique.resetValuesTo(A_ACCEPTATION_DATETIME, json)
                            userLibMutex.writeLock { con.save(activeTechnique) }
                          }
       newActiveTechnique  <- getActiveTechniqueByActiveTechnique(uactiveTechniqueId).notOptional(s"Active technique with id '${uactiveTechniqueId.value}' was not found after acceptation datetime update")

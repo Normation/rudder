@@ -87,7 +87,7 @@ class RuleCategoryPopup(
   private[this] val uuidGen                    = RudderConfig.stringUuidGenerator
 
   def dispatch = {
-    case "popupContent" => { _ => popupContent }
+    case "popupContent" => { _ => popupContent() }
   }
 
   val title = {
@@ -127,7 +127,7 @@ class RuleCategoryPopup(
   }
 
   def deletePopupContent(canBeDeleted : Boolean) : NodeSeq = {
-    val action = () => if (canBeDeleted)  onSubmitDelete else closePopup
+    val action = () => if (canBeDeleted)  onSubmitDelete() else closePopup()
     val disabled  = if (canBeDeleted) ("","") else ("disabled","true")
      (
       "#dialogTitle *"  #> s"Delete Rule category ${s"'${targetCategory.map(_.name).getOrElse("")}'"}" &

@@ -324,7 +324,7 @@ class StatusReportTest extends Specification {
       case x => Some(x)
     }
 
-    Source.fromString(s).getLines.zipWithIndex.map { case(l,i) =>
+    Source.fromString(s).getLines().zipWithIndex.map { case(l,i) =>
       val parsed = l.split(",").map( _.trim).toList
       parsed match {
         case n :: r :: _ :: d :: c :: v :: uv :: t :: m :: Nil =>

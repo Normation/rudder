@@ -58,7 +58,7 @@ class CheckNormationOidTest extends Specification {
 
   "Normation OID" should {
 
-    val oidLine = scala.io.Source.fromFile(rudderSchemaFile).getLines.find( l => regex.pattern.matcher(l).matches )
+    val oidLine = scala.io.Source.fromFile(rudderSchemaFile).getLines().find( l => regex.pattern.matcher(l).matches )
 
     "exists in rudder.schema" in {
       oidLine.isDefined === true

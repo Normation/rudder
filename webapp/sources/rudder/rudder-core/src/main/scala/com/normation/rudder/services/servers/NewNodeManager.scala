@@ -550,7 +550,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
         afterNodeAcceptedAsync(id)
 
         NodeLogger.PendingNode.info(s"New node accepted and managed by Rudder: ${id.value}")
-        cacheToClear.foreach { _.clearCache }
+        cacheToClear.foreach { _.clearCache() }
 
         // Update hooks for the node - need to be done after cache cleaning
         afterNodeAcceptedAsync(id)

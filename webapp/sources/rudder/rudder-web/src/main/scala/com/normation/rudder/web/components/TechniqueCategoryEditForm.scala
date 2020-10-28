@@ -72,7 +72,7 @@ class TechniqueCategoryEditForm(
 
 
   def dispatch = {
-    case "showForm" => { _ =>  showForm }
+    case "showForm" => { _ =>  showForm() }
   }
 
 
@@ -129,7 +129,7 @@ class TechniqueCategoryEditForm(
 
         val xml = (
             ("#deleteCategoryMsg") #> <span class="error" id="deleteCategoryMsg">Error when deleting the category</span>
-        ).apply(showForm)
+        ).apply(showForm())
 
         Replace(htmlId_form, xml)
     }

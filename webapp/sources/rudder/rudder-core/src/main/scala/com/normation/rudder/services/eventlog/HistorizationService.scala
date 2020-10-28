@@ -194,7 +194,7 @@ class HistorizationServiceImpl(
            || entry.techniqueVersion != directive.techniqueVersion.toString
           )
          }
-      }.toSeq.map { case (t,fat,d) => (d, fat.toActiveTechnique, t) }
+      }.toSeq.map { case (t,fat,d) => (d, fat.toActiveTechnique(), t) }
 
       val stringDirectiveIds = directives.keySet.map( _.value)
 

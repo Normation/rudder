@@ -114,7 +114,7 @@ class LoadDemoDataTest extends Specification {
 
       val dn = new DN("ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
       val entry = LDAPEntry(dn)
-      entry += ("falseAttribute", "anything")
+      entry.addValues("falseAttribute", "anything")
 
       val res = ldap.newConnection.flatMap(_.save(entry)).either.runNow
 

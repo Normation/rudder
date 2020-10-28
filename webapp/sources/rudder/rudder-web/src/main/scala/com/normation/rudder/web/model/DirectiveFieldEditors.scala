@@ -780,7 +780,7 @@ class PasswordField(
     val hashes = JsObj(algos.filterNot { x => x == PLAIN || x == PreHashed }.map(a => (a.prefix,  Str(a.name))):_*)
     val formId = Helpers.nextFuncName
     val valueInput = SHtml.text("", {s =>  parseClient(s)}, ("ng-model","result"), ("ng-hide", "true") )
-    val otherPasswords = if (slavesValues.size == 0) "undefined" else JsObj(slavesValues().view.mapValues(Str(_)).toSeq:_*).toJsCmd
+    val otherPasswords = if (slavesValues().size == 0) "undefined" else JsObj(slavesValues().view.mapValues(Str(_)).toSeq:_*).toJsCmd
     val (scriptEnabled,isScript, currentValue) = scriptSwitch().getOrElse(Disabled) match {
       case Disabled => (false,false, currentHash)
       case Enabled =>

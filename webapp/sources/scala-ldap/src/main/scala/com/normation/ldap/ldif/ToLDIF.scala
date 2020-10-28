@@ -62,7 +62,7 @@ trait ToLDIFRecords extends ToLDIFString {
   /**
    * Get the object as list of LDIFRecords
    */
-  def toLDIFRecords(): Seq[LDIFRecord]
+  def toLDIFRecords: Seq[LDIFRecord]
 
   override def toLDIFString(sb:StringBuilder) : Unit = {
     this.toLDIFRecords.foreach { r =>

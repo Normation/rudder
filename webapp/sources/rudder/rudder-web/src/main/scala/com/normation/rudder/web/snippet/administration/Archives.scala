@@ -214,7 +214,7 @@ class Archives extends DispatchSnippet with Loggable {
       logger.error(e.messageChain)
       logger.error(e.exceptionChain.mkString("", "\n", ""))
       JsRaw(s"""createErrorNotification('${msg}')""") &
-      Replace(formName, outerXml.applyAgain)
+      Replace(formName, outerXml.applyAgain())
     }
 
     def success[T](msg:String, elements:NotArchivedElements) = {
@@ -233,7 +233,7 @@ class Archives extends DispatchSnippet with Loggable {
             JsRaw(s"""createWarningNotification(${error})""")
           }
 
-          Replace(formName, outerXml.applyAgain) &
+          Replace(formName, outerXml.applyAgain()) &
           successPopup
     }
 

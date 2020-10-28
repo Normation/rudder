@@ -90,8 +90,8 @@ object CheckCfengineSystemRuleTargets {
 
     //arf, mutation
     keepAttrs.foreach { attr =>
-      wanted -= attr
-      existing -= attr
+      wanted deleteAttribute attr
+      existing deleteAttribute attr
     }
     if(existing == wanted) {
       LDIFNoopChangeRecord(existing.dn).succeed
@@ -184,7 +184,7 @@ class CheckCfengineSystemRuleTargets(
 
     def updateSimpleEntries(con: RwLDAPConnection, entries: List[LDAPEntry]): IOResult[Seq[LDIFChangeRecord]] = {
       ZIO.foreach(entries) { wanted =>
-        con.get(wanted.dn) foldM (
+        con.get(wanted.dn).foldM (
           err =>
           // try to repare in case of failure / empty
             con.save(wanted, true)

@@ -62,7 +62,7 @@ class LDAPSchema {
    * If an object class with the same name but different properties
    * (sup, must or may) already exists, throws an error.
    */
-  def +=(oc:LDAPObjectClass) : LDAPSchema = {
+  def addObjectClass(oc:LDAPObjectClass) : LDAPSchema = {
     require(null != oc)
     val key = oc.name.toLowerCase
     val pKey = oc.sup.name.toLowerCase
@@ -85,12 +85,12 @@ class LDAPSchema {
   /**
    * Register a new object class
    */
-  def +=(
+  def createObjectClass(
       name : String,
       sup : LDAPObjectClass = LDAPObjectClass.TOP,
       must: Set[String] = Set(),
       may : Set[String] = Set()
-  ) : LDAPSchema = +=(new LDAPObjectClass(name, sup, must, may))
+  ) : LDAPSchema = addObjectClass(new LDAPObjectClass(name, sup, must, may))
 
   /**
    * Returned the set of children object classes for the

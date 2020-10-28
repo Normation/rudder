@@ -206,7 +206,7 @@ class WoLDAPRuleCategoryRepository(
    */
   private[this] def getParents(id:RuleCategoryId) : IOResult[List[RuleCategory]] = {
     for {
-      root    <- getRootCategory
+      root    <- getRootCategory()
       parents <- root.findParents(id).leftMap(s => Inconsistency(s)).toIO
     } yield {
       parents

@@ -183,7 +183,7 @@ class SearchNodeComponent(
       errors.clear()
       lines.zipWithIndex.foreach { case (cl@CriterionLine(_,a,c,v),i) =>
         a.cType.validate(v,c.id).toBox match {
-          case Failure(m,_,_) => errors put (cl,m)
+          case Failure(m,_,_) => errors.put(cl, m)
           case _ =>
         }
       }
@@ -208,7 +208,7 @@ class SearchNodeComponent(
      */
     def ajaxCriteriaRefresh(isGroupPage : Boolean) : JsCmd = {
       lines.clear()
-      SetHtml("SearchForm", displayQuery(content, isGroupPage)) & activateButtonOnChange
+      SetHtml("SearchForm", displayQuery(content, isGroupPage)) & activateButtonOnChange()
     }
     def displayQueryLine(cl : CriterionLine, index:Int, addRemove:Boolean) : NodeSeq = {
 
@@ -325,7 +325,7 @@ class SearchNodeComponent(
    * @return
    */
   def ajaxGridRefresh(isGroupPage: Boolean) : JsCmd = {
-    activateButtonOnChange &
+    activateButtonOnChange() &
     gridResult(isGroupPage)
   }
 

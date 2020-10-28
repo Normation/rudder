@@ -128,10 +128,10 @@ class DirectiveEditForm(
   }
 
   val rules = roRuleRepo.getAll(false).toBox.getOrElse(Seq()).toList
-  val rootCategory = roRuleCategoryRepo.getRootCategory.toBox.getOrElse(throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report."))
+  val rootCategory = roRuleCategoryRepo.getRootCategory().toBox.getOrElse(throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report."))
   val directiveApp = new DirectiveApplicationManagement(directive,rules,rootCategory)
   def dispatch = {
-    case "showForm" => { _ => showForm }
+    case "showForm" => { _ => showForm() }
   }
 
   def showForm(): NodeSeq = {
@@ -282,7 +282,7 @@ class DirectiveEditForm(
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
       "#notifications" #> updateAndDisplayNotifications() &
       "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-sm btn-primary" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">Technical Details</button> &
-      "#isSingle *" #> showIsSingle &
+      "#isSingle *" #> showIsSingle() &
       displayDeprecationWarning
     )(crForm) ++
     Script(OnLoad(
@@ -325,7 +325,7 @@ class DirectiveEditForm(
   }
 
   private[this] def showErrorNotifications() : JsCmd = {
-    onFailureCallback() & Replace("editForm", showDirectiveForm)
+    onFailureCallback() & Replace("editForm", showDirectiveForm())
   }
 
   private[this] def showIsSingle(): NodeSeq = {
@@ -563,7 +563,7 @@ class DirectiveEditForm(
     checkVariables()
 
     if (formTracker.hasErrors) {
-      onFailure
+      onFailure()
     } else {
       val (addRules,removeRules)= directiveApp.checkRulesToUpdate
       val baseRules = (addRules ++ removeRules).sortBy(_.id.value)
@@ -681,7 +681,7 @@ class DirectiveEditForm(
             if(workflowService.needExternalValidation()) {
               (
                   (crId: ChangeRequestId) => onSuccessCallback(Right(crId))
-                , (xml: NodeSeq) => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure
+                , (xml: NodeSeq) => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure()
               )
             } else {
               val success = {
@@ -696,7 +696,7 @@ class DirectiveEditForm(
 
               (
                   success
-                , (xml: NodeSeq) => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure
+                , (xml: NodeSeq) => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure()
               )
             }
           }
@@ -714,9 +714,9 @@ class DirectiveEditForm(
 
         popup.popupWarningMessages match {
           case None =>
-            popup.onSubmit
+            popup.onSubmit()
           case Some(_) =>
-            SetHtml("confirmUpdateActionDialog", popup.popupContent) &
+            SetHtml("confirmUpdateActionDialog", popup.popupContent()) &
             JsRaw("""createPopup("confirmUpdateActionDialog")""")
         }
     }
@@ -744,7 +744,7 @@ class DirectiveEditForm(
       technique.id.version, directive,
       onSuccessCallback =  dir => onSuccessCallback(Left(dir)))
 
-    popup.popupContent
+    popup.popupContent()
   }
 
   ///////////// success pop-up ///////////////

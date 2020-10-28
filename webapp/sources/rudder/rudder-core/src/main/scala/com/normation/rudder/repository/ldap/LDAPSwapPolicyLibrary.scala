@@ -105,9 +105,9 @@ class ImportTechniqueLibraryImpl(
           //then recurse on sub-categories
           val categoryEntry = mapper.activeTechniqueCategory2ldap(content.category, parentDN)
           if(isRoot) {
-            categoryEntry +=  (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
-            categoryEntry +=! (A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
-            gitId.foreach { x => categoryEntry +=! (A_TECHNIQUE_LIB_VERSION, x) }
+            categoryEntry.addValues(A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
+            categoryEntry.resetValuesTo(A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
+            gitId.foreach { x => categoryEntry.resetValuesTo(A_TECHNIQUE_LIB_VERSION, x) }
           }
 
           for {

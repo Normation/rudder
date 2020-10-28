@@ -73,7 +73,7 @@ class CreateOrUpdateGlobalParameterPopup(
   private[this] val userPropertyService  = RudderConfig.userPropertyService
 
   def dispatch = {
-    case "popupContent" =>  { _ =>   popupContent }
+    case "popupContent" =>  { _ =>   popupContent() }
   }
 
   /* Text variation for

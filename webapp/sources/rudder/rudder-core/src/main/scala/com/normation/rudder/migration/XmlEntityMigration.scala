@@ -158,7 +158,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
   def batchMigrators             : List[BatchElementMigration[_]]
   def previousMigrationController: Option[ControlXmlFileFormatMigration]
 
-  def migrate() : Box[MigrationStatus] = {
+  def migrate : Box[MigrationStatus] = {
 
     /*
      * test is we have to migrate, and execute migration
@@ -233,7 +233,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
           //create a new status line with detected format = migrationFileFormat,
           //and a description to say why we recurse
           migrationEventLogRepository.createNewStatusLine(migrationFileFormat, Some(s"Found a post-migration fileFormat='${migrationFileFormat}': update"))
-          this.migrate()
+          this.migrate
 
             // lower file format found, send to parent)
         case Right(Some(status@DB.MigrationEventLog(
@@ -255,17 +255,17 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
                   "Rudder 2.6.x is the last major version which is able to import file format 1.0")
               Full(MigrationVersionNotSupported)
 
-            case Some(migrator) => migrator.migrate() match{
+            case Some(migrator) => migrator.migrate match{
               case Full(MigrationSuccess(i)) =>
                   logger.info("Older migration completed, relaunch migration")
-                  this.migrate()
+                  this.migrate
               case eb:EmptyBox =>
                   val e = (eb ?~! s"Older migration failed, Could not correctly finish the migration from EventLog fileFormat from '${fromVersion}' to '${toVersion}'. Check logs for errors. The process can be trigger by restarting the application")
                   logger.error(e)
                   e
               case _ =>
                   logger.info("Older migration completed, relaunch migration")
-                  this.migrate()
+                  this.migrate
               }
           }
 
@@ -282,9 +282,9 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
           //create a new status line with detected format = migrationFileFormat,
           //and a description to say why we recurse
           previousMigrationController.foreach { migrator =>
-            migrator.migrate()
+            migrator.migrate
           }
-          this.migrate()
+          this.migrate
 
 
         //other case: does nothing

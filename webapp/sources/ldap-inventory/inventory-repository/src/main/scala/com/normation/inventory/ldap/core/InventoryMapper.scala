@@ -156,7 +156,7 @@ class InventoryMapper(
     e.setOpt(soft.sourceName,    A_SOURCE_NAME,    {x:String => x})
     e.setOpt(soft.sourceVersion, A_SOURCE_VERSION, {x:Version => x.value})
     soft.license.foreach { lic =>
-      e +=! (A_LICENSE_NAME,lic.name)
+      e.resetValuesTo(A_LICENSE_NAME,lic.name)
       e.setOpt(lic.description,    A_LICENSE_DESC,        {x:String => x})
       e.setOpt(lic.expirationDate, A_LICENSE_EXP,         {x:DateTime => x.toString()})
       e.setOpt(lic.productId,      A_LICENSE_PRODUCT_ID,  {x:String => x})
@@ -203,7 +203,7 @@ class InventoryMapper(
   def entryFromBios(elt:Bios,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.BIOS.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
-    e +=! (A_QUANTITY, elt.quantity.toString)
+    e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
     e.setOpt(elt.editor,      A_EDITOR,       {x:SoftwareEditor => x.name})
     e.setOpt(elt.releaseDate, A_RELEASE_DATE, {x:DateTime => GeneralizedTime(x).toString})
     e.setOpt(elt.version,     A_SOFT_VERSION, {x:Version => x.value})
@@ -230,7 +230,7 @@ class InventoryMapper(
   def entryFromController(elt:Controller,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.CONTROLLER.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
-    e +=! (A_QUANTITY, elt.quantity.toString)
+    e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
     e.setOpt(elt.manufacturer, A_MANUFACTURER, {x:Manufacturer => x.name})
     e.setOpt(elt.cType, A_SME_TYPE, {x:String => x})
     e
@@ -253,7 +253,7 @@ class InventoryMapper(
   def entryFromMemorySlot(elt:MemorySlot,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.MEMORY.model(machineId,elt.slotNumber)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
-    e +=! (A_QUANTITY, elt.quantity.toString)
+    e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
     e.setOpt(elt.name,A_NAME,{x:String => x})
     e.setOpt(elt.capacity,A_MEMORY_CAPACITY, {x:MemorySize => x.size.toString})
     e.setOpt(elt.caption,A_MEMORY_CAPTION, {x:String => x})
@@ -286,7 +286,7 @@ class InventoryMapper(
   def entryFromPort(elt:Port,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.PORT.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
-    e +=! (A_QUANTITY, elt.quantity.toString)
+    e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
     e.setOpt(elt.pType, A_SME_TYPE, {x:String => x})
     e
   }
@@ -307,7 +307,7 @@ class InventoryMapper(
   def entryFromProcessor(elt:Processor,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.CPU.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION,    { x:String => x } )
-    e +=! (A_QUANTITY, elt.quantity.toString)
+    e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
     e.setOpt(elt.speed,A_PROCESSOR_SPEED,       { x:Int => x.toString } )
     e.setOpt(elt.stepping,A_PROCESSOR_STEPPING, { x:Int=> x.toString } )
     e.setOpt(elt.family, A_PROCESSOR_FAMILLY,   { x:Int => x.toString() } )
@@ -350,7 +350,7 @@ class InventoryMapper(
   def entryFromSlot(elt:Slot,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.PORT.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
-    e +=! (A_QUANTITY, elt.quantity.toString)
+    e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
     e.setOpt(elt.status, A_STATUS, {x:String => x})
     e
   }
@@ -371,7 +371,7 @@ class InventoryMapper(
   def entryFromSound(elt:Sound,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.SOUND.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
-    e +=! (A_QUANTITY, elt.quantity.toString)
+    e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
     e
   }
 
@@ -390,7 +390,7 @@ class InventoryMapper(
   def entryFromStorage(elt:Storage,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.STORAGE.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
-    e +=! (A_QUANTITY, elt.quantity.toString)
+    e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
     e.setOpt(elt.size,A_STORAGE_SIZE, {x:MemorySize => x.size.toString})
     e.setOpt(elt.firmware,A_STORAGE_FIRMWARE, {x:String => x})
     e.setOpt(elt.manufacturer,A_MANUFACTURER, {x:Manufacturer => x.name})
@@ -423,7 +423,7 @@ class InventoryMapper(
   def entryFromVideo(elt:Video,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.VIDEO.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
-    e +=! (A_QUANTITY, elt.quantity.toString)
+    e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
     e.setOpt(elt.chipset,A_VIDEO_CHIPSET, {x:String => x})
     e.setOpt(elt.memory,A_MEMORY_CAPACITY, {x:MemorySize => x.size.toString})
     e.setOpt(elt.resolution,A_VIDEO_RESOLUTION, {x:String => x})
@@ -495,7 +495,7 @@ class InventoryMapper(
     val dit = ditService.getDit(machine.status)
     val root = dit.MACHINES.MACHINE.model(machine.id)
     root.setOpt(machine.mbUuid, A_MB_UUID, {x:MotherBoardUuid => x.value})
-    root += (A_OC, machineType2ObjectClass(machine.machineType).name)
+    root.addValues(A_OC, machineType2ObjectClass(machine.machineType).name)
     root.setOpt(machine.inventoryDate,A_INVENTORY_DATE,{x:DateTime => GeneralizedTime(x).toString})
     root.setOpt(machine.receiveDate,A_RECEIVE_DATE,{x:DateTime => GeneralizedTime(x).toString})
     root.setOpt(machine.name,A_NAME,{x:String => x})
@@ -557,21 +557,21 @@ class InventoryMapper(
 
   def machineFromTree(tree:LDAPTree) : IOResult[MachineInventory] = {
     for {
-      dit                <- ditService.getDit(tree.root().dn).notOptional(s"Impossible to find DIT for entry '${tree.root().dn.toString()}'")
+      dit                <- ditService.getDit(tree.root.dn).notOptional(s"Impossible to find DIT for entry '${tree.root.dn.toString()}'")
       inventoryStatus    =  ditService.getInventoryStatus(dit)
       id                 <- dit.MACHINES.MACHINE.idFromDN(tree.root.dn).toIO
-      machineType        <- machineTypeFromObjectClasses(tree.root().valuesFor(A_OC).toSet).notOptional("Can not find machine types")
-      name               =  tree.root()(A_NAME)
-      mbUuid             =  tree.root()(A_MB_UUID) map { x => MotherBoardUuid(x) }
+      machineType        <- machineTypeFromObjectClasses(tree.root.valuesFor(A_OC).toSet).notOptional("Can not find machine types")
+      name               =  tree.root(A_NAME)
+      mbUuid             =  tree.root(A_MB_UUID) map { x => MotherBoardUuid(x) }
       inventoryDate      =  tree.root.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
       receiveDate        =  tree.root.getAsGTime(A_RECEIVE_DATE).map { _.dateTime }
-      manufacturer       =  tree.root()(A_MANUFACTURER).map(m => new Manufacturer(m))
-      systemSerialNumber =  tree.root()(A_SERIAL_NUMBER)
+      manufacturer       =  tree.root(A_MANUFACTURER).map(m => new Manufacturer(m))
+      systemSerialNumber =  tree.root(A_SERIAL_NUMBER)
       //now, get all subentries
       m                  = MachineInventory(id,inventoryStatus,machineType,name,mbUuid,inventoryDate
                             , receiveDate, manufacturer, systemSerialNumber)
       //map subentries and return result
-      res                <- ZIO.foldLeft(tree.children)(m) { case (m, (rdn,t)) => mapAndAddMachineElement(t.root(), m) }
+      res                <- ZIO.foldLeft(tree.children)(m) { case (m, (rdn,t)) => mapAndAddMachineElement(t.root, m) }
     } yield {
       res
     }
@@ -612,9 +612,9 @@ class InventoryMapper(
     // mutable, yep
     def setSeqAddress(e: LDAPEntry, attr: String, list: Seq[InetAddress]): Unit = {
       if(list.isEmpty) {
-        e -= attr
+        e deleteAttribute attr
       } else {
-        e +=!(attr, list.map(_.getHostAddress):_*)
+        e.resetValuesTo(attr, list.map(_.getHostAddress):_*)
       }
     }
 
@@ -723,57 +723,57 @@ class InventoryMapper(
       case Linux(os,osFullName,osVersion,osServicePack,kernelVersion) =>
         val linux = dit.NODES.NODE.linuxModel(server.main.id)
         os match {
-          case Debian      => linux += (A_OS_NAME, A_OS_DEBIAN)
-          case Ubuntu      => linux += (A_OS_NAME, A_OS_UBUNTU)
-          case Redhat      => linux += (A_OS_NAME, A_OS_REDHAT)
-          case Centos      => linux += (A_OS_NAME, A_OS_CENTOS)
-          case Fedora      => linux += (A_OS_NAME, A_OS_FEDORA)
-          case Suse        => linux += (A_OS_NAME, A_OS_SUZE)
-          case Android     => linux += (A_OS_NAME, A_OS_ANDROID)
-          case Oracle      => linux += (A_OS_NAME, A_OS_ORACLE)
-          case Scientific  => linux += (A_OS_NAME, A_OS_SCIENTIFIC)
-          case Slackware   => linux += (A_OS_NAME, A_OS_SLACKWARE)
-          case Mint        => linux += (A_OS_NAME, A_OS_MINT)
-          case AmazonLinux => linux += (A_OS_NAME, A_OS_AMAZON_LINUX)
-          case _           => linux += (A_OS_NAME, A_OS_UNKNOWN_LINUX)
+          case Debian      => linux.addValues(A_OS_NAME, A_OS_DEBIAN)
+          case Ubuntu      => linux.addValues(A_OS_NAME, A_OS_UBUNTU)
+          case Redhat      => linux.addValues(A_OS_NAME, A_OS_REDHAT)
+          case Centos      => linux.addValues(A_OS_NAME, A_OS_CENTOS)
+          case Fedora      => linux.addValues(A_OS_NAME, A_OS_FEDORA)
+          case Suse        => linux.addValues(A_OS_NAME, A_OS_SUZE)
+          case Android     => linux.addValues(A_OS_NAME, A_OS_ANDROID)
+          case Oracle      => linux.addValues(A_OS_NAME, A_OS_ORACLE)
+          case Scientific  => linux.addValues(A_OS_NAME, A_OS_SCIENTIFIC)
+          case Slackware   => linux.addValues(A_OS_NAME, A_OS_SLACKWARE)
+          case Mint        => linux.addValues(A_OS_NAME, A_OS_MINT)
+          case AmazonLinux => linux.addValues(A_OS_NAME, A_OS_AMAZON_LINUX)
+          case _           => linux.addValues(A_OS_NAME, A_OS_UNKNOWN_LINUX)
         }
         linux
 
       case Solaris(_,_,_,_) =>
         val solaris = dit.NODES.NODE.solarisModel(server.main.id)
-        solaris += (A_OS_NAME, A_OS_SOLARIS)
+        solaris.addValues(A_OS_NAME, A_OS_SOLARIS)
         solaris
 
       case Aix(_,_,_,_) =>
         val aix = dit.NODES.NODE.aixModel(server.main.id)
-        aix += (A_OS_NAME, A_OS_AIX)
+        aix.addValues(A_OS_NAME, A_OS_AIX)
         aix
 
       case Bsd(os,_,_,_,_) =>
         val bsd = dit.NODES.NODE.bsdModel(server.main.id)
         os match {
-          case FreeBSD => bsd += (A_OS_NAME, A_OS_FREEBSD)
-          case _       => bsd += (A_OS_NAME, A_OS_UNKNOWN_BSD)
+          case FreeBSD => bsd.addValues(A_OS_NAME, A_OS_FREEBSD)
+          case _       => bsd.addValues(A_OS_NAME, A_OS_UNKNOWN_BSD)
         }
         bsd
 
       case Windows(os,osFullName,osVersion,osServicePack,kernelVersion,userDomain,registrationCompany,productKey,productId) =>
         val win = dit.NODES.NODE.windowsModel(server.main.id)
         os match {
-          case WindowsXP     => win += (A_OS_NAME, A_OS_WIN_XP)
-          case WindowsVista  => win += (A_OS_NAME, A_OS_WIN_VISTA)
-          case WindowsSeven  => win += (A_OS_NAME, A_OS_WIN_SEVEN)
-          case Windows10     => win += (A_OS_NAME, A_OS_WIN_10)
-          case Windows2000   => win += (A_OS_NAME, A_OS_WIN_2000)
-          case Windows2003   => win += (A_OS_NAME, A_OS_WIN_2003)
-          case Windows2008   => win += (A_OS_NAME, A_OS_WIN_2008)
-          case Windows2008R2 => win += (A_OS_NAME, A_OS_WIN_2008_R2)
-          case Windows2012   => win += (A_OS_NAME, A_OS_WIN_2012)
-          case Windows2012R2 => win += (A_OS_NAME, A_OS_WIN_2012_R2)
-          case Windows2016   => win += (A_OS_NAME, A_OS_WIN_2016)
-          case Windows2016R2 => win += (A_OS_NAME, A_OS_WIN_2016_R2)
-          case Windows2019   => win += (A_OS_NAME, A_OS_WIN_2019)
-          case _ => win += (A_OS_NAME, A_OS_UNKNOWN_WINDOWS)
+          case WindowsXP     => win.addValues(A_OS_NAME, A_OS_WIN_XP)
+          case WindowsVista  => win.addValues(A_OS_NAME, A_OS_WIN_VISTA)
+          case WindowsSeven  => win.addValues(A_OS_NAME, A_OS_WIN_SEVEN)
+          case Windows10     => win.addValues(A_OS_NAME, A_OS_WIN_10)
+          case Windows2000   => win.addValues(A_OS_NAME, A_OS_WIN_2000)
+          case Windows2003   => win.addValues(A_OS_NAME, A_OS_WIN_2003)
+          case Windows2008   => win.addValues(A_OS_NAME, A_OS_WIN_2008)
+          case Windows2008R2 => win.addValues(A_OS_NAME, A_OS_WIN_2008_R2)
+          case Windows2012   => win.addValues(A_OS_NAME, A_OS_WIN_2012)
+          case Windows2012R2 => win.addValues(A_OS_NAME, A_OS_WIN_2012_R2)
+          case Windows2016   => win.addValues(A_OS_NAME, A_OS_WIN_2016)
+          case Windows2016R2 => win.addValues(A_OS_NAME, A_OS_WIN_2016_R2)
+          case Windows2019   => win.addValues(A_OS_NAME, A_OS_WIN_2019)
+          case _ => win.addValues(A_OS_NAME, A_OS_UNKNOWN_WINDOWS)
         }
         win.setOpt(userDomain, A_WIN_USER_DOMAIN, { x: String => x })
         win.setOpt(registrationCompany, A_WIN_COMPANY, { x: String => x })
@@ -781,14 +781,14 @@ class InventoryMapper(
         win.setOpt(productId, A_WIN_ID, { x: String => x })
         win
     }
-    root +=! (A_OS_FULL_NAME      , server.main.osDetails.fullName)
-    root +=! (A_OS_VERSION        , server.main.osDetails.version.value)
+    root.resetValuesTo(A_OS_FULL_NAME      , server.main.osDetails.fullName)
+    root.resetValuesTo(A_OS_VERSION        , server.main.osDetails.version.value)
     root.setOpt(server.main.osDetails.servicePack, A_OS_SERVICE_PACK, { x:String => x })
-    root +=! (A_OS_KERNEL_VERSION , server.main.osDetails.kernelVersion.value)
-    root +=! (A_ROOT_USER         , server.main.rootUser)
-    root +=! (A_HOSTNAME          , server.main.hostname)
-    root +=! (A_KEY_STATUS        , server.main.keyStatus.value)
-    root +=! (A_POLICY_SERVER_UUID, server.main.policyServerId.value)
+    root.resetValuesTo(A_OS_KERNEL_VERSION , server.main.osDetails.kernelVersion.value)
+    root.resetValuesTo(A_ROOT_USER         , server.main.rootUser)
+    root.resetValuesTo(A_HOSTNAME          , server.main.hostname)
+    root.resetValuesTo(A_KEY_STATUS        , server.main.keyStatus.value)
+    root.resetValuesTo(A_POLICY_SERVER_UUID, server.main.policyServerId.value)
     root.setOpt(server.ram               , A_OS_RAM, { m: MemorySize => m.size.toString })
     root.setOpt(server.swap              , A_OS_SWAP, { m: MemorySize => m.size.toString })
     root.setOpt(server.archDescription   , A_ARCH, { x: String => x })
@@ -796,24 +796,24 @@ class InventoryMapper(
     root.setOpt(server.lastLoggedUserTime, A_LAST_LOGGED_USER_TIME, { x: DateTime => GeneralizedTime(x).toString })
     root.setOpt(server.inventoryDate     , A_INVENTORY_DATE, { x: DateTime => GeneralizedTime(x).toString })
     root.setOpt(server.receiveDate       , A_RECEIVE_DATE, { x: DateTime => GeneralizedTime(x).toString })
-    root +=! (A_AGENTS_NAME       , server.agents.map(x => x.toJsonString):_*)
-    root +=! (A_SOFTWARE_DN       , server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString):_*)
-    root +=! (A_EV                , server.environmentVariables.map(x => Serialization.write(x)):_*)
-    root +=! (A_PROCESS           , server.processes.map(x => Serialization.write(x)):_*)
-    root +=! (A_LIST_OF_IP        , server.serverIps.distinct:_*)
+    root.resetValuesTo(A_AGENTS_NAME       , server.agents.map(x => x.toJsonString):_*)
+    root.resetValuesTo(A_SOFTWARE_DN       , server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString):_*)
+    root.resetValuesTo(A_EV                , server.environmentVariables.map(x => Serialization.write(x)):_*)
+    root.resetValuesTo(A_PROCESS           , server.processes.map(x => Serialization.write(x)):_*)
+    root.resetValuesTo(A_LIST_OF_IP        , server.serverIps.distinct:_*)
     //we don't know their dit...
-    root +=! (A_CONTAINER_DN      , server.machineId.map { case (id, status) =>
+    root.resetValuesTo(A_CONTAINER_DN      , server.machineId.map { case (id, status) =>
       ditService.getDit(status).MACHINES.MACHINE.dn(id).toString
     }.toSeq:_*)
-    root +=! (A_ACCOUNT           , server.accounts:_*)
-    root +=! (A_SERVER_ROLE       , server.serverRoles.toSeq.map(_.value):_*)
+    root.resetValuesTo(A_ACCOUNT           , server.accounts:_*)
+    root.resetValuesTo(A_SERVER_ROLE       , server.serverRoles.toSeq.map(_.value):_*)
     server.timezone.foreach { timezone =>
-      root +=! (A_TIMEZONE_NAME   , timezone.name)
-      root +=! (A_TIMEZONE_OFFSET , timezone.offset)
+      root.resetValuesTo(A_TIMEZONE_NAME   , timezone.name)
+      root.resetValuesTo(A_TIMEZONE_OFFSET , timezone.offset)
     }
     server.customProperties.foreach { cp =>
       import CustomPropertiesSerialization.Serialise
-      root += (A_CUSTOM_PROPERTY, cp.toJson)
+      root.addValues(A_CUSTOM_PROPERTY, cp.toJson)
     }
 
     val tree = LDAPTree(root)
@@ -1031,7 +1031,7 @@ class InventoryMapper(
   def nodeFromTree(tree:LDAPTree) : IOResult[NodeInventory] = {
     for {
       node <- nodeFromEntry(tree.root)
-      res  <- ZIO.foldLeft(tree.children)(node) { case (m,(rdn,t)) => mapAndAddNodeElement(t.root(),m) }
+      res  <- ZIO.foldLeft(tree.children)(node) { case (m,(rdn,t)) => mapAndAddNodeElement(t.root, m) }
     } yield {
       res
     }

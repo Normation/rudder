@@ -402,8 +402,8 @@ class NodeGroupForm(
         // Since we are doing the submit from the component, it ought to exist
         searchNodeComponent.get match {
           case Full(req) =>
-            query = req.getQuery
-            srvList = req.getSrvList
+            query = req.getQuery()
+            srvList = req.getSrvList()
           case eb:EmptyBox =>
             val f = eb ?~! "Error when trying to retrieve the current search state"
             logger.error(f.messageChain)
@@ -492,9 +492,9 @@ class NodeGroupForm(
 
         popup.popupWarningMessages match {
           case None =>
-            popup.onSubmit
+            popup.onSubmit()
           case Some(_) =>
-            SetHtml("confirmUpdateActionDialog", popup.popupContent) &
+            SetHtml("confirmUpdateActionDialog", popup.popupContent()) &
             JsRaw("""createPopup("confirmUpdateActionDialog")""")
         }
     }

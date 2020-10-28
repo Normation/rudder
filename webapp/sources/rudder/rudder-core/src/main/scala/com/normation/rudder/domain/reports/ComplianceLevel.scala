@@ -336,7 +336,7 @@ object ComplianceLevelSerialisation {
   // pc_error, pc_pending, pc_noAnswer, pc_missing, pc_unknown
   implicit class ComplianceLevelToJs(val compliance: ComplianceLevel) extends AnyVal {
 
-    def toJsArray(): JsArray = JsArray (
+    def toJsArray: JsArray = JsArray (
         JE.JsObj(("number",compliance.reportsDisabled)   , ("percent",JE.Num(compliance.pc.reportsDisabled)))    //  0
       , JE.JsObj(("number",compliance.notApplicable)     , ("percent",JE.Num(compliance.pc.notApplicable)))      //  1
       , JE.JsObj(("number",compliance.success)           , ("percent",JE.Num(compliance.pc.success)))            //  2
@@ -353,7 +353,7 @@ object ComplianceLevelSerialisation {
       , JE.JsObj(("number",compliance.badPolicyMode)     , ("percent",JE.Num(compliance.pc.badPolicyMode)))      // 13
     )
 
-    def toJson(): JObject = {
+    def toJson: JObject = {
       import compliance._
       toJObject(pending, success, repaired, error, unexpected, missing, noAnswer
                  , notApplicable, reportsDisabled, compliant, auditNotApplicable
@@ -368,7 +368,7 @@ object ComplianceLevelSerialisation {
   // human-readable and to aknolewdge the fact that there may be
   // new fields.
   implicit class CompliancePercentToJs(val c: CompliancePercent) extends AnyVal {
-    def toJson(): JObject = {
+    def toJson: JObject = {
       import c._
       toJObject(pending, success, repaired, error, unexpected, missing, noAnswer
                  , notApplicable, reportsDisabled, compliant, auditNotApplicable

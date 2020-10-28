@@ -421,7 +421,7 @@ class GitTechniqueReader(
    * to modifiedTechniques does nothing, even if some
    * commit were done in git repository.
    */
-  override def readTechniques(): TechniquesInfo = {
+  override def readTechniques: TechniquesInfo = {
     semaphore.withPermit(
       for {
         needed <- needReloadPure
@@ -735,7 +735,7 @@ class GitTechniqueReader(
                         )
                     }
                 }
-              } fold ( err => err match {
+              }.fold ( err => err match {
                 case e : TechniqueVersionFormatException => s"Ignoring technique '${filePath}}' because the version format is incorrect. Error message was: ${e.getMessage}}".fail
                 case e : ConstraintException => s"Ignoring technique '${filePath}}' because the descriptor file is malformed. Error message was: ${e.getMessage}}".fail
                 case e : Exception => s"Error when processing technique '${filePath}}': ${e.getMessage}}".fail

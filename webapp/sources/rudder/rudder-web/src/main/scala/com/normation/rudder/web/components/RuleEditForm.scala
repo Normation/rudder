@@ -553,7 +553,7 @@ class RuleEditForm(
 
   private[this] def onSubmit() : JsCmd = {
     if(formTracker.hasErrors) {
-      onFailure
+      onFailure()
     } else { //try to save the rule
       val newCr = rule.copy(
           name             = crName.get
@@ -608,14 +608,14 @@ class RuleEditForm(
             change
           , workflowService
           , cr => workflowCallBack(workflowService.needExternalValidation(), action)(cr)
-          , () => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure
+          , () => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure()
           , parentFormTracker = Some(formTracker)
         )
 
         if((!changeMsgEnabled) && (!workflowService.needExternalValidation())) {
-          popup.onSubmit
+          popup.onSubmit()
         } else {
-          SetHtml("confirmUpdateActionDialog", popup.popupContent) &
+          SetHtml("confirmUpdateActionDialog", popup.popupContent()) &
           JsRaw("""createPopup("confirmUpdateActionDialog")""")
         }
     }
@@ -642,7 +642,7 @@ class RuleEditForm(
          scope.$apply(function(){
            scope.filterGlobal(scope.searchStr);
          });
-        """.stripMargin) &  onSuccess
+        """.stripMargin) &  onSuccess()
         case Right(changeRequestId) => // oh, we have a change request, go to it
           linkUtil.redirectToChangeRequestLink(changeRequestId)
       }

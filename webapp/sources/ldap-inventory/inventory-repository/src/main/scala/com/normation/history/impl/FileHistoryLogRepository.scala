@@ -78,11 +78,11 @@ class FileHistoryLogRepository[ID:ClassTag,T](
 
    //when the the class is instanciated, try to create the directory
   //we don't want to catch exception here
-  root()
+  root
 
 
   //we don't want to catch exception here
-  private def root() : IOResult[File] = {
+  private def root: IOResult[File] = {
     for {
       dir       <- UIO(new File(rootDir))
       isValid   <- ZIO.when(dir.exists && !dir.isDirectory) { InventoryError.System(s"'${dir.getAbsolutePath}' exists and is not a directory").fail }
@@ -131,7 +131,7 @@ class FileHistoryLogRepository[ID:ClassTag,T](
    */
   def getIds : IOResult[Seq[ID]] = {
     for {
-      r   <- root()
+      r   <- root
       res <- Task.effect(r.listFiles.collect { case(f) if(f.isDirectory) => converter.filenameToId(f.getName) }).mapError(e =>
                 InventoryError.System(s"Error when trying to get file names")
               )

@@ -227,7 +227,7 @@ extends Loggable {
   def listParameters(req : Req) = {
     implicit val action = "listParameters"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    readParameter.getAllGlobalParameters.toBox match {
+    readParameter.getAllGlobalParameters().toBox match {
       case Full(parameters) =>
         toJsonResponse(None, ( "parameters" -> JArray(parameters.map(serialize(_,None)).toList)))
       case eb: EmptyBox =>

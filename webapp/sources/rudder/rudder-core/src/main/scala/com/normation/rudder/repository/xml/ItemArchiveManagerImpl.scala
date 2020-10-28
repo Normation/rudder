@@ -134,7 +134,7 @@ class ItemArchiveManagerImpl(
   private[this] def exportRuleCategories(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String]) = {
     for {
       // Get Map of all categories grouped by parent categories
-      categories  <- roRuleCategoryeRepository.getRootCategory.map(_.childrenMap)
+      categories  <- roRuleCategoryeRepository.getRootCategory().map(_.childrenMap)
       cleanedRoot <- cleanExistingDirectory(gitRuleCategoryArchiver.getRootDirectory)
       _           <- ZIO.foreach_(categories) {
                        case (parentCategories, cats) =>

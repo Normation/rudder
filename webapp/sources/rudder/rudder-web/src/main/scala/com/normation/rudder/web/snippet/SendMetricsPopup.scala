@@ -29,7 +29,7 @@ class SendMetricsPopup extends DispatchSnippet with Loggable {
 
   def display() = {
 
-    configService.send_server_metrics.toBox match {
+    configService.send_server_metrics().toBox match {
       case Full(Some(a)) =>
         Noop
       case Full(None) =>

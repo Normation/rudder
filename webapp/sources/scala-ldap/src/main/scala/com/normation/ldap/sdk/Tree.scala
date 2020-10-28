@@ -31,7 +31,7 @@ import com.unboundid.ldap.sdk.RDN
  */
 trait Tree[A] {
 
-  def root() : A
+  def root : A
 
   /*
    * Children of the root.
@@ -54,7 +54,7 @@ trait Tree[A] {
   def map[B](f:A => B) : Tree[B] =
     Tree(f(root), children.map(e => (e._1, e._2.map(f))) )
 
-  def toSeq() : Seq[A] = Seq(root) ++ children.flatMap(e => e._2.toSeq)
+  def toSeq: Seq[A] = Seq(root) ++ children.flatMap(e => e._2.toSeq)
 }
 
 object Tree {

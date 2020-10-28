@@ -412,7 +412,7 @@ class NodeApiService2 (
   def listAcceptedNodes (req : Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "listAcceptedNodes"
-      nodeInfoService.getAll match {
+      nodeInfoService.getAll() match {
         case Full(nodes) =>
           val acceptedNodes = nodes.values.map(serializeNodeInfo(_,"accepted"))
           toJsonResponse(None, ( "nodes" -> JArray(acceptedNodes.toList)))

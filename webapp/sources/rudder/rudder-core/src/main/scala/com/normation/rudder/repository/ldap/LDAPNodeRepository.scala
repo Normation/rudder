@@ -126,8 +126,8 @@ class WoLDAPNodeRepository(
                          else {
                            import com.normation.inventory.domain.AgentInfoSerialisation._
                            val e = LDAPEntry(dn)
-                           e += (A_AGENTS_NAME, newInfo._1.map(_.toJsonString):_*)
-                           e += (A_KEY_STATUS, newInfo._2.value)
+          e.addValues(A_AGENTS_NAME, newInfo._1.map(_.toJsonString):_*)
+          e.addValues(A_KEY_STATUS, newInfo._2.value)
 
                            con.save(e).chainError(s"Error when saving node entry in repository: ${e}")
                          }

@@ -219,7 +219,7 @@ class RemoveNodeServiceImpl(
                         policyServerManagement.deleteRelaySystemObjects(nodeId) ?~! s"Error when deleting system objects (groups, directives, rules) related to relay server '${nodeId.value}'"
                       } else Full(())
 
-            _ = nodeInfoServiceCache.clearCache
+            _ = nodeInfoServiceCache.clearCache()
 
             // run post-deletion hooks
             postHooksTime =  System.currentTimeMillis

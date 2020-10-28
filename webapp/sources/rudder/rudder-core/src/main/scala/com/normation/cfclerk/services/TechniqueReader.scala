@@ -85,7 +85,7 @@ trait TechniqueReader {
    * have any notion of version, other using getModifiedTechniques
    * for updating the available "next" state.
    */
-  def readTechniques(): TechniquesInfo
+  def readTechniques: TechniquesInfo
 
   /**
    * Read the content of the metadata file of a technique, if the technique
