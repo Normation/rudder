@@ -464,27 +464,27 @@ td.listclose:after {
   width: 100%;
   text-align: left;
 }
-
 .dtrg-group td::before {
   content : "Run start date: ";
 }
-
 table.dataTable tr.dtrg-group td {
   background-color : #eeeeee;
   font-weight: bold;
   color: #555;
   border-top: 1px #bbb solid;
 }
-
 td.greyBackground, th.greyBackground {
   background-color : #eeeeee;
 }
-
-
 #first_line_header {
   margin-bottom: 5px;
 }
-
 #first_line_header .dataTables_filter {
   margin-right: 15px;
+}
+.dataTable td a.text-danger{
+  color: #a94442;
+}
+.dataTable td a.text-danger:hover{
+  color: #881c1a;
 }

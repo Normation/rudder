@@ -1,68 +1,99 @@
 <lift:surround with="common-layout" at="content">
 
 <head>
-  <title>Rudder - New Nodes Management</title>
+  <title>Rudder - Pending nodes</title>
   <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-node.css" media="screen">
+  <style>
+      .rudder-template > .one-col{
+        flex: 1;
+      }
+      .template-main{
+        flex-basis : initial !important;
+        flex: auto !important;
+      }
+    </style>
 </head>
-
-<div class="portlet">
-  <div class="portlet-header page-title">Pending nodes</div>
-  <div class="page-title-description">
-    Accept or refuse nodes in your infrastructure that have declared themselves to Rudder by sending an inventory report. To add new nodes, install the rudder-agent package on a machine, and follow the instructions provided.
-  </div>
-
-  <div class="portlet-content">
-    <div id="new_servers_tab">
-      <ul class="rudder-ui-tabs">
-        <li><a href="#review_new_server">Review new nodes</a></li>
-        <li><a href="#history">History</a></li>
-      </ul>
-
-      <div id="review_new_server">
-        <div class="callout-fade callout-info">
-          <div class="marker">
-            <span class="glyphicon glyphicon-info-sign"></span>
-          </div>
-          <p>Click on a node name to view detailed inventory information.</p>
-
-          <p>Click on <i class="glyphicon glyphicon-search"></i>to list Rules that would be applied to this node if you accept it.</p>
-
+  <div class="rudder-template">
+    <div class="one-col">
+      <div class="main-header">
+        <div class="header-title">
+          <h1>
+            <span>Pending nodes</span>
+          </h1>
         </div>
-        <lift:Msgs>[error]</lift:Msgs>
-        <div  data-lift="lazy-load?template=lazy-load-spinner">
-          <div data-lift="node.AcceptNode.list">
-            <pending-servers></pending-servers>
-            <div id="acceptNodeGrid_paginate_area" class="nodisplay"></div>
-            <lift:authz role="node_write">
-                <div class="action-btns">
-                  <pending-refuse></pending-refuse>
-                  <pending-accept></pending-accept>
+        <div class="header-description">
+          <p>
+            Accept or refuse nodes in your infrastructure that have declared themselves to Rudder by sending an inventory report.
+            To add new nodes, install the rudder-agent package on a machine, and follow the instructions provided.
+          </p>
+        </div>
+      </div>
+      <div id="new_servers_tab">
+        <div class="main-navbar">
+          <ul class="ui-tabs-nav nav nav-tabs">
+            <li class="ui-tabs-tab" role="presentation">
+              <a href="#review_new_server">
+                Review new nodes
+              </a>
+            </li>
+            <li class="ui-tabs-tab" role="presentation">
+              <a href="#history">
+                History
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div class="one-col-main">
+          <div class="template-main">
+            <div class="main-container">
+              <div class="main-details">
+                <div id="review_new_server">
+                  <div class="callout-fade callout-info">
+                    <div class="marker">
+                      <span class="glyphicon glyphicon-info-sign"></span>
+                    </div>
+                    <p>Click on a node name to view detailed inventory information.</p>
+                    <p>Click on <i class="glyphicon glyphicon-search"></i>to list Rules that would be applied to this node if you accept it.</p>
+                  </div>
+                  <lift:Msgs>[error]</lift:Msgs>
+                  <div  data-lift="lazy-load?template=lazy-load-spinner">
+                    <div data-lift="node.AcceptNode.list">
+                      <pending-servers></pending-servers>
+                      <div id="acceptNodeGrid_paginate_area" class="nodisplay"></div>
+                      <lift:authz role="node_write">
+                        <div class="action-btns">
+                          <pending-refuse></pending-refuse>
+                          <pending-accept></pending-accept>
+                        </div>
+                      </lift:authz>
+                      <pending-errors></pending-errors>
+                    </div>
+                  </div>
                 </div>
-            </lift:authz>
-            <pending-errors></pending-errors>
+
+                <div id="history">
+                  <div data-lift="lazy-load?template=lazy-load-spinner">
+                    <div class="callout-fade callout-info">
+                      <div class="marker">
+                        <span class="glyphicon glyphicon-info-sign"></span>
+                      </div>
+                      <p>View history of Nodes that have been accepted or refused.</p>
+                      <p>Click on a node name to view detailed inventory information (as it was at review time).</p>
+                    </div>
+                    <div data-lift="node.PendingHistoryGrid.displayAndInit">
+                      <pending-history></pending-history>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="manageNewNode"></div>
+                <div id="expectedPolicyZone"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      <div id="history"><div data-lift="lazy-load?template=lazy-load-spinner">
-        <div class="callout-fade callout-info">
-          <div class="marker">
-            <span class="glyphicon glyphicon-info-sign"></span>
-          </div>
-          <p>View history of Nodes that have been accepted or refused.</p>
-          <p>Click on a node name to view detailed inventory information (as it was at review time).</p>
-        </div>
-        <div data-lift="node.PendingHistoryGrid.displayAndInit">
-          <pending-history></pending-history>
-        </div>
-      </div></div>
     </div>
-    <div id="manageNewNode"></div>
-    <div id="expectedPolicyZone"></div>
-
   </div>
-</div>
-</div>
-
 </lift:surround>
 

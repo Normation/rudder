@@ -18,7 +18,7 @@
                 <span class="ion ion-checkmark-round check-icon"></span>
               </label>
               <label for="typeQuery" class="form-control">
-                Include Rudder root server components <span class="tooltipable glyphicon glyphicon-question-sign" title="Node(s) with Rudder web application or Rudder database"></span>
+                Include Rudder root server components <span class="icon-info tooltipable glyphicon glyphicon-question-sign" title="Node(s) with Rudder web application or Rudder database"></span>
               </label>
             </div>
           </li>
@@ -53,51 +53,56 @@
   }
   </style>
   <div id="node_tabs" class="tabs">
-    <div id="node_name"></div>
+    <div class="main-navbar">
+      <ul id="NodeDetailsTabMenu" class="ui-tabs-nav nav nav-tabs">
+        <li class="ui-tabs-tab"><a href="#node_summary">Summary</a></li>
+        <li class="ui-tabs-tab"><a href="#node_reports">Compliance reports</a></li>
+        <li class="ui-tabs-tab"><a href="#node_inventory">Inventory</a></li>
+        <li class="ui-tabs-tab"><a href="#node_properties">Properties</a></li>
+        <li class="ui-tabs-tab"><a href="#system_status">System status</a></li>
+        <li class="ui-tabs-tab"><a href="#node_logs">Technical logs</a></li>
+        <li class="ui-tabs-tab"><a href="#node_parameters">Settings</a></li>
+      </ul>
+    </div>
+    <div class="one-col-main">
+      <div class="template-main">
+        <div class="main-container">
+          <div class="main-details">
 
-    <ul id="NodeDetailsTabMenu" class="rudder-ui-tabs">
-      <li><a href="#node_summary">Summary</a></li>
-      <li><a href="#node_reports">Compliance reports</a></li>
-      <li><a href="#node_inventory">Inventory</a></li>
-      <li><a href="#node_properties">Properties</a></li>
-      <li><a href="#system_status">System status</a></li>
-      <li><a href="#node_logs">Technical logs</a></li>
-      <li><a href="#node_parameters">Settings</a></li>
-    </ul>
+            <div id="node_summary">
+              <div id="nodeDetails"></div>
+              <div id="nodeGroups">
+                <h3>Groups containing this node</h3>
+                <div id="node_groupTree"></div>
+              </div>
+            </div>
 
-  <div id="node_summary">
-    <div id="nodeDetails"></div>
-    <div id="nodeGroups">
-      <h3>Groups containing this node</h3>
-      <div id="node_groupTree"></div>
+            <div id="node_inventory">
+              <div id="nodeInventory"></div>
+            </div>
+
+            <div id="node_reports">
+              <div id="reportsDetails"></div>
+            </div>
+
+            <div id="node_logs">
+              <div id="logsDetails"></div>
+            </div>
+
+            <div id="node_properties">
+              <div id="nodeProperties"></div>
+            </div>
+
+            <div id="node_parameters"></div>
+
+            <div id="system_status">
+              <div id="systemStatus"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-
-  <div id="node_inventory">
-   <div id="nodeInventory"></div>
-  </div>
-
-
-  <div id="node_reports">
-   <div id="reportsDetails"></div>
-  </div>
-
-   <div id="node_logs">
-     <div id="logsDetails"></div>
-   </div>
-
-  <div id="node_properties">
-    <div id="nodeProperties"></div>
-  </div>
-
-  <div id="node_parameters"></div>
-
-    <div id="system_status">
-      <div id="systemStatus"></div>
-    </div>
-
-
-  </div>
-</detail-server>
-
+  </detail-server>
 </xml:group>

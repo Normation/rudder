@@ -1,16 +1,35 @@
 <lift:surround with="common-layout" at="content">
   <head>
     <title>Rudder - Nodes</title>
-
+    <style>
+      .rudder-template > .one-col{
+        flex: 1;
+      }
+      .template-main{
+        flex-basis : initial !important;
+        flex: auto !important;
+      }
+    </style>
   </head>
-    <div class="portlet col-lg-12">
-      <div class="portlet-content">
-        <div class="inner-portlet">
-          <div class="page-title">Nodes</div>
-          <div data-lift="node.Nodes.table"></div>
+  <div class="rudder-template">
+    <div class="one-col">
+      <div class="main-header">
+        <div class="header-title">
+          <h1>
+            <span>Nodes</span>
+          </h1>
         </div>
       </div>
-      <br/>
+      <div class="one-col-main">
+        <div class="template-main">
+          <div class="main-container">
+            <div class="main-details">
+              <div data-lift="node.Nodes.table"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-<div data-lift="node.Nodes.loadData"></div>
+  </div>
+  <div data-lift="node.Nodes.loadData"></div>
 </lift:surround>
