@@ -7,6 +7,8 @@ import better.files.File.root
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.rudder.domain.logger.{HealthcheckLoggerPure => logger}
+import com.normation.rudder.hooks.Cmd
+import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning

@@ -108,8 +108,6 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.services.nodes.MergeNodeProperties
-import net.liftweb.json.JObject
-import net.liftweb.json.JsonAST.JField
 import com.normation.rudder.web.components.DateFormaterService
 import com.typesafe.config.ConfigRenderOptions
 import net.liftweb.http.JsonResponse
@@ -491,7 +489,7 @@ class NodeApiService13 (
       ~  ("kernel" -> nodeInfo.osDetails.kernelVersion.value)
       ~  ("agentVersion" -> nodeInfo.agentsName.headOption.flatMap(_.version.map(_.value)))
       ~  ("id" -> nodeInfo.id.value)
-      ~  ("ram" -> nodeInfo.ram.map(_.toStringMo()))
+      ~  ("ram" -> nodeInfo.ram.map(_.toStringMo))
       ~  ("machineType" -> nodeInfo.machine.map(_.machineType.toString))
       ~  ("os" -> nodeInfo.osDetails.fullName)
       ~  ("state" -> nodeInfo.state.name)
