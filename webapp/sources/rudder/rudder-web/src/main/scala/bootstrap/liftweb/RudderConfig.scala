@@ -681,7 +681,7 @@ object RudderConfig extends Loggable {
   val ditQueryData: DitQueryData = ditQueryDataImpl
   val reportsRepository : ReportsRepository = reportsRepositoryImpl
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
-  lazy val srvGrid = new SrvGrid(roAgentRunsRepository, asyncComplianceService, configService, roLdapRuleRepository)
+  lazy val srvGrid = new SrvGrid(roAgentRunsRepository, asyncComplianceService, configService, roLdapRuleRepository, nodeInfoService)
   val findExpectedReportRepository : FindExpectedReportRepository = findExpectedRepo
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
@@ -941,6 +941,9 @@ object RudderConfig extends Loggable {
     , roAgentRunsRepository
   )
 
+  val nodeApiService13 = new NodeApiService13 (
+    nodeInfoService, cachedAgentRunRepository, readOnlySoftwareDAO, restExtractorService, () => configService.rudder_global_policy_mode().toBox
+  )
   val parameterApiService2 =
     new ParameterApiService2 (
         roLDAPParameterRepository
@@ -1152,7 +1155,7 @@ object RudderConfig extends Loggable {
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService5, groupApiService6, groupInheritedProperties)
       , new DirectiveApi(roDirectiveRepository, restExtractorService, directiveApiService2, stringUuidGenerator)
       , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, restExtractorService, techniqueSerializer, stringUuidGenerator, gitRepo, resourceFileService)
-      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeInheritedProperties)
+      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeInheritedProperties, nodeApiService13)
       , new ParameterApi(restExtractorService, parameterApiService2)
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
       , new TechniqueApi(restExtractorService, techniqueApiService6)

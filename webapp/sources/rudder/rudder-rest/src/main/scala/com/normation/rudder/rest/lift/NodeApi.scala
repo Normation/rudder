@@ -98,11 +98,26 @@ import com.normation.zio._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
+import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
+import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.services.nodes.MergeNodeProperties
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonAST.JField
+import com.normation.rudder.web.components.DateFormaterService
+import com.typesafe.config.ConfigRenderOptions
+import net.liftweb.http.JsonResponse
+import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.parse
+import zio.ZIO
 import zio.duration._
 
 /*
@@ -119,6 +134,7 @@ class NodeApi (
   , serviceV6           : NodeApiService6
   , apiV8service        : NodeApiService8
   , inheritedProperties : NodeApiInheritedProperties
+  , apiV13              : NodeApiService13
 ) extends LiftApiModuleProvider[API] {
 
   def schemas = API
@@ -137,6 +153,9 @@ class NodeApi (
       case API.ListAcceptedNodes        => ListAcceptedNodes
       case API.ApplyPolicy              => ApplyPolicy
       case API.GetNodesStatus           => GetNodesStatus
+      case API.NodeDetailsTable         => NodeDetailsTable
+      case API.NodeDetailsSoftware      => NodeDetailsSoftware
+      case API.NodeDetailsProperty      => NodeDetailsProperty
     })
   }
 
@@ -370,6 +389,50 @@ class NodeApi (
       }
     }
   }
+
+  object NodeDetailsTable extends LiftApiModule0 {
+    val schema = API.NodeDetailsTable
+    val restExtractor = restExtractorService
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        nodes <- apiV13.listNodes(req)
+      } yield {
+        JsonResponse(nodes)
+      }) match {
+        case Full(res) => res
+        case eb: EmptyBox =>  JsonResponse(JObject(JField("error", (eb ?~! "An error occurred while getting node details").messageChain)))
+      }
+    }
+  }
+
+  object NodeDetailsSoftware extends LiftApiModule {
+    val schema = API.NodeDetailsSoftware
+    val restExtractor = restExtractorService
+    def process(version: ApiVersion, path: ApiPath, software: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        response <- apiV13.sofware(req, software)
+      } yield {
+        response
+      }) match {
+        case Full(res) => res
+        case eb: EmptyBox =>  JsonResponse(JObject(JField("error", (eb ?~! s"An error occurred while fetching verions of '${software}' software for nodes").messageChain)))
+      }
+    }
+  }
+  object NodeDetailsProperty extends LiftApiModule {
+    val schema = API.NodeDetailsProperty
+    val restExtractor = restExtractorService
+    def process(version: ApiVersion, path: ApiPath, property: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        response <- apiV13.property(req, property)
+      } yield {
+        response
+      }) match {
+        case Full(res) => res
+        case eb: EmptyBox =>  JsonResponse(JObject(JField("error", (eb ?~! s"An error occurred while getting value of property '${property}' for nodes").messageChain)))
+      }
+    }
+  }
 }
 
 class NodeApiInheritedProperties(
@@ -398,6 +461,120 @@ class NodeApiInheritedProperties(
     }
   }
 }
+
+
+class NodeApiService13 (
+    nodeInfoService: NodeInfoService
+  , reportsExecutionRepository: RoReportsExecutionRepository
+  , readOnlySoftwareDAO: ReadOnlySoftwareDAO
+  , restExtractor: RestExtractorService
+  , getGlobalMode : () => Box[GlobalPolicyMode]
+) extends Loggable {
+
+  def serialize(agentRunWithNodeConfig: Option[AgentRunWithNodeConfig], globalPolicyMode: GlobalPolicyMode, nodeInfo : NodeInfo, properties : List[String], softs: List[Software]) = {
+    import net.liftweb.json.JsonDSL._
+
+    val (policyMode,explanation) =
+      (globalPolicyMode.overridable,nodeInfo.policyMode) match {
+        case (Always,Some(mode)) =>
+          (mode,"<p>This mode is an override applied to this node. You can change it in the <i><b>node's settings</b></i>.</p>")
+        case (Always,None) =>
+          val expl = """<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this node in the <i><b>node's settings</b></i>.</p>"""
+          (globalPolicyMode.mode, expl)
+        case (Unoverridable,_) =>
+          (globalPolicyMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
+      }
+    (  ("name" -> nodeInfo.hostname)
+      ~  ("policyServerId" -> nodeInfo.policyServerId.value)
+      ~  ("policyMode" -> policyMode.name)
+      ~  ("explanation" -> explanation)
+      ~  ("kernel" -> nodeInfo.osDetails.kernelVersion.value)
+      ~  ("agentVersion" -> nodeInfo.agentsName.headOption.flatMap(_.version.map(_.value)))
+      ~  ("id" -> nodeInfo.id.value)
+      ~  ("ram" -> nodeInfo.ram.map(_.toStringMo()))
+      ~  ("machineType" -> nodeInfo.machine.map(_.machineType.toString))
+      ~  ("os" -> nodeInfo.osDetails.fullName)
+      ~  ("state" -> nodeInfo.state.name)
+      ~  ("ipAddresses" -> nodeInfo.ips.filter(ip => ip != "127.0.0.1" && ip != "0:0:0:0:0:0:0:1"))
+      ~  ("lastRun" -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
+      ~  ("software" -> JObject(softs.toList.map(s => JField(s.name.getOrElse(""), JString(s.version.map(_.value).getOrElse("N/A"))))))
+      ~  ("property" -> JObject(nodeInfo.properties.filter(p => properties.contains(p.name)).map(p => JField(p.name, parse(p.value.render(ConfigRenderOptions.concise()) ) )) ))
+      )
+  }
+
+  def listNodes(req: Req) = {
+    import com.normation.box._
+
+    val n1 = System.currentTimeMillis
+
+    for {
+
+      optNodeIds <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "nodeIds",( values => Full(values.map(NodeId(_))))))
+
+      nodes <- optNodeIds match {
+        case None => nodeInfoService.getAll()
+        case Some(nodeIds) => com.normation.utils.Control.sequence(nodeIds)( nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
+      }
+      n2 = System.currentTimeMillis
+      _ = TimingDebugLoggerPure.trace(s"Getting node infos: ${n2 - n1}ms")
+      runs <- reportsExecutionRepository.getNodesLastRun(nodes.keySet)
+      n3 = System.currentTimeMillis
+      _ = TimingDebugLoggerPure.trace(s"Getting run infos: ${n3 - n2}ms")
+      globalMode <- getGlobalMode()
+      n4 = System.currentTimeMillis
+      _ = TimingDebugLoggerPure.trace(s"Getting global mode: ${n4 - n3}ms")
+      softToLookAfter = req.params.getOrElse("software", Nil)
+      softs <-
+        ZIO.foreach(softToLookAfter) {
+          soft => readOnlySoftwareDAO.getNodesbySofwareName(soft)
+        }.toBox.map(_.flatten.groupMap(_._1)(_._2))
+      n5 = System.currentTimeMillis
+      _ = TimingDebugLoggerPure.trace(s"all data fetched for response: ${n5 - n4}ms")
+    } yield {
+
+      val res = JArray(nodes.values.toList.map(n => serialize(runs.get(n.id).flatten,globalMode,n, req.params.get("properties").getOrElse(Nil), softs.get(n.id).getOrElse(Nil))))
+
+      val n6 = System.currentTimeMillis
+      TimingDebugLoggerPure.trace(s"serialized to json: ${n6 - n5}ms")
+      res
+    }
+  }
+
+  def sofware(req : Req, software : String) = {
+    import com.normation.box._
+
+    for {
+
+      optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
+
+      nodes <- optNodeIds match {
+        case None => nodeInfoService.getAll()
+        case Some(nodeIds) => com.normation.utils.Control.sequence(nodeIds)(nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
+      }
+      softs <- readOnlySoftwareDAO.getNodesbySofwareName(software).toBox.map(_.toMap)
+    } yield {
+      JsonResponse(JObject(nodes.keySet.toList.flatMap(id => softs.get(id).flatMap(_.version.map(v => JField(id.value, JString(v.value)))))))
+
+    }
+  }
+
+  def property(req : Req, property : String) = {
+
+      for {
+
+        optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
+
+        nodes <- optNodeIds match {
+          case None => nodeInfoService.getAll()
+          case Some(nodeIds) => com.normation.utils.Control.sequence(nodeIds)(nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
+        }
+      } yield {
+        JsonResponse(JObject(nodes.flatMap { case (id, nodeInfo) => nodeInfo.properties.find(_.name == property).map(p => JField(id.value, JString(p.value.render()))) }.toList))
+
+      }
+  }
+}
+
 
 class NodeApiService2 (
     newNodeManager     : NewNodeManager

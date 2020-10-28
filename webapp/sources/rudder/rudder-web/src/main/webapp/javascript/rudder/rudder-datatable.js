@@ -39,9 +39,11 @@ var anOpen = [];
 var ruleCompliances = {};
 var recentChanges = {};
 var recentChangesCount = {};
+var inventories = {};
 var recentGraphs = {};
 var nodeCompliances = {};
 var nodeSystemCompliances = {};
+var nodeIds = undefined;
 /* Create an array with the values of all the checkboxes in a column */
 $.fn.dataTable.ext.order['dom-checkbox'] = function  ( settings, col )
 {
@@ -1072,28 +1074,79 @@ function createRuleComponentValueTable (contextPath) {
  *   , "callBack" : Callback on Node, if missing, replaced by a link to nodeId [ Function ]
  *   }
  */
-function createNodeTable(gridId, data, contextPath, refresh) {
-  function callbackElement(oData, displayCompliance) {
-    var elem = $("<a></a>");
-    if("callback" in oData) {
-        elem.click(function(e) {
-          oData.callback(displayCompliance);
-          e.stopPropagation();
-        });
-        elem.attr("href","javascript://");
-    } else {
-        elem.attr("href",contextPath+'/secure/nodeManager/node/'+oData.id+'?displayCompliance='+displayCompliance);
+
+var allColumns = {
+    "Id" :
+    { "data": "id"
+    , "title": "Id"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
     }
-    return elem;
-  }
-  var columns = [ {
-      //only for search, not visible - see "columnDefs" def in parameter
-      "mDataProp": "state"
-  } , {
-      "sWidth": "25%"
-    , "mDataProp": "name"
-    , "sTitle": "Node name"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+  , "Server" :
+    { "data": "policyServerId"
+    , "title": "Server"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    }
+  , "Ram" :
+    { "data": "ram"
+    , "title": "Ram"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    }
+  , "Agent version" :
+    { "data": "agentVersion"
+    , "title": "Agent version"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+
+    }
+  , "Software" :
+    function(value) {
+      return { "data": "software."+value
+             , "title": value + " version"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+             }
+    }
+  , "Property" :
+    function(value) {
+      return { "data": "property."+value
+             , "title": "Property '"+value+"'"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+             }
+    }
+  , "Policy mode" :
+    { "data": "policyMode"
+    , "title": "Policy mode"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    , "createdCell" :
+      function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).empty();
+        $(nTd).prepend(createTextAgentPolicyMode(true,oData.policyMode,oData.explanation));
+      }
+    }
+  , "IP addresses" :
+    { "data": "ipAddresses"
+    , "title": "IP addresses"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    , "createdCell" :
+      function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).empty();
+        $(nTd).prepend("<ul><li>"+oData.ipAddresses.sort().join("</li><li>") + "</li></ul>");
+      }
+    }
+  , "Machine type" :
+    { "data": "machineType"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    , "title": "Machine type"
+    }
+  , "Kernel" :
+    { "data": "kernel"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    , "title": "Kernel"
+    }
+  , "Hostname" :
+    { "data": "name"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    , "title": "Hostname"
+
+    , "createdCell" : function (nTd, sData, oData, iRow, iCol) {
         var link = callbackElement(oData, false)
         var state = "";
         if(oData.state != "enabled") {
@@ -1107,61 +1160,91 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         $(nTd).empty();
         $(nTd).append(link);
       }
-  } , {
-      "sWidth": "10%"
-    , "mDataProp": "machineType"
-    , "sTitle": "Machine type"
-  } , {
-      "sWidth": "22%"
-    , "mDataProp": "os"
-    , "sTitle": "Operating System"
-  } , {
-      "mDataProp": "agentPolicyMode"
-    , "sWidth": "8%"
-    , "sTitle": "Policy Mode"
-    , "sClass" : "tw-bs"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).empty();
-        $(nTd).prepend(createTextAgentPolicyMode(true,oData.agentPolicyMode,oData.explanation));
-      }
-  } , {
-      "mDataProp": "name"
-    , "sWidth": "25%"
-    , "sTitle": "Compliance"
+    }
+  , "OS" :
+    { "data": "os"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    , "title": "OS"
+    }
+  , "Compliance" :
+    { "data": "name"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    , "title": "Compliance"
     , "sSortDataType": "node-compliance"
-    , "sType" : "numeric"
-    , "sClass" : "tw-bs"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+    , "type" : "numeric"
+    , "class" : "tw-bs"
+    , "createdCell" : function (nTd, sData, oData, iRow, iCol) {
         var link = callbackElement(oData, true)
         var complianceBar = '<div id="compliance-bar-'+oData.id+'"><center><img class="svg-loader" src="'+resourcesPath+'/images/ajax-loader.svg" /></center></div>';
         link.append(complianceBar)
         $(nTd).empty();
         $(nTd).prepend(link);
       }
-  } , {
-      "sWidth": "10%"
-    , "mDataProp": "lastReport"
-    , "sTitle": "Last seen"
-  } ];
-
-  var params = {
-      "bFilter" : true
-    , "bPaginate" : true
-    , "bLengthChange": true
-    , "sPaginationType": "full_numbers"
-    , "oLanguage": {
-        "sSearch": ""
     }
-    , "columnDefs": [{
-          "targets": [ 0 ]
-        , "visible": false
-        , "searchable": true
+  , "Last run" :
+    { "data": "lastRun"
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    , "title": "Last run"
+    }
+}
 
-      } , {
-        "type"    : "natural-ci"
-      , "targets" : 3
-      }]
-    , "fnDrawCallback": function( oSettings ) {
+
+function callbackElement(oData, displayCompliance) {
+  var elem = $("<a></a>");
+  if("callback" in oData) {
+      elem.click(function(e) {
+        oData.callback(displayCompliance);
+        e.stopPropagation();
+      });
+      elem.attr("href","javascript://");
+  } else {
+      elem.attr("href",contextPath+'/secure/nodeManager/node/'+oData.id+'?displayCompliance='+displayCompliance);
+  }
+  return elem;
+}
+
+
+var dynColumns = []
+var columns = [];
+
+function reloadTable(gridId) {
+  var table = $('#'+gridId).DataTable();
+  table.ajax.reload();
+}
+
+function createNodeTable(gridId, nope, contextPath, refresh) {
+
+
+  columns = [ allColumns["Hostname"],  allColumns["OS"],  allColumns["Compliance"],  allColumns["Last run"]]
+
+  dynColumns = [ "Id", "Server", "Ram", "Property", "Software", "Agent version", "Policy mode", "IP addresses", "Machine type", "Kernel" ]
+  var params = {
+      "filter" : true
+    , "paging" : true
+    , "lengthChange": true
+    , "fixedHeader": true
+    , "destroy" : true
+    , "pagingType": "full_numbers"
+    , "language": {
+        "search": ""
+    }
+    , columnDefs : {
+       "target" : 0
+       , "visible" : true
+    }
+    , "ajax" : {
+    "url" : contextPath + "/secure/api/nodes/details"
+    , "type" : "POST"
+    , "contentType": "application/json"
+    , "data" : function(d) {
+        var data = d
+
+        if (nodeIds !== undefined) { data = $.extend({}, d, {"nodeIds": nodeIds} ) }
+        return JSON.stringify(data)
+      }
+    , "dataSrc" : ""
+    }
+    , "drawCallback": function( oSettings ) {
 
         $('[data-toggle="tooltip"]').bsTooltip();
         var rows = this._('tr', {"page":"current"});
@@ -1180,11 +1263,101 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         })
         $('.rudder-label').bsTooltip();
       }
-    , "aaSorting": [[ 1, "asc" ]]
-    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+    , "dom": ' <"dataTables_wrapper_top newFilter "<"#first_line_header" f <"dataTables_refresh"> <"#edit-columns">> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>'
   };
 
-  createTable(gridId,data, columns, params, contextPath, refresh, "nodes");
+  createTable(gridId, [] , columns, params, contextPath, refresh, "nodes");
+  $("#first_line_header input").addClass("form-control")
+
+
+  function addColumn(columnName, value) {
+    var table = $('#'+gridId).DataTable();
+    var data2 = table.rows().data();
+    var init = table.init();
+    table.destroy();
+    $('#'+gridId).empty();
+    if (columnName =="Property" || columnName =="Software" ) {
+      init.aoColumns.push(allColumns[columnName](value))
+      params["ajax"] = {
+          "url" : contextPath + "/secure/api/nodes/details/"+columnName.toLowerCase()+"/"+value
+        , "type" : "POST"
+        , "contentType": "application/json"
+        , "data" : function(d) {
+                     var data = d
+                     if (nodeIds !== undefined ) { data = $.extend({}, d, {"nodeIds": nodeIds} ) }
+                       return JSON.stringify(data)
+                   }
+        , "dataSrc" : function(d) {
+                        for ( index in data2.rows().data().toArray() ) {
+                          var node = data2[index]
+                          if (node[columnName.toLowerCase()] === undefined) {
+                            node[columnName.toLowerCase()] = {}
+                          }
+                          node[columnName.toLowerCase()][value] = d[node.id]
+                        }
+                        return data2
+                      }
+      }
+
+      createTable(gridId,[], init.aoColumns, params, contextPath, refresh, "nodes");
+    } else {
+      init.aoColumns.push(allColumns[columnName])
+      dynColumns = dynColumns.filter(function(col) { return col != columnName})
+      delete params["ajax"];
+      createTable(gridId,data2, init.aoColumns, params, contextPath, refresh, "nodes");
+    }
+    $("#first_line_header input").addClass("form-control")
+    columnSelect(true);
+  }
+
+  function removeColumn(columnIndex) {
+    var table = $('#'+gridId).DataTable();
+    var data2 = table.rows().data();
+    var init = table.init();
+    table.destroy();
+    $('#'+gridId).empty();
+    dynColumns.push(init.aoColumns[columnIndex].title)
+    init.aoColumns.splice(columnIndex, 1)
+    delete params["ajax"];
+    createTable(gridId,data2, init.aoColumns, params, contextPath, refresh, "nodes");
+    $("#first_line_header input").addClass("form-control")
+    columnSelect(true);
+  }
+
+  function columnSelect(editOpen) {
+    var table = $('#'+gridId).DataTable();
+    var init = table.init();
+    $("#edit-columns").html($("<button class='btn btn-blue' > <i class='fa fa-pencil'></i> Edit columns</button>").click(function(){$("#select-columns").toggle()}))
+    var select = "<div class='col-xs-12 row form-group'> <div class='col-xs-2' style='margin-left : -15px'  > <select placeholder='Select column to add' class='  form-control'>"
+    for (var key in dynColumns) {
+      value = dynColumns[key]
+      select += "<option value='"+value+"'>"+value+"</option>"
+    }
+    select += "</select></div><div class='col-xs-2' style='margin-left : -15px'><input class='form-control' type='text'></div> <button class='btn btn-success'  ><i class='fa fa-plus-circle'> Add column</button></div>"
+    editOpen ? $("#select-columns").show() : $("#select-columns").hide()
+    $("#select-columns").html(select)
+    var selectedColumns =""
+    for (var key in init.aoColumns) {
+      var elem = $("<span class='rudder-label label-state' style='cursor: normal' >" + init.aoColumns[key].title + "  </span>")
+      elem.append($("<i class='fa fa-times' style='cursor: pointer'> </i>").hover(function() { $(this).parent().toggleClass("label-state label-error")}).click(function(value) { return function() {removeColumn(value)}}(key)))
+      $("#select-columns").append(elem)
+    }
+    if (dynColumns[0] != "Property" && dynColumns[0] !="Software" ) {
+      $("#select-columns input").parent().hide()
+    }
+    $("#select-columns select").change(function(e) {
+      if (this.value =="Property" || this.value =="Software" ) {
+        $("#select-columns input").parent().show()
+        $("#select-columns input").attr('placeholder', this.value + " name" )
+      } else {
+        $("#select-columns input").parent().hide()
+      }
+    })
+    $("#select-columns div button").click(function(e) {
+      addColumn($("#select-columns select").val(), $("#select-columns input").val())
+     })
+  }
+   columnSelect(false)
 }
 
 
@@ -1890,6 +2063,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
   }
 
   var params = $.extend({},defaultParams,customParams);
+
   var table = $('#'+gridId).DataTable( params );
 
   $('#'+gridId+' thead tr').addClass("head");

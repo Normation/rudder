@@ -59,6 +59,7 @@ import com.normation.appconfig.ReadConfigService
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.box._
 import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.services.nodes.NodeInfoService
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -84,6 +85,7 @@ class SrvGrid(
   , asyncComplianceService: AsyncComplianceService
   , configService         : ReadConfigService
   , roRuleRepository      : RoRuleRepository
+  , nodeInfoService       : NodeInfoService
 ) extends Loggable {
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
@@ -94,10 +96,10 @@ class SrvGrid(
    * @param callback : Optionnal callback to use on node, if missing, replaced by a link to that node
    */
   def displayAndInit(
-      nodes    : Seq[NodeInfo]
+      nodes    : Option[Seq[NodeInfo]]
     , tableId  : String
     , callback : Option[(String, Boolean) => JsCmd] = None
-    , refreshNodes : Option[ () => Seq[NodeInfo]] = None
+    , refreshNodes : Option[ () => Option[Seq[NodeInfo]]] = None
    ) : NodeSeq = {
     val script = {
       configService.rudder_global_policy_mode().toBox match {
@@ -119,13 +121,12 @@ class SrvGrid(
    */
   def initJs(
       tableId  : String
-    , nodes    : Seq[NodeInfo]
+    , nodes    : Option[Seq[NodeInfo]]
     , globalPolicyMode : GlobalPolicyMode
     , callback : Option[(String, Boolean) => JsCmd]
-    , refreshNodes : Option[ () => Seq[NodeInfo]]
+    , refreshNodes : Option[ () => Option[Seq[NodeInfo]]]
   ) : JsCmd = {
 
-    val data = getTableData(nodes,callback)
 
     val globalOverride = globalPolicyMode.overridable match {
       case Always => true
@@ -134,7 +135,9 @@ class SrvGrid(
     val objGlobalPolicyMode = JsObj(("override"->globalOverride), ("policyMode"->globalPolicyMode.mode.name))
     val refresh = refreshNodes.map(refreshData(_,callback,tableId).toJsCmd).getOrElse("undefined")
 
-    JsRaw(s"""createNodeTable("${tableId}",${data.json.toJsCmd},"${S.contextPath}",${refresh}, ${objGlobalPolicyMode});""")
+    val nodeIds =  nodes.map(nodes => JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd).getOrElse("undefined")
+    JsRaw(s""" nodeIds = ${nodeIds};createNodeTable("${tableId}",[],"${S.contextPath}",${refresh}, ${objGlobalPolicyMode});
+          |         """.stripMargin)
   }
 
   def getTableData (
@@ -168,24 +171,29 @@ class SrvGrid(
   }
 
   def refreshData (
-      refreshNodes : () => Seq[NodeInfo]
+      refreshNodes : () => Option[Seq[NodeInfo]]
     , callback : Option[(String, Boolean) => JsCmd]
     , tableId: String
-  ) = {
+  ): AnonFunc = {
+
     val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
-      val nodes = refreshNodes()
+      val (nodes, nodeIds) : (Seq[NodeInfo], String) = refreshNodes() match {
+        case None =>(nodeInfoService.getAll().toList.flatMap(_.values).toSeq, "undefined")
+        case Some(nodes) =>(nodes, JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd)
+      }
       val rules = roRuleRepository.getIds().toBox.getOrElse(Set())
       val futureCompliances = asyncComplianceService.complianceByNode(nodes.map(_.id).toSet, rules, tableId)
 
       val systemRules = roRuleRepository.getIds(true).map(_.diff(rules)).toBox.getOrElse(Set())
       val futureSystemCompliances = asyncComplianceService.systemComplianceByNode(nodes.map(_.id).toSet, systemRules, tableId)
 
-      val data = getTableData(nodes,callback)
       JsRaw(s"""
           nodeCompliances = {};
           nodeSystemCompliances = {};
-          refreshTable("${tableId}",${data.json.toJsCmd});
+          nodeIds = ${ nodeIds}
           ${futureCompliances.toJsCmd}
+          reloadTable("${tableId}");
+
           ${futureSystemCompliances.toJsCmd}
       """)
     } )

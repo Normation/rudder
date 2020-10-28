@@ -1607,6 +1607,12 @@ form .tooltip-content p {
 .content-wrapper .rudder-label.label-error:before,.content-wrapper .label-text.label-error:after{
   content: "Error";
 }
+.content-wrapper .rudder-label.label-error:before,.content-wrapper .label-text.label-error:after{
+  content: "Error";
+}
+#select-columns .rudder-label.label-error:before{
+  content: "";
+}
 .content-wrapper .rudder-label.label-error + .tooltip b, .content-wrapper .label-text.label-error:after, .content-wrapper .label-text.label-error  + .tooltip b, .text-Error{
   color: #C00804;
 }

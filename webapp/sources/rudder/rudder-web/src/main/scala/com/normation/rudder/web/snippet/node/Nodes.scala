@@ -41,32 +41,16 @@ import net.liftweb.http._
 import net.liftweb.common._
 import bootstrap.liftweb.RudderConfig
 import scala.xml.NodeSeq
-import net.liftweb.http.js.JsCmds._
-
 class Nodes extends StatefulSnippet with Loggable {
-  private[this] val nodeInfoService = RudderConfig.nodeInfoService
   val srvGrid =  RudderConfig.srvGrid
 
   val dispatch : DispatchIt = {
     case "table" => table _
-    case "loadData" => loadData _
-  }
-
-  private[this] def getNodes() = {
-    nodeInfoService.getAll() match {
-      case Full(infos) => infos.values.toSeq
-      case eb:EmptyBox => val fail = eb?~ s"could not find Nodes "
-          logger.error(fail.msg)
-          Seq()
-    }
-  }
-
-  def loadData(xml:NodeSeq): NodeSeq = {
-    Script(OnLoad(srvGrid.refreshData(() => getNodes(), None, "nodes").applied))
+    case "loadData" => { _ => NodeSeq.Empty }
   }
 
   def table(html:NodeSeq): NodeSeq= {
-    srvGrid.displayAndInit(Seq(), "nodes", None, Some(() => getNodes()))
+    srvGrid.displayAndInit(None, "nodes", None, Some(() => None))
   }
 
 }
