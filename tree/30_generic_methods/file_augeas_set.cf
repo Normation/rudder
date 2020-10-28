@@ -61,13 +61,13 @@
 # @parameter_constraint file "allow_empty_string" : true
 # @parameter_constraint lens "allow_empty_string" : true
 # @class_prefix file_augeas_set
-# @class_parameter lens
+# @class_parameter path
 
 
 bundle agent file_augeas_set(path, value, lens, file)
 {
  vars:       
-     "old_class_prefix" string => canonify("file_augeas_set_${lens}");
+     "old_class_prefix" string => canonify("file_augeas_set_${path}");
      "promisers" slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
      "class_prefix" string => canonify(join("_", "promisers"));
      "args" slist => {"${path}", "${value}", "${lens}","${file}"};
