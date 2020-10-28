@@ -2,12 +2,20 @@
 <lift:surround with="common-layout" at="content">
 
   <head>
-    <title>Rudder - Parameters Management</title>
-    <style type="text/css">
-    .portlet-content{
-      float: left;
-      width: 100%;
-      padding:0 15px 15px 15px;
+    <title>Rudder - Global parameters</title>
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-template.css"/>
+    <style>
+    .template-sidebar.sidebar-left{
+      box-shadow : none !important;
+      flex-basis : initial !important;
+      flex: initial !important;
+    }
+    .template-main{
+      flex-basis : initial !important;
+      flex: auto !important;
+    }
+    .callout-fade.callout-info {
+      margin-top: 10px;
     }
     .btn.space-bottom{
       margin-bottom:15px;
@@ -31,45 +39,60 @@
     </style>
   </head>
 
-  <div class="portlet-content">
-    <div class="inner-portlet">
-      <lift:authz role="directive_read">
-        <div class="page-title">Global Parameters</div>
-        <div class="callout-fade callout-info">
-          <div class="marker">
-            <span class="glyphicon glyphicon-info-sign"></span>
-          </div>
-          <div>
-            <p>Global Parameters are key/value pairs. Once defined, you can use the key in a directive parameter
-              field and it will be replaced by the value for that key during policy generation.</p>
-            <p>
-              The syntax to use a parameter is <b>${rudder.param.&lt;key&gt;}</b>, where &lt;key&gt; is the name you chose for your
-              Global Parameter.
-            </p>
-            <p>
-              Be careful to enter exactly <b>rudder.param</b> (lower case) and your parameter name with the same case
-              (Global Parameter keys are case sensitive).
-            </p>
+  <div class="rudder-template">
+    <div class="one-col">
+      <div class="main-header">
+        <div class="header-title">
+          <h1>
+            <span>Global Parameters</span>
+          </h1>
+        </div>
+        <div class="header-description">
+          <p>
+            Global Parameters are key/value pairs. Once defined, you can use the key in a directive parameter
+            field and it will be replaced by the value for that key during policy generation.
+          </p>
+        </div>
+      </div>
+      <div class="one-col-main">
+        <div class="template-main">
+          <div class="main-container">
+            <div class="main-details">
+              <lift:authz role="directive_read">
+                <div class="callout-fade callout-info">
+                  <div class="marker">
+                    <span class="glyphicon glyphicon-info-sign"></span>
+                  </div>
+                  <div>
+                    <p>
+                      The syntax to use a parameter is <b>${rudder.param.&lt;key&gt;}</b>, where &lt;key&gt; is the name you chose for your
+                      Global Parameter.
+                    </p>
+                    <p>
+                      Be careful to enter exactly <b>rudder.param</b> (lower case) and your parameter name with the same case
+                      (Global Parameter keys are case sensitive).
+                    </p>
+                  </div>
+                </div>
+                <div class="inner-portlet-content">
+                  <div class="lift:configuration.ParameterManagement.display"></div>
+                </div>
+              </lift:authz>
+              <lift:authz role="directive_write">
+                <div id="globalParameterForm"></div>
+              </lift:authz>
+            </div>
           </div>
         </div>
-        <div class="inner-portlet-content">
-          <div class="lift:configuration.ParameterManagement.display"></div>
-        </div>
-      </lift:authz>
+      </div>
     </div>
-    <lift:authz role="directive_write">
-      <div id="globalParameterForm"></div>
-    </lift:authz>
+    <div id="createGlobalParameterPopup" class="modal fade" data-keyboard="true" tabindex="-1">
+      <lift:ignore>
+        This div gets the content of the CreateOrUpdateGlobalParameterPopup injected within
+      </lift:ignore>
+      <div id="createGlobalParameterContainer"></div>
+    </div>
+    <div id="deletionPopup" class="nodisplay"></div>
   </div>
 
-  <div id="createGlobalParameterPopup" class="modal fade" data-keyboard="true" tabindex="-1">
-    <lift:ignore>
-      This div gets the content of the CreateOrUpdateGlobalParameterPopup injected within
-    </lift:ignore>
-    <div id="createGlobalParameterContainer"></div>
-  </div>
-
-  <div id="deletionPopup" class="nodisplay"></div>
-  <br/>
 </lift:surround>
-
