@@ -2096,7 +2096,14 @@ object RudderConfig extends Loggable {
       , HOOKS_IGNORE_SUFFIXES
   )
 
-  private[this] lazy val healthcheckService = new HealthcheckService(List(CheckCoreNumber, CheckFreeSpace))
+  private[this] lazy val healthcheckService = new HealthcheckService(
+    List(
+        CheckCoreNumber
+      , CheckFreeSpace
+      , new CheckFileDescriptorLimit(nodeInfoService)
+    )
+  )
+
   lazy val healthcheckNotificationService = new HealthcheckNotificationService(healthcheckService, RUDDER_HEALTHCHECK_PERIOD)
 
   /**
