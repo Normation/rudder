@@ -479,3 +479,12 @@ table.dataTable tr.dtrg-group td {
 td.greyBackground, th.greyBackground {
   background-color : #eeeeee;
 }
+
+
+#first_line_header {
+  margin-bottom: 5px;
+}
+
+#first_line_header .dataTables_filter {
+  margin-right: 15px;
+}

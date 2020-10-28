@@ -301,7 +301,7 @@ class SearchNodeComponent(
     def showQueryAndGridContent() : NodeSeq = {
       (
           "content-query" #> {x:NodeSeq => displayQuery(x, false)}
-        & "update-gridresult" #> srvGrid.displayAndInit(Seq(),"serverGrid") // we need to set something, or IE moans
+        & "update-gridresult" #> srvGrid.displayAndInit(Some(Seq()),"serverGrid") // we need to set something, or IE moans
       )(searchNodes)
     }
 
@@ -312,7 +312,7 @@ class SearchNodeComponent(
     def showQueryAndGridContent() : NodeSeq = {
       (
         "content-query" #> NodeSeq.Empty
-          & "update-nodestable" #> srvGrid.displayAndInit(Seq(),"groupNodesTable") // we need to set something, or IE moans
+          & "update-nodestable" #> srvGrid.displayAndInit(Some(Seq()),"groupNodesTable") // we need to set something, or IE moans
         )(nodesTable)
     }
     showQueryAndGridContent()  ++ Script(OnLoad(ajaxGridRefresh(true)))
@@ -351,7 +351,7 @@ class SearchNodeComponent(
     val tableId = if(isGroupsPage){"groupNodesTable"}else{"serverGrid"}
     srvList match {
       case Full(seq) =>
-        val refresh = srvGrid.refreshData(() => seq, onClickCallback, tableId)
+        val refresh = srvGrid.refreshData(() => Some(seq), onClickCallback, tableId)
         JsRaw(s"""(${refresh.toJsCmd}());createTooltip();""")
 
       case Empty =>
