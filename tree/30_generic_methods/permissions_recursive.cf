@@ -18,7 +18,7 @@
 
 # @name Permissions (recursive)
 # @description Verify if a file or directory has the right permissions recursively
-# @documentation The method ensure that all files and directories under `path` have
+# @documentation The method ensures that all files and directories under `path` have
 # the correct owner, group owner and permissions.
 #
 # This method is in fact a call to the *permissions_type_recursion* method with "all" type and "inf" recursion.
