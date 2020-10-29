@@ -57,5 +57,5 @@ bundle agent permissions_recursive(path, mode, owner, group)
                             ifvarclass => "should_report";
       "new result classes"   usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
-      "report"               usebundle => _log_v3("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path} with ${recursion} recursion level", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"               usebundle => _log_v3("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path} with inf recursion level", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
