@@ -155,12 +155,19 @@ impl CFEngine {
                     .and_then(|p| self.value_to_string(&p, false).ok())
                     .unwrap_or_else(|| "".to_string());
 
+                let method_name = &format!("{}-{}", sd.resource.fragment(), sd.state.fragment());
+                let is_cf_supported = gc
+                    .get_state_def(sd)?
+                    .supported_formats(method_name)?
+                    .contains(&"cf".to_owned());
+
                 Ok(Method::new()
                     .resource(sd.resource.fragment().to_string())
                     .state(sd.state.fragment().to_string())
                     .parameters(parameters)
                     .report_parameter(state_param)
                     .report_component(component)
+                    .supported(is_cf_supported)
                     .condition(self.format_class(in_class)?)
                     .source(sd.source.fragment())
                     .build())
@@ -285,6 +292,28 @@ impl CFEngine {
                 )?
             ),
         })
+    }
+
+    fn get_state_def<'src>(
+        gc: &'src IR2,
+        state_decl: &'src StateDeclaration,
+    ) -> Result<&'src StateDef<'src>> {
+        match gc.resources.get(&state_decl.resource) {
+            Some(r) => match r.states.get(&state_decl.state) {
+                Some(s) => Ok(s),
+                None => Err(Error::new(format!(
+                    "No method relies on the \"{}\" state for \"{}\"",
+                    state_decl.state.fragment(),
+                    state_decl.resource.fragment()
+                ))),
+            },
+            None => {
+                return Err(Error::new(format!(
+                    "No method relies on the \"{}\" resource",
+                    state_decl.resource.fragment()
+                )))
+            }
+        }
     }
 }
 

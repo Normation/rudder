@@ -152,28 +152,6 @@ impl DSC {
         })
     }
 
-    fn get_state_def<'src>(
-        gc: &'src IR2,
-        state_decl: &'src StateDeclaration,
-    ) -> Result<&'src StateDef<'src>> {
-        match gc.resources.get(&state_decl.resource) {
-            Some(r) => match r.states.get(&state_decl.state) {
-                Some(s) => Ok(s),
-                None => Err(Error::new(format!(
-                    "No method relies on the \"{}\" state for \"{}\"",
-                    state_decl.state.fragment(),
-                    state_decl.resource.fragment()
-                ))),
-            },
-            None => {
-                return Err(Error::new(format!(
-                    "No method relies on the \"{}\" resource",
-                    state_decl.resource.fragment()
-                )))
-            }
-        }
-    }
-
     // TODO simplify expression and remove uselesmap_strings_results conditions for more readable cfengine
     // TODO underscore escapement
     // TODO how does cfengine use utf8
@@ -196,7 +174,7 @@ impl DSC {
                 let mut parameters = fetch_method_parameters(gc, sd, |name, value| {
                     Parameter::method_parameter(name, value)
                 });
-                let state_def = Self::get_state_def(gc, sd)?;
+                let state_def = gc.get_state_def(sd)?;
                 let class_param_index = state_def.class_parameter_index(method_name)?;
                 if parameters.len() < class_param_index {
                     return Err(Error::new(format!(
@@ -204,7 +182,6 @@ impl DSC {
                         method_name
                     )));
                 }
-                // tmp -1, index of lib generator is off 1
                 let class_param = parameters.remove(class_param_index);
                 let is_dsc_supported = state_def
                     .supported_formats(method_name)?
