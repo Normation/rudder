@@ -381,9 +381,11 @@ impl Method {
         .comment("");
 
         // Actual method call
-        let method =
+        let method = Promise::usebundle(
+            format!("{}_{}", self.resource, self.state),
             Some(&self.report_component),
-            Promise::usebundle(format!("{}_{}", self.resource, self.state), Some(&self.report_component), self.parameters);
+            self.parameters,
+        );
         let na_condition = format!(
             "canonify(\"${{class_prefix}}_{}_{}_{}\")",
             self.resource, self.state, self.report_parameter
@@ -408,6 +410,7 @@ impl Method {
                 reporting_context,
                 Promise::usebundle(
                     "log_na_rudder",
+                    Some(&self.report_component),
                     vec![
                         quoted(&format!(
                             "'{}' method is not available on classic Rudder agent, skip",
@@ -640,7 +643,7 @@ mod tests {
                     .condition("debian".to_string())
                     .build()).to_string()
             ,
-            "bundle agent test {\n\n  methods:\n    # component:\n    # \n    #   \n    # \n    \"component_${report_data.directive_id}_0\" usebundle => _method_reporting_context(\"component\", \"parameter\"),\n                                             if => concat(\"debian\");\n    \"component_${report_data.directive_id}_0\" usebundle => package_present(vim),\n                                             if => concat(\"debian\");\n    \"component_${report_data.directive_id}_0\" usebundle => _classes_noop(canonify(\"${class_prefix}_package_present_parameter\")),\n                                         unless => concat(\"debian\");\n    \"component_${report_data.directive_id}_0\" usebundle => log_rudder(\"Skipping method \'component\' with key parameter \'parameter\' since condition \'debian\' is not reached\", \"parameter\", canonify(\"${class_prefix}_package_present_parameter\"), canonify(\"${class_prefix}_package_present_parameter\"), @{args}),\n                                         unless => concat(\"debian\");\n\n}"
+            "bundle agent test {\n\n  methods:\n    # component:\n    # \n    #   \n    # \n    \"component_${report_data.directive_id}_0\" usebundle => _method_reporting_context(\"component\", \"parameter\");\n    \"component_${report_data.directive_id}_0\" usebundle => log_na_rudder(\"\'component\' method is not available on classic Rudder agent, skip\", \"parameter\", \"${class_prefix}_package_present_parameter\", @{args});\n\n}"
         );
     }
 

@@ -47,6 +47,7 @@ pub struct PAST<'src> {
     pub resources: Vec<PResourceDef<'src>>,
     pub states: Vec<PStateDef<'src>>,
     pub variable_definitions: Vec<PVariableDef<'src>>,
+    pub condition_variable_definitions: Vec<PCondVariableDef<'src>>,
     pub variable_extensions: Vec<PVariableExt<'src>>,
     pub variable_declarations: Vec<PVariableDecl<'src>>,
     pub parameter_defaults: Vec<(Token<'src>, Option<Token<'src>>, Vec<Option<PValue<'src>>>)>, // separate parameter defaults since they will be processed first
@@ -495,10 +496,6 @@ fn pinteger(i: PInput) -> PResult<(Token, i64)> {
 fn plist(i: PInput) -> PResult<Vec<PValue>> {
     wsequence!(
         {
-            // s: tag("[");
-            // values: separated_list(sp(etag(",")), pvalue);
-            // _x: or_fail(peek(is_not(",")), || PErrorKind::ExpectedToken("parameter"));
-            // _x: or_fail(tag("]"),|| PErrorKind::UnterminatedDelimiter(s));
             values: delimited_list("[", pvalue, ",", "]");
         } => values
     )(i)
@@ -859,6 +856,30 @@ fn pvariable_definition(i: PInput) -> PResult<PVariableDef> {
     )(i)
 }
 
+/// Exception: a variable that holds a condition_from (generic method) condition
+#[derive(Debug, PartialEq)]
+pub struct PCondVariableDef<'src> {
+    pub metadata: Vec<PMetadata<'src>>,
+    pub name: Token<'src>,
+    pub resource: Token<'src>,
+    pub state: Token<'src>,
+    pub state_params: Vec<PValue<'src>>,
+}
+fn pcondition_from_variable_definition(i: PInput) -> PResult<PCondVariableDef> {
+    wsequence!(
+        {
+            metadata: pmetadata_list;
+            _let: estag("let");
+            name: pidentifier;
+            _t: etag("=");
+            resource: map(etag("condition"), |x: PInput| x.into());
+            _t: etag("_");
+            state: pidentifier;
+            state_params: delimited_list("(", pvalue, ",", ")");
+        } => PCondVariableDef { metadata, name, resource, state, state_params }
+    )(i)
+}
+
 /// A variable extension is a var=value without let, and no metadata
 #[derive(Debug, PartialEq)]
 pub struct PVariableExt<'src> {
@@ -955,6 +976,7 @@ fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
 pub enum PStatement<'src> {
     VariableDefinition(PVariableDef<'src>),
     VariableExtension(PVariableExt<'src>),
+    ConditionVariableDefinition(PCondVariableDef<'src>),
     StateDeclaration(PStateDeclaration<'src>),
     //   case keyword, list (condition   ,       then)
     Case(
@@ -1000,6 +1022,11 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
     alt((
         // One state
         map(pstate_declaration, PStatement::StateDeclaration),
+        // Condition variable definition
+        map(
+            pcondition_from_variable_definition,
+            PStatement::ConditionVariableDefinition,
+        ),
         // Variable definition
         map(pvariable_definition, PStatement::VariableDefinition),
         // Variable extension

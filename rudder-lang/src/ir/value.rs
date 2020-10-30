@@ -46,6 +46,7 @@ impl<'src> TryFrom<&StringObject<'src>> for String {
     type Error = Error; // rudder-lang
 
     fn try_from(value: &StringObject<'src>) -> Result<Self> {
+        // variable should probably be translated too, keeping ${} wrapper
         if value
             .data
             .iter()
@@ -61,6 +62,7 @@ impl<'src> TryFrom<&StringObject<'src>> for String {
             .iter()
             .map(|x| match x {
                 PInterpolatedElement::Static(s) => s.clone(),
+                PInterpolatedElement::Variable(s) => format!("${{{}}}", s),
                 _ => "".into(),
             })
             .collect::<Vec<String>>()
@@ -189,6 +191,13 @@ pub struct ComplexValue<'src> {
     cases: Vec<(EnumExpression<'src>, Option<Value<'src>>)>,
 }
 impl<'src> ComplexValue<'src> {
+    pub fn new(
+        source: Token<'src>,
+        cases: Vec<(EnumExpression<'src>, Option<Value<'src>>)>,
+    ) -> Self {
+        Self { source, cases }
+    }
+
     pub fn from_pcomplex_value(
         enum_list: &EnumList<'src>,
         context: &VarContext<'src>,

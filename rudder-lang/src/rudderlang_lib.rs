@@ -185,11 +185,17 @@ impl<'src> RudderlangLib<'src> {
                 .any(|x| x == &outcome)
             {
                 return Some(format!("{} =~ error", method));
-            } else if vec!["repaired", "ok", "reached", "true", "false"]
+            } else if vec!["repaired", "ok", "reached"]
                 .iter()
                 .any(|x| x == &outcome)
             {
                 return Some(format!("{} =~ {}", method, outcome));
+            // handle condition_from exception
+            } else if vec!["true", "false"].iter().any(|x| x == &outcome) {
+                return match method.strip_suffix("_${report_data.canonified_directive_id}") {
+                    Some(variable) => Some(format!("{} =~ {}", variable, outcome)),
+                    None => Some(format!("{} =~ {}", method, outcome)),
+                };
             } else if outcome == "not_kept" {
                 return Some(format!("({} =~ error | {} =~ repaired)", method, method));
             }

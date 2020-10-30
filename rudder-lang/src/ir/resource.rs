@@ -346,6 +346,8 @@ pub struct StateDeclaration<'src> {
 pub enum Statement<'src> {
     // TODO should we split variable definition and enum definition ? this would probably help generators
     VariableDefinition(VariableDef<'src>),
+    // Define a condition variable to handle condition_from_* gm exception
+    ConditionVariableDefinition(CondVariableDef<'src>),
     // one state
     StateDeclaration(StateDeclaration<'src>),
     //   keyword    list of condition          then
@@ -423,6 +425,29 @@ impl<'src> Statement<'src> {
                     "Variable extensions are not supported in states at {}",
                     ext.name
                 );
+            }
+            PStatement::ConditionVariableDefinition(def) => {
+                let mut var =
+                    CondVariableDef::from_pcond_variable_definition(def, context, enum_list)?;
+                children.insert(var.resource);
+                // condition method has 1 class_parameter that can be constructed from PCondVariableDef
+                push_default_parameters(
+                    var.resource,
+                    None,
+                    parameter_defaults,
+                    &mut var.resource_params,
+                )?;
+                push_default_parameters(
+                    var.resource,
+                    Some(var.state),
+                    parameter_defaults,
+                    &mut var.state_params,
+                )?;
+                // check that parameters use existing variables
+                map_results(var.resource_params.iter(), |p| p.context_check(context))?;
+                map_results(var.state_params.iter(), |p| p.context_check(context))?;
+
+                Statement::ConditionVariableDefinition(var)
             }
             PStatement::StateDeclaration(PStateDeclaration {
                 source,

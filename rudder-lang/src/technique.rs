@@ -240,6 +240,14 @@ impl MethodCall {
             .drain(lib_method.resource.parameters.len()..)
             .collect();
 
+        let class_param_index = lib_method.class_param_index();
+        if self.parameters.len() < class_param_index {
+            return Err(Error::new("Class param index is out of bounds".to_owned()));
+        }
+        let class_parameter = &self.parameters[class_param_index].value;
+        let canonic_parameter = cfstrings::canonify(class_parameter);
+        let outcome = format!(" as {}_{}", lib_method.class_prefix(), canonic_parameter);
+
         let mut call = format!(
             "{}({}).{}({})",
             lib_method.resource.name,
@@ -251,13 +259,25 @@ impl MethodCall {
             call = format!("if {} => {}", self.format_condition(&lib)?, call);
         }
 
-        let class_param_index = lib_method.class_param_index();
-        if self.parameters.len() < class_param_index {
-            return Err(Error::new("Class param index is out of bounds".to_owned()));
+        // make an exception for condition_from_* method & condition generation
+        if (lib_method.resource.name == "condition" && lib_method.state.name.starts_with("from_")) {
+            return Ok(format!(
+                "{}@component = \"{}\"\n  let {} = {}_{}({})",
+                template_vars.join("\n  "),
+                &self.component,
+                match class_parameter.strip_suffix("_${report_data.canonified_directive_id}") {
+                    Some(variable) => variable,
+                    None =>
+                        return Err(Error::new(format!(
+                            "Unexpected method 'condition_{}' class parameter content ({})",
+                            lib_method.state.name, class_parameter
+                        ))),
+                },
+                lib_method.resource.name,
+                lib_method.state.name,
+                state_params.join(", ")
+            ));
         }
-        let class_parameter = &self.parameters[class_param_index].value;
-        let canonic_parameter = cfstrings::canonify(class_parameter);
-        let outcome = format!(" as {}_{}", lib_method.class_prefix(), canonic_parameter);
 
         Ok(format!(
             "{}@component = \"{}\"\n  {}{}",
@@ -289,6 +309,9 @@ impl MethodCall {
         lazy_static! {
             static ref CONDITION_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
             static ref ANY_RE: Regex = Regex::new(r"(any\.)").unwrap();
+            static ref CONDITION_FROM_RE: Regex =
+                Regex::new(r"any\.\((\w*)_\${report_data\.canonified_directive_id}_(true|false)")
+                    .unwrap();
         }
         // remove `any.` from condition
         // if opened / closed brackets count is balanced, then it is not an interpolated dot (`.`) but a logcial AND
@@ -381,13 +404,7 @@ impl Parameter {
                 self.value
             )));
         }
-        Ok(match self.value.contains('$') {
-            true => (
-                format!("p{}", template_len),
-                Some(format!("let p{} = {:#?}", template_len, self.value)),
-            ),
-            false => (format!("{:#?}", self.value), None),
-        })
+        Ok((format!("{:#?}", self.value), None))
     }
 }
 

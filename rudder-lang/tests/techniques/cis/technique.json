@@ -1,0 +1,39 @@
+{
+  "type": "ncf_technique",
+  "version": 2,
+  "data": {
+    "bundle_name": "cis",
+    "description": "cis created from technique editor",
+    "name": "cis",
+    "version": "1.0",
+    "parameter": [],
+    "category": "ncf_techniques",
+    "method_calls": [
+      {
+        "parameters": [
+          {
+            "name": "service_regex",
+            "value": "test_${service}",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "service_enabled",
+        "component": "Service enabled at boot"
+      },
+      {
+        "parameters": [
+          {
+            "name": "service_regex",
+            "value": "test_${service}",
+            "$errors": []
+          }
+        ],
+        "class_context": "skip_item_true",
+        "method_name": "service_started",
+        "component": "Service started"
+      }
+    ],
+    "resources": []
+  }
+}
