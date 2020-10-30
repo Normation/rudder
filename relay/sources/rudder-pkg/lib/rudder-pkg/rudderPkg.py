@@ -106,7 +106,6 @@ def package_list_installed():
     List available plugin names.
 """
 def package_list_name():
-    utils.readConf()
     pluginDict = utils.list_plugin_name()
     pluginName = []
     shortName = []
@@ -138,7 +137,6 @@ def package_list_name():
     If no version is given it will take the latest version in the given mode.
 """
 def package_show(name, version, mode):
-    utils.readConf()
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     if version != "":
@@ -158,7 +156,6 @@ def package_show(name, version, mode):
     Given a name, lookf for a the given packages availables for this plugin.
 """
 def package_search(name):
-    utils.readConf()
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     pluginName = []
@@ -187,7 +184,6 @@ def package_search(name):
     the user explicitly asked for this version.
 """
 def package_install_specific_version(name, longVersion, mode="release", quiet=False):
-    utils.readConf()
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     rpkg = pkgs.getRpkgByLongVersion(longVersion, mode)
@@ -202,7 +198,6 @@ def package_install_specific_version(name, longVersion, mode="release", quiet=Fa
     If no release mode is given, it will only look in the released rpkg.
 """
 def package_install_latest(name, mode="release", quiet=False):
-    utils.readConf()
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     if mode == "release":
@@ -303,7 +298,6 @@ It first check for the */licenses page and find the subfolders.
 Iterate through them to find all *.license files and *.key files.
 """
 def update_licenses(quiet=False):
-    utils.readConf()
     url = utils.URL.rstrip("/") + "/licenses"
     r = utils.getRequest(url, False)
     htmlElements = html.document_fromstring(r.text)
@@ -332,7 +326,6 @@ def update_licenses(quiet=False):
 # TODO validate index sign if any?
 """ Download the index file on the repos and update licenses"""
 def update(quiet=False):
-    utils.readConf()
     logger.debug('Updating the index')
     utils.getRudderKey()
     # backup the current indexFile if it exists

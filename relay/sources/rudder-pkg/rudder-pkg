@@ -95,6 +95,7 @@ if __name__ == "__main__":
         rudderPkgLogger.startLogger('INFO')
     logger = logging.getLogger("rudder-pkg")
     utils.db_load()
+    utils.readConf()
 
     if args['install-file']:
         rudderPkg.install_file(args['<package.rpkg>'])
