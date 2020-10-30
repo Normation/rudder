@@ -453,9 +453,9 @@ def readConf():
         URL      = config.get(REPO, 'url')
         USERNAME = config.get(REPO, 'username')
         PASSWORD = config.get(REPO, 'password')
-        PROXY_URL      = config.get(REPO, 'proxy_url')
-        PROXY_USERNAME = config.get(REPO, 'proxy_username')
-        PROXY_PASSWORD = config.get(REPO, 'proxy_password')
+        PROXY_URL      = config.get(REPO, 'proxy_url', fallback = '')
+        PROXY_USERNAME = config.get(REPO, 'proxy_username', fallback = '')
+        PROXY_PASSWORD = config.get(REPO, 'proxy_password', fallback = '')
         createPath(FOLDER_PATH)
         createPath(GPG_HOME)
     except Exception as e:
