@@ -198,6 +198,7 @@ bundle agent pop_dry_run_mode()
 #  - classes
 #  - methods
 #  - reports
+#  - edit_line, as the files already does the dry-run (see 18451)
 #  - ... and all promise types that are not for the agent
 ###############################################################################
 
@@ -276,40 +277,6 @@ body action storage_action
 }
 
 body action databases_action
-{
-  dry_run|global_dry_run::  
-    action_policy => "warn";
-  !(dry_run|global_dry_run)::
-    action_policy => "fix";
-}
-
-# in bundle edit_line
-
-body action delete_lines_action
-{
-  dry_run|global_dry_run::  
-    action_policy => "warn";
-  !(dry_run|global_dry_run)::
-    action_policy => "fix";
-}
-
-body action field_edits_action
-{
-  dry_run|global_dry_run::  
-    action_policy => "warn";
-  !(dry_run|global_dry_run)::
-    action_policy => "fix";
-}
-
-body action insert_lines_action
-{
-  dry_run|global_dry_run::  
-    action_policy => "warn";
-  !(dry_run|global_dry_run)::
-    action_policy => "fix";
-}
-
-body action replace_patterns_action
 {
   dry_run|global_dry_run::  
     action_policy => "warn";
