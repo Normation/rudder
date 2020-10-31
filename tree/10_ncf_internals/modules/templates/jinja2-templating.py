@@ -58,7 +58,10 @@ def render(opts, args):
         data = sys.stdin.read()
     else:
         path = os.path.join(os.getcwd(), os.path.expanduser(args[1]))
-        data_file = open(path)
+        if PY3:
+            data_file = open(path, encoding='utf-8')
+        else:
+            data_file = open(path)
         data = data_file.read()
         data_file.close()
 
