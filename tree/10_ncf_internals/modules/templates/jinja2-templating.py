@@ -2,9 +2,9 @@
 # vim: syntax=python
 ''':'
 # First try to run this script with python3, else run with python
-if command -v python3 >/dev/null 2>/dev/null; then
+if command -v python3 >/dev/null 2>/dev/null && python3 -c "import jinja2" >/dev/null 2>/dev/null; then
   exec python3 "$0" "$@"
-elif command -v python >/dev/null 2>/dev/null; then
+elif command -v python >/dev/null 2>/dev/null && python2 -c "import jinja2" >/dev/null 2>/dev/null; then
   exec python  "$0" "$@"
 else
   exec python2 "$0" "$@"
