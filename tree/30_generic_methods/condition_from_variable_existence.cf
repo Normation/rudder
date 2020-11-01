@@ -20,9 +20,9 @@
 # @description Create a condition from the existence of a variable
 # @documentation
 # This method define a condition:
-# * `{condition_prefix}_{variable_name}_true` if the variable named from
+# * `{condition_prefix}_true` if the variable named from
 #   the parameter **Variable name** is defined
-# * `{condition_prefix}_{variable_name}_false` if the variable named from
+# * `{condition_prefix}_false` if the variable named from
 #   the parameter **Variable name** is not defined
 #
 # Also, this method always result with a *success* outcome status.
