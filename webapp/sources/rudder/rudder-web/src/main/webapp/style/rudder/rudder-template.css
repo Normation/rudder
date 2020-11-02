@@ -231,6 +231,7 @@
   padding: 15px;
   max-height: initial;
   position: static;
+  z-index: 1;
 }
 .rudder-template .one-col .main-header,
 .rudder-template.one-col .template-main .main-header{
