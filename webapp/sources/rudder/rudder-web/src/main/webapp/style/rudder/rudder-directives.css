@@ -37,7 +37,7 @@
 #editForm {
   display: flex;
   flex-direction: column;
-  height: calc(100% - 50px);
+  height: 100%;
 }
 #headerBar ~ .content-wrapper #editForm{
   height: calc(100VH - 80px);

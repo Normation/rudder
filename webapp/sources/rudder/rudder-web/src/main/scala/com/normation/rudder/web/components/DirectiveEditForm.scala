@@ -233,7 +233,7 @@ class DirectiveEditForm(
       ClearClearable &
       //activation button: show disactivate if activated
       "#directiveTitle *" #> <span class={ if(fullActiveTechnique.isEnabled) "" else "is-disabled" }>{directive.name}</span> &
-      "#shortDescription *" #> directive.shortDescription &
+      "#shortDescription" #> (if(directive.shortDescription.isEmpty) NodeSeq.Empty else <div class="header-description"><p>{directive.shortDescription}</p></div>) &
       "#disactivateButtonLabel" #> {
         if (directive.isEnabled) "Disable" else "Enable"
        } &
