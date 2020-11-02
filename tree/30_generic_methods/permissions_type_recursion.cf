@@ -18,6 +18,17 @@
 
 # @name Permissions type recursion
 # @description Ensure that a file or directory is present and has the right mode/owner/group
+# @documentation The method ensure that all files|directories|files and directories have
+# the correct owner, group owner and permissions.
+#
+# The parameter *type* can be either: "*all*", "*files*" or "*directories*".
+# The parameter *recursion* can be either: "*0,1,2,3,.... inf*"
+# The level of recursion is the maximum depth of subfolder that will be managed by the method:
+#
+# * 0 being the current folder/file
+# * 1 being the current folder/file and its subfolders
+# * ..
+# * inf being the file or the whole folder tree
 #
 # @parameter path      Path to edit
 # @parameter mode      Mode of the path to edit
@@ -143,6 +154,6 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
     pass3::
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
-      
+
       "report"             usebundle => _log_v3("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path} on type ${type} with ${recursion} recursion level", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
