@@ -41,8 +41,6 @@ var recentChanges = {};
 var recentChangesCount = {};
 var inventories = {};
 var recentGraphs = {};
-var nodeCompliances = {};
-var nodeSystemCompliances = {};
 var nodeIds = undefined;
 /* Create an array with the values of all the checkboxes in a column */
 $.fn.dataTable.ext.order['dom-checkbox'] = function  ( settings, col )
@@ -74,12 +72,12 @@ $.fn.dataTable.ext.search.push(
             if (min === undefined)
                 return true;
 
-            if (nodeCompliances !== undefined) {
+            if (data.compliance !== undefined) {
 
                 // here, we get the id of the row element by looking deep inside settings...
                 // maybe there exists something cleaner.
 
-                var complianceArray = nodeCompliances[settings.aoData[dataIndex]._aData.id];
+                var complianceArray = data.compliance;
                  if (complianceArray !== undefined) {
                      var compliance = computeCompliancePercent(complianceArray);
 
@@ -119,9 +117,8 @@ $.fn.dataTableExt.afnSortData['node-compliance'] = function ( oSettings, iColumn
           // All data of the table
           oSettings.oApi._fnGetDataMaster(oSettings)
         , function (elem, index) {
-            if (elem.id in nodeCompliances) {
-              var compliance = nodeCompliances[elem.id];
-              return computeCompliancePercent(compliance)
+            if ("compliance" in elem) {
+              return computeCompliancePercent(elem.compliance)
             }
             return -1;
           }
@@ -1155,8 +1152,14 @@ var allColumns = {
         var el = '<span>'+sData+state+'</span>';
         var nodeLink = $(el);
         link.append(nodeLink);
-        var complianceBar = '<span id="system-compliance-bar-'+oData.id+'"></span>';
-        link.append(complianceBar)
+        var systemCompliance = "";
+        if (oData.systemCompliance !== undefined) {
+          var allReports = reportsSum(oData.systemCompliance)
+          if (computeComplianceOK(systemCompliance).number != allReports)
+            systemCompliance = $('<span id="system-compliance-bar-'+oData.id+'"></span>').html('  <a href="'+contextPath+'/secure/nodeManager/node/'+oData.id+'?systemStatus=true"  title="Some system policies could not be applied on this node" class="text-danger fa fa-exclamation-triangle"> </a>');
+        }
+
+        link.append(systemCompliance)
         $(nTd).empty();
         $(nTd).append(link);
       }
@@ -1167,15 +1170,18 @@ var allColumns = {
     , "title": "OS"
     }
   , "Compliance" :
-    { "data": "name"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    { "data": "compliance"
+    , "defaultContent" : "<span class='text-muted'>N/A</span>"
     , "title": "Compliance"
     , "sSortDataType": "node-compliance"
     , "type" : "numeric"
     , "class" : "tw-bs"
     , "createdCell" : function (nTd, sData, oData, iRow, iCol) {
         var link = callbackElement(oData, true)
-        var complianceBar = '<div id="compliance-bar-'+oData.id+'"><center><img class="svg-loader" src="'+resourcesPath+'/images/ajax-loader.svg" /></center></div>';
+        var complianceBar = "<span class='text-muted'>N/A</span>"
+        if (oData.compliance !== undefined) {
+          complianceBar = $('<div id="compliance-bar-'+oData.id+'"></div>').append(buildComplianceBar(oData.compliance))
+        }
         link.append(complianceBar)
         $(nTd).empty();
         $(nTd).prepend(link);
@@ -1183,7 +1189,7 @@ var allColumns = {
     }
   , "Last run" :
     { "data": "lastRun"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    , "defaultContent" : "<span class='text-muted'>N/A</span>"
     , "title": "Last run"
     }
 }
@@ -1245,22 +1251,6 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
     , "dataSrc" : ""
     }
     , "drawCallback": function( oSettings ) {
-
-        $('[data-toggle="tooltip"]').bsTooltip();
-        var rows = this._('tr', {"page":"current"});
-        $.each(rows, function(index,row){
-           // Display compliance progress bar if it has already been computed
-           var compliance = nodeCompliances[row.id];
-           if (compliance !== undefined) {
-           $("#compliance-bar-"+row.id).html(buildComplianceBar(compliance));
-          }
-          var systemCompliance = nodeSystemCompliances[row.id];
-          if (systemCompliance !== undefined) {
-            var allReports = reportsSum(systemCompliance)
-            if (computeComplianceOK(systemCompliance).number != allReports)
-              $("#system-compliance-bar-"+row.id).html('  <a href="'+contextPath+'/secure/nodeManager/node/'+row.id+'?systemStatus=true"  title="Some system policies could not be applied on this node" class="text-danger fa fa-exclamation-triangle"> </a>');
-          }
-        })
         $('.rudder-label').bsTooltip();
       }
     , "dom": ' <"dataTables_wrapper_top newFilter "<"#first_line_header" f <"dataTables_refresh"> <"#edit-columns">> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>'

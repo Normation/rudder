@@ -82,7 +82,6 @@ object SrvGrid {
  */
 class SrvGrid(
     roAgentRunsRepository : RoReportsExecutionRepository
-  , asyncComplianceService: AsyncComplianceService
   , configService         : ReadConfigService
   , roRuleRepository      : RoRuleRepository
   , nodeInfoService       : NodeInfoService
@@ -181,20 +180,12 @@ class SrvGrid(
         case None =>(nodeInfoService.getAll().toList.flatMap(_.values).toSeq, "undefined")
         case Some(nodes) =>(nodes, JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd)
       }
-      val rules = roRuleRepository.getIds().toBox.getOrElse(Set())
-      val futureCompliances = asyncComplianceService.complianceByNode(nodes.map(_.id).toSet, rules, tableId)
-
-      val systemRules = roRuleRepository.getIds(true).map(_.diff(rules)).toBox.getOrElse(Set())
-      val futureSystemCompliances = asyncComplianceService.systemComplianceByNode(nodes.map(_.id).toSet, systemRules, tableId)
 
       JsRaw(s"""
           nodeCompliances = {};
           nodeSystemCompliances = {};
           nodeIds = ${ nodeIds}
-          ${futureCompliances.toJsCmd}
           reloadTable("${tableId}");
-
-          ${futureSystemCompliances.toJsCmd}
       """)
     } )
 

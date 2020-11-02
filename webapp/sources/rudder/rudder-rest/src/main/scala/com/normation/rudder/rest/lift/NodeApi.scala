@@ -103,11 +103,14 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
+import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.services.nodes.MergeNodeProperties
+import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.web.components.DateFormaterService
 import com.typesafe.config.ConfigRenderOptions
 import net.liftweb.http.JsonResponse
@@ -467,11 +470,34 @@ class NodeApiService13 (
   , readOnlySoftwareDAO: ReadOnlySoftwareDAO
   , restExtractor: RestExtractorService
   , getGlobalMode : () => Box[GlobalPolicyMode]
+  , reportingService: ReportingService
 ) extends Loggable {
 
-  def serialize(agentRunWithNodeConfig: Option[AgentRunWithNodeConfig], globalPolicyMode: GlobalPolicyMode, nodeInfo : NodeInfo, properties : List[String], softs: List[Software]) = {
+  def serialize(agentRunWithNodeConfig: Option[AgentRunWithNodeConfig], globalPolicyMode: GlobalPolicyMode, nodeInfo : NodeInfo, properties : List[String], softs: List[Software], compliance : Option[NodeStatusReport], sysCompliance : Option[NodeStatusReport]) = {
     import net.liftweb.json.JsonDSL._
 
+
+      
+    def toComplianceArray(comp : ComplianceLevel) : JArray =
+      JArray (
+        ( ("number" -> comp.reportsDisabled) ~ ("percent" -> comp.pc.reportsDisabled))  :: //0
+        ( ("number" -> comp.notApplicable) ~ ("percent" -> comp.pc.notApplicable) ) ::       //  1
+        ( ("number" -> comp.success) ~ ("percent" -> comp.pc.success) ) ::         //  2
+        ( ("number" -> comp.repaired) ~ ("percent" -> comp.pc.repaired) ) ::            //  3
+        ( ("number" -> comp.error) ~ ("percent" -> comp.pc.error) ) ::               //  4
+        ( ("number" -> comp.pending) ~ ("percent" -> comp.pc.pending) ) ::             //  5
+        ( ("number" -> comp.noAnswer) ~ ("percent" -> comp.pc.noAnswer) ) ::            //  6
+        ( ("number" -> comp.missing) ~ ("percent" -> comp.pc.missing) ) ::             //  7
+        ( ("number" -> comp.unexpected) ~ ("percent" -> comp.pc.unexpected) ) ::          //  8
+        ( ("number" -> comp.auditNotApplicable) ~ ("percent" -> comp.pc.auditNotApplicable) ) ::  //  9
+        ( ("number" -> comp.compliant) ~ ("percent" -> comp.pc.compliant) ) ::           // 10
+        ( ("number" -> comp.nonCompliant) ~ ("percent" -> comp.pc.nonCompliant) ) ::        // 11
+        ( ("number" -> comp.auditError) ~ ("percent" -> comp.pc.auditError) ) ::          // 12
+        ( ("number" -> comp.badPolicyMode) ~ ("percent" -> comp.pc.badPolicyMode) ) :: Nil       // 13
+      )
+
+    val userCompliance = compliance.map(c => toComplianceArray(ComplianceLevel.sum(c.reports.toSeq.map(_.compliance))))
+    val systemCompliance = sysCompliance.map(c => toComplianceArray(ComplianceLevel.sum(c.reports.toSeq.map(_.compliance))))
     val (policyMode,explanation) =
       (globalPolicyMode.overridable,nodeInfo.policyMode) match {
         case (Always,Some(mode)) =>
@@ -493,6 +519,8 @@ class NodeApiService13 (
       ~  ("machineType" -> nodeInfo.machine.map(_.machineType.toString))
       ~  ("os" -> nodeInfo.osDetails.fullName)
       ~  ("state" -> nodeInfo.state.name)
+      ~  ("compliance" -> userCompliance )
+      ~  ("systemCompliance" -> systemCompliance )
       ~  ("ipAddresses" -> nodeInfo.ips.filter(ip => ip != "127.0.0.1" && ip != "0:0:0:0:0:0:0:1"))
       ~  ("lastRun" -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
       ~  ("software" -> JObject(softs.toList.map(s => JField(s.name.getOrElse(""), JString(s.version.map(_.value).getOrElse("N/A"))))))
@@ -514,26 +542,29 @@ class NodeApiService13 (
         case Some(nodeIds) => com.normation.utils.Control.sequence(nodeIds)( nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
       }
       n2 = System.currentTimeMillis
-      _ = TimingDebugLoggerPure.trace(s"Getting node infos: ${n2 - n1}ms")
+      _ = TimingDebugLoggerPure.logEffect.trace(s"Getting node infos: ${n2 - n1}ms")
       runs <- reportsExecutionRepository.getNodesLastRun(nodes.keySet)
       n3 = System.currentTimeMillis
-      _ = TimingDebugLoggerPure.trace(s"Getting run infos: ${n3 - n2}ms")
-      globalMode <- getGlobalMode()
+      _  = TimingDebugLoggerPure.logEffect.trace(s"Getting run infos: ${n3 - n2}ms")
+      (systemCompliances, userCompliances) <- reportingService.getUserAndSystemNodeStatusReports(Some(nodes.keySet))
       n4 = System.currentTimeMillis
-      _ = TimingDebugLoggerPure.trace(s"Getting global mode: ${n4 - n3}ms")
+      _ = TimingDebugLoggerPure.logEffect.trace(s"Getting compliance infos: ${n4 - n3}ms")
+      globalMode <- getGlobalMode()
+      n5 = System.currentTimeMillis
+      _ = TimingDebugLoggerPure.logEffect.trace(s"Getting global mode: ${n5 - n4}ms")
       softToLookAfter = req.params.getOrElse("software", Nil)
       softs <-
         ZIO.foreach(softToLookAfter) {
           soft => readOnlySoftwareDAO.getNodesbySofwareName(soft)
         }.toBox.map(_.flatten.groupMap(_._1)(_._2))
-      n5 = System.currentTimeMillis
-      _ = TimingDebugLoggerPure.trace(s"all data fetched for response: ${n5 - n4}ms")
+      n6 = System.currentTimeMillis
+      _ = TimingDebugLoggerPure.logEffect.trace(s"all data fetched for response: ${n6 - n5}ms")
     } yield {
 
-      val res = JArray(nodes.values.toList.map(n => serialize(runs.get(n.id).flatten,globalMode,n, req.params.get("properties").getOrElse(Nil), softs.get(n.id).getOrElse(Nil))))
+      val res = JArray(nodes.values.toList.map(n => serialize(runs.get(n.id).flatten,globalMode,n, req.params.get("properties").getOrElse(Nil), softs.get(n.id).getOrElse(Nil), userCompliances.get(n.id), systemCompliances.get(n.id))))
 
-      val n6 = System.currentTimeMillis
-      TimingDebugLoggerPure.trace(s"serialized to json: ${n6 - n5}ms")
+      val n7 = System.currentTimeMillis
+      TimingDebugLoggerPure.logEffect.trace(s"serialized to json: ${n7 - n6}ms")
       res
     }
   }
