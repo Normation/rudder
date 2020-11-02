@@ -191,13 +191,32 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
   def getUserNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = {
     val n1 = System.currentTimeMillis
     for {
-      nodeIds            <- nodeInfoService.getAll().map( _.keySet )
+      nodeIds            <- nodeInfoService.getAll().map(_.keySet)
       userRules          <- rulesRepo.getIds().toBox
       n2                 = System.currentTimeMillis
       _                  = TimingDebugLogger.trace(s"Reporting service - Get nodes and users rules in: ${n2 - n1}ms")
       reports            <- findRuleNodeStatusReports(nodeIds, userRules)
     } yield {
       reports
+    }
+  }
+
+  def getUserAndSystemNodeStatusReports(optNodeIds: Option[Set[NodeId]]) : Box[(Map[NodeId, NodeStatusReport], Map[NodeId, NodeStatusReport])] = {
+    val n1 = System.currentTimeMillis
+    for {
+      nodeIds <- optNodeIds match {
+        case None => nodeInfoService.getAll().map(_.keySet)
+        case Some(ids) => Full(ids)
+      }
+      userRules <- rulesRepo.getIds().toBox
+      allRules <- rulesRepo.getIds(true).toBox
+      systemRules = allRules.diff(userRules)
+      n2 = System.currentTimeMillis
+      _ = TimingDebugLogger.trace(s"Reporting service - Get nodes and rules in: ${n2 - n1}ms")
+      systemReports <- findRuleNodeStatusReports(nodeIds, systemRules)
+      userReports <- findRuleNodeStatusReports(nodeIds, userRules)
+    } yield {
+      (systemReports, userReports)
     }
   }
 
