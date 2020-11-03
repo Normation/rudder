@@ -78,20 +78,59 @@ import net.liftweb.json.JsonDSL._
 final case class PropertyProvider(value: String) extends AnyVal
 
 
-sealed trait InheritMode { def value: String }
+/*
+ * An inherit mode is three char, one for object, one for array, one for string like (?moo)
+ * The first char is for objects and can be: d = o = override, m = merge (default)
+ * The second char is for arrays and can be: d = o = override (default), a = append, p = prepend
+ * The third is for strings and can ve:      d = o = override (default), a = append, p = prepend
+ */
+final case class InheritMode(
+    forObject: InheritMode.ObjectMode
+  , forArray : InheritMode.ArrayMode
+  , forString: InheritMode.StringMode
+) {
+  def value = s"(?${forObject.value}${forArray.value}${forString.value})"
+}
 final object InheritMode {
-  final case object Override extends InheritMode { override val value = """(?o)""" }
-  final case object Append   extends InheritMode { override val value = """(?a)""" }
-  final case object Prepend  extends InheritMode { override val value = """(?p)""" }
-  final case object Default  extends InheritMode { override val value = """(?d)""" }
+  sealed trait ObjectMode { def value: Char }
+  final case object ObjectMode {
+    final case object Override extends ObjectMode { override val value = 'o' }
+    final case object Merge    extends ObjectMode { override val value = 'm' }
 
-  def parseString(s: String): Option[InheritMode] = s match {
-    case Override.value => Some(Override)
-    case Append.value   => Some(Append)
-    case Prepend.value  => Some(Prepend)
-    case Default.value  => Some(Default)
-    case _              => None
+    def all = ca.mrvisser.sealerate.values[ObjectMode].toList
+    def parse(c: Char) = all.find(c == _.value)
   }
+  sealed trait ArrayMode { def value: Char }
+  final case object ArrayMode {
+    final case object Override extends ArrayMode { override val value = 'o' }
+    final case object Append   extends ArrayMode { override val value = 'a' }
+    final case object Prepend  extends ArrayMode { override val value = 'p' }
+
+    def all = ca.mrvisser.sealerate.values[ArrayMode].toList
+    def parse(c: Char) = all.find(c == _.value)
+  }
+  sealed trait StringMode { def value: Char }
+  final case object StringMode {
+    final case object Override extends StringMode { override val value = 'o' }
+    final case object Append   extends StringMode { override val value = 'a' }
+    final case object Prepend  extends StringMode { override val value = 'p' }
+
+    def all = ca.mrvisser.sealerate.values[StringMode].toList
+    def parse(c: Char) = all.find(c == _.value)
+  }
+
+  def parseString(s: String): Option[InheritMode] = s.toList match {
+    case '(' :: '?' :: obj :: arr :: str :: ')' :: Nil =>
+      (ObjectMode.parse(obj), ArrayMode.parse(arr), StringMode.parse(str)) match {
+        case (Some(o), Some(a), Some(s)) => Some(InheritMode(o, a, s))
+        case _                           => None
+      }
+    case _                                             =>
+                                            None
+  }
+
+  val optionStringLenght = 6
+  val Default = InheritMode(ObjectMode.Merge, ArrayMode.Override, StringMode.Override)
 }
 
 object PropertyProvider {
@@ -257,24 +296,24 @@ object GenericProperty {
     }
 
     (oldValue.valueType(), newValue.valueType()) match {
-      case (STRING,STRING) => //override by default
-        mode match {
-          case Default | Override => newValue
-          case Prepend            => stringPlus(newValue, oldValue)
-          case Append             => stringPlus(oldValue, newValue)
+      case (STRING,STRING) =>
+        mode.forString match {
+          case StringMode.Override => newValue
+          case StringMode.Prepend  => stringPlus(newValue, oldValue)
+          case StringMode.Append   => stringPlus(oldValue, newValue)
         }
       case (_,NULL|STRING|NUMBER|BOOLEAN) => newValue //override in all case
       case (LIST, LIST) => //override by default
-        mode match {
-          case Default | Override => newValue
-          case Prepend            => listPlus(newValue, oldValue)
-          case Append             => listPlus(oldValue, newValue)
+        mode.forArray match {
+          case ArrayMode.Override => newValue
+          case ArrayMode.Prepend  => listPlus(newValue, oldValue)
+          case ArrayMode.Append   => listPlus(oldValue, newValue)
         }
       case (_, LIST) => newValue  //override in all case
       case (OBJECT,OBJECT) => //merge by default
-        mode match {
-          case Override => newValue
-          case _        => objectPlus(oldValue, newValue, mode)
+        mode.forObject match {
+          case ObjectMode.Override => newValue
+          case ObjectMode.Merge    => objectPlus(oldValue, newValue, mode)
         }
       case (_,OBJECT) => newValue //override
     }
@@ -308,19 +347,14 @@ object GenericProperty {
       if(trim.startsWith("#") || trim.startsWith("//")) {
         firstNonCommentChar(trim.dropWhile(_ != '\n'), mode)
       } else { // trim is non empty, check for override option
-        if(trim.size > 3 && trim.charAt(0) == '(') {
-          InheritMode.parseString(trim.substring(0,4)) match {
+        if(trim.size >= InheritMode.optionStringLenght && trim.charAt(0) == '(') {
+          InheritMode.parseString(trim.substring(0,InheritMode.optionStringLenght)) match {
             case Some(m) =>
-              println(s"****** found mode: ${m}")
-              firstNonCommentChar(trim.substring(4), m)
+              firstNonCommentChar(trim.substring(InheritMode.optionStringLenght), m)
             case x      =>
-              println(s"****** '${trim.substring(0,3)}' not knwn, keeping mode: ${mode}")
-
               (Some(trim.charAt(0)), s, mode)
           }
         } else {
-              println(s"****** no option in '${s}': ${mode}")
-
           (Some(trim.charAt(0)), s, mode)
         }
       }
@@ -354,14 +388,11 @@ object GenericProperty {
     if(value == "") Right((ConfigValueFactory.fromAnyRef(""), InheritMode.Default))
     else firstNonCommentChar(value, InheritMode.Default) match {
       case (None, s, mode) => // here, we need to return the original string, user may want to use a comment (in bash for ex) as value
-        println(s"****** value: ${value}; mode: ${mode}")
         Right((ConfigValueFactory.fromAnyRef(s), mode))
       // root can be an object or an array
       case (Some(c), s, mode) if(c == '{' || c == '[') =>
-        println(s"****++ value: ${value}; mode: ${mode}")
         parseSerialisedValue(s).map(v => (v, mode))
       case _ => // it's a string that should be understood as a string
-        println(s"**++++ value: ${value}; mode: default")
         Right((ConfigValueFactory.fromAnyRef(value), InheritMode.Default))
     }
   }

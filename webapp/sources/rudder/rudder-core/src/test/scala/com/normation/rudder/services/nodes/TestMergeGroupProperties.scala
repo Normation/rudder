@@ -303,8 +303,8 @@ class TestMergeGroupProperties extends Specification {
     "merge arr and objects" in {
       // option can be specified only has first characters only, and behavior is inherited everywhere
       val props = checkOverrides(
-        Map("arr" -> "[1,2]", "obj" -> """(?p){"a":"b", "i":"j1", "x":{"y1":"z"}, "z":[2]}""") // p here is for the array "z"
-      , Map("arr" -> "(?a)[3,4]", "obj" -> """{"c":"d", "i":"j2", "x":{"y2":"z"}, "z":[1]}""") // a here is for the array "arr"
+        Map("arr" -> "[1,2]", "obj" -> """(?mpo){"a":"b", "i":"j1", "x":{"y1":"z"}, "z":[2]}""") // p here is for the array "z"
+      , Map("arr" -> "(?maa)[3,4]", "obj" -> """{"c":"d", "i":"j2", "x":{"y2":"z"}, "z":[1]}""") // a here is for the array "arr"
       )
       props must beEqualTo(
         Map(
