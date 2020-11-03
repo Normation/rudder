@@ -1115,7 +1115,14 @@ var allColumns = {
     , "createdCell" :
       function (nTd, sData, oData, iRow, iCol) {
         $(nTd).empty();
-        $(nTd).prepend(createTextAgentPolicyMode(true,oData.policyMode,oData.explanation));
+
+        var explanation = "<p>This mode is an override applied to this node. You can change it in the <i><b>node's settings</b></i>.</p>"
+        if (oData.globalModeOverride === "default") {
+          explanation = "<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this node in the <i><b>node's settings</b></i>.</p>"
+        } else if (oData.globalModeOverride === "none") {
+          explanation = "<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p>"
+        }
+        $(nTd).prepend(createTextAgentPolicyMode(true,oData.policyMode,explanation));
       }
     }
   , "IP addresses" :
@@ -1153,9 +1160,7 @@ var allColumns = {
         var nodeLink = $(el);
         link.append(nodeLink);
         var systemCompliance = "";
-        if (oData.systemCompliance !== undefined) {
-          var allReports = reportsSum(oData.systemCompliance)
-          if (computeComplianceOK(systemCompliance).number != allReports)
+        if (oData.systemError) {
             systemCompliance = $('<span id="system-compliance-bar-'+oData.id+'"></span>').html('  <a href="'+contextPath+'/secure/nodeManager/node/'+oData.id+'?systemStatus=true"  title="Some system policies could not be applied on this node" class="text-danger fa fa-exclamation-triangle"> </a>');
         }
 
@@ -1229,6 +1234,7 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
     , "paging" : true
     , "lengthChange": true
     , "fixedHeader": true
+    , "deferRender" : true
     , "destroy" : true
     , "pagingType": "full_numbers"
     , "language": {
@@ -1687,24 +1693,23 @@ function cancelRollback(id) {
 }
 
 function computeCompliancePercent (complianceArray) {
-  return computeComplianceOK(complianceArray).percent;
+  return computeComplianceOK(complianceArray)[1];
 }
 
 function computeComplianceOK (complianceArray) {
   if (Array.isArray(complianceArray)) {
     // Enforce N/A (1) + Audit N/A (9) + Repaired (3) + Enforce success (2) + Audit success (10)
-    return {
-     percent : complianceArray[1].percent + complianceArray[9].percent + complianceArray[3].percent + complianceArray[2].percent + complianceArray[10].percent
-    , number :complianceArray[1].number + complianceArray[9].number + complianceArray[3].number + complianceArray[2].number + complianceArray[10].number
-    }
+    return [ complianceArray[1][0] + complianceArray[9][0] + complianceArray[3][0] + complianceArray[2][0] + complianceArray[10][0]
+    , complianceArray[1][1] + complianceArray[9][1] + complianceArray[3][1] + complianceArray[2][1] + complianceArray[10][1]
+    ]
   } else {
-    return { percent: 0, number: 0};
+    return [ 0, 0 ];
   }
 }
 
 function reportsSum (complianceArray) {
   if (Array.isArray(complianceArray)) {
-    return complianceArray.reduce(function(total, value) { return total + value.number }, 0 )
+    return complianceArray.reduce(function(total, value) { return total + value[0] }, 0 )
   } else {
     return 0
   }
@@ -1726,14 +1731,14 @@ function buildComplianceBar(compliance, minPxSize) {
     var content = $('<div class="progress"></div>');
 
     // Correct compliance array, if sum is over 100, fix it y removing the excedent amount to the max value
-    var sum = compliance.reduce(function(pv, cv) {return pv.percent + cv.percent; }, 0);
+    var sum = compliance.reduce(function(pv, cv) {return pv[1] + cv[1]; }, 0);
     if (sum > 100) {
-      var compliancePercent = compliance.map(function(x) { return x.percent});
+      var compliancePercent = compliance.map(function(x) { return x[1]});
       var max_of_array = Math.max.apply(Math, compliancePercent);
       var index = compliancePercent.indexOf(max_of_array);
       var toRemove = sum - 100;
       var newMax = compliance[index];
-      newMax[percent] = max_of_array - toRemove;
+      newMax[1] = max_of_array - toRemove;
       compliance[index] = newMax;
     }
 
@@ -1754,13 +1759,13 @@ function buildComplianceBar(compliance, minPxSize) {
 
     var okStatus = computeComplianceOK(compliance);
     var unexpected =
-    { percent : missing.percent + unknown.percent + badPolicyMode.percent
-    , number : missing.number + unknown.number + badPolicyMode.number
-    };
+    [ missing[0] + unknown[0] + badPolicyMode[0]
+    , missing[1] + unknown[1] + badPolicyMode[1]
+    ];
     var error =
-    { percent : enforceError.percent + auditError.percent
-    , number : enforceError.number + auditError.number
-    };
+    [  enforceError[0] + auditError[0]
+    ,  enforceError[1] + auditError[1]
+    ];
 
     var complianceBars = getProgressBars([
         /*0*/ okStatus
@@ -1773,69 +1778,69 @@ function buildComplianceBar(compliance, minPxSize) {
     ] , minPxSize);
 
     var precision = 2;
-    if(okStatus.number != 0) {
+    if(okStatus[0] != 0) {
       var text = []
-      if (enforceSuccess.number != 0) {
-        text.push("Success (enforce): "+enforceSuccess.percent.toFixed(precision)+"% <br> ");
+      if (enforceSuccess[0] != 0) {
+        text.push("Success (enforce): "+enforceSuccess[1].toFixed(precision)+"% <br> ");
       }
-      if (compliant.number != 0) {
-        text.push("Compliant: "+compliant.percent.toFixed(precision)+"% <br> ");
+      if (compliant[0] != 0) {
+        text.push("Compliant: "+compliant[1].toFixed(precision)+"% <br> ");
       }
-      if (repaired.number != 0) {
-        text.push("Repaired: "+repaired.percent.toFixed(precision)+"% <br> ");
+      if (repaired[0] != 0) {
+        text.push("Repaired: "+repaired[1].toFixed(precision)+"% <br> ");
       }
-      if (enforceNotApplicable.number != 0) {
-        text.push("Not applicable (enforce): "+enforceNotApplicable.percent.toFixed(precision)+"% <br> ");
+      if (enforceNotApplicable[0] != 0) {
+        text.push("Not applicable (enforce): "+enforceNotApplicable[1].toFixed(precision)+"% <br> ");
       }
-      if (auditNotApplicable.number != 0) {
-        text.push("Not applicable (audit): "+auditNotApplicable.percent.toFixed(precision)+"% <br> ");
+      if (auditNotApplicable[0] != 0) {
+        text.push("Not applicable (audit): "+auditNotApplicable[1].toFixed(precision)+"% <br> ");
       }
       content.append('<div class="progress-bar progress-bar-success" style="width:'+complianceBars[0].width+'" title="'+text.join("\n")+'">'+complianceBars[0].value+'</div>');
     }
 
-    if(nonCompliant.number != 0) {
+    if(nonCompliant[0] != 0) {
       var text = []
-      text.push("Non compliance: "+nonCompliant.percent.toFixed(precision)+"%");
+      text.push("Non compliance: "+nonCompliant[1].toFixed(precision)+"%");
       content.append('<div class="progress-bar progress-bar-audit-noncompliant" style="width:'+complianceBars[1].width+'" title="'+text.join("\n")+'">'+complianceBars[1].value+'</div>');
     }
 
-    if(error.number != 0) {
+    if(error[0] != 0) {
       var text = []
-      if (enforceError.number != 0) {
-        text.push("Errors (enforce): "+enforceError.percent.toFixed(precision)+"% <br> ");
+      if (enforceError[0] != 0) {
+        text.push("Errors (enforce): "+enforceError[1].toFixed(precision)+"% <br> ");
       }
-      if (auditError.number != 0) {
-        text.push("Errors (audit): "+auditError.percent.toFixed(precision)+"% <br> ");
+      if (auditError[0] != 0) {
+        text.push("Errors (audit): "+auditError[1].toFixed(precision)+"% <br> ");
       }
       content.append('<div class="progress-bar progress-bar-error" style="width:'+complianceBars[2].width+'" title="'+text.join("\n")+'">'+complianceBars[2].value+'</div>');
     }
 
-    if(unexpected.number != 0) {
+    if(unexpected[0] != 0) {
       var text = []
-      if (missing.number != 0) {
-        text.push("Missing reports: "+missing.percent.toFixed(precision)+"% <br> ");
+      if (missing[0] != 0) {
+        text.push("Missing reports: "+missing[1].toFixed(precision)+"% <br> ");
       }
-      if (unknown.number != 0) {
-        text.push("Unknown reports: "+unknown.percent.toFixed(precision)+"% <br> ");
+      if (unknown[0] != 0) {
+        text.push("Unknown reports: "+unknown[1].toFixed(precision)+"% <br> ");
       }
-      if (badPolicyMode.number != 0) {
-        text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode.percent.toFixed(precision)+"% <br> ");
+      if (badPolicyMode[0] != 0) {
+        text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode[1].toFixed(precision)+"% <br> ");
       }
       content.append('<div class="progress-bar progress-bar-unknown progress-bar-striped" style="width:'+complianceBars[3].width+'" title="'+text.join("\n")+'">'+complianceBars[3].value+'</div>');
     }
 
-    if(pending.number != 0) {
-      var tooltip = pending.percent.toFixed(precision);
+    if(pending[0] != 0) {
+      var tooltip = pending[1].toFixed(precision);
       content.append('<div class="progress-bar progress-bar-pending progress-bar-striped" style="width:'+complianceBars[4].width+'" title="Applying: '+tooltip+'%">'+complianceBars[4].value+'</div>');
     }
 
-    if(reportsDisabled.number != 0) {
-      var tooltip = reportsDisabled.percent.toFixed(precision);
+    if(reportsDisabled[0] != 0) {
+      var tooltip = reportsDisabled[1].toFixed(precision);
       content.append('<div class="progress-bar progress-bar-reportsdisabled" style="width:'+complianceBars[5].width+'" title="Reports Disabled: '+tooltip+'%">'+complianceBars[5].value+'</div>')
     }
 
-    if(noreport.number != 0) {
-      var tooltip = noreport.percent.toFixed(precision);
+    if(noreport[0] != 0) {
+      var tooltip = noreport[1].toFixed(precision);
       content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+complianceBars[6].width+'" title="No report: '+tooltip+'%">'+complianceBars[6].value+'</div>');
     }
 
@@ -1872,10 +1877,10 @@ function compliancePercentValue(compliances) {
   for(var i in compliances){
     tmp = compliances[i];
     obj = {
-      val : parseInt(tmp.percent)
-    , dec : (tmp.percent)%1
+      val : parseInt(tmp[1])
+    , dec : (tmp[1])%1
     , ind : parseInt(i)
-    , number: tmp.number
+    , number: tmp[0]
     };
     decomposedValues.push(obj);
   }
@@ -1906,8 +1911,8 @@ function computeSmallBarsSizeAndPercent (compliances, minVal, minPxSize) {
     var compliancePercent = compliance.val;
     // Full compliance value (integer and decimal) we need that to check that we do have a value, we only ignore 0
     var realValue = compliancePercent+ compliance.dec;
-    if((compliancePercent < minVal) && (realValue > 0 || compliance.number > 0)){
-      res.percent += compliancePercent;
+    if((compliancePercent < minVal) && (realValue > 0 || compliance[0] > 0)){
+      res[1] += compliancePercent;
       res.pixelSize += minPxSize;
     }
   });

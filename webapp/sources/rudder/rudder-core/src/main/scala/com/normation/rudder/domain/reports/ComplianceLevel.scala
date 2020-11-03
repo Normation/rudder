@@ -337,20 +337,20 @@ object ComplianceLevelSerialisation {
   implicit class ComplianceLevelToJs(val compliance: ComplianceLevel) extends AnyVal {
 
     def toJsArray: JsArray = JsArray (
-        JE.JsObj(("number",compliance.reportsDisabled)   , ("percent",JE.Num(compliance.pc.reportsDisabled)))    //  0
-      , JE.JsObj(("number",compliance.notApplicable)     , ("percent",JE.Num(compliance.pc.notApplicable)))      //  1
-      , JE.JsObj(("number",compliance.success)           , ("percent",JE.Num(compliance.pc.success)))            //  2
-      , JE.JsObj(("number",compliance.repaired)          , ("percent",JE.Num(compliance.pc.repaired)))           //  3
-      , JE.JsObj(("number",compliance.error)             , ("percent",JE.Num(compliance.pc.error)))              //  4
-      , JE.JsObj(("number",compliance.pending)           , ("percent",JE.Num(compliance.pc.pending)))            //  5
-      , JE.JsObj(("number",compliance.noAnswer)          , ("percent",JE.Num(compliance.pc.noAnswer)))           //  6
-      , JE.JsObj(("number",compliance.missing)           , ("percent",JE.Num(compliance.pc.missing)))            //  7
-      , JE.JsObj(("number",compliance.unexpected)        , ("percent",JE.Num(compliance.pc.unexpected)))         //  8
-      , JE.JsObj(("number",compliance.auditNotApplicable), ("percent",JE.Num(compliance.pc.auditNotApplicable))) //  9
-      , JE.JsObj(("number",compliance.compliant)         , ("percent",JE.Num(compliance.pc.compliant)))          // 10
-      , JE.JsObj(("number",compliance.nonCompliant)      , ("percent",JE.Num(compliance.pc.nonCompliant)))       // 11
-      , JE.JsObj(("number",compliance.auditError)        , ("percent",JE.Num(compliance.pc.auditError)))         // 12
-      , JE.JsObj(("number",compliance.badPolicyMode)     , ("percent",JE.Num(compliance.pc.badPolicyMode)))      // 13
+        JsArray(compliance.reportsDisabled,JE.Num(compliance.pc.reportsDisabled))    //  0
+      , JsArray(compliance.notApplicable , JE.Num(compliance.pc.notApplicable))      //  1
+      , JsArray(compliance.success , JE.Num(compliance.pc.success))            //  2
+      , JsArray(compliance.repaired , JE.Num(compliance.pc.repaired))           //  3
+      , JsArray(compliance.error , JE.Num(compliance.pc.error))              //  4
+      , JsArray(compliance.pending , JE.Num(compliance.pc.pending))            //  5
+      , JsArray(compliance.noAnswer , JE.Num(compliance.pc.noAnswer))           //  6
+      , JsArray(compliance.missing , JE.Num(compliance.pc.missing))            //  7
+      , JsArray(compliance.unexpected , JE.Num(compliance.pc.unexpected))         //  8
+      , JsArray(compliance.auditNotApplicable , JE.Num(compliance.pc.auditNotApplicable)) //  9
+      , JsArray(compliance.compliant , JE.Num(compliance.pc.compliant))          // 10
+      , JsArray(compliance.nonCompliant , JE.Num(compliance.pc.nonCompliant))       // 11
+      , JsArray(compliance.auditError , JE.Num(compliance.pc.auditError))         // 12
+      , JsArray(compliance.badPolicyMode , JE.Num(compliance.pc.badPolicyMode))      // 13
     )
 
     def toJson: JObject = {
