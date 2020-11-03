@@ -12,7 +12,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use serde::Serialize;
 use std::{
-    fs::File,
+    fs,
     io::Write,
     panic,
     time::{SystemTime, UNIX_EPOCH},
@@ -27,7 +27,7 @@ use std::{
 #[derive(Serialize)]
 struct OutputFmtOk {
     command: String,
-    source: String, // source file path or STDIN
+    source: Option<String>, // source file path or STDIN
     time: String,
     status: String, // either "success" or "failure"
     logs: Logs,
@@ -105,18 +105,19 @@ impl LogOutput {
                 _ => error!("{}", message),
             };
 
-            self.print(
-                command,
-                String::new(),
-                Err(crate::error::Error::new(message)),
-            );
+            self.print(command, None, Err(crate::error::Error::new(message)));
 
             // TODO print backtrace somehow + somewhere else
             backtrace.map_or((), |bt| println!("{}", bt));
         }));
     }
 
-    pub fn print(self, command: Command, source: String, result: Result<Vec<CommandResult>>) {
+    pub fn print(
+        self,
+        command: Command,
+        source: Option<String>,
+        result: Result<Vec<CommandResult>>,
+    ) {
         let (is_success, mut data, errors) = match result {
             Ok(data) => (true, data, Vec::new()),
             Err(e) => (false, Vec::new(), e.clean_format_list()),
@@ -138,11 +139,18 @@ impl LogOutput {
         self.print_to_file(&mut data, command);
 
         if !is_success {
-            let output = format!(
-                "An error occurred, could not create content from '{}' because: '{}'",
-                source,
-                errors.join(" ; ")
-            );
+            let output = if let Some(input) = &source {
+                format!(
+                    "An error occurred, could not create content from '{}': '{}'",
+                    input,
+                    errors.join(" ; ")
+                )
+            } else {
+                format!(
+                    "An error occurred, could not create content: '{}'",
+                    errors.join(" ; ")
+                )
+            };
             error!("{}", output);
             eprintln!("{}", output);
         } else if is_success {
@@ -191,7 +199,12 @@ impl LogOutput {
         // note there might be no fle to print. ie technique generate
         for file in files.iter_mut() {
             if let (Some(dest), Some(content)) = (&file.destination, &file.content) {
-                let mut file_to_create = File::create(dest).expect("Could not create output file");
+                if let Some(prefix) = dest.parent() {
+                    fs::create_dir_all(prefix)
+                        .expect("Could not create output file parent directories");
+                }
+                let mut file_to_create =
+                    fs::File::create(dest).expect("Could not create output file");
                 file_to_create
                     .write_all(content.as_bytes())
                     .expect("Could not write content into output file");

@@ -68,7 +68,7 @@ fn main() {
         // required before returning in order to have proper logging
         output.print(
             command,
-            "Input not set".to_owned(),
+            None,
             Err(Error::new(format!(
                 "Could not determine proper I/O from given parameters: {}",
                 e
@@ -88,7 +88,7 @@ fn main() {
         Command::GenerateTechnique => command::technique_generate(&ctx),
     };
     let is_command_success = command_result.is_ok();
-    output.print(command, ctx.input, command_result);
+    output.print(command, Some(ctx.input), command_result);
     if !is_command_success {
         exit(1)
     }
