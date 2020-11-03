@@ -114,7 +114,9 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.web.components.DateFormaterService
 import com.typesafe.config.ConfigRenderOptions
 import net.liftweb.http.JsonResponse
+import net.liftweb.json.JsonAST.JDouble
 import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.JsonAST.JInt
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.parse
@@ -480,38 +482,36 @@ class NodeApiService13 (
       
     def toComplianceArray(comp : ComplianceLevel) : JArray =
       JArray (
-        ( ("number" -> comp.reportsDisabled) ~ ("percent" -> comp.pc.reportsDisabled))  :: //0
-        ( ("number" -> comp.notApplicable) ~ ("percent" -> comp.pc.notApplicable) ) ::       //  1
-        ( ("number" -> comp.success) ~ ("percent" -> comp.pc.success) ) ::         //  2
-        ( ("number" -> comp.repaired) ~ ("percent" -> comp.pc.repaired) ) ::            //  3
-        ( ("number" -> comp.error) ~ ("percent" -> comp.pc.error) ) ::               //  4
-        ( ("number" -> comp.pending) ~ ("percent" -> comp.pc.pending) ) ::             //  5
-        ( ("number" -> comp.noAnswer) ~ ("percent" -> comp.pc.noAnswer) ) ::            //  6
-        ( ("number" -> comp.missing) ~ ("percent" -> comp.pc.missing) ) ::             //  7
-        ( ("number" -> comp.unexpected) ~ ("percent" -> comp.pc.unexpected) ) ::          //  8
-        ( ("number" -> comp.auditNotApplicable) ~ ("percent" -> comp.pc.auditNotApplicable) ) ::  //  9
-        ( ("number" -> comp.compliant) ~ ("percent" -> comp.pc.compliant) ) ::           // 10
-        ( ("number" -> comp.nonCompliant) ~ ("percent" -> comp.pc.nonCompliant) ) ::        // 11
-        ( ("number" -> comp.auditError) ~ ("percent" -> comp.pc.auditError) ) ::          // 12
-        ( ("number" -> comp.badPolicyMode) ~ ("percent" -> comp.pc.badPolicyMode) ) :: Nil       // 13
+        JArray(JInt(comp.reportsDisabled) :: JDouble(comp.pc.reportsDisabled) :: Nil)  :: //0
+        JArray(JInt(comp.notApplicable) :: JDouble(comp.pc.notApplicable) :: Nil ) ::       //  1
+        JArray(JInt(comp.success) :: JDouble(comp.pc.success) :: Nil ) ::         //  2
+        JArray(JInt(comp.repaired) :: JDouble(comp.pc.repaired) :: Nil ) ::            //  3
+        JArray(JInt(comp.error) :: JDouble(comp.pc.error) :: Nil ) ::               //  4
+        JArray(JInt(comp.pending) :: JDouble(comp.pc.pending) :: Nil ) ::             //  5
+        JArray(JInt(comp.noAnswer) :: JDouble(comp.pc.noAnswer) :: Nil ) ::            //  6
+        JArray(JInt(comp.missing) :: JDouble(comp.pc.missing) :: Nil ) ::             //  7
+        JArray(JInt(comp.unexpected) :: JDouble(comp.pc.unexpected) :: Nil ) ::          //  8
+        JArray(JInt(comp.auditNotApplicable) :: JDouble(comp.pc.auditNotApplicable) :: Nil ) ::  //  9
+        JArray(JInt(comp.compliant) :: JDouble(comp.pc.compliant) :: Nil ) ::           // 10
+        JArray(JInt(comp.nonCompliant) :: JDouble(comp.pc.nonCompliant) :: Nil ) ::        // 11
+        JArray(JInt(comp.auditError) :: JDouble(comp.pc.auditError) :: Nil ) ::          // 12
+        JArray(JInt(comp.badPolicyMode) :: JDouble(comp.pc.badPolicyMode) :: Nil ) :: Nil       // 13
       )
 
     val userCompliance = compliance.map(c => toComplianceArray(ComplianceLevel.sum(c.reports.toSeq.map(_.compliance))))
-    val systemCompliance = sysCompliance.map(c => toComplianceArray(ComplianceLevel.sum(c.reports.toSeq.map(_.compliance))))
     val (policyMode,explanation) =
       (globalPolicyMode.overridable,nodeInfo.policyMode) match {
         case (Always,Some(mode)) =>
-          (mode,"<p>This mode is an override applied to this node. You can change it in the <i><b>node's settings</b></i>.</p>")
+          (mode,"override")
         case (Always,None) =>
-          val expl = """<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this node in the <i><b>node's settings</b></i>.</p>"""
-          (globalPolicyMode.mode, expl)
+          (globalPolicyMode.mode, "default")
         case (Unoverridable,_) =>
-          (globalPolicyMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
+          (globalPolicyMode.mode, "none")
       }
     (  ("name" -> nodeInfo.hostname)
       ~  ("policyServerId" -> nodeInfo.policyServerId.value)
       ~  ("policyMode" -> policyMode.name)
-      ~  ("explanation" -> explanation)
+      ~  ("globalModeOverride" -> explanation)
       ~  ("kernel" -> nodeInfo.osDetails.kernelVersion.value)
       ~  ("agentVersion" -> nodeInfo.agentsName.headOption.flatMap(_.version.map(_.value)))
       ~  ("id" -> nodeInfo.id.value)
@@ -520,7 +520,7 @@ class NodeApiService13 (
       ~  ("os" -> nodeInfo.osDetails.fullName)
       ~  ("state" -> nodeInfo.state.name)
       ~  ("compliance" -> userCompliance )
-      ~  ("systemCompliance" -> systemCompliance )
+      ~  ("systemError" -> sysCompliance.map(_.compliance.compliance < 100 ).getOrElse(true) )
       ~  ("ipAddresses" -> nodeInfo.ips.filter(ip => ip != "127.0.0.1" && ip != "0:0:0:0:0:0:0:1"))
       ~  ("lastRun" -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
       ~  ("software" -> JObject(softs.toList.map(s => JField(s.name.getOrElse(""), JString(s.version.map(_.value).getOrElse("N/A"))))))
