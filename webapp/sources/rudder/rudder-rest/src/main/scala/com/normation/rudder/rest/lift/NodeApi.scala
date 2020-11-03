@@ -413,7 +413,7 @@ class NodeApi (
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, software: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
-        response <- apiV13.sofware(req, software)
+        response <- apiV13.software(req, software)
       } yield {
         response
       }) match {
@@ -552,16 +552,18 @@ class NodeApiService13 (
       globalMode <- getGlobalMode()
       n5 = System.currentTimeMillis
       _ = TimingDebugLoggerPure.logEffect.trace(s"Getting global mode: ${n5 - n4}ms")
-      softToLookAfter = req.params.getOrElse("software", Nil)
+      softToLookAfter <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "software").map(_.getOrElse(Nil)))
       softs <-
         ZIO.foreach(softToLookAfter) {
           soft => readOnlySoftwareDAO.getNodesbySofwareName(soft)
         }.toBox.map(_.flatten.groupMap(_._1)(_._2))
       n6 = System.currentTimeMillis
       _ = TimingDebugLoggerPure.logEffect.trace(s"all data fetched for response: ${n6 - n5}ms")
+
+      properties <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "properties").map(_.getOrElse(Nil)))
     } yield {
 
-      val res = JArray(nodes.values.toList.map(n => serialize(runs.get(n.id).flatten,globalMode,n, req.params.get("properties").getOrElse(Nil), softs.get(n.id).getOrElse(Nil), userCompliances.get(n.id), systemCompliances.get(n.id))))
+      val res = JArray(nodes.values.toList.map(n => serialize(runs.get(n.id).flatten,globalMode,n, properties, softs.get(n.id).getOrElse(Nil), userCompliances.get(n.id), systemCompliances.get(n.id))))
 
       val n7 = System.currentTimeMillis
       TimingDebugLoggerPure.logEffect.trace(s"serialized to json: ${n7 - n6}ms")
@@ -569,7 +571,7 @@ class NodeApiService13 (
     }
   }
 
-  def sofware(req : Req, software : String) = {
+  def software(req : Req, software : String) = {
     import com.normation.box._
 
     for {
@@ -598,7 +600,7 @@ class NodeApiService13 (
           case Some(nodeIds) => com.normation.utils.Control.sequence(nodeIds)(nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
         }
       } yield {
-        JsonResponse(JObject(nodes.flatMap { case (id, nodeInfo) => nodeInfo.properties.find(_.name == property).map(p => JField(id.value, JString(p.value.render()))) }.toList))
+        JsonResponse(JObject(nodes.flatMap { case (id, nodeInfo) => nodeInfo.properties.find(_.name == property).map(p => JField(id.value, p.value.render(ConfigRenderOptions.concise()))) }.toList))
 
       }
   }
