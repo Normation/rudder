@@ -792,7 +792,7 @@ class EventLogDetailsServiceImpl(
       name               <- (globalParam \ "name").headOption.map( _.text ) ?~!
                            ("Missing attribute 'name' in entry type Global Parameter: ${entry}")
       modValue           <- getFromTo[ConfigValue]((globalParam \ "value").headOption,
-                             { s => GenericProperty.parseValue(s.text).toBox })
+                             { s => GenericProperty.parseValue(s.text).toBox.map(_._1) })
       modDescription     <- getFromToString((globalParam \ "description").headOption)
       modOverridable     <- getFromTo[Boolean]((globalParam \ "overridable").headOption,
                              { s => tryo { s.text.toBoolean } } )

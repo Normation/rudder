@@ -845,7 +845,7 @@ trait PromiseGeneration_BuildNodeContext {
           nodeParam   <- parameters.toList.traverse { case (name, param) =>
                             for {
                               p <- param(context)
-                              v <- GenericProperty.parseValue(p)
+                              v <- GlobalParameter.parse(name, p, "", None)
                             } yield {
                               (name, v)
                             }
@@ -857,7 +857,7 @@ trait PromiseGeneration_BuildNodeContext {
           nodeInfo     =  info.modify(_.node.properties).setTo(mergedProps.map(_.prop))
           nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, nodeTargets, globalSystemVariables, globalAgentRun, globalComplianceMode: ComplianceMode)
           // now we set defaults global parameters to all nodes
-          withDefautls <- CompareProperties.updateProperties(nodeParam.toList.map { case (k,v) => NodeProperty(k, v, None)}, Some(nodeInfo.properties)).map(p =>
+          withDefautls <- CompareProperties.updateProperties(nodeParam.toList.map { case (k,v) => NodeProperty(k, v.value, v.inheritMode, None)}, Some(nodeInfo.properties)).map(p =>
                             nodeInfo.modify(_.node.properties).setTo(p)
                           ).toBox
         } yield {
@@ -866,7 +866,7 @@ trait PromiseGeneration_BuildNodeContext {
                       , policyServer
                       , globalPolicyMode
                       , nodeContext
-                      , nodeParam.toMap
+                      , nodeParam.map{case(k, g) => (k, g.value)}.toMap
                     )
           )
         }) match {

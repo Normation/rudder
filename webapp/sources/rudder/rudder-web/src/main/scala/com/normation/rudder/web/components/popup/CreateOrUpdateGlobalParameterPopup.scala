@@ -60,6 +60,7 @@ import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.box._
 import com.normation.errors.PureResult
 import com.normation.inventory.domain.InventoryError.Inconsistency
+import com.normation.rudder.domain.nodes.InheritMode
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueType
 
@@ -113,12 +114,12 @@ class CreateOrUpdateGlobalParameterPopup(
     }
   }
 
-  private def parseValue(value: String, jsonRequired: Boolean): PureResult[ConfigValue] = {
+  private def parseValue(value: String, jsonRequired: Boolean): PureResult[(ConfigValue, InheritMode)] = {
     import com.normation.rudder.domain.nodes.GenericProperty._
     for {
            // in case of string, we need to force parse as string
-      v <- if(jsonRequired) GenericProperty.parseValue(value) else Right(value.toConfigValue)
-      _ <- if(jsonRequired && v.valueType() == ConfigValueType.STRING) {
+      v <- if(jsonRequired) GenericProperty.parseValue(value) else Right((value.toConfigValue, InheritMode.Default))
+      _ <- if(jsonRequired && v._1.valueType() == ConfigValueType.STRING) {
              Left(Inconsistency("JSON check is enabled, but the value format is invalid."))
            } else Right(())
     } yield {
@@ -137,7 +138,7 @@ class CreateOrUpdateGlobalParameterPopup(
       val savedChangeRequest = {
         for {
           value <- parseValue(parameterValue.get, jsonCheck).toBox
-          param =  GlobalParameter(parameterName.get, value, parameterDescription.get, None)
+          param =  GlobalParameter(parameterName.get, value._1, value._2, parameterDescription.get, None)
           diff  <- globalParamDiffFromAction(param)
           cr    =  ChangeRequestService.createChangeRequestFromGlobalParameter(
                       changeRequestName.get

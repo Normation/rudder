@@ -49,6 +49,7 @@ import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.domain.nodes.CompareProperties
 import com.normation.rudder.domain.nodes.GroupProperty
+import com.normation.rudder.domain.nodes.InheritMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.policies.Directive
@@ -277,13 +278,13 @@ final case object RefuseNode extends NodeStatusAction
 final case object DeleteNode extends NodeStatusAction
 
 final case class RestParameter(
-      value       : Option[ConfigValue] = None
+      value       : Option[(ConfigValue, InheritMode)] = None
     , description : Option[String] = None
   ) {
 
 
     def updateParameter(parameter: GlobalParameter) = {
-      val updateValue = (p: GlobalParameter) => (value.map(x => p.withValue(x))).getOrElse(p)
+      val updateValue = (p: GlobalParameter) => (value.map(x => p.withValue(x._1).withMode(x._2))).getOrElse(p)
       val updateDesc  = (p: GlobalParameter) => (description.map(x => p.withDescription(x))).getOrElse(p)
 
       updateDesc(updateValue(parameter)).withProvider(PropertyProvider.defaultPropertyProvider)

@@ -77,6 +77,23 @@ import net.liftweb.json.JsonDSL._
  */
 final case class PropertyProvider(value: String) extends AnyVal
 
+
+sealed trait InheritMode { def value: String }
+final object InheritMode {
+  final case object Override extends InheritMode { override val value = """(?o)""" }
+  final case object Append   extends InheritMode { override val value = """(?a)""" }
+  final case object Prepend  extends InheritMode { override val value = """(?p)""" }
+  final case object Default  extends InheritMode { override val value = """(?d)""" }
+
+  def parseString(s: String): Option[InheritMode] = s match {
+    case Override.value => Some(Override)
+    case Append.value   => Some(Append)
+    case Prepend.value  => Some(Prepend)
+    case Default.value  => Some(Default)
+    case _              => None
+  }
+}
+
 object PropertyProvider {
   /*
    * System property provider. These properties should never
@@ -119,11 +136,16 @@ trait GenericProperty[P <: GenericProperty[_]] {
     else ""
   }
 
+  final def inheritMode: InheritMode = {
+    GenericProperty.getMode(config).getOrElse(InheritMode.Default)
+  }
+
   final def withName(name: String): P             = fromConfig(config.withValue(GenericProperty.NAME, name.toConfigValue))
   final def withValue(value: ConfigValue): P      = fromConfig(config.withValue(GenericProperty.VALUE, value))
   final def withValue(value: String): P           = fromConfig(config.withValue(GenericProperty.VALUE, value.toConfigValue))
   final def withProvider(p: PropertyProvider): P  = fromConfig(config.withValue(GenericProperty.PROVIDER, p.value.toConfigValue))
   final def withDescription(d: String): P         = fromConfig(config.withValue(GenericProperty.DESCRIPTION, d.toConfigValue))
+  final def withMode(m: InheritMode): P           = fromConfig(config.withValue(GenericProperty.OPT_INHERIT, m.toConfigValue))
 
   override def toString: String = this.getClass.getSimpleName+"("+this.config.root.render(ConfigRenderOptions.defaults())+")"
 }
@@ -134,11 +156,23 @@ object GenericProperty {
   val NAME        = "name"
   val PROVIDER    = "provider"
   val DESCRIPTION = "description"
+  val OPTIONS     = "options" // these are not persisted
+  val INHERITANCE = "inheritance" // options: inheritance mode
+  val OPT_INHERIT = s"${OPTIONS}.${INHERITANCE}"
 
   /**
    * Property name must matches that pattern
    */
   val patternName = Pattern.compile("""[\-a-zA-Z0-9_]+""")
+
+  def getMode(config: Config): Option[InheritMode] = {
+    if(config.hasPath(GenericProperty.OPT_INHERIT)) {
+      InheritMode.parseString(config.getString(GenericProperty.OPT_INHERIT))
+    } else None
+  }
+  def setMode(config: Config, mode: InheritMode): Config = {
+    config.withValue(OPT_INHERIT, ConfigValueFactory.fromAnyRef(mode.value))
+  }
 
   /**
    * Check if old property can be updated by a new one matching its provider.
@@ -194,29 +228,54 @@ object GenericProperty {
     }
   }
 
+
   /*
    * Merge two json values, overriding or merging recursively
    */
-  def mergeValues(oldValue: ConfigValue, newValue: ConfigValue): ConfigValue = {
+  def mergeValues(oldValue: ConfigValue, newValue: ConfigValue, mode: InheritMode): ConfigValue = {
     import ConfigValueType._
+    import InheritMode._
     import java.util.{List => juList, Map => juMap}
     import scala.jdk.CollectionConverters._
-    (oldValue.valueType(), newValue.valueType()) match {
-      case (_, NULL|STRING|NUMBER|BOOLEAN) => newValue //override
-      case (LIST, LIST) =>  // merge
-        val l = oldValue.unwrapped().asInstanceOf[juList[Any]]
-        l.addAll(newValue.unwrapped().asInstanceOf[juList[Any]])
-        ConfigValueFactory.fromIterable(l)
-      case (_, LIST) => newValue  //override
-      case (OBJECT,OBJECT) => //merge
-        val o = oldValue.unwrapped().asInstanceOf[juMap[String, Any]].asScala
-        val n = newValue.unwrapped().asInstanceOf[juMap[String, Any]].asScala
 
+    def stringPlus(a: ConfigValue, b: ConfigValue): ConfigValue = {
+      ConfigValueFactory.fromAnyRef(a.unwrapped().asInstanceOf[String] ++ b.unwrapped().asInstanceOf[String])
+    }
+    def listPlus(a: ConfigValue, b: ConfigValue): ConfigValue = {
+        val l = a.unwrapped().asInstanceOf[juList[Any]]
+        l.addAll(b.unwrapped().asInstanceOf[juList[Any]])
+        ConfigValueFactory.fromIterable(l)
+    }
+    def objectPlus(a: ConfigValue, b: ConfigValue, m: InheritMode): ConfigValue = {
+        val o = a.unwrapped().asInstanceOf[juMap[String, Any]].asScala
+        val n = b.unwrapped().asInstanceOf[juMap[String, Any]].asScala
         val mergeNew = n.map { case(k,vn) => o.get(k) match {
           case None     => (k, vn)
-          case Some(vo) => (k, mergeValues(ConfigValueFactory.fromAnyRef(vo), ConfigValueFactory.fromAnyRef(vn)))
+          case Some(vo) => (k, mergeValues(ConfigValueFactory.fromAnyRef(vo), ConfigValueFactory.fromAnyRef(vn), m))
         } }
         ConfigValueFactory.fromMap((o ++ mergeNew).asJava)
+    }
+
+    (oldValue.valueType(), newValue.valueType()) match {
+      case (STRING,STRING) => //override by default
+        mode match {
+          case Default | Override => newValue
+          case Prepend            => stringPlus(newValue, oldValue)
+          case Append             => stringPlus(oldValue, newValue)
+        }
+      case (_,NULL|STRING|NUMBER|BOOLEAN) => newValue //override in all case
+      case (LIST, LIST) => //override by default
+        mode match {
+          case Default | Override => newValue
+          case Prepend            => listPlus(newValue, oldValue)
+          case Append             => listPlus(oldValue, newValue)
+        }
+      case (_, LIST) => newValue  //override in all case
+      case (OBJECT,OBJECT) => //merge by default
+        mode match {
+          case Override => newValue
+          case _        => objectPlus(oldValue, newValue, mode)
+        }
       case (_,OBJECT) => newValue //override
     }
   }
@@ -226,23 +285,44 @@ object GenericProperty {
    * You should have check before that "name" and "provider" are OK.
    */
   def mergeConfig(oldProp: Config, newProp: Config): Config = {
+    val mode = (GenericProperty.getMode(oldProp), GenericProperty.getMode(newProp)) match {
+      case (None, None)                                   => InheritMode.Default
+      case (None, Some(mode))                             => mode
+      case (Some(mode), None | Some(InheritMode.Default)) => mode
+      case (_, Some(mode) )                               => mode
+    }
     val otherThanValue = newProp.withValue(VALUE, ConfigValueFactory.fromAnyRef("")).withFallback(oldProp.withValue(VALUE, ConfigValueFactory.fromAnyRef("")))
-    otherThanValue.withValue(VALUE, mergeValues(oldProp.getValue(VALUE), newProp.getValue(VALUE)))
+    GenericProperty.setMode(otherThanValue.withValue(VALUE, mergeValues(oldProp.getValue(VALUE), newProp.getValue(VALUE),mode)), mode)
   }
 
   /**
    * Find the first non comment char in a (multiline) string. In our convention, an
-   * hocon string must starts (excluded comments and whitespaces) by a '{'.
+   * hocon object must starts (excluded comments and whitespaces) by a '{'.
+   * Optionnally return the first char, the original string or the one without options, and option mode.
    */
   @scala.annotation.tailrec
-  def firstNonCommentChar(s: String): Option[Char] = {
+  def firstNonCommentChar(s: String, mode: InheritMode): (Option[Char], String, InheritMode)  = {
     val trim = s.dropWhile(c => c.isWhitespace || c.isSpaceChar)
-    if(trim.isEmpty) None
+    if(trim.isEmpty) (None, s, mode)
     else {
       if(trim.startsWith("#") || trim.startsWith("//")) {
-        firstNonCommentChar(trim.dropWhile(_ != '\n'))
-      } else { // trim is non empty
-        Some(trim.charAt(0))
+        firstNonCommentChar(trim.dropWhile(_ != '\n'), mode)
+      } else { // trim is non empty, check for override option
+        if(trim.size > 3 && trim.charAt(0) == '(') {
+          InheritMode.parseString(trim.substring(0,4)) match {
+            case Some(m) =>
+              println(s"****** found mode: ${m}")
+              firstNonCommentChar(trim.substring(4), m)
+            case x      =>
+              println(s"****** '${trim.substring(0,3)}' not knwn, keeping mode: ${mode}")
+
+              (Some(trim.charAt(0)), s, mode)
+          }
+        } else {
+              println(s"****** no option in '${s}': ${mode}")
+
+          (Some(trim.charAt(0)), s, mode)
+        }
       }
     }
   }
@@ -264,20 +344,25 @@ object GenericProperty {
    * Contrary to native hocon, we only have TWO kinds of values:
    * - object, which are mandatory to start with a '{' and end by a '}'
    *   (in middle, it's whatever hocon authorize: comments, etc. But the structure must be key/value structured)
+   * - arrays, which are mandatory to start with a '['
+   * - inheritence option, which are one of `(?o)` (override, default), `(?a)` (append), `(?p)` (prepend)
    * - strings, which must not start by '{' (you must escape it with \ if so). <- check that. Is it indempotent regarding serialisation?
    *   String can't have comments or anything, they are taken "as is".
    */
-  def parseValue(value: String): PureResult[ConfigValue] = {
+  def parseValue(value: String): PureResult[(ConfigValue, InheritMode)] = {
     // find first char that is no in a commented line nor a space
-    if(value == "") Right(ConfigValueFactory.fromAnyRef(""))
-    else firstNonCommentChar(value) match {
-      case None => // here, we need to return the original string, user may want to use a comment (in bash for ex) as value
-        Right(ConfigValueFactory.fromAnyRef(value))
+    if(value == "") Right((ConfigValueFactory.fromAnyRef(""), InheritMode.Default))
+    else firstNonCommentChar(value, InheritMode.Default) match {
+      case (None, s, mode) => // here, we need to return the original string, user may want to use a comment (in bash for ex) as value
+        println(s"****** value: ${value}; mode: ${mode}")
+        Right((ConfigValueFactory.fromAnyRef(s), mode))
       // root can be an object or an array
-      case Some(c) if(c == '{' || c == '[') =>
-        parseSerialisedValue(value)
+      case (Some(c), s, mode) if(c == '{' || c == '[') =>
+        println(s"****++ value: ${value}; mode: ${mode}")
+        parseSerialisedValue(s).map(v => (v, mode))
       case _ => // it's a string that should be understood as a string
-        Right(ConfigValueFactory.fromAnyRef(value))
+        println(s"**++++ value: ${value}; mode: default")
+        Right((ConfigValueFactory.fromAnyRef(value), InheritMode.Default))
     }
   }
 
@@ -295,14 +380,14 @@ object GenericProperty {
   implicit class GlobalParameterParsing(value: String) {
     // this method never fails. If we don't force string but don't successfully
     // parse serialized value, we log error and parse as string
-    def parseGlobalParameter(name: String, forceString: Boolean): ConfigValue = {
-      if(forceString) ConfigValueFactory.fromAnyRef(value)
-      else parseSerialisedValue(value) match {
+    def parseGlobalParameter(name: String, forceString: Boolean): (ConfigValue, InheritMode) = {
+      if(forceString) (ConfigValueFactory.fromAnyRef(value), InheritMode.Default)
+      else parseValue(value) match {
         case Right(res) => res
         case Left(err)  =>
           ApplicationLogger.warn(s"Error when parsing global parameter '${name}' value from base, please update that value. It " +
                                  s"may be a bug, please report it. Serialized value: \n  ${value}\n  Error was: ${err.fullMsg}")
-          ConfigValueFactory.fromAnyRef(value)
+          (ConfigValueFactory.fromAnyRef(value), InheritMode.Default)
       }
     }
   }
@@ -351,25 +436,21 @@ object GenericProperty {
    * either starts by a `{` and is well formatted hocon property string, or is a string.
    */
   def parseConfig(name: String, value: String, provider: Option[PropertyProvider], description: Option[String], options: ConfigParseOptions = ConfigParseOptions.defaults()): PureResult[Config] = {
-    parseValue(value).flatMap { v =>
-      val m = new java.util.HashMap[String, ConfigValue]()
-      m.put(NAME, ConfigValueFactory.fromAnyRef(name))
-      provider.foreach(x => m.put(PROVIDER, ConfigValueFactory.fromAnyRef(x.value)))
-      description.foreach(x => m.put(DESCRIPTION, ConfigValueFactory.fromAnyRef(x)))
-      m.put(VALUE, v)
-      PureResult.effect(ConfigFactory.parseMap(m))
+    parseValue(value).map { case (v, mode) =>
+      toConfig(name, v, mode, provider, description, options)
     }
   }
 
   /**
    * Transform a name, provider, description, and value (as a ConfigValue) into a config.
    */
-  def toConfig(name: String, value: ConfigValue, provider: Option[PropertyProvider], description: Option[String], options: ConfigParseOptions = ConfigParseOptions.defaults()): Config = {
+  def toConfig(name: String, value: ConfigValue, mode: InheritMode, provider: Option[PropertyProvider], description: Option[String], options: ConfigParseOptions = ConfigParseOptions.defaults()): Config = {
     val m = new java.util.HashMap[String, ConfigValue]()
     m.put(NAME, ConfigValueFactory.fromAnyRef(name))
     provider.foreach(x => m.put(PROVIDER, ConfigValueFactory.fromAnyRef(x.value)))
     description.foreach(x => m.put(DESCRIPTION, ConfigValueFactory.fromAnyRef(x)))
     m.put(VALUE, value)
+    m.put(OPT_INHERIT, ConfigValueFactory.fromAnyRef(mode.value))
     ConfigFactory.parseMap(m)
   }
 
@@ -404,8 +485,11 @@ object GenericProperty {
   implicit class AnyValToConfigValue[T <: AnyVal](val x: T) extends AnyVal {
     def toConfigValue: ConfigValue = ConfigValueFactory.fromAnyRef(x)
   }
-  implicit class BitIntToConfigValue(val x: BigInt) extends AnyVal {
+  implicit class BigIntToConfigValue(val x: BigInt) extends AnyVal {
     def toConfigValue: ConfigValue = ConfigValueFactory.fromAnyRef(x)
+  }
+  implicit class InheritModeToConfigValue(val x: InheritMode) extends AnyVal {
+    def toConfigValue: ConfigValue = ConfigValueFactory.fromAnyRef(x.value)
   }
   implicit class IterableToConfig[T](val x: Iterable[T]) extends AnyVal {
     import scala.jdk.CollectionConverters._
@@ -469,8 +553,8 @@ object NodeProperty {
   def parse(name: String, value: String, provider: Option[PropertyProvider]): PureResult[NodeProperty] = {
     GenericProperty.parseConfig(name, value, provider, None).map(c => new NodeProperty(c))
   }
-  def apply(name: String, value: ConfigValue, provider: Option[PropertyProvider]): NodeProperty = {
-    new NodeProperty(GenericProperty.toConfig(name, value, provider, None))
+  def apply(name: String, value: ConfigValue, mode: InheritMode, provider: Option[PropertyProvider]): NodeProperty = {
+    new NodeProperty(GenericProperty.toConfig(name, value, mode, provider, None))
   }
 
   def unserializeLdapNodeProperty(json: String): PureResult[NodeProperty] = {
@@ -495,8 +579,8 @@ object GroupProperty {
   def parse(name: String, value: String, provider: Option[PropertyProvider]): PureResult[GroupProperty] = {
     GenericProperty.parseConfig(name, value, provider, None).map(c => new GroupProperty(c))
   }
-  def apply(name: String, value: ConfigValue, provider: Option[PropertyProvider]): GroupProperty = {
-    new GroupProperty(GenericProperty.toConfig(name, value, provider, None))
+  def apply(name: String, value: ConfigValue, mode: InheritMode, provider: Option[PropertyProvider]): GroupProperty = {
+    new GroupProperty(GenericProperty.toConfig(name, value, mode, provider, None))
   }
 
   def unserializeLdapGroupProperty(json: String): PureResult[GroupProperty] = {
@@ -616,14 +700,14 @@ object JsonPropertySerialisation {
         case ParentProperty.Global(value) =>
           (
             ( "kind"  -> "global")
-          ~ ("value" -> GenericProperty.serializeToJson(value))
+          ~ ( "value" -> GenericProperty.serializeToJson(value))
           )
         case ParentProperty.Group(name, id, value) =>
           (
             ( "kind"  -> "group" )
           ~ ( "name"  -> name    )
           ~ ( "id"    -> id.value)
-          ~ ("value" -> GenericProperty.serializeToJson(value))
+          ~ ( "value" -> GenericProperty.serializeToJson(value))
           )
         case _ => JNothing
       }

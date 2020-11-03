@@ -64,10 +64,10 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
   }
 
   val baseProps = List(
-      NodeProperty("none"   , "node".toConfigValue   , None   )
-    , NodeProperty("default", "default".toConfigValue, RudderP)
-    , NodeProperty("p1"     , "p1".toConfigValue     , P1     )
-    , NodeProperty("p2"     , "p2".toConfigValue     , P2     )
+      NodeProperty("none"   , "node".toConfigValue   , InheritMode.Default, None   )
+    , NodeProperty("default", "default".toConfigValue, InheritMode.Default, RudderP)
+    , NodeProperty("p1"     , "p1".toConfigValue     , InheritMode.Default, P1     )
+    , NodeProperty("p2"     , "p2".toConfigValue     , InheritMode.Default, P2     )
   ).sorted
 
   sequential
@@ -103,8 +103,8 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
     "replace json value, not merge" in {
       val json = """{"root":"val1", "env1":"prod1", "merge": { "test1":"val1" } }""".forceParse
       val json2 = """{"root":"val2", "env2":"prod2", "merge": { "test2":"val2" } }""".forceParse
-      val p1 = NodeProperty("x", json, None)
-      val p2 = NodeProperty("x", json2, None)
+      val p1 = NodeProperty("x", json._1 , json._2 , None)
+      val p2 = NodeProperty("x", json2._1, json2._2, None)
       CompareProperties.updateProperties(p1::Nil, Some(p2::Nil)).map( _.sorted ) must beRight(p2::Nil)
     }
   }
@@ -120,38 +120,38 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
 
     "works if providers goes from default to an other" in {
       List(
-          updateAndDelete(NodeProperty("none"   , "xxx".toConfigValue, P1))
-        , updateAndDelete(NodeProperty("none"   , "xxx".toConfigValue, P2))
-        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, P1))
-        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, P2))
+          updateAndDelete(NodeProperty("none"   , "xxx".toConfigValue, InheritMode.Default, P1))
+        , updateAndDelete(NodeProperty("none"   , "xxx".toConfigValue, InheritMode.Default, P2))
+        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, InheritMode.Default, P1))
+        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, InheritMode.Default, P2))
       ).flatten must contain( (res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_,_]] ).foreach
     }
 
     "works if providers goes from anything to system" in {
       List(
-          updateAndDelete(NodeProperty("none"   , "xxx".toConfigValue, Some(PropertyProvider.systemPropertyProvider)))
-        , updateAndDelete(NodeProperty("p1"     , "xxx".toConfigValue, Some(PropertyProvider.systemPropertyProvider)))
-        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, Some(PropertyProvider.systemPropertyProvider)))
-        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, Some(PropertyProvider.systemPropertyProvider)))
+          updateAndDelete(NodeProperty("none"   , "xxx".toConfigValue, InheritMode.Default, Some(PropertyProvider.systemPropertyProvider)))
+        , updateAndDelete(NodeProperty("p1"     , "xxx".toConfigValue, InheritMode.Default, Some(PropertyProvider.systemPropertyProvider)))
+        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, InheritMode.Default, Some(PropertyProvider.systemPropertyProvider)))
+        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, InheritMode.Default, Some(PropertyProvider.systemPropertyProvider)))
       ).flatten must contain( (res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_,_]] ).foreach
     }
 
     "fails for different, non default providers" in {
       List(
-          updateAndDelete(NodeProperty("p1"     , "xxx".toConfigValue, None))
-        , updateAndDelete(NodeProperty("p1"     , "xxx".toConfigValue, RudderP))
-        , updateAndDelete(NodeProperty("p1"     , "xxx".toConfigValue, P2))
-        , updateAndDelete(NodeProperty("p2"     , "xxx".toConfigValue, None))
-        , updateAndDelete(NodeProperty("p2"     , "xxx".toConfigValue, RudderP))
-        , updateAndDelete(NodeProperty("p2"     , "xxx".toConfigValue, P1))
+          updateAndDelete(NodeProperty("p1"     , "xxx".toConfigValue, InheritMode.Default, None))
+        , updateAndDelete(NodeProperty("p1"     , "xxx".toConfigValue, InheritMode.Default, RudderP))
+        , updateAndDelete(NodeProperty("p1"     , "xxx".toConfigValue, InheritMode.Default, P2))
+        , updateAndDelete(NodeProperty("p2"     , "xxx".toConfigValue, InheritMode.Default, None))
+        , updateAndDelete(NodeProperty("p2"     , "xxx".toConfigValue, InheritMode.Default, RudderP))
+        , updateAndDelete(NodeProperty("p2"     , "xxx".toConfigValue, InheritMode.Default, P1))
       ).flatten must contain( (res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Left[_,_]] ).foreach
     }
 
 
     "be ok with compatible one (default)" in {
       List(
-          updateAndDelete(NodeProperty("none"   , "xxx".toConfigValue, RudderP))
-        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None))
+          updateAndDelete(NodeProperty("none"   , "xxx".toConfigValue, InheritMode.Default, RudderP))
+        , updateAndDelete(NodeProperty("default", "xxx".toConfigValue, InheritMode.Default, None))
       ).flatten must contain( (res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_,_]] ).foreach
     }
   }

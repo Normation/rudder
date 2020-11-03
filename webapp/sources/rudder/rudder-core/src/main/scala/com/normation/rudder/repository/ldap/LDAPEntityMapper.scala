@@ -975,9 +975,9 @@ class LDAPEntityMapper(
         name        <- e.required(A_PARAMETER_NAME)
         description =  e(A_DESCRIPTION).getOrElse("")
         provider    =  e(A_PROPERTY_PROVIDER).map(PropertyProvider.apply)
-        parsed      =  e(A_PARAMETER_VALUE).getOrElse("").parseGlobalParameter(name, e.hasAttribute("overridable"))
+        (parsed,m)  =  e(A_PARAMETER_VALUE).getOrElse("").parseGlobalParameter(name, e.hasAttribute("overridable"))
     } yield {
-      GlobalParameter(name, parsed, description, provider)
+      GlobalParameter(name, parsed, m, description, provider)
     }
     } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_PARAMETER, e)))
   }

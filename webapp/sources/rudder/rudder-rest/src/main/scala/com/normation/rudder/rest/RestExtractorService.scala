@@ -683,8 +683,9 @@ final case class RestExtractorService (
         }
         (for {
           _ <- PropertyParser.validPropertyName(nameValue)
+          p <- NodeProperty.parse(nameValue, compactRender(value), provider)
         } yield {
-          NodeProperty(nameValue, GenericProperty.fromJsonValue(value), provider)
+          p
         }).toBox
 
       case (a, b)  =>
@@ -910,10 +911,10 @@ final case class RestExtractorService (
   def extractParameterFromJSON (json : JValue) : Box[RestParameter] = {
     for {
       description <- extractJsonString(json, "description")
-      value       <- Full((json \ "value") match {
-                       case JNothing => None
-                       case x        => Some(GenericProperty.fromJsonValue(x))
-                     })
+      value       <- (json \ "value") match {
+                       case JNothing => Full(None)
+                       case x        => GenericProperty.parseValue(compactRender(x)).map(x => Some(x)).toBox
+                     }
     } yield {
       RestParameter(value, description)
     }

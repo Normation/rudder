@@ -67,8 +67,8 @@ import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JString
 import net.liftweb.json.JsonDSL._
-
 import com.normation.box._
+import com.normation.rudder.domain.nodes.InheritMode
 
 class ParameterApi (
     restExtractorService: RestExtractorService
@@ -244,7 +244,7 @@ extends Loggable {
     restParameter match {
       case Full(restParameter) =>
         import com.normation.rudder.domain.nodes.GenericProperty._
-        val parameter = restParameter.updateParameter(GlobalParameter(parameterName,"".toConfigValue,"",None))
+        val parameter = restParameter.updateParameter(GlobalParameter(parameterName,"".toConfigValue,InheritMode.Default,"",None))
 
         val diff = AddGlobalParameterDiff(parameter)
         createChangeRequestAndAnswer(

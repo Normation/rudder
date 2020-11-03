@@ -422,7 +422,7 @@ class LDAPDiffMapper(
                         d <- diff
                         v <- GenericProperty.parseValue(value)
                       } yield {
-                        d.copy(modValue = Some(SimpleDiff(oldParam.value, v)))
+                        d.copy(modValue = Some(SimpleDiff(oldParam.value, v._1)))
                       }
                   }
                 case A_DESCRIPTION =>

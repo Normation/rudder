@@ -48,9 +48,11 @@ import com.normation.rudder.domain.nodes.GenericProperty._
 import com.normation.rudder.domain.nodes.ModifyNodeDiff
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.reports.HeartbeatConfiguration
+
 import scala.collection.mutable.ArrayBuffer
 import com.normation.rudder.domain.eventlog.EventTypeFactory
 import com.normation.rudder.domain.eventlog.ModifyNodeEventType
+import com.normation.rudder.domain.nodes.InheritMode
 
 /**
  *
@@ -99,12 +101,12 @@ class NodeEventLogFormatV6Test extends Specification {
           , modAgentRun   = None
           , modProperties = Some(SimpleDiff(
                               ArrayBuffer(
-                                NodeProperty("env_type", "production".toConfigValue, None)
-                              , NodeProperty("shell", "/bin/sh".toConfigValue, None)
+                                NodeProperty("env_type", "production".toConfigValue, InheritMode.Default, None)
+                              , NodeProperty("shell", "/bin/sh".toConfigValue, InheritMode.Default, None)
                               ).toList
                             , ArrayBuffer(
-                                NodeProperty("shell", "/bin/sh".toConfigValue, None)
-                              , NodeProperty("env", "PROD".toConfigValue, None)
+                                NodeProperty("shell", "/bin/sh".toConfigValue, InheritMode.Default, None)
+                              , NodeProperty("env", "PROD".toConfigValue, InheritMode.Default, None)
                               , NodeProperty.parse("datacenter", """{"Europe":{"France":true}}""", None).fold(
                                   err => throw new IllegalArgumentException("Error in test: " + err.fullMsg)
                                 , res => res

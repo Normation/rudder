@@ -38,6 +38,7 @@ package com.normation.rudder.domain.parameters
 
 import com.normation.errors.PureResult
 import com.normation.rudder.domain.nodes.GenericProperty
+import com.normation.rudder.domain.nodes.InheritMode
 import com.normation.rudder.domain.nodes.PropertyProvider
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigValue
@@ -62,8 +63,8 @@ object GlobalParameter {
   def parse(name: String, value: String, description: String, provider: Option[PropertyProvider]): PureResult[GlobalParameter] = {
     GenericProperty.parseConfig(name, value, provider, Some(description)).map(c => new GlobalParameter(c))
   }
-  def apply(name: String, value: ConfigValue, description: String, provider: Option[PropertyProvider]): GlobalParameter = {
-    new GlobalParameter(GenericProperty.toConfig(name, value, provider, Some(description)))
+  def apply(name: String, value: ConfigValue, mode: InheritMode, description: String, provider: Option[PropertyProvider]): GlobalParameter = {
+    new GlobalParameter(GenericProperty.toConfig(name, value, mode, provider, Some(description)))
   }
 
 }

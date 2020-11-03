@@ -126,7 +126,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   ) = {
     (for {
       params <- lookupParam.parameters.toList.traverse { case (k, c) => c(lookupParam).map((k, _)) }
-      p      <- params.toList.traverse { case (k, value) => GenericProperty.parseValue(value).map(v => (k, v))}
+      p      <- params.toList.traverse { case (k, value) => GenericProperty.parseValue(value).map(v => (k, v._1))}
       res    <- lookupService.lookupNodeParameterization(variables)(toNodeContext(lookupParam, p.toMap))
     } yield res)
   }
@@ -693,7 +693,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
         err => throw new IllegalArgumentException("Error in test: " + err.fullMsg)
       , identity
       )
-      val node = context.nodeInfo.node.copy(properties = List(NodeProperty("datacenter", v, None)))
+      val node = context.nodeInfo.node.copy(properties = List(NodeProperty("datacenter", v._1, v._2, None)))
       val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
       lookup(Seq(multilineNodePropVariable), c.copy(parameters = p(fooParam)))( values =>
         values must containTheSameElementsAs(Seq(Seq("=\r= \nParis =\n=")))
@@ -761,7 +761,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           err => throw new IllegalArgumentException("Error in test: " + err.fullMsg)
         , identity
         )
-        NodeProperty(k, v, None)
+        NodeProperty(k, v._1, v._2, None)
       }
       val node = context.nodeInfo.node.copy(properties = p)
       val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
@@ -875,7 +875,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
       def compare(s1: String, s2: String) = {
         val i = compileAndGet(s"$${node.properties[${s1}]}")
-        val props = List(NodeProperty(s2, value, None))
+        val props = List(NodeProperty(s2, value._1, value._2, None))
         val node = context.nodeInfo.node.copy(properties = props)
         val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
 
@@ -884,7 +884,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
       compare("DataCenter", "datacenter") must haveClass[Left[_,_]]
       compare("datacenter", "DataCenter") must haveClass[Left[_,_]]
-      compare("datacenter", "datacenter") must beEqualTo(Right(GenericProperty.serializeToJson(value)))
+      compare("datacenter", "datacenter") must beEqualTo(Right(GenericProperty.serializeToJson(value._1)))
     }
 
   }
