@@ -198,7 +198,27 @@ object GenericProperty {
    * Merge two json values, overriding or merging recursively
    */
   def mergeValues(oldValue: ConfigValue, newValue: ConfigValue): ConfigValue = {
-    newValue.withFallback(oldValue)
+    import ConfigValueType._
+    import java.util.{List => juList, Map => juMap}
+    import scala.jdk.CollectionConverters._
+    (oldValue.valueType(), newValue.valueType()) match {
+      case (_, NULL|STRING|NUMBER|BOOLEAN) => newValue //override
+      case (LIST, LIST) =>  // merge
+        val l = oldValue.unwrapped().asInstanceOf[juList[Any]]
+        l.addAll(newValue.unwrapped().asInstanceOf[juList[Any]])
+        ConfigValueFactory.fromIterable(l)
+      case (_, LIST) => newValue  //override
+      case (OBJECT,OBJECT) => //merge
+        val o = oldValue.unwrapped().asInstanceOf[juMap[String, Any]].asScala
+        val n = newValue.unwrapped().asInstanceOf[juMap[String, Any]].asScala
+
+        val mergeNew = n.map { case(k,vn) => o.get(k) match {
+          case None     => (k, vn)
+          case Some(vo) => (k, mergeValues(ConfigValueFactory.fromAnyRef(vo), ConfigValueFactory.fromAnyRef(vn)))
+        } }
+        ConfigValueFactory.fromMap((o ++ mergeNew).asJava)
+      case (_,OBJECT) => newValue //override
+    }
   }
 
   /**
@@ -206,7 +226,8 @@ object GenericProperty {
    * You should have check before that "name" and "provider" are OK.
    */
   def mergeConfig(oldProp: Config, newProp: Config): Config = {
-    newProp.withFallback(oldProp)
+    val otherThanValue = newProp.withValue(VALUE, ConfigValueFactory.fromAnyRef("")).withFallback(oldProp.withValue(VALUE, ConfigValueFactory.fromAnyRef("")))
+    otherThanValue.withValue(VALUE, mergeValues(oldProp.getValue(VALUE), newProp.getValue(VALUE)))
   }
 
   /**

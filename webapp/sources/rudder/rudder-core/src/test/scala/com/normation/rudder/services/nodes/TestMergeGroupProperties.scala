@@ -298,13 +298,13 @@ class TestMergeGroupProperties extends Specification {
     }
     "merge arr and objects" in {
       val props = checkOverrides(
-        Map("arr" -> "[1,2]", "obj" -> """{"a":"b", "i":"j1", "x":{"y1":"z"}}""")
-      , Map("arr" -> "[3,4]", "obj" -> """{"c":"d", "i":"j2", "x":{"y2":"z"}}""")
+        Map("arr" -> "[1,2]", "obj" -> """{"a":"b", "i":"j1", "x":{"y1":"z"}, "z":[1]}""")
+      , Map("arr" -> "[3,4]", "obj" -> """{"c":"d", "i":"j2", "x":{"y2":"z"}, "z":[2]}""")
       )
       props must beEqualTo(
         Map(
-          "arr" -> "[3,4]"
-        , "obj" -> """{"a":"b","c":"d","i":"j2","x":{"y1":"z","y2":"z"}}"""
+          "arr" -> "[1,2,3,4]"
+        , "obj" -> """{"a":"b","c":"d","i":"j2","x":{"y1":"z","y2":"z"},"z":[1,2]}"""
         )
       )
     }
