@@ -53,6 +53,7 @@ import com.normation.utils.StringUuidGenerator
 import net.liftweb.json._
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.nodes.GenericProperty
+import com.normation.rudder.domain.nodes.InheritMode
 import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.zio.ZioRuntime
 
@@ -121,6 +122,8 @@ class CheckRudderGlobalParameter(
 }
 
 // lift json need that to be topevel
-private[checks] final case class JsonParam(name: String, description: String, value: JValue, provider: Option[String]) {
-  def toGlobalParam = GlobalParameter(name, GenericProperty.fromJsonValue(value), description, provider.map(PropertyProvider.apply))
+private[checks] final case class JsonParam(name: String, description: String, value: JValue, inheritMode: Option[String], provider: Option[String]) {
+  def toGlobalParam = {
+    GlobalParameter(name, GenericProperty.fromJsonValue(value), inheritMode.flatMap(InheritMode.parseString(_).toOption), description, provider.map(PropertyProvider.apply))
+  }
 }

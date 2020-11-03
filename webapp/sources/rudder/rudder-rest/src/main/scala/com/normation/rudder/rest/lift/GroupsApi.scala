@@ -303,7 +303,7 @@ class GroupApiInheritedProperties(
     for {
       allGroups  <- groupRepo.getFullGroupLibrary().map(_.allGroups)
       params     <- paramRepo.getAllGlobalParameters()
-      properties <- MergeNodeProperties.forGroup(groupId, allGroups, params.map(p => (p.name, p.value)).toMap).toIO
+      properties <- MergeNodeProperties.forGroup(groupId, allGroups, params.map(p => (p.name, p)).toMap).toIO
     } yield {
       import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
       JArray((

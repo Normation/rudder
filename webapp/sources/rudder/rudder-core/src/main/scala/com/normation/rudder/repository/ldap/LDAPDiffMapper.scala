@@ -433,6 +433,10 @@ class LDAPDiffMapper(
                   nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
                     d.copy(modProvider = Some(SimpleDiff(oldParam.provider, Some(PropertyProvider(value)))))
                   }
+                case A_INHERIT_MODE =>
+                  nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
+                    d.copy(modInheritMode = Some(SimpleDiff(oldParam.inheritMode, InheritMode.parseString(value).toOption)))
+                  }
                 case "overridable" => diff //ignore, it's for cleaning
                 case x => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
               }

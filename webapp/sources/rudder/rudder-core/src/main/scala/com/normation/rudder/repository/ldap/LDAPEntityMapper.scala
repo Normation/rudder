@@ -976,8 +976,9 @@ class LDAPEntityMapper(
         description =  e(A_DESCRIPTION).getOrElse("")
         provider    =  e(A_PROPERTY_PROVIDER).map(PropertyProvider.apply)
         parsed      =  e(A_PARAMETER_VALUE).getOrElse("").parseGlobalParameter(name, e.hasAttribute("overridable"))
+        mode        =  e(A_INHERIT_MODE).flatMap(InheritMode.parseString(_).toOption)
     } yield {
-      GlobalParameter(name, parsed, description, provider)
+      GlobalParameter(name, parsed, mode, description, provider)
     }
     } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_PARAMETER, e)))
   }
@@ -991,6 +992,9 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_DESCRIPTION, parameter.description)
     parameter.provider.foreach(p =>
       entry.resetValuesTo(A_PROPERTY_PROVIDER, p.value)
+    )
+    parameter.inheritMode.foreach(m =>
+      entry.resetValuesTo(A_INHERIT_MODE, m.value)
     )
     entry
   }

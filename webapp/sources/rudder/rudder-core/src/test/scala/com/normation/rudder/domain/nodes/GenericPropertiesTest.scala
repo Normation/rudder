@@ -113,7 +113,7 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
           |} // after end of value
           | # even on new lines
           |""".stripMargin
-      (firstNonCommentChar(s) must_=== Some('{')) and
+      (firstNonCommentChar(s) must_=== (Some('{'))) and
       (GenericProperty.parseValue(s) must beRight(ConfigValueFactory.fromMap(jmap(("a", "b")))))
     }
     "fails in a badly eneded json-like structure" in {
@@ -125,7 +125,7 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
   }
 
   "serialization / deserialisation" should {
-    val check = (s: String) => GenericProperty.parseValue(s).map(GenericProperty.serializeToHocon) must beRight(s)
+    val check = (s: String) => GenericProperty.parseValue(s).map(x => GenericProperty.serializeToHocon(x)) must beRight(s)
 
     "be idempotent for string" in {
       val strings = List(
@@ -142,7 +142,7 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
       strings must contain(check).foreach
     }
 
-    val checkPrimitive = (s: AnyVal) => GenericProperty.parseValue(s.toString).map(GenericProperty.serializeToHocon) must beRight(s.toString)
+    val checkPrimitive = (s: AnyVal) => GenericProperty.parseValue(s.toString).map(x => GenericProperty.serializeToHocon(x)) must beRight(s.toString)
 
     "primitives like int and boolean are stringified" in {
       val primitives = List[AnyVal](1, 2.42, true)
@@ -168,7 +168,7 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
         |""".stripMargin
       val t = """{# comments!
         |"a":"b"}""".stripMargin
-       GenericProperty.parseValue(s).map(GenericProperty.serializeToHocon) must beRight(t)
+       GenericProperty.parseValue(s).map(x => GenericProperty.serializeToHocon(x)) must beRight(t)
     }
   }
 

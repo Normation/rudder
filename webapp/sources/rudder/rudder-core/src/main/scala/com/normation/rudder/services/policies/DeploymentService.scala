@@ -817,12 +817,12 @@ trait PromiseGeneration_BuildNodeContext {
      *   - to node info parameters: ok
      *   - to parameters : hello loops!
      */
-    def buildParams(parameters: List[GlobalParameter]): PureResult[Map[String, ParamInterpolationContext => PureResult[String]]] = {
+    def buildParams(parameters: List[GlobalParameter]): PureResult[Map[GlobalParameter, ParamInterpolationContext => PureResult[String]]] = {
       parameters.accumulatePure { param =>
         for {
           p <- interpolatedValueCompiler.compileParam(param.valueAsString).chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
         } yield {
-          (param.name, p)
+          (param, p)
         }
       }.map(_.toMap)
     }
@@ -840,14 +840,15 @@ trait PromiseGeneration_BuildNodeContext {
                               info
                             , policyServer
                             , globalPolicyMode
-                            , parameters
+                            , parameters.map { case (p, i) => (p.name, i) }
                           )
-          nodeParam   <- parameters.toList.traverse { case (name, param) =>
+          nodeParam   <- parameters.toList.traverse { case (param, interpol) =>
                             for {
-                              p <- param(context)
-                              v <- GenericProperty.parseValue(p)
+                              i <- interpol(context)
+                              v <- GenericProperty.parseValue(i)
+                              p =  param.withValue(v)
                             } yield {
-                              (name, v)
+                              (p.name, p)
                             }
                           }.toBox
           nodeTargets  =  allGroups.getTarget(info).map(_._2).toList
@@ -857,7 +858,7 @@ trait PromiseGeneration_BuildNodeContext {
           nodeInfo     =  info.modify(_.node.properties).setTo(mergedProps.map(_.prop))
           nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, nodeTargets, globalSystemVariables, globalAgentRun, globalComplianceMode: ComplianceMode)
           // now we set defaults global parameters to all nodes
-          withDefautls <- CompareProperties.updateProperties(nodeParam.toList.map { case (k,v) => NodeProperty(k, v, None)}, Some(nodeInfo.properties)).map(p =>
+          withDefautls <- CompareProperties.updateProperties(nodeParam.toList.map { case (k,v) => NodeProperty(k, v.value, v.inheritMode, None)}, Some(nodeInfo.properties)).map(p =>
                             nodeInfo.modify(_.node.properties).setTo(p)
                           ).toBox
         } yield {
@@ -866,7 +867,7 @@ trait PromiseGeneration_BuildNodeContext {
                       , policyServer
                       , globalPolicyMode
                       , nodeContext
-                      , nodeParam.toMap
+                      , nodeParam.map{case(k, g) => (k, g.value)}.toMap
                     )
           )
         }) match {
