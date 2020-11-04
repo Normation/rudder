@@ -23,24 +23,26 @@ struct LogEntry {
     datetime: DateTime<FixedOffset>,
 }
 
+/// Tries to catch as many log levels as possible
+/// Definitely a best-effort approach
 fn agent_log_level(i: &str) -> IResult<&str, AgentLogLevel> {
-    alt((
+    let (i, res) = alt((
         // CFEngine logs
-        map(tag("CRITICAL:"), |_| "log_warn"),
-        map(tag("   error:"), |_| "log_warn"),
-        map(tag(" warning:"), |_| "log_warn"),
-        map(tag("  notice:"), |_| "log_info"),
-        map(tag("    info:"), |_| "log_info"),
-        map(tag(" verbose:"), |_| "log_debug"),
-        map(tag("   debug:"), |_| "log_debug"),
+        map(tag("CRITICAL"), |_| "log_warn"),
+        map(tag("   error"), |_| "log_warn"),
+        map(tag(" warning"), |_| "log_warn"),
+        map(tag("  notice"), |_| "log_info"),
+        map(tag("    info"), |_| "log_info"),
+        map(tag(" verbose"), |_| "log_debug"),
+        map(tag("   debug"), |_| "log_debug"),
         // At log level >= info, CFEngine adds the program name
         // https://github.com/cfengine/core/blob/f57d0359757c6adb7ec2416f2072546b8db1181b/libutils/logging.c#L223
         // For us it should always be "rudder" as it is part of our policies
-        map(tag("rudder CRITICAL:"), |_| "log_warn"),
-        map(tag("rudder    error:"), |_| "log_warn"),
-        map(tag("rudder  warning:"), |_| "log_warn"),
-        map(tag("rudder   notice:"), |_| "log_info"),
-        map(tag("rudder     info:"), |_| "log_info"),
+        map(tag("rudder CRITICAL"), |_| "log_warn"),
+        map(tag("rudder    error"), |_| "log_warn"),
+        map(tag("rudder  warning"), |_| "log_warn"),
+        map(tag("rudder   notice"), |_| "log_info"),
+        map(tag("rudder     info"), |_| "log_info"),
         // ncf logs
         map(tag("R: [FATAL]"), |_| "log_warn"),
         map(tag("R: [ERROR]"), |_| "log_warn"),
@@ -50,10 +52,14 @@ fn agent_log_level(i: &str) -> IResult<&str, AgentLogLevel> {
         map(tag("R: WARNING"), |_| "log_warn"),
         // CFEngine stdlib log
         map(tag("R: DEBUG"), |_| "log_warn"),
-        map(tag("R: [INFO]"), |_| "log_debug"),
         // Untagged non-Rudder reports report, assume info
         non_rudder_report_begin,
-    ))(i)
+    ))(i)?;
+    // Allow colon after any log level as wild reports are not very consistent
+    let (i, _) = opt(tag(":"))(i)?;
+    // Remove spaces after detected log level if any
+    let (i, _) = many0(tag(" "))(i)?;
+    Ok((i, res))
 }
 
 fn non_rudder_report_begin(i: &str) -> IResult<&str, AgentLogLevel> {
@@ -96,7 +102,6 @@ fn multilines(i: &str) -> IResult<&str, Vec<&str>> {
 fn log_entry(i: &str) -> IResult<&str, LogEntry> {
     let (i, datetime) = line_timestamp(i)?;
     let (i, event_type) = agent_log_level(i)?;
-    let (i, _) = tag(" ")(i)?;
     let (i, msg) = multilines(i)?;
     Ok((
         i,
@@ -413,6 +418,26 @@ mod tests {
             }
         );
         assert_eq!(
+            log_entry("2019-05-09T13:36:46+00:00 CRITICAL:toto\n")
+                .unwrap()
+                .1,
+            LogEntry {
+                event_type: "log_warn",
+                msg: "toto".to_string(),
+                datetime: DateTime::parse_from_str("2019-05-09T13:36:46+00:00", "%+").unwrap(),
+            }
+        );
+        assert_eq!(
+            log_entry("2019-05-09T13:36:46+00:00 CRITICAL:     toto\n")
+                .unwrap()
+                .1,
+            LogEntry {
+                event_type: "log_warn",
+                msg: "toto".to_string(),
+                datetime: DateTime::parse_from_str("2019-05-09T13:36:46+00:00", "%+").unwrap(),
+            }
+        );
+        assert_eq!(
             log_entry("2019-05-09T13:36:46+00:00 CRITICAL: toto\n2019-05-09T13:36:46+00:00 CRITICAL: toto2\n").unwrap().1,
             LogEntry {
                 event_type: "log_warn",
@@ -459,6 +484,17 @@ mod tests {
                 event_type: "log_warn",
                 msg: "test\nlog".to_string(),
                 datetime: DateTime::parse_from_str("2020-03-24T12:30:27+00:00", "%+").unwrap(),
+            }
+        );
+
+        assert_eq!(
+            log_entry("2020-11-04T18:03:15+00:00 R: [INFO]: Class prefix is too long - fallbacking to old_class_prefix file_from_string_mustache__etc_pki_consul_csr_json for reporting\r\n")
+                .unwrap()
+                .1,
+            LogEntry {
+                event_type: "log_info",
+                msg: "Class prefix is too long - fallbacking to old_class_prefix file_from_string_mustache__etc_pki_consul_csr_json for reporting".to_string(),
+                datetime: DateTime::parse_from_str("2020-11-04T18:03:15+00:00", "%+").unwrap(),
             }
         );
     }
