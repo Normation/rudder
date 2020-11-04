@@ -280,8 +280,9 @@ class GlobalParameterSerialisationImpl(xmlVersion:String) extends GlobalParamete
     createTrimedElem(XML_TAG_GLOBAL_PARAMETER, xmlVersion) (
        <name>{param.name}</name>
        <value>{param.valueAsString}</value>
+       ++{param.inheritMode.map(m => <inheritMode>{m.value}</inheritMode>).getOrElse(NodeSeq.Empty)}++
        <description>{param.description}</description>
-       <provider>{param.provider.map(_.value).getOrElse("")}</provider>
+       ++{param.provider.map(p => <provider>{p.value}</provider>).getOrElse(NodeSeq.Empty)}
     )
   }
 }

@@ -817,12 +817,12 @@ trait PromiseGeneration_BuildNodeContext {
      *   - to node info parameters: ok
      *   - to parameters : hello loops!
      */
-    def buildParams(parameters: List[GlobalParameter]): PureResult[Map[String, ParamInterpolationContext => PureResult[String]]] = {
+    def buildParams(parameters: List[GlobalParameter]): PureResult[Map[GlobalParameter, ParamInterpolationContext => PureResult[String]]] = {
       parameters.accumulatePure { param =>
         for {
           p <- interpolatedValueCompiler.compileParam(param.valueAsString).chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
         } yield {
-          (param.name, p)
+          (param, p)
         }
       }.map(_.toMap)
     }
@@ -840,14 +840,15 @@ trait PromiseGeneration_BuildNodeContext {
                               info
                             , policyServer
                             , globalPolicyMode
-                            , parameters
+                            , parameters.map { case (p, i) => (p.name, i) }
                           )
-          nodeParam   <- parameters.toList.traverse { case (name, param) =>
+          nodeParam   <- parameters.toList.traverse { case (param, interpol) =>
                             for {
-                              p <- param(context)
-                              v <- GlobalParameter.parse(name, p, "", None)
+                              i <- interpol(context)
+                              v <- GenericProperty.parseValue(i)
+                              p =  param.withValue(v)
                             } yield {
-                              (name, v)
+                              (p.name, p)
                             }
                           }.toBox
           nodeTargets  =  allGroups.getTarget(info).map(_._2).toList

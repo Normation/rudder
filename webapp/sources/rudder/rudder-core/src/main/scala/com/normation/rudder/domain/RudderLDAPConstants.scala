@@ -123,6 +123,7 @@ object RudderLDAPConstants extends Loggable {
 
   // property provider
   val A_PROPERTY_PROVIDER = "propertyProvider"
+  val A_INHERIT_MODE = "inheritMode"
 
   //node configuration hashes
   val A_NODE_CONFIG = "nodeConfig"

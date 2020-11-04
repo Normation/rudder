@@ -422,7 +422,7 @@ class LDAPDiffMapper(
                         d <- diff
                         v <- GenericProperty.parseValue(value)
                       } yield {
-                        d.copy(modValue = Some(SimpleDiff(oldParam.value, v._1)))
+                        d.copy(modValue = Some(SimpleDiff(oldParam.value, v)))
                       }
                   }
                 case A_DESCRIPTION =>
@@ -432,6 +432,10 @@ class LDAPDiffMapper(
                 case A_PROPERTY_PROVIDER =>
                   nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
                     d.copy(modProvider = Some(SimpleDiff(oldParam.provider, Some(PropertyProvider(value)))))
+                  }
+                case A_INHERIT_MODE =>
+                  nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
+                    d.copy(modInheritMode = Some(SimpleDiff(oldParam.inheritMode, InheritMode.parseString(value))))
                   }
                 case "overridable" => diff //ignore, it's for cleaning
                 case x => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))

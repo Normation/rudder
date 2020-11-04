@@ -122,8 +122,8 @@ class CheckRudderGlobalParameter(
 }
 
 // lift json need that to be topevel
-private[checks] final case class JsonParam(name: String, description: String, value: JValue, provider: Option[String]) {
+private[checks] final case class JsonParam(name: String, description: String, value: JValue, inheritMode: Option[String], provider: Option[String]) {
   def toGlobalParam = {
-    GlobalParameter(name, GenericProperty.fromJsonValue(value), InheritMode.Default, description, provider.map(PropertyProvider.apply))
+    GlobalParameter(name, GenericProperty.fromJsonValue(value), inheritMode.flatMap(InheritMode.parseString), description, provider.map(PropertyProvider.apply))
   }
 }

@@ -114,12 +114,12 @@ class CreateOrUpdateGlobalParameterPopup(
     }
   }
 
-  private def parseValue(value: String, jsonRequired: Boolean): PureResult[(ConfigValue, InheritMode)] = {
+  private def parseValue(value: String, jsonRequired: Boolean): PureResult[ConfigValue] = {
     import com.normation.rudder.domain.nodes.GenericProperty._
     for {
            // in case of string, we need to force parse as string
-      v <- if(jsonRequired) GenericProperty.parseValue(value) else Right((value.toConfigValue, InheritMode.Default))
-      _ <- if(jsonRequired && v._1.valueType() == ConfigValueType.STRING) {
+      v <- if(jsonRequired) GenericProperty.parseValue(value) else Right(value.toConfigValue)
+      _ <- if(jsonRequired && v.valueType() == ConfigValueType.STRING) {
              Left(Inconsistency("JSON check is enabled, but the value format is invalid."))
            } else Right(())
     } yield {
@@ -138,7 +138,7 @@ class CreateOrUpdateGlobalParameterPopup(
       val savedChangeRequest = {
         for {
           value <- parseValue(parameterValue.get, jsonCheck).toBox
-          param =  GlobalParameter(parameterName.get, value._1, value._2, parameterDescription.get, None)
+          param =  GlobalParameter(parameterName.get, value, InheritMode.parseString(parameterInheritMode.get), parameterDescription.get, None)
           diff  <- globalParamDiffFromAction(param)
           cr    =  ChangeRequestService.createChangeRequestFromGlobalParameter(
                       changeRequestName.get
@@ -258,6 +258,18 @@ class CreateOrUpdateGlobalParameterPopup(
     override def validations = Nil
   }
 
+  private[this] val parameterInheritMode = new WBTextField("Inherit Mode", change.previousGlobalParam.flatMap(_.inheritMode.map(_.value)).getOrElse("")) {
+    override val maxLen = 3
+    override def setFilter = trim _ :: Nil
+    override def inputField =(( change.action match {
+      case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
+      case _ => super.inputField
+    })  % ("tabindex" -> "4"))
+    override def errorClassName = "col-lg-12 errors-container"
+    override def validations = Nil
+    override val helpAsHtml = Full(<div class="text-muted small">Define inheritance behavior for the value with 3 chars: first for
+      json object (m=merge, o=override), 2nd for array and 3rd for string (o=override, a=append, p=prepend). Default to 'moo'.</div>)
+  }
 
   private[this] def defaultClassName = change.action match {
     case GlobalParamModAction.Update => "btn-success"
@@ -269,7 +281,7 @@ class CreateOrUpdateGlobalParameterPopup(
   private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"
-    override def inputField = super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "4")
+    override def inputField = super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "5")
     override def validations =
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
@@ -289,7 +301,7 @@ class CreateOrUpdateGlobalParameterPopup(
     new WBTextAreaField("Change audit message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  %
-        ("style" -> "height:5em;")  % ("tabindex" -> "5") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
+        ("style" -> "height:5em;")  % ("tabindex" -> "6") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
       override def errorClassName = "col-lg-12 errors-container"
       override def validations = {
         if(mandatory){
@@ -324,6 +336,7 @@ class CreateOrUpdateGlobalParameterPopup(
       ".value"   #> parameterValue.toForm_! &
       ".format"  #> parameterFormat.toForm_! &
       ".description *"     #> parameterDescription.toForm_! &
+      ".inheritMode *"     #> parameterInheritMode.toForm_! &
       "#titleWorkflow *"   #> titleWorkflow &
       "#changeRequestName" #> {
           if (workflowEnabled) {
@@ -350,8 +363,8 @@ class CreateOrUpdateGlobalParameterPopup(
         </div>
       } } &
 
-      "#cancel"  #> (SHtml.ajaxButton("Cancel", { () => closePopup() })  % ("tabindex" -> "6") % ("class" -> "btn btn-default") ) &
-      "#save" #> (SHtml.ajaxSubmit( buttonName, onSubmit _) % ("id" -> "createParameterSaveButton")  % ("tabindex" -> "5") % ("class" -> s"btn ${classForButton}")) andThen
+      "#cancel"  #> (SHtml.ajaxButton("Cancel", { () => closePopup() })  % ("tabindex" -> "7") % ("class" -> "btn btn-default") ) &
+      "#save" #> (SHtml.ajaxSubmit( buttonName, onSubmit _) % ("id" -> "createParameterSaveButton")  % ("tabindex" -> "8") % ("class" -> s"btn ${classForButton}")) andThen
       ".notifications *"  #> { updateAndDisplayNotifications(formTracker) }
     ).apply(formXml())
 
@@ -374,6 +387,7 @@ class CreateOrUpdateGlobalParameterPopup(
                 <div class="value"/>
                 <div class="format"/>
                 <div class="description"/>
+                <div class="inheritMode"/>
                 <div id="changeRequestZone">
                     <div id="titleWorkflow"/>
                     <input type="text" id="changeRequestName" />

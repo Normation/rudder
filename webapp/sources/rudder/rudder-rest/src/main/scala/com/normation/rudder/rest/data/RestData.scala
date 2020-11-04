@@ -278,16 +278,18 @@ final case object RefuseNode extends NodeStatusAction
 final case object DeleteNode extends NodeStatusAction
 
 final case class RestParameter(
-      value       : Option[(ConfigValue, InheritMode)] = None
+      value       : Option[ConfigValue] = None
     , description : Option[String] = None
+    , inheritMode : Option[InheritMode] = None
   ) {
 
 
     def updateParameter(parameter: GlobalParameter) = {
-      val updateValue = (p: GlobalParameter) => (value.map(x => p.withValue(x._1).withMode(x._2))).getOrElse(p)
+      val updateValue = (p: GlobalParameter) => (value.map(x => p.withValue(x))).getOrElse(p)
       val updateDesc  = (p: GlobalParameter) => (description.map(x => p.withDescription(x))).getOrElse(p)
+      val updateMode  = (p: GlobalParameter) => (inheritMode.map(x => p.withMode(x))).getOrElse(p)
 
-      updateDesc(updateValue(parameter)).withProvider(PropertyProvider.defaultPropertyProvider)
+      updateMode(updateDesc(updateValue(parameter)).withProvider(PropertyProvider.defaultPropertyProvider))
     }
 }
 

@@ -238,6 +238,7 @@ class NodeGroupUnserialisationImpl(
                                GroupProperty.parse(
                                    (p\\"name").text.trim
                                  , (p\\"value").text.trim
+                                 , (p\\"inheritMode").headOption.flatMap(p => InheritMode.parseString(p.text.trim))
                                  , (p\\"provider").headOption.map(p => PropertyProvider(p.text.trim))
                                ).toBox
                              }
@@ -644,7 +645,8 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
       value            <- (globalParam \ "value").headOption.map( _.text ) ?~! ("Missing attribute 'value' in entry type globalParameter : " + entry)
       description      <- (globalParam \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type globalParameter : " + entry)
       provider         =  (globalParam \ "provider").headOption.map(x => PropertyProvider(x.text))
-      g                <- GlobalParameter.parse(name, value, description, provider).toBox
+      mode             =  (globalParam \ "inheritMode").headOption.flatMap(x => InheritMode.parseString(x.text))
+      g                <- GlobalParameter.parse(name, value, mode, description, provider).toBox
     } yield {
       g
     }

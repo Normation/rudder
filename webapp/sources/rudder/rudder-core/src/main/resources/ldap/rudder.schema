@@ -356,6 +356,13 @@ attributetype ( RudderAttributes:307
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 
+attributetype ( RudderAttributes:308
+  NAME 'inheritMode'
+  DESC 'inheritance mode like merge, overrid, etc for properties and parameters object/array/string'
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
 #### Nodes
 
 attributetype ( RudderAttributes:351
@@ -540,7 +547,8 @@ objectclass ( RudderObjectClasses:120
   SUP top
   STRUCTURAL
   MUST ( parameterName )
-  MAY ( parameterValue $ description $ propertyProvider $ overridable ) )
+  MAY ( parameterValue $ description $ propertyProvider $
+        overridable $ inheritMode ) )
 
 #
 # Application properties

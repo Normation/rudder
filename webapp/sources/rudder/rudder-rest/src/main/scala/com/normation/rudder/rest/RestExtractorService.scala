@@ -101,6 +101,7 @@ import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.PublicKey
 import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.GroupProperty
+import com.normation.rudder.domain.nodes.InheritMode
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.services.policies.PropertyParser
 import org.bouncycastle.cert.X509CertificateHolder
@@ -606,14 +607,15 @@ final case class RestExtractorService (
   /*
    * Looking for parameter: "properties=foo=bar"
    * ==> set foo to bar; delete baz, set plop to plop.
+   * With that syntaxe, you can't choose override mode
    */
   def extractNodeProperties (params : Map[String, List[String]]) : Box[Option[List[NodeProperty]]] = {
     // properties coming from the API are always provider=rudder / mode=read-write
-    extractProperties(params, (k,v) => NodeProperty.parse(k, v, None))
+    extractProperties(params, (k,v) => NodeProperty.parse(k, v, None, None))
   }
   def extractGroupProperties (params : Map[String, List[String]]) : Box[Option[List[GroupProperty]]] = {
     // properties coming from the API are always provider=rudder / mode=read-write
-    extractProperties(params, (k,v) => GroupProperty.parse(k, v, None))
+    extractProperties(params, (k,v) => GroupProperty.parse(k, v, None, None))
   }
 
   def extractProperties[A](params : Map[String, List[String]], make:(String, String) => PureResult[A]): Box[Option[List[A]]] = {
@@ -681,9 +683,14 @@ final case class RestExtractorService (
           //if not defined of not a string, use default
           case _              => None
         }
+        val inheritMode = (json \ "inheritMode") match {
+          case JString(value) => InheritMode.parseString(value)
+          //if not defined of not a string, use default
+          case _              => None
+        }
         (for {
           _ <- PropertyParser.validPropertyName(nameValue)
-          p <- NodeProperty.parse(nameValue, compactRender(value), provider)
+          p <- NodeProperty.parse(nameValue, compactRender(value), inheritMode, provider)
         } yield {
           p
         }).toBox
