@@ -69,20 +69,21 @@ class HealthcheckService(checks: List[Check]) {
 }
 
 final object CheckCoreNumber extends Check {
-  def name: CheckName = CheckName("CPU Cores available")
+  def name: CheckName = CheckName("CPU cores")
   def run: IOResult[HealthcheckResult] = for {
     availableCores <- IOResult.effect(getRuntime.availableProcessors)
   } yield {
     availableCores match {
-      case i if i <= 0 => Critical(name, "No Core available")
-      case 1 => Warning(name, s"Only one cores available")
-      case n => Ok(name, s"${n} cores available")
+      // Should not happen, but not critical by itself
+      case i if i <= 0 => Warning(name, "Could not detect CPU cores")
+      case 1 => Warning(name, s"Only one core, recommended value is at least 2")
+      case n => Ok(name, s"${n} cores")
     }
   }
 }
 
 final object CheckFreeSpace extends Check {
-  def name: CheckName = CheckName("Disk free space available")
+  def name: CheckName = CheckName("Free disk space")
 
   final case class SpaceInfo(val path: String, val free: Long, val available: Long){
     def percent: Long =
@@ -117,17 +118,17 @@ final object CheckFreeSpace extends Check {
           val listMsgSpace = pcSpaceLeft.map(s => s"- ${s._1} -> ${s._2}%").mkString("\n")
           h._2 match {
             case pr if pr < 5L  =>
-              val msg = s"Some space is under :\n${listMsgSpace} available"
+              val msg = s"Missing free space:\n${listMsgSpace} available (<5%)"
               Critical(name, msg)
             case pr if pr < 10L =>
-              val msg = s"Some space partition is under a warning level:\n${listMsgSpace} available"
+              val msg = s"Missing free space:\n${listMsgSpace} available (<10%)"
               Warning(name, msg)
             case _              =>
-              val msg = s"Space available is ok: \n${listMsgSpace} available"
+              val msg = s"Enough free space: \n${listMsgSpace} available"
               Ok(name, msg)
           }
         case Nil =>
-          Critical(name, "No partition found on the system")
+          Warning(name, "No partition found on the system")
       }
     }
   }
@@ -151,13 +152,14 @@ final class CheckFileDescriptorLimit(val nodeInfoService: NodeInfoService) exten
       limit      <- IOResult.effectNonBlocking(res.stdout.trim.toLong)
     } yield {
       val numNode = nodeInfoService.getNumberOfManagedNodes
+      val minimalLimit = 100 * numNode
       limit match {
         case limit if limit <= 10_000 =>
-          Critical(name, s"Limit opened File Descriptor is not enough: ${limit}")
-        case limit if limit <= (100 * numNode) =>
-          Warning(name, s"Limit opened File Descriptor may cause trouble: ${limit}")
+          Critical(name, s"Current file descriptor limit is ${limit}. It should be > 10 000.")
+        case limit if limit <= minimalLimit =>
+          Warning(name, s"Current file descriptor limit is ${limit}. It should be > ${minimalLimit} for ${numNode} nodes")
         case _ =>
-          Ok(name, s"Limit opened File Descriptor: ${limit}")
+          Ok(name, s"Maximum number of file descriptors: ${limit}")
       }
     }
   }

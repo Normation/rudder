@@ -65,13 +65,13 @@ displayCheckListButton isOpen =
     if isOpen then
       button [class classNameBtn, onClick CheckListDisplay]
       [
-          text "Hide check's list"
+          text "Hide check list"
         , i [class "fa fa-chevron-down"][]
       ]
     else
       button [class classNameBtn, onClick CheckListDisplay]
       [
-          text "Show check's list"
+          text "Show check list"
         , i [class "fa fa-chevron-right"][]
       ]
 
@@ -87,9 +87,9 @@ displayBigMessage checks =
     [
         severityLevelToIcon level
       , case level of
-          Critical    -> text "Critical Error"
+          Critical    -> text "Critical error"
           Warning     -> text "Should be improved"
-          CheckPassed -> text "All check passed"
+          CheckPassed -> text "All checks passed"
     ]
   ]
 

@@ -33,7 +33,7 @@ get:
                   $ref: ../../components/schemas/check.yml
 
   tags:
-    - Healthcheck
+    - "Health check"
   x-code-samples:
     - lang: curl
       source:
