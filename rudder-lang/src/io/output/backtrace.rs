@@ -31,8 +31,10 @@ impl Backtrace {
                 })
                 .and_then(|fmt_name| {
                     // do not put output related calls in the backtrace since it always ultimately calls panic_hook and print_backtrace
-                    if fmt_name.starts_with("rudderc::output")
+                    if fmt_name.starts_with("rudderc::io::output::backtrace::Backtrace::new")
                         || fmt_name.starts_with("rudderc::error::Error::new")
+                        || fmt_name
+                            .starts_with("rudderc::parser::error::BacktraceWrapper::new_error")
                     {
                         return None;
                     }

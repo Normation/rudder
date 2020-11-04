@@ -2,13 +2,39 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use super::{PInput, Token};
-use crate::error::*;
+use crate::{error::*, io::output::Backtrace};
 use colored::Colorize;
 use nom::{
     error::{ErrorKind, ParseError, VerboseError},
     Err, IResult,
 };
 use std::fmt;
+
+#[derive(Clone)]
+pub struct BacktraceWrapper(Option<Backtrace>);
+impl BacktraceWrapper {
+    pub fn new() -> Self {
+        Self(None)
+    }
+    pub fn new_error() -> Self {
+        // let bt =
+        match std::env::var("RUDDERC_BACKTRACE") {
+            Ok(ref val) if val != "0" => Self(Some(Backtrace::new())),
+            _ => Self(None),
+        }
+        // println!("BT = {:?}", bt);
+        // Self(None)
+    }
+}
+impl fmt::Debug for BacktraceWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.0.as_ref().map_or("".to_owned(), |bt| bt.to_string())
+        )
+    }
+}
 
 /// Result for all parser
 pub type PResult<'src, O> = IResult<PInput<'src>, O, PError<PInput<'src>>>;
@@ -49,6 +75,7 @@ pub struct Context<I> {
 pub struct PError<I> {
     pub context: Option<Context<I>>,
     pub kind: PErrorKind<I>,
+    pub backtrace: BacktraceWrapper,
 }
 
 /// This trait must be implemented by the error type of a nom parser
@@ -61,6 +88,7 @@ impl<I: Clone> ParseError<I> for PError<I> {
         PError {
             context: None,
             kind: PErrorKind::Nom(VerboseError::from_error_kind(input, kind)),
+            backtrace: BacktraceWrapper::new_error(),
         }
     }
 
@@ -72,6 +100,7 @@ impl<I: Clone> ParseError<I> for PError<I> {
             PErrorKind::Nom(e) => PError {
                 context: None,
                 kind: PErrorKind::Nom(VerboseError::append(input, kind, e)),
+                backtrace: BacktraceWrapper::new_error(),
             },
             _ => other,
         }
@@ -82,6 +111,7 @@ impl<I: Clone> ParseError<I> for PError<I> {
         PError {
             context: None,
             kind: PErrorKind::Nom(VerboseError::from_char(input, c)),
+            backtrace: BacktraceWrapper::new_error(),
         }
     }
 
@@ -124,18 +154,20 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
                 let context = ctx.fragment().trim_end_matches('\n');
                 // Formats final error output
                 f.write_str(&format!(
-                    "{} near '{}'\n{} {}",
+                    "{} near '{}'\n{} {}{:?}",
                     Token::from(ctx).position_str().bright_yellow(),
                     context,
                     "!-->".bright_blue(),
                     message.bold(),
+                    self.backtrace
                 ))
             }
             None => f.write_str(&format!(
-                "{}\n{} {}",
+                "{}\n{} {}{:?}",
                 "undefined context".bright_yellow(),
                 "!-->".bright_blue(),
                 message.bold(),
+                self.backtrace
             )),
         }
     }
@@ -167,12 +199,14 @@ where
                 PErrorKind::Nom(_) => Err(Err::Failure(PError {
                     context: None,
                     kind: e(),
+                    backtrace: err.backtrace,
                 })),
                 _ => Err(Err::Failure(err)),
             },
-            Err(Err::Error(_)) => Err(Err::Failure(PError {
+            Err(Err::Error(err)) => Err(Err::Failure(PError {
                 context: None,
                 kind: e(),
+                backtrace: err.backtrace,
             })),
             Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
             Ok(y) => Ok(y),
@@ -190,9 +224,10 @@ where
 {
     move |input| match f(input) {
         Err(Err::Failure(err)) => Err(Err::Failure(err)),
-        Err(Err::Error(_)) => Err(Err::Error(PError {
+        Err(Err::Error(err)) => Err(Err::Error(PError {
             context: None,
             kind: e(),
+            backtrace: err.backtrace,
         })),
         Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
         Ok(y) => Ok(y),
@@ -212,6 +247,7 @@ where
             PErrorKind::Nom(_) => Err(Err::Error(PError {
                 context: None,
                 kind: e.kind,
+                backtrace: e.backtrace,
             })),
             _ => Err(Err::Failure(e)),
         },
@@ -236,6 +272,7 @@ pub fn update_error_context<'src>(
             Err::Failure(PError {
                 context,
                 kind: err.kind,
+                backtrace: err.backtrace,
             })
         }
         Err::Error(err) => {
@@ -246,6 +283,7 @@ pub fn update_error_context<'src>(
             Err::Error(PError {
                 context,
                 kind: err.kind,
+                backtrace: err.backtrace,
             })
         }
         Err::Incomplete(_) => panic!("Incomplete should never happen"),
