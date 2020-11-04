@@ -1,0 +1,1 @@
+curl --header "X-API-Token: yourToken" https://rudder.example.com/rudder/api/latest/nodes/status?ids=17dadf50-6056-4c8b-a935-6b97d14b89a7,b9a71482-5030-4699-984d-b03d28bbbf36

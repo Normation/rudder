@@ -375,13 +375,18 @@ class NodeApi (
         ids      <- (restExtractorService.extractString("ids")(req)(ids => Full(ids.split(",").map(_.trim)))).map(_.map(_.toList).getOrElse(Nil)) ?~! "Error: 'ids' parameter not found"
         accepted <- apiV2.nodeInfoService.getAll().map(_.keySet.map(_.value)) ?~! errorMsg(ids)
         pending  <- apiV2.nodeInfoService.getPendingNodeInfos().map(_.keySet.map(_.value)) ?~! errorMsg(ids)
+        deleted  <- apiV2.nodeInfoService.getDeletedNodeInfos().map(_.keySet.map(_.value)) ?~! errorMsg(ids)
       } yield {
-        val array = ids.map(id =>
-          if(accepted.contains(id))     JObject(JField(id, AcceptedInventory.name))
-          else if(pending.contains(id)) JObject(JField(id, AcceptedInventory.name))
-          else                          JObject(JField(id, "unknown"))
-        )
-        JArray(array)
+        val array = ids.map { id =>
+          val status = {
+            if(accepted.contains(id))     AcceptedInventory.name
+            else if(pending.contains(id)) PendingInventory.name
+            else if(deleted.contains(id)) "deleted" // RemovedInventory would output "removed" which is inconsistant with other API
+            else                          "unknown"
+          }
+          JObject(JField("id", id) :: JField("status", status) :: Nil)
+        }
+        JObject(JField("nodes", JArray(array))::Nil)
       }) match {
         case Full(jarray) =>
           toJsonResponse(None, jarray)
@@ -479,7 +484,7 @@ class NodeApiService13 (
     import net.liftweb.json.JsonDSL._
 
 
-      
+
     def toComplianceArray(comp : ComplianceLevel) : JArray =
       JArray (
         JArray(JInt(comp.reportsDisabled) :: JDouble(comp.pc.reportsDisabled) :: Nil)  :: //0
