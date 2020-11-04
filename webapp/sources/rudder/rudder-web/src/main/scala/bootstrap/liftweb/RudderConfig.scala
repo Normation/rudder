@@ -1897,7 +1897,6 @@ object RudderConfig extends Loggable {
     val unitRefusors =
       historizeNodeStateOnChoice ::
       unitRefuseGroup ::
-      acceptNodeAndMachineInNodeOu ::
       acceptInventory ::
       Nil
 
