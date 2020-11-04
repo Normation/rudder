@@ -112,19 +112,19 @@ final object CheckFreeSpace extends Check {
         }
       }
     } yield {
-      val pcSpaceLeft = paritionSpaceInfos.map(x => (x.path, x.percent)).sortBy(-_._2)
+      val pcSpaceLeft = paritionSpaceInfos.map(x => (x.path, x.percent)).sortBy(_._2)
       pcSpaceLeft match {
         case h :: _ =>
           val listMsgSpace = pcSpaceLeft.map(s => s"- ${s._1} -> ${s._2}%").mkString("\n")
           h._2 match {
             case pr if pr < 5L  =>
-              val msg = s"Missing free space:\n${listMsgSpace} available (<5%)"
+              val msg = s"Missing available free space (<5%):\n${listMsgSpace}"
               Critical(name, msg)
             case pr if pr < 10L =>
-              val msg = s"Missing free space:\n${listMsgSpace} available (<10%)"
+              val msg = s"Missing available free space (<10%):\n${listMsgSpace}"
               Warning(name, msg)
             case _              =>
-              val msg = s"Enough free space: \n${listMsgSpace} available"
+              val msg = s"Enough available free space:\n${listMsgSpace}"
               Ok(name, msg)
           }
         case Nil =>
