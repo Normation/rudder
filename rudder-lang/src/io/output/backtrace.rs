@@ -5,12 +5,27 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use std::fmt;
 
+/// Backtrace Wrapped into an option, with tailored display and debug methods.
+/// Backtrace is optional, and should be used for debug purposes only to save performance cost which can be huge (mainly parser)
 #[derive(Clone)]
-pub struct Backtrace(backtrace::Backtrace);
+pub struct Backtrace(Option<backtrace::Backtrace>);
 
 impl Backtrace {
+    pub fn empty() -> Self {
+        Self(None)
+    }
     pub fn new() -> Self {
-        Self(backtrace::Backtrace::new())
+        match std::env::var("RUDDERC_BACKTRACE") {
+            Ok(ref val) if val != "0" => Self(Some(backtrace::Backtrace::new())),
+            _ => Self::empty(),
+        }
+    }
+    pub fn new_from_bool(is_backtraced: bool) -> Self {
+        if is_backtraced {
+            Self(Some(backtrace::Backtrace::new()))
+        } else {
+            Self::empty()
+        }
     }
 
     /// this funtion can be invoked from anywhere in the code to get a proper backtrace up to the creation of the programs thread
@@ -31,10 +46,10 @@ impl Backtrace {
                 })
                 .and_then(|fmt_name| {
                     // do not put output related calls in the backtrace since it always ultimately calls panic_hook and print_backtrace
-                    if fmt_name.starts_with("rudderc::io::output::backtrace::Backtrace::new")
+                    if fmt_name.starts_with("rudderc::io::output::LogOutput::set_panic_hook")
+                        || fmt_name.starts_with("rudderc::io::output::backtrace::Backtrace::new")
                         || fmt_name.starts_with("rudderc::error::Error::new")
-                        || fmt_name
-                            .starts_with("rudderc::parser::error::BacktraceWrapper::new_error")
+                        || fmt_name.starts_with("rudderc::parser::error::Backtrace::new")
                     {
                         return None;
                     }
@@ -72,22 +87,31 @@ impl Backtrace {
 /// Display backtrace to the final user
 impl fmt::Display for Backtrace {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let stringified_trace = self
-            .0
-            .frames()
-            .iter()
-            .filter_map(|frame| {
-                frame
-                    .symbols()
-                    .into_iter()
-                    .enumerate()
-                    .map(|(index, sym)| Self::format_symbol(index, sym))
-                    .collect::<Option<Vec<String>>>()
-            })
-            .flatten()
-            .collect::<Vec<String>>()
-            .join("\n");
+        match &self.0 {
+            Some(bt) => {
+                let stringified_trace = bt
+                    .frames()
+                    .iter()
+                    .filter_map(|frame| {
+                        frame
+                            .symbols()
+                            .into_iter()
+                            .enumerate()
+                            .map(|(index, sym)| Self::format_symbol(index, sym))
+                            .collect::<Option<Vec<String>>>()
+                    })
+                    .flatten()
+                    .collect::<Vec<String>>()
+                    .join("\n");
 
-        write!(f, "\nTrace:\n{}", stringified_trace)
+                write!(f, "\nTrace:\n{}", stringified_trace)
+            }
+            None => write!(f, ""),
+        }
+    }
+}
+impl fmt::Debug for Backtrace {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_string())
     }
 }

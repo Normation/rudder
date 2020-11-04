@@ -10,32 +10,6 @@ use nom::{
 };
 use std::fmt;
 
-#[derive(Clone)]
-pub struct BacktraceWrapper(Option<Backtrace>);
-impl BacktraceWrapper {
-    pub fn new() -> Self {
-        Self(None)
-    }
-    pub fn new_error() -> Self {
-        // let bt =
-        match std::env::var("RUDDERC_BACKTRACE") {
-            Ok(ref val) if val != "0" => Self(Some(Backtrace::new())),
-            _ => Self(None),
-        }
-        // println!("BT = {:?}", bt);
-        // Self(None)
-    }
-}
-impl fmt::Debug for BacktraceWrapper {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.0.as_ref().map_or("".to_owned(), |bt| bt.to_string())
-        )
-    }
-}
-
 /// Result for all parser
 pub type PResult<'src, O> = IResult<PInput<'src>, O, PError<PInput<'src>>>;
 
@@ -75,7 +49,7 @@ pub struct Context<I> {
 pub struct PError<I> {
     pub context: Option<Context<I>>,
     pub kind: PErrorKind<I>,
-    pub backtrace: BacktraceWrapper,
+    pub backtrace: Backtrace,
 }
 
 /// This trait must be implemented by the error type of a nom parser
@@ -88,7 +62,7 @@ impl<I: Clone> ParseError<I> for PError<I> {
         PError {
             context: None,
             kind: PErrorKind::Nom(VerboseError::from_error_kind(input, kind)),
-            backtrace: BacktraceWrapper::new_error(),
+            backtrace: Backtrace::empty(),
         }
     }
 
@@ -100,7 +74,7 @@ impl<I: Clone> ParseError<I> for PError<I> {
             PErrorKind::Nom(e) => PError {
                 context: None,
                 kind: PErrorKind::Nom(VerboseError::append(input, kind, e)),
-                backtrace: BacktraceWrapper::new_error(),
+                backtrace: other.backtrace, // might be interesting to cumulate it
             },
             _ => other,
         }
@@ -111,7 +85,7 @@ impl<I: Clone> ParseError<I> for PError<I> {
         PError {
             context: None,
             kind: PErrorKind::Nom(VerboseError::from_char(input, c)),
-            backtrace: BacktraceWrapper::new_error(),
+            backtrace: Backtrace::empty(),
         }
     }
 
@@ -199,14 +173,14 @@ where
                 PErrorKind::Nom(_) => Err(Err::Failure(PError {
                     context: None,
                     kind: e(),
-                    backtrace: err.backtrace,
+                    backtrace: Backtrace::new(),
                 })),
                 _ => Err(Err::Failure(err)),
             },
             Err(Err::Error(err)) => Err(Err::Failure(PError {
                 context: None,
                 kind: e(),
-                backtrace: err.backtrace,
+                backtrace: Backtrace::new(),
             })),
             Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
             Ok(y) => Ok(y),
@@ -227,7 +201,7 @@ where
         Err(Err::Error(err)) => Err(Err::Error(PError {
             context: None,
             kind: e(),
-            backtrace: err.backtrace,
+            backtrace: Backtrace::empty(),
         })),
         Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
         Ok(y) => Ok(y),
