@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Get status (pending, accepted, unknown) of a list of nodes
+  description: 
+  operationId: getNodesStatus
+  parameters:
+    name: "ids"
+    in: query
+    description: Comma separated list of nodeIds for which we want to check status
+    schema:
+      type: string
+      default: default
+      format: comma-separated list
+      example: 8403353b-42c4-46f5-a08d-bc77a1a0bad9
+  responses:
+    "200":
+      description: nodes
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getNodesStatus
+              data:
+                type: object
+                description: List of nodeId and associated status
+                required:
+                  - nodes
+                properties:
+                  nodes:
+                    type: array
+                    description: List of nodeId and associated status
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - status
+                      properties:
+                        id:
+                          type: string
+                          description: Unique id of the node
+                          format: uuid (or "root")
+                          example: 9a1773c9-0889-40b6-be89-f6504443ac1b
+                        status:
+                          type: string
+                          description: Status of the node
+                          enum:
+                            - pending
+                            - accepted
+                            - deleted 
+                            - unknown                   
+  tags:
+    - Nodes
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/nodes/status.sh
