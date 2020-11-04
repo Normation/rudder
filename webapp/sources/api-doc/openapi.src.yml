@@ -42,7 +42,7 @@ tags:
     description: Nodes management
   - name: Inventories
     description: Inventory processing service
-  - name: Healthcheck
+  - name: "Health check"
     description: Internal health view
   - name: Parameters
     description: Global parameters
