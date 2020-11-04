@@ -1216,7 +1216,7 @@ function callbackElement(oData, displayCompliance) {
 
 
 var dynColumns = []
-var columns = [];
+var columns = [ allColumns["Hostname"],  allColumns["OS"],  allColumns["Compliance"],  allColumns["Last run"]];
 
 function reloadTable(gridId) {
   var table = $('#'+gridId).DataTable();
@@ -1226,9 +1226,15 @@ function reloadTable(gridId) {
 function createNodeTable(gridId, nope, contextPath, refresh) {
 
 
-  columns = [ allColumns["Hostname"],  allColumns["OS"],  allColumns["Compliance"],  allColumns["Last run"]]
+  var cacheId = gridId + "_columns"
+  var cacheColumns = localStorage.getItem(cacheId)
+  if (cacheColumns !== null) {
+    columns = JSON.parse(cacheColumns).filter(function(c) { return c !== null})
+    console.log(columns)
+  }
 
-  dynColumns = [ "Id", "Server", "Ram", "Property", "Software", "Agent version", "Policy mode", "IP addresses", "Machine type", "Kernel" ]
+  var colTitle = columns.map(function(c) { return c.title})
+  dynColumns = Object.keys(allColumns).filter(function(c) { return !(colTitle.includes(c))})
   var params = {
       "filter" : true
     , "paging" : true
@@ -1250,8 +1256,10 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
     , "contentType": "application/json"
     , "data" : function(d) {
         var data = d
-
-        if (nodeIds !== undefined) { data = $.extend({}, d, {"nodeIds": nodeIds} ) }
+        var softwareList= columns.filter(function(c) { return c.data.startsWith("software")}).map(function(c) {return c.data.split(/\.(.+)/)[1]})
+        var properties = columns.filter(function(c) { return c.data.startsWith("property")}).map(function(c) {return c.data.split(/\.(.+)/)[1]})
+        data = $.extend({}, d, {"software": softwareList, "properties": properties})
+        if (nodeIds !== undefined) { data = $.extend({}, d, {"nodeIds": nodeIds, "software": softwareList} ) }
         return JSON.stringify(data)
       }
     , "dataSrc" : ""
@@ -1269,11 +1277,11 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
   function addColumn(columnName, value) {
     var table = $('#'+gridId).DataTable();
     var data2 = table.rows().data();
-    var init = table.init();
     table.destroy();
     $('#'+gridId).empty();
     if (columnName =="Property" || columnName =="Software" ) {
-      init.aoColumns.push(allColumns[columnName](value))
+      columns.push(allColumns[columnName](value))
+      localStorage.setItem(cacheId, JSON.stringify(columns))
       params["ajax"] = {
           "url" : contextPath + "/secure/api/nodes/details/"+columnName.toLowerCase()+"/"+value
         , "type" : "POST"
@@ -1295,12 +1303,13 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
                       }
       }
 
-      createTable(gridId,[], init.aoColumns, params, contextPath, refresh, "nodes");
+      createTable(gridId,[], columns, params, contextPath, refresh, "nodes");
     } else {
-      init.aoColumns.push(allColumns[columnName])
+      columns.push(allColumns[columnName])
+      localStorage.setItem(cacheId, JSON.stringify(columns))
       dynColumns = dynColumns.filter(function(col) { return col != columnName})
       delete params["ajax"];
-      createTable(gridId,data2, init.aoColumns, params, contextPath, refresh, "nodes");
+      createTable(gridId,data2, columns, params, contextPath, refresh, "nodes");
     }
     $("#first_line_header input").addClass("form-control")
     columnSelect(true);
@@ -1309,20 +1318,22 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
   function removeColumn(columnIndex) {
     var table = $('#'+gridId).DataTable();
     var data2 = table.rows().data();
-    var init = table.init();
+
     table.destroy();
     $('#'+gridId).empty();
-    dynColumns.push(init.aoColumns[columnIndex].title)
-    init.aoColumns.splice(columnIndex, 1)
+    if (! (columns[columnIndex].data.startsWith("software") || columns[columnIndex].data.startsWith("property"))) {
+      dynColumns.push(columns[columnIndex].title)
+    }
+    columns.splice(columnIndex, 1)
+    localStorage.setItem(cacheId, JSON.stringify(columns))
     delete params["ajax"];
-    createTable(gridId,data2, init.aoColumns, params, contextPath, refresh, "nodes");
+    createTable(gridId,data2, columns, params, contextPath, refresh, "nodes");
     $("#first_line_header input").addClass("form-control")
     columnSelect(true);
   }
 
   function columnSelect(editOpen) {
     var table = $('#'+gridId).DataTable();
-    var init = table.init();
     $("#edit-columns").html($("<button class='btn btn-blue' > <i class='fa fa-pencil'></i> Edit columns</button>").click(function(){$("#select-columns").toggle()}))
     var select = "<div class='col-xs-12 row form-group'> <div class='col-xs-2' style='margin-left : -15px'  > <select placeholder='Select column to add' class='  form-control'>"
     for (var key in dynColumns) {
@@ -1333,8 +1344,8 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
     editOpen ? $("#select-columns").show() : $("#select-columns").hide()
     $("#select-columns").html(select)
     var selectedColumns =""
-    for (var key in init.aoColumns) {
-      var elem = $("<span class='rudder-label label-state' style='cursor: normal' >" + init.aoColumns[key].title + "  </span>")
+    for (var key in columns) {
+      var elem = $("<span class='rudder-label label-state' style='cursor: normal' >" + columns[key].title + "  </span>")
       elem.append($("<i class='fa fa-times' style='cursor: pointer'> </i>").hover(function() { $(this).parent().toggleClass("label-state label-error")}).click(function(value) { return function() {removeColumn(value)}}(key)))
       $("#select-columns").append(elem)
     }
