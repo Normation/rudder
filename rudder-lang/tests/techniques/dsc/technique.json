@@ -1,0 +1,33 @@
+{
+    "bundle_name": "technique_dsc",
+    "version": "1.0",
+    "category": "ncf_techniques",
+    "description": "",
+    "name": "technique_dsc",
+    "method_calls": [
+        {
+            "method_name": "directory_check_exists",
+            "class_context": "any",
+            "component": "Directory check exists",
+            "parameters": [
+                {
+                    "name": "directory_name",
+                    "value": "tmp"
+                }
+            ]
+        },
+        {
+            "method_name": "command_execution",
+            "class_context": "any",
+            "component": "Command execution",
+            "parameters": [
+                {
+                    "name": "command",
+                    "value": "dsc"
+                }
+            ]
+        }
+    ],
+    "parameter": [],
+    "resources": []
+}

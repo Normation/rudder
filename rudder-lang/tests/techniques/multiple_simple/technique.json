@@ -15,7 +15,7 @@
                 "method_name": "file_absent",
                 "parameters": [
                     {
-                        "name": "path",
+                        "name": "target",
                         "value": "/tmp",
                         "$errors": []
                     }
@@ -27,7 +27,7 @@
                 "method_name": "file_check_exists",
                 "parameters": [
                     {
-                        "name": "path",
+                        "name": "file_name",
                         "value": "/tmp",
                         "$errors": []
                     }
@@ -39,7 +39,7 @@
                 "method_name": "file_present",
                 "parameters": [
                     {
-                        "name": "path",
+                        "name": "target",
                         "value": "/tmp",
                         "$errors": []
                     }
@@ -80,7 +80,7 @@
                 "method_name": "directory_check_exists",
                 "parameters": [
                     {
-                        "name": "target",
+                        "name": "directory_name",
                         "value": "/tmp",
                         "$errors": []
                     }

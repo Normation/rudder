@@ -10,7 +10,7 @@
         "parameter": [],
         "method_calls": [
             {
-                "class_context": "(dragonfly|freebsd|netbsd|openbsd)",
+                "class_context": "any.(dragonfly|freebsd|netbsd|openbsd)",
                 "component": "Kernel module loaded",
                 "method_name": "kernel_module_loaded",
                 "parameters": [
@@ -22,5 +22,6 @@
                 ]
             }
         ]
-    }
+    },
+    "resources": []
 }

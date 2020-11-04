@@ -2,24 +2,24 @@
     "type": "ncf_technique",
     "version": 2,
     "data": {
-        "name": "condition_errorprone",
-        "description": "",
-        "version": "1.0",
-        "category": "ncf_techniques",
         "bundle_name": "condition_errorprone",
+        "description": "",
+        "name": "condition_errorprone",
+        "version": "1.0",
         "parameter": [],
+        "category": "ncf_techniques",
         "method_calls": [
             {
-                "class_context": "(dragonfly|openbsd)",
-                "component": "Command execution",
-                "method_name": "command_execution",
                 "parameters": [
                     {
                         "name": "command",
                         "value": "pwd",
                         "$errors": []
                     }
-                ]
+                ],
+                "class_context": "dragonfly",
+                "method_name": "command_execution",
+                "component": "Command execution"
             }
         ]
     }

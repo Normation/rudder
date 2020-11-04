@@ -51,7 +51,7 @@ FLAGS:
 SUBCOMMANDS:
     compile      Generates either a DSC / CFEngine technique (`--format` option) from a RudderLang technique
     help         Prints this message or the help of the given subcommand(s)
-    save      Generates a RudderLang technique from a CFEngine technique
+    save      Generates a RudderLang technique from a JSON technique
     technique    A technique can either be used with one of the two following subcommands: `read` (from rudderlang
                  to json) or `generate` (from json to cfengine or dsc or rudderlang)
 ----
@@ -102,7 +102,7 @@ OPTIONS:
 ----
 .The second command, save:
 ----
-Generates a RudderLang technique from a CFEngine technique
+Generates a RudderLang technique from a JSON technique
 
 USAGE:
     rudderc save [FLAGS] [OPTIONS]

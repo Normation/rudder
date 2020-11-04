@@ -23,7 +23,7 @@
                 "method_name": "package_absent",
                 "parameters": [
                     {
-                        "name": "package",
+                        "name": "name",
                         "value": "vpn",
                         "$errors": []
                     },
