@@ -1217,7 +1217,8 @@ function callbackElement(oData, displayCompliance) {
 
 var dynColumns = []
 var columns = [ allColumns["Hostname"],  allColumns["OS"],  allColumns["Compliance"],  allColumns["Last run"]];
-
+var defaultColumns = [ allColumns["Hostname"],  allColumns["OS"],  allColumns["Compliance"],  allColumns["Last run"]];
+var allColumnsKeys =  Object.keys(allColumns)
 function reloadTable(gridId) {
   var table = $('#'+gridId).DataTable();
   table.ajax.reload();
@@ -1229,12 +1230,12 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
   var cacheId = gridId + "_columns"
   var cacheColumns = localStorage.getItem(cacheId)
   if (cacheColumns !== null) {
-    columns = JSON.parse(cacheColumns).filter(function(c) { return c !== null})
-    console.log(columns)
+    // Filter columns that are null, and columns that have a title that is  not a key in of AllColumns, or if data does not start by software or property
+    columns = JSON.parse(cacheColumns).filter(function(c) { return c !== null && (allColumnsKeys.includes(c.title) || c.data.startsWith("software") || c.data.startsWith("property") )  })
   }
 
   var colTitle = columns.map(function(c) { return c.title})
-  dynColumns = Object.keys(allColumns).filter(function(c) { return !(colTitle.includes(c))})
+  dynColumns = allColumnsKeys.filter(function(c) { return !(colTitle.includes(c))})
   var params = {
       "filter" : true
     , "paging" : true
@@ -1273,6 +1274,22 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
   createTable(gridId, [] , columns, params, contextPath, refresh, "nodes");
   $("#first_line_header input").addClass("form-control")
 
+
+  function resetColumns()  {
+    var table = $('#'+gridId).DataTable();
+    var data2 = table.rows().data();
+    table.destroy();
+    $('#'+gridId).empty();
+
+    delete params["ajax"];
+
+    dynColumns = Object.keys(allColumns).filter(function(c) { return !(defaultColumns.map(function(col) { return col.title}).includes(c))});
+    columns = Array.from(defaultColumns);
+    localStorage.setItem(cacheId, JSON.stringify(columns))
+    createTable(gridId,data2, columns, params, contextPath, refresh, "nodes");
+    $("#first_line_header input").addClass("form-control")
+    columnSelect(true);
+  }
 
   function addColumn(columnName, value) {
     var table = $('#'+gridId).DataTable();
@@ -1340,7 +1357,7 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
       value = dynColumns[key]
       select += "<option value='"+value+"'>"+value+"</option>"
     }
-    select += "</select></div><div class='col-xs-2' style='margin-left : -15px'><input class='form-control' type='text'></div> <button class='btn btn-success'  ><i class='fa fa-plus-circle'> Add column</button></div>"
+    select += "</select></div><div class='col-xs-2' style='margin-left : -15px'><input class='form-control' type='text'></div> <button id='add-column' class='btn btn-success'  ><i class='fa fa-plus-circle'/> Add column</button>  <button id='reset-columns' class='btn btn-blue'  ><i class='fa fa-rotate-left' /> Reset columns</button></div>"
     editOpen ? $("#select-columns").show() : $("#select-columns").hide()
     $("#select-columns").html(select)
     var selectedColumns =""
@@ -1360,9 +1377,12 @@ function createNodeTable(gridId, nope, contextPath, refresh) {
         $("#select-columns input").parent().hide()
       }
     })
-    $("#select-columns div button").click(function(e) {
+    $("#select-columns div button#add-column").click(function(e) {
       addColumn($("#select-columns select").val(), $("#select-columns input").val())
-     })
+    })
+    $("#select-columns div button#reset-columns").click(function(e) {
+      resetColumns()
+    })
   }
    columnSelect(false)
 }
