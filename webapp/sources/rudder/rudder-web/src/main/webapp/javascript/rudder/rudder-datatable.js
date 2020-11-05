@@ -1226,16 +1226,19 @@ function reloadTable(gridId) {
 
 function createNodeTable(gridId, nope, contextPath, refresh) {
 
-
   var cacheId = gridId + "_columns"
   var cacheColumns = localStorage.getItem(cacheId)
   if (cacheColumns !== null) {
     // Filter columns that are null, and columns that have a title that is  not a key in of AllColumns, or if data does not start by software or property
-    columns = JSON.parse(cacheColumns).filter(function(c) { return c !== null && (allColumnsKeys.includes(c.title) || c.data.startsWith("software") || c.data.startsWith("property") )  })
+    var cache = JSON.parse(cacheColumns).filter(function(c) { return c !== null && (allColumnsKeys.includes(c.title) || c.data.startsWith("software") || c.data.startsWith("property") )  })
+    // function (createdCell) from some columns are not serialized, we need to get their definition from the all columns object
+    // Hopefully, software and properties don't need it yet, so we can only check on title, the else part concern soft and prop, we can keep the column from cache for now
+    columns = cache.map(function(c) { if (allColumnsKeys.includes(c.title)) { return allColumns[c.title]} else return c});
   }
 
   var colTitle = columns.map(function(c) { return c.title})
   dynColumns = allColumnsKeys.filter(function(c) { return !(colTitle.includes(c))})
+
   var params = {
       "filter" : true
     , "paging" : true
