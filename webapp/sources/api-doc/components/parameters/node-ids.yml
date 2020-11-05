@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+name: "ids"
+required: true
+in: query
+description: Comma separated list of node Ids
+schema:
+  type: string
+  default: default
+  format: comma-separated list
+  example: 8403353b-42c4-46f5-a08d-bc77a1a0bad9,root
