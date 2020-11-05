@@ -793,6 +793,8 @@ class EventLogDetailsServiceImpl(
                            ("Missing attribute 'name' in entry type Global Parameter: ${entry}")
       modValue           <- getFromTo[ConfigValue]((globalParam \ "value").headOption,
                              { s => GenericProperty.parseValue(s.text).toBox })
+      modInheritMode     <- getFromTo[Option[InheritMode]]((globalParam \ "inheritMode").headOption,
+                             { s => Full(InheritMode.parseString(s.text).toOption) })
       modDescription     <- getFromToString((globalParam \ "description").headOption)
       modOverridable     <- getFromTo[Boolean]((globalParam \ "overridable").headOption,
                              { s => tryo { s.text.toBoolean } } )
@@ -802,6 +804,7 @@ class EventLogDetailsServiceImpl(
           name = name
         , modValue = (modValue)
         , modDescription = modDescription
+        , modInheritMode = modInheritMode
       )
     }
   }
@@ -941,7 +944,8 @@ class EventLogDetailsServiceImpl(
                          value    <- (prop \ "value").headOption.map( _.text ) ?~! s"Missing attribute 'value' in entry type node : '${xml}'"
                                      // 'provider' is optionnal, default to "default"
                          provider =  (prop \ "provider" ).headOption.map( p => PropertyProvider(p.text) )
-                         prop     <- NodeProperty.parse(name, value, provider).toBox
+                         mode     =  (prop \ "inheritMode" ).headOption.flatMap( p => InheritMode.parseString(p.text).toOption )
+                         prop     <- NodeProperty.parse(name, value, mode, provider).toBox
                        } yield {
                          prop
                        }

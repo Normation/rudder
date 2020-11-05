@@ -37,6 +37,7 @@
 
 package com.normation.rudder.domain.parameters
 
+import com.normation.rudder.domain.nodes.InheritMode
 import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.policies.TriggerDeploymentDiff
@@ -62,6 +63,7 @@ final case class ModifyGlobalParameterDiff(
   , modValue      : Option[SimpleDiff[ConfigValue]] = None
   , modDescription: Option[SimpleDiff[String]] = None
   , modProvider   : Option[SimpleDiff[Option[PropertyProvider]]] = None
+  , modInheritMode: Option[SimpleDiff[Option[InheritMode]]] = None
 ) extends ParameterDiff {
   def needDeployment : Boolean = {
     modValue.isDefined

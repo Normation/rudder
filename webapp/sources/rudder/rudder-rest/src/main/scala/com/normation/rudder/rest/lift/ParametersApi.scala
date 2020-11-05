@@ -67,7 +67,6 @@ import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JString
 import net.liftweb.json.JsonDSL._
-
 import com.normation.box._
 
 class ParameterApi (
@@ -244,7 +243,7 @@ extends Loggable {
     restParameter match {
       case Full(restParameter) =>
         import com.normation.rudder.domain.nodes.GenericProperty._
-        val parameter = restParameter.updateParameter(GlobalParameter(parameterName,"".toConfigValue,"",None))
+        val parameter = restParameter.updateParameter(GlobalParameter(parameterName,"".toConfigValue,None,"",None))
 
         val diff = AddGlobalParameterDiff(parameter)
         createChangeRequestAndAnswer(

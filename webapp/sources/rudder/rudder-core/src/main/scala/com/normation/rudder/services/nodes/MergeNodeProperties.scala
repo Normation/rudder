@@ -58,7 +58,6 @@ import com.normation.rudder.domain.queries._
 import com.normation.rudder.services.nodes.GroupProp._
 import com.softwaremill.quicklens._
 import com.typesafe.config.ConfigParseOptions
-import com.typesafe.config.ConfigValue
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.AsSubgraph
 import org.jgrapht.graph.DefaultDirectedGraph
@@ -193,7 +192,7 @@ object MergeNodeProperties {
    * Merge that node properties with properties of groups which contain it.
    * Groups are not sorted, but all groups with that node are present.
    */
-  def forNode(node: NodeInfo, nodeTargets: List[FullRuleTargetInfo], globalParams: Map[String, ConfigValue]): PureResult[List[NodePropertyHierarchy]] = {
+  def forNode(node: NodeInfo, nodeTargets: List[FullRuleTargetInfo], globalParams: Map[String, GlobalParameter]): PureResult[List[NodePropertyHierarchy]] = {
     for {
       properties <- checkPropertyMerge(nodeTargets, globalParams)
     } yield {
@@ -204,7 +203,7 @@ object MergeNodeProperties {
   /*
    * Find parent group for a given group and merge its properties
    */
-  def forGroup(groupId: NodeGroupId, allGroups: Map[NodeGroupId, FullGroupTarget], globalParams: Map[String, ConfigValue]): PureResult[List[NodePropertyHierarchy]] = {
+  def forGroup(groupId: NodeGroupId, allGroups: Map[NodeGroupId, FullGroupTarget], globalParams: Map[String, GlobalParameter]): PureResult[List[NodePropertyHierarchy]] = {
     // get parents till the top, recursively.
     // This can fail is a parent is missing from "all groups"
     def withParents(currents: List[FullGroupTarget], allGroups: Map[NodeGroupId, FullGroupTarget], acc: Map[NodeGroupId, FullGroupTarget]): PureResult[Map[NodeGroupId, FullGroupTarget]] = {
@@ -285,7 +284,7 @@ object MergeNodeProperties {
    *
    * We know that we have all groups/subgroups in which the node is here.
    */
-  def checkPropertyMerge(targets: List[FullRuleTargetInfo], globalParams: Map[String, ConfigValue]): PureResult[List[NodePropertyHierarchy]] = {
+  def checkPropertyMerge(targets: List[FullRuleTargetInfo], globalParams: Map[String, GlobalParameter]): PureResult[List[NodePropertyHierarchy]] = {
     /*
      * General strategy:
      * - build all disjoint hierarchies of groups that contains that node
@@ -371,8 +370,8 @@ object MergeNodeProperties {
       flatten   =  overridden.map(_.values).flatten
       merged    <- mergeAll(flatten)
       globals   =  globalParams.toList.map { case (n, v) =>
-                     val config = GenericProperty.toConfig(n, v, Some(INHERITANCE_PROVIDER), None, ConfigParseOptions.defaults().setOriginDescription(s"Global parameter '${n}'"))
-                     (n, NodePropertyHierarchy(NodeProperty(config), ParentProperty.Global(v) :: Nil))
+                     val config = GenericProperty.toConfig(n, v.value, v.inheritMode, Some (INHERITANCE_PROVIDER), None, ConfigParseOptions.defaults().setOriginDescription(s"Global parameter '${n}'"))
+                     (n, NodePropertyHierarchy(NodeProperty(config), ParentProperty.Global(v.value) :: Nil))
                    }
     } yield {
       // here, we add global parameters as a first default
