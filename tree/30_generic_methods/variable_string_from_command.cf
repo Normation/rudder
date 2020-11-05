@@ -53,12 +53,12 @@ bundle agent variable_string_from_command(variable_prefix, variable_name, comman
       # for example when checking promises on the server.
     pass1::
       # the cariage return is necessary if command ends by a comment
-      "temp" string => execresult("OUTPUT=${const.dollar}(/bin/true; ${command}
+      "temp" string => execresult("OUTPUT=${const.dollar}(/bin/true; 2>/dev/null ${command}
 ); printf \"%3d\" ${const.dollar}?; echo \"${const.dollar}OUTPUT\"", "useshell");
       "temp_length" int => string_length("${temp}");
       "raw_output_length" string => eval("${temp_length} - 3", "math", "infix");
       "output_length" string => format("%d", "${raw_output_length}");
-      "raw_code" string => string_head("${temp}", 3);
+      "raw_code" string => string_head("${temp}", "3");
       "code" string => format("%d", "${raw_code}");
 
       # define the variable within the variable_prefix namespace
