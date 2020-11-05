@@ -1681,7 +1681,7 @@ form .tooltip-content p {
 .callout-fade p {
   margin: 0 0 10px;
 }
-.callout-fade p:last-child {
+.callout-fade :last-child {
   margin-bottom: 0;
 }
 .callout-fade div.marker{
@@ -2659,9 +2659,11 @@ ul > li.rudder-form > .input-group label.form-control{
   border-top-right-radius:0;
   border-bottom-right-radius:0;
   font-weight: 500;
-  color: #555;
+  color: #222D42;
   font-size: 14px;
   padding-right: 40px;
+  display: flex;
+  align-items: center;
 }
 ul.list-sm > li.rudder-form > .input-group label.form-control,#directiveRulesTab ul > li.rudder-form > .input-group label.form-control{
   height: auto;

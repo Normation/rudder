@@ -151,10 +151,8 @@
         </div>
       </div>
       <lift:authz role="administration_write">
-        <div class="form-group" ng-hide="isNodePage && complianceMode.name === 'full-compliance'">
-          <div class="pull-left control-label">
-            <button type="submit" class="btn btn-success" ng-click="save()" ng-disabled="complianceModeForm.$invalid || isUnchanged()" id="complianceModeSubmit">Save changes</button>
-          </div>
+        <div ng-hide="isNodePage && complianceMode.name === 'full-compliance'">
+          <button type="submit" class="btn btn-success" ng-click="save()" ng-disabled="complianceModeForm.$invalid || isUnchanged()" id="complianceModeSubmit">Save changes</button>
         </div>
       </lift:authz>
     </form>
