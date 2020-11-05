@@ -18,15 +18,19 @@
 
 # @name Variable string from command
 # @description Define a variable from a command output
-# @documentation To use the generated variable, you must use the form `${variable_prefix.variable_name}` with each name replaced with the parameters of this method.
+# @documentation Define a variable from a command output.
+# The method will execute a shell command and define a variable `${variable_prefix.variable_name}` from it.
 #
-# Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
-# Please note that only global variables are available within templates.
+# * Only `stdout` is kept
+# * The variable will only be defined if the exit code of the command is 0
+# * If the variable definition is sucessful, the method will report a success, it will
+# report an error otherwise.
+# * The command will be executed even in *Audit mode*
 #
 # @parameter variable_prefix The prefix of the variable name
 # @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
 # @parameter command         The command to execute
-# 
+#
 # @class_prefix variable_string_from_command
 # @class_parameter variable_name
 
