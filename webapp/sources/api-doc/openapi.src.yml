@@ -185,6 +185,8 @@ paths:
     $ref: paths/datasources/reload-node-id.yml
   "/nodes":
     $ref: paths/nodes/all.yml
+  "/nodes/status":
+    $ref: paths/nodes/status.yml
   "/nodes/{nodeId}":
     $ref: paths/nodes/id.yml
   "/nodes/pending/{nodeId}":
