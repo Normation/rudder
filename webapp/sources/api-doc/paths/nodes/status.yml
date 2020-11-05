@@ -1,18 +1,11 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
-  summary: Get status (pending, accepted, unknown) of a list of nodes
-  description: 
+  summary: Get nodes acceptation status
+  description: Get acceptation status (pending, accepted, deleted, unknown) of a list of nodes
   operationId: getNodesStatus
   parameters:
-    name: "ids"
-    in: query
-    description: Comma separated list of nodeIds for which we want to check status
-    schema:
-      type: string
-      default: default
-      format: comma-separated list
-      example: 8403353b-42c4-46f5-a08d-bc77a1a0bad9
+    - $ref: ../../components/parameters/node-ids.yml
   responses:
     "200":
       description: nodes
@@ -63,7 +56,7 @@ get:
                             - pending
                             - accepted
                             - deleted 
-                            - unknown                   
+                            - unknown
   tags:
     - Nodes
   x-code-samples:
