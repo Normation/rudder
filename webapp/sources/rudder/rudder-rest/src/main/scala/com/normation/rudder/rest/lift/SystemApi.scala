@@ -59,11 +59,14 @@ import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.RestDataSerializer
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.{SystemApi => API}
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.ClearCacheService
+import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
+import com.normation.rudder.services.healthcheck.HealthcheckService
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.utils.StringUuidGenerator
@@ -81,10 +84,14 @@ import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
 import zio._
 import com.normation.zio._
+import com.normation.box._
+
+import net.liftweb.json.JsonAST.JArray
 
 class SystemApi(
     restExtractorService : RestExtractorService
   , apiv11service        : SystemApiService11
+  , apiv13service        : SystemApiService13
   , rudderMajorVersion   : String
   , rudderFullVerion     : String
   , rudderBuildTimestamp : String
@@ -133,6 +140,7 @@ class SystemApi(
       case API.GetRulesZipArchive             => GetRulesZipArchive
       case API.GetParametersZipArchive        => GetParametersZipArchive
       case API.GetAllZipArchive               => GetAllZipArchive
+      case API.GetHealthcheckResult           => GetHealthcheckResult
     })
   }
 
@@ -496,7 +504,40 @@ class SystemApi(
     }
   }
 
+  object GetHealthcheckResult extends LiftApiModule0 {
+    val schema = API.GetHealthcheckResult
+    val restExtractor = restExtractorService
 
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      apiv13service.getHealthcheck(params)
+    }
+  }
+}
+
+class SystemApiService13(
+    healthcheckService   : HealthcheckService
+  , hcNotifService       : HealthcheckNotificationService
+  , serializer           : RestDataSerializer
+) extends Loggable {
+
+  def getHealthcheck(params: DefaultParams): LiftResponse = {
+    implicit val action = "getHealthcheckResult"
+    implicit val prettify = params.prettify
+
+    val result = for {
+      checks <- healthcheckService.runAll
+      _      <- hcNotifService.updateCacheFromExt(checks)
+    } yield {
+      checks.map(serializer.serializeHealthcheckResult)
+    }
+    result.toBox match {
+      case Full(json) =>
+        RestUtils.toJsonResponse(None, JArray(json))
+      case eb: EmptyBox =>
+        val message = (eb ?~ s"Error when trying to run healthcheck").messageChain
+        RestUtils.toJsonError(None, message)("getHealthcheck",true)
+    }
+  }
 }
 
 class SystemApiService11(

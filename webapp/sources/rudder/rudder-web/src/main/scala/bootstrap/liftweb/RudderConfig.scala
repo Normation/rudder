@@ -975,6 +975,12 @@ object RudderConfig extends Loggable {
     , gitRepo
   )
 
+  val systemApiService13 = new SystemApiService13(
+      healthcheckService
+    , healthcheckNotificationService
+    , restDataSerializer
+  )
+
   private[this] val complianceAPIService = new ComplianceAPIService(
           roRuleRepository
         , nodeInfoService
@@ -1158,9 +1164,9 @@ object RudderConfig extends Loggable {
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
       , new TechniqueApi(restExtractorService, techniqueApiService6)
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
-      , new SystemApi(restExtractorService, systemApiService11, rudderMajorVersion, rudderFullVersion, builtTimestamp)
+      , new SystemApi(restExtractorService,systemApiService11, systemApiService13, rudderMajorVersion, rudderFullVersion, builtTimestamp)
       , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
-      , new HealthcheckApi(restExtractorService, restDataSerializer, healthcheckService, healthcheckNotificationService)
+//      , new HealthcheckApi(restExtractorService, restDataSerializer, healthcheckService, healthcheckNotificationService)
         // info api must be resolved latter, because else it misses plugin apis !
     )
 

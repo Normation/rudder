@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
-  summary: Get all checks status
+  summary: Get healthcheck
   description: Run and get the result of all checks
   operationId: getHealthcheckResult
   responses:
@@ -33,8 +33,8 @@ get:
                   $ref: ../../components/schemas/check.yml
 
   tags:
-    - "Health check"
+    - System
   x-code-samples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/healthcheck/all.sh
+        $ref: ../../code_samples/curl/system/healthcheck.sh
