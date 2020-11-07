@@ -59,48 +59,13 @@
   background-color: #f9f9f9;
 }
 
-.circle {
-  width                : 20px;
-  height               : 20px;
-  -webkit-border-radius: 10px;
-  -moz-border-radius   : 10px;
-  border-radius        : 10px;
-  float                : right;
-  margin-left: 10px;
-}
-
-.ok-light {
-  background-color: #81D674;
-}
-
-.warning-light {
-  background-color: #F08004;
-}
-
-.critical-light {
-  background-color: #C80003;
-}
-
-.global-msg .icon-info{
-  font-size:50px;
-  margin-right: 35px;
-}
-
-.critical-icon {
-  color: #C80003;
-}
-
-.warning-icon {
-  color: #F08004;
-}
-
-.ok-icon {
-  color: #81D674;
-}
-
 .global-msg {
   margin-top: 20px;
   font-size: 30px;
+}
+.global-msg .icon-info{
+  font-size:50px;
+  margin-right: 35px;
 }
 
 .btn-checks .fa{
@@ -121,7 +86,6 @@
   transition-duration: .2s;
   min-width: 170px;
 }
-
 .btn-checks:hover {
   border-color: #337ab7;
   color: #337ab7;
