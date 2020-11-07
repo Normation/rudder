@@ -54,6 +54,7 @@ class Plugin:
     def getCompatibleNightly(self):
         compatibles = set()
         for iRpkg in self.nightlyPackagesInfo:
+
             if iRpkg.isCompatible():
                 compatibles.add(iRpkg)
         return compatibles
