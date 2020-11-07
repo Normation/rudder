@@ -1656,7 +1656,6 @@ form .tooltip-content p {
 */
 /* --- GENERAL --- */
 .callout-fade{
-  min-height: 50px;
   position: relative;
   padding-right: 40px !important;
   font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
