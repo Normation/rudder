@@ -1221,10 +1221,11 @@ var defaultColumns = [ allColumns["Hostname"],  allColumns["OS"],  allColumns["C
 var allColumnsKeys =  Object.keys(allColumns)
 function reloadTable(gridId) {
   var table = $('#'+gridId).DataTable();
-  table.ajax.reload();
+  table.destroy();
+  createNodeTable(gridId, function(){reloadTable(gridId)})
 }
 
-function createNodeTable(gridId, nope, contextPath, refresh) {
+function createNodeTable(gridId, refresh) {
 
   var cacheId = gridId + "_columns"
   var cacheColumns = localStorage.getItem(cacheId)

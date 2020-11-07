@@ -131,12 +131,13 @@ class SrvGrid(
       case Always => true
       case Unoverridable => false
     }
-    val objGlobalPolicyMode = JsObj(("override"->globalOverride), ("policyMode"->globalPolicyMode.mode.name))
+
     val refresh = refreshNodes.map(refreshData(_,callback,tableId).toJsCmd).getOrElse("undefined")
 
     val nodeIds =  nodes.map(nodes => JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd).getOrElse("undefined")
-    JsRaw(s""" nodeIds = ${nodeIds};createNodeTable("${tableId}",[],"${S.contextPath}",${refresh}, ${objGlobalPolicyMode});
-          |         """.stripMargin)
+    JsRaw(s"""nodeIds = ${nodeIds};
+          | createNodeTable("${tableId}",function() {reloadTable("${tableId}")} );
+                   """.stripMargin)
   }
 
   def getTableData (
@@ -176,14 +177,12 @@ class SrvGrid(
   ): AnonFunc = {
 
     val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
-      val (nodes, nodeIds) : (Seq[NodeInfo], String) = refreshNodes() match {
-        case None =>(nodeInfoService.getAll().toList.flatMap(_.values).toSeq, "undefined")
-        case Some(nodes) =>(nodes, JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd)
+      val  nodeIds :  String = refreshNodes() match {
+        case None => "undefined"
+        case Some(nodes) =>JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd
       }
 
       JsRaw(s"""
-          nodeCompliances = {};
-          nodeSystemCompliances = {};
           nodeIds = ${ nodeIds}
           reloadTable("${tableId}");
       """)
@@ -193,7 +192,7 @@ class SrvGrid(
   }
 
   /**
-   * Html templace of the table, id is in parameter
+   * Html template of the table, id is in parameter
    */
   def tableXml(tableId:String) : NodeSeq = {
     <table id={tableId} cellspacing="0"/>
