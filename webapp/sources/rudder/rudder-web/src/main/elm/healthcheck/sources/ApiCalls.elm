@@ -6,7 +6,7 @@ import JsonDecoder exposing (decodeGetRoleApiResult)
 
 getUrl: DataTypes.Model -> String -> String
 getUrl m url =
-  m.contextPath ++ "/secure/api" ++ url
+  m.contextPath ++ "/secure/api/system" ++ url
 
 getHealthCheck : Model -> Cmd Msg
 getHealthCheck model =

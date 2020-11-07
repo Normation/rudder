@@ -54,13 +54,20 @@ import com.normation.rudder.repository._
 import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.rudder.rest.lift.LiftHandler
 import com.normation.rudder.rest.lift.SystemApiService11
+import com.normation.rudder.rest.lift.SystemApiService13
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rest.v1.RestTechniqueReload
-import com.normation.rudder.services.policies.TestNodeConfiguration
-import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.ClearCacheService
+import com.normation.rudder.services.healthcheck.CheckCoreNumber
+import com.normation.rudder.services.healthcheck.CheckFileDescriptorLimit
+import com.normation.rudder.services.healthcheck.CheckFreeSpace
+import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
+import com.normation.rudder.services.healthcheck.HealthcheckService
+import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
+import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
+import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -78,6 +85,7 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
 import zio._
+import zio.duration.durationInt
 import zio.syntax._
 
 /*
@@ -217,6 +225,25 @@ object RestTestSetUp {
  val fakeScriptLauncher = new DebugInfoService {
    override def launch() = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
  }
+  val nodeInfoService = new NodeInfoServiceCachedImpl(
+    null
+    , null
+    , null
+    , null
+    , null
+    , null
+    , null
+    , null
+  )
+
+ val fakeHealthcheckService = new HealthcheckService(
+   List(
+     CheckCoreNumber
+     , CheckFreeSpace
+     , new CheckFileDescriptorLimit(nodeInfoService) //should I create all services to get this one ?
+   )
+ )
+ val fakeHcNotifService = new HealthcheckNotificationService(fakeHealthcheckService, 5.minute)
 
   val apiService11 = new SystemApiService11(
         fakeUpdatePTLibService
@@ -230,7 +257,13 @@ object RestTestSetUp {
       , fakeRepo
   )
 
-  val systemApi = new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11, "5.0", "5.0.0", "some time")
+  val apiService13 = new SystemApiService13(
+      fakeHealthcheckService
+    , fakeHcNotifService
+    , restDataSerializer
+  )
+
+  val systemApi = new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11, apiService13,"5.0", "5.0.0", "some time")
   val authzToken = AuthzToken(EventActor("fakeToken"))
   val systemStatusPath = "api" + systemApi.Status.schema.path
 
@@ -238,7 +271,7 @@ object RestTestSetUp {
 
   val rudderApi = {
     //append to list all new format api to test it
-    val modules = List(new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11, "5.0", "5.0.0", "some time"))
+    val modules = List(new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11, apiService13, "5.0", "5.0.0", "some time"))
     val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled), None)
     modules.foreach { module =>
       api.addModules(module.getLiftEndpoints())
