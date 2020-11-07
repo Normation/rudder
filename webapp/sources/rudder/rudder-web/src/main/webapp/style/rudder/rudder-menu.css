@@ -3725,6 +3725,36 @@ table a > i.fa-pencil:hover{
   color: #C80004;
 }
 
+/* HEALTCHECK NOTIFICATIONS */
+.circle {
+  width                : 20px;
+  height               : 20px;
+  -webkit-border-radius: 10px;
+  -moz-border-radius   : 10px;
+  border-radius        : 10px;
+  float                : right;
+  margin-left: 10px;
+}
+.ok-light {
+  background-color: #81D674;
+}
+.warning-light {
+  background-color: #F08004;
+}
+.critical-light {
+  background-color: #C80003;
+}
+.critical-icon {
+  color: #C80003;
+}
+.warning-icon {
+  color: #F08004;
+}
+.ok-icon {
+  color: #81D674;
+}
+
+
 /* KEYFRAMES */
 @-webkit-keyframes text-radio-on {
   0%   {color: #646464;}
