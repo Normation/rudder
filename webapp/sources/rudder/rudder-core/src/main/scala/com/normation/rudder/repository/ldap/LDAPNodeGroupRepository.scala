@@ -88,7 +88,6 @@ import net.liftweb.common._
 import zio._
 import zio.syntax._
 
-import scala.Option.option2Iterable
 import scala.collection.immutable.SortedMap
 import com.normation.ldap.sdk.syntax._
 import com.unboundid.ldif.LDIFChangeRecord
@@ -770,26 +769,34 @@ class WoLDAPNodeGroupRepository(
                             "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
                           }
                         }
-        entry        =  mapper.nodeGroupToLdap(nodeGroup, existing.dn.getParent)
-        result       <- groupLibMutex.writeLock { con.save(entry, true).chainError(s"Error when saving entry: ${entry}") }
-        optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result).toIO.chainError(s"Error when mapping change record to a diff object: ${result}")
-        loggedAction <- optDiff match {
-                          case None => UIO.unit
-                          case Some(diff) =>
-                            actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason).chainError( "Error when logging modification as an event")
-                        }
-        autoArchive  <- (ZIO.when(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if modification are present
-                          for {
-                            parent   <- getNodeGroupCategory(nodeGroup.id)
-                            parents  <- getParents_NodeGroupCategory(parent.id)
-                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                            archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some((modId, commiter, reason)))
-                          } yield archived
-                        }).chainError("Error when trying to archive automatically nodegroup change")
+        result       <- saveModifyNodeGroupDiff(existing, con, nodeGroup, modId, actor, reason)
       } yield {
-        optDiff
+        result
       }
     ))
+  }
+
+  protected def saveModifyNodeGroupDiff(existing: LDAPEntry, con: RwLDAPConnection, nodeGroup: NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = {
+    val entry        =  mapper.nodeGroupToLdap(nodeGroup, existing.dn.getParent)
+    for {
+      result       <- groupLibMutex.writeLock { con.save(entry, true).chainError(s"Error when saving entry: ${entry}") }
+      optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result).toIO.chainError(s"Error when mapping change record to a diff object: ${result}")
+      loggedAction <- optDiff match {
+                        case None => UIO.unit
+                        case Some(diff) =>
+                          actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason).chainError( "Error when logging modification as an event")
+                      }
+      autoArchive  <- (ZIO.when(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if modification are present
+                        for {
+                          parent   <- getNodeGroupCategory(nodeGroup.id)
+                          parents  <- getParents_NodeGroupCategory(parent.id)
+                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                          archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some((modId, commiter, reason)))
+                        } yield archived
+                      }).chainError("Error when trying to archive automatically nodegroup change")
+    } yield {
+      optDiff
+    }
   }
 
   override def updateDynGroupNodes(group:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyNodeGroupDiff]] = {
@@ -803,6 +810,22 @@ class WoLDAPNodeGroupRepository(
   override def updateSystemGroup(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyNodeGroupDiff]] = {
     internalUpdate(nodeGroup, modId, actor, reason, true, false)
   }
+
+  // this one does not seem able to use internalUpdate
+  override def updateDiffNodes(nodeGroupId: NodeGroupId, add: List[NodeId], delete: List[NodeId], modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyNodeGroupDiff]] = {
+    semaphore.flatMap(_.withPermit(
+      for {
+        con          <- ldap
+        existing     <- getSGEntry(con, nodeGroupId).notOptional(s"Error when trying to check for existence of group with id '${nodeGroupId.value}'. Can not update")
+        oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError(s"Error when trying to check for the group '${nodeGroupId.value}'")
+        newGroup     =  oldGroup.copy(serverList = (oldGroup.serverList -- delete) ++ add)
+        result       <- saveModifyNodeGroupDiff(existing, con, newGroup, modId, actor, reason)
+      } yield {
+        result
+      }
+    ))
+  }
+
 
   override def move(nodeGroupId:NodeGroupId, containerId : NodeGroupCategoryId, modId: ModificationId, actor:EventActor, reason:Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = {
 

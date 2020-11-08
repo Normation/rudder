@@ -339,6 +339,11 @@ trait WoNodeGroupRepository {
   def update(group:NodeGroup, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : IOResult[Option[ModifyNodeGroupDiff]]
 
   /**
+   * Only add / remove some nodes in an atomic way from the group
+   */
+  def updateDiffNodes(group: NodeGroupId, add: List[NodeId], delete: List[NodeId], modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : IOResult[Option[ModifyNodeGroupDiff]]
+
+  /**
    * Update the given existing system group
    */
   def updateSystemGroup(group:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyNodeGroupDiff]]

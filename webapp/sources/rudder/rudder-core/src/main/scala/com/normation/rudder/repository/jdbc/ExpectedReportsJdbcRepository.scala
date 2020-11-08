@@ -52,6 +52,7 @@ import com.normation.rudder.db.Doobie._
 import doobie._
 import doobie.implicits._
 import cats.implicits._
+import com.normation.errors.IOResult
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.utils.Control.sequence
@@ -223,8 +224,8 @@ class UpdateExpectedReportsJdbcRepository(
 
   val logger = ReportLogger
 
-  override def closeNodeConfigurations(nodeId: NodeId): Box[NodeId] = {
-    transactRunBox(xa => sql"""
+  override def closeNodeConfigurationsPure(nodeId: NodeId): IOResult[NodeId] = {
+    transactIOResult(s"Error when trying to close expected reports for node '${nodeId.value}''")(xa => sql"""
       update nodeconfigurations set enddate = ${DateTime.now} where nodeid = ${nodeId} and enddate is null
     """.update.run.transact(xa)).map( _ => nodeId )
   }
@@ -588,6 +589,11 @@ class UpdateExpectedReportsJdbcRepository(
     }
   }
 
+  def deleteNodeInfos(nodeId: NodeId): IOResult[Unit] = {
+    transactIOResult(s"Error when deleting nodes_info from base for ${nodeId.value}")(xa =>
+      sql"""delete from nodes_info where node_id = ${nodeId.value}""".update.run.transact(xa)
+    ).unit
+  }
 }
 
 final case class ReportAndNodeMapping(

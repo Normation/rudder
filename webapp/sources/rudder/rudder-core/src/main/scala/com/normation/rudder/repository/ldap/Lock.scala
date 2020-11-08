@@ -27,7 +27,6 @@ import com.normation.NamedZioLogger
 import com.normation.errors._
 import com.normation.zio.ZioRuntime
 import zio.clock.Clock
-import zio.duration.Duration
 
 import zio._
 
@@ -48,35 +47,13 @@ trait ScalaLock {
 
   def name: String
 
-  def apply[T](block: => IOResult[T]): IOResult[T] = {
-    println(s"***** calling lock '${name}'")
-    ZIO.bracket(
-      LdapLockLogger.logPure.error(s"Get lock '${name}'") *>
-      LdapLockLogger.logPure.error(Thread.currentThread().getStackTrace.mkString("\n")) *>
-      IO.effect(this.lock()).timeout(Duration.Finite(100*1000*1000 /* ns */))
-        .mapError(ex => SystemError(s"Error when trying to get LDAP lock", ex))
-    )(_ =>
-      LdapLockLogger.logPure.error("Release lock") *>
-      effectUioUnit(this.unlock())
-    )(_ =>
-      LdapLockLogger.logPure.error("Do things in lock") *>
-      block
-    ).provide(clock)
-  }
+  def apply[T](block: => IOResult[T]): IOResult[T]
 }
 
 
 
 object ScalaLock {
   import java.util.concurrent.locks.Lock
-
-
-  protected def java2ScalaLock(n: String, javaLock: Lock) : ScalaLock = new ScalaLock {
-    override def lock() = javaLock.lock()
-    override def unlock() = javaLock.unlock()
-    override def clock = ZioRuntime.environment
-    override def name: String = n
-  }
 
   protected def pureZioSemaphore(n: String, _not_used: Any) : ScalaLock = new ScalaLock {
     // we set a timeout here to avoid deadlock. We prefer to identify them with errors

@@ -564,6 +564,19 @@ object RudderConfig extends Loggable {
     }
   }
 
+  val RUDDER_DEFAULT_DELETE_NODE_MODE = {
+    val default = DeleteMode.MoveToRemoved
+    val mode = try {
+      config.getString("rudder.nodes.delete.defaultMode")
+    } catch {
+      case ex: ConfigException => default.name
+    }
+    val cfg = DeleteMode.all.find(_.name == mode).getOrElse(default)
+    ApplicationLogger.info(s"Using '${cfg.name}' behavior when a node is deleted")
+    cfg
+  }
+
+
   ApplicationLogger.info(s"Starting Rudder ${rudderFullVersion} web application [build timestamp: ${builtTimestamp}]")
 
   //
@@ -894,6 +907,12 @@ object RudderConfig extends Loggable {
     )
   }
 
+  val nodeApiService12 = new NodeApiService12(
+      removeNodeService
+    , uuidGen
+    , restDataSerializer
+  )
+
   val nodeApiService6 = new NodeApiService6(
       nodeInfoService
     , fullInventoryRepository
@@ -1109,7 +1128,7 @@ object RudderConfig extends Loggable {
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService5, groupApiService6, groupInheritedProperties)
       , new DirectiveApi(roDirectiveRepository, restExtractorService, directiveApiService2, stringUuidGenerator)
       , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, restExtractorService, techniqueSerializer, stringUuidGenerator, gitRepo, resourceFileService)
-      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeInheritedProperties)
+      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12, nodeInheritedProperties, RUDDER_DEFAULT_DELETE_NODE_MODE)
       , new ParameterApi(restExtractorService, parameterApiService2)
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
       , new TechniqueApi(restExtractorService, techniqueApiService6)
@@ -2013,6 +2032,8 @@ object RudderConfig extends Loggable {
   private[this] lazy val removeNodeServiceImpl = new RemoveNodeServiceImpl(
         nodeDitImpl
       , rudderDitImpl
+      , pendingNodesDitImpl
+      , acceptedNodesDitImpl
       , removedNodesDitImpl
       , rwLdap
       , ldapEntityMapper
@@ -2026,6 +2047,7 @@ object RudderConfig extends Loggable {
       , nodeInfoServiceImpl
       , updateExpectedRepo
       , pathComputer
+      , newNodeManager
       , HOOKS_D
       , HOOKS_IGNORE_SUFFIXES
   )

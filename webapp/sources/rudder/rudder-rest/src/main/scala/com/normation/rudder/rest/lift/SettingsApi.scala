@@ -76,6 +76,8 @@ import com.normation.errors._
 import zio._
 import zio.syntax._
 
+import scala.util.control.NonFatal
+
 class SettingsApi(
     val restExtractorService         : RestExtractorService
   , val configService                : ReadConfigService with UpdateConfigService
@@ -955,7 +957,7 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
         msg      = s"""Impossible to parse allowed networks diff json. Expected {"allowed_networks": {"add":["192.168.2.0/24", ...]",""" +
                    s""" "delete":["192.168.1.0/24", ...]"}}, got: ${if(json == JNothing) "nothing" else compactRender(json)}"""
         _        <- if(json == JNothing) Failure(msg) else Full(())
-        diff     <- try { Full(json.extract[AllowedNetDiff]) } catch { case ex => Failure(msg) }
+        diff     <- try { Full(json.extract[AllowedNetDiff]) } catch { case NonFatal(ex) => Failure(msg) }
         _        <- sequence(diff.add)(checkAllowedNetwork)
         res      <- policyServerManagementService.updateAuthorizedNetworks(nodeId, diff.add, diff.delete, modificationId, actor)
       } yield {

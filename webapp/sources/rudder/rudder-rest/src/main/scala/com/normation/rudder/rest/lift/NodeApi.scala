@@ -66,7 +66,6 @@ import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestDataSerializer
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils.getActor
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.data._
@@ -101,7 +100,12 @@ import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.services.nodes.MergeNodeProperties
+import com.normation.rudder.services.servers.DeleteMode
 import zio.duration._
+
+
+
+
 
 /*
  * NodeApi implementation.
@@ -116,7 +120,9 @@ class NodeApi (
   , apiV4               : NodeApiService4
   , serviceV6           : NodeApiService6
   , apiV8service        : NodeApiService8
+  , apiV12              : NodeApiService12
   , inheritedProperties : NodeApiInheritedProperties
+  , deleteDefaultMode   : DeleteMode
 ) extends LiftApiModuleProvider[API] {
 
   def schemas = API
@@ -174,11 +180,24 @@ class NodeApi (
     }
   }
 
+  /*
+   * Delete a node.
+   * Boolean option "clean" allows to
+   */
   object DeleteNode extends LiftApiModule {
+
     val schema = API.DeleteNode
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      apiV2.deleteNode(req, Seq(NodeId(id)))
+      val pretiffy = restExtractor.extractPrettify(req.params)
+      val deleteModeKey = "mode"
+
+      val mode = restExtractor.extractString(deleteModeKey)(req){m =>
+        val found = DeleteMode.all.find(_.name == m)
+        Full(found.getOrElse(deleteDefaultMode))
+      }.map(_.getOrElse(deleteDefaultMode)).getOrElse(deleteDefaultMode)
+
+      apiV12.deleteNode(NodeId(id), authzToken.actor, pretiffy, mode)
     }
   }
 
@@ -368,6 +387,27 @@ class NodeApiInheritedProperties(
   }
 }
 
+class NodeApiService12(
+    removeNodeService  : RemoveNodeService
+  , uuidGen            : StringUuidGenerator
+  , restSerializer     : RestDataSerializer
+) {
+
+  def deleteNode(id: NodeId, actor: EventActor, prettify: Boolean, mode: DeleteMode) = {
+    implicit val p = prettify
+    implicit val action = "deleteNode"
+    val modId = ModificationId(uuidGen.newUuid)
+
+    removeNodeService.removeNodePure(id, mode, modId, actor).toBox match {
+      case Full(info) =>
+        toJsonResponse(None, ( "nodes" -> JArray(restSerializer.serializeNodeInfo(info, "deleted") :: Nil)))
+
+      case eb: EmptyBox => val message = (eb ?~ ("Error when deleting Nodes")).msg
+        toJsonError(None, message)
+    }
+  }
+}
+
 class NodeApiService2 (
     newNodeManager     : NewNodeManager
   , val nodeInfoService: NodeInfoService
@@ -375,7 +415,7 @@ class NodeApiService2 (
   , uuidGen            : StringUuidGenerator
   , restExtractor      : RestExtractorService
   , restSerializer     : RestDataSerializer
-) ( implicit userService : UserService ) extends Loggable {
+) extends Loggable {
 
   import restSerializer._
   def listAcceptedNodes (req : Req) = {
@@ -437,21 +477,6 @@ class NodeApiService2 (
         toJsonResponse(None, ( "nodes" -> JArray(pendingNodes)))
 
       case eb: EmptyBox => val message = (eb ?~ ("Could not fetch pending Nodes")).msg
-        toJsonError(None, message)
-    }
-  }
-
-  def deleteNode(req : Req, ids: Seq[NodeId]) = {
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    implicit val action = "deleteNode"
-    val modId = ModificationId(uuidGen.newUuid)
-    val actor = getActor(req)
-    modifyStatusFromAction(ids,DeleteNode,modId,actor) match {
-      case Full(jsonValues) =>
-        val deletedNodes = jsonValues
-        toJsonResponse(None, ( "nodes" -> JArray(deletedNodes)))
-
-      case eb: EmptyBox => val message = (eb ?~ ("Error when deleting Nodes")).msg
         toJsonError(None, message)
     }
   }
