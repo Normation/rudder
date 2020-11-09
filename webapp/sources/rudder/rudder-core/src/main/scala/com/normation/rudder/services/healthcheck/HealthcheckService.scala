@@ -46,16 +46,16 @@ object HealthcheckUtils {
 
 class HealthcheckService(checks: List[Check]) {
 
-   def runAll: ZIO[Any, Nothing, List[HealthcheckResult]]  = ZIO.foreach(checks) { c =>
-     for {
-       res <- c.run.catchAll { err =>
-                HealthcheckResult.Critical(
-                    CheckName("All checks run")
-                  , s"A fatal error was encountered when running check '${c.name.value}': ${err.fullMsg}"
-                ).succeed
-              }
-       _   <- logHealthcheck(c.name, res)
-     } yield res
+  def runAll: ZIO[Any, Nothing, List[HealthcheckResult]]  = ZIO.foreach(checks) { c =>
+    for {
+      res <- c.run.catchAll { err =>
+              HealthcheckResult.Critical(
+                CheckName("All checks run")
+                , s"A fatal error was encountered when running check '${c.name.value}': ${err.fullMsg}"
+              ).succeed
+            }
+      _   <- logHealthcheck(c.name, res)
+    } yield res
   }
 
   private[this] def logHealthcheck(name: CheckName, check: HealthcheckResult): UIO[Unit] = {
@@ -96,7 +96,9 @@ final object CheckFreeSpace extends Check {
 
   def run: IOResult[HealthcheckResult] = {
     val file          = root / "proc" / "mounts"
-    val mountsContent = file.lines.map(x => x.split(" ")(1)).toList
+
+    // Here we want to keep lines for standard mounting point, see: https://issues.rudder.io/issues/18534
+    val mountsContent = file.lines.filter(_.head == '/').map(x => x.split(" ")(1)).toList
 
     // We want to check `/var/*` if none exist take `/`
     val partitionToCheck = {
@@ -106,11 +108,11 @@ final object CheckFreeSpace extends Check {
 
     for {
       paritionSpaceInfos <- IOResult.effect {
-        partitionToCheck.map { x =>
-          val file = new io.File(x)
-          SpaceInfo(x, file.getUsableSpace, file.getTotalSpace)
-        }
-      }
+                              partitionToCheck.map { x =>
+                                val file = new io.File(x)
+                                SpaceInfo(x, file.getUsableSpace, file.getTotalSpace)
+                              }
+                            }
     } yield {
       val pcSpaceLeft = paritionSpaceInfos.map(x => (x.path, x.percent)).sortBy(_._2)
       pcSpaceLeft match {
@@ -143,7 +145,6 @@ final class CheckFileDescriptorLimit(val nodeInfoService: NodeInfoService) exten
     for {
       fdLimitCmd <- RunNuCommand.run(cmd)
       res        <- fdLimitCmd.await
-
       _          <- ZIO.when(res.code != 0) {
                       Inconsistency(
                         s"An error occurred while getting file descriptor soft limit with command '${cmd.display}':\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
