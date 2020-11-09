@@ -242,12 +242,13 @@ object RunHooks {
         case x: Success => // run the next hook
           val path = hooks.basePath + File.separator + nextHookName
           val env = envVariables.add(hookParameters)
+          val cmdInfo = s"'${path}' with environment parameters: [${hookParameters.show}]"
 
           for {
-            _ <- PureHooksLogger.debug(s"Run hook: '${path}' with environment parameters: ${hookParameters.show}")
+            _ <- PureHooksLogger.debug(s"Run hook: ${cmdInfo}")
             _ <- PureHooksLogger.trace(s"System environment variables: ${envVariables.show}")
             p <- RunNuCommand.run(Cmd(path, Nil, env.toMap)).untraced
-            r <- p.await
+            r <- p.await.timeout(killAfter).notOptional(s"Hook ${cmdInfo} timed out after ${killAfter.asJava.toString}").provide(ZioRuntime.environment).untraced
             c =  translateReturnCode(path, r)
             _ <- logReturnCode(c)
           } yield {
@@ -262,7 +263,7 @@ object RunHooks {
       _        <- PureHooksLogger.debug(s"Run hooks: ${cmdInfo}")
       _        <- PureHooksLogger.trace(s"Hook environment variables: ${envVariables.show}")
       time_0   <- currentTimeNanos
-      res      <- ZioRuntime.blocking(runAllSeq).timeout(killAfter).notOptional(s"Hook '${cmdInfo}' timed out after ${killAfter.asJava.toString}").provide(ZioRuntime.environment).untraced
+      res      <- ZioRuntime.blocking(runAllSeq)
       time_1   <- currentTimeNanos
       duration =  time_1 - time_0
       _        <- ZIO.when(duration/1000000 > warnAfterMillis.toMillis) {
