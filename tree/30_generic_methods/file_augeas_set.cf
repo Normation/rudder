@@ -16,35 +16,35 @@
 #
 #####################################################################################
 #
-# @name File Augeas set 
+# @name File Augeas set
 # @description Use Augeas binaries to call Augtool commands and options to set a node label's value.
 #
 # @documentation Augeas is a tool that provides an abstraction layer for all the complexities that turn around editing files with regular expressions.
-# It's a tree based hierarchy tool, that handles system configuration files where you can securely modify your files and to do so you have to provide 
+# It's a tree based hierarchy tool, that handles system configuration files where you can securely modify your files and to do so you have to provide
 # the path to the node label's value.
-# Augeas uses lenses which are like sort of modules that are in charge of identifying and converting files into tree and back. 
+# Augeas uses lenses which are like sort of modules that are in charge of identifying and converting files into tree and back.
 # This way, you can manipulate at first the tree and then save changes into the configuration files on the system.
-# 
-# In this method, we introduce using augtool commands and options in order to set the value of a given node's label in the parameters 
-# (which means that you simply want to modify your configuration file), this can be done by specifying the path to it. 
+#
+# In this method, we introduce using augtool commands and options in order to set the value of a given node's label in the parameters
+# (which means that you simply want to modify your configuration file), this can be done by specifying the path to it.
 # The method has in total 4 parameters: path, value, lens and hosts.
 #
-# Actually there is two ways you can use this method, either you simply provide a path to the node's label as a parameter or you specify a file 
-# associated with a lens then you put the regular path. When you only specify the path to the node's label, your request will includes by default Augeas 
+# Actually there is two ways you can use this method, either you simply provide a path to the node's label as a parameter or you specify a file
+# associated with a lens then you put the regular path. When you only specify the path to the node's label, your request will includes by default Augeas
 # charging all the lenses and files, on the other hand, if you have a specific file for example such as a Json file and you want to associate it
-# to the existing Json lens, then in that case, you need to fill in addition the file and the lens parameter, this way Augeas won't load all its files and 
-# lenses except the ones you have specified. 
+# to the existing Json lens, then in that case, you need to fill in addition the file and the lens parameter, this way Augeas won't load all its files and
+# lenses except the ones you have specified.
 #
-# The generic method will set a node label's value on the agent, otherwise, if Augeas isn't installed on the agent, it will produces an error. 
+# The generic method will set a node label's value on the agent, otherwise, if Augeas isn't installed on the agent, it will produces an error.
 # The method provides a way to make a backup of the file you modified before applying any changes on the node, you can find them in the '/var/rudder/modified-files/' directory.
 #
 # #### Two uses cases examples:
-# 
+#
 # In the first case, let's suppose that you want to simply set the value of the ip address of the first line in the `/etc/hosts` file to `192.168.1.5`,
 # to do so you need to provide the path and value parameters.
 #
 # ```
-# file_augeas_set("/etc/hosts/1/ipaddr","192.168.1.5");
+# file_augeas_set("/etc/hosts/1/ipaddr","192.168.1.5", "", "");
 # ```
 #
 # The second case includes two needs of using it, either you want to prevent Augeas from charging all lenses and files while executing your request or
@@ -66,11 +66,11 @@
 
 bundle agent file_augeas_set(path, value, lens, file)
 {
- vars:       
+ vars:
      "old_class_prefix" string => canonify("file_augeas_set_${path}");
-     "promisers" slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-     "class_prefix" string => canonify(join("_", "promisers"));
      "args" slist => {"${path}", "${value}", "${lens}","${file}"};
+     "report_param" string => join("_", args);
+     "class_prefix" string => canonify("file_augeas_set_${report_param}");
 
    pass1.file_defined::
      "result" string => "printf \"set /augeas/load/${lens}/lens \"${lens}.lns\" \n set /augeas/load/${lens}/incl \"${file}\" \n load \n set /files${path} ${value} \n save\" | ${ncf_paths.path[augtool]} --noautoload -b";
@@ -88,13 +88,13 @@ bundle agent file_augeas_set(path, value, lens, file)
    pass2::
      "variable_defined" expression => returnszero("${result}","useshell");
      "copy" expression => returnszero("mv ${file}.augsave /var/rudder/modified-files/${cfile}_$(timestamp)_$(date)_cf_before_edit","useshell"),
-                    if => fileexists("${file}.augsave");  
+                    if => fileexists("${file}.augsave");
      "augeas_binaries" expression => fileexists("${ncf_paths.path[augtool]}");
-   
+
    pass1::
      "file_defined" expression => not(strcmp("${file}",""));
-    
- methods: 
+
+ methods:
     pass2.augeas_binaries.variable_defined::
        "success" usebundle => _classes_success("${old_class_prefix}");
        "success" usebundle => _classes_success("${class_prefix}");

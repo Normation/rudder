@@ -1,0 +1,94 @@
+ #######################################################
+#
+# Read a file into a string
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { configuration, default("${this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "tmp"   string => getenv("TEMP", 1024);
+
+    "file[0]"   string => "${tmp}/etc/hosts0";
+    "value[0]" string => "127.0.0.1";
+    "lens[0]"   string => "Hosts";
+    "path[0]"   string => "/etc/hosts/1/ipaddr";
+    "status[0]" string => "success";
+    "mode[0]"   string => "enforce";
+
+    "file[1]"   string => "${tmp}/etc/hosts1";
+    "value[1]" string => "127.0.0.1";
+    "lens[1]"   string => "";
+    "path[1]"   string => "/etc/hosts/1/ipaddr";
+    "status[1]" string => "error";
+    "mode[1]"   string => "enforce";
+
+    #file is null but the lens should be enough for augeas
+    "file[2]"   string => "";
+    "value[2]" string => "127.0.0.1";
+    "lens[2]"   string => "Hosts";
+    "path[2]"   string => "/etc/hosts/1/ipaddr";
+    "status[2]" string => "success";
+    "mode[2]"   string => "enforce";
+
+    "file[3]"   string => "${tmp}/etc/hosts3";
+    "value[3]"  string => "0.1.2.3";
+    "lens[3]"   string => "Hosts";
+    "path[3]"   string => "/etc/hosts/1/ipaddr";
+    "status[3]" string => "repaired";
+    "mode[3]"   string => "enforce";
+
+    "indices" slist => getindices("file");
+
+  files:
+    "${tmp}/etc/hosts${indices}"
+      copy_from => local_cp("/etc/hosts");
+}
+
+#######################################################
+
+bundle agent test
+{
+  vars:
+    "args${init.indices}" slist => { "${init.path[${init.indices}]}", "${init.value[${init.indices}]}", "${init.lens[${init.indices}]}", "${init.file[${init.indices}]}" };
+
+  methods:
+    "ph0"  usebundle => apply_gm("file_augeas_set", @{args0},  "${init.status[0]}",  "ph0",  "${init.mode[0]}");
+    "ph1"  usebundle => apply_gm("file_augeas_set", @{args1},  "${init.status[1]}",  "ph1",  "${init.mode[1]}");
+    "ph2"  usebundle => apply_gm("file_augeas_set", @{args2},  "${init.status[2]}",  "ph2",  "${init.mode[2]}");
+    "ph3"  usebundle => apply_gm("file_augeas_set", @{args3},  "${init.status[3]}",  "ph3",  "${init.mode[3]}");
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+
+    "classes_ok" expression => "ph0_ok.ph1_ok.ph2_ok.ph3_ok";
+
+    "ok" expression => "classes_ok";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}
+
+
