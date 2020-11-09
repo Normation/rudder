@@ -87,6 +87,8 @@ import org.specs2.matcher.MatchResult
 import zio._
 import zio.duration.durationInt
 import zio.syntax._
+import scala.concurrent.duration.FiniteDuration
+
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -233,7 +235,7 @@ object RestTestSetUp {
     , null
     , null
     , null
-    , null
+    , FiniteDuration(100, "millis")
   )
 
  val fakeHealthcheckService = new HealthcheckService(
