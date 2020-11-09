@@ -24,6 +24,7 @@ import com.normation.NamedZioLogger
 import com.normation.ldap.ldif.LDIFFileLogger
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk.LDAPIOResult._
+import com.normation.ldap.sdk.LDAPRudderError.BackendException
 import com.unboundid.ldap.sdk.ResultCode._
 import com.unboundid.ldap.sdk.AddRequest
 import com.unboundid.ldap.sdk.DN
@@ -323,7 +324,7 @@ sealed class RoLDAPConnection(
         LDAPConnectionLogger.error("Ignored execption (configured to be ignored)", e) *>
         e.getSearchEntries.asScala.toSeq.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala)).succeed
       case ex: LDAPException =>
-        LDAPRudderError.BackendException(s"Error during search: ${ex.getDiagnosticMessage}", ex).fail
+        LDAPRudderError.BackendException(s"Error during search ${sr.getBaseDN} ${sr.getScope.getName}: ${ex.getDiagnosticMessage}", ex).fail
       // catchAll is a lie, but if other kind of exception happens, we want to crash
       case ex => throw ex
     }
@@ -630,15 +631,23 @@ class RwLDAPConnection(
         import com.unboundid.ldap.sdk.DeleteRequest
         applyDeletes(List(new DeleteRequest(dn, Array(new SubtreeDeleteRequestControl()):Array[Control])))
       } else {
-        searchSub(dn,BuildFilter.ALL,"dn").flatMap { seq =>
-          val dns = seq.map(_.dn).toList.sortWith( (a,b) => a.compareTo(b) > 0)
-          applyDeletes(dns.map { dn => new DeleteRequest(dn.toString) })
+        /* since we need to do at least an existence check to prevent #18529, it's most efficient to do:
+         * - try to delete. If success, either recurse wasn't really needed or entry already deleted; done
+         * - if error: entry present and a search is needed?
+         */
+        applyDeletes(List(new DeleteRequest(dn.toString))).catchSome {
+          case BackendException(msg, ex:LDAPException) if(ex.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) =>
+            searchSub(dn, BuildFilter.ALL, "dn").flatMap { seq =>
+              val dns = seq.map(_.dn).toList.sortWith( (a,b) => a.compareTo(b) > 0)
+              applyDeletes(dns.map { dn => new DeleteRequest(dn.toString) })
+            }
         }
       }
     } else {
       applyDeletes(List(new DeleteRequest(dn.toString)))
     }
   }
+
 
   /*
    * //////////////////////////////////////////////////////////////////
