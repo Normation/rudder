@@ -33,6 +33,7 @@
 *
 *************************************************************************************
 */
+
 .rudder-template .header-title h1 .group-system:before,
 .rudder-template .header-title h1 .group-system:after{
   margin-left: 8px;
@@ -45,7 +46,9 @@
 .rudder-template .header-title h1 .group-system:after{
   content: "System";
 }
-
+.rudder-template .template-sidebar .sidebar-header .header-filter > .input-group {
+  width: 100%;
+}
 #groupParametersTab,
 #groupCriteriaTab,
 #categoryParametersTab{
