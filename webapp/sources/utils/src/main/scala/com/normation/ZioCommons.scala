@@ -489,11 +489,11 @@ trait ZioLogger {
   final def warn (msg: => String, t: Throwable): UIO[Unit] = ZIO.when(logEffect.isErrorEnabled())(logAndForgetResult(_.warn (msg, t)))
   final def error(msg: => String, t: Throwable): UIO[Unit] = ZIO.when(logEffect.isWarnEnabled ())(logAndForgetResult(_.error(msg, t)))
 
-  final def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isTraceEnabled) action else () )
-  final def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isDebugEnabled) action else () )
-  final def ifInfoEnabled [T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isInfoEnabled ) action else () )
-  final def ifWarnEnabled [T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isWarnEnabled ) action else () )
-  final def ifErrorEnabled[T](action: UIO[T]): UIO[Unit] = logAndForgetResult(logger => if(logger.isErrorEnabled) action else () )
+  final def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isTraceEnabled())( action )
+  final def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isDebugEnabled())( action )
+  final def ifInfoEnabled [T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isInfoEnabled ())( action )
+  final def ifWarnEnabled [T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isErrorEnabled())( action )
+  final def ifErrorEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isWarnEnabled ())( action )
 }
 
 // a default implementation that accepts a name for the logger.
