@@ -48,8 +48,10 @@ import zio.duration._
 import better.files._
 import com.normation.rudder.hooks.HookReturnCode.Ok
 import com.normation.rudder.hooks.HookReturnCode.ScriptError
+import com.normation.rudder.hooks.HookReturnCode.SystemError
 import com.normation.rudder.hooks.HookReturnCode.Warning
 import org.specs2.specification.AfterAll
+
 import scala.jdk.CollectionConverters._
 
 /**
@@ -63,7 +65,7 @@ class HooksTest() extends Specification with AfterAll {
   val tmp = File(s"/tmp/rudder-test-hook/${DateTime.now.toString(ISODateTimeFormat.dateTime())}")
   tmp.createDirectoryIfNotExists(true)
 
-  List("error10.sh", "success.sh", "warning50.sh", "echoCODE.sh").foreach {i =>
+  List("error10.sh", "success.sh", "warning50.sh", "echoCODE.sh", "timeout.sh").foreach {i =>
     val f = File(tmp, i)
     f.write(Resource.getAsString(s"hooks.d/test/$i"))
     f.setPermissions(PosixFilePermissions.fromString("rwxr--r--").asScala.toSet)
@@ -102,6 +104,11 @@ class HooksTest() extends Specification with AfterAll {
   "A hook should be able to read env variables as parameter" >> {
     val res = runHooks(List("echoCODE.sh"), HookEnvPair("CODE", "0") :: Nil)
     res must beEqualTo(Ok("",""))
+  }
+
+  "A hook should be killed after time-out duraction is reached and message contains what script failed" >> {
+    val res = runHooks(List("timeout.sh"), HookEnvPair("CODE", "0") :: Nil)
+    res must beLike { case SystemError(msg) if(msg.contains("/timeout.sh") && msg.contains("timed out after")) => ok }
   }
 
 // This one is more for testing performance. I don't want to make it a test, because in
