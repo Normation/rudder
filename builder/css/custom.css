@@ -1194,6 +1194,11 @@ ul.list-unstyled > li{
   border-bottom-right-radius: 4px;
   background-color: #f3f8ff;
 }
+.method + .markdown pre {
+  padding: 8px 4px;
+  background-color: #646871;
+  color: #ffffff;
+}
 .method + .markdown > p:last-child{
   margin-bottom: 0;
 }
