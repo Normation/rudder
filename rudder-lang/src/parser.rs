@@ -13,8 +13,7 @@ use toml::Value as TomlValue;
 
 use std::collections::HashMap;
 
-use self::error::BacktraceWrapper;
-use crate::error::*;
+use crate::{error::*, io::output::Backtrace};
 use crate::{sequence, wsequence}; // macros are exported at the root of the crate
 use baseparsers::*;
 use error::*;
@@ -669,7 +668,7 @@ fn pmetadata(i: PInput) -> PResult<PMetadata> {
         return Err(nom::Err::Error(PError {
             context: None,
             kind: PErrorKind::NoMetadata,
-            backtrace: BacktraceWrapper::new(),
+            backtrace: Backtrace::empty(),
         }));
     }
 
@@ -679,7 +678,7 @@ fn pmetadata(i: PInput) -> PResult<PMetadata> {
             return Err(nom::Err::Error(PError {
                 context: None,
                 kind: PErrorKind::TomlError(i, e),
-                backtrace: BacktraceWrapper::new(),
+                backtrace: Backtrace::empty(),
             }))
         }
     };
@@ -1169,7 +1168,7 @@ fn end_of_pfile(i: PInput) -> PResult<()> {
         return Err(nom::Err::Error(PError {
             context: None,
             kind: PErrorKind::Nom(VerboseError::from_error_kind(i, ErrorKind::Eof)),
-            backtrace: BacktraceWrapper::new(),
+            backtrace: Backtrace::new(),
         }));
     }
     Ok((i, ()))

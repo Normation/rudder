@@ -22,9 +22,9 @@ const FUZZY_THRESHOLD: f32 = 0.5; // pub + `crate::` before calling since it may
 #[derive(Clone)]
 pub enum Error {
     //   message  backtrace
-    User((String, Option<Backtrace>)),
+    User((String, Backtrace)),
     //   Error list
-    List(Vec<(String, Option<Backtrace>)>),
+    List(Vec<(String, Backtrace)>),
 }
 
 /// Redefine our own result type with fixed error type for readability.
@@ -32,11 +32,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 impl Error {
     pub fn new(description: String) -> Self {
-        let backtrace: Option<Backtrace> = match std::env::var("RUDDERC_BACKTRACE") {
-            Ok(ref val) if val != "0" => Some(Backtrace::new()),
-            _ => None,
-        };
-        Error::User((description, backtrace))
+        Error::User((description, Backtrace::new()))
     }
 
     pub fn append(self, e2: Self) -> Self {
@@ -81,12 +77,11 @@ impl Error {
     }
 
     pub fn clean_format_list(&self) -> Vec<String> {
-        // TODO escape and ansi
         match self {
-            Error::User((err, _backtrace)) => vec![err.to_owned()],
-            Error::List(list) => list
+            Error::User((msg, bt)) => vec![format!("{}{}", msg, bt)],
+            Error::List(v) => v
                 .iter()
-                .map(|(err, _backtrace)| err.to_owned())
+                .map(|(msg, bt)| format!("{}{}", msg, bt))
                 .collect::<Vec<String>>(),
         }
     }
@@ -196,23 +191,13 @@ where
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::User((msg, bt)) => write!(
-                f,
-                "{} at {}{}",
-                "error".red(),
-                msg,
-                bt.as_ref().map_or("".to_owned(), |bt| bt.to_string())
-            ),
+            Error::User((msg, bt)) => write!(f, "{} at {}{}", "error".red(), msg, bt),
             Error::List(v) => write!(
                 f,
                 "{}:\n{}",
                 "errors".red(),
                 v.iter()
-                    .map(|(msg, bt)| format!(
-                        "{}{}",
-                        msg,
-                        bt.as_ref().map_or("".to_owned(), |bt| bt.to_string())
-                    ))
+                    .map(|(msg, bt)| format!("{}{}", msg, bt))
                     .collect::<Vec<String>>()
                     .join("\n")
             ),
@@ -230,13 +215,7 @@ impl fmt::Debug for Error {
             Error::List(v) => {
                 let errors = v
                     .iter()
-                    .map(|(msg, bt)| {
-                        format!(
-                            "{}{}",
-                            msg,
-                            bt.as_ref().map_or("".to_owned(), |bt| bt.to_string())
-                        )
-                    })
+                    .map(|(msg, bt)| format!("{}{}", msg, bt))
                     .collect::<Vec<String>>()
                     .join("\n");
                 format!("(list) {}", errors)

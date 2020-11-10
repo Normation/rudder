@@ -90,10 +90,6 @@ impl LogOutput {
                 Some(loc) => format!(" at '{}:{}'", loc.file(), loc.line()),
                 None => "".to_owned(),
             };
-            let backtrace = match is_backtraced {
-                true => Some(Backtrace::new()),
-                false => None,
-            };
             let message = format!(
                 "{}{}: {}",
                 "Unrecoverable RUDDERC failure".red().bold(),
@@ -108,7 +104,7 @@ impl LogOutput {
             self.print(command, None, Err(crate::error::Error::new(message)));
 
             // TODO print backtrace somehow + somewhere else
-            backtrace.map_or((), |bt| println!("{}", bt));
+            println!("{}", Backtrace::new_from_bool(is_backtraced));
         }));
     }
 
@@ -151,7 +147,6 @@ impl LogOutput {
                     errors.join(" ; ")
                 )
             };
-            error!("{}", output);
             eprintln!("{}", output);
         } else if is_success {
             info!("Content written to {}", dest_files);
@@ -175,6 +170,8 @@ impl LogOutput {
                 .map_err(|e| format!("Building JSON output led to an error: {}", e))
                 .unwrap(); // dev error if this does not work
             println!("{}", fmtoutput);
+        } else {
+            println!("{}", logger);
         }
     }
 
