@@ -536,6 +536,9 @@ class Boot extends Loggable {
     }
   }
 
+  // Run a health check
+  RudderConfig.healthcheckNotificationService.reloadCache()
+
   private[this] def addPluginsMenuTo(plugins: List[RudderPluginDef], menus:List[Menu]) : List[Menu] = {
     //return the updated siteMap
     plugins.foldLeft(menus){ case (prev, mutator) => mutator.updateSiteMap(prev) }

@@ -577,11 +577,11 @@ object RudderConfig extends Loggable {
     Duration.fromScala(scala.concurrent.duration.Duration(config.getString("metrics.healthcheck.scheduler.period")))
   } catch {
     case ex: ConfigException =>
-      ApplicationLogger.info("Property 'metrics.healthcheck.scheduler.period' is missing or empty in rudder.configFile. Default to 5mins.")
-      5.minutes
+      ApplicationLogger.info("Property 'metrics.healthcheck.scheduler.period' is missing or empty in rudder.configFile. Default to 6 hours.")
+      20.seconds
     case ex: NumberFormatException =>
-      ApplicationLogger.error(s"Error when reading key: 'metrics.node.scheduler.period.max', defaulting to 5mins: ${ex.getMessage}")
-      5.minutes
+      ApplicationLogger.error(s"Error when reading key: 'metrics.node.scheduler.period.max', defaulting to 6 hours: ${ex.getMessage}")
+      20.seconds
   }
 
   val RUDDER_LANG_EXEC_TEST_LOOP = {
