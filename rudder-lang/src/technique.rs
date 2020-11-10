@@ -284,19 +284,33 @@ impl MethodCall {
         Ok((vars, template_vars))
     }
 
+    // TODO parse content so interpolated variables are handled properly
     fn format_condition(&self, lib: &RudderlangLib) -> Result<String> {
         lazy_static! {
             static ref CONDITION_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
             static ref ANY_RE: Regex = Regex::new(r"(any\.)").unwrap();
         }
         // remove `any.` from condition
-        let anyless_condition = ANY_RE
+        // if opened / closed brackets count is balanced, then it is not an interpolated dot (`.`) but a logcial AND
+        let mut bracket_balance: i8 = 0;
+        let updated_condition = ANY_RE
             .replace_all(&self.condition, "")
-            // rudder-lang format expects `&` as AND operator, rather than `.`
-            .replace(".", "&");
+            .chars()
+            .map(|c| {
+                match c {
+                    '{' => bracket_balance += 1,
+                    '}' => bracket_balance -= 1,
+                    _ => (),
+                };
+                if c == '.' && bracket_balance == 0 {
+                    return '&';
+                }
+                c
+            })
+            .collect::<String>();
         let mut errs = Vec::new();
         // replace all matching words as classes
-        let result = CONDITION_RE.replace_all(&anyless_condition, |caps: &Captures| {
+        let result = CONDITION_RE.replace_all(&updated_condition, |caps: &Captures| {
             match self.format_method(lib, &caps[1]) {
                 Ok(s) => s,
                 Err(e) => {
