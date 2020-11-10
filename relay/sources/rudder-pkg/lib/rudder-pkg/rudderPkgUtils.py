@@ -447,15 +447,17 @@ def readConf():
     global URL, USERNAME, PASSWORD, PROXY_URL, PROXY_USERNAME, PROXY_PASSWORD
     logger.debug('Reading conf file %s'%(CONFIG_PATH))
     try:
-        config = configparser.RawConfigParser()
+        # Insert default in configuration for Python2 parsing
+        configDefault = { 'proxy_url' : "", 'proxy_username' : "", 'proxy_password' : "" }
+        config = configparser.RawConfigParser(configDefault)
         config.read(CONFIG_PATH)
         REPO = config.sections()[0]
         URL      = config.get(REPO, 'url')
         USERNAME = config.get(REPO, 'username')
         PASSWORD = config.get(REPO, 'password')
-        PROXY_URL      = config.get(REPO, 'proxy_url', fallback = '')
-        PROXY_USERNAME = config.get(REPO, 'proxy_username', fallback = '')
-        PROXY_PASSWORD = config.get(REPO, 'proxy_password', fallback = '')
+        PROXY_URL      = config.get(REPO, 'proxy_url')
+        PROXY_USERNAME = config.get(REPO, 'proxy_username')
+        PROXY_PASSWORD = config.get(REPO, 'proxy_password')
         createPath(FOLDER_PATH)
         createPath(GPG_HOME)
     except Exception as e:
