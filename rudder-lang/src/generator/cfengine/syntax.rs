@@ -302,6 +302,7 @@ pub struct Method {
     condition: String,
     // Generated from
     source: String,
+    is_supported: bool,
 }
 
 impl Method {
@@ -349,6 +350,13 @@ impl Method {
         Self { condition, ..self }
     }
 
+    pub fn supported(self, is_supported: bool) -> Self {
+        Self {
+            is_supported,
+            ..self
+        }
+    }
+
     pub fn build(self) -> Vec<Promise> {
         assert!(!self.resource.is_empty());
         assert!(!self.state.is_empty());
@@ -373,37 +381,47 @@ impl Method {
         .comment("");
 
         // Actual method call
-        let method = Promise::usebundle(
-            format!("{}_{}", self.resource, self.state),
+        let method =
             Some(&self.report_component),
-            self.parameters,
+            Promise::usebundle(format!("{}_{}", self.resource, self.state), Some(&self.report_component), self.parameters);
+        let na_condition = format!(
+            "canonify(\"${{class_prefix}}_{}_{}_{}\")",
+            self.resource, self.state, self.report_parameter
         );
 
-        if has_condition {
-            let na_condition = format!(
-                "canonify(\"${{class_prefix}}_{}_{}_{}\")",
-                self.resource, self.state, self.report_parameter
-            );
-
-            vec![
+        match (has_condition, self.is_supported) {
+            (true, true) => vec![
                 reporting_context.if_condition(self.condition.clone()),
                 method.if_condition(self.condition.clone()),
                 // NA report
-                Promise::usebundle(
-                    "_classes_noop", Some(&self.report_component),
-                    vec![na_condition.clone()],
-                )
-                .unless_condition(&self.condition),
+                Promise::usebundle("_classes_noop", Some(&self.report_component), vec![na_condition.clone()]).unless_condition(&self.condition),
                 Promise::usebundle("log_rudder", Some(&self.report_component), vec![
                     quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &self.report_component, &self.report_parameter, self.condition)),
                     quoted(&self.report_parameter),
                     na_condition.clone(),
                     na_condition,
                     "@{args}".to_string()
-                ]).unless_condition(&self.condition),
-            ]
-        } else {
-            vec![reporting_context, method]
+                ]).unless_condition(&self.condition)
+            ],
+            (false, true) => vec![reporting_context, method],
+            (_, false) => vec![
+                reporting_context,
+                Promise::usebundle(
+                    "log_na_rudder",
+                    vec![
+                        quoted(&format!(
+                            "'{}' method is not available on classic Rudder agent, skip",
+                            self.report_component,
+                        )),
+                        quoted(&self.report_parameter),
+                        quoted(&format!(
+                            "${{class_prefix}}_{}_{}_{}",
+                            self.resource, self.state, self.report_parameter,
+                        )),
+                        "@{args}".to_string(),
+                    ],
+                )
+            ],
         }
     }
 }

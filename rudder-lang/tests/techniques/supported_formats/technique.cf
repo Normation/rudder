@@ -1,0 +1,31 @@
+# @name supported_formats
+# @description a gm supported only by cfengine, another one supported only by dsc, and one that is supported by both
+# @version 1.0
+
+
+bundle agent supported_formats
+{
+  vars:
+    "resources_dir" string => "${this.promise_dirname}/resources";
+  methods:
+    "Condition once_${report_data.directive_id}_0" usebundle => _method_reporting_context("Condition once", "cfengine_only"),
+                                                          if => concat("any");
+    "Condition once_${report_data.directive_id}_0" usebundle => condition_once("cfengine_only"),
+                                                          if => concat("any");
+    "Directory present_${report_data.directive_id}_1" usebundle => _method_reporting_context("Directory present", "shared_cf_dsc"),
+                                                             if => concat("any");
+    "Directory present_${report_data.directive_id}_1" usebundle => directory_present("shared_cf_dsc"),
+                                                             if => concat("any");
+    "Directory present_${report_data.directive_id}_2" usebundle => _method_reporting_context("Directory present", "shared_cf_dsc"),
+                                                             if => concat("windows");
+    "Directory present_${report_data.directive_id}_2" usebundle => directory_present("shared_cf_dsc_condition"),
+                                                             if => concat("windows");
+    "Registry key present_${report_data.directive_id}_3" usebundle => _method_reporting_context("Registry key present", "DSC_ONLY"),
+                                                                if => concat("any");
+    "Registry key present_${report_data.directive_id}_3" usebundle => registry_key_present("DSC_ONLY"),
+                                                                if => concat("any");
+    "Registry key present_${report_data.directive_id}_4" usebundle => _method_reporting_context("Registry key present", "IF_DSC_ONLY"),
+                                                                if => concat("windows");
+    "Registry key present_${report_data.directive_id}_4" usebundle => registry_key_present("IF_DSC_ONLY"),
+                                                                if => concat("windows");
+}

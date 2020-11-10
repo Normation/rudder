@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use super::{context::*, enums::EnumList, resource::*, value::*, ir1::IR1};
+use super::{context::*, enums::EnumList, ir1::IR1, resource::*, value::*};
 use crate::{error::*, parser::*};
 use std::{
-    cmp::Ordering, rc::Rc,
+    cmp::Ordering,
     collections::{HashMap, HashSet},
+    rc::Rc,
 };
 
 // TODO v2: type inference, compatibility metadata
 // TODO aliases
 // TODO check state call compatibility
-
 
 /// An IR2 is the second intermediate representation
 /// It takes everything from IR1 plus :
@@ -28,15 +28,31 @@ pub struct IR2<'src> {
     pub context: Rc<VarContext<'src>>,
     pub enum_list: EnumList<'src>,
     pub variable_definitions: HashMap<Token<'src>, ComplexValue<'src>>,
-    pub parameter_defaults: HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>, // also used as parameter list since that's all we have
+    pub parameter_defaults:
+        HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>, // also used as parameter list since that's all we have
     pub resource_list: HashSet<Token<'src>>,
     pub resources: HashMap<Token<'src>, ResourceDef<'src>>,
 }
 
 impl<'src> IR2<'src> {
     pub fn from_ir1(ir1: IR1<'src>) -> Result<Self> {
-        let IR1 { errors, context, enum_list, variable_definitions, parameter_defaults, resource_list, resources} = ir1;
-        let ir2 = IR2 { context, enum_list, variable_definitions, parameter_defaults, resource_list, resources };
+        let IR1 {
+            errors,
+            context,
+            enum_list,
+            variable_definitions,
+            parameter_defaults,
+            resource_list,
+            resources,
+        } = ir1;
+        let ir2 = IR2 {
+            context,
+            enum_list,
+            variable_definitions,
+            parameter_defaults,
+            resource_list,
+            resources,
+        };
 
         // Analyze step 1: no prerequisite
         let mut errors = Vec::new();
@@ -85,6 +101,28 @@ impl<'src> IR2<'src> {
         }
         fix_results(errors.into_iter())?;
         Ok(ir2)
+    }
+
+    pub fn get_state_def(
+        &'src self,
+        state_decl: &'src StateDeclaration,
+    ) -> Result<&'src StateDef<'src>> {
+        match self.resources.get(&state_decl.resource) {
+            Some(r) => match r.states.get(&state_decl.state) {
+                Some(s) => Ok(s),
+                None => Err(Error::new(format!(
+                    "No method relies on the \"{}\" state for \"{}\"",
+                    state_decl.state.fragment(),
+                    state_decl.resource.fragment()
+                ))),
+            },
+            None => {
+                return Err(Error::new(format!(
+                    "No method relies on the \"{}\" resource",
+                    state_decl.resource.fragment()
+                )))
+            }
+        }
     }
 
     // invalid enum
@@ -137,7 +175,7 @@ impl<'src> IR2<'src> {
             "enforce",
             "audit", //"dict", "condition"
         ]
-            .contains(&name.fragment())
+        .contains(&name.fragment())
         {
             fail!(
                 name,
@@ -375,7 +413,6 @@ impl<'src> IR2<'src> {
         }
         Ok(())
     }
-
 }
 
 fn match_parameters(pdef: &[Parameter], pref: &[Value], identifier: Token) -> Result<()> {
