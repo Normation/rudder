@@ -40,7 +40,6 @@ package services
 
 import model.JsNodeId
 import com.normation.inventory.domain._
-import com.normation.rudder.web.components.DateFormaterService
 
 import scala.xml._
 import net.liftweb.common._
@@ -62,7 +61,8 @@ import com.normation.rudder.hooks.HookReturnCode.Interrupt
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.box._
 import com.normation.cfclerk.domain.HashAlgoConstraint.SHA1
-import com.normation.rudder.domain.reports.{ComplianceLevelSerialisation}
+import com.normation.rudder.domain.reports.ComplianceLevelSerialisation
+import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import org.joda.time.format.ISODateTimeFormat
 

@@ -111,7 +111,7 @@ import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.reports.ReportingService
-import com.normation.rudder.web.components.DateFormaterService
+import com.normation.utils.DateFormaterService
 import com.typesafe.config.ConfigRenderOptions
 import net.liftweb.http.JsonResponse
 import net.liftweb.json.JsonAST.JDouble

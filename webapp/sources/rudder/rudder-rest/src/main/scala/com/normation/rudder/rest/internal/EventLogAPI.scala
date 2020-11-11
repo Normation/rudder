@@ -43,8 +43,8 @@ import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.web.services._
+import com.normation.utils.DateFormaterService
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}

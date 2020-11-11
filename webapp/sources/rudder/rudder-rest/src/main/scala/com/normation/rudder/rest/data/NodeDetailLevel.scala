@@ -41,9 +41,9 @@ import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.rest.ApiVersion
+import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
 
 sealed trait NodeDetailLevel {

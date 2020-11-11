@@ -35,17 +35,19 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.components
+package com.normation.utils
 
+import com.normation.errors.Inconsistency
+import com.normation.errors.PureResult
 import org.joda.time.DateTime
-import org.joda.time.format.PeriodFormatterBuilder
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
-import net.liftweb.common.Box
-import net.liftweb.util.Helpers
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
 import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.format.PeriodFormatterBuilder
+
+import scala.util.control.NonFatal
 
 object DateFormaterService {
 
@@ -68,14 +70,22 @@ object DateFormaterService {
    */
   def serialize(datetime: DateTime): String = datetime.toString(ISODateTimeFormat.dateTimeNoMillis)
 
-  def parseDate(date : String) : Box[DateTime] = {
-      Helpers.tryo { ISODateTimeFormat.dateTimeNoMillis().parseDateTime(date) }
+  def parseDate(date : String) : PureResult[DateTime] = {
+    try {
+      Right(ISODateTimeFormat.dateTimeNoMillis().parseDateTime(date) )
+    } catch {
+      case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date/time: ${ex.getMessage}"))
+    }
   }
 
 
   val dateFormatTimePicker = "yyyy-MM-dd HH:mm"
-  def parseDateTimePicker(date : String) : Box[DateTime] = {
-    Helpers.tryo {DateTimeFormat.forPattern(dateFormatTimePicker).parseDateTime(date) }
+  def parseDateTimePicker(date : String) : PureResult[DateTime] = {
+    try {
+      Right(DateTimeFormat.forPattern(dateFormatTimePicker).parseDateTime(date) )
+    } catch {
+      case NonFatal(ex) => Left(Inconsistency((s"String '${date}' can't be parsed as a date (expected pattern: yyyy-MM-dd): ${ex.getMessage}")))
+    }
   }
 
   def getDisplayDateTimePicker(date : DateTime) : String = {

@@ -80,7 +80,6 @@ import com.normation.rudder.ncf.{Technique => NcfTechnique}
 import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.services.workflows.WorkflowLevelService
-import com.normation.rudder.web.components.DateFormaterService
 import com.normation.utils.Control
 import com.normation.box._
 import com.normation.rudder.ncf.ResourceFileState
@@ -104,6 +103,7 @@ import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.domain.nodes.InheritMode
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.services.policies.PropertyParser
+import com.normation.utils.DateFormaterService
 import org.bouncycastle.cert.X509CertificateHolder
 import zio.{Tag => _, _}
 import zio.syntax._
@@ -950,7 +950,7 @@ final case class RestExtractorService (
       enabled     <- extractJsonBoolean(json, "enabled")
       oldId       <- extractJsonString(json, "oldId", toApiAccountId)
       expirationDefined <- extractJsonBoolean(json, "expirationDateDefined")
-      expirationValue  <- extractJsonString(json, "expirationDate", DateFormaterService.parseDateTimePicker)
+      expirationValue  <- extractJsonString(json, "expirationDate", DateFormaterService.parseDateTimePicker(_).toBox)
       authType    <- extractJsonString(json, "authorizationType", ApiAuthorizationKind.parse)
 
       acl     <- extractJsonArray(json , "acl")((extractApiACLFromJSON _ )).map(_.getOrElse(Nil))
