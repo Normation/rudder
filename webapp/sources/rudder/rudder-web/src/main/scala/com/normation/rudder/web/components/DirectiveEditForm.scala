@@ -277,7 +277,10 @@ class DirectiveEditForm(
       "#policyModes" #> policyModes.toForm_! &
       "#version" #> versionSelect &
       "#version *+" #> (if (isADirectiveCreation) NodeSeq.Empty else migrateButton(directiveVersion.get,"Migrate")) &
-      "#parameters" #> parameterEditor.toFormNodeSeq &
+      "#parameters" #> (
+        if(directive.parameters.size <= 0) <div class="alert alert-info">This Technique has no configurable parameters.</div> else NodeSeq.Empty ++
+        parameterEditor.toFormNodeSeq
+        ) &
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
       "#notifications" #> updateAndDisplayNotifications() &
