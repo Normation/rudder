@@ -255,7 +255,7 @@ final case class ChangeLine (
       , ( "directiveName" -> escapeHTML(directiveName.getOrElse(report.directiveId.value)) )
       , ( "component"     -> escapeHTML(report.component) )
       , ( "value"         -> escapeHTML(report.keyValue) )
-      , ( "executionDate" -> DateFormaterService.serialize(report.executionTimestamp ))
+      , ( "executionDate" -> DateFormaterService.getDisplayDate(report.executionTimestamp ))
     )
   }
 }
