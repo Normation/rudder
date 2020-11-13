@@ -55,8 +55,8 @@ import com.normation.rudder.services.eventlog.{EventLogDetailsService, RollbackI
 import com.normation.rudder.services.modification.ModificationService
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.web.model.LinkUtil
+import com.normation.utils.DateFormaterService
 import net.liftweb.common._
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.http.js.JE._

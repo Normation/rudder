@@ -48,7 +48,6 @@ import net.liftweb.http.js._
 import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
-import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.inventory.domain.VirtualMachineType
@@ -60,6 +59,7 @@ import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.box._
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.utils.DateFormaterService
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information

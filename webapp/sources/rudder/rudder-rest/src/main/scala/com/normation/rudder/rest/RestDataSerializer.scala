@@ -65,7 +65,7 @@ import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.modification.DiffService
-import com.normation.rudder.web.components.DateFormaterService
+import com.normation.utils.DateFormaterService
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._

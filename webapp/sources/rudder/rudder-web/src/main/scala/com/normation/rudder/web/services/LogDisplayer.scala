@@ -58,7 +58,7 @@ import net.liftweb.json.JsonAST.JString
 import org.joda.time.format.DateTimeFormat
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.box._
-import com.normation.rudder.web.components.DateFormaterService
+import com.normation.utils.DateFormaterService
 
 /**
  * Show the reports from cfengine (raw data)

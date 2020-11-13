@@ -46,7 +46,6 @@ import JsCmds._
 import JE._
 import com.normation.rudder.repository._
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.web.components.DateFormaterService
 import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.eventlog.EventActor
@@ -54,6 +53,7 @@ import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.box._
 import com.normation.errors._
+import com.normation.utils.DateFormaterService
 
 import scala.xml.NodeSeq
 

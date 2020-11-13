@@ -47,7 +47,6 @@ import com.normation.rudder.domain.eventlog.RefuseNodeEventLog
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.web.ChooseTemplate
-import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.web.components.popup.ExpectedPolicyPopup
 import com.normation.rudder.web.model.CurrentUser
 import net.liftweb.common._
@@ -60,9 +59,10 @@ import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
-import scala.xml._
 
+import scala.xml._
 import com.normation.box._
+import com.normation.utils.DateFormaterService
 
 /**
  * Check for server in the pending repository and propose to
