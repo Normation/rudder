@@ -48,11 +48,11 @@ import net.liftweb.util.Helpers._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsExp
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.rudder.web.components.DateFormaterService
 import org.joda.time.Interval
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.utils.DateFormaterService
 import net.liftweb.json.JsonAST.JValue
 
 object ComputePolicyMode {

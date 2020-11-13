@@ -43,7 +43,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.RemovedInventory
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
-import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.web.services.DisplayNode
 import net.liftweb.common._
 import net.liftweb.http._
@@ -54,9 +53,10 @@ import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
 import org.joda.time.format._
-import scala.xml._
 
+import scala.xml._
 import com.normation.box._
+import com.normation.utils.DateFormaterService
 
 object PendingHistoryGrid extends Loggable {
 

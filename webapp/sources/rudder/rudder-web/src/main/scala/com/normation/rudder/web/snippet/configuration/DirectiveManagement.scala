@@ -37,9 +37,10 @@
 
 package com.normation.rudder.web.snippet.configuration
 
-import com.normation.rudder.domain.policies.{DirectiveId, Directive}
+import com.normation.rudder.domain.policies.{Directive, DirectiveId}
 import com.normation.cfclerk.domain.Technique
-import com.normation.rudder.web.components.{DirectiveEditForm,DateFormaterService}
+import com.normation.rudder.web.components.DirectiveEditForm
+
 import scala.xml._
 import net.liftweb.common._
 import Box._
@@ -62,8 +63,8 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.services.AgentCompat
 import net.liftweb.util.Helpers.TimeSpan
 import com.normation.cfclerk.domain.TechniqueGenerationMode._
-
 import com.normation.box._
+import com.normation.utils.DateFormaterService
 
 /**
  * Snippet for managing the System and Active Technique libraries.
