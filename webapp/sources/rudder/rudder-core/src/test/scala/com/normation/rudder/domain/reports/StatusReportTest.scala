@@ -266,6 +266,7 @@ class StatusReportTest extends Specification {
     }
 
     "performance for compute ReportType" should {
+
       val nbSet = 90
       val sizeSet = 100
 
@@ -273,6 +274,7 @@ class StatusReportTest extends Specification {
 
       val initData = buildComplianceLevelSets(nbSet,sizeSet)
 
+      val runTest = System.getProperty("tests.run.perf", "false")  == "true"
       "init correctly" in {
         val result = initData.headOption.map(x => ComplianceLevel.compute(x._2))
 
@@ -294,7 +296,7 @@ class StatusReportTest extends Specification {
         }
         val t1 = System.nanoTime
         println(s"Time to run test is ${(t1-t0)/1000} µs")
-        (t1-t0) must be lessThan( 200000*1000 ) // tests show 60030µs
+        ((t1-t0) must be lessThan( 200000*1000 )).when(runTest) // tests show 60030µs
       }
 
       "run fast enough to sum" in {
@@ -315,7 +317,7 @@ class StatusReportTest extends Specification {
         }
         val t1 = System.nanoTime
         println(s"Time to run test for sum is ${(t1-t0)/1000} µs")
-        (t1-t0) must be lessThan( 50000*1000 )  // tests show 3159µs on recent XPS but 30795 µs on XPS 15 9650
+        ((t1-t0) must be lessThan( 50000*1000 )).when(runTest)  // tests show 3159µs on recent XPS but 30795 µs on XPS 15 9650
       }
     }
   }
