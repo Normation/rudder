@@ -1197,6 +1197,11 @@ var allColumns = {
     , "defaultContent" : "<span class='text-muted'>N/A</span>"
     , "title": "Last run"
     }
+  , "Inventory date" :
+    { "data": "lastInventory"
+    , "defaultContent" : "<span class='text-muted'>N/A</span>"
+    , "title": "Inventory date"
+    }
 }
 
 
