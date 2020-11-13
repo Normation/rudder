@@ -265,3 +265,15 @@
 #notifications.main-alert + #isDisabled{
   display: none !important;
 }
+.rudder-template .template-sidebar + .template-main .main-details,
+.rudder-template .template-sidebar + .template-main .main-details .checkbox-group input + span > span{
+  font-size : 12px;
+}
+.rudder-template .template-sidebar + .template-main .main-details .input-group-sm .form-control,
+.rudder-template .template-sidebar + .template-main .main-details .checkbox-group input + span > span{
+  min-height: initial !important;
+}
+
+.rudder-template .template-sidebar + .template-main .main-details .input-group-btn .dropdown-toggle {
+  height: 31px;
+}
