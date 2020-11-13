@@ -1,0 +1,67 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+post:
+  summary: Modify allowed networks for a policy server
+  description: Add or delete allowed networks for a policy server
+  operationId: modifyAllowedNetworks
+  parameters:
+    - $ref: ../../components/parameters/get-allowed-networks.yml
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          type: object
+          properties:
+            allowed_networks:
+              type: object
+              optional:
+                - add
+                - delete
+              example: '{ "delete":["162.168.1.0/24"], "add": ["162.168.2.0/24] }' 
+              properties:
+                add:
+                  type: array
+                  description: List of networks to add to existing allowed networks for that server
+                delete:
+                  type: array
+                  description: List of networks to remove from existing allowed networks for that server
+  responses:
+    "200":
+      description: Allowed Networks
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - modifySetting
+              data:
+                type: object
+                description: Information about the allowed_networks settings
+                required:
+                  - settings
+                properties:
+                  allowed_networks:
+                    type: array
+                    example: ["162.168.1.0/24", "162.168.2.0/24"]
+                    description: Array of allowed networks
+  tags:
+    - Settings
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/settings/set-allowed-networks.yml

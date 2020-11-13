@@ -328,6 +328,11 @@ object SettingsApi extends ApiModuleProvider[SettingsApi] {
     val (action, path)  = POST / "settings" / "allowed_networks" / "{nodeId}"
   }
 
+  final case object ModifyDiffAllowedNetworks extends SettingsApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description = "Modity some allowed networks for one relay with a diff structure"
+    val (action, path)  = POST / "settings" / "allowed_networks" / "{nodeId}" / "diff"
+  }
+
   final case object GetSetting extends SettingsApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about given Rudder setting"
     val (action, path)  = GET / "settings" / "{key}"
