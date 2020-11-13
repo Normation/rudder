@@ -795,7 +795,6 @@ $scope.onImportFileChange = function (fileEl) {
             $scope.checkSelect(technique, $scope.selectTechnique);
             $scope.originalTechnique.bundle_name = undefined;
             $scope.originalTechnique.name = "";
-            $scope.ui.editForm.$setDirty();
             $scope.suppressFlag = true;
           }
         } else {
@@ -1634,10 +1633,6 @@ $scope.onImportFileChange = function (fileEl) {
                 delete ct[i].agent_support;
                 delete st[i].promiser;
                 delete ct[i].promiser;
-                if(st[i].OS_class.minorVersion === undefined) delete st[i].OS_class.minorVersion;
-                if(st[i].OS_class.majorVersion === undefined) delete st[i].OS_class.majorVersion;
-                if(ct[i].OS_class.minorVersion === undefined) delete ct[i].OS_class.minorVersion;
-                if(ct[i].OS_class.majorVersion === undefined) delete ct[i].OS_class.majorVersion;
                 //Store parameters to compare them separetly
                 st_params = st[i].parameters;
                 delete st[i].parameters;
