@@ -1354,6 +1354,7 @@ function createNodeTable(gridId, refresh) {
   }
 
   function columnSelect(editOpen) {
+    dynColumns.sort()
     var table = $('#'+gridId).DataTable();
     $("#edit-columns").html($("<button class='btn btn-blue' > <i class='fa fa-pencil'></i> Edit columns</button>").click(function(){$("#select-columns").toggle()}))
     var select = "<div class='col-xs-12 row form-group'> <div class='col-xs-2' style='margin-left : -15px'  > <select placeholder='Select column to add' class='  form-control'>"
