@@ -6,10 +6,11 @@
     "description": "ewf",
     "name": "normal",
     "version": "1.0",
+    "category": "ncf_techniques",
     "parameter": [
       {
         "id": "c6e6cc3a-9ce8-4889-bccc-6bfc1b091d0d",
-        "name": "parameter wdd",
+        "name": "parameter_wdd",
         "description": ""
       },
       {
@@ -18,7 +19,6 @@
         "description": ""
       }
     ],
-    "category": "ncf_techniques",
     "method_calls": [
       {
         "parameters": [

@@ -56,7 +56,7 @@
       {
         "parameters": [
           {
-            "name": "condition_prefix",
+            "name": "condition",
             "value": "wazuh_installed",
             "$errors": []
           },

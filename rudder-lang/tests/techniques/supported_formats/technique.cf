@@ -16,7 +16,7 @@ bundle agent supported_formats
                                                              if => concat("any");
     "Directory present_${report_data.directive_id}_1" usebundle => directory_present("shared_cf_dsc"),
                                                              if => concat("any");
-    "Directory present_${report_data.directive_id}_2" usebundle => _method_reporting_context("Directory present", "shared_cf_dsc"),
+    "Directory present_${report_data.directive_id}_2" usebundle => _method_reporting_context("Directory present", "shared_cf_dsc_condition"),
                                                              if => concat("windows");
     "Directory present_${report_data.directive_id}_2" usebundle => directory_present("shared_cf_dsc_condition"),
                                                              if => concat("windows");

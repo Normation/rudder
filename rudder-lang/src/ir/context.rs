@@ -154,7 +154,7 @@ impl<'src> VarContext<'src> {
         if self.get_type(name).is_some() {
             fail!(
                 name,
-                "Variable {} hides existing an variable {}",
+                "Variable {} hides an existing variable {}",
                 name,
                 self.types.get_key_value(&name).unwrap().0
             );

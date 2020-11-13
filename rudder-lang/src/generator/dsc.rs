@@ -8,7 +8,7 @@ use crate::{
     command::CommandResult,
     error::*,
     generator::dsc::syntax::{
-        pascebab_case, Call, Function, Method, Parameter, Parameters, Policy,
+        pascal_case, Call, Function, Method, Parameter, ParameterType, Parameters, Policy,
     },
     generator::Format,
     ir::{context::Type, enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
@@ -18,6 +18,7 @@ use crate::{
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
+    str::FromStr,
 };
 use toml::Value as TomlValue;
 
@@ -122,21 +123,26 @@ impl DSC {
             // TODO what about classes that have not yet been set ? can it happen ?
             EnumExpressionPart::Not(e1) => {
                 let mut expr = self.format_case_expr(gc, e1)?;
-                if expr.contains(" -or ") || expr.contains(" -and ") {
+                if expr.contains("-or") || expr.contains(" -and ") {
                     expr = format!("({})", expr);
                 }
-                format!("!{}", expr)
+                format!("-not ({})", expr)
             }
             EnumExpressionPart::Compare(var, e, item) => {
                 if let Some(true) = gc.enum_list.enum_is_global(*e) {
-                    gc.enum_list.get_item_cfengine_name(*var, *item)
+                    gc.enum_list.get_cfengine_item_name(*var, *item)
                 } else {
                     // Temporary keep this piece of code in case it has a purpose
                     // // concat var name + item
                     // let prefix = &self.var_prefixes[var.fragment()];
                     // // TODO there may still be some conflicts with var or enum containing '_'
                     // format!("{}_{}_{}", prefix, e.fragment(), item.fragment())
-                    format!("{}_{}", var.fragment(), item.fragment())
+                    // format!("{}_{}", var.fragment(), item.fragment())
+                    format!(
+                        r#"{}_${{report_data.canonified_directive_id}}_{}"#,
+                        var.fragment(),
+                        item.fragment()
+                    )
                 }
             }
             EnumExpressionPart::RangeCompare(_var, _e, _item1, _item2) => unimplemented!(), // TODO
@@ -145,34 +151,11 @@ impl DSC {
                 if self.current_cases.is_empty() {
                     "any".to_string()
                 } else {
-                    format!("!({})", self.current_cases.join(" -or "))
+                    format!("!({})", self.current_cases.join("."))
                 }
             }
             EnumExpressionPart::NoDefault(_) => "".to_string(),
         })
-    }
-
-    fn get_state_def<'src>(
-        gc: &'src IR2,
-        resource: &'src Token,
-        state: &'src Token,
-    ) -> Result<&'src StateDef<'src>> {
-        match gc.resources.get(&resource) {
-            Some(r) => match r.states.get(&state) {
-                Some(s) => Ok(s),
-                None => Err(Error::new(format!(
-                    "No method relies on the \"{}\" state for \"{}\"",
-                    state.fragment(),
-                    resource.fragment()
-                ))),
-            },
-            None => {
-                return Err(Error::new(format!(
-                    "No method relies on the \"{}\" resource",
-                    resource.fragment()
-                )))
-            }
-        }
     }
 
     // TODO simplify expression and remove uselesmap_strings_results conditions for more readable cfengine
@@ -191,10 +174,16 @@ impl DSC {
             Statement::ConditionVariableDefinition(var) => {
                 let state_decl = var.to_method();
                 let method_name = &format!("{}-{}", var.resource.fragment(), var.state.fragment());
-                let mut parameters = fetch_method_parameters(gc, &state_decl, |name, value| {
-                    Parameter::method_parameter(name, value)
-                });
-                let state_def = Self::get_state_def(gc, &var.resource, &var.state)?;
+                let mut parameters =
+                    fetch_method_parameters(gc, &state_decl, |name, value, parameter_metadatas| {
+                        let content_type = parameter_metadatas
+                            .and_then(|param_metadatas| param_metadatas.get("type"))
+                            .and_then(|r#type| r#type.as_str())
+                            .and_then(|type_str| ParameterType::from_str(type_str).ok())
+                            .unwrap_or(ParameterType::default());
+                        Parameter::method_parameter(name, value, content_type)
+                    });
+                let state_def = gc.get_state_def(&var.resource, &var.state)?;
                 let class_param_index = state_def.class_parameter_index(method_name)?;
                 if parameters.len() < class_param_index {
                     return Err(Error::new(format!(
@@ -229,10 +218,16 @@ impl DSC {
                 }
 
                 let method_name = &format!("{}-{}", sd.resource.fragment(), sd.state.fragment());
-                let mut parameters = fetch_method_parameters(gc, sd, |name, value| {
-                    Parameter::method_parameter(name, value)
-                });
-                let state_def = Self::get_state_def(gc, &sd.resource, &sd.state)?;
+                let mut parameters =
+                    fetch_method_parameters(gc, sd, |name, value, parameter_metadatas| {
+                        let content_type = parameter_metadatas
+                            .and_then(|param_metadatas| param_metadatas.get("type"))
+                            .and_then(|r#type| r#type.as_str())
+                            .and_then(|type_str| ParameterType::from_str(type_str).ok())
+                            .unwrap_or(ParameterType::default());
+                        Parameter::method_parameter(name, value, content_type)
+                    });
+                let state_def = gc.get_state_def(&sd.resource, &sd.state)?;
                 let class_param_index = state_def.class_parameter_index(method_name)?;
                 if parameters.len() < class_param_index {
                     return Err(Error::new(format!(
@@ -381,12 +376,13 @@ impl DSC {
     }
 
     pub fn format_param_type(&self, type_: &Type) -> String {
+        // TODO add HereString type (== RawString) to prevent interpolation, used in 1 DSC method
         String::from(match type_ {
             Type::String => "String",
             Type::Float => "Double",
             Type::Integer => "Int",
-            Type::Boolean => "Bool",
-            Type::List => "Array", // actually needs implementation work
+            Type::Boolean => "Switch", // do not use powershell bools, use switches instead by default
+            Type::List => "Array",     // actually needs implementation work
             Type::Struct(_) => "Hashtable", // actually needs implementation work
             Type::Enum(_) => unimplemented!(),
         })
@@ -416,23 +412,28 @@ impl Generator for DSC {
                 self.reset_context();
 
                 // get parameters, default params are hardcoded for now
-                let formatted_parameters: Vec<String> = resource
-                    .parameters
-                    .iter()
-                    .chain(state.parameters.iter())
-                    .map(|p| {
-                        format!(
-                            "[Parameter(Mandatory=$True)]  [{}] ${}",
-                            &self.format_param_type(&p.type_),
-                            pascebab_case(p.name.fragment())
-                        )
-                    })
-                    .chain(vec![
-                        "[Parameter(Mandatory=$False)] [Switch] $AuditOnly".to_owned(),
-                        "[Parameter(Mandatory=$True)]  [String] $ReportId".to_owned(),
-                        "[Parameter(Mandatory=$True)]  [String] $TechniqueName".to_owned(),
-                    ])
-                    .collect::<Vec<String>>();
+                let mut formatted_parameters: Vec<String> = vec![
+                    "[Parameter(Mandatory=$True)]\n    [String]$ReportId".to_owned(),
+                    "[Parameter(Mandatory=$True)]\n    [String]$TechniqueName".to_owned(),
+                ];
+                // ad gm parameters
+                formatted_parameters.extend(
+                    resource
+                        .parameters
+                        .iter()
+                        .chain(state.parameters.iter())
+                        .map(|p| {
+                            format!(
+                                "[Parameter(Mandatory=$True)]\n    [{}]${}",
+                                &self.format_param_type(&p.type_),
+                                pascal_case(p.name.fragment())
+                            )
+                        })
+                        .collect::<Vec<String>>(),
+                );
+                // parameter is not mandatory (implicit)
+                // Switches should be put last
+                formatted_parameters.push("[Switch]$AuditOnly".to_owned());
 
                 let fn_name = format!("{} {}", resource_name.fragment(), state_name.fragment(),);
 

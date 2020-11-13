@@ -208,6 +208,7 @@ impl<'src> RudderlangLib<'src> {
     }
 }
 
+#[derive(Debug)]
 pub struct LibMethod<'src> {
     pub resource: &'src ResourceDef<'src>,
     pub state: &'src StateDef<'src>,

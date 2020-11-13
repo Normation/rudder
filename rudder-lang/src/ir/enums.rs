@@ -54,7 +54,7 @@ impl<'src> EnumList<'src> {
     }
 
     /// Returns the item cfengine name (unchanged if no cfengine_name metadata)
-    pub fn get_item_cfengine_name(&self, var: Token<'src>, item: Token<'src>) -> String {
+    pub fn get_cfengine_item_name(&self, var: Token<'src>, item: Token<'src>) -> String {
         self.enum_item_metadata(var, item)
             .and_then(|metadatas| metadatas.get("cfengine_name"))
             .and_then(|cf_value| cf_value.as_str())

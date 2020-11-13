@@ -28,7 +28,7 @@
       {
         "parameters": [
           {
-            "name": "condition_prefix",
+            "name": "condition",
             "value": "skip_item_${report_data.canonified_directive_id}",
             "$errors": []
           },
@@ -45,7 +45,7 @@
       {
         "parameters": [
           {
-            "name": "file",
+            "name": "path",
             "value": "${file}",
             "$errors": []
           },

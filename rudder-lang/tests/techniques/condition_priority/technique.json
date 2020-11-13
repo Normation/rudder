@@ -15,7 +15,7 @@
                 "method_name": "kernel_module_loaded",
                 "parameters": [
                     {
-                        "name": "module_name",
+                        "name": "name",
                         "value": "test",
                         "$errors": []
                     }

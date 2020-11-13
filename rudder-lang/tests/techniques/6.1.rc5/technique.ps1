@@ -6,7 +6,7 @@ function Normal {
       [parameter(Mandatory=$true)]
       [string]$techniqueName,
       [parameter(Mandatory=$true)]
-      [string]$Parameter wdd,
+      [string]$ParameterWdd,
       [parameter(Mandatory=$true)]
       [string]$Paramtest,
       [switch]$auditOnly

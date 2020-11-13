@@ -19,7 +19,7 @@ install: build
 	# Install executable and helper scripts
 	install -m 755 target/release/rudderc $(DESTDIR)/opt/rudder/bin/rudderc
 	install -m 755 tools/tester.sh $(DESTDIR)/opt/rudder/share/rudder-lang/tools/tester.sh
-	install -m 755 tools/cfjson_tester $(DESTDIR)/opt/rudder/share/rudder-lang/tools/cfjson_tester
+	install -m 755 tools/generated_formats_tester $(DESTDIR)/opt/rudder/share/rudder-lang/tools/generated_formats_tester
 	install -m 755 tools/generate_lib $(DESTDIR)/opt/rudder/share/rudder-lang/tools/generate_lib
 	
 	# Copy configuration and library files
@@ -55,7 +55,7 @@ test: libs
 	# takes a json to create rl + cf + dsc techniques wrapped into JSON
 	cargo run -- technique generate -c tools/rudderc-dev.conf -i tests/techniques/simplest/technique.json
 	# fires a testing loop (--keep can be added)
-	tools/tester.sh --dev --keep ./tests/techniques/simplest/technique
+	./tools/test_all_techniques.sh
 
 
 $(DOC_EXAMPLES):

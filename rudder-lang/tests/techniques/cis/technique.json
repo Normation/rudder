@@ -12,8 +12,25 @@
       {
         "parameters": [
           {
+            "name": "condition",
+            "value": "skip_item_${report_data.canonified_directive_id}",
+            "$errors": []
+          },
+          {
+            "name": "variable_name",
+            "value": "node.properties[skip][${report_data.directive_id}]",
+            "$errors": []
+          }
+        ],
+        "class_context": "any",
+        "method_name": "condition_from_variable_existence",
+        "component": "Condition from variable existence"
+      },
+      {
+        "parameters": [
+          {
             "name": "service_regex",
-            "value": "test_${service}",
+            "value": "${service}",
             "$errors": []
           }
         ],
@@ -25,15 +42,14 @@
         "parameters": [
           {
             "name": "service_regex",
-            "value": "test_${service}",
+            "value": "${service}",
             "$errors": []
           }
         ],
-        "class_context": "skip_item_true",
+        "class_context": "any.(skip_item_${report_data.canonified_directive_id}_true)",
         "method_name": "service_started",
         "component": "Service started"
       }
-    ],
-    "resources": []
+    ]
   }
 }

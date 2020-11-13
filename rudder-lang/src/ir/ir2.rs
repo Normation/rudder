@@ -105,21 +105,22 @@ impl<'src> IR2<'src> {
 
     pub fn get_state_def(
         &'src self,
-        state_decl: &'src StateDeclaration,
+        resource: &'src Token,
+        state: &'src Token,
     ) -> Result<&'src StateDef<'src>> {
-        match self.resources.get(&state_decl.resource) {
-            Some(r) => match r.states.get(&state_decl.state) {
+        match self.resources.get(&resource) {
+            Some(r) => match r.states.get(&state) {
                 Some(s) => Ok(s),
                 None => Err(Error::new(format!(
                     "No method relies on the \"{}\" state for \"{}\"",
-                    state_decl.state.fragment(),
-                    state_decl.resource.fragment()
+                    state.fragment(),
+                    resource.fragment()
                 ))),
             },
             None => {
                 return Err(Error::new(format!(
                     "No method relies on the \"{}\" resource",
-                    state_decl.resource.fragment()
+                    resource.fragment()
                 )))
             }
         }

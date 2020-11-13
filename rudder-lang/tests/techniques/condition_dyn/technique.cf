@@ -8,8 +8,12 @@ bundle agent condition_dyn
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "Command execution_${report_data.directive_id}_0" usebundle => _method_reporting_context("Command execution", "pwd"),
-                                                             if => concat("any.(",canonify("${coucou}"),")");
-    "Command execution_${report_data.directive_id}_0" usebundle => command_execution("pwd"),
-                                                             if => concat("any.(",canonify("${coucou}"),")");
+    "condition_from_variable_existence_${report_data.directive_id}_0" usebundle => _method_reporting_context("condition_from_variable_existence", "skip_item_${report_data.canonified_directive_id}"),
+                                                                             if => concat("any");
+    "condition_from_variable_existence_${report_data.directive_id}_0" usebundle => condition_from_variable_existence("skip_item_${report_data.canonified_directive_id}", "node.properties[skip][${report_data.directive_id}]"),
+                                                                             if => concat("any");
+    "Command execution_${report_data.directive_id}_1" usebundle => _method_reporting_context("Command execution", "pwd"),
+                                                             if => concat("any.(skip_item_",canonify("${report_data.canonified_directive_id}"),"_false)");
+    "Command execution_${report_data.directive_id}_1" usebundle => command_execution("pwd"),
+                                                             if => concat("any.(skip_item_",canonify("${report_data.canonified_directive_id}"),"_false)");
 }

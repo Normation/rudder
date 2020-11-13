@@ -19,5 +19,4 @@ exists
   } else {
     _rudder_common_report_na -componentName "DSC built-in resource" -componentKey "tagname" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
   }
-
 }

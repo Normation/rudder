@@ -276,6 +276,11 @@ def parse_method_metadata(content):
             else:
                 res["parameters"].append(param)
 
+    # a trick to avoid DSC diffson tester comparison script,
+    # for this particular technique parameters are loaded in cfengine in the wrong order
+    if bundle_name == "dsc_built_in_resource":
+        res["parameters"] = list(reversed(res["parameters"]))
+
     # Remove trailing line breaks
     for tag in multiline_tags:
         if tag in res:
@@ -313,7 +318,9 @@ def extract_resources(metadata):
     # hardcode special cases for better consistency
     resources["package"]["description"] = "Package of the system"
     resources["file"]["parameters"][0]["description"] = "File path to manage"
+    # temporarily set some resource param name manually until NCF pending related PR is merged
     resources["file"]["parameters"][0]["name"] = "path"
+    resources["directory"]["parameters"][0]["name"] = "path"
     resources["package"]["parameters"][0]["name"] = "name"
     resources["kernel_module"]["parameters"][0]["name"] = "name"
     resources["group"]["parameters"][0]["name"] = "name"

@@ -77,6 +77,7 @@ impl<'src> Token<'src> {
             "service.rl",
             "sharedfile.rl",
             "sysctl.rl",
+            "sysinfo.rl",
             "user.rl",
             "variable.rl",
             "windows.rl",

@@ -226,7 +226,6 @@ impl MethodCall {
         let lib_method: LibMethod = lib.method_from_str(&self.method_name)?;
 
         let (mut params, template_vars) = self.format_parameters(&lib_method)?;
-        // check. note: replace `1` by resource param count? not yet, error if several parameters
         let param_count = lib_method.resource.parameters.len() + lib_method.state.parameters.len();
         if params.len() != param_count {
             return Err(Error::new(format!(
@@ -325,10 +324,14 @@ impl MethodCall {
         lib_params.iter().fold(Vec::new(), |mut vec, name| {
             for parameter in self.parameters.clone() {
                 if &parameter.name == name {
-                    vec.push(parameter)
+                    vec.push(parameter);
+                    return vec;
                 }
             }
-            vec
+            panic!(
+                "{}_{} method: parameter '{}' not found in expected method parameter names",
+                lib_method.resource.name, lib_method.state.name, name
+            );
         })
     }
 
@@ -436,30 +439,24 @@ impl Parameter {
     }
 }
 
-// generic function that is used by rudderd from multiple places to retrieve parameters in various formats
+// generic function that is used by rudder from multiple places to retrieve parameters in various formats
 pub fn fetch_method_parameters<F, P>(ir: &IR2, s: &StateDeclaration, f: F) -> Vec<P>
 where
-    F: Fn(&str, &str) -> P,
+    F: Fn(&str, &str, Option<&toml::Value>) -> P,
 {
     let resource = ir
         .resources
         .get(&s.resource)
         .expect(&format!("Called resource '{}' is not defined", *s.resource));
+    let state = resource.states.get(&s.state).expect(&format!(
+        "Called state '{}' is not defined for '{}'",
+        s.state.fragment(),
+        s.resource.fragment()
+    ));
     let parameter_names = resource
         .parameters
         .iter()
-        .chain(
-            resource
-                .states
-                .get(&s.state)
-                .expect(&format!(
-                    "Called state '{}' is not defined for '{}'",
-                    s.state.fragment(),
-                    s.resource.fragment()
-                ))
-                .parameters
-                .iter(),
-        )
+        .chain(state.parameters.iter())
         .map(|p| p.name.fragment())
         .collect::<Vec<&str>>();
     let parameter_values = s
@@ -468,11 +465,7 @@ where
         .chain(s.state_params.iter())
         .map(|p| match p {
             Value::String(ref o) => {
-                if let Ok(value) = String::try_from(o) {
-                    return value;
-                }
-                let method_name = format!("{}_{}", *s.resource, *s.state);
-                panic!("Expected string for '{}' parameter type", method_name)
+                return o.format(|s| s.to_owned(), |var| format!("${{{}}}", var))
             }
             _ => unimplemented!(),
         })
@@ -482,7 +475,13 @@ where
     parameter_names
         .iter()
         .zip(parameter_values)
-        .map(|(name, value)| f(name, &value))
+        .map(|(name, value)| {
+            let parameter_metadatas = state
+                .metadata
+                .get("parameter")
+                .and_then(|metadatas| metadatas.get(name));
+            f(name, &value, parameter_metadatas)
+        })
         .collect::<Vec<P>>()
 }
 

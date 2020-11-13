@@ -13,11 +13,11 @@ function Supported-Formats {
 
   _rudder_common_report_na -componentName "Condition once" -componentKey "cfengine_only" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
 
-  $local_classes = Merge-ClassContext $local_classes $(Directory-Present -Target "shared_cf_dsc" -componentName "Directory present" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
+  $local_classes = Merge-ClassContext $local_classes $(Directory-Present -Path "shared_cf_dsc" -componentName "Directory present" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
 
   $class = "windows"
   if (Evaluate-Class $class $local_classes $system_classes) {
-    $local_classes = Merge-ClassContext $local_classes $(Directory-Present -Target "shared_cf_dsc_condition" -componentName "Directory present" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
+    $local_classes = Merge-ClassContext $local_classes $(Directory-Present -Path "shared_cf_dsc_condition" -componentName "Directory present" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
   } else {
     _rudder_common_report_na -componentName "Directory present" -componentKey "shared_cf_dsc_condition" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
   }

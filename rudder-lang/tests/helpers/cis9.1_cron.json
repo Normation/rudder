@@ -234,7 +234,7 @@
       {
         "parameters": [
           {
-            "name": "target",
+            "name": "path",
             "value": "/etc/cron.at",
             "$errors": []
           }
@@ -246,7 +246,7 @@
       {
         "parameters": [
           {
-            "name": "target",
+            "name": "path",
             "value": "/etc/cron.allow",
             "$errors": []
           }
@@ -258,7 +258,7 @@
       {
         "parameters": [
           {
-            "name": "target",
+            "name": "path",
             "value": "/etc/at.allow",
             "$errors": []
           }

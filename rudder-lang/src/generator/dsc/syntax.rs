@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::fmt;
+use crate::error::{Error, Result};
+
+use std::{fmt, str::FromStr};
+use toml::map::Map as TomlMap;
+use toml::Value as TomlValue;
 /// This does not modelize full CFEngine syntax but only a subset of it, which is our
 /// execution target, plus some Rudder-specific metadata in comments.
 
@@ -20,13 +24,29 @@ const TABS_WIDTH: usize = 2;
 // adding the offset to every \n + the first char
 macro_rules! indent_format {
     ($($arg:tt)*) => {{
-        let content = format!($($arg)*);
-        format!("\n{}", content)
-            .replace("\n", &format!("\n{:width$}", " ", width = TABS_WIDTH))
+        let mut is_here_string = false;
+        format!($($arg)*)
+            .split("\n")
+            .map(|line| {
+                let formatted_line = if !is_here_string {
+                    format!("\n{:width$}{}", " ", line, width = TABS_WIDTH)
+                } else {
+                    format!("\n{}", line)
+                };
+                if line.trim().ends_with("@'") {
+                    is_here_string = true;
+                } else if line.trim().starts_with("'@") {
+                    is_here_string = false;
+                };
+                formatted_line
+            })
+            .collect::<Vec<String>>()
+            .concat()
     }}
 }
 
-pub fn pascebab_case(s: &str) -> String {
+// agent and generic method names are Pascebab-Case (mix of Pascal and Kebab)
+fn pascebab_case(s: &str) -> String {
     let chars = s.chars();
 
     let mut pascebab = String::new();
@@ -51,99 +71,192 @@ pub fn pascebab_case(s: &str) -> String {
     pascebab
 }
 
+// everything else is standard pascal case (variables, parameters)
+pub fn pascal_case(s: &str) -> String {
+    let chars = s.chars();
+
+    let mut pascal = String::new();
+    let mut is_next_uppercase = true;
+    for c in chars {
+        let next = match c {
+            ' ' | '_' | '-' => {
+                is_next_uppercase = true;
+                String::new()
+            }
+            c => {
+                if is_next_uppercase {
+                    is_next_uppercase = false;
+                    c.to_uppercase().to_string()
+                } else {
+                    c.to_string()
+                }
+            }
+        };
+        pascal.push_str(&next);
+    }
+    pascal
+}
+
 pub fn quoted(s: &str) -> String {
     format!("\"{}\"", s)
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ParameterType {
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum ParameterKind {
     MethodName,
     ClassParameter,
     MethodParameter,
+    ComponentName,
+    ComponentKey,
     Message,
     ReportId,
     TechniqueName,
-    ComponentName,
-    ComponentKey,
-    Mode,
+    Switch,
 }
-impl Default for ParameterType {
+impl Default for ParameterKind {
     fn default() -> Self {
-        ParameterType::MethodParameter
+        ParameterKind::MethodParameter
     }
 }
 
-const PARAMETER_ORDERING: [ParameterType; 9] = [
-    ParameterType::MethodName,
-    ParameterType::ClassParameter,
-    ParameterType::MethodParameter,
-    ParameterType::ComponentName,
-    ParameterType::ComponentKey,
-    ParameterType::Message,
-    ParameterType::ReportId,
-    ParameterType::TechniqueName,
-    ParameterType::Mode,
+const PARAMETER_ORDERING: [ParameterKind; 9] = [
+    ParameterKind::MethodName,
+    ParameterKind::ClassParameter,
+    ParameterKind::MethodParameter,
+    ParameterKind::ComponentName,
+    ParameterKind::ComponentKey,
+    ParameterKind::Message,
+    ParameterKind::ReportId,
+    ParameterKind::TechniqueName,
+    ParameterKind::Switch,
 ];
 
-#[derive(Clone, PartialEq, Eq, Default)]
+// Seems a bit dispropotionate to add a type only for a string variant but
+// other DSC types will be supported in the future
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum ParameterType {
+    String,
+    HereString,
+}
+impl Default for ParameterType {
+    fn default() -> Self {
+        Self::String
+    }
+}
+impl FromStr for ParameterType {
+    type Err = Error;
+
+    fn from_str(ptype: &str) -> Result<Self> {
+        match ptype {
+            "string" => Ok(Self::String),
+            "HereString" => Ok(Self::HereString),
+            _ => Err(Error::new(format!("Could not parse format {}", ptype))),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Default, Debug)]
 pub struct Parameter {
     name: Option<String>,
     value: String,
-    ptype: ParameterType,
+    kind: ParameterKind,
+    content_type: ParameterType,
 }
 
 impl Parameter {
     // general applications
 
-    pub fn variable(name: Option<&str>, value: &str, ptype: ParameterType) -> Self {
+    pub fn variable(
+        name: Option<&str>,
+        value: &str,
+        kind: ParameterKind,
+        content_type: ParameterType,
+    ) -> Self {
         match name {
             Some(n) => Self {
-                name: Some(pascebab_case(n)),
-                value: format!("${}", pascebab_case(value)),
-                ptype,
+                name: Some(pascal_case(n)),
+                value: format!("${}", pascal_case(value)),
+                kind,
+                content_type,
             },
             None => Self {
                 name: None,
-                value: format!("${}", pascebab_case(value)),
-                ptype,
+                value: format!("${}", pascal_case(value)),
+                kind,
+                content_type,
             },
         }
     }
 
-    pub fn string(name: Option<&str>, value: &str, ptype: ParameterType) -> Self {
+    pub fn string(
+        name: Option<&str>,
+        value: &str,
+        kind: ParameterKind,
+        content_type: ParameterType,
+    ) -> Self {
         match name {
             Some(n) => Self {
-                name: Some(pascebab_case(n)),
-                value: quoted(&pascebab_case(value)),
-                ptype,
+                name: Some(pascal_case(n)),
+                value: quoted(&value),
+                kind,
+                content_type,
             },
             None => Self {
                 name: None,
-                value: quoted(&pascebab_case(value)),
-                ptype,
+                value: quoted(&value),
+                kind,
+                content_type,
             },
         }
     }
 
-    pub fn method_parameter(name: &str, value: &str) -> Self {
+    pub fn raw(
+        name: Option<&str>,
+        value: &str,
+        kind: ParameterKind,
+        content_type: ParameterType,
+    ) -> Self {
+        match name {
+            Some(n) => Self {
+                name: Some(pascal_case(n)),
+                value: value.to_owned(),
+                kind,
+                content_type,
+            },
+            None => Self {
+                name: None,
+                value: value.to_owned(),
+                kind,
+                content_type,
+            },
+        }
+    }
+
+    pub fn method_parameter(name: &str, value: &str, content_type: ParameterType) -> Self {
         Self {
-            name: Some(pascebab_case(name)),
-            value: quoted(&pascebab_case(value)),
-            ptype: ParameterType::MethodParameter,
+            name: Some(pascal_case(name)),
+            value: quoted(&value),
+            kind: ParameterKind::MethodParameter,
+            content_type,
         }
     }
 }
 
 impl fmt::Display for Parameter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.name {
-            Some(name) => write!(f, "-{} {}", name, self.value),
-            None => write!(f, "{}", self.value),
+        let formatted_value = match self.content_type {
+            ParameterType::String => self.value.clone(),
+            ParameterType::HereString => format!("@'\n{}\n'@", self.value.trim_matches('"')),
+        };
+        match (&self.name, self.kind) {
+            (Some(name), ParameterKind::Switch) => write!(f, "-{}:{}", name, formatted_value),
+            (Some(name), _) => write!(f, "-{} {}", name, formatted_value),
+            (None, _) => write!(f, "{}", formatted_value),
         }
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Default)]
+#[derive(Clone, PartialEq, Eq, Default, Debug)]
 pub struct Parameters(pub Vec<Parameter>);
 
 impl Parameters {
@@ -155,7 +268,7 @@ impl Parameters {
         self.sort_by_key(|p| {
             PARAMETER_ORDERING
                 .iter()
-                .position(|&ptype| ptype == p.ptype)
+                .position(|&kind| kind == p.kind)
                 .unwrap()
         });
         self
@@ -170,34 +283,53 @@ impl Parameters {
         let parameter = Parameter {
             name: None,
             value: pascebab_case(&method_name),
-            ptype: ParameterType::MethodName,
+            kind: ParameterKind::MethodName,
+            content_type: ParameterType::default(),
         };
         self.push(parameter);
         self
     }
 
     pub fn component_name(mut self, name: &str) -> Self {
-        let parameter =
-            Parameter::string(Some("ComponentName"), name, ParameterType::ComponentName);
+        let parameter = Parameter::string(
+            Some("ComponentName"),
+            name,
+            ParameterKind::ComponentName,
+            ParameterType::default(),
+        );
         self.push(parameter);
         self
     }
 
-    pub fn component_key(mut self, name: &str) -> Self {
-        let parameter = Parameter::string(Some("ComponentKey"), name, ParameterType::ComponentKey);
+    pub fn component_key(mut self, value: &str) -> Self {
+        let parameter = Parameter::raw(
+            Some("ComponentKey"),
+            value,
+            ParameterKind::ComponentKey,
+            ParameterType::default(),
+        );
         self.push(parameter);
         self
     }
 
     pub fn mode(mut self) -> Self {
-        let parameter =
-            Parameter::variable(Some("AuditOnly"), "AuditOnly", ParameterType::ReportId);
+        let parameter = Parameter::variable(
+            Some("AuditOnly"),
+            "AuditOnly",
+            ParameterKind::Switch,
+            ParameterType::default(),
+        );
         self.push(parameter);
         self
     }
 
     pub fn report_id(mut self) -> Self {
-        let parameter = Parameter::variable(Some("ReportId"), "ReportId", ParameterType::ReportId);
+        let parameter = Parameter::variable(
+            Some("ReportId"),
+            "ReportId",
+            ParameterKind::ReportId,
+            ParameterType::default(),
+        );
         self.push(parameter);
         self
     }
@@ -206,24 +338,39 @@ impl Parameters {
         let parameter = Parameter::variable(
             Some("TechniqueName"),
             "TechniqueName",
-            ParameterType::TechniqueName,
+            ParameterKind::TechniqueName,
+            ParameterType::default(),
         );
         self.push(parameter);
         self
     }
 
     pub fn method_parameter(mut self, name: &str, value: &str) -> Self {
-        self.push(Parameter::method_parameter(name, value));
+        self.push(Parameter::method_parameter(
+            name,
+            value,
+            ParameterType::default(),
+        ));
         self
     }
 
     pub fn class_parameter(mut self, parameter: Parameter) -> Self {
-        self.push(parameter);
+        self.push(Parameter {
+            name: parameter.name,
+            value: parameter.value,
+            kind: ParameterKind::ClassParameter,
+            content_type: ParameterType::default(),
+        });
         self
     }
 
     pub fn message(mut self, message: &str) -> Self {
-        let parameter = Parameter::string(Some("Message"), message, ParameterType::Message);
+        let parameter = Parameter::string(
+            Some("Message"),
+            message,
+            ParameterKind::Message,
+            ParameterType::default(),
+        );
         self.push(parameter);
         self
     }
@@ -352,7 +499,8 @@ impl Call {
         //       $ReportString = "An unknown error occured while running command '$CommandName'"
         //       if ($AuditOnly) {
         //         [ComplianceStatus]::audit_error
-        //     } else {
+        //     }
+        //     else {
         //         [ComplianceStatus]::result_error
         //     }
         //   }
@@ -409,11 +557,13 @@ impl Call {
                 .iter()
                 .map(|(attr_type, content)| {
                     let fmt_call = match (attr_type, &self.variable) {
-                        (CallType::If(call), _) => format!(
-                            "$Condition = {}\nif (Evaluate-Class $Condition $LocalClasses $SystemClasses) {{{}\n}}",
-                            content.as_ref().unwrap(),
-                            call
-                        ),
+                        (CallType::If(call), _) => {
+                            format!(
+                                "$Class = {}\nif (Evaluate-Class $Class $LocalClasses $SystemClasses) {{{}\n}}",
+                                content.as_ref().unwrap(),
+                                call
+                            )
+                        },
                         (CallType::Else(call), _) => format!("else {{{}\n}}", call),
                         (_, Some(var)) => format!("{} = {}", var, content.as_ref().unwrap()),
                         (_, None) => content.as_ref().unwrap().to_owned()
@@ -457,7 +607,7 @@ pub struct Method {
 // if condition == "any" {
 //     Ok(call)
 // } else {
-//     let formatted_condition = &format!("\n  $Condition = \"any.({})\"\n  if (Evaluate-Class $Condition $LocalClasses $SystemClasses) {{", condition);
+//     let formatted_condition = &format!("\n  $Class = \"any.({})\"\n  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {{", condition);
 //     Ok(if is_dsc_gm {
 //         format!(
 //             "{}\n  {}\n  }} else {{\n  {}\n  }}",
@@ -511,7 +661,12 @@ impl Method {
 
     pub fn class_parameter(self, class_parameter: Parameter) -> Self {
         Self {
-            class_parameter,
+            class_parameter: Parameter {
+                name: class_parameter.name,
+                value: class_parameter.value,
+                content_type: class_parameter.content_type,
+                kind: ParameterKind::ClassParameter,
+            },
             ..self
         }
     }
@@ -530,14 +685,13 @@ impl Method {
         assert!(self.class_parameter.name.is_some());
         // assert!(!self.class_parameter.value.is_empty());
 
-        let report_param_name = self.class_parameter.clone().name.unwrap();
-
         // Does the method have a real condition?
         let has_condition = !TRUE_CLASSES.iter().any(|c| c == &self.condition);
 
         let method_call = Call::method(
             Parameters::from(self.parameters.clone())
                 .method_name(&self.resource, &self.state, self.method_alias)
+                .class_parameter(self.class_parameter.clone())
                 .component_name(&self.component)
                 .report_id()
                 .technique_name()
@@ -547,7 +701,7 @@ impl Method {
         let na_report = Call::report_na(
             Parameters::new()
                 .component_name(&self.component)
-                .component_key(&report_param_name)
+                .component_key(&self.class_parameter.value)
                 .message("Not applicable")
                 .report_id()
                 .technique_name()
@@ -555,36 +709,36 @@ impl Method {
                 .sort(),
         );
 
-        let method = match self.supported {
-            true => method_call.clone(),
-            false => na_report.clone(),
-        };
-
-        if has_condition {
-            let na_condition = format!(
-                "canonify(\"${{class_prefix}}_{}_{}_{}\")",
-                self.resource, self.state, self.class_parameter.value
-            );
-
-            vec![
-                Call::new()
-                    .if_condition(self.condition.clone(), method_call.format())
-                    .else_condition(&self.condition, na_report.format()),
-                // Call::method(Parameters::new()
-                //     .class_parameter(self.class_parameter.clone())
-                //     .message(&format!(
-                //         "Skipping method '{}' with key parameter '{}' since condition '{}' is not reached",
-                //         &self.component,
-                //         report_param_name,
-                //         self.condition)
-                //     )
-                //     .message(&na_condition)
-                //     .message(&na_condition)
-                //     .message("@{args}")
-                // ),
-            ]
-        } else {
-            vec![method]
+        match self.supported {
+            true => {
+                if has_condition {
+                    let na_condition = format!(
+                        "canonify(\"${{class_prefix}}_{}_{}_{}\")",
+                        self.resource, self.state, self.class_parameter.value
+                    );
+                    let condition_format = method_call.format();
+                    vec![
+                        Call::new()
+                            .if_condition(self.condition.clone(), condition_format)
+                            .else_condition(&self.condition, na_report.format()),
+                        // Call::method(Parameters::new()
+                        //     .class_parameter(self.class_parameter.clone())
+                        //     .message(&format!(
+                        //         "Skipping method '{}' with key parameter '{}' since condition '{}' is not reached",
+                        //         &self.component,
+                        //         report_param_name,
+                        //         self.condition)
+                        //     )
+                        //     .message(&na_condition)
+                        //     .message(&na_condition)
+                        //     .message("@{args}")
+                        // ),
+                    ]
+                } else {
+                    vec![method_call]
+                }
+            }
+            false => vec![na_report],
         }
     }
 }
@@ -728,23 +882,62 @@ mod tests {
                 .format(),
             r#"
   test = "plop"
-  $Condition = "debian"
-  if (Evaluate-Class $Condition $LocalClasses $SystemClasses) {
+  $Class = "debian"
+  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
     # empty
   }"#
         );
     }
 
     #[test]
-    fn format_method() {
+    fn condition_dsc_method() {
+        assert_eq!(
+            Function::agent("test")
+                .scope(
+                    Method::new()
+                        .resource("directory".to_string())
+                        .state("absent".to_string())
+                        .class_parameter(Parameter::method_parameter(
+                            "p0",
+                            "parameter With CASE",
+                            ParameterType::default()
+                        ))
+                        .parameters(Parameters::new().method_parameter("p1", "vim"))
+                        .component("component".to_string())
+                        .condition("windows".to_string())
+                        .supported(true) // must be set manually since generic method check happens elsewhere
+                        .build()
+                )
+                .to_string(),
+            r#"function Test {
+
+
+  $Class = "windows"
+  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
+    $LocalClasses = Merge-ClassContext $LocalClasses $(Directory-Absent -P0 "parameter With CASE" -P1 "vim" -ComponentName "component" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+  }
+  else {
+    _rudder_common_report_na -ComponentName "component" -ComponentKey "parameter With CASE" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+  }
+}
+"#
+        );
+    }
+
+    #[test]
+    fn condition_method_not_applicable() {
         assert_eq!(
             Function::agent("test")
                 .scope(
                     Method::new()
                         .resource("package".to_string())
                         .state("present".to_string())
+                        .class_parameter(Parameter::method_parameter(
+                            "p0",
+                            "parameter With CASE",
+                            ParameterType::default()
+                        ))
                         .parameters(Parameters::new().method_parameter("p1", "vim"))
-                        .class_parameter(Parameter::method_parameter("p1", "parameter"))
                         .component("component".to_string())
                         .condition("debian".to_string())
                         .build()
@@ -753,21 +946,15 @@ mod tests {
             r#"function Test {
 
 
-  $Condition = "debian"
-  if (Evaluate-Class $Condition $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(Package-Present -P1 "Vim" -ComponentName "Component" -ReportId $ReportId -AuditOnly $AuditOnly -TechniqueName $TechniqueName).get_item("classes")
-  }
-  else {
-    _rudder_common_report_na -ComponentName "Component" -ComponentKey "P1" -Message "Not-Applicable" -ReportId $ReportId -AuditOnly $AuditOnly -TechniqueName $TechniqueName
-  }
+  _rudder_common_report_na -ComponentName "component" -ComponentKey "parameter With CASE" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
 }
-"# // $LocalClasses = Merge-ClassContext $LocalClasses  $(-P1 "Parameter" -Message "Skipping-Method-'component'-With-Key-Parameter-'P1'-Since-Condition-'debian'-Is-Not-Reached" -Message "Canonify("${class-Prefix}-Package-Present-"Parameter"")" -Message "Canonify("${class-Prefix}-Package-Present-"Parameter"")" -Message "@{args}").get_item("classes")
+"#
         );
     }
     // TODO : add these cases
-    // $Condition = "debian" => package_present(vim)
+    // $Class = "debian" => package_present(vim)
     // else => _classes_noop(canonify(\"${class_prefix}_package_present_parameter\")),
-    // $Condition = "debian"
+    // $Class = "debian"
     // log_rudder(\"Skipping method \'component\' with key parameter \'parameter\' since condition \'debian\' is not reached\", \"parameter\", canonify(\"${class_prefix}_package_present_parameter\"), canonify(\"${class_prefix}_package_present_parameter\"), @{args}),
 
     #[test]

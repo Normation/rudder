@@ -10,6 +10,23 @@
         "parameter": [],
         "method_calls": [
             {
+                "parameters": [
+                    {
+                        "name": "condition",
+                        "value": "skip_item_${report_data.canonified_directive_id}",
+                        "$errors": []
+                    },
+                    {
+                        "name": "variable_name",
+                        "value": "node.properties[skip][${report_data.directive_id}]",
+                        "$errors": []
+                    }
+                ],
+                "class_context": "any",
+                "method_name": "condition_from_variable_existence",
+                "component": "condition_from_variable_existence"
+            },
+            {
                 "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false)",
                 "component": "Command execution",
                 "method_name": "command_execution",

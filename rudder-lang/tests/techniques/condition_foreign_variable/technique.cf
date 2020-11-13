@@ -1,0 +1,15 @@
+bundle agent condition_foreign_variable_technique {
+
+  vars:
+    "resources_dir"        string => "${this.promise_dirname}/resources";
+    "args"                  slist => {};
+    "report_param"         string => join("_", args);
+    "full_class_prefix"    string => canonify("escaped_technique_${report_param}");
+    "class_prefix"         string => string_head("${full_class_prefix}", "1000");
+
+  methods:
+    "Command execution_${report_data.directive_id}_0" usebundle => _method_reporting_context("Command execution", "chown -R ${owner}:${owner} ${path}"),
+                                                              if => concat("any.(server_machine|group_sbu_cmcs__sles12_)");
+    "Command execution_${report_data.directive_id}_0" usebundle => command_execution("chown -R ${owner}:${owner} ${path}"),
+                                                              if => concat("any.(server_machine|group_sbu_cmcs__sles12_)");
+}

@@ -2,10 +2,54 @@
     "type": "ncf_technique",
     "version": 2,
     "data": {
-        "bundle_name": "CIS_redhat7___Disable_kernel_module_loading",
-        "description": "",
-        "name": "CIS redhat7 - Disable kernel module loading",
+        "bundle_name": "6_2_cis_updated",
         "version": "1.0",
+        "category": "CIS_redhat7",
+        "description": "",
+        "name": "6_2_cis_updated",
+        "method_calls": [
+            {
+                "method_name": "condition_from_variable_existence",
+                "class_context": "any",
+                "component": "condition_from_variable_existence",
+                "parameters": [
+                    {
+                        "name": "condition",
+                        "value": "skip_item_${report_data.canonified_directive_id}"
+                    },
+                    {
+                        "name": "variable_name",
+                        "value": "node.properties[skip][${report_data.directive_id}]"
+                    }
+                ]
+            },
+            {
+                "method_name": "kernel_module_configuration",
+                "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false)",
+                "component": "kernel_module_configuration",
+                "parameters": [
+                    {
+                        "name": "name",
+                        "value": "${module}"
+                    },
+                    {
+                        "name": "configuration",
+                        "value": "install ${module} /bin/false"
+                    }
+                ]
+            },
+            {
+                "method_name": "kernel_module_not_loaded",
+                "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false)",
+                "component": "kernel_module_not_loaded",
+                "parameters": [
+                    {
+                        "name": "name",
+                        "value": "${module}"
+                    }
+                ]
+            }
+        ],
         "parameter": [
             {
                 "id": "ef3a3cc4-ce02-44b0-a280-d1b90876506a",
@@ -13,54 +57,6 @@
                 "description": ""
             }
         ],
-        "category": "CIS_redhat7",
-        "method_calls": [
-            {
-                "parameters": [
-                    {
-                        "name": "condition_prefix",
-                        "value": "skip_item_${report_data.canonified_directive_id}",
-                        "$errors": []
-                    },
-                    {
-                        "name": "variable_name",
-                        "value": "node.properties[skip][${report_data.directive_id}]",
-                        "$errors": []
-                    }
-                ],
-                "class_context": "any",
-                "method_name": "condition_from_variable_existence",
-                "component": "condition_from_variable_existence"
-            },
-            {
-                "parameters": [
-                    {
-                        "name": "module_name",
-                        "value": "${module}",
-                        "$errors": []
-                    },
-                    {
-                        "name": "configuration",
-                        "value": "install ${module} /bin/false",
-                        "$errors": []
-                    }
-                ],
-                "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false)",
-                "method_name": "kernel_module_configuration",
-                "component": "kernel_module_configuration"
-            },
-            {
-                "parameters": [
-                    {
-                        "name": "module_name",
-                        "value": "${module}",
-                        "$errors": []
-                    }
-                ],
-                "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false)",
-                "method_name": "kernel_module_not_loaded",
-                "component": "kernel_module_not_loaded"
-            }
-        ]
+        "resources": []
     }
 }

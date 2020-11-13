@@ -77,8 +77,8 @@ self_dir=$(dirname $(readlink -e $0))
 test_dir=$(mktemp -d)
 chmod +rx "${test_dir}"
 
-# cfjson_tester is always in the same directory as tester.sh
-cfjson_tester="${self_dir}/cfjson_tester"
+# generated_formats_tester is always in the same directory as tester.sh
+generated_formats_tester="${self_dir}/generated_formats_tester"
 
 # Detect technique path
 # requires an extension format to be used
@@ -92,7 +92,7 @@ then
   exit 1
 fi
 
-# Detect rudderc and cfjson_tester configuration
+# Detect rudderc and generated_formats_tester configuration
 config_file="/opt/rudder/etc/rudderc.conf"
 [ ${env} = "prod" ] || config_file="${self_dir}/rudderc-dev.conf"
 if [ ! -f "${config_file}" ]
@@ -137,10 +137,10 @@ then
   then
     # json -> rl, if success compare json
     status+=("SUCCESS")
-    if (set -x ; ${rudderc} technique read -i "${technique}.rl" -o "${technique}.rl.json" --config-file=${config_file})
+    if (set -x ; ${rudderc} technique read -i "${technique}.rl" -o "${technique}.json" --config-file=${config_file})
     then
       status+=("SUCCESS")
-      (set -x ; ${cfjson_tester} compare-json --config-file="${config_file}" "${technique}.json" "${technique}.rl.json")
+      (set -x ; ${generated_formats_tester} compare-json --config-file="${config_file}" "${technique}.json" "${technique}.rl.json")
       [ $? -eq 0 ] && status+=("SUCCESS") || status+=("ERROR")
     else
       status+=("ERROR")
@@ -149,7 +149,7 @@ then
     if (set -x ; ${rudderc} compile -j -f "cf" -i "${technique}.rl" --config-file=${config_file})
     then
       status+=("SUCCESS")
-      (set -x ; ${cfjson_tester} compare-cf --config-file="${config_file}" "${technique}.cf" "${technique}.rl.cf")
+      (set -x ; ${generated_formats_tester} compare-cf --config-file="${config_file}" "${technique}.cf" "${technique}.rl.cf")
       [ $? -eq 0 ] && status+=("SUCCESS") || status+=("ERROR")
     else
       status+=("ERROR")
@@ -158,7 +158,7 @@ then
     if (set -x ; ${rudderc} compile -j  -f "dsc" -i "${technique}.rl" --config-file=${config_file})
     then
       status+=("SUCCESS")
-      (set -x ; ${cfjson_tester} compare-dsc --config-file="${config_file}" "${technique_path}" "${technique}.rl.dsc")
+      (set -x ; ${generated_formats_tester} compare-dsc --config-file="${config_file}" "${technique}.ps1" "${technique}.rl.ps1")
       [ $? -eq 0 ] && status+=("SUCCESS") || status+=("ERROR")
     else
       status+=("ERROR")
@@ -179,7 +179,7 @@ then
     else
       echo "${log_to_print}-> NOT DONE"
     fi
-    index=${index}+1
+    index=$((index+1))
   done
 
 else
@@ -239,12 +239,11 @@ else
   then
     # json -> rl, if success compare json
     status+=("SUCCESS") && is_save_success="true"
-
-    if (set -x ; ${rudderc} technique read -i "${technique_path}.rl" -o "${test_dir}/${technique}.rl.json" 2>> "${logfiles[0]}")
+    if (set -x ; ${rudderc} technique read -i "${technique_path}.rl" -o "${test_dir}/${technique}.json" 2>> "${logfiles[0]}")
     then
       status+=("SUCCESS") && is_read_success="true"
       # success prints nothing. failure = JSON error to stdout -> redirected to a logfile (>>) so that errors can be retrieved by Rudder team. Unhandled python errors -> raw trace file
-      (set -x ; ${cfjson_tester} compare-json "${technique_path}.json" "${test_dir}/${technique}.rl.json" >> "${logfiles[1]}" 2>> "${trace}")
+      (set -x ; ${generated_formats_tester} compare-json "${technique_path}.json" "${test_dir}/${technique}.rl.json" >> "${logfiles[1]}" 2>> "${trace}")
       [ $? -eq 0 ] && status+=("SUCCESS") && is_diff_json_success="true" || status+=("ERROR") && is_diff_json_success="false"
     else
       truncate -s-1 "${logfiles[0]}" ; echo "," >> "${logfiles[0]}" # keep json format valid
@@ -254,17 +253,17 @@ else
     if (set -x ; ${rudderc} compile -j -f "cfengine" -i "${technique_path}.rl" -o "${test_dir}/${technique}.cf" 2>> "${logfiles[0]}")
     then
       status+=("SUCCESS") && is_compile_cf_success="true"
-      (set -x ; ${cfjson_tester} compare-cf "${technique_path}.cf" "${test_dir}/${technique}.rl.cf" >> "${logfiles[2]}" 2>> "${trace}")
+      (set -x ; ${generated_formats_tester} compare-cf "${technique_path}.cf" "${test_dir}/${technique}.rl.cf" >> "${logfiles[2]}" 2>> "${trace}")
       [ $? -eq 0 ] && status+=("SUCCESS") && is_diff_cf_success="true" || status+=("ERROR") && is_diff_cf_success="false"
     else
       truncate -s-1 "${logfiles[0]}" ; echo "," >> "${logfiles[0]}" # keep json format valid
       status+=("ERROR" "NOT DONE") && is_compile_cf_success="false"
     fi
     # rl -> dsc, if success compare dsc
-    if (set -x ; ${rudderc} compile -j -f "dsc" -i "${technique_path}.rl" -o "${test_dir}/${technique}.dsc" 2>> "${logfiles[0]}")
+    if (set -x ; ${rudderc} compile -j -f "dsc" -i "${technique_path}.rl" -o "${test_dir}/${technique}.ps1" 2>> "${logfiles[0]}")
     then
       status+=("SUCCESS") && is_compile_dsc_success="true"
-      (set -x ; ${cfjson_tester} compare-dsc "${technique_path}.dsc" "${test_dir}/${technique}.rl.dsc" >> "${logfiles[3]}" 2>> "${trace}")
+      (set -x ; ${generated_formats_tester} compare-dsc "${technique_path}.ps1" "${test_dir}/${technique}.rl.ps1" >> "${logfiles[3]}" 2>> "${trace}")
       [ $? -eq 0 ] && status+=("SUCCESS") && is_diff_dsc_success="true" || status+=("ERROR") && is_diff_dsc_success="false"
     else
       truncate -s-1 "${logfiles[0]}" ; echo "," >> "${logfiles[0]}" # keep json format valid
@@ -328,4 +327,33 @@ else
   fi
 fi
 
-[[ ${#status[@]} -eq 7 ]] && exit 0 || exit 1
+success_count=0
+for statu in ${status[*]}
+do
+  if [ "${statu}" = "SUCCESS" ]
+  then
+    success_count=$((success_count+1))
+  fi
+done
+
+exit $((7 - ${success_count}))
+
+
+# PASSING TESTS CURRENT STATE (02/11/2020)
+# parameters_err              KO (TODO handle interpolation in bundle_args?)
+# 6.1.rc5                     OK (ERREUR du TE)
+# condition_useless_brackets  OK
+# 6.2-CIS                     OK
+# cis                         OK
+# condition_dyn               OK
+# cdt                         OK
+# conditional_method          OK
+# condition_anybsd            OK
+# condition_errorprone        OK
+# condition_priority          OK
+# dsc                         OK
+# multiple_simple             OK
+# parameters                  OK
+# parameters_mult             OK
+# simplest                    OK
+# supported_formats           OK

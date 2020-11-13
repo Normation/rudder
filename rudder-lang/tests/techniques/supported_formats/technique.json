@@ -1,5 +1,5 @@
 {
-    "type": "ncf_techniques",
+    "type": "ncf_technique",
     "version": 2,
     "data": {
         "bundle_name": "supported_formats",
@@ -25,7 +25,7 @@
                 "component": "Directory present",
                 "parameters": [
                     {
-                        "name": "target",
+                        "name": "path",
                         "value": "shared_cf_dsc"
                     }
                 ]
@@ -36,7 +36,7 @@
                 "component": "Directory present",
                 "parameters": [
                     {
-                        "name": "target",
+                        "name": "path",
                         "value": "shared_cf_dsc_condition"
                     }
                 ]

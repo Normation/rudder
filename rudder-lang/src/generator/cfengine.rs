@@ -96,7 +96,7 @@ impl CFEngine {
             }
             EnumExpressionPart::Compare(var, e, item) => {
                 if let Some(true) = gc.enum_list.enum_is_global(*e) {
-                    gc.enum_list.get_item_cfengine_name(*var, *item)
+                    gc.enum_list.get_cfengine_item_name(*var, *item)
                 } else {
                     // concat var name + item
                     // let prefix = &self.var_prefixes[var.fragment()];
@@ -149,9 +149,13 @@ impl CFEngine {
                     .map(|x| self.value_to_string(x, true))
                     .collect::<Result<Vec<String>>>()?;
 
+                let method_name = &format!("{}-{}", var.resource.fragment(), var.state.fragment());
+                let class_param_index = gc
+                    .get_state_def(&var.resource, &var.state)?
+                    .class_parameter_index(method_name)?;
                 let class_param = var
                     .resource_params
-                    .get(0)
+                    .get(class_param_index)
                     .and_then(|p| self.value_to_string(&p, false).ok())
                     .unwrap_or_else(|| "".to_string());
 
@@ -183,17 +187,17 @@ impl CFEngine {
                     .map(|x| self.value_to_string(x, true))
                     .collect::<Result<Vec<String>>>()?;
 
-                let class_param = sd
-                    .resource_params
-                    .get(0)
-                    .and_then(|p| self.value_to_string(&p, false).ok())
-                    .unwrap_or_else(|| "".to_string());
-
                 let method_name = &format!("{}-{}", sd.resource.fragment(), sd.state.fragment());
-                let is_cf_supported = gc
-                    .get_state_def(sd)?
+                let state_def = gc.get_state_def(&sd.resource, &sd.state)?;
+                let class_param_index = state_def.class_parameter_index(method_name)?;
+                let is_cf_supported = state_def
                     .supported_formats(method_name)?
                     .contains(&"cf".to_owned());
+                let class_param = sd
+                    .resource_params
+                    .get(class_param_index)
+                    .and_then(|p| self.value_to_string(&p, false).ok())
+                    .unwrap_or_else(|| "".to_string());
 
                 Ok(Method::new()
                     .resource(sd.resource.fragment().to_string())
@@ -332,28 +336,6 @@ impl CFEngine {
                 )?
             ),
         })
-    }
-
-    fn get_state_def<'src>(
-        gc: &'src IR2,
-        state_decl: &'src StateDeclaration,
-    ) -> Result<&'src StateDef<'src>> {
-        match gc.resources.get(&state_decl.resource) {
-            Some(r) => match r.states.get(&state_decl.state) {
-                Some(s) => Ok(s),
-                None => Err(Error::new(format!(
-                    "No method relies on the \"{}\" state for \"{}\"",
-                    state_decl.state.fragment(),
-                    state_decl.resource.fragment()
-                ))),
-            },
-            None => {
-                return Err(Error::new(format!(
-                    "No method relies on the \"{}\" resource",
-                    state_decl.resource.fragment()
-                )))
-            }
-        }
     }
 }
 

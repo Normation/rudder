@@ -13,7 +13,7 @@ function Param-Mult {
 
   $class = "any.(linux)"
   if (Evaluate-Class $class $local_classes $system_classes) {
-    $local_classes = Merge-ClassContext $local_classes $(File-Absent -Target "target" -componentName "File absent" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
+    $local_classes = Merge-ClassContext $local_classes $(File-Absent -Path "target" -componentName "File absent" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
   } else {
     _rudder_common_report_na -componentName "File absent" -componentKey "target" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
   }

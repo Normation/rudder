@@ -45,8 +45,10 @@ impl<'src> StringObject<'src> {
 impl<'src> TryFrom<&StringObject<'src>> for String {
     type Error = Error; // rudder-lang
 
+    // this should only be called on static variable. But should we ?
     fn try_from(value: &StringObject<'src>) -> Result<Self> {
         // variable should probably be translated too, keeping ${} wrapper
+        // for now it cannot because it prevents the compiler from turning an interpolated variable into a string
         if value
             .data
             .iter()

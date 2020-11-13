@@ -9,7 +9,7 @@
     "parameter": [
       {
         "id": "c6e6cc3a-9ce8-4889-bccc-6bfc1b091d0d",
-        "name": "parameter wdd",
+        "name": "parameter_wdd",
         "description": ""
       },
       {
@@ -18,12 +18,12 @@
         "description": ""
       }
     ],
-    "category": "",
+    "category": "ncf_techniques",
     "method_calls": [
       {
         "parameters": [
           {
-            "name": "condition_prefix",
+            "name": "condition",
             "value": "mycond",
             "$errors": []
           }

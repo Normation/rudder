@@ -116,12 +116,16 @@ fn format_expr(ir: &IR2, expr: &EnumExpressionPart) -> String {
         }
         EnumExpressionPart::Compare(var, tree, item) => {
             if let Some(true) = ir.enum_list.enum_is_global(*var) {
-                ir.enum_list.get_item_cfengine_name(*var, *item)
+                ir.enum_list.get_cfengine_item_name(*var, *item)
             } else {
-                // TODO ADD PREFIX ?
                 // concat var name + item
                 // TODO there may still be some conflicts with var or enum containing '_'
-                format!("{}_{}", var.fragment(), item.fragment())
+                // format!("{}_{}", var.fragment(), item.fragment())
+                format!(
+                    "{}_${{report_data.canonified_directive_id}}_{}",
+                    var.fragment(),
+                    item.fragment()
+                )
             }
         }
         EnumExpressionPart::RangeCompare(var, tree, left, right) => unimplemented!(), // TODO
@@ -132,6 +136,18 @@ fn format_expr(ir: &IR2, expr: &EnumExpressionPart) -> String {
 
 fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Vec<MethodCall> {
     match stmt {
+        Statement::ConditionVariableDefinition(s) => {
+            let method_name = format!("{}_{}", *s.resource, *s.state);
+            let parameters = fetch_method_parameters(ir, &s.to_method(), |name, value, _| {
+                Parameter::new(name, value)
+            });
+            vec![MethodCall {
+                parameters,
+                condition,
+                method_name,
+                component: extract_meta_string(&s.metadata, "component"),
+            }]
+        }
         Statement::StateDeclaration(s) => {
             let method_alias = s
                 .metadata
@@ -144,7 +160,7 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                 format!("{}_{}", *s.resource, *s.state)
             };
             let mut parameters =
-                fetch_method_parameters(ir, s, |name, value| Parameter::new(name, value));
+                fetch_method_parameters(ir, s, |name, value, _| Parameter::new(name, value));
 
             // EXCEPTION: reunite variable_string_escaped resource parameters that appear to be joined from cfengine side
             if method_name == "variable_string_escaped" {

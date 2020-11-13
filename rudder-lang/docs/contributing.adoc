@@ -75,7 +75,7 @@ A perl script that generates _resourcelib.rl_ calling ncf api: _rudder-lang_ gen
 [align=center]
 image::generate-lib.svg[_rudder-lang-lib generation]
 
-=== cfjson_tester
+=== generated_formats_tester
 
 A python script that can either:
 
