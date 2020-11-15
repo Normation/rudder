@@ -57,7 +57,7 @@ import com.normation.rudder.rest.RestUtils.effectiveResponse
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.{InventoryApi => API}
-import com.normation.zio.ZioRuntime
+import com.normation.zio._
 import net.liftweb.http.FileParamHolder
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
@@ -91,12 +91,9 @@ class InventoryApi (
     val restExtractor = restExtractorService
     val actionName = "queueInformation"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      // Get the current size, the remaining of the answer is based on that.
-      // The "+1" is because the fiber waiting for inventory give 1 slot,
-      // if don't "+1", we start at -1 when no inventories are here.
-      val current = inventoryProcessor.currentQueueSize + 1
-      //must be coherent with can do, current = 49 < max = 50 => not saturated
-      val saturated = current >= inventoryProcessor.maxQueueSize
+      val saturated = inventoryProcessor.isQueueFull.catchAll(err =>
+        InventoryProcessingLogger.error(err.fullMsg) *> true.succeed
+      ).runNow
       val json = (
                     ("queueMaxSize"   -> inventoryProcessor.maxQueueSize)
                   ~ ("queueSaturated" -> saturated)
@@ -153,7 +150,9 @@ class InventoryApi (
       val prog =
         ZIO.bracket(writeFile(inventoryFile, File(tempDir, originalFilename)))(f => effectUioUnit(f.delete())) { inv =>
           ZIO.bracket(optWrite(signatureFile, File(tempDir, signatureFilename)))(opt => opt.fold(UIO.unit)(f => effectUioUnit(f.delete()))) { optSig =>
-            inventoryProcessor.saveInventory(SaveInventoryInfo(originalFilename, () => inv.newFileInputStream, optSig.map(f => () => f.newFileInputStream))).map {
+            inventoryProcessor.saveInventory(SaveInventoryInfo(
+              originalFilename, () => inv.newFileInputStream, optSig.map(f => () => f.newFileInputStream), IOResult.effect(inv.exists).orElseSucceed(false)
+            )).map {
               status =>
                 import com.normation.rudder.inventory.StatusLog.LogMessage
                 status match {

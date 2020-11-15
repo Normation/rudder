@@ -57,7 +57,6 @@ import zio.syntax._
 import zio.duration._
 import com.normation.zio._
 import org.joda.time.DateTime
-import zio.blocking.Blocking
 import zio.clock.Clock
 
 final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
@@ -240,7 +239,6 @@ class InventoryFileWatcher(
   val failed   = File(failedInventoryPath)
   logDirPerm(failed, "Failed")
 
-  implicit val scheduler = ZioRuntime.unsafeRun(ZIO.access[Blocking](_.get.blockingExecutor.asEC).provide(ZioRuntime.environment))
   // the cron that look for old files (or existing ones on startup/watcher restart)
   val cronForMissed = new SchedulerMissedNotify(
       incoming :: updated :: Nil
@@ -249,7 +247,7 @@ class InventoryFileWatcher(
     , ZioRuntime.environment
   )
   // service that will actually process files (queue for event from inotify/cron for missed files)
-  val fileProcessor = new ProcessFile(inventoryProcessor.saveInventory, received, failed, waitForSig, sigExtension)
+  val fileProcessor = new ProcessFile(inventoryProcessor, received, failed, waitForSig, sigExtension)
   // That reference holds watcher instance and scheduler fiber to be able to stop them if asked
   val ref = RefM.make(Option.empty[(Watchers,Fiber[Nothing, Nothing])]).runNow
   def startWatcher() = semaphore.withPermit(
@@ -309,6 +307,7 @@ final case class SaveInventoryInfo(
     fileName          : String
   , inventoryStream   : () => InputStream
   , optSignatureStream: Option[() => InputStream]
+  , testExits         : UIO[Boolean]
 )
 
 /*
@@ -317,11 +316,11 @@ final case class SaveInventoryInfo(
  * For that, it needs signature and inventory file.
  */
 class ProcessFile(
-    saveInventory: SaveInventoryInfo => IOResult[InventoryProcessStatus]
-  , received     : File
-  , failed       : File
-  , waitForSig   : Duration
-  , sigExtension : String // signature file extension, most likely ".sign"
+    inventoryProcessor: InventoryProcessor
+  , received          : File
+  , failed            : File
+  , waitForSig        : Duration
+  , sigExtension      : String // signature file extension, most likely ".sign"
 ) {
   val sign = if(sigExtension.charAt(0) == '.') sigExtension else "."+sigExtension
 
@@ -350,12 +349,41 @@ class ProcessFile(
    * a "file written" event.
    */
   type WatchQueue = ZQueue[Any, Nothing, Any, Nothing, WatchEvent, WatchEvent]
-  val queue = ZioRuntime.unsafeRun(Queue.bounded[WatchEvent](10000))
+  val watchEventQueue = ZioRuntime.unsafeRun(Queue.bounded[WatchEvent](16384))
 
-  // processing message is a loop, so UIO[Nothing]
-  def loop: UIO[Nothing] = processMessage().forever
+  /*
+   * We have a second queue that is used as buffer for the step between "file ok to be processed"
+   * and "saving file" because "saving file" implies parsing XML and doing other memory and CPU
+   * inefficient tasks.
+   * The buffer also allows to filter inventory for identical nodes to avoid having a command to parse an inventory
+   * while it was already processed earlier in the buffer (and so its files were already moved).
+   * As only a small structure is saved (`SaveInventory`: a name and two function to create stream from file), buffer
+   * can be big.
+   * When queue is full, we prefer to drop old `SaveInventory` to new ones. In the worst case, they will be catched up
+   * by the SchedulerMissedNotify and put again in the WatchEvent queue.
+   */
+  protected val saveInventoryBuffer = ZQueue.sliding[(File, Option[File])](1024).runNow
+
+  /*
+   * The processing logic is to continually call sendToProcessorBlocking. When we
+   * take a file, we  de-duplicate files in buffer queue with the same name (ie: remove them).
+   * It likely means that we add several "whatch even: add" for that file (either copied several time, touched,
+   * or inotify event emission not what we thought)
+   */
+  val saveInventoryBufferProcessing = {
+    for {
+      inv <- saveInventoryBuffer.take
+      // deduplicate. TakeAll is not blocking
+      all <- saveInventoryBuffer.takeAll
+      _   <- saveInventoryBuffer.offerAll(all.filterNot { case (f, _) => inv._1.name == f.name })
+      // process
+      _ <- sendToProcessorBlocking(inv._1, inv._2)
+    } yield ()
+  }
+  saveInventoryBufferProcessing.forever.forkDaemon.runNow
+
   def processMessage(): UIO[Unit] = {
-    queue.take.flatMap {
+    watchEventQueue.take.flatMap {
       case WatchEvent.End(file) => // simple case: remove file from map
         toBeProcessed.update[Any, Nothing](s =>
           (s - file).succeed
@@ -373,7 +401,7 @@ class ProcessFile(
 
             val effect = ZioRuntime.blocking(
                  UIO.unit.delay(fileWrittenThreshold).provide(ZioRuntime.environment)
-              *> queue.offer(WatchEvent.End(file))
+              *> watchEventQueue.offer(WatchEvent.End(file))
               *> processFile(file, locks).uninterruptible
             ).forkDaemon
 
@@ -391,16 +419,56 @@ class ProcessFile(
   }
 
   //start the process
-  ZioRuntime.internal.unsafeRunSync(loop.forkDaemon)
+  ZioRuntime.internal.unsafeRunSync(processMessage().forever.forkDaemon)
 
   def addFilePure(file: File): UIO[Unit] = {
-    queue.offer(WatchEvent.Mod(file)).unit
+    watchEventQueue.offer(WatchEvent.Mod(file)).unit
   }
 
   def addFile(file: File): Unit = {
     ZioRuntime.internal.unsafeRunSync(addFilePure(file))
   }
 
+
+  /*
+   * This is a blocking action, only call it with a non-blocking buffer in front of it.
+   */
+
+  protected def sendToProcessorBlocking(inventory: File, signature: Option[File]): UIO[Unit] = {
+    // we don't manage race condition very well, so we have cases where
+    // we can have two things trying to move
+    def safeMove[T](chunk: =>T): IOResult[Unit] = {
+      Task.effect{chunk ; ()}.catchAll {
+        case ex: NoSuchFileException => // ignore
+          InventoryProcessingLogger.debug(s"Ignored exception '${ex.getClass.getSimpleName} ${ex.getMessage}'. The file '${inventory.pathAsString}' was correctly handled.")
+        case ex                      =>
+          InventoryProcessingLogger.error(s"Exception caught when processing inventory file '${inventory.pathAsString}': ${ex.getClass.getSimpleName} ${ex.getMessage}")
+      }
+    }
+
+    (for {
+      processed <- inventoryProcessor.saveInventoryBlocking(SaveInventoryInfo(
+                       inventory.name
+                     , () => inventory.newInputStream
+                     , signature.map(s => () => s.newInputStream)
+                     , IOResult.effect(inventory.exists).orElseSucceed(false)
+                   )).either
+      move      <- processed match {
+                     case Right(InventoryProcessStatus.Accepted(_,_)) =>
+                       //move to received dir
+                       safeMove(signature.map(s => s.moveTo(received / s.name)(File.CopyOptions(overwrite = true)))) *>
+                       safeMove(inventory.moveTo(received / inventory.name)(File.CopyOptions(overwrite = true)))
+                     case Right(x) =>
+                       safeMove(signature.map(s => s.moveTo(failed / s.name)(File.CopyOptions(overwrite = true)))) *>
+                       safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true)))
+                     case Left(x) =>
+                       safeMove(signature.map(s => s.moveTo(failed / s.name)(File.CopyOptions(overwrite = true)))) *>
+                       safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true)))
+                   }
+    } yield ()).catchAll(err =>
+      InventoryProcessingLogger.error(err.fullMsg)
+    )
+  }
 
   /*
    * The logic is:
@@ -411,41 +479,6 @@ class ProcessFile(
    *   timeout and process, else do nothing.
    */
   def processFile(file: File, locks: zio.Ref[Set[String]]): ZIO[Any, RudderError, Unit] = {
-    // the part that deals with sending to processor and then moving files
-    // where they belong
-    import zio.{Task => ZioTask}
-
-    def sendToProcessor(inventory: File, signature: Option[File]): IOResult[Unit] = {
-      // we don't manage race condition very well, so we have cases where
-      // we can have two things trying to move
-      def safeMove[T](chunk: =>T): IOResult[Unit] = {
-        ZioTask.effect{chunk ; ()}.catchAll {
-          case ex: NoSuchFileException => // ignore
-            InventoryProcessingLogger.debug(s"Ignored exception '${ex.getClass.getSimpleName} ${ex.getMessage}'. The was file was correctly handled.")
-          case ex                      =>
-            InventoryProcessingLogger.error(s"Exception caught when processing inventory file '${file.pathAsString}': ${ex.getClass.getSimpleName} ${ex.getMessage}")
-        }
-      }
-
-      for {
-        processed <- saveInventory(SaveInventoryInfo(inventory.name, () => inventory.newInputStream, signature.map(s => () => s.newInputStream))).either
-        move      <- processed match {
-                       case Right(InventoryProcessStatus.Accepted(_,_)) =>
-                         //move to received dir
-                         safeMove(signature.map(s => s.moveTo(received / s.name)(File.CopyOptions(overwrite = true)))) *>
-                         safeMove(inventory.moveTo(received / inventory.name)(File.CopyOptions(overwrite = true)))
-                       case Right(x) =>
-                         safeMove(signature.map(s => s.moveTo(failed / s.name)(File.CopyOptions(overwrite = true)))) *>
-                         safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true)))
-                       case Left(x) =>
-                         safeMove(signature.map(s => s.moveTo(failed / s.name)(File.CopyOptions(overwrite = true)))) *>
-                         safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true)))
-                     }
-      } yield {
-        ()
-      }
-    }
-
     // the ZIO program
     val prog = for {
         _ <- InventoryProcessingLogger.trace(s"Processing new file: ${file.pathAsString}")
@@ -453,7 +486,7 @@ class ProcessFile(
       // The canonical way seems to be to try to get a write lock on the file and see if
       // it works. We assume that once we successfully get the lock, it means that
       // the file is written (so we can immediately release it).
-      done <- if(file.name.endsWith(".gz")) {
+      _   <- if(file.name.endsWith(".gz")) {
                 val dest = File(file.parent, file.nameWithoutExtension(includeAll = false))
                 IOResult.effect {
                   file.unGzipTo(dest)
@@ -465,7 +498,7 @@ class ProcessFile(
                 if(inventory.exists) {
                   // process !
                   InventoryProcessingLogger.info(s"Watch new inventory file '${inventory.name}' with signature available: process.") *>
-                  sendToProcessor(inventory, Some(file))
+                  saveInventoryBuffer.offer((inventory, Some(file)))
                 } else {
                   InventoryProcessingLogger.debug(s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: waiting")
                 }
@@ -474,16 +507,22 @@ class ProcessFile(
                 if(signature.exists) {
                   // process !
                   InventoryProcessingLogger.info(s"Watch new inventory file '${file.name}' with signature available: process.") *>
-                  sendToProcessor(file, Some(signature))
+                  saveInventoryBuffer.offer((file, Some(signature)))
                 } else { // wait for expiration time and exec without signature
                   InventoryProcessingLogger.debug(s"Watch new inventory file '${file.name}' without signature available: wait for it ${waitForSig.asJava.getSeconds}s before processing.") *>
                   //check that the inventory file is still there and that the signature didn't come while waiting
-                  sendToProcessor(file, None).when(!signature.exists && file.exists).delay(waitForSig)
+                  (for {
+                    exists <- IOResult.effect(file.exists).orElseSucceed(false)
+                    sig    <- IOResult.effect(signature.exists).orElseSucceed(false)
+                    _      <- (exists, sig) match {
+                      case (false, _    ) => ().succeed // do nothing
+                      case (true , false) => saveInventoryBuffer.offer((file, None))
+                      case (true , true ) => saveInventoryBuffer.offer((file, Some(signature)))
+                    }
+                  } yield ()).delay(waitForSig)
                 }
               }
-    } yield {
-      done
-    }
+    } yield ()
 
     final case class Todo(canProcess: Boolean, lockName: String)
 
