@@ -83,7 +83,12 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     //create the fields "used" mapping
     val sectionField = createSectionField(sections, valuesByName, isNewPolicy, bounds)
 
-    Full(DirectiveEditor(policy.id, directiveId, policy.name, policy.description, sectionField, variableSpecs))
+    // check if any variable is not predefined
+    val directiveEditable = variableSpecs.values.exists(x => x match {
+      case spec : PredefinedValuesVariableSpec => false
+      case _ => true
+    })
+    Full(DirectiveEditor(policy.id, directiveId, policy.name, policy.description, sectionField, variableSpecs, directiveEditable))
   }
 
   //bound used section fields to

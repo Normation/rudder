@@ -278,7 +278,7 @@ class DirectiveEditForm(
       "#version" #> versionSelect &
       "#version *+" #> (if (isADirectiveCreation) NodeSeq.Empty else migrateButton(directiveVersion.get,"Migrate")) &
       "#parameters" #> (
-        if(directive.parameters.size <= 0) <div class="alert alert-info">This Technique has no configurable parameters.</div> else NodeSeq.Empty ++
+        if(!parameterEditor.isEditable) <div class="alert alert-info">This Technique has no configurable parameters.</div> else NodeSeq.Empty ++
         parameterEditor.toFormNodeSeq
         ) &
       "#directiveRulesTab *" #> ruleDisplayer &

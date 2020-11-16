@@ -565,6 +565,7 @@ final case class DirectiveEditor(
   , val description            : String
   , val sectionField           : SectionField
   , val variableSpecs          : Map[String, VariableSpec]
+  , isEditable                 : Boolean
   ) {
 
   /**
