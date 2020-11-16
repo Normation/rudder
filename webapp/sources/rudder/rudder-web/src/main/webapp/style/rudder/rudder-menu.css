@@ -3725,22 +3725,22 @@ table a > i.fa-pencil:hover{
 }
 
 /* HEALTCHECK NOTIFICATIONS */
-.circle {
-  width                : 20px;
-  height               : 20px;
-  -webkit-border-radius: 10px;
-  -moz-border-radius   : 10px;
-  border-radius        : 10px;
+.circle-notif {
+  width                : 16px;
+  height               : 16px;
+  -webkit-border-radius: 8px;
+  -moz-border-radius   : 8px;
+  border-radius        : 8px;
   float                : right;
   margin-left: 10px;
 }
-.ok-light {
+.ok-light-notif {
   background-color: #81D674;
 }
-.warning-light {
+.warning-light-notif {
   background-color: #F08004;
 }
-.critical-light {
+.critical-light-notif {
   background-color: #C80003;
 }
 .critical-icon {
