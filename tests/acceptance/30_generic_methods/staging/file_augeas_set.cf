@@ -1,6 +1,10 @@
  #######################################################
 #
 # Read a file into a string
+# Currently in staging since the method does not behave
+# as intended. The fix need to deprecate this one and
+# develop a new one. Until then, the test will be set
+# to staging.
 #
 #######################################################
 
