@@ -219,8 +219,15 @@ inventories.watcher.period.garbage.old=5 minutes
 # For a rough estimation, you can consider that an inventory in queue
 # takes 5 MB, so to handle 50 (default), the application will
 # need around 250 MB of spare memory.
+# You don't need to make that queue big is you don't send inventories
+# through REST API endpoint: inventories coming from agent by usual
+# way wait on disk.
+# In the case of inventories sent via REST API, a bigger queue will allows to
+# send API response more quickly (just after inventory parsing, before saving it)
+# while in the same time not making new invetory rejected.
+# Minimal size is 1.
 #
-waiting.inventory.queue.size=50
+waiting.inventory.queue.size=5
 
 #
 # You may want to limit the number of inventory files parsed in parallele.

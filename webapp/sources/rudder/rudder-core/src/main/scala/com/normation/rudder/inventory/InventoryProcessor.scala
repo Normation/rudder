@@ -54,13 +54,14 @@ import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
 import com.normation.inventory.services.provisioning.ReportSaver
 import com.normation.inventory.services.provisioning.ReportUnmarshaller
+import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.zio.ZioRuntime
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormat
 import zio._
 import zio.syntax._
-
+import com.normation.zio._
 
 
 sealed trait InventoryProcessStatus {
@@ -116,35 +117,90 @@ class InventoryProcessor(
   , nodeInventoryDit: InventoryDit
 ) {
 
-  // logs are not available here, need "print"
-  println(s"INFO Configure inventory processing with parallelism of '${maxParallel}' and queue size of '${maxQueueSize}'")
+  ApplicationLogger.info(s"INFO Configure inventory processing with parallelism of '${maxParallel}' and queue size of '${maxQueueSize}'")
 
   // we want to limit the number of reports concurrently parsed
   lazy val xmlParsingSemaphore = ZioRuntime.unsafeRun(Semaphore.make(maxParallel))
 
   /*
    * We manage inventories buffering with a bounded queue.
-   * In case of overflow, we reject new inventories.
+   * That Queue is blocking, so any caller should be careful to
+   * put in front of it a Sliding or Dropping queue of size one
+   * in fron of any "offer" call to make it non blocking.
    */
-  lazy val queue = ZioRuntime.unsafeRun(Queue.dropping[InventoryReport](maxQueueSize))
+  protected lazy val blockingQueue = ZQueue.bounded[InventoryReport](maxQueueSize).runNow
+  def addInventoryToQueue(report: InventoryReport): UIO[Unit] = {
+    for {
+      _ <- InventoryProcessingLogger.trace(s"Blocking add '${report.name}' to backend processing queue")
+      _ <- blockingQueue.offer(report)
+      _ <- InventoryProcessingLogger.trace(s"Blocking add '${report.name}' to backend processing queue: done")
+    } yield ()
+  }
 
-  def currentQueueSize: Int = ZioRuntime.unsafeRun(queue.size)
+  /*
+   * This latch is to here to provide an non-blocking, dropping behavior to blockingQueue:
+   * - it just `addInventoryToQueue` (which is blocking) in a loop
+   * - it drops new requests when an other one is already here (which means that
+   *   `addInventoryToQueue` from the previous action is still blocked)
+   */
+  protected lazy val latch         = ZQueue.dropping[InventoryReport](1).runNow
+  //start latch, it just forwards to the blocking queue when there is room
+  latch.take.flatMap(addInventoryToQueue(_)).forever.forkDaemon.runNow
+
+  def currentQueueSize: Int = ZioRuntime.unsafeRun(blockingQueue.size)
+
+  def isQueueFull: IOResult[Boolean] = {
+    // Get the current size, the remaining of the answer is based on that.
+    // The "+1" is because the fiber waiting for inventory give 1 slot,
+    // if don't "+1", we start at -1 when no inventories are here.
+
+    //must be coherent with "can do", current = 49 < max = 50 => not saturated
+    blockingQueue.size.map(_ + 1 >= maxQueueSize)
+  }
 
   /*
    * Saving reports is a loop which consume items from queue
    */
 
   def loop(): UIO[Nothing] = {
-    queue.take.flatMap(saveReport).forever
+    blockingQueue.take.flatMap(r =>
+      InventoryProcessingLogger.trace(s"Took report '${r.name}' from backend queue and saving it") *>
+      saveReport(r)
+    ).forever
   }
 
   // start the inventory processing
   ZioRuntime.unsafeRun(loop().forkDaemon)
 
+  /*
+   * This is a non blocking call to saveInventory that will try to send to back-end and
+   * return immediately with an error status if it didn't.
+   */
   // we need something that can produce the stream several time because we are reading the file several time - not very
   // optimized :/
   def saveInventory(info: SaveInventoryInfo): IOResult[InventoryProcessStatus] = {
+    for {
+      _ <- InventoryProcessingLogger.trace(s"Query async save of '${info.fileName}'")
+      x <- saveInventoryInternal(info, blocking = false)
+      _ <- InventoryProcessingLogger.trace(s"Query async save of '${info.fileName}': done")
+    } yield x
+  }
 
+  def saveInventoryBlocking(info: SaveInventoryInfo): IOResult[InventoryProcessStatus] = {
+    for {
+      _ <- InventoryProcessingLogger.trace(s"Query blocking save of '${info.fileName}'")
+      x <- saveInventoryInternal(info, blocking = true)
+      _ <- InventoryProcessingLogger.trace(s"Query blocking save of '${info.fileName}': done")
+    } yield x
+  }
+
+  /*
+   * If blocking is true, that method won't complete until there is room in the backend queue.
+   * Be careful to handle that case carefully with overflow strategy to avoid blocking
+   * everything.
+   * When non blocking, the return value will tell is the value was accepted.
+   */
+  def saveInventoryInternal(info: SaveInventoryInfo, blocking: Boolean): IOResult[InventoryProcessStatus] = {
     def saveWithSignature(report: InventoryReport, publicKey: JavaSecPubKey, newInventoryStream: () => InputStream, newSignature: () => InputStream): IOResult[InventoryProcessStatus] = {
       ZIO.bracket(Task.effect(newInventoryStream()).mapError(SystemError(s"Error when reading inventory file '${report.name}'", _)))(is => Task.effect(is.close()).run) { inventoryStream =>
         ZIO.bracket(Task.effect(newSignature()).mapError(SystemError(s"Error when reading signature for inventory file '${report.name}'", _)))(is => Task.effect(is.close()).run) { signatureStream =>
@@ -158,7 +214,7 @@ class InventoryProcessor(
                          // For now we set the status to certified since we want pending inventories to have their inventory signed
                          // When we will have a 'pending' status for keys we should set that value instead of certified
                          val certifiedReport = report.copy(node = report.node.copyWithMain(main => main.copy(keyStatus = CertifiedKey)))
-                         checkQueueAndSave(certifiedReport)
+                         checkQueueAndSave(certifiedReport, blocking)
                        } else {
                          // Signature is not valid, reject inventory
                          InventoryProcessStatus.SignatureInvalid(report.name, report.node.main.id).succeed
@@ -183,15 +239,12 @@ class InventoryProcessor(
       }
     }
 
-
-
-
     // actuall report processing logic
-
-
-    val start = System.currentTimeMillis()
-
-    val res = for {
+    val processLogic = (for {
+      start        <- currentTimeMillis
+      qsize        <- blockingQueue.size
+      qsaturated   <- isQueueFull
+      _            <- InventoryProcessingLogger.debug(s"Enter pre-processed inventory for ${info.fileName} with blocking='${blocking}' and current backend queue size=${qsize} (saturated=${qsaturated})")
       report       <- xmlParsingSemaphore.withPermit(
                         InventoryProcessingLogger.debug(s"Start parsing inventory '${info.fileName}'") *>
                         parseSafe(info.inventoryStream, info.fileName).chainError("Can't parse the input inventory, aborting") <*
@@ -220,10 +273,7 @@ class InventoryProcessor(
       _            <- InventoryProcessingLogger.debug(s"Inventory '${report.name}' for node '${report.node.main.id.value}' pre-processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
     } yield {
       saved
-    }
-
-
-    res.foldM(
+    }).foldM(
       err => {
         val fail = Chained(s"Error when trying to process inventory '${info.fileName}'", err)
         InventoryProcessingLogger.error(fail.fullMsg) *> err.fail
@@ -238,6 +288,15 @@ class InventoryProcessor(
         }) *> status.succeed
       }
     )
+
+    // guard against missing files: as there may be a latency between file added to buffer / file processed, we
+    // need to check again here.
+    for {
+      exists <- info.testExits
+      res    <- if(exists) processLogic
+                else InventoryProcessingLogger.trace(s"File '${info.fileName}' was deleted, skipping") *>
+                     InventoryProcessStatus.Accepted(info.fileName, NodeId("skipped")).succeed
+    } yield res
   }
 
   /*
@@ -245,16 +304,23 @@ class InventoryProcessor(
    * avoid the case where we are telling the use "everything is fine"
    * but just fail after.
    */
-  def checkQueueAndSave(report: InventoryReport): IOResult[InventoryProcessStatus] = {
+  def checkQueueAndSave(report: InventoryReport, blocking: Boolean): IOResult[InventoryProcessStatus] = {
 
     (for {
       _     <- checkAliveLdap()
-      canDo <- queue.offer(report)
-      res   <- if(canDo) {
-                 InventoryProcessStatus.Accepted(report.name, report.node.main.id).succeed
+      res   <- if(blocking) {
+                 // that's block. And so inventory is always accepted in the end
+                 addInventoryToQueue(report) *> InventoryProcessStatus.Accepted(report.name, report.node.main.id).succeed
                } else {
-                 InventoryProcessStatus.QueueFull(report.name, report.node.main.id).succeed
-               }
+                 for {
+                   canDo <- latch.offer(report)
+                   res   <- if(canDo) {
+                              InventoryProcessStatus.Accepted(report.name, report.node.main.id).succeed
+                            } else {
+                              InventoryProcessStatus.QueueFull(report.name, report.node.main.id).succeed
+                            }
+                 } yield res
+              }
     } yield {
       res
     }).catchAll { err =>

@@ -136,6 +136,7 @@ class TestCertificate extends Specification with Loggable {
         "linux-cfe-sign"
       , () => Resource.getAsStream("certificates/linux-cfe-sign.ocs")
       , None
+      , true.succeed
     )).either.runNow
 
     (res must beLeft)
@@ -148,6 +149,7 @@ class TestCertificate extends Specification with Loggable {
         "linux-cfe-sign"
       , () => Resource.getAsStream("certificates/linux-cfe-sign.ocs")
       , Some(() => Resource.getAsStream("certificates/linux-cfe-sign.ocs.sign"))
+      , true.succeed
     )).runNow
 
     waitSaveDone
@@ -168,6 +170,7 @@ class TestCertificate extends Specification with Loggable {
         "windows-same-certificate"
       , () => Resource.getAsStream("certificates/windows-same-certificate.ocs")
       , None
+      , true.succeed
     )).either.runNow
 
     (res must beLeft)
@@ -180,6 +183,7 @@ class TestCertificate extends Specification with Loggable {
         "windows-same-certificate"
       , () => Resource.getAsStream("certificates/windows-same-certificate.ocs")
       , Some(() => Resource.getAsStream("certificates/windows-same-certificate.ocs.sign"))
+      , true.succeed
     )).runNow
 
     waitSaveDone
@@ -199,6 +203,7 @@ class TestCertificate extends Specification with Loggable {
         "windows-same-certificate"
       , () => Resource.getAsStream("certificates/windows-same-certificate.ocs")
       , Some(() => Resource.getAsStream("certificates/windows-same-certificate.ocs.sign"))
+      , true.succeed
     )).runNow
 
     waitSaveDone
@@ -215,6 +220,7 @@ class TestCertificate extends Specification with Loggable {
         "windows-same-certificate"
       , () => Resource.getAsStream("certificates/windows-same-certificate.ocs")
       , None
+      , true.succeed
     )).either.runNow
 
     (res must beLeft)
@@ -228,6 +234,7 @@ class TestCertificate extends Specification with Loggable {
         "windows-new-certificate"
       , () => Resource.getAsStream("certificates/windows-new-certificate.ocs")
       , Some(() => Resource.getAsStream("certificates/windows-new-certificate.ocs.sign"))
+      , true.succeed
     )).runNow
 
     waitSaveDone
@@ -245,6 +252,7 @@ class TestCertificate extends Specification with Loggable {
         "windows-bad-certificate"
       , () => Resource.getAsStream("certificates/windows-bad-certificate.ocs")
       , Some(() => Resource.getAsStream("certificates/windows-bad-certificate.ocs.sign"))
+      , true.succeed
     )).mapError(_.fullMsg).either.runNow
 
     (res must beLeft(beMatching(".*subject doesn't contain same node ID in 'UID' attribute as inventory node ID.*")))
