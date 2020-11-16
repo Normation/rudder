@@ -28,7 +28,7 @@
 # In this method, we introduce using augtool commands and options in order to get the value of a given node's label in the parameters, this can be done 
 # by specifying the path to it. The method has in total 5 parameters: variable prefix, variable name, path, lens and file.
 #
-# Actually there is two ways you can use this method, either you simply provide a path to the node's label as a parameter or you specify a file 
+# Actually there are two ways you can use this method, either you simply provide a path to the node's label as a parameter or you specify a file 
 # associated with a lens, then you put the regular path. When you only specify the path to the node's label, your request will includes by default 
 # Augeas charging all the lenses and files, on the other hand, if you have a specific file, for example, such as a Json file and you want to associate it 
 # to the existing Json lens, then in that case, you need to fill in addition the file and the lens parameter, this way Augeas won't load all its files 
