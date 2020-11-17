@@ -89,7 +89,10 @@ trait PolicyServerManagementService {
   /**
    * Delete things related to a relay (groups, rules, directives)
    */
-  def deleteRelaySystemObjects(policyServerId: NodeId): Box[Unit]
+  def deleteRelaySystemObjectsPure(policyServerId: NodeId): IOResult[Unit]
+  def deleteRelaySystemObjects(policyServerId: NodeId): Box[Unit] = {
+    deleteRelaySystemObjectsPure(policyServerId).toBox
+  }
 
 }
 
@@ -238,15 +241,13 @@ class PolicyServerManagementServiceImpl(
    * - rule: ruleId=${RELAY_UUID}-DP,ou=Rules,ou=Rudder,cn=rudder-configuration
    * - rule: ruleId=hasPolicyServer-${RELAY_UUID},ou=Rules,ou=Rudder,cn=rudder-configuration
    */
-  def deleteRelaySystemObjects(policyServerId: NodeId): Box[Unit] = {
-    val task = inLock(policyServerId) {
+  override def deleteRelaySystemObjectsPure(policyServerId: NodeId): IOResult[Unit] = {
+    inLock(policyServerId) {
       if(policyServerId == Constants.ROOT_POLICY_SERVER_ID) {
         Inconsistency("Root server configuration elements can't be deleted").fail
       } else { // we don't have specific validation to do: if the node is not a policy server, nothing will be done
         def DN(child: String, parentDN: DN) = new DN(child+","+parentDN.toString)
         val id = policyServerId.value
-
-  // nodeGroupId=hasPolicyServer-b887aee5-f191-45cd-bb2d-9e3f5b30d06e,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 
         for {
           con <- ldap
@@ -260,7 +261,6 @@ class PolicyServerManagementServiceImpl(
         } yield ()
       }
     }
-    task.toBox
   }
 }
 

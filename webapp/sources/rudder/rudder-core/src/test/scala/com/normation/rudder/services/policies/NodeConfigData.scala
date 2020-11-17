@@ -108,6 +108,7 @@ import java.io.File
 import java.nio.file.{Files, Paths}
 
 import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
+import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.FullOtherTarget
 import com.normation.rudder.domain.policies.PolicyServerTarget
 import com.normation.rudder.domain.policies.AllTargetExceptPolicyServers
@@ -536,7 +537,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
   val draftServerManagement = new PolicyServerManagementService() {
     override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) = ???
     override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = Full(List("192.168.49.0/24"))
-    override def deleteRelaySystemObjects(policyServerId: NodeId): Box[Unit] = ???
+    override def deleteRelaySystemObjectsPure(policyServerId: NodeId): IOResult[Unit] = ???
     override def updateAuthorizedNetworks(policyServerId: NodeId, addNetworks: Seq[String], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor): Box[Seq[String]] = ???
   }
   val t7 = System.currentTimeMillis()
