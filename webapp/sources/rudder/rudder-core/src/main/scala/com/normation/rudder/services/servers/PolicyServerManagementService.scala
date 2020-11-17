@@ -47,6 +47,7 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import sun.net.util.IPAddressUtil
 import ca.mrvisser.sealerate
+import cats.data.NonEmptyList
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
@@ -54,8 +55,12 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.unboundid.ldap.sdk.DN
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-
 import com.normation.box._
+import zio._
+import zio.syntax._
+import com.normation.errors._
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.normation.zio._
 
 /**
  * This service allows to manage properties linked to the root policy server,
@@ -74,7 +79,12 @@ trait PolicyServerManagementService {
   /**
    * Update the list of authorized networks with the given list
    */
-  def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) : Box[Seq[String]]
+  def setAuthorizedNetworks(policyServerId: NodeId, networks: Seq[String], modId: ModificationId, actor: EventActor) : Box[Seq[String]]
+
+  /**
+   * Update the list of authorized networks with the given list
+   */
+  def updateAuthorizedNetworks(policyServerId: NodeId, addNetworks: Seq[String], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor) : Box[Seq[String]]
 
   /**
    * Delete things related to a relay (groups, rules, directives)
@@ -118,6 +128,32 @@ class PolicyServerManagementServiceImpl(
   , dit                  : RudderDit
 ) extends PolicyServerManagementService with Loggable {
 
+  /*
+   * we ensure that write operation on relays are under a lock.
+   */
+
+  val locks = Ref.make(Map.empty[NodeId, Semaphore]).runNow
+  val lockLock = Semaphore.make(1).runNow
+
+  def inLock[A](nodeId: NodeId)(block: IOResult[A]): IOResult[A] = {
+    def getSemaphore(nodeId: NodeId): IOResult[Semaphore] = {
+      lockLock.withPermit {
+        for {
+          map <- locks.get
+          s   <- map.get(nodeId) match {
+                   case None    => Semaphore.make(1)
+                   case Some(s) => s.succeed
+                 }
+          _   <- locks.set(map+(nodeId -> s))
+        } yield s
+      }
+    }
+    for {
+      s   <- getSemaphore(nodeId)
+      res <- s.withPermit(block)
+    } yield res
+  }
+
   /**
    * The list of authorized network is not directly stored in an
    * entry. We have to look for the DistributePolicy directive for
@@ -132,29 +168,66 @@ class PolicyServerManagementServiceImpl(
     }
   }.toBox
 
-  override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) : Box[Seq[String]] = {
+  override def setAuthorizedNetworks(policyServerId: NodeId, networks: Seq[String], modId: ModificationId, actor: EventActor) : Box[Seq[String]] = {
+    updateOrReplaceAuthorizedNetworksPure(policyServerId, true, networks, Nil, modId, actor).toBox
+  }
 
+  def updateAuthorizedNetworks(policyServerId: NodeId, addNetworks: Seq[String], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor) : Box[Seq[String]] = {
+    updateAuthorizedNetworksPure(policyServerId, addNetworks, deleteNetwork, modId, actor).toBox
+  }
+
+  def updateAuthorizedNetworksPure(policyServerId: NodeId, addNetworks: Seq[String], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor) : IOResult[Seq[String]] = {
+    updateOrReplaceAuthorizedNetworksPure(policyServerId, false, addNetworks, deleteNetwork, modId, actor)
+  }
+
+
+  def updateOrReplaceAuthorizedNetworksPure(policyServerId: NodeId, replace: Boolean, add: Seq[String], delete: Seq[String], modId: ModificationId, actor:EventActor) : IOResult[Seq[String]] = {
     val directiveId = Constants.buildCommonDirectiveId(policyServerId)
 
     //filter out bad networks
-    val validNets = networks.flatMap { case net =>
-      if(PolicyServerManagementService.isValidNetwork(net)) Some(net)
-      else {
-        logger.error("Ignoring allowed network '%s' because it does not seem to be a valid network")
-        None
+    def validNets(networks: Seq[String]) = {
+      val nets = networks.foldLeft((List.empty[Inconsistency], List.empty[String])) { case ((err, nets), net)  =>
+        if(PolicyServerManagementService.isValidNetwork(net)) (err, net::nets)
+        else (Inconsistency(s"Allowed network '${net}' is not a valid network syntax") :: err, nets)
+      }
+      nets match {
+        case (Nil, l)  => l.succeed
+        case (h::t, _) => Accumulated(NonEmptyList.of(h, t:_*)).fail
       }
     }
 
-    for {
-      res <- roDirectiveRepository.getActiveTechniqueAndDirective(directiveId).notOptional(s"Error when retrieving system directive with ID ${directiveId.value}' which is mandatory for allowed networks configuration.")
-      (activeTechnique, directive) = res
-      newPi = directive.copy(parameters = directive.parameters + (Constants.V_ALLOWED_NETWORK -> validNets.map( _.toString)))
-      msg = Some("Automatic update of system directive due to modification of accepted networks ")
-      saved <- woDirectiveRepository.saveSystemDirective(activeTechnique.id, newPi, modId, actor, msg).chainError(s"Can not save directive for Active Technique '${activeTechnique.id.value}")
-    } yield {
-      networks
+    /*
+     * Modify old list of networks by adding what is on "add" and removing what is on
+     * "remove". Match must be exact, i.e "remove:192.168.2.1/24" won't remove "192.168.2.0/24"
+     * even if they describe the same networks.
+     * Also, if a network is in both "add" and "deleted", the net WILL BE on the resulting list,
+     * ie: start by removing then add.
+     */
+    def modify(old: Seq[String], add: Seq[String], delete: Seq[String]): Seq[String] = {
+      old.filterNot(delete.contains).appendedAll(add).distinct
     }
-  }.toBox
+
+
+    inLock(policyServerId) {
+      for {
+        _       <- ApplicationLoggerPure.debug(s"Update allowed networks for policy server '${policyServerId.value}', replace all: ${replace}; add: ${add.mkString(", ")}; delete: ${delete.mkString(", ")}")
+        res     <- roDirectiveRepository.getActiveTechniqueAndDirective(directiveId).notOptional(
+                     s"Error when retrieving system directive with ID ${directiveId.value}' which is mandatory for allowed networks configuration."
+                   )
+        (activeTechnique, directive) = res
+        nets    =  directive.parameters.getOrElse(Constants.V_ALLOWED_NETWORK, Nil)
+        add     <- validNets(add)
+        updated =  if(replace) add else modify(nets, add, delete)
+        _       <- ApplicationLoggerPure.debug(s" - new allowed networks for ${policyServerId.value}: ${updated.mkString(", ")}")
+        newPi   =  directive.copy(parameters = directive.parameters + (Constants.V_ALLOWED_NETWORK -> updated))
+        msg     =  Some("Automatic update of system directive due to modification of accepted networks ")
+        saved   <- woDirectiveRepository.saveSystemDirective(activeTechnique.id, newPi, modId, actor, msg).chainError(
+                     s"Can not save directive for Active Technique '${activeTechnique.id.value}"
+                   )
+      } yield updated
+    }
+  }
+
 
   /**
    * Delete things related to a relay:
@@ -166,25 +239,28 @@ class PolicyServerManagementServiceImpl(
    * - rule: ruleId=hasPolicyServer-${RELAY_UUID},ou=Rules,ou=Rudder,cn=rudder-configuration
    */
   def deleteRelaySystemObjects(policyServerId: NodeId): Box[Unit] = {
-    if(policyServerId == Constants.ROOT_POLICY_SERVER_ID) {
-      Failure("Root server configuration elements can't be deleted")
-    } else { // we don't have specific validation to do: if the node is not a policy server, nothing will be done
-      def DN(child: String, parentDN: DN) = new DN(child+","+parentDN.toString)
-      val id = policyServerId.value
+    val task = inLock(policyServerId) {
+      if(policyServerId == Constants.ROOT_POLICY_SERVER_ID) {
+        Inconsistency("Root server configuration elements can't be deleted").fail
+      } else { // we don't have specific validation to do: if the node is not a policy server, nothing will be done
+        def DN(child: String, parentDN: DN) = new DN(child+","+parentDN.toString)
+        val id = policyServerId.value
 
-// nodeGroupId=hasPolicyServer-b887aee5-f191-45cd-bb2d-9e3f5b30d06e,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+  // nodeGroupId=hasPolicyServer-b887aee5-f191-45cd-bb2d-9e3f5b30d06e,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 
-      for {
-        con <- ldap
-        _   <- con.delete(DN(s"nodeGroupId=hasPolicyServer-${id}", dit.GROUP.SYSTEM.dn))
-        _   <- con.delete(DN(s"ruleTarget=policyServer:${id}", dit.GROUP.SYSTEM.dn))
-        _   <- con.delete(DN(s"directiveId=${id}-distributePolicy,activeTechniqueId=distributePolicy,techniqueCategoryId=Rudder Internal", dit.ACTIVE_TECHNIQUES_LIB.dn))
-        _   <- con.delete(DN(s"directiveId=common-${id},activeTechniqueId=common,techniqueCategoryId=Rudder Internal", dit.ACTIVE_TECHNIQUES_LIB.dn))
-        _   <- con.delete(DN(s"ruleId=${id}-DP", dit.RULES.dn))
-        _   <- con.delete(DN(s"ruleId=hasPolicyServer-${id}", dit.RULES.dn))
-        _   =  ApplicationLogger.info(s"System configuration object (rules, directives, groups) related to relay '${id}' were successfully deleted.")
-      } yield ()
-    }.toBox
+        for {
+          con <- ldap
+          _   <- con.delete(DN(s"nodeGroupId=hasPolicyServer-${id}", dit.GROUP.SYSTEM.dn))
+          _   <- con.delete(DN(s"ruleTarget=policyServer:${id}", dit.GROUP.SYSTEM.dn))
+          _   <- con.delete(DN(s"directiveId=${id}-distributePolicy,activeTechniqueId=distributePolicy,techniqueCategoryId=Rudder Internal", dit.ACTIVE_TECHNIQUES_LIB.dn))
+          _   <- con.delete(DN(s"directiveId=common-${id},activeTechniqueId=common,techniqueCategoryId=Rudder Internal", dit.ACTIVE_TECHNIQUES_LIB.dn))
+          _   <- con.delete(DN(s"ruleId=${id}-DP", dit.RULES.dn))
+          _   <- con.delete(DN(s"ruleId=hasPolicyServer-${id}", dit.RULES.dn))
+          _   =  ApplicationLogger.info(s"System configuration object (rules, directives, groups) related to relay '${id}' were successfully deleted.")
+        } yield ()
+      }
+    }
+    task.toBox
   }
 }
 

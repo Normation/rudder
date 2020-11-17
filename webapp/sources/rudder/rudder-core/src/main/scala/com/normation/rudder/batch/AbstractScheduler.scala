@@ -113,7 +113,7 @@ trait AbstractScheduler {
   private class StatusManager extends SpecializedLiftActor[AbstractActorUpdateMessage] {
     updateManager =>
 
-    val logger = ApplicationLogger
+    val logger = ScheduledJobLogger
 
     private var updateId = 0L
     private var currentState: UpdaterStates = IdleUpdater

@@ -1,0 +1,103 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Get allowed networks for a policy server
+  description: Get the list of allowed networks for a policy server
+  operationId: getAllowedNetworks
+  parameters:
+    - $ref: ../../components/parameters/setting-allowed-networks.yml
+  responses:
+    "200":
+      description: Allowed Networks
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getAllowedNetworks
+              data:
+                type: object
+                description: Information about the allowed_networks settings
+                required:
+                  - settings
+                properties:
+                  allowed_networks:
+                    type: array
+                    example: ["162.168.1.0/24", "162.168.2.0/24"]
+                    description: Array of allowed networks
+  tags:
+    - Settings
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/settings/get-setting-allowed-networks.sh
+post:
+  summary: Set allowed networks for a policy server
+  description: Set the list of allowed networks for a policy server
+  operationId: setAllowedNetworks
+  parameters:
+    - $ref: ../../components/parameters/setting-allowed-networks.yml
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          type: object
+          properties:
+            value:
+              description: New value of the allowed networks
+              type: object
+              example: "enforce"
+  responses:
+    "200":
+      description: Allowed Networks
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - modifySetting
+              data:
+                type: object
+                description: Information about the allowed_networks settings
+                required:
+                  - settings
+                properties:
+                  allowed_networks:
+                    type: array
+                    example: ["162.168.1.0/24", "162.168.2.0/24"]
+                    description: Array of allowed networks
+  tags:
+    - Settings
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/settings/set-allowed-networks.yml
