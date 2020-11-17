@@ -60,15 +60,15 @@ import zio._
 import zio.syntax._
 
 class RoLDAPParameterRepository(
-    val rudderDit   : RudderDit
-  , val ldap        : LDAPConnectionProvider[RoLDAPConnection]
-  , val mapper      : LDAPEntityMapper
-  , val userLibMutex: ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
+    val rudderDit : RudderDit
+  , val ldap      : LDAPConnectionProvider[RoLDAPConnection]
+  , val mapper    : LDAPEntityMapper
+  , val paramMutex: ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends RoParameterRepository {
   repo =>
 
   def getGlobalParameter(parameterName : String) : IOResult[Option[GlobalParameter]] = {
-    userLibMutex.readLock(for {
+    paramMutex.readLock(for {
       con     <- ldap
       opt     <- con.get(rudderDit.PARAMETERS.parameterDN(parameterName))
       param   <- opt match {
@@ -83,7 +83,7 @@ class RoLDAPParameterRepository(
   }
 
   private def getGP(search: RoLDAPConnection => LDAPIOResult[Seq[LDAPEntry]]): IOResult[Seq[GlobalParameter]] = {
-    userLibMutex.readLock(for {
+    paramMutex.readLock(for {
       con     <- ldap
       entries <- search(con)
       params  <- ZIO.foreach(entries) { entry =>
@@ -112,14 +112,12 @@ class WoLDAPParameterRepository(
 
   import roLDAPParameterRepository._
 
-  val semaphore = Semaphore.make(1)
-
   def saveParameter(
       parameter : GlobalParameter
     , modId     : ModificationId
     , actor     : EventActor
     , reason    : Option[String]) : IOResult[AddGlobalParameterDiff] = {
-    semaphore.flatMap(_.withPermit(
+    paramMutex.readLock(
       for {
         con             <- ldap
         doesntExists    <- roLDAPParameterRepository.getGlobalParameter(parameter.name).flatMap {
@@ -127,7 +125,7 @@ class WoLDAPParameterRepository(
                               case None => UIO.unit
                            }
         paramEntry      =  mapper.parameter2Entry(parameter)
-        result          <- userLibMutex.writeLock {
+        result          <- paramMutex.writeLock {
                               con.save(paramEntry).chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
                            }
         diff            <- diffMapper.addChangeRecords2GlobalParameterDiff(paramEntry.dn, result).toIO
@@ -143,7 +141,7 @@ class WoLDAPParameterRepository(
       } yield {
         diff
       }
-    ))
+    )
   }
 
   def updateParameter(
@@ -152,7 +150,7 @@ class WoLDAPParameterRepository(
     , actor     : EventActor
     , reason    : Option[String]
    ) : IOResult[Option[ModifyGlobalParameterDiff]] = {
-    semaphore.flatMap(_.withPermit(
+    paramMutex.readLock(
       for {
         con             <- ldap
         oldParameter    <- roLDAPParameterRepository.getGlobalParameter(parameter.name).notOptional(s"Cannot update Global Parameter '${parameter.name}': there is no parameter with that name")
@@ -163,7 +161,7 @@ class WoLDAPParameterRepository(
                              Inconsistency(s"Parameter with name '${parameter.name}' can not be updated by provider '${newProvider}' since its current provider is '${oldProvider}'").fail
                            }
         paramEntry      =  mapper.parameter2Entry(parameter)
-        result          <- userLibMutex.writeLock {
+        result          <- paramMutex.writeLock {
                              // remove missing to clean up `overridable` (RudderAttributes:303) so that it can be removed in 7.0
                              con.save(paramEntry, removeMissingAttributes = true).chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
                            }
@@ -188,7 +186,7 @@ class WoLDAPParameterRepository(
       } yield {
         optDiff
       }
-    ))
+    )
   }
 
   def delete(parameterName: String, provider: Option[PropertyProvider], modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteGlobalParameterDiff]] = {
@@ -197,7 +195,7 @@ class WoLDAPParameterRepository(
       case Some(p) => p.value
     }
 
-    for {
+    paramMutex.readLock(for {
       con          <- ldap
       optOldParam  <- roLDAPParameterRepository.getGlobalParameter(parameterName)
       res          <- optOldParam match {
@@ -207,7 +205,7 @@ class WoLDAPParameterRepository(
                             _            <- if(GenericProperty.canBeUpdated(oldParamEntry.provider, provider)) UIO.unit
                                             else Inconsistency(s"Parameter '${oldParamEntry.name}' which has property provider '${show(oldParamEntry.provider)}' " +
                                                                s"can't be deleted by property provider '${show(provider)}'").fail
-                            deleted      <- userLibMutex.writeLock {
+                            deleted      <- paramMutex.writeLock {
                                               con.delete(roLDAPParameterRepository.rudderDit.PARAMETERS.parameterDN(parameterName)).chainError(s"Error when deleting Global Parameter with name ${parameterName}")
                                             }
                             diff         =  DeleteGlobalParameterDiff(oldParamEntry)
@@ -226,7 +224,7 @@ class WoLDAPParameterRepository(
                       }
     } yield {
      res
-    }
+    })
   }
 
   /**
@@ -263,11 +261,11 @@ class WoLDAPParameterRepository(
     val id = ParameterArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
     val ou = rudderDit.ARCHIVES.parameterModel(id)
 
-    for {
+    paramMutex.readLock(for {
       existingParams <- getAllGlobalParameters
       con            <- ldap
       //ok, now that's the dangerous part
-      swapParams      <- userLibMutex.writeLock(
+      swapParams      <- paramMutex.writeLock(
                            (for {
                              //move old params to archive branch
                              renamed     <- con.move(rudderDit.PARAMETERS.dn, ou.dn.getParent, Some(ou.dn.getRDN))
@@ -290,17 +288,15 @@ class WoLDAPParameterRepository(
                          )
     } yield {
       id
-    }
+    })
   }
 
   def deleteSavedParametersArchiveId(archiveId:ParameterArchiveId) : IOResult[Unit] = {
-    semaphore.flatMap(_.withPermit(
-      for {
-        con     <- ldap
-        deleted <- con.delete(rudderDit.ARCHIVES.parameterModel(archiveId).dn)
-      } yield {
-        ()
-      }
-    ))
+    for {
+      con     <- ldap
+      deleted <- paramMutex.writeLock(con.delete(rudderDit.ARCHIVES.parameterModel(archiveId).dn))
+    } yield {
+      ()
+    }
   }
 }
