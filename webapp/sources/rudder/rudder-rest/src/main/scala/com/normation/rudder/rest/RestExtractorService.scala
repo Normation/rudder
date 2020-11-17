@@ -690,7 +690,7 @@ final case class RestExtractorService (
         }
         (for {
           _ <- PropertyParser.validPropertyName(nameValue)
-          p <- NodeProperty.parse(nameValue, compactRender(value), inheritMode, provider)
+          p <- NodeProperty.parse(nameValue, GenericProperty.serializeJson(value), inheritMode, provider)
         } yield {
           p
         }).toBox
@@ -868,7 +868,7 @@ final case class RestExtractorService (
   def extractGroupPropertiesFromJSON (json : JValue) : Box[Option[Seq[GroupProperty]]] = {
     import com.normation.utils.Control.sequence
     json \ "properties" match {
-        case JArray(props) => sequence(props){p => GroupProperty.unserializeLdapGroupProperty(compactRender(p)).toBox}.map(Some(_))
+        case JArray(props) => sequence(props){p => GroupProperty.unserializeLdapGroupProperty(GenericProperty.serializeJson(p)).toBox}.map(Some(_))
         case JNothing      => Full(None)
         case x             => Failure(s"""Error: the given parameter is not a JSON object with a 'properties' key""")
     }
