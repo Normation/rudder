@@ -1603,6 +1603,7 @@ form .tooltip-content p {
 }
 .content-wrapper .rudder-label.label-error{
   background-color: #C00804;
+  margin-left: 3px;
 }
 .content-wrapper .rudder-label.label-error:before,.content-wrapper .label-text.label-error:after{
   content: "Error";
