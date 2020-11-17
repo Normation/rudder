@@ -155,6 +155,10 @@ paths:
     $ref: paths/settings/list.yml
   "/settings/{settingId}":
     $ref: paths/settings/setting.yml
+  "/settings/allowed_networks/{nodeId}":
+    $ref: paths/settings/allowed_networks.yml
+  "/settings/allowed_networks/{nodeId}/diff":
+    $ref: paths/settings/allowed_networks_diff.yml
   "/parameters":
     $ref: paths/parameters/parameters.yml
   "/parameters/{parameterId}":

@@ -69,12 +69,7 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JNothing
-import net.liftweb.json.JsonAST.JBool
-import net.liftweb.json.JsonAST.JInt
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonAST._
+import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.box._
 import com.normation.errors._
@@ -154,13 +149,14 @@ class SettingsApi(
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
-      case API.GetAllAllowedNetworks => GetAllAllowedNetworks
-      case API.GetAllowedNetworks    => GetAllowedNetworks
-      case API.ModifyAllowedNetworks => ModifyAllowedNetworks
-      case API.GetAllSettings => GetAllSettings
-      case API.ModifySettings => ModifySettings
-      case API.GetSetting     => GetSetting
-      case API.ModifySetting  => ModifySetting
+      case API.GetAllAllowedNetworks     => GetAllAllowedNetworks
+      case API.GetAllowedNetworks        => GetAllowedNetworks
+      case API.ModifyAllowedNetworks     => ModifyAllowedNetworks
+      case API.ModifyDiffAllowedNetworks => ModifyDiffAllowedNetworks
+      case API.GetAllSettings            => GetAllSettings
+      case API.ModifySettings            => ModifySettings
+      case API.GetSetting                => GetSetting
+      case API.ModifySetting             => ModifySetting
     })
   }
 
@@ -903,6 +899,74 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
       RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Error when trying to modify allowed networks for policy server '${id}'")
     }
   }
+  /*
+   * Contrary to the previous, this one await a diff structure with networks to add or remove.
+   * We ensure that the diff is atomically commited
+   * Awaited json:
+   * { "add": ["192.168.42.0/24"]
+   * , "delete": ["192.168.2.0/24", "192.168.3.0/24"]
+   * }
+   *
+   * Removed is a no-op if the network is already missing.
+   */
+  object ModifyDiffAllowedNetworks extends LiftApiModule {
+    override val schema = API.ModifyDiffAllowedNetworks
+    val restExtractor = restExtractorService
+    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+
+      implicit val action = "modifyDiffAllowedNetworks"
+
+      def checkAllowedNetwork (v : String ) = {
+          val netWithoutSpaces = v.replaceAll("""\s""", "")
+          if(netWithoutSpaces.length != 0) {
+            if (PolicyServerManagementService.isValidNetwork(netWithoutSpaces)) {
+              Full(netWithoutSpaces)
+            } else {
+              Failure(s"${netWithoutSpaces} is not a valid allowed network")
+            }
+          }
+          else {
+            Failure("Cannot pass an empty allowed network")
+          }
+      }
+
+      val actor = authzToken.actor
+      val modificationId = new ModificationId(uuidGen.newUuid)
+      val nodeId = NodeId(id)
+
+      implicit val formats = DefaultFormats
+
+      val result = for {
+        nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+        isServer <- nodeInfo match {
+          case Some(info) if info.isPolicyServer =>
+            Full(())
+          case Some(_) =>
+            Failure(s"Can set allowed networks of node with '${id}' because it is node a policy server (root or relay)")
+          case None =>
+            Failure(s"Could not find node information for id '${id}', this node does not exist")
+        }
+        json     =  if (req.json_?) {
+                      req.json.getOrElse(JNothing) \ "allowed_networks"
+                    } else {
+                      req.params.get("allowed_networks").flatMap(_.headOption.flatMap(parseOpt)).getOrElse(JNothing)
+                    }
+        // lift is dumb and have zero problem not erroring on extraction from JNothing
+        msg      = s"""Impossible to parse allowed networks diff json. Expected {"allowed_networks": {"add":["192.168.2.0/24", ...]",""" +
+                   s""" "delete":["192.168.1.0/24", ...]"}}, got: ${if(json == JNothing) "nothing" else compactRender(json)}"""
+        _        <- if(json == JNothing) Failure(msg) else Full(())
+        diff     <- try { Full(json.extract[AllowedNetDiff]) } catch { case ex => Failure(msg) }
+        _        <- sequence(diff.add)(checkAllowedNetwork)
+        res      <- policyServerManagementService.updateAuthorizedNetworks(nodeId, diff.add, diff.delete, modificationId, actor)
+      } yield {
+        JArray(res.map(JString).toList)
+      }
+      RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Error when trying to modify allowed networks for policy server '${id}'")
+    }
+  }
 }
 
+
+// for lift-json extraction, must be top-level
+final case class AllowedNetDiff(add: List[String], delete: List[String])
 

@@ -537,6 +537,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
     override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) = ???
     override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = Full(List("192.168.49.0/24"))
     override def deleteRelaySystemObjects(policyServerId: NodeId): Box[Unit] = ???
+    override def updateAuthorizedNetworks(policyServerId: NodeId, addNetworks: Seq[String], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor): Box[Seq[String]] = ???
   }
   val t7 = System.currentTimeMillis()
   println(s"Policy Server Management: ${t7-t6} ms")
