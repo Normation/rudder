@@ -1242,6 +1242,9 @@ function createNodeTable(gridId, refresh) {
     columns = cache.map(function(c) { if (allColumnsKeys.includes(c.title)) { return allColumns[c.title]} else return c});
   }
 
+  if (columns === null || columns === undefined || columns.length === 0 ) {
+    columns = defaultColumns
+  }
   var colTitle = columns.map(function(c) { return c.title})
   dynColumns = allColumnsKeys.filter(function(c) { return !(colTitle.includes(c))})
 
@@ -1374,7 +1377,9 @@ function createNodeTable(gridId, refresh) {
     var selectedColumns =""
     for (var key in columns) {
       var elem = $("<span class='rudder-label label-state' style='cursor: normal' >" + columns[key].title + "  </span>")
-      elem.append($("<i class='fa fa-times' style='cursor: pointer'> </i>").hover(function() { $(this).parent().toggleClass("label-state label-error")}).click(function(value) { return function() {removeColumn(value)}}(key)))
+      if (columns.length > 1 ) {
+        elem.append($("<i class='fa fa-times' style='cursor: pointer'> </i>").hover(function() { $(this).parent().toggleClass("label-state label-error")}).click(function(value) { return function() {removeColumn(value)}}(key)))
+      }
       $("#select-columns").append(elem)
     }
     if (dynColumns[0] != "Property" && dynColumns[0] !="Software" ) {
