@@ -1078,14 +1078,14 @@ var allColumns = {
     , "title": "Id"
              , "defaultContent" : "<span class='text-muted'>N/A</span>"
     }
-  , "Server" :
+  , "Policy server" :
     { "data": "policyServerId"
-    , "title": "Server"
+    , "title": "Policy server"
              , "defaultContent" : "<span class='text-muted'>N/A</span>"
     }
-  , "Ram" :
+  , "RAM" :
     { "data": "ram"
-    , "title": "Ram"
+    , "title": "RAM"
              , "defaultContent" : "<span class='text-muted'>N/A</span>"
     }
   , "Agent version" :
