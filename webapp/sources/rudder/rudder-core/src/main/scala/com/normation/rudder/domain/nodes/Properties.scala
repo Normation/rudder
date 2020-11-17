@@ -267,6 +267,14 @@ object GenericProperty {
       value.render(option)
     }
   }
+  def serializeJson(value: JValue): String = {
+    // special case for string: we need to remove "" for compat with agents
+    value match {
+      case JNothing   => ""
+      case JString(s) => s
+      case x          => compactRender(x)
+    }
+  }
 
 
   /*
@@ -330,7 +338,10 @@ object GenericProperty {
       case (_   , mode ) => mode
     }
     val otherThanValue = newProp.withValue(VALUE, ConfigValueFactory.fromAnyRef("")).withFallback(oldProp.withValue(VALUE, ConfigValueFactory.fromAnyRef("")))
-    GenericProperty.setMode(otherThanValue.withValue(VALUE, mergeValues(oldProp.getValue(VALUE), newProp.getValue(VALUE), mode.getOrElse(InheritMode.Default))), mode)
+    //set value
+    val withValue = otherThanValue.withValue(VALUE, mergeValues(oldProp.getValue(VALUE), newProp.getValue(VALUE), mode.getOrElse(InheritMode.Default)))
+    // set mode
+    GenericProperty.setMode(withValue, mode)
   }
 
   /**
