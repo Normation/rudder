@@ -731,6 +731,11 @@ limitations under the License.
       <artifactId>zio-stacktracer_${scala-binary-version}</artifactId>
       <version>${dev-zio-version}</version>
     </dependency>
+    <dependency>
+      <groupId>dev.zio</groupId>
+      <artifactId>zio-streams_${scala-binary-version}</artifactId>
+      <version>${dev-zio-version}</version>
+    </dependency>
     <!-- zio/cats compat -->
     <dependency>
       <groupId>dev.zio</groupId>

@@ -275,6 +275,13 @@ rudder.batch.purge.inventories.delete.interval=24
 #
 rudder.batch.check.node.cache.interval=15 s
 
+#
+# By default, when a node is deleted, Rudder move it in a "trash" place in LDAP base.
+# You can choose to erase it instead.
+# Option are: "move" (default), "erase"
+#
+rudder.nodes.delete.defaultMode = move
+
 ####################
 # Webdav properties #################################################################
 ####################

@@ -163,11 +163,16 @@ trait NodeInfoService {
    * Getting something like a nodeinfo for pending / deleted nodes
    */
   def getPendingNodeInfos(): Box[Map[NodeId, NodeInfo]]
-  def getPendingNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]]
+  def getPendingNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = {
+    getPendingNodeInfoPure(nodeId).toBox
+  }
+  def getPendingNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]]
 
   def getDeletedNodeInfos(): Box[Map[NodeId, NodeInfo]]
-  def getDeletedNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]]
-
+  def getDeletedNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = {
+    getDeletedNodeInfoPure(nodeId).toBox
+  }
+  def getDeletedNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]]
 }
 
 object NodeInfoService {
@@ -509,8 +514,8 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     }
   }
 
-  override final def getPendingNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = getNotAcceptedNodeInfo(nodeId, PendingInventory).toBox
-  override final def getDeletedNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = getNotAcceptedNodeInfo(nodeId, RemovedInventory).toBox
+  override final def getPendingNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = getNotAcceptedNodeInfo(nodeId, PendingInventory)
+  override final def getDeletedNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = getNotAcceptedNodeInfo(nodeId, RemovedInventory)
 
   /**
    * Clear cache.
@@ -563,6 +568,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
   def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = withUpToDateCache(s"${nodeId.value} node info") { cache =>
     cache.get(nodeId).map( _._2).succeed
   }
+
 }
 
 /**

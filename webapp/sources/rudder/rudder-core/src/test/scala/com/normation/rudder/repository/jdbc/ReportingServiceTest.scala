@@ -107,9 +107,9 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def getAllNodes() : Box[Map[NodeId, Node]] = ???
     def getAllSystemNodeIds() : Box[Seq[NodeId]] = ???
     def getPendingNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
-    def getPendingNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = ???
+    def getPendingNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
     def getDeletedNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
-    def getDeletedNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = ???
+    def getDeletedNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
     def getNumberOfManagedNodes: Int = ???
     val getAll : Box[Map[NodeId, NodeInfo]] = {
       def build(id: String, mode: Option[PolicyMode]) = {

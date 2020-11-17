@@ -89,8 +89,11 @@ object NodeLogger extends Logger {
     }
   }
 }
-object NodeLoggerPure extends NamedZioLogger {
+object NodeLoggerPure extends NamedZioLogger { parent =>
   def loggerName = "nodes"
+  object Delete extends NamedZioLogger {
+    def loggerName: String = parent.loggerName + ".delete"
+  }
 }
 
 /*
