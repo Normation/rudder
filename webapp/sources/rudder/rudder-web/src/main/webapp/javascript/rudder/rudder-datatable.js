@@ -1073,9 +1073,9 @@ function createRuleComponentValueTable (contextPath) {
  */
 
 var allColumns = {
-    "Id" :
+    "Node ID" :
     { "data": "id"
-    , "title": "Id"
+    , "title": "Node ID"
              , "defaultContent" : "<span class='text-muted'>N/A</span>"
     }
   , "Policy server" :
