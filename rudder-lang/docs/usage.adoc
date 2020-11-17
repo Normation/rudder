@@ -214,9 +214,11 @@ Meaningful usage is that these two fields are paths that are completed by CLI fi
 In other words: config options are paths (directories), to which is joined the cli option.
 But configure it using a file and not use the CLI options will work.
 
-==== Compilation example
+==== Compilation examples
 
-1. Required: a config file to work on a local environment: 
+Below, 5 ways to use the compiler
+
+===== Required: a config file to work on a local environment: 
 
 .tools/my.conf
 [source,toml]
@@ -228,12 +230,12 @@ alt_cfengine_methods="repos/dsc/plugin/ncf/30_generic_methods/"
 dsc_methods="repos/dsc/packaging/Files/share/initial-policy/ncf/30_generic_methods/"
 ----
 
-2. CLI full version
+===== CLI full version
 ----
 rudderc compile --json-log --log-level debug --config-file tools/my.conf --input tests/techniques/technique.rl --output tests/techniques/technique.rl.dsc --format dsc
 ----
 
-3. CLI shortened version
+===== CLI shortened version
 ----
 rudderc compile -j -l debug -c tools/my.conf -i tests/techniques/technique.rl -f dsc
 ----
@@ -246,7 +248,7 @@ What it means:
 * Output log format is JSON (`-j`),
 * The following log levels: error, warn, info, debug will be printed to the terminal
 
-4. CLI + config shortened version
+===== CLI + config shortened version
 
 By using an adapted configuration file, it can be simplified:
 
@@ -268,7 +270,7 @@ rudderc -j -l debug -c tools/myconf -i technique.rl
 
 Input will be a concatenation of config and cli: `tests/techniques/technique.rl`. Output still based on input.
 
-5. config + CLI shortest version
+===== config + CLI shortest version
 
 By using an adapted configuration file, it can be simplified:
 
