@@ -117,7 +117,7 @@ final object CheckFreeSpace extends Check {
       val pcSpaceLeft = paritionSpaceInfos.map(x => (x.path, x.percent)).sortBy(_._2)
       pcSpaceLeft match {
         case h :: _ =>
-          val listMsgSpace = pcSpaceLeft.map(s => s"- ${s._1} -> ${s._2}%").mkString("\n")
+          val listMsgSpace = pcSpaceLeft.map(s => s"${s._1} has ${s._2}% free space").mkString("\n")
           h._2 match {
             case pr if pr < 5L  =>
               val msg = s"Missing available free space (<5%):\n${listMsgSpace}"
@@ -160,7 +160,7 @@ final class CheckFileDescriptorLimit(val nodeInfoService: NodeInfoService) exten
         case limit if limit <= minimalLimit =>
           Warning(name, s"Current file descriptor limit is ${limit}. It should be > ${minimalLimit} for ${numNode} nodes")
         case _ =>
-          Ok(name, s"Maximum number of file descriptors: ${limit}")
+          Ok(name, s"Maximum number of file descriptors is ${limit}")
       }
     }
   }
