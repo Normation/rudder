@@ -44,7 +44,7 @@ get:
   x-code-samples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/settings/get-setting-allowed-networks.sh
+        $ref: ../../code_samples/curl/settings/get-allowed-networks.sh
 post:
   summary: Set allowed networks for a policy server
   description: Set the list of allowed networks for a policy server
@@ -100,4 +100,4 @@ post:
   x-code-samples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/settings/set-allowed-networks.yml
+        $ref: ../../code_samples/curl/settings/set-allowed-networks.sh
