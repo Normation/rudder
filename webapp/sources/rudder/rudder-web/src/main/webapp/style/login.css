@@ -46,7 +46,6 @@ html,body{
 #login-page #formbox .welcome{
 	color: #222D32;
 	text-align: center;
-	font-style: italic;
 	-webkit-animation: opacity-1 1.4s ease forwards;
 	-moz-animation: opacity-1 1.4s ease forwards;
 	-ms-animation: opacity-1 1.4s ease forwards;
