@@ -5,7 +5,7 @@ post:
   description: Add or delete allowed networks for a policy server
   operationId: modifyAllowedNetworks
   parameters:
-    - $ref: ../../components/parameters/get-allowed-networks.yml
+    - $ref: ../../components/parameters/setting-allowed-networks.yml
   requestBody:
     required: true
     content:
