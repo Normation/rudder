@@ -21,14 +21,12 @@
 
 package com.normation.rudder.repository.ldap
 
-import java.util.concurrent.locks.ReadWriteLock
-
 import com.normation.NamedZioLogger
 import com.normation.errors._
 import com.normation.zio.ZioRuntime
 import zio.clock.Clock
-
-import zio._
+import com.normation.zio._
+import zio.stm.TReentrantLock
 
 object LdapLockLogger extends NamedZioLogger {
   override def loggerName: String = "ldap-rw-lock"
@@ -41,8 +39,6 @@ trait ScalaReadWriteLock {
 }
 
 trait ScalaLock {
-  def lock(): Unit
-  def unlock(): Unit
   def clock: Clock
 
   def name: String
@@ -51,40 +47,24 @@ trait ScalaLock {
 }
 
 
+class ZioTReentrantLock(name: String) extends ScalaReadWriteLock {
+  parent =>
+  val lock = TReentrantLock.make.commit.runNow
 
-object ScalaLock {
-  import java.util.concurrent.locks.Lock
-
-  protected def pureZioSemaphore(n: String, _not_used: Any) : ScalaLock = new ScalaLock {
-    // we set a timeout here to avoid deadlock. We prefer to identify them with errors
-    val semaphore = Semaphore.make(1)
-    override def lock(): Unit = ()
-    override def unlock(): Unit = ()
+  override def readLock: ScalaLock = new ScalaLock {
     override def clock: Clock = ZioRuntime.environment
-    override val name: String = n
+    override val name: String = parent.name
     override def apply[T](block: => IOResult[T]): IOResult[T] = {
-      for {
-        sem <- semaphore
-               //here, we would like to have a timeout on the lock aquisition time, but not on the whole
-               //block execution time. See https://issues.rudder.io/issues/16839
-        res <- sem.withPermit(block)
-      } yield (res)
+      lock.readLock.use(_ => block)
     }
   }
 
-  protected def noopLock(n: String, javaLock: Lock) : ScalaLock = new ScalaLock {
-    override def lock(): Unit = ()
-    override def unlock(): Unit = ()
-    override def clock: Clock = ZioRuntime.environment
-    override def name: String = n
-    override def apply[T](block: => IOResult[T]): IOResult[T] = block
+  override def writeLock: ScalaLock = new ScalaLock {
+    override val clock: Clock = ZioRuntime.environment
+    override val name: String = parent.name
+    override def apply[T](block: => IOResult[T]): IOResult[T] = {
+      lock.writeLock.use(_ => block)
+    }
   }
-
-  def java2ScalaRWLock(name: String, lock: ReadWriteLock) : ScalaReadWriteLock = new ScalaReadWriteLock {
-    override def readLock = noopLock(name, lock.readLock)
-    // for now, even setting a simple semaphore lead to dead lock (most likelly because not re-entrant)
-    override def writeLock = pureZioSemaphore(name, lock.writeLock)
-  }
-
 }
 
