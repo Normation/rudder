@@ -114,7 +114,7 @@ bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix
       "class_prefix_unexpanded" expression => strcmp("", "${c_class_prefix}");
       "class_prefix_defined" expression => "!class_prefix_null.!class_prefix_empty.!class_prefix_unexpanded";
 
-      "class_prefix_size_ok" expression => isgreaterthan("1000", "${class_prefix_length}");
+      "class_prefix_size_ok" expression => isgreaterthan("1001", "${class_prefix_length}");
       "use_class_prefix"     expression => "class_prefix_defined.class_prefix_size_ok";
 
   methods:
