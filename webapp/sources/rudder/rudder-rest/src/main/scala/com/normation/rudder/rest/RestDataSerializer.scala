@@ -201,6 +201,7 @@ final case class RestDataSerializerImpl (
      ~ ( "id"              -> parameter.name )
      ~ ( "value"           -> parameter.valueAsString)
      ~ ( "description"     -> parameter.description )
+     ~ ( "inheriMode"      -> parameter.inheritMode.map(_.value))
    )
   }
 
