@@ -1646,10 +1646,11 @@ object RudderConfig extends Loggable {
   )
   ////////////// MUTEX FOR rwLdap REPOS //////////////
 
-  private[this] lazy val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock("directive-lock", new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-  private[this] lazy val groupLibReadWriteMutex = ScalaLock.java2ScalaRWLock("group-lock", new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-  private[this] lazy val nodeReadWriteMutex = ScalaLock.java2ScalaRWLock("node-lock", new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-  private[this] lazy val parameterReadWriteMutex = ScalaLock.java2ScalaRWLock("parameter-lock", new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  private[this] lazy val uptLibReadWriteMutex    = new ZioTReentrantLock("directive-lock")
+  private[this] lazy val groupLibReadWriteMutex  = new ZioTReentrantLock("group-lock")
+  private[this] lazy val nodeReadWriteMutex      = new ZioTReentrantLock("node-lock")
+  private[this] lazy val parameterReadWriteMutex = new ZioTReentrantLock("parameter-lock")
+  private[this] lazy val ruleReadWriteMutex      = new ZioTReentrantLock("rule-lock")
 
   private[this] lazy val roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
         rudderDitImpl, roLdap, ldapEntityMapper, techniqueRepositoryImpl, uptLibReadWriteMutex)
@@ -1678,7 +1679,7 @@ object RudderConfig extends Loggable {
       repo
     }
   }
-  private[this] lazy val roLdapRuleRepository = new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper)
+  private[this] lazy val roLdapRuleRepository = new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper, ruleReadWriteMutex)
 
   private[this] lazy val woLdapRuleRepository: WoRuleRepository = new WoLDAPRuleRepository(
       roLdapRuleRepository
@@ -1697,6 +1698,7 @@ object RudderConfig extends Loggable {
     , ldapEntityMapper
     , rwLdap
     , logRepository
+    , nodeReadWriteMutex
   )
 
   private[this] lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(

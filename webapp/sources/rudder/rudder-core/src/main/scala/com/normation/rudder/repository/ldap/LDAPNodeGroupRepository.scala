@@ -476,7 +476,7 @@ class WoLDAPNodeGroupRepository(
   , ldap              : LDAPConnectionProvider[RwLDAPConnection]
   , diffMapper        : LDAPDiffMapper
   , uuidGen           : StringUuidGenerator
-  , actionlogEffect      : EventLogRepository
+  , actionlogEffect   : EventLogRepository
   , gitArchiver       : GitNodeGroupArchiver
   , personIdentService: PersonIdentService
   , autoExportOnModify: Boolean
@@ -484,8 +484,6 @@ class WoLDAPNodeGroupRepository(
   repo =>
 
   import roGroupRepo._
-
-  val semaphore = Semaphore.make(1)
 
   /**
    * Check if a group category exist with the given name
@@ -553,7 +551,7 @@ class WoLDAPNodeGroupRepository(
     , modId : ModificationId
     , actor:EventActor, reason: Option[String]
   ): IOResult[NodeGroupCategory] = {
-    for {
+    groupLibMutex.readLock(for {
       con                 <- ldap
       parentCategoryEntry <- getCategoryEntry(con, into, "1.1").notOptional("The parent category '%s' was not found, can not add".format(into))
       exists              <- categoryExists(con, that.name, parentCategoryEntry.dn)
@@ -571,14 +569,14 @@ class WoLDAPNodeGroupRepository(
       newCategory         <- getGroupCategory(that.id).chainError(s"The newly created category '${that.id.value}' was not found")
     } yield {
       newCategory
-    }
+    })
   }
 
   /**
    * Update an existing group category
    */
   override def saveGroupCategory(category: NodeGroupCategory, modId : ModificationId, actor:EventActor, reason: Option[String]): IOResult[NodeGroupCategory] = {
-    semaphore.flatMap(_.withPermit(
+    groupLibMutex.readLock(
       for {
         con              <- ldap
         oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1").notOptional(s"Entry with ID '${category.id.value}' was not found")
@@ -600,14 +598,14 @@ class WoLDAPNodeGroupRepository(
       } yield {
         updated
       }
-    ))
+    )
   }
 
    /**
    * Update/move an existing group category
    */
   override def saveGroupCategory(category: NodeGroupCategory, containerId : NodeGroupCategoryId, modId : ModificationId, actor:EventActor, reason: Option[String]): IOResult[NodeGroupCategory] = {
-    semaphore.flatMap(_.withPermit(
+    groupLibMutex.readLock(
       for {
         con              <- ldap
         oldParents       <- if(autoExportOnModify) {
@@ -640,7 +638,7 @@ class WoLDAPNodeGroupRepository(
       } yield {
         updated
       }
-    ))
+    )
   }
 
   /**
@@ -653,7 +651,7 @@ class WoLDAPNodeGroupRepository(
    *  - Failure(with error message) iif an error happened.
    */
   override def delete(id:NodeGroupCategoryId, modId : ModificationId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : IOResult[NodeGroupCategoryId] = {
-    for {
+    groupLibMutex.readLock(for {
       con <-ldap
       deleted <- {
         getCategoryEntry(con, id).flatMap {
@@ -680,7 +678,7 @@ class WoLDAPNodeGroupRepository(
       }
     } yield {
       deleted
-    }
+    })
   }
 
   /**
@@ -688,7 +686,7 @@ class WoLDAPNodeGroupRepository(
    * The id used to save it will be the id provided by the nodeGroup
    */
   override def create(nodeGroup: NodeGroup, into: NodeGroupCategoryId, modId: ModificationId, actor:EventActor, reason:Option[String]): IOResult[AddNodeGroupDiff] = {
-    for {
+    groupLibMutex.readLock(for {
       con           <- ldap
       exists        <- checkNodeGroupExists(con, nodeGroup)
       exists        <- if (exists)
@@ -709,18 +707,18 @@ class WoLDAPNodeGroupRepository(
                        } else UIO.unit)
     } yield {
       diff
-    }
+    })
   }
 
   override def createPolicyServerTarget(policyServer : PolicyServerTarget, modId: ModificationId, actor:EventActor, reason:Option[String]): IOResult[LDIFChangeRecord] = {
-    for {
+    groupLibMutex.readLock(for {
       con           <- ldap
       categoryEntry <-  getCategoryEntry(con, NodeGroupCategoryId("SystemGroups")).notOptional("Entry with ID 'SystemGroups' was not found")
       entry         = rudderDit.RULETARGET.ruleTargetModel(policyServer.target, s"${policyServer.target} policy server", categoryEntry.dn ,s"Only the ${policyServer.target} policy server")
-      result        <- con.save(entry, true)
+      result        <- groupLibMutex.writeLock(con.save(entry, true))
     } yield {
       result
-    }
+    })
   }
 
   /**
@@ -729,21 +727,21 @@ class WoLDAPNodeGroupRepository(
    */
   override def deletePolicyServerTarget(policyServer : PolicyServerTarget): IOResult[PolicyServerTarget] = {
     val rdn = rudderDit.RULETARGET.ruleTargetDN(policyServer.target)
-    for {
+    groupLibMutex.readLock(for {
       con           <- ldap
       _             <- getCategoryEntry(con, NodeGroupCategoryId("SystemGroups")).flatMap {
                          case Some(categoryEntry) =>
                            val entry = LDAPEntry(new DN(rdn, categoryEntry.dn))
-                           con.delete(entry.dn)
+                           groupLibMutex.writeLock(con.delete(entry.dn))
                          case None => policyServer.target.succeed
                     }
     } yield {
       policyServer
-    }
+    })
   }
 
   private[this] def internalUpdate(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean, onlyUpdateNodes: Boolean): IOResult[Option[ModifyNodeGroupDiff]] = {
-    semaphore.flatMap(_.withPermit(
+    groupLibMutex.readLock(
       for {
         con          <- ldap
         existing     <- getSGEntry(con, nodeGroup.id).notOptional("Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id))
@@ -773,7 +771,7 @@ class WoLDAPNodeGroupRepository(
       } yield {
         result
       }
-    ))
+    )
   }
 
   protected def saveModifyNodeGroupDiff(existing: LDAPEntry, con: RwLDAPConnection, nodeGroup: NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = {
@@ -813,7 +811,7 @@ class WoLDAPNodeGroupRepository(
 
   // this one does not seem able to use internalUpdate
   override def updateDiffNodes(nodeGroupId: NodeGroupId, add: List[NodeId], delete: List[NodeId], modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyNodeGroupDiff]] = {
-    semaphore.flatMap(_.withPermit(
+    groupLibMutex.readLock(
       for {
         con          <- ldap
         existing     <- getSGEntry(con, nodeGroupId).notOptional(s"Error when trying to check for existence of group with id '${nodeGroupId.value}'. Can not update")
@@ -823,13 +821,13 @@ class WoLDAPNodeGroupRepository(
       } yield {
         result
       }
-    ))
+    )
   }
 
 
   override def move(nodeGroupId:NodeGroupId, containerId : NodeGroupCategoryId, modId: ModificationId, actor:EventActor, reason:Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = {
 
-    for {
+    groupLibMutex.readLock(for {
       con          <- ldap
       oldParents   <- if(autoExportOnModify) {
                         (for {
@@ -868,7 +866,7 @@ class WoLDAPNodeGroupRepository(
                       }.chainError("Error when trying to archive automatically the category move")
     } yield {
       optDiff
-    }
+    })
   }
 
   /**
@@ -878,7 +876,7 @@ class WoLDAPNodeGroupRepository(
    * @return
    */
   override def delete(id:NodeGroupId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[DeleteNodeGroupDiff] = {
-    for {
+    groupLibMutex.readLock(for {
       con          <- ldap
       parents      <- if(autoExportOnModify) {
                         (for {
@@ -914,7 +912,7 @@ class WoLDAPNodeGroupRepository(
                       }
     } yield {
       diff
-    }
+    })
   }
 
 }
