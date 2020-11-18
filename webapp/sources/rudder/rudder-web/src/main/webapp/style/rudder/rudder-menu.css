@@ -160,6 +160,11 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 .skin-yellow .modal .modal-footer .btn {
   width:auto;
 }
+
+#sendMetricsPopup .btn {
+  line-height: initial;
+  padding: 8px 12px;
+}
 /* - LABEL BOOTSTRAP */
 .content-wrapper label.radio{
   color: #555;
@@ -577,9 +582,16 @@ a.sidebar-toggle{
   border-color: #F0F0F0;
   margin: 0 10px 10px 10px;
 }
+.stats li > a{
+  display: flex;
+  justify-content: space-between;
+}
 .stats li>a .badge{
   background-color: #222D32;
   opacity:.5;
+  display: inline-flex;
+  justify-content: center;
+  align-items: flex-end;
 }
 .stats li>a:hover .badge{
   background-color: #222D32;
@@ -613,6 +625,8 @@ ul.graph-legend > li.legend{
   transition-duration:.2s;
   cursor:pointer;
   border-radius:4px;
+  display: flex;
+  align-items: flex-end;
 }
 ul.graph-legend > li.legend:hover{
   background-color:#f4f4f4;
@@ -1099,6 +1113,13 @@ ul.graph-legend > li.legend:hover{
   padding: 0 15px;
 }
 
+/* --- SEARCH NODES --- */
+.searchNodes .query_line .form-control.input-sm {
+  height: auto;
+  padding: 6px 2px 4px 2px;
+  vertical-align: middle;
+  display: inline-block;
+}
 /* --- ACCEPT NEW NODES --- */
 .tabInform .glyphicon{
   margin: 0 6px 0 4px;

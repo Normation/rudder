@@ -268,6 +268,9 @@ td.listclose:after {
   text-align: right;
   padding-top: 3px;
 }
+.dataTables_paginate .fg-button {
+  display: inline-block;
+}
 .dataTables_paginate > .ui-button,
 .dataTables_paginate > span > .ui-button,
 .dataTables_paginate > span > .ellipsis{
@@ -299,6 +302,8 @@ td.listclose:after {
 .dataTables_paginate > span > .ellipsis{
   margin-right: -1px;
   cursor: default !important;
+  display: inline-block;
+  overflow: initial;
 }
 .dataTables_length select {
   padding: 2px;
