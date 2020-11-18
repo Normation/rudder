@@ -228,7 +228,7 @@ object DisplayDirectiveTree extends Loggable {
                 import net.liftweb.http.js.JsExp._
                 <span class="btn btn-success btn-xs create" style="opacity: 0;" onclick={
                   s"""event.preventDefault();event.stopPropagation();${SHtml.ajaxCall("", _ => newDirective(technique, activeTechnique))}"""
-                } title="Create Directive with latest version"><i class="fa fa-plus"></i></span>
+                } title="Create Directive with latest version">Create <i class="fa fa-plus"></i></span>
               case None => NodeSeq.Empty
             }
             val tooltipContent =

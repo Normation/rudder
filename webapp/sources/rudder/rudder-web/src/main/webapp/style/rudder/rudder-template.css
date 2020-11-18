@@ -57,7 +57,7 @@
 }
 .content-wrapper .rudder-template .jstree .jstree-anchor .btn.create{
   float: right;
-  width: 25px;
+  min-width: 25px;
 }
 .content-wrapper .rudder-template .jstree .jstree-anchor:hover .btn.create{
   opacity: 1 !important;
