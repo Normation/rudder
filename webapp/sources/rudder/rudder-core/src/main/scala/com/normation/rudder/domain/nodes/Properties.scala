@@ -536,9 +536,10 @@ object GenericProperty {
    */
   implicit class PropertyToJson(val x: GenericProperty[_]) extends AnyVal {
     def toJson: JObject = (
-        ( "name"     -> x.name  )
-      ~ ( "value"    -> parse(x.value.render(ConfigRenderOptions.concise()) ) )
-      ~ ( "provider" -> x.provider.map(_.value) )
+        ( "name"        -> x.name  )
+      ~ ( "value"       -> parse(x.value.render(ConfigRenderOptions.concise()) ) )
+      ~ ( "provider"    -> x.provider.map(_.value) )
+      ~ ( "inheritMode" -> x.inheritMode.map(_.value))
     )
 
     def toData: String = x.config.root().render(ConfigRenderOptions.concise().setComments(true))
