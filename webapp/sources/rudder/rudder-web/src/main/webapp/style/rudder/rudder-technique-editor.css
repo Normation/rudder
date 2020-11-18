@@ -86,9 +86,6 @@ ul.dropdown-menu > li > a{
 .btn.btn-outline-primary{
   color: #337ab7;
 }
-.header-title .btn.btn-outline-primary{
-  min-width: initial;
-}
 .btn.btn-outline-primary:hover{
   background-color: #286090;
 }
@@ -231,7 +228,10 @@ body > .ng-toast {
   border-bottom-left-radius : 4px;
   background-color: #ededed;
 }
-
+.col-methods .filters-container .input-group > .input-group-addon + .form-control {
+  display: flex;
+  align-items: center;
+}
 
 .show-methods .col-techniques > div,
 .show-techniques .col-methods > div{
@@ -367,6 +367,11 @@ body > .ng-toast {
 }
 .header-buttons .dropdown-menu .divider{
   margin: 0px;
+}
+
+.content-wrapper textarea.form-control.technique-description{
+  max-height: 200px;
+  overflow: auto;
 }
 /*=====================*/
 
@@ -863,6 +868,10 @@ button.btn.clipboard {
 button.btn.clipboard:hover {
   background-color: #6c757d;
   color: #fff;
+}
+.tab-resources button.btn.btn-outline-secondary.clipboard {
+  margin-left: 6px;
+  padding: 2px 8px;
 }
 .method.missingParameters:after{
   content: "";

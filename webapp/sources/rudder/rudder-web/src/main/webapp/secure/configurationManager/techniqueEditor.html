@@ -256,7 +256,7 @@
                   </li>
                 </ul>
               </div>
-              <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-outline-primary" ng-click="resetTechnique()">Reset <i class="fa fa-undo"></i></button>
+              <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-primary" ng-click="resetTechnique()">Reset <i class="fa fa-undo"></i></button>
               <button ng-disabled="ui.editForm.$pending || ui.editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || saving" class="btn btn-success btn-save" ng-click="saveTechnique()">
                 Save <i ng-class="{'glyphicon glyphicon-cog fa-spin':saving, 'fa fa-download':!saving}"></i>
               </button>
@@ -339,7 +339,7 @@
                       />
                     </label>
                     <div class="col-sm-8">
-                      <textarea name="description" class="form-control" id="techniqueDescription" msd-elastic rows="4" ng-model="selectedTechnique.description" placeholder="Technique Documentation"></textarea>
+                      <textarea name="description" class="form-control technique-description" id="techniqueDescription" msd-elastic rows="4" ng-model="selectedTechnique.description" placeholder="Technique Documentation"></textarea>
                     </div>
                   </div>
                   <div class="row form-group" show-errors>
@@ -424,7 +424,12 @@
                         {{resource.name}}
                       </span>
                       <span class="border"></span>
-                      <div class="use-with"><span>{{"${resources_dir}/"+ resource.name}}</span></div>
+                      <div class="use-with">
+                        <span>{{"${resources_dir}/"+ resource.name}}</span>
+                        <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{'${resources_dir}/' + resource.name}}" title="Copy to clipboard">
+                          <i class="ion ion-clipboard"></i>
+                        </button>
+                      </div>
                     </li>
                   </ul>
                   <div class="resources-uncommitted" ng-if="getResourcesByState(selectedTechnique.resources, 'new').length>0 || getResourcesByState(selectedTechnique.resources, 'deleted').length > 0">
