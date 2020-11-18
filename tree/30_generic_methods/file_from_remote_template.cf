@@ -1,0 +1,106 @@
+#####################################################################################
+# Copyright 2020 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File from remote template
+# @description Build a file from a template on the Rudder server
+# @documentation Write a file based on a template on the Rudder server and data available on the node
+#
+# #### Usage
+#
+# To use this method, you need to have:
+# * a template on the Rudder server shared folder
+# * data to fill this template
+#
+# The template need to be located in the shared files folder and can be accessed with:
+# ```
+# /var/rudder/configuration-repository/shared-files/PATH_TO_YOUR_FILE
+# ```
+#
+# The data that will be used while expanding the template is the data available in
+# the agent at the time of expansion. That means:
+#
+# * Agent's system variables (`${sys.*}`, ...) and conditions (`linux`, ...)
+# * data defined during execution (result conditions of generic methods, ...)
+# * conditions based on `condition_` generic methods
+# * data defined in ncf using `variable_*` generic methods, which allow for example
+#   to load data from local json or yaml files.
+#
+# #### Template types
+#
+# ncf currently supports two templating languages:
+#
+# * *mustache* templates, which are documented in [file_from_template_mustache](#_file_from_template_mustache)
+# * *jinja2* templates, which are documented in [file_from_template_jinja2](#_file_from_template_jinja2)
+#
+# #### Reporting
+#
+# This method will provide extra log_warning message if the template was not updated, but the destination
+# file is modified.
+
+# @parameter source_template Source file containing a template to be expanded (absolute path on the server)
+# @parameter destination     Destination file (absolute path on the target node)
+# @parameter template_type   Template type (jinja2 or mustache)
+
+# @class_prefix file_from_remote_template
+# @class_parameter destination
+# @parameter_constraint template_type "select" : [ "jinja2", "mustache" ]
+
+
+bundle agent file_from_remote_template(source_template, destination, template_type)
+{
+  vars:
+      "old_class_prefix"  string => canonify("file_from_remote_template_${destination}");
+      "args"               slist => { "${source_template}", "${destination}", "${template_type}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_from_template_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "template_folder"            string => "${sys.workdir}/tmp/templates/file_from_remote_template";
+      "template_tmp_file"          string => "${template_folder}/${destination}";
+
+      "full_copy_class_prefix"     string => canonify("file_from_remote_source_${source_template}_${template_tmp_file}");
+      "copy_class_prefix"          string => string_head("${full_copy_class_prefix}", "1000");
+      
+      "full_template_class_prefix" string => canonify("file_from_template_${template_tmp_file}_${destination}_${template_type}");
+      "template_class_prefix"      string => string_head("${full_template_class_prefix}", "1000");
+      
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
+
+      "get_template"                          usebundle => file_from_remote_source("${source_template}", "${template_tmp_file}");
+      "expand_template"                       usebundle => file_from_template_type("${template_tmp_file}", "${destination}", "${template_type}");
+
+    any::
+      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
+                                             ifvarclass => "should_report";
+      
+
+    any::
+      # combine both for reporting
+      "result_class"    usebundle => _classes_combine_two("${copy_class_prefix}", "${template_class_prefix}", "${class_prefix}");
+
+      "report"          usebundle => _log_v3("Build file ${destination} from template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+      # Make a log_warn report if template is not updated but file destination is, and policies were not updated
+      "report" usebundle  => log_rudder_mode("log_warn", "Template expansion changed but the template was not changed - file ${destination} may have been changed on filesystem outside of configuration management", "${destination}", "${class_prefix}"),
+                ifvarclass => "!${copy_class_prefix}_repaired.${template_class_prefix}_repaired.!config";
+}
