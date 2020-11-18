@@ -337,6 +337,7 @@ class TestMergeGroupProperties extends Specification {
             ~ ("parent"   -> "parent value")
           ) )
         ~ ( "provider" -> "overridden" )
+        ~ ( "inheritMode" -> JNothing) //I don't understand why I need to add it
         ~ ("hierarchy" ->
             """<p>from <b>Global Parameter</b>:<pre>{
              |    "global" : "global value",
