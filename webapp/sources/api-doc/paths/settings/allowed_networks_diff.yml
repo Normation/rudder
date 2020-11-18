@@ -64,4 +64,4 @@ post:
   x-code-samples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/settings/set-allowed-networks.yml
+        $ref: ../../code_samples/curl/settings/set-allowed-networks-diff.sh
