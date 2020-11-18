@@ -28,6 +28,7 @@ Options:
     --version <version>  Provide specific version
     --nightly  Force the command to execute on the nightlies instead of the released plugins
     --all      List all plugin name available
+    --quiet    Deprecated, force the log level to info
 
 Commands:
     install-file
@@ -114,17 +115,17 @@ if __name__ == "__main__":
             rudderPkg.package_list_installed()
     elif args['update']:
         utils.check_url()
-        rudderPkg.update(args['--quiet'])
+        rudderPkg.update()
     elif args['upgrade-all']:
         utils.check_url()
         if args['--nightly']:
-            rudderPkg.upgrade_all("nightly", args['--quiet'])
+            rudderPkg.upgrade_all("nightly")
         else:
-            rudderPkg.upgrade_all("release", args['--quiet'])
+            rudderPkg.upgrade_all("release")
 
     elif args['licenses']:
         utils.check_url()
-        rudderPkg.update_licenses(args['--quiet'])
+        rudderPkg.update_licenses()
     elif args['check-connection']:
         utils.check_url()
     elif args['search']:
@@ -134,14 +135,14 @@ if __name__ == "__main__":
         utils.check_url()
         if args['--version']:
             if args['--nightly']:
-                rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "nightly", args['--quiet'])
+                rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "nightly")
             else:
-                rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "release", args['--quiet'])
+                rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "release")
         else:
             if args['--nightly']:
-                rudderPkg.package_install_latest(args['<package>'], "nightly", args['--quiet'])
+                rudderPkg.package_install_latest(args['<package>'], "nightly")
             else:
-                rudderPkg.package_install_latest(args['<package>'], quiet=args['--quiet'])
+                rudderPkg.package_install_latest(args['<package>'],)
     elif args['remove']:
         rudderPkg.remove(args['<package>'])
     elif args['rudder-postupgrade']:

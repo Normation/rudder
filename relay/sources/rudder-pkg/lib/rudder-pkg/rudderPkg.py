@@ -183,12 +183,12 @@ def package_search(name):
     It will not check for compatibility and will let it to the installer since
     the user explicitly asked for this version.
 """
-def package_install_specific_version(name, longVersion, mode="release", quiet=False):
+def package_install_specific_version(name, longVersion, mode="release"):
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     rpkg = pkgs.getRpkgByLongVersion(longVersion, mode)
     if rpkg is not None:
-        rpkgPath = utils.downloadByRpkg(rpkg, quiet)
+        rpkgPath = utils.downloadByRpkg(rpkg)
         install_file([rpkgPath])
     else:
         utils.fail("Could not find any package for %s in version %s"%(name, longVersion))
@@ -197,7 +197,7 @@ def package_install_specific_version(name, longVersion, mode="release", quiet=Fa
     Install the latest available and compatible package for a given plugin.
     If no release mode is given, it will only look in the released rpkg.
 """
-def package_install_latest(name, mode="release", quiet=False):
+def package_install_latest(name, mode="release"):
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     if mode == "release":
@@ -205,7 +205,7 @@ def package_install_latest(name, mode="release", quiet=False):
     else:
         rpkg = pkgs.getLatestCompatibleNightly()
     if rpkg is not None:
-        rpkgPath = utils.downloadByRpkg(rpkg, quiet)
+        rpkgPath = utils.downloadByRpkg(rpkg)
         install_file([rpkgPath])
     else:
         utils.fail("Could not find any compatible %s for %s"%(mode, name))
@@ -297,7 +297,7 @@ Update the licences from the Rudder repo
 It first check for the */licenses page and find the subfolders.
 Iterate through them to find all *.license files and *.key files.
 """
-def update_licenses(quiet=False):
+def update_licenses():
     url = utils.URL.rstrip("/") + "/licenses"
     r = utils.getRequest(url, False)
     htmlElements = html.document_fromstring(r.text)
@@ -321,11 +321,11 @@ def update_licenses(quiet=False):
                 match = downloadPattern.search(link)
                 if match is not None:
                     logger.info("downloading %s"%(link))
-                    utils.download(link, utils.LICENCES_PATH + "/" + os.path.basename(link), quiet)
+                    utils.download(link, utils.LICENCES_PATH + "/" + os.path.basename(link))
 
 # TODO validate index sign if any?
 """ Download the index file on the repos and update licenses"""
-def update(quiet=False):
+def update():
     logger.debug('Updating the index')
     utils.getRudderKey()
     # backup the current indexFile if it exists
@@ -333,19 +333,19 @@ def update(quiet=False):
     if os.path.isfile(utils.INDEX_PATH):
         os.rename(utils.INDEX_PATH, utils.INDEX_PATH + ".bkp")
     try:
-        utils.download(utils.URL + "/" + "rpkg.index", quiet=quiet)
+        utils.download(utils.URL + "/" + "rpkg.index")
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
         if os.path.isfile(utils.INDEX_PATH + ".bkp"):
             logger.debug("restoring %s from %s"%(utils.INDEX_PATH, utils.INDEX_PATH + ".bkp"))
             os.rename(utils.INDEX_PATH + ".bkp", utils.INDEX_PATH)
         utils.fail(e)
-    update_licenses(quiet)
+    update_licenses()
 
 """
     Upgrade all plugins install in their latest compatible version
 """
-def upgrade_all(mode, quiet=False):
+def upgrade_all(mode):
     for p in utils.DB["plugins"].keys():
         currentVersion = rpkg.PluginVersion(utils.DB["plugins"][p]["version"])
         pkgs = plugin.Plugin(p)
@@ -356,6 +356,6 @@ def upgrade_all(mode, quiet=False):
             latestVersion = pkgs.getLatestCompatibleRelease().version
         if currentVersion < latestVersion:
             print("The plugin %s is installed in version %s. The version %s %s is available, the plugin will be upgraded."%(p, currentVersion.pluginLongVersion, mode, latestVersion.pluginLongVersion))
-            package_install_latest([p], mode, quiet)
+            package_install_latest([p], mode)
         else:
             print("No newer %s compatible versions found for the plugin %s"%(mode, p))
