@@ -1222,7 +1222,7 @@ function callbackElement(oData, displayCompliance) {
 
 var dynColumns = []
 var columns = [ allColumns["Hostname"],  allColumns["OS"],  allColumns["Compliance"],  allColumns["Last run"]];
-var defaultColumns = [ allColumns["Hostname"],  allColumns["OS"],  allColumns["Compliance"],  allColumns["Last run"]];
+var defaultColumns = [ allColumns["Hostname"],  allColumns["OS"],  allColumns["Policy mode"],  allColumns["Compliance"]];
 var allColumnsKeys =  Object.keys(allColumns)
 function reloadTable(gridId) {
   var table = $('#'+gridId).DataTable();
