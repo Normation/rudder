@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+name: "mode"
+in: query
+required: false
+description: Deletion mode to use, either move to trash ('move', default) or erase ('erase')
+schema:
+  default: move
+  type: string
+  enum:
+    - move
+    - erase
+  example: move

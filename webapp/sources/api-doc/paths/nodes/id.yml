@@ -102,17 +102,7 @@ delete:
   operationId: deleteNode
   parameters:
     - $ref: ../../components/parameters/node-id.yml
-    - name: "mode"
-        in: query
-        required: false
-        description: Deletion mode to use, either move to trash ('move', default) or erase ('erase')
-        schema:
-          default: move
-          type: string
-          enum:
-            - move
-            - erase
-          example: move
+    - $ref: ../../components/parameters/node-delete-mode.yml
   responses:
     "200":
       description: Nodes
