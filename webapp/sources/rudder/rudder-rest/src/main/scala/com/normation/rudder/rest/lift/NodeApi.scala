@@ -98,6 +98,7 @@ import com.normation.errors._
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
@@ -112,14 +113,12 @@ import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.utils.DateFormaterService
-import com.typesafe.config.ConfigRenderOptions
 import net.liftweb.http.JsonResponse
 import net.liftweb.json.JsonAST.JDouble
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JInt
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.parse
 import zio.ZIO
 import zio.duration._
 
@@ -469,8 +468,7 @@ class NodeApiInheritedProperties(
 ) {
 
   /*
-   * Full list of node properties, including inherited ones
-   *
+   * Full list of node properties, including inherited ones for a node
    */
   def getNodePropertiesTree(nodeId: NodeId): IOResult[JValue] = {
     for {
@@ -487,6 +485,7 @@ class NodeApiInheritedProperties(
       ) :: Nil)
     }
   }
+
 }
 
 class NodeApiService12(
@@ -511,19 +510,50 @@ class NodeApiService12(
 }
 
 class NodeApiService13 (
-    nodeInfoService: NodeInfoService
+    nodeInfoService           : NodeInfoService
   , reportsExecutionRepository: RoReportsExecutionRepository
-  , readOnlySoftwareDAO: ReadOnlySoftwareDAO
-  , restExtractor: RestExtractorService
-  , getGlobalMode : () => Box[GlobalPolicyMode]
-  , reportingService: ReportingService
+  , readOnlySoftwareDAO       : ReadOnlySoftwareDAO
+  , restExtractor             : RestExtractorService
+  , getGlobalMode             : () => Box[GlobalPolicyMode]
+  , reportingService          : ReportingService
+  , groupRepo                 : RoNodeGroupRepository
+  , paramRepo                 : RoParameterRepository
 ) extends Loggable {
 
-  def serialize(agentRunWithNodeConfig: Option[AgentRunWithNodeConfig], globalPolicyMode: GlobalPolicyMode, nodeInfo : NodeInfo, properties : List[String], softs: List[Software], compliance : Option[NodeStatusReport], sysCompliance : Option[NodeStatusReport]) = {
+  /*
+   * Return a map of (NodeId -> propertyName -> inherited property) for the given list of nodes and
+   * property. When a node doesn't have a property, the map will always
+   */
+  def getNodesPropertiesTree(nodeInfos: Iterable[NodeInfo], properties: List[String]): IOResult[Map[NodeId, Map[String, String]]] = {
+    for {
+      groups       <- groupRepo.getFullGroupLibrary()
+      nodesTargets =  nodeInfos.map(i => (i, groups.getTarget(i).map(_._2).toList))
+      params       <- paramRepo.getAllGlobalParameters()
+      properties   <- ZIO.foreach(nodesTargets.toList) { case (nodeInfo, nodeTargets) =>
+                        MergeNodeProperties.forNode(nodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap).toIO.fold(
+                          err =>
+                            (nodeInfo.id, nodeInfo.properties.collect { case p if (properties.contains(p.name)) => (p.name, p.toData) }.toMap)
+                        , props =>
+                            // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs
+                            // adaptation in datatable display
+                            (nodeInfo.id, props.collect { case p if(properties.contains(p.prop.name)) => (p.prop.name, GenericProperty.serializeToJson(p.prop.value))}.toMap)
+                        )
+                      }
+    } yield {
+      properties.toMap
+    }
+  }
+
+  def serialize(
+      agentRunWithNodeConfig: Option[AgentRunWithNodeConfig]
+    , globalPolicyMode      : GlobalPolicyMode
+    , nodeInfo              : NodeInfo
+    , properties            : Map[NodeId, Map[String, String]]
+    , softs                 : List[Software]
+    , compliance            : Option[NodeStatusReport]
+    , sysCompliance         : Option[NodeStatusReport]
+  ): JObject = {
     import net.liftweb.json.JsonDSL._
-
-
-
     def toComplianceArray(comp : ComplianceLevel) : JArray =
       JArray (
         JArray(JInt(comp.reportsDisabled) :: JDouble(comp.pc.reportsDisabled) :: Nil)  :: //0
@@ -569,7 +599,7 @@ class NodeApiService13 (
       ~  ("lastRun" -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
       ~  ("lastInventory" ->  DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))
       ~  ("software" -> JObject(softs.toList.map(s => JField(s.name.getOrElse(""), JString(s.version.map(_.value).getOrElse("N/A"))))))
-      ~  ("property" -> JObject(nodeInfo.properties.filter(p => properties.contains(p.name)).map(p => JField(p.name, parse(p.value.render(ConfigRenderOptions.concise()) ) )) ))
+      ~  ("property" -> properties.getOrElse(nodeInfo.id, Map()))
       )
   }
 
@@ -579,36 +609,40 @@ class NodeApiService13 (
     val n1 = System.currentTimeMillis
 
     for {
-
-      optNodeIds <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "nodeIds",( values => Full(values.map(NodeId(_))))))
-
-      nodes <- optNodeIds match {
-        case None => nodeInfoService.getAll()
-        case Some(nodeIds) => com.normation.utils.Control.sequence(nodeIds)( nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
-      }
-      n2 = System.currentTimeMillis
-      _ = TimingDebugLoggerPure.logEffect.trace(s"Getting node infos: ${n2 - n1}ms")
-      runs <- reportsExecutionRepository.getNodesLastRun(nodes.keySet)
-      n3 = System.currentTimeMillis
-      _  = TimingDebugLoggerPure.logEffect.trace(s"Getting run infos: ${n3 - n2}ms")
+      optNodeIds      <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "nodeIds",( values => Full(values.map(NodeId(_))))))
+      nodes           <- optNodeIds match {
+                           case None =>
+                             nodeInfoService.getAll()
+                           case Some(nodeIds) =>
+                             com.normation.utils.Control.sequence(nodeIds)(
+                               nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))
+                             ).map(_.flatten.toMap)
+                         }
+      n2              =  System.currentTimeMillis
+      _               =  TimingDebugLoggerPure.logEffect.trace(s"Getting node infos: ${n2 - n1}ms")
+      runs            <- reportsExecutionRepository.getNodesLastRun(nodes.keySet)
+      n3              =  System.currentTimeMillis
+      _               =  TimingDebugLoggerPure.logEffect.trace(s"Getting run infos: ${n3 - n2}ms")
       (systemCompliances, userCompliances) <- reportingService.getUserAndSystemNodeStatusReports(Some(nodes.keySet))
-      n4 = System.currentTimeMillis
-      _ = TimingDebugLoggerPure.logEffect.trace(s"Getting compliance infos: ${n4 - n3}ms")
-      globalMode <- getGlobalMode()
-      n5 = System.currentTimeMillis
-      _ = TimingDebugLoggerPure.logEffect.trace(s"Getting global mode: ${n5 - n4}ms")
+      n4              =  System.currentTimeMillis
+      _               =  TimingDebugLoggerPure.logEffect.trace(s"Getting compliance infos: ${n4 - n3}ms")
+      globalMode      <- getGlobalMode()
+      n5              =  System.currentTimeMillis
+      _               =  TimingDebugLoggerPure.logEffect.trace(s"Getting global mode: ${n5 - n4}ms")
       softToLookAfter <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "software").map(_.getOrElse(Nil)))
-      softs <-
-        ZIO.foreach(softToLookAfter) {
-          soft => readOnlySoftwareDAO.getNodesbySofwareName(soft)
-        }.toBox.map(_.flatten.groupMap(_._1)(_._2))
-      n6 = System.currentTimeMillis
-      _ = TimingDebugLoggerPure.logEffect.trace(s"all data fetched for response: ${n6 - n5}ms")
+      softs           <- ZIO.foreach(softToLookAfter) {
+                           soft => readOnlySoftwareDAO.getNodesbySofwareName(soft)
+                         }.toBox.map(_.flatten.groupMap(_._1)(_._2))
+      n6              =  System.currentTimeMillis
+      _               =  TimingDebugLoggerPure.logEffect.trace(s"all data fetched for response: ${n6 - n5}ms")
 
-      properties <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "properties").map(_.getOrElse(Nil)))
+      properties     <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "properties").map(_.getOrElse(Nil)))
+      mapProps       <- getNodesPropertiesTree(nodes.values, properties).toBox
     } yield {
 
-      val res = JArray(nodes.values.toList.map(n => serialize(runs.get(n.id).flatten,globalMode,n, properties, softs.get(n.id).getOrElse(Nil), userCompliances.get(n.id), systemCompliances.get(n.id))))
+      val res = JArray(nodes.values.toList.map(n =>
+        serialize(runs.get(n.id).flatten,globalMode,n, mapProps, softs.get(n.id).getOrElse(Nil), userCompliances.get(n.id), systemCompliances.get(n.id))
+      ))
 
       val n7 = System.currentTimeMillis
       TimingDebugLoggerPure.logEffect.trace(s"serialized to json: ${n7 - n6}ms")
@@ -635,19 +669,16 @@ class NodeApiService13 (
   }
 
   def property(req : Req, property : String) = {
-
-      for {
-
-        optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
-
-        nodes <- optNodeIds match {
-          case None => nodeInfoService.getAll()
-          case Some(nodeIds) => com.normation.utils.Control.sequence(nodeIds)(nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
-        }
-      } yield {
-        JsonResponse(JObject(nodes.flatMap { case (id, nodeInfo) => nodeInfo.properties.find(_.name == property).map(p => JField(id.value, p.value.render(ConfigRenderOptions.concise()))) }.toList))
-
-      }
+    for {
+      optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
+      nodes      <- optNodeIds match {
+                      case None => nodeInfoService.getAll()
+                      case Some(nodeIds) => com.normation.utils.Control.sequence(nodeIds)(nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
+                    }
+      mapProps   <- getNodesPropertiesTree(nodes.values, List(property)).toBox
+    } yield {
+      JsonResponse(JObject(mapProps.flatMap { case (id, props) => props.get(property).map(p => JField(id.value, p)) }.toList))
+    }
   }
 }
 
