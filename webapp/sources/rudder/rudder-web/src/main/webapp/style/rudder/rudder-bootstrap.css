@@ -668,6 +668,7 @@ body{
 
 .content-wrapper .homePage {
   background-color: rgb(236, 240, 245);
+  padding: 15px;
 }
 
 .content-wrapper .jstree {
