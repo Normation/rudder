@@ -94,7 +94,6 @@ class CheckNcfTechniqueUpdate(
 
     def updateNcfTechniques  = {
       for {
-        _          <- techniqueReader.updateMethodsMetadataFile
         _          <- techniqueReader.updateTechniquesMetadataFile
 
         methods    <- techniqueReader.readMethodsMetadataFile
@@ -119,6 +118,7 @@ class CheckNcfTechniqueUpdate(
     }
 
     val prog = (for {
+      _          <- techniqueReader.updateMethodsMetadataFile
       flagExists <- IOResult.effect(s"An error occurred while accessing flag file '${ncfTechniqueUpdateFlag}'")(ncfTechniqueUpdateFlag.exists)
       _ <- if (flagExists) updateNcfTechniques else BootstrapLogger.info(s"Flag file '${ncfTechniqueUpdateFlag}' does not exist, do not regenerate ncf Techniques")
     } yield ())
