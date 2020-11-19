@@ -23,10 +23,12 @@
 # #### Usage
 #
 # To use this method, you need to have:
+#
 # * a template on the Rudder server shared folder
 # * data to fill this template
 #
-# The template need to be located in the shared files folder and can be accessed with:
+# The template needs to be located in the shared-files folder and can be accessed with:
+#
 # ```
 # /var/rudder/configuration-repository/shared-files/PATH_TO_YOUR_FILE
 # ```
@@ -37,19 +39,19 @@
 # * Agent's system variables (`${sys.*}`, ...) and conditions (`linux`, ...)
 # * data defined during execution (result conditions of generic methods, ...)
 # * conditions based on `condition_` generic methods
-# * data defined in ncf using `variable_*` generic methods, which allow for example
+# * data defined using `variable_*` generic methods, which allow for example
 #   to load data from local json or yaml files.
 #
 # #### Template types
 #
-# ncf currently supports two templating languages:
+# Supported templating languages:
 #
 # * *mustache* templates, which are documented in [file_from_template_mustache](#_file_from_template_mustache)
 # * *jinja2* templates, which are documented in [file_from_template_jinja2](#_file_from_template_jinja2)
 #
 # #### Reporting
 #
-# This method will provide extra log_warning message if the template was not updated, but the destination
+# This method will provide extra `log_warning` message if the template was not updated, but the destination
 # file is modified.
 
 # @parameter source_template Source file containing a template to be expanded (absolute path on the server)
