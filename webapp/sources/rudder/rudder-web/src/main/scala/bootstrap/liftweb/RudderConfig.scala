@@ -959,7 +959,8 @@ object RudderConfig extends Loggable {
   )
 
   val nodeApiService13 = new NodeApiService13 (
-    nodeInfoService, cachedAgentRunRepository, readOnlySoftwareDAO, restExtractorService, () => configService.rudder_global_policy_mode().toBox, reportingServiceImpl
+      nodeInfoService, cachedAgentRunRepository, readOnlySoftwareDAO, restExtractorService
+    , () => configService.rudder_global_policy_mode().toBox, reportingServiceImpl, roNodeGroupRepository, roLDAPParameterRepository
   )
   val parameterApiService2 =
     new ParameterApiService2 (

@@ -463,8 +463,8 @@ object MergeNodeProperties {
                     Right(sort.asScala.toList)
                   } catch {
                     case ex: Exception =>
-                      Left(SystemError(s"Error when sorting group of node: there is cycles in parent hierarchy or in their" +
-                                       s" priority order. Please ensure that `group` criteria are always in the same order", ex))
+                      Left(SystemError(s"Error when creating a direct acyclic graph of all groups: there is cycles in parent hierarchy or in their" +
+                                       s" priority order. Please ensure that `group` criteria are always in the same order for all groups", ex))
                   }
                 }
     } yield sorted

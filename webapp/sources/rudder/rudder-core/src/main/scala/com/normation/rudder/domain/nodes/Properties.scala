@@ -746,30 +746,43 @@ object JsonPropertySerialisation {
     }
   }
 
+  implicit class JsonNodePropertyHierarchy(val prop: NodePropertyHierarchy) extends AnyVal {
+    implicit def formats = DefaultFormats
+
+    def toApiJson: JObject = {
+      prop.hierarchy match {
+        case Nil  => prop.prop.toJson
+        case list => prop.prop.toJson ~ ("hierarchy" -> JArray(list.map(_.toJson)))
+      }
+    }
+
+    def toApiJsonRenderParents = {
+      val (parents, origval) = prop.hierarchy match {
+        case Nil => (None, None)
+        case _   =>
+          (
+            Some(prop.hierarchy.reverse.map(p => s"<p>from <b>${p.displayName}</b>:<pre>${p.value.render(ConfigRenderOptions.defaults().setOriginComments(false))}</pre></p>").mkString(""))
+          , prop.hierarchy.headOption.map(v => GenericProperty.toJsonValue(v.value))
+          )
+      }
+
+      prop.prop.toJson ~ ("hierarchy" -> parents) ~ ("origval" -> origval)
+    }
+
+  }
+
   implicit class JsonNodePropertiesHierarchy(val props: List[NodePropertyHierarchy]) extends AnyVal {
     implicit def formats = DefaultFormats
 
     def toApiJson: JArray = {
       JArray(props.sortBy(_.prop.name).map { p =>
-        p.hierarchy match {
-          case Nil  => p.prop.toJson
-          case list => p.prop.toJson ~ ("hierarchy" -> JArray(list.map(_.toJson)))
-        }
+        p.toApiJson
       })
     }
 
     def toApiJsonRenderParents = {
       JArray(props.sortBy(_.prop.name).map { p =>
-        val (parents, origval) = p.hierarchy match {
-          case Nil => (None, None)
-          case _   =>
-            (
-              Some(p.hierarchy.reverse.map(p => s"<p>from <b>${p.displayName}</b>:<pre>${p.value.render(ConfigRenderOptions.defaults().setOriginComments(false))}</pre></p>").mkString(""))
-            , p.hierarchy.headOption.map(v => GenericProperty.toJsonValue(v.value))
-            )
-        }
-
-        p.prop.toJson ~ ("hierarchy" -> parents) ~ ("origval" -> origval)
+        p.toApiJsonRenderParents
       })
     }
 
