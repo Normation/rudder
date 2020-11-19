@@ -988,12 +988,6 @@ tr.parametersDescription {
   padding : 5px;
 }
 
-.reportsHeader {
-  margin: 15px 0;
-  padding: 0 10px;
-  font-size: 1.1em;
-}
-
 .field_errors, .error, .errors {
   color: #c00800;
 }
@@ -1460,9 +1454,7 @@ label span.text-fit{
   box-shadow: 0 5px 10px rgba(0,0,0,.2);
 }
 
-#filterLogs.reportsHeader{
-  margin:15px 0;
-}
+
 #filterLogs button{
   width: auto;
   outline:none;

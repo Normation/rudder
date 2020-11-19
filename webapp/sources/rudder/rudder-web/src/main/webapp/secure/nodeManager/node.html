@@ -4,25 +4,32 @@
     <title>Rudder - Node details</title>
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-tags.css"  media="screen">
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-node.css" media="screen">
+    <style>
+      .rudder-template > .one-col{
+        flex: 1;
+      }
+      .template-main{
+        flex-basis : initial !important;
+        flex: auto !important;
+      }
+    </style>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/angular/elastic.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/auditMode.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/nodeProperties.js"></script>
 </head>
-
-<div class="portlet">
-  <div class="portlet-header page-title">Nodes</div>
-  <div class="portlet-content">
-    <div data-lift="node.SearchNodes.head"></div>
-    <div class="inner-portlet">
-      <div class="inner-portlet-content">
-        <div class="node-tab-content">
-          <div id="serverDetails">
-              <div data-lift="node.NodeDetails.details"></div>
-          </div>
+<div class="rudder-template">
+    <div class="one-col">
+        <div class="main-header">
+            <div class="header-title">
+                <h1>
+                    <span>Node</span>
+                </h1>
+            </div>
         </div>
-      </div>
+        <div id="serverDetails">
+            <div data-lift="node.NodeDetails.details"></div>
+        </div>
     </div>
-  </div>
 </div>
-
+<div data-lift="node.SearchNodes.head"></div>
 </lift:surround>
