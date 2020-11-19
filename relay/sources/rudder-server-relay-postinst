@@ -113,7 +113,7 @@ if [ "${FIRST_INSTALL}" -eq 1 ]; then
       echo ""
       echo "*****************************************************************************************"
       echo "INFO: Now run on your root server:                                                             "
-      echo "INFO:   '/opt/rudder/bin/rudder-node-to-relay ${uuid}"
+      echo "INFO:   'rudder server node-to-relay ${uuid}"
       echo "INFO: Please look at the documentation for details (Section 'Relay servers')           "
       echo "*****************************************************************************************"
     fi
@@ -122,7 +122,7 @@ if [ "${FIRST_INSTALL}" -eq 1 ]; then
     echo "*****************************************************************************************"
     echo "INFO: * If you are installing a root server, configuration is automatically done         "
     echo "INFO: * If you are installing a simple relay, run:                                       "
-    echo "INFO:   '/opt/rudder/bin/rudder-node-to-relay <your uuid>'          "
+    echo "INFO:   'rudder server node-to-relay <your uuid>'          "
     echo "INFO:   on your root server to complete this node transition to a relay server.          "
     echo "INFO:   Please look at the documentation for details (Section 'Relay servers')           "
     echo "*****************************************************************************************"
