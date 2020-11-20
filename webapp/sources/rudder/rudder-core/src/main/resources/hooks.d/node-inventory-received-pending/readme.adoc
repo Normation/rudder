@@ -17,7 +17,7 @@ Hooks parameters are passed by environment variable:
 - RUDDER_NODE_POLICY_SERVER_ID: the node policy server id
 - RUDDER_NODE_OS_NAME: OS normalized name (Linux distribution, Windows with version, etc)
 - RUDDER_NODE_OS_VERSION: OS version
-- RUDDER_NODE_OS_SP: OS service pach
+- RUDDER_NODE_OS_SP: OS service patch
 - RUDDER_NODE_OS_STRING: OS long string name
 - RUDDER_NODE_IPS: space separated list of IPs of that node
 - RUDDER_AGENT_TYPE: agent type ("cfengine-community" or "dsc")
