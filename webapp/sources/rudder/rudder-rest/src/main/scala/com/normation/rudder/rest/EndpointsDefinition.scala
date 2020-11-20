@@ -267,6 +267,10 @@ object NodeApi extends ApiModuleProvider[NodeApi] {
     val description = "Accept or refuse pending nodes"
     val (action, path)  = POST / "nodes" / "pending"
   }
+
+  // WARNING: read_only user can access this endpoint
+  //    No modifications are performed here
+  //    POST over GET is required here because we can provide too many information to be passed as URL parameters
   final case object NodeDetailsTable extends NodeApi with InternalApi with ZeroParam  with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
     val description = "Getting data to build a Node table"
     val (action, path)  = POST / "nodes" / "details"

@@ -416,6 +416,9 @@ class NodeApi (
     }
   }
 
+  // WARNING : This is a READ ONLY action
+  //   No modifications will be performed
+  //   read_only user can access this endpoint
   object NodeDetailsTable extends LiftApiModule0 {
     val schema = API.NodeDetailsTable
     val restExtractor = restExtractorService

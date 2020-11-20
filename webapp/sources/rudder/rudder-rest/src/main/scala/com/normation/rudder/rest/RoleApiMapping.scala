@@ -138,13 +138,14 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
         case Directive.Edit       => DirectiveApi.UpdateDirective.x :: Nil
 
         case Group.Read           => GroupApi.ListGroups.x :: GroupApi.GroupDetails.x :: GroupApi.GetGroupTree.x ::
-                                     GroupApi.GetGroupCategoryDetails.x :: GroupApi.GroupInheritedProperties.x :: Nil
+                                     GroupApi.GetGroupCategoryDetails.x :: GroupApi.GroupInheritedProperties.x ::
+                                     NodeApi.NodeDetailsTable.x :: Nil
         case Group.Write          => GroupApi.CreateGroup.x :: GroupApi.DeleteGroup.x :: GroupApi.ReloadGroup.x ::
                                      GroupApi.DeleteGroupCategory.x :: GroupApi.CreateGroupCategory.x :: Nil
         case Group.Edit           => GroupApi.UpdateGroup.x :: GroupApi.UpdateGroupCategory.x :: Nil
 
         case Node.Read            => NodeApi.ListAcceptedNodes.x :: NodeApi.ListPendingNodes.x :: NodeApi.NodeDetails.x ::
-                                     NodeApi.NodeInheritedProperties.x ::
+                                     NodeApi.NodeInheritedProperties.x :: NodeApi.NodeDetailsTable.x ::
                                      // node read also allows to read some settings
                                      AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode") :: Nil ) ::
                                      AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode_overridable") :: Nil ) ::
