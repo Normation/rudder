@@ -59,7 +59,7 @@ test: libs
 
 
 $(DOC_EXAMPLES):
-	cargo run -- --config-file tools/rudderc-dev.conf --source $@ --dest $@ --format cf
+	cargo run -- compile -c tools/rudderc-dev.conf -i $@ -o $@ -f cf
 	rm $@.cf
 
 libs:
