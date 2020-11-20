@@ -26,10 +26,10 @@ bundle common ncf_paths
       "path[curl]"   string => "${paths.path[curl]}",
                      unless => isvariable("g.rudder_curl");
 
-      "path[augtool]" string => "/opt/rudder/bin/bin/augtool",
-                          if => fileexists("/opt/rudder/bin/bin/augtool");
+      "path[augtool]" string => "/opt/rudder/bin/augtool",
+                          if => fileexists("/opt/rudder/bin/augtool");
       "path[augtool]" string => "/usr/bin/augtool",
-                      unless => fileexists("/opt/rudder/bin/bin/augtool");
+                      unless => fileexists("/opt/rudder/bin/augtool");
 
 
       "path[id]"     string => "/usr/bin/id";
