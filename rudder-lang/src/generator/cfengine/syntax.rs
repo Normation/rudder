@@ -381,9 +381,11 @@ impl Method {
         .comment("");
 
         // Actual method call
-        let method =
+        let method = Promise::usebundle(
+            format!("{}_{}", self.resource, self.state),
             Some(&self.report_component),
-            Promise::usebundle(format!("{}_{}", self.resource, self.state), Some(&self.report_component), self.parameters);
+            self.parameters,
+        );
         let na_condition = format!(
             "canonify(\"${{class_prefix}}_{}_{}_{}\")",
             self.resource, self.state, self.report_parameter
@@ -408,6 +410,7 @@ impl Method {
                 reporting_context,
                 Promise::usebundle(
                     "log_na_rudder",
+                    Some(&self.report_component),
                     vec![
                         quoted(&format!(
                             "'{}' method is not available on classic Rudder agent, skip",

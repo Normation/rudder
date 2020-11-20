@@ -25,7 +25,7 @@ Temporary functionality. +
 Takes a _JSON_ technique and converts it into a _rudder-lang_ (_.rl_) technique. +
 *Translate* purpose is to allow a full testing cycle of the language (more on that here: <<integration-testing-loop>>).
 
-===== View of the `translate()` process
+==== View of the `translate()` process
 
 [align=center]
 image::translate.svg[translate() steps]
@@ -36,18 +36,18 @@ Default and main behavior. +
 For now *compile* purpose is to generate a _cfengine_ technique from a _rudder-lang_ technique. +
 Upcoming versions of _rudderc-lang_ will support generation of several other formats like _DSC_ or _JSON_.
 
-===== Simple view of the `compile_file()` process
+==== Simple view of the `compile_file()` process
 
 [align=center]
 image::compile.svg[compile_file() steps]
 
-===== Complete view of the `compile_file()` process
+==== Complete view of the `compile_file()` process
 
-====== Part 1 - Parsing and abstract syntax tree creation 
+===== Part 1 - Parsing and abstract syntax tree creation 
 
 image::compilation-process-1.svg[link="compilation-process-1.svg"]
 
-====== Part 2 - Generation of output format from abstract syntax tree
+===== Part 2 - Generation of output format from abstract syntax tree
 
 Example taken from the CFEngine generator
 
@@ -68,14 +68,14 @@ Contains the exhaustive list of CFEngine reserved words and namespaces that rudd
 
 == Side tools (scripts)
 
-==== generate_lib
+=== generate_lib
 
 A perl script that generates _resourcelib.rl_ calling ncf api: _rudder-lang_ generic methods library
 
 [align=center]
 image::generate-lib.svg[_rudder-lang-lib generation]
 
-==== cfjson_tester
+=== cfjson_tester
 
 A python script that can either:
 
@@ -85,7 +85,7 @@ A python script that can either:
 
 It is called by `./tools/tester.sh` in the full testing loop.
 
-===== Full testing loop: tester.sh
+==== Full testing loop: tester.sh
 
 It is the script called both from the production and dev (with a configuration file) environments.
 See <<integration-testing-loop>> for explanations.
@@ -122,7 +122,8 @@ NOTE: Once log errors become rare enough _rudder-lang_ will be released.
 [align=center]
 image::io-file-formats.svg[I/O file formats]
 
-= Contribution process
+
+NOTE: Contribution process
 
 Contribute by simply declaring a new issue here: https://issues.rudder.io/issues/
 

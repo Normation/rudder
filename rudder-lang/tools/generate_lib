@@ -79,7 +79,6 @@ def format_errors(error_list):
 
 def get_methods_filenames(parent_dir):
     filenames = []
-    filenames_add = filenames.append
     for root, dirs, files in os.walk(parent_dir):
         for dir in dirs:
             filenames = filenames + \
@@ -326,10 +325,10 @@ def get_generic_methods_metadata(filenames, dsc_filenames):
     warnings = []
 
     for file in filenames:
-        if file.endswith("variable_string_escaped.cf") or
-            file.endswith("permissions.cf") or
-            file.endswith("monitoring_parameter.cf") or
-            file.endswith("monitoring_template.cf") or
+        if file.endswith("variable_string_escaped.cf") or \
+            file.endswith("permissions.cf") or \
+            file.endswith("monitoring_parameter.cf") or \
+            file.endswith("monitoring_template.cf") or \
             file.endswith("audit_from_osquery.cf"):
             # FIXME find a way to support these
             continue
