@@ -242,7 +242,7 @@ class DirectiveEditForm(
        } &
        "#desactivateAction" #> {
          val status = directive.isEnabled ? DGModAction.Disable | DGModAction.Enable
-         SHtml.ajaxSubmit(status.name, () => onSubmitDisable(status), ("class" ,"btn btn-default"))
+         SHtml.ajaxSubmit(status.name.capitalize, () => onSubmitDisable(status), ("class" ,"btn btn-default"))
        } &
        "#clone" #> SHtml.ajaxButton(
             { Text("Clone") },
