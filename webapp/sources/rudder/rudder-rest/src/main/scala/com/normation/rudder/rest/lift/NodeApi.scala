@@ -831,7 +831,7 @@ class NodeApiService4 (
 
   import restSerializer._
 
-  def getNodeDetails(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus, version : ApiVersion) = {
+  def getNodeDetails(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus, version : ApiVersion): Box[Option[JValue]] = {
     for {
       optNodeInfo <- state match {
                     case AcceptedInventory => nodeInfoService.getNodeInfo(nodeId)
@@ -839,30 +839,35 @@ class NodeApiService4 (
                     case RemovedInventory  => nodeInfoService.getDeletedNodeInfo(nodeId)
                   }
       nodeInfo    <- optNodeInfo match {
-                       case None    => Failure(s"The node with id ${nodeId.value} was not found in ${state.name} nodes")
-                       case Some(x) => Full(x)
+                       case None    => Full(None)
+                       case Some(x) =>
+                         for {
+                           runs      <- roAgentRunsRepository.getNodesLastRun(Set(nodeId))
+                           inventory <- if(detailLevel.needFullInventory()) {
+                                          inventoryRepository.get(nodeId, state).toBox
+                                        } else {
+                                          Full(None)
+                                        }
+                           software  <- if(detailLevel.needSoftware()) {
+                                          (for {
+                                            software <- inventory match {
+                                                           case Some(i) => softwareRepository.getSoftware(i.node.softwareIds)
+                                                           case None    => softwareRepository.getSoftwareByNode(Set(nodeId), state).map( _.get(nodeId).getOrElse(Seq()))
+                                                         }
+                                          } yield {
+                                            software
+                                          }).toBox
+                                        } else {
+                                          Full(Seq())
+                                        }
+                         } yield {
+                           Some((x, runs, inventory, software))
+                         }
                      }
-      runs        <- roAgentRunsRepository.getNodesLastRun(Set(nodeId))
-      inventory <- if(detailLevel.needFullInventory()) {
-                     inventoryRepository.get(nodeId, state).toBox
-                   } else {
-                     Full(None)
-                   }
-      software  <- if(detailLevel.needSoftware()) {
-                     (for {
-                       software <- inventory match {
-                                      case Some(i) => softwareRepository.getSoftware(i.node.softwareIds)
-                                      case None    => softwareRepository.getSoftwareByNode(Set(nodeId), state).map( _.get(nodeId).getOrElse(Seq()))
-                                    }
-                     } yield {
-                       software
-                     }).toBox
-                   } else {
-                     Full(Seq())
-                   }
-    } yield {
-      val runDate = runs.get(nodeId).flatMap( _.map(_.agentRunId.date))
-      serializeInventory(nodeInfo, state, runDate, inventory, software, detailLevel, version)
+     } yield {
+      nodeInfo.map { case (node, runs, inventory, software) =>
+        val runDate = runs.get(nodeId).flatMap( _.map(_.agentRunId.date))
+        serializeInventory(node, state, runDate, inventory, software, detailLevel, version) }
     }
   }
 
@@ -881,22 +886,28 @@ class NodeApiService4 (
   def nodeDetailsGeneric(nodeId: NodeId, detailLevel: NodeDetailLevel, version : ApiVersion, req: Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "nodeDetails"
-    getNodeDetails(nodeId, detailLevel, AcceptedInventory, version) match {
-        case Full(inventory) =>
-          toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
-        case eb: EmptyBox =>
-          getNodeDetails(nodeId, detailLevel, PendingInventory, version) match {
-            case Full(inventory) =>
-              toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
-            case eb: EmptyBox =>
-              getNodeDetails(nodeId, detailLevel, RemovedInventory, version) match {
-                case Full(inventory) =>
-                  toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
-                case eb: EmptyBox =>
-                  val message = (eb ?~ (s"Could not find Node ${nodeId.value}")).msg
-                  toJsonError(Some(nodeId.value), message)
-              }
-          }
+    (for {
+      accepted  <- getNodeDetails(nodeId, detailLevel, AcceptedInventory, version)
+      orPending <- accepted match {
+                     case Some(i) => Full(Some(i))
+                     case None    => getNodeDetails(nodeId, detailLevel, PendingInventory, version)
+                   }
+      orDeleted <- orPending match {
+                     case Some(i) => Full(Some(i))
+                     case None    => getNodeDetails(nodeId, detailLevel, RemovedInventory, version)
+                   }
+    } yield {
+       orDeleted match {
+         case Some(inventory) =>
+           toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
+         case None =>
+           toJsonError(Some(nodeId.value), s"Node with ID '${nodeId.value}' was not found in Rudder")
+       }
+    }) match {
+      case Full(res)   => res
+      case eb:EmptyBox =>
+        val msg = (eb ?~! s"An error was encountered when looking for node with ID '${nodeId.value}'").messageChain
+        toJsonError(Some(nodeId.value), msg)
     }
   }
 }
