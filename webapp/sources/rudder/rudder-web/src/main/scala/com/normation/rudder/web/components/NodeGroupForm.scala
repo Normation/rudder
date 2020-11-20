@@ -239,7 +239,7 @@ class NodeGroupForm(
     & "group-name" #> groupName.readOnlyValue
     & "#groupTabMenu" #> <ul id="groupTabMenu">
                            <li><a href="#groupParametersTab">Parameters</a></li>
-                           <li><a href="#groupRulesTab">Related Rules</a></li>
+                           <li><a href="#groupRulesTab">Related rules</a></li>
                          </ul>
     & "group-rudderid" #> <div class="form-group row">
                     <label class="wbBaseFieldLabel">RUDDER ID</label>
