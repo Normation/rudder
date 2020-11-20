@@ -99,9 +99,14 @@ impl CFEngine {
                     gc.enum_list.get_item_cfengine_name(*var, *item)
                 } else {
                     // concat var name + item
-                    let prefix = &self.var_prefixes[var.fragment()];
-                    // TODO there may still be some conflicts with var or enum containing '_'
-                    format!("{}_{}_{}", prefix, e.fragment(), item.fragment())
+                    // let prefix = &self.var_prefixes[var.fragment()];
+                    // // TODO there may still be some conflicts with var or enum containing '_'
+                    // format!("{}_{}_{}", var.fragment(), e.fragment(), item.fragment())
+                    format!(
+                        r#"{}_",canonify("${{report_data.canonified_directive_id}}"),"_{}"#,
+                        var.fragment(),
+                        item.fragment()
+                    )
                 }
             }
             EnumExpressionPart::RangeCompare(_var, _e, _item1, _item2) => unimplemented!(), // TODO
@@ -130,6 +135,35 @@ impl CFEngine {
         in_class: String,
     ) -> Result<Vec<Promise>> {
         match st {
+            Statement::ConditionVariableDefinition(var) => {
+                let component = match var.metadata.get("component") {
+                    Some(TomlValue::String(s)) => s.to_owned(),
+                    _ => "any".to_string(),
+                };
+
+                // TODO setup mode and output var by calling ... bundle
+                let parameters = var
+                    .resource_params
+                    .iter()
+                    .chain(var.state_params.iter())
+                    .map(|x| self.value_to_string(x, true))
+                    .collect::<Result<Vec<String>>>()?;
+
+                let class_param = var
+                    .resource_params
+                    .get(0)
+                    .and_then(|p| self.value_to_string(&p, false).ok())
+                    .unwrap_or_else(|| "".to_string());
+
+                Ok(Method::new()
+                    .resource(var.resource.fragment().to_string())
+                    .state(var.state.fragment().to_string())
+                    .parameters(parameters)
+                    .report_parameter(class_param)
+                    .report_component(component)
+                    .condition(self.format_class(in_class)?)
+                    .build())
+            }
             Statement::StateDeclaration(sd) => {
                 if let Some(var) = sd.outcome {
                     self.new_var(&var);
@@ -149,7 +183,7 @@ impl CFEngine {
                     .map(|x| self.value_to_string(x, true))
                     .collect::<Result<Vec<String>>>()?;
 
-                let state_param = sd
+                let class_param = sd
                     .resource_params
                     .get(0)
                     .and_then(|p| self.value_to_string(&p, false).ok())
@@ -165,7 +199,7 @@ impl CFEngine {
                     .resource(sd.resource.fragment().to_string())
                     .state(sd.state.fragment().to_string())
                     .parameters(parameters)
-                    .report_parameter(state_param)
+                    .report_parameter(class_param)
                     .report_component(component)
                     .supported(is_cf_supported)
                     .condition(self.format_class(in_class)?)

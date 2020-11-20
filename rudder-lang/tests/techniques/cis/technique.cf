@@ -1,0 +1,23 @@
+# @name cis
+# @description cis created from technique editor
+# @version 1.0
+
+
+bundle agent cis
+{
+  vars:
+    "resources_dir" string => "${this.promise_dirname}/resources";
+  methods:
+    "Condition from variable existence_${report_data.directive_id}_0" usebundle => _method_reporting_context("Condition from variable existence", "skip_item_${report_data.canonified_directive_id}"),
+                                                                             if => concat("any");
+    "Condition from variable existence_${report_data.directive_id}_0" usebundle => condition_from_variable_existence("skip_item_${report_data.canonified_directive_id}", "node.properties[skip][${report_data.directive_id}]"),
+                                                                             if => concat("any");
+    "Service enabled at boot_${report_data.directive_id}_1" usebundle => _method_reporting_context("Service enabled at boot", "${service}"),
+                                                                   if => concat("any");
+    "Service enabled at boot_${report_data.directive_id}_1" usebundle => service_enabled("${service}"),
+                                                                   if => concat("any");
+    "Service started_${report_data.directive_id}_2" usebundle => _method_reporting_context("Service started", "${service}"),
+                                                           if => concat("any.(skip_item_",canonify("${report_data.canonified_directive_id}"),"_true)");
+    "Service started_${report_data.directive_id}_2" usebundle => service_started("${service}"),
+                                                           if => concat("any.(skip_item_",canonify("${report_data.canonified_directive_id}"),"_true)");
+}

@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use super::{context::*, enums::EnumList, resource::*, value::*};
+use super::{
+    context::*,
+    enums::{EnumExpression, EnumExpressionPart, EnumList},
+    resource::*,
+    value::*,
+};
 use crate::{error::*, parser::*};
 use std::{
     collections::{HashMap, HashSet},
@@ -59,6 +64,7 @@ impl<'src> IR1<'src> {
             variable_definitions,
             variable_extensions,
             variable_declarations,
+            condition_variable_definitions,
             parameter_defaults,
             parents,
             aliases: _aliases,
@@ -69,7 +75,7 @@ impl<'src> IR1<'src> {
         ir.add_enum_aliases(enum_aliases);
         ir.add_variables(variable_definitions);
         ir.add_variable_extensions(variable_extensions);
-        ir.add_magic_variables(variable_declarations);
+        ir.add_magic_variables(variable_declarations, condition_variable_definitions);
         ir.add_default_values(parameter_defaults);
         ir.add_resource_list(&resources);
         let children = ir.create_children_list(parents);
@@ -211,7 +217,11 @@ impl<'src> IR1<'src> {
     }
 
     /// Insert the variables declarations into the global context
-    fn add_magic_variables(&mut self, variables: Vec<PVariableDecl<'src>>) {
+    fn add_magic_variables(
+        &mut self,
+        variables: Vec<PVariableDecl<'src>>,
+        cond_var: Vec<PCondVariableDef<'src>>,
+    ) {
         let context = Rc::get_mut(&mut self.context)
             .expect("Context has not been allocated before magic variables !");
         for variable in variables {
@@ -228,6 +238,11 @@ impl<'src> IR1<'src> {
                     }
                 }
                 Err(e) => self.errors.push(e),
+            }
+        }
+        for variable in cond_var {
+            if let Err(e) = context.add_variable_declaration(variable.name, Type::Boolean) {
+                self.errors.push(e);
             }
         }
     }
@@ -382,7 +397,7 @@ mod tests {
         let mut source = source.clone();
         source.push_str(append);
         let res = parse_str(name, &source);
-        assert!(res.is_err(), "OK instead of Error {:?}", res);
+        assert!(res.is_err(), "OK instead of Error {:#?}", res);
     }
 
     fn parse_str<'src>(name: &'src str, source: &'src str) -> Result<IR1<'src>> {

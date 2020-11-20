@@ -152,6 +152,29 @@ impl DSC {
         })
     }
 
+    fn get_state_def<'src>(
+        gc: &'src IR2,
+        resource: &'src Token,
+        state: &'src Token,
+    ) -> Result<&'src StateDef<'src>> {
+        match gc.resources.get(&resource) {
+            Some(r) => match r.states.get(&state) {
+                Some(s) => Ok(s),
+                None => Err(Error::new(format!(
+                    "No method relies on the \"{}\" state for \"{}\"",
+                    state.fragment(),
+                    resource.fragment()
+                ))),
+            },
+            None => {
+                return Err(Error::new(format!(
+                    "No method relies on the \"{}\" resource",
+                    resource.fragment()
+                )))
+            }
+        }
+    }
+
     // TODO simplify expression and remove uselesmap_strings_results conditions for more readable cfengine
     // TODO underscore escapement
     // TODO how does cfengine use utf8
@@ -165,6 +188,41 @@ impl DSC {
         condition_content: String,
     ) -> Result<Vec<Call>> {
         match st {
+            Statement::ConditionVariableDefinition(var) => {
+                let state_decl = var.to_method();
+                let method_name = &format!("{}-{}", var.resource.fragment(), var.state.fragment());
+                let mut parameters = fetch_method_parameters(gc, &state_decl, |name, value| {
+                    Parameter::method_parameter(name, value)
+                });
+                let state_def = Self::get_state_def(gc, &var.resource, &var.state)?;
+                let class_param_index = state_def.class_parameter_index(method_name)?;
+                if parameters.len() < class_param_index {
+                    return Err(Error::new(format!(
+                        "Class param index is out of bounds for {}",
+                        method_name
+                    )));
+                }
+                // tmp -1, index of lib generator is off 1
+                let class_param = parameters.remove(class_param_index);
+                let is_dsc_supported = state_def
+                    .supported_formats(method_name)?
+                    .contains(&"dsc".to_owned());
+
+                let component = match var.metadata.get("component") {
+                    Some(TomlValue::String(s)) => s.to_owned(),
+                    _ => "any".to_string(),
+                };
+
+                Ok(Method::new()
+                    .resource(var.resource.fragment().to_string())
+                    .state(var.state.fragment().to_string())
+                    .parameters(Parameters(parameters))
+                    .class_parameter(class_param.clone())
+                    .component(component)
+                    .supported(is_dsc_supported)
+                    .condition(self.format_condition(condition_content)?) // TODO
+                    .build())
+            }
             Statement::StateDeclaration(sd) => {
                 if let Some(var) = sd.outcome {
                     self.new_var(&var);
@@ -174,7 +232,7 @@ impl DSC {
                 let mut parameters = fetch_method_parameters(gc, sd, |name, value| {
                     Parameter::method_parameter(name, value)
                 });
-                let state_def = gc.get_state_def(sd)?;
+                let state_def = Self::get_state_def(gc, &sd.resource, &sd.state)?;
                 let class_param_index = state_def.class_parameter_index(method_name)?;
                 if parameters.len() < class_param_index {
                     return Err(Error::new(format!(
