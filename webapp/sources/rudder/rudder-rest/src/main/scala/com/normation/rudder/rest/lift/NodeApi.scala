@@ -108,6 +108,7 @@ import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
+import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.servers.DeleteMode
@@ -450,7 +451,8 @@ class NodeApi (
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, property: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
-        response <- apiV13.property(req, property)
+        inheritedProperty <- req.json.flatMap(j => OptionnalJson.extractJsonBoolean(j, "inheritedValue"))
+        response <- apiV13.property(req, property, inheritedProperty.getOrElse(false))
       } yield {
         response
       }) match {
@@ -524,19 +526,20 @@ class NodeApiService13 (
    * Return a map of (NodeId -> propertyName -> inherited property) for the given list of nodes and
    * property. When a node doesn't have a property, the map will always
    */
-  def getNodesPropertiesTree(nodeInfos: Iterable[NodeInfo], properties: List[String]): IOResult[Map[NodeId, Map[String, String]]] = {
+  def getNodesPropertiesTree(nodeInfos: Iterable[NodeInfo], properties: List[String]): IOResult[Map[NodeId, List[NodeProperty] ]] = {
     for {
       groups       <- groupRepo.getFullGroupLibrary()
       nodesTargets =  nodeInfos.map(i => (i, groups.getTarget(i).map(_._2).toList))
       params       <- paramRepo.getAllGlobalParameters()
-      properties   <- ZIO.foreach(nodesTargets.toList) { case (nodeInfo, nodeTargets) =>
+      properties <-
+          ZIO.foreach(nodesTargets.toList) { case (nodeInfo, nodeTargets) =>
                         MergeNodeProperties.forNode(nodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap).toIO.fold(
                           err =>
-                            (nodeInfo.id, nodeInfo.properties.collect { case p if (properties.contains(p.name)) => (p.name, p.toData) }.toMap)
+                            (nodeInfo.id, nodeInfo.properties.collect { case p if properties.flatMap(_.split("\\.").headOption).contains(p.name) =>  p })
                         , props =>
                             // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs
                             // adaptation in datatable display
-                            (nodeInfo.id, props.collect { case p if(properties.contains(p.prop.name)) => (p.prop.name, GenericProperty.serializeToJson(p.prop.value))}.toMap)
+                            (nodeInfo.id, props.collect { case p if properties.flatMap(_.split("\\.").headOption).contains(p.prop.name) => p.prop })
                         )
                       }
     } yield {
@@ -548,7 +551,7 @@ class NodeApiService13 (
       agentRunWithNodeConfig: Option[AgentRunWithNodeConfig]
     , globalPolicyMode      : GlobalPolicyMode
     , nodeInfo              : NodeInfo
-    , properties            : Map[NodeId, Map[String, String]]
+    , properties            : List[ NodeProperty]
     , softs                 : List[Software]
     , compliance            : Option[NodeStatusReport]
     , sysCompliance         : Option[NodeStatusReport]
@@ -598,15 +601,25 @@ class NodeApiService13 (
       ~  ("ipAddresses" -> nodeInfo.ips.filter(ip => ip != "127.0.0.1" && ip != "0:0:0:0:0:0:0:1"))
       ~  ("lastRun" -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
       ~  ("lastInventory" ->  DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))
-      ~  ("software" -> JObject(softs.toList.map(s => JField(s.name.getOrElse(""), JString(s.version.map(_.value).getOrElse("N/A"))))))
-      ~  ("property" -> properties.getOrElse(nodeInfo.id, Map()))
+      ~  ("software" -> JObject(softs.map(s => JField(s.name.getOrElse(""), JString(s.version.map(_.value).getOrElse("N/A"))))))
+      ~  ("property" -> JObject(properties.map(s => JField(s.name, GenericProperty.toJsonValue(s.value)))))
       )
   }
 
   def listNodes(req: Req) = {
     import com.normation.box._
-
     val n1 = System.currentTimeMillis
+
+    case class PropertyInfo ( value : String, inherited : Boolean )
+
+    def extractNodePropertyInfo(json: JValue) = {
+      for {
+        value <- CompleteJson.extractJsonString(json, "value")
+        inherited <- CompleteJson.extractJsonBoolean(json, "inherited")
+      } yield {
+        PropertyInfo(value,inherited)
+      }
+    }
 
     for {
       optNodeIds      <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "nodeIds",( values => Full(values.map(NodeId(_))))))
@@ -636,12 +649,26 @@ class NodeApiService13 (
       n6              =  System.currentTimeMillis
       _               =  TimingDebugLoggerPure.logEffect.trace(s"all data fetched for response: ${n6 - n5}ms")
 
-      properties     <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "properties").map(_.getOrElse(Nil)))
-      mapProps       <- getNodesPropertiesTree(nodes.values, properties).toBox
-    } yield {
+      properties     <- req.json.flatMap(j => OptionnalJson.extractJsonArray(j, "properties")(json => extractNodePropertyInfo(json)  )).map(_.getOrElse(Nil))
 
+      mapProps       <- properties.partition(_.inherited) match {
+        case (inheritedProp, nonInheritedProp) =>
+          val propMap = nodes.values.groupMapReduce(_.id)(n =>  n.properties.filter(p => nonInheritedProp.exists(_.value.split("\\.").headOption.map(_ == p.name).getOrElse(false))))(_ ::: _)
+          if (inheritedProp.isEmpty) {
+            Full(propMap)
+          } else {
+            for {
+              inheritedProp <- getNodesPropertiesTree(nodes.values, inheritedProp.map(_.value)).toBox
+            } yield {
+              inheritedProp.foldLeft(propMap){
+                case (acc, (id, props)) => acc.updated(id, acc.getOrElse(id, Nil) ::: props)
+              }
+            }
+          }
+      }
+    } yield {
       val res = JArray(nodes.values.toList.map(n =>
-        serialize(runs.get(n.id).flatten,globalMode,n, mapProps, softs.get(n.id).getOrElse(Nil), userCompliances.get(n.id), systemCompliances.get(n.id))
+        serialize(runs.get(n.id).flatten,globalMode,n, mapProps.get(n.id).getOrElse(Nil), softs.get(n.id).getOrElse(Nil), userCompliances.get(n.id), systemCompliances.get(n.id))
       ))
 
       val n7 = System.currentTimeMillis
@@ -668,16 +695,27 @@ class NodeApiService13 (
     }
   }
 
-  def property(req : Req, property : String) = {
+  def property(req : Req, property : String, inheritedValue : Boolean) = {
     for {
       optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
       nodes      <- optNodeIds match {
                       case None => nodeInfoService.getAll()
                       case Some(nodeIds) => com.normation.utils.Control.sequence(nodeIds)(nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
                     }
-      mapProps   <- getNodesPropertiesTree(nodes.values, List(property)).toBox
+      propMap = nodes.values.groupMapReduce(_.id)(n =>  n.properties.filter(_.name == property))(_ ::: _)
+
+      mapProps   <-
+            if (inheritedValue) {
+              Full(propMap)
+            } else {
+              for {
+                inheritedProp <- getNodesPropertiesTree(nodes.values, List(property)).toBox
+              } yield {
+                propMap ++ inheritedProp
+              }
+            }
     } yield {
-      JsonResponse(JObject(mapProps.flatMap { case (id, props) => props.get(property).map(p => JField(id.value, p)) }.toList))
+      JsonResponse(JObject(nodes.keySet.toList.flatMap(id => mapProps.get(id).toList.flatMap(_.map(p => JField(id.value, GenericProperty.toJsonValue(p.value)))))))
     }
   }
 }
