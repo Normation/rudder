@@ -1072,6 +1072,18 @@ function createRuleComponentValueTable (contextPath) {
  *   }
  */
 
+function displayProperty(property) {
+ console.log(typeof property)
+ console.log(property)
+ console.log(JSON.stringify(property, undefined, 2))
+ if (typeof property === "object" ) {
+   console.log(property)
+   return JSON.stringify(property, undefined, 2)
+ } else {
+   return property
+ }
+
+}
 var allColumns = {
     "Node ID" :
     { "data": "id"

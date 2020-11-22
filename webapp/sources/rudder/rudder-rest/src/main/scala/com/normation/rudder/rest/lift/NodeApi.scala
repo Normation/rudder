@@ -535,11 +535,11 @@ class NodeApiService13 (
           ZIO.foreach(nodesTargets.toList) { case (nodeInfo, nodeTargets) =>
                         MergeNodeProperties.forNode(nodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap).toIO.fold(
                           err =>
-                            (nodeInfo.id, nodeInfo.properties.collect { case p if properties.flatMap(_.split("\\.").headOption).contains(p.name) =>  p })
+                            (nodeInfo.id, nodeInfo.properties.collect { case p if properties.contains(p.name) =>  p })
                         , props =>
                             // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs
                             // adaptation in datatable display
-                            (nodeInfo.id, props.collect { case p if properties.flatMap(_.split("\\.").headOption).contains(p.prop.name) => p.prop })
+                            (nodeInfo.id, props.collect { case p if properties.contains(p.prop.name) => p.prop })
                         )
                       }
     } yield {
@@ -653,7 +653,7 @@ class NodeApiService13 (
 
       mapProps       <- properties.partition(_.inherited) match {
         case (inheritedProp, nonInheritedProp) =>
-          val propMap = nodes.values.groupMapReduce(_.id)(n =>  n.properties.filter(p => nonInheritedProp.exists(_.value.split("\\.").headOption.map(_ == p.name).getOrElse(false))))(_ ::: _)
+          val propMap = nodes.values.groupMapReduce(_.id)(n =>  n.properties.filter(p => nonInheritedProp.exists(_.value == p.name)))(_ ::: _)
           if (inheritedProp.isEmpty) {
             Full(propMap)
           } else {
