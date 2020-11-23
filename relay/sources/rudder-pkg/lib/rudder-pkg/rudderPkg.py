@@ -351,9 +351,17 @@ def upgrade_all(mode):
         pkgs = plugin.Plugin(p)
         pkgs.getAvailablePackages()
         if mode == "nightly":
-            latestVersion = pkgs.getLatestCompatibleNightly().version
+            latest_packages = pkgs.getLatestCompatibleNightly()
+            if (latest_packages is None):
+                print("No newer %s compatible versions found for the plugin %s"%(mode, p))
+            else:
+                latestVersion = latest_packages.version
         else:
-            latestVersion = pkgs.getLatestCompatibleRelease().version
+            latest_packages = pkgs.getLatestCompatibleRelease()
+            if (latest_packages is None):
+                print("No newer %s compatible versions found for the plugin %s"%(mode, p))
+            else:
+                latestVersion = latest_packages.version
         if currentVersion < latestVersion:
             print("The plugin %s is installed in version %s. The version %s %s is available, the plugin will be upgraded."%(p, currentVersion.pluginLongVersion, mode, latestVersion.pluginLongVersion))
             package_install_latest([p], mode)
