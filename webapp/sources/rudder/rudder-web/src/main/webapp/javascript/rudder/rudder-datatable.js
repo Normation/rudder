@@ -1102,7 +1102,7 @@ var allColumns = {
              }
     }
   , "Property" :
-    function(value) {
+    function(value, inherited) {
       return { "data": "property."+value
              , "title": "Property '"+value+"'"
              , "defaultContent" : "<span class='text-muted'>N/A</span>"
@@ -1118,6 +1118,7 @@ var allColumns = {
 
 
                }
+             , "inherited" : inherited
              }
     }
   , "Policy mode" :
@@ -1283,7 +1284,7 @@ function createNodeTable(gridId, refresh) {
         var data = d
         var softwareList= columns.filter(function(c) { return c.data.startsWith("software")}).map(function(c) {return c.data.split(/\.(.+)/)[1]})
 
-        var properties = columns.filter(function(c) { return c.data.startsWith("property")}).map(function(c) {return c.data.split(/\.(.+)/)[1]})
+        var properties = columns.filter(function(c) { return c.data.startsWith("property")}).map(function(c) {return { "value" : c.data.split(".").slice(1).join('.'), "inherited" : c.inherited } })
         data = $.extend({}, d, {"software": softwareList, "properties": properties})
         if (nodeIds !== undefined) { data = $.extend({}, d, {"nodeIds": nodeIds, "software": softwareList, "properties" : properties} ) }
         return JSON.stringify(data)
@@ -1316,13 +1317,13 @@ function createNodeTable(gridId, refresh) {
     columnSelect(true);
   }
 
-  function addColumn(columnName, value) {
+  function addColumn(columnName, value, checked) {
     var table = $('#'+gridId).DataTable();
     var data2 = table.rows().data();
     table.destroy();
     $('#'+gridId).empty();
     if (columnName =="Property" || columnName =="Software" ) {
-      columns.push(allColumns[columnName](value))
+      columns.push(allColumns[columnName](value, checked))
       localStorage.setItem(cacheId, JSON.stringify(columns))
       params["ajax"] = {
           "url" : contextPath + "/secure/api/nodes/details/"+columnName.toLowerCase()+"/"+value
@@ -1383,7 +1384,7 @@ function createNodeTable(gridId, refresh) {
       value = dynColumns[key]
       select += "<option value='"+value+"'>"+value+"</option>"
     }
-    select += "</select></div><div class='col-xs-2' style='margin-left : -15px'><input class='form-control' type='text'></div> <button id='add-column' class='btn btn-success'  ><i class='fa fa-plus-circle'/> Add column</button>  <button id='reset-columns' class='btn btn-blue'  ><i class='fa fa-rotate-left' /> Reset columns</button></div>"
+    select += "</select></div><div class='col-xs-2' style='margin-left : -15px'><input class='form-control' id='colValue' type='text'></div> <div class='col-xs-2' style='margin-left : -15px'><label><input id='colCheckbox' type='checkbox'> Show inherited properties</label></div> <button id='add-column' class='btn btn-success'  ><i class='fa fa-plus-circle'/> Add column</button>  <button id='reset-columns' class='btn btn-blue'  ><i class='fa fa-rotate-left' /> Reset columns</button></div>"
     editOpen ? $("#select-columns").show() : $("#select-columns").hide()
     $("#select-columns").html(select)
     var selectedColumns =""
@@ -1396,17 +1397,21 @@ function createNodeTable(gridId, refresh) {
     }
     if (dynColumns[0] != "Property" && dynColumns[0] !="Software" ) {
       $("#select-columns input").parent().hide()
+      $("#colCheckbox").parent().parent().hide()
     }
     $("#select-columns select").change(function(e) {
       if (this.value =="Property" || this.value =="Software" ) {
         $("#select-columns input").parent().show()
         $("#select-columns input").attr('placeholder', this.value + " name" )
+        if (this.value == "Property" ) {
+          $("#colCheckbox").parent().parent().show()
+        }
       } else {
         $("#select-columns input").parent().hide()
       }
     })
     $("#select-columns div button#add-column").click(function(e) {
-      addColumn($("#select-columns select").val(), $("#select-columns input").val())
+      addColumn($("#select-columns select").val(), $("#select-columns input#colValue").val(), $("#colCheckbox").prop("checked"))
     })
     $("#select-columns div button#reset-columns").click(function(e) {
       resetColumns()
