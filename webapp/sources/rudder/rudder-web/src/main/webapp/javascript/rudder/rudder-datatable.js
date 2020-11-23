@@ -1072,6 +1072,18 @@ function createRuleComponentValueTable (contextPath) {
  *   }
  */
 
+
+function propertyFunction(value) { return function (nTd, sData, oData, iRow, iCol) {
+  $(nTd).empty();
+  var property = oData.property[value]
+  var text = property
+  if (typeof property === "object") {
+    text = JSON.stringify(property, undefined, 2)
+  }
+  $(nTd).prepend("<pre onclick='$(this).toggleClass(\"toggle\")' class='json-beautify show-more'>"+text+"</pre>")
+}
+}
+
 var allColumns = {
     "Node ID" :
     { "data": "id"
@@ -1099,26 +1111,20 @@ var allColumns = {
       return { "data": "software."+value
              , "title": value + " version"
              , "defaultContent" : "<span class='text-muted'>N/A</span>"
+             , "value" : value
              }
     }
   , "Property" :
     function(value, inherited) {
+      var title = "Property '"+value+"'"
+      if (inherited) title= title +" <i title='Values may be inherited from group/global properties' class='fa fa-question-circle'></i>"
+      console.log(title)
       return { "data": "property."+value
-             , "title": "Property '"+value+"'"
+             , "title": title
              , "defaultContent" : "<span class='text-muted'>N/A</span>"
-             , "createdCell" :
-               function (nTd, sData, oData, iRow, iCol) {
-                 $(nTd).empty();
-                 var property = oData.property[value]
-                 var text = property
-                 if (typeof property === "object") {
-                   text = JSON.stringify(property, undefined, 2)
-                 }
-                 $(nTd).prepend("<pre onclick='$(this).toggleClass(\"toggle\")' class='json-beautify show-more'>"+text+"</pre>")
-
-
-               }
+             , "createdCell" : propertyFunction(value)
              , "inherited" : inherited
+             , "value" : value
              }
     }
   , "Policy mode" :
@@ -1250,10 +1256,18 @@ function createNodeTable(gridId, refresh) {
   if (cacheColumns !== null) {
     // Filter columns that are null, and columns that have a title that is  not a key in of AllColumns, or if data does not start by software or property
     var cache = JSON.parse(cacheColumns).filter(function(c) { return c !== null && (allColumnsKeys.includes(c.title) || c.data.startsWith("software") || c.data.startsWith("property") )  })
-    // function (createdCell) from some columns are not serialized, we need to get their definition from the all columns object
-    // Hopefully, software and properties don't need it yet, so we can only check on title, the else part concern soft and prop, we can keep the column from cache for now
-    columns = cache.map(function(c) { if (allColumnsKeys.includes(c.title)) { return allColumns[c.title]} else return c});
-  }
+    columns = cache.map(function(c) {
+      if (c.data.startsWith("property")) {
+        return allColumns.Property(c.value,c.inherited);
+      } else { if (c.data.startsWith("software")) {
+        return allColumns.Software(c.value);
+      } else {
+        return allColumns[c.title];
+      } }
+
+    });
+
+   }
 
   if (columns === null || columns === undefined || columns.length === 0 ) {
     columns = defaultColumns
