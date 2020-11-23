@@ -1617,7 +1617,7 @@ object RudderConfig extends Loggable {
     , gitModificationRepository
     , Buffer()
     , RUDDER_CHARSET.name
-    , "category.xml"
+    , "activeTechniqueSettings.xml"
     , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitDirectiveArchiver: GitDirectiveArchiver = new GitDirectiveArchiverImpl(
