@@ -169,6 +169,31 @@ final object AclPath {
     }
   }
 
+
+  /**
+   * A compare method on path that sort them from "most specific" to "most genereric"
+   * so that!
+   * - Segment < Wildcard < DoubleWildcard
+   */
+  implicit val orderingaAclPath = new Ordering[AclPath] {
+    // compare: negative if x < y
+    override def compare(x: AclPath, y: AclPath): Int = {
+      import AclPathSegment._
+      if(x.parts.size == y.parts.size) {
+        (x.parts.last, y.parts.last) match {
+          case (p1, p2) if( p1 == p2 )  => 0
+          case (_, DoubleWildcard)      => -1 // "**" last
+          case (DoubleWildcard, _)      => 1  // "**" last
+          case (_, Wildcard)            => -1
+          case (Wildcard, _)            => 1
+          case (Segment(a), Segment(b)) => String.CASE_INSENSITIVE_ORDER.compare(a, b)
+        }
+      } else y.parts.size - x.parts.size // longest (ie most specific) first
+    }
+  }
+
+
+
 }
 
 /*
