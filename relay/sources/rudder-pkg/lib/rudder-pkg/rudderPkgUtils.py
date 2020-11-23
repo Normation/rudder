@@ -6,29 +6,18 @@ from pkg_resources import parse_version
 import fcntl, termios, struct, traceback
 
 try:
-    from subprocess import Popen, PIPE, DEVNULL
+  from subprocess import Popen, PIPE, DEVNULL
 except:
-    from subprocess import Popen, PIPE
-    DEVNULL = open(os.devnull, 'wb')
+  from subprocess import Popen, PIPE
+  DEVNULL = open(os.devnull, 'wb')
 try:
-    import ConfigParser as configparser
+  import ConfigParser as configparser
 except Exception:
-    import configparser
+  import configparser
 
 logger = logging.getLogger("rudder-pkg")
 
 # See global variables at the end of the file
-""" Get Terminal width """
-def terminal_size():
-   try:
-       if sys.stdout.isatty():
-           h, w, hp, wp = struct.unpack('HHHH',
-               fcntl.ioctl(0, termios.TIOCGWINSZ,
-                   struct.pack('HHHH', 0, 0, 0, 0)))
-       return h, w
-   except:
-       pass
-   return 25, 80
 
 """
 
@@ -176,37 +165,28 @@ def check_url():
            repoUrl = http://download.rudder.io/plugins
         => fileDst = /tmp/rpkg/./5.0/windows/release/SHA512SUMS
 """
-def download(completeUrl, dst="", quiet=False):
+def download(completeUrl, dst=""):
     if dst == "":
-        fileDst = FOLDER_PATH + "/" + completeUrl.replace(URL + "/", '')
+      fileDst = FOLDER_PATH + "/" + completeUrl.replace(URL + "/", '')
     else:
-        fileDst = dst
+      fileDst = dst
     fileDir = os.path.dirname(fileDst)
     createPath(fileDir)
     try:
       r = getRequest(completeUrl, True)
-      columns = terminal_size()[1]
       with open(fileDst, 'wb') as f:
-         bar_length = int(r.headers.get('content-length'))
-         if r.status_code == 200:
-             if bar_length is None: # no content length header
-                 f.write(r.content)
-             else:
-                 dl = 0
-                 bar_length = int(bar_length)
-                 for data in r.iter_content(chunk_size=4096):
-                     dl += len(data)
-                     f.write(data)
-                     if not quiet:
-                       done = int(50 * dl / bar_length)
-                       sys.stdout.write("\r%s%s[%s%s]"%(completeUrl, ' ' * (columns - len(completeUrl) - 53), '=' * done, ' ' * (50-done)))
-                       sys.stdout.flush()
-                 if not quiet:
-                   sys.stdout.write("\n")
-         elif r.status_code == 401:
-             fail("Received a HTTP 401 Unauthorized error when trying to get %s. Please check your credentials in %s"%(completeUrl, CONFIG_PATH))
-         elif r.status_code > 400:
-             fail("Received a HTTP %s error when trying to get %s"%(r.status_code, completeUrl))
+        bar_length = int(r.headers.get('content-length'))
+        if r.status_code == 200:
+          if bar_length is None: # no content length header
+            f.write(r.content)
+          else:
+            bar_length = int(bar_length)
+            for data in r.iter_content(chunk_size=4096):
+              f.write(data)
+        elif r.status_code == 401:
+          fail("Received a HTTP 401 Unauthorized error when trying to get %s. Please check your credentials in %s"%(completeUrl, CONFIG_PATH))
+        elif r.status_code > 400:
+          fail("Received a HTTP %s error when trying to get %s"%(r.status_code, completeUrl))
       return fileDst
     except Exception as e:
       fail("An error happened while downloading from %s:\n%s"%(completeUrl, e))
@@ -237,14 +217,14 @@ def verifyHash(targetPath, shaSumPath):
     pattern = re.compile(r'(?P<hash>[a-zA-Z0-9]+)[\s]+%s'%(leaf))
     logger.info("verifying file hash")
     for line in lines:
-        match = pattern.search(line)
-        if match:
-            fileHash.append(match.group('hash'))
+      match = pattern.search(line)
+      if match:
+        fileHash.append(match.group('hash'))
     if len(fileHash) != 1:
-        logger.warning('Multiple hash found matching the package, this should not happend')
+      logger.warning('Multiple hash found matching the package, this should not happend')
     if sha512(targetPath) in fileHash:
-        logger.info("=> OK!\n")
-        return True
+      logger.info("=> OK!\n")
+      return True
     fail("hash could not be verified")
 
 
@@ -258,17 +238,17 @@ def verifyHash(targetPath, shaSumPath):
    If the verification or the download fails, it will exit with an error, otherwise, return the path
    of the local rpkg path verified and downloaded.
 """
-def download_and_verify(completeUrl, dst="", quiet=False):
+def download_and_verify(completeUrl, dst=""):
     global GPG_HOME
     # donwload the target file
     logger.info("downloading rpkg file  %s"%(completeUrl))
-    targetPath = download(completeUrl, dst, quiet)
+    targetPath = download(completeUrl, dst)
     # download the attached SHASUM and SHASUM.asc
     (baseUrl, leaf) = os.path.split(completeUrl)
     logger.info("downloading shasum file  %s"%(baseUrl + "/SHA512SUMS"))
-    shaSumPath = download(baseUrl + "/SHA512SUMS", dst, quiet)
+    shaSumPath = download(baseUrl + "/SHA512SUMS", dst)
     logger.info("downloading shasum sign file  %s"%(baseUrl + "/SHA512SUMS.asc"))
-    signPath = download(baseUrl + "/SHA512SUMS.asc", dst, quiet)
+    signPath = download(baseUrl + "/SHA512SUMS.asc", dst)
     # verify authenticity
     gpgCommand = "/usr/bin/gpg --homedir " + GPG_HOME + " --verify " + signPath + " " + shaSumPath
     logger.debug("Executing %s"%(gpgCommand))
@@ -281,8 +261,8 @@ def download_and_verify(completeUrl, dst="", quiet=False):
     fail("Hash verification of %s failed"%(targetPath))
 
 """Download the .rpkg file matching the given rpkg Object and verify its authenticity"""
-def downloadByRpkg(rpkg, quiet=False):
-    return download_and_verify(URL + "/" + rpkg.path, quiet=quiet)
+def downloadByRpkg(rpkg):
+    return download_and_verify(URL + "/" + rpkg.path)
 
 def package_check(metadata):
   if 'type' not in metadata or metadata['type'] != 'plugin':
