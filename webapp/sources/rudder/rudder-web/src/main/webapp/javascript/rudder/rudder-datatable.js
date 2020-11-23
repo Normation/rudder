@@ -1106,6 +1106,18 @@ var allColumns = {
       return { "data": "property."+value
              , "title": "Property '"+value+"'"
              , "defaultContent" : "<span class='text-muted'>N/A</span>"
+             , "createdCell" :
+               function (nTd, sData, oData, iRow, iCol) {
+                 $(nTd).empty();
+                 var property = oData.property[value]
+                 var text = property
+                 if (typeof property === "object") {
+                   text = JSON.stringify(property, undefined, 2)
+                 }
+                 $(nTd).prepend("<pre onclick='$(this).toggleClass(\"toggle\")' class='json-beautify show-more'>"+text+"</pre>")
+
+
+               }
              }
     }
   , "Policy mode" :
