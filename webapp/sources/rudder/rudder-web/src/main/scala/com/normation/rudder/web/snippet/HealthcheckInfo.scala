@@ -109,7 +109,7 @@ class HealthcheckInfo(
             "<li class='notif-msg-hc'><span>" + c.msg + circle + "</span></li>"
           }
           h match {
-            case Critical(_,_,_) => Some(("critical", "There is an anomaly that required your attention", transformed))
+            case Critical(_,_,_) => Some(("critical", "There is an anomaly that requires your attention", transformed))
             case Warning(_,_,_)  => Some(("warning", "Something may cause an anomaly", transformed))
             case _           => None
           }
@@ -133,7 +133,7 @@ class HealthcheckInfo(
       checks <- RudderConfig.healthcheckNotificationService.healthcheckCache.get
     } yield {
       getLevel(checks) match {
-        case NotificationLevel.Critical => displayPluginIcon("critical", "There is an anomaly that required your attention")
+        case NotificationLevel.Critical => displayPluginIcon("critical", "There is an anomaly that requires your attention")
         case NotificationLevel.Warning  => displayPluginIcon("warning", "Something may cause an anomaly")
         case NotificationLevel.Info     => NodeSeq.Empty
       }
