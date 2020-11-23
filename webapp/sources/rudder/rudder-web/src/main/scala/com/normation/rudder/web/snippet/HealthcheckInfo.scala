@@ -106,7 +106,7 @@ class HealthcheckInfo(
           // sorted only contains Warning and Critical
           val transformed = sorted.map { c =>
             val circle = "<div class='circle-notif " + c.getClass.getSimpleName.toLowerCase + "-light-notif'></span>"
-            "<li class='notif-msg-hc'><span>" + c.msg + circle + "</span></li>"
+            "<li class='notif-msg-hc'><span>" + c.msg.replaceAll("(\r\n|\n)", "<br />") + circle + "</span></li>"
           }
           h match {
             case Critical(_,_,_) => Some(("critical", "There is an anomaly that requires your attention", transformed))
