@@ -53,7 +53,7 @@ MODE=$(curl -k -X GET -H "X-API-TOKEN: $(cat /var/rudder/run/api-token)" -H "Con
 #
 if [ "${MODE}" == "auto-accept" ]; then
   # accept node
-  curl -f -k -X POSTT -H "X-API-TOKEN: $(cat /var/rudder/run/api-token)" \
+  curl -f -k -X POST -H "X-API-TOKEN: $(cat /var/rudder/run/api-token)" \
     "https://localhost/rudder/api/latest/nodes/pending/${RUDDER_NODE_ID}" -d 'status=accepted'
 
   if [ "$?" -eq 0 ]; then
