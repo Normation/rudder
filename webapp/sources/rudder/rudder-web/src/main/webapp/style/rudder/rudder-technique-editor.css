@@ -940,6 +940,9 @@ button.btn.clipboard:hover {
   flex-direction: row;
   height: 100%;
 }
+#methods-list-container{
+  position: relative;
+}
 .generic-methods-container > ul,
 .generic-methods-container > div{
   height: 100%;
