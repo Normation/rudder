@@ -110,7 +110,7 @@ html,body{
   font-size: 20px;
   border-top-right-radius:5px;
   border-bottom-right-radius:5px;
-  height: 36px;
+  height: initial;
 }
 #login-page #formbox .form-control:focus{
 	color: #222D32;
