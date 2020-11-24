@@ -59,6 +59,7 @@ import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.inventory.domain.AgentType
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.AuthorizationType
 
 /**
  *
@@ -112,6 +113,8 @@ final case object NoAgent extends AgentCompat {
 object DisplayDirectiveTree extends Loggable {
 
   private[this] val linkUtil            = RudderConfig.linkUtil
+  private[this] val userService         = RudderConfig.userService
+
 
   /**
    * Display the directive tree, optionaly filtering out
@@ -187,7 +190,7 @@ object DisplayDirectiveTree extends Loggable {
 
    /////////////////////////////////////////////////////////////////////////////////////////////
     def displayActiveTechnique(
-        activeTechnique: FullActiveTechnique
+        activeTechnique : FullActiveTechnique
       , onClickTechnique: Option[FullActiveTechnique => JsCmd]
       , onClickDirective: Option[FullActiveTechnique => Directive => JsCmd]
     ) : JsTreeNode = new JsTreeNode {
@@ -226,9 +229,11 @@ object DisplayDirectiveTree extends Loggable {
             val btnCreateDirective = createDirective match {
               case Some(newDirective) =>
                 import net.liftweb.http.js.JsExp._
-                <span class="btn btn-success btn-xs create" style="opacity: 0;" onclick={
+                if(userService.getCurrentUser.checkRights(AuthorizationType.Directive.Write)) {
+                  <span class="btn btn-success btn-xs create" style="opacity: 0;" onclick={
                   s"""event.preventDefault();event.stopPropagation();${SHtml.ajaxCall("", _ => newDirective(technique, activeTechnique))}"""
-                } title="Create Directive with latest version">Create <i class="fa fa-plus"></i></span>
+                  } title="Create Directive with latest version">Create <i class="fa fa-plus"></i></span>
+                } else NodeSeq.Empty
               case None => NodeSeq.Empty
             }
             val tooltipContent =
