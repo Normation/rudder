@@ -48,8 +48,20 @@
 <lift:ignore>This part is the detail of a node</lift:ignore>
 <detail-server>
   <style>
+  #serverDetails{
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
   .query-search-message, #querySearchSection, #query-search-content, #querySearchInfo{
     display:none !important;
+  }
+  .rudder-template .one-col .template-main .main-details{
+    padding-bottom: 0;
+  }
+  #logsDetails{
+    margin-bottom: 50px;
   }
   </style>
   <div id="node_tabs" class="tabs">
