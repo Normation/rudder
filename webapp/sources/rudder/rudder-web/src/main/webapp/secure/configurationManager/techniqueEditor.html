@@ -171,13 +171,15 @@
       <div class="sidebar-header">
         <div class="header-title">
           <h1>Techniques</h1>
-          <div class="header-buttons">
-            <label class="btn btn-sm btn-primary" for="btn-import">
-              Import <i class="fa fa-upload"></i>
-              <input id="btn-import" type="file" onchange="angular.element(this).scope().onImportFileChange(this)" class="hidden">
-            </label>
-            <button class="btn btn-sm btn-success" ng-click="newTechnique();$event.stopPropagation();">Create <i class="fa fa-plus-circle"></i></button>
-          </div>
+          <lift:authz role="technique_write">
+            <div class="header-buttons">
+              <label class="btn btn-sm btn-primary" for="btn-import">
+                Import <i class="fa fa-upload"></i>
+                <input id="btn-import" type="file" onchange="angular.element(this).scope().onImportFileChange(this)" class="hidden">
+              </label>
+              <button class="btn btn-sm btn-success" ng-click="newTechnique();$event.stopPropagation();">Create <i class="fa fa-plus-circle"></i></button>
+            </div>
+          </lift:authz>
         </div>
 
         <div class="header-filter">
