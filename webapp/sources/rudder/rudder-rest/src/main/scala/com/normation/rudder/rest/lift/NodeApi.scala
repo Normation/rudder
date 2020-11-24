@@ -98,8 +98,8 @@ import com.normation.errors._
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
-import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.nodes.NodePropertyHierarchy
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
@@ -454,7 +454,7 @@ class NodeApi (
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, property: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
-        inheritedProperty <- req.json.flatMap(j => OptionnalJson.extractJsonBoolean(j, "inheritedValue"))
+        inheritedProperty <- req.json.flatMap(j => OptionnalJson.extractJsonBoolean(j, "inherited"))
         response <- apiV13.property(req, property, inheritedProperty.getOrElse(false))
       } yield {
         response
@@ -529,7 +529,7 @@ class NodeApiService13 (
    * Return a map of (NodeId -> propertyName -> inherited property) for the given list of nodes and
    * property. When a node doesn't have a property, the map will always
    */
-  def getNodesPropertiesTree(nodeInfos: Iterable[NodeInfo], properties: List[String]): IOResult[Map[NodeId, List[NodeProperty] ]] = {
+  def getNodesPropertiesTree(nodeInfos: Iterable[NodeInfo], properties: List[String]): IOResult[Map[NodeId, List[NodePropertyHierarchy] ]] = {
     for {
       groups       <- groupRepo.getFullGroupLibrary()
       nodesTargets =  nodeInfos.map(i => (i, groups.getTarget(i).map(_._2).toList))
@@ -538,11 +538,11 @@ class NodeApiService13 (
           ZIO.foreach(nodesTargets.toList) { case (nodeInfo, nodeTargets) =>
                         MergeNodeProperties.forNode(nodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap).toIO.fold(
                           err =>
-                            (nodeInfo.id, nodeInfo.properties.collect { case p if properties.contains(p.name) =>  p })
+                            (nodeInfo.id, nodeInfo.properties.collect { case p if properties.contains(p.name) =>  NodePropertyHierarchy(p, Nil) })
                         , props =>
                             // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs
                             // adaptation in datatable display
-                            (nodeInfo.id, props.collect { case p if properties.contains(p.prop.name) => p.prop })
+                            (nodeInfo.id, props.collect { case p if properties.contains(p.prop.name) => p })
                         )
                       }
     } yield {
@@ -554,7 +554,8 @@ class NodeApiService13 (
       agentRunWithNodeConfig: Option[AgentRunWithNodeConfig]
     , globalPolicyMode      : GlobalPolicyMode
     , nodeInfo              : NodeInfo
-    , properties            : List[ NodeProperty]
+    , properties            : List[NodeProperty]
+    , inheritedProperties   : List[NodePropertyHierarchy]
     , softs                 : List[Software]
     , compliance            : Option[NodeStatusReport]
     , sysCompliance         : Option[NodeStatusReport]
@@ -588,6 +589,8 @@ class NodeApiService13 (
         case (Unoverridable,_) =>
           (globalPolicyMode.mode, "none")
       }
+
+    import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
     (  ("name" -> nodeInfo.hostname)
       ~  ("policyServerId" -> nodeInfo.policyServerId.value)
       ~  ("policyMode" -> policyMode.name)
@@ -605,7 +608,8 @@ class NodeApiService13 (
       ~  ("lastRun" -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
       ~  ("lastInventory" ->  DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))
       ~  ("software" -> JObject(softs.map(s => JField(s.name.getOrElse(""), JString(s.version.map(_.value).getOrElse("N/A"))))))
-      ~  ("property" -> JObject(properties.map(s => JField(s.name, GenericProperty.toJsonValue(s.value)))))
+      ~  ("properties" -> JObject(properties.map(s => JField(s.name, s.toJson))))
+      ~  ("inheritedProperties" -> JObject(inheritedProperties.map(s => JField(s.prop.name, s.toApiJsonRenderParents))))
       )
   }
 
@@ -654,24 +658,22 @@ class NodeApiService13 (
 
       properties     <- req.json.flatMap(j => OptionnalJson.extractJsonArray(j, "properties")(json => extractNodePropertyInfo(json)  )).map(_.getOrElse(Nil))
 
-      mapProps       <- properties.partition(_.inherited) match {
+      (inheritedProp : Map[NodeId, List[NodePropertyHierarchy]], nonInheritedProp)       <- properties.partition(_.inherited) match {
         case (inheritedProp, nonInheritedProp) =>
           val propMap = nodes.values.groupMapReduce(_.id)(n =>  n.properties.filter(p => nonInheritedProp.exists(_.value == p.name)))(_ ::: _)
           if (inheritedProp.isEmpty) {
-            Full(propMap)
+            Full((Map.empty, propMap))
           } else {
             for {
               inheritedProp <- getNodesPropertiesTree(nodes.values, inheritedProp.map(_.value)).toBox
             } yield {
-              inheritedProp.foldLeft(propMap){
-                case (acc, (id, props)) => acc.updated(id, acc.getOrElse(id, Nil) ::: props)
-              }
+              (inheritedProp, propMap)
             }
           }
       }
     } yield {
       val res = JArray(nodes.values.toList.map(n =>
-        serialize(runs.get(n.id).flatten,globalMode,n, mapProps.get(n.id).getOrElse(Nil), softs.get(n.id).getOrElse(Nil), userCompliances.get(n.id), systemCompliances.get(n.id))
+        serialize(runs.get(n.id).flatten,globalMode,n, nonInheritedProp.get(n.id).getOrElse(Nil), inheritedProp.get(n.id).getOrElse(Nil), softs.get(n.id).getOrElse(Nil), userCompliances.get(n.id), systemCompliances.get(n.id))
       ))
 
       val n7 = System.currentTimeMillis
@@ -707,18 +709,22 @@ class NodeApiService13 (
                     }
       propMap = nodes.values.groupMapReduce(_.id)(n =>  n.properties.filter(_.name == property))(_ ::: _)
 
-      mapProps   <-
-            if (inheritedValue) {
-              Full(propMap)
-            } else {
+
+      mapProps : Map[NodeId, List[JValue]]  <-
+            if (inheritedValue)  {
               for {
                 inheritedProp <- getNodesPropertiesTree(nodes.values, List(property)).toBox
               } yield {
-                propMap ++ inheritedProp
+
+                import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
+                inheritedProp.map{ case (k,v) => (k,v.map(_.toApiJsonRenderParents)) }
               }
+            } else {
+              Full(propMap.map{ case (k,v) => (k,v.map(_.toJson)) })
             }
     } yield {
-      JsonResponse(JObject(nodes.keySet.toList.flatMap(id => mapProps.get(id).toList.flatMap(_.map(p => JField(id.value, GenericProperty.toJsonValue(p.value)))))))
+
+      JsonResponse(JObject(nodes.keySet.toList.flatMap(id => mapProps.get(id).toList.flatMap(_.map(p => JField(id.value, p))))))
     }
   }
 }
