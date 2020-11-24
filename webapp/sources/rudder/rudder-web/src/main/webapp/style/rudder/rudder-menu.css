@@ -1291,6 +1291,9 @@ ul.graph-legend > li.legend:hover{
   margin:0;
   padding:0;
   border:none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .content-wrapper #nodePropertiesTab_wrapper label {
   margin-bottom: 0;
