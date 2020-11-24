@@ -110,6 +110,8 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
+import com.normation.rudder.rest.NotFoundError
+import com.normation.rudder.rest.RestUtils.effectiveResponse
 import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.reports.ReportingService
@@ -919,10 +921,12 @@ class NodeApiService4 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = s"${state.name}NodeDetails"
     getNodeDetails(nodeId, detailLevel, state, version) match {
-        case Full(inventory) =>
+        case Full(Some(inventory)) =>
           toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
+        case Full(None) =>
+          effectiveResponse (Some(nodeId.value), s"Could not find Node ${nodeId.value} in state '${state.name}'", NotFoundError, action, prettify)
         case eb: EmptyBox =>
-          val message = (eb ?~ (s"Could not find Node ${nodeId.value} in state '${state.name}'")).msg
+          val message = (eb ?~ (s"Error when trying to find Node ${nodeId.value} in state '${state.name}'")).msg
           toJsonError(Some(nodeId.value), message)
       }
   }
@@ -945,7 +949,7 @@ class NodeApiService4 (
          case Some(inventory) =>
            toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
          case None =>
-           toJsonError(Some(nodeId.value), s"Node with ID '${nodeId.value}' was not found in Rudder")
+           effectiveResponse (Some(nodeId.value), s"Node with ID '${nodeId.value}' was not found in Rudder", NotFoundError, action, prettify)
        }
     }) match {
       case Full(res)   => res
