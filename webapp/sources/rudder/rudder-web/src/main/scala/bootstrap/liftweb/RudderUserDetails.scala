@@ -138,7 +138,13 @@ final case class UserDetailList(
 object UserDetailList {
   def fromRudderAccount(roleApiMapping: RoleApiMapping, encoder: PasswordEncoder.Rudder, users: List[(RudderAccount.User,Seq[Role])]): UserDetailList = {
     new UserDetailList(encoder, users.map { case (user, roles) =>
-      (user.login, RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(roleApiMapping.getApiAclFromRoles(roles))))
+      // for users, we don't have the possibility to order APIs. So we just sort them from most specific to less
+      // (ie from longest path to shorted)
+      // but still group by first part so that we have all nodes together, etc.
+      val acls = roleApiMapping.getApiAclFromRoles(roles).groupBy(_.path.parts.head).flatMap { case (_, seq) =>
+         seq.sortBy(_.path)(AclPath.orderingaAclPath).sortBy(_.path.parts.head.value)
+      }.toList
+      (user.login, RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(acls)))
     }.toMap)
   }
 }
