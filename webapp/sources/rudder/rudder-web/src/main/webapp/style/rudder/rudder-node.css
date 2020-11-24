@@ -34,7 +34,9 @@
 *
 *************************************************************************************
 */
-
+.rudder-template .one-col .main-header{
+  border-bottom: none !important;
+}
 #queryParameters{
   padding: 0 15px;
 }
