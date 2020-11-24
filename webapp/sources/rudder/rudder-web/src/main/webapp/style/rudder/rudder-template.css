@@ -50,7 +50,8 @@
   padding: 0 0 0 10px;
 }
 .content-wrapper .rudder-template .jstree .jstree-anchor {
-  display: inline-block;
+  display: inline-flex;
+  align-items: baseline;
   padding-right: 10px;
   word-break: break-word;
   width: calc(100% - 15px);
@@ -64,6 +65,10 @@
 }
 .content-wrapper .rudder-template .jstree  .jstree-node{
   overflow: hidden;
+}
+.content-wrapper .rudder-template .jstree .fa.jstree-icon,
+.content-wrapper .rudder-template .jstree .rudder-label.label-sm{
+  margin-right: 2px;
 }
 .main-details .well{
   padding: 6px 12px;

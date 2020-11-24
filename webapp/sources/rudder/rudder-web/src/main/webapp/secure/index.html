@@ -14,29 +14,41 @@
         <div class="panel-heading">Statistics</div>
         <div data-lift="lazy-load?template=lazy-load-spinner">
           <ul class="nav nav-pills nav-stacked navbar-rudder" style="border-radius:4px">
-            <li ><a href="/secure/nodeManager/nodes">
-              <span class="badge pull-right"> <div data-lift="HomePage.acceptedNodes" > </div></span>
-              Nodes</a>
-            </li>
-            <li ><a href="/secure/nodeManager/manageNewNode">
-              <span class="badge pull-right" > <div data-lift="HomePage.pendingNodes" ></div></span>
-              Pending nodes</a>
-            </li>
-            <li><a href="/secure/configurationManager/ruleManagement">
-              Rules <span class="badge pull-right" > <div data-lift="HomePage.rules" ></div></span>
+            <li>
+              <a href="/secure/nodeManager/nodes">
+                Nodes
+                <span class="badge"><div data-lift="HomePage.acceptedNodes"></div></span>
               </a>
             </li>
-            <li ><a href="/secure/configurationManager/directiveManagement">
-              <span class="badge pull-right" > <div data-lift="HomePage.directives" ></div></span>
-              Directives</a>
+            <li>
+              <a href="/secure/nodeManager/manageNewNode">
+                Pending nodes
+                <span class="badge"><div data-lift="HomePage.pendingNodes"></div></span>
+              </a>
             </li>
-            <li ><a href="/secure/nodeManager/groups">
-              <span class="badge pull-right" > <div data-lift="HomePage.groups"></div></span>
-              Groups</a>
+            <li>
+              <a href="/secure/configurationManager/ruleManagement">
+                Rules
+                <span class="badge"><div data-lift="HomePage.rules"></div></span>
+              </a>
             </li>
-            <li ><a href="/secure/administration/techniqueLibraryManagement">
-              <span class="badge pull-right" > <div data-lift="HomePage.techniques" ></div></span>
-              Techniques</a>
+            <li>
+              <a href="/secure/configurationManager/directiveManagement">
+                Directives
+                <span class="badge"><div data-lift="HomePage.directives"></div></span>
+              </a>
+            </li>
+            <li>
+              <a href="/secure/nodeManager/groups">
+                Groups
+                <span class="badge"><div data-lift="HomePage.groups"></div></span>
+              </a>
+            </li>
+            <li>
+              <a href="/secure/administration/techniqueLibraryManagement">
+                Techniques
+                <span class="badge"><div data-lift="HomePage.techniques"></div></span>
+              </a>
             </li>
           </ul>
         </div>

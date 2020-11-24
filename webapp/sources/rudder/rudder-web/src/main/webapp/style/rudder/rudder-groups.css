@@ -99,10 +99,6 @@ content-query{
 #query_lines tbody tr td:nth-child(5),#query_lines tbody tr td.last{
   width:25px;
 }
-.searchNodes .query_line .form-control.input-sm {
-  height: 24px;
-  padding: 0px 2px;
-}
 .rudder-form.form-sm{
   margin-bottom: 12px;
 }
@@ -119,6 +115,12 @@ content-query{
 }
 #tabPropsId{
   margin-bottom: 20px;
+}
+
+.main-details .main-form > .form-group.wbBaseField:first-child,
+.main-details .main-form > .form-group.wbBaseField:first-child label,
+.main-details .main-form > .info:first-child h4{
+  margin-top : 0px;
 }
 /* === TOGGLE BUTTONS === */
 label.radio-inline {
