@@ -195,7 +195,7 @@ class ComplianceTest extends Specification {
     }
   }
 
-
+/*
   "A directive applied to two rules" should {
 
     val path = "test-compliance/test-same-directive-several-rules/"
@@ -215,6 +215,27 @@ class ComplianceTest extends Specification {
       val status = ExecutionBatch.getNodeStatusReports(config.nodeId, runinfo, reports, UnexpectedReportInterpretation(Set()))
 
       status.compliance must beEqualTo(ComplianceLevel(success=18, notApplicable = 8))
+    }
+  }*/
+
+  "A directive with two identical component, but one parametered" should {
+    val path = "test-compliance/test-same-component/"
+
+    "lead to correct reporting (only success" in {
+      val (reports, config) = (for {
+        reports <- readReports(path + "ruddersysevent")
+        config  <- readNodeConfig(path + "nodeconfig")
+      } yield {
+        (reports, config)
+      }).openOrThrowException("the test should not throw an exception")
+
+      val runTime = reports.head.executionTimestamp
+      //here, we assume "compute compliance", i.e we are only testing the compliance engine, not
+      //the meta-analysis on run consistancy (correct run, at the correct time, etc)
+      val runinfo = ComputeCompliance(runTime, config, runTime)
+      val status = ExecutionBatch.getNodeStatusReports(config.nodeId, runinfo, reports, UnexpectedReportInterpretation(Set()))
+
+      status.compliance must beEqualTo(ComplianceLevel(success=34, notApplicable = 5))
     }
   }
 }

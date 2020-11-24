@@ -795,7 +795,7 @@ object ExecutionBatch extends Loggable {
     , currentConfig           : NodeExpectedReports
     , unexpectedInterpretation: UnexpectedReportInterpretation
   ): Set[RuleNodeStatusReport] = {
-
+println("Mergecompareparrule")
     var u1, u2, u3, u4 = 0L
 
     val t0 = System.currentTimeMillis
@@ -823,7 +823,7 @@ object ExecutionBatch extends Loggable {
                                      // full compliance and "success" when on changes only - but that success
                                      // depends upon the policy mode
                                      missingReportStatus = missingReportType(lastRunNodeConfig.complianceMode, policyMode)
-
+_ = println("missingReportStatus is " + missingReportStatus)
                                      component  <- directive.components
                                    } yield {
 
