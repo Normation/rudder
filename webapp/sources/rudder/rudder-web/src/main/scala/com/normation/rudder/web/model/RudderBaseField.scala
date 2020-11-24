@@ -302,7 +302,6 @@ class WBRadioField(
   def choiceHolder: ChoiceHolder[String] = SHtml.radio(opts, Full(value),  set _ , parameters:_*)
 
   def inputField : Elem = {
-
     <div>
     {choiceHolder.flatMap { c =>
         <label class="radio-inline">
