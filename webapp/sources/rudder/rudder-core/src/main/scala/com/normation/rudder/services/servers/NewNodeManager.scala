@@ -61,6 +61,7 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.eventlog.AcceptNodeEventLog
 import com.normation.rudder.domain.eventlog.InventoryLogDetails
 import com.normation.rudder.domain.eventlog.RefuseNodeEventLog
+import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeState
@@ -163,7 +164,7 @@ class PostNodeAcceptanceHookScripts(
     }
 
     val postHooksTime =  System.currentTimeMillis
-    HooksLogger.info(s"Executing post-node-acceptance hooks for node with id '${nodeId.value}'")
+    HooksLogger.debug(s"Executing post-node-acceptance hooks for node with id '${nodeId.value}'")
     for {
       optNodeInfo   <- nodeInfoService.getNodeInfo(nodeId)
       nodeInfo      <- optNodeInfo match {
@@ -460,108 +461,12 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
     }
   }
 
-  /**
-   * Accept one server.
-   * Accepting mean that the server went to all unitAccept items and that all of them
-   * succeeded.
-   * If one fails, all already passed are to be rollbacked (and the reverse order the
-   * were executed)
-
-   *
-   */
-  private[this] def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
-    (sequence(unitAcceptors) { unitAcceptor =>
-      try {
-        unitAcceptor.acceptOne(sm, modId, actor) ?~! "Error when executing accept node process named %s".format(unitAcceptor.name)
-      } catch {
-        case e:Exception => {
-          NodeLogger.PendingNode.debug("Exception in unit acceptor %s".format(unitAcceptor.name),e)
-          Failure(e.getMessage, Full(e), Empty)
-        }
-      }
-    }) match {
-      case Full(seq) => Full(sm)
-      case e:EmptyBox => //rollback that one
-        NodeLogger.PendingNode.error((e ?~! "Error when trying to accept node %s. Rollbacking.".format(sm.node.main.id.value)).messageChain)
-        rollback(unitAcceptors, Seq(sm), modId, actor)
-        e
-    }
-  }
 
   override def accept(id: NodeId, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
-    //
-    // start by retrieving all sms
-    //
-    val sm = smRepo.get(id, PendingInventory).toBox match {
-      case Full(Some(x)) => x
-      case Full(None) =>
-        return Failure(s"Can not accept not found inventory with id: '${id.value}'")
-      case eb: EmptyBox =>
-        return eb ?~! "Can not accept not found inventory with id %s".format(id)
-      }
-
-    //
-    //execute pre-accept phase for all unit acceptor
-    // stop here in case of any error
-    //
-    unitAcceptors.foreach { unitAcceptor =>
-      unitAcceptor.preAccept(Seq(sm), modId, actor) match {
-        case Full(seq) => //ok, cool
-          NodeLogger.PendingNode.debug("Pre accepted phase: %s".format(unitAcceptor.name))
-        case eb:EmptyBox => //on an error here, stop
-          val id = sm.node.main.id.value
-          val msg = s"Error when trying to add node with id '${id}'"
-          val e = eb ?~! msg
-          NodeLogger.PendingNode.error(e.messageChain)
-          NodeLogger.PendingNode.debug(s"Node with id '${id}' was refused during 'pre-accepting' step of phase '${unitAcceptor.name}'")
-          //stop now
-          return e
-      }
-    }
-
-    //
-    //now, execute unit acceptor
-    //
-
-    //build the map of results
-    val acceptationResults = acceptOne(sm, modId, actor) ?~! "Error when trying to accept node %s".format(sm.node.main.id.value)
-
-    //log
-    acceptationResults match {
-      case Full(sm) => NodeLogger.PendingNode.debug("Unit acceptors ok for %s".format(id))
-      case eb:EmptyBox =>
-        val e = eb ?~! "Unit acceptor error for node %s".format(id)
-        NodeLogger.PendingNode.error(e.messageChain)
-        return eb
-    }
-
-    //
-    //now, execute global post process
-    //
-    (sequence(unitAcceptors) { unit =>
-      try {
-        unit.postAccept(Seq(sm), modId, actor)
-      } catch {
-        case e:Exception => Failure(e.getMessage, Full(e), Empty)
-      }
-    }) match {
-      case Full(seq) => //ok, cool
-        // Update hooks for the node
-        afterNodeAcceptedAsync(id)
-
-        NodeLogger.PendingNode.info(s"New node accepted and managed by Rudder: ${id.value}")
-        cacheToClear.foreach { _.clearCache }
-
-        // Update hooks for the node - need to be done after cache cleaning
-        afterNodeAcceptedAsync(id)
-
-        updateDynamicGroups.startManualUpdate
-        acceptationResults
-      case e:EmptyBox => //on an error here, rollback all accpeted
-        NodeLogger.PendingNode.error((e ?~! "Error when trying to execute accepting new server post-processing. Rollback.").messageChain)
-        rollback(unitAcceptors, Seq(sm), modId, actor)
-        //only update results that where not already in error
-        e
+    accept(List(id), modId, actor, "rudder-ui").flatMap {
+      case h +: _ => Full(h)
+      case _      => Failure(s"Error when trying to accept node with ID: '${id.value}'. The acceptation method returned " +
+                             s"an empty result, it is likely a bug, please report it.")
     }
   }
 
@@ -596,6 +501,26 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
       )
     }
 
+    // accept one node
+    def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
+      (sequence(unitAcceptors) { unitAcceptor =>
+        try {
+          unitAcceptor.acceptOne(sm, modId, actor) ?~! "Error when executing accept node process named %s".format(unitAcceptor.name)
+        } catch {
+          case e:Exception => {
+            NodeLogger.PendingNode.debug("Exception in unit acceptor %s".format(unitAcceptor.name),e)
+            Failure(e.getMessage, Full(e), Empty)
+          }
+        }
+      }) match {
+        case Full(seq) => Full(sm)
+        case e:EmptyBox => //rollback that one
+          NodeLogger.PendingNode.error((e ?~! "Error when trying to accept node %s. Rollbacking.".format(sm.node.main.id.value)).messageChain)
+          rollback(unitAcceptors, Seq(sm), modId, actor)
+          e
+      }
+    }
+
     // validate post acceptance for a Node, if an error occurs, Rollback the node acceptance
     def passPostAccept (inventory  : FullInventory) = {
       sequence(unitAcceptors) (
@@ -619,17 +544,17 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
      id =>
        for {
          // Get inventory og the node
-         inventory <- getInventory(id).flatMap {
-                        case None    => Failure(s"Missing inventory for node with ID: '${id.value}'")
-                        case Some(i) => Full(i)
-                      }
+         inventory          <- getInventory(id).flatMap {
+                                 case None    => Failure(s"Missing inventory for node with ID: '${id.value}'")
+                                 case Some(i) => Full(i)
+                               }
          // Pre accept it
-         preAccept <- passPreAccept(inventory)
+         preAccept          <- passPreAccept(inventory)
          // Accept it
          acceptationResults <- acceptOne(inventory, modId, actor) ?~! s"Error when trying to accept node ${id.value}"
-         log = NodeLogger.PendingNode.debug(s"Unit acceptors ok for '${id.value}'")
+         _                  = NodeLogger.PendingNode.debug(s"Unit acceptors ok for '${id.value}'")
          // Post accept it
-         postAccept <- passPostAccept(inventory)
+         postAccept         <- passPostAccept(inventory)
        } yield {
 
          // Make an event log for acceptance
@@ -649,7 +574,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
 
              eventLogRepository.saveEventLog(modId, entry).toBox match {
                case Full(_) =>
-                 NodeLogger.PendingNode.debug(s"Successfully accepted node '${id.value}'")
+                 NodeLogger.info(s"New node accepted and managed by Rudder: ${id.value}")
                case _ =>
                  NodeLogger.PendingNode.warn(s"Node '${id.value}' accepted, but the action couldn't be logged")
              }
@@ -660,7 +585,6 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
 
          // Update hooks for the node
          afterNodeAcceptedAsync(id)
-
          acceptationResults
        }
     )
@@ -671,8 +595,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
     }
 
     // Transform the sequence of box into a boxed result, best effort it!
-    val start : Box[Seq[FullInventory]] = Full(Seq())
-    acceptanceResults.foldRight(start) {
+    acceptanceResults.foldRight(Full(Seq()):Box[Seq[FullInventory]]) {
       // Node accepted, and result ok, accumulate success
       case (Full(inv), Full(seq)) =>
         Full(inv +: seq)
