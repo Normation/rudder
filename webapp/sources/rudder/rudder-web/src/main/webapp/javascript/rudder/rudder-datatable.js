@@ -1073,16 +1073,31 @@ function createRuleComponentValueTable (contextPath) {
  */
 
 
-function propertyFunction(value) { return function (nTd, sData, oData, iRow, iCol) {
+function propertyFunction(value, inherited) { return function (nTd, sData, oData, iRow, iCol) {
   $(nTd).empty();
-  var property = oData.property[value]
-  var text = property
-  if (typeof property === "object") {
-    text = JSON.stringify(property, undefined, 2)
+  var property = oData.properties[value];
+  if (inherited) {
+    property = oData.inheritedProperties[value];
   }
-  $(nTd).prepend("<pre onclick='$(this).toggleClass(\"toggle\")' class='json-beautify show-more'>"+text+"</pre>")
-}
-}
+  if (property === undefined) {
+    $(nTd).prepend("<span class='text-muted'>N/A</span>")
+  } else {
+    var text = property.value;
+    if (typeof property === "object") {
+      text = JSON.stringify(property.value, undefined, 2)
+    }
+
+    var provider = $("")
+    if (property.provider !== undefined && property.provider !== 'inherited' && property.provider !== 'overridden')
+      provider = $('<span class="rudder-label label-provider label-sm" data-toggle="tooltip" data-placement="right" data-html="true" title="This property is managed by its provider <b>‘'+property.provider+'</b>’" data-container="body" >' + property.provider + '</span>')
+
+    if (property.provider === 'inherited') {
+      provider = $('<span class="rudder-label label-provider label-sm" data-toggle="tooltip" data-placement="right" data-html="true" data-container="body" >inherited</span>')
+      provider.attr('title', "This property is inherited from these group(s) or global parameter: <div>"+ property.hierarchy + "</div>.")
+    }
+    $(nTd).prepend( "<pre onclick='$(this).toggleClass(\"toggle\")' class='json-beautify show-more'>"+text+"</pre>").prepend(provider)
+  }
+} }
 
 var allColumns = {
     "Node ID" :
@@ -1118,11 +1133,10 @@ var allColumns = {
     function(value, inherited) {
       var title = "Property '"+value+"'"
       if (inherited) title= title +" <i title='Values may be inherited from group/global properties' class='fa fa-question-circle'></i>"
-      console.log(title)
       return { "data": "property."+value
              , "title": title
              , "defaultContent" : "<span class='text-muted'>N/A</span>"
-             , "createdCell" : propertyFunction(value)
+             , "createdCell" : propertyFunction(value,inherited)
              , "inherited" : inherited
              , "value" : value
              }
@@ -1344,17 +1358,24 @@ function createNodeTable(gridId, refresh) {
         , "type" : "POST"
         , "contentType": "application/json"
         , "data" : function(d) {
-                     var data = d
-                     if (nodeIds !== undefined ) { data = $.extend({}, d, {"nodeIds": nodeIds} ) }
+                     var data = $.extend({}, d, {"inherited" : checked})
+                     if (nodeIds !== undefined ) { data = $.extend({}, data, {"nodeIds": nodeIds} ) }
                        return JSON.stringify(data)
                    }
         , "dataSrc" : function(d) {
                         for ( index in data2.rows().data().toArray() ) {
                           var node = data2[index]
-                          if (node[columnName.toLowerCase()] === undefined) {
-                            node[columnName.toLowerCase()] = {}
+                          var dataName = columnName.toLowerCase()
+                          if (dataName === "property") {
+                            dataName = "properties"
+                            if (checked) {
+                              dataName = "inheritedProperties"
+                            }
                           }
-                          node[columnName.toLowerCase()][value] = d[node.id]
+                          if (node[dataName] === undefined) {
+                            node[dataName] = {}
+                          }
+                          node[dataName][value] = d[node.id]
                         }
                         return data2
                       }
