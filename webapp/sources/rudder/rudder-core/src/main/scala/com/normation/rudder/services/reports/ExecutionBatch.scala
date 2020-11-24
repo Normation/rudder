@@ -1221,7 +1221,7 @@ final case class ContextForNoAnswer(
         None
       }
       //If this is not a variable, we use the variable itself
-      val specificity = pattern.map(_.toString.replaceAll("""\\Q""", "").replaceAll("""\\E""", "").replaceAll("""\.\*""", "")).getOrElse("v").size
+      val specificity = pattern.map(_.toString.replaceAll("""\\Q""", "").replaceAll("""\\E""", "").replaceAll("""\.\*""", "")).getOrElse(v).size
       // default cardinality for a value is 1
       // default duplicate is 0 (and hopefully will remain so)
       Value(v, u, 1, 0, isVar, pattern, specificity, Nil)
