@@ -161,7 +161,10 @@ body > .ng-toast {
 .alert.alert-dismissible pre {
   white-space: normal;
 }
-
+.rudder-template textarea.form-control{
+  min-height: unset;
+  line-height: 1.5;
+}
 /* ===== TECHNIQUES & METHODS ===== */
 .show-methods .col-techniques,
 .show-techniques .col-methods{
@@ -273,11 +276,12 @@ body > .ng-toast {
   padding: 0;
   margin: 0;
 }
-.techniques-list-container > ul .empty{
+.sidebar-body .empty{
   padding: 15px;
   border-bottom: 1px solid #e5E5E5;
   font-style: italic;
   color: #999;
+  height: fit-content;
 }
 .techniques-list-container > ul > li {
   border-bottom: 1px solid #e5e5e5;
@@ -984,7 +988,10 @@ button.btn.clipboard:hover {
 .main-footer .btn{
   margin-right: 15px;
 }
-
+.generic-methods-container .empty ~ div,
+.generic-methods-container .empty ~ ul{
+  display: none !important;
+}
 /* =====  METHOD  ===== */
 ul.list-unstyled > li{
   margin-bottom: 10px;
