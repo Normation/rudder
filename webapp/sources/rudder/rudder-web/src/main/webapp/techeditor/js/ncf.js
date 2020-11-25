@@ -932,6 +932,14 @@ $scope.onImportFileChange = function (fileEl) {
     }
     return agentTypeFilter && deprecatedFilter && nameFilter;
   }
+  $scope.checkFilterAllCategories = function(){
+    for (var x in $scope.methodsByCategory){
+      if($scope.checkFilterCategory($scope.methodsByCategory[x])){
+        return true;
+      }
+    }
+    return false;
+  }
 
   $scope.checkMethodCallAgentSupport = function(methodName, agent){
     var gKey = Object.keys($scope.generic_methods).find(function(method){return $scope.generic_methods[method].bundle_name === methodName});
