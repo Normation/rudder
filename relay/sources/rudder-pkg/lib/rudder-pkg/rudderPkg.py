@@ -348,22 +348,23 @@ def update():
 def upgrade_all(mode):
     for p in utils.DB["plugins"].keys():
         currentVersion = rpkg.PluginVersion(utils.DB["plugins"][p]["version"])
+        latestVersion = currentVersion
         pkgs = plugin.Plugin(p)
         pkgs.getAvailablePackages()
         if mode == "nightly":
             latest_packages = pkgs.getLatestCompatibleNightly()
             if (latest_packages is None):
-                print("No newer %s compatible versions found for the plugin %s"%(mode, p))
+                logger.debug("No newer nightly %s compatible versions found for the plugin %s"%(mode, p))
             else:
                 latestVersion = latest_packages.version
         else:
             latest_packages = pkgs.getLatestCompatibleRelease()
             if (latest_packages is None):
-                print("No newer %s compatible versions found for the plugin %s"%(mode, p))
+                logger.debug("No newer release %s compatible versions found for the plugin %s"%(mode, p))
             else:
                 latestVersion = latest_packages.version
         if currentVersion < latestVersion:
-            print("The plugin %s is installed in version %s. The version %s %s is available, the plugin will be upgraded."%(p, currentVersion.pluginLongVersion, mode, latestVersion.pluginLongVersion))
+            logger.info("The plugin %s is installed in version %s. The version %s %s is available, the plugin will be upgraded."%(p, currentVersion.pluginLongVersion, mode, latestVersion.pluginLongVersion))
             package_install_latest([p], mode)
         else:
-            print("No newer %s compatible versions found for the plugin %s"%(mode, p))
+            logger.info("No newer %s compatible versions found for the plugin %s, disabling it."%(mode, p))
