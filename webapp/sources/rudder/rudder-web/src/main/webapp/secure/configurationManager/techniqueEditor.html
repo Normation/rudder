@@ -740,7 +740,7 @@
 
         <div class="header-filter">
           <div class="input-group">
-            <input class="form-control" type="text" placeholder="Filter" ng-model="searchText.name">
+            <input class="form-control" type="text" placeholder="Filter" ng-model="filter.text">
             <div class="input-group-btn">
               <button type="button" class="btn btn-outline-secondary btn-toggle-filters" ng-click="ui.showMethodsFilter=!ui.showMethodsFilter"><i class="ion ion-android-options"></i></button>
             </div>
@@ -771,6 +771,9 @@
       <div class="sidebar-body">
 
         <div class="generic-methods-container">
+          <div class="empty" ng-if="!checkFilterAllCategories()">
+            No method matches the filters.
+          </div>
           <div id="methods-list-container">
             <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory" ng-if="checkFilterCategory(methods)">
               <h5 id={{kind}}>{{capitaliseFirstLetter(kind)}}</h5>
