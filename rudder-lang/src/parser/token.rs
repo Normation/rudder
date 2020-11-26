@@ -68,7 +68,8 @@ impl<'src> Token<'src> {
             "group.rl",
             "http_request.rl",
             "kernel_module.rl",
-            "monitoring.rl",
+            "monitoring_parameter.rl",
+            "monitoring_template.rl",
             "package.rl",
             "permissions.rl",
             "registry.rl",
@@ -79,6 +80,7 @@ impl<'src> Token<'src> {
             "user.rl",
             "variable.rl",
             "windows.rl",
+            "sysinfo.rl",
         ]
         .contains(&self.val.extra)
     }

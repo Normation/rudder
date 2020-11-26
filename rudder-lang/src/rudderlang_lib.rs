@@ -81,22 +81,26 @@ impl<'src> RudderlangLib<'src> {
         let matched_pairs: Vec<(&Token, &Token)> = self
             .resources
             .iter()
-            .filter_map(|(res, resdef)| {
-                if method_name.starts_with(resdef.name) {
-                    return Some(
-                        resdef
-                            .states
-                            .iter()
-                            .filter_map(|(state, state_def)| {
-                                if method_name == format!("{}_{}", resdef.name, state_def.name) {
-                                    return Some((res, state));
-                                }
-                                None
-                            })
-                            .collect::<Vec<(&Token, &Token)>>(),
-                    );
-                }
-                None
+            .filter_map(|(res, res_def)| {
+                return Some(
+                    res_def
+                        .states
+                        .iter()
+                        .filter_map(|(state, state_def)| {
+                            // exceptions should be dealt with here based on `method_alias` metadata
+                            let method_alias_name = state_def
+                                .metadata
+                                .get("method_alias")
+                                .and_then(|v| v.as_str());
+                            if method_name == format!("{}_{}", res_def.name, state_def.name)
+                                || Some(method_name) == method_alias_name
+                            {
+                                return Some((res, state));
+                            }
+                            None
+                        })
+                        .collect::<Vec<(&Token, &Token)>>(),
+                );
             })
             .flatten()
             .collect();
@@ -216,14 +220,15 @@ impl<'src> LibMethod<'src> {
     pub fn class_prefix(&self) -> String {
         self.state
             .metadata
-            .get("class_prefix")
+            .get("method_alias")
+            .or(self.state.metadata.get("class_prefix"))
             .expect(&format!(
-                "Resource '{}': missing 'class_prefix' metadata",
+                "Resource '{}': missing 'class_prefix' metadata and no 'method_alias' alternative",
                 self.resource.name
             ))
             .as_str()
             .expect(&format!(
-                "Resource '{}': 'class_prefix' metadata value is not a string",
+                "Resource '{}': 'class_prefix' or alternative 'method_alias' metadata value is not a string",
                 self.resource.name
             ))
             .to_owned()

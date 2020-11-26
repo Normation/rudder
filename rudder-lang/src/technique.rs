@@ -259,12 +259,20 @@ impl MethodCall {
             call = format!("if {} => {}", self.format_condition(&lib)?, call);
         }
 
+        let formatted_alias_metadata: Option<String> = lib_method
+            .state
+            .metadata
+            .get("method_alias")
+            .and_then(|v| v.as_str())
+            .map(|alias| format!("  @method_alias = \"{}\"\n", alias));
+
         // make an exception for condition_from_* method & condition generation
         if (lib_method.resource.name == "condition" && lib_method.state.name.starts_with("from_")) {
             return Ok(format!(
-                "{}@component = \"{}\"\n  let {} = {}_{}({})",
+                "{}@component = \"{}\"\n{}  let {} = {}_{}({})",
                 template_vars.join("\n  "),
                 &self.component,
+                formatted_alias_metadata.unwrap_or(String::new()),
                 match class_parameter.strip_suffix("_${report_data.canonified_directive_id}") {
                     Some(variable) => variable,
                     None =>
@@ -280,9 +288,10 @@ impl MethodCall {
         }
 
         Ok(format!(
-            "{}@component = \"{}\"\n  {}{}",
+            "{}@component = \"{}\"\n{}  {}{}",
             template_vars.join("\n  "),
             &self.component,
+            formatted_alias_metadata.unwrap_or(String::new()),
             call,
             outcome
         ))

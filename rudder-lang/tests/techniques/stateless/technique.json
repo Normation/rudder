@@ -1,0 +1,132 @@
+{
+    "type": "ncf_technique",
+    "version": 2,
+    "data": {
+        "bundle_name": "stateless",
+        "version": "1.0",
+        "category": "ncf_techniques",
+        "description": "test technique created to help making sure these particular resources are properly handed by rudderlang",
+        "name": "stateless",
+        "method_calls": [
+            {
+                "method_name": "variable_string_escaped",
+                "class_context": "any",
+                "component": "Variable string escaped",
+                "parameters": [
+                    {
+                        "name": "variable_name",
+                        "value": "pref.name"
+                    }
+                ]
+            },
+            {
+                "method_name": "permissions_ntfs",
+                "class_context": "any",
+                "component": "Permissions NTFS",
+                "parameters": [
+                    {
+                        "name": "path",
+                        "value": "/var/test"
+                    },
+                    {
+                        "name": "user",
+                        "value": "admin"
+                    },
+                    {
+                        "name": "rights",
+                        "value": "rxw"
+                    },
+                    {
+                        "name": "accesstype",
+                        "value": "Allow"
+                    },
+                    {
+                        "name": "propagationpolicy",
+                        "value": "ThisFolderOnly"
+                    }
+                ]
+            },
+            {
+                "method_name": "permissions",
+                "class_context": "any",
+                "component": "Permissions (non recursive)",
+                "parameters": [
+                    {
+                        "name": "path",
+                        "value": "/file/path"
+                    },
+                    {
+                        "name": "mode",
+                        "value": "744"
+                    },
+                    {
+                        "name": "owner",
+                        "value": "root"
+                    },
+                    {
+                        "name": "group",
+                        "value": "wheel"
+                    }
+                ]
+            },
+            {
+                "method_name": "audit_from_osquery",
+                "class_context": "any",
+                "component": "Audit from osquery",
+                "parameters": [
+                    {
+                        "name": "query",
+                        "value": "query;"
+                    },
+                    {
+                        "name": "comparator",
+                        "value": "!="
+                    },
+                    {
+                        "name": "value",
+                        "value": "val"
+                    }
+                ]
+            },
+            {
+                "method_name": "monitoring_template",
+                "class_context": "any",
+                "component": "Monitoring template",
+                "parameters": [
+                    {
+                        "name": "template",
+                        "value": "vision"
+                    }
+                ]
+            },
+            {
+                "method_name": "monitoring_parameter",
+                "class_context": "any",
+                "component": "Monitoring parameter",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "value": "paramname"
+                    },
+                    {
+                        "name": "value",
+                        "value": "paramval"
+                    }
+                ]
+            },
+            {
+                "method_name": "variable_string_escaped",
+                "class_context": "any",
+                "component": "Variable string escaped",
+                "parameters": [
+                    {
+                        "name": "variable_name",
+                        "value": "escaped////var"
+                    }
+                ]
+            }
+        ],
+        "parameter": [],
+        "resources": []
+    }
+}

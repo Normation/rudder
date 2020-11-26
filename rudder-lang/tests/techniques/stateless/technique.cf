@@ -1,0 +1,35 @@
+# @name stateless
+# @description test technique created to help making sure these particular resources are properly handed by rudderlang
+# @version 1.0
+
+
+bundle agent stateless
+{
+  vars:
+    "resources_dir" string => "${this.promise_dirname}/resources";
+  methods:
+    "Audit from osquery_${report_data.directive_id}_0" usebundle => _method_reporting_context("Audit from osquery", "query;"),
+                                                              if => concat("any");
+    "Audit from osquery_${report_data.directive_id}_0" usebundle => audit_from_osquery("query;", "!=", "val"),
+                                                              if => concat("any");
+    "Variable string escaped_${report_data.directive_id}_1" usebundle => _method_reporting_context("Variable string escaped", "escaped////var"),
+                                                                   if => concat("any");
+    "Variable string escaped_${report_data.directive_id}_1" usebundle => variable_string_escaped("escaped////var"),
+                                                                   if => concat("any");
+    "Permissions NTFS_${report_data.directive_id}_2" usebundle => _method_reporting_context("Permissions NTFS", "/var/test"),
+                                                            if => concat("any");
+    "Permissions NTFS_${report_data.directive_id}_2" usebundle => permissions_ntfs("/var/test", "admin", "rxw", "Allow", "ThisFolderOnly"),
+                                                            if => concat("any");
+    "Permissions (non recursive)_${report_data.directive_id}_3" usebundle => _method_reporting_context("Permissions (non recursive)", "/file/path"),
+                                                                       if => concat("any");
+    "Permissions (non recursive)_${report_data.directive_id}_3" usebundle => permissions("/file/path", "744", "root", "wheel"),
+                                                                       if => concat("any");
+    "Monitoring template_${report_data.directive_id}_4" usebundle => _method_reporting_context("Monitoring template", "vision"),
+                                                               if => concat("any");
+    "Monitoring template_${report_data.directive_id}_4" usebundle => monitoring_template("vision"),
+                                                               if => concat("any");
+    "Monitoring parameter_${report_data.directive_id}_5" usebundle => _method_reporting_context("Monitoring parameter", "paramname"),
+                                                                if => concat("any");
+    "Monitoring parameter_${report_data.directive_id}_5" usebundle => monitoring_parameter("paramname", "paramval"),
+                                                                if => concat("any");
+}

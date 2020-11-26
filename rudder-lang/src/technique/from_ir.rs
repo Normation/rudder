@@ -133,9 +133,29 @@ fn format_expr(ir: &IR2, expr: &EnumExpressionPart) -> String {
 fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Vec<MethodCall> {
     match stmt {
         Statement::StateDeclaration(s) => {
-            let method_name = format!("{}_{}", *s.resource, *s.state);
-            let parameters =
+            let method_alias = s
+                .metadata
+                .get("method_alias")
+                .and_then(|v| v.as_str())
+                .map(String::from);
+            let method_name = if let Some(method_alias_content) = method_alias {
+                method_alias_content
+            } else {
+                format!("{}_{}", *s.resource, *s.state)
+            };
+            let mut parameters =
                 fetch_method_parameters(ir, s, |name, value| Parameter::new(name, value));
+
+            // EXCEPTION: reunite variable_string_escaped resource parameters that appear to be joined from cfengine side
+            if method_name == "variable_string_escaped" {
+                let merged_values = parameters
+                    .iter()
+                    .map(|p| p.value.clone())
+                    .collect::<Vec<String>>()
+                    .join(".");
+                parameters = vec![Parameter::new("variable_name", &merged_values)];
+            };
+
             vec![MethodCall {
                 parameters,
                 condition,
