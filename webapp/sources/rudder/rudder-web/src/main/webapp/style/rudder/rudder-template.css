@@ -57,7 +57,7 @@
   width: calc(100% - 15px);
 }
 .content-wrapper .rudder-template .jstree .jstree-anchor .btn.create{
-  float: right;
+  margin-left: auto;
   min-width: 25px;
 }
 .content-wrapper .rudder-template .jstree .jstree-anchor:hover .btn.create{
