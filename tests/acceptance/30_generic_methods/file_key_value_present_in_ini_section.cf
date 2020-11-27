@@ -29,7 +29,6 @@ bundle agent init
     # ensure that a line is really added into the right section
     # with lines already present.
     "file[0]"     string => "${tmp}/test0.ini";
-    "section[0]"  string => "section_test1";
     "name[0]"     string => "name1";
     "value[0]"    string => "value1";
     "section[0]"  string => "section_test1";
@@ -42,7 +41,6 @@ ${name[0]}=${value[0]}
 
     #  ensure that if the section does not exist, it will be created
     "file[1]"     string => "${tmp}/test1.ini";
-    "section[1]"  string => "section_test1";
     "name[1]"     string => "name1";
     "value[1]"    string => "value1";
     "section[1]"  string => "section_test1";
@@ -55,7 +53,6 @@ ${name[1]}=${value[1]}
 
     # ensure that if the value is modified if necessary
     "file[2]"     string => "${tmp}/test2.ini";
-    "section[2]"  string => "section_test2";
     "name[2]"     string => "name2";
     "value[2]"    string => "value2";
     "section[2]"  string => "section_test2";
@@ -68,7 +65,6 @@ ${name[2]}=${value[2]}";
     # ensure that if the value is modified if necessary
     # but only in the selected region
     "file[3]"     string => "${tmp}/test3.ini";
-    "section[3]"  string => "section_test3";
     "name[3]"     string => "name3";
     "value[3]"    string => "key?value3";
     "section[3]"  string => "section_test3";
@@ -86,7 +82,6 @@ ${name[3]}=value";
     # but only in the selected region
     # with = sign in value
     "file[4]"     string => "${tmp}/test4.ini";
-    "section[4]"  string => "section_test4";
     "name[4]"     string => "name4";
     "value[4]"    string => "key=value4";
     "section[4]"  string => "section_test4";
@@ -105,7 +100,6 @@ ${name[4]}=key";
     # but only in the selected region
     # with = sign in value
     "file[5]"     string => "${tmp}/test5.ini";
-    "section[5]"  string => "section_test5";
     "name[5]"     string => "name5";
     "value[5]"    string => "http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=BaseOS&infra=$infra";
     "section[5]"  string => "section_test5";
@@ -117,11 +111,10 @@ ${name[5]}=key";
     "expected[5]" string => "${initial[5]}";
 
     # Repaired
-    # ensure that if the value is uncommenter
+    # ensure that if the value is uncommented
     # but only in the selected region
     # with = sign in value
     "file[6]"     string => "${tmp}/test6.ini";
-    "section[6]"  string => "section_test6";
     "name[6]"     string => "name6";
     "value[6]"    string => "http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=BaseOS&infra=$infra";
     "section[6]"  string => "section_test6";
@@ -134,7 +127,61 @@ ${name[6]}=key";
 ${name[6]}=${value[6]}
 [section_dummy]
 ${name[6]}=key";
+
+    # ensure that if the key is uncommented
+    # and value corrected but only in the selected region
+    # with = sign in value
+    "file[7]"     string => "${tmp}/test7.ini";
+    "name[7]"     string => "name7";
+    "value[7]"    string => "http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=BaseOS&infra=$infra";
+    "section[7]"  string => "section_test7";
+    "status[7]"   string => "repaired";
+    "initial[7]"  string => "[section_test7]
+#${name[7]}=bla=bli=blu
+[section_dummy]
+${name[7]}=key";
+    "expected[7]" string => "[section_test7]
+${name[7]}=${value[7]}
+[section_dummy]
+${name[7]}=key";
+
+    # audit
+    # file is compliant
+    "file[8]"     string => "${tmp}/test8.ini";
+    "name[8]"     string => "name8";
+    "value[8]"    string => "http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=BaseOS&infra=$infra";
+    "section[8]"  string => "section_test8";
+    "status[8]"   string => "success";
+    "initial[8]"  string => "[section_test8]
+${name[8]}=${value[8]}
+[section_dummy]
+${name[8]}=key";
+    "expected[8]" string => "${initial[8]}";
+
+    # file is not compliant, value is not there
+    "file[9]"     string => "${tmp}/test9.ini";
+    "name[9]"     string => "name9";
+    "value[9]"    string => "two";
+    "section[9]"  string => "section_test9";
+    "status[9]"   string => "error";
+    "initial[9]"  string => "[section_test9]
+${name[9]}=one
+[section_dummy]
+${name[9]}=key";
+    "expected[9]" string => "${initial[9]}";
     
+    # Repaired
+    # create a file if not existent. Unfortunately, it will have an empty line
+    "file[10]"     string => "${tmp}/test10.ini";
+    "name[10]"     string => "name10";
+    "value[10]"    string => "value10";
+    "section[10]"  string => "section_test10";
+    "status[10]"   string => "repaired";
+    "initial[10]"  string => "";
+    "expected[10]" string => "[section_test10]
+
+${name[10]}=${value[10]}";
+
   "indices"     slist => getindices("status");
 
   files:
@@ -161,6 +208,10 @@ bundle agent test
     "ph4" usebundle  => apply_gm("file_key_value_present_in_ini_section", @{args4}, "${init.status[4]}", "ph4", "enforce" );
     "ph5" usebundle  => apply_gm("file_key_value_present_in_ini_section", @{args5}, "${init.status[5]}", "ph5", "enforce" );
     "ph6" usebundle  => apply_gm("file_key_value_present_in_ini_section", @{args6}, "${init.status[6]}", "ph6", "enforce" );
+    "ph7" usebundle  => apply_gm("file_key_value_present_in_ini_section", @{args7}, "${init.status[7]}", "ph7", "enforce" );
+    "ph8" usebundle  => apply_gm("file_key_value_present_in_ini_section", @{args8}, "${init.status[8]}", "ph8", "audit" );
+    "ph9" usebundle  => apply_gm("file_key_value_present_in_ini_section", @{args9}, "${init.status[9]}", "ph9", "audit" );
+    "ph10" usebundle  => apply_gm("file_key_value_present_in_ini_section", @{args10}, "${init.status[10]}", "ph10", "enforce" );
 }
 
 #######################################################
@@ -172,8 +223,7 @@ bundle agent check
       "indices" slist => { @{init.indices} };
       
       # function readfile adds an extra trailing newline if there is no trailing newline, too inconsistent
-      "content[${indices}]" string => execresult("${paths.cat} ${init.file[${indices}]}", "noshell"),
-                            unless => strcmp("${indices}", "10");
+      "content[${indices}]" string => execresult("${paths.cat} ${init.file[${indices}]}", "noshell");
 
   classes:
       "pass3" expression => "pass2";
@@ -185,12 +235,11 @@ bundle agent check
       "content_ok_${indices}" expression => and(
                                             strcmp("${content[${indices}]}", "${init.expected[${indices}]}"),
                                             fileexists("${init.file[${indices}]}")
-                                          ),
-                                  unless => strcmp("${indices}", "10");
-      "content_ok_10" expression => "any";
+                                          );
+
 
       "content_not_ok" expression => "!content_ok_${indices}";
-      "classes_ok"     expression => "ph0_ok.ph1_ok.ph2_ok.ph3_ok.ph4_ok.ph5_ok.ph6_ok";
+      "classes_ok"     expression => "ph0_ok.ph1_ok.ph2_ok.ph3_ok.ph4_ok.ph5_ok.ph6_ok.ph7_ok.ph8_ok.ph9_ok.ph10_ok";
       "ok"             expression => "!content_not_ok.classes_ok";
 
 
