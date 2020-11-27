@@ -459,6 +459,8 @@ bundle edit_line set_variable_values_ini(tab, sectionName)
 # If the line is commented out with `#`, it gets uncommented first.
 # Adds a new line if none exists.
 #
+# It does support = in value
+#
 # @param tab An associative array containing `tab[sectionName][LHS]="RHS"`.
 # The value is not changed when the `RHS` is "dontchange"
 # @param sectionName The section in the file within which values should be
@@ -472,33 +474,44 @@ bundle edit_line set_variable_values_ini(tab, sectionName)
       # Be careful if the index string contains funny chars
       "cindex[$(index)]" string => canonify("$(index)");
 
+      # Escape the value (had a problem with special characters and regex's)
+      "ctab[$(index)]" string => escape("$($(tab)[$(sectionName)][$(index)])");
+
+
   classes:
       "edit_$(cindex[$(index)])"     not => strcmp("$($(tab)[$(sectionName)][$(index)])","dontchange"),
       comment => "Create conditions to make changes";
-
-  field_edits:
-
-      # If the line is there, but commented out, first uncomment it
-      "#+\s*$(index)\s*=.*"
-      select_region => INI_section(escape("$(set_variable_values_ini.sectionName)")),
-      edit_field => col("=","1","$(index)","set"),
-      ifvarclass => "edit_$(cindex[$(index)])";
-
-      # match a line starting like the key something
-      "$(index)\s*=.*"
-      edit_field => col("=","2","$($(tab)[$(sectionName)][$(index)])","set"),
-      select_region => INI_section(escape("$(set_variable_values_ini.sectionName)")),
-      classes => results("bundle", "set_variable_values_ini_not_$(cindex[$(index)])"),
-      ifvarclass => "edit_$(cindex[$(index)])";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   insert_lines:
       "[$(sectionName)]"
       location => start,
       comment => "Insert lines";
 
+    pass2::
       "$(index)=$($(tab)[$(sectionName)][$(index)])"
       select_region => INI_section(escape("$(set_variable_values_ini.sectionName)")),
-        ifvarclass => "!(set_variable_values_ini_not_$(cindex[$(index)])_kept|set_variable_values_ini_not_$(cindex[$(index)])_repaired).edit_$(cindex[$(index)])";
+        ifvarclass => "edit_$(cindex[$(index)])";
+
+
+  replace_patterns:
+      # If the line is commented out, uncomment and replace with
+      # the correct value
+      "^\s*#\s*($(index)\s*=\s*.*)$"
+        comment => "If we find a commented entry we uncomment it",
+       select_region => INI_section(escape("$(set_variable_values_ini.sectionName)")),
+        replace_with => value("$(index)=$($(tab)[$(sectionName)][$(index)])"),
+          ifvarclass => "edit_$(cindex[$(index)]).!set_variable_values_ini_not_$(cindex[$(index)])_reached";
+
+      # If the line is there with the wrong value, replace with
+      # the correct value
+      "^\s*($(index)\s*=\s*(?!$(ctab[$(index)])$).*)$"
+           comment => "Correct the value $(index)",
+      replace_with => value("$(index)=$($(tab)[$(sectionName)][$(index)])"),
+     select_region => INI_section(escape("$(set_variable_values_ini.sectionName)")),
+           classes => results("bundle", "set_variable_values_ini_not_$(cindex[$(index)])"),
+        ifvarclass => "edit_$(cindex[$(index)])";
 
 }
 
