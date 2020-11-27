@@ -538,7 +538,7 @@ body copy_from ncf_remote_cp_method(from, server, method)
     servers     => { "${server}" };
     source      => "${from}";
     type_check  => "true";
-    portnumber  => "${configuration.cfengine_port}";
+    portnumber  => "${system_common.community_port}";
     compare     => "${method}";
     encrypt     => "true";
     copy_backup => "timestamp";

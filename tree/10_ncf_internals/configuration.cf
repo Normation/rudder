@@ -30,7 +30,6 @@ bundle common configuration
       "trace" string => "[TRACE]";
 
       "enabled_abort_handlers" slist => { "_abort_default", "abort_rudder" };
-      "cfengine_port"         string => "5309";
       "flag_file"             string => "/var/rudder/agent-data/flags.json";
 
   classes:
