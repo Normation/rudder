@@ -43,7 +43,8 @@
   height: calc(100VH - 80px);
 }
 #policyConfiguration,
-#policyConfiguration > form{
+#policyConfiguration > form,
+#policyConfiguration form > form{
   height: 100%;
   background-color: #fff;
 }
