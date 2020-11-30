@@ -38,9 +38,19 @@ bundle agent file_key_value_present_in_ini_section(file, section, name, value)
 
       "content[${section}][${name}]" string => "${value}";
 
+  classes:
+      # check if file is present or not
+      # if not, we will create it with the section name and an empty line
+      "file_present" expression => fileexists("${file}");
+
   files:
       "${file}"
         create        => "true",
+        edit_line     => insert_lines("[${section}]
+"),
+        if            => "!file_present";
+
+      "${file}"
         edit_line     => set_variable_values_ini("file_key_value_present_in_ini_section.content", "${section}"),
         edit_defaults => ncf_empty_select("false"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
