@@ -303,7 +303,7 @@ class ShowNodeDetailsFromNode(
       "#logsDetails *"      #> Script(OnLoad(logDisplayer.asyncDisplay(node.id,None, "logsGrid"))) &
       "#node_parameters -*" #> (if(node.id == Constants.ROOT_POLICY_SERVER_ID) NodeSeq.Empty else nodeStateEditForm(node).nodeStateConfiguration) &
       "#node_parameters -*" #> agentPolicyModeEditForm.cfagentPolicyModeConfiguration(Some(node.id)) &
-      "#node_parameters -*" #> agentScheduleEditForm(node).cfagentScheduleConfiguration &
+      "#node_parameters -*" #> (if(node.isPolicyServer) NodeSeq.Empty else agentScheduleEditForm(node).cfagentScheduleConfiguration) &
       "#node_parameters *+" #> complianceModeEditForm(node).complianceModeConfiguration &
       "#node_tabs [id]"     #> s"details_${id}"
     ).apply(serverDetailsTemplate)
