@@ -18,6 +18,7 @@
 
 # @name Directory present
 # @description Create a directory if it doesn't exist
+# @documentation Create a directory if it doesn't exist.
 #
 # @parameter target Full path of directory to create (trailing '/' is optional)
 #
@@ -35,9 +36,9 @@ bundle agent directory_present(target)
 
   files:
     "${target}/."
-      create        => "true",
-      classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+      create  => "true",
+      classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "report"             usebundle => _log_v3("Create directory ${target}", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report" usebundle => _log_v3("Create directory ${target}", "${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

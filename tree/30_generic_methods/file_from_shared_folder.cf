@@ -17,7 +17,13 @@
 #####################################################################################
 
 # @name File copy from Rudder shared folder
-# @description Ensure that a file or directory is copied from Rudder shared folder (/var/rudder/configuration-repository/shared-files)
+# @description Ensure that a file or directory is copied from the Rudder shared folder.
+# @documentation Ensure that a file or directory is copied from the Rudder shared folder.
+# The Rudder shared folder is located on the Rudder server under `/var/rudder/configuration-repository/shared-files`.
+# Every file/folder in the shared folder will be available for every managed node.
+# This method will download and update the destination file from a source taken from this shared folder.
+# A file in the shared folder will be updated on the node side at agent run.
+#
 #
 # @parameter source      Source file (path, relative to /var/rudder/configuration-repository/shared-files)
 # @parameter destination Destination file (absolute path on the target node)
