@@ -2635,7 +2635,12 @@ form input.dyngroupReloadingButton, form button#launchDebugScriptButton{
   background-color:transparent;
   margin-top: 20px;
 }
-
+#pendingNodeConfirm_filter {
+  margin-bottom: 20px;
+}
+#pendingNodeConfirm_filter > label > input{
+  margin-left: 6px;
+}
 #pendingNodeConfirm{
   margin-top:10px;
 }
