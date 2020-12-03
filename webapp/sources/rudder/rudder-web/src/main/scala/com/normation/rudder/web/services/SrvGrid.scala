@@ -127,13 +127,6 @@ class SrvGrid(
   ) : JsCmd = {
 
 
-    val globalOverride = globalPolicyMode.overridable match {
-      case Always => true
-      case Unoverridable => false
-    }
-
-    val refresh = refreshNodes.map(refreshData(_,callback,tableId).toJsCmd).getOrElse("undefined")
-
     val nodeIds =  nodes.map(nodes => JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd).getOrElse("undefined")
     JsRaw(s"""nodeIds = ${nodeIds};
           | createNodeTable("${tableId}",function() {reloadTable("${tableId}")} );
