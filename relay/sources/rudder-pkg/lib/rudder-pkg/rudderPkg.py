@@ -84,7 +84,7 @@ def package_list_installed():
             if printLatest:
                 pkgs = plugin.Plugin(p)
                 pkgs.getAvailablePackages()
-                latestVersion = pkgs.getLatestCompatibleRelease().version
+                latestVersion = pkgs.getLatestCompatibleRelease(None).version
                 if currentVersion < latestVersion:
                     extra = "version %s is available"%(latestVersion.pluginLongVersion)
                 latestRelease.append(latestVersion.pluginLongVersion + " " + extra)
@@ -120,7 +120,7 @@ def package_list_name():
             pkgs = plugin.Plugin(p)
             pkgs.getAvailablePackages()
             try:
-                latestVersion = pkgs.getLatestCompatibleRelease().version.pluginLongVersion
+                latestVersion = pkgs.getLatestCompatibleRelease(None).version.pluginLongVersion
             except:
                 latestVersion = ""
             latestRelease.append(latestVersion)
@@ -143,9 +143,9 @@ def package_show(name, version, mode):
         rpkg = pkgs.getRpkgByLongVersion(version, mode)
     else:
         if mode == "release":
-            rpkg = pkgs.getLatestCompatibleRelease()
+            rpkg = pkgs.getLatestCompatibleRelease(None)
         else:
-            rpkg = pkgs.getLatestCompatibleNightly()
+            rpkg = pkgs.getLatestCompatibleNightly(None)
     if rpkg is not None:
         rpkg.show_metadata()
     else:
@@ -201,9 +201,9 @@ def package_install_latest(name, mode="release"):
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     if mode == "release":
-        rpkg = pkgs.getLatestCompatibleRelease()
+        rpkg = pkgs.getLatestCompatibleRelease(None)
     else:
-        rpkg = pkgs.getLatestCompatibleNightly()
+        rpkg = pkgs.getLatestCompatibleNightly(None)
     if rpkg is not None:
         rpkgPath = utils.downloadByRpkg(rpkg)
         install_file([rpkgPath])
@@ -233,10 +233,10 @@ def rudder_postupgrade():
         script_dir = utils.DB_DIRECTORY + "/" + plugin
         utils.run_script("postinst", script_dir, True)
 
-def check_compatibility():
+def check_compatibility(version):
     for p in utils.DB["plugins"]:
         metadata = utils.DB["plugins"][p]
-        if not utils.check_plugin_compatibility(metadata):
+        if not utils.check_plugin_compatibility(metadata, version):
             logger.warning("Plugin " + p + " is not compatible with rudder anymore, disabling it.")
             if 'jar-files' in metadata:
                 for j in metadata['jar-files']:
@@ -262,7 +262,7 @@ def plugin_save_status():
                 else:
                     print("disabled " + j)
 
-def plugin_restore_status():
+def plugin_restore_status(version):
     lines = sys.stdin.readlines()
     for line in lines:
         line = line.strip()
@@ -271,7 +271,7 @@ def plugin_restore_status():
             utils.jar_status(line.split(' ')[1], True)
         if line.startswith("disabled "):
             utils.jar_status(line.split(' ')[1], False)
-    check_compatibility()
+    check_compatibility(version)
 
 def plugin_status(plugins, status):
     for plugin in plugins:
@@ -345,20 +345,20 @@ def update():
 """
     Upgrade all plugins install in their latest compatible version
 """
-def upgrade_all(mode):
+def upgrade_all(mode, version):
     for p in utils.DB["plugins"].keys():
         currentVersion = rpkg.PluginVersion(utils.DB["plugins"][p]["version"])
         latestVersion = currentVersion
         pkgs = plugin.Plugin(p)
         pkgs.getAvailablePackages()
         if mode == "nightly":
-            latest_packages = pkgs.getLatestCompatibleNightly()
+            latest_packages = pkgs.getLatestCompatibleNightly(version)
             if (latest_packages is None):
                 logger.debug("No newer nightly %s compatible versions found for the plugin %s"%(mode, p))
             else:
                 latestVersion = latest_packages.version
         else:
-            latest_packages = pkgs.getLatestCompatibleRelease()
+            latest_packages = pkgs.getLatestCompatibleRelease(version)
             if (latest_packages is None):
                 logger.debug("No newer release %s compatible versions found for the plugin %s"%(mode, p))
             else:
