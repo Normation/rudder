@@ -104,8 +104,8 @@ class Rpkg:
     def getMode(self):
         return self.version.mode
 
-    def isCompatible(self):
-        return utils.check_plugin_compatibility(self.metadata)
+    def isCompatible(self, version):
+        return utils.check_plugin_compatibility(self.metadata, version)
 
     def show_metadata(self):
         # Mandatory
@@ -177,6 +177,6 @@ class Rpkg:
         print(json.dumps(self.metadata, indent=4, sort_keys=True))
 
     def toTabulate(self):
-        return [self.longName, self.version.mode, self.version.pluginLongVersion, str(self.isCompatible())]
+        return [self.longName, self.version.mode, self.version.pluginLongVersion, str(self.isCompatible(None))]
 
 
