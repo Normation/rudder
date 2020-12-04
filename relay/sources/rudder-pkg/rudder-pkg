@@ -143,9 +143,9 @@ if __name__ == "__main__":
                 rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "release")
         else:
             if args['--nightly']:
-                rudderPkg.package_install_latest(args['<package>'], "nightly")
+                rudderPkg.package_install_latest(args['<package>'], "nightly", None)
             else:
-                rudderPkg.package_install_latest(args['<package>'],)
+                rudderPkg.package_install_latest(args['<package>'], "release", None)
     elif args['remove']:
         rudderPkg.remove(args['<package>'])
     elif args['rudder-postupgrade']:

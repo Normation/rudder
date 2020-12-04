@@ -197,13 +197,13 @@ def package_install_specific_version(name, longVersion, mode="release"):
     Install the latest available and compatible package for a given plugin.
     If no release mode is given, it will only look in the released rpkg.
 """
-def package_install_latest(name, mode="release"):
+def package_install_latest(name, mode="release", version = None):
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     if mode == "release":
-        rpkg = pkgs.getLatestCompatibleRelease(None)
+        rpkg = pkgs.getLatestCompatibleRelease(version)
     else:
-        rpkg = pkgs.getLatestCompatibleNightly(None)
+        rpkg = pkgs.getLatestCompatibleNightly(version)
     if rpkg is not None:
         rpkgPath = utils.downloadByRpkg(rpkg)
         install_file([rpkgPath])
@@ -365,6 +365,6 @@ def upgrade_all(mode, version):
                 latestVersion = latest_packages.version
         if currentVersion < latestVersion:
             logger.info("The plugin %s is installed in version %s. The version %s %s is available, the plugin will be upgraded."%(p, currentVersion.pluginLongVersion, mode, latestVersion.pluginLongVersion))
-            package_install_latest([p], mode)
+            package_install_latest([p], mode, version)
         else:
             logger.info("No newer %s compatible versions found for the plugin %s, disabling it."%(mode, p))
