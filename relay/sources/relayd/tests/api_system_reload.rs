@@ -18,7 +18,7 @@ mod tests {
         });
         assert!(common::start_api().is_ok());
 
-        let client = reqwest::Client::new();
+        let client = reqwest::blocking::Client::new();
         let response: serde_json::Value = serde_json::from_str(
             &client
                 .post("http://localhost:3030/rudder/relay-api/1/system/reload")

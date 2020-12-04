@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::error::Error;
+use crate::error::RudderError;
+use anyhow::Error;
 use openssl::hash::MessageDigest;
 use sha2::{Digest, Sha256, Sha512};
 use std::{fmt, str, str::FromStr};
@@ -22,7 +23,7 @@ impl Hash {
         if hash_type.is_valid_hash(&value) {
             Ok(Hash { hash_type, value })
         } else {
-            Err(Error::InvalidHash(value))
+            Err(RudderError::InvalidHash(value).into())
         }
     }
 }
@@ -41,10 +42,10 @@ impl FromStr for Hash {
                     value: parts[1].to_string(),
                 })
             } else {
-                Err(Error::InvalidHash(s.to_string()))
+                Err(RudderError::InvalidHash(s.to_string()).into())
             }
         } else {
-            Err(Error::InvalidHash(s.to_string()))
+            Err(RudderError::InvalidHash(s.to_string()).into())
         }
     }
 }
@@ -74,10 +75,11 @@ impl FromStr for HashType {
         match s {
             "sha256" => Ok(HashType::Sha256),
             "sha512" => Ok(HashType::Sha512),
-            _ => Err(Error::InvalidHashType {
+            _ => Err(RudderError::InvalidHashType {
                 invalid: s.to_string(),
                 valid: "sha256, sha512",
-            }),
+            }
+            .into()),
         }
     }
 }

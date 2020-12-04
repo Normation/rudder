@@ -23,17 +23,12 @@ use crate::{
         main::{Configuration, InventoryOutputSelect, OutputSelect, ReportingOutputSelect},
     },
     data::node::NodesList,
-    error::Error,
     output::database::{pg_pool, PgPool},
     processing::{inventory, reporting},
     stats::Stats,
 };
-use futures::{
-    future::{lazy, Future},
-    stream::Stream,
-    sync::mpsc,
-};
-use reqwest::r#async::Client;
+use anyhow::Error;
+use reqwest::Client;
 use std::{
     fs::create_dir_all,
     path::Path,
@@ -42,13 +37,15 @@ use std::{
     sync::{Arc, RwLock},
 };
 use structopt::clap::crate_version;
-use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
-use tracing::{debug, error, info};
-use tracing_log::LogTracer;
+use tokio::{
+    signal::unix::{signal, SignalKind},
+    sync::mpsc,
+};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::{
     filter::EnvFilter,
     fmt::{
-        format::{Format, Full, NewRecorder},
+        format::{DefaultFields, Format, Full},
         Formatter, Subscriber,
     },
     reload::Handle,
@@ -81,14 +78,18 @@ impl ExitStatus {
         match self {
             ExitStatus::Shutdown => 0,
             ExitStatus::Crash => 1,
-            ExitStatus::StartError(Error::ConfigurationParsing(_)) => 2,
-            ExitStatus::StartError(_) => 3,
+            ExitStatus::StartError(e) => match e.downcast_ref::<toml::de::Error>() {
+                // Configuration file error
+                Some(_e) => 2,
+                // Other error
+                None => 3,
+            },
         }
     }
 }
 
 type LogHandle =
-    Handle<EnvFilter, Formatter<NewRecorder, Format<Full, ()>, fn() -> std::io::Stdout>>;
+    Handle<EnvFilter, Formatter<DefaultFields, Format<Full, ()>, fn() -> std::io::Stdout>>;
 
 pub fn init_logger() -> Result<LogHandle, Error> {
     let builder = Subscriber::builder()
@@ -97,12 +98,7 @@ pub fn init_logger() -> Result<LogHandle, Error> {
         .with_env_filter("error")
         .with_filter_reloading();
     let reload_handle = builder.reload_handle();
-    let subscriber = builder.finish();
-    // Set logger for global context
-    tracing::subscriber::set_global_default(subscriber)?;
-
-    // Set logger for dependencies using log
-    LogTracer::init()?;
+    builder.init();
 
     Ok(reload_handle)
 }
@@ -113,7 +109,6 @@ pub fn check_configuration(cfg_dir: &Path) -> Result<(), Error> {
     Ok(())
 }
 
-#[allow(clippy::cognitive_complexity)]
 pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), Error> {
     // Start by setting log config
     let log_cfg = LogConfig::new(&cli_cfg.configuration_dir)?;
@@ -130,76 +125,97 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
     let stats = Arc::new(RwLock::new(Stats::default()));
     let job_config = JobConfig::new(cli_cfg, cfg, reload_handle)?;
 
-    // ---- Setup signal handlers ----
-
-    debug!("Setup signal handlers");
-
-    // SIGINT or SIGTERM: immediate shutdown
-    // TODO: graceful shutdown
-    let shutdown = Signal::new(SIGINT)
-        .flatten_stream()
-        .select(Signal::new(SIGTERM).flatten_stream())
-        .into_future()
-        .map(|_sig| {
-            info!("Signal received: shutdown requested");
-            exit(ExitStatus::Shutdown.code());
-        })
-        .map_err(|e| error!("signal error {}", e.0));
-
-    // SIGHUP: reload logging configuration + nodes list
-    let job_config_reload = job_config.clone();
-
-    let reload = Signal::new(SIGHUP)
-        .flatten_stream()
-        .map_err(|e| e.into())
-        .for_each(move |_signal| job_config_reload.reload())
-        .map_err(|e| error!("signal error {}", e));
-
     // ---- Start server ----
+
+    // Optimize for big servers: use multi-threaded scheduler
 
     let mut builder = tokio::runtime::Builder::new();
     if let Some(threads) = job_config.cfg.general.core_threads {
         builder.core_threads(threads);
     }
-    let mut runtime = builder
-        .blocking_threads(job_config.cfg.general.blocking_threads)
-        // TODO check why resume_unwind is not enough
-        .panic_handler(|_| exit(ExitStatus::Crash.code()))
-        .build()?;
+    if let Some(threads) = job_config.cfg.general.max_threads {
+        builder.max_threads(threads);
+    }
+    if let Some(threads) = job_config.cfg.general.blocking_threads {
+        warn!("blocking_threads is deprecated, replaced by max_threads");
 
+        if job_config.cfg.general.max_threads.is_some() {
+            warn!("max_threads was provided, ignoring blocking_threads");
+        } else {
+            warn!("using blocking_threads value as max_threads");
+            // max_threads ~= core_threads + blocking_threads
+            // and core_threads (=num cores) << blocking_threads so it is should
+            // be good enough to approximate
+            builder.max_threads(threads);
+        }
+    }
+    let mut runtime = builder.threaded_scheduler().enable_all().build()?;
+
+    // TODO: recheck panic/error behavior on tokio 0.2
     // don't use block_on_all as it panics on main future panic but not others
-    runtime.spawn(lazy(move || {
-        tokio::spawn(reload);
-        tokio::spawn(shutdown);
+    runtime.block_on(async {
+        // Setup signal handlers first
+        let job_config_reload = job_config.clone();
+        signal_handlers(job_config_reload);
 
+        // Spawn stats system
         let (tx_stats, rx_stats) = mpsc::channel(1_024);
-
         tokio::spawn(Stats::receiver(stats.clone(), rx_stats));
-        tokio::spawn(api::run(
-            &job_config.cfg.general.listen,
-            job_config.clone(),
-            stats.clone(),
-        ));
 
+        // Spawn report and inventory processing
         if job_config.cfg.processing.reporting.output.is_enabled() {
-            reporting::start(&job_config, &tx_stats);
+            reporting::start(&job_config, tx_stats.clone());
         } else {
             info!("Skipping reporting as it is disabled");
         }
-
         if job_config.cfg.processing.inventory.output.is_enabled() {
-            inventory::start(&job_config, &tx_stats);
+            inventory::start(&job_config, tx_stats);
         } else {
             info!("Skipping inventory as it is disabled");
         }
 
-        info!("Server started");
-        Ok(())
-    }));
+        // API should never return
+        api::run(job_config.clone(), stats.clone())
+            .await
+            .expect("could not start api");
+    });
 
-    // waits for completion of all futures
-    runtime.shutdown_on_idle().wait().expect("shutdown failed");
     panic!("Server halted unexpectedly");
+}
+
+fn signal_handlers(job_config: Arc<JobConfig>) {
+    // SIGHUP: reload logging configuration + nodes list
+    tokio::spawn(async move {
+        debug!("Setup configuration reload signal handler");
+
+        let mut hangup = signal(SignalKind::hangup()).expect("Error setting up interrupt signal");
+        loop {
+            hangup.recv().await;
+            let _ = job_config
+                .reload()
+                .map_err(|e| error!("reload error {}", e));
+        }
+    });
+
+    // SIGINT or SIGTERM: immediate shutdown
+    // TODO: graceful shutdown
+    tokio::spawn(async {
+        debug!("Setup shutdown signal handler");
+
+        let mut terminate =
+            signal(SignalKind::terminate()).expect("Error setting up interrupt signal");
+        let mut interrupt =
+            signal(SignalKind::interrupt()).expect("Error setting up interrupt signal");
+        tokio::select! {
+            _ = terminate.recv() => {
+                info!("SIGINT received: shutdown requested");
+            },
+            _ = interrupt.recv() => {
+                info!("SIGTERM received: shutdown requested");
+            }
+        }
+        exit(ExitStatus::Shutdown.code());
+    });
 }
 
 pub struct JobConfig {
@@ -217,7 +233,7 @@ impl JobConfig {
         cfg: Configuration,
         handle: LogHandle,
     ) -> Result<Arc<Self>, Error> {
-        // Create dirs
+        // Create needed directories
         if cfg.processing.inventory.output != InventoryOutputSelect::Disabled {
             create_dir_all(cfg.processing.inventory.directory.join("incoming"))?;
             create_dir_all(

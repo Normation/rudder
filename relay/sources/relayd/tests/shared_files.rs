@@ -26,7 +26,7 @@ mod tests {
 
         assert!(common::start_api().is_ok());
 
-        let client = reqwest::Client::new();
+        let client = reqwest::blocking::Client::new();
 
         // .sign created with:
         // tools/rudder-sign tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.priv tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.pub "node1.rudder.local"

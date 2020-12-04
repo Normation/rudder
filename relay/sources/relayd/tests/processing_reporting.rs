@@ -92,6 +92,7 @@ fn it_reads_and_inserts_a_runlog() {
     )
     .unwrap();
 
+    // Test that watcher works
     assert!(start_number(&db, 2).is_ok());
 
     // Test files have been removed
@@ -104,7 +105,7 @@ fn it_reads_and_inserts_a_runlog() {
     assert!(!Path::new(file_unknown).exists());
     assert!(Path::new(file_unknown_failed).exists());
 
-    let body = reqwest::get("http://localhost:3030/rudder/relay-api/1/system/stats")
+    let body = reqwest::blocking::get("http://localhost:3030/rudder/relay-api/1/system/stats")
         .unwrap()
         .text()
         .unwrap();

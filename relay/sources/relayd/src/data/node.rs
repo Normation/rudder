@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{error::Error, hashing::Hash};
+use crate::{error::RudderError, hashing::Hash};
+use anyhow::Error;
 use openssl::{stack::Stack, x509::X509};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::{
@@ -87,7 +88,8 @@ impl RawNodesList {
         trace!("Adding certificate for node {}", id);
         self.data
             .get_mut(id)
-            .ok_or_else(|| Error::CertificateForUnknownNode(id.to_string()))
+            .ok_or_else(|| RudderError::CertificateForUnknownNode(id.to_string()))
+            .map_err(|e| e.into())
             .and_then(|node| node.add_certificate(cert))
     }
 }
@@ -173,7 +175,7 @@ impl NodesList {
             .entries()
             // Rudder node id uses "userId"
             .find(|c| c.object().to_string() == "userId")
-            .ok_or(Error::MissingIdInCertificate)?
+            .ok_or(RudderError::MissingIdInCertificate)?
             .data()
             .as_utf8()?
             .to_string())

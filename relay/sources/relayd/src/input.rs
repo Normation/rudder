@@ -3,7 +3,8 @@
 
 pub mod watch;
 
-use crate::error::Error;
+use crate::error::RudderError;
+use anyhow::Error;
 use flate2::read::GzDecoder;
 use openssl::{
     pkcs7::{Pkcs7, Pkcs7Flags},
@@ -73,7 +74,7 @@ pub fn signature(input: &[u8], certs: &Stack<X509>) -> Result<String, Error> {
 
     // An empty content is possible in S/MIME, but is it an
     // error in the Rudder context.
-    let content = content.ok_or(Error::EmptyRunlog)?;
+    let content = content.ok_or(RudderError::EmptyRunlog)?;
 
     let mut flags = Pkcs7Flags::empty();
     // To remove text header

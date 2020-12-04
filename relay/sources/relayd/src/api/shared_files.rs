@@ -3,24 +3,105 @@
 
 use crate::{
     data::shared_file::{Metadata, SharedFile},
-    error::Error,
+    error::RudderError,
     JobConfig,
 };
-use bytes::IntoBuf;
+use anyhow::Error;
+use bytes::{buf::BufExt, Bytes};
 use chrono::Utc;
-use futures::future::Future;
 use humantime::parse_duration;
 use serde::{Deserialize, Serialize};
 use std::{
-    fs,
     io::{BufRead, BufReader, Read},
     str,
     str::FromStr,
     sync::Arc,
     time::Duration,
 };
-use tracing::{debug, span, warn, Level};
-use warp::{body::FullBody, http::StatusCode, Buf};
+use tokio::fs;
+use tracing::{debug, error, span, warn, Level};
+use warp::{body, filters::method, http::StatusCode, path, query, Filter, Reply};
+
+pub fn routes_1(
+    job_config: Arc<JobConfig>,
+) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+    let base = path!("shared-files" / String / String / String);
+
+    let job_config_head = job_config.clone();
+    let head = method::head()
+        .map(move || job_config_head.clone())
+        .and(base)
+        .and(query::<SharedFilesHeadParams>())
+        .and_then(move |j, target_id, source_id, file_id, params| {
+            handlers::head(target_id, source_id, file_id, params, j)
+        });
+
+    let job_config_put = job_config;
+    let put = method::put()
+        .map(move || job_config_put.clone())
+        .and(base)
+        .and(query::<SharedFilesPutParams>())
+        .and(body::bytes())
+        .and_then(move |j, target_id, source_id, file_id, params, buf| {
+            handlers::put(target_id, source_id, file_id, params, buf, j)
+        });
+
+    head.or(put)
+}
+
+pub mod handlers {
+    use super::*;
+    use crate::JobConfig;
+    use warp::{reply, Rejection, Reply};
+
+    pub async fn put(
+        target_id: String,
+        source_id: String,
+        file_id: String,
+        params: SharedFilesPutParams,
+        buf: Bytes,
+        job_config: Arc<JobConfig>,
+    ) -> Result<impl Reply, Rejection> {
+        Ok(reply::with_status(
+            "".to_string(),
+            match super::put(
+                target_id,
+                source_id,
+                file_id,
+                params,
+                job_config.clone(),
+                buf,
+            )
+            .await
+            {
+                Ok(x) => x,
+                Err(e) => {
+                    error!("error while processing request: {}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                }
+            },
+        ))
+    }
+
+    pub async fn head(
+        target_id: String,
+        source_id: String,
+        file_id: String,
+        params: SharedFilesHeadParams,
+        job_config: Arc<JobConfig>,
+    ) -> Result<impl Reply, Rejection> {
+        Ok(reply::with_status(
+            "".to_string(),
+            match super::head(target_id, source_id, file_id, params, job_config.clone()).await {
+                Ok(x) => x,
+                Err(e) => {
+                    error!("error while processing request: {}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                }
+            },
+        ))
+    }
+}
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct SharedFilesPutParams {
@@ -45,13 +126,13 @@ impl SharedFilesPutParams {
     }
 }
 
-pub fn put(
+pub async fn put(
     target_id: String,
     source_id: String,
     file_id: String,
     params: SharedFilesPutParams,
     job_config: Arc<JobConfig>,
-    body: FullBody,
+    body: Bytes,
 ) -> Result<StatusCode, Error> {
     let span = span!(
         Level::INFO,
@@ -70,19 +151,19 @@ pub fn put(
         .expect("Cannot read nodes list")
         .is_subnode(&file.target_id)
     {
-        put_local(file, params, job_config, body)
+        put_local(file, params, job_config, body).await
     } else if job_config.cfg.general.node_id == "root" {
-        Err(Error::UnknownNode(file.target_id))
+        Err(RudderError::UnknownNode(file.target_id).into())
     } else {
-        put_forward(file, params, job_config, body)
+        put_forward(file, params, job_config, body).await
     }
 }
 
-fn put_forward(
+async fn put_forward(
     file: SharedFile,
     params: SharedFilesPutParams,
     job_config: Arc<JobConfig>,
-    body: FullBody,
+    body: Bytes,
 ) -> Result<StatusCode, Error> {
     job_config
         .client
@@ -94,18 +175,18 @@ fn put_forward(
             file.url(),
         ))
         .query(&params)
-        .body(body.into_buf().collect::<Vec<u8>>())
+        .body(body)
         .send()
-        .wait()
+        .await
         .map(|r| r.status())
         .map_err(|e| e.into())
 }
 
-pub fn put_local(
+pub async fn put_local(
     file: SharedFile,
     params: SharedFilesPutParams,
     job_config: Arc<JobConfig>,
-    body: FullBody,
+    body: Bytes,
 ) -> Result<StatusCode, Error> {
     if !job_config
         .nodes
@@ -117,7 +198,7 @@ pub fn put_local(
         return Ok(StatusCode::NOT_FOUND);
     }
 
-    let mut stream = BufReader::new(body.into_buf().reader());
+    let mut stream = BufReader::new(body.reader());
     let mut raw_meta = String::new();
     // Here we cannot iterate on lines as the file content may not be valid UTF-8.
     let mut read = 2;
@@ -141,7 +222,7 @@ pub fn put_local(
         .read()
         .expect("Cannot read nodes list")
         .key_hash(&file.source_id)
-        .ok_or_else(|| Error::UnknownNode(file.source_id.to_string()))?;
+        .ok_or_else(|| RudderError::UnknownNode(file.source_id.to_string()))?;
     let key_hash = known_key_hash.hash_type.hash(&pubkey.public_key_to_der()?);
     if key_hash != known_key_hash {
         warn!(
@@ -173,7 +254,7 @@ pub fn put_local(
     }
 
     // Everything is correct, let's store the file
-    fs::create_dir_all(&base_path)?;
+    fs::create_dir_all(&base_path).await?;
     fs::write(
         &base_path.join(format!("{}.metadata", file.file_id)),
         format!(
@@ -190,8 +271,9 @@ pub fn put_local(
                 }
             }
         ),
-    )?;
-    fs::write(&base_path.join(file.file_id), file_content)?;
+    )
+    .await?;
+    fs::write(&base_path.join(file.file_id), file_content).await?;
     Ok(StatusCode::OK)
 }
 
@@ -200,7 +282,7 @@ pub struct SharedFilesHeadParams {
     hash: String,
 }
 
-pub fn head(
+pub async fn head(
     target_id: String,
     source_id: String,
     file_id: String,
@@ -224,15 +306,15 @@ pub fn head(
         .expect("Cannot read nodes list")
         .is_subnode(&file.target_id)
     {
-        head_local(file, params, job_config)
+        head_local(file, params, job_config).await
     } else if job_config.cfg.general.node_id == "root" {
-        Err(Error::UnknownNode(file.target_id))
+        Err(RudderError::UnknownNode(file.target_id).into())
     } else {
-        head_forward(file, params, job_config)
+        head_forward(file, params, job_config).await
     }
 }
 
-fn head_forward(
+async fn head_forward(
     file: SharedFile,
     params: SharedFilesHeadParams,
     job_config: Arc<JobConfig>,
@@ -248,12 +330,12 @@ fn head_forward(
         ))
         .query(&params)
         .send()
-        .wait()
+        .await
         .map(|r| r.status())
         .map_err(|e| e.into())
 }
 
-pub fn head_local(
+pub async fn head_local(
     file: SharedFile,
     params: SharedFilesHeadParams,
     job_config: Arc<JobConfig>,
@@ -272,7 +354,7 @@ pub fn head_local(
         return Ok(StatusCode::NOT_FOUND);
     }
 
-    let metadata = Metadata::from_str(&fs::read_to_string(&file_path)?)?;
+    let metadata = Metadata::from_str(&fs::read_to_string(&file_path).await?)?;
 
     Ok(if metadata.hash.value == params.hash {
         debug!(

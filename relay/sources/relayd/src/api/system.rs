@@ -1,14 +1,63 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{api::ApiResult, check_configuration, output::database::ping, Error, JobConfig};
+use crate::{
+    api::{ApiResponse, ApiResult},
+    check_configuration,
+    output::database::ping,
+    stats::Stats,
+    Error, JobConfig,
+};
 use serde::Serialize;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use structopt::clap::crate_version;
+use warp::{filters::method, path, reply, Filter, Reply};
 
+pub fn routes_1(
+    job_config: Arc<JobConfig>,
+    stats: Arc<RwLock<Stats>>,
+) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+    let base = path!("system" / ..);
+
+    let info = method::get().and(base).and(path!("info")).map(|| {
+        Ok(ApiResponse::new::<Error>("getSystemInfo", Ok(Some(Info::new())), None).reply())
+    });
+
+    let job_config_reload = job_config.clone();
+    let reload = method::post().and(base).and(path!("reload")).map(move || {
+        Ok(ApiResponse::<()>::new::<Error>(
+            "reloadConfiguration",
+            job_config_reload.clone().reload().map(|_| None),
+            None,
+        )
+        .reply())
+    });
+
+    let job_config_status = job_config;
+    let status = method::get().and(base).and(path!("status")).map(move || {
+        Ok(ApiResponse::new::<Error>(
+            "getStatus",
+            Ok(Some(Status::poll(job_config_status.clone()))),
+            None,
+        )
+        .reply())
+    });
+
+    // WARNING: Not stable, will be replaced soon
+    // Kept for testing mainly
+    let stats = method::get().and(base).and(path!("stats")).map(move || {
+        Ok(reply::json(
+            &(*stats.clone().read().expect("open stats database")),
+        ))
+    });
+
+    info.or(reload).or(status).or(stats)
+}
+
+// TODO could be in once_cell
 #[derive(Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-pub struct Info {
+struct Info {
     pub major_version: String,
     pub full_version: String,
 }
@@ -27,7 +76,7 @@ impl Info {
 }
 #[derive(Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub struct State {
+struct State {
     status: ApiResult,
     #[serde(skip_serializing_if = "Option::is_none")]
     details: Option<String>,
@@ -49,7 +98,7 @@ impl From<Result<(), Error>> for State {
 }
 
 #[derive(Serialize, Debug, PartialEq, Eq)]
-pub struct Status {
+struct Status {
     #[serde(skip_serializing_if = "Option::is_none")]
     database: Option<State>,
     configuration: State,

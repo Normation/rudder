@@ -18,41 +18,42 @@ harness = false
 name = "benches"
 
 [dependencies]
-bytes = "0.4"
-chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1"
+bytes = "0.5"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 diesel = { version = "1", default-features = false, features = ["postgres", "chrono", "r2d2"] }
-flate2 = { version = "1", default-features = false, features = ["zlib"] }
-futures = "0.1"
+# Uses rust implementation by default
+flate2 = "1"
+futures = "0.3"
 hex = "0.4"
-hyper = { version = "0.12", default-features = false }
-inotify = "0.7"
+humantime = "2"
+# 0.13.9 for tokio 0.3
+hyper = { version = "0.13.8", default-features = false }
+# 0.9 for tokio 0.3
+inotify = "0.8"
 log = "0.4"
 md-5 = "0.9"
-nom = "5"
+nom = "6"
 openssl = "0.10"
 regex = "1"
-reqwest = "0.9"
+# Use openssl for TLS to be consistent
+reqwest = { version = "0.10", default-features = false, features = ["stream", "blocking", "native-tls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.9"
 structopt = { version = "0.3", default-features = false }
 thiserror = "1"
-tokio = { version = "0.1", default-features = false, features = ["experimental-tracing"] }
-tokio-io = "0.1"
-tokio-process = "0.2"
-tokio-signal = "0.2"
-tokio-threadpool = "0.1"
+tokio = { version = "0.2", default-features = false, features = ["rt-threaded", "io-driver", "io-std", "process", "macros", "stream", "signal", "fs", "blocking"] }
 toml = "0.5"
 # Compile dev and release with trace logs enabled
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
-tracing-log = { version = "0.1", default-features = false, features = ["log-tracer"] }
-tracing-subscriber = { version = "0.1", default-features = false, features = ["env-filter", "fmt", "tracing-log"] }
-warp = { version = "0.1", default-features = false }
-humantime = "2"
-zip = "0.5"
+tracing-subscriber = { version = "0.2", default-features = false, features = ["env-filter", "smallvec", "fmt", "tracing-log"] }
+warp = { version = "0.2", default-features = false }
+# Use rust implementation
+zip = { version = "0.5", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 criterion = "0.3"
 filetime = "0.2"
-tempfile = "3"
 proptest = "0.10"
+tempfile = "3"

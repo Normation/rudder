@@ -9,7 +9,7 @@ use std::{
     fs::{copy, create_dir_all, remove_dir_all},
     path::{Path, PathBuf},
     thread,
-    time::{self, Duration},
+    time::Duration,
 };
 
 #[test]
@@ -34,16 +34,19 @@ fn it_cleans_old_reports() {
     set_file_times(file_very_old, FileTime::zero(), FileTime::zero()).unwrap();
 
     thread::spawn(move || {
-        tokio::run(cleanup(
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+
+        rt.block_on(cleanup(
             PathBuf::from("target/tmp/reporting_old/incoming"),
             CleanupConfig {
                 frequency: Duration::from_secs(1),
                 retention: Duration::from_secs(60),
             },
-        ));
+        ))
+        .unwrap();
     });
 
-    thread::sleep(time::Duration::from_millis(500));
+    thread::sleep(Duration::from_millis(500));
 
     // Old file has been cleaned up
     assert!(Path::new(file_new).exists());

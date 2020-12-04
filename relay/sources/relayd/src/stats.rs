@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use futures::{stream::Stream, sync::mpsc, Future};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
+use tokio::sync::mpsc;
 use tracing::trace;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -41,17 +41,13 @@ impl Stats {
         }
     }
 
-    pub fn receiver(
-        stats: Arc<RwLock<Self>>,
-        rx: mpsc::Receiver<Event>,
-    ) -> impl Future<Item = (), Error = ()> {
-        rx.for_each(move |event| {
+    pub async fn receiver(stats: Arc<RwLock<Self>>, mut rx: mpsc::Receiver<Event>) {
+        while let Some(event) = rx.recv().await {
             stats
                 .write()
                 .expect("could not write lock stats")
                 .event(event);
             trace!("Received stat event: {:?}", event);
-            Ok(())
-        })
+        }
     }
 }

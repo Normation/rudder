@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{configuration::Secret, data::node::NodeId, error::Error};
+use crate::{configuration::Secret, data::node::NodeId};
+use anyhow::Error;
 use serde::{
     de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
     Deserialize,
@@ -108,8 +109,12 @@ pub struct GeneralConfig {
     pub listen: String,
     /// None means using the number of available CPUs
     pub core_threads: Option<usize>,
-    #[serde(default = "GeneralConfig::default_blocking_threads")]
-    pub blocking_threads: usize,
+    /// Deprecated in 7.0, tokio changed the way it counts threads
+    pub blocking_threads: Option<usize>,
+    /// Total number of threads used by tokio
+    // Take default from tokio, currently 512
+    // https://docs.rs/tokio/0.2.23/tokio/runtime/struct.Builder.html#method.max_threads
+    pub max_threads: Option<usize>,
 }
 
 impl GeneralConfig {
@@ -123,10 +128,6 @@ impl GeneralConfig {
 
     fn default_listen() -> String {
         "127.0.0.1:3030".to_string()
-    }
-
-    fn default_blocking_threads() -> usize {
-        100
     }
 }
 
@@ -475,7 +476,6 @@ mod tests {
         let default = "[general]\n\
                        node_id = \"root\"";
         let config = default.parse::<Configuration>();
-        dbg!(&config);
 
         let reference = Configuration {
             general: GeneralConfig {
@@ -484,7 +484,8 @@ mod tests {
                 node_id: "root".to_string(),
                 listen: "127.0.0.1:3030".parse().unwrap(),
                 core_threads: None,
-                blocking_threads: 100,
+                max_threads: None,
+                blocking_threads: None,
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {
@@ -571,7 +572,8 @@ mod tests {
                 node_id: "root".to_string(),
                 listen: "127.0.0.1:3030".parse().unwrap(),
                 core_threads: None,
-                blocking_threads: 100,
+                max_threads: Some(512),
+                blocking_threads: None,
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {

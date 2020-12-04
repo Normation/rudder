@@ -22,7 +22,7 @@ mod tests {
         });
 
         assert!(common::start_api().is_ok());
-        let client = reqwest::Client::new();
+        let client = reqwest::blocking::Client::new();
 
         // Async & keep
 
@@ -33,7 +33,7 @@ mod tests {
             ("classes", "class2,class3"),
             ("nodes", "root"),
         ];
-        let mut response = client
+        let response = client
             .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
             .form(&params_async)
             .send()
@@ -52,7 +52,7 @@ mod tests {
             ("classes", "class2,class45"),
             ("nodes", "e745a140-40bc-4b86-b6dc-084488fc906b"),
         ];
-        let mut response = client
+        let response = client
             .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
             .form(&params_async)
             .send()
@@ -70,7 +70,7 @@ mod tests {
             ("keep_output", "true"),
             ("classes", "class2,class46"),
         ];
-        let mut response = client
+        let response = client
             .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes/e745a140-40bc-4b86-b6dc-084488fc906b")
             .form(&params_async)
             .send()
@@ -91,7 +91,7 @@ mod tests {
             ("classes", "class2,class4"),
             ("nodes", "root"),
         ];
-        let mut response = client
+        let response = client
             .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
             .form(&params_sync)
             .send()
@@ -114,7 +114,7 @@ mod tests {
             ("classes", "class2,class5"),
             ("nodes", "root"),
         ];
-        let mut response = client
+        let response = client
             .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
             .form(&params_sync)
             .send()
@@ -135,7 +135,7 @@ mod tests {
             ("classes", "class2,class6"),
             ("nodes", "root"),
         ];
-        let mut response = client
+        let response = client
             .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
             .form(&params_sync)
             .send()
@@ -155,11 +155,16 @@ mod tests {
             ("classes", "clas~1,class2,class3"),
             ("nodes", "node2.rudder.local,server.rudder.local"),
         ];
-        let res = client
+        let response = client
             .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
             .form(&params)
-            .send();
+            .send()
+            .unwrap();
 
-        assert_eq!(res.unwrap().text().unwrap(), "Unhandled rejection: invalid condition: clas~1, should match ^[a-zA-Z0-9][a-zA-Z0-9_]*$".to_string());
+        assert_eq!(response.status(), hyper::StatusCode::BAD_REQUEST);
+        assert_eq!(
+            response.text().unwrap(),
+            "invalid condition: clas~1, should match ^[a-zA-Z0-9][a-zA-Z0-9_]*$".to_string()
+        );
     }
 }

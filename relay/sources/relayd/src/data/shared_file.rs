@@ -2,9 +2,10 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    error::Error,
+    error::RudderError,
     hashing::{Hash, HashType},
 };
+use anyhow::Error;
 use openssl::{
     error::ErrorStack,
     pkey::{PKey, Public},
@@ -26,7 +27,7 @@ impl FromStr for SignatureFormat {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "rudder-signature-v1" => Ok(Self::RudderV1),
-            _ => Err(Error::InvalidHeader(s.to_string())),
+            _ => Err(RudderError::InvalidHeader(s.to_string()).into()),
         }
     }
 }
@@ -58,22 +59,23 @@ impl SharedFile {
         // More than enough for node ids too but we don't have a precise spec
         let check = Regex::new(r"^[(?-u:\w)\-.]+$").unwrap();
         if !check.is_match(&source_id) {
-            return Err(Error::InvalidSharedFile(format!(
+            return Err(RudderError::InvalidSharedFile(format!(
                 "invalid source_id: {}",
                 source_id
-            )));
+            ))
+            .into());
         }
         if !check.is_match(&target_id) {
-            return Err(Error::InvalidSharedFile(format!(
+            return Err(RudderError::InvalidSharedFile(format!(
                 "invalid target_id: {}",
                 target_id
-            )));
+            ))
+            .into());
         }
         if !check.is_match(&file_id) {
-            return Err(Error::InvalidSharedFile(format!(
-                "invalid file_id: {}",
-                source_id
-            )));
+            return Err(
+                RudderError::InvalidSharedFile(format!("invalid file_id: {}", source_id)).into(),
+            );
         }
         Ok(SharedFile {
             source_id,
@@ -141,7 +143,8 @@ impl FromStr for Metadata {
         for line in s.lines() {
             let kv: Vec<&str> = line.splitn(2, '=').collect();
             if kv.len() == 2 && parsed.insert(kv[0], kv[1]).is_some() {
-                return Err(Error::DuplicateHeader(line.to_string()));
+                let e: Error = RudderError::DuplicateHeader(line.to_string()).into();
+                return Err(e);
             }
         }
 
@@ -152,7 +155,7 @@ impl FromStr for Metadata {
             headers
                 .get(key)
                 .copied()
-                .ok_or_else(|| Error::MissingHeader(key.to_string()))
+                .ok_or_else(|| RudderError::MissingHeader(key.to_string()).into())
         }
 
         let format = extract(&parsed, "header")?.parse::<SignatureFormat>()?;
@@ -163,7 +166,7 @@ impl FromStr for Metadata {
 
         let digest = extract(&parsed, "digest")?.to_string();
         // Validate hexadecimal string
-        hex::decode(&digest).map_err(|_| Error::InvalidHeader(digest.clone()))?;
+        hex::decode(&digest).map_err(|_| RudderError::InvalidHeader(digest.clone()))?;
 
         let short_pubkey = extract(&parsed, "short_pubkey")?.to_string();
         // validate public key

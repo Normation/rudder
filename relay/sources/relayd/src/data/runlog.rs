@@ -6,9 +6,10 @@ use crate::{
         report::{runlog, RawReport},
         Report, RunInfo,
     },
-    error::Error,
+    error::RudderError,
     output::database::schema::reportsexecution,
 };
+use anyhow::Error;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -82,7 +83,7 @@ impl RunLog {
                 .file_name()
                 .and_then(|r| r.to_str())
                 .ok_or_else(|| {
-                    Error::InvalidRunInfo(path.as_ref().to_str().unwrap_or("").to_string())
+                    RudderError::InvalidRunInfo(path.as_ref().to_str().unwrap_or("").to_string())
                 })?,
         )?;
         RunLog::try_from((info, read_to_string(path)?.as_ref()))
@@ -121,7 +122,7 @@ impl TryFrom<(RunInfo, &str)> for RunLog {
             }
             Err(e) => {
                 warn!("{:?}: could not parse '{}'", e, raw_reports.0);
-                Err(Error::InvalidRunLog(format!("{:?}", e)))
+                Err(RudderError::InvalidRunLog(format!("{:?}", e)).into())
             }
         }
     }
@@ -139,7 +140,7 @@ impl TryFrom<(RunInfo, Vec<RawReport>)> for RunLog {
         let info = raw_reports.0;
         let timestamp = reports
             .first()
-            .ok_or(Error::InconsistentRunlog)?
+            .ok_or(RudderError::InconsistentRunlog)?
             .start_datetime;
 
         // Try to extract a configId from start or end control reports
@@ -158,7 +159,8 @@ impl TryFrom<(RunInfo, Vec<RawReport>)> for RunLog {
                     "Wrong node id in report {:#?}, got {} but should be {}",
                     report, report.node_id, info.node_id
                 );
-                return Err(Error::InconsistentRunlog);
+                let e: Error = RudderError::InconsistentRunlog.into();
+                return Err(e);
             }
             if timestamp != report.start_datetime {
                 warn!(

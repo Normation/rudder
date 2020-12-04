@@ -19,7 +19,7 @@ mod tests {
         assert!(common::start_api().is_ok());
 
         let response: serde_json::Value = serde_json::from_str(
-            &reqwest::get("http://localhost:3030/rudder/relay-api/1/system/status")
+            &reqwest::blocking::get("http://localhost:3030/rudder/relay-api/1/system/status")
                 .unwrap()
                 .text()
                 .unwrap(),
@@ -39,7 +39,7 @@ mod tests {
         .unwrap();
 
         let response: serde_json::Value = serde_json::from_str(
-            &reqwest::get("http://localhost:3030/rudder/relay-api/1/system/status")
+            &reqwest::blocking::get("http://localhost:3030/rudder/relay-api/1/system/status")
                 .unwrap()
                 .text()
                 .unwrap(),
@@ -52,7 +52,7 @@ mod tests {
         )
         .unwrap();
 
-        let reference: serde_json::Value = serde_json::from_str("{\"data\":{\"database\":{\"status\":\"success\"},\"configuration\":{\"status\":\"error\", \"details\": \"I/O error: No such file or directory (os error 2)\"}},\"result\":\"success\",\"action\":\"getStatus\"}").unwrap();
+        let reference: serde_json::Value = serde_json::from_str("{\"data\":{\"database\":{\"status\":\"success\"},\"configuration\":{\"status\":\"error\", \"details\": \"No such file or directory (os error 2)\"}},\"result\":\"success\",\"action\":\"getStatus\"}").unwrap();
 
         assert_eq!(reference, response);
     }

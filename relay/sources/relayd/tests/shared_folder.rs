@@ -20,7 +20,7 @@ mod tests {
 
         assert!(common::start_api().is_ok());
 
-        let client = reqwest::Client::new();
+        let client = reqwest::blocking::Client::new();
 
         // curl --head http://127.0.0.1:3030/rudder/relay-api/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/37817c4d-fbf7-4850-a985-50021f4e8f41/file?hash_type=sha256?hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d3b
 
@@ -43,7 +43,7 @@ mod tests {
             .send()
             .unwrap();
 
-        assert_eq!(500, hashes_invalid.status());
+        assert_eq!(400, hashes_invalid.status());
 
         let no_hash_sent = client
             .head("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/37817c4d-fbf7-4850-a985-50021f4e8f41/file?hash_type=sha256&hash=")
@@ -59,14 +59,14 @@ mod tests {
 
         assert_eq!(404, wrong_path.status());
 
-        let internal_error = client
+        let request_error = client
             .head("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/37817c4d-fbf7-4850-a985-50021f4e8f41/file?hash_type=wrong-hash-type&hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d3b")
             .send()
             .unwrap();
 
-        assert_eq!(500, internal_error.status());
+        assert_eq!(400, request_error.status());
 
-        let mut get_succeeds = client
+        let get_succeeds = client
             .get("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/37817c4d-fbf7-4850-a985-50021f4e8f41/file")
             .send()
             .unwrap();
@@ -74,12 +74,12 @@ mod tests {
         assert_eq!(200, get_succeeds.status());
         assert_eq!(get_succeeds.text().unwrap(), "123\n");
 
-        let mut get_fails = client
+        let get_fails = client
             .get("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/doesnotexist")
             .send()
             .unwrap();
 
         assert_eq!(404, get_fails.status());
-        assert_eq!(get_fails.text().unwrap(), "");
+        assert_eq!(get_fails.text().unwrap(), "NOT FOUND");
     }
 }

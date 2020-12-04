@@ -19,7 +19,7 @@ mod tests {
         assert!(common::start_api().is_ok());
 
         let response: serde_json::Value = serde_json::from_str(
-            &reqwest::get("http://localhost:3030/rudder/relay-api/1/system/info")
+            &reqwest::blocking::get("http://localhost:3030/rudder/relay-api/1/system/info")
                 .unwrap()
                 .text()
                 .unwrap(),
