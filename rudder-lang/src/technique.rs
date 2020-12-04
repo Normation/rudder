@@ -225,7 +225,7 @@ impl MethodCall {
     fn to_rudderlang(&self, lib: &RudderlangLib) -> Result<String> {
         let lib_method: LibMethod = lib.method_from_str(&self.method_name)?;
 
-        let (mut params, template_vars) = self.format_parameters()?;
+        let (mut params, template_vars) = self.format_parameters(&lib_method)?;
         // check. note: replace `1` by resource param count? not yet, error if several parameters
         let param_count = lib_method.resource.parameters.len() + lib_method.state.parameters.len();
         if params.len() != param_count {
@@ -288,10 +288,10 @@ impl MethodCall {
         ))
     }
 
-    fn format_parameters(&self) -> Result<(Vec<String>, Vec<String>)> {
+    fn format_parameters(&self, lib_method: &LibMethod) -> Result<(Vec<String>, Vec<String>)> {
         let mut vars = Vec::new();
         let mut template_vars = Vec::new();
-        for p in &self.parameters {
+        for p in &self.sort_from_lib(lib_method) {
             match p.to_rudderlang(template_vars.len())? {
                 (var, Some(template_var)) => {
                     vars.push(var);
@@ -302,6 +302,25 @@ impl MethodCall {
         }
         template_vars.push("".to_owned());
         Ok((vars, template_vars))
+    }
+
+    fn sort_from_lib(&self, lib_method: &LibMethod) -> Vec<Parameter> {
+        let lib_params = lib_method
+            .resource
+            .parameters
+            .iter()
+            .chain(lib_method.state.parameters.iter())
+            .map(|p| p.name.fragment())
+            .collect::<Vec<&str>>();
+        // sort parameters in lib order
+        lib_params.iter().fold(Vec::new(), |mut vec, name| {
+            for parameter in self.parameters.clone() {
+                if &parameter.name == name {
+                    vec.push(parameter)
+                }
+            }
+            vec
+        })
     }
 
     // TODO parse content so interpolated variables are handled properly
@@ -379,7 +398,7 @@ impl Resource {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 struct Parameter {
     name: String, // not used in rudder-lang
     value: String,
