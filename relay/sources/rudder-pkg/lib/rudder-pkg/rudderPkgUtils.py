@@ -264,7 +264,7 @@ def download_and_verify(completeUrl, dst=""):
 def downloadByRpkg(rpkg):
     return download_and_verify(URL + "/" + rpkg.path)
 
-def package_check(metadata):
+def package_check(metadata, version):
   if 'type' not in metadata or metadata['type'] != 'plugin':
     fail("Package type not supported")
   # sanity checks
@@ -275,7 +275,7 @@ def package_check(metadata):
     fail("Package version undefined")
   # incompatibility check
   if metadata['type'] == 'plugin':
-    if not check_plugin_compatibility(metadata, None):
+    if not check_plugin_compatibility(metadata, version):
       fail("Package incompatible with this Rudder version, please try another plugin version")
   # do not compare with exiting version to allow people to reinstall or downgrade
   return name in DB['plugins']

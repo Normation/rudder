@@ -20,14 +20,14 @@ logger = logging.getLogger("rudder-pkg")
     Expect a list of path as parameter.
     Try to install the given rpkgs.
 """
-def install_file(package_files):
+def install_file(package_files, version):
     for package_file in package_files:
         logger.info("Installing " + package_file)
         # First, check if file exists
         if not os.path.isfile(package_file):
             utils.fail("Error: Package file " + package_file + " does not exist")
         metadata = utils.rpkg_metadata(package_file)
-        exist = utils.package_check(metadata)
+        exist = utils.package_check(metadata, version)
         # As dependencies are only displayed messages for now,
         # wait until the end to make them visible.
         # This should be moved before actual installation once implemented.
@@ -189,7 +189,7 @@ def package_install_specific_version(name, longVersion, mode="release"):
     rpkg = pkgs.getRpkgByLongVersion(longVersion, mode)
     if rpkg is not None:
         rpkgPath = utils.downloadByRpkg(rpkg)
-        install_file([rpkgPath])
+        install_file([rpkgPath], None)
     else:
         utils.fail("Could not find any package for %s in version %s"%(name, longVersion))
 
@@ -206,7 +206,7 @@ def package_install_latest(name, mode="release", version = None):
         rpkg = pkgs.getLatestCompatibleNightly(version)
     if rpkg is not None:
         rpkgPath = utils.downloadByRpkg(rpkg)
-        install_file([rpkgPath])
+        install_file([rpkgPath], version)
     else:
         utils.fail("Could not find any compatible %s for %s"%(mode, name))
 
