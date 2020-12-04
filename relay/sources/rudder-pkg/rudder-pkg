@@ -99,7 +99,7 @@ if __name__ == "__main__":
     utils.readConf()
 
     if args['install-file']:
-        rudderPkg.install_file(args['<package.rpkg>'])
+        rudderPkg.install_file(args['<package.rpkg>'], None)
     if args['show']:
         version = ""
         mode = "release"
