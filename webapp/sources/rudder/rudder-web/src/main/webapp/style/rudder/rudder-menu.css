@@ -239,6 +239,9 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
   border-color: #62801e;
 }
 
+.skin-yellow .sidebar-menu>li>a>.fa{
+  margin-right: 2px;
+}
 .content-wrapper .radio input[type="radio"],
 .content-wrapper .radio-inline input[type="radio"],
 .content-wrapper .checkbox input[type="checkbox"],
