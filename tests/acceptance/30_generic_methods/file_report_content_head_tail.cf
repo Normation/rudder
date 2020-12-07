@@ -91,7 +91,7 @@ bundle agent result(id, result)
 #######################################################
 
 bundle agent check
-{  
+{
   classes:
     "ok_1" expression => strcmp("${init.file_1_expected}", "${result.file_1}");
     "ok_1_class" expression => "file_report_content_head_${init.file_1_canon}_kept.!file_report_content_head_${init.file_1_canon}_error";
@@ -103,7 +103,15 @@ bundle agent check
     "ok" expression => "ok_1.ok_2.ok_1_class.ok_2_class.ok_3_class.ok_4_class";
 
   reports:
-  "'${result.file_1}'";
+      "'${result.file_1}'";
+    !ok_1::
+      "Issue in 1";
+    !ok_2::
+      "Issue in 2";
+    !ok_3::
+      "Issue in 3";
+    !ok_4::
+      "Issue in 4";
     ok::
       "$(this.promise_filename) Pass";
     !ok::

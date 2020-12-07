@@ -37,6 +37,7 @@ bundle agent init
     "${source_file}"
       edit_line => insert_lines("test file"),
       create => "true";
+
     "${destination_file_3}"
       edit_line => insert_lines("test file"),
       create => "true";
@@ -50,7 +51,7 @@ bundle agent test
     "ph1"  usebundle => file_from_local_source_with_check("${init.source_file}", "${init.destination_file_1}", "/bin/true", "0");
     "ph2"  usebundle => file_from_local_source_with_check("${init.source_file}", "${init.destination_file_2}", "/bin/false", "0");
     "ph3"  usebundle => file_from_local_source_with_check("${init.source_file}", "${init.destination_file_3}", "/bin/false", "0");
-    "ph4"  usebundle => file_from_local_source_with_check("${init.source_file}", "${init.destination_file_4}", "/bin/false", "1");
+    "ph4"  usebundle => file_from_local_source_with_check("${init.source_file}", "${init.destination_file_4}", "exit 1", "1");
 }
 
 #######################################################
@@ -78,7 +79,7 @@ bundle agent check
     "ok_3" expression => "file_3.content_3.file_from_local_source_with_check_${init.destination_file_canon_3}_kept";
     "ok_4" expression => "file_4.content_4.file_from_local_source_with_check_${init.destination_file_canon_4}_repaired.!file_from_local_source_with_check_${init.destination_file_canon_4}_error";
     "ok" expression => "ok_1.ok_2.ok_3.ok_4";
-  
+
   reports:
     ok::
       "$(this.promise_filename) Pass";

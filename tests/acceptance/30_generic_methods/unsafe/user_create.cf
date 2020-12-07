@@ -44,7 +44,7 @@ bundle agent check
 {
   vars:
     pass1::
-      "user_line" string => execresult("/bin/grep '^${init.user}:' /etc/passwd", "useshell");
+      "user_line" string => execresult("${paths.path[grep]} '^${init.user}:' /etc/passwd", "useshell");
 
   classes:
     pass1::
@@ -53,7 +53,7 @@ bundle agent check
       "ph1_ok" expression => "!user_create_${init.user}_kept.user_create_${init.user}_repaired.!user_create_${init.user}_error";
 
       "ok" expression => "user1_ok.ph1_ok";
-    
+
     any::
       "pass1" expression => "any";
 

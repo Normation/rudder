@@ -43,12 +43,12 @@ bundle agent kernel_module_loaded(module_name)
       "pass1" expression => "any";
 
     pass1.!pass2::
-      "module_loaded_init_${canonified_module_name}"  expression => returnszero("/sbin/lsmod | cut -d ' '  -f 1 | grep -q ^${module_name}$ #Initial check for loading ${module_name}", "useshell");
+      "module_loaded_init_${canonified_module_name}"  expression => returnszero("/sbin/lsmod | cut -d ' '  -f 1 | ${paths.path[grep]} -q ^${module_name}$ #Initial check for loading ${module_name}", "useshell");
     pass1.!pass2.!(global_dry_run|dry_run)::
       "module_unloading_${canonified_module_name}" expression => returnszero("/sbin/modprobe ${module_name}", "useshell"),
         ifvarclass => "!module_loaded_init_${canonified_module_name}";
     pass3::
-      "module_loaded_final_${canonified_module_name}" expression => returnszero("/sbin/lsmod | cut -d ' '  -f 1 | grep -q ^${module_name}$ #Final check for loading ${module_name}", "useshell");
+      "module_loaded_final_${canonified_module_name}" expression => returnszero("/sbin/lsmod | cut -d ' '  -f 1 | ${paths.path[grep]} -q ^${module_name}$ #Final check for loading ${module_name}", "useshell");
 
   methods:
     pass3::

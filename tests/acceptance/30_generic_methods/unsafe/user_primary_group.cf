@@ -64,10 +64,10 @@ bundle agent init
     "indices" slist => getindices("user");
 
     pass2::
-      "line3"   string => execresult("${paths.grep} '^${user[3]}:' /etc/passwd", "useshell");
-      "line5"   string => execresult("${paths.grep} '^${user[5]}:' /etc/passwd", "useshell");
-      "line6"   string => execresult("${paths.grep} '^${user[6]}:' /etc/passwd", "useshell");
-      "line7"   string => execresult("${paths.grep} '^${user[7]}:' /etc/passwd", "useshell");
+      "line3"   string => execresult("${paths.path[grep]} '^${user[3]}:' /etc/passwd", "useshell");
+      "line5"   string => execresult("${paths.path[grep]} '^${user[5]}:' /etc/passwd", "useshell");
+      "line6"   string => execresult("${paths.path[grep]} '^${user[6]}:' /etc/passwd", "useshell");
+      "line7"   string => execresult("${paths.path[grep]} '^${user[7]}:' /etc/passwd", "useshell");
 
   classes:
       "pass2" expression => "pass1";
@@ -118,13 +118,13 @@ bundle agent check
       "gid2"       int => getgid("${init.primary_group[2]}");
       "uid${init.indices}" int => getuid("${init.user[${init.indices}]}");
 
-      "user_line1" string => execresult("${paths.grep} '^${init.user[1]}:' /etc/passwd", "useshell");
-      "user_line2" string => execresult("${paths.grep} '^${init.user[2]}:' /etc/passwd", "useshell");
-      "user_line3" string => execresult("${paths.grep} '^${init.user[3]}:' /etc/passwd", "useshell");
-      "user_line4" string => execresult("${paths.grep} '^${init.user[4]}:' /etc/passwd", "useshell");
-      "user_line5" string => execresult("${paths.grep} '^${init.user[5]}:' /etc/passwd", "useshell");
-      "user_line6" string => execresult("${paths.grep} '^${init.user[6]}:' /etc/passwd", "useshell");
-      "user_line7" string => execresult("${paths.grep} '^${init.user[7]}:' /etc/passwd", "useshell");
+      "user_line1" string => execresult("${paths.path[grep]} '^${init.user[1]}:' /etc/passwd", "useshell");
+      "user_line2" string => execresult("${paths.path[grep]} '^${init.user[2]}:' /etc/passwd", "useshell");
+      "user_line3" string => execresult("${paths.path[grep]} '^${init.user[3]}:' /etc/passwd", "useshell");
+      "user_line4" string => execresult("${paths.path[grep]} '^${init.user[4]}:' /etc/passwd", "useshell");
+      "user_line5" string => execresult("${paths.path[grep]} '^${init.user[5]}:' /etc/passwd", "useshell");
+      "user_line6" string => execresult("${paths.path[grep]} '^${init.user[6]}:' /etc/passwd", "useshell");
+      "user_line7" string => execresult("${paths.path[grep]} '^${init.user[7]}:' /etc/passwd", "useshell");
 
   classes:
     pass1::
@@ -139,7 +139,7 @@ bundle agent check
       "users_ok"   expression => "user1_ok.user2_ok.user3_ok.user4_ok.user5_ok.user6_ok.user7_ok";
       "classes_ok" expression => "ph1_ok.ph2_ok.ph3_ok.ph4_ok.ph5_ok.ph6_ok.ph7_ok";
       "ok"         expression => "users_ok.classes_ok";
-    
+
     any::
       "pass2"      expression => "pass1";
       "pass1"      expression => "any";

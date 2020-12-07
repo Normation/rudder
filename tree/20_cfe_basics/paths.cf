@@ -31,6 +31,11 @@ bundle common ncf_paths
       "path[augtool]" string => "/usr/bin/augtool",
                       unless => fileexists("/opt/rudder/bin/augtool");
 
+      "path[head]" string => "/usr/bin/head";
+      "path[tail]" string => "/usr/bin/tail";
+      "path[tail]" string => "/usr/xpg4/bin/tail",
+                       if => "solaris.(mpf_stdlib_use_posix_utils.!disable_mpf_stdlib_use_posix_utils)";
+
 
       "path[id]"     string => "/usr/bin/id";
 

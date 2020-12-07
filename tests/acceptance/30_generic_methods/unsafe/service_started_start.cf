@@ -47,7 +47,7 @@ bundle agent test
 bundle agent check
 {
   vars:
-    "command_ps" string => "/bin/ps afux | /bin/grep ${init.service_name} | /bin/grep -v grep";
+    "command_ps" string => "/bin/ps afux | ${paths.path[grep]} ${init.service_name} | ${paths.path[grep]} -v grep";
 
   classes:
       "service_running" expression => returnszero("${command_ps}", "useshell"),

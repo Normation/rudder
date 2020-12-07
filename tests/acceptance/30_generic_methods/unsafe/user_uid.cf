@@ -60,9 +60,9 @@ bundle agent check
 {
   vars:
     pass1::
-      "user_line1" string => execresult("/bin/grep '^${init.user1}:' /etc/passwd", "useshell");
-      "user_line2" string => execresult("/bin/grep '^${init.user2}:' /etc/passwd", "useshell");
-      "user_line3" string => execresult("/bin/grep '^${init.user3}:' /etc/passwd", "useshell");
+      "user_line1" string => execresult("${paths.path[grep]} '^${init.user1}:' /etc/passwd", "useshell");
+      "user_line2" string => execresult("${paths.path[grep]} '^${init.user2}:' /etc/passwd", "useshell");
+      "user_line3" string => execresult("${paths.path[grep]} '^${init.user3}:' /etc/passwd", "useshell");
 
   classes:
     any::

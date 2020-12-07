@@ -23,6 +23,7 @@ bundle agent init
 {
   vars:
     "tmp"          string => getenv("TEMP", 1024);
+
     "file_1"       string => "${tmp}/test_1";
     "file_1_canon" string => canonify("${file_1}");
     "file_2"       string => "${tmp}/test_2";
@@ -73,10 +74,10 @@ bundle agent test
 bundle agent check
 {
   vars:
-    "line_1_present_exists_test" string => "/bin/grep -E \"^${init.line_present}$\" \"${init.file_1}\"";
-    "line_1_added_exists_test"   string => "/bin/grep -E \"^${init.line_to_add}$\" \"${init.file_1}\"";
-    "line_2_present_exists_test" string => "/bin/grep -E \"^${init.line_present}$\" \"${init.file_2}\"";
-    "line_2_added_exists_test"   string => "/bin/grep -E \"^${init.line_to_add}$\" \"${init.file_2}\"";
+    "line_1_present_exists_test" string => "${paths.path[grep]} -E \"^${init.line_present}$\" \"${init.file_1}\"";
+    "line_1_added_exists_test"   string => "${paths.path[grep]} -E \"^${init.line_to_add}$\" \"${init.file_1}\"";
+    "line_2_present_exists_test" string => "${paths.path[grep]} -E \"^${init.line_present}$\" \"${init.file_2}\"";
+    "line_2_added_exists_test"   string => "${paths.path[grep]} -E \"^${init.line_to_add}$\" \"${init.file_2}\"";
     "file_3_test"                string => "/usr/bin/diff \"${init.ref_3}\" \"${init.file_3}\"";
 
   classes:

@@ -64,7 +64,7 @@ bundle agent file_report_content_tail(target, limit)
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
     pass1.file_exists::
-      "content" string => execresult("/usr/bin/tail -n${limit} \"${target}\"", "useshell");
+      "content" string => execresult("${ncf_paths.path[tail]} -n${limit} \"${target}\"", "useshell");
 
   defaults:
       "limit" string => "10", if_match_regex => "";

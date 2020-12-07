@@ -45,7 +45,7 @@ bundle agent test
 bundle agent check
 {
   vars:
-    "line_exists_test" string => "/bin/grep -E \"^${init.line_for_replacement}$\" \"${init.file}\"";
+    "line_exists_test" string => "${paths.path[grep]} -E \"^${init.line_for_replacement}$\" \"${init.file}\"";
 
   classes:
     # By default, file_replace_lines should create the file if it doesn't exist

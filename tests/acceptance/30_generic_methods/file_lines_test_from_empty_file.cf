@@ -47,7 +47,7 @@ bundle agent test
 bundle agent check
 {
   vars:
-    "line_exists_test" string => "/bin/grep -E \"^${init.line_to_test}$\" \"${init.file}\"";
+    "line_exists_test" string => "${paths.path[grep]} -E \"^${init.line_to_test}$\" \"${init.file}\"";
 
   classes:
     "file_exists" expression => fileexists("${init.file}");

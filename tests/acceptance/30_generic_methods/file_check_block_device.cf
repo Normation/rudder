@@ -1,7 +1,7 @@
 #########################################
 #
-# Test checking if a block device or not 
-# 
+# Test checking if a block device or not
+#
 #########################################
 
 bundle common acc_path
@@ -30,14 +30,24 @@ bundle agent init
     "block_device_canon"  string => canonify("${block_device}");
 
     "file_list"       slist => { "${file}", "${block_device}" };
+    solaris::
+      "mknod"          string => "/usr/sbin/mknod";
+    !solaris::
+      "mknod"          string => "/usr/bin/mknod";
 
   files:
     "${file}"
       create => "true";
 
   commands:
-    "/bin/mknod"
-      args => "-m 640 \"${block_device}\" b 7 0"; # /dev/loop0
+    "${mknod}"
+      args => "\"${block_device}\" b 7 0", # /dev/loop0
+      if => "solaris";
+
+    "${mknod}"
+      args => "-m 640 \"${block_device}\" b 7 0", # /dev/loop0
+      if => "!solaris";
+
 }
 
 #######################################################
