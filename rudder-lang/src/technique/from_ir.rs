@@ -14,7 +14,7 @@ impl<'src> From<&IR2<'src>> for Technique {
             .resources
             .iter()
             .filter_map(|(tk, res)| {
-                if tk.from_lib() {
+                if res.metadata.get("library") == Some(&TOMLValue::String("std".to_owned())) {
                     return None;
                 } else {
                     return Some(res);

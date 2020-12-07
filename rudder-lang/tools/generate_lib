@@ -327,6 +327,7 @@ def extract_resources(metadata):
     resources["variable"]["parameters"][0]["name"] = "prefix"
     resources["variable"]["parameters"][1]["name"] = "name"
     resources["variable"]["parameters"][1]["description"] = "The variable to define, the full name will be prefix.name"
+
     return resources
 
 
@@ -469,6 +470,7 @@ def generate_lib(resource_name, resource, lib_dir):
     file = lib_dir + "/" + resource_name + ".rl"
     out = open(file, "w")
     fmt_attribute(out, "format", "0")
+    fmt_attribute(out, "library", quoted("std"))
     out.write(
         "# This file contains stubs for states directly implemented in targets languages\n")
     out.write("\n\n")
