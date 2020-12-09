@@ -6,7 +6,7 @@ use nom::{
     Slice,
 };
 
-use super::{error::*, token::*};
+use super::{error::*, pmetadata_list, token::*};
 
 pub fn strip_comment(i: PInput) -> PResult<PInput> {
     // simple comments (ie # but not ##)
@@ -29,6 +29,13 @@ pub fn strip_spaces_and_comment(i: PInput) -> PResult<()> {
         // simple comments (ie # but not ##)
         strip_comment,
     )))(i)?;
+    Ok((i, ()))
+}
+
+/// Eat white spaces only: does not include newlines
+/// useful to check content that must start on a newline
+pub fn strip_spaces_strict(i: PInput) -> PResult<()> {
+    let (i, _) = many0(alt((tag(" "), tag("\t"))))(i)?;
     Ok((i, ()))
 }
 
@@ -196,7 +203,12 @@ where
     O: 'src,
 {
     wsequence!({
-            open: etag(open_delimiter);
+            open: sequence!({
+                open: etag(open_delimiter);
+                _check: or_fail(peek(terminated(strip_spaces_strict, not(tag("@")))), ||
+                    PErrorKind::UnsupportedMetadata("@".into(), "Metadatas must be defined at the beginning of a line")
+                );
+            } => open);
             list: parser;
             _x:   opt(tag(",")); // end of list comma is authorized but optional
             _y:   or_fail(tag(close_delimiter), || PErrorKind::UnterminatedOrInvalid(open));

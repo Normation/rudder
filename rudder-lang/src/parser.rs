@@ -5,13 +5,14 @@ mod baseparsers;
 mod error;
 mod token;
 
+use lazy_static::lazy_static;
 use nom::{
     branch::*, bytes::complete::*, character::complete::digit1, character::complete::*,
     combinator::*, error::*, multi::*, number::complete::*, sequence::*,
 };
-use toml::Value as TomlValue;
-
+use regex::{Captures, Regex};
 use std::collections::HashMap;
+use toml::Value as TomlValue;
 
 use crate::{error::*, io::output::Backtrace};
 use crate::{sequence, wsequence}; // macros are exported at the root of the crate
@@ -125,15 +126,31 @@ fn pheader(i: PInput) -> PResult<PHeader> {
 
 /// An enum item can be either a classic identifier or a *
 fn penum_item(i: PInput) -> PResult<(Vec<PMetadata>, Token)> {
-    wsequence!(
+    let (i, metadata) = match pmetadata_list(i) {
+        Ok(res) => res,
+        Err(e) => return Err(e),
+    };
+    match wsequence!(
         {
-            metadata: pmetadata_list;
             identifier: alt((
                 pidentifier,
                 map(tag("*"), |x: PInput| x.into()),
             ));
-        } => (metadata, identifier)
+        } => identifier
     )(i)
+    {
+        // returns either decl with added metadatas or error (bad format or unsupported by given declaration)
+        Ok((i, identifier)) => Ok((i, (metadata, identifier))),
+        // just return error found in declaration
+        Err(e) => Err(update_error_context(
+            e,
+            Context {
+                extractor: get_error_context,
+                text: i,
+                token: i,
+            },
+        )),
+    }
 }
 
 /// An enum is a list of values, like a C enum.
@@ -149,13 +166,12 @@ pub struct PEnum<'src> {
 fn penum(i: PInput) -> PResult<PEnum> {
     wsequence!(
         {
-            metadata: pmetadata_list;
             global: opt(estag("global"));
             e:      estag("enum");
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             items : delimited_nonempty_list("{", penum_item, ",", "}");
         } => PEnum {
-            metadata,
+            metadata: Vec::new(),
             global: global.is_some(),
             name,
             items,
@@ -173,10 +189,8 @@ pub struct PSubEnum<'src> {
 fn psub_enum(i: PInput) -> PResult<PSubEnum> {
     wsequence!(
         {
-            metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
             e:      estag("items");
             _i:     estag("in");
-            _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into()));
             enum_name: opt(terminated(pidentifier,etag(".")));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             items : delimited_nonempty_list("{", penum_item, ",", "}");
@@ -198,10 +212,11 @@ pub struct PEnumAlias<'src> {
 fn penum_alias(i: PInput) -> PResult<PEnumAlias> {
     wsequence!(
         {
-            metadata: pmetadata_list; // metadata unsupported here, check done after 'enum' tag
+            // metadata unsupported here, check done after 'enum' tag
+            metadata: pmetadata_list; // metadata is invalid here, check it after the 'if' tag below
             e:      estag("enum");
             _i:     estag("alias");
-            _fail:  or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into()));
+            _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into(), "enum alias definition"));
             name:   or_fail(pidentifier, || PErrorKind::InvalidName(e));
             _x:     ftag("=");
             enum_name: opt(terminated(pidentifier,etag(".")));
@@ -615,7 +630,7 @@ fn pcomplex_value(i: PInput) -> PResult<PComplexValue> {
             {
                 metadata: pmetadata_list; // metadata is invalid here, check it after the 'if' tag below
                 case: estag("if");
-                _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into()));
+                _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into(), "complex value definitions"));
                 value_case: pvalue_case;
                 :source(case..)
             } => PComplexValue { source, cases: vec![value_case] }
@@ -624,7 +639,7 @@ fn pcomplex_value(i: PInput) -> PResult<PComplexValue> {
             {
                 metadata: pmetadata_list; // metadata is invalid here, check it after the 'case' tag below
                 case: etag("case");
-                _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into()));
+                _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into(), "complex value definitions"));
                 cases: delimited_list("{", pvalue_case, ",", "}" );
                 :source(case..)
             } => PComplexValue { source, cases }
@@ -651,45 +666,60 @@ fn pcomplex_value(i: PInput) -> PResult<PComplexValue> {
 
 /// A metadata is a key/value pair that gives properties to the statement that follows.
 /// Currently metadata is not used by the compiler, just parsed, but that may change.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct PMetadata<'src> {
     pub source: Token<'src>,
     pub values: TomlValue,
 }
-fn pmetadata(i: PInput) -> PResult<PMetadata> {
+fn pmetadata(i: PInput) -> PResult<Option<PMetadata>> {
     let (i0, _) = strip_spaces_and_comment(i)?;
     let mut it = iterator(i0, delimited(tag("@"), not_line_ending, line_ending));
     let metadata_string = it.map(|v| *v.fragment()).collect::<Vec<&str>>().join("\n");
     let (rest, _) = it.finish()?;
     if &metadata_string == "" {
-        return Err(nom::Err::Error(PError {
-            context: None,
-            kind: PErrorKind::NoMetadata,
-            backtrace: Backtrace::empty(),
-        }));
+        return Ok((rest, None));
     }
 
     let values = match toml::de::from_str(&metadata_string) {
         Ok(v) => v,
-        Err(e) => {
-            return Err(nom::Err::Error(PError {
-                context: None,
-                kind: PErrorKind::TomlError(i, e),
+        Err(mut e) => {
+            lazy_static! {
+                static ref ERROR_MSG_RE: Regex =
+                    Regex::new(r"^(.*) at line \d+ column \d+$").unwrap();
+            };
+
+            // update line and column of toml error message.
+            let (line, col) = match e.line_col() {
+                // line: file line count must be added to local metadatas line count
+                // col: as toml receieves the string without the preceeding `@`, 1 must be added to the offset to have an exact value. + 1 to turn the index into a count
+                Some((line, col)) => (line + i.location_line() as usize, col + 1 + 1),
+                None => (i.location_line() as usize, i.location_offset()),
+            };
+            let err_msg: String = ERROR_MSG_RE
+                .replace(&e.to_string(), |caps: &Captures| caps[1].to_string())
+                .to_string();
+            return Err(nom::Err::Failure(PError {
+                context: Some(Context {
+                    extractor: get_error_context,
+                    text: rest,
+                    token: i,
+                }),
+                kind: PErrorKind::TomlError(i, line, col, err_msg),
                 backtrace: Backtrace::empty(),
-            }))
+            }));
         }
     };
 
     let source = get_parsed_context(i, i0, rest);
     let (rest, _) = strip_spaces_and_comment(rest)?;
-    Ok((rest, PMetadata { source, values }))
+    Ok((rest, Some(PMetadata { source, values })))
 }
 
 /// A parsed comment block starts with a ## and ends with the end of line.
 /// Such comment is parsed and kept contrarily to comments starting with '#'.
-fn pcomment(i: PInput) -> PResult<PMetadata> {
+fn pcomment(i: PInput) -> PResult<Option<PMetadata>> {
     let i0 = i;
-    let (i, lines) = many1(map(
+    let (i, lines) = many0(map(
         preceded(
             etag("##"),
             alt((
@@ -700,22 +730,51 @@ fn pcomment(i: PInput) -> PResult<PMetadata> {
         ),
         |x: PInput| x.to_string(),
     ))(i)?;
+    if lines.is_empty() {
+        return Ok((i, None));
+    }
     let source = get_parsed_context(i0, i0, i);
     let mut data = toml::map::Map::new();
     data.insert("comment".into(), TomlValue::String(lines.join("\n")));
     Ok((
         i,
-        PMetadata {
+        Some(PMetadata {
             source,
             values: TomlValue::Table(data),
-        },
+        }),
     ))
 }
 
 /// A metadata list is an optional list of metadata entries
 /// Comments are considered to be metadata
-fn pmetadata_list(i: PInput) -> PResult<Vec<PMetadata>> {
-    many0(alt((pmetadata, pcomment)))(i)
+pub fn pmetadata_list(mut i: PInput) -> PResult<Vec<PMetadata>> {
+    let metadata = |i| match pmetadata(i) {
+        // if no metadata, maybe it is a comment
+        Ok((_, None)) => match pcomment(i) {
+            Ok((rest, None)) => Ok((rest, None)),
+            Err(e) => Err(e),
+            Ok(comment) => Ok(comment),
+        },
+        // metadata found, handle rest so parser mooves forward
+        Ok(meta) => Ok(meta),
+        Err(e) => Err(e),
+    };
+
+    let mut metadatas: Vec<PMetadata> = Vec::new();
+    loop {
+        match metadata(i) {
+            Ok((rest, meta)) => {
+                i = rest;
+                match meta {
+                    Some(meta) => metadatas.push(meta),
+                    None => break,
+                }
+            }
+            Err(e) => return Err(e),
+        }
+    }
+
+    Ok((i, metadatas))
 }
 
 /// A parameters defines how a parameter can be passed.
@@ -762,7 +821,6 @@ pub struct PResourceDef<'src> {
 fn presource_def(i: PInput) -> PResult<(PResourceDef, Vec<Option<PValue>>, Option<Token>)> {
     wsequence!(
         {
-            metadata: pmetadata_list;
             _x: estag("resource");
             name: pidentifier;
             param_list: delimited_list("(", pparameter, ",", ")");
@@ -771,11 +829,11 @@ fn presource_def(i: PInput) -> PResult<(PResourceDef, Vec<Option<PValue>>, Optio
         } => {
             let (parameters, parameter_defaults) = param_list.into_iter().unzip();
             (PResourceDef {
-                      metadata,
-                      name,
-                      parameters,
-                      variable_definitions: vars.0,
-                      variable_extensions: vars.1,
+                metadata: Vec::new(),
+                name,
+                parameters,
+                variable_definitions: vars.0,
+                variable_extensions: vars.1,
             },
             parameter_defaults,
             parent)
@@ -846,13 +904,16 @@ pub struct PVariableDef<'src> {
 fn pvariable_definition(i: PInput) -> PResult<PVariableDef> {
     wsequence!(
         {
-            metadata: pmetadata_list;
             _let: estag("let");
             name: pidentifier;
             // TODO a type could be added here (but mostly useless since there is a value)
             _t: etag("=");
             value: or_fail(pcomplex_value, || PErrorKind::ExpectedKeyword("value"));
-        } => PVariableDef { metadata, name, value }
+        } => PVariableDef {
+            metadata: Vec::new(),
+            name,
+            value
+        }
     )(i)
 }
 
@@ -868,7 +929,6 @@ pub struct PCondVariableDef<'src> {
 fn pcondition_from_variable_definition(i: PInput) -> PResult<PCondVariableDef> {
     wsequence!(
         {
-            metadata: pmetadata_list;
             _let: estag("let");
             name: pidentifier;
             _t: etag("=");
@@ -876,7 +936,7 @@ fn pcondition_from_variable_definition(i: PInput) -> PResult<PCondVariableDef> {
             _t: etag("_");
             state: pidentifier;
             state_params: delimited_list("(", pvalue, ",", ")");
-        } => PCondVariableDef { metadata, name, resource, state, state_params }
+        } => PCondVariableDef { metadata: Vec::new(), name, resource, state, state_params }
     )(i)
 }
 
@@ -889,11 +949,9 @@ pub struct PVariableExt<'src> {
 fn pvariable_extension(i: PInput) -> PResult<PVariableExt> {
     wsequence!(
         {
-            //metadata: pmetadata_list;
             name: pidentifier;
             _t: etag("=");
             value: or_fail(pcomplex_value, || PErrorKind::ExpectedKeyword("value"));
-            //_fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into()));
         } => PVariableExt { name, value }
     )(i)
 }
@@ -910,12 +968,16 @@ pub struct PVariableDecl<'src> {
 fn pvariable_declaration(i: PInput) -> PResult<PVariableDecl> {
     wsequence!(
         {
-            metadata: pmetadata_list;
             _identifier: estag("let");
             name: or_fail(pidentifier, || PErrorKind::ExpectedKeyword("namespace"));
             sub_elts: many0(preceded(sp(etag(".")), pidentifier));
             type_: opt(preceded(sp(etag(":")),ptype));
-        } => PVariableDecl { metadata, name, sub_elts, type_ }
+        } => PVariableDecl {
+            metadata: Vec::new(),
+            name,
+            sub_elts,
+            type_
+        }
     )(i)
 }
 
@@ -949,7 +1011,6 @@ pub struct PStateDeclaration<'src> {
 fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
     wsequence!(
         {
-            metadata: pmetadata_list;
             mode: pcall_mode;
             resource: presource_ref;
             _t: etag(".");
@@ -958,8 +1019,8 @@ fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
             outcome: opt(preceded(sp(etag("as")),pidentifier));
             :source(mode..)
         } => PStateDeclaration {
+                metadata: Vec::new(),
                 source,
-                metadata,
                 mode,
                 resource: resource.0,
                 resource_params: resource.1,
@@ -1019,7 +1080,13 @@ fn pcase(i: PInput) -> PResult<(PEnumExpression, Vec<PStatement>)> {
     ))(i)
 }
 fn pstatement(i: PInput) -> PResult<PStatement> {
-    alt((
+    let (i, metadata) = match pmetadata_list(i) {
+        Ok(res) => res,
+        Err(e) => return Err(e),
+    };
+    let metadata_dup = metadata.clone();
+
+    let possible_stmt = alt((
         // One state
         map(pstate_declaration, PStatement::StateDeclaration),
         // Condition variable definition
@@ -1034,31 +1101,30 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
         // case
         wsequence!(
             {
-                metadata: pmetadata_list; // metadata is invalid here, check it after the 'case' tag below
                 case: etag("case");
-                _fail: or_fail(verify(peek(anychar), |_| metadata.is_empty()), || PErrorKind::UnsupportedMetadata(metadata[0].source.into()));
+                _fail: or_fail(verify(peek(anychar), |_| metadata_dup.is_empty()), || PErrorKind::UnsupportedMetadata(metadata_dup[0].source.into(), "statements"));
                 cases: delimited_list("{", pcase, ",", "}" );
             } => PStatement::Case(case.into(), cases)
         ),
         // if
         wsequence!(
             {
-                metadata: pmetadata_list; // metadata is invalid here, check it after the 'if' tag below
                 case: estag("if");
                 expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
                 _x: ftag("=>");
                 stmt: or_fail(pstatement, || PErrorKind::ExpectedKeyword("statement"));
             } => {
-                // Propagate metadata to the single statement
-                let statement = match stmt {
-                    PStatement::StateDeclaration(mut sd) => {
-                        sd.metadata.extend(metadata);
-                        PStatement::StateDeclaration(sd)
-                    },
-                    x => x,
-                };
+                // Propagate metadata to the single statement ;;; TODO propagate again if required
+                // will require changes  (FnOnce vs Fn)
+                // let statement = match stmt {
+                //     PStatement::StateDeclaration(mut sd) => {
+                //         sd.metadata.extend(metadata);
+                //         PStatement::StateDeclaration(sd)
+                //     },
+                //     x => x,
+                // };
                 PStatement::Case(case.into(), vec![
-                    ( expr, vec![statement] ),
+                    ( expr, vec![stmt] ),
                     ( PEnumExpression { source:"default".into(), expression: PEnumExpressionPart::Default("default".into()) },
                       vec![PStatement::Noop])
                 ] )
@@ -1077,7 +1143,31 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
         map(preceded(sp(etag("log_info")), pvalue), PStatement::LogInfo),
         map(preceded(sp(etag("log_warn")), pvalue), PStatement::LogWarn),
         map(etag("noop"), |_| PStatement::Noop),
-    ))(i)
+    ))(i);
+
+    match possible_stmt {
+        Ok((i, mut pstmt)) => {
+            match pstmt {
+                // // otherwise, update declaration metadatas
+                PStatement::StateDeclaration(ref mut stmt) => stmt.metadata = metadata,
+                PStatement::ConditionVariableDefinition(ref mut stmt) => stmt.metadata = metadata,
+                PStatement::VariableDefinition(ref mut var) => var.metadata = metadata,
+                // TODO check if other pstatement have metadata
+                // TODO return an error if declaration does not support metadatas
+                _ => (), // do nothing if declaration does not handle metadatas, so that comments are still supported
+            };
+            Ok((i, pstmt))
+        }
+        // just return error found in declaration
+        Err(e) => Err(update_error_context(
+            e,
+            Context {
+                extractor: get_error_context,
+                text: i,
+                token: i,
+            },
+        )),
+    }
 }
 
 /// A state definition defines a state of a resource.
@@ -1094,7 +1184,6 @@ pub struct PStateDef<'src> {
 fn pstate_def(i: PInput) -> PResult<(PStateDef, Vec<Option<PValue>>)> {
     wsequence!(
         {
-            metadata: pmetadata_list;
             resource_name: pidentifier;
             _st: estag("state");
             name: pidentifier;
@@ -1103,7 +1192,7 @@ fn pstate_def(i: PInput) -> PResult<(PStateDef, Vec<Option<PValue>>)> {
         } => {
             let (parameters, parameter_defaults) = param_list.into_iter().unzip();
             (PStateDef {
-                metadata,
+                metadata: Vec::new(),
                 name,
                 resource_name,
                 parameters,
@@ -1129,7 +1218,6 @@ pub struct PAliasDef<'src> {
 fn palias_def(i: PInput) -> PResult<PAliasDef> {
     wsequence!(
         {
-            metadata: pmetadata_list;
             _x: estag("alias");
             resource_alias: pidentifier;
             resource_alias_parameters: delimited_list("(", pidentifier, ",", ")");
@@ -1142,10 +1230,16 @@ fn palias_def(i: PInput) -> PResult<PAliasDef> {
             _x: ftag(".");
             state: pidentifier;
             state_parameters: delimited_list("(", pidentifier, ",", ")");
-        } => PAliasDef {metadata, resource_alias, resource_alias_parameters,
-                        state_alias, state_alias_parameters,
-                        resource, resource_parameters,
-                        state, state_parameters }
+        } => PAliasDef { metadata: Vec::new(),
+            resource_alias,
+            resource_alias_parameters,
+            state_alias,
+            state_alias_parameters,
+            resource,
+            resource_parameters,
+            state,
+            state_parameters
+        }
     )(i)
 }
 
@@ -1171,9 +1265,12 @@ pub enum PDeclaration<'src> {
 }
 fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
     end_of_pfile(i)?;
-    or_fail(
-        // Note: most of this alt element start with a metadata
-        // it would be more efficient to factor it out
+    let (i, metadata) = match pmetadata_list(i) {
+        Ok(res) => res,
+        Err(e) => return Err(e),
+    };
+
+    let possible_declaration = or_fail(
         alt((
             map(penum_alias, PDeclaration::EnumAlias), // alias must come before enum since they start with the same tag
             map(penum, PDeclaration::Enum),
@@ -1186,15 +1283,77 @@ fn pdeclaration(i: PInput) -> PResult<PDeclaration> {
             map(pvariable_extension, PDeclaration::GlobalVarExt), // extension should come last
         )),
         || PErrorKind::Unparsed(get_error_context(i, i)),
-    )(i)
+    )(i);
+    match possible_declaration {
+        // returns either decl with added metadatas or error (bad format or unsupported by given declaration)
+        Ok((i, mut decl)) => {
+            let unexpected_metadata = |msg| {
+                update_error_context(
+                    nom::Err::Error(PError {
+                        context: None,
+                        kind: PErrorKind::UnsupportedMetadata(get_error_context(i, i), msg),
+                        backtrace: Backtrace::empty(),
+                    }),
+                    Context {
+                        extractor: get_error_context,
+                        text: i,
+                        token: i,
+                    },
+                )
+            };
+            match decl {
+                // // return an error if declaration does not support metadatas
+                PDeclaration::SubEnum(decl) if !metadata.is_empty() => {
+                    return Err(unexpected_metadata("Sub enum definitions"))
+                }
+                PDeclaration::EnumAlias(decl) if !metadata.is_empty() => {
+                    return Err(unexpected_metadata("Enum alias definitions"))
+                }
+                PDeclaration::GlobalVarExt(decl) if !metadata.is_empty() => {
+                    return Err(unexpected_metadata("Variable extension declarations"))
+                }
+                // // otherwise, update declaration metadatas
+                PDeclaration::Enum(ref mut decl) => decl.metadata = metadata,
+                PDeclaration::Resource((ref mut decl, _, _)) => decl.metadata = metadata,
+                PDeclaration::State((ref mut decl, _)) => decl.metadata = metadata,
+                PDeclaration::GlobalVar(ref mut decl) => decl.metadata = metadata,
+                PDeclaration::MagicVar(ref mut decl) => decl.metadata = metadata,
+                PDeclaration::Alias(ref mut decl) => decl.metadata = metadata,
+                _ => (), // do nothing if declaration does not handle metadatas, so that comments are still supported
+            };
+            Ok((i, decl))
+        }
+        // just return error found in declaration
+        Err(e) => Err(update_error_context(
+            e,
+            Context {
+                extractor: get_error_context,
+                text: i,
+                token: i,
+            },
+        )),
+    }
 }
+// WHAT LEADS TO THE ERROR CALL: OR_FAIL. WHY IS CONTEXT NOT UPDATED => BC ITS NOT SET
+
+/*
+All errors are nom errors, either:
+- Error, recoverable
+- Failure, unrecoverable (terminating)
+Nom::Err::Error/Failure(PError(
+    context: Option<Context>,
+    kind: PerrorKind,
+    backtrace: Backtrace,
+))
+*/
 
 fn end_of_pfile(i: PInput) -> PResult<()> {
     let (i, _) = strip_spaces_and_comment(i)?;
     if i.fragment().is_empty() {
         return Err(nom::Err::Error(PError {
             context: None,
-            kind: PErrorKind::Nom(VerboseError::from_error_kind(i, ErrorKind::Eof)),
+            // kind: PErrorKind::Eof,
+            kind: PErrorKind::Eof,
             backtrace: Backtrace::new(),
         }));
     }
@@ -1213,7 +1372,7 @@ fn pfile(i: PInput) -> PResult<PFile> {
         {
             header: pheader;
             _x: strip_spaces_and_comment;
-            code: many0(pdeclaration);
+            code: many0(or_fail_perr(pdeclaration));
             _x: strip_spaces_and_comment;
         } => PFile {header, code}
     ))(i)

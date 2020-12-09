@@ -6,7 +6,7 @@ use crate::{error::*, io::output::Backtrace};
 use colored::Colorize;
 use nom::{
     error::{ErrorKind, ParseError, VerboseError},
-    Err, IResult,
+    Err, IResult, Offset,
 };
 use std::fmt;
 
@@ -31,22 +31,29 @@ pub enum PErrorKind<I> {
     InvalidName(I),       // in identifier expressions (type of expression)
     InvalidVariableReference, // during string interpolation
     NoMetadata,           // Temporary error, always caught, should not happen
-    TomlError(I, toml::de::Error), // Error during toml parsing
-    UnsupportedMetadata(I), // metadata or comments are not supported everywhere (metadata key)
-    UnterminatedDelimiter(I), // after an opening delimiter (first delimiter)
+    TomlError(I, usize, usize, String), // Error during toml parsing
+    UnsupportedMetadata(I, &'static str), // metadata or comments are not supported everywhere (metadata key)
+    UnterminatedDelimiter(I),             // after an opening delimiter (first delimiter)
     UnterminatedOrInvalid(I), // can't say whether a delimiter is missing or a statement format is invalid
     Unparsed(I),              // cannot be parsed
+    Eof,                      // reached Eof
 }
 
 // This is the same thing as a closure (Fn() -> I) but I couldn't manage to cope with lifetime
 #[derive(Debug, Clone)]
-pub struct Context<I> {
+pub struct Context<I>
+where
+    I: fmt::Debug + Offset,
+{
     pub extractor: fn(I, I) -> I,
     pub text: I,
     pub token: I,
 }
 #[derive(Debug, Clone)]
-pub struct PError<I> {
+pub struct PError<I>
+where
+    I: fmt::Debug + Offset,
+{
     pub context: Option<Context<I>>,
     pub kind: PErrorKind<I>,
     pub backtrace: Backtrace,
@@ -56,7 +63,10 @@ pub struct PError<I> {
 /// Implement all method to differentiate between :
 /// - nom VerboseError (stack errors)
 /// - pure PError (keep last error)
-impl<I: Clone> ParseError<I> for PError<I> {
+impl<I: Clone> ParseError<I> for PError<I>
+where
+    I: fmt::Debug + Offset,
+{
     /// creates an error from the input position and an [ErrorKind]
     fn from_error_kind(input: I, kind: ErrorKind) -> Self {
         PError {
@@ -72,7 +82,7 @@ impl<I: Clone> ParseError<I> for PError<I> {
     fn append(input: I, kind: ErrorKind, other: Self) -> Self {
         match other.kind {
             PErrorKind::Nom(e) => PError {
-                context: None,
+                context: other.context,
                 kind: PErrorKind::Nom(VerboseError::append(input, kind, e)),
                 backtrace: other.backtrace, // might be interesting to cumulate it
             },
@@ -89,12 +99,22 @@ impl<I: Clone> ParseError<I> for PError<I> {
         }
     }
 
-    /// combines two existing error. This function is used to compare errors
+    /// combines two existing error. This function is used to compare errors and return the one that went the farthest
     /// generated in various branches of [alt]
     fn or(self, other: Self) -> Self {
         match self.kind {
             PErrorKind::Nom(_) => other,
-            _ => self,
+            _ => match (&self.context, &other.context) {
+                (Some(first), Some(sec)) => {
+                    if first.text.offset(&sec.text) < 0 {
+                        return other;
+                    }
+                    self
+                }
+                (Some(_), None) => self,
+                (None, Some(_)) => other,
+                _ => self,
+            },
         }
     }
 }
@@ -114,11 +134,12 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
             PErrorKind::InvalidName(i) => format!("The identifier is invalid in a {}.", i.fragment().bright_magenta()),
             PErrorKind::InvalidVariableReference => "This variable reference is invalid".to_string(),
             PErrorKind::NoMetadata => "Expecting metadata here".to_string(),
-            PErrorKind::TomlError(i,e) => format!("Unable to parse metadata block at {}: {}", Token::from(*i).position_str().bright_yellow(), e),
-            PErrorKind::UnsupportedMetadata(i) => format!("Parsed comment or metadata not supported at this place: '{}' found at {}", i.fragment().bright_magenta(), Token::from(*i).position_str().bright_yellow()),
+            PErrorKind::TomlError(i, line, col, e) => format!("Unable to parse metadata block at {}:{}:{}: '{}'", Token::from(*i).file().bright_yellow(), line, col, e),
+            PErrorKind::UnsupportedMetadata(i, msg) => format!("{} do not support parsed comments or metadatas: '{}' found at {}", msg, i.fragment().bright_magenta(), Token::from(*i).position_str().bright_yellow()),
             PErrorKind::UnterminatedDelimiter(i) => format!("Missing closing delimiter for '{}'", i.fragment().bright_magenta()),
             PErrorKind::UnterminatedOrInvalid(i) => format!("Either an unexpected statement or no closing delimiter matching '{}'", i.fragment().bright_magenta()),
             PErrorKind::Unparsed(i) => format!("Could not parse the following: '{}'", i.fragment().bright_magenta()),
+            PErrorKind::Eof => format!("Unexpectedly reached end of file"),
         };
 
         // simply removes superfluous line return (prettyfication)
@@ -171,7 +192,7 @@ where
             // keep original context when possible
             Err(Err::Failure(err)) => match err.kind {
                 PErrorKind::Nom(_) => Err(Err::Failure(PError {
-                    context: None,
+                    context: err.context,
                     kind: e(),
                     backtrace: Backtrace::new(),
                 })),
@@ -182,8 +203,7 @@ where
                 kind: e(),
                 backtrace: Backtrace::new(),
             })),
-            Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
-            Ok(y) => Ok(y),
+            res => res,
         }
     }
 }
@@ -197,36 +217,24 @@ where
     E: Fn() -> PErrorKind<PInput<'src>>,
 {
     move |input| match f(input) {
-        Err(Err::Failure(err)) => Err(Err::Failure(err)),
         Err(Err::Error(err)) => Err(Err::Error(PError {
-            context: None,
+            context: err.context,
             kind: e(),
             backtrace: Backtrace::empty(),
         })),
-        Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
-        Ok(y) => Ok(y),
+        res => res,
     }
 }
 
 /// This function turns our own `Error`s (not nom ones) into `Failure`s so they are properly handled
 /// by the `nom::multi::many0()` function which abstracts Errors, only breaking on failures which was an issue
-#[allow(dead_code)]
 pub fn or_fail_perr<'src, O, F>(f: F) -> impl Fn(PInput<'src>) -> PResult<'src, O>
 where
     F: Fn(PInput<'src>) -> PResult<'src, O>,
 {
     move |input| match f(input) {
-        Err(Err::Failure(e)) => Err(Err::Failure(e)),
-        Err(Err::Error(e)) => match &e.kind {
-            PErrorKind::Nom(_) => Err(Err::Error(PError {
-                context: None,
-                kind: e.kind,
-                backtrace: e.backtrace,
-            })),
-            _ => Err(Err::Failure(e)),
-        },
-        Err(Err::Incomplete(_)) => panic!("Incomplete should never happen"),
-        Ok(y) => Ok(y),
+        Err(Err::Error(e)) if e.kind != PErrorKind::Eof => Err(Err::Failure(e)),
+        res => return res,
     }
 }
 
@@ -234,7 +242,6 @@ where
 /// Solely exists for (w)sequence macro
 pub fn update_error_context<'src>(
     e: Err<PError<PInput<'src>>>,
-    //new_ctx: PInput<'src>,
     new_ctx: Context<PInput<'src>>,
 ) -> Err<PError<PInput<'src>>> {
     match e {
@@ -260,7 +267,7 @@ pub fn update_error_context<'src>(
                 backtrace: err.backtrace,
             })
         }
-        Err::Incomplete(_) => panic!("Incomplete should never happen"),
+        res => res,
     }
 }
 

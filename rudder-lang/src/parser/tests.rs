@@ -40,11 +40,16 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::InvalidName(i) => PErrorKind::InvalidName(*i.fragment()),
         PErrorKind::InvalidVariableReference => PErrorKind::InvalidVariableReference,
         PErrorKind::NoMetadata => PErrorKind::NoMetadata,
-        PErrorKind::TomlError(i, e) => PErrorKind::TomlError(*i.fragment(), e),
-        PErrorKind::UnsupportedMetadata(i) => PErrorKind::UnsupportedMetadata(*i.fragment()),
+        PErrorKind::TomlError(i, line, col, e) => {
+            PErrorKind::TomlError(*i.fragment(), line, col, e)
+        }
+        PErrorKind::UnsupportedMetadata(i, msg) => {
+            PErrorKind::UnsupportedMetadata(*i.fragment(), msg)
+        }
         PErrorKind::UnterminatedDelimiter(i) => PErrorKind::UnterminatedDelimiter(*i.fragment()),
         PErrorKind::UnterminatedOrInvalid(i) => PErrorKind::UnterminatedOrInvalid(*i.fragment()),
         PErrorKind::Unparsed(i) => PErrorKind::Unparsed(*i.fragment()),
+        PErrorKind::Eof => PErrorKind::Eof,
     };
     match err.context {
         Some(context) => (
@@ -162,33 +167,33 @@ fn test_pcomment() {
         map_res(pcomment, "##hello Herman1\n"),
         Ok((
             "",
-            PMetadata {
+            Some(PMetadata {
                 source: "##hello Herman1\n".into(),
                 values: toml::de::from_str("comment=\"hello Herman1\"").unwrap(),
-            }
+            })
         ))
     );
     assert_eq!(
         map_res(pcomment, "##hello Herman2\nHola"),
         Ok((
             "Hola",
-            PMetadata {
+            Some(PMetadata {
                 source: "##hello Herman2\n".into(),
                 values: toml::de::from_str("comment=\"hello Herman2\"").unwrap(),
-            }
+            })
         ))
     );
     assert_eq!(
         map_res(pcomment, "##hello Herman3!"),
         Ok((
             "",
-            PMetadata {
+            Some(PMetadata {
                 source: "##hello Herman3!".into(),
                 values: toml::de::from_str("comment=\"hello Herman3!\"").unwrap(),
-            }
+            })
         ))
     );
-    assert!(map_res(pcomment, "hello\nHerman\n").is_err());
+    assert!(map_res(pcomment, "hello\nHerman\n").is_ok());
 }
 
 #[test]
@@ -260,13 +265,35 @@ fn test_penum() {
         ))
     );
     assert_eq!(
-        map_res(
-            penum,
-            "@meta=\"hello\"\nenum abc3 { @metadata=\"value\"\n a, b, }"
-        ),
+        // to test preceeding megtadata, directly test a pdeclaration
+        map_res(penum, "enum abc3 {\n@metadata=\"value\"\n a, b, }"),
         Ok((
             "",
             PEnum {
+                global: false,
+                metadata: vec![],
+                name: "abc3".into(),
+                items: vec![
+                    (
+                        vec![PMetadata {
+                            source: "@metadata=\"value\"\n".into(),
+                            values: toml::de::from_str("metadata=\"value\"").unwrap(),
+                        }],
+                        "a".into()
+                    ),
+                    (Vec::new(), "b".into())
+                ]
+            }
+        ))
+    );
+    assert_eq!(
+        map_res(
+            pdeclaration,
+            "@meta=\"hello\"\nenum abc3 {\n@metadata=\"value\"\n a, b, }"
+        ),
+        Ok((
+            "",
+            PDeclaration::Enum(PEnum {
                 global: false,
                 metadata: vec![PMetadata {
                     source: "@meta=\"hello\"\n".into(),
@@ -283,7 +310,17 @@ fn test_penum() {
                     ),
                     (Vec::new(), "b".into())
                 ]
-            }
+            })
+        ))
+    );
+    assert_eq!(
+        map_res(penum, "enum abc3 { @metadata=\"value\" a, b, }"),
+        Err((
+            "{ @metadata=\"value\" a, b, }",
+            PErrorKind::UnsupportedMetadata(
+                "@".into(),
+                "Metadatas must be defined at the beginning of a line"
+            )
         ))
     );
     assert_eq!(
@@ -328,6 +365,14 @@ fn test_psub_enum() {
             }
         ))
     );
+    // check if metadatas should or not be handled
+    // assert_eq!(
+    //     map_res(
+    //         pdeclaration,
+    //         "@meta = \"forbidden\"\nitems in T.def { d, e, f}"
+    //     ),
+    //     Err(("", PErrorKind::UnsupportedMetadata("", "Sub enum definitions")))
+    // );
 }
 
 #[test]
@@ -825,10 +870,10 @@ fn test_pmetadata() {
         map_res(pmetadata, test1),
         Ok((
             "",
-            PMetadata {
+            Some(PMetadata {
                 source: test1.into(),
                 values: TomlValue::Table(res)
-            }
+            })
         ))
     );
     // use serde_toml for other tests since it should already be tested
@@ -837,10 +882,10 @@ fn test_pmetadata() {
         map_res(pmetadata, test2),
         Ok((
             "",
-            PMetadata {
+            Some(PMetadata {
                 source: test2.into(),
                 values: toml::de::from_str("key1 = {\"key2\"=\"value\"}\nkey3 = 1234\n").unwrap()
-            }
+            })
         ))
     );
     let test3 = "@key1 = {\"key2\"=\"value\"}\n@key3 = 1234\n";
@@ -848,14 +893,14 @@ fn test_pmetadata() {
         map_res(pmetadata, &("  ".to_owned() + test3)),
         Ok((
             "",
-            PMetadata {
+            Some(PMetadata {
                 source: test3.into(),
                 values: toml::de::from_str("key1 = {\"key2\"=\"value\"}\nkey3 = 1234\n").unwrap()
-            }
+            })
         ))
     );
     assert!(pmetadata(PInput::new_extra("@key value\n", "")).is_err());
-    assert!(pmetadata(PInput::new_extra("\n", "")).is_err());
+    assert!(pmetadata(PInput::new_extra("\n", "")).is_ok());
 }
 
 #[test]
