@@ -313,36 +313,42 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
       , "ncf_techniques"
       , MethodCall(
             BundleName("package_install_version")
+          , "id1"
           , List((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
           , "any"
           , "Customized component"
         ) ::
         MethodCall(
             BundleName("command_execution")
+          , "id2"
           , List((ParameterId("command"),"Write-Host \"testing special characters ` è &é 'à é \""))
           , "windows"
           , "Command execution"
         ) ::
         MethodCall(
             BundleName("service_start")
+          , "id3"
           , List((ParameterId("service_name"),"${node.properties[apache_package_name]}"))
           , "package_install_version_${node.properties[apache_package_name]}_repaired"
           , "Customized component"
         ) ::
         MethodCall(
             BundleName("package_install")
+          , "id4"
           , List((ParameterId("package_name"),"openssh-server"))
           , "redhat"
           , "Package install"
         ) ::
         MethodCall(
             BundleName("command_execution")
+          , "id5"
           , List((ParameterId("command"),"/bin/echo \"testing special characters ` è &é 'à é \"\\"))
           , "cfengine-community"
           , "Command execution"
         ) ::
         MethodCall(
             BundleName("_logger")
+          , "id6"
           , List((ParameterId("message"),"NA"),(ParameterId("old_class_prefix"),"NA"))
           , "any"
           , "Not sure we should test it ..."
@@ -405,6 +411,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
       , "ncf_techniques"
       , MethodCall(
             BundleName("package_install_version")
+          , "id"
           , List((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
           , "any"
           , "Test component$&é)à\\'\""

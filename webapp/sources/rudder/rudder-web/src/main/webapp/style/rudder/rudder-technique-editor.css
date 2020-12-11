@@ -195,7 +195,8 @@ body > .ng-toast {
 .show-techniques .col-methods::after{
   content: "\f0c9";
   display: inline-block;
-  font: normal normal normal 14px/1 FontAwesome;
+  font: normal normal normal 14px/1 inherit;
+  font-family: "Font Awesome 5 Free";
   font-size: inherit;
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
@@ -1012,18 +1013,18 @@ ul.list-unstyled > li{
   padding-top : 10px;
   padding-bottom : 10px;
 }
-#methods .method .method-info{
+#methods .method .method-info, #ghost.method .method-info{
   padding: 8px;
   position: relative;
   flex: 1;
 }
-#methods .method .method-info .btn-holder {
+#methods .method .method-info .btn-holder, #ghost.method .method-info .btn-holder  {
   position: absolute;
   right: 6px;
   top: 6px;
   z-index: 10;
 }
-#methods .method .method-info .btn-holder .method-action {
+#methods .method .method-info .btn-holder .method-action, #ghost.method .method-info .btn-holder .method-action {
   background-color: transparent;
   border: none;
   cursor: pointer;;
@@ -1058,6 +1059,12 @@ ul.list-unstyled > li{
 .method .method-param{
   width: 100%;
   align-items: baseline;
+}
+
+#ghost .cursorMove {
+ cursor : grabbing;
+ z-index : 1;
+ pointer-events: all;
 }
 .method .method-condition ~ div:before,
 .method .method-condition > label:before {
@@ -1251,7 +1258,7 @@ ul.list-unstyled > li{
   border-radius: 20px;
   display: inline-block;
   font-size: .9em;
-  display: none;
+  display: inline-flex;
   cursor: pointer;
   align-items: center;
 }
@@ -1259,8 +1266,7 @@ ul.list-unstyled > li{
   display: inline-flex;
   background-color: #F08004;
 }
-.errorParameters .warn-param.error{
-  display: inline-flex;
+.warn-param.error{
   background-color: #dd4b39;
 }
 .warn-param b {
@@ -1424,4 +1430,13 @@ ul.list-unstyled > li{
   100% {
       -webkit-box-shadow: 0 0 0 0 rgba(199, 218, 252, 0);
   }
+}
+
+.optGroup {
+    font-weight: bold;
+    font-style: italic;
+}
+
+.dropdown-menu .optChild a {
+    padding-left: 35px;
 }

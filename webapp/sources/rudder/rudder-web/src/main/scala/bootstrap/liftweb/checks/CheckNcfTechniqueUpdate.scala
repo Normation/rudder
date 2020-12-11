@@ -101,7 +101,7 @@ class CheckNcfTechniqueUpdate(
         techniquesWithResources <-
           ZIO.foreach(techniques) {
             technique =>
-              // Keep only non New Ressources
+              // Keep only non New Resources
               resourceFileService.getResources(technique).map(r => technique.copy(ressources = r.filterNot(_.state == ResourceFileState.New).map(_.copy(state = Untouched))))
           }
         // Actually write techniques

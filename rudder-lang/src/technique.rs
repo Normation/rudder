@@ -220,6 +220,7 @@ pub struct MethodCall {
     condition: String,
     method_name: String,
     component: Option<String>,
+    id : String,
 }
 impl MethodCall {
     fn to_rudderlang(&self, lib: &RudderlangLib) -> Result<String> {

@@ -49,7 +49,6 @@ import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.inventory.ldap.core.InventoryDitServiceImpl
-import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.MockDirectives
 import com.normation.rudder.MockGitConfigRepo
@@ -98,7 +97,6 @@ import com.normation.rudder.services.healthcheck.CheckFreeSpace
 import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
 import com.normation.rudder.services.healthcheck.HealthcheckService
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
 import com.normation.rudder.services.policies.InterpolationContext
 import com.normation.rudder.services.policies.NodeConfiguration
@@ -112,7 +110,6 @@ import com.normation.rudder.services.reports.CacheComplianceQueueAction
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.DefaultStringQueryParser
 import com.normation.rudder.services.queries.JsonQueryLexer
-import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService

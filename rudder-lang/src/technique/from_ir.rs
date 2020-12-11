@@ -257,6 +257,7 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                 parameters,
                 condition,
                 method_name,
+<<<<<<< HEAD
                 component: s.metadata.get("component").and_then(|c| {
                     Some(
                         c.as_str()
@@ -264,6 +265,10 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                             .to_owned(),
                     )
                 }),
+=======
+                component: extract_meta_string(&s.metadata, "component"),
+                id: extract_meta_string(&s.metadata, "id"),
+>>>>>>> 52c206b0b (fixup! fixup! fixup! fixup! fixup! fixes #18953: Port technique editor in elm)
             }]
         }
         Statement::StateDeclaration(s) => {
@@ -306,6 +311,7 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                             .to_owned(),
                     )
                 }),
+                id: extract_meta_string(&s.metadata, "id"),
             }]
         }
         Statement::Case(_, enum_expressions) => enum_expressions

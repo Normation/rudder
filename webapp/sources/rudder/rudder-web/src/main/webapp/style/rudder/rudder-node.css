@@ -154,7 +154,8 @@
 .id-card .node-state.initializing:after{
   color: #08a3ef;
   content: "\f1ce";
-  font: normal normal normal 14px/1 FontAwesome;
+  font: normal normal normal 14px/1 inherit;
+  font-family: "Font Awesome 5 Free";
   background-color: transparent;
   font-weight: bold;
   font-size: 1.1em;

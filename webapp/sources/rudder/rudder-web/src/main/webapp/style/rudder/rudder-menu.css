@@ -134,7 +134,8 @@ pre.json-beautify:after,.content-wrapper pre.json-beautify:after{
   color:#333;
   content: "\f054";
   display: inline-block;
-  font: normal normal normal 14px/1 FontAwesome;
+  font: normal normal normal 14px/1 inherit;
+  font-family: "Font Awesome 5 Free";
   font-size: inherit;
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
@@ -897,7 +898,8 @@ ul.graph-legend > li.legend:hover{
 }
 .main-header .navbar .nav li.notifications-menu.bg-error #generation-status > span:after{
   display: inline-block;
-  font: normal normal normal 14px/1 FontAwesome;
+  font: normal normal normal 14px/1 inherit;
+  font-family: "Font Awesome 5 Free";
   font-size: inherit;
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
@@ -915,7 +917,8 @@ ul.graph-legend > li.legend:hover{
 }
 .main-header .navbar .nav li.notifications-menu.bg-success #generation-status > span:after{
   display: inline-block;
-  font: normal normal normal 14px/1 FontAwesome;
+  font: normal normal normal 14px/1;
+  font-family: "Font Awesome 5 Free";
   font-size: inherit;
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
@@ -948,7 +951,8 @@ ul.graph-legend > li.legend:hover{
 }
 .main-header .navbar .nav li.notifications-menu.bg-refresh #generation-status > span:after{
   display: inline-block;
-  font: normal normal normal 14px/1 FontAwesome;
+  font: normal normal normal 14px/1 inherit;
+  font-family: "Font Awesome 5 Free";
   font-size: inherit;
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
@@ -2961,7 +2965,8 @@ h3.box-title {
 }
 .btn.new-icon:after{
   content: "\f055";
-  font: normal normal normal 14px/1 FontAwesome;
+  font: normal normal normal 14px/1 inherit;
+  font-family: "Font Awesome 5 Free";
   font-size: 1.2em;
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
@@ -3077,7 +3082,8 @@ table a > i.fa-pencil:hover{
 /* RULES TABLE */
 #grid_rules_grid_zone td.statusCell span.tooltip.tooltipable:after,#grid_dependentRulesGrid td.statusCell span.tooltip.tooltipable:after {
   content: "\f059";
-  font: normal normal normal 14px/1 FontAwesome;
+  font: normal normal normal 14px/1 inherit;
+  font-family: "Font Awesome 5 Free";
   font-size: 1em;
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
@@ -3244,7 +3250,8 @@ table a > i.fa-pencil:hover{
 }
 .ui-datepicker .ui-datepicker-prev > .ui-icon:before,
 .ui-datepicker .ui-datepicker-next > .ui-icon:before {
-  font: normal normal normal 14px/1 FontAwesome;
+  font: normal normal normal 14px/1 inherit;
+  font-family: "Font Awesome 5 Free";
   font-size: inherit;
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;

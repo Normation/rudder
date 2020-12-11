@@ -108,6 +108,7 @@ final case class Technique(
 
 final case class MethodCall(
     methodId   : BundleName
+  , id         : String
   , parameters : List[(ParameterId,String)]
   , condition  : String
   , component  : String
@@ -312,45 +313,46 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
   def serializeTechniqueMetadata(technique: ncf.Technique): JValue = {
 
     def serializeTechniqueParameter(parameter: TechniqueParameter): JValue = {
-      (("id" -> parameter.id.value)
-        ~ ("name" -> parameter.name.value)
-        ~ ("description" -> parameter.description)
-        )
+      ( ("id" -> parameter.id.value)
+      ~ ("name" -> parameter.name.value)
+      ~ ("description" -> parameter.description)
+      )
     }
 
     def serializeMethodCall(call: MethodCall): JValue = {
       val params: JValue = call.parameters.map {
         case (parameterName, value) =>
-          (("name" -> parameterName.value)
-            ~ ("value" -> value)
-            )
+          ( ("name" -> parameterName.value)
+          ~ ("value" -> value)
+          )
       }
 
-      (("method_name" -> call.methodId.value)
-        ~ ("class_context" -> call.condition)
-        ~ ("component" -> call.component)
-        ~ ("parameters" -> params)
-        )
+      ( ("method_name" -> call.methodId.value)
+      ~ ("class_context" -> call.condition)
+      ~ ("component" -> call.component)
+      ~ ("parameters" -> params)
+      ~ ("id" -> call.id)
+      )
     }
 
     def serializeResource(resourceFile: ResourceFile) = {
-      (("name" -> resourceFile.path)
-        ~ ("state" -> resourceFile.state.value)
-        )
+      ( ("name" -> resourceFile.path)
+      ~ ("state" -> resourceFile.state.value)
+      )
     }
 
     val resource = technique.ressources.map(serializeResource)
     val parameters = technique.parameters.map(serializeTechniqueParameter).toList
     val calls = technique.methodCalls.map(serializeMethodCall).toList
-    (("bundle_name" -> technique.bundleName.value)
-      ~ ("version" -> technique.version.value)
-      ~ ("category" -> technique.category)
-      ~ ("description" -> technique.description)
-      ~ ("name" -> technique.name)
-      ~ ("method_calls" -> calls)
-      ~ ("parameter" -> parameters)
-      ~ ("resources" -> resource)
-      )
+    ( ("bundle_name" -> technique.bundleName.value)
+    ~ ("version" -> technique.version.value)
+    ~ ("category" -> technique.category)
+    ~ ("description" -> technique.description)
+    ~ ("name" -> technique.name)
+    ~ ("method_calls" -> calls)
+    ~ ("parameter" -> parameters)
+    ~ ("resources" -> resource)
+    )
   }
 
 
@@ -371,11 +373,11 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
       val constraints = JObject(param.constraint.map(serializeMethodConstraint))
       val paramType = JString(parameterTypeService.value(param.parameterType).getOrElse("Unknown"))
-      (("name" -> param.id.value)
-        ~ ("description" -> param.description)
-        ~ ("constraints" -> constraints)
-        ~ ("type" -> paramType)
-        )
+      ( ("name" -> param.id.value)
+      ~ ("description" -> param.description)
+      ~ ("constraints" -> constraints)
+      ~ ("type" -> paramType)
+      )
     }
 
     def serializeAgentSupport(agent: AgentType) = {
@@ -387,17 +389,17 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
     val parameters = method.parameters.map(serializeMethodParameter)
     val agentSupport = method.agentSupport.map(serializeAgentSupport)
-    (("bundle_name" -> method.id.value)
-      ~ ("name" -> method.name)
-      ~ ("description" -> method.description)
-      ~ ("class_prefix" -> method.classPrefix)
-      ~ ("class_parameter" -> method.classParameter.value)
-      ~ ("agent_support" -> agentSupport)
-      ~ ("parameter" -> parameters)
-      ~ ("documentation" -> method.documentation)
-      ~ ("deprecated" -> method.deprecated)
-      ~ ("rename" -> method.renameTo)
-      )
+    ( ("bundle_name" -> method.id.value)
+    ~ ("name" -> method.name)
+    ~ ("description" -> method.description)
+    ~ ("class_prefix" -> method.classPrefix)
+    ~ ("class_parameter" -> method.classParameter.value)
+    ~ ("agent_support" -> agentSupport)
+    ~ ("parameter" -> parameters)
+    ~ ("documentation" -> method.documentation)
+    ~ ("deprecated" -> method.deprecated)
+    ~ ("rename" -> method.renameTo)
+    )
   }
 }
 

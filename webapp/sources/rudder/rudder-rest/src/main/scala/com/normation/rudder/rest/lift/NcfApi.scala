@@ -181,9 +181,8 @@ class NcfApi(
       val response =
         for {
           json      <- req.json ?~! "No JSON data sent"
-          methods   <- restExtractor.extractGenericMethod(json \ "methods")
-          methodMap =  methods.map(m => (m.id,m)).toMap
-          technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap, false)
+          methodMap <- techniqueReader.readMethodsMetadataFile.toBox
+          technique <- restExtractor.extractNcfTechnique(json, methodMap, false, false)
           updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor ).toBox
         } yield {
           JObject(JField("technique", techniqueSerializer.serializeTechniqueMetadata(updatedTechnique)))
@@ -226,11 +225,11 @@ class NcfApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response = for {
-        techniques <- techniqueReader.readTechniquesMetadataFile.toBox
+        techniques <- techniqueReader.readTechniquesMetadataFile
       } yield {
          JArray(techniques.map(techniqueSerializer.serializeTechniqueMetadata))
       }
-      resp(response, req, "Could not get techniques metadata")("getTechniques")
+      resp(response.toBox, req, "Could not get techniques metadata")("getTechniques")
 
     }
 
@@ -305,7 +304,7 @@ class NcfApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response=
-        JObject(techniqueRepository.getAllCategories.toList.filter(_._1.name.value != "/").map(c => JField(c._1.getPathFromRoot.tail.map(_.value).mkString("/"),JString(c._2.name))))
+        JArray(techniqueRepository.getAllCategories.toList.filter(_._1.name.value != "/").map(c => JObject(JField("path",JString(c._1.getPathFromRoot.tail.map(_.value).mkString("/"))),(JField("name",JString(c._2.name))))))
 
       resp(Full(response), req, "Could not get generic methods metadata")("getMethods")
 
@@ -345,10 +344,9 @@ class NcfApi(
       val response =
         for {
           json      <- req.json ?~! "No JSON data sent"
-          methods   <- restExtractor.extractGenericMethod(json \ "methods")
-          methodMap = methods.map(m => (m.id,m)).toMap
-          technique <- restExtractor.extractNcfTechnique(json \ "technique", methodMap, true)
-          internalId <- OptionnalJson.extractJsonString(json \ "technique", "internalId")
+          methodMap <- techniqueReader.readMethodsMetadataFile.toBox
+          technique <- restExtractor.extractNcfTechnique(json, methodMap, true, false)
+          internalId <- OptionnalJson.extractJsonString(json, "internalId")
           isNameTaken = isTechniqueNameExist(technique.bundleName)
           _ <- if(isNameTaken) Failure(s"Technique name and ID must be unique. '${technique.name}' already used") else Full(())
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api

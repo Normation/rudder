@@ -599,7 +599,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
                  )
                }
       } yield {
-        res.toActiveTechnique
+        res.toActiveTechnique()
       }
     }
 

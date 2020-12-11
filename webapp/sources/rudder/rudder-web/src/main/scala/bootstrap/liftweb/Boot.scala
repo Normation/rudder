@@ -401,9 +401,9 @@ class Boot extends Loggable {
             >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Directive.Read ) )
 
         , Menu("techniqueEditor", <span>Techniques</span>) /
-            "secure" / (name+"Manager") / "techniqueEditor"
-            >> LocGroup((name+"Manager"))
-            >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Technique.Read) )
+          "secure" / (name+"Manager") / "techniqueEditor"
+          >> LocGroup((name+"Manager"))
+          >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Technique.Read))
 
         , Menu(name+"ParameterManagement", <span>Parameters</span>) /
             "secure" / (name+"Manager") / "parameterManagement"
