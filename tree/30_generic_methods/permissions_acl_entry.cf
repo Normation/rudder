@@ -21,7 +21,7 @@
 # This method will append the given aces to the current POSIX ACLs of
 # the target.
 # @documentation The `permissions_*acl_*` manage the POSIX ACL on files and directories.
-# 
+#
 # Please note that the mask will be automatically recalculated when editing ACLs.
 #
 # #### Parameters
@@ -36,9 +36,9 @@
 # * `{x,y,anything}` will match x or y or anything.
 #
 # ##### Recursive
-# 
+#
 # Can be:
-# 
+#
 # * `true` to apply the given aces to folder and sub-folders and files.
 # * or `false` to apply to the strict match of `Path`
 #
@@ -50,7 +50,7 @@
 # If fulfill, they must respect the format:
 #
 # `<username|groupname>:<operator><mode>`
-# 
+#
 # with:
 #
 # * `username` being the Linux account name
@@ -67,16 +67,16 @@
 # ##### Other
 #
 # ACE for other must respect the classic:
-# 
+#
 # * `[+-=]r?w?x?`
 # It can also be left blank to let the `Other` ACE unchanged.
 #
 # #### Example
-# 
+#
 # Given a file with the following getfacl output:
 #
 # ~~~~
-# root@server# getfacl /tmp/myTestFile 
+# root@server# getfacl /tmp/myTestFile
 # getfacl: Removing leading '/' from absolute path names
 # # file: tmp/myTestFile
 # # owner: root
@@ -88,9 +88,9 @@
 # other::---
 #
 # ~~~~
-# 
+#
 # Applying this method with the following parameters:
-# 
+#
 # * `path`: /tmp/myTestFile
 # * `recursive`: false
 # * `user`: *:-x, bob:
@@ -100,7 +100,7 @@
 # Will transform the previous ACLs in:
 #
 # ~~~~
-# root@server# getfacl /tmp/myTestFile 
+# root@server# getfacl /tmp/myTestFile
 # getfacl: Removing leading '/' from absolute path names
 # # file: tmp/myTestFile
 # # owner: root
@@ -121,15 +121,15 @@
 # @parameter user                  User acls, comma separated, like: bob:+rwx, alice:-w
 # @parameter group                 Group acls, comma separated, like: wheel:+wx, anon:-rwx
 # @parameter other                 Other acls, like -x
-# 
+#
 # @parameter_constraint recursive "select" : [ "", "true", "false" ]
 # @parameter_constraint recursive  "allow_empty_string" : true
 # @parameter_constraint user       "allow_empty_string" : true
 # @parameter_constraint group      "allow_empty_string" : true
 # @parameter_constraint other      "allow_empty_string" : true
 #
-# @parameter_constraint user       "regex" : "^$|^(([A-z0-9._-]+|\\*):([+-=]r?w?x?)?,? *)+$"
-# @parameter_constraint group      "regex" : "^$|^(([A-z0-9._-]+|\\*):([+-=]r?w?x?)?,? *)+$"
+# @parameter_constraint user       "regex" : "^$|^(([A-z0-9._-]+|\*):([+-=]r?w?x?)?,? *)+$"
+# @parameter_constraint group      "regex" : "^$|^(([A-z0-9._-]+|\*):([+-=]r?w?x?)?,? *)+$"
 # @parameter_constraint other      "regex" : "^$|^[+-=^]r?w?x?$"
 #
 # @class_prefix permissions_acl_entry
