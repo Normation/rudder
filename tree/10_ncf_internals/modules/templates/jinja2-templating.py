@@ -102,10 +102,10 @@ def render(opts, args):
             env.tests.update(CUSTOM_TESTS)
     sys.path.pop()
 
-    output = env.get_template(os.path.basename(template_path)).render(data)
-
-    if not PY3:
-        output = output.decode("utf-8")
+    if PY3:
+      output = env.get_template(os.path.basename(template_path)).render(data)
+    else:
+      output = env.get_template(os.path.basename(template_path)).render(data).encode("utf-8")
 
     sys.stdout.write(output)
 
