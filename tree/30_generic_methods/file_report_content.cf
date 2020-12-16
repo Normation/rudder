@@ -25,7 +25,7 @@
 # having to connect on each node to get this information.
 #
 # NOTE: This method only works in "Full Compliance" reporting mode.
-# 
+#
 # #### Parameters
 #
 # ##### Target
@@ -47,7 +47,7 @@
 # When reporting the whole file, this parameter is ignored.
 #
 # #### Examples
-# 
+#
 # ```
 # # To get the whole /etc/hosts content
 # file_report_content("/etc/hosts", "", "");
@@ -62,7 +62,7 @@
 # @parameter_constraint regex "allow_empty_string" : true
 # @parameter context    Number of context lines when matching regex (default is 0)
 # @parameter_constraint context "allow_empty_string" : true
-# @parameter_constraint context "regex" : "^\\d*$"
+# @parameter_constraint context "regex" : "^\d*$"
 #
 # @class_prefix file_report_content
 # @class_parameter target
