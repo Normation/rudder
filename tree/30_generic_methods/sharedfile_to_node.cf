@@ -24,7 +24,7 @@
 #
 # The file will be kept on the policy server and transmitted to the destination node's policy server if it is different.
 # It will be kept on this server for the destination node to download as long as it is not replaced by a new
-# file with the same id or remove by expiration of the TTL. 
+# file with the same id or remove by expiration of the TTL.
 #
 # #### Parameters
 #
@@ -65,7 +65,7 @@
 # This is a name that will be used to identify the file once stored on the server. It should be unique
 # and describe the file content.
 #
-# #### Example: 
+# #### Example:
 #
 # We have a node *A*, with uuid `2bf1afdc-6725-4d3d-96b8-9128d09d353c` which wants to share
 # the `/srv/db/application.properties` with node *B* with uuid `73570beb-2d4a-43d2-8ffc-f84a6817849c`.
@@ -77,7 +77,7 @@
 # They have to agree (i.e. it has to be defined in the policies of both nodes) on the id of the file,
 # that will be used during the exchange, here it will be `application.properties`.
 #
-# To share the file, node *A* will use: 
+# To share the file, node *A* will use:
 #
 # ```
 # sharedfile_to_node("73570beb-2d4a-43d2-8ffc-f84a6817849c", "application.properties", "/srv/db/application.properties", "356 days")
@@ -94,8 +94,8 @@
 # @parameter_constraint file_id "regex" : "^[A-z0-9._-]+$"
 # @parameter file_path    Path of the file to share
 # @parameter ttl          Time to keep the file on the policy server in seconds or in human readable form (see long description)
-# @parameter_constraint ttl "regex" : "^(\\d+\\s*(days?|d))?(\\d+\\s*(hours?|h))?(\\d+\\s*(minutes?|m))?(\\d+\\s*(seconds?|s))?$"
-# 
+# @parameter_constraint ttl "regex" : "^(\d+\s*(days?|d))?(\d+\s*(hours?|h))?(\d+\s*(minutes?|m))?(\d+\s*(seconds?|s))?$"
+#
 # @class_prefix sharedfile_to_node
 # @class_parameter file_id
 
