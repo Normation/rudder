@@ -38,15 +38,23 @@
 package com.normation.rudder.repository
 
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueCategory
+import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies._
+import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
+import net.liftweb.common.Box
+import net.liftweb.common.Full
 import org.joda.time.DateTime
+import com.softwaremill.quicklens._
 
 import scala.collection.SortedMap
 
@@ -96,6 +104,17 @@ final case class FullActiveTechnique(
   )
 
   val newestAvailableTechnique = techniques.toSeq.sortBy( _._1).reverse.map( _._2 ).headOption
+
+  def saveDirective(directive: Directive): FullActiveTechnique = {
+    this.modify(_.directives).using(directives =>
+      (directive :: directives.filterNot(_.id == directive.id))
+    )
+  }
+  def deleteDirective(directiveId: DirectiveId): FullActiveTechnique = {
+    this.modify(_.directives).using(directives =>
+      directives.filterNot(_.id == directiveId)
+    )
+  }
 }
 
 
@@ -134,8 +153,114 @@ final case class FullActiveTechniqueCategory(
     }) }
   }
 
+  lazy val allCategories: Map[ActiveTechniqueCategoryId, FullActiveTechniqueCategory] = {
+      subCategories.foldLeft(Map((id -> this)))( _ ++ _.allCategories )
+  }
+
   def getUpdateDateTime(id: TechniqueId): Option[DateTime] = {
     allTechniques.get(id).flatMap( _._2 )
+  }
+
+
+  // UPDATE / DELETE directives - primaly used for tests
+
+  // a version of that tree which knows of path
+  lazy val fullIndex: SortedMap[List[ActiveTechniqueCategoryId], FullActiveTechniqueCategory] = {
+    def recBuild(root: FullActiveTechniqueCategory, parents: List[ActiveTechniqueCategoryId]): List[ (List[ActiveTechniqueCategoryId], FullActiveTechniqueCategory) ] = {
+      val path = root.id :: parents
+      (path, root) :: (root.subCategories.map(c => recBuild(c, path))).flatten
+    }
+    implicit val ordering = ActiveTechniqueCategoryOrdering
+    SortedMap[List[ActiveTechniqueCategoryId], FullActiveTechniqueCategory]() ++ recBuild(this, Nil)
+  }
+
+  def toActiveTechniqueCategory(): ActiveTechniqueCategory = {
+    ActiveTechniqueCategory(
+        id
+      , name
+      , description
+      , subCategories.map(_.id)
+      , activeTechniques.map(_.id)
+      , isSystem
+    )
+  }
+
+  /**
+   * Save directive in given active technique.
+   * Returns an error is active technique is missing.
+   * Returns the updated version of that full category
+   */
+  def saveDirective(inActiveTechniqueId: ActiveTechniqueId, directive: Directive): PureResult[FullActiveTechniqueCategory] = {
+    val error: PureResult[FullActiveTechniqueCategory] = Left(Inconsistency(s"Active technique '${inActiveTechniqueId.value}' not found.'"))
+    this.activeTechniques.find(_.id == inActiveTechniqueId) match {
+      case Some(fat) =>
+        Right(this.modify(_.activeTechniques).using(techs =>
+          (fat.saveDirective(directive) :: techs.filterNot(_.id == fat.id))
+        ))
+      case None =>
+        subCategories.foldLeft(error) {
+          case (Right(sub), _) =>
+            Right(sub)
+
+          case (Left(e) , sub) =>
+            sub.saveDirective(inActiveTechniqueId, directive) match {
+              case Left(e)  =>
+                Left(e)
+              case Right(s) =>
+                Right(this.modify(_.subCategories).using(cats =>
+                  (s :: cats.filterNot(_.id == s.id))
+                ))
+            }
+        }
+    }
+  }
+
+  def deleteDirective(directiveId: DirectiveId): FullActiveTechniqueCategory = {
+    this
+      .modify(_.activeTechniques).using(techs => techs.map(_.deleteDirective(directiveId)))
+      .modify(_.subCategories).using(subs => subs.map(_.deleteDirective(directiveId)))
+  }
+
+  def addActiveTechnique(categoryId: ActiveTechniqueCategoryId, techniqueName: TechniqueName, techniques: Seq[Technique]): FullActiveTechniqueCategory = {
+    if(this.id == categoryId) {
+      // only keep technique with the good name
+      val techs = techniques.filter(_.id.name == techniqueName)
+      val now = DateTime.now()
+      val newTimes = techs.map(t => (t.id.version, now))
+      val newTechs = techs.map(t => (t.id.version, t))
+      val updated = activeTechniques.find(_.id.value == techniqueName.value) match {
+        case None =>
+          FullActiveTechnique(
+              ActiveTechniqueId(techniqueName.value)
+            , techniqueName
+            , SortedMap[TechniqueVersion, DateTime]() ++ newTimes
+            , SortedMap[TechniqueVersion, Technique]() ++ newTechs
+            , Nil
+            , true
+            , false
+          )
+        case Some(fat) =>
+          fat.modify(_.acceptationDatetimes).using(_ ++ newTimes).modify(_.techniques).using(_ ++ newTechs)
+      }
+      this.modify(_.activeTechniques).using(techs =>
+        updated :: techs.filterNot(_.id == updated.id)
+      )
+    } else {
+      this.modify(_.subCategories).using(_.map(_.addActiveTechnique(categoryId, techniqueName, techniques)))
+    }
+  }
+  def addActiveTechniqueCategory(categoryId: ActiveTechniqueCategoryId, category: FullActiveTechniqueCategory): FullActiveTechniqueCategory = {
+    if(this.id == categoryId) {
+      // only keep technique with the good name
+      if(this.subCategories.exists(_.id == categoryId)) this
+      else {
+        this.modify(_.subCategories).using(subs =>
+          category :: subs.filterNot(_.id == categoryId)
+        )
+      }
+    } else {
+      this.modify(_.subCategories).using(_.map(_.addActiveTechniqueCategory(categoryId, category)))
+    }
   }
 }
 
@@ -256,8 +381,7 @@ trait RoDirectiveRepository {
   def getParentsForActiveTechnique(id:ActiveTechniqueId) : IOResult[ActiveTechniqueCategory]
 
   /**
-   * Return true if at least one directive exists in this category (or a sub category
-   * of this category)
+   * TODO: Never use, remove in rudder 7.0
    */
   def containsDirective(id: ActiveTechniqueCategoryId) : zio.UIO[Boolean]
 }
@@ -416,5 +540,83 @@ trait WoDirectiveRepository {
    * same name (name must be unique for a given level)
    */
   def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, optionNewName: Option[ActiveTechniqueCategoryId], modificationId: ModificationId, actor: EventActor, reason: Option[String]) : IOResult[ActiveTechniqueCategoryId]
+
+}
+
+/**
+ * A class in charge of initializing the active techniques / directives tree
+ */
+class InitDirectivesTree(
+    techniqueRepository  : TechniqueRepository
+  , roDirectiveRepository: RoDirectiveRepository
+  , woDirectiveRepository: WoDirectiveRepository
+  , uuidGen              : StringUuidGenerator
+) {
+  import com.normation.utils.Control._
+  import com.normation.box._
+
+  def copyReferenceLib(includeSystem: Boolean = false) : Box[Seq[ActiveTechniqueCategory]] = {
+    def genUserCatId(fromCat:TechniqueCategory) : ActiveTechniqueCategoryId = {
+        //for the technique ID, use the last part of the path used for the cat id.
+        ActiveTechniqueCategoryId(fromCat.id.name.value)
+    }
+    def recCopyRef(fromCatId:TechniqueCategoryId, toParentCat:ActiveTechniqueCategory) : Box[ActiveTechniqueCategory] = {
+
+      for {
+        fromCat <- techniqueRepository.getTechniqueCategory(fromCatId).toBox
+        newUserPTCat = ActiveTechniqueCategory(
+            id = genUserCatId(fromCat)
+          , name = fromCat.name
+          , description = fromCat.description
+          , children = Nil
+          , items = Nil
+        )
+        res <- if(fromCat.isSystem && !includeSystem) { //Rudder internal Technique category are handle elsewhere
+            Full(newUserPTCat)
+          } else {
+            for {
+              updatedParentCat <- woDirectiveRepository.addActiveTechniqueCategory(
+                                      newUserPTCat
+                                    , toParentCat.id
+                                    , ModificationId(uuidGen.newUuid)
+                                    , RudderEventActor
+                                    , reason = Some("Initialize active templates library")).toBox ?~!
+                "Error when adding category '%s' to user library parent category '%s'".format(newUserPTCat.id.value, toParentCat.id.value)
+                //now, add items and subcategories, in a "try to do the max you can" way
+                fullRes <- boxSequence(
+                  //Techniques
+                  bestEffort(fromCat.techniqueIds.groupBy(id => id.name).toSeq) { case (name, ids) =>
+                    for {
+                      activeTechnique <- woDirectiveRepository.addTechniqueInUserLibrary(
+                          newUserPTCat.id
+                        , name
+                        , ids.map( _.version).toSeq
+                        , ModificationId(uuidGen.newUuid)
+                        , RudderEventActor, reason = Some("Initialize active templates library")).toBox ?~!
+                        "Error when adding Technique '%s' into user library category '%s'".format(name.value, newUserPTCat.id.value)
+                    } yield {
+                      activeTechnique
+                    }
+                  } ::
+                  //recurse on children categories of reference lib
+                  bestEffort(fromCat.subCategoryIds.toSeq) { catId => recCopyRef(catId, newUserPTCat) } ::
+                  Nil
+                )
+            } yield {
+              fullRes
+            }
+          }
+      } yield {
+        newUserPTCat
+      }
+    }
+
+    //apply with root cat children ids
+    roDirectiveRepository.getActiveTechniqueLibrary.toBox.flatMap { root =>
+      bestEffort(techniqueRepository.getTechniqueLibrary.subCategoryIds.toSeq) { id =>
+        recCopyRef(id, root)
+      }
+    }
+  }
 
 }

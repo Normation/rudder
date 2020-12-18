@@ -313,7 +313,7 @@ final case class RestExtractorService (
     }
   }
 
-  private[this] def toRuleTarget(json:JValue, key:String ): Box[Option[RuleTarget]] = {
+  def toRuleTarget(json:JValue, key:String ): Box[Option[RuleTarget]] = {
     for {
       targets <- sequence((json \\ key).children) { child =>
                    child match {

@@ -38,7 +38,6 @@
 package com.normation.rudder.rest
 
 import scala.jdk.CollectionConverters._
-
 import org.apache.commons.io.IOUtils
 import org.junit.runner.RunWith
 import org.specs2.mutable._
@@ -46,16 +45,18 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.core.Fragment
 import org.specs2.specification.core.Fragments
 import org.yaml.snakeyaml.Yaml
-
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import net.liftweb.http.PlainTextResponse
+import net.liftweb.http.InMemoryResponse
+import net.liftweb.http.LiftResponse
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.util.Helpers.tryo
+
 import java.nio.charset.StandardCharsets
+import java.util.{ArrayList => JUList}
 
 /*
  * Utily data structures
@@ -71,6 +72,8 @@ final case class TestRequest(
     description    : String
   , method         : String
   , url            : String
+  , queryBody      : String
+  , headers        : List[String]
   , responseType   : ResponseType
   , responseCode   : Int
   , responseContent: String
@@ -105,6 +108,8 @@ class TestRestFromFileDef extends Specification with Loggable {
           data.get("description").map( _.asInstanceOf[String] ).getOrElse("")
         , data("method").asInstanceOf[String]
         , data("url").asInstanceOf[String]
+        , data.get("body").map(_.asInstanceOf[String]).getOrElse("")
+        , data.get("headers").map(_.asInstanceOf[JUList[String]]).map(_.asScala.toList).getOrElse(Nil)
         , response.get("type").map( _.asInstanceOf[String] ).getOrElse("json") match {
             case "json" => ResponseType.Json
             case "text" => ResponseType.Text
@@ -118,6 +123,10 @@ class TestRestFromFileDef extends Specification with Loggable {
 
   ///// tests ////
 
+  def cleanBreakline(text: String) = text.replaceAll("(\\W)\\s+", "$1")
+  def cleanBody(r: LiftResponse) = {
+    cleanBreakline(new String(r.toResponse.asInstanceOf[InMemoryResponse].data, "UTF-8"))
+  }
   Fragments.foreach(files.toSeq) { file =>
 
     s"For each test defined in ${file}" should {
@@ -139,9 +148,18 @@ class TestRestFromFileDef extends Specification with Loggable {
             val mockReq = new MockHttpServletRequest("http://localhost:8080")
             mockReq.method = test.method
             mockReq.path   = test.url
+            mockReq.body   = test.queryBody.getBytes(StandardCharsets.UTF_8)
+            mockReq.headers = test.headers.map{ h =>
+              val parts = h.split(":")
+              (parts(0), List(parts.tail.mkString(":").trim))
+            }.toMap
+            mockReq.contentType = mockReq.headers.get("Content-Type").flatMap(_.headOption).getOrElse("text/plain")
+
+            // authorize space in response formating
+            val expected = cleanBreakline(test.responseContent)
 
             RestTestSetUp.execRequestResponse(mockReq)(response =>
-              response must beEqualTo(Full(PlainTextResponse(test.responseContent)))
+              response.map(cleanBody(_)) must beEqualTo(Full(expected))
             )
           }
       } }
