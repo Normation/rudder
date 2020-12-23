@@ -366,7 +366,7 @@ class RuleApiService2 (
             rule <- readRule.get(sourceId).toBox ?~!
               s"Could not create rule ${name} (id:${ruleId.value}) by cloning rule '${sourceId.value}')"
           } yield {
-            RuleChangeRequest(RuleModAction.Create, restRule.updateRule(rule), Some(rule))
+            RuleChangeRequest(RuleModAction.Create, restRule.updateRule(rule).copy(id = ruleId), Some(rule))
           }
 
         case None =>
