@@ -31,10 +31,12 @@ humantime = "2"
 hyper = { version = "0.13.8", default-features = false }
 # 0.9 for tokio 0.3
 inotify = "0.8"
+lazy_static = "1.4"
 log = "0.4"
 md-5 = "0.9"
 nom = "6"
 openssl = "0.10"
+prometheus = { version = "0.11", default-features = false, features = ["process"] }
 regex = "1"
 # Use openssl for TLS to be consistent
 reqwest = { version = "0.10", default-features = false, features = ["stream", "blocking", "native-tls"] }

@@ -9,7 +9,10 @@ use relayd::{
     configuration::{main::DatabaseConfig, Secret},
     data::{node::NodesList, report::QueryableReport, RunInfo, RunLog},
     input::signature,
-    output::database::{schema::ruddersysevents::dsl::*, *},
+    output::database::{
+        schema::{reportsexecution::dsl::*, ruddersysevents::dsl::*},
+        *,
+    },
 };
 use std::{
     convert::TryFrom,
@@ -103,6 +106,7 @@ fn bench_insert_runlog(c: &mut Criterion) {
     let pool = db();
     let db = &*pool.get().unwrap();
 
+    diesel::delete(reportsexecution).execute(db).unwrap();
     diesel::delete(ruddersysevents).execute(db).unwrap();
     let results = ruddersysevents
         .limit(1)

@@ -4,9 +4,9 @@
 use crate::{
     configuration::main::InventoryOutputSelect,
     input::watch::*,
+    metrics::INVENTORIES,
     output::upstream::send_inventory,
     processing::{failure, success, OutputError, ReceivedFile},
-    stats::Event,
     JobConfig,
 };
 use anyhow::Error;
@@ -23,7 +23,7 @@ pub enum InventoryType {
     Update,
 }
 
-pub fn start(job_config: &Arc<JobConfig>, stats: mpsc::Sender<Event>) {
+pub fn start(job_config: &Arc<JobConfig>) {
     let span = span!(Level::TRACE, "inventory");
     let _enter = span.enter();
 
@@ -35,12 +35,7 @@ pub fn start(job_config: &Arc<JobConfig>, stats: mpsc::Sender<Event>) {
         .inventory
         .directory
         .join("incoming");
-    tokio::spawn(serve(
-        job_config.clone(),
-        receiver,
-        InventoryType::New,
-        stats.clone(),
-    ));
+    tokio::spawn(serve(job_config.clone(), receiver, InventoryType::New));
     tokio::spawn(cleanup(
         incoming_path.clone(),
         job_config.cfg.processing.inventory.cleanup,
@@ -54,12 +49,7 @@ pub fn start(job_config: &Arc<JobConfig>, stats: mpsc::Sender<Event>) {
         .directory
         .join("accepted-nodes-updates");
     let (sender, receiver) = mpsc::channel(1_024);
-    tokio::spawn(serve(
-        job_config.clone(),
-        receiver,
-        InventoryType::Update,
-        stats,
-    ));
+    tokio::spawn(serve(job_config.clone(), receiver, InventoryType::Update));
     tokio::spawn(cleanup(
         updates_path.clone(),
         job_config.cfg.processing.inventory.cleanup,
@@ -71,7 +61,6 @@ async fn serve(
     job_config: Arc<JobConfig>,
     mut rx: mpsc::Receiver<ReceivedFile>,
     inventory_type: InventoryType,
-    stats: mpsc::Sender<Event>,
 ) -> Result<(), ()> {
     while let Some(file) = rx.recv().await {
         // allows skipping temporary .dav files
@@ -102,19 +91,11 @@ async fn serve(
         );
         let _enter = span.enter();
 
-        stats
-            .clone()
-            .send(Event::InventoryReceived)
-            .await
-            .map_err(|e| error!("receive error: {}", e))
-            .map(|_| ())?;
-
         debug!("received: {:?}", file);
 
         match job_config.cfg.processing.inventory.output {
             InventoryOutputSelect::Upstream => {
-                output_inventory_upstream(file, inventory_type, job_config.clone(), stats.clone())
-                    .await
+                output_inventory_upstream(file, inventory_type, job_config.clone()).await
             }
             // The job should not be started in this case
             InventoryOutputSelect::Disabled => unreachable!("Inventory server should be disabled"),
@@ -128,25 +109,26 @@ async fn output_inventory_upstream(
     path: ReceivedFile,
     inventory_type: InventoryType,
     job_config: Arc<JobConfig>,
-    stats: mpsc::Sender<Event>,
 ) -> Result<(), Error> {
     let job_config_clone = job_config.clone();
     let path_clone2 = path.clone();
-    let stats_clone = stats.clone();
 
     let result = send_inventory(job_config, path.clone(), inventory_type).await;
 
     match result {
-        Ok(_) => success(path.clone(), Event::InventorySent, stats_clone).await,
+        Ok(_) => {
+            INVENTORIES.with_label_values(&["forward_ok"]).inc();
+            success(path.clone()).await
+        }
         Err(e) => {
             error!("output error: {}", e);
             match OutputError::from(e) {
                 OutputError::Permanent => {
+                    INVENTORIES.with_label_values(&["forward_error"]).inc();
+
                     failure(
                         path_clone2.clone(),
                         job_config_clone.cfg.processing.inventory.directory.clone(),
-                        Event::InventoryRefused,
-                        stats,
                     )
                     .await
                 }

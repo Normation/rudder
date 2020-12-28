@@ -145,12 +145,7 @@ pub async fn put(
 
     let file = SharedFile::new(source_id, target_id, file_id)?;
 
-    if job_config
-        .nodes
-        .read()
-        .expect("Cannot read nodes list")
-        .is_subnode(&file.target_id)
-    {
+    if job_config.nodes.read().await.is_subnode(&file.target_id) {
         put_local(file, params, job_config, body).await
     } else if job_config.cfg.general.node_id == "root" {
         Err(RudderError::UnknownNode(file.target_id).into())
@@ -188,12 +183,7 @@ pub async fn put_local(
     job_config: Arc<JobConfig>,
     body: Bytes,
 ) -> Result<StatusCode, Error> {
-    if !job_config
-        .nodes
-        .read()
-        .expect("Cannot read nodes list")
-        .is_subnode(&file.source_id)
-    {
+    if !job_config.nodes.read().await.is_subnode(&file.source_id) {
         warn!("unknown source {}", file.source_id);
         return Ok(StatusCode::NOT_FOUND);
     }
@@ -220,7 +210,7 @@ pub async fn put_local(
     let known_key_hash = job_config
         .nodes
         .read()
-        .expect("Cannot read nodes list")
+        .await
         .key_hash(&file.source_id)
         .ok_or_else(|| RudderError::UnknownNode(file.source_id.to_string()))?;
     let key_hash = known_key_hash.hash_type.hash(&pubkey.public_key_to_der()?);
@@ -300,12 +290,7 @@ pub async fn head(
 
     let file = SharedFile::new(source_id, target_id, file_id)?;
 
-    if job_config
-        .nodes
-        .read()
-        .expect("Cannot read nodes list")
-        .is_subnode(&file.target_id)
-    {
+    if job_config.nodes.read().await.is_subnode(&file.target_id) {
         head_local(file, params, job_config).await
     } else if job_config.cfg.general.node_id == "root" {
         Err(RudderError::UnknownNode(file.target_id).into())

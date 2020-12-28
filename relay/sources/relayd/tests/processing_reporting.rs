@@ -9,9 +9,9 @@ use relayd::{
     init_logger,
     output::database::schema::{reportsexecution::dsl::*, ruddersysevents::dsl::*},
     start,
-    stats::Stats,
 };
 use std::{
+    collections::HashMap,
     fs::{copy, create_dir_all, remove_dir_all},
     path::Path,
     thread, time,
@@ -19,6 +19,36 @@ use std::{
 
 pub fn db_connection() -> PgConnection {
     PgConnection::establish("postgres://rudderreports:PASSWORD@127.0.0.1/rudder").unwrap()
+}
+
+/// List of key values to check in the metrics text
+pub fn check_prometheus(metrics: &str, mut expected: HashMap<&str, &str>) -> bool {
+    let mut is_ok = true;
+
+    for line in metrics.split("\n") {
+        if line.starts_with("#") || line.is_empty() {
+            continue;
+        }
+
+        let split: Vec<&str> = line.split(" ").collect();
+        let name = split[0];
+        let value = split[1];
+
+        if let Some(rvalue) = expected.get(name) {
+            if !(*rvalue == value) {
+                println!("{} should equal {} but is {}", name, rvalue, value);
+                is_ok = false;
+            }
+            expected.remove(name);
+        }
+    }
+
+    for key in expected.keys() {
+        is_ok = false;
+        println!("{} should be present but is not there", key);
+    }
+
+    is_ok
 }
 
 // Checks number of start execution reports
@@ -105,19 +135,27 @@ fn it_reads_and_inserts_a_runlog() {
     assert!(!Path::new(file_unknown).exists());
     assert!(Path::new(file_unknown_failed).exists());
 
-    let body = reqwest::blocking::get("http://localhost:3030/rudder/relay-api/1/system/stats")
+    //thread::sleep(time::Duration::from_secs(500));
+
+    let body = reqwest::blocking::get("http://localhost:3030/metrics")
         .unwrap()
         .text()
         .unwrap();
-    let answer = serde_json::from_str(&body).unwrap();
-    let reference = Stats {
-        report_received: 4,
-        report_refused: 2,
-        report_sent: 0,
-        report_inserted: 2,
-        inventory_received: 0,
-        inventory_refused: 0,
-        inventory_sent: 0,
-    };
-    assert_eq!(reference, answer);
+    let mut expected = HashMap::new();
+    expected.insert("rudder_relayd_reports_total{status=\"invalid\"}", "1");
+    expected.insert("rudder_relayd_reports_total{status=\"ok\"}", "2");
+    expected.insert("rudder_relayd_reports_total{status=\"error\"}", "1");
+    expected.insert("rudder_relayd_reports_total{status=\"forward_ok\"}", "0");
+    expected.insert("rudder_relayd_reports_total{status=\"forward_error\"}", "0");
+    expected.insert(
+        "rudder_relayd_inventories_total{status=\"forward_ok\"}",
+        "0",
+    );
+    expected.insert(
+        "rudder_relayd_inventories_total{status=\"forward_error\"}",
+        "0",
+    );
+    expected.insert("rudder_relayd_managed_nodes_total", "3");
+    expected.insert("rudder_relayd_sub_nodes_total", "6");
+    assert!(check_prometheus(&body, expected));
 }

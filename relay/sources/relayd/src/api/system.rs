@@ -5,17 +5,15 @@ use crate::{
     api::{ApiResponse, ApiResult},
     check_configuration,
     output::database::ping,
-    stats::Stats,
     Error, JobConfig,
 };
 use serde::Serialize;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use structopt::clap::crate_version;
-use warp::{filters::method, path, reply, Filter, Reply};
+use warp::{filters::method, path, Filter, Reply};
 
 pub fn routes_1(
     job_config: Arc<JobConfig>,
-    stats: Arc<RwLock<Stats>>,
 ) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
     let base = path!("system" / ..);
 
@@ -24,14 +22,11 @@ pub fn routes_1(
     });
 
     let job_config_reload = job_config.clone();
-    let reload = method::post().and(base).and(path!("reload")).map(move || {
-        Ok(ApiResponse::<()>::new::<Error>(
-            "reloadConfiguration",
-            job_config_reload.clone().reload().map(|_| None),
-            None,
-        )
-        .reply())
-    });
+    let reload = method::post()
+        .and(base)
+        .and(path!("reload"))
+        .map(move || job_config_reload.clone())
+        .and_then(handlers::reload);
 
     let job_config_status = job_config;
     let status = method::get().and(base).and(path!("status")).map(move || {
@@ -43,15 +38,21 @@ pub fn routes_1(
         .reply())
     });
 
-    // WARNING: Not stable, will be replaced soon
-    // Kept for testing mainly
-    let stats = method::get().and(base).and(path!("stats")).map(move || {
-        Ok(reply::json(
-            &(*stats.clone().read().expect("open stats database")),
-        ))
-    });
+    info.or(reload).or(status)
+}
 
-    info.or(reload).or(status).or(stats)
+pub mod handlers {
+    use super::*;
+    use warp::{Rejection, Reply};
+
+    pub async fn reload(job_config: Arc<JobConfig>) -> Result<impl Reply, Rejection> {
+        Ok(ApiResponse::<()>::new::<Error>(
+            "reloadConfiguration",
+            job_config.reload().await.map(|_| None),
+            None,
+        )
+        .reply())
+    }
 }
 
 // TODO could be in once_cell

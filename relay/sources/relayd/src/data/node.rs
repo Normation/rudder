@@ -4,7 +4,7 @@
 use crate::{error::RudderError, hashing::Hash};
 use anyhow::Error;
 use openssl::{stack::Stack, x509::X509};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer};
 use std::{
     collections::{HashMap, HashSet},
     fs::{read, read_to_string},
@@ -133,11 +133,14 @@ impl NodesList {
         Ok(NodesList { list: nodes, my_id })
     }
 
-    pub fn counts(&self) -> NodeCounts {
-        NodeCounts {
-            sub_nodes: self.list.data.len(),
-            managed_nodes: self.my_neighbors().len(),
-        }
+    /// Current number of sub-nodes (nodes managed by us or a downstream relay)
+    pub fn sub_nodes(&self) -> usize {
+        self.list.data.len()
+    }
+
+    /// Current number of managed nodes
+    pub fn managed_nodes(&self) -> usize {
+        self.my_neighbors().len()
     }
 
     /// Nodes list file only contains sub-nodes, so we only have to check for
@@ -302,14 +305,6 @@ impl FromStr for RawNodesList {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(serde_json::from_str(s)?)
     }
-}
-
-#[derive(Serialize, Debug, PartialEq, Eq)]
-pub struct NodeCounts {
-    // Total nodes under this relays
-    pub sub_nodes: usize,
-    // Nodes directly managed by this relay
-    pub managed_nodes: usize,
 }
 
 #[cfg(test)]

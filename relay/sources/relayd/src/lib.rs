@@ -12,9 +12,9 @@ pub mod data;
 pub mod error;
 pub mod hashing;
 pub mod input;
+pub mod metrics;
 pub mod output;
 pub mod processing;
-pub mod stats;
 
 use crate::{
     configuration::{
@@ -23,23 +23,17 @@ use crate::{
         main::{Configuration, InventoryOutputSelect, OutputSelect, ReportingOutputSelect},
     },
     data::node::NodesList,
+    metrics::{MANAGED_NODES, SUB_NODES},
     output::database::{pg_pool, PgPool},
     processing::{inventory, reporting},
-    stats::Stats,
 };
 use anyhow::Error;
 use reqwest::Client;
-use std::{
-    fs::create_dir_all,
-    path::Path,
-    process::exit,
-    string::ToString,
-    sync::{Arc, RwLock},
-};
+use std::{fs::create_dir_all, path::Path, process::exit, string::ToString, sync::Arc};
 use structopt::clap::crate_version;
 use tokio::{
     signal::unix::{signal, SignalKind},
-    sync::mpsc,
+    sync::RwLock,
 };
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::{
@@ -119,10 +113,12 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
     info!("Read configuration from {:#?}", &cli_cfg.configuration_dir);
     debug!("Parsed logging configuration:\n{:#?}", &log_cfg);
 
+    // Spawn metrics
+    metrics::register();
+
     // ---- Setup data structures ----
 
     let cfg = Configuration::new(cli_cfg.configuration_dir.clone())?;
-    let stats = Arc::new(RwLock::new(Stats::default()));
     let job_config = JobConfig::new(cli_cfg, cfg, reload_handle)?;
 
     // ---- Start server ----
@@ -158,28 +154,26 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
         let job_config_reload = job_config.clone();
         signal_handlers(job_config_reload);
 
-        // Spawn stats system
-        let (tx_stats, rx_stats) = mpsc::channel(1_024);
-        tokio::spawn(Stats::receiver(stats.clone(), rx_stats));
-
         // Spawn report and inventory processing
         if job_config.cfg.processing.reporting.output.is_enabled() {
-            reporting::start(&job_config, tx_stats.clone());
+            reporting::start(&job_config);
         } else {
             info!("Skipping reporting as it is disabled");
         }
         if job_config.cfg.processing.inventory.output.is_enabled() {
-            inventory::start(&job_config, tx_stats);
+            inventory::start(&job_config);
         } else {
             info!("Skipping inventory as it is disabled");
         }
 
+        // Initialize metrics
+        job_config.reload_metrics().await;
+
         // API should never return
-        api::run(job_config.clone(), stats.clone())
+        api::run(job_config.clone())
             .await
             .expect("could not start api");
     });
-
     panic!("Server halted unexpectedly");
 }
 
@@ -193,6 +187,7 @@ fn signal_handlers(job_config: Arc<JobConfig>) {
             hangup.recv().await;
             let _ = job_config
                 .reload()
+                .await
                 .map_err(|e| error!("reload error {}", e));
         }
     });
@@ -275,13 +270,14 @@ impl JobConfig {
         }))
     }
 
-    fn reload_nodeslist(&self) -> Result<(), Error> {
-        let mut nodes = self.nodes.write().expect("could not write nodes list");
+    async fn reload_nodeslist(&self) -> Result<(), Error> {
+        let mut nodes = self.nodes.write().await;
         *nodes = NodesList::new(
             self.cfg.general.node_id.to_string(),
             &self.cfg.general.nodes_list_file,
             Some(&self.cfg.general.nodes_certs_file),
         )?;
+
         Ok(())
     }
 
@@ -293,13 +289,18 @@ impl JobConfig {
         })
     }
 
-    pub fn reload(&self) -> Result<(), Error> {
+    async fn reload_metrics(&self) {
+        // Update nodes metrics
+        let nodes = self.nodes.read().await;
+        MANAGED_NODES.set(nodes.managed_nodes() as i64);
+        SUB_NODES.set(nodes.sub_nodes() as i64);
+    }
+
+    pub async fn reload(&self) -> Result<(), Error> {
         info!("Configuration reload requested");
-        self.reload_logging()
-            .and_then(|_| self.reload_nodeslist())
-            .map_err(|e| {
-                error!("reload error {}", e);
-                e
-            })
+        self.reload_logging()?;
+        self.reload_nodeslist().await?;
+        self.reload_metrics().await;
+        Ok(())
     }
 }

@@ -15,10 +15,8 @@ info:
     name: "CC-BY-SA 2.0"
     url: "https://spdx.org/licenses/CC-BY-SA-2.0.html"
 servers:
-  - url: "http://localhost:3030/rudder/relay-api/1/"
+  - url: "http://localhost:3030"
     description: "Local API"
-  - url: "https://rudder.example.local/rudder/relay-api/"
-    description: "Public API (does not include the `System` API)"
 externalDocs:
   description: Learn more about Rudder.
   url: "https://docs.rudder.io"
@@ -34,21 +32,23 @@ tags:
   - name: Remote run
     description: Trigger agents runs
 paths:
-  "/system/status":
+  "/rudder/relay-api/1/system/status":
     $ref: paths/system/status.yml
-  "/system/info":
+  "/rudder/relay-api/1/system/info":
     $ref: paths/system/info.yml
-  "/system/reload":
+  "/rudder/relay-api/1/system/reload":
     $ref: paths/system/reload.yml
-  "/shared-folder/{path}":
+  "/rudder/relay-api/1/shared-folder/{path}":
     $ref: paths/shared-folder.yml
-  "/shared-files/{targetNodeId}/{sourceNodeId}/{fileId}":
+  "/rudder/relay-api/1/shared-files/{targetNodeId}/{sourceNodeId}/{fileId}":
     $ref: paths/shared-files.yml
-  "/policies/{nodeId}/rules/dsc/rudder.zip":
+  "/rudder/relay-api/1/policies/{nodeId}/rules/dsc/rudder.zip":
     $ref: paths/policies.yml
-  "/remote-run/nodes/{nodeId}":
+  "/rudder/relay-api/1/remote-run/nodes/{nodeId}":
     $ref: paths/remote-run/node.yml
-  "/remote-run/nodes":
+  "/rudder/relay-api/1/remote-run/nodes":
     $ref: paths/remote-run/nodes.yml
-  "/remote-run/all":
+  "/rudder/relay-api/1/remote-run/all":
     $ref: paths/remote-run/all.yml
+  "/metrics":
+    $ref: paths/metrics.yml

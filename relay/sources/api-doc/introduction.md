@@ -4,9 +4,13 @@ Download OpenAPI specification: [openapi.yml](openapi.yml)
 
 Rudder relay exposes an internal API, enabling the agents and other services to interact with the relay.
 
+A part of the API (everything but the `System` category) is exposed publicly on the relay
+at `https://relay.example.com/rudder/relay-api/` (which is a reverse proxy of
+`http://localhost:3030/rudder/relay-api/1/`).
+
 ## Authentication
 
-The relay API is authentified on a case-by-case basis:
+The relay API is authenticated on a case-by-case basis:
 
 * *Remote run* is only accessible to requests from the IP of the relay's own policy server
 

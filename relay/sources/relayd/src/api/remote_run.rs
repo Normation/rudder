@@ -147,7 +147,7 @@ impl RemoteRun {
             // Async and output -> spawn in background and stream output
             (true, true) => {
                 let mut streams = futures::stream::SelectAll::new();
-                for (relay, target) in self.target.next_hops(job_config.clone()) {
+                for (relay, target) in self.target.next_hops(job_config.clone()).await {
                     let stream = self
                         .forward_call(job_config.clone(), relay.clone(), target.clone())
                         .await;
@@ -158,7 +158,7 @@ impl RemoteRun {
                     self.run_parameters
                         .remote_run(
                             &job_config.cfg.remote_run,
-                            self.target.neighbors(job_config.clone()),
+                            self.target.neighbors(job_config.clone()).await,
                             self.run_parameters.asynchronous,
                         )
                         .await,
@@ -167,7 +167,7 @@ impl RemoteRun {
             }
             // Async and no output -> spawn in background and return early
             (true, false) => {
-                for (relay, target) in self.target.next_hops(job_config.clone()) {
+                for (relay, target) in self.target.next_hops(job_config.clone()).await {
                     let stream = self.forward_call(job_config.clone(), relay, target).await;
                     tokio::spawn(RemoteRun::consume(stream));
                 }
@@ -175,7 +175,7 @@ impl RemoteRun {
                     self.run_parameters
                         .remote_run(
                             &job_config.cfg.remote_run,
-                            self.target.neighbors(job_config.clone()),
+                            self.target.neighbors(job_config.clone()).await,
                             self.run_parameters.asynchronous,
                         )
                         .await,
@@ -185,7 +185,7 @@ impl RemoteRun {
             // Sync and no output -> wait until the send and return empty output
             (false, false) => {
                 let mut streams = futures::stream::SelectAll::new();
-                for (relay, target) in self.target.next_hops(job_config.clone()) {
+                for (relay, target) in self.target.next_hops(job_config.clone()).await {
                     let stream = self
                         .forward_call(job_config.clone(), relay.clone(), target.clone())
                         .await;
@@ -196,7 +196,7 @@ impl RemoteRun {
                     self.run_parameters
                         .remote_run(
                             &job_config.cfg.remote_run,
-                            self.target.neighbors(job_config.clone()),
+                            self.target.neighbors(job_config.clone()).await,
                             self.run_parameters.asynchronous,
                         )
                         .await
@@ -207,7 +207,7 @@ impl RemoteRun {
             // Sync and output -> wait until the end and return output
             (false, true) => {
                 let mut streams = futures::stream::SelectAll::new();
-                for (relay, target) in self.target.next_hops(job_config.clone()) {
+                for (relay, target) in self.target.next_hops(job_config.clone()).await {
                     let stream = self
                         .forward_call(job_config.clone(), relay.clone(), target.clone())
                         .await;
@@ -218,7 +218,7 @@ impl RemoteRun {
                     self.run_parameters
                         .remote_run(
                             &job_config.cfg.remote_run,
-                            self.target.neighbors(job_config.clone()),
+                            self.target.neighbors(job_config.clone()).await,
                             self.run_parameters.asynchronous,
                         )
                         .await,
@@ -280,7 +280,7 @@ impl RemoteRun {
             Err(e) => {
                 error!("forward error: {}", e);
                 // TODO find a better way to chain errors
-                return Box::new(futures::stream::empty());
+                Box::new(futures::stream::empty())
             }
         }
     }
@@ -293,8 +293,8 @@ pub enum RemoteRunTarget {
 }
 
 impl RemoteRunTarget {
-    pub fn neighbors(&self, job_config: Arc<JobConfig>) -> Vec<Host> {
-        let nodes = job_config.nodes.read().expect("Cannot read nodes list");
+    pub async fn neighbors(&self, job_config: Arc<JobConfig>) -> Vec<Host> {
+        let nodes = job_config.nodes.read().await;
         let neighbors = match self {
             RemoteRunTarget::All => nodes.my_neighbors(),
             RemoteRunTarget::Nodes(nodeslist) => nodes.my_neighbors_from(nodeslist),
@@ -303,8 +303,8 @@ impl RemoteRunTarget {
         neighbors
     }
 
-    pub fn next_hops(&self, job_config: Arc<JobConfig>) -> Vec<(Host, RemoteRunTarget)> {
-        let nodes = job_config.nodes.read().expect("Cannot read nodes list");
+    pub async fn next_hops(&self, job_config: Arc<JobConfig>) -> Vec<(Host, RemoteRunTarget)> {
+        let nodes = job_config.nodes.read().await;
         let next_hops = match self {
             RemoteRunTarget::All => nodes
                 .my_sub_relays()

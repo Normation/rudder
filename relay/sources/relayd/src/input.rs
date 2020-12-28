@@ -13,18 +13,18 @@ use openssl::{
 };
 use std::{
     ffi::OsStr,
-    fs::read,
     io::{Cursor, Read},
     path::Path,
 };
+use tokio::fs::read;
 use tracing::debug;
 use zip::read::ZipArchive;
 
-pub fn read_compressed_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
+pub async fn read_compressed_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
     let path = path.as_ref();
 
     debug!("Reading {:#?} content", path);
-    let data = read(path)?;
+    let data = read(path).await?;
 
     Ok(match path.extension().and_then(OsStr::to_str) {
         Some("gz") => {
@@ -101,29 +101,35 @@ mod tests {
     use super::*;
     use std::fs::read_to_string;
 
-    #[test]
-    fn it_reads_gzipped_files() {
-        let reference = read("tests/files/gz/normal.log").unwrap();
+    #[tokio::test]
+    async fn it_reads_gzipped_files() {
+        let reference = read("tests/files/gz/normal.log").await.unwrap();
         assert_eq!(
-            read_compressed_file("tests/files/gz/normal.log.gz").unwrap(),
+            read_compressed_file("tests/files/gz/normal.log.gz")
+                .await
+                .unwrap(),
             reference
         );
     }
 
-    #[test]
-    fn it_reads_zipped_files() {
-        let reference = read("tests/files/gz/normal.log").unwrap();
+    #[tokio::test]
+    async fn it_reads_zipped_files() {
+        let reference = read("tests/files/gz/normal.log").await.unwrap();
         assert_eq!(
-            read_compressed_file("tests/files/gz/normal.log.zip").unwrap(),
+            read_compressed_file("tests/files/gz/normal.log.zip")
+                .await
+                .unwrap(),
             reference
         );
     }
 
-    #[test]
-    fn it_reads_plain_files() {
-        let reference = read("tests/files/gz/normal.log").unwrap();
+    #[tokio::test]
+    async fn it_reads_plain_files() {
+        let reference = read("tests/files/gz/normal.log").await.unwrap();
         assert_eq!(
-            read_compressed_file("tests/files/gz/normal.log").unwrap(),
+            read_compressed_file("tests/files/gz/normal.log")
+                .await
+                .unwrap(),
             reference
         );
     }
@@ -134,7 +140,7 @@ mod tests {
         let reference = read_to_string("tests/files/smime/normal.log").unwrap();
 
         let x509 = X509::from_pem(
-            &read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap(),
+            &std::fs::read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap(),
         )
         .unwrap();
 
@@ -146,7 +152,11 @@ mod tests {
             // openssl smime -sign -signer ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert
             //         -in normal.log -out normal.signed -inkey ../keys/e745a140-40bc-4b86-b6dc-084488fc906b.priv
             //         -passin "pass:Cfengine passphrase" -text -nocerts -md sha256
-            signature(&read("tests/files/smime/normal.signed").unwrap(), &certs,).unwrap(),
+            signature(
+                &std::fs::read("tests/files/smime/normal.signed").unwrap(),
+                &certs,
+            )
+            .unwrap(),
             reference
         );
     }
@@ -154,14 +164,14 @@ mod tests {
     #[test]
     fn it_detects_wrong_content() {
         let x509 = X509::from_pem(
-            &read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap(),
+            &std::fs::read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap(),
         )
         .unwrap();
         let mut certs = Stack::new().unwrap();
         certs.push(x509).unwrap();
 
         assert!(signature(
-            &read("tests/files/smime/normal-diff.signed").unwrap(),
+            &std::fs::read("tests/files/smime/normal-diff.signed").unwrap(),
             &certs,
         )
         .is_err());
@@ -170,12 +180,17 @@ mod tests {
     #[test]
     fn it_detects_wrong_certificates() {
         let x509bis = X509::from_pem(
-            &read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b-other.cert").unwrap(),
+            &std::fs::read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b-other.cert")
+                .unwrap(),
         )
         .unwrap();
         let mut certs = Stack::new().unwrap();
         certs.push(x509bis).unwrap();
 
-        assert!(signature(&read("tests/files/smime/normal.signed").unwrap(), &certs,).is_err());
+        assert!(signature(
+            &std::fs::read("tests/files/smime/normal.signed").unwrap(),
+            &certs,
+        )
+        .is_err());
     }
 }
