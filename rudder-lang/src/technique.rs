@@ -258,11 +258,9 @@ impl MethodCall {
             call = format!("if {} => {}", self.format_condition(&lib)?, call);
         }
 
+        // only get original name, other aliases do not matter here
         let formatted_alias_metadata: Option<String> = lib_method
-            .state
-            .metadata
-            .get("method_alias")
-            .and_then(|v| v.as_str())
+            .alias
             .map(|alias| format!("  @method_alias = \"{}\"\n", alias));
 
         // make an exception for condition_from_* method & condition generation

@@ -178,7 +178,7 @@ impl Promise {
     ) -> Self {
         Promise::new(
             PromiseType::Methods,
-            component.map(|s| s.to_owned()),
+            component.map(String::from),
             "method_call",
         )
         .attribute(

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::path::PathBuf;
+
 use super::{compile, CommandResult};
 use crate::{
     error::Result, generator::Format, io::IOContext, rudderlang_lib::RudderlangLib,
@@ -20,7 +22,7 @@ pub fn technique_generate(ctx: &IOContext) -> Result<Vec<CommandResult>> {
     let mut wrapped_technique = vec![CommandResult::new(
         Format::RudderLang,
         match &ctx.output {
-            Some(path) => path.to_str().map(|refstr| refstr.into()), // into a PathBuf
+            Some(path) => path.to_str().map(PathBuf::from),
             None => None,
         },
         Some(technique_fmt.clone()),

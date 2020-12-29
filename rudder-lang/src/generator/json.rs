@@ -5,8 +5,8 @@ use super::Generator;
 use crate::{
     command::CommandResult, error::*, generator::Format, ir::ir2::IR2, technique::Technique,
 };
-use std::convert::From;
 use std::path::Path;
+use std::{convert::From, path::PathBuf};
 
 pub struct JSON;
 
@@ -23,7 +23,7 @@ impl Generator for JSON {
         Ok(vec![CommandResult::new(
             Format::JSON,
             match dest_file {
-                Some(path) => path.to_str().map(|refstr| refstr.into()),
+                Some(path) => path.to_str().map(PathBuf::from),
                 None => None,
             },
             Some(content.to_string()),

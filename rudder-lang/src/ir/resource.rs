@@ -285,6 +285,23 @@ impl<'src> StateDef<'src> {
             None => Err(Error::new(format!("Expected 'supported_targets' metadata for '{}' method", method_name)))
         }
     }
+
+    pub fn get_method_aliases(&self) -> Result<Vec<String>> {
+        if let Some(aliases) = self
+            .metadata
+            .get("method_aliases")
+            .and_then(|v| v.as_array())
+        {
+            return Ok(aliases
+                .iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect::<Vec<String>>());
+        }
+
+        return Err(Error::new(format!(
+            "Expected 'method_aliases' metadata to be an array of strings"
+        )));
+    }
 }
 
 /// A single parameter for a resource or a state

@@ -1,9 +1,10 @@
 #!/bin/bash
 
 techniques=(./tests/techniques/*)
-
 success_count=0
 declare -a errors=()
+# techniques=(./eutelsat_techniques/*/0.1/)
+
 for technique in ${techniques[*]}
 do
   ./tools/tester.sh --dev --keep "${technique}/technique"
@@ -12,5 +13,5 @@ do
 done
 
 echo "${success_count} out of ${#techniques[@]} techniques tested were fully successful"
-echo "${errors[*]}"
+echo "${errors[@]}"
 exit $((${#techniques[@]} - ${success_count}))

@@ -45,7 +45,8 @@ optionnal_tags = [
     "action",
     "rename"]
 multiline_tags = ["description", "documentation", "deprecated"]
-
+# new_value cannot be the key because several methods could be renamed in the same one. Which leads to an array of aliases metadata
+deprecated_name_conversion_table = {} # list of bundle_name:new_name for deprecated GMs
 
 class NcfError(Exception):
     def __init__(self, message, details="", cause=None):
@@ -138,7 +139,7 @@ def parse_method_metadata(content):
                         match.group(3), default_constraint.copy()).update(constraint)
                 if tag == "parameter_type":
                     param_type = match.group(4)
-                    param_types[match.group(3)] = param_type
+                    param_types[match.group(3)] = param_type               
                 else:
                     res[tag] = match.group(2)
                 previous_tag = tag
@@ -174,25 +175,32 @@ def parse_method_metadata(content):
 
             bundle_name = match.group(1)
 
+            # handle "rename" metadata for deprecated GMs
+            if 'rename' in res:
+                deprecated_name_conversion_table[bundle_name] = res['rename']
+
+            method_aliases = []
             # HERE is the only place a bundle name has to be changed to deal with resource naming exceptions
             if bundle_name == "monitoring_template" or \
                     bundle_name == "monitoring_parameter":
                 shift = 2
-                res["method_alias"] = bundle_name
+                method_aliases.append(bundle_name)
                 bundle_name += "_present"
             elif bundle_name.startswith("kernel_module") or \
                     bundle_name.startswith("http_request"):
                 shift = 2
             else:
                 if bundle_name == "permissions":
-                    res["method_alias"] = bundle_name
+                    method_aliases.append(bundle_name)
                     bundle_name += "_value"
                 elif bundle_name == "audit_from_osquery":
-                    res["method_alias"] = bundle_name
+                    method_aliases.append(bundle_name)
                     bundle_name = "sysinfo_query"
                 shift = 1
-
             split = bundle_name.split("_")
+
+            if method_aliases:
+                res["method_aliases"] = method_aliases
 
             res['resource'] = '_'.join(split[:shift])
             res['state'] = '_'.join(split[shift:])
@@ -205,6 +213,8 @@ def parse_method_metadata(content):
 
             bundle_args = []
 
+            if method_aliases:
+                res["method_aliases"] = method_aliases
             if match.group(3) is not None and len(match.group(3)):
                 bundle_args += [x.strip()
                                 for x in match.group(3).split(',')]
@@ -275,6 +285,7 @@ def parse_method_metadata(content):
                 res["resource_parameters"].append(param)
             else:
                 res["parameters"].append(param)
+    # res['deprecated_aliases'] = 
 
     # a trick to avoid DSC diffson tester comparison script,
     # for this particular technique parameters are loaded in cfengine in the wrong order
@@ -364,8 +375,6 @@ def get_generic_methods_metadata(filenames, dsc_filenames):
                 metadata["method"], content, dsc_filenames)
 
             if "rename" in metadata:
-                # renaming is handled by translate process
-                # renamed method do not need to exist in rudder lang
                 continue
 
             states[metadata['method']] = metadata
@@ -487,6 +496,14 @@ def generate_lib(resource_name, resource, lib_dir):
     out.write("\n\n")
 
     for state in sorted(resource["states"], key=lambda item: item["state"]):
+        # set the deprecated metadata as an alias if the bundle name matches 
+        for (key, value) in deprecated_name_conversion_table.items():
+            if 'method' in state and value == state['method']:
+                if 'method_aliases' in state:
+                    state['method_aliases'].append(key)
+                else:
+                    state['method_aliases'] = [key]
+
         fmt_attribute(
             out, "description", multiline_quoted(
                 state["description"]))
@@ -522,12 +539,15 @@ def generate_lib(resource_name, resource, lib_dir):
             ', '.join(
                 '"{0}"'.format(w) for w in state["supported_agents"]) +
             "]")
-        # maybe class_prefix is enough
-        if "method_alias" in state:
+        if "method_aliases" in state:
+            # print(state["method_aliases"])
             fmt_attribute(
                 out,
-                "method_alias",
-                quoted(state["method_alias"])
+                "method_aliases",
+                "[" +
+                ', '.join(
+                    '"{0}"'.format(alias) for alias in state["method_aliases"]) +
+                "]"
             )
         params = [p["name"] for p in state["parameters"]]
         out.write(

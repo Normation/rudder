@@ -78,7 +78,7 @@ impl<'src> RudderlangLib<'src> {
     /// get from library both the resource and its relative state from a method
     /// returns Error if no pair was recognized
     pub fn method_from_str(&self, method_name: &str) -> Result<LibMethod> {
-        let matched_pairs: Vec<(&Token, &Token)> = self
+        let matched_pairs: Vec<(&Token, &Token, Option<String>)> = self
             .resources
             .iter()
             .filter_map(|(res, res_def)| {
@@ -87,19 +87,19 @@ impl<'src> RudderlangLib<'src> {
                         .states
                         .iter()
                         .filter_map(|(state, state_def)| {
-                            // exceptions should be dealt with here based on `method_alias` metadata
-                            let method_alias_name = state_def
-                                .metadata
-                                .get("method_alias")
-                                .and_then(|v| v.as_str());
-                            if method_name == format!("{}_{}", res_def.name, state_def.name)
-                                || Some(method_name) == method_alias_name
-                            {
-                                return Some((res, state));
+                            let owned_method_name = method_name.to_owned();
+                            if owned_method_name == format!("{}_{}", res_def.name, state_def.name) {
+                                return Some((res, state, None));
+                            }
+                            // exceptions should be dealt with here based on `method_aliases` metadata
+                            if let Ok(aliases) = state_def.get_method_aliases() {
+                                if aliases.contains(&owned_method_name) {
+                                    return Some((res, state, Some(owned_method_name)));
+                                }
                             }
                             None
                         })
-                        .collect::<Vec<(&Token, &Token)>>(),
+                        .collect::<Vec<(&Token, &Token, Option<String>)>>(),
                 );
             })
             .flatten()
@@ -109,12 +109,12 @@ impl<'src> RudderlangLib<'src> {
                 "Method '{}' does not exist",
                 method_name
             ))),
-            [(resource, state)] => {
+            [(resource, state, alias)] => {
                 let resource_def = self.resources.get(resource).unwrap();
 
                 let state_def = resource_def.states.get(state).unwrap();
 
-                Ok(LibMethod::new(resource_def, state_def))
+                Ok(LibMethod::new(resource_def, state_def, alias.to_owned()))
             }
             _ => panic!(format!(
                 "The standard library contains several matches for the following method: {}",
@@ -212,27 +212,30 @@ impl<'src> RudderlangLib<'src> {
 pub struct LibMethod<'src> {
     pub resource: &'src ResourceDef<'src>,
     pub state: &'src StateDef<'src>,
+    pub alias: Option<String>,
 }
 impl<'src> LibMethod<'src> {
-    pub fn new(resource: &'src ResourceDef, state: &'src StateDef) -> Self {
-        Self { resource, state }
+    pub fn new(resource: &'src ResourceDef, state: &'src StateDef, alias: Option<String>) -> Self {
+        Self {
+            resource,
+            state,
+            alias,
+        }
     }
 
+    // WIP UPDATE
     pub fn class_prefix(&self) -> String {
-        self.state
-            .metadata
-            .get("method_alias")
-            .or(self.state.metadata.get("class_prefix"))
+        self.alias.clone()
+            .or(self
+                .state
+                .metadata
+                .get("class_prefix")
+                .and_then(|v| v.as_str())
+                .map(String::from))
             .expect(&format!(
-                "Resource '{}': missing 'class_prefix' metadata and no 'method_alias' alternative",
+                "Resource '{}': missing 'class_prefix' metadata and no 'method_aliases' alternative",
                 self.resource.name
             ))
-            .as_str()
-            .expect(&format!(
-                "Resource '{}': 'class_prefix' or alternative 'method_alias' metadata value is not a string",
-                self.resource.name
-            ))
-            .to_owned()
     }
 
     // safe unwrap because we generate the resourcelib ourselves, if an error occurs, panic is justified, it is a developer issue

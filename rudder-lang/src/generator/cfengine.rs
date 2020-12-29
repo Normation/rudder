@@ -414,13 +414,13 @@ impl Generator for CFEngine {
                         .bundle(bundle);
                     files.push(CommandResult::new(
                         Format::CFEngine,
-                        dest_file.map(|o| PathBuf::from(o)),
+                        dest_file.map(PathBuf::from),
                         Some(policy.to_string()),
                     ));
                 } else {
                     files.push(CommandResult::new(
                         Format::CFEngine,
-                        dest_file.map(|o| PathBuf::from(o)),
+                        dest_file.map(PathBuf::from),
                         Some(bundle.to_string()),
                     ));
                 }
