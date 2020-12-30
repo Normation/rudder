@@ -1,0 +1,48 @@
+{
+    "type": "ncf_technique",
+    "version": 2,
+   "data": {
+  "bundle_name":"Add_GSN_users_to_vboxusers_group",
+  "version":"1.0",
+  "category":"ncf_techniques",
+  "description":"",
+  "name":"Add GSN users to vboxusers group",
+  "method_calls":[
+    {
+      "method_name":"command_execution",
+      "class_context":"any",
+      "component":"Command execution",
+      "parameters":[
+        {
+          "name":"command",
+          "value":"/usr/sbin/usermod -a -G vboxusers nwcyrille"
+        }
+      ]
+    },
+    {
+      "method_name":"command_execution",
+      "class_context":"any",
+      "component":"Command execution",
+      "parameters":[
+        {
+          "name":"command",
+          "value":"/usr/sbin/usermod -a -G vboxusers nweric"
+        }
+      ]
+    },
+    {
+      "method_name":"command_execution",
+      "class_context":"any",
+      "component":"Command execution",
+      "parameters":[
+        {
+          "name":"command",
+          "value":"/usr/sbin/usermod -a -G vboxusers nwantoine"
+        }
+      ]
+    }
+  ],
+  "parameter":[],
+  "resources":[]
+}
+}
