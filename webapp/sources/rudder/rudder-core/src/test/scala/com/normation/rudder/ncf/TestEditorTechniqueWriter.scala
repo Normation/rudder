@@ -88,6 +88,7 @@ import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -220,7 +221,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   }
 
 
-  val valueCompiler = new InterpolatedValueCompilerImpl
+  val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
+  val valueCompiler = new InterpolatedValueCompilerImpl(propertyEngineService)
   val parameterTypeService : PlugableParameterTypeService = new PlugableParameterTypeService
   val techniqueCompiler = new RudderCRunner("/opt/rudder/etc/rudderc.conf","/opt/rudder/bin/rudderc",basePath)
   val writer = new TechniqueWriter(

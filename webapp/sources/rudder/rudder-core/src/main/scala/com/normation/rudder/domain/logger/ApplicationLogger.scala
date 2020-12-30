@@ -89,6 +89,16 @@ object NodeLogger extends Logger {
     }
   }
 }
+
+/*
+ * Log things related to global parameter, group and node properties interpolication and
+ * policy generation (ie: not if a problem with global param API, but something like overriding is
+ * broken for it, or property engine is broken
+ */
+object NodePropertiesLoggerPure extends NamedZioLogger {
+  override def loggerName: String = "node.properties"
+}
+
 object NodeLoggerPure extends NamedZioLogger { parent =>
   def loggerName = "nodes"
   object Delete extends NamedZioLogger {
@@ -170,3 +180,4 @@ object ReportLoggerPure extends NamedZioLogger {
     override def loggerName: String = "report.cache"
   }
 }
+

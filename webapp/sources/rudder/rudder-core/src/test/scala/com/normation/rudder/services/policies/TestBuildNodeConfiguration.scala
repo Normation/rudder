@@ -56,6 +56,7 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import org.joda.time.DateTime
 import org.junit.runner._
 import org.specs2.mutable._
@@ -116,7 +117,8 @@ class TestBuildNodeConfiguration extends Specification {
                                   )
 
   val rule                      = Rule(RuleId("rule"), None, "rule", RuleCategoryId("rootcat"), Set(GroupTarget(group.id)), directiveLib.allDirectives.keySet,"","", true, true)
-  val valueCompiler             = new InterpolatedValueCompilerImpl()
+  val propertyEngineService     = new PropertyEngineServiceImpl(List.empty)
+  val valueCompiler             = new InterpolatedValueCompilerImpl(propertyEngineService)
   val ruleValService            = new RuleValServiceImpl(valueCompiler)
   val buildContext              = new PromiseGeneration_BuildNodeContext {
                                     override def interpolatedValueCompiler: InterpolatedValueCompiler = valueCompiler

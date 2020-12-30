@@ -40,62 +40,66 @@ package com.normation.rudder.services.policies
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 import better.files.File
-import org.joda.time.DateTime
-import com.normation.rudder.domain.Constants
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.repository._
-import com.normation.rudder.services.eventlog.HistorizationService
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
-import com.normation.utils.Control._
-import net.liftweb.common._
-import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
-import com.normation.inventory.domain.AcceptedInventory
-import com.normation.inventory.domain.NodeInventory
-import com.normation.rudder.domain.parameters.GlobalParameter
-import com.normation.rudder.domain.reports.NodeExpectedReports
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.ComplianceModeService
-import com.normation.rudder.reports.AgentRunIntervalService
-import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.domain.logger.ComplianceDebugLogger
-import com.normation.rudder.services.reports.{CacheComplianceQueueAction, CachedFindRuleNodeStatusReports}
-import com.normation.rudder.services.policies.write.PolicyWriterService
-import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.domain.appconfig.FeatureSwitch
-import com.normation.inventory.domain.AixOS
-import com.normation.rudder.batch.UpdateDynamicGroups
-import com.normation.rudder.domain.reports.NodeModeConfig
-import com.normation.rudder.reports.HeartbeatConfiguration
-import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.hooks.HookEnvPairs
-import com.normation.rudder.domain.nodes.NodeState
-import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
-import com.normation.rudder.domain.reports.DirectiveExpectedReports
-import com.normation.rudder.domain.reports.ComponentExpectedReport
-import com.normation.rudder.domain.reports.RuleExpectedReports
-import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import cats.data.NonEmptyList
+import com.normation.box._
+import com.normation.errors._
+import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.AixOS
 import com.normation.inventory.domain.MemorySize
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.NodeInventory
+import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
+import com.normation.rudder.batch.UpdateDynamicGroups
+import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.rudder.domain.logger.ComplianceDebugLogger
+import com.normation.rudder.domain.logger.PolicyGenerationLogger
+import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
+import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.nodes.CompareProperties
+import com.normation.rudder.domain.nodes.GenericProperty
+import com.normation.rudder.domain.nodes.GenericProperty.StringToConfigValue
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.reports.ComponentExpectedReport
+import com.normation.rudder.domain.reports.DirectiveExpectedReports
+import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.domain.reports.NodeExpectedReports
+import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.domain.reports.OverridenPolicy
+import com.normation.rudder.domain.reports.RuleExpectedReports
+import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
+import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.AgentRunIntervalService
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.ComplianceModeService
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.HeartbeatConfiguration
+import com.normation.rudder.repository._
+import com.normation.rudder.services.eventlog.HistorizationService
+import com.normation.rudder.services.nodes.MergeNodeProperties
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
+import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
+import com.normation.rudder.services.policies.write.PolicyWriterService
+import com.normation.rudder.services.reports.CacheComplianceQueueAction
+import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import com.normation.utils.Control._
+import net.liftweb.common._
+import net.liftweb.json.JsonAST.JArray
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonAST.JValue
+import org.joda.time.DateTime
 import org.joda.time.Period
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
-
-import scala.concurrent.duration.FiniteDuration
-import com.normation.box._
-import com.normation.errors._
-import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
-import com.normation.rudder.domain.nodes.CompareProperties
-import com.normation.rudder.domain.nodes.GenericProperty
-import com.normation.rudder.domain.nodes.NodeProperty
-import com.normation.rudder.services.nodes.MergeNodeProperties
 import zio._
 import zio.syntax._
 import com.normation.zio._
@@ -107,6 +111,9 @@ import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.domain.reports.BlockExpectedReport
 import com.normation.rudder.domain.reports.ValueExpectedReport
+
+import scala.concurrent.duration.FiniteDuration
+
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -160,7 +167,6 @@ trait PromiseGenerationService {
     //plus the script environment variables used as script parameters
     import scala.jdk.CollectionConverters._
     val systemEnv = HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
-
 
     /*
      * The computation of dynamic group is a workaround inconsistencies after importing definition
@@ -729,7 +735,6 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def interpolatedValueCompiler:InterpolatedValueCompiler
   def systemVarService: SystemVariableService
   def ruleApplicationStatusService: RuleApplicationStatusService
-
   def getGlobalPolicyMode: () => Box[GlobalPolicyMode]
 
   override def findDependantRules() : Box[Seq[Rule]] = roRuleRepo.getAll(true).toBox
@@ -762,7 +767,21 @@ trait PromiseGeneration_BuildNodeContext {
   def interpolatedValueCompiler: InterpolatedValueCompiler
   def systemVarService: SystemVariableService
 
-
+  // we should get the context to replace the value (PureResult[String] to String)
+  def parseJValue(value: JValue, context: InterpolationContext): IOResult[JValue] = {
+    def rec(v: JValue): IOResult[JValue] = v match {
+      case JObject(l) => ZIO.foreach(l){ field => rec(field.value).map(x => field.copy(value = x) ) }.map(JObject(_))
+      case JArray(l)  => ZIO.foreach(l){ v => rec(v) }.map(JArray(_))
+      case JString(s) => for {
+                           v <- interpolatedValueCompiler.compile(s).toIO.chainError(s"Error when looking for interpolation variable '${s}' in node property")
+                           s <- v(context)
+                         } yield {
+                           JString(s)
+                         }
+      case x          => x.succeed
+    }
+    rec(value)
+  }
 
   /**
    * Build interpolation contexts.
@@ -796,7 +815,7 @@ trait PromiseGeneration_BuildNodeContext {
      *   - to node info parameters: ok
      *   - to parameters : hello loops!
      */
-    def buildParams(parameters: List[GlobalParameter]): PureResult[Map[GlobalParameter, ParamInterpolationContext => PureResult[String]]] = {
+    def buildParams(parameters: List[GlobalParameter]): PureResult[Map[GlobalParameter, ParamInterpolationContext => IOResult[String]]] = {
       parameters.accumulatePure { param =>
         for {
           p <- interpolatedValueCompiler.compileParam(param.valueAsString).chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
@@ -821,10 +840,10 @@ trait PromiseGeneration_BuildNodeContext {
                             , globalPolicyMode
                             , parameters.map { case (p, i) => (p.name, i) }
                           )
-          nodeParam   <- parameters.toList.traverse { case (param, interpol) =>
+          nodeParam   <- ZIO.foreach(parameters.toList) { case (param, interpol) =>
                             for {
                               i <- interpol(context)
-                              v <- GenericProperty.parseValue(i)
+                              v <- GenericProperty.parseValue(i).toIO
                               p =  param.withValue(v)
                             } yield {
                               (p.name, p)
@@ -833,8 +852,24 @@ trait PromiseGeneration_BuildNodeContext {
           nodeTargets  =  allGroups.getTarget(info).map(_._2).toList
           timeMerge    =  System.nanoTime
           mergedProps  <- MergeNodeProperties.forNode(info, nodeTargets, nodeParam.map{case(k,v) => (k, v)}.toMap).toBox
+          nodeContextBefore  <- systemVarService.getSystemVariables(info, allNodeInfos, nodeTargets, globalSystemVariables, globalAgentRun, globalComplianceMode: ComplianceMode)
+          // Not sure if I should InterpolationContext or create a "EngineInterpolationContext
+          contextEngine = InterpolationContext(
+              info
+            , policyServer
+            , globalPolicyMode
+            , nodeContextBefore
+            , nodeParam.map{case(k, g) => (k, g.value)}.toMap
+          )
           _            =  {timeNanoMergeProp = timeNanoMergeProp + System.nanoTime - timeMerge}
-          nodeInfo     =  info.modify(_.node.properties).setTo(mergedProps.map(_.prop))
+          propsCompiled <- ZIO.foreach(mergedProps) { p =>
+                            for {
+                              x <- parseJValue(p.prop.toJson, contextEngine)
+                            } yield {
+                              p.copy(prop = NodeProperty(p.prop.config.getString("name"), x.toString.toConfigValue, None, None))
+                            }
+                          }.toBox
+          nodeInfo     =  info.modify(_.node.properties).setTo(propsCompiled.map(_.prop))
           nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, nodeTargets, globalSystemVariables, globalAgentRun, globalComplianceMode: ComplianceMode)
           // now we set defaults global parameters to all nodes
           withDefautls <- CompareProperties.updateProperties(nodeParam.toList.map { case (k,v) => NodeProperty(k, v.value, v.inheritMode, None)}, Some(nodeInfo.properties)).map(p =>
@@ -1058,7 +1093,7 @@ object BuildNodeConfiguration extends Loggable {
                                                       ret        <- (for {
                                                                       //bind variables with interpolated context
                                                                       t2_0              <- nanoTime
-                                                                      expandedVariables <- draft.variables(context).toIO
+                                                                      expandedVariables <- draft.variables(context)
                                                                       t2_1              <- nanoTime
                                                                       _                 <- counters.sumTimeExpandeVar.update(_ + t2_1 - t2_0)
                                                                       // And now, for each variable, eval - if needed - the result

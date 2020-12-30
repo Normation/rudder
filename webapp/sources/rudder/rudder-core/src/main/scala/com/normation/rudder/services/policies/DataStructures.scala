@@ -148,13 +148,13 @@ final case class ParamInterpolationContext(
       , globalPolicyMode: GlobalPolicyMode
         // parameters for this node
         //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[String, ParamInterpolationContext => PureResult[String]]
+      , parameters      : Map[String, ParamInterpolationContext => IOResult[String]]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
         //for ex: param a => param b => param c => ..... => param a
         //should not be evaluated
       , depth           : Int = 0
-) extends GenericInterpolationContext[ParamInterpolationContext => PureResult[String]]
+) extends GenericInterpolationContext[ParamInterpolationContext => IOResult[String]]
 
 final case class InterpolationContext(
         nodeInfo        : NodeInfo
@@ -468,7 +468,7 @@ final case class ParsedPolicyDraft(
   , isSystem         : Boolean
   , policyMode       : Option[PolicyMode]
   , trackerVariable  : TrackerVariable
-  , variables        : InterpolationContext => PureResult[Map[String, Variable]]
+  , variables        : InterpolationContext => IOResult[Map[String, Variable]]
   , originalVariables: Map[String, Variable] // the original variable, unexpanded
   , ruleOrder        : BundleOrder
   , directiveOrder   : BundleOrder
