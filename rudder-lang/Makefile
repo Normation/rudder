@@ -74,6 +74,7 @@ libs:
 libs-docs: libs
 	mkdir -p target/docs/std
 	# FIXME replace with proper option
+	cargo run -- save -c tools/rudderc-dev.conf -i simplest/technique.json
 	cargo run -- compile -c tools/rudderc-dev.conf -i simplest/technique.rl -f md
 	echo "" > target/docs/std/lib.adoc
 	for resource in $$(ls -1 target/docs/std/*.md); \
