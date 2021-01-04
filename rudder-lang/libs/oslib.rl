@@ -167,6 +167,7 @@ items in fedora {
 items in suse {
   opensuse,
   sles,
+  sled,
   *
 }
 
@@ -251,6 +252,56 @@ items in sles_15 {
 }
 
 # == sles: cfengine + wikipedia checked (except sles 10)
+
+items in sled {
+  # not all tested for sled10, but the first one is
+  @cfengine_name=["SuSE_10", "sled_10", "SLED10", "SLED_10", "SUSE_10", "SuSE_10"]
+  sled_10,
+  @cfengine_name=["sled_11", "SLED11", "SLED_11", "SUSE_11", "SuSE_11"]
+  sled_11,
+  @cfengine_name=["sled_12", "SLED12", "SLED_12", "SUSE_12", "SuSE_12"]
+  sled_12,
+  # yes only sled_15 as cfengin name
+  sled_15,
+  *
+}
+
+items in sled_11 {
+  @cfengine_name="(sled_11.!(sled_11_1|sled_11_2|sled_11_3|sled_11_4))"
+  sled_11_0,
+  @cfengine_name="SLED_11_1"
+  sled_11_1,
+  @cfengine_name="SLED_11_2"
+  sled_11_2,
+  @cfengine_name="SLED_11_3"
+  sled_11_3,
+}
+
+items in sled_12 {
+  @cfengine_name="(sled_12.!(sled_12_1|sled_12_2|sled_12_3|sled_12_4))"
+  sled_12_0,
+  @cfengine_name=["sled_12_1", "SLED_12_1"]
+  sled_12_1,
+  @cfengine_name=["sled_12_2", "SLED_12_2"]
+  sled_12_2,
+  @cfengine_name=["sled_12_3", "SLED_12_3"]
+  sled_12_3,
+  @cfengine_name=["sled_12_4", "SLED_12_4"]
+  sled_12_4,
+# Warning: update sled_12_0 if you make change here
+  *
+}
+
+items in sled_15 {
+  @cfengine_name="(sled_15.!(sled_15_1))"
+  sled_15_0,
+  sled_15_1,
+# Warning: update sled_15_0 if you make change here
+  *
+}
+
+# == sled: based on sles
+
 
 # == centos
 items in centos {
