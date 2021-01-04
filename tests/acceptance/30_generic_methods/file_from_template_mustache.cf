@@ -48,7 +48,7 @@ bundle agent check
 {
   vars:
     "file_length_check" string => "${paths.path[test]} `${paths.path[cat]} ${init.destination_file} | wc -l` = '1'";
-    "file_content_check" string => "${paths.path[cat]} ${init.destination_file} | ${paths.path[head]} -n1 | ${paths.path[grep]} '^sys.host is: ${sys.host}$'";
+    "file_content_check" string => "${paths.path[cat]} ${init.destination_file} | ${ncf_paths.path[head]} -n1 | ${paths.path[grep]} '^sys.host is: ${sys.host}$'";
 
   classes:
     # By default, should create the file if it doesn't exist
