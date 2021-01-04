@@ -390,6 +390,8 @@ hr.separator-filter-tree{
   transition-duration: .2s;
   transition-property: opacity, background, background-color;
   margin-right: 5px;
+  margin-left: 5px;
+  white-space: nowrap;
 }
 
 .btn.tags-label{
