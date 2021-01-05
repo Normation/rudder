@@ -39,36 +39,68 @@ package com.normation.rudder.rest
 
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
+import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.NodeInventory
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.MockDirectives
+import com.normation.rudder.MockGitConfigRepo
+import com.normation.rudder.MockRules
+import com.normation.rudder.MockTechniques
 import com.normation.rudder.RudderAccount
 import com.normation.rudder.User
 import com.normation.rudder.UserService
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
-import com.normation.rudder.batch.AsyncDeploymentAgent
-import com.normation.rudder.batch.StartDeploymentMessage
-import com.normation.rudder.batch.UpdateDynamicGroups
+import com.normation.rudder.batch._
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.domain.reports.NodeExpectedReports
+import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.repository._
-import com.normation.rudder.rest.lift.LiftApiProcessingLogger
-import com.normation.rudder.rest.lift.LiftHandler
-import com.normation.rudder.rest.lift.SystemApiService11
-import com.normation.rudder.rest.lift.SystemApiService13
+import com.normation.rudder.rest.lift._
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rest.v1.RestTechniqueReload
 import com.normation.rudder.services.ClearCacheService
+import com.normation.rudder.services.eventlog.EventLogDeploymentService
+import com.normation.rudder.services.eventlog.EventLogFactory
 import com.normation.rudder.services.healthcheck.CheckCoreNumber
 import com.normation.rudder.services.healthcheck.CheckFileDescriptorLimit
 import com.normation.rudder.services.healthcheck.CheckFreeSpace
 import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
 import com.normation.rudder.services.healthcheck.HealthcheckService
+import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
 import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
+import com.normation.rudder.services.policies.InterpolationContext
+import com.normation.rudder.services.policies.NodeConfiguration
+import com.normation.rudder.services.policies.NodeConfigurations
+import com.normation.rudder.services.policies.NodesContextResult
+import com.normation.rudder.services.policies.PromiseGenerationService
+import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.TestNodeConfiguration
+import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.utils.StringUuidGenerator
+import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestService
+import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServiceImpl
+import com.normation.rudder.services.workflows.DefaultWorkflowLevel
+import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
+import com.normation.rudder.web.services.StatelessUserPropertyService
+import com.normation.utils.StringUuidGeneratorImpl
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -87,7 +119,9 @@ import org.specs2.matcher.MatchResult
 import zio._
 import zio.duration.durationInt
 import zio.syntax._
+
 import scala.concurrent.duration.FiniteDuration
+import scala.xml.Elem
 
 
 /*
@@ -96,10 +130,6 @@ import scala.concurrent.duration.FiniteDuration
  * Also responsible for setting up data and mock services.
  */
 object RestTestSetUp {
-
-  val uuidGen = new StringUuidGenerator() {
-    override def newUuid: String = "Test Uuid"
-  }
 
   implicit val userService = new UserService {
     val user = new User{
@@ -123,26 +153,27 @@ object RestTestSetUp {
     override def startManualUpdate: Unit = ()
   }
 
-  val fakeAsyncDeployment =  new AsyncDeploymentAgent() {
-    override def launchDeployment(dest: StartDeploymentMessage): Unit = ()
-  }
-
+  val mockGitRepo = new MockGitConfigRepo("")
+  val mockTechniques = MockTechniques(mockGitRepo)
+  val mockDirectives = new MockDirectives(mockTechniques)
+  val mockRules = new MockRules()
+  val uuidGen = new StringUuidGeneratorImpl()
   val reloadTechniques = new RestTechniqueReload(fakeUpdatePTLibService, uuidGen)
   val restExtractorService =
   RestExtractorService (
-      null //roRuleRepository
-    , null //roDirectiveRepository
+      mockRules.ruleRepo
+    , mockDirectives.directiveRepo
     , null //roNodeGroupRepository
-    , null //techniqueRepository
+    , mockTechniques.techniqueRepository
     , null //queryParser
-    , null //userPropertyService
+    , new StatelessUserPropertyService(() => false.succeed, () => false.succeed, () => "".succeed)
     , null //workflowService
-    , null // stringuuidGenerator
+    , uuidGen
     , null
   )
 
   val restDataSerializer = RestDataSerializerImpl(
-      null //techniqueRepository
+      mockTechniques.techniqueRepository
     , null //diffService
   )
 
@@ -154,16 +185,12 @@ object RestTestSetUp {
     override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor) = null
   }
 
-
-
   val fakeNotArchivedElements = NotArchivedElements(Seq[CategoryNotArchived](), Seq[ActiveTechniqueNotArchived](), Seq[DirectiveNotArchived]())
   val fakePersonIdent = new PersonIdent("test-user", "test.user@normation.com")
   val fakeGitCommitId = GitCommitId("6d6b2ceb46adeecd845ad0c0812fee07e2727104")
   val fakeGitArchiveId = GitArchiveId(GitPath("fake/git/path"), fakeGitCommitId, fakePersonIdent)
 
-
   class FakeItemArchiveManager extends ItemArchiveManager {
-
     override def exportAll(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
      = ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
     override def exportRules(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
@@ -174,8 +201,6 @@ object RestTestSetUp {
      = ZIO.succeed(fakeGitArchiveId)
     override def exportParameters(commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
      = ZIO.succeed(fakeGitArchiveId)
-
-
     override def importAll(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
      = ZIO.succeed(fakeGitCommitId)
     override def importRules(archiveId: GitCommitId, commiter: PersonIdent, modId: ModificationId, actor: EventActor, reason: Option[String], includeSystem: Boolean)
@@ -194,39 +219,27 @@ object RestTestSetUp {
       * The API then provides the logic to transform the Box[Map][DateTime, GitArchiveId] into JSON
       * Here, we want to make these methods returning fake archives for testing the API logic.
       */
-
-
     val fakeArchives = Map[DateTime, GitArchiveId](
             new DateTime(42) -> fakeGitArchiveId
     )
-
     override def getFullArchiveTags = ZIO.succeed(fakeArchives)
-
     override def getGroupLibraryTags = ZIO.succeed(fakeArchives)
-
     override def getTechniqueLibraryTags = ZIO.succeed(fakeArchives)
-
     override def getRulesTags = ZIO.succeed(fakeArchives)
-
     override def getParametersTags = ZIO.succeed(fakeArchives)
   }
-
-
   val fakeItemArchiveManager = new FakeItemArchiveManager
   val fakeClearCacheService = new FakeClearCacheService
   val fakePersonIndentService = new PersonIdentService {
     override def getPersonIdentOrDefault(username: String) = ZIO.succeed(fakePersonIdent)
   }
-  lazy val apiAuthorizationLevelService = new DefaultApiAuthorizationLevel(LiftApiProcessingLogger)
-  lazy val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
-
-
-
- val testNodeConfiguration = new TestNodeConfiguration()
- val fakeRepo = testNodeConfiguration.repo
- val fakeScriptLauncher = new DebugInfoService {
-   override def launch() = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
- }
+  val apiAuthorizationLevelService = new DefaultApiAuthorizationLevel(LiftApiProcessingLogger)
+  val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
+  val testNodeConfiguration = new TestNodeConfiguration()
+  val fakeRepo = testNodeConfiguration.repo
+  val fakeScriptLauncher = new DebugInfoService {
+    override def launch() = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
+  }
   val nodeInfoService = new NodeInfoServiceCachedImpl(
     null
     , null
@@ -237,35 +250,132 @@ object RestTestSetUp {
     , null
     , FiniteDuration(100, "millis")
   )
+  val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
+    new CommitAndDeployChangeRequestServiceImpl(
+        uuidGen
+      , mockDirectives.directiveRepo
+      , mockDirectives.directiveRepo
+      , null // roNodeGroupRepository
+      , null // woNodeGroupRepository
+      , mockRules.ruleRepo
+      , mockRules.ruleRepo
+      , null // roLDAPParameterRepository
+      , null // woLDAPParameterRepository
+      , null // asyncDeploymentAgent
+      , null // dependencyAndDeletionService
+      , null // configService.rudder_workflow_enabled _
+      , null // xmlSerializer
+      , null // xmlUnserializer
+      , null // sectionSpecParser
+      , null // dynGroupUpdaterService
+    )
+  val workflowLevelService = new DefaultWorkflowLevel(new NoWorkflowServiceImpl(
+    commitAndDeployChangeRequest
+  ))
+  val policyGeneration = new PromiseGenerationService {
+    override def deploy(): Box[Set[NodeId]] = Full(Set())
+    override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
+    override def getDirectiveLibrary(): Box[FullActiveTechniqueCategory] = ???
+    override def getGroupLibrary(): Box[FullNodeGroupCategory] = ???
+    override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = ???
+    override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = ???
+    override def getGlobalComplianceMode(): Box[GlobalComplianceMode] = ???
+    override def getGlobalAgentRun(): Box[AgentRunInterval] = ???
+    override def getAgentRunInterval: () => Box[Int] = ???
+    override def getAgentRunSplaytime: () => Box[Int] = ???
+    override def getAgentRunStartHour: () => Box[Int] = ???
+    override def getAgentRunStartMinute: () => Box[Int] = ???
+    override def getScriptEngineEnabled: () => Box[FeatureSwitch] = ???
+    override def getGlobalPolicyMode: () => Box[GlobalPolicyMode] = ???
+    override def getComputeDynGroups: () => Box[Boolean] = ???
+    override def getMaxParallelism: () => Box[String] = ???
+    override def getJsTimeout: () => Box[Int] = ???
+    override def getGenerationContinueOnError: () => Box[Boolean] = ???
+    override def writeCertificatesPem(allNodeInfos: Map[NodeId, NodeInfo]): Unit = ???
+    override def triggerNodeGroupUpdate(): Box[Unit] = ???
+    override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = ???
+    override def HOOKS_D: String = ???
+    override def HOOKS_IGNORE_SUFFIXES: List[String] = ???
+    override def UPDATED_NODE_IDS_PATH: String = ???
+    override def GENERATION_FAILURE_MSG_PATH: String = ???
+    override def getAppliedRuleIds(rules: Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId] = ???
+    override def findDependantRules(): Box[Seq[Rule]] = ???
+    override def buildRuleVals(activesRules: Set[RuleId], rules: Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]): Box[Seq[RuleVal]] = ???
+    override def getNodeContexts(nodeIds: Set[NodeId], allNodeInfos: Map[NodeId, NodeInfo], allGroups: FullNodeGroupCategory, globalParameters: List[GlobalParameter], globalAgentRun: AgentRunInterval, globalComplianceMode: ComplianceMode, globalPolicyMode: GlobalPolicyMode): Box[NodesContextResult] = ???
+    override def buildNodeConfigurations(activeNodeIds: Set[NodeId], ruleVals: Seq[RuleVal], nodeContexts: Map[NodeId, InterpolationContext], allNodeModes: Map[NodeId, NodeModeConfig], scriptEngineEnabled: FeatureSwitch, globalPolicyMode: GlobalPolicyMode, maxParallelism: Int, jsTimeout: FiniteDuration, generationContinueOnError: Boolean): Box[NodeConfigurations] = ???
+    override def forgetOtherNodeConfigurationState(keep: Set[NodeId]): Box[Set[NodeId]] = ???
+    override def getNodeConfigurationHash(): Box[Map[NodeId, NodeConfigurationHash]] = ???
+    override def getNodesConfigVersion(allNodeConfigs: Map[NodeId, NodeConfiguration], hashes: Map[NodeId, NodeConfigurationHash], generationTime: DateTime): Map[NodeId, NodeConfigId] = ???
+    override def writeNodeConfigurations(rootNodeId: NodeId, updated: Map[NodeId, NodeConfigId], allNodeConfig: Map[NodeId, NodeConfiguration], allNodeInfos: Map[NodeId, NodeInfo], globalPolicyMode: GlobalPolicyMode, generationTime: DateTime, maxParallelism: Int): Box[Set[NodeId]] = ???
+    override def computeExpectedReports(allNodeConfigurations: Map[NodeId, NodeConfiguration], updatedId: Map[NodeId, NodeConfigId], generationTime: DateTime, allNodeModes: Map[NodeId, NodeModeConfig]): List[NodeExpectedReports] = ???
+    override def saveExpectedReports(expectedReports: List[NodeExpectedReports]): Box[Seq[NodeExpectedReports]] = ???
+    override def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit = ???
+    override def historizeData(rules: Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo], globalAgentRun: AgentRunInterval): Box[Unit] = ???
+    override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
+    override def runPostHooks(generationTime: DateTime, endTime: DateTime, idToConfiguration: Map[NodeId, NodeInfo], systemEnv: HookEnvPairs, nodeIdsPath: String): Box[Unit] = ???
+    override def runFailureHooks(generationTime: DateTime, endTime: DateTime, systemEnv: HookEnvPairs, errorMessage: String, errorMessagePath: String): Box[Unit] = ???
+  }
+  val deploymentStatusSerialisation = new DeploymentStatusSerialisation {
+    override def serialise(deploymentStatus: CurrentDeploymentStatus): Elem = <test/>
+  }
+  val eventLogRepo = new EventLogRepository {
+    override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed
 
- val fakeHealthcheckService = new HealthcheckService(
-   List(
-     CheckCoreNumber
-     , CheckFreeSpace
-     , new CheckFileDescriptorLimit(nodeInfoService) //should I create all services to get this one ?
-   )
- )
- val fakeHcNotifService = new HealthcheckNotificationService(fakeHealthcheckService, 5.minute)
-
+    override def eventLogFactory: EventLogFactory = ???
+    override def getEventLogByCriteria(criteria: Option[String], limit: Option[Int], orderBy: Option[String], extendedFilter: Option[String]): IOResult[Seq[EventLog]] = ???
+    override def getEventLogById(id: Long): IOResult[EventLog] = ???
+    override def getEventLogCount(criteria: Option[String], extendedFilter: Option[String]): IOResult[Long] = ???
+    override def getEventLogByChangeRequest(changeRequest: ChangeRequestId, xpath: String, optLimit: Option[Int], orderBy: Option[String], eventTypeFilter: List[EventLogFilter]): IOResult[Vector[EventLog]] = ???
+    override def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
+    override def getLastEventByChangeRequest(xpath: String, eventTypeFilter: List[EventLogFilter]): IOResult[Map[ChangeRequestId, EventLog]] = ???
+  }
+  val eventLogger = new EventLogDeploymentService(eventLogRepo, null) {
+    override def getLastDeployement(): Box[CurrentDeploymentStatus] = Full(NoStatus)
+  }
+  val asyncDeploymentActor = new AsyncDeploymentActor(policyGeneration, eventLogger, deploymentStatusSerialisation)
   val apiService11 = new SystemApiService11(
         fakeUpdatePTLibService
       , fakeScriptLauncher
       , fakeClearCacheService
-      , fakeAsyncDeployment
+      , asyncDeploymentActor
       , uuidGen
       , fakeUpdateDynamicGroups
       , fakeItemArchiveManager
       , fakePersonIndentService
       , fakeRepo
   )
-
+  val fakeHealthcheckService = new HealthcheckService(
+    List(
+      CheckCoreNumber
+      , CheckFreeSpace
+      , new CheckFileDescriptorLimit(nodeInfoService) //should I create all services to get this one ?
+    )
+  )
+  val fakeHcNotifService = new HealthcheckNotificationService(fakeHealthcheckService, 5.minute)
   val apiService13 = new SystemApiService13(
       fakeHealthcheckService
     , fakeHcNotifService
     , restDataSerializer
   )
 
-  val systemApi = new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11, apiService13,"5.0", "5.0.0", "some time")
+  val ruleApiService2 = new RuleApiService2(
+        mockRules.ruleRepo
+      , mockRules.ruleRepo
+      , uuidGen
+      , asyncDeploymentActor
+      , workflowLevelService
+      , restExtractorService
+      , restDataSerializer
+    )
+
+  val ruleApiService6 = new RuleApiService6 (
+        mockRules.ruleCategoryRepo
+      , mockRules.ruleRepo
+      , null
+      , null
+      , restDataSerializer
+    )
+  val systemApi = new SystemApi(restExtractorService, apiService11, apiService13, "5.0", "5.0.0", "some time")
   val authzToken = AuthzToken(EventActor("fakeToken"))
   val systemStatusPath = "api" + systemApi.Status.schema.path
 
@@ -273,7 +383,11 @@ object RestTestSetUp {
 
   val rudderApi = {
     //append to list all new format api to test it
-    val modules = List(new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11, apiService13, "5.0", "5.0.0", "some time"))
+    val modules = List(
+        systemApi
+      , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, uuidGen)
+
+    )
     val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled), None)
     modules.foreach { module =>
       api.addModules(module.getLiftEndpoints())

@@ -219,7 +219,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       }
     }
 
-final case object CheckRule extends CheckChanges[Rule]  {
+    final case object CheckRule extends CheckChanges[Rule]  {
       def failureMessage(rule : Rule)  = s"Rule ${rule.name} (id: ${rule.id.value})"
       def getCurrentValue(rule : Rule) = roRuleRepository.get(rule.id).toBox
       def compareMethod(initial:Rule, current:Rule) = compareRules(initial,current)
@@ -230,7 +230,7 @@ final case object CheckRule extends CheckChanges[Rule]  {
 
     // For now we only check the Directive, not the SectionSpec and the TechniqueName.
     // The SectionSpec could be a problem (ie : A mono valued param was chanegd to multi valued without changing the technique version).
-final case class CheckDirective(changes : DirectiveChanges) extends CheckChanges[Directive]  {
+    final case class CheckDirective(changes : DirectiveChanges) extends CheckChanges[Directive]  {
       // used in serialisation
       val directiveContext = {
         // Option is None, if this is a Directive creation, but serialisation won't be used in this case (see check method)
@@ -253,7 +253,7 @@ final case class CheckDirective(changes : DirectiveChanges) extends CheckChanges
       def xmlUnserialize(xml : Node)          = xmlUnserializer.directive.unserialise(xml).map(_._2)
     }
 
-final case object CheckGroup extends CheckChanges[NodeGroup]  {
+    final case object CheckGroup extends CheckChanges[NodeGroup]  {
       def failureMessage(group : NodeGroup)  = s"Group ${group.name} (id: ${group.id.value})"
       def getCurrentValue(group : NodeGroup) = roNodeGroupRepo.getNodeGroup(group.id).map(_._1).toBox
       def compareMethod(initial:NodeGroup, current:NodeGroup) = compareGroups(initial,current)
@@ -261,7 +261,7 @@ final case object CheckGroup extends CheckChanges[NodeGroup]  {
       def xmlUnserialize(xml : Node)      = xmlUnserializer.group.unserialise(xml)
     }
 
-final case object CheckGlobalParameter extends CheckChanges[GlobalParameter]  {
+    final case object CheckGlobalParameter extends CheckChanges[GlobalParameter]  {
       def failureMessage(param : GlobalParameter)  = s"Parameter ${param.name}"
       def getCurrentValue(param : GlobalParameter) = roParameterRepository.getGlobalParameter(param.name).notOptional(s"Parameter '${param.name}' was not found").toBox
       def compareMethod(initial:GlobalParameter, current:GlobalParameter) = compareGlobalParameter(initial,current)

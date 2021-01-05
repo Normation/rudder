@@ -413,7 +413,7 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
 
       val response = toJsonResponse(None, "group" -> "Started")
 
-      RestTestSetUp.testEmptyPost(s"/api/latest/system/archives/group/restore/$dateTimeId") { req =>
+      RestTestSetUp.testEmptyPost(s"/api/latest/system/archives/groups/restore/$dateTimeId") { req =>
         RestTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
       }
     }
@@ -427,7 +427,7 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
 
       val response = toJsonResponse(None, "directive" -> "Started")
 
-      RestTestSetUp.testEmptyPost(s"/api/latest/system/archives/directive/restore/$dateTimeId") { req =>
+      RestTestSetUp.testEmptyPost(s"/api/latest/system/archives/directives/restore/$dateTimeId") { req =>
         RestTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
       }
     }
@@ -441,7 +441,7 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
 
       val response = toJsonResponse(None, "rule" -> "Started")
 
-      RestTestSetUp.testEmptyPost(s"/api/latest/system/archives/rule/restore/$dateTimeId") { req =>
+      RestTestSetUp.testEmptyPost(s"/api/latest/system/archives/rules/restore/$dateTimeId") { req =>
         RestTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
       }
     }
