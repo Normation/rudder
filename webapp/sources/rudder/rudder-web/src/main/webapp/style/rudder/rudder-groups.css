@@ -46,6 +46,23 @@
   content: "System";
 }
 
+.save-tooltip-container {
+  display: inline-block;
+  position: relative;
+}
+.save-tooltip.bsTooltip {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 10px;
+  right: 0;
+  bottom: 0;
+  cursor: not-allowed;
+}
+input[disabled] + .save-tooltip.bsTooltip {
+  display: inline-block;
+}
+
 #groupParametersTab,
 #groupCriteriaTab,
 #categoryParametersTab{
