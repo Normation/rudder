@@ -39,7 +39,7 @@ body: >-
     "longDescription": "This rules should be applied to all Linux nodes required basic hardening",
     "category": "rootRuleCategory",
     "directives": ["e9a1a909-2490-4fc9-95c3-9d0aa01717c9", "16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
-    "targets": ["special:all"],
+    "targets": [{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
     "enabled": true,
     "system": false,
     "tags": [{"customer": "MyCompany"}]
@@ -59,7 +59,7 @@ response:
             "shortDescription": "Baseline applying CIS guidelines",
             "longDescription": "This rules should be applied to all Linux nodes required basic hardening",
             "directives":["e9a1a909-2490-4fc9-95c3-9d0aa01717c9", "16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
-            "targets":["special:all"],
+            "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
             "enabled":true,
             "system":false,
             "tags":[{"customer":"MyCompany"}]
