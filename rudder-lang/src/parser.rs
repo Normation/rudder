@@ -379,6 +379,21 @@ fn enum_not_expression(i: PInput) -> PResult<PEnumExpressionPart> {
     )(i)
 }
 
+/// An unescaped string is a literal string delimited by '"""'.
+/// The token is here to keep position
+fn punescaped_string(i: PInput) -> PResult<(Token, String)> {
+    sequence!(
+        {
+            prefix: etag("\"\"\"");
+            content: map(
+                         or_fail(take_until("\"\"\""), || PErrorKind::UnterminatedDelimiter(prefix)),
+                         |x: PInput| x.to_string()
+                    );
+            _x: or_fail(tag("\"\"\""), || PErrorKind::UnterminatedDelimiter(prefix));
+        } => (prefix.into(), content)
+    )(i)
+}
+
 /// An escaped string is a string delimited by '"' and that support backslash escapes.
 /// The token is here to keep position
 fn pescaped_string(i: PInput) -> PResult<(Token, String)> {
@@ -409,21 +424,6 @@ fn pescaped_string(i: PInput) -> PResult<(Token, String)> {
         } => (prefix.into(), content)
     );
     f(i)
-}
-
-/// An unescaped string is a literal string delimited by '"""'.
-/// The token is here to keep position
-fn punescaped_string(i: PInput) -> PResult<(Token, String)> {
-    sequence!(
-        {
-            prefix: etag("\"\"\"");
-            content: map(
-                         or_fail(take_until("\"\"\""), || PErrorKind::UnterminatedDelimiter(prefix)),
-                         |x: PInput| x.to_string()
-                    );
-            _x: or_fail(tag("\"\"\""), || PErrorKind::UnterminatedDelimiter(prefix));
-        } => (prefix.into(), content)
-    )(i)
 }
 
 /// All strings should be interpolated

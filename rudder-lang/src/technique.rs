@@ -410,8 +410,8 @@ impl Resource {
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 struct Parameter {
-    name: String, // not used in rudder-lang
-    value: String,
+    name: String,  // not used in rudder-lang
+    value: String, // TODO convert into an UnescapedString
     #[serde(skip_deserializing, rename = "$errors")]
     // only useful when coupled with technique editor
     errors: Vec<String>,
@@ -433,14 +433,14 @@ impl Parameter {
                 self.value
             )));
         }
-        Ok((format!("{:#?}", self.value), None))
+        Ok((format!("\"\"\"{}\"\"\"", self.value), None))
     }
 }
 
 // generic function that is used by rudder from multiple places to retrieve parameters in various formats
 pub fn fetch_method_parameters<F, P>(ir: &IR2, s: &StateDeclaration, f: F) -> Vec<P>
 where
-    F: Fn(&str, &str, Option<&toml::Value>) -> P,
+    F: Fn(&str, &Value, Option<&toml::Value>) -> P,
 {
     let resource = ir
         .resources
@@ -461,13 +461,7 @@ where
         .resource_params
         .iter()
         .chain(s.state_params.iter())
-        .map(|p| match p {
-            Value::String(ref o) => {
-                return o.format(|s| s.to_owned(), |var| format!("${{{}}}", var))
-            }
-            _ => unimplemented!(),
-        })
-        .collect::<Vec<String>>();
+        .collect::<Vec<&Value>>();
     // there should be no issue here since
     // both iterators should be of same size bc parameters are checked at AST creation time
     parameter_names

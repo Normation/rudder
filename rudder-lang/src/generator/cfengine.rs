@@ -8,9 +8,10 @@ use crate::{
     generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise, MAX_INT, MIN_INT},
     generator::Format,
     ir::{enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
+    parser::*,
     // generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise},
     // ir::{enums::EnumExpressionPart, resource::*, value::*, *},
-    parser::*,
+    technique::fetch_method_parameters,
 };
 use std::{
     collections::HashMap,
@@ -142,11 +143,11 @@ impl CFEngine {
                 };
 
                 // TODO setup mode and output var by calling ... bundle
-                let parameters = var
-                    .resource_params
-                    .iter()
-                    .chain(var.state_params.iter())
-                    .map(|x| self.value_to_string(x, true))
+                let parameters =
+                    fetch_method_parameters(gc, &var.to_method(), |_name, value, _metadatas| {
+                        self.value_to_string(value, true)
+                    })
+                    .into_iter()
                     .collect::<Result<Vec<String>>>()?;
 
                 let method_name = &format!("{}-{}", var.resource.fragment(), var.state.fragment());
@@ -286,7 +287,7 @@ impl CFEngine {
         }
     }
 
-    fn value_to_string(&mut self, value: &Value, string_delim: bool) -> Result<String> {
+    fn value_to_string(&self, value: &Value, string_delim: bool) -> Result<String> {
         let delim = if string_delim { "\"" } else { "" };
         Ok(match value {
             Value::String(s) => format!(

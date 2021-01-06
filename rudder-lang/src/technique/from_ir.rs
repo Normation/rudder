@@ -134,13 +134,34 @@ fn format_expr(ir: &IR2, expr: &EnumExpressionPart) -> String {
     }
 }
 
+fn value_to_string(value: &Value, method_name: &str, string_delim: bool) -> Result<String> {
+    let delim = if string_delim { "\"" } else { "" };
+    Ok(match value {
+        Value::String(s) => format!("{}{}{}", delim, String::try_from(s)?, delim),
+        Value::Float(_, n) => format!("{}", n),
+        Value::Integer(_, n) => format!("{}", n),
+        Value::Boolean(_, b) => format!("{}", b),
+        Value::List(l) => format!(
+            "[ {} ]",
+            map_strings_results(l.iter(), |x| value_to_string(value, method_name, true), ",")?
+        ),
+        Value::Struct(s) => unimplemented!(),
+        Value::EnumExpression(_e) => unimplemented!(),
+    })
+}
+
 fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Vec<MethodCall> {
     match stmt {
         Statement::ConditionVariableDefinition(s) => {
             let method_name = format!("{}_{}", *s.resource, *s.state);
-            let parameters = fetch_method_parameters(ir, &s.to_method(), |name, value, _| {
-                Parameter::new(name, value)
-            });
+            let parameters =
+                fetch_method_parameters(ir, &s.to_method(), |name, value, _metadatas| {
+                    Parameter::new(
+                        name,
+                        &value_to_string(value, &method_name, true)
+                            .expect("Value is not formatted correctly"),
+                    )
+                });
             vec![MethodCall {
                 parameters,
                 condition,
@@ -159,8 +180,13 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
             } else {
                 format!("{}_{}", *s.resource, *s.state)
             };
-            let mut parameters =
-                fetch_method_parameters(ir, s, |name, value, _| Parameter::new(name, value));
+            let mut parameters = fetch_method_parameters(ir, s, |name, value, _| {
+                Parameter::new(
+                    name,
+                    &value_to_string(value, &method_name, false)
+                        .expect("Value is not formatted correctly"),
+                )
+            });
 
             // EXCEPTION: reunite variable_string_escaped resource parameters that appear to be joined from cfengine side
             if method_name == "variable_string_escaped" {

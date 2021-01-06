@@ -17,6 +17,7 @@ use crate::{
 };
 use std::{
     collections::HashMap,
+    convert::TryFrom,
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -181,7 +182,10 @@ impl DSC {
                             .and_then(|r#type| r#type.as_str())
                             .and_then(|type_str| ParameterType::from_str(type_str).ok())
                             .unwrap_or(ParameterType::default());
-                        Parameter::method_parameter(name, value, content_type)
+                        let string_value = &self
+                            .value_to_string(value, false)
+                            .expect("Value is not formatted correctly");
+                        Parameter::method_parameter(name, string_value, content_type)
                     });
                 let state_def = gc.get_state_def(&var.resource, &var.state)?;
                 let class_param_index = state_def.class_parameter_index(method_name)?;
@@ -225,7 +229,10 @@ impl DSC {
                             .and_then(|r#type| r#type.as_str())
                             .and_then(|type_str| ParameterType::from_str(type_str).ok())
                             .unwrap_or(ParameterType::default());
-                        Parameter::method_parameter(name, value, content_type)
+                        let string_value = &self
+                            .value_to_string(value, false)
+                            .expect("Value is not formatted correctly");
+                        Parameter::method_parameter(name, string_value, content_type)
                     });
                 let state_def = gc.get_state_def(&sd.resource, &sd.state)?;
                 let class_param_index = state_def.class_parameter_index(method_name)?;
@@ -323,35 +330,14 @@ impl DSC {
         }
     }
 
-    fn value_to_string(&mut self, value: &Value, string_delim: bool) -> Result<String> {
+    fn value_to_string(&self, value: &Value, string_delim: bool) -> Result<String> {
         let delim = if string_delim { "\"" } else { "" };
         Ok(match value {
-            Value::String(s) => format!(
-                "{}{}{}",
-                delim,
-                s.data
-                    .iter()
-                    .map(|t| match t {
-                        PInterpolatedElement::Static(s) => {
-                            // replace ${const.xx}
-                            s.replace("$", "${consr.dollar}")
-                                .replace("\\n", "${const.n}")
-                                .replace("\\r", "${const.r}")
-                                .replace("\\t", "${const.t}")
-                        }
-                        PInterpolatedElement::Variable(v) => {
-                            // translate variable name
-                            format!("${{{}}}", v)
-                        }
-                    })
-                    .collect::<Vec<String>>()
-                    .concat(),
-                delim
-            ),
+            Value::String(s) => format!("{}{}{}", delim, String::try_from(s)?, delim),
             Value::Float(_, n) => format!("{}", n),
             Value::Integer(_, n) => format!("{}", n),
             Value::Boolean(_, b) => format!("{}", b),
-            Value::EnumExpression(_e) => unimplemented!(),
+            Value::EnumExpression(_) => unimplemented!(),
             Value::List(l) => format!(
                 "[ {} ]",
                 map_strings_results(l.iter(), |x| self.value_to_string(x, true), ",")?
