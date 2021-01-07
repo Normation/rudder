@@ -223,6 +223,36 @@
   text-transform: capitalize;
 }
 
+.markdown {
+  margin-bottom: 5px;
+}
+.markdown > span > :last-child,
+.markdown > div  > :last-child{
+  margin-bottom: 0;
+}
+.markdown > span > :first-child,
+.markdown > div  > :first-child{
+  margin-top: 0 !important;
+}
+
+.toggle-doc{
+  cursor: pointer !important;
+}
+.toggle-doc.doc-hidden + .markdown{
+  display: none !important;
+}
+.toggle-doc > i.fa{
+  color: #222D42;
+  opacity: .4;
+  margin-left : 6px;
+  transition : opacity .2s;
+}
+.toggle-doc:hover > i.fa{
+  opacity: .6;
+}
+.toggle-doc.doc-hidden > i.fa{
+  transform: rotate(-90deg);
+}
 /* POLICY MODE */
 #policyModes{
   margin-top: 0;

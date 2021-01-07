@@ -130,8 +130,10 @@
               <span ng-non-bindable id="techniqueID">[technique.techniqueName]</span>
             </div>
             <div>
-              <h4>Description</h4>
-              <span ng-non-bindable id="techniqueDescription">[technique.description]</span>
+              <h4 class="toggle-doc" onclick="$(this).toggleClass('doc-hidden')">Description<i class="fa fa-chevron-down"></i></h4>
+              <div class="markdown">
+                <span ng-non-bindable id="techniqueDescription">[technique.description]</span>
+              </div>
             </div>
             <div class="groupDiv">
               <h4>Characteristics</h4>
