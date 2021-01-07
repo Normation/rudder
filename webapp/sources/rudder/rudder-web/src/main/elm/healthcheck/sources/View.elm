@@ -87,8 +87,8 @@ displayBigMessage checks =
     [
         severityLevelToIcon level
       , case level of
-          Critical    -> text "Critical error"
-          Warning     -> text "Should be improved"
+          Critical    -> text "Some elements require your attention"
+          Warning     -> text "Some elements require your attention"
           CheckPassed -> text "All checks passed"
     ]
   ]
