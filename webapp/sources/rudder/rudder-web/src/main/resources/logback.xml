@@ -186,8 +186,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     ============================
     This logger allows to log information about node acceptation step, and dynamic
     group processing. It has several sub-logger usefull for trace-level debug:
-    - nodes.pending
-    - nodes.pending.policies
+    - nodes.pending: info about pending node processing
+    - nodes.pending.policies: info about policies applied to a pending node once accepted
+    - nodes.delete: information about cleaning steps when deleting a node.
   -->
   <logger name="nodes" level="info" />
 

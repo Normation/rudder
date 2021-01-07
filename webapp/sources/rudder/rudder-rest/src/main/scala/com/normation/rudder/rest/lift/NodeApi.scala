@@ -840,7 +840,7 @@ class NodeApiService2 (
     val modId = ModificationId(uuidGen.newUuid)
     nodeIds match {
       case Full(Some(ids)) =>
-        logger.debug(s" Nodes to change Status : ${ids.mkString("[ ", ", ", " ]")}")
+        NodeLogger.PendingNode.debug(s" Nodes to change Status : ${ids.mkString("[ ", ", ", " ]")}")
         nodeStatusAction match {
           case Full(nodeStatusAction  ) =>
             modifyStatusFromAction(ids,nodeStatusAction,modId,actor) match {
