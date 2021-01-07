@@ -3690,7 +3690,7 @@ table a > i.fa-pencil:hover{
   border-radius: 4px;
   background-color: #f3f8ff;
 }
-.markdown > h1:first-child{
+.markdown > :first-child{
   margin-top: 0;
 }
 .markdown h2{
