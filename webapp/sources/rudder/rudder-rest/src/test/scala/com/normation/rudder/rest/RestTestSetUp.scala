@@ -73,7 +73,6 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.repository._
 import com.normation.rudder.rest.lift._
 import com.normation.rudder.rest.v1.RestStatus
-import com.normation.rudder.rest.v1.RestTechniqueReload
 import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.rudder.services.eventlog.EventLogFactory
@@ -159,7 +158,6 @@ object RestTestSetUp {
   val mockDirectives = new MockDirectives(mockTechniques)
   val mockRules = new MockRules()
   val uuidGen = new StringUuidGeneratorImpl()
-  val reloadTechniques = new RestTechniqueReload(fakeUpdatePTLibService, uuidGen)
   val restExtractorService =
   RestExtractorService (
       mockRules.ruleRepo
@@ -400,7 +398,6 @@ object RestTestSetUp {
   val liftRules = {
     val l = new LiftRules()
     l.statelessDispatch.append(RestStatus)
-    l.statelessDispatch.append(reloadTechniques)
     l.statelessDispatch.append(rudderApi.getLiftRestApi())
     //TODO: add all other rest classes here
     l

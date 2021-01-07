@@ -277,14 +277,8 @@ class Boot extends Loggable {
 
     // REST API V1
     LiftRules.statelessDispatch.append(RestStatus)
-    LiftRules.statelessDispatch.append(RudderConfig.restDeploy)
-    LiftRules.statelessDispatch.append(RudderConfig.restDyngroupReload)
-    LiftRules.statelessDispatch.append(RudderConfig.restTechniqueReload)
-    LiftRules.statelessDispatch.append(RudderConfig.restArchiving)
-    LiftRules.statelessDispatch.append(RudderConfig.restGetGitCommitAsZip)
 
     // REST API Internal
-    LiftRules.statelessDispatch.append(RudderConfig.restAuthentication)
     LiftRules.statelessDispatch.append(RudderConfig.restApiAccounts)
     LiftRules.statelessDispatch.append(RudderConfig.restQuicksearch)
     LiftRules.statelessDispatch.append(RudderConfig.restCompletion)

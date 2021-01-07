@@ -77,7 +77,7 @@ final case class RoReportsExecutionRepositoryImpl (
   def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
     val n1 = System.currentTimeMillis
     (for {
-      unprocessedRuns <- getUnprocessedRuns
+      unprocessedRuns <- getUnprocessedRuns()
       // first evolution, get same behaviour than before, and returns only the last run per node
       // ignore those without a nodeConfigId
       lastRunByNode = unprocessedRuns.filter(_.nodeConfigVersion.isDefined).groupBy(_.agentRunId.nodeId).map {

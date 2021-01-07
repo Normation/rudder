@@ -47,6 +47,6 @@ import net.liftweb.http.rest._
 object RestStatus extends RestHelper {
 
   serve {
-    case Get("api" :: "status" :: Nil, req) => PlainTextResponse("OK")
+    case Get("api" :: "status" :: Nil, req) => PlainTextResponse("OK\n")
   }
 }

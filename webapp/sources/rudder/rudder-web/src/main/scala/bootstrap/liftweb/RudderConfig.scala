@@ -115,8 +115,6 @@ import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest._
 import com.normation.rudder.rest.internal._
 import com.normation.rudder.rest.lift._
-import com.normation.rudder.rest.v1.RestArchiving
-import com.normation.rudder.rest.v1.{RestDeploy, RestDyngroupReload, RestGetGitCommitAsZip, RestTechniqueReload}
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.rule.category._
 import com.normation.rudder.services._
@@ -367,9 +365,6 @@ object RudderConfig extends Loggable {
   val RUDDER_REPORTS_EXECUTION_INTERVAL = config.getInt("rudder.batch.storeAgentRunTimes.updateInterval") // In seconds : 5
 
   val HISTORY_INVENTORIES_ROOTDIR = config.getString("history.inventories.rootdir")
-
-  //used in spring security "applicationContext-security.xml", be careful if you change its name
-  val RUDDER_REST_ALLOWNONAUTHENTICATEDUSER = config.getBoolean("rudder.rest.allowNonAuthenticatedUser")
 
   val RUDDER_DEBUG_NODE_CONFIGURATION_PATH = config.getString("rudder.debug.nodeconfiguration.path")
 
@@ -840,12 +835,6 @@ object RudderConfig extends Loggable {
 
   lazy val linkUtil = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeInfoServiceImpl)
   // REST API
-  val restAuthentication    = new RestAuthentication(userService)
-  val restDeploy            = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)
-  val restDyngroupReload    = new RestDyngroupReload(dyngroupUpdaterBatch)
-  val restTechniqueReload   = new RestTechniqueReload(techniqueRepositoryImpl, uuidGen)
-  val restArchiving         = new RestArchiving(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen)
-  val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
   val restApiAccounts       = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator, uuidGen, userService, apiAuthorizationLevelService)
   val restDataSerializer    = RestDataSerializerImpl(techniqueRepository,diffService)
   val restQuicksearch       = new RestQuicksearch(new FullQuickSearchService()(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit, roDirectiveRepository, nodeInfoService), userService, linkUtil)

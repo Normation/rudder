@@ -1,0 +1,1 @@
+curl --request GET https://rudder.example.com/rudder/api/status

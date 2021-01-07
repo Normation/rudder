@@ -403,37 +403,6 @@ rudder.config.repo.new.file.group.owner=rudder
 #
 rudder.batch.dyngroup.updateInterval=5
 
-
-##########################
-# REST API configuration  ###########################################################
-##########################
-
-#
-# Boolean, defaults to true
-# If true, REST API urls v1 won't require
-# to be authenticated to be accessed.
-# The reason to have default=true for that is
-# that in that use case, the authorization and
-# authentication part for the REST API
-# will be done by a third party software, like Apache
-#
-# If false, these API will need to be authenticated
-# with a valid token managed in the
-# "Administration => API Accounts" screen of Rudder
-# web application.
-#
-# API affected by that property:
-# - /api/status
-# - /api/techniqueLibrary/reload
-# - /api/dyngroup/reload
-# - /api/deploy/reload
-# - /api/archives/*
-#
-#  DEPRECATED: use of authentication token will become
-#              mandatory for all API URLs.
-#
-rudder.rest.allowNonAuthenticatedUser=true
-
 ####################
 # Inventory history ##################################################################
 ####################

@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Check if Rudder is alive
+  description: >-
+    An unauthenticated API to check if Rudder web application is up and running.
+    Be careful: this API does not follow other Rudder's API convention: 
+
+    - it is not versioned, so the path is just `/api/status`;
+    
+    - it returns a plain text message.
+
+  operationId: none
+  responses:
+    "200":
+      description: OK status message
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: OK\\n          
+  tags:
+    - Status
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/unauthenticated/status.sh

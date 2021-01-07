@@ -37,7 +37,7 @@
 
 package com.normation.rudder.repository.jdbc
 
-import com.normation.{BoxSpecMatcher, errors}
+import com.normation.BoxSpecMatcher
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.{DB, DBCommon}
 import com.normation.rudder.reports.execution.RoReportsExecutionRepositoryImpl

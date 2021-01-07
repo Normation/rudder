@@ -2,20 +2,7 @@
 description: Simple test of api/status - just "ok"
 method: GET
 url: /api/status
-response: 
+response:
   type: text #optionnal, by default json
   code: 200 #optionnal
   content: 'OK'
----
-description: reload technique library - just "ok"
-method: GET
-url: /api/techniqueLibrary/reload
-response:
-  type: text #optionnal, by default json
-  code: 200
-  content: 'OK'
-# ---
-#  ^- adding that would lead to a failed test, because 
-# it would lead to an empty spec
-  
-   

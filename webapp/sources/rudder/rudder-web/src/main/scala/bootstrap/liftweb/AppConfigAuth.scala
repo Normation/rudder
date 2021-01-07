@@ -482,21 +482,14 @@ class RestAuthenticationFilter(
   def destroy(): Unit = {}
   def init(config: FilterConfig): Unit = {}
 
-  private[this] val api_v1_url = List(
+  private[this] val not_authenticated_api = List(
       "/api/status"
-    , "/api/techniqueLibrary/reload"
-    , "/api/dyngroup/reload"
-    , "/api/deploy/reload"
-    , "/api/archives"
   )
 
-  private[this] def isValidNonAuthApiV1(httpRequest:HttpServletRequest) : Boolean = (
-       RudderConfig.RUDDER_REST_ALLOWNONAUTHENTICATEDUSER
-    && {
-         val requestPath = httpRequest.getRequestURI.substring(httpRequest.getContextPath.length)
-         api_v1_url.exists(path => requestPath.startsWith(path))
-       }
-  )
+  private[this] def isValidNonAuthApiV1(httpRequest:HttpServletRequest) : Boolean = {
+    val requestPath = httpRequest.getRequestURI.substring(httpRequest.getContextPath.length)
+    not_authenticated_api.exists(path => requestPath.startsWith(path))
+  }
 
   private[this] def failsAuthentication(httpRequest: HttpServletRequest, httpResponse: HttpServletResponse, error: RudderError) : Unit = {
     val msg = s"REST authentication failed from IP '${LogFailedLogin.getRemoteAddr(httpRequest)}'. Error was: ${error.fullMsg}"
@@ -526,7 +519,6 @@ class RestAuthenticationFilter(
         val token = httpRequest.getHeader(apiTokenHeaderName);
         token match {
           case null | "" =>
-            /* support of API v1 rest.AllowNonAuthenticatedUser */
             if(isValidNonAuthApiV1(httpRequest)) {
               val name = "api-v1-unauthenticated-account"
               val apiV1Account = ApiAccount(

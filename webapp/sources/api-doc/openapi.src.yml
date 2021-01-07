@@ -28,6 +28,8 @@ security:
   # Apply the same auth everywhere
   - "API-Tokens": []
 tags:
+  - name: Status
+    description: Is alive check
   - name: Compliance
     description: Access compliance data
   - name: Rules
@@ -91,6 +93,8 @@ tags:
 
       Manage web interface customization.
 paths:
+  "/status":
+    $ref: paths/unauthenticated/status.yml
   "/createnodes":
     $ref: paths/create-node/all.yml
   "/usermanagement/users":
