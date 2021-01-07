@@ -786,7 +786,20 @@ $scope.onImportFileChange = function (fileEl) {
     if (evt.target.readyState === FileReader.DONE) {
       $scope.$apply(function () {
         var importedTechnique = JSON.parse(evt.target.result);
-        if(importedTechnique['type'] == 'ncf_technique') {
+        var listOfGmName = [];
+        for(var gm in $scope.generic_methods) {
+          listOfGmName.push(gm);
+        }
+        var listOfImportedMethodName = [];
+        var mc = importedTechnique["data"]["method_calls"];
+        for (let i = 0; i < mc.length; i++) {
+          listOfImportedMethodName.push(mc[i]["method_name"]);
+        }
+        var unsupportedGmNames = listOfImportedMethodName.filter(f => !listOfGmName.includes(f));
+        if(unsupportedGmNames.length > 0) {
+          createErrorNotification("Unsupported generic method in imported technique: " + unsupportedGmNames.join(', '));
+        }
+        else if(importedTechnique['type'] == 'ncf_technique') {
           var version = importedTechnique['version']
           if(version != 1.0 && version != 2.0){
            alert("Unsupported technique version ! This version of Rudder only support import of ncf techniques files in format 1.0 and 2.0")
