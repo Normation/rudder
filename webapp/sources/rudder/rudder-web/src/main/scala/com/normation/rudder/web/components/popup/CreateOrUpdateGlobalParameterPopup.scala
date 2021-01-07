@@ -221,7 +221,11 @@ class CreateOrUpdateGlobalParameterPopup(
       "string"
     , "json"
     )
-    val defaultMode = "string"
+
+    val defaultMode = change.previousGlobalParam.map { p =>
+      if(p.value.valueType() == ConfigValueType.STRING) "string" else "json"
+    }.getOrElse("string")
+
     new WBRadioField(
       "Format",
       l,
