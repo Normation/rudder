@@ -17,6 +17,30 @@ from pprint import pprint
 import re
 from subprocess import check_output
 
+aliases = dict()
+
+def load_condition_aliases(oslib_file):
+  try:
+    with open(oslib_file, "r") as lib:
+      lines = lib.readlines()
+      for i, line in enumerate(lines):
+        inner_content = re.match(r'\s*\@cfengine_name\s*=\s*\[\s*([\w\",\s]*)\s*\]', line)
+        if inner_content:
+          aliases_list = re.findall(r'\"(\w+)\"', inner_content.groups()[0])
+          # get reference name. Does not work in case of multiline alias metadata
+          reference = re.match(r'\s*(\w*),?\s*', lines[i + 1])
+          if reference:
+            aliases.setdefault(reference.groups()[0], []).extend(aliases_list)
+          else:
+            print("WARNING: Reference of alias metadata is not formatted as expected, see:", aliases_list)
+        else:
+          alias = re.match(r'\s*enum\s*alias\s*(\w+)\s*=\s*(\w+)\s*', line)
+          if alias:
+            aliases.setdefault(alias.groups()[1], []).append(alias.groups()[0]) 
+  except IOError as e:
+    print_json("load oslib file", "oslib", str(e), True)
+    exit(1)
+
 # prints the output at json format. If no issue : nothing is printed. Else, print either json diff or python error
 def print_json(function, filename, json_to_format, is_python_error=False):
   if is_python_error:
@@ -32,7 +56,16 @@ def filter_class_context(diff_values):
   # remove all parenthesis
   generated_filtered = ''.join(filter(lambda c: c not in ['(', ')'], diff_values[1]))
   original_filtered = ''.join(filter(lambda c: c not in ['(', ')'], diff_values[0]))
-  return original_filtered == 'any.' + generated_filtered or original_filtered == generated_filtered
+  if original_filtered == 'any.' + generated_filtered or original_filtered == generated_filtered:
+    return True
+  # condition should also be valid if the only diffs are alias replacements
+  else:
+    original_condition_arr = list(filter(lambda c: c not in ['any', ''], re.findall(r'(\w+)*', original_filtered)))
+    generated_condition_arr = list(filter(lambda c: c not in [''], re.findall(r'(\w+)*', generated_filtered)))
+    for o, g in zip(original_condition_arr, generated_condition_arr):
+      if g not in aliases or o not in aliases[g]:
+        return False
+    return True
 
 
 def compare_json(first, second):
@@ -340,6 +373,7 @@ if __name__ == "__main__":
       cfg.read(arguments['--config-file'])
     ncf_tools = cfg['testing_loop']['ncf_tools'].strip('\"')
     cfengine_path = cfg['testing_loop']['cfengine'].strip('\"')
+    load_condition_aliases(cfg['shared']['stdlib'].strip('\"') + 'oslib.rl')
   except Exception as e:
     print_json('(Not defined yet)', '(Not defined yet)', 'An error occurred while setting config up: {}'.format(str(e)), True)
     exit(1)
