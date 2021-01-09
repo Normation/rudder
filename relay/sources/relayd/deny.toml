@@ -7,13 +7,13 @@
 allow = [
     "MIT",
     "Apache-2.0",
+    "GPL-3.0",
     "ISC",
     "Zlib",
-    "BSD-2-Clause",
     "BSD-3-Clause",
-    "GPL-3.0",
 ]
 
 [bans]
 # Lint level for when multiple versions of the same crate are detected
 multiple-versions = "allow"
+

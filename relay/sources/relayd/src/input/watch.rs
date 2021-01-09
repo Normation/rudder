@@ -37,9 +37,11 @@ pub async fn cleanup(path: WatchedDirectory, cfg: CleanupConfig) -> Result<(), E
                 continue;
             }
         };
-        while let Some(entry) = files.next().await {
-            let entry = match entry {
-                Ok(e) => e,
+        loop {
+            let entry = match files.next_entry().await {
+                Ok(Some(e)) => e,
+                // Nothing to do
+                Ok(None) => break,
                 Err(e) => {
                     error!("entry error: {}", e);
                     continue;
@@ -69,7 +71,7 @@ pub async fn cleanup(path: WatchedDirectory, cfg: CleanupConfig) -> Result<(), E
     }
 }
 
-pub fn watch(path: &WatchedDirectory, job_config: &Arc<JobConfig>, tx: mpsc::Sender<ReceivedFile>) {
+pub fn watch(path: WatchedDirectory, job_config: &Arc<JobConfig>, tx: mpsc::Sender<ReceivedFile>) {
     info!("Starting file watcher on {:#?}", &path);
     let report_span = span!(Level::TRACE, "watcher");
     let _report_enter = report_span.enter();
@@ -78,7 +80,7 @@ pub fn watch(path: &WatchedDirectory, job_config: &Arc<JobConfig>, tx: mpsc::Sen
         job_config.cfg.processing.reporting.catchup,
         tx.clone(),
     ));
-    tokio::spawn(watch_files(path.clone(), tx));
+    tokio::spawn(watch_files(path, tx));
 }
 
 async fn list_files(
@@ -103,9 +105,7 @@ async fn list_files(
             }
         };
 
-        while let Some(entry) = files.next().await {
-            let entry = entry?;
-
+        while let Some(entry) = files.next_entry().await? {
             let metadata = entry.metadata().await?;
             let since = sys_time
                 .duration_since(metadata.modified().unwrap_or(sys_time))

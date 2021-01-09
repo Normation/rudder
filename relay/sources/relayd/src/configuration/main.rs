@@ -109,12 +109,8 @@ pub struct GeneralConfig {
     pub listen: String,
     /// None means using the number of available CPUs
     pub core_threads: Option<usize>,
-    /// Deprecated in 7.0, tokio changed the way it counts threads
+    /// Max number of threads for the blocking operations
     pub blocking_threads: Option<usize>,
-    /// Total number of threads used by tokio
-    // Take default from tokio, currently 512
-    // https://docs.rs/tokio/0.2.23/tokio/runtime/struct.Builder.html#method.max_threads
-    pub max_threads: Option<usize>,
 }
 
 impl GeneralConfig {
@@ -484,7 +480,6 @@ mod tests {
                 node_id: "root".to_string(),
                 listen: "127.0.0.1:3030".parse().unwrap(),
                 core_threads: None,
-                max_threads: None,
                 blocking_threads: None,
             },
             processing: ProcessingConfig {
@@ -572,8 +567,7 @@ mod tests {
                 node_id: "root".to_string(),
                 listen: "127.0.0.1:3030".parse().unwrap(),
                 core_threads: None,
-                max_threads: Some(512),
-                blocking_threads: None,
+                blocking_threads: Some(512),
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {

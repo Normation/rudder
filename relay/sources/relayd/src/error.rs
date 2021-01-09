@@ -25,6 +25,8 @@ pub enum RudderError {
     CertificateForUnknownNode(NodeId),
     #[error("missing certificate for node: {0}")]
     MissingCertificateForNode(NodeId),
+    #[error("missing key hash for node: {0}")]
+    MissingKeyHashForNode(NodeId),
     #[error("unknown node: {0}")]
     UnknownNode(NodeId),
     #[error("invalid condition: {condition:}, should match {condition_regex:}")]

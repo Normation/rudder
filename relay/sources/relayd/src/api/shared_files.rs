@@ -7,7 +7,7 @@ use crate::{
     JobConfig,
 };
 use anyhow::Error;
-use bytes::{buf::BufExt, Bytes};
+use bytes::{Buf, Bytes};
 use chrono::Utc;
 use humantime::parse_duration;
 use serde::{Deserialize, Serialize};
@@ -207,12 +207,7 @@ pub async fn put_local(
         .join(&file.source_id);
     let pubkey = meta.pubkey()?;
 
-    let known_key_hash = job_config
-        .nodes
-        .read()
-        .await
-        .key_hash(&file.source_id)
-        .ok_or_else(|| RudderError::UnknownNode(file.source_id.to_string()))?;
+    let known_key_hash = job_config.nodes.read().await.key_hash(&file.source_id)?;
     let key_hash = known_key_hash.hash_type.hash(&pubkey.public_key_to_der()?);
     if key_hash != known_key_hash {
         warn!(

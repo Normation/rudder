@@ -41,6 +41,8 @@ struct Info {
     certificates: Option<Stack<X509>>,
 }
 
+// Deserialization never fails here (due to compatibility), but need a Result for serde
+#[allow(clippy::unnecessary_wraps)]
 fn deserialize_hash<'de, D>(deserializer: D) -> Result<Option<Hash>, D::Error>
 where
     D: Deserializer<'de>,
@@ -149,27 +151,38 @@ impl NodesList {
         self.list.data.get(id).is_some()
     }
 
-    pub fn is_my_neighbor(&self, id: &NodeIdRef) -> Result<bool, ()> {
+    /// Get Info and fail if node is not there
+    fn get(&self, id: &NodeIdRef) -> Result<&Info, Error> {
         self.list
             .data
             .get(id)
-            .ok_or(())
-            .map(|n| n.policy_server == self.my_id)
+            .ok_or_else(|| RudderError::UnknownNode(id.to_string()).into())
     }
 
-    pub fn key_hash(&self, id: &NodeIdRef) -> Option<Hash> {
-        self.list.data.get(id).and_then(|s| s.key_hash.clone())
+    pub fn is_my_neighbor(&self, id: &NodeIdRef) -> Result<bool, Error> {
+        self.get(id).map(|n| n.policy_server == self.my_id)
     }
 
-    pub fn hostname(&self, id: &NodeIdRef) -> Option<Host> {
-        self.list.data.get(id).map(|s| s.hostname.clone())
+    /// Get key hash. Missing key is an error.
+    pub fn key_hash(&self, id: &NodeIdRef) -> Result<Hash, Error> {
+        self.get(id).and_then(|s| {
+            s.key_hash
+                .clone()
+                .ok_or_else(|| RudderError::MissingKeyHashForNode(id.to_string()).into())
+        })
     }
 
-    pub fn certs(&self, id: &NodeIdRef) -> Option<&Stack<X509>> {
-        self.list
-            .data
-            .get(id)
-            .and_then(|node| node.certificates.as_ref())
+    pub fn hostname(&self, id: &NodeIdRef) -> Result<Host, Error> {
+        self.get(id).map(|s| s.hostname.clone())
+    }
+
+    /// Get node cert, missing cert is unexpected and an error
+    pub fn certs(&self, id: &NodeIdRef) -> Result<&Stack<X509>, Error> {
+        self.get(id).and_then(|node| {
+            node.certificates
+                .as_ref()
+                .ok_or_else(|| RudderError::MissingCertificateForNode(id.to_string()).into())
+        })
     }
 
     fn id_from_cert(cert: &X509) -> Result<NodeId, Error> {
@@ -185,7 +198,7 @@ impl NodesList {
     }
 
     /// Some(Next hop) if any, None if directly connected, error if not found
-    fn next_hop(&self, node_id: &NodeIdRef) -> Result<Option<NodeId>, ()> {
+    fn next_hop(&self, node_id: &NodeIdRef) -> Result<Option<NodeId>, Error> {
         // nodeslist should not contain loops but just in case
         // 20 levels of relays should be more than enough
         const MAX_RELAY_LEVELS: u8 = 20;
@@ -195,8 +208,8 @@ impl NodesList {
         }
 
         let mut current_id = node_id;
-        let mut current = self.list.data.get(current_id).ok_or(())?;
-        let mut next_hop = Err(());
+        let mut current = self.get(current_id)?;
+        let mut next_hop = Err(Error::msg("Next hop not found"));
 
         for level in 0..MAX_RELAY_LEVELS {
             if current.policy_server == self.my_id {
@@ -204,7 +217,7 @@ impl NodesList {
                 break;
             }
             current_id = &current.policy_server;
-            current = self.list.data.get(current_id).ok_or(())?;
+            current = self.get(current_id)?;
 
             if level == MAX_RELAY_LEVELS {
                 warn!(
@@ -282,8 +295,8 @@ impl NodesList {
                     // We are sure it is there at this point
                     .unwrap(),
                 Ok(None) => continue,
-                Err(()) => {
-                    error!("Unknown node {}", node);
+                Err(e) => {
+                    error!("{}", e);
                     continue;
                 }
             };
@@ -457,14 +470,16 @@ mod tests {
     fn it_gets_next_hops() {
         let list = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None).unwrap();
 
-        assert_eq!(list.next_hop(&"root"), Ok(None));
+        assert_eq!(list.next_hop(&"root").unwrap(), None);
         assert_eq!(
-            list.next_hop("a745a140-40bc-4b86-b6dc-084488fc906b"),
-            Ok(Some("e745a140-40bc-4b86-b6dc-084488fc906b".to_string()))
+            list.next_hop("a745a140-40bc-4b86-b6dc-084488fc906b")
+                .unwrap(),
+            Some("e745a140-40bc-4b86-b6dc-084488fc906b".to_string())
         );
         assert_eq!(
-            list.next_hop("e745a140-40bc-4b86-b6dc-084488fc906b"),
-            Ok(None)
+            list.next_hop("e745a140-40bc-4b86-b6dc-084488fc906b")
+                .unwrap(),
+            None
         );
     }
 

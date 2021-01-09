@@ -15,6 +15,7 @@ use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::{Child, Command},
 };
+use tokio_stream::wrappers::LinesStream;
 use tracing::{debug, error, span, trace, Level};
 use warp::{body, filters::method, path, Filter, Reply};
 
@@ -472,8 +473,7 @@ impl RunParameters {
             .expect("child did not have a handle to stdout");
 
         Box::new(
-            BufReader::new(stdout)
-                .lines()
+            LinesStream::new(BufReader::new(stdout).lines())
                 .map_err(Error::from)
                 .inspect(|line| trace!("output: {:?}", line))
                 .map(|r| {

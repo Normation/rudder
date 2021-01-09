@@ -4,7 +4,6 @@
 use crate::{
     configuration::main::ReportingOutputSelect,
     data::{RunInfo, RunLog},
-    error::RudderError,
     input::{read_compressed_file, signature, watch::*},
     metrics::{REPORTS, REPORTS_PROCESSING_DURATION, REPORTS_SIZE_BYTES},
     output::{
@@ -39,7 +38,7 @@ pub fn start(job_config: &Arc<JobConfig>) {
         path.clone(),
         job_config.cfg.processing.reporting.cleanup,
     ));
-    watch(&path, &job_config, sender);
+    watch(path, &job_config, sender);
 }
 
 /// Should run forever except for fatal errors
@@ -189,12 +188,7 @@ async fn output_report_database_inner(
     let content = read_compressed_file(&path).await?;
     let signed_runlog = signature(
         &content,
-        job_config
-            .nodes
-            .read()
-            .await
-            .certs(&run_info.node_id)
-            .ok_or_else(|| RudderError::MissingCertificateForNode(run_info.node_id.clone()))?,
+        job_config.nodes.read().await.certs(&run_info.node_id)?,
     )?;
 
     REPORTS_SIZE_BYTES.observe(signed_runlog.len() as f64);
