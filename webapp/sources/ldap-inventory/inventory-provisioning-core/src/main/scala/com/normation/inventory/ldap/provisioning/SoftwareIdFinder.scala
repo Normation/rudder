@@ -46,6 +46,7 @@ import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk._
 import org.slf4j.LoggerFactory
 import zio._
+import com.normation.zio._
 
 object NameAndVersionIdFinder {
   val logger = LoggerFactory.getLogger(classOf[NameAndVersionIdFinder])
@@ -85,8 +86,13 @@ class NameAndVersionIdFinder(
     //return the list of A_SOFTWARE_UUID sorted
     for {
       con     <- ldapConnectionProvider
+      t0      <- currentTimeMillis
       entries <- con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID, A_NAME, A_SOFT_VERSION)
+      t1      <- currentTimeMillis
+      _       <- InventoryProcessingLogger.timing.trace(s"pre_commit_inventory:merge_uuid: search existing software: ${t1 - t0} ms")
       merged  <- ZIO.foreach(entries) { e => ZIO.fromEither(mapper.softwareFromEntry(e)) }
+      t2      <- currentTimeMillis
+      _       <- InventoryProcessingLogger.timing.trace(s"pre_commit_inventory:merge_uuid: merge software: ${t2 - t1} ms")
     } yield {
       //now merge back
       entities.foldLeft(MergedSoftware(Set(),Set())) { case(ms, s) =>

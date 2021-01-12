@@ -37,8 +37,6 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import cats.data.NonEmptyList
-import com.normation.errors.RudderError
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.inventory.domain.InventoryReport
 import com.normation.errors._
@@ -46,10 +44,18 @@ import com.normation.inventory.services.provisioning._
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.inventory.ldap.core._
+import com.normation.ldap.ldif.LDIFNoopChangeRecord
+import com.normation.ldap.sdk.LDAPEntry
+import com.normation.ldap.sdk.LDAPIOResult.LDAPIOResult
+import com.normation.ldap.sdk.LDAPRudderError
+import com.normation.ldap.sdk.LDAPRudderError.FailureResult
 import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.zio._
+import com.unboundid.ldap.sdk.AddRequest
+import com.unboundid.ldap.sdk.ModifyRequest
+import com.unboundid.ldap.sdk.ResultCode
 import zio._
 import zio.syntax._
-import com.normation.ldap.sdk.LDAPRudderError
 
 /**
  * Post-commit convention:
@@ -68,83 +74,59 @@ class DefaultReportSaver(
   override val postCommitPipeline:Seq[PostCommit[Seq[LDIFChangeRecord]]]
 ) extends PipelinedReportSaver[Seq[LDIFChangeRecord]] {
 
+  /*
+   * From a domain point of view, in rudder software are almost equals to their
+   * name+version.
+   * We can't considere software immutable because once in a while, like in 6.2, we
+   * add new attributes like "sourceName".
+   * But we can be optimistic on the save lock, since we are sure that all dn are different.
+   * Since it's a copy of "con.save" without the lock on software, we can reach a case where
+   * we tried to save a soft that is already here, or update a soft that was deleted. It
+   * should be a very rare case, and so we can specificaly handle them by hand.
+   */
+  def saveSoftware(con: RwLDAPConnection, entry: LDAPEntry): LDAPIOResult[LDIFChangeRecord] = {
+    (con.get(entry.dn) flatMap {
+      case None =>
+        con.applyAdd(new AddRequest(entry.backed))
+      case Some(existing) =>
+        val mods = LDAPEntry.merge(existing,entry, false, true)
+        if(!mods.isEmpty) {
+          import scala.jdk.CollectionConverters._
+          con.applyModify(new ModifyRequest(entry.dn.toString, mods.asJava))
+        } else LDIFNoopChangeRecord(entry.dn).succeed
+    }).catchSome {
+      case FailureResult(_, code) if (code.getResultCode == ResultCode.ENTRY_ALREADY_EXISTS) =>
+        // ok, someone was quicker
+        (new LDIFNoopChangeRecord(entry.dn)).succeed
+      case FailureResult(_, code) if(code.getResultCode == ResultCode.NO_SUCH_OBJECT) =>
+        // try a real save with a lock
+        con.save(entry)
+    }
+  }
+
   def commitChange(report:InventoryReport) : IOResult[Seq[LDIFChangeRecord]] = {
 
-    /*
-     * we are saving with one connection by type of object so
-     * that an LDAPException in one don't stop the
-     * other to be saved
-     */
-    var results = List[IOResult[Seq[LDIFChangeRecord]]]()
+    for {
+      con <- ldapConnectionProvider
+      t0  <- currentTimeMillis
+      //we really want to save each software, and not the software tree as a whole - just think about the diff...
+      d0  <- ZIO.foreachParN(50)(report.applications){ x => saveSoftware(con, mapper.entryFromSoftware(x)) }
+      t1  <- currentTimeMillis
+      _   <- InventoryProcessingLogger.timing.trace(s"Saving software: ${t1 - t0} ms")
 
-    val t0 = System.currentTimeMillis
+      d1  <- con.saveTree(mapper.treeFromMachine(report.machine), deleteRemoved = true)
+      t2  <- currentTimeMillis
+      _   <- InventoryProcessingLogger.timing.trace(s"Saving machine: ${t2 - t1} ms")
 
-    //we really want to save each software, and not the software tree as a whole - just think about the diff...
-    report.applications foreach { x =>
-      results = {
-        for {
-          con <- ldapConnectionProvider
-          res <- con.save(mapper.entryFromSoftware(x))
-        } yield { Seq(res) }
-      } :: results
-    }
+      d2  <- con.saveTree(mapper.treeFromNode(report.node), deleteRemoved = true)
+      t3  <- currentTimeMillis
+      _   <- InventoryProcessingLogger.timing.trace(s"Saving node: ${t3 - t2} ms")
 
-    val t1 = System.currentTimeMillis
-    InventoryProcessingLogger.timing.trace(s"Saving software: ${t1 - t0} ms")
-
-    results = {
-      for {
-        con <- ldapConnectionProvider
-        res <- con.saveTree(mapper.treeFromMachine(report.machine), deleteRemoved = true)
-      } yield { res }
-    } :: results
-
-    val t2 = System.currentTimeMillis
-    InventoryProcessingLogger.timing.trace(s"Saving machine: ${t2-t1} ms")
-
-    results = {
-      for {
-        con <- ldapConnectionProvider
-        res <- con.saveTree(mapper.treeFromNode(report.node), deleteRemoved = true)
-      } yield {
-        res
-      }
-    } :: results
-
-    val t3 = System.currentTimeMillis
-    InventoryProcessingLogger.timing.trace(s"Saving node: ${t3-t2} ms")
-
-    //finally, vms
-    report.vms foreach { x =>
-       results = { for {
-          con <- ldapConnectionProvider
-          res <- con.saveTree(mapper.treeFromMachine(x), deleteRemoved = true)
-        } yield { res }
-      } :: results
-    }
-
-    val t4 = System.currentTimeMillis
-    InventoryProcessingLogger.timing.trace(s"Saving vms: ${t4-t3} ms")
-
-    /*
-     * TODO : what to do when there is a mix a failure/success ?
-     * LDAP does not have transaction, so... Try to restore,
-     * redo, what else ?
-     *
-     * For now, even on partial failure (means: not all fail),
-     * we consider it as a success and forward to post process
-     */
-    val accumulated = ZIO.foldLeft(results)((List.empty[RudderError], List.empty[Seq[LDIFChangeRecord]])) { case ((errors, oks), x) =>
-      x.fold(err => (err :: errors, oks), ok => (errors, ok :: oks))
-    }
-    accumulated.flatMap { case (errors, successes) =>
-      if(successes.isEmpty && errors.nonEmpty) {
-        //merge errors and return now
-        LDAPRudderError.Accumulated(NonEmptyList.fromListUnsafe(errors)).fail
-      } else { //ok, so at least one non error. Log errors, merge non error, and post-process it
-        ZIO.foreach(errors)(e =>
-            ZIO.effect(InventoryProcessingLogger.error(s"Report processing will be incomplete, found error: ${e.msg}")).orElse(ZIO.unit)) *> successes.flatten.succeed
-      }
+      d3  <- ZIO.foreach(report.vms) { x =>con.saveTree(mapper.treeFromMachine(x), deleteRemoved = true) }
+      t4  <- currentTimeMillis
+      _   <- InventoryProcessingLogger.timing.trace(s"Saving vms: ${t4-t3} ms")
+    } yield {
+      d0 ++ d1 ++ d2 ++ d3.flatten
     }
   }
 }

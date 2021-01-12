@@ -43,6 +43,7 @@ import com.unboundid.ldif.LDIFChangeRecord
 import zio.blocking.Blocking
 import zio._
 import zio.syntax._
+import com.normation.zio._
 
 import scala.jdk.CollectionConverters._
 import com.normation.ldap.sdk.syntax._
@@ -317,16 +318,31 @@ sealed class RoLDAPConnection(
    */
 
   override def search(sr:SearchRequest) : LDAPIOResult[Seq[LDAPEntry]] = {
-    blocking {
-      backed.search(sr).getSearchEntries.asScala.toSeq.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala))
+    val search = blocking {
+      val t0 = System.currentTimeMillis
+      val res = backed.search(sr).getSearchEntries.asScala.toSeq.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala))
+      val t = System.currentTimeMillis - t0
+      if(t > 500) {
+        LDAPConnectionLogger.logEffect.trace(s"Search base: ${sr.getBaseDN}: exec : ${t} ms")
+      }
+      res
     } catchAll {
       case e:LDAPSearchException if(onlyReportOnSearch(e.getResultCode)) =>
-        LDAPConnectionLogger.error("Ignored execption (configured to be ignored)", e) *>
+        LDAPConnectionLogger.error("Ignored exception (configured to be ignored)", e) *>
         e.getSearchEntries.asScala.toSeq.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala)).succeed
       case ex: LDAPException =>
         LDAPRudderError.BackendException(s"Error during search ${sr.getBaseDN} ${sr.getScope.getName}: ${ex.getDiagnosticMessage}", ex).fail
       // catchAll is a lie, but if other kind of exception happens, we want to crash
       case ex => throw ex
+    }
+    for {
+      t0  <- currentTimeMillis
+      res <- search
+      t1  <- currentTimeMillis
+      t   =  t1 - t0
+      _   <- ZIO.when(t > 500)(LDAPConnectionLogger.trace(s"Search base: ${sr.getBaseDN}: block: ${t} ms"))
+    } yield {
+      res
     }
   }
 
@@ -487,7 +503,7 @@ class RwLDAPConnection(
    * @param Seq[MOD]
    *   the list of modification to apply.
    */
-  private def applyMods[MOD <: ReadOnlyLDAPRequest](modName: String, toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult, onlyReportThat: ResultCode => Boolean)(reqs: List[MOD]) : LDAPIOResult[Seq[LDIFChangeRecord]] = {
+  def applyMods[MOD <: ReadOnlyLDAPRequest](modName: String, toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult, onlyReportThat: ResultCode => Boolean)(reqs: List[MOD]) : LDAPIOResult[Seq[LDIFChangeRecord]] = {
     if(reqs.isEmpty) IO.succeed(Seq())
     else {
       UIO.effectTotal(ldifFileLogger.records(reqs map (toLDIFChangeRecord (_)))) *>
@@ -507,7 +523,7 @@ class RwLDAPConnection(
    * better than us for orchestrating its changes.
    *
    */
-  private def applyMod[MOD <: ReadOnlyLDAPRequest](modName: String, toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult, onlyReportThat: ResultCode => Boolean)(req:MOD) : LDAPIOResult[LDIFChangeRecord] = {
+  def applyMod[MOD <: ReadOnlyLDAPRequest](modName: String, toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult, onlyReportThat: ResultCode => Boolean)(req:MOD) : LDAPIOResult[LDIFChangeRecord] = {
     val record = toLDIFChangeRecord(req)
     blocking {
       ldifFileLogger.records(Seq(record)) // ignore return value
@@ -546,7 +562,7 @@ class RwLDAPConnection(
   /**
    * Specialized version of applyMods for DeleteRequest modification type
    */
-  private val applyDeletes = applyMods[DeleteRequest](
+  val applyDeletes = applyMods[DeleteRequest](
       "delete"
     , {req:DeleteRequest => req.toLDIFChangeRecord}
     , {req:DeleteRequest => backed.delete(req)}
@@ -556,14 +572,14 @@ class RwLDAPConnection(
   /**
    * Specialized version of applyMods for AddRequest modification type
    */
-  private val applyAdds = applyMods[AddRequest](
+  val applyAdds = applyMods[AddRequest](
       "adds"
     , {req:AddRequest => req.toLDIFChangeRecord}
     , {req:AddRequest => backed.add(req)}
     , onlyReportOnAdd
   ) _
 
-  private val applyAdd = applyMod[AddRequest](
+  val applyAdd = applyMod[AddRequest](
       "add"
     , {req:AddRequest => req.toLDIFChangeRecord}
     , {req:AddRequest => backed.add(req)}
@@ -573,7 +589,7 @@ class RwLDAPConnection(
   /**
    * Specialized version of applyMods for ModifyRequest modification type
    */
-  private val applyModify = applyMod[ModifyRequest](
+  val applyModify = applyMod[ModifyRequest](
       "modify"
     , {req:ModifyRequest => req.toLDIFChangeRecord}
     , {req:ModifyRequest => backed.modify(req)}

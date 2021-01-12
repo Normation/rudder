@@ -94,6 +94,12 @@ class UuidMergerPreCommit(
     ////// we don't want to add anything about a report if any of the merging part fails /////
     //////
 
+    /*
+     * Software are special. They are legions. And they are really simple.
+     * The search for "merge software" is *exremelly* long and grow linearly
+     * with the number of existing software in ou=Software.
+     * So we just save all software every time, because it's so much quicker.
+     */
 
     for {
       //check some size matching
@@ -101,21 +107,6 @@ class UuidMergerPreCommit(
               val msg = "Inconsistant report. Server#softwareIds does not match list of application in the report"
               InventoryProcessingLogger.error(msg) *> InventoryError.Inconsistency(msg).fail
             }
-      /*
-       * Software are special. They are legions. And they are really simple.
-       * So, if one merge works, we assume that the software is the same
-       * and just remove it from the list of application BUT NOT
-       * from the values in server
-       *
-       */
-       mergedSoftwares <- softwareIdFinder.tryWith(report.applications.toSet).mapError(e =>
-                            Chained("Error when trying to find existing software UUIDs", e)
-                          )
-    //update node's soft ids
-      node = report.node.copy(
-                softwareIds = (mergedSoftwares.alreadySavedSoftware.map( _.id ) ++ mergedSoftwares.newSoftware.map(_.id)).toSeq
-              )
-
     /*
      * Don't forget to update:
      * - server's software if one or more softwareId changed ;
@@ -130,12 +121,12 @@ class UuidMergerPreCommit(
      * if the nodeId is present to find the correct status.
      */
 
-    finalNodeMachine <- mergeNode(node).foldM(
+    finalNodeMachine <- mergeNode(report.node).foldM(
       err => InventoryProcessingLogger.error(s"Error when merging node inventory. Reported message: ${err.fullMsg}. Remove machine for saving") *> err.fail
       , optNode => optNode match {
           case None =>
             // New node, save machine and node in reporting
-            node.copyWithMain(m => m.copy(status = PendingInventory)).succeed
+            report.node.copyWithMain(m => m.copy(status = PendingInventory)).succeed
           case Some(n) =>
             // Existing Node, save the machine with a new id in the same status than node
             n.succeed
@@ -159,7 +150,7 @@ class UuidMergerPreCommit(
         , report.version
         , vms.flatten
         //no need to put again already saved softwares
-        , mergedSoftwares.newSoftware.toSeq
+        , report.applications
         , report.sourceReport
       )
     }
