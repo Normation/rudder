@@ -92,6 +92,7 @@ import com.normation.rudder.services.policies.PromiseGenerationService
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
+import com.normation.rudder.services.reports.CacheComplianceQueueAction
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
@@ -309,7 +310,7 @@ object RestTestSetUp {
     override def writeNodeConfigurations(rootNodeId: NodeId, updated: Map[NodeId, NodeConfigId], allNodeConfig: Map[NodeId, NodeConfiguration], allNodeInfos: Map[NodeId, NodeInfo], globalPolicyMode: GlobalPolicyMode, generationTime: DateTime, maxParallelism: Int): Box[Set[NodeId]] = ???
     override def computeExpectedReports(allNodeConfigurations: Map[NodeId, NodeConfiguration], updatedId: Map[NodeId, NodeConfigId], generationTime: DateTime, allNodeModes: Map[NodeId, NodeModeConfig]): List[NodeExpectedReports] = ???
     override def saveExpectedReports(expectedReports: List[NodeExpectedReports]): Box[Seq[NodeExpectedReports]] = ???
-    override def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit = ???
+    override def invalidateComplianceCache(actions: Seq[(NodeId, CacheComplianceQueueAction)]): Unit = ???
     override def historizeData(rules: Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo], globalAgentRun: AgentRunInterval): Box[Unit] = ???
     override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
     override def runPostHooks(generationTime: DateTime, endTime: DateTime, idToConfiguration: Map[NodeId, NodeInfo], systemEnv: HookEnvPairs, nodeIdsPath: String): Box[Unit] = ???
