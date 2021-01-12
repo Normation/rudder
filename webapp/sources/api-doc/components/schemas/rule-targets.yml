@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: array
+description:  Node and special groups targeted by that rule
+items:
+  type: object
+  example: [{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root", "group:cd377524-808b-4b42-8724-6ef308efeac7"]}}]
+  required:
+    - include
+    - exclude
+  properties:
+    include:
+      type: object
+      description: list of groups to include in rule application
+      properties:
+        or:
+          type: array
+          items:
+            $ref: ../../components/schemas/rule-target.yml
+    exclude:
+      type: object
+      description: list of groups to exclude from rule application
+      properties:
+        or:
+          type: array
+          items:
+            $ref: ../../components/schemas/rule-target.yml
