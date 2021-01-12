@@ -7,7 +7,7 @@ As explained in a previous chapter after the header come *declaration* and *defi
 NOTE: - Item *declaration* means informing the compiler something now exists, with a given name and optionally type +
 - Item *definition* means giving the said variable a value
 
-Before defining variables, an overview of the language keywords as well as a better understanding of types, operators and enums is required<.
+Before defining variables, an overview of the language keywords as well as a better understanding of types, operators and enums is required.
 
 == Local vs global scope
 

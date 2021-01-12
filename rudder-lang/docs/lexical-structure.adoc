@@ -15,7 +15,7 @@ The following keywords currently have the functionality described
 Sorted by category
 
 * header:
-** `@format ..`, defines the _rudder-lang_ version of the file. Indicates when compiling if a version conversion must be performed beforehand
+** `@format = ..`, metadata defines the _rudder-lang_ version of the file. Indicates when compiling if a version conversion must be performed beforehand
 
 * enum:
 ** `enum ..`, a list of values
@@ -81,14 +81,16 @@ Identifiers can be:
 
 Identifiers can be invalid. They cannot be:
 
-* an invalid namespace (declared variables), including CFEngine core variables (see file *libs/cfengine_core.rl*)
-* the name of a type
+* an already declared identifier in a given namespace
+* a CFEngine core variable (see file *libs/cfengine_core.rl*)
+* the name of our types
 ** `"string"`
 ** `"num"`
 ** `"boolean"`
 ** `"struct"`
 ** `"list"`
-* a reserved keyword in the language (see <<keywords,keywords>>)
+* a _rudder-lang_ keyword (see <<keywords,keywords>>)
+** `"let"`
 * a reserved keyword for future usage
 ** `"format"`
 ** `"comment"`
@@ -97,7 +99,6 @@ Identifiers can be invalid. They cannot be:
 ** `"enforce"`
 ** `"condition"`
 ** `"audit"`
-** `"let"`
 
 An invalid variable is:
 
@@ -112,10 +113,10 @@ An invalid variable is:
 There are two kind of comments: 
 
 * simple comments `#` that are not parsed and not stored. They are comments in the common sense : only useful for the developer from inside the _.rl_ file
-* parsed comments `##` that are considered to be metadata. They are parsed and stored as such, and will later be used by the compiler
+* parsed comments `##` that are considered to be metadatas. They are parsed and stored as such, and will be used by the compiler in upcoming versions
 
 [#metadata]
 == Metadata
 
-Metadata allow to extend the language and the generation process and give the user the ability to store structured data with resources.
+Metadatas allow to extend the language and the generation process and give the user the ability to store structured data with resources.
 Hence metadata that can be anything available in the language

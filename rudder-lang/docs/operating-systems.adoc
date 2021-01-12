@@ -24,11 +24,14 @@ Since _rudder-lang_ OS list is composed of `enums`, it meets the requirements th
 
 - a top layer, that is the `global enum system`
 - _sub-enums_ that expand their parent item: `items in linux` or `items in ubuntu_20`
-- _aliases_ can be used to define any sub-enum, like: `enum alias focal = ubuntu_20_04` 
+- _aliases_ can be used to define any sub-enum, like: `enum alias focal = ubuntu_20_04`
+
+NOTE: enums are compatible with metadatas, not only outter but also inner elements.
 
 More about <<enums,enums>>
 
 == Usage
+
 _rudder-lang_ makes use of an exhaustive list of operating systems, including major and minor versions. +
 This list is defined in the *stdlib* (more about it <<stdlib,here>>)
 
