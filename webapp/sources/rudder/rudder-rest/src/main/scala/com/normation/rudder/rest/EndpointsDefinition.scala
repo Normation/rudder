@@ -655,6 +655,12 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
     val (action, path) = GET / "system" / "healthcheck"
   }
 
+  final case object PurgeSoftware extends SystemApi with ZeroParam with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
+    val description    = "Trigger an async purge of softwares"
+    val (action, path) = POST / "system" / "maintenance" / "purgeSoftware"
+  }
+
+
   def endpoints = ca.mrvisser.sealerate.values[SystemApi].toList.sortBy( _.z )
 }
 

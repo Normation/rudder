@@ -356,6 +356,7 @@ object RestTestSetUp {
       fakeHealthcheckService
     , fakeHcNotifService
     , restDataSerializer
+    , null
   )
 
   val ruleApiService2 = new RuleApiService2(

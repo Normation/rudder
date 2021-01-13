@@ -67,5 +67,5 @@ trait WriteOnlySoftwareDAO {
   /**
     * Delete softwares in ou=Software,ou=Inventories
     */
-  def deleteSoftwares(softwares: Seq[SoftwareUuid]): IOResult[Seq[String]]
+  def deleteSoftwares(softwares: Seq[SoftwareUuid], batchSize: Int = 1000): IOResult[Unit]
 }

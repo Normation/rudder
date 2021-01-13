@@ -83,14 +83,18 @@ class NameAndVersionIdFinder(
 
     //get potential entries, and only get the one with a A_SOFTWARE_UUID
     //return the list of A_SOFTWARE_UUID sorted
+    /*
+     * now, merge:
+     * - a name/version/sourceName/sourceVersion uniquely a soft (we should accept list of editor, but well)
+     * - for a given name/version/sourceName/sourceVersion, we alsway take the first UUID (sorted alpha-num)
+     */
     for {
-      con     <- ldapConnectionProvider
-      entries <- con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID, A_NAME, A_SOFT_VERSION)
-      merged  <- ZIO.foreach(entries) { e => ZIO.fromEither(mapper.softwareFromEntry(e)) }
+      con      <- ldapConnectionProvider
+      entries  <- con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID, A_NAME, A_SOFT_VERSION, A_SOURCE_NAME, A_SOURCE_VERSION)
+      existing <- ZIO.foreach(entries) { e => ZIO.fromEither(mapper.softwareFromEntry(e)) }.map(_.sortBy(_.id.value))
     } yield {
-      //now merge back
       entities.foldLeft(MergedSoftware(Set(),Set())) { case(ms, s) =>
-        merged.find { x => x.name == s.name && x.version == s.version && x.sourceName == s.sourceName && x.sourceVersion == s.sourceVersion  } match {
+        existing.find { x => x.name == s.name && x.version == s.version && x.sourceName == s.sourceName && x.sourceVersion == s.sourceVersion  } match {
           case Some(x) => ms.copy(alreadySavedSoftware = ms.alreadySavedSoftware+x)
           case None => ms.copy(newSoftware = ms.newSoftware+s)
         }

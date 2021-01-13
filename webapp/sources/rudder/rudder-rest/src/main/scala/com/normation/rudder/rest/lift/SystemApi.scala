@@ -82,11 +82,14 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
-import zio._
 import com.normation.zio._
 import com.normation.box._
-
+import com.normation.inventory.domain.InventoryProcessingLogger
+import com.normation.inventory.ldap.core.SoftwareService
+import com.normation.rudder.rest.EndpointSchema
 import net.liftweb.json.JsonAST.JArray
+import zio._
+import zio.syntax._
 
 class SystemApi(
     restExtractorService : RestExtractorService
@@ -141,6 +144,7 @@ class SystemApi(
       case API.GetParametersZipArchive        => GetParametersZipArchive
       case API.GetAllZipArchive               => GetAllZipArchive
       case API.GetHealthcheckResult           => GetHealthcheckResult
+      case API.PurgeSoftware                  => PurgeSoftware
     })
   }
 
@@ -509,19 +513,29 @@ class SystemApi(
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      apiv13service.getHealthcheck(params)
+      apiv13service.getHealthcheck(schema, params)
+    }
+  }
+
+  object PurgeSoftware extends LiftApiModule0 {
+    val schema = API.PurgeSoftware
+    val restExtractor = restExtractorService
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      apiv13service.purgeSoftware(schema, params)
     }
   }
 }
 
 class SystemApiService13(
-    healthcheckService   : HealthcheckService
-  , hcNotifService       : HealthcheckNotificationService
-  , serializer           : RestDataSerializer
+    healthcheckService: HealthcheckService
+  , hcNotifService    : HealthcheckNotificationService
+  , serializer        : RestDataSerializer
+  , softwareService   : SoftwareService
 ) extends Loggable {
 
-  def getHealthcheck(params: DefaultParams): LiftResponse = {
-    implicit val action = "getHealthcheckResult"
+  def getHealthcheck(schema: EndpointSchema, params: DefaultParams): LiftResponse = {
+    implicit val action = schema.name
     implicit val prettify = params.prettify
 
     val result = for {
@@ -535,8 +549,20 @@ class SystemApiService13(
         RestUtils.toJsonResponse(None, JArray(json))
       case eb: EmptyBox =>
         val message = (eb ?~ s"Error when trying to run healthcheck").messageChain
-        RestUtils.toJsonError(None, message)("getHealthcheck",true)
+        RestUtils.toJsonError(None, message)(action, true)
     }
+  }
+
+  def purgeSoftware(schema: EndpointSchema, params: DefaultParams): LiftResponse  ={
+    implicit val action = schema.name
+    implicit val prettify = params.prettify
+
+    // create it an async daemon to execute and handle error
+    softwareService.deleteUnreferencedSoftware().catchAll(err =>
+      InventoryProcessingLogger.error(s"Error when puring unreferenced software: ${err.fullMsg}").succeed
+    ).forkDaemon.runNow
+
+    RestUtils.toJsonResponse(None, JArray(List("Purge of unreference software started. More information in /var/log/rudder/webapp/ logs")))
   }
 }
 
