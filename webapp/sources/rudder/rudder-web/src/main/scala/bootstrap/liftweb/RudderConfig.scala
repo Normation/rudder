@@ -999,6 +999,7 @@ object RudderConfig extends Loggable {
       healthcheckService
     , healthcheckNotificationService
     , restDataSerializer
+    , softwareService
   )
 
   private[this] val complianceAPIService = new ComplianceAPIService(
@@ -1563,7 +1564,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl, updateExpectedRepo)
   private[this] lazy val softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
   private[this] lazy val softwareInventoryRWDAO: WriteOnlySoftwareDAO = new WriteOnlySoftwareDAOImpl(acceptedNodesDitImpl, rwLdap)
-  private[this] lazy val softwareService: SoftwareService = new SoftwareServiceImpl(softwareInventoryDAO, softwareInventoryRWDAO)
+  private[this] lazy val softwareService: SoftwareService = new SoftwareServiceImpl(softwareInventoryDAO, softwareInventoryRWDAO, acceptedNodesDit)
 
   private[this] lazy val nodeSummaryServiceImpl = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
   private[this] lazy val diffRepos: InventoryHistoryLogRepository =

@@ -213,18 +213,23 @@ class ReadOnlySoftwareDAOImpl(
 
 
 class WriteOnlySoftwareDAOImpl(
-     inventoryDit  :InventoryDit
-   , ldap          :LDAPConnectionProvider[RwLDAPConnection]
+     inventoryDit: InventoryDit
+   , ldap        : LDAPConnectionProvider[RwLDAPConnection]
 ) extends WriteOnlySoftwareDAO {
 
 
-  def deleteSoftwares(softwareIds: Seq[SoftwareUuid]): IOResult[Seq[String]] = {
+  def deleteSoftwares(softwareIds: Seq[SoftwareUuid], batchSize: Int = 1000): IOResult[Unit] = {
+    val total = softwareIds.size
     for {
       con <- ldap
       dns =  softwareIds.map(inventoryDit.SOFTWARE.SOFT.dn(_))
-      res <- dns.accumulate(con.delete(_))
-    } yield {
-      res.flatten.map( entry => entry.getDN)
-    }
+      res <- dns.grouped(batchSize).zipWithIndex.toSeq.accumulate { case (list, i) =>
+               for {
+                 _ <- list.accumulate(con.delete(_))
+                 _ <- InventoryProcessingLogger.debug(s"[deleting software] ${i*batchSize}/${total} software deleted")
+               } yield ()
+             }
+      _   <- InventoryProcessingLogger.debug(s"[deleting software] ${total}/${total} software deleted")
+    } yield ()
   }
 }

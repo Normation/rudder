@@ -58,17 +58,15 @@ class PurgeUnreferencedSoftwares(
   val logger = ScheduledJobLogger
 
   if (updateInterval < 1.hour) {
-    logger.info(s"Disable automatic purge of unreferenced softwares (update interval cannot be less than 1 hour)")
+    logger.info(s"[purge unreferenced software] Disable automatic purge of unreferenced softwares (update interval cannot be less than 1 hour)")
   } else {
-    logger.debug(s"***** starting batch that purge unreferenced softwares, every ${updateInterval.toString()} *****")
+    logger.debug(s"[purge unreferenced software] starting batch that purge unreferenced softwares, every ${updateInterval.toString()} *****")
     val prog = softwareService.deleteUnreferencedSoftware().either.flatMap { _ match {
       case Right(softwares) =>
-        ScheduledJobLoggerPure.info(s"Purged ${softwares.length} unreferenced softwares") *>
-        ZIO.when(softwares.length > 0)  {
-          ScheduledJobLoggerPure.ifDebugEnabled(ScheduledJobLoggerPure.debug(s"Purged following software: ${softwares.mkString(",")}"))
-        }
+        ScheduledJobLoggerPure.info(s"[purge unreferenced software] Purged ${softwares} unreferenced softwares")
+
       case Left(err) =>
-        ScheduledJobLoggerPure.error(Chained(s"Error when deleting unreferenced softwares", err).fullMsg)
+        ScheduledJobLoggerPure.error(Chained(s"[purge unreferenced software] Error when deleting unreferenced softwares", err).fullMsg)
     }}
 
     import zio.duration.Duration.{fromScala => zduration}

@@ -140,7 +140,7 @@ class TestInventory extends Specification {
   val writeOnlySoftware = new WriteOnlySoftwareDAOImpl(acceptedNodesDitImpl, ldap)
 
 
-  val softwareService = new SoftwareServiceImpl(readOnlySoftware, writeOnlySoftware)
+  val softwareService = new SoftwareServiceImpl(readOnlySoftware, writeOnlySoftware, acceptedNodesDitImpl)
 
   val allStatus = Seq(RemovedInventory, PendingInventory, AcceptedInventory)
 
@@ -436,7 +436,7 @@ class TestInventory extends Specification {
 
     "Purge one unreferenced software with the SoftwareService" in {
       val purgedSoftwares = softwareService.deleteUnreferencedSoftware().either.runNow
-      purgedSoftwares.map(_.size) must beEqualTo(Right(1))
+      purgedSoftwares must beEqualTo(Right(1))
     }
   }
 
