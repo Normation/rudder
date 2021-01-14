@@ -18,9 +18,34 @@
 
 # @name File block present
 # @description Ensure that a text block is present in a specific location
+# @documentation Ensure that a text block is present in the target file.
+# If the block is not found, it will be added at the end of the file.
+#
+# # Examples:
+#
+# Given a file with the following content:
+# ```
+# apple
+# pear
+# banana
+# ```
+# Applying the method with the block:
+# ```
+# pear
+# orange
+# ```
+#
+# Will result in the following content:
+# ```
+# apple
+# pear
+# banana
+# pear
+# orange
+# ```
 #
 # @parameter file File name to edit (absolute path on the target node)
-# @parameter block Block(s) to add in the file
+# @parameter block Block(s) to add in the file
 #
 # @class_prefix file_block_present
 # @class_parameter file

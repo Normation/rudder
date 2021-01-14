@@ -18,11 +18,17 @@
 
 # @name File from local source recursion
 # @description Ensure that a file or directory is copied from a local source
+# @documentation Ensure that a file or directory is copied from a local source.
+# If the source is a directory, you can force a maximum level of copy recursion.
+#
+# * *0* being no recursion, which will only create an empty folder
+# * *inf* being a complete recursive copy of the folder
+# * *1,2,3,...* will force the maximal level of recursion to copy
 #
 # @parameter source      Source file (absolute path on the target node)
 # @parameter destination Destination file (absolute path on the target node)
 # @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
-# 
+#
 # @class_prefix file_from_local_source
 # @class_parameter destination
 

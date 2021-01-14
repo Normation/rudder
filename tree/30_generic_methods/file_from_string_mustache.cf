@@ -18,6 +18,8 @@
 
 # @name File from a mustache string
 # @description Build a file from a mustache string
+# @documentation Build a file from a mustache string.
+# Complete mustache documentation is available in the *file\_from\_template\_mustache* method documentation.
 #
 # @parameter template        String containing a template to be expanded
 # @parameter destination     Destination file (absolute path on the target node)
