@@ -17,12 +17,14 @@
 #####################################################################################
 
 # @name Define environment variable
-# @description Enforce an environment variable value. Caution, the new environment variable
-# will not be usable by the agent until it is restarted
+# @description Enforce an environment variable value.
+# @documentation Force the value of a shell environment variable.
+# The variable will be written in `/etc/environment`. A newly created environment variable
+# will not be usable by the agent until it is restarted.
 #
 # @parameter name Name of the environment variable
 # @parameter value Value of the environment variable
-# 
+#
 # @class_prefix environment_variable_present
 # @class_parameter name
 # This bundle will define a class environment_variable_present_${name}_{kept,not_ok}
@@ -38,8 +40,6 @@ bundle agent environment_variable_present(name, value)
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       "array[${name}]"    string => "${value}";
-
-
 
   files:
       "/etc/environment"

@@ -18,10 +18,13 @@
 
 # @name File from local source
 # @description Ensure that a file or directory is copied from a local source
+# @documentation Ensure that a file or directory is copied from a local source on and from the target node.
+# The copy is not recursive if the target is a directory. To copy recursively a folder from a local
+# source, use the *File from local source recursion* method.
 #
 # @parameter source      Source file (absolute path on the target node)
 # @parameter destination Destination file (absolute path on the target node)
-# 
+#
 # @class_prefix file_from_local_source
 # @class_parameter destination
 
