@@ -190,7 +190,7 @@ class ComplianceJdbcRepository(
         // we need to filter out `ERROR: duplicate key value violates unique constraint "nodecompliancelevels_pkey"`
         // see https://issues.rudder.io/issues/18188 for details
         val fullMsg = err.fullMsg
-        if(fullMsg.contains("""duplicate key value violates unique constraint "nodecompliancelevels_pkey"""")) {
+        if(fullMsg.contains("""nodecompliancelevels_pkey""")) {
           effectUioUnit {
             logger.debug(s"Ignored duplicate key violation, see: https://issues.rudder.io/issues/18188. Message is: " + fullMsg)
           }
