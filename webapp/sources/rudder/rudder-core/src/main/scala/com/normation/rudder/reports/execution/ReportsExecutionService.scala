@@ -119,7 +119,8 @@ class ReportsExecutionService (
         if(idForCheck != 0 && lastReportId != idForCheck) {
           logger.error(s"There is an inconsistency in the processed agent runs: last process report id should be ${idForCheck} " +
               s"but the value ${lastReportId} was retrieve from base. Check that you don't have several Rudder application " +
-              s"using the same database, or report that message to you support")
+              s"using the same database (for example, you have several rudder archives with '.war' extension in " +
+              s"/opt/rudder/share/webapp/), or report that message to your support")
         }
 
         // compute the interval we'll catch up report on
