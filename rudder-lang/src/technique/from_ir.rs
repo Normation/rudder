@@ -118,14 +118,19 @@ fn format_expr(ir: &IR2, expr: &EnumExpressionPart) -> String {
             if let Some(true) = ir.enum_list.enum_is_global(*var) {
                 ir.enum_list.get_cfengine_item_name(*var, *item)
             } else {
-                // concat var name + item
-                // TODO there may still be some conflicts with var or enum containing '_'
-                // format!("{}_{}", var.fragment(), item.fragment())
-                format!(
-                    "{}_${{report_data.canonified_directive_id}}_{}",
-                    var.fragment(),
-                    item.fragment()
-                )
+                // if var is a foreign variable, output it as it is
+                if tree.fragment() == "boolean" && item.fragment() == "true" {
+                    var.fragment().to_owned()
+                } else {
+                    // concat var name + item
+                    // TODO there may still be some conflicts with var or enum containing '_'
+                    // format!("{}_{}", var.fragment(), item.fragment())
+                    format!(
+                        "{}_${{report_data.canonified_directive_id}}_{}",
+                        var.fragment(),
+                        item.fragment()
+                    )
+                }
             }
         }
         EnumExpressionPart::RangeCompare(var, tree, left, right) => unimplemented!(), // TODO

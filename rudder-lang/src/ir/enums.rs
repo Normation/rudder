@@ -296,20 +296,21 @@ impl<'src> EnumList<'src> {
                     // - value exist and tree is global => var = treename = value global name
                     let val = self.item_in_enum(*tree_name, value)?;
                     Ok((*tree_name, *tree_name, val))
-                // tree_name
-                // var = tree_name
                 } else if my_be_boolean {
-                    // - value !exist => var = value, treename = boolean, value = true // var must exist and of type boolean
-                    let t = self.get_var_enum(context, value)?;
-                    if t.fragment() == "boolean" {
-                        // TODO store these strings/token somewhere else ?
-                        Ok((value, "boolean".into(), "true".into()))
+                    // - value !exist => var = value, treename = boolean, value = true
+                    if let Ok(t) = self.get_var_enum(context, value) {
+                        if t.fragment() == "boolean" {
+                            Ok((value, "boolean".into(), "true".into()))
+                        } else {
+                            fail!(
+                                value,
+                                "{} is not an enum item nor a boolean variable",
+                                value
+                            );
+                        }
                     } else {
-                        fail!(
-                            value,
-                            "{} is not an enum item nor a boolean variable",
-                            value
-                        );
+                        warn!("The variable {} isn't recognized by rudderc though we can't guarantee the expression will be valid when evaluated", value);
+                        Ok((value, "boolean".into(), "true".into()))
                     }
                 } else {
                     fail!(value, "{} is not a global enum item", value);
