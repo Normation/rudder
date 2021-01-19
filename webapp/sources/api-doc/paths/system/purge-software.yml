@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+post:
+  summary: Trigger batch for cleaning unreferenced software
+  description: Start the software cleaning batch asynchronously.
+  operationId: purgeSoftware
+  responses:
+    "200":
+      description: 
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - purgeSoftware
+              data:
+                type: array
+                items:
+                  type: String
+                  description: a success message. 
+
+  tags:
+    - System
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/system/purge-software.sh

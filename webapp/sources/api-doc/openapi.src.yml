@@ -151,6 +151,8 @@ paths:
     $ref: paths/system/archives-zip.yml
   "/system/healthcheck":
     $ref: paths/system/healthcheck.yml
+  "/system/maintenance/purgeSoftware":
+    $ref: paths/system/purge-software.yml
   "/settings":
     $ref: paths/settings/list.yml
   "/settings/{settingId}":
