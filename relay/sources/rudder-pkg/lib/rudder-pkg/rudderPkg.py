@@ -367,4 +367,4 @@ def upgrade_all(mode, version):
             logger.info("The plugin %s is installed in version %s. The version %s %s is available, the plugin will be upgraded."%(p, currentVersion.pluginLongVersion, mode, latestVersion.pluginLongVersion))
             package_install_latest([p], mode, version)
         else:
-            logger.info("No newer %s compatible versions found for the plugin %s, disabling it."%(mode, p))
+            logger.info("No newer %s compatible versions than %s found for the plugin %s."%(mode, currentVersion.pluginLongVersion, p))
