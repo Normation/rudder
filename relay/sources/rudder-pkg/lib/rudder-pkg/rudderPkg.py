@@ -21,7 +21,7 @@ logger = logging.getLogger("rudder-pkg")
     Expect a list of path as parameter.
     Try to install the given rpkgs.
 """
-def install_file(package_files):
+def install_file(package_files, exit_on_error=True):
     for package_file in package_files:
         logger.info("Installing " + package_file)
         # First, check if file exists
@@ -33,13 +33,14 @@ def install_file(package_files):
         # wait until the end to make them visible.
         # This should be moved before actual installation once implemented.
         if not utils.install_dependencies(metadata):
-            exit(1)
+            if exit_on_error:
+                exit(1)
         if exist:
             logger.info("The package is already installed, I will upgrade it.")
         script_dir = utils.extract_scripts(metadata, package_file)
-        utils.run_script("preinst", script_dir, exist)
+        utils.run_script("preinst", script_dir, exist, exit_on_error=exit_on_error)
         utils.install(metadata, package_file, exist)
-        utils.run_script("postinst", script_dir, exist)
+        utils.run_script("postinst", script_dir, exist, exit_on_error=exit_on_error)
         if metadata['type'] == 'plugin' and 'jar-files' in metadata:
             for j in metadata['jar-files']:
                 utils.jar_status(j, True)
@@ -202,7 +203,7 @@ def package_install_specific_version(name, longVersion, mode="release", quiet=Fa
     Install the latest available and compatible package for a given plugin.
     If no release mode is given, it will only look in the released rpkg.
 """
-def package_install_latest(name, mode="release", quiet=False):
+def package_install_latest(name, mode="release", quiet=False, exit_on_error=True):
     utils.readConf()
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
@@ -212,9 +213,9 @@ def package_install_latest(name, mode="release", quiet=False):
         rpkg = pkgs.getLatestCompatibleNightly()
     if rpkg is not None:
         rpkgPath = utils.downloadByRpkg(rpkg, quiet)
-        install_file([rpkgPath])
+        install_file([rpkgPath], exit_on_error=exit_on_error)
     else:
-        utils.fail("Could not find any compatible %s for %s"%(mode, name))
+        utils.fail("Could not find any compatible %s for %s"%(mode, name), exit_on_error=exit_on_error)
 
 """Remove a given plugin. Expect a list of name as parameter."""
 def remove(package_names):
@@ -363,6 +364,6 @@ def upgrade_all(mode, quiet=False):
             latestVersion = pkgs.getLatestCompatibleRelease().version
         if currentVersion < latestVersion:
             print("The plugin %s is installed in version %s. The version %s %s is available, the plugin will be upgraded."%(p, currentVersion.pluginLongVersion, mode, latestVersion.pluginLongVersion))
-            package_install_latest([p], mode, quiet)
+            package_install_latest([p], mode, quiet, exit_on_error=False)
         else:
             print("No newer %s compatible versions found for the plugin %s"%(mode, p))

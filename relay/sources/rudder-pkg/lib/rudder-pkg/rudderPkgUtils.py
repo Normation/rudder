@@ -61,10 +61,11 @@ def shell(command, comment=None, keep_output=False, fail_exit=True, keep_error=F
     fail(output, retcode)
   return (retcode, output, error)
 
-def fail(message, code=1):
+def fail(message, code=1, exit_on_error=True):
     logger.debug(traceback.format_exc())
     logger.error(message)
-    exit(code)
+    if exit_on_error:
+        exit(code)
 
 def sha512(fname):
     hash_sha512 = hashlib.sha512()
@@ -322,8 +323,8 @@ def extract_scripts(metadata,package_file):
   return package_dir
 
 
-def run_script(name, script_dir, exist):
-  script = script_dir + "/" + name 
+def run_script(name, script_dir, exist, exit_on_error=True):
+  script = script_dir + "/" + name
   if os.path.isfile(script):
     if exist is None:
       param = ""
@@ -331,7 +332,7 @@ def run_script(name, script_dir, exist):
       param = "upgrade"
     else:
       param = "install"
-    shell(script + " " + param)
+    shell(script + " " + param, fail_exit=exit_on_error)
 
 
 def jar_status(name, enable):
