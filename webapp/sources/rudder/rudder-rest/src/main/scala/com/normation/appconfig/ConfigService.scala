@@ -52,6 +52,7 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.eventlog.EventActor
+import com.normation.rudder.batch.PolicyGenerationTrigger
 import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
 import com.normation.rudder.domain.eventlog.ModifyComplianceModeEventType
 import com.normation.rudder.domain.eventlog.ModifyHeartbeatPeriodEventType
@@ -75,6 +76,8 @@ import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.workflows.WorkflowLevelService
+
+import scala.concurrent.duration.Duration
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -214,6 +217,8 @@ trait ReadConfigService {
   def rudder_save_db_compliance_details(): Box[Boolean]
 
   def rudder_generation_max_parallelism(): Box[String]
+  def rudder_generation_delay(): Box[Duration]
+  def rudder_generation_trigger(): Box[PolicyGenerationTrigger]
   def rudder_generation_js_timeout(): Box[Int]
 
   def rudder_generation_continue_on_error(): Box[Boolean]
@@ -344,6 +349,8 @@ trait UpdateConfigService {
   def set_rudder_save_db_compliance_details(value: Boolean): Box[Unit]
 
   def set_rudder_generation_max_parallelism(value: String): Box[Unit]
+  def set_rudder_generation_delay(value: Duration): Box[Unit]
+  def set_rudder_generation_trigger(value: PolicyGenerationTrigger): Box[Unit]
   def set_rudder_generation_js_timeout(value: Int): Box[Unit]
 
   def set_rudder_generation_continue_on_error(value: Boolean): Box[Unit]
@@ -399,6 +406,8 @@ class LDAPBasedConfigService(
        rudder.generation.max.parallelism=x0.5
        rudder.generation.js.timeout=30
        rudder.generation.continue.on.error=false
+       rudder.generation.delay=0s
+       rudder.generation.trigger=all
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -485,6 +494,24 @@ class LDAPBasedConfigService(
     }
   }
 
+  private[this] implicit def toDuration(p: Box[RudderWebProperty]) =
+    p.flatMap(
+      v => net.liftweb.util.ControlHelpers.tryo(Duration(v)) match {
+        case eb : EmptyBox => eb ?~! s"${v} is not a valid duration value for generation delay settings"
+        case f => f
+      }
+    )
+
+  private[this] implicit def toPolicyGenerationTrigger(p: Box[RudderWebProperty]) =
+    p.flatMap(v => PolicyGenerationTrigger(v))
+
+  private[this] implicit def serPolicyGenerationTrigger(x: PolicyGenerationTrigger): String = {
+    x match {
+      case PolicyGenerationTrigger.AllGeneration => "all"
+      case PolicyGenerationTrigger.NoGeneration => "none"
+      case PolicyGenerationTrigger.OnlyManualGeneration => "onlyManual"
+    }
+  }
   /**
    * A feature switch is defaulted to Disabled is parsing fails.
    */
@@ -693,4 +720,11 @@ class LDAPBasedConfigService(
 
   def rudder_generation_continue_on_error(): Box[Boolean] = get("rudder_generation_continue_on_error")
   def set_rudder_generation_continue_on_error(value: Boolean): Box[Unit] = save("rudder_generation_continue_on_error", value)
+
+  def rudder_generation_delay(): Box[Duration] = get("rudder_generation_delay")
+  def set_rudder_generation_delay(value: Duration): Box[Unit] = save("rudder_generation_delay", value.toString)
+
+  def rudder_generation_trigger(): Box[PolicyGenerationTrigger] = get("rudder_generation_trigger")
+  def set_rudder_generation_trigger(value: PolicyGenerationTrigger): Box[Unit] = save("rudder_generation_trigger", value)
+
 }

@@ -44,6 +44,7 @@ import com.normation.rudder.appconfig.ReadConfigService
 import com.normation.rudder.appconfig.UpdateConfigService
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.batch.PolicyGenerationTrigger
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
@@ -79,6 +80,8 @@ import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
+
+import scala.concurrent.duration.Duration
 
 
 class SettingsApi(
@@ -128,6 +131,8 @@ class SettingsApi(
       RestGenerationMaxParallelism ::
       RestGenerationJsTimeout ::
       RestContinueGenerationOnError ::
+      RestGenerationDelay ::
+      RestPolicyGenerationTrigger ::
       Nil
 
   val allSettings_v8 = RestUseReverseDNS :: allSettings_v10
@@ -719,6 +724,37 @@ class SettingsApi(
     val key = "rudder_generation_max_parallelism"
     def get = configService.rudder_generation_max_parallelism()
     def set = (value : String, _, _) => configService.set_rudder_generation_max_parallelism(value)
+  }
+
+  case object RestGenerationDelay extends RestSetting[Duration] {
+    val startPolicyGeneration = false
+    val key = "rudder_generation_delay"
+    def get = configService.rudder_generation_delay()
+    def set = (value : Duration, _, _) => configService.set_rudder_generation_delay(value)
+    def toJson(value: Duration): JValue = JString(value.toString)
+    def parseJson(json: JValue): Box[Duration] = json match {
+      case JString(jstring) => parseParam(jstring)
+      case _ => Failure( s"Could not extract a valid duration from ${net.liftweb.json.compactRender(json)}")
+    }
+    def parseParam(param: String): Box[Duration] = net.liftweb.util.ControlHelpers.tryo(Duration(param)) match {
+      case eb : EmptyBox => eb ?~! s"Could not extract a valid duration from ${param}"
+      case res => res
+    }
+  }
+
+  case object RestPolicyGenerationTrigger extends RestSetting[PolicyGenerationTrigger] {
+    val startPolicyGeneration = false
+    val key = "rudder_generation_policy"
+    def get = configService.rudder_generation_trigger()
+    def set = (value : PolicyGenerationTrigger, _, _) => configService.set_rudder_generation_trigger(value)
+    def toJson(value: PolicyGenerationTrigger): JValue = JString(PolicyGenerationTrigger.serialize(value))
+    def parseJson(json: JValue): Box[PolicyGenerationTrigger] = json match {
+      case JString(jstring) => parseParam(jstring)
+      case _ => Failure( s"Could not extract a valid generation policy from ${net.liftweb.json.compactRender(json)}")
+    }
+    def parseParam(value: String): Box[PolicyGenerationTrigger] = {
+      PolicyGenerationTrigger(value)
+    }
   }
 
   case object RestGenerationJsTimeout extends RestIntSetting {

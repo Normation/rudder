@@ -39,7 +39,6 @@ package com.normation.rudder.services.policies
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
-
 import better.files.File
 import org.joda.time.DateTime
 import com.normation.rudder.domain.Constants
@@ -309,10 +308,10 @@ trait PromiseGenerationService {
 
     val generationContinueOnError = getGenerationContinueOnError().getOrElse(false)
 
+
     PolicyLogger.debug(s"Policy generation parallelism set to: ${maxParallelism} (change with REST API settings parameter 'rudder_generation_max_parallelism')")
     PolicyLogger.debug(s"Policy generation JS evaluation of directive parameter timeout: ${jsTimeout} s (change with REST API settings parameter 'rudder_generation_jsTimeout')")
     PolicyLogger.debug(s"Policy generation continues on NodeConfigurations evaluation: ${generationContinueOnError} (change with REST API settings parameter 'rudder_generation_continue_on_error')")
-
     implicit val parallelism = Parallelism(maxParallelism, Scheduler.io(executionModel = ExecutionModel.AlwaysAsyncExecution), TaskSemaphore(maxParallelism = maxParallelism))
 
     val result = for {
