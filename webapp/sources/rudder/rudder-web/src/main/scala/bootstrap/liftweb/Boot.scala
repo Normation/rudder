@@ -395,7 +395,7 @@ class Boot extends Loggable {
             >> LocGroup(name+"Group")
             >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Rule.Read ) )
 
-        , Menu(name+"DirectiveManagement", <span>Directives</span>) /
+        ,Menu(name+"DirectiveManagement", <span>Directives</span>) /
             "secure" / (name+"Manager") / "directiveManagement"
             >> LocGroup(name+"Group")
             >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Directive.Read ) )

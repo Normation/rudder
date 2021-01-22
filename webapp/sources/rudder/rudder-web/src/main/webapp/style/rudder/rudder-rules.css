@@ -34,6 +34,25 @@
 *
 *************************************************************************************
 */
+
+/* === TEMPLATE === */
+.rudder-template .template-sidebar .sidebar-header .header-filter > .input-group {
+  width: 100%;
+}
+.rudder-template .template-sidebar .sidebar-list li > a {
+  width: 100%;
+  display: inline-block;
+}
+/* ================ */
+.rudder-template .template-sidebar .sidebar-list ul{
+  padding-left: 15px;
+}
+/* === OVERRIDE JSTREE === */
+.jstree-default li:last-child {
+  background: transparent;
+}
+/*================= */
+
 #viewAllRulesZone {
   padding: 15px;
 }
@@ -274,11 +293,6 @@ ul.applied-list > .add-target > .fa{
   top: 1px;
 }
 
-#groupTree a.jstree-anchor{
-  cursor: default !important;
-  position: relative;
-}
-
 #groupTree a.jstree-anchor.jstree-clicked{
   background-color: transparent;
   box-shadow: none !important;
@@ -288,10 +302,10 @@ ul.applied-list > .add-target > .fa{
 }
 
 .jstree ul > li .action-icon{
-  color: #3c763d;
+  color: #8fba2b;
 }
 .jstree ul > li .action-icon.except{
-  color: #a94442;
+  color: #d43f3a;
 }
 .jstree ul > li .action-icon:before{
   content: "\f055";
@@ -329,7 +343,7 @@ ul.applied-list > .add-target > .fa{
   border: 1px solid transparent;
 }
 
-.jstree ul > li a.jstree-anchor{
+.modal .jstree ul > li a.jstree-anchor{
   cursor: default !important;
 }
 
@@ -367,4 +381,9 @@ ul.applied-list > .add-target > .fa{
 }
 .compliance {
   text-align: center;
+}
+
+/* V2 */
+.main-table table tbody > tr {
+  cursor: pointer;
 }
