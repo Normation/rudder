@@ -25,17 +25,17 @@ pub fn db_connection() -> PgConnection {
 pub fn check_prometheus(metrics: &str, mut expected: HashMap<&str, &str>) -> bool {
     let mut is_ok = true;
 
-    for line in metrics.split("\n") {
-        if line.starts_with("#") || line.is_empty() {
+    for line in metrics.split('\n') {
+        if line.starts_with('#') || line.is_empty() {
             continue;
         }
 
-        let split: Vec<&str> = line.split(" ").collect();
+        let split: Vec<&str> = line.split(' ').collect();
         let name = split[0];
         let value = split[1];
 
         if let Some(rvalue) = expected.get(name) {
-            if !(*rvalue == value) {
+            if *rvalue != value {
                 println!("{} should equal {} but is {}", name, rvalue, value);
                 is_ok = false;
             }

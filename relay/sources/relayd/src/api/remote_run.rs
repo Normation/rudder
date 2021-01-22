@@ -2,8 +2,11 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    api::RudderReject, configuration::main::RemoteRun as RemoteRunCfg, data::node::Host,
-    error::RudderError, JobConfig,
+    api::RudderReject,
+    configuration::main::RemoteRun as RemoteRunCfg,
+    data::node::{Host, NodeId},
+    error::RudderError,
+    JobConfig,
 };
 use anyhow::Error;
 use bytes::Bytes;
@@ -16,12 +19,14 @@ use tokio::{
     process::{Child, Command},
 };
 use tokio_stream::wrappers::LinesStream;
-use tracing::{debug, error, span, trace, Level};
-use warp::{body, filters::method, path, Filter, Reply};
+use tracing::{debug, error, span, trace, warn, Level};
+use warp::{
+    body,
+    filters::{method, BoxedFilter},
+    path, Filter, Reply,
+};
 
-pub fn routes_1(
-    job_config: Arc<JobConfig>,
-) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
     let base = path!("remote-run" / ..);
 
     let job_config_node = job_config.clone();
@@ -40,7 +45,7 @@ pub fn routes_1(
         .and(body::form())
         .and_then(move |j, params| handlers::nodes(params, j));
 
-    let job_config_all = job_config;
+    let job_config_all = job_config.clone();
     let all = method::post()
         .and(base)
         .and(path!("all"))
@@ -48,7 +53,15 @@ pub fn routes_1(
         .and(body::form())
         .and_then(move |j, params| handlers::all(params, j));
 
-    node.or(nodes).or(all)
+    if job_config.cfg.remote_run.enabled {
+        node.or(nodes).or(all).boxed()
+    } else {
+        base.and_then(|| async move {
+            warn!("received remote-run request but remote-run API is disabled");
+            Err(warp::reject::not_found())
+        })
+        .boxed()
+    }
 }
 
 pub mod handlers {
@@ -148,9 +161,9 @@ impl RemoteRun {
             // Async and output -> spawn in background and stream output
             (true, true) => {
                 let mut streams = futures::stream::SelectAll::new();
-                for (relay, target) in self.target.next_hops(job_config.clone()).await {
+                for (id, host, target) in self.target.next_hops(job_config.clone()).await {
                     let stream = self
-                        .forward_call(job_config.clone(), relay.clone(), target.clone())
+                        .forward_call(job_config.clone(), id, host, target.clone())
                         .await;
                     streams.push(stream);
                 }
@@ -168,8 +181,10 @@ impl RemoteRun {
             }
             // Async and no output -> spawn in background and return early
             (true, false) => {
-                for (relay, target) in self.target.next_hops(job_config.clone()).await {
-                    let stream = self.forward_call(job_config.clone(), relay, target).await;
+                for (id, host, target) in self.target.next_hops(job_config.clone()).await {
+                    let stream = self
+                        .forward_call(job_config.clone(), id, host, target)
+                        .await;
                     tokio::spawn(RemoteRun::consume(stream));
                 }
                 tokio::spawn(RemoteRun::consume(
@@ -186,9 +201,9 @@ impl RemoteRun {
             // Sync and no output -> wait until the send and return empty output
             (false, false) => {
                 let mut streams = futures::stream::SelectAll::new();
-                for (relay, target) in self.target.next_hops(job_config.clone()).await {
+                for (id, host, target) in self.target.next_hops(job_config.clone()).await {
                     let stream = self
-                        .forward_call(job_config.clone(), relay.clone(), target.clone())
+                        .forward_call(job_config.clone(), id, host, target.clone())
                         .await;
                     streams.push(stream);
                 }
@@ -208,9 +223,9 @@ impl RemoteRun {
             // Sync and output -> wait until the end and return output
             (false, true) => {
                 let mut streams = futures::stream::SelectAll::new();
-                for (relay, target) in self.target.next_hops(job_config.clone()).await {
+                for (id, host, target) in self.target.next_hops(job_config.clone()).await {
                     let stream = self
-                        .forward_call(job_config.clone(), relay.clone(), target.clone())
+                        .forward_call(job_config.clone(), id, host, target.clone())
                         .await;
                     streams.push(stream);
                 }
@@ -232,14 +247,18 @@ impl RemoteRun {
     async fn forward_call(
         &self,
         job_config: Arc<JobConfig>,
-        node: Host,
+        id: NodeId,
+        hostname: Host,
         // Target for the sub relay
         target: RemoteRunTarget,
     ) -> Box<dyn Stream<Item = Result<Bytes, Error>> + Unpin + Send> {
         let report_span = span!(Level::TRACE, "upstream");
         let _report_enter = report_span.enter();
 
-        debug!("Forwarding remote-run to {} for {:#?}", node, self.target);
+        debug!(
+            "Forwarding remote-run to {}:{} for {:#?}",
+            id, hostname, target
+        );
 
         // We cannot simply serialize it using `.form()` as we
         // need specific formatting
@@ -259,12 +278,19 @@ impl RemoteRun {
             params.insert("nodes", nodes.join(","));
         }
 
-        let response = job_config
-            .client
-            .clone()
+        let client = match job_config.downstream_clients.get(&id) {
+            Some(c) => c.clone(),
+            None => {
+                error!("unknown sub-relay '{}'", id);
+                return Box::new(futures::stream::empty());
+            }
+        };
+
+        let response = client
             .post(&format!(
-                "https://{}/rudder/relay-api/remote-run/{}",
-                node,
+                "https://{}:{}/rudder/relay-api/remote-run/{}",
+                hostname,
+                job_config.cfg.general.https_port,
                 match target {
                     RemoteRunTarget::All => "all",
                     RemoteRunTarget::Nodes(_) => "nodes",
@@ -304,18 +330,21 @@ impl RemoteRunTarget {
         neighbors
     }
 
-    pub async fn next_hops(&self, job_config: Arc<JobConfig>) -> Vec<(Host, RemoteRunTarget)> {
+    pub async fn next_hops(
+        &self,
+        job_config: Arc<JobConfig>,
+    ) -> Vec<(NodeId, Host, RemoteRunTarget)> {
         let nodes = job_config.nodes.read().await;
-        let next_hops = match self {
+        let next_hops: Vec<(NodeId, Host, RemoteRunTarget)> = match self {
             RemoteRunTarget::All => nodes
                 .my_sub_relays()
                 .into_iter()
-                .map(|r| (r, RemoteRunTarget::All))
+                .map(|(id, host)| (id, host, RemoteRunTarget::All))
                 .collect(),
             RemoteRunTarget::Nodes(nodeslist) => nodes
                 .my_sub_relays_from(nodeslist)
                 .into_iter()
-                .map(|(relay, nodes)| (relay, RemoteRunTarget::Nodes(nodes)))
+                .map(|(id, host, nodes)| (id, host, RemoteRunTarget::Nodes(nodes)))
                 .collect(),
         };
         debug!("Next-hops: {:#?}", next_hops);

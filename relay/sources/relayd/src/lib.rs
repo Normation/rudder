@@ -22,20 +22,24 @@ use crate::{
         logging::LogConfig,
         main::{Configuration, InventoryOutputSelect, OutputSelect, ReportingOutputSelect},
     },
-    data::node::NodesList,
+    data::node::{NodeId, NodesList},
     metrics::{MANAGED_NODES, SUB_NODES},
     output::database::{pg_pool, PgPool},
     processing::{inventory, reporting},
 };
 use anyhow::Error;
-use reqwest::Client;
-use std::{fs::create_dir_all, path::Path, process::exit, string::ToString, sync::Arc};
+use configuration::main::CertificateVerificationModel;
+use reqwest::{Certificate, Client};
+use std::{
+    collections::HashMap, fs, fs::create_dir_all, path::Path, process::exit, string::ToString,
+    sync::Arc,
+};
 use structopt::clap::crate_version;
 use tokio::{
     signal::unix::{signal, SignalKind},
     sync::RwLock,
 };
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::{
     filter::EnvFilter,
     fmt::{
@@ -119,6 +123,7 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
     // ---- Setup data structures ----
 
     let cfg = Configuration::new(cli_cfg.configuration_dir.clone())?;
+    cfg.validate()?;
     let job_config = JobConfig::new(cli_cfg, cfg, reload_handle)?;
 
     // ---- Start server ----
@@ -200,12 +205,30 @@ fn signal_handlers(job_config: Arc<JobConfig>) {
     });
 }
 
+// Graceful reload/restart
+//
+// If we reload parts of the config we need to reload everything.
+// That means restarting all tokio tasks.
+//
+// We could use a channel to tell all tasks to finish what they are doing and stop.
+//
+// Potentially remote-run could take minutes to run, we need to decide what to do in this case.
+//
+// Tasks could start making a copy if the config they use to allow correct reload.
+//
+
 pub struct JobConfig {
+    /// Does not reload, by definition
     pub cli_cfg: CliConfiguration,
+
     pub cfg: Configuration,
     pub nodes: RwLock<NodesList>,
     pub pool: Option<PgPool>,
-    pub client: Client,
+    /// Parent policy server
+    pub upstream_client: Client,
+    /// Sub relays
+    // TODO could be lazily created
+    pub downstream_clients: HashMap<NodeId, Client>,
     handle: LogHandle,
 }
 
@@ -237,15 +260,72 @@ impl JobConfig {
             None
         };
 
-        let client = Client::builder()
-            .danger_accept_invalid_certs(!cfg.output.upstream.verify_certificates)
-            .build()?;
+        // HTTP client
+        //
 
-        let nodes = RwLock::new(NodesList::new(
-            cfg.general.node_id.to_string(),
+        // compute actual model
+        let model = if !cfg.output.upstream.verify_certificates {
+            warn!("output.upstream.verify_certificates parameter is deprecated, use general.certificate_verification_model instead");
+            CertificateVerificationModel::DangerousNone
+        } else {
+            cfg.general.certificate_verification_model
+        };
+
+        let upstream_client = match model {
+            CertificateVerificationModel::Rudder => {
+                let cert = Certificate::from_pem(&fs::read(
+                    &cfg.output.upstream.server_certificate_file,
+                )?)?;
+                Self::new_http_client(vec![cert])?
+            }
+            CertificateVerificationModel::System => Client::builder().https_only(true).build()?,
+            CertificateVerificationModel::DangerousNone => {
+                warn!("Certificate verification is disabled, it should not be done in production");
+                Client::builder()
+                    .danger_accept_invalid_certs(true)
+                    .build()?
+            }
+        };
+
+        let nodes = NodesList::new(
+            cfg.node_id()?,
             &cfg.general.nodes_list_file,
             Some(&cfg.general.nodes_certs_file),
-        )?);
+        )?;
+
+        let mut downstream_clients = HashMap::new();
+        // remote-run is the only use-case for downstream requests
+        if cfg.remote_run.enabled {
+            for (id, certs) in nodes.my_sub_relays_certs() {
+                let client = match model {
+                    CertificateVerificationModel::Rudder => {
+                        let certs = match certs {
+                            Some(stack) => stack
+                                .into_iter()
+                                // certificate has already be parsed by openssl, assume it's correct
+                                .map(|c| Certificate::from_pem(&c.to_pem().unwrap()).unwrap())
+                                .collect(),
+                            None => vec![],
+                        };
+                        Self::new_http_client(certs)?
+                    }
+                    CertificateVerificationModel::System => {
+                        Client::builder().https_only(true).build()?
+                    }
+                    CertificateVerificationModel::DangerousNone => {
+                        warn!(
+                        "Certificate verification is disabled, it should not be done in production"
+                        );
+                        Client::builder()
+                            .danger_accept_invalid_certs(true)
+                            .build()?
+                    }
+                };
+                downstream_clients.insert(id, client);
+            }
+        }
+
+        let nodes = RwLock::new(nodes);
 
         Ok(Arc::new(Self {
             cli_cfg,
@@ -253,14 +333,15 @@ impl JobConfig {
             nodes,
             pool,
             handle,
-            client,
+            upstream_client,
+            downstream_clients,
         }))
     }
 
     async fn reload_nodeslist(&self) -> Result<(), Error> {
         let mut nodes = self.nodes.write().await;
         *nodes = NodesList::new(
-            self.cfg.general.node_id.to_string(),
+            self.cfg.node_id()?,
             &self.cfg.general.nodes_list_file,
             Some(&self.cfg.general.nodes_certs_file),
         )?;
@@ -289,5 +370,23 @@ impl JobConfig {
         self.reload_nodeslist().await?;
         self.reload_metrics().await;
         Ok(())
+    }
+
+    // With Rudder cert model we currently need one client for each host we talk to
+    //
+    // Not efficient in "System" case, but it's deprecated anyway
+    fn new_http_client(certs: Vec<Certificate>) -> Result<Client, Error> {
+        let mut client = Client::builder();
+
+        client = client
+            // Let's enforce https to prevent misconfigurations
+            .https_only(true)
+            .danger_accept_invalid_hostnames(true)
+            .tls_built_in_root_certs(false);
+        for cert in certs {
+            client = client.add_root_certificate(cert);
+        }
+
+        Ok(client.build()?)
     }
 }

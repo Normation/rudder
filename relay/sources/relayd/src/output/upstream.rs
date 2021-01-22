@@ -49,11 +49,11 @@ async fn forward_file(
     let content = tokio::fs::read(path.clone()).await?;
 
     let result = job_config
-        .client
+        .upstream_client
         .clone()
         .put(&format!(
             "{}/{}/{}",
-            job_config.cfg.output.upstream.url,
+            job_config.cfg.upstream_url(),
             endpoint,
             path.file_name().expect("not a file").to_string_lossy()
         ))

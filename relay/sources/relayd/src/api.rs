@@ -100,6 +100,7 @@ pub async fn run(job_config: Arc<JobConfig>) -> Result<(), ()> {
             .or(shared_files::routes_1(job_config.clone()))
             .or(remote_run::routes_1(job_config.clone())),
     );
+
     // special case for /metrics which is the standard URL
     // with no versioning
     let routes_special = metrics::routes();

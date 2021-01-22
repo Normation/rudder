@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{configuration::Secret, data::node::NodeId};
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use serde::{
     de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
     Deserialize,
@@ -16,7 +16,7 @@ use std::{
     str::FromStr,
     time::Duration,
 };
-use tracing::debug;
+use tracing::{debug, warn};
 
 pub type BaseDirectory = PathBuf;
 pub type WatchedDirectory = PathBuf;
@@ -60,7 +60,7 @@ where
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 // Default can be implemented in serde using the Default trait
 pub struct Configuration {
-    // general section is mandatory
+    #[serde(default)]
     pub general: GeneralConfig,
     #[serde(default)]
     pub processing: ProcessingConfig,
@@ -82,6 +82,60 @@ impl Configuration {
         }
         res
     }
+
+    /// Used to validate what is not validated by typing
+    /// Called just after config is parsed.
+    pub fn validate(&self) -> Result<(), Error> {
+        // If not on root we need an upstream server
+        if &self.node_id()? != "root"
+            && self.output.upstream.host.is_empty()
+            && (self
+                .output
+                .upstream
+                .url
+                .as_ref()
+                .map(|u| u.is_empty())
+                .unwrap_or(true))
+        {
+            return Err(anyhow!("missing upstream server configuration"));
+        }
+
+        Ok(())
+    }
+
+    /// Read current node_id, and handle override by node_id
+    /// Can be removed once node_id is removed
+    pub fn node_id(&self) -> Result<NodeId, Error> {
+        Ok(match &self.general.node_id {
+            Some(id) => {
+                debug!("using {} node_id form configuration file", id);
+                id.clone()
+            }
+            None => {
+                debug!(
+                    "reading node_id from {}",
+                    &self.general.node_id_file.display()
+                );
+                read_to_string(&self.general.node_id_file)?
+            }
+        })
+    }
+
+    /// Gives current url of the upstream relay API
+    /// Can be removed once upstream.url is removed
+    pub fn upstream_url(&self) -> String {
+        match &self.output.upstream.url {
+            Some(id) => {
+                warn!("upstream.url setting is deprecated, use upstream.host and general.https_port instead");
+                id.clone()
+            }
+            None => format!(
+                // TODO compute once
+                "https://{}:{}/",
+                self.output.upstream.host, self.general.https_port
+            ),
+        }
+    }
 }
 
 impl FromStr for Configuration {
@@ -102,15 +156,26 @@ pub struct GeneralConfig {
     #[serde(default = "GeneralConfig::default_nodes_list_file")]
     pub nodes_list_file: NodesListFile,
     #[serde(default = "GeneralConfig::default_nodes_certs_file")]
+    // needs to be /var/rudder/lib/ssl/nodescerts.pem on simple relays
     pub nodes_certs_file: NodesCertsFile,
-    /// No possible sane default value
-    pub node_id: NodeId,
+    /// Has priority over node_id_file, use the
+    /// `Configuration::node_id()` method to get correct value
+    node_id: Option<NodeId>,
+    /// File containing the node id
+    #[serde(default = "GeneralConfig::default_node_id_file")]
+    node_id_file: PathBuf,
     #[serde(default = "GeneralConfig::default_listen")]
     pub listen: String,
     /// None means using the number of available CPUs
     pub core_threads: Option<usize>,
     /// Max number of threads for the blocking operations
     pub blocking_threads: Option<usize>,
+    /// Port to use for communication
+    #[serde(default = "GeneralConfig::default_https_port")]
+    pub https_port: u16,
+    /// Which certificate validation model to use
+    #[serde(default = "GeneralConfig::default_certificate_verification_model")]
+    pub certificate_verification_model: CertificateVerificationModel,
 }
 
 impl GeneralConfig {
@@ -119,12 +184,50 @@ impl GeneralConfig {
     }
 
     fn default_nodes_certs_file() -> PathBuf {
+        // config for root servers
         PathBuf::from("/var/rudder/lib/ssl/allnodescerts.pem")
+    }
+
+    fn default_node_id_file() -> PathBuf {
+        PathBuf::from("/opt/rudder/etc/uuid.hive")
     }
 
     fn default_listen() -> String {
         "127.0.0.1:3030".to_string()
     }
+
+    fn default_https_port() -> u16 {
+        443
+    }
+
+    fn default_certificate_verification_model() -> CertificateVerificationModel {
+        // For compatibility
+        CertificateVerificationModel::System
+    }
+}
+
+impl Default for GeneralConfig {
+    fn default() -> Self {
+        Self {
+            nodes_list_file: Self::default_nodes_list_file(),
+            nodes_certs_file: Self::default_nodes_certs_file(),
+            node_id_file: Self::default_node_id_file(),
+            node_id: None,
+            listen: Self::default_listen(),
+            core_threads: None,
+            blocking_threads: None,
+            https_port: Self::default_https_port(),
+            certificate_verification_model: Self::default_certificate_verification_model(),
+        }
+    }
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum CertificateVerificationModel {
+    Rudder,
+    System,
+    DangerousNone,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
@@ -300,6 +403,9 @@ impl OutputSelect for InventoryOutputSelect {
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct RemoteRun {
+    /// Enable remote-run feature
+    #[serde(default = "RemoteRun::default_enabled")]
+    pub enabled: bool,
     #[serde(default = "RemoteRun::default_command")]
     pub command: PathBuf,
     #[serde(default = "RemoteRun::default_use_sudo")]
@@ -314,11 +420,16 @@ impl RemoteRun {
     fn default_use_sudo() -> bool {
         true
     }
+
+    fn default_enabled() -> bool {
+        true
+    }
 }
 
 impl Default for RemoteRun {
     fn default() -> Self {
         Self {
+            enabled: Self::default_enabled(),
             command: Self::default_command(),
             use_sudo: Self::default_use_sudo(),
         }
@@ -406,9 +517,12 @@ impl Default for DatabaseConfig {
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct UpstreamConfig {
-    // TODO better URL type
+    /// DEPRECATED: use host and global.https_port
+    #[serde(default)]
+    url: Option<String>,
     /// When the section is there, url is mandatory
-    pub url: String,
+    #[serde(default)]
+    host: String,
     #[serde(default = "UpstreamConfig::default_user")]
     pub user: String,
     /// When the section is there, password is mandatory
@@ -417,7 +531,18 @@ pub struct UpstreamConfig {
     #[serde(default = "UpstreamConfig::default_default_password")]
     pub default_password: Secret,
     #[serde(default = "UpstreamConfig::default_verify_certificates")]
+    /// Allows to completely disable certificate validation.
+    ///
+    /// If true, https is required for all connections
+    ///
+    /// This preserves compatibility with 6.X configs
+    /// DEPRECATED: replaced by certificate_verification_mode = None
     pub verify_certificates: bool,
+    /// Allows specifying the root certificate path
+    /// Used for our Rudder PKI
+    /// Not used if verification model is not `Rudder`.
+    #[serde(default = "UpstreamConfig::default_server_certificate_file")]
+    pub server_certificate_file: PathBuf,
     // TODO timeout?
 }
 
@@ -433,16 +558,22 @@ impl UpstreamConfig {
     fn default_default_password() -> Secret {
         Secret::new("rudder".into())
     }
+
+    fn default_server_certificate_file() -> PathBuf {
+        PathBuf::from("/var/rudder/cfengine-community/ppkeys/policy_server.cert")
+    }
 }
 
 impl Default for UpstreamConfig {
     fn default() -> Self {
         Self {
             url: Default::default(),
+            host: Default::default(),
             user: Self::default_user(),
             password: Default::default(),
             default_password: Default::default(),
             verify_certificates: Self::default_verify_certificates(),
+            server_certificate_file: Self::default_server_certificate_file(),
         }
     }
 }
@@ -450,13 +581,7 @@ impl Default for UpstreamConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn it_fails_with_empty_config() {
-        let empty = "";
-        let config = empty.parse::<Configuration>();
-        assert!(config.is_err());
-    }
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn it_parses_listen_with_hostname() {
@@ -464,23 +589,44 @@ mod tests {
                        node_id = \"root\"\n\
                        listen = \"relayd:3030\"";
         let config = default.parse::<Configuration>().unwrap();
-        dbg!(&config);
+        assert_eq!(config.general.listen, "relayd:3030");
+    }
+
+    #[test]
+    fn it_parses_hardcoded_node_id() {
+        let default = "[general]\n\
+        node_id = \"test\"\n";
+        let config = default.parse::<Configuration>().unwrap();
+        assert_eq!(config.node_id().unwrap(), "test".to_string());
+    }
+
+    #[test]
+    fn it_parses_upstream_url() {
+        let default = "[general]\n\
+        node_id = \"test\"\n\
+        [output.upstream]\n\
+        url = \"https://myserver/\"\n\
+        password = \"my_password\"";
+        let config = default.parse::<Configuration>().unwrap();
+        assert_eq!(config.upstream_url(), "https://myserver/".to_string());
+        assert!(config.validate().is_ok());
     }
 
     #[test]
     fn it_parses_main_configuration_with_defaults() {
-        let default = "[general]\n\
-                       node_id = \"root\"";
-        let config = default.parse::<Configuration>();
+        let config = "".parse::<Configuration>().unwrap();
 
         let reference = Configuration {
             general: GeneralConfig {
                 nodes_list_file: PathBuf::from("/var/rudder/lib/relay/nodeslist.json"),
                 nodes_certs_file: PathBuf::from("/var/rudder/lib/ssl/allnodescerts.pem"),
-                node_id: "root".to_string(),
+                node_id: None,
+                node_id_file: PathBuf::from("/opt/rudder/etc/uuid.hive"),
                 listen: "127.0.0.1:3030".parse().unwrap(),
                 core_threads: None,
                 blocking_threads: None,
+                https_port: 443,
+                certificate_verification_model: CertificateVerificationModel::System,
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {
@@ -511,11 +657,15 @@ mod tests {
             },
             output: OutputConfig {
                 upstream: UpstreamConfig {
-                    url: "".to_string(),
+                    url: None,
+                    host: "".to_string(),
                     user: "rudder".to_string(),
                     password: Secret::new("".to_string()),
                     default_password: Secret::new("".to_string()),
                     verify_certificates: true,
+                    server_certificate_file: PathBuf::from(
+                        "/var/rudder/cfengine-community/ppkeys/policy_server.cert",
+                    ),
                 },
                 database: DatabaseConfig {
                     url: "postgres://rudder@127.0.0.1/rudder".to_string(),
@@ -526,6 +676,7 @@ mod tests {
             remote_run: RemoteRun {
                 command: PathBuf::from("/opt/rudder/bin/rudder"),
                 use_sudo: true,
+                enabled: true,
             },
             shared_files: SharedFiles {
                 path: PathBuf::from("/var/rudder/shared-files/"),
@@ -535,7 +686,9 @@ mod tests {
             },
         };
 
-        assert_eq!(config.unwrap(), reference);
+        assert_eq!(config, reference);
+        // with default options we are missing required fields
+        assert!(config.validate().is_err());
     }
 
     #[test]
@@ -558,16 +711,19 @@ mod tests {
 
     #[test]
     fn it_parses_main_configuration() {
-        let config = Configuration::new("tests/files/config/");
+        let config = Configuration::new("tests/files/config/").unwrap();
 
         let reference = Configuration {
             general: GeneralConfig {
                 nodes_list_file: PathBuf::from("tests/files/nodeslist.json"),
                 nodes_certs_file: PathBuf::from("tests/files/keys/nodescerts.pem"),
-                node_id: "root".to_string(),
+                node_id: None,
+                node_id_file: PathBuf::from("tests/files/config/uuid.hive"),
                 listen: "127.0.0.1:3030".parse().unwrap(),
                 core_threads: None,
                 blocking_threads: Some(512),
+                https_port: 4443,
+                certificate_verification_model: CertificateVerificationModel::Rudder,
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {
@@ -598,11 +754,15 @@ mod tests {
             },
             output: OutputConfig {
                 upstream: UpstreamConfig {
-                    url: "https://127.0.0.1:8080".to_string(),
+                    url: None,
+                    host: "rudder.example.com".to_string(),
                     user: "rudder".to_string(),
                     password: Secret::new("password".to_string()),
                     default_password: Secret::new("rudder".to_string()),
-                    verify_certificates: false,
+                    verify_certificates: true,
+                    server_certificate_file: PathBuf::from(
+                        "tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert",
+                    ),
                 },
                 database: DatabaseConfig {
                     url: "postgres://rudderreports@127.0.0.1/rudder".to_string(),
@@ -613,6 +773,7 @@ mod tests {
             remote_run: RemoteRun {
                 command: PathBuf::from("tests/api_remote_run/fake_agent.sh"),
                 use_sudo: false,
+                enabled: true,
             },
             shared_files: SharedFiles {
                 path: PathBuf::from("tests/api_shared_files"),
@@ -621,6 +782,12 @@ mod tests {
                 path: PathBuf::from("tests/api_shared_folder"),
             },
         };
-        assert_eq!(config.unwrap(), reference);
+        assert_eq!(config, reference);
+        assert!(config.validate().is_ok());
+        assert_eq!(config.node_id().unwrap(), "root".to_string());
+        assert_eq!(
+            config.upstream_url(),
+            "https://rudder.example.com:4443/".to_string()
+        );
     }
 }

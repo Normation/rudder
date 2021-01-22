@@ -135,6 +135,14 @@ impl NodesList {
         Ok(NodesList { list: nodes, my_id })
     }
 
+    pub fn my_id(&self) -> &NodeIdRef {
+        &self.my_id
+    }
+
+    pub fn i_am_root_server(&self) -> bool {
+        &self.my_id == "root"
+    }
+
     /// Current number of sub-nodes (nodes managed by us or a downstream relay)
     pub fn sub_nodes(&self) -> usize {
         self.list.data.len()
@@ -172,8 +180,8 @@ impl NodesList {
         })
     }
 
-    pub fn hostname(&self, id: &NodeIdRef) -> Result<Host, Error> {
-        self.get(id).map(|s| s.hostname.clone())
+    pub fn hostname(&self, id: &NodeIdRef) -> Result<&Host, Error> {
+        self.get(id).map(|s| &s.hostname)
     }
 
     /// Get node cert, missing cert is unexpected and an error
@@ -254,8 +262,35 @@ impl NodesList {
         self.neighbors_from(&self.my_id, nodes)
     }
 
+    /// Get all directly connected downstream policy servers with full information
+    pub fn my_sub_relays_certs(&self) -> HashMap<NodeId, Option<&Stack<X509>>> {
+        let mut relays = HashMap::new();
+        for policy_server in self
+            .list
+            .data
+            .values()
+            // Extract policy servers
+            .filter_map(|node| {
+                let server_id = node.policy_server.clone();
+                self.list
+                    .data
+                    .get(&server_id)
+                    // (server_id, server)
+                    .map(|server| (server_id, server))
+            })
+            // Special case for root
+            // Skip if sub_relay is myself, otherwise we'll loop
+            .filter(|(server_id, _)| server_id != &self.my_id)
+            .filter(|(_, server)| server.policy_server == self.my_id)
+            .map(|(id, server)| (id, server.certificates.as_ref()))
+        {
+            let _ = relays.insert(policy_server.0, policy_server.1);
+        }
+        relays
+    }
+
     /// Get all directly connected downstream policy servers
-    pub fn my_sub_relays(&self) -> Vec<Host> {
+    pub fn my_sub_relays(&self) -> Vec<(NodeId, Host)> {
         let mut relays = HashSet::new();
         for policy_server in self
             .list
@@ -274,7 +309,7 @@ impl NodesList {
             // Skip if sub_relay is myself, otherwise we'll loop
             .filter(|(server_id, _)| server_id != &self.my_id)
             .filter(|(_, server)| server.policy_server == self.my_id)
-            .map(|(_, server)| server.hostname.clone())
+            .map(|(id, relay)| (id, relay.hostname.clone()))
         {
             let _ = relays.insert(policy_server);
         }
@@ -283,17 +318,14 @@ impl NodesList {
 
     /// Relays to contact to trigger given nodes, with the matching nodes
     /// Logs and ignores unknown nodes
-    pub fn my_sub_relays_from(&self, nodes: &[NodeId]) -> Vec<(Host, Vec<NodeId>)> {
-        let mut relays: HashMap<Host, Vec<NodeId>> = HashMap::new();
+    pub fn my_sub_relays_from(&self, nodes: &[NodeId]) -> Vec<(NodeId, Host, Vec<NodeId>)> {
+        let mut relays: HashMap<NodeId, (Host, Vec<NodeId>)> = HashMap::new();
         for node in nodes.iter() {
-            let hostname = match self.next_hop(node) {
-                Ok(Some(ref next_hop)) => self
-                    .list
-                    .data
-                    .get::<str>(next_hop)
-                    .map(|n| n.hostname.clone())
-                    // We are sure it is there at this point
-                    .unwrap(),
+            let (id, host) = match self.next_hop(node) {
+                // we are sure it exists
+                Ok(Some(ref next_hop)) => {
+                    (next_hop.clone(), self.hostname(next_hop).unwrap().clone())
+                }
                 Ok(None) => continue,
                 Err(e) => {
                     error!("{}", e);
@@ -301,14 +333,14 @@ impl NodesList {
                 }
             };
 
-            if let Some(nodes) = relays.get_mut(&hostname) {
-                nodes.push(node.clone());
+            if let Some(nodes) = relays.get_mut(&id) {
+                nodes.1.push(node.clone());
             } else {
-                relays.insert(hostname, vec![node.clone()]);
+                relays.insert(id, (host, vec![node.clone()]));
             }
         }
 
-        relays.into_iter().collect()
+        relays.into_iter().map(|(i, (h, n))| (i, h, n)).collect()
     }
 }
 
@@ -323,6 +355,7 @@ impl FromStr for RawNodesList {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn it_parses_nodeslist() {
@@ -434,11 +467,7 @@ mod tests {
 
     #[test]
     fn it_filters_neighbors() {
-        let mut reference = vec![
-            "node1.rudder.local",
-            "node2.rudder.local",
-            "server.rudder.local",
-        ];
+        let mut reference = vec!["node1.rudder.local", "localhost", "server.rudder.local"];
         reference.sort_unstable();
 
         let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
@@ -451,11 +480,7 @@ mod tests {
 
     #[test]
     fn it_gets_neighbors() {
-        let mut reference = vec![
-            "node1.rudder.local",
-            "node2.rudder.local",
-            "server.rudder.local",
-        ];
+        let mut reference = vec!["node1.rudder.local", "localhost", "server.rudder.local"];
         reference.sort_unstable();
 
         let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
@@ -485,7 +510,16 @@ mod tests {
 
     #[test]
     fn it_gets_sub_relays() {
-        let mut reference = vec!["node1.rudder.local", "node2.rudder.local"];
+        let mut reference = vec![
+            (
+                "e745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
+                "node1.rudder.local".to_string(),
+            ),
+            (
+                "37817c4d-fbf7-4850-a985-50021f4e8f41".to_string(),
+                "localhost".to_string(),
+            ),
+        ];
         reference.sort_unstable();
 
         let mut actual = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None)
@@ -499,6 +533,7 @@ mod tests {
     #[test]
     fn it_filters_sub_relays() {
         let mut reference = vec![(
+            "e745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
             "node1.rudder.local".to_string(),
             vec![
                 "b745a140-40bc-4b86-b6dc-084488fc906b".to_string(),

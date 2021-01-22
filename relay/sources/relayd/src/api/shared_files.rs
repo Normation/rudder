@@ -147,7 +147,7 @@ pub async fn put(
 
     if job_config.nodes.read().await.is_subnode(&file.target_id) {
         put_local(file, params, job_config, body).await
-    } else if job_config.cfg.general.node_id == "root" {
+    } else if job_config.nodes.read().await.i_am_root_server() {
         Err(RudderError::UnknownNode(file.target_id).into())
     } else {
         put_forward(file, params, job_config, body).await
@@ -161,11 +161,11 @@ async fn put_forward(
     body: Bytes,
 ) -> Result<StatusCode, Error> {
     job_config
-        .client
+        .upstream_client
         .clone()
         .put(&format!(
             "{}/{}/{}",
-            job_config.cfg.output.upstream.url,
+            job_config.cfg.upstream_url(),
             "relay-api/shared-files",
             file.url(),
         ))
@@ -287,7 +287,7 @@ pub async fn head(
 
     if job_config.nodes.read().await.is_subnode(&file.target_id) {
         head_local(file, params, job_config).await
-    } else if job_config.cfg.general.node_id == "root" {
+    } else if job_config.nodes.read().await.i_am_root_server() {
         Err(RudderError::UnknownNode(file.target_id).into())
     } else {
         head_forward(file, params, job_config).await
@@ -300,11 +300,11 @@ async fn head_forward(
     job_config: Arc<JobConfig>,
 ) -> Result<StatusCode, Error> {
     job_config
-        .client
+        .upstream_client
         .clone()
         .head(&format!(
             "{}/{}/{}",
-            job_config.cfg.output.upstream.url,
+            job_config.cfg.upstream_url(),
             "relay-api/shared-files",
             file.url(),
         ))
