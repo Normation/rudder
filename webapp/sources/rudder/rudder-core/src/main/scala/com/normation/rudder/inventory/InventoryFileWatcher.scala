@@ -247,7 +247,7 @@ class InventoryFileWatcher(
     , ZioRuntime.environment
   )
   // service that will actually process files (queue for event from inotify/cron for missed files)
-  val fileProcessor = new ProcessFile(inventoryProcessor, received, failed, waitForSig, sigExtension)
+  val fileProcessor = new ProcessFile(inventoryProcessor, incoming, received, failed, waitForSig, sigExtension)
   // That reference holds watcher instance and scheduler fiber to be able to stop them if asked
   val ref = RefM.make(Option.empty[(Watchers,Fiber[Nothing, Nothing])]).runNow
   def startWatcher() = semaphore.withPermit(
@@ -316,11 +316,12 @@ final case class SaveInventoryInfo(
  * For that, it needs signature and inventory file.
  */
 class ProcessFile(
-    inventoryProcessor: InventoryProcessor
-  , received          : File
-  , failed            : File
-  , waitForSig        : Duration
-  , sigExtension      : String // signature file extension, most likely ".sign"
+    inventoryProcessor   : InventoryProcessor
+  , prioIncomingDir      : File
+  , received             : File
+  , failed               : File
+  , waitForSig           : Duration
+  , sigExtension         : String // signature file extension, most likely ".sign"
 ) {
   val sign = if(sigExtension.charAt(0) == '.') sigExtension else "."+sigExtension
 
@@ -372,9 +373,10 @@ class ProcessFile(
    */
   val saveInventoryBufferProcessing = {
     for {
-      inv <- saveInventoryBuffer.take
-      // deduplicate. TakeAll is not blocking
+      fst <- saveInventoryBuffer.take
+      // deduplicate and priorize file in 'incoming', which are new inventories. TakeAll is not blocking
       all <- saveInventoryBuffer.takeAll
+      inv =  (fst::all).find { case (f,_) => f.parent == prioIncomingDir }.getOrElse(fst)
       _   <- saveInventoryBuffer.offerAll(all.filterNot { case (f, _) => inv._1.name == f.name })
       // process
       _ <- sendToProcessorBlocking(inv._1, inv._2)

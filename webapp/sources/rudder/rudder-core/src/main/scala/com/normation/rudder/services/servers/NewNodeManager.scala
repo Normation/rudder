@@ -61,7 +61,6 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.eventlog.AcceptNodeEventLog
 import com.normation.rudder.domain.eventlog.InventoryLogDetails
 import com.normation.rudder.domain.eventlog.RefuseNodeEventLog
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeState

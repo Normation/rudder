@@ -359,7 +359,7 @@ object RestTestSetUp {
       , new RuleCategoryService()
       , restDataSerializer
     )
-  val systemApi = new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11,"5.0", "5.0.0", "some time")
+  val systemApi = new com.normation.rudder.rest.lift.SystemApi(restExtractorService, apiService11, null, "5.0", "5.0.0", "some time")
   val authzToken = AuthzToken(EventActor("fakeToken"))
   val systemStatusPath = "api" + systemApi.Status.schema.path
 

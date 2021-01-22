@@ -79,12 +79,19 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
-import zio._
 import com.normation.zio._
+import com.normation.inventory.domain.InventoryProcessingLogger
+import com.normation.inventory.ldap.core.SoftwareService
+import com.normation.rudder.rest.EndpointSchema
+import com.normation.rudder.rest.RestDataSerializer
+import net.liftweb.json.JsonAST.JArray
+import zio._
+import zio.syntax._
 
 class SystemApi(
     restExtractorService : RestExtractorService
   , apiv11service        : SystemApiService11
+  , apiv13service        : SystemApiService13
   , rudderMajorVersion   : String
   , rudderFullVerion     : String
   , rudderBuildTimestamp : String
@@ -133,6 +140,7 @@ class SystemApi(
       case API.GetRulesZipArchive             => GetRulesZipArchive
       case API.GetParametersZipArchive        => GetParametersZipArchive
       case API.GetAllZipArchive               => GetAllZipArchive
+      case API.PurgeSoftware                  => PurgeSoftware
     })
   }
 
@@ -496,7 +504,32 @@ class SystemApi(
     }
   }
 
+  object PurgeSoftware extends LiftApiModule0 {
+    val schema = API.PurgeSoftware
+    val restExtractor = restExtractorService
 
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      apiv13service.purgeSoftware(schema, params)
+    }
+  }
+}
+
+class SystemApiService13(
+    serializer        : RestDataSerializer
+  , softwareService   : SoftwareService
+) extends Loggable {
+
+  def purgeSoftware(schema: EndpointSchema, params: DefaultParams): LiftResponse  ={
+    implicit val action = schema.name
+    implicit val prettify = params.prettify
+
+    // create it an async daemon to execute and handle error
+    softwareService.deleteUnreferencedSoftware().catchAll(err =>
+      InventoryProcessingLogger.error(s"Error when puring unreferenced software: ${err.fullMsg}").succeed
+    ).forkDaemon.runNow
+
+    RestUtils.toJsonResponse(None, JArray(List("Purge of unreference software started. More information in /var/log/rudder/webapp/ logs")))
+  }
 }
 
 class SystemApiService11(

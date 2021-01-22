@@ -956,6 +956,11 @@ object RudderConfig extends Loggable {
     , gitRepo
   )
 
+  val systemApiService13 = new SystemApiService13(
+      restDataSerializer
+    , softwareService
+  )
+
   private[this] val complianceAPIService = new ComplianceAPIService(
           roRuleRepository
         , nodeInfoService
@@ -1133,7 +1138,7 @@ object RudderConfig extends Loggable {
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
       , new TechniqueApi(restExtractorService, techniqueApiService6)
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
-      , new SystemApi(restExtractorService, systemApiService11, rudderMajorVersion, rudderFullVersion, builtTimestamp)
+      , new SystemApi(restExtractorService, systemApiService11, systemApiService13, rudderMajorVersion, rudderFullVersion, builtTimestamp)
       , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
         // info api must be resolved latter, because else it misses plugin apis !
     )
@@ -1511,7 +1516,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl, updateExpectedRepo)
   private[this] lazy val softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
   private[this] lazy val softwareInventoryRWDAO: WriteOnlySoftwareDAO = new WriteOnlySoftwareDAOImpl(acceptedNodesDitImpl, rwLdap)
-  private[this] lazy val softwareService: SoftwareService = new SoftwareServiceImpl(softwareInventoryDAO, softwareInventoryRWDAO)
+  private[this] lazy val softwareService: SoftwareService = new SoftwareServiceImpl(softwareInventoryDAO, softwareInventoryRWDAO, acceptedNodesDit)
 
   private[this] lazy val nodeSummaryServiceImpl = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
   private[this] lazy val diffRepos: InventoryHistoryLogRepository =
