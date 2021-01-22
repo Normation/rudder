@@ -1408,8 +1408,13 @@ label span.text-fit{
 }
 
 .jstree a.jstree-anchor:hover .categoryAction, .jstree a.jstree-anchor:hover .treeActions  {
-  opacity: 1;
+  opacity: .7;
 }
+
+.jstree a.jstree-anchor:hover .categoryAction, .jstree a.jstree-anchor .treeActions:hover {
+  opacity: 1 !important;
+}
+
 .treeActions-container {
   display: inline-block;
   position: relative;

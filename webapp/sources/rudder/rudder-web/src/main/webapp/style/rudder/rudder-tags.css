@@ -224,6 +224,10 @@
 .tags-container .btn-group .btn.btn-default:hover .fa-times{
   color: #a94442;
 }
+
+.tags-container .btn-group .btn.btn-default .fa.fa-tag{
+  margin-right: 4px;
+}
 .tags-label.simple .tag{
   margin-left: 20px;
   padding: 3px
