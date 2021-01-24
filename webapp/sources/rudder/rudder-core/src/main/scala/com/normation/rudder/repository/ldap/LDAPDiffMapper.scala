@@ -61,6 +61,7 @@ import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
 import com.normation.rudder.repository.json.DataExtractor
 import com.normation.rudder.api.ApiAccountKind.PublicApi
+import com.unboundid.ldap.sdk.Modification
 
 class LDAPDiffMapper(
     mapper         : LDAPEntityMapper
@@ -118,22 +119,25 @@ class LDAPDiffMapper(
                 case A_DIRECTIVE_UUID =>
                   Full(diff.copy(modDirectiveIds = Some(SimpleDiff(oldCr.directiveIds, mod.getValues.map( DirectiveId(_) ).toSet))))
                 case A_NAME =>
-                  Full(diff.copy(modName = Some(SimpleDiff(oldCr.name, mod.getAttribute().getValue))))
+                  Full(diff.copy(modName = Some(SimpleDiff(oldCr.name, mod.getOptValueDefault("")))))
                 case A_DESCRIPTION =>
-                  Full(diff.copy(modShortDescription = Some(SimpleDiff(oldCr.shortDescription, mod.getAttribute().getValue()))))
+                  Full(diff.copy(modShortDescription = Some(SimpleDiff(oldCr.shortDescription, mod.getOptValueDefault("")))))
                 case A_LONG_DESCRIPTION =>
-                  Full(diff.copy(modLongDescription = Some(SimpleDiff(oldCr.longDescription, mod.getAttribute().getValue()))))
+                  Full(diff.copy(modLongDescription = Some(SimpleDiff(oldCr.longDescription, mod.getOptValueDefault("")))))
                 case A_IS_ENABLED =>
                   tryo(diff.copy(modIsActivatedStatus = Some(SimpleDiff(oldCr.isEnabledStatus, mod.getAttribute().getValueAsBoolean))))
                 case A_IS_SYSTEM =>
                   tryo(diff.copy(modIsSystem = Some(SimpleDiff(oldCr.isSystem,mod.getAttribute().getValueAsBoolean))))
                 case A_RULE_CATEGORY =>
-                  tryo(diff.copy(modCategory = Some(SimpleDiff(oldCr.categoryId , RuleCategoryId(mod.getAttribute().getValue)))))
+                  tryo(diff.copy(modCategory = Some(SimpleDiff(oldCr.categoryId , RuleCategoryId(mod.getOptValueDefault(""))))))
                 case A_SERIALIZED_TAGS =>
                   for {
-                    tags <- DataExtractor.CompleteJson.unserializeTags(mod.getAttribute.getValue)
+                    tags <- mod.getOptValue() match {
+                      case Some(v) => DataExtractor.CompleteJson.unserializeTags(v).map(_.tags)
+                      case None => Full(Set[Tag]())
+                    }
                   } yield {
-                    diff.copy(modTags = Some(SimpleDiff(oldCr.tags.tags, tags.tags)))
+                    diff.copy(modTags = Some(SimpleDiff(oldCr.tags.tags, tags)))
                   }
                 case x => Failure("Unknown diff attribute: " + x)
               }
@@ -179,6 +183,16 @@ class LDAPDiffMapper(
     }
   }
 
+
+  implicit  class LDAPModification(mod : Modification) {
+    def getOptValue() : Option[String] =
+      mod.getAttribute.getValue match {
+        case null => None
+        case s => Some(s)
+      }
+    def getOptValueDefault(default : String) : String =
+      getOptValue().getOrElse(default)
+  }
   ///// directive diff /////
 
   def modChangeRecords2DirectiveSaveDiff(
@@ -203,7 +217,7 @@ class LDAPDiffMapper(
             diff <- pipeline(modify.getModifications(), ModifyDirectiveDiff(ptName, oldPi.id, oldPi.name)) { (mod,diff) =>
               mod.getAttributeName() match {
                 case A_TECHNIQUE_VERSION =>
-                  tryo(diff.copy(modTechniqueVersion = Some(SimpleDiff(oldPi.techniqueVersion, TechniqueVersion(mod.getAttribute().getValue)))))
+                  tryo(diff.copy(modTechniqueVersion = Some(SimpleDiff(oldPi.techniqueVersion, TechniqueVersion(mod.getOptValueDefault(""))))))
                 case A_DIRECTIVE_VARIABLES =>
                   val beforeRootSection = oldVariableRootSection.getOrElse(variableRootSection)
                   Full(diff.copy(modParameters = Some(SimpleDiff(
@@ -211,11 +225,11 @@ class LDAPDiffMapper(
                       SectionVal.directiveValToSectionVal(variableRootSection,parsePolicyVariables(mod.getAttribute().getValues)))
                   )))
                 case A_NAME =>
-                  Full(diff.copy(modName = Some(SimpleDiff(oldPi.name, mod.getAttribute().getValue))))
+                  Full(diff.copy(modName = Some(SimpleDiff(oldPi.name, mod.getOptValueDefault("")))))
                 case A_DESCRIPTION =>
-                  Full(diff.copy(modShortDescription = Some(SimpleDiff(oldPi.shortDescription, mod.getAttribute().getValue()))))
+                  Full(diff.copy(modShortDescription = Some(SimpleDiff(oldPi.shortDescription, mod.getOptValueDefault("")))))
                 case A_LONG_DESCRIPTION =>
-                  Full(diff.copy(modLongDescription = Some(SimpleDiff(oldPi.longDescription, mod.getAttribute().getValue()))))
+                  Full(diff.copy(modLongDescription = Some(SimpleDiff(oldPi.longDescription, mod.getOptValueDefault("")))))
                 case A_PRIORITY =>
                   tryo(diff.copy(modPriority = Some(SimpleDiff(oldPi.priority, mod.getAttribute().getValueAsInteger))))
                 case A_IS_ENABLED =>
@@ -224,15 +238,18 @@ class LDAPDiffMapper(
                   tryo(diff.copy(modIsSystem = Some(SimpleDiff(oldPi.isSystem,mod.getAttribute().getValueAsBoolean))))
                 case A_POLICY_MODE =>
                   for {
-                    policyMode <- PolicyMode.parseDefault(mod.getAttribute().getValue)
+                    policyMode <- PolicyMode.parseDefault(mod.getOptValueDefault(""))
                   } yield {
                     diff.copy(modPolicyMode = Some(SimpleDiff(oldPi.policyMode,policyMode)))
                   }
                 case A_SERIALIZED_TAGS =>
                   for {
-                    tags <- DataExtractor.CompleteJson.unserializeTags(mod.getAttribute.getValue)
+                    tags <- mod.getOptValue() match {
+                      case Some(v) => DataExtractor.CompleteJson.unserializeTags(v).map(_.tags)
+                      case None => Full(Set[Tag]())
+                    }
                   } yield {
-                    diff.copy(modTags = Some(SimpleDiff(oldPi.tags.tags, tags.tags)))
+                    diff.copy(modTags = Some(SimpleDiff(oldPi.tags.tags, tags)))
                   }
                 case x => Failure("Unknown diff attribute: " + x)
               }
@@ -276,7 +293,7 @@ class LDAPDiffMapper(
             diff <- pipeline(modify.getModifications(), ModifyNodeGroupDiff(oldGroup.id, oldGroup.name)) { (mod, diff) =>
               mod.getAttributeName() match {
                 case A_NAME =>
-                  Full(diff.copy(modName = Some(SimpleDiff(oldGroup.name, mod.getAttribute().getValue))))
+                  Full(diff.copy(modName = Some(SimpleDiff(oldGroup.name, mod.getOptValueDefault("")))))
                 case A_NODE_UUID =>
                   Full(diff.copy(modNodeList = Some(SimpleDiff(oldGroup.serverList, mod.getValues.map(x => NodeId(x) ).toSet ) ) ) )
                 case A_QUERY_NODE_GROUP =>
@@ -292,7 +309,7 @@ class LDAPDiffMapper(
                     case _ => Failure("Bad operation type for attribute '%s' in change record '%s'".format(mod, change))
                   }
                 case A_DESCRIPTION =>
-                  Full(diff.copy(modDescription = Some(SimpleDiff(oldGroup.description, mod.getAttribute().getValue))))
+                  Full(diff.copy(modDescription = Some(SimpleDiff(oldGroup.description, mod.getOptValueDefault("")))))
                 case A_IS_DYNAMIC =>
                   tryo(diff.copy(modIsDynamic = Some(SimpleDiff(oldGroup.isDynamic, mod.getAttribute().getValueAsBoolean))))
                 case A_IS_ENABLED =>
@@ -354,10 +371,10 @@ class LDAPDiffMapper(
             diff <- pipeline(modify.getModifications(), ModifyGlobalParameterDiff(parameterName)) { (mod,diff) =>
               mod.getAttributeName() match {
                 case A_PARAMETER_VALUE =>
-                  tryo(diff.copy(modValue = Some(SimpleDiff(oldParam.value, mod.getAttribute().getValue))))
+                  tryo(diff.copy(modValue = Some(SimpleDiff(oldParam.value, mod.getOptValueDefault("")))))
 
                 case A_DESCRIPTION =>
-                  Full(diff.copy(modDescription = Some(SimpleDiff(oldParam.description, mod.getAttribute().getValue()))))
+                  Full(diff.copy(modDescription = Some(SimpleDiff(oldParam.description, mod.getOptValueDefault("")))))
 
                 case A_PARAMETER_OVERRIDABLE =>
                   tryo(diff.copy(modOverridable = Some(SimpleDiff(oldParam.overridable, mod.getAttribute().getValueAsBoolean))))
@@ -412,29 +429,29 @@ class LDAPDiffMapper(
             diff       <- pipeline(modify.getModifications(), ModifyApiAccountDiff(oldAccount.id)) { (mod, diff) =>
               mod.getAttributeName() match {
                 case A_NAME =>
-                  tryo(diff.copy(modName = Some(SimpleDiff(oldAccount.name.value, mod.getAttribute().getValue()))))
+                  tryo(diff.copy(modName = Some(SimpleDiff(oldAccount.name.value, mod.getOptValueDefault("")))))
                 case A_API_TOKEN =>
-                  Full(diff.copy(modToken = Some(SimpleDiff(oldAccount.token.value, mod.getAttribute().getValue()))))
+                  Full(diff.copy(modToken = Some(SimpleDiff(oldAccount.token.value, mod.getOptValueDefault("")))))
                 case A_DESCRIPTION =>
-                  Full(diff.copy(modDescription = Some(SimpleDiff(oldAccount.description, mod.getAttribute().getValue()))))
+                  Full(diff.copy(modDescription = Some(SimpleDiff(oldAccount.description, mod.getOptValueDefault("")))))
                 case A_IS_ENABLED =>
                   tryo(diff.copy(modIsEnabled = Some(SimpleDiff(oldAccount.isEnabled, mod.getAttribute().getValueAsBoolean))))
                 case A_API_TOKEN_CREATION_DATETIME =>
-                  val diffDate = GeneralizedTime.parse(mod.getAttribute().getValue()).map(_.dateTime)
+                  val diffDate = GeneralizedTime.parse(mod.getOptValueDefault("")).map(_.dateTime)
                   tryo(diff.copy(modTokenGenerationDate = Some(SimpleDiff(oldAccount.tokenGenerationDate, diffDate.get))))
                 case A_API_EXPIRATION_DATETIME =>
                   val expirationDate = oldAccount.kind match {
                     case PublicApi(_,date) => date
                     case _ => None
                   }
-                  val diffDate = tryo(mod.getAttribute().getValue() match {
+                  val diffDate = tryo(mod.getOptValueDefault("") match {
                     case "None" => None
                     case v => GeneralizedTime.parse(v).map(_.dateTime)
                   }).getOrElse(None)
                   tryo(diff.copy(modExpirationDate = Some(SimpleDiff(expirationDate, diffDate))))
                 case A_API_KIND =>
                   // API_KIND is the name of the kind of api kind
-                  tryo(diff.copy(modAPIKind = Some(SimpleDiff(oldAccount.kind.kind.name, mod.getAttribute().getValue()))))
+                  tryo(diff.copy(modAPIKind = Some(SimpleDiff(oldAccount.kind.kind.name, mod.getOptValueDefault("")))))
                 case A_API_AUTHZ_KIND =>
                   val oldAuthType = oldAccount.kind match {
                     case PublicApi(auth, _) =>
@@ -442,7 +459,7 @@ class LDAPDiffMapper(
                     case kind =>
                       kind.kind.name
                   }
-                  Full(diff.copy(modAccountKind = Some(SimpleDiff(oldAuthType, mod.getAttribute().getValue()))))
+                  Full(diff.copy(modAccountKind = Some(SimpleDiff(oldAuthType, mod.getOptValueDefault("")))))
                 case A_API_ACL =>
                   val oldAcl = oldAccount.kind match {
                     case PublicApi(ApiAuthorization.ACL(acl), _) =>
@@ -452,7 +469,7 @@ class LDAPDiffMapper(
                   }
 
                   for {
-                    acl <- mapper.unserApiAcl(mod.getAttribute().getValue) match {
+                    acl <- mapper.unserApiAcl(mod.getOptValueDefault("")) match {
                              case Left(error) => Failure(error)
                              case Right(acl)  => Full(acl)
                            }
