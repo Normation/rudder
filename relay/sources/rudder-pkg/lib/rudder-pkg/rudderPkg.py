@@ -20,7 +20,7 @@ logger = logging.getLogger("rudder-pkg")
     Expect a list of path as parameter.
     Try to install the given rpkgs.
 """
-def install_file(package_files, version):
+def install_file(package_files, version, exit_on_error=True):
     for package_file in package_files:
         logger.info("Installing " + package_file)
         # First, check if file exists
@@ -32,13 +32,14 @@ def install_file(package_files, version):
         # wait until the end to make them visible.
         # This should be moved before actual installation once implemented.
         if not utils.install_dependencies(metadata):
-            exit(1)
+            if exit_on_error:
+                exit(1)
         if exist:
             logger.info("The package is already installed, I will upgrade it.")
         script_dir = utils.extract_scripts(metadata, package_file)
-        utils.run_script("preinst", script_dir, exist)
+        utils.run_script("preinst", script_dir, exist, exit_on_error=exit_on_error)
         utils.install(metadata, package_file, exist)
-        utils.run_script("postinst", script_dir, exist)
+        utils.run_script("postinst", script_dir, exist, exit_on_error=exit_on_error)
         if metadata['type'] == 'plugin' and 'jar-files' in metadata:
             for j in metadata['jar-files']:
                 utils.jar_status(j, True)
@@ -183,12 +184,12 @@ def package_search(name):
     It will not check for compatibility and will let it to the installer since
     the user explicitly asked for this version.
 """
-def package_install_specific_version(name, longVersion, mode="release"):
+def package_install_specific_version(name, longVersion, mode="release", quiet=False):
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     rpkg = pkgs.getRpkgByLongVersion(longVersion, mode)
     if rpkg is not None:
-        rpkgPath = utils.downloadByRpkg(rpkg)
+        rpkgPath = utils.downloadByRpkg(rpkg, quiet)
         install_file([rpkgPath], None)
     else:
         utils.fail("Could not find any package for %s in version %s"%(name, longVersion))
@@ -197,7 +198,7 @@ def package_install_specific_version(name, longVersion, mode="release"):
     Install the latest available and compatible package for a given plugin.
     If no release mode is given, it will only look in the released rpkg.
 """
-def package_install_latest(name, mode="release", version = None):
+def package_install_latest(name, mode="release", version = None, quiet=False, exit_on_error=True):
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     if mode == "release":
@@ -205,10 +206,10 @@ def package_install_latest(name, mode="release", version = None):
     else:
         rpkg = pkgs.getLatestCompatibleNightly(version)
     if rpkg is not None:
-        rpkgPath = utils.downloadByRpkg(rpkg)
-        install_file([rpkgPath], version)
+        rpkgPath = utils.downloadByRpkg(rpkg, quiet)
+        install_file([rpkgPath], version, exit_on_error=exit_on_error)
     else:
-        utils.fail("Could not find any compatible %s for %s"%(mode, name))
+        utils.fail("Could not find any compatible %s for %s"%(mode, name), exit_on_error=exit_on_error)
 
 """Remove a given plugin. Expect a list of name as parameter."""
 def remove(package_names):
@@ -321,7 +322,7 @@ def update_licenses():
                 match = downloadPattern.search(link)
                 if match is not None:
                     logger.info("downloading %s"%(link))
-                    utils.download(link, utils.LICENCES_PATH + "/" + os.path.basename(link))
+                    utils.download(link, utils.LICENCES_PATH + "/" + os.path.basename(link), quiet)
 
 # TODO validate index sign if any?
 """ Download the index file on the repos and update licenses"""
@@ -345,7 +346,7 @@ def update():
 """
     Upgrade all plugins install in their latest compatible version
 """
-def upgrade_all(mode, version):
+def upgrade_all(mode, version, quiet=False):
     for p in utils.DB["plugins"].keys():
         currentVersion = rpkg.PluginVersion(utils.DB["plugins"][p]["version"])
         latestVersion = currentVersion
@@ -365,6 +366,6 @@ def upgrade_all(mode, version):
                 latestVersion = latest_packages.version
         if currentVersion < latestVersion:
             logger.info("The plugin %s is installed in version %s. The version %s %s is available, the plugin will be upgraded."%(p, currentVersion.pluginLongVersion, mode, latestVersion.pluginLongVersion))
-            package_install_latest([p], mode, version)
+            package_install_latest([p], mode, version, quiet, exit_on_error=False)
         else:
             logger.info("No newer %s compatible versions than %s found for the plugin %s."%(mode, currentVersion.pluginLongVersion, p))
