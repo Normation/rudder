@@ -161,10 +161,15 @@ impl Parameters {
         self
     }
 
-    pub fn method_name(mut self, res: &str, state: &str) -> Self {
+    pub fn method_name(mut self, res: &str, state: &str, method_alias: Option<String>) -> Self {
+        let method_name = if let Some(method_alias_content) = method_alias {
+            method_alias_content
+        } else {
+            format!("{}-{}", res, state)
+        };
         let parameter = Parameter {
             name: None,
-            value: pascebab_case(&format!("{}-{}", res, state)),
+            value: pascebab_case(&method_name),
             ptype: ParameterType::MethodName,
         };
         self.push(parameter);
@@ -438,6 +443,7 @@ pub struct Method {
     resource: String,
     // TODO check if correct
     state: String,
+    method_alias: Option<String>,
     // TODO check list of parameters
     parameters: Parameters,
     component: String,
@@ -489,6 +495,13 @@ impl Method {
         }
     }
 
+    pub fn alias(self, method_alias: Option<String>) -> Self {
+        Self {
+            method_alias,
+            ..self
+        }
+    }
+
     pub fn supported(self, is_supported: bool) -> Self {
         Self {
             supported: is_supported,
@@ -524,7 +537,7 @@ impl Method {
 
         let method_call = Call::method(
             Parameters::from(self.parameters.clone())
-                .method_name(&self.resource, &self.state)
+                .method_name(&self.resource, &self.state, self.method_alias)
                 .component_name(&self.component)
                 .report_id()
                 .technique_name()

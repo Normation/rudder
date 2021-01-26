@@ -8,7 +8,7 @@ use crate::{
 };
 use typed_arena::Arena;
 
-/// Takes a JSON technique and generates its RudderLang, DSC< CFEngine equivalent wrapped into a single JSON object
+/// Takes a JSON technique and generates its <RudderLang, DSC and CFEngine> equivalent wrapped into a single JSON object
 pub fn technique_generate(ctx: &IOContext) -> Result<Vec<CommandResult>> {
     // push RL version to the final data object
     let sources: Arena<String> = Arena::new();

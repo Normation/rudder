@@ -289,12 +289,13 @@ impl Promise {
 /// * method call
 /// * reporting context
 /// * n/a report
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Method {
     // TODO check if correct
     resource: String,
     // TODO check if correct
     state: String,
+    method_alias: Option<String>,
     // TODO check list of parameters
     parameters: Vec<String>,
     report_component: String,
@@ -319,6 +320,13 @@ impl Method {
 
     pub fn state(self, state: String) -> Self {
         Self { state, ..self }
+    }
+
+    pub fn alias(self, method_alias: Option<String>) -> Self {
+        Self {
+            method_alias,
+            ..self
+        }
     }
 
     pub fn parameters(self, parameters: Vec<String>) -> Self {
@@ -357,7 +365,14 @@ impl Method {
         }
     }
 
-    pub fn build(self) -> Vec<Promise> {
+    pub fn build(mut self) -> Vec<Promise> {
+        // EXCEPTION: reunite variable_string_escaped resource parameters that appear to be joined from cfengine side
+        if self.resource == "variable" && self.state == "string_escaped" {
+            let merged_resource_parameters = self.parameters.join(".");
+            self.parameters = vec![merged_resource_parameters.clone()];
+            self.report_parameter = merged_resource_parameters;
+        }
+
         assert!(!self.resource.is_empty());
         assert!(!self.state.is_empty());
         assert!(!self.report_parameter.is_empty());
@@ -380,9 +395,14 @@ impl Method {
         .comment(format!("  {}", self.source))
         .comment("");
 
+        let formatted_bundle = if let Some(method_alias) = self.method_alias {
+            method_alias
+        } else {
+            format!("{}_{}", self.resource, self.state)
+        };
         // Actual method call
         let method = Promise::usebundle(
-            format!("{}_{}", self.resource, self.state),
+            formatted_bundle,
             Some(&self.report_component),
             self.parameters,
         );

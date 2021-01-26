@@ -131,7 +131,8 @@ def parse_method_metadata(content):
                         'name': param_name, 'description': match.group(4)}
                     param_names.add(param_name)
                 if tag == "parameter_constraint":
-                    constraint = json.loads("{" + match.group(4).replace('\\', '\\\\') + "}")
+                    constraint = json.loads(
+                        "{" + match.group(4).replace('\\', '\\\\') + "}")
                     # extend default_constraint if it was not already defined)
                     param_constraints.setdefault(
                         match.group(3), default_constraint.copy()).update(constraint)
@@ -172,13 +173,26 @@ def parse_method_metadata(content):
             multiline = False
 
             bundle_name = match.group(1)
-            split = bundle_name.split("_")
 
-            if bundle_name.startswith(
-                    "kernel_module") or bundle_name.startswith("http_request"):
+            # HERE is the only place a bundle name has to be changed to deal with resource naming exceptions
+            if bundle_name == "monitoring_template" or \
+                    bundle_name == "monitoring_parameter":
+                shift = 2
+                res["method_alias"] = bundle_name
+                bundle_name += "_present"
+            elif bundle_name.startswith("kernel_module") or \
+                    bundle_name.startswith("http_request"):
                 shift = 2
             else:
+                if bundle_name == "permissions":
+                    res["method_alias"] = bundle_name
+                    bundle_name += "_value"
+                elif bundle_name == "audit_from_osquery":
+                    res["method_alias"] = bundle_name
+                    bundle_name = "sysinfo_query"
                 shift = 1
+
+            split = bundle_name.split("_")
 
             res['resource'] = '_'.join(split[:shift])
             res['state'] = '_'.join(split[shift:])
@@ -238,6 +252,11 @@ def parse_method_metadata(content):
     res["resource_parameters"] = []
     res["parameters"] = []
     if len(bundle_args) > 0:
+        if bundle_name == "variable_string_escaped":
+            parameters['variable_prefix'] = {
+                'name': 'variable_prefix', 'description': 'The prefix of the variable name'}
+            param_names.add("variable_prefix")
+            bundle_args.insert(0, "variable_prefix")
         for param_name in bundle_args:
             try:
                 param = parameters[param_name]
@@ -290,6 +309,7 @@ def extract_resources(metadata):
         else:
             resources[method["resource"]]["states"].append(method)
 
+    # TODO remove special case names since it has been updated in ncf library
     # hardcode special cases for better consistency
     resources["package"]["description"] = "Package of the system"
     resources["file"]["parameters"][0]["description"] = "File path to manage"
@@ -325,13 +345,6 @@ def get_generic_methods_metadata(filenames, dsc_filenames):
     warnings = []
 
     for file in filenames:
-        if file.endswith("variable_string_escaped.cf") or \
-            file.endswith("permissions.cf") or \
-            file.endswith("monitoring_parameter.cf") or \
-            file.endswith("monitoring_template.cf") or \
-            file.endswith("audit_from_osquery.cf"):
-            # FIXME find a way to support these
-            continue
         with codecs.open(file, encoding="utf-8") as fd:
             content = fd.read()
         try:
@@ -500,6 +513,13 @@ def generate_lib(resource_name, resource, lib_dir):
             ', '.join(
                 '"{0}"'.format(w) for w in state["supported_agents"]) +
             "]")
+        # maybe class_prefix is enough
+        if "method_alias" in state:
+            fmt_attribute(
+                out,
+                "method_alias",
+                quoted(state["method_alias"])
+            )
         params = [p["name"] for p in state["parameters"]]
         out.write(
             resource_name +

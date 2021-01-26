@@ -253,6 +253,12 @@ impl DSC {
                 Ok(Method::new()
                     .resource(sd.resource.fragment().to_string())
                     .state(sd.state.fragment().to_string())
+                    .alias(
+                        sd.metadata
+                            .get("method_alias") // might simply be the class_prefix
+                            .and_then(|v| v.as_str())
+                            .map(String::from),
+                    )
                     .parameters(Parameters(parameters))
                     .class_parameter(class_param.clone())
                     .component(component)

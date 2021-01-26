@@ -91,7 +91,7 @@ impl IOContext {
             input_content,
             output,
             command,
-            format,
+            format
         };
         info!("I/O context: {}", ctx);
 
@@ -237,12 +237,12 @@ fn get_output_format(
                 Some(o) => o.extension(),
                 None => None,
             };
-            match ext.and_then(|fmt| fmt.to_str()) {
+            return match ext.and_then(|fmt| fmt.to_str()) {
                 Some(fmt) => {
                     let fmt = Format::from_str(fmt)?;
-                    return Ok((format!("{}", fmt), fmt))
+                    Ok((format!("{}", fmt), fmt))
                 }
-                None => return Err(Error::new(
+                None => Err(Error::new(
                     "Commands: missing or invalid format, plus unrecognized or invalid output file extension".to_owned(),
                 ))
             }
