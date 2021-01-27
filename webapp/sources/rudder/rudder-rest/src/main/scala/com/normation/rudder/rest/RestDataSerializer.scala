@@ -165,6 +165,7 @@ final case class RestDataSerializerImpl (
    (   ( "changeRequestId"  -> crId.map(_.value.toString))
      ~ ( "id"               -> rule.id.value )
      ~ ( "displayName"      -> rule.name )
+     ~ ( "categoryId"       -> rule.categoryId.value)
      ~ ( "shortDescription" -> rule.shortDescription )
      ~ ( "longDescription"  -> rule.longDescription )
      ~ ( "directives"       -> rule.directiveIds.map(_.value) )

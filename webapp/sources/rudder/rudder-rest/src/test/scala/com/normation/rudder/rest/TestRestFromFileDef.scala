@@ -121,11 +121,14 @@ class TestRestFromFileDef extends Specification with Loggable {
     }
   }
 
+  sequential
+
   ///// tests ////
 
   def cleanBreakline(text: String) = text.replaceAll("(\\W)\\s+", "$1")
-  def cleanBody(r: LiftResponse) = {
-    cleanBreakline(new String(r.toResponse.asInstanceOf[InMemoryResponse].data, "UTF-8"))
+  def cleanResponse(r: LiftResponse): (Int, String) = {
+    val response = r.toResponse.asInstanceOf[InMemoryResponse]
+    (response.code, cleanBreakline(new String(response.data, "UTF-8")))
   }
   Fragments.foreach(files.toSeq) { file =>
 
@@ -159,7 +162,7 @@ class TestRestFromFileDef extends Specification with Loggable {
             val expected = cleanBreakline(test.responseContent)
 
             RestTestSetUp.execRequestResponse(mockReq)(response =>
-              response.map(cleanBody(_)) must beEqualTo(Full(expected))
+              response.map(cleanResponse(_)) must beEqualTo(Full((test.responseCode, expected)))
             )
           }
       } }

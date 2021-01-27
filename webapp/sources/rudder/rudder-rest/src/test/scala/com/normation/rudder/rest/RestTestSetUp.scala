@@ -74,6 +74,7 @@ import com.normation.rudder.repository._
 import com.normation.rudder.rest.lift._
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rest.v1.RestTechniqueReload
+import com.normation.rudder.rule.category.RuleCategoryService
 import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.rudder.services.eventlog.EventLogFactory
@@ -250,28 +251,23 @@ object RestTestSetUp {
     , null
     , FiniteDuration(100, "millis")
   )
-  val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
-    new CommitAndDeployChangeRequestServiceImpl(
-        uuidGen
-      , mockDirectives.directiveRepo
-      , mockDirectives.directiveRepo
-      , null // roNodeGroupRepository
-      , null // woNodeGroupRepository
-      , mockRules.ruleRepo
-      , mockRules.ruleRepo
-      , null // roLDAPParameterRepository
-      , null // woLDAPParameterRepository
-      , null // asyncDeploymentAgent
-      , null // dependencyAndDeletionService
-      , null // configService.rudder_workflow_enabled _
-      , null // xmlSerializer
-      , null // xmlUnserializer
-      , null // sectionSpecParser
-      , null // dynGroupUpdaterService
-    )
-  val workflowLevelService = new DefaultWorkflowLevel(new NoWorkflowServiceImpl(
-    commitAndDeployChangeRequest
-  ))
+  val deploymentStatusSerialisation = new DeploymentStatusSerialisation {
+    override def serialise(deploymentStatus: CurrentDeploymentStatus): Elem = <test/>
+  }
+  val eventLogRepo = new EventLogRepository {
+    override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed
+
+    override def eventLogFactory: EventLogFactory = ???
+    override def getEventLogByCriteria(criteria: Option[String], limit: Option[Int], orderBy: Option[String], extendedFilter: Option[String]): IOResult[Seq[EventLog]] = ???
+    override def getEventLogById(id: Long): IOResult[EventLog] = ???
+    override def getEventLogCount(criteria: Option[String], extendedFilter: Option[String]): IOResult[Long] = ???
+    override def getEventLogByChangeRequest(changeRequest: ChangeRequestId, xpath: String, optLimit: Option[Int], orderBy: Option[String], eventTypeFilter: List[EventLogFilter]): IOResult[Vector[EventLog]] = ???
+    override def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
+    override def getLastEventByChangeRequest(xpath: String, eventTypeFilter: List[EventLogFilter]): IOResult[Map[ChangeRequestId, EventLog]] = ???
+  }
+  val eventLogger = new EventLogDeploymentService(eventLogRepo, null) {
+    override def getLastDeployement(): Box[CurrentDeploymentStatus] = Full(NoStatus)
+  }
   val policyGeneration = new PromiseGenerationService {
     override def deploy(): Box[Set[NodeId]] = Full(Set())
     override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
@@ -315,24 +311,30 @@ object RestTestSetUp {
     override def runPostHooks(generationTime: DateTime, endTime: DateTime, idToConfiguration: Map[NodeId, NodeInfo], systemEnv: HookEnvPairs, nodeIdsPath: String): Box[Unit] = ???
     override def runFailureHooks(generationTime: DateTime, endTime: DateTime, systemEnv: HookEnvPairs, errorMessage: String, errorMessagePath: String): Box[Unit] = ???
   }
-  val deploymentStatusSerialisation = new DeploymentStatusSerialisation {
-    override def serialise(deploymentStatus: CurrentDeploymentStatus): Elem = <test/>
-  }
-  val eventLogRepo = new EventLogRepository {
-    override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed
-
-    override def eventLogFactory: EventLogFactory = ???
-    override def getEventLogByCriteria(criteria: Option[String], limit: Option[Int], orderBy: Option[String], extendedFilter: Option[String]): IOResult[Seq[EventLog]] = ???
-    override def getEventLogById(id: Long): IOResult[EventLog] = ???
-    override def getEventLogCount(criteria: Option[String], extendedFilter: Option[String]): IOResult[Long] = ???
-    override def getEventLogByChangeRequest(changeRequest: ChangeRequestId, xpath: String, optLimit: Option[Int], orderBy: Option[String], eventTypeFilter: List[EventLogFilter]): IOResult[Vector[EventLog]] = ???
-    override def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
-    override def getLastEventByChangeRequest(xpath: String, eventTypeFilter: List[EventLogFilter]): IOResult[Map[ChangeRequestId, EventLog]] = ???
-  }
-  val eventLogger = new EventLogDeploymentService(eventLogRepo, null) {
-    override def getLastDeployement(): Box[CurrentDeploymentStatus] = Full(NoStatus)
-  }
   val asyncDeploymentActor = new AsyncDeploymentActor(policyGeneration, eventLogger, deploymentStatusSerialisation)
+
+  val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
+    new CommitAndDeployChangeRequestServiceImpl(
+        uuidGen
+      , mockDirectives.directiveRepo
+      , mockDirectives.directiveRepo
+      , null // roNodeGroupRepository
+      , null // woNodeGroupRepository
+      , mockRules.ruleRepo
+      , mockRules.ruleRepo
+      , null // roLDAPParameterRepository
+      , null // woLDAPParameterRepository
+      , asyncDeploymentActor
+      , null // dependencyAndDeletionService
+      , () => false.succeed // configService.rudder_workflow_enabled _
+      , null // xmlSerializer
+      , null // xmlUnserializer
+      , null // sectionSpecParser
+      , null // dynGroupUpdaterService
+    )
+  val workflowLevelService = new DefaultWorkflowLevel(new NoWorkflowServiceImpl(
+    commitAndDeployChangeRequest
+  ))
   val apiService11 = new SystemApiService11(
         fakeUpdatePTLibService
       , fakeScriptLauncher
@@ -372,8 +374,8 @@ object RestTestSetUp {
   val ruleApiService6 = new RuleApiService6 (
         mockRules.ruleCategoryRepo
       , mockRules.ruleRepo
-      , null
-      , null
+      , mockRules.ruleCategoryRepo
+      , new RuleCategoryService()
       , restDataSerializer
     )
   val systemApi = new SystemApi(restExtractorService, apiService11, apiService13, "5.0", "5.0.0", "some time")
