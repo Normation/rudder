@@ -14,6 +14,7 @@ response:
           {
             "id":"208716db-2675-43b9-ab57-bfbab84346aa",
             "displayName":"50-rule-technique-ncf",
+            "categoryId":"rootRuleCategory",
             "shortDescription":"ncf technique rule",
             "longDescription":"",
             "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
@@ -22,6 +23,86 @@ response:
             "system":false,
             "tags":[{"datacenter":"Paris"},{"serverType":"webserver"}]
           }
+        ]
+      }
+    }
+---
+description: List rules
+method: GET
+url: /api/rules
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listRules",
+      "result":"success",
+      "data":{
+        "rules":[
+          {"id":"208716db-2675-43b9-ab57-bfbab84346aa",
+            "displayName":"50-rule-technique-ncf",
+            "categoryId":"rootRuleCategory",
+            "shortDescription":"ncf technique rule",
+            "longDescription":"",
+            "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+            "targets":[{"include":{"or":["special:all"]},
+            "exclude":{"or":["policyServer:root"]}}],
+            "enabled":true,
+            "system":false,
+            "tags":[{"datacenter":"Paris"},{"serverType":"webserver"}]},
+          {"id":"rulecopyGitFile",
+            "displayName":"90-copy-git-file",
+            "categoryId":"rootRuleCategory",
+            "shortDescription":"ncf technique rule",
+            "longDescription":"",
+            "directives":["directive-copyGitFile"],
+            "targets":["special:all"],
+            "enabled":true,
+            "system":false,
+            "tags":[]},
+          {"id":"rule1",
+            "displayName":"10.Global configuration for all nodes",
+            "categoryId":"rootRuleCategory",
+            "shortDescription":"global config for all nodes",
+            "longDescription":"",
+            "directives":["directive1"],
+            "targets":["special:all"],
+            "enabled":true,
+            "system":false,
+            "tags":[]},
+          {"id":"ff44fb97-b65e-43c4-b8c2-000000000000",
+            "displayName":"99-rule-technique-std-lib",
+            "categoryId":"rootRuleCategory",
+            "shortDescription":"updated copy of default rule",
+            "longDescription":"",
+            "directives":["99f4ef91-537b-4e03-97bc-e65b447514cc"],
+            "targets":["special:all"],
+            "enabled":true,
+            "system":false,
+            "tags":[]},
+          {"id":"rule2",
+            "displayName":"50.Deploy PLOP STACK",
+            "categoryId":"rootRuleCategory",
+            "shortDescription":"global config for all nodes",
+            "longDescription":"",
+            "directives":["directive2"],
+            "targets":["special:all"],
+            "enabled":true,
+            "system":false,
+            "tags":[]},
+          {"id":"ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
+            "displayName":"60-rule-technique-std-lib",
+            "categoryId":"rootRuleCategory",
+            "shortDescription":"default rule",
+            "longDescription":"",
+            "directives":[
+              "16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
+              "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "99f4ef91-537b-4e03-97bc-e65b447514cc"
+            ],
+            "targets":["special:all"],
+            "enabled":true,
+            "system":false,
+            "tags":[]}
         ]
       }
     }
@@ -56,6 +137,7 @@ response:
           {
             "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
             "displayName": "Security policy",
+            "categoryId":"rootRuleCategory",
             "shortDescription": "Baseline applying CIS guidelines",
             "longDescription": "This rules should be applied to all Linux nodes required basic hardening",
             "directives":["e9a1a909-2490-4fc9-95c3-9d0aa01717c9", "16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
@@ -96,6 +178,7 @@ response:
           {
             "id": "00000000-cb9d-4f7b-abda-ca38c5d643ea",
             "displayName":"clone from api of 50-rule-technique-ncf",
+            "categoryId":"rootRuleCategory",
             "shortDescription":"not and ncf technique rule",
             "longDescription":"Some long description",
             "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
@@ -105,5 +188,332 @@ response:
             "tags":[{"customer":"MyCompany"}]
           }
         ]
+      }
+    }
+---
+description: Update a rule
+method: POST
+url: /api/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
+    "displayName": "Security policy updated",
+    "shortDescription": "Baseline applying CIS guidelines updated",
+    "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
+    "directives": ["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+    "targets": ["special:all"],
+    "enabled": false,
+    "system": false,
+    "tags": [{"customer": "MyCompany"}, {"more":"tags"}]
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateRule",
+      "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
+      "result":"success",
+      "data":{
+        "rules":[
+          {
+            "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
+            "displayName": "Security policy updated",
+            "categoryId":"rootRuleCategory",
+            "shortDescription": "Baseline applying CIS guidelines updated",
+            "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
+            "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+            "targets":["special:all"],
+            "enabled":false,
+            "system":false,
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+          }
+        ]
+      }
+    }
+---
+description: Get updated rule
+method: GET
+url: /api/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
+response:
+  code: 200
+  content: >-
+    {
+      "action":"ruleDetails",
+      "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
+      "result":"success",
+      "data":{
+        "rules":[
+          {
+            "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
+            "displayName": "Security policy updated",
+            "categoryId":"rootRuleCategory",
+            "shortDescription": "Baseline applying CIS guidelines updated",
+            "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
+            "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+            "targets":["special:all"],
+            "enabled":false,
+            "system":false,
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+          }
+        ]
+      }
+    }
+---
+description: Move a rule to a new category
+method: POST
+url: /api/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "category": "category1",
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateRule",
+      "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
+      "result":"success",
+      "data":{
+        "rules":[
+          {
+            "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
+            "displayName": "Security policy updated",
+            "categoryId":"category1",
+            "shortDescription": "Baseline applying CIS guidelines updated",
+            "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
+            "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+            "targets":["special:all"],
+            "enabled":false,
+            "system":false,
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+          }
+        ]
+      }
+    }
+---
+description: Delete a rule
+method: DELETE
+url: /api/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteRule",
+      "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
+      "result":"success",
+      "data":{
+        "rules":[
+          {
+            "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
+            "displayName": "Security policy updated",
+            "categoryId":"category1",
+            "shortDescription": "Baseline applying CIS guidelines updated",
+            "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
+            "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+            "targets":["special:all"],
+            "enabled":false,
+            "system":false,
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+          }
+        ]
+      }
+    }
+---
+description: Get a missing rule
+method: GET
+url: /api/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
+response:
+  code: 500
+  content: >-
+    {
+      "action":"ruleDetails",
+      "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
+      "result":"error",
+      "errorDetails":"Could not get Rule 0c1713ae-cb9d-4f7b-abda-ca38c5d643ea details cause is:Could not find Rule 0c1713ae-cb9d-4f7b-abda-ca38c5d643ea."
+    }
+---
+description: Create a category
+method: PUT
+url: /api/rules/categories
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "parent": "rootRuleCategory",
+    "name": "category 2",
+    "id": "d882961b-279a-4ba5-b755-5198eaf00d35"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createRuleCategory",
+      "id":"d882961b-279a-4ba5-b755-5198eaf00d35",
+      "result":"success",
+      "data":{
+        "ruleCategories":
+          {
+            "id":"d882961b-279a-4ba5-b755-5198eaf00d35",
+            "name": "category 2",
+            "description":"",
+            "parent": "rootRuleCategory",
+            "categories":[],
+            "rules":[]
+          }
+      }
+    }
+---
+description: Update a category
+method: POST
+url: /api/rules/categories/d882961b-279a-4ba5-b755-5198eaf00d35
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "parent": "category1",
+    "name": "category 2 update",
+    "description": "category 2"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateRuleCategory",
+      "id":"d882961b-279a-4ba5-b755-5198eaf00d35",
+      "result":"success",
+      "data":{
+        "ruleCategories":
+          {
+            "id":"d882961b-279a-4ba5-b755-5198eaf00d35",
+            "name": "category 2 update",
+            "description":"category 2",
+            "parent": "category1",
+            "categories":[],
+            "rules":[]
+          }
+      }
+    }
+---
+description: Get rule tree
+method: GET
+url: /api/rules/tree
+response:
+  code: 200
+  content: >-
+    {
+      "action":"getRuleTree",
+      "result":"success",
+      "data":{
+        "ruleCategories":{
+          "id":"rootRuleCategory",
+          "name":"Rules",
+          "description":"This is the main category of Rules",
+          "parent":"rootRuleCategory",
+          "categories":[
+            {
+              "id":"category1",
+              "name":"Category 1",
+              "description":"description of category 1",
+              "parent":"rootRuleCategory",
+              "categories":[
+              {
+                  "id":"d882961b-279a-4ba5-b755-5198eaf00d35",
+                  "name":"category 2 update",
+                  "description":"category 2",
+                  "parent":"category1",
+                  "categories":[],
+                  "rules":[]
+                }
+              ],
+              "rules":[]
+            }
+          ],
+          "rules":[
+            {
+              "id":"208716db-2675-43b9-ab57-bfbab84346aa",
+              "displayName":"50-rule-technique-ncf",
+              "categoryId":"rootRuleCategory",
+              "shortDescription":"ncf technique rule",
+              "longDescription":"",
+              "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+              "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
+              "enabled":true,
+              "system":false,
+              "tags":[{"datacenter":"Paris"},{"serverType":"webserver"}]
+            },{
+              "id":"00000000-cb9d-4f7b-abda-ca38c5d643ea",
+              "displayName":"clone from api of 50-rule-technique-ncf",
+              "categoryId":"rootRuleCategory",
+              "shortDescription":"not and ncf technique rule",
+              "longDescription":"Some long description",
+              "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+              "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
+              "enabled":true,
+              "system":false,
+              "tags":[{"customer":"MyCompany"}]
+            },{
+              "id":"rulecopyGitFile",
+              "displayName":"90-copy-git-file",
+              "categoryId":"rootRuleCategory",
+              "shortDescription":"ncf technique rule",
+              "longDescription":"",
+              "directives":["directive-copyGitFile"],
+              "targets":["special:all"],
+              "enabled":true,
+              "system":false,
+              "tags":[]
+            },{
+              "id":"rule1",
+              "displayName":"10.Global configuration for all nodes",
+              "categoryId":"rootRuleCategory",
+              "shortDescription":"global config for all nodes",
+              "longDescription":"",
+              "directives":["directive1"],
+              "targets":["special:all"],
+              "enabled":true,
+              "system":false,
+              "tags":[]
+            },{
+              "id":"ff44fb97-b65e-43c4-b8c2-000000000000",
+              "displayName":"99-rule-technique-std-lib",
+              "categoryId":"rootRuleCategory",
+              "shortDescription":"updated copy of default rule",
+              "longDescription":"",
+              "directives":["99f4ef91-537b-4e03-97bc-e65b447514cc"],
+              "targets":["special:all"],
+              "enabled":true,
+              "system":false,
+              "tags":[]
+            },{
+              "id":"rule2",
+              "displayName":"50.Deploy PLOP STACK",
+              "categoryId":"rootRuleCategory",
+              "shortDescription":"global config for all nodes",
+              "longDescription":"",
+              "directives":["directive2"],
+              "targets":["special:all"],
+              "enabled":true,
+              "system":false,
+              "tags":[]
+            },{
+              "id":"ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
+              "displayName":"60-rule-technique-std-lib",
+              "categoryId":"rootRuleCategory",
+              "shortDescription":"default rule",
+              "longDescription":"",
+              "directives":["16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
+              "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "99f4ef91-537b-4e03-97bc-e65b447514cc"],
+              "targets":["special:all"],
+              "enabled":true,
+              "system":false,
+              "tags":[]
+            }
+          ]
+        }
       }
     }

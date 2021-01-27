@@ -560,11 +560,12 @@ final case class RestExtractorService (
   def extractRuleCategory (params : Map[String,List[String]]) : Box[RestRuleCategory] = {
 
     for {
-      name        <- extractOneValue(params,"name")(toMinimalSizeString(3))
+      name        <- extractOneValue(params, "name")(toMinimalSizeString(3))
       description <- extractOneValue(params, "description")()
-      parent      <- extractOneValue(params,"parent")(toRuleCategoryId)
+      parent      <- extractOneValue(params, "parent")(toRuleCategoryId)
+      id          <- extractOneValue(params, "id")(toRuleCategoryId)
     } yield {
-      RestRuleCategory(name, description, parent)
+      RestRuleCategory(name, description, parent, id)
     }
   }
 
@@ -814,8 +815,9 @@ final case class RestExtractorService (
       name        <- extractJsonString(json, "name", toMinimalSizeString(3))
       description <- extractJsonString(json, "description")
       parent      <- extractJsonString(json, "parent", toRuleCategoryId)
+      id          <- extractJsonString(json, "id", toRuleCategoryId)
     } yield {
-      RestRuleCategory(name, description, parent)
+      RestRuleCategory(name, description, parent, id)
     }
   }
 
@@ -823,22 +825,23 @@ final case class RestExtractorService (
   // of {key1,value1 ... keyN,valueN}
 
  private[this] def extractTagsFromJson(value:JValue): Box[Option[Tags]] = {
-    implicit val formats = DefaultFormats
-    for {
-      jobjects <- Box(value.extractOpt[List[JObject]]) ?~! s"Invalid JSON serialization for Tags ${value}"
-      // be careful, we need to use JObject.obj to get the list even if there is duplicated keys,
-      // which would be removed with JObject.values
-      pairs    <- Control.sequence(jobjects) { o => Control.sequence(o.obj) { case JField(key, v) =>
-        v match {
-          case JString(s) if(s.nonEmpty) => Full((key, s))
-          case _                         => Failure(s"Cannot parse value '${v}' as a valid tag value for tag with name '${key}'")
+   implicit val formats = DefaultFormats
+   if(value == JNothing) Full(None) // missing tag in json means user doesn't want to update them
+   else for {
+     jobjects <- Box(value.extractOpt[List[JObject]]) ?~! s"Invalid JSON serialization for Tags ${value}"
+     // be careful, we need to use JObject.obj to get the list even if there is duplicated keys,
+     // which would be removed with JObject.values
+     pairs    <- Control.sequence(jobjects) { o => Control.sequence(o.obj) { case JField(key, v) =>
+       v match {
+         case JString(s) if(s.nonEmpty) => Full((key, s))
+         case _                         => Failure(s"Cannot parse value '${v}' as a valid tag value for tag with name '${key}'")
 
-        }
-      }}
-    } yield {
-      val tags = pairs.flatten
-      Some(Tags(tags.map{case(k,v) => Tag(TagName(k),TagValue(v))}.toSet))
-    }
+       }
+     }}
+   } yield {
+     val tags = pairs.flatten
+     Some(Tags(tags.map{case(k,v) => Tag(TagName(k),TagValue(v))}.toSet))
+   }
   }
 
 

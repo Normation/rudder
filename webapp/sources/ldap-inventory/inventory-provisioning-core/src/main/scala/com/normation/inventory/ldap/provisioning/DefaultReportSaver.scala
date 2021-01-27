@@ -44,18 +44,9 @@ import com.normation.inventory.services.provisioning._
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.inventory.ldap.core._
-import com.normation.ldap.ldif.LDIFNoopChangeRecord
-import com.normation.ldap.sdk.LDAPEntry
-import com.normation.ldap.sdk.LDAPIOResult.LDAPIOResult
-import com.normation.ldap.sdk.LDAPRudderError
-import com.normation.ldap.sdk.LDAPRudderError.FailureResult
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.zio._
-import com.unboundid.ldap.sdk.AddRequest
-import com.unboundid.ldap.sdk.ModifyRequest
-import com.unboundid.ldap.sdk.ResultCode
 import zio._
-import zio.syntax._
 
 /**
  * Post-commit convention:

@@ -191,7 +191,7 @@ class RuleApi(
         , req
         , s"Could not fetch Rule category tree"
         , "ruleCategories"
-      ) ("GetRuleTree")
+      ) ("getRuleTree")
     }
   }
 
@@ -258,26 +258,22 @@ class RuleApi(
     val schema = API.CreateRuleCategory
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val id = RuleCategoryId(uuidGen.newUuid)
-      val action = if(req.json_?) {
+      val restData = if(req.json_?) {
         for {
           json <- req.json
           cat  <- restExtractor.extractRuleCategory(json)
         } yield {
-          serviceV6.createCategory(id, cat) _
+          cat
         }
-      } else {
-        for {
-          restCategory <- restExtractor.extractRuleCategory(req.params)
-        } yield {
-          serviceV6.createCategory(id, restCategory) _
-        }
-      }
+      } else { restExtractor.extractRuleCategory(req.params) }
+      val id = restData.map(_.id).toOption.flatten.getOrElse(RuleCategoryId(uuidGen.newUuid))
+      val action = restData.map(cat => serviceV6.createCategory(cat, () => id) _ )
+
       actionResponse(
           action
         , req
         , s"Could not create Rule category"
-        , Some(id.value)
+        , Some(id.value) // I'm not sure it's relevant to give that on creation
         , authzToken.actor
         , "ruleCategories"
       ) ("createRuleCategory")
@@ -544,9 +540,10 @@ class RuleApiService6 (
     }
   }.toBox
 
-  def createCategory(id : RuleCategoryId, restData: RestRuleCategory)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def createCategory(restData: RestRuleCategory, defaultId: () => RuleCategoryId)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
-      update   <- restData.create(id)
+      name     <- restData.name.notOptional("Could not create Rule Category, cause name is not defined").toBox
+      update   =  RuleCategory(restData.id.getOrElse(defaultId()), name, restData.description.getOrElse(""), Nil)
       parent   =  restData.parent.getOrElse(RuleCategoryId("rootRuleCategory"))
       _        <- writeRuleCategory.create(update,parent, modId, actor, reason).toBox
       category <- getCategoryInformations(update,parent,MinimalDetails)
