@@ -90,9 +90,10 @@ final case class APIChangeRequestInfo (
 }
 
 final case class RestRuleCategory(
-      name : Option[String] = None
-    , description : Option[String] = None
-    , parent : Option[RuleCategoryId] = None
+      name       : Option[String] = None
+    , description: Option[String] = None
+    , parent     : Option[RuleCategoryId] = None
+    , id         : Option[RuleCategoryId] = None
   ) {
 
   def update(ruleCategory:RuleCategory) = {
@@ -102,23 +103,6 @@ final case class RestRuleCategory(
         name        = updateName
       , description = updateDescription
     )
-  }
-
-  def create(id : RuleCategoryId) : Box[RuleCategory]= {
-    name match {
-      case Some(name) =>
-        Full(
-          RuleCategory(
-              id
-            , name
-            , description.getOrElse("")
-            , Nil
-          )
-
-        )
-        case None =>
-          Failure("Could not create Rule Category, cause name is not defined")
-      }
   }
 }
 
@@ -298,7 +282,7 @@ final case class RestRule(
     , directives       : Option[Set[DirectiveId]] = None
     , targets          : Option[Set[RuleTarget]]  = None
     , enabled          : Option[Boolean]          = None
-    , tags             : Option[Tags]              = None
+    , tags             : Option[Tags]             = None
   ) {
 
     val onlyName = name.isDefined           &&

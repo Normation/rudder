@@ -77,6 +77,7 @@ import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import org.joda.time.format.ISODateTimeFormat
 
+import scala.annotation.tailrec
 import scala.collection.SortedMap
 
 /*
@@ -627,9 +628,9 @@ class MockDirectives(mockTechniques: MockTechniques) {
   {
     val modId = ModificationId(s"init directives in lib")
     val actor = EventActor("test user")
-    ZIO.foreach(directives.all) { case (t, list) =>
+    ZIO.foreach_(directives.all) { case (t, list) =>
       val at = ActiveTechniqueId(t.id.name.value)
-      ZIO.foreach(list) { d =>
+      ZIO.foreach_(list) { d =>
         if(d.isSystem) {
           directiveRepo.saveSystemDirective(at, d, modId, actor, None)
         } else {
@@ -648,16 +649,84 @@ class MockRules() {
       RuleCategoryId("rootRuleCategory")
     , "Rules"
     , "This is the main category of Rules"
-    , Nil
+    , RuleCategory(RuleCategoryId("category1"), "Category 1", "description of category 1", Nil) :: Nil
     , true
   )
 
-  val ruleCategoryRepo = new RoRuleCategoryRepository {
-    val categories = Ref.make(Map[RuleCategoryId, RuleCategory]()).runNow
-    override def get(id: RuleCategoryId): IOResult[RuleCategory] = {
-      categories.get.flatMap(_.get(id).notOptional(s"category with id '${id.value}' not found"))
+  object ruleCategoryRepo extends RoRuleCategoryRepository with WoRuleCategoryRepository {
+
+    import com.softwaremill.quicklens._
+
+    // returns (parents, rule) if found
+    def recGet(root: RuleCategory, id: RuleCategoryId) : Option[(List[RuleCategory], RuleCategory)] = {
+      if(root.id == id) Some((Nil, root))
+      else root.childs.foldLeft(Option.empty[(List[RuleCategory], RuleCategory)]) { case (found, cat) =>
+        found match {
+          case Some(x) => Some(x)
+          case None    => recGet(cat, id).map { case (p, r) => (root :: p, r) }
+        }
+      }
     }
-    override def getRootCategory(): IOResult[RuleCategory] = rootRuleCategory.succeed
+
+    // apply modification for each rule
+    @tailrec
+    def recUpdate(toAdd: RuleCategory, parents: List[RuleCategory]): RuleCategory = {
+      parents match {
+        case Nil     => toAdd
+        case p :: pp =>
+          recUpdate(
+              p.modify(_.childs).using(children => toAdd :: children.filterNot(_.id == toAdd.id))
+            , pp
+          )
+      }
+    }
+
+    def inDelete(root: RuleCategory, id: RuleCategoryId): RuleCategory = {
+      recGet(root, id) match {
+        case Some((p :: pp, x)) => recUpdate(p.modify(_.childs).using(_.filterNot(_.id == id)), pp.reverse)
+        case _                  => root
+      }
+    }
+
+    val categories = RefM.make(rootRuleCategory).runNow
+
+    override def get(id: RuleCategoryId): IOResult[RuleCategory] = {
+      categories.get.flatMap(c => recGet(c, id).map(_._2).notOptional(s"category with id '${id.value}' not found"))
+    }
+    override def getRootCategory(): IOResult[RuleCategory] = categories.get
+
+    override def create(that: RuleCategory, into: RuleCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[RuleCategory] = {
+      categories.update(cats => recGet(cats, into) match {
+        case None                    => Inconsistency(s"Error: missing parent category '${into.value}'").fail
+        case Some((parents, parent)) => recGet(cats, that.id) match {
+          case Some((pp, p)) => Inconsistency(s"Error: category already exists '${(p :: pp.reverse).map(_.id.value)}'").fail
+          // create in parent
+          case None          => recUpdate(that, parent :: parents.reverse).succeed
+        }
+      }).map(_ => that)
+    }
+
+    override def updateAndMove(that: RuleCategory, into: RuleCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[RuleCategory] = {
+      categories.update(cats =>
+        recGet(cats, that.id) match {
+          case None => Inconsistency(s"Category '${that.id.value}' not found, can't move it").fail
+          case Some(_) => // ok, move it
+            recGet(cats, into) match {
+              case None => Inconsistency(s"Parent category '${into.value}' not found, can't move ${that.id.value} into it").fail
+              case Some((pp, p)) =>
+                val pp2 = pp.map(inDelete(_, that.id))
+                val p2 = inDelete(p, that.id)
+                recUpdate(p2.modify(_.childs).using(children => that :: children.filterNot(_.id == that.id)), pp2.reverse).succeed
+            }
+    }
+      ).map(_ => that)
+    }
+
+    override def delete(category: RuleCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty: Boolean): IOResult[RuleCategoryId] = {
+      categories.update(cats =>
+        inDelete(cats, category).succeed
+      ).map(_ => category)
+    }
   }
 
   object rules {
