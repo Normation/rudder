@@ -25,17 +25,19 @@
 
       <div id="directiveFilter" ng-controller="filterTagCtrl" ng-cloak>
         <div class="header-filter">
-          <div class="input-group search-addon main-filter">
-            <div class="input-group-btn">
-              <button type="button" class="btn btn-sm btn-default" aria-label="Bold" onclick="toggleTree('#activeTechniquesTree', this);">
-                <span class="fa fa-folder fa-folder-open"></span>
-              </button>
-            </div>
-            <input class="form-control input-sm" placeholder="Filter" id="treeSearch" ng-model="searchStr" ng-keydown="refuseEnter($event)" ng-keyup="searchTree('#activeTechniquesTree')">
-            <div class="input-group-btn">
-              <button type="button" class="btn btn-default btn-sm" aria-label="Bold" ng-click="clearSearchFieldTree('#activeTechniquesTree');" >
-                <span class="fa fa-times"></span>
-              </button>
+          <div class="filter-auto-width">
+            <div class="input-group search-addon main-filter">
+              <div class="input-group-btn">
+                <button type="button" class="btn btn-sm btn-default" aria-label="Bold" onclick="toggleTree('#activeTechniquesTree', this);">
+                  <span class="fa fa-folder fa-folder-open"></span>
+                </button>
+              </div>
+              <input class="form-control input-sm" placeholder="Filter" id="treeSearch" ng-model="searchStr" ng-keydown="refuseEnter($event)" ng-keyup="searchTree('#activeTechniquesTree')">
+              <div class="input-group-btn">
+                <button type="button" class="btn btn-default btn-sm" aria-label="Bold" ng-click="clearSearchFieldTree('#activeTechniquesTree');" >
+                  <span class="fa fa-times"></span>
+                </button>
+              </div>
             </div>
           </div>
           <button class="btn btn-default more-filters" onclick="$('.filters-container').toggleClass('hidden');"></button>
