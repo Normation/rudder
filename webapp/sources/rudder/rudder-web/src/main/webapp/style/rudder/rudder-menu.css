@@ -634,6 +634,9 @@ ul.graph-legend > li.legend:hover{
 
 /* ----- </DASHBOARD>  ----- */
 /* -- <NAVBAR>  ------------ */
+#rudder-navbar {
+  display: flex;
+}
 .skin-yellow .sidebar-menu>li.footer>span{
   padding: 12px 5px 12px 15px;
   display: block;
