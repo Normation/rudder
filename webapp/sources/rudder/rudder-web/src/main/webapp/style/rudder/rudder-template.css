@@ -166,6 +166,10 @@
   margin: 10px 0;
   display: flex;
 }
+.rudder-template .template-sidebar .sidebar-header .header-filter .filter-auto-width{
+  flex: 1;
+  display: flex;
+}
 .rudder-template .template-sidebar .sidebar-header .header-filter .main-filter{
   flex: 1;
   margin-bottom: 0;
