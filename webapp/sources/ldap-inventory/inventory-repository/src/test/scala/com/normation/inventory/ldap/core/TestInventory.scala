@@ -435,8 +435,8 @@ class TestInventory extends Specification {
     }
 
     "Purge one unreferenced software with the SoftwareService" in {
-      val purgedSoftwares = softwareService.deleteUnreferencedSoftware().either.runNow
-      purgedSoftwares must beEqualTo(Right(1))
+      val purgedSoftwares = softwareService.deleteUnreferencedSoftware().runNow
+      purgedSoftwares must beEqualTo(1)
     }
   }
 

@@ -180,7 +180,6 @@ class WriteOnlySoftwareDAOImpl(
    , ldap        : LDAPConnectionProvider[RwLDAPConnection]
 ) extends WriteOnlySoftwareDAO {
 
-
   def deleteSoftwares(softwareIds: Seq[SoftwareUuid], batchSize: Int = 1000): IOResult[Unit] = {
     val total = softwareIds.size
     for {

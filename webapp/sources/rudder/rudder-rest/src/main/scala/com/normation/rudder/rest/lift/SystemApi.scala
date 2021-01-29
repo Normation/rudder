@@ -80,13 +80,11 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
 import com.normation.zio._
-import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.inventory.ldap.core.SoftwareService
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.RestDataSerializer
 import net.liftweb.json.JsonAST.JArray
 import zio._
-import zio.syntax._
 
 class SystemApi(
     restExtractorService : RestExtractorService
@@ -524,9 +522,7 @@ class SystemApiService13(
     implicit val prettify = params.prettify
 
     // create it an async daemon to execute and handle error
-    softwareService.deleteUnreferencedSoftware().catchAll(err =>
-      InventoryProcessingLogger.error(s"Error when puring unreferenced software: ${err.fullMsg}").succeed
-    ).forkDaemon.runNow
+    softwareService.deleteUnreferencedSoftware().forkDaemon.runNow
 
     RestUtils.toJsonResponse(None, JArray(List("Purge of unreference software started. More information in /var/log/rudder/webapp/ logs")))
   }
