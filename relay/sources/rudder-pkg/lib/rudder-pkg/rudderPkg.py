@@ -35,6 +35,11 @@ def install_file(package_files, version, exit_on_error=True):
             if exit_on_error:
                 exit(1)
         if exist:
+            short_name = metadata['name'].replace("rudder-plugin-", "")
+            # These don't have upgrade scripts for now
+            if short_name.startswith("cis-") or short_name == "openscap":
+                logger.info("Skipping update, this package cannot be updated")
+                break
             logger.info("The package is already installed, I will upgrade it.")
         script_dir = utils.extract_scripts(metadata, package_file)
         utils.run_script("preinst", script_dir, exist, exit_on_error=exit_on_error)
