@@ -319,7 +319,7 @@ class RuleApiService2 (
         , actor
         , reason
       )
-      id <- workflowLevelService.getWorkflowService().startWorkflow(cr, actor, None)
+      id <- workflow.startWorkflow(cr, actor, None)
     } yield {
       (workflow.needExternalValidation(), id)
     }
