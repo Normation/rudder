@@ -313,7 +313,7 @@ pub struct Parameter<'src> {
 
 impl<'src> Parameter<'src> {
     pub fn from_pparameter(p: PParameter<'src>, default: &Option<Constant<'src>>) -> Result<Self> {
-        let type_ = Type::from_ptype(p.ptype, Vec::new())?;
+        let type_ = Type::from_ptype(p.ptype, Vec::new());
         if let Some(val) = default {
             if type_ != Type::from_constant(val) {
                 fail!(

@@ -182,18 +182,30 @@ impl<'src> IR1<'src> {
             let PVariableDef {
                 metadata,
                 name,
+                type_,
                 value,
             } = variable;
             match ComplexValue::from_pcomplex_value(&self.enum_list, context, value) {
                 Err(e) => self.errors.push(e),
                 Ok(val) => match Type::from_complex_value(&val) {
                     Err(e) => self.errors.push(e),
-                    Ok(type_) => match context.add_variable_declaration(name, type_) {
-                        Err(e) => self.errors.push(e),
-                        Ok(()) => {
-                            self.variable_definitions.insert(name, val);
+                    Ok(deduced_type) => {
+                        let explicit_type = Type::from_ptype(type_, Vec::new());
+                        // first check a type was defined since it is optional and from_ptype turns None into String.
+                        if type_.is_some() && deduced_type.to_string() != explicit_type.to_string()
+                        {
+                            self.errors.push(err!(
+                                name,
+                                "Explicitly declared type ('{}') differs from contents implicit type ('{}').", explicit_type, deduced_type
+                            ))
                         }
-                    },
+                        match context.add_variable_declaration(name, deduced_type) {
+                            Err(e) => self.errors.push(e),
+                            Ok(()) => {
+                                self.variable_definitions.insert(name, val);
+                            }
+                        }
+                    }
                 },
             }
         }
@@ -231,13 +243,10 @@ impl<'src> IR1<'src> {
                 sub_elts,
                 type_,
             } = variable;
-            match Type::from_ptype(type_, sub_elts) {
-                Ok(var_type) => {
-                    if let Err(e) = context.add_variable_declaration(name, var_type) {
-                        self.errors.push(e);
-                    }
-                }
-                Err(e) => self.errors.push(e),
+            if let Err(e) =
+                context.add_variable_declaration(name, Type::from_ptype(type_, sub_elts))
+            {
+                self.errors.push(e);
             }
         }
         for variable in cond_var {

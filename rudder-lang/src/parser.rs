@@ -841,6 +841,7 @@ fn presource_ref(i: PInput) -> PResult<(Token, Vec<PValue>)> {
 pub struct PVariableDef<'src> {
     pub metadata: Vec<PMetadata<'src>>,
     pub name: Token<'src>,
+    pub type_: Option<PType<'src>>,
     pub value: PComplexValue<'src>,
 }
 fn pvariable_definition(i: PInput) -> PResult<PVariableDef> {
@@ -849,10 +850,10 @@ fn pvariable_definition(i: PInput) -> PResult<PVariableDef> {
             metadata: pmetadata_list;
             _let: estag("let");
             name: pidentifier;
-            // TODO a type could be added here (but mostly useless since there is a value)
+            type_: opt(preceded(sp(etag(":")), ptype));
             _t: etag("=");
             value: or_fail(pcomplex_value, || PErrorKind::ExpectedKeyword("value"));
-        } => PVariableDef { metadata, name, value }
+        } => PVariableDef { metadata, name, type_, value }
     )(i)
 }
 
@@ -914,7 +915,7 @@ fn pvariable_declaration(i: PInput) -> PResult<PVariableDecl> {
             _identifier: estag("let");
             name: or_fail(pidentifier, || PErrorKind::ExpectedKeyword("namespace"));
             sub_elts: many0(preceded(sp(etag(".")), pidentifier));
-            type_: opt(preceded(sp(etag(":")),ptype));
+            type_: opt(preceded(sp(etag(":")), ptype));
         } => PVariableDecl { metadata, name, sub_elts, type_ }
     )(i)
 }

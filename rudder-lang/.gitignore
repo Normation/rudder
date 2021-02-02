@@ -1,6 +1,7 @@
 /target/
 **/*.rs.bk
 *.iml
+/.vscode
 /.idea
 /tests/test_files/tmp
 /tests/tmp/

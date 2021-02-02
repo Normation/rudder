@@ -1159,6 +1159,7 @@ fn test_variable_definition() {
             PVariableDef {
                 metadata: Vec::new(),
                 name: "my_var".into(),
+                type_: None,
                 value: map_res(pcomplex_value, "\"value\"").unwrap().1,
             }
         ))
@@ -1170,6 +1171,7 @@ fn test_variable_definition() {
             PVariableDef {
                 metadata: Vec::new(),
                 name: "my_var".into(),
+                type_: None,
                 value: map_res(pcomplex_value, "\"value\"").unwrap().1,
             }
         ))
@@ -1181,6 +1183,7 @@ fn test_variable_definition() {
             PVariableDef {
                 metadata: Vec::new(),
                 name: "my_var".into(),
+                type_: None,
                 value: map_res(pcomplex_value, "\"val\nue\"").unwrap().1,
             }
         ))
@@ -1308,6 +1311,7 @@ fn test_pstatement() {
             PStatement::VariableDefinition(PVariableDef {
                 metadata: Vec::new(),
                 name: "my_var".into(),
+                type_: None,
                 value: map_res(pcomplex_value, "\"string\"").unwrap().1,
             })
         ))
@@ -1320,6 +1324,7 @@ fn test_pstatement() {
             PStatement::VariableDefinition(PVariableDef {
                 metadata: Vec::new(),
                 name: "my_var".into(),
+                type_: None,
                 value: map_res(pcomplex_value, "a=~bc\n").unwrap().1,
             })
         ))

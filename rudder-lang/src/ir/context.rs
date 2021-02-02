@@ -42,8 +42,8 @@ impl<'src> Display for Type<'src> {
 
 impl<'src> Type<'src> {
     /// Create a type from parsed type
-    pub fn from_ptype(type_: Option<PType<'src>>, mut sub_elts: Vec<Token<'src>>) -> Result<Self> {
-        Ok(if sub_elts.len() == 0 {
+    pub fn from_ptype(type_: Option<PType<'src>>, mut sub_elts: Vec<Token<'src>>) -> Self {
+        if sub_elts.len() == 0 {
             match type_ {
                 None => Type::String, // default type is String
                 Some(PType::String) => Type::String,
@@ -57,11 +57,11 @@ impl<'src> Type<'src> {
         } else {
             // this is a struct sub part
             let first = sub_elts.remove(0);
-            let sub = Type::from_ptype(type_, sub_elts)?;
+            let sub = Type::from_ptype(type_, sub_elts);
             let mut map = HashMap::new();
             map.insert(String::from(*first), sub);
             Type::Struct(map)
-        })
+        }
     }
 
     /// Find the type of a given value
@@ -255,8 +255,7 @@ mod tests {
                 sub_elts,
                 type_,
             } = pvariable_declaration_t(input);
-            let type_ = Type::from_ptype(type_, sub_elts).unwrap();
-            context.add_variable_declaration(name, type_)
+            context.add_variable_declaration(name, Type::from_ptype(type_, sub_elts))
         }
 
         let mut context = VarContext::new(None);

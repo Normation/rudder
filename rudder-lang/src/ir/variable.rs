@@ -24,10 +24,12 @@ impl<'src> VariableDef<'src> {
         let PVariableDef {
             metadata,
             name,
+            type_,
             value,
         } = var;
         let value = ComplexValue::from_pcomplex_value(enum_list, &context, value)?;
-        value.context_check(context)?;
+        // what is this function supposed to do?
+        // value.context_check(context)?;
         context.add_variable_declaration(name, Type::from_complex_value(&value)?)?;
         let (error, metadata) = create_metadata(metadata);
         if !error.is_empty() {
