@@ -214,6 +214,21 @@ fn penum_alias(i: PInput) -> PResult<PEnumAlias> {
     )(i)
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum PExpression<'src> {
+    Enum(PEnumExpression<'src>),
+    Variable(PVariableExpression<'src>),
+}
+fn pexpression(i: PInput) -> PResult<PExpression> {
+    alt((
+        // check enum first since a single identifier is an enum item (which includes boolean), it must never be a variable
+        // bc a lone variable with no operation is confusing.
+        // variables in expressions should always be surrounded by operators.
+        map(penum_expression, PExpression::Enum),
+        map(pvariable_expression, PExpression::Variable),
+    ))(i)
+}
+
 /// An enum expression is used as a condition in a case expression.
 /// This is a boolean expression based on enum comparison.
 /// A comparison check if the variable is of the right type and contains
@@ -315,12 +330,17 @@ fn enum_range_or_item(i: PInput) -> PResult<RangeOrItem> {
 }
 fn enum_atom(i: PInput) -> PResult<PEnumExpressionPart> {
     alt((
-        delimited_parser("(", penum_expression_part, ")"),
+        wsequence!(
+            {
+                _x: peek(delimited_parser("(", penum_expression_part, ")"));
+                expr: delimited_parser("(", penum_expression_part, ")");
+            } => expr
+        ),
         wsequence!(
             {
                 var: pvariable_identifier;
                 _x: etag("=~");
-                value: or_fail(enum_range_or_item, || PErrorKind::InvalidEnumExpression);
+                value: or_fail(enum_range_or_item, || PErrorKind::Invalid("enum expression"));
             } => {
                 match value {
                     RangeOrItem::Range(name,left,right,dots) => PEnumExpressionPart::RangeCompare(Some(var), name, left, right, dots),
@@ -332,7 +352,7 @@ fn enum_atom(i: PInput) -> PResult<PEnumExpressionPart> {
             {
                 var: pvariable_identifier;
                 _x: etag("!~");
-                value: or_fail(enum_range_or_item, || PErrorKind::InvalidEnumExpression);
+                value: or_fail(enum_range_or_item, || PErrorKind::Invalid("enum expression"));
             } => {
                 match value {
                     RangeOrItem::Range(name,left,right,dots) => PEnumExpressionPart::Not(Box::new(PEnumExpressionPart::RangeCompare(Some(var), name, left, right, dots))),
@@ -355,7 +375,7 @@ fn enum_or_expression(i: PInput) -> PResult<PEnumExpressionPart> {
             _x: etag("|");
             right: or_fail(
                        alt((enum_or_expression, enum_and_expression, enum_not_expression, enum_atom)),
-                       || PErrorKind::InvalidEnumExpression);
+                       || PErrorKind::Invalid("enum expression"));
         } => PEnumExpressionPart::Or(Box::new(left), Box::new(right))
     )(i)
 }
@@ -366,7 +386,7 @@ fn enum_and_expression(i: PInput) -> PResult<PEnumExpressionPart> {
             _x: etag("&");
             right: or_fail(
                        alt((enum_and_expression, enum_not_expression, enum_atom)),
-                       || PErrorKind::InvalidEnumExpression);
+                       || PErrorKind::Invalid("enum expression"));
         } => PEnumExpressionPart::And(Box::new(left), Box::new(right))
     )(i)
 }
@@ -374,8 +394,183 @@ fn enum_not_expression(i: PInput) -> PResult<PEnumExpressionPart> {
     wsequence!(
         {
             _x: etag("!");
-            value: or_fail(enum_atom, || PErrorKind::InvalidEnumExpression);
+            value: or_fail(enum_atom, || PErrorKind::Invalid("enum expression"));
         } => PEnumExpressionPart::Not(Box::new(value))
+    )(i)
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct PVariableExpression<'src> {
+    pub source: Token<'src>,
+    pub expression: PVariableExpressionPart<'src>,
+}
+fn pvariable_expression(i: PInput) -> PResult<PVariableExpression> {
+    pexpression_part(i).map(|(rest, expression)| {
+        let source = get_parsed_context(i, i, rest);
+        (rest, PVariableExpression { source, expression })
+    })
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum PVariable<'src> {
+    // PEnumExpression must not be handled because
+    PValue(PValue<'src>),
+    PIdentifier(Token<'src>),
+}
+fn pexpr_variable(i: PInput) -> PResult<PVariable> {
+    alt((
+        map(pidentifier, |identifier| PVariable::PIdentifier(identifier)),
+        // Be careful of ordering here
+        map(punescaped_string, |(x, y)| {
+            PVariable::PValue(PValue::String(x, y))
+        }),
+        map(pescaped_string, |(x, y)| {
+            PVariable::PValue(PValue::String(x, y))
+        }),
+        map(pinteger, |(x, y)| PVariable::PValue(PValue::Integer(x, y))),
+        map(pfloat, |(x, y)| PVariable::PValue(PValue::Float(x, y))),
+        map(plist, |list| PVariable::PValue(PValue::List(list))),
+        map(pstruct, |map| PVariable::PValue(PValue::Struct(map))),
+    ))(i)
+}
+
+#[derive(Debug, PartialEq, Clone)]
+#[allow(clippy::large_enum_variant)]
+pub enum PVariableExpressionPart<'src> {
+    // list and struct
+    // implicit: NotIncludes = Not(Includes)
+    Includes(PVariable<'src>, PVariable<'src>),
+
+    // integer and float
+    // includes Smaller (reversed left/right)
+    GreaterOrEqual(PVariable<'src>, PVariable<'src>),
+    Greater(PVariable<'src>, PVariable<'src>),
+
+    // list struct integer float string
+    // explicit & implicit: NotEqual = Not(Equal)
+    Equal(
+        Box<PVariableExpressionPart<'src>>,
+        Box<PVariableExpressionPart<'src>>,
+    ),
+    And(
+        Box<PVariableExpressionPart<'src>>,
+        Box<PVariableExpressionPart<'src>>,
+    ),
+    Or(
+        Box<PVariableExpressionPart<'src>>,
+        Box<PVariableExpressionPart<'src>>,
+    ),
+    Not(Box<PVariableExpressionPart<'src>>),
+
+    // an expression can never be composed of a single Variable, it would be too confusing when it would come to its expected value
+    // since EnumExpression would parse it and handle it first, no need to handle it from here
+    Variable(PVariable<'src>),
+}
+fn pexpression_part(i: PInput) -> PResult<PVariableExpressionPart> {
+    // order matters
+    alt((
+        equal_expression,
+        not_equal_expression,
+        or_expression,
+        and_expression,
+        not_expression,
+        atom,
+    ))(i)
+}
+fn atom(i: PInput) -> PResult<PVariableExpressionPart> {
+    alt((
+        // order matters
+        delimited_parser("(", pexpression_part, ")"),
+        wsequence!(
+            {
+                left: pexpr_variable;
+                _x: etag(">=");
+                right: or_fail(pexpr_variable, || PErrorKind::Invalid("expression (greater or equal)"));
+            } => PVariableExpressionPart::GreaterOrEqual(left, right)
+        ),
+        wsequence!(
+            {
+                left: pexpr_variable;
+                _x: etag(">");
+                right: or_fail(pexpr_variable, || PErrorKind::Invalid("expression (greater)"));
+            } => PVariableExpressionPart::Greater(left, right)
+        ),
+        wsequence!(
+                {
+                    left: pexpr_variable;
+                    _x: etag("<=");
+                    right: or_fail(pexpr_variable, || PErrorKind::Invalid("expression (less or equal)"));
+            } => PVariableExpressionPart::GreaterOrEqual(right, left)
+        ),
+        wsequence!(
+        {
+            left: pexpr_variable;
+            _x: etag("<");
+            right: or_fail(pexpr_variable, || PErrorKind::Invalid("expression (less)"));
+        } => PVariableExpressionPart::Greater(right, left)
+        ),
+        wsequence!(
+            {
+                child: pexpr_variable;
+                _x: etag("in");
+                parent: or_fail(pexpr_variable, || PErrorKind::Invalid("expression (includes)"));
+            } => PVariableExpressionPart::Includes(parent, child)
+        ),
+        map(pexpr_variable, |v| PVariableExpressionPart::Variable(v)),
+    ))(i)
+}
+
+fn equal_expression(i: PInput) -> PResult<PVariableExpressionPart> {
+    wsequence!(
+        {
+            left: alt((and_expression, or_expression, not_expression, atom));
+            _x: etag("==");
+            right: or_fail(
+                       alt((or_expression, and_expression, not_expression, atom)),
+                       || PErrorKind::Invalid("expression (equal)"));
+        } => PVariableExpressionPart::Equal(Box::new(left), Box::new(right))
+    )(i)
+}
+fn not_equal_expression(i: PInput) -> PResult<PVariableExpressionPart> {
+    wsequence!(
+        {
+            left: alt((and_expression, or_expression, not_expression, atom));
+            _x: etag("!=");
+            right: or_fail(
+                       alt((or_expression, and_expression, not_expression, atom)),
+                       || PErrorKind::Invalid("expression (not equal)"));
+        } => PVariableExpressionPart::Not(Box::new(PVariableExpressionPart::Equal(Box::new(left), Box::new(right))))
+    )(i)
+}
+fn or_expression(i: PInput) -> PResult<PVariableExpressionPart> {
+    wsequence!(
+        {
+            left: alt((and_expression, not_expression, atom));
+            _x: etag("|");
+            right: or_fail(
+                       alt((or_expression, and_expression, not_expression, atom)),
+                       || PErrorKind::Invalid("expression (or)"));
+        } => PVariableExpressionPart::Or(Box::new(left), Box::new(right))
+    )(i)
+}
+fn and_expression(i: PInput) -> PResult<PVariableExpressionPart> {
+    wsequence!(
+        {
+            left: alt((not_expression, atom));
+            _x: etag("&");
+            right: or_fail(
+                       alt((and_expression, not_expression, atom)),
+                       || PErrorKind::Invalid("expression (and)"));
+        } => PVariableExpressionPart::And(Box::new(left), Box::new(right))
+    )(i)
+}
+fn not_expression(i: PInput) -> PResult<PVariableExpressionPart> {
+    wsequence!(
+        {
+            _not: etag("!");
+            _eq: not(etag("="));
+            value: or_fail(atom, || PErrorKind::Invalid("expression (not)"));
+        } => PVariableExpressionPart::Not(Box::new(value))
     )(i)
 }
 
@@ -514,20 +709,6 @@ fn pstruct(i: PInput) -> PResult<HashMap<String, PValue>> {
     )(i)
 }
 
-/// Alternative version of pstruct based on "." rather than braces.
-/// Used for the agent
-/// A struct is stored in a HashMap
-// fn pstruct_agent(i: PInput) -> PResult<HashMap<String, PValue>> {
-//     wsequence!(
-//         {
-//             values: separated_list(
-//                         sp(etag(".")),
-//                         pvalue
-//                     );
-//         } => values.into_iter().map(|(k,v)| (k.1,v)).collect()
-//     )(i)
-// }
-
 /// A PType is the type a variable or a parameter can take.
 /// Its only purpose is to be a PValue construction helper
 use std::marker::PhantomData;
@@ -551,6 +732,7 @@ pub enum PValue<'src> {
     Float(Token<'src>, f64),
     Integer(Token<'src>, i64),
     Boolean(Token<'src>, bool),
+    // Expression(PExpression<'src>),
     EnumExpression(PEnumExpression<'src>),
     Struct(HashMap<String, PValue<'src>>),
     List(Vec<PValue<'src>>),
@@ -562,6 +744,7 @@ fn pvalue(i: PInput) -> PResult<PValue> {
         map(pescaped_string, |(x, y)| PValue::String(x, y)),
         map(pinteger, |(x, y)| PValue::Integer(x, y)),
         map(pfloat, |(x, y)| PValue::Float(x, y)),
+        // map(pexpression, PValue::Expression),
         map(penum_expression, PValue::EnumExpression),
         map(plist, PValue::List),
         map(pstruct, PValue::Struct),
@@ -586,23 +769,23 @@ fn ptype(i: PInput) -> PResult<PType> {
 pub struct PComplexValue<'src> {
     pub source: Token<'src>,
     // nested complex values not supported
-    pub cases: Vec<(PEnumExpression<'src>, Option<PValue<'src>>)>,
+    pub cases: Vec<(PExpression<'src>, Option<PValue<'src>>)>,
 }
 /// A single case in a case switch
-fn pvalue_case(i: PInput) -> PResult<(PEnumExpression, Option<PValue>)> {
+fn pvalue_case(i: PInput) -> PResult<(PExpression, Option<PValue>)> {
     alt((
         map(etag("nodefault"), |t| {
             (
-                PEnumExpression {
+                PExpression::Enum(PEnumExpression {
                     source: Token::from(t),
                     expression: PEnumExpressionPart::NoDefault(Token::from(t)),
-                },
+                }),
                 None,
             )
         }),
         wsequence!(
             {
-                expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
+                expr: or_fail(pexpression, || PErrorKind::ExpectedKeyword("enum expression"));
                 _x: ftag("=>");
                 value: or_fail(pvalue, || PErrorKind::ExpectedToken("case statement"));
             } => (expr,Some(value))
@@ -637,10 +820,10 @@ fn pcomplex_value(i: PInput) -> PResult<PComplexValue> {
                 PComplexValue {
                     source,
                     cases: vec![(
-                        PEnumExpression {
+                        PExpression::Enum(PEnumExpression {
                             source: "".into(),
                             expression: PEnumExpressionPart::Default("".into()),
-                        },
+                        }),
                         Some(res),
                     )],
                 },
@@ -980,10 +1163,7 @@ pub enum PStatement<'src> {
     ConditionVariableDefinition(PCondVariableDef<'src>),
     StateDeclaration(PStateDeclaration<'src>),
     //   case keyword, list (condition   ,       then)
-    Case(
-        Token<'src>,
-        Vec<(PEnumExpression<'src>, Vec<PStatement<'src>>)>,
-    ), // keep the pinput since it will be reparsed later
+    Case(Token<'src>, Vec<(PExpression<'src>, Vec<PStatement<'src>>)>), // keep the pinput since it will be reparsed later
     // Stop engine with a final message
     Fail(PValue<'src>),
     // Inform the user of something
@@ -996,20 +1176,20 @@ pub enum PStatement<'src> {
     Noop,
 }
 /// A single case in a case switch
-fn pcase(i: PInput) -> PResult<(PEnumExpression, Vec<PStatement>)> {
+fn pcase(i: PInput) -> PResult<(PExpression, Vec<PStatement>)> {
     alt((
         map(etag("nodefault"), |t| {
             (
-                PEnumExpression {
+                PExpression::Enum(PEnumExpression {
                     source: Token::from(t),
                     expression: PEnumExpressionPart::NoDefault(Token::from(t)),
-                },
+                }),
                 vec![PStatement::Noop],
             )
         }),
         wsequence!(
             {
-                expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
+                expr: or_fail(pexpression, || PErrorKind::ExpectedKeyword("enum expression"));
                 _x: ftag("=>");
                 stmt: or_fail(alt((
                     map(pstatement, |x| vec![x]),
@@ -1046,9 +1226,9 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
             {
                 metadata: pmetadata_list; // metadata is invalid here, check it after the 'if' tag below
                 case: estag("if");
-                expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
+                expr: or_fail(pexpression, || PErrorKind::Invalid("expression"));
                 _x: ftag("=>");
-                stmt: or_fail(pstatement, || PErrorKind::ExpectedKeyword("statement"));
+                stmt: or_fail(pstatement, || PErrorKind::Invalid("statement"));
             } => {
                 // Propagate metadata to the single statement
                 let statement = match stmt {
@@ -1058,11 +1238,17 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
                     },
                     x => x,
                 };
-                PStatement::Case(case.into(), vec![
-                    ( expr, vec![statement] ),
-                    ( PEnumExpression { source:"default".into(), expression: PEnumExpressionPart::Default("default".into()) },
-                      vec![PStatement::Noop])
-                ] )
+                let case_exprs = match expr {
+                    PExpression::Enum(_) => vec![
+                        ( expr, vec![statement] ),
+                        (
+                            PExpression::Enum(PEnumExpression { source:"default".into(), expression: PEnumExpressionPart::Default("default".into()) }),
+                                vec![PStatement::Noop]
+                        )
+                    ],
+                    PExpression::Variable(_) => vec![( expr, vec![statement] )],
+                };
+                PStatement::Case(case.into(), case_exprs)
             }
         ),
         // Flow statements

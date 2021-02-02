@@ -25,7 +25,7 @@ pub enum PErrorKind<I> {
     NomTest(String), // cannot be use outside of tests
     ExpectedKeyword(&'static str), // anywhere (keyword type)
     ExpectedToken(&'static str), // anywhere (expected token)
-    InvalidEnumExpression, // in enum expression
+    Invalid(&'static str), // expression / statement is invalid
     InvalidEscapeSequence, // in string definition
     InvalidFormat,        // in header
     InvalidName(I),       // in identifier expressions (type of expression)
@@ -108,7 +108,7 @@ impl<'src> fmt::Display for PError<PInput<'src>> {
             PErrorKind::NomTest(msg) => format!("Testing only error message, this should never happen {}.\nPlease fill a BUG with context on when this happened!", msg),
             PErrorKind::ExpectedKeyword(s) => format!("The following keyword was expected: '{}'.", s.bright_magenta()),
             PErrorKind::ExpectedToken(s) => format!("The following token was expected '{}'.", s.bright_magenta()),
-            PErrorKind::InvalidEnumExpression => "This enum expression is invalid".to_string(),
+            PErrorKind::Invalid(s) => format!("This {} is invalid", s),
             PErrorKind::InvalidEscapeSequence => "This escape sequence cannot be used in a string".to_string(),
             PErrorKind::InvalidFormat => "Invalid header format, it must contain a single line '@format=x' where x is an integer. Shebang accepted.".to_string(),
             PErrorKind::InvalidName(i) => format!("The identifier is invalid in a {}.", i.fragment().bright_magenta()),

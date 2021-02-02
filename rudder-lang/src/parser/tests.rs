@@ -34,7 +34,7 @@ fn map_err(err: PError<PInput>) -> (&str, PErrorKind<&str>) {
         PErrorKind::NomTest(e) => PErrorKind::NomTest(e),
         PErrorKind::ExpectedKeyword(i) => PErrorKind::ExpectedKeyword(i),
         PErrorKind::ExpectedToken(i) => PErrorKind::ExpectedToken(i),
-        PErrorKind::InvalidEnumExpression => PErrorKind::InvalidEnumExpression,
+        PErrorKind::Invalid(s) => PErrorKind::Invalid(s),
         PErrorKind::InvalidEscapeSequence => PErrorKind::InvalidEscapeSequence,
         PErrorKind::InvalidFormat => PErrorKind::InvalidFormat,
         PErrorKind::InvalidName(i) => PErrorKind::InvalidName(*i.fragment()),
@@ -564,11 +564,190 @@ fn test_penum_expression() {
     );
     assert_eq!(
         map_res(penum_expression, "a=~"),
-        Err(("a=~", PErrorKind::InvalidEnumExpression))
+        Err(("a=~", PErrorKind::Invalid("enum expression")))
     );
     assert_eq!(
         map_res(penum_expression, "a=~b|(c=~d"),
         Err(("(c=~d", PErrorKind::UnterminatedOrInvalid("(")))
+    );
+}
+
+#[test]
+fn test_pexpression() {
+    assert_eq!(
+        map_res(pexpression, "(a =~ hello)"),
+        Ok((
+            "",
+            PExpression::Enum(PEnumExpression {
+                source: "(a =~ hello)".into(),
+                expression: PEnumExpressionPart::Compare(Some("a".into()), None, "hello".into())
+            })
+        ))
+    );
+
+    assert_eq!(
+        map_res(pexpression, "bc"),
+        Ok((
+            "",
+            PExpression::Enum(PEnumExpression {
+                source: "bc".into(),
+                expression: PEnumExpressionPart::Compare(None, None, "bc".into())
+            })
+        ))
+    );
+
+    assert_eq!(
+        map_res(pexpression, "(a == \"hello\")"),
+        Ok((
+            "",
+            PExpression::Variable(PVariableExpression {
+                source: "(a == \"hello\")".into(),
+                expression: PVariableExpressionPart::Equal(
+                    Box::new(PVariableExpressionPart::Variable(PVariable::PIdentifier(
+                        "a".into()
+                    ))),
+                    Box::new(PVariableExpressionPart::Variable(PVariable::PValue(
+                        PValue::String("\"hello\"".into(), "hello".to_owned())
+                    )))
+                )
+            })
+        ))
+    );
+}
+
+#[test]
+fn test_pvariable_expression() {
+    assert_eq!(
+        map_res(pvariable_expression, "!(a == b)"),
+        Ok((
+            "",
+            PVariableExpression {
+                source: "!(a == b)".into(),
+                expression: PVariableExpressionPart::Not(Box::new(PVariableExpressionPart::Equal(
+                    Box::new(PVariableExpressionPart::Variable(PVariable::PIdentifier(
+                        "a".into()
+                    ))),
+                    Box::new(PVariableExpressionPart::Variable(PVariable::PIdentifier(
+                        "b".into()
+                    ))),
+                )))
+            }
+        ))
+    );
+
+    assert_eq!(
+        map_res(pvariable_expression, "!a == b"),
+        Ok((
+            "",
+            PVariableExpression {
+                source: "!a == b".into(),
+                expression: PVariableExpressionPart::Equal(
+                    Box::new(PVariableExpressionPart::Not(Box::new(
+                        PVariableExpressionPart::Variable(PVariable::PIdentifier("a".into()))
+                    ))),
+                    Box::new(PVariableExpressionPart::Variable(PVariable::PIdentifier(
+                        "b".into()
+                    ))),
+                )
+            }
+        ))
+    );
+
+    assert_eq!(
+        map_res(pvariable_expression, "a != b"),
+        Ok((
+            "",
+            PVariableExpression {
+                source: "a != b".into(),
+                expression: PVariableExpressionPart::Not(Box::new(PVariableExpressionPart::Equal(
+                    Box::new(PVariableExpressionPart::Variable(PVariable::PIdentifier(
+                        "a".into()
+                    ))),
+                    Box::new(PVariableExpressionPart::Variable(PVariable::PIdentifier(
+                        "b".into()
+                    ))),
+                )))
+            }
+        ))
+    );
+
+    assert_eq!(
+        map_res(pvariable_expression, "a >= b"),
+        Ok((
+            "",
+            PVariableExpression {
+                source: "a >= b".into(),
+                expression: PVariableExpressionPart::GreaterOrEqual(
+                    PVariable::PIdentifier("a".into()),
+                    PVariable::PIdentifier("b".into()),
+                )
+            }
+        ))
+    );
+
+    assert_eq!(
+        map_res(pvariable_expression, "a <= b"),
+        Ok((
+            "",
+            PVariableExpression {
+                source: "a <= b".into(),
+                expression: PVariableExpressionPart::GreaterOrEqual(
+                    PVariable::PIdentifier("b".into()),
+                    PVariable::PIdentifier("a".into()),
+                )
+            }
+        ))
+    );
+
+    assert_eq!(
+        map_res(pvariable_expression, "b in a"),
+        Ok((
+            "",
+            PVariableExpression {
+                source: "b in a".into(),
+                expression: PVariableExpressionPart::Includes(
+                    PVariable::PIdentifier("a".into()),
+                    PVariable::PIdentifier("b".into()),
+                )
+            }
+        ))
+    );
+
+    assert_eq!(
+        map_res(pvariable_expression, "!b in a"),
+        Ok((
+            "",
+            PVariableExpression {
+                source: "!b in a".into(),
+                expression: PVariableExpressionPart::Not(Box::new(
+                    PVariableExpressionPart::Includes(
+                        PVariable::PIdentifier("a".into()),
+                        PVariable::PIdentifier("b".into()),
+                    )
+                ))
+            }
+        ))
+    );
+
+    assert_eq!(
+        map_res(pvariable_expression, "(!b in a) == true"),
+        Ok((
+            "",
+            PVariableExpression {
+                source: "(!b in a) == true".into(),
+                expression: PVariableExpressionPart::Equal(
+                    Box::new(PVariableExpressionPart::Not(Box::new(
+                        PVariableExpressionPart::Includes(
+                            PVariable::PIdentifier("a".into()),
+                            PVariable::PIdentifier("b".into()),
+                        )
+                    ))),
+                    Box::new(PVariableExpressionPart::Variable(PVariable::PIdentifier(
+                        "true".into()
+                    )))
+                )
+            }
+        ))
     );
 }
 
@@ -775,10 +954,10 @@ fn test_pcomplex_value() {
             PComplexValue {
                 source: src.into(),
                 cases: vec![(
-                    PEnumExpression {
+                    PExpression::Enum(PEnumExpression {
                         source: "".into(),
                         expression: PEnumExpressionPart::Default("".into()),
-                    },
+                    }),
                     Some(PValue::String(
                         "\"\"\"".into(),
                         "This is a string".to_string()
@@ -796,17 +975,17 @@ fn test_pcomplex_value() {
                 source: src.into(),
                 cases: vec![
                     (
-                        PEnumExpression {
+                        PExpression::Enum(PEnumExpression {
                             source: "debian9 ".into(),
                             expression: PEnumExpressionPart::Compare(None, None, "debian9".into()),
-                        },
+                        }),
                         Some(PValue::String("\"".into(), "str".to_string()))
                     ),
                     (
-                        PEnumExpression {
+                        PExpression::Enum(PEnumExpression {
                             source: "debian10 ".into(),
                             expression: PEnumExpressionPart::Compare(None, None, "debian10".into()),
-                        },
+                        }),
                         Some(PValue::String("\"".into(), "str10".to_string()))
                     ),
                 ]
@@ -1338,11 +1517,11 @@ fn test_pstatement() {
                 "case".into(),
                 vec![
                     (
-                        map_res(penum_expression, "ubuntu ").unwrap().1,
+                        map_res(pexpression, "ubuntu ").unwrap().1,
                         vec![map_res(pstatement, "f().g()").unwrap().1]
                     ),
                     (
-                        map_res(penum_expression, "debian ").unwrap().1,
+                        map_res(pexpression, "debian ").unwrap().1,
                         vec![map_res(pstatement, "a().b() ").unwrap().1]
                     ),
                 ]

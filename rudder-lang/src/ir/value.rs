@@ -4,7 +4,7 @@
 use super::{
     context::Type,
     context::VarContext,
-    enums::{EnumExpression, EnumList},
+    enums::{EnumExpression, EnumList, Expression, VariableExpression},
 };
 use crate::{error::*, parser::*};
 use std::{collections::HashMap, convert::TryFrom};
@@ -190,13 +190,10 @@ impl<'src> Value<'src> {
 pub struct ComplexValue<'src> {
     source: Token<'src>,
     // nested complex values not supported
-    cases: Vec<(EnumExpression<'src>, Option<Value<'src>>)>,
+    cases: Vec<(Expression<'src>, Option<Value<'src>>)>,
 }
 impl<'src> ComplexValue<'src> {
-    pub fn new(
-        source: Token<'src>,
-        cases: Vec<(EnumExpression<'src>, Option<Value<'src>>)>,
-    ) -> Self {
+    pub fn new(source: Token<'src>, cases: Vec<(Expression<'src>, Option<Value<'src>>)>) -> Self {
         Self { source, cases }
     }
 
@@ -206,7 +203,12 @@ impl<'src> ComplexValue<'src> {
         pvalue: PComplexValue<'src>,
     ) -> Result<Self> {
         let cases = map_vec_results(pvalue.cases.into_iter(), |(case, value)| {
-            let case = enum_list.canonify_expression(context, case)?;
+            let case = match case {
+                PExpression::Enum(expr) => {
+                    Expression::Enum(enum_list.canonify_expression(context, expr)?)
+                }
+                PExpression::Variable(expr) => unimplemented!(),
+            };
             let value = match value {
                 None => None,
                 Some(v) => Some(Value::from_pvalue(enum_list, context, v)?),
@@ -247,8 +249,28 @@ impl<'src> ComplexValue<'src> {
     }
 
     pub fn verify(&self, enum_list: &EnumList<'src>) -> Result<()> {
+        let mut enum_cases: Vec<(EnumExpression, Option<Value>)> = Vec::new();
+        let mut variable_cases: Vec<(VariableExpression, Option<Value>)> = Vec::new();
+        for (expr, val) in self.cases.clone() {
+            match expr {
+                Expression::Enum(e) => enum_cases.push((e, val)),
+                Expression::Variable(e) => variable_cases.push((e, val)),
+            };
+        }
         // check enums
-        let mut errors = enum_list.evaluate(&self.cases, "TODO".into());
+        let enum_cases = self
+            .cases
+            .iter()
+            .filter_map(|(expr, val)| {
+                if let Expression::Enum(e) = expr {
+                    Some((e.clone(), val.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<(EnumExpression, Option<Value>)>>();
+        let variable_cases = unimplemented!();
+        let mut errors = enum_list.evaluate(&enum_cases, "TODO".into());
         // check type
         let init_val = self
             .first_value()

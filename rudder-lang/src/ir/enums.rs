@@ -5,6 +5,7 @@ use super::{
     context::Type,
     context::VarContext,
     enum_tree::{EnumItem, EnumTree},
+    value::Value,
 };
 use crate::{error::*, parser::*};
 use std::collections::{HashMap, HashSet};
@@ -13,6 +14,77 @@ use toml::Value as TomlValue;
 
 // TODO named item tests
 // TODO aliases tests
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Expression<'src> {
+    Enum(EnumExpression<'src>),
+    Variable(VariableExpression<'src>),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Variable<'src> {
+    Value(Value<'src>),
+    Identifier(Token<'src>),
+}
+
+/// An expression that can be defined using variables and raw rudderlang types
+#[derive(Debug, PartialEq, Clone)]
+pub struct VariableExpression<'src> {
+    pub source: Token<'src>,
+    pub expression: VariableExpressionPart<'src>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum VariableExpressionPart<'src> {
+    // list and struct
+    // implicit: NotIncludes = Not(Includes)
+    Includes(Box<Variable<'src>>, Box<Variable<'src>>),
+
+    // integer and float
+    // includes Smaller (reversed left/right)
+    GreaterOrEqual(Box<Variable<'src>>, Box<Variable<'src>>),
+    Greater(Box<Variable<'src>>, Box<Variable<'src>>),
+
+    // list struct integer float string
+    // explicit & implicit: NotEqual = Not(Equal)
+    Equal(
+        Box<VariableExpressionPart<'src>>,
+        Box<VariableExpressionPart<'src>>,
+    ),
+    And(
+        Box<VariableExpressionPart<'src>>,
+        Box<VariableExpressionPart<'src>>,
+    ),
+    Or(
+        Box<VariableExpressionPart<'src>>,
+        Box<VariableExpressionPart<'src>>,
+    ),
+    Not(Box<VariableExpressionPart<'src>>),
+}
+
+impl<'src> VariableExpressionPart<'src> {
+    /// List all variables that are used in an expression,
+    /// and put them into the 'variables' hashset
+    /// this is recursive mutable, pass it an empty hashset at first call
+    /// Only used by evaluate.
+    fn list_variables_tree(
+        &self,
+        variables: &mut HashMap<(Token<'src>, Token<'src>), HashSet<Token<'src>>>, // (variable, tree) -> item list
+    ) {
+        unimplemented!()
+        // match self {
+        //     VariableExpressionPart::Not(v) => v.list_variables_tree(variables),
+        //     VariableExpressionPart::Or(v1, v2) => {
+        //         v1.list_variables_tree(variables);
+        //         v2.list_variables_tree(variables);
+        //     }
+        //     VariableExpressionPart::And(v1, v2) => {
+        //         v1.list_variables_tree(variables);
+        //         v2.list_variables_tree(variables);
+        //     }
+        // }
+    }
+}
 
 /// EnumList Is a singleton containing all enum definitions
 /// It also has a direct pointer from an item name to its enum type
@@ -624,6 +696,7 @@ impl<'it, 'src> Iterator for CrossIterator<'it, 'src> {
         None
     }
 }
+
 /// A boolean expression that can be defined using enums
 #[derive(Debug, PartialEq, Clone)]
 pub struct EnumExpression<'src> {

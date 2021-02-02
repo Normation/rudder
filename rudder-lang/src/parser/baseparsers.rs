@@ -155,7 +155,7 @@ macro_rules! generic_sequence {
     }};
 }
 
-/// extract the parsed data once something hase been parsed
+/// extract the parsed data once something has been parsed
 pub fn get_parsed_context<'src>(
     input: PInput<'src>,
     start: PInput<'src>,

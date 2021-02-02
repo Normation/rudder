@@ -533,10 +533,9 @@ impl<'src> Statement<'src> {
             PStatement::Noop => Statement::Noop,
             PStatement::Case(case, v) => Statement::Case(
                 case,
-                map_vec_results(v.into_iter(), |(exp, sts)| {
-                    let expr = enum_list.canonify_expression(context, exp)?;
-                    Ok((
-                        expr,
+                map_vec_results(v.into_iter(), |(exp, sts)| match exp {
+                    PExpression::Enum(e) => Ok((
+                        enum_list.canonify_expression(context, e)?,
                         map_vec_results(sts.into_iter(), |st| {
                             Statement::from_pstatement(
                                 context,
@@ -546,7 +545,11 @@ impl<'src> Statement<'src> {
                                 enum_list,
                             )
                         })?,
-                    ))
+                    )),
+                    PExpression::Variable(v) => {
+                        println!("VARIABLE EXPRESSION = {:#?}", v);
+                        unimplemented!()
+                    }
                 })?,
             ),
         })
