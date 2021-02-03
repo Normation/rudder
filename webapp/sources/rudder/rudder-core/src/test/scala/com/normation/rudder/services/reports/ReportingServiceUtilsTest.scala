@@ -67,6 +67,7 @@ class ReportingServiceUtilsTest extends Specification {
   val node2 = NodeId("node2")
   val rule1 = RuleId("rule1")
   val rule2 = RuleId("rule2")
+  val rule3 = RuleId("rule3")
   val dir1  = DirectiveId("dir1")
   val dir2  = DirectiveId("dir2")
 
@@ -135,6 +136,18 @@ class ReportingServiceUtilsTest extends Specification {
 
     ReportingServiceUtils.buildRuleStatusReport(rule1, reports).isSameReportAs(
       RuleStatusReport(rule1, List(), List(thisOverrideThatOn(rule2, rule1, dir1)))
+    )
+  }
+  "directives on other rules are not kept in overrides" in {
+    val reports = List(
+      NodeStatusReport(node1, NoRunNoExpectedReport, RunComplianceInfo.OK
+        , List(thisOverrideThatOn(rule2, rule3, dir1))
+        , Set()
+      )
+    ).map(r => (r.nodeId, r)).toMap
+
+    ReportingServiceUtils.buildRuleStatusReport(rule1, reports).isSameReportAs(
+      RuleStatusReport(rule1, List(), List())
     )
   }
 }

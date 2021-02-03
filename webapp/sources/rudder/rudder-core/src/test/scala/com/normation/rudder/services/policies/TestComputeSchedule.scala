@@ -39,9 +39,7 @@ package com.normation.rudder.services.policies
 
 import com.normation.errors.Inconsistency
 import org.junit.runner.RunWith
-import net.liftweb.common.Full
 import org.specs2.mutable.Specification
-import net.liftweb.common.Failure
 import org.specs2.runner.JUnitRunner
 
 /**
