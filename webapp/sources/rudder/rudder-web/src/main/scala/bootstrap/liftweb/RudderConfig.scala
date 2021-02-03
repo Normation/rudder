@@ -1881,10 +1881,6 @@ object RudderConfig extends Loggable {
       , reportingServiceImpl
       , rudderCf3PromisesFileWriterService
       , new WriteNodeCertificatesPemImpl(Some(RUDDER_RELAY_RELOAD))
-      , () => configService.agent_run_interval().toBox
-      , () => configService.agent_run_splaytime().toBox
-      , () => configService.agent_run_start_hour().toBox
-      , () => configService.agent_run_start_minute().toBox
       , () => configService.rudder_featureSwitch_directiveScriptEngine().toBox
       , () => configService.rudder_global_policy_mode().toBox
       , () => configService.rudder_generation_compute_dyngroups().toBox

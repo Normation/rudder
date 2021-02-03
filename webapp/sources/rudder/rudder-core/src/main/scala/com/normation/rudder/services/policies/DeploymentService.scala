@@ -431,10 +431,6 @@ trait PromiseGenerationService {
   def getAllInventories(): Box[Map[NodeId, NodeInventory]]
   def getGlobalComplianceMode(): Box[GlobalComplianceMode]
   def getGlobalAgentRun() : Box[AgentRunInterval]
-  def getAgentRunInterval    : () => Box[Int]
-  def getAgentRunSplaytime   : () => Box[Int]
-  def getAgentRunStartHour   : () => Box[Int]
-  def getAgentRunStartMinute : () => Box[Int]
   def getScriptEngineEnabled : () => Box[FeatureSwitch]
   def getGlobalPolicyMode    : () => Box[GlobalPolicyMode]
   def getComputeDynGroups    : () => Box[Boolean]
@@ -667,10 +663,6 @@ class PromiseGenerationServiceImpl (
   , override val complianceCache  : CachedFindRuleNodeStatusReports
   , override val promisesFileWriterService: PolicyWriterService
   , override val writeNodeCertificatesPem: WriteNodeCertificatesPem
-  , override val getAgentRunInterval         : () => Box[Int]
-  , override val getAgentRunSplaytime        : () => Box[Int]
-  , override val getAgentRunStartHour        : () => Box[Int]
-  , override val getAgentRunStartMinute      : () => Box[Int]
   , override val getScriptEngineEnabled      : () => Box[FeatureSwitch]
   , override val getGlobalPolicyMode         : () => Box[GlobalPolicyMode]
   , override val getComputeDynGroups         : () => Box[Boolean]

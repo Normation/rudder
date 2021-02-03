@@ -334,9 +334,9 @@ object ExpectedReportsSerialisation {
         , json \ "splayHour"
         , json \ "splaytime"
       ) match {
-        case (JInt(i), JInt(sm), JInt(sph), JInt(spt)) =>
+        case (JInt(i), JInt(minute), JInt(hour), JInt(splay)) =>
           try {
-            Some(AgentRunInterval(overrides, i.toValidInt, sm.toValidInt, spt.toValidInt, spt.toValidInt))
+            Some(AgentRunInterval(overrides, i.toValidInt, minute.toValidInt, hour.toValidInt, splay.toValidInt))
           } catch {
             case ex: NumberFormatException => None
           }

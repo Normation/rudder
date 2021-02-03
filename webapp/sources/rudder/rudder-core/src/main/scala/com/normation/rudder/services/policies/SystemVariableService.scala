@@ -43,6 +43,8 @@ import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.services.MissingSystemVariable
 import com.normation.cfclerk.services.SystemVariableSpecService
+import com.normation.errors.Inconsistency
+import com.normation.errors.PureResult
 import com.normation.inventory.domain.AgentInfo
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.AgentVersion
@@ -60,7 +62,6 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.zio._
 import net.liftweb.common.Box
-import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
@@ -197,40 +198,31 @@ class SystemVariableServiceImpl(
 
     val storeAllCentralizedLogsInFile = getProp("STORE_ALL_CENTRALIZED_LOGS_IN_FILE", getStoreAllCentralizedLogsInFile)
 
-    for {
-      schedule       <- ComputeSchedule.computeSchedule(globalAgentRun.startHour, globalAgentRun.startMinute, globalAgentRun.interval) ?~! "Could not compute the run schedule"
-    } yield {
-      val varAgentRunInterval  = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable(Seq(globalAgentRun.interval.toString))
-      val varAgentRunSplayTime = systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable(Seq(globalAgentRun.splaytime.toString))
-      val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable(Seq(schedule))
-      logger.trace("Global system variables done")
-      val vars =
-        varToolsFolder ::
-        varSharedFilesFolder ::
-        varCommunityPort ::
-        varWebdavUser  ::
-        varWebdavPassword ::
-        syslogPortConfig ::
-        configurationRepositoryFolder ::
-        denyBadClocks ::
-        skipIdentify ::
-        relaySyncMethod ::
-        relaySyncPromises ::
-        relaySyncSharedFiles ::
-        varAgentRunInterval ::
-        varAgentRunSchedule ::
-        varAgentRunSplayTime  ::
-        modifiedFilesTtl ::
-        cfengineOutputsTtl ::
-        storeAllCentralizedLogsInFile ::
-        varSendMetrics ::
-        syslogProtocolDisabled ::
-        reportProtocol ::
-        rudderVerifyCertificates ::
-        varServerVersion ::
-        Nil
-      vars.map(v => (v.spec.name,v)).toMap
-    }
+    logger.trace("Global system variables done")
+    val vars =
+      varToolsFolder ::
+      varSharedFilesFolder ::
+      varCommunityPort ::
+      varWebdavUser  ::
+      varWebdavPassword ::
+      syslogPortConfig ::
+      configurationRepositoryFolder ::
+      denyBadClocks ::
+      skipIdentify ::
+      relaySyncMethod ::
+      relaySyncPromises ::
+      relaySyncSharedFiles ::
+      modifiedFilesTtl ::
+      cfengineOutputsTtl ::
+      storeAllCentralizedLogsInFile ::
+      varSendMetrics ::
+      syslogProtocolDisabled ::
+      reportProtocol ::
+      rudderVerifyCertificates ::
+      varServerVersion ::
+      Nil
+
+    Full(vars.map(v => (v.spec.name,v)).toMap)
   }
 
   // allNodeInfos has to contain ALL the node info (those of every node within Rudder)
@@ -297,10 +289,10 @@ class SystemVariableServiceImpl(
 
     val varAllowedNetworks = systemVariableSpecService.get("AUTHORIZED_NETWORKS").toVariable(authorizedNetworks)
 
-    val agentRunParams =
+    val agentRunParams = {
       if (nodeInfo.isPolicyServer) {
         val policyServerSchedule = """ "Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55" """
-        Full((AgentRunInterval(Some(false), 5, 0, 0, 0), policyServerSchedule))
+        Right((AgentRunInterval(Some(false), 5, 0, 0, 0), policyServerSchedule))
       } else {
         val runInterval = nodeInfo.nodeReportingConfiguration.agentRunInterval match {
           case Some(nodeRunInterval)  if nodeRunInterval.overrides.getOrElse(false) =>
@@ -313,11 +305,12 @@ class SystemVariableServiceImpl(
                               runInterval.startHour
                             , runInterval.startMinute
                             , runInterval.interval
-                          ) ?~! s"Could not compute the run schedule for node ${nodeInfo.id.value}"
-            } yield {
-              ( runInterval, schedule )
+                          ).chainError(s"Could not compute the run schedule for node ${nodeInfo.id.value}")
+        } yield {
+          ( runInterval, schedule )
         }
       }
+    }
 
     val heartBeatFrequency = {
       if (nodeInfo.isPolicyServer) {
@@ -339,7 +332,7 @@ class SystemVariableServiceImpl(
       }
     }
 
-    val AgentRunVariables = ( agentRunParams.map {
+    val agentRunVariables = ( agentRunParams.map {
       case (runInterval,schedule) =>
 
         // The heartbeat should be strictly shorter than the run execution, otherwise they may be skipped
@@ -627,16 +620,14 @@ class SystemVariableServiceImpl(
 
     val variables = globalSystemVariables ++ baseVariables ++ policyServerVars
 
-    (AgentRunVariables, varNodeReportingProtocol) match {
-      case (Full(runValues), Full(reporting))  =>
+    (agentRunVariables, varNodeReportingProtocol) match {
+      case (Right(runValues), Full(reporting))  =>
         Full(variables ++ runValues + reporting)
-      case (Empty, Full(reporting)) =>
-        Full(variables + reporting)
       case (f1, f2:Failure) =>
         // prefer message on reporting mode
         f2
       case (fail, _) =>
-        fail
+        fail.toBox
     }
   }
 
@@ -684,13 +675,13 @@ object ComputeSchedule {
       startHour        : Int
     , startMinute      : Int
     , executionInterval: Int
-  ): Box[String] = {
+  ): PureResult[String] = {
 
     val minutesFreq = executionInterval % 60
     val hoursFreq: Int = executionInterval / 60
 
     (minutesFreq, hoursFreq) match {
-      case (m, h) if m > 0 && h > 0 => Failure(s"Agent execution interval can only be defined as minutes (less than 60) or complete hours, (${h} hours ${m} minutes is not supported)")
+      case (m, h) if m > 0 && h > 0 => Left(Inconsistency(s"Agent execution interval can only be defined as minutes (less than 60) or complete hours, (${h} hours ${m} minutes is not supported)"))
       case (m, h) if h == 0 =>
         // two cases, hour is 0, then only minutes
 
@@ -698,14 +689,14 @@ object ComputeSchedule {
         val actualStartMinute = startMinute % minutesFreq
         val mins = Range(actualStartMinute, 60, minutesFreq) // range doesn't return the end range
         //val mins = for ( min <- 0 to 59; if ((min%minutesFreq) == actualStartMinute) ) yield { min }
-        Full(mins.map("\"Min" + "%02d".format(_) + "\"").mkString(", "))
+        Right(mins.map("\"Min" + "%02d".format(_) + "\"").mkString(", "))
 
       case _ =>
         // hour is not 0, then we don't have minutes
         val actualStartHour = startHour % hoursFreq
         val hours = Range(actualStartHour, 24, hoursFreq)
         val minutesFormat = "Min" + "%02d".format(startMinute)
-        Full(hours.map("\"Hr" + "%02d".format(_) + "." + minutesFormat + "\"").mkString(", "))
+        Right(hours.map("\"Hr" + "%02d".format(_) + "." + minutesFormat + "\"").mkString(", "))
     }
 
   }

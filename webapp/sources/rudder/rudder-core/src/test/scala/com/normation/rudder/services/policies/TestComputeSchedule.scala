@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.policies
 
+import com.normation.errors.Inconsistency
 import org.junit.runner.RunWith
 import net.liftweb.common.Full
 import org.specs2.mutable.Specification
@@ -51,22 +52,22 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class TestComputeSchedule extends Specification {
 
-  "A squedule with 5 minutes interval" should {
+  "A schedule with 5 minutes interval" should {
     "be the default one when starting at 0:00" in {
       ComputeSchedule.computeSchedule(0,0,5) must beEqualTo (
-          Full(""""Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55"""")
+          Right(""""Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55"""")
       )
     }
 
    "be the default one when starting at 4:00" in {
       ComputeSchedule.computeSchedule(4,0,5) must beEqualTo (
-          Full(""""Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55"""")
+          Right(""""Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55"""")
       )
     }
 
    "be the default one of by 2 minutes when starting at 4:02" in {
       ComputeSchedule.computeSchedule(4,2,5) must beEqualTo (
-          Full(""""Min02", "Min07", "Min12", "Min17", "Min22", "Min27", "Min32", "Min37", "Min42", "Min47", "Min52", "Min57"""")
+          Right(""""Min02", "Min07", "Min12", "Min17", "Min22", "Min27", "Min32", "Min37", "Min42", "Min47", "Min52", "Min57"""")
       )
     }
   }
@@ -74,18 +75,18 @@ class TestComputeSchedule extends Specification {
   "A squedule with non trivial interval" should {
     "fail if a mix of hours and minutes" in {
       ComputeSchedule.computeSchedule(0,0, 63) must beEqualTo (
-        Failure("Agent execution interval can only be defined as minutes (less than 60) or complete hours, (1 hours 3 minutes is not supported)")
+        Left(Inconsistency("Agent execution interval can only be defined as minutes (less than 60) or complete hours, (1 hours 3 minutes is not supported)"))
       )
     }
 
     "be every hours if defined with an interval of 1 hour" in {
       ComputeSchedule.computeSchedule(0,0,60) must beEqualTo (
-          Full(""""Hr00.Min00", "Hr01.Min00", "Hr02.Min00", "Hr03.Min00", "Hr04.Min00", "Hr05.Min00", "Hr06.Min00", "Hr07.Min00", "Hr08.Min00", "Hr09.Min00", "Hr10.Min00", "Hr11.Min00", "Hr12.Min00", "Hr13.Min00", "Hr14.Min00", "Hr15.Min00", "Hr16.Min00", "Hr17.Min00", "Hr18.Min00", "Hr19.Min00", "Hr20.Min00", "Hr21.Min00", "Hr22.Min00", "Hr23.Min00"""")
+          Right(""""Hr00.Min00", "Hr01.Min00", "Hr02.Min00", "Hr03.Min00", "Hr04.Min00", "Hr05.Min00", "Hr06.Min00", "Hr07.Min00", "Hr08.Min00", "Hr09.Min00", "Hr10.Min00", "Hr11.Min00", "Hr12.Min00", "Hr13.Min00", "Hr14.Min00", "Hr15.Min00", "Hr16.Min00", "Hr17.Min00", "Hr18.Min00", "Hr19.Min00", "Hr20.Min00", "Hr21.Min00", "Hr22.Min00", "Hr23.Min00"""")
       )
     }
     "be every two hours if defined with an interval of 2 hours, and off by some minutes" in {
       ComputeSchedule.computeSchedule(3,12,120) must beEqualTo (
-          Full(""""Hr01.Min12", "Hr03.Min12", "Hr05.Min12", "Hr07.Min12", "Hr09.Min12", "Hr11.Min12", "Hr13.Min12", "Hr15.Min12", "Hr17.Min12", "Hr19.Min12", "Hr21.Min12", "Hr23.Min12"""")
+          Right(""""Hr01.Min12", "Hr03.Min12", "Hr05.Min12", "Hr07.Min12", "Hr09.Min12", "Hr11.Min12", "Hr13.Min12", "Hr15.Min12", "Hr17.Min12", "Hr19.Min12", "Hr21.Min12", "Hr23.Min12"""")
       )
     }
   }
