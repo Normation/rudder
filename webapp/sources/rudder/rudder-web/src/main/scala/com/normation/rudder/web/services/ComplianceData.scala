@@ -526,14 +526,14 @@ object ComplianceData extends Loggable {
 
     //we can have rules with only overriden reports, so we just prepend them. When
     //a rule is defined for that id, it will override that default.
-    val overridesRules = overridesByRules.view.mapValues(_ => AggregatedStatusReport(Nil))
+    val overridesRules = overridesByRules.view.mapValues(_ => AggregatedStatusReport(Nil)).toMap
 
     val ruleComplianceLine = for {
       (ruleId, aggregate) <- (overridesRules ++ report.byRules)
       rule                <- rules.find( _.id == ruleId )
     } yield {
       val nodeMode = allNodeInfos.get(nodeId).flatMap { _.policyMode }
-      val details = getOverridenDirectiveDetails(overridesByRules.getOrElse(ruleId, Nil), directiveLib, rules) ++
+      val details = getOverridenDirectiveDetails(overridesByRules.getOrElse(ruleId, Nil), directiveLib, rules, None) ++
                     getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnNode(nodeMode, globalMode))
 
       val directivesMode = aggregate.directives.keys.map(directiveLib.allDirectives.get(_).flatMap(_._2.policyMode)).toSet
@@ -557,12 +557,13 @@ object ComplianceData extends Loggable {
       overrides   : List[OverridenPolicy]
     , directiveLib: FullActiveTechniqueCategory
     , rules       : Seq[Rule]
+    , onRuleScreen: Option[Rule] // if we are on a rule, we want to adapt message
   ) : List[DirectiveComplianceLine] = {
     val overridesData = for {
       // we don't want to write an overriden directive several time for the same overriding rule/directive.
       over                            <- overrides.groupBy(_.overridenBy).map(_._2.head)
       (overridenTech , overridenDir)  <- directiveLib.allDirectives.get(over.policy.directiveId)
-      rule                            <- rules.find( _.id == over.overridenBy.ruleId)
+      overridingRule                  <- rules.find( _.id == over.overridenBy.ruleId)
       (overridingTech, overridingDir) <- directiveLib.allDirectives.get(over.overridenBy.directiveId)
     } yield {
       val overridenTechName    = overridenTech.techniques.get(overridenDir.techniqueVersion).map(_.name).getOrElse("Unknown technique")
@@ -570,8 +571,15 @@ object ComplianceData extends Loggable {
 
       val policyMode = "overriden"
       val explanation= "This directive is unique: only one directive derived from its technique can be set on a given node "+
-                       s"at the same time. This one is overriden by direcitve '<i><b>${overridingDir.name}</b></i>' in rule "+
-                       s"'<i><b>${rule.name}</b></i>' on that node."
+                       s"at the same time. This one is overriden by directive '<i><b>${overridingDir.name}</b></i>'" +
+                       (onRuleScreen match {
+                         case None                                  =>
+                           s" in rule '<i><b>${overridingRule.name}</b></i>' on that node."
+                         case Some(r) if(r.id == overridingRule.id) =>
+                           s" in that rule."
+                         case Some(r)                               => // it means that that directive is skipped on all nodes on that rule
+                           s" in rule '<i><b>${overridingRule.name}</b></i>' on all nodes."
+                       })
 
       DirectiveComplianceLine (
           overridenDir
@@ -600,8 +608,7 @@ object ComplianceData extends Loggable {
     , allRules        : Seq[Rule] // for overrides
     , globalMode      : GlobalPolicyMode
   ) : JsTableData[DirectiveComplianceLine] = {
-
-    val overrides = getOverridenDirectiveDetails(report.overrides, directiveLib, allRules)
+    val overrides = getOverridenDirectiveDetails(report.overrides, directiveLib, allRules, Some(rule))
     // restrict mode calcul to node really targetted by that rule
     val appliedNodes = groupLib.getNodeIds(rule.targets, allNodeInfos)
     val nodeModes = appliedNodes.flatMap(id => allNodeInfos.get(id).map(_.policyMode))
