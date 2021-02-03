@@ -272,7 +272,9 @@ td.listclose:after {
   display: inline-block;
 }
 .dataTables_paginate > .ui-button,
+.dataTables_paginate > .paginate_button,
 .dataTables_paginate > span > .ui-button,
+.dataTables_paginate > span > .paginate_button,
 .dataTables_paginate > span > .ellipsis{
   padding: 2px 8px;
   border: 1px solid #ccc;
@@ -282,18 +284,23 @@ td.listclose:after {
   transition-duration: .2s;
 }
 .dataTables_paginate > .ui-button:hover,
-.dataTables_paginate > span > .ui-button:hover{
+.dataTables_paginate > span > .ui-button:hover,
+.dataTables_paginate > .paginate_button:hover,
+.dataTables_paginate > span > .paginate_button:hover{
   background-color: #fff;
 }
-.dataTables_paginate > .ui-button:first-child {
+.dataTables_paginate > .ui-button:first-child,
+.dataTables_paginate > .paginate_button:first-child {
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
 }
-.dataTables_paginate > .ui-button:last-child {
+.dataTables_paginate > .ui-button:last-child,
+.dataTables_paginate > .paginate_button:last-child{
   border-top-right-radius: 4px;
   border-bottom-right-radius: 4px;
 }
-.dataTables_paginate .ui-button.ui-state-disabled{
+.dataTables_paginate .ui-button.ui-state-disabled,
+.dataTables_paginate .paginate_button.disabled{
   color: #555 !important;
   cursor: default !important;
   background-color: #e8e8e8 !important;
