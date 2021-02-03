@@ -533,9 +533,9 @@ function updateHashString(key, value) {
 
 function directiveOverridenTooltip(explanation){
   var tooltip = "" +
-    "<h4>Directive Skipped On Node</h4>" +
+    "<h4>Directive Skipped</h4>" +
     "<div class='tooltip-content policy-mode overriden'>"+
-    "<p>This directive is skipped because it is overriden by an other one on that node.</p>"+
+    "<p>This directive is skipped because it is overriden by an other one here.</p>"+
     "<p>"+ explanation +"</p>"+
     "</div>";
   return tooltip;
