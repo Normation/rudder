@@ -119,6 +119,7 @@ import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
 import zio._
 import zio.syntax._
+import zio.duration._
 
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
