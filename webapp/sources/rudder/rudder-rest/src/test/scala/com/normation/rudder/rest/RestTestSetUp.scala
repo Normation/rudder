@@ -113,7 +113,6 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
 import zio._
-import zio.duration.durationInt
 import zio.syntax._
 
 import scala.concurrent.duration.FiniteDuration
@@ -272,10 +271,6 @@ object RestTestSetUp {
     override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = ???
     override def getGlobalComplianceMode(): Box[GlobalComplianceMode] = ???
     override def getGlobalAgentRun(): Box[AgentRunInterval] = ???
-    override def getAgentRunInterval: () => Box[Int] = ???
-    override def getAgentRunSplaytime: () => Box[Int] = ???
-    override def getAgentRunStartHour: () => Box[Int] = ???
-    override def getAgentRunStartMinute: () => Box[Int] = ???
     override def getScriptEngineEnabled: () => Box[FeatureSwitch] = ???
     override def getGlobalPolicyMode: () => Box[GlobalPolicyMode] = ???
     override def getComputeDynGroups: () => Box[Boolean] = ???

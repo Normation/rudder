@@ -121,7 +121,7 @@ class AgentRunIntervalServiceImpl (
       splaytime <- readGlobalSplaytime()
     } yield {
       AgentRunInterval(
-        None, interval, startHour, startMinute, splaytime
+        None, interval, startMinute, startHour, splaytime
       )
     }
   }
