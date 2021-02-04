@@ -660,11 +660,11 @@ object DisplayNode extends Loggable {
 
   private def displayTabNetworks(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("net", Full(sm.node.networks)){
-        ("Interface", {x:Network => Text(x.name)}) ::
-        ("IP address", {x:Network => Text(x.ifAddresses.map{ _.getHostAddress }.mkString(", "))}) ::
-        ("Mask", {x:Network => Text(x.ifMask.map{ _.getHostAddress }.mkString(", "))}) ::
-        ("Network", {x:Network => Text(x.ifSubnet.map{ _.getHostAddress }.mkString(", "))}) ::
-        ("Gateway", {x:Network => Text(x.ifGateway.map{ _.getHostAddress }.mkString(", "))}) ::
+        ("Interface"  , {x:Network => Text(x.name)}) ::
+        ("IP address" , {x:Network => (x.ifAddresses.map{ y => (<div>{ y.getHostAddress }</div>  ) } ):NodeSeq }) ::
+        ("Mask"       , {x:Network => (x.ifMask.map     { y => (<div>{ y.getHostAddress }</div>  ) } ):NodeSeq }) ::
+        ("Network"    , {x:Network => (x.ifSubnet.map   { y => (<div>{ y.getHostAddress }</div>  ) } ):NodeSeq }) ::
+        ("Gateway"    , {x:Network => (x.ifGateway.map  { y => (<div>{ y.getHostAddress }</div>  ) } ):NodeSeq }) ::
         ("DHCP server", {x:Network => Text(x.ifDhcp.map{ _.getHostAddress }.mkString(", "))}) ::
         ("MAC address", {x:Network => ?(x.macAddress)}) ::
         ("Type", {x:Network => ?(x.ifType)}) ::
