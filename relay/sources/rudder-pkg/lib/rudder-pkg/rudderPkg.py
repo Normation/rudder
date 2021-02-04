@@ -339,7 +339,7 @@ def update():
     if os.path.isfile(utils.INDEX_PATH):
         os.rename(utils.INDEX_PATH, utils.INDEX_PATH + ".bkp")
     try:
-        utils.download(utils.URL + "/" + "rpkg.index")
+        utils.download(utils.URL + "/" + utils.RUDDER_VERSION + "/" + "rpkg.index")
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
         if os.path.isfile(utils.INDEX_PATH + ".bkp"):
