@@ -158,7 +158,7 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                 fetch_method_parameters(ir, &s.to_method(), |name, value, _metadatas| {
                     Parameter::new(
                         name,
-                        &value_to_string(value, &method_name, true)
+                        &value_to_string(value, &method_name, false)
                             .expect("Value is not formatted correctly"),
                     )
                 });
@@ -166,7 +166,13 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                 parameters,
                 condition,
                 method_name,
-                component: extract_meta_string(&s.metadata, "component"),
+                component: s.metadata.get("component").and_then(|c| {
+                    Some(
+                        c.as_str()
+                            .expect("Expected type string for 'component' metadata")
+                            .to_owned(),
+                    )
+                }),
             }]
         }
         Statement::StateDeclaration(s) => {
@@ -202,7 +208,13 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                 parameters,
                 condition,
                 method_name,
-                component: extract_meta_string(&s.metadata, "component"),
+                component: s.metadata.get("component").and_then(|c| {
+                    Some(
+                        c.as_str()
+                            .expect("Expected type string for 'component' metadata")
+                            .to_owned(),
+                    )
+                }),
             }]
         }
         Statement::Case(_, enum_expressions) => enum_expressions

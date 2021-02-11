@@ -219,7 +219,7 @@ pub struct MethodCall {
     #[serde(rename = "class_context")]
     condition: String,
     method_name: String,
-    component: String,
+    component: Option<String>,
 }
 impl MethodCall {
     fn to_rudderlang(&self, lib: &RudderlangLib) -> Result<String> {
@@ -263,12 +263,21 @@ impl MethodCall {
             .alias
             .map(|alias| format!("  @method_alias = \"{}\"\n", alias));
 
+        let formatted_component = match &self.component {
+            Some(component) => format!("@component = \"{}\"", component),
+            None => String::new(),
+        };
+
         // make an exception for condition_from_* method & condition generation
         if (lib_method.resource.name == "condition" && lib_method.state.name.starts_with("from_")) {
+            let fmted_component = match &self.component {
+                Some(component) => format!("@component = \"{}\"", component),
+                None => String::new(),
+            };
             return Ok(format!(
-                "{}@component = \"{}\"\n{}  let {} = {}_{}({})",
+                "{}{}\n{}  let {} = {}_{}({})",
                 template_vars.join("\n  "),
-                &self.component,
+                fmted_component,
                 formatted_alias_metadata.unwrap_or(String::new()),
                 match class_parameter.strip_suffix("_${report_data.canonified_directive_id}") {
                     Some(variable) => variable,
@@ -285,9 +294,9 @@ impl MethodCall {
         }
 
         Ok(format!(
-            "{}@component = \"{}\"\n{}  {}{}",
+            "{}{}\n{}  {}{}",
             template_vars.join("\n  "),
-            &self.component,
+            formatted_component,
             formatted_alias_metadata.unwrap_or(String::new()),
             call,
             outcome
