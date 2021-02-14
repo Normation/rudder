@@ -1090,7 +1090,6 @@ object RudderConfig extends Loggable {
       )
     , (
          new PendingNodeIfNodeWasRemoved(fullInventoryRepository)
-      :: new PendingNodeIfNodeWasRemoved(fullInventoryRepository)
       :: new PostCommitLogger(ldifReportLogger)
       :: new PostCommitInventoryHooks(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
       :: Nil
