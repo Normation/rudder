@@ -204,3 +204,11 @@ settings:
       type: boolean
       default: false
       description: Policy generation continues on error during NodeConfiguration evaluation
+    rudder_generation_delay:
+      type: string
+      default: "0 seconds"
+      description: Set a delay before starting policy generation, this will allow you to accumulate changes before they are deployed to Nodes, and can also lessen webapp resources needs. The value is a number followed by the time unit needed (seconds/s, minutes/m, hours/h ...), ie "5m" for 5 minutes
+    rudder_generation_policy:
+      type: string
+      default: "all"
+      description: Should policy generation be triggered automatically after a change (value 'all'), or should we wait until a manual launch (through api or UI, value 'onlyManual') or even no policy generation at all (value "none")
