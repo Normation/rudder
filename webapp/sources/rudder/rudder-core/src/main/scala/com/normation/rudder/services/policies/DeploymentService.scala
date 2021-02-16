@@ -39,7 +39,6 @@ package com.normation.rudder.services.policies
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
-
 import better.files.File
 import org.joda.time.DateTime
 import com.normation.rudder.domain.Constants

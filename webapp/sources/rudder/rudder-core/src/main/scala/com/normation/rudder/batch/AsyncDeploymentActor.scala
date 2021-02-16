@@ -37,6 +37,8 @@
 
 package com.normation.rudder.batch
 
+import com.normation.errors.IOResult
+import com.normation.errors.PureResult
 import net.liftweb.actor._
 import org.joda.time._
 import com.normation.inventory.domain.NodeId
@@ -53,8 +55,11 @@ import scala.xml.NodeSeq
 import com.normation.eventlog.ModificationId
 
 import com.normation.errors.RudderError
+import com.normation.errors.Unexpected
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.zio._
+
+import scala.concurrent.duration.Duration
 
 sealed trait StartDeploymentMessage
 
@@ -65,6 +70,32 @@ final case class AutomaticStartDeployment(modId: ModificationId, actor:EventActo
 //ask for a new deployment - manual deployment (human clicked on "regenerate now"
 //actor: the actor who asked for the deployment
 final case class ManualStartDeployment(modId: ModificationId, actor:EventActor, reason:String) extends StartDeploymentMessage
+
+
+sealed trait PolicyGenerationTrigger
+object PolicyGenerationTrigger {
+  final case object AllGeneration extends PolicyGenerationTrigger
+  final case object OnlyManualGeneration extends PolicyGenerationTrigger
+  final case object NoGeneration extends PolicyGenerationTrigger
+
+  def apply(value : String) : PureResult[PolicyGenerationTrigger] = {
+
+    value.toLowerCase() match {
+      case "all"    | "allgeneration"                         => Right(AllGeneration)
+      case "none"   | "nogeneration"                          => Right(NoGeneration)
+      case "manual" | "onlymanual"   | "onlymanualgeneration" => Right(OnlyManualGeneration)
+      case _                                                  => Left(Unexpected(s"'${value}' is not a valid generation policy"))
+    }
+  }
+
+  def serialize(generationPolicy: PolicyGenerationTrigger) : String = {
+    generationPolicy match {
+      case AllGeneration        => "all"
+      case NoGeneration         => "none"
+      case OnlyManualGeneration => "onlyManual"
+    }
+  }
+}
 
 /**
  * State of the deployment agent.
@@ -108,9 +139,11 @@ trait AsyncDeploymentAgent {
 }
 
 final class AsyncDeploymentActor(
-    deploymentService: PromiseGenerationService
-  , eventLogger:EventLogDeploymentService
-  , deploymentStatusSerialisation : DeploymentStatusSerialisation
+    deploymentService            : PromiseGenerationService
+  , eventLogger                  : EventLogDeploymentService
+  , deploymentStatusSerialisation: DeploymentStatusSerialisation
+  , getGenerationDelay           : IOResult[Duration]
+  , deploymentPolicy             : IOResult[PolicyGenerationTrigger]
 ) extends LiftActor with ListenerManager with AsyncDeploymentAgent {
 
   deploymentManager =>
@@ -176,6 +209,15 @@ final class AsyncDeploymentActor(
   // deprecated flag file to trigger policy generation at start
   val triggerPolicyUpdateFlagPath = "/opt/rudder/etc/trigger-policy-generation"
 
+  private[this] def logTriggerError(v : PureResult[PolicyGenerationTrigger]) = {
+    v match {
+      case Left(err) =>
+        val msg = "Policy generation: An error occurred while getting generation policy, Starting policy generation even if not authorized"
+        PolicyGenerationLogger.error(msg + ": " + err.fullMsg)
+      case _ => ()
+    }
+  }
+
   override protected def lowPriority = {
 
     //
@@ -186,36 +228,42 @@ final class AsyncDeploymentActor(
 
       PolicyGenerationLogger.manager.trace("Policy updater: receive new automatic policy update request message")
 
-      currentDeployerState match {
-        case IdleDeployer => //ok, start a new deployment
-          currentDeploymentId += 1
-          val newState = Processing(currentDeploymentId, DateTime.now)
-          currentDeployerState = newState
-          PolicyGenerationLogger.manager.trace("Policy updater: ask to start updating policies")
-          val event = eventLogger.repository.saveEventLog(
-            modId, AutomaticStartDeployement(WithDetails(NodeSeq.Empty))
-          ).either.runNow.toOption
-          DeployerAgent ! NewDeployment(newState.id, modId, newState.started, actor, event.flatMap(_.id).getOrElse(0))
+      deploymentPolicy.either.runNow match {
+        case Right(PolicyGenerationTrigger.NoGeneration | PolicyGenerationTrigger.OnlyManualGeneration) =>
+          PolicyGenerationLogger.manager.info("Policy generation: Due to policy generation policy, no automatic policy generation was triggered ")
 
-        case p @ Processing(id, startTime) => //ok, add a pending deployment
-          PolicyGenerationLogger.manager.trace("Policy updater: currently updating policies, add a pending update request")
-          val event = eventLogger.repository.saveEventLog(
-            modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="false"/>))
-          ).either.runNow.toOption
-          currentDeployerState = ProcessingAndPendingAuto(DateTime.now, p, actor, event.flatMap(_.id).getOrElse(0))
+        case v @ (Right(PolicyGenerationTrigger.AllGeneration) | Left(_) ) =>
+          logTriggerError(v)
+          currentDeployerState match {
+            case IdleDeployer => //ok, start a new deployment
+              currentDeploymentId += 1
+              val newState = Processing(currentDeploymentId, DateTime.now)
+              currentDeployerState = newState
+              PolicyGenerationLogger.manager.trace("Policy updater: ask to start updating policies")
+              val event = eventLogger.repository.saveEventLog(
+                modId, AutomaticStartDeployement(WithDetails(NodeSeq.Empty))
+              ).either.runNow.toOption
+              DeployerAgent ! NewDeployment(newState.id, modId, newState.started, actor, event.flatMap(_.id).getOrElse(0))
 
-        case p: ProcessingAndPendingAuto => //drop message, one is already pending
-          eventLogger.repository.saveEventLog(
-            modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
-          ).runNowLogError(err => PolicyGenerationLogger.manager.error(s"Error when saving start generation event log: ${err.fullMsg}"))
-          PolicyGenerationLogger.manager.info("One automatic policy update process is already pending, ignoring new policy update request")
+            case p@Processing(id, startTime) => //ok, add a pending deployment
+              PolicyGenerationLogger.manager.trace("Policy updater: currently updating policies, add a pending update request")
+              val event = eventLogger.repository.saveEventLog(
+                modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="false"/>))
+              ).either.runNow.toOption
+              currentDeployerState = ProcessingAndPendingAuto(DateTime.now, p, actor, event.flatMap(_.id).getOrElse(0))
 
-        case p: ProcessingAndPendingManual => //drop message, one is already pending
-          eventLogger.repository.saveEventLog(
-            modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
-          ).runNowLogError(err => PolicyGenerationLogger.manager.error(s"Error when saving start generation event log: ${err.fullMsg}"))
-          PolicyGenerationLogger.manager.info("One manual policy update process is already pending, ignoring new policy update request")
+            case p: ProcessingAndPendingAuto => //drop message, one is already pending
+              eventLogger.repository.saveEventLog(
+                modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
+              ).runNowLogError(err => PolicyGenerationLogger.error(s"Error when saving start generation event log: ${err.fullMsg}"))
+              PolicyGenerationLogger.manager.info("One automatic policy update process is already pending, ignoring new policy update request")
 
+            case p: ProcessingAndPendingManual => //drop message, one is already pending
+              eventLogger.repository.saveEventLog(
+                modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
+              ).runNowLogError(err => PolicyGenerationLogger.error(s"Error when saving start generation event log: ${err.fullMsg}"))
+              PolicyGenerationLogger.manager.info("One manual policy update process is already pending, ignoring new policy update request")
+          }
       }
       //update listeners
       updateListeners()
@@ -226,41 +274,48 @@ final class AsyncDeploymentActor(
       implicit val r = Some(reason)
 
       PolicyGenerationLogger.manager.trace("Policy updater: receive new manual policy update request message")
-      currentDeployerState match {
-        case IdleDeployer => //ok, start a new deployment
-          currentDeploymentId += 1
-          val newState = Processing(currentDeploymentId, DateTime.now)
-          currentDeployerState = newState
-          PolicyGenerationLogger.manager.trace("Policy updater: ask to start updating policies")
-          val event = eventLogger.repository.saveEventLog(
-              modId, ManualStartDeployement(WithDetails(NodeSeq.Empty))
-          ).either.runNow.toOption
-          DeployerAgent ! NewDeployment(newState.id, modId, newState.started, actor, event.flatMap(_.id).getOrElse(0))
 
-        case p@Processing(id, startTime) => //ok, add a pending deployment
-          PolicyGenerationLogger.manager.trace("Policy updater: currently updating policies, add a pending update request")
-          val event = eventLogger.repository.saveEventLog(
-              modId, ManualStartDeployement(WithDetails(<addPending alreadyPending="false"/>))
-          ).either.runNow.toOption
-          currentDeployerState = ProcessingAndPendingManual(DateTime.now, p, actor, event.flatMap(_.id).getOrElse(0), reason)
+      deploymentPolicy.either.runNow match {
+        case Right(PolicyGenerationTrigger.NoGeneration) =>
+          PolicyGenerationLogger.manager.debug("Policy generation: Due to policy generation policy, no manual policy generation was triggered ")
 
-        case p:ProcessingAndPendingManual => //drop message, one is already pending
-          eventLogger.repository.saveEventLog(
-              modId, ManualStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
-          ).runNowLogError(err => PolicyGenerationLogger.manager.error(s"Error when saving start generation event log: ${err.fullMsg}"))
-          PolicyGenerationLogger.manager.info("One policy update process is already pending, ignoring new policy update request")
+        case v @ (Right(_) | Left(_) )  =>
+          logTriggerError(v)
+          currentDeployerState match {
+            case IdleDeployer => //ok, start a new deployment
+              currentDeploymentId += 1
+              val newState = Processing(currentDeploymentId, DateTime.now)
+              currentDeployerState = newState
+              PolicyGenerationLogger.manager.trace("Policy updater: ask to start updating policies")
+                  val event = eventLogger.repository.saveEventLog(
+                    modId, ManualStartDeployement(WithDetails(NodeSeq.Empty))
+              ).either.runNow.toOption
+              DeployerAgent ! NewDeployment(newState.id, modId, newState.started, actor, event.flatMap(_.id).getOrElse(0))
 
-        case p:ProcessingAndPendingAuto => //replace with manual
-          val event = eventLogger.repository.saveEventLog(
-              modId, ManualStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
-          ).either.runNow.toOption
-          currentDeployerState = ProcessingAndPendingManual(DateTime.now, p.current, actor, event.flatMap(_.id).getOrElse(0), reason)
-          PolicyGenerationLogger.manager.info("One automatic policy update process is already pending, replacing by a manual request")
+            case p@Processing(id, startTime) => //ok, add a pending deployment
+              PolicyGenerationLogger.manager.trace("Policy updater: currently updating policies, add a pending update request")
+                  val event = eventLogger.repository.saveEventLog(
+                    modId, ManualStartDeployement(WithDetails(<addPending alreadyPending="false"/>))
+              ).either.runNow.toOption
+              currentDeployerState = ProcessingAndPendingManual(DateTime.now, p, actor, event.flatMap(_.id).getOrElse(0), reason)
+
+            case p: ProcessingAndPendingManual => //drop message, one is already pending
+              eventLogger.repository.saveEventLog(
+                modId, ManualStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
+              ).runNowLogError(err => PolicyGenerationLogger.error(s"Error when saving start generation event log: ${err.fullMsg}"))
+              PolicyGenerationLogger.manager.info("One policy update process is already pending, ignoring new policy update request")
+
+            case p: ProcessingAndPendingAuto => //replace with manual
+              val event = eventLogger.repository.saveEventLog(
+                modId, ManualStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
+              ).either.runNow.toOption
+              currentDeployerState = ProcessingAndPendingManual(DateTime.now, p.current, actor, event.flatMap(_.id).getOrElse(0), reason)
+              PolicyGenerationLogger.manager.info("One automatic policy update process is already pending, replacing by a manual request")
+          }
       }
       //update listeners
       updateListeners()
     }
-
     //
     // response from the deployer
     //
@@ -333,6 +388,16 @@ final class AsyncDeploymentActor(
       case NewDeployment(id, modId, startTime, actor, eventId) =>
         PolicyGenerationLogger.manager.trace("Policy updater Agent: start to update policies")
         try {
+          val delay = getGenerationDelay.either.runNow match {
+            case Right(delay) => delay
+            case Left(_)      => Duration("0s")
+          }
+          if (delay.toMillis != 0L) {
+            PolicyGenerationLogger.debug(s"Policy generation will start in ${delay.toString}")
+          }
+          Thread.sleep(delay.toMillis)
+          PolicyGenerationLogger.debug(s"Policy generation starts now!")
+
           val result = deploymentService.deploy()
 
           result match {
