@@ -51,7 +51,9 @@ class RestStatusTest extends Specification {
   "testing status REST API" should {
     "be correct" in {
       RestTestSetUp.testGET("/api/status") { req =>
-       RestStatus(req)() must beEqualTo(Full(PlainTextResponse("OK")))
+       RestStatus(req)() must beEqualTo(Full(PlainTextResponse(
+         """OK
+           |""".stripMargin)))
       }
     }
   }

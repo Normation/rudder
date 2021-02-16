@@ -125,7 +125,7 @@ class TestRestFromFileDef extends Specification with Loggable {
 
   ///// tests ////
 
-  def cleanBreakline(text: String) = text.replaceAll("(\\W)\\s+", "$1")
+  def cleanBreakline(text: String) = text.replaceAll("(\\W)\\s+", "$1").replaceAll("\\s+$", "")
   def cleanResponse(r: LiftResponse): (Int, String) = {
     val response = r.toResponse.asInstanceOf[InMemoryResponse]
     (response.code, cleanBreakline(new String(response.data, "UTF-8")))
