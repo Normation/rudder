@@ -40,6 +40,7 @@ import com.normation.NamedZioLogger
 import net.liftweb.common.Full
 import com.typesafe.config.Config
 import com.normation.rudder.batch.AsyncWorkflowInfo
+import com.normation.rudder.batch.PolicyGenerationTrigger
 import com.normation.rudder.services.workflows.WorkflowUpdate
 import com.typesafe.config.ConfigFactory
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
@@ -48,10 +49,15 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.eventlog.{ModifyAgentRunIntervalEventType, ModifyAgentRunSplaytimeEventType, ModifyAgentRunStartHourEventType, ModifyAgentRunStartMinuteEventType, ModifyComplianceModeEventType, ModifyHeartbeatPeriodEventType, ModifyRudderSyslogProtocolEventType, ModifyRudderVerifyCertificates, ModifySendServerMetricsEventType}
+import com.normation.rudder.domain.eventlog.ModifyAgentRunIntervalEventType
+import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
+import com.normation.rudder.domain.eventlog.ModifyAgentRunStartHourEventType
+import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
+import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
+import com.normation.rudder.domain.eventlog.ModifyComplianceModeEventType
+import com.normation.rudder.domain.eventlog.ModifyHeartbeatPeriodEventType
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.reports._
-
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
@@ -64,8 +70,12 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.errors._
+import com.normation.rudder.domain.eventlog.ModifyRudderSyslogProtocolEventType
+import com.normation.rudder.domain.eventlog.ModifyRudderVerifyCertificates
 import zio._
 import zio.syntax._
+
+import scala.concurrent.duration.Duration
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -221,6 +231,8 @@ trait ReadConfigService {
   def rudder_save_db_compliance_details(): IOResult[Boolean]
 
   def rudder_generation_max_parallelism(): IOResult[String]
+  def rudder_generation_delay(): IOResult[Duration]
+  def rudder_generation_trigger(): IOResult[PolicyGenerationTrigger]
   def rudder_generation_js_timeout(): IOResult[Int]
 
   def rudder_generation_continue_on_error(): IOResult[Boolean]
@@ -364,6 +376,8 @@ trait UpdateConfigService {
   def set_rudder_save_db_compliance_details(value: Boolean): IOResult[Unit]
 
   def set_rudder_generation_max_parallelism(value: String): IOResult[Unit]
+  def set_rudder_generation_delay(value: Duration): IOResult[Unit]
+  def set_rudder_generation_trigger(value: PolicyGenerationTrigger): IOResult[Unit]
   def set_rudder_generation_js_timeout(value: Int): IOResult[Unit]
 
   def set_rudder_generation_continue_on_error(value: Boolean): IOResult[Unit]
@@ -424,6 +438,8 @@ class LDAPBasedConfigService(
        rudder.generation.max.parallelism=x0.5
        rudder.generation.js.timeout=30
        rudder.generation.continue.on.error=false
+       rudder.generation.delay=0s
+       rudder.generation.trigger=all
        node.accept.duplicated.hostname=false
     """
 
@@ -517,6 +533,25 @@ class LDAPBasedConfigService(
     }
   }
 
+  private[this] implicit def toDuration(p: IOResult[RudderWebProperty]) = {
+    try {
+      p.map(Duration(_))
+    } catch {
+      case ex: Exception => Inconsistency(ex.getMessage).fail
+    }
+  }
+
+  private[this] implicit def toPolicyGenerationTrigger(p: IOResult[RudderWebProperty]): IOResult[PolicyGenerationTrigger] = {
+    p.flatMap(v => PolicyGenerationTrigger(v).toIO)
+  }
+
+  private[this] implicit def serPolicyGenerationTrigger(x: PolicyGenerationTrigger): String = {
+    x match {
+      case PolicyGenerationTrigger.AllGeneration => "all"
+      case PolicyGenerationTrigger.NoGeneration => "none"
+      case PolicyGenerationTrigger.OnlyManualGeneration => "onlyManual"
+    }
+  }
   /**
    * A feature switch is defaulted to Disabled is parsing fails.
    */
@@ -748,4 +783,11 @@ class LDAPBasedConfigService(
 
   def rudder_generation_continue_on_error(): IOResult[Boolean] = get("rudder_generation_continue_on_error")
   def set_rudder_generation_continue_on_error(value: Boolean): IOResult[Unit] = save("rudder_generation_continue_on_error", value)
+
+  def rudder_generation_delay(): IOResult[Duration] = get("rudder_generation_delay")
+  def set_rudder_generation_delay(value: Duration): IOResult[Unit] = save("rudder_generation_delay", value.toString)
+
+  def rudder_generation_trigger(): IOResult[PolicyGenerationTrigger] = get("rudder_generation_trigger")
+  def set_rudder_generation_trigger(value: PolicyGenerationTrigger): IOResult[Unit] = save("rudder_generation_trigger", value)
+
 }

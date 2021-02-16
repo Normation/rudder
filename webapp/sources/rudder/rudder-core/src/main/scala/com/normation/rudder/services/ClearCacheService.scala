@@ -7,6 +7,7 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.batch.ManualStartDeployment
 import com.normation.rudder.domain.eventlog.ClearCacheEventLog
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.EventLogRepository
@@ -65,7 +66,7 @@ class ClearCacheServiceImpl(
             )
           ).runNowLogError(err => logger.error(s"Error when logging cache event: ${err.fullMsg}"))
           logger.debug("Deleting node configurations on user clear cache request")
-          asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+          asyncDeploymentAgent ! ManualStartDeployment(modId, actor, "Trigger policy generation after clearing configuration cache")
         }
         Full(set)
     }

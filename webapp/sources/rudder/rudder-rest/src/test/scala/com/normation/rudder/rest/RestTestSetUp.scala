@@ -55,6 +55,7 @@ import com.normation.rudder.RudderAccount
 import com.normation.rudder.User
 import com.normation.rudder.UserService
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
+import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
 import com.normation.rudder.batch._
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -115,6 +116,7 @@ import org.specs2.matcher.MatchResult
 import zio._
 import zio.syntax._
 
+import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
 
@@ -301,7 +303,7 @@ object RestTestSetUp {
     override def runPostHooks(generationTime: DateTime, endTime: DateTime, idToConfiguration: Map[NodeId, NodeInfo], systemEnv: HookEnvPairs, nodeIdsPath: String): Box[Unit] = ???
     override def runFailureHooks(generationTime: DateTime, endTime: DateTime, systemEnv: HookEnvPairs, errorMessage: String, errorMessagePath: String): Box[Unit] = ???
   }
-  val asyncDeploymentActor = new AsyncDeploymentActor(policyGeneration, eventLogger, deploymentStatusSerialisation)
+  val asyncDeploymentActor = new AsyncDeploymentActor(policyGeneration, eventLogger, deploymentStatusSerialisation, Duration("0s").succeed, AllGeneration.succeed)
 
   val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
     new CommitAndDeployChangeRequestServiceImpl(
