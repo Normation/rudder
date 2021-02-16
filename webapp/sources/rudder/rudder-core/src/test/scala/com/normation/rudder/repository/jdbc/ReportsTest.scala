@@ -139,7 +139,8 @@ class ReportsTest extends DBCommon {
     }
   }
 
-  "Finding execution" should {
+  // since #18093, we assume that all run are complete, so we ignore runs without an "end" control element
+  "Finding execution, ignoring non-ending runs" should {
     val reports = (
       Map[String, Seq[Reports]]() +
       node("n0")(
@@ -157,10 +158,12 @@ class ReportsTest extends DBCommon {
         //run2
         , ("rudder", "run", 0, "start", "n1_run2", run2, "control", "Start execution")
         , ("r1", "d1", 0, "c2", "cv2", run2, "result_success", "msg1")
-        //run3
+        , ("rudder", "run", 0, "end", "n1_run2", run2, "control", "End execution")
+        //run3 will be ignore: no end element
         , ("rudder", "run", 0, "start", "n1_run3", run3, "control", "Start execution")
       ) +
       node("n2")(
+        // run will be taken even without a start: only 'end' counts.
           ("rudder", "run", 0, "end", "n2_run1", run1, "control", "End execution")
         , ("r1", "d1", 0, "c1", "cv1", run1, "result_success", "msg1")
         , ("r1", "d1", 0, "c2", "cv2", run1, "result_success", "msg1")
@@ -180,16 +183,15 @@ class ReportsTest extends DBCommon {
     "get reports" in {
       val res = repostsRepo.getReportsfromId(0, DateTime.now().plusDays(1)).openOrThrowException("Test failed")
       val expected = Seq(
-          AgentRun(AgentRunId(NodeId("n1"),run2),None,false, 116)
-        , AgentRun(AgentRunId(NodeId("n2"),run1),Some(NodeConfigId("n2_run1")),true, 119)
-        , AgentRun(AgentRunId(NodeId("n1"),run1),Some(NodeConfigId("n1_run1")),true, 110)
-        , AgentRun(AgentRunId(NodeId("n1"),run3),None,false, 118)
-        , AgentRun(AgentRunId(NodeId("n0"),run1),None,true, 109)
+          AgentRun(AgentRunId(NodeId("n0"),run1),None,true, 109)
+        , AgentRun(AgentRunId(NodeId("n1"),run1),Some(NodeConfigId("n1_run1")),true, 115)
+        , AgentRun(AgentRunId(NodeId("n1"),run2),Some(NodeConfigId("n1_run2")),true, 118)
+        , AgentRun(AgentRunId(NodeId("n2"),run1),Some(NodeConfigId("n2_run1")),true, 120)
       )
 
       val checkInsert = transacRun(xa => sql"""select id from ruddersysevents""".query[Long].to[Vector].transact(xa)).size
 
-      (checkInsert must beEqualTo(13)) and
+      (checkInsert must beEqualTo(14)) and
       (res._1 must contain(exactly(expected:_*)))
     }
 
