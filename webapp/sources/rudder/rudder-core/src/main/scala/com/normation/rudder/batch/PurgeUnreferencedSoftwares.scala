@@ -43,8 +43,6 @@ import com.normation.inventory.ldap.core.SoftwareService
 
 import scala.concurrent.duration._
 import com.normation.zio._
-import com.normation.errors._
-import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import zio._
 
 /**
@@ -60,15 +58,8 @@ class PurgeUnreferencedSoftwares(
   if (updateInterval < 1.hour) {
     logger.info(s"[purge unreferenced software] Disable automatic purge of unreferenced softwares (update interval cannot be less than 1 hour)")
   } else {
-    logger.debug(s"[purge unreferenced software] starting batch that purge unreferenced softwares, every ${updateInterval.toString()} *****")
-    val prog = softwareService.deleteUnreferencedSoftware().either.flatMap { _ match {
-      case Right(softwares) =>
-        ScheduledJobLoggerPure.info(s"[purge unreferenced software] Purged ${softwares} unreferenced softwares")
-
-      case Left(err) =>
-        ScheduledJobLoggerPure.error(Chained(s"[purge unreferenced software] Error when deleting unreferenced softwares", err).fullMsg)
-    }}
-
+    logger.debug(s"[purge unreferenced software] starting batch that purge unreferenced softwares, every ${updateInterval.toString()}")
+    val prog = softwareService.deleteUnreferencedSoftware()
     import zio.duration.Duration.{fromScala => zduration}
     ZioRuntime.unsafeRun(prog.delay(zduration(1.hour)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.environment).forkDaemon)
   }
