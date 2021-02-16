@@ -4,6 +4,7 @@ import requests.auth
 from pprint import pprint
 from pkg_resources import parse_version
 import fcntl, termios, struct, traceback
+from distutils.version import StrictVersion
 
 try:
   from subprocess import Popen, PIPE, DEVNULL
@@ -284,16 +285,16 @@ def package_check(metadata, version):
 
 def check_plugin_compatibility(metadata, version):
   # check that the given version is compatible with Rudder one
-  match = re.match(r'(\d+\.\d+)-(\d+)\.(\d+)', metadata['version'])
+  match = re.match(r'((\d+\.\d+)(\.\d+(~(beta|rc)\d+)?)?)-(\d+)\.(\d+)', metadata['version'])
   if not match:
     fail("Invalid package version " + metadata['version'])
-  rudder_version = match.group(1)
-  major_version = match.group(2)
-  minor_version = match.group(3)
-  version_to_check = RUDDER_VERSION
-  if version is not None:
-    version_to_check = version
-  if rudder_version != version_to_check:
+  rudder_version = match.group(1).replace("~beta","a").replace("~rc","b")
+  rudder_major = match.group(2)
+  major_version = match.group(6)
+  minor_version = match.group(7)
+  if rudder_major != RUDDER_MAJOR:
+    return False
+  if StrictVersion(rudder_version) > StrictVersion(RUDDER_VERSION):
     return False
 
   # check specific constraints
@@ -480,9 +481,13 @@ GPG_RUDDER_KEY_FINGERPRINT = "7C16 9817 7904 212D D58C  B4D1 9322 C330 474A 19E8
 
 p = Popen("rudder agent version", shell=True, stdout=PIPE)
 line = p.communicate()[0]
-m = re.match(r'Rudder agent (\d+\.\d+)\..*', line.decode('utf-8'))
+m = re.match(r'Rudder agent (((\d+\.\d+)\.\d+)(\.((beta|rc)\d+))?)\..*?', line.decode('utf-8'))
 if m:
-  RUDDER_VERSION=m.group(1)
+  RUDDER_MAJOR=m.group(3)
+  RUDDER_VERSION=m.group(2)
+  if m.group(4) is not None:
+    RUDDER_VERSION=RUDDER_VERSION + m.group(5).replace("beta","a").replace("rc","b")
+
 else:
   print("Warning, cannot retrieve major Rudder version ! Verify that rudder is well installed on the system")
 

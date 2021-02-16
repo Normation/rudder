@@ -1,13 +1,13 @@
 import os, logging, re, json, textwrap
-from distutils.version import LooseVersion
+from distutils.version import LooseVersion, StrictVersion
 
 import rudderPkgUtils as utils
 
 # Compare versions with the form "w.x-y.z"
 class RudderVersion:
     def __init__(self, version):
-        match = re.search(r'(?P<wx>[0-9]+.[0-9]+)-(?P<yz>[0-9]+.[0-9]+)', version)
-        self.version = [ LooseVersion(match.group("wx")), LooseVersion(match.group("yz")) ]
+        match = re.search(r'(?P<wx>[0-9]+.[0-9]+(.[0-9]+(~(beta|rc)[0-9]+)?)?)-(?P<yz>[0-9]+.[0-9]+)', version)
+        self.version = [ LooseVersion(match.group("wx").replace("~beta","a").replace("~rc","b")), LooseVersion(match.group("yz")) ]
 
     def __eq__(self, other):
         if isinstance(other, RudderVersion):
@@ -43,7 +43,7 @@ class RudderVersion:
 """
 class PluginVersion:
     def __init__(self, pluginLongVersion):
-        match = re.search(r'(?P<rudderVersion>[0-9]+\.[0-9]+)-(?P<pluginShortVersion>[0-9]+\.[0-9]+)(-(?P<mode>[a-zA-Z]+))?', pluginLongVersion)
+        match = re.search(r'(?P<rudderVersion>(?P<rudderMajor>[0-9]+\.[0-9]+)(\.[0-9]+(~(beta|rc)[0-9]+)?)?)-(?P<pluginShortVersion>[0-9]+\.[0-9]+)(-(?P<mode>[a-zA-Z]+))?', pluginLongVersion)
         if match.group('mode') is None:
             self.mode = 'release'
         elif match.group('mode') in ['SNAPSHOT', 'nightly']:
@@ -54,7 +54,8 @@ class PluginVersion:
         if match.group('rudderVersion') is None or match.group('pluginShortVersion') is None:
             utils.fail("The version %s does not respect the version syntax [0-9]+.[0-9]+-[0-9]+.[0-9]+(-SNAPSHOT)?"%(pluginLongVersion))
         else:
-            self.rudderVersion = match.group('rudderVersion')
+            self.rudderVersion = match.group('rudderVersion').replace("~beta","a").replace("~rc","b")
+            self.rudderMajor   = match.group('rudderMajor')
             self.pluginShortVersion = match.group('pluginShortVersion')
             self.pluginLongVersion = pluginLongVersion
             self.versionToCompare = RudderVersion(self.rudderVersion + "-" + self.pluginShortVersion)
@@ -73,7 +74,8 @@ class PluginVersion:
         if eq == True:
             return False if self.mode == other.mode else self.mode == 'nightly'
         else:
-            return self.versionToCompare < other.versionToCompare
+
+            return  StrictVersion(self.rudder_version) < StrictVersion(other.rudder_version) and StrictVersion(self.pluginShortVersion) < StrictVersion(other.pluginShortVersion)
         
     def __le__(self, other):
         if self.__eq__(other) == True:
