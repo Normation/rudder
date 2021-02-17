@@ -143,8 +143,8 @@ final class AsyncDeploymentActor(
     deploymentService            : PromiseGenerationService
   , eventLogger                  : EventLogDeploymentService
   , deploymentStatusSerialisation: DeploymentStatusSerialisation
-  , getGenerationDelay           : IOResult[Duration]
-  , deploymentPolicy             : IOResult[PolicyGenerationTrigger]
+  , getGenerationDelay           : () => IOResult[Duration]
+  , deploymentPolicy             : () => IOResult[PolicyGenerationTrigger]
 ) extends LiftActor with ListenerManager with AsyncDeploymentAgent {
 
   deploymentManager =>
@@ -271,7 +271,7 @@ final class AsyncDeploymentActor(
 
       PolicyGenerationLogger.trace("Policy updater: receive new automatic policy update request message")
 
-      deploymentPolicy.either.runNow match {
+      deploymentPolicy().either.runNow match {
         case Right(PolicyGenerationTrigger.NoGeneration | PolicyGenerationTrigger.OnlyManualGeneration) =>
           PolicyGenerationLogger.info("Policy generation: Due to policy generation policy, no automatic policy generation was triggered ")
 
@@ -319,7 +319,7 @@ final class AsyncDeploymentActor(
 
       PolicyGenerationLogger.trace("Policy updater: receive new manual policy update request message")
 
-      deploymentPolicy.either.runNow match {
+      deploymentPolicy().either.runNow match {
         case Right(PolicyGenerationTrigger.NoGeneration) =>
           PolicyGenerationLogger.debug("Policy generation: Due to policy generation policy, no manual policy generation was triggered ")
 
@@ -433,7 +433,7 @@ final class AsyncDeploymentActor(
       case NewDeployment(id, modId, startTime, actor, eventId) =>
         PolicyGenerationLogger.trace("Policy updater Agent: start to update policies")
         try {
-          val delay = getGenerationDelay.either.runNow match {
+          val delay = getGenerationDelay().either.runNow match {
             case Right(delay) => delay
             case Left(_)      => Duration("0s")
           }
