@@ -748,7 +748,7 @@ class GitTechniqueReader(
   }
 
   /**
-   * Register a category, but whithout checking that its parent
+   * Register a category, but without checking that its parent
    * is legal.
    * So that will lead to an inconsistant Map of categories
    * which must be normalized before use !

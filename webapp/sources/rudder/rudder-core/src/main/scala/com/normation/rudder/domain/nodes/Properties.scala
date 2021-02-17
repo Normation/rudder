@@ -268,7 +268,7 @@ object GenericProperty {
    * paramValue: """{"foo":"bar"}"""  for the string {"foo":"bar"}
    * and
    * paramValue: {"foo":"bar"}  for the json {"foo":"bar"}
-   * If the value is not parsable (for ex: foo whithout quote) it's an error.
+   * If the value is not parsable (for ex: foo without quote) it's an error.
    * And we had the compat with 6.0 which is always a string.
    */
   implicit class GlobalParameterParsing(value: String) {

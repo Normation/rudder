@@ -9,15 +9,15 @@ explaining the generalities about hooks and the specificities of that hook (para
 
 *Hooks must be executable*. All executable files will be used as hooks EXCEPT if
 they end with one of the extensions listed in */opt/rudder/etc/rudder-web.properties
-for property *rudder.hooks.ignore-suffixes*. A common convention is to use the *.disabled* 
-suffixe to do so. 
+for property *rudder.hooks.ignore-suffixes*. A common convention is to use the *.disabled*
+suffixe to do so.
 
 Non executable files will be ignored (which allows to put other files in these
 directories, like a readme, for example).
 
 
 *Hooks parameter are passed by environment variable*. Rudder will fill dedicated
-environment variable for each hooks.
+environment variable for each hook.
 
 *Hooks are executed sequentially, in lexical order*. We encourage
 you to use the patter "NN-hookname", with NN a number like
@@ -30,7 +30,18 @@ you to use the patter "NN-hookname", with NN a number like
 - 32-63  : warning, warning log in /var/log/rudder/webapp/, continue to next hook
 - 64-255 : reserved for future use case. Behavior may change without notice.
 
+*Hooks have a maximum execution time allowed*. After some time (2s for policy generation node specific events, 30s for
+other cases) a warning will be issued. After a longer time (20s for policy generation node specific
+events, 5 min for other cases), the hook will be killed.
+You can change these timeouts with the following directives, that must be in the 1000 first characters of your hook script,
+prefixed by any type of comments characters (only the end of line is considered):
+
+- HOOK_WARN_TIMEOUT = <length><unit>
+- HOOK_KILL_TIMEOUT = <length><unit>
+
+Where `length` is an integer, and `unit` is one of `micro(s)`, `ms`, `millisecond(s)`, `s`,
+`second(s)`, `m`, `minute(s)`, `h`, `hour(s)`.
 
 *Available Hooked events*: for now, all hooks are related to different steps of the policy generation
-process. In the future, more hooks will be supported like node acceptation.
+process or node lifecycle and inventory reception. In the future, more cases will be supported.
 
