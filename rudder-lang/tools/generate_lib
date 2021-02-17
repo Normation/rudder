@@ -186,6 +186,9 @@ def parse_method_metadata(content):
                 shift = 2
                 method_aliases.append(bundle_name)
                 bundle_name += "_present"
+            elif bundle_name.startswith("registry_"):
+                shift = 2
+                method_aliases.append(bundle_name)
             elif bundle_name.startswith("kernel_module") or \
                     bundle_name.startswith("http_request"):
                 shift = 2
@@ -206,7 +209,7 @@ def parse_method_metadata(content):
             res['state'] = '_'.join(split[shift:])
 
             if bundle_name.startswith("http_request_") or bundle_name.startswith(
-                    "sharedfile_") or bundle_name.startswith("variable_"):
+                    "sharedfile_") or bundle_name.startswith("variable_") or bundle_name.startswith("registry_entry_"):
                 resource_id = 2
             else:
                 resource_id = 1
@@ -228,8 +231,7 @@ def parse_method_metadata(content):
     # class_parameter and the list of args
     if "class_parameter_id" in tags:
         try:
-            res['class_parameter_id'] = bundle_args.index(
-                res['class_parameter'])
+            res['class_parameter_id'] = bundle_args.index(res['class_parameter'])
         except BaseException:
             res['class_parameter_id'] = 0
             raise NcfError(
@@ -280,12 +282,15 @@ def parse_method_metadata(content):
             param["constraints"] = constraints
             param["type"] = param_type
 
-            if resource_id > 0:
+
+            if param['name'] == res['class_parameter']:
+                resource_id -= 1
+                res["resource_parameters"].append(param)
+            elif resource_id > 1:
                 resource_id -= 1
                 res["resource_parameters"].append(param)
             else:
                 res["parameters"].append(param)
-    # res['deprecated_aliases'] = 
 
     # a trick to avoid DSC diffson tester comparison script,
     # for this particular technique parameters are loaded in cfengine in the wrong order
