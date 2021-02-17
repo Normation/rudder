@@ -1901,8 +1901,8 @@ object RudderConfig extends Loggable {
         deploymentService
       , eventLogDeploymentServiceImpl
       , deploymentStatusSerialisation
-      , configService.rudder_generation_delay()
-      , configService.rudder_generation_trigger()
+      , () => configService.rudder_generation_delay()
+      , () => configService.rudder_generation_trigger()
     )
     techniqueRepositoryImpl.registerCallback(
         new DeployOnTechniqueCallback("DeployOnPTLibUpdate", 1000, agent)
