@@ -62,8 +62,17 @@ period of time to allow migration from previous versions.
     </tr>
     <tr>
       <td class="code">12</td>
-      <td class="code">6.0</td>
+      <td class="code">6.0 and 6.1</td>
       <td>Node key management</td>
+    </tr>
+    <tr>
+      <td class="code">13</td>
+      <td class="code">6.2</td>
+      <td><ul>
+        <li>Node status endpoint</li>
+        <li>System health check</li>
+        <li>System maintenance job to purge software [that endpoint was back-ported in 6.1]</li>
+      </ul></td>
     </tr>
 
   </tbody>
