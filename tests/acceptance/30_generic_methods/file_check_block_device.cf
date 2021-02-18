@@ -32,7 +32,9 @@ bundle agent init
     "file_list"       slist => { "${file}", "${block_device}" };
     solaris::
       "mknod"          string => "/usr/sbin/mknod";
-    !solaris::
+    debian::
+      "mknod"          string => "/bin/mknod";
+    !solaris.!debian::
       "mknod"          string => "/usr/bin/mknod";
 
   files:
