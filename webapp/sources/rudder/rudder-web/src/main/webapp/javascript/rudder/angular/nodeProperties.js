@@ -163,7 +163,6 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
       if(!$scope.alreadyUsed){
         $http.post($scope.urlAPI, data).then(function successCallback(response) {
           $scope.errorSaving = false;
-          $scope.properties.push(propertyToSave);
           $scope.resetNewProperty();
           $('#newPropPopup').bsModal('hide');
           $scope.newPropForm.$setPristine();
