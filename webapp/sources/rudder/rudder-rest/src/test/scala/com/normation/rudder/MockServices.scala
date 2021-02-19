@@ -70,8 +70,12 @@ import com.normation.errors._
 import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.zio._
 import com.normation.rudder.domain.archives.RuleArchiveId
+import com.normation.rudder.domain.queries.CriterionComposition
+import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
+import com.normation.rudder.services.nodes.LDAPNodeInfo
+import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
@@ -79,6 +83,20 @@ import org.joda.time.format.ISODateTimeFormat
 
 import scala.annotation.tailrec
 import scala.collection.SortedMap
+import com.normation.box._
+import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.InventoryDitService
+import com.normation.inventory.ldap.core.InventoryDitServiceImpl
+import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
+import com.normation.inventory.services.core.ReadOnlySoftwareDAO
+import com.normation.rudder.domain.NodeDit
+import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.domain.queries._
+import com.normation.rudder.services.queries._
+import com.softwaremill.quicklens._
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.RDN
+import com.unboundid.ldif.LDIFChangeRecord
 
 /*
  * Mock services for test, especially reposositories, and provides
@@ -949,9 +967,33 @@ class MockRules() {
   }
 }
 
+// internal storage format for node repository
+final case class NodeDetails(info: NodeInfo, nInv: NodeInventory, mInv: Option[MachineInventory])
+final case class NodeBase(
+    pending : Map[NodeId, NodeDetails]
+  , accepted: Map[NodeId, NodeDetails]
+  , deleted : Map[NodeId, NodeDetails]
+)
 
 class MockNodes() {
   val t2 = System.currentTimeMillis()
+
+  val softwares = List(
+    Software(SoftwareUuid("s00"), name = Some("s00"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s01"), name = Some("s01"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s02"), name = Some("s02"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s03"), name = Some("s03"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s04"), name = Some("s04"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s05"), name = Some("s05"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s06"), name = Some("s06"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s07"), name = Some("s07"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s08"), name = Some("s08"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s09"), name = Some("s09"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s10"), name = Some("s10"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s11"), name = Some("s11"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s12"), name = Some("s12"), version = Some(new Version("1.0")))
+  , Software(SoftwareUuid("s13"), name = Some("s13"), version = Some(new Version("1.0")))
+  )
 
 
   //a valid, not used pub key
@@ -984,7 +1026,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , NodeState.Enabled
     , false
     , true
-    , DateTime.now
+    , DateTime.parse("2021-01-30T01:20+01:00")
     , emptyNodeReportingConfiguration
     , Nil
     , Some(PolicyMode.Enforce)
@@ -995,7 +1037,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None))
     , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
     , List("127.0.0.1", "192.168.0.100")
-    , DateTime.now
+    , DateTime.parse("2021-01-30T01:20+01:00")
     , UndefinedKey
     , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey(PUBKEY), Set()))
     , rootId
@@ -1015,6 +1057,38 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , Some(NodeTimezone("UTC", "+00"))
   )
 
+  val rootInventory: NodeInventory = NodeInventory(
+      NodeSummary(
+          root.id
+        , AcceptedInventory
+        , root.localAdministratorAccountName
+        , root.hostname
+        , root.osDetails
+        , root.id
+        , root.keyStatus
+      )
+    , name                 = None
+    , description          = None
+    , ram                  = None
+    , swap                 = None
+    , inventoryDate        = None
+    , receiveDate          = None
+    , archDescription      = None
+    , lastLoggedUser       = None
+    , lastLoggedUserTime   = None
+    , agents               = Seq()
+    , serverIps            = Seq()
+    , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
+    , softwareIds          = softwares.take(7).map(_.id)
+    , accounts             = Seq()
+    , environmentVariables = Seq(EnvironmentVariable("THE_VAR", Some("THE_VAR value!")))
+    , processes            = Seq()
+    , vms                  = Seq()
+    , networks             = Seq()
+    , fileSystems          = Seq()
+    , serverRoles          = Set()
+  )
+
   val node1Node = Node (
       id1
     , "node1"
@@ -1022,7 +1096,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , NodeState.Enabled
     , false
     , false
-    , DateTime.now
+    , DateTime.parse("2021-01-30T01:20+01:00")
     , emptyNodeReportingConfiguration
     , Nil
     , None
@@ -1034,7 +1108,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None))
     , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
     , List("192.168.0.10")
-    , DateTime.now
+    , DateTime.parse("2021-01-30T01:20+01:00")
     , UndefinedKey
     , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey(PUBKEY), Set()))
     , rootId
@@ -1051,9 +1125,9 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
         , AcceptedInventory
         , node1.localAdministratorAccountName
         , node1.hostname
-        , Linux(Debian, "test machine", new Version("1.0"), None, new Version("3.42"))
+        , node1.osDetails
         , root.id
-        , UndefinedKey
+        , node1.keyStatus
       )
     , name                 = None
     , description          = None
@@ -1067,7 +1141,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , agents               = Seq()
     , serverIps            = Seq()
     , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
-    , softwareIds          = Seq()
+    , softwareIds          = softwares.drop(5).take(10).map(_.id)
     , accounts             = Seq()
     , environmentVariables = Seq(EnvironmentVariable("THE_VAR", Some("THE_VAR value!")))
     , processes            = Seq()
@@ -1080,6 +1154,17 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   //node1 us a relay
   val node2Node = node1Node.copy(id = id2, name = id2.value)
   val node2 = node1.copy(node = node2Node, hostname = hostname2, policyServerId = root.id )
+  val nodeInventory2: NodeInventory = nodeInventory1.copy().modify(_.main).setTo(
+      NodeSummary(
+          node2.id
+        , AcceptedInventory
+        , node2.localAdministratorAccountName
+        , node2.hostname
+        , node2.osDetails
+        , root.id
+        , node2.keyStatus
+      )
+  )
 
   val dscNode1Node = Node (
       NodeId("node-dsc")
@@ -1088,7 +1173,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , NodeState.Enabled
     , false
     , true //is draft server
-    , DateTime.now
+    , DateTime.parse("2021-01-30T01:20+01:00")
     , emptyNodeReportingConfiguration
     , Nil
     , None
@@ -1100,7 +1185,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None))
     , Windows(Windows2012, "Windows 2012 youpla boom", new Version("2012"), Some("sp1"), new Version("win-kernel-2012"))
     , List("192.168.0.5")
-    , DateTime.now
+    , DateTime.parse("2021-01-30T01:20+01:00")
     , UndefinedKey
     , Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("5.0.0")), Certificate("windows-node-dsc-certificate"), Set()))
     , rootId
@@ -1119,7 +1204,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
         , dscNode1.hostname
         , dscNode1.osDetails
         , dscNode1.policyServerId
-        , UndefinedKey
+        , dscNode1.keyStatus
       )
     , name                 = None
     , description          = None
@@ -1133,7 +1218,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , agents               = Seq()
     , serverIps            = Seq()
     , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
-    , softwareIds          = Seq()
+    , softwareIds          = softwares.drop(5).take(7).map(_.id)
     , accounts             = Seq()
     , environmentVariables = Seq(EnvironmentVariable("THE_VAR", Some("THE_VAR value!")))
     , processes            = Seq()
@@ -1143,7 +1228,66 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , serverRoles          = Set()
   )
 
+
   val allNodesInfo = Map( rootId -> root, node1.id -> node1, node2.id -> node2)
+  // both nodeInfoService and repo, since we deal with the same underlying node objects
+  object nodeInfoService extends NodeInfoService with LDAPFullInventoryRepository {
+
+    // node status is in inventory.main.
+    val nodeBase = RefM.make(Map(
+        (rootId     , NodeDetails(root    , rootInventory , None))
+      , (node1.id   , NodeDetails(node1   , nodeInventory1, None))
+      , (node2.id   , NodeDetails(node2   , nodeInventory2, None))
+      , (dscNode1.id, NodeDetails(dscNode1, dscInventory1 , None))
+    )).runNow
+
+    def getGenericOne[A](id: NodeId, status: InventoryStatus, f:NodeDetails => Option[A]): IOResult[Option[A]] = {
+      nodeBase.get.map(_.collectFirst { case(id, n) if (id == id && n.nInv.main.status == status && f(n).isDefined) => f(n).get })
+    }
+    def getGenericAll[A](status: InventoryStatus, f:NodeDetails => Option[A]): IOResult[Map[NodeId, A]] = {
+      nodeBase.get.map(_.collect { case(id, n) if(n.nInv.main.status == status && f(n).isDefined) => (id, f(n).get) })
+    }
+    def _info(node: NodeDetails) = Option(node.info)
+    def _fullInventory(node: NodeDetails) = Option(FullInventory(node.nInv, node.mInv))
+
+    override def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, AcceptedInventory, _info)
+    override def getNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = getNodeInfoPure(nodeId).toBox
+
+    override def getAll(): Box[Map[NodeId, NodeInfo]] = getGenericAll(AcceptedInventory, _info).toBox
+
+    override def getAllNodes(): Box[Map[NodeId, Node]] = getAll().map(_.map(kv => (kv._1, kv._2.node)))
+    override def getAllSystemNodeIds(): Box[Seq[NodeId]] = {
+      nodeBase.get.map(_.collect { case (id, n)  if(n.info.isSystem) => id }.toSeq ).toBox
+    }
+
+    override def getPendingNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, PendingInventory, _info)
+    override def getPendingNodeInfos(): Box[Map[NodeId, NodeInfo]] = getGenericAll(PendingInventory, _info).toBox
+
+    override def getDeletedNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, RemovedInventory, _info)
+    override def getDeletedNodeInfos(): Box[Map[NodeId, NodeInfo]] = getGenericAll(RemovedInventory, _info).toBox
+
+    override def get(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[FullInventory]] = getGenericOne(id, inventoryStatus, _fullInventory)
+    override def get(id: NodeId): IOResult[Option[FullInventory]] = {
+      nodeBase.get.map(_.collectFirst { case(id, n) if (id == id) => FullInventory(n.nInv, n.mInv) })
+    }
+
+    override def getMachineId(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[(MachineUuid, InventoryStatus)]] = {
+      getGenericOne(id, inventoryStatus, n => n.mInv.map(x => (x.id, x.status)))
+    }
+
+    override def getAllInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, FullInventory]] = getGenericAll(inventoryStatus, _fullInventory)
+    override def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]] = getGenericAll(inventoryStatus, _fullInventory(_).map(_.node))
+
+    // not implemented yet
+    override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): Box[Set[LDAPNodeInfo]] = ???
+    override def getNumberOfManagedNodes: Int = ???
+    override def save(serverAndMachine: FullInventory): IOResult[Seq[LDIFChangeRecord]] = ???
+    override def delete(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
+    override def move(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
+    override def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
+  }
+
+
 
   val defaultModesConfig = NodeModeConfig(
       globalComplianceMode = GlobalComplianceMode(FullCompliance, 30)
@@ -1292,5 +1436,114 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       ) ++ groupsTargetInfos.valuesIterator
   )
 
+  object softwareDao extends ReadOnlySoftwareDAO {
+    val softRef = RefM.make(softwares.map(s => (s.id, s)).toMap).runNow
+
+    override def getSoftware(ids: Seq[SoftwareUuid]): IOResult[Seq[Software]] = {
+      softRef.get.map(_.map(_._2).toList)
+    }
+
+    override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): IOResult[Map[NodeId, Seq[Software]]] = {
+      for {
+        inventories <- nodeInfoService.getAllInventories(status)
+        softwares   <- softRef.get
+      } yield {
+        inventories.collect {
+          case (id,inv) if(nodeIds.contains(id)) =>
+            (
+              id , softwares.collect {
+                    case (k,s) if(inv.node.softwareIds.contains(k)) => s
+                  }.toList
+            )
+        }
+      }
+    }
+
+    override def getAllSoftwareIds(): IOResult[Set[SoftwareUuid]] = softRef.get.map(_.keySet)
+
+    override def getSoftwaresForAllNodes(): IOResult[Set[SoftwareUuid]] = {
+      nodeInfoService.getAllInventories(AcceptedInventory).map( _.flatMap(_._2.node.softwareIds).toSet)
+    }
+  }
+
+  object queryProcessor extends QueryProcessor {
+    import com.normation.inventory.ldap.core.LDAPConstants._
+    import com.normation.rudder.domain.RudderLDAPConstants._
+    import cats.implicits._
+
+    //return the value to corresponding to the given object/attribute
+    def buildValues(objectName: String, attribute: String): PureResult[NodeDetails => List[String]] = {
+      objectName match {
+        case OC_NODE =>
+          attribute match {
+            case "OS"                 => Right((n: NodeDetails) => List(n.info.osDetails.os.name))
+            case A_NODE_UUID          => Right((n: NodeDetails) => List(n.info.id.value))
+            case A_HOSTNAME           => Right((n: NodeDetails) => List(n.info.hostname))
+            case A_OS_NAME            => Right((n: NodeDetails) => List(n.info.osDetails.os.name))
+            case A_OS_FULL_NAME       => Right((n: NodeDetails) => List(n.info.osDetails.fullName))
+            case A_OS_VERSION         => Right((n: NodeDetails) => List(n.info.osDetails.version.value))
+            case A_OS_SERVICE_PACK    => Right((n: NodeDetails) =>      n.info.osDetails.servicePack.toList)
+            case A_OS_KERNEL_VERSION  => Right((n: NodeDetails) => List(n.info.osDetails.kernelVersion.value))
+            case A_ARCH               => Right((n: NodeDetails) =>      n.info.archDescription.toList)
+            case A_SERVER_ROLE        => Right((n: NodeDetails) =>      n.info.serverRoles.map(_.value).toList)
+            case A_STATE              => Right((n: NodeDetails) => List(n.info.state.name))
+            case A_OS_RAM             => Right((n: NodeDetails) =>      n.info.ram.map(_.size.toString).toList)
+            case A_OS_SWAP            => Right((n: NodeDetails) =>      n.nInv.swap.map(_.size.toString).toList)
+            case A_AGENTS_NAME        => Right((n: NodeDetails) =>      n.info.agentsName.map(_.agentType.id).toList)
+            case A_ACCOUNT            => Right((n: NodeDetails) =>      n.nInv.accounts.toList)
+            case A_LIST_OF_IP         => Right((n: NodeDetails) =>      n.info.ips)
+            case A_ROOT_USER          => Right((n: NodeDetails) => List(n.info.localAdministratorAccountName))
+            case A_INVENTORY_DATE     => Right((n: NodeDetails) => List(n.info.inventoryDate.toString(ISODateTimeFormat.dateTimeNoMillis())))
+            case A_POLICY_SERVER_UUID => Right((n: NodeDetails) => List(n.info.policyServerId.value))
+            case _ => Left(Inconsistency(s"object '${objectName}' doesn't have attribute '${attribute}'"))
+         }
+        case _ => Left(Unexpected("Not yet implemented in test, see `MockServices.scala`"))
+      }
+    }
+
+    def compare(nodeValues: List[String], comparator: CriterionComparator, expectedValue: String): PureResult[Boolean] = {
+      comparator match {
+        case Exists    => Right(nodeValues.nonEmpty)
+        case NotExists => Right(nodeValues.isEmpty)
+        case Equals    => Right(nodeValues.exists(_ == expectedValue))
+        case NotEquals => Right(nodeValues.nonEmpty && nodeValues.forall(_ != expectedValue))
+        case _         => Left(Unexpected("Not yet implemented in test, see `MockServices.scala`"))
+      }
+    }
+
+
+    def filterForLine(line: CriterionLine, nodes: List[NodeDetails]): PureResult[List[NodeDetails]] = {
+      for {
+        values   <- buildValues(line.objectType.objectType, line.attribute.name)
+        matching <- nodes.traverse(n => compare(values(n), line.comparator, line.value).map(if(_) Some(n) else None))
+      } yield {
+        matching.flatten
+      }
+    }
+
+    def filterForLines(lines: List[CriterionLine], combine: CriterionComposition, nodes: List[NodeDetails]): PureResult[List[NodeDetails]] = {
+      for {
+        byLine <- lines.traverse(filterForLine(_, nodes))
+      } yield {
+        combine match {
+          case And =>
+            (nodes :: byLine).reduce((a,b) => a.intersect(b))
+          case Or  =>
+            (Nil :: byLine).reduce((a,b) => a ++ b)
+        }
+      }
+    }
+
+    override def process(query: Query): Box[Seq[NodeInfo]] = {
+      for {
+        nodes    <- nodeInfoService.nodeBase.get
+        matching <- filterForLines(query.criteria, query.composition, nodes.map(_._2).toList).toIO
+      } yield {
+        matching.map(_.info)
+      }
+    }.toBox
+
+    override def processOnlyId(query: Query): Box[Seq[NodeId]] = process(query).map(_.map(_.id))
+  }
 }
 

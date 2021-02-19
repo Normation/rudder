@@ -1,0 +1,118 @@
+---
+description: Get node (minimal)
+method: GET
+url: /api/nodes/node1?include=minimal
+response:
+  code: 200
+  content: >-
+    {
+      "action":"nodeDetails",
+      "id":"node1",
+      "result":"success",
+      "data":{
+        "nodes":[
+          {
+            "id":"root",
+            "hostname":"server.rudder.local",
+            "status":"accepted"
+          }
+        ]
+      }
+    }
+---
+description: Get node (full)
+method: GET
+url: /api/nodes/node1?include=full
+response:
+  code: 200
+  content: >-
+    {
+      "action":"nodeDetails",
+      "id":"node1",
+      "result":"success",
+      "data":{
+        "nodes":[
+          {
+            "id":"root",
+            "hostname":"server.rudder.local",
+            "status":"accepted",
+            "os":{
+              "type":"Linux",
+              "name":"Debian",
+              "version":"7.0",
+              "fullName":"Jessie",
+              "kernelVersion":"3.2"
+            },
+            "machine":{
+              "id":"machine1",
+              "type":"Virtual",
+              "provider":"vbox"
+            },
+            "ipAddresses":["127.0.0.1","192.168.0.100"],
+            "description":"",
+            "lastInventoryDate":"2021-01-30 01:20",
+            "policyServerId":"root",
+            "managementTechnology":[{
+              "name":"Rudder",
+              "version":"4.0.0",
+              "capabilities":[],
+              "nodeKind":"root",
+              "rootComponents":[
+                "rudder-db",
+                "rudder-inventory-endpoint",
+                "rudder-inventory-ldap",
+                "rudder-jetty",
+                "rudder-ldap",
+                "rudder-reports",
+                "rudder-server-root",
+                "rudder-webapp"
+              ]
+            }],
+            "properties":[],
+            "policyMode":"enforce",
+            "timezone":{"name":"UTC","offset":"+00"},
+            "environmentVariables":{"THE_VAR":"THE_VAR value!"},
+            "fileSystems":[{"name":"swap"}],
+            "managementTechnologyDetails":{"cfengineKeys":[],"cfengineUser":"root"},
+            "networkInterfaces":[],
+            "software":[
+              {"name":"s09","version":"1.0"},
+              {"name":"s06","version":"1.0"},
+              {"name":"s05","version":"1.0"},
+              {"name":"s13","version":"1.0"},
+              {"name":"s08","version":"1.0"},
+              {"name":"s02","version":"1.0"},
+              {"name":"s03","version":"1.0"},
+              {"name":"s04","version":"1.0"},
+              {"name":"s10","version":"1.0"},
+              {"name":"s11","version":"1.0"},
+              {"name":"s12","version":"1.0"},
+              {"name":"s01","version":"1.0"},
+              {"name":"s00","version":"1.0"},
+              {"name":"s07","version":"1.0"}
+            ]
+          }
+        ]
+      }
+    }
+---
+description: List node with select and include managementTechnologie
+method: GET
+url: /api/nodes?include=minimal,managementTechnologyDetails&select=nodeAndPolicyServer&where=[{"objectType":"node","attribute":"nodeHostname","comparator":"eq","value":"node1.localhost"}]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listAcceptedNodes",
+      "result":"success",
+      "data":{
+        "nodes":[
+          {
+            "id":"node1",
+            "hostname":"node1.localhost",
+            "status":"accepted",
+            "managementTechnologyDetails":{"cfengineKeys":[],"cfengineUser":"root"}
+          }
+        ]
+      }
+    }
