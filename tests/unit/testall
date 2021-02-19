@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #  Copyright (C) Normation
 #
@@ -16,7 +16,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
 #
 
-set -e
+set -xe
+exec &> >(tee test.log)
 
 OUR_DIR=`dirname "$0"`
 NCF_TREE=`cd "${OUR_DIR}" && pwd`/../../tree
