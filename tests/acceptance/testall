@@ -64,8 +64,8 @@ export GREP_OPTIONS
 #
 # Defaults (overridden by command-line arguments)
 #
-LOG=test.log
-SUMMARY=summary.log
+LOG=test_debug.log
+SUMMARY=test.log
 XML=test.xml
 XMLTMP=xml.tmp
 BASE_WORKDIR="`pwd`/workdir"
