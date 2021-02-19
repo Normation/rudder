@@ -6,7 +6,7 @@ post:
   operationId: purgeSoftware
   responses:
     "200":
-      description: 
+      description: Purge Software
       content:
         application/json:
           schema:
@@ -30,7 +30,7 @@ post:
               data:
                 type: array
                 items:
-                  type: String
+                  type: string
                   description: a success message. 
 
   tags:
