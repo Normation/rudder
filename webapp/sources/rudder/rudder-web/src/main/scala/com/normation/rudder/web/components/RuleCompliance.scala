@@ -38,6 +38,7 @@
 package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.policies._
+
 import scala.xml._
 import net.liftweb.http._
 import net.liftweb.common._
@@ -51,9 +52,9 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.web.services.ChangeLine
 import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.web.ChooseTemplate
-
 import com.normation.box._
 import com.normation.errors._
+import com.normation.rudder.services.reports.ReportingServiceUtils
 
 object RuleCompliance {
   private def details: NodeSeq = ChooseTemplate(
@@ -252,8 +253,9 @@ class RuleCompliance (
         globalMode   <- configService.rudder_global_policy_mode().toBox
       } yield {
 
-        val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib, groups, allRules, globalMode).json.toJsCmd
-        val nodeData = ComplianceData.getRuleByNodeComplianceDetails(directiveLib, reports, allNodeInfos, globalMode).json.toJsCmd
+        val ruleReport = ReportingServiceUtils.buildRuleStatusReport(rule.id, reports)
+        val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(ruleReport, updatedRule, allNodeInfos, directiveLib, groups, allRules, globalMode).json.toJsCmd
+        val nodeData = ComplianceData.getRuleByNodeComplianceDetails(directiveLib, rule.id, reports, allNodeInfos, globalMode, allRules).json.toJsCmd
         JsRaw(s"""
           refreshTable("reportsGrid", ${directiveData});
           refreshTable("nodeReportsGrid", ${nodeData});

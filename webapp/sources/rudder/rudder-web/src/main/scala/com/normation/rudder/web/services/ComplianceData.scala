@@ -480,31 +480,36 @@ object ComplianceData extends Loggable {
    */
   def getRuleByNodeComplianceDetails (
       directiveLib: FullActiveTechniqueCategory
-    , report      : RuleStatusReport
+    , ruleId      : RuleId
+    , nodeReports : Map[NodeId, NodeStatusReport]
     , allNodeInfos: Map[NodeId, NodeInfo]
     , globalMode  : GlobalPolicyMode
+    , allRules    : Seq[Rule]
   ) : JsTableData[NodeComplianceLine]= {
 
     // Compute node compliance detail
-    val nodeComplianceLine = for {
-      (nodeId, aggregate) <- report.byNodes
-      nodeInfo            <- allNodeInfos.get(nodeId)
-    } yield {
+    val nodeComplianceLines = nodeReports.flatMap { case (nodeId, reports) =>
+      for {
+        aggregate         <- reports.byRules.get(ruleId)
+        nodeInfo          <- allNodeInfos.get(nodeId)
+      } yield {
 
-      val directivesMode = aggregate.directives.keys.map(directiveLib.allDirectives.get(_).flatMap(_._2.policyMode)).toSet
-      val (policyMode,explanation) = ComputePolicyMode.nodeModeOnRule(nodeInfo.policyMode, globalMode)(directivesMode)
+        val overrides = getOverridenDirectiveDetails(reports.overrides, directiveLib, allRules, None)
+        val directivesMode = aggregate.directives.keys.map(directiveLib.allDirectives.get(_).flatMap(_._2.policyMode)).toSet
+        val (policyMode,explanation) = ComputePolicyMode.nodeModeOnRule(nodeInfo.policyMode, globalMode)(directivesMode)
 
-      val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnNode(nodeInfo.policyMode, globalMode))
-      NodeComplianceLine(
-          nodeInfo
-        , aggregate.compliance
-        , JsTableData(details)
-        , policyMode
-        , explanation
-      )
+        val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnNode(nodeInfo.policyMode, globalMode))
+        NodeComplianceLine(
+            nodeInfo
+          , aggregate.compliance
+          , JsTableData(details ++ overrides)
+          , policyMode
+          , explanation
+        )
+      }
     }
 
-    JsTableData(nodeComplianceLine.toList)
+    JsTableData(nodeComplianceLines.toList)
   }
 
   /*
