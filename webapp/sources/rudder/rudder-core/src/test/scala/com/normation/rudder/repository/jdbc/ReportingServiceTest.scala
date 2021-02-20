@@ -157,7 +157,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   val dummyComplianceCache = new CachedFindRuleNodeStatusReports {
     def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports = null
     def nodeInfoService: NodeInfoService = self.nodeInfoService
-    def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = null
+    def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[Map[NodeId, NodeStatusReport]] = null
     def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
     def findUserNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
     def findSystemNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
