@@ -118,7 +118,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
   def nodeInfoService : NodeInfoService
   def rulesRepo       : RoRuleRepository
 
-  override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = {
+  override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[Map[NodeId, NodeStatusReport]] = {
     //here, the logic is ONLY to get the node for which that rule applies and then step back
     //on the other method
     val time_0 = System.currentTimeMillis
@@ -128,7 +128,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
       _       =  TimingDebugLogger.debug(s"findCurrentNodeIds: Getting node IDs for rule '${ruleId.value}' took ${time_1-time_0}ms")
       reports <- findRuleNodeStatusReports(nodeIds, Set(ruleId))
     } yield {
-      ReportingServiceUtils.buildRuleStatusReport(ruleId, reports)
+      reports
     }
   }
 

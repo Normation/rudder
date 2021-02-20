@@ -76,13 +76,21 @@ class ReportingServiceUtilsTest extends Specification {
   val noOverrides = Nil
   def dirReport(id: DirectiveId) = (id, DirectiveStatusReport(id, Map()))
   def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*) = {
-    RuleNodeStatusReport(node1, rule1, None, None, directives.map(dirReport _).toMap, expiration)
+    RuleNodeStatusReport(nodeId, ruleId, None, None, directives.map(dirReport _).toMap, expiration)
   }
 
-  def thisOverrideThatOn(overrider: RuleId, overriden: RuleId, directive: DirectiveId) = {
+  // a case where the same directive is on two rules
+  def thisOverrideThatOn(overrider: RuleId, overridden: RuleId, directive: DirectiveId) = {
     OverridenPolicy(
-        PolicyId(overriden, directive, TechniqueVersion("1.0")) //this one is
-      , PolicyId(overrider, directive, TechniqueVersion("1.0")) //overriden by that one
+        PolicyId(overridden, directive, TechniqueVersion("1.0")) //this one is
+      , PolicyId(overrider , directive, TechniqueVersion("1.0")) //overriden by that one
+    )
+  }
+  // a case where two directive from the same unique technique are on two rules
+  def thisOverrideThatOn2(overrider: RuleId, directiver: DirectiveId, overridden: RuleId, directiven: DirectiveId) = {
+    OverridenPolicy(
+        PolicyId(overridden, directiven, TechniqueVersion("1.0")) //this one is
+      , PolicyId(overrider , directiver, TechniqueVersion("1.0")) //overridden by that one
     )
   }
 
@@ -148,6 +156,32 @@ class ReportingServiceUtilsTest extends Specification {
 
     ReportingServiceUtils.buildRuleStatusReport(rule1, reports).isSameReportAs(
       RuleStatusReport(rule1, List(), List())
+    )
+  }
+
+  /*
+   * Two nodes, and two rules, and two directives from the same unique technique:
+   * - rule1/dir1 is applied everywhere,
+   * - rule2/dir2 is applied only on node2 and override rule1/dir1 on that node
+   *
+   * => neither rule1 nor rule2 have skipped
+   */
+  "a rule not overriden on all nodes is not written overriden" in {
+    val reports = List(
+      NodeStatusReport(node1, NoRunNoExpectedReport, RunComplianceInfo.OK
+        , List()
+        , Set(rnReport(node1, rule1, dir1))
+      )
+    , NodeStatusReport(node2, NoRunNoExpectedReport, RunComplianceInfo.OK
+        , List(thisOverrideThatOn2(rule2, dir2, rule1, dir1))
+        , Set(rnReport(node2, rule2, dir2))
+      )
+    ).map(r => (r.nodeId, r)).toMap
+
+    ReportingServiceUtils.buildRuleStatusReport(rule1, reports).isSameReportAs(
+      RuleStatusReport(rule1, List(rnReport(node1, rule1, dir1)), noOverrides)
+    ) and ReportingServiceUtils.buildRuleStatusReport(rule2, reports).isSameReportAs(
+      RuleStatusReport(rule2, List(rnReport(node2, rule2, dir2)), noOverrides)
     )
   }
 }
