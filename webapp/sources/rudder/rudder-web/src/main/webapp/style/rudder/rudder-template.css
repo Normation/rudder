@@ -406,6 +406,9 @@
   height: calc(100vh - 50px);
   overflow: hidden;
 }
+#headerBar ~ .content-wrapper .rudder-template .one-col{
+  height: calc(100vh - 80px);
+}
 .rudder-template .one-col .main-header{
   border-bottom: 2px solid #e5e5e5;
 }
