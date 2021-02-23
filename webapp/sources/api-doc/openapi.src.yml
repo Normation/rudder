@@ -191,6 +191,8 @@ paths:
     $ref: paths/nodes/all.yml
   "/nodes/status":
     $ref: paths/nodes/status.yml
+  "/nodes/pending":
+    $ref: paths/nodes/pending-all.yml
   "/nodes/{nodeId}":
     $ref: paths/nodes/id.yml
   "/nodes/pending/{nodeId}":
