@@ -107,8 +107,13 @@ bundle edit_line ncf_maintain_keys_values_option(v, sep, option)
         comment      => "Strict replace definition of ${index}",
         replace_with => value("${ke[${index}]}${sep}${${v}[${index}]}");
 
+    # To avoid https://issues.rudder.io/issues/18944, we need after the lookahead to either:
+    # Find a non space character
+    # Have EOL
+    # Space character will be managed by first group
+    # before we used wildcard (.*) but that matched the values starting with a space, because it has precedence over the space in first group
     !strict_spacing::
-      "^(\s*${ke[${index}]}\s*${separator}\s*)(?!${ve[${index}]}$).*"
+      "^(\s*${ke[${index}]}\s*${separator}\s*)(?!${ve[${index}]}$)(\S.*|$)"
         comment      => "Replace definition of ${index}",
         replace_with => value("${match.1}${${v}[${index}]}"),
         ifvarclass   => "!${cindex[${index}]}_key_value_in_file";
