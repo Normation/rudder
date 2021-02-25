@@ -105,6 +105,13 @@ rm -rf elm.gz
 ### Rudder Test framework (RTF) installation
 Please follow these [steps](https://github.com/Normation/rudder-tests#rudder-tests) to install Rudder Test framework
 
+Follow these instructions to  [rudder-api-client](https://github.com/Normation/rudder-api-client) then create a symlink in `rudder-tests` :
+
+```
+ln -s <rudder-api-client directory's path>
+```
+
+
 ## Part 1 : Setup the local environment and the dev box
 
 ### Create a platform description file
