@@ -57,7 +57,7 @@ bundle edit_line ncf_maintain_keys_values(v, sep)
   replace_patterns:
       # For convergence need to use negative lookahead on value:
       # "key sep (?!value).*"
-      "^(${keypat[${index}]})(?!${ve[${index}]}$).*"
+      "^(${keypat[${index}]})(?!${ve[${index}]}$)(\S.*|$)"
         comment      => "Replace definition of ${index}",
         replace_with => value("${match.1}${${v}[${index}]}");
 }
@@ -103,7 +103,7 @@ bundle edit_line ncf_maintain_keys_values_option(v, sep, option)
       # For convergence need to use negative lookahead on value:
       # "key sep (?!value).*"
     strict_spacing::
-      "^(\s*${ke[${index}]}\s*${separator}\s*)(?!${ve[${index}]}$).*"
+      "^(\s*${ke[${index}]}\s*${separator}\s*)(?!${ve[${index}]}$)(\S.*|$)"
         comment      => "Strict replace definition of ${index}",
         replace_with => value("${ke[${index}]}${sep}${${v}[${index}]}");
 
