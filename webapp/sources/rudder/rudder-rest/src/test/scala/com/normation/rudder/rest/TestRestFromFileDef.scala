@@ -150,7 +150,9 @@ class TestRestFromFileDef extends Specification with Loggable {
           s"[${i}] ${test.description}" in {
             val mockReq = new MockHttpServletRequest("http://localhost:8080")
             mockReq.method = test.method
-            mockReq.path   = test.url
+            val p = test.url.split('?')
+            mockReq.path = p.head // exists, split always returns at least one element
+            mockReq.queryString = if(p.size > 1) p(1) else ""
             mockReq.body   = test.queryBody.getBytes(StandardCharsets.UTF_8)
             mockReq.headers = test.headers.map{ h =>
               val parts = h.split(":")

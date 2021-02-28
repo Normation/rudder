@@ -983,7 +983,7 @@ class NodeApiService6 (
       nodeIds     =  nodeFilter.getOrElse(nodeInfos.keySet).toSet
       runs        <- roAgentRunsRepository.getNodesLastRun(nodeIds)
       inventories <- if(detailLevel.needFullInventory()) {
-                       inventoryRepository.getAllInventories(state).toBox
+                       inventoryRepository.getAllInventories(state).toBox ?~! "Error when looking for node inventories"
                      } else {
                        Full(Map[NodeId, FullInventory]())
                      }
@@ -1006,7 +1006,7 @@ class NodeApiService6 (
         toJsonResponse(None, ( "nodes" -> JArray(nodes.toList)))
       }
       case eb: EmptyBox => {
-        val message = (eb ?~ (s"Could not fetch ${state.name} Nodes")).msg
+        val message = (eb ?~ (s"Could not fetch ${state.name} Nodes")).messageChain
         toJsonError(None, message)
       }
     }

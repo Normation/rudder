@@ -289,18 +289,29 @@ class FullInventoryRepositoryImpl(
                       case None => LDAPRudderError.Consistancy(s"Could not find node inventories in ${dit.BASE_DN}").fail
                       case Some(tree) => tree.succeed
                      }
-      nodes       <- ZIO.foreach(nodeTree.children.values) { tree => mapper.nodeFromTree(tree) }
+      // we don't want that one error somewhere breaks everything
+      nodes       <- ZIO.foreach(nodeTree.children.values) { tree =>
+                       mapper.nodeFromTree(tree).foldM(
+                         err => InventoryDataLogger.error(s"Error when mapping inventory data for entry '${tree.root.rdn.map(_.toString).getOrElse("")}': ${err.fullMsg}") *> None.succeed
+                       , ok  => Some(ok).succeed
+                       )
+                     }
 
       // Get into Machines subtree
       machineTree <- tree.flatMap(_.children.get(dit.MACHINES.rdn)) match {
                        case None => LDAPRudderError.Consistancy(s"Could not find machine inventories in ${dit.BASE_DN}").fail
                        case Some(tree) => tree.succeed
                      }
-      machines    <- ZIO.foreach(machineTree.children.values){ tree => mapper.machineFromTree(tree) }
+      machines    <- ZIO.foreach(machineTree.children.values){ tree =>
+                       mapper.machineFromTree(tree).foldM(
+                         err => InventoryDataLogger.error(s"Error when mapping inventory data for entry '${tree.root.rdn.map(_.toString).getOrElse("")}': ${err.fullMsg}") *> None.succeed
+                       , ok  => Some(ok).succeed
+                       )
+                     }
 
     } yield {
-      val machineMap =  machines.map(m => (m.id, m)).toMap
-      nodes.map(
+      val machineMap =  machines.flatten.map(m => (m.id, m)).toMap
+      nodes.flatten.map(
         node => {
           val machine = node.machineId.flatMap(mid => machineMap.get(mid._1))
           val inventory = FullInventory(node,machine)

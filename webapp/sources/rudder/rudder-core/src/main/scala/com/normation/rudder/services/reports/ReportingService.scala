@@ -40,7 +40,8 @@ package com.normation.rudder.services.reports
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.{ComplianceLevel, NodeStatusReport, RuleStatusReport}
+import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.domain.reports.NodeStatusReport
 import net.liftweb.common.Box
 
 /**
