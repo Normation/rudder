@@ -46,9 +46,13 @@ import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.NodeInventory
+import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.InventoryDitService
+import com.normation.inventory.ldap.core.InventoryDitServiceImpl
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.MockDirectives
 import com.normation.rudder.MockGitConfigRepo
+import com.normation.rudder.MockNodes
 import com.normation.rudder.MockRules
 import com.normation.rudder.MockTechniques
 import com.normation.rudder.RudderAccount
@@ -57,12 +61,16 @@ import com.normation.rudder.UserService
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
 import com.normation.rudder.batch._
+import com.normation.rudder.domain.NodeDit
+import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.queries.DitQueryData
+import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
@@ -71,6 +79,8 @@ import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
+import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository._
 import com.normation.rudder.rest.lift._
 import com.normation.rudder.rest.v1.RestStatus
@@ -89,6 +99,10 @@ import com.normation.rudder.services.policies.PromiseGenerationService
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
+import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.rudder.services.queries.DefaultStringQueryParser
+import com.normation.rudder.services.queries.JsonQueryLexer
+import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
@@ -98,6 +112,8 @@ import com.normation.rudder.services.workflows.DefaultWorkflowLevel
 import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
 import com.normation.rudder.web.services.StatelessUserPropertyService
 import com.normation.utils.StringUuidGeneratorImpl
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.RDN
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -149,11 +165,28 @@ object RestTestSetUp {
   val fakeUpdateDynamicGroups = new UpdateDynamicGroups(null, null, null, null, 0) {
     override def startManualUpdate: Unit = ()
   }
+  ///// query parsing ////
+  def DN(rdn: String, parent: DN) = new DN(new RDN(rdn),  parent)
+  val LDAP_BASEDN = new DN("cn=rudder-configuration")
+  val LDAP_INVENTORIES_BASEDN = DN("ou=Inventories", LDAP_BASEDN)
+  val LDAP_INVENTORIES_SOFTWARE_BASEDN = LDAP_INVENTORIES_BASEDN
+
+  val acceptedNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Accepted Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
+  val pendingNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Pending Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Pending inventories")
+  val removedNodesDitImpl = new InventoryDit(DN("ou=Removed Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN,"Removed Servers")
+  val rudderDit = new RudderDit(DN("ou=Rudder", LDAP_BASEDN))
+  val nodeDit = new NodeDit(LDAP_BASEDN)
+  val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+  val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, () => Nil.succeed)
+  val queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
+    override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
+  }
 
   val mockGitRepo = new MockGitConfigRepo("")
   val mockTechniques = MockTechniques(mockGitRepo)
   val mockDirectives = new MockDirectives(mockTechniques)
   val mockRules = new MockRules()
+  val mockNodes = new MockNodes()
   val uuidGen = new StringUuidGeneratorImpl()
   val reloadTechniques = new RestTechniqueReload(fakeUpdatePTLibService, uuidGen)
   val restExtractorService =
@@ -162,7 +195,7 @@ object RestTestSetUp {
     , mockDirectives.directiveRepo
     , null //roNodeGroupRepository
     , mockTechniques.techniqueRepository
-    , null //queryParser
+    , queryParser //queryParser
     , new StatelessUserPropertyService(() => false.succeed, () => false.succeed, () => "".succeed)
     , null //workflowService
     , uuidGen
@@ -362,12 +395,23 @@ object RestTestSetUp {
 
   val ApiVersions = ApiVersion(11 , false) :: Nil
 
+  val nodeInfo = mockNodes.nodeInfoService
+  val softDao = mockNodes.softwareDao
+  val roReportsExecutionRepository = new RoReportsExecutionRepository {
+    override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = Full(Map())
+  }
+
+  val nodeApiService2  = new NodeApiService2(null, nodeInfo, null, uuidGen, restExtractorService, restDataSerializer)
+  val nodeApiService4  = new NodeApiService4(nodeInfo, nodeInfo, softDao, uuidGen, restExtractorService, restDataSerializer, roReportsExecutionRepository)
+  val nodeApiService6  = new NodeApiService6(nodeInfo, nodeInfo, softDao, restExtractorService, restDataSerializer, mockNodes.queryProcessor, roReportsExecutionRepository)
+  val nodeApiService8  = new NodeApiService8(null, nodeInfo, uuidGen, asyncDeploymentActor, "relay", null)
+  val nodeApiService12 = new NodeApiService12(null, uuidGen, restDataSerializer)
   val rudderApi = {
     //append to list all new format api to test it
     val modules = List(
         systemApi
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, uuidGen)
-
+      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12, null, DeleteMode.Erase)
     )
     val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled), None)
     modules.foreach { module =>

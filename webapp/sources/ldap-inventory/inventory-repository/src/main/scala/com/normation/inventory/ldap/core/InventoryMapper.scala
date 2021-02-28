@@ -935,12 +935,17 @@ class InventoryMapper(
       agentNames         <- {
                               val agents = entry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
                               val agentWithKeys = agents.zipAll(publicKeys, None,None).filter(_._1.isDefined)
-                              ZIO.foreach(agentWithKeys) {
-                                case (Some(agent), key) =>
-                                  AgentInfoSerialisation.parseCompatNonJson(agent,key).chainError(s"Error when parsing agent security token '${agent}'")
-                                case (None, key)        =>
-                                  InventoryMappingRudderError.MissingMandatory("Error when parsing agent security token: agent is undefined").fail
-                              }
+                              ZIO.foreach(agentWithKeys) { case (opt, key) => ((opt, key) match {
+                                  case (Some(agent), key) =>
+                                    AgentInfoSerialisation.parseCompatNonJson(agent,key).chainError(s"Error when parsing agent security token '${agent}'")
+                                  case (None, key)        =>
+                                    InventoryMappingRudderError.MissingMandatory("Error when parsing agent security token: agent is undefined").fail
+                                }).foldM(
+                                  err => InventoryDataLogger.error(s"Error when parsing agent information for node '${id.value}': that agent will be " +
+                                                                   s"ignored for the node, which will likely cause problem like the node being ignored: ${err.fullMsg}") *> None.succeed
+                                , ok  => Some(ok).succeed
+                                )
+                              }.map(_.flatten)
                             }
       //now, look for the OS type
       osDetails          <- mapOsDetailsFromEntry(entry).toIO
