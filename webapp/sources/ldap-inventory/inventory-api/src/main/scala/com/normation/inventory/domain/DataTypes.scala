@@ -204,6 +204,11 @@ object InventoryProcessingLogger extends NamedZioLogger {
   object timing extends NamedZioLogger(){ def loggerName = "inventory-processing.timing"}
 }
 
+object InventoryDataLogger extends NamedZioLogger {
+  override def loggerName: String = "inventory-data"
+}
+
+
 sealed trait InventoryError extends RudderError
 
 object InventoryError {
