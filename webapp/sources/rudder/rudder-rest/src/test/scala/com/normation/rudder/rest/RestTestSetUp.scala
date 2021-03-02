@@ -83,6 +83,7 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
+import com.normation.rudder.reports.execution.AgentRunWithoutCompliance
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository._
 import com.normation.rudder.rest.lift._
@@ -423,6 +424,10 @@ object RestTestSetUp {
   val softDao = mockNodes.softwareDao
   val roReportsExecutionRepository = new RoReportsExecutionRepository {
     override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = Full(Map())
+
+    def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = ???
+
+    def getUnprocessedRuns(): IOResult[Seq[AgentRunWithoutCompliance]] = ???
   }
 
   val nodeApiService2  = new NodeApiService2(null, nodeInfo, null, uuidGen, restExtractorService, restDataSerializer)
