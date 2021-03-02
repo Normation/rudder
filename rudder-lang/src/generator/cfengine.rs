@@ -217,6 +217,7 @@ impl CFEngine {
                     .source(sd.source.fragment())
                     .build())
             }
+            // We probably want to update to update this part to integrate scopes by dividing your Vec<Statements> and applying a scope guard
             Statement::Case(_case, vec) => {
                 self.reset_cases();
                 let mut res = vec![];

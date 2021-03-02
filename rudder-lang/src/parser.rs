@@ -651,7 +651,7 @@ fn pcomplex_value(i: PInput) -> PResult<PComplexValue> {
 
 /// A metadata is a key/value pair that gives properties to the statement that follows.
 /// Currently metadata is not used by the compiler, just parsed, but that may change.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct PMetadata<'src> {
     pub source: Token<'src>,
     pub values: TomlValue,
@@ -1047,18 +1047,21 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
                 case: estag("if");
                 expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
                 _x: ftag("=>");
-                stmt: or_fail(pstatement, || PErrorKind::ExpectedKeyword("statement"));
+                stmts: or_fail(alt((
+                    map(pstatement, |x| vec![x]),
+                    delimited_parser("{", |j| many0(pstatement)(j), "}"),
+                )), || PErrorKind::ExpectedKeyword("statement"));
             } => {
-                // Propagate metadata to the single statement
-                let statement = match stmt {
+                // append the same metadata to each element
+                let stmts_meta = stmts.into_iter().map(|stmt| match stmt {
                     PStatement::StateDeclaration(mut sd) => {
-                        sd.metadata.extend(metadata);
+                        sd.metadata.extend(metadata.clone());
                         PStatement::StateDeclaration(sd)
                     },
-                    x => x,
-                };
+                    x => x
+                }).collect();
                 PStatement::Case(case.into(), vec![
-                    ( expr, vec![statement] ),
+                    ( expr, stmts_meta ),
                     ( PEnumExpression { source:"default".into(), expression: PEnumExpressionPart::Default("default".into()) },
                       vec![PStatement::Noop])
                 ] )

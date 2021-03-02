@@ -212,6 +212,7 @@ impl InterpolatedParameter {
     }
 }
 
+// Update this part to integrate scopes
 #[derive(Serialize, Deserialize)]
 pub struct MethodCall {
     #[serde(default)]
