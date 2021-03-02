@@ -292,7 +292,7 @@ class FullInventoryRepositoryImpl(
       // we don't want that one error somewhere breaks everything
       nodes       <- ZIO.foreach(nodeTree.children.values) { tree =>
                        mapper.nodeFromTree(tree).foldM(
-                         err => InventoryDataLogger.error(s"Error when mapping inventory data for entry '${tree.root().rdn.map(_.toString).getOrElse("")}': ${err.fullMsg}") *> None.succeed
+                         err => InventoryDataLogger.error(s"Error when mapping inventory data for entry '${tree.root.rdn.map(_.toString).getOrElse("")}': ${err.fullMsg}") *> None.succeed
                        , ok  => Some(ok).succeed
                        )
                      }
@@ -304,7 +304,7 @@ class FullInventoryRepositoryImpl(
                      }
       machines    <- ZIO.foreach(machineTree.children.values){ tree =>
                        mapper.machineFromTree(tree).foldM(
-                         err => InventoryDataLogger.error(s"Error when mapping inventory data for entry '${tree.root().rdn.map(_.toString).getOrElse("")}': ${err.fullMsg}") *> None.succeed
+                         err => InventoryDataLogger.error(s"Error when mapping inventory data for entry '${tree.root.rdn.map(_.toString).getOrElse("")}': ${err.fullMsg}") *> None.succeed
                        , ok  => Some(ok).succeed
                        )
                      }

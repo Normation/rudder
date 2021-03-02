@@ -84,18 +84,10 @@ import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
 import scala.collection.SortedMap
 import com.normation.box._
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.ldap.core.InventoryDitService
-import com.normation.inventory.ldap.core.InventoryDitServiceImpl
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
-import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.services.queries._
-import com.softwaremill.quicklens._
-import com.unboundid.ldap.sdk.DN
-import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
 
 /*
@@ -607,7 +599,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
                  )
                }
       } yield {
-        res.toActiveTechnique()
+        res.toActiveTechnique
       }
     }
 
@@ -938,7 +930,7 @@ class MockRules() {
         case None                   =>
           Inconsistency(s"rule does not exist: ${id.value}").fail
         }
-      ).map(r => DeleteRuleDiff(r))
+      ).map(DeleteRuleDiff(_))
     }
 
     override def deleteSystemRule(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[DeleteRuleDiff] =  {
@@ -951,7 +943,7 @@ class MockRules() {
         case None                   =>
           Inconsistency(s"rule does not exist: ${id.value}").fail
         }
-      ).map(r => DeleteRuleDiff(r))
+      ).map(DeleteRuleDiff(_))
     }
 
     override def swapRules(newRules: Seq[Rule]): IOResult[RuleArchiveId] = {
@@ -1154,9 +1146,11 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   //node1 us a relay
   val node2Node = node1Node.copy(id = id2, name = id2.value)
   val node2 = node1.copy(node = node2Node, hostname = hostname2, policyServerId = root.id )
-  val nodeInventory2: NodeInventory = nodeInventory1.copy().modify(_.main).setTo(
+  val nodeInventory2: NodeInventory = {
+    import com.softwaremill.quicklens._
+    nodeInventory1.copy().modify(_.main).setTo(
       NodeSummary(
-          node2.id
+        node2.id
         , AcceptedInventory
         , node2.localAdministratorAccountName
         , node2.hostname
@@ -1164,7 +1158,9 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
         , root.id
         , node2.keyStatus
       )
-  )
+
+    )
+  }
 
   val dscNode1Node = Node (
       NodeId("node-dsc")
@@ -1463,6 +1459,22 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
 
     override def getSoftwaresForAllNodes(): IOResult[Set[SoftwareUuid]] = {
       nodeInfoService.getAllInventories(AcceptedInventory).map( _.flatMap(_._2.node.softwareIds).toSet)
+    }
+
+    def getNodesbySofwareName(softName: String): IOResult[List[(NodeId, Software)]] ={
+      for {
+        inventories <- nodeInfoService.getAllInventories(AcceptedInventory)
+        softwares   <- softRef.get
+      } yield {
+
+        inventories.toList.flatMap {
+          case (id, inv) =>
+            softwares.collect {
+              case (k, s) if (s.name.exists(_ == softName) && inv.node.softwareIds.contains(k)) => (id,s)
+            }
+
+        }
+      }
     }
   }
 
