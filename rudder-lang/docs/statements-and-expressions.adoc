@@ -1,13 +1,13 @@
 [#statements]
 = Statements
 
-Statements are an important concept that can be expressed by either:
+Statements are the atomic element of a state definition. It is an important concept that can be represented as:
 
-* comments and metadata
 * a state declaration: `resource().state() as mystatedecl` to store a state into a local variable that can be called
-* a variable definition: `let myvar = "value"`. Value can be of any primitive type
+* a variable definition: `let mynamespace.myvar: OptionalType = "value"`. Variable can hold any supported type
+* a variable extension: `mynamespace.myvar = value` to update value of an existing variable
 * a (switch) `case`. cf <<case-conditions,case conditions>>
-* an `if` condition that contains an enum expression: `if expr => statement`. cf <<if-conditions,if conditions>>
+* an `if` condition, that contains an enum expression: `if expr => statement`. cf <<if-conditions,if conditions>>
 * a flow statement: `return` `log_debug` `log_info` `log_warn` `fail` `noop`
 Example of a state definition that exposes every statement type:
 

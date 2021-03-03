@@ -5,11 +5,6 @@
 // TODO list
 // Comment migrer une technique
 // Le mapping avec le ncf existant
-// Les idées principales, la notion d'état et de resource -> DONE v0
-// mots cles, a quoi ils servent -> DONE v0
-// Des exemples -> DONE v0
-// Les enums -> DONE v0
-// Les variables -> DONE v0
 
 = Rudder language
 
@@ -52,16 +47,19 @@ Once compiled to _CFEngine_ code:
 ----
 include::examples/documentation_ntp.rl.cf[]
 ----
+
+.ntp.rl.ps1
+[source,powershell]
+----
+include::examples/documentation_ntp.rl.ps1[]
+----
 // TODO: comparison with CFEngine, Puppet (mgmt ?)
 
 ==== Short-term future abilities
 
-* Generate techniques written in _rudder-lang_ into: _DSC_
-* Generate techniques written in _rudder-lang_ into: _JSON_
 * Error feedback directly in the _Technique Editor_
 * Enhanced (or refactored):
 ** Variable handling (for example in conditions)
-** _CFEngine_ generation
 
 ==== Long-term future abilities
 

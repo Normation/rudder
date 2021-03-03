@@ -20,7 +20,6 @@ Contains standard enums available to rudder-lang users like the general purpose 
 Contains the exhaustive list of supported operating systems, including major and minor versions. +
 Stored in the form of nested `enum`s.
 
-//TODO rename OS section
 More about supported OSes and their usage in _rudder-lang_ here: <<operating-systems,supported OSes>>
 
 === _cfengine_core.rl_
