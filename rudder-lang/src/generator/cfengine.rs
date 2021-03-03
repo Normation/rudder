@@ -99,15 +99,20 @@ impl CFEngine {
                 if let Some(true) = gc.enum_list.enum_is_global(*e) {
                     gc.enum_list.get_cfengine_item_name(*var, *item)
                 } else {
-                    // concat var name + item
-                    // let prefix = &self.var_prefixes[var.fragment()];
-                    // // TODO there may still be some conflicts with var or enum containing '_'
-                    // format!("{}_{}_{}", var.fragment(), e.fragment(), item.fragment())
-                    format!(
-                        r#"{}_",canonify("${{report_data.canonified_directive_id}}"),"_{}"#,
-                        var.fragment(),
-                        item.fragment()
-                    )
+                    // if var is a foreign variable, output it as it is
+                    if e.fragment() == "boolean" && item.fragment() == "true" {
+                        var.fragment().to_owned()
+                    } else {
+                        // value is known so concat var name + item
+                        // let prefix = &self.var_prefixes[var.fragment()];
+                        // // TODO there may still be some conflicts with var or enum containing '_'
+                        // format!("{}_{}_{}", var.fragment(), e.fragment(), item.fragment())
+                        format!(
+                            r#"{}_",canonify("${{report_data.canonified_directive_id}}"),"_{}"#,
+                            var.fragment(),
+                            item.fragment()
+                        )
+                    }
                 }
             }
             EnumExpressionPart::RangeCompare(_var, _e, _item1, _item2) => unimplemented!(), // TODO
