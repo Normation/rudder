@@ -50,6 +50,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     inventory, and one which managed provisioning.
   </description>
 
+  <licenses>
+    <license>
+      <name> GPL-3.0-only</name>
+      <url>https://www.gnu.org/licenses/gpl-3.0.txt</url>
+    </license>
+  </licenses>
+
   <modules>
     <!-- Domain definition, not related with any backend-->
     <module>inventory-api</module>

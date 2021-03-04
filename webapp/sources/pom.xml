@@ -32,6 +32,11 @@ limitations under the License.
     <url>https://rudder.io</url>
   </organization>
 
+  <scm>
+    <url>https://github.com/Normation/rudder/</url>
+  </scm>
+
+  <!-- we can't put a licenses tag here, else for some reason it overrides utils one -->
   <modules>
     <module>utils</module>
     <module>scala-ldap</module>
