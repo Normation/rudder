@@ -49,7 +49,9 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import org.joda.time.format.ISODateTimeFormat
-
+import com.normation.box._
+import com.normation.zio._
+import com.normation.errors._
 //Message to send to the updater manager to start a new update of all dynamic groups or get results
 sealed trait GroupUpdateMessage
 
@@ -58,7 +60,7 @@ final object GroupUpdateMessage {
   final case object ManualStartUpdate extends GroupUpdateMessage
   final case object ForceStartUpdate  extends GroupUpdateMessage
   final case object DelayedUpdate     extends GroupUpdateMessage
-  final case class  DynamicUpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends GroupUpdateMessage
+  final case class  DynamicUpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Box[ List[(NodeGroupId, Either[RudderError, DynGroupDiff])]]) extends GroupUpdateMessage
 }
 
 //a container to hold the list of dynamic group to update
@@ -228,16 +230,17 @@ class UpdateDynamicGroups(
         println(s"Dynamic group update in ${new Duration(end.getMillis - start.getMillis).toPeriod().toString} (started at ${start.toString(format)}, ended at ${end.toString(format)})")
 
         for {
-          (id,boxRes) <- results
+          result <- results
+          (id,eitherRes) <- result
         } {
-          boxRes match {
-            case e:EmptyBox =>
-              val error = (e ?~! s"Error when updating dynamic group '${id.value}'")
-              logger.error(error.messageChain)
-              error.rootExceptionCause.foreach(ex =>
-                logger.error("Exception was:", ex)
-              )
-            case Full(diff) =>
+          eitherRes match {
+            case Left(e) =>
+              val error = (e.fullMsg + s"Error when updating dynamic group '${id.value}'")
+              logger.error(error)
+             // e.fullMsg.foreach(ex =>
+             //   logger.error("Exception was:", ex)
+              //)
+            case Right(diff) =>
               val addedNodes = displayNodechange(diff.added)
               val removedNodes = displayNodechange(diff.removed)
               logger.debug(s"Group ${id.value}: adding ${addedNodes}, removing ${removedNodes}")
@@ -272,15 +275,23 @@ class UpdateDynamicGroups(
           logger.trace(s"***** Start a new update, id: ${processId}")
           currentState = StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds))
           try {
-            val results = for {
-              dynGroupId <- dynGroupIds
-            } yield {
-              (dynGroupId, dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")))
-            }
-            updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime, DateTime.now, results.toMap)
+println("started")
+
+            val results : Box[ List[(NodeGroupId, Either[RudderError, DynGroupDiff])]] = dynGroupIds.accumulateParN(2) { case dynGroupId =>
+              println("running")
+              dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
+            }.toBox
+
+       //     val results = for {
+       //       dynGroupId <- dynGroupIds
+       //     } yield {
+       //       (dynGroupId, dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")))
+       //     }
+            updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime, DateTime.now, results)
           } catch {
             case e:Exception => updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime,DateTime.now,
-                  dynGroupIds.map(id => (id,Failure("Exception caught during update process.",Full(e), Empty))).toMap)
+                 // SystemError(dynGroupIds.toList.map(id => (id,Left(RudderError("Exception caught during update process."))))))
+null)
           }
         }
       }

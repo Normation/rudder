@@ -174,9 +174,11 @@ class AcceptedNodesLDAPQueryProcessor(
 
     for {
       res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId).toBox
+      _ = println("res for processor ok")
       timeres        =  (System.currentTimeMillis - timePreCompute)
       _              =  logger.debug(s"Result obtained in ${timeres}ms for query ${query.toString}")
       ldapEntries    <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition)
+      _ = println("node info service ok")
       ldapEntryTime  =  (System.currentTimeMillis - timePreCompute - timeres)
       _              =  logger.trace(s"Result of query converted in LDAP Entry in ${ldapEntryTime} ms")
 

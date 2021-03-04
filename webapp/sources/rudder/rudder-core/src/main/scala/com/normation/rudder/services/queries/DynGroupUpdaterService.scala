@@ -97,7 +97,9 @@ class DynGroupUpdaterServiceImpl(
       _              <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
       timePreCompute =  System.currentTimeMillis
       query          <- Box(group.query) ?~! s"No query defined for group '${group.name}' (${group.id.value})"
+      _ = println("query")
       newMembers     <- queryProcessor.processOnlyId(query) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.value})"
+      _ = println("new members")
       //save
       newMemberIdsSet = newMembers.toSet
       timeGroupCompute=  (System.currentTimeMillis - timePreCompute)
@@ -129,8 +131,11 @@ class DynGroupUpdaterServiceImpl(
     val timePreUpdate =  System.currentTimeMillis
     for {
       (group,_)        <- roNodeGroupRepository.getNodeGroup(dynGroupId).toBox
+      _ = println("group found")
       newGroup         <- computeDynGroup(group)
+      _ = println("group computed")
       savedGroup       <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason).toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
+      _ = println("group saved")
       timeGroupUpdate  =  (System.currentTimeMillis - timePreUpdate)
       _                =  logger.debug(s"Dynamic group ${group.id.value} with name ${group.name} updated in ${timeGroupUpdate} ms")
     } yield {
