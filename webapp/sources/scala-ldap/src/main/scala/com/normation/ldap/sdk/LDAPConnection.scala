@@ -65,6 +65,8 @@ trait ReadOnlyEntryLDAPConnection {
    */
   def search(sr: SearchRequest): LDAPIOResult[Seq[LDAPEntry]]
 
+  def searchSet(sr:SearchRequest) : LDAPIOResult[Set[LDAPEntry]]
+
   /**
    * Retrieve entry with given 'dn', optionally restricting
    * entry's attribute set to attribute with name in the
@@ -323,6 +325,20 @@ sealed class RoLDAPConnection(
       case e:LDAPSearchException if(onlyReportOnSearch(e.getResultCode)) =>
         LDAPConnectionLogger.error("Ignored execption (configured to be ignored)", e) *>
         e.getSearchEntries.asScala.toSeq.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala)).succeed
+      case ex: LDAPException =>
+        LDAPRudderError.BackendException(s"Error during search ${sr.getBaseDN} ${sr.getScope.getName}: ${ex.getDiagnosticMessage}", ex).fail
+      // catchAll is a lie, but if other kind of exception happens, we want to crash
+      case ex => throw ex
+    }
+  }
+
+  override def searchSet(sr:SearchRequest) : LDAPIOResult[Set[LDAPEntry]] = {
+    blocking {
+      backed.search(sr).getSearchEntries.asScala.toSeq.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala)).toSet
+    } catchAll {
+      case e:LDAPSearchException if(onlyReportOnSearch(e.getResultCode)) =>
+        LDAPConnectionLogger.error("Ignored execption (configured to be ignored)", e) *>
+          e.getSearchEntries.asScala.toSeq.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala)).toSet.succeed
       case ex: LDAPException =>
         LDAPRudderError.BackendException(s"Error during search ${sr.getBaseDN} ${sr.getScope.getName}: ${ex.getDiagnosticMessage}", ex).fail
       // catchAll is a lie, but if other kind of exception happens, we want to crash

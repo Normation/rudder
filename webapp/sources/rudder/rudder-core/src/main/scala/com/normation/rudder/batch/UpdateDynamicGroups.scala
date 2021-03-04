@@ -225,6 +225,7 @@ class UpdateDynamicGroups(
         //log some information
         val format = ISODateTimeFormat.dateTimeNoMillis()
         logger.debug(s"Dynamic group update in ${new Duration(end.getMillis - start.getMillis).toPeriod().toString} (started at ${start.toString(format)}, ended at ${end.toString(format)})")
+        println(s"Dynamic group update in ${new Duration(end.getMillis - start.getMillis).toPeriod().toString} (started at ${start.toString(format)}, ended at ${end.toString(format)})")
 
         for {
           (id,boxRes) <- results
