@@ -437,7 +437,7 @@ class InternalLDAPQueryProcessor(
           } yield {
           //  println("resultats are " + results.mkString(",") + " " + limitToNodeIds)
 
-            postFilterNode(results, query.returnType, limitToNodeIds)
+            postFilterNode(results.distinctBy(_.dn), query.returnType, limitToNodeIds)
           }).foldM(
             err =>
               logPure.debug(s"[${debugId}] `-> error: ${err.fullMsg}") *>
@@ -461,7 +461,7 @@ class InternalLDAPQueryProcessor(
    * - step1: filter out policy server if we only want "simple" nodes
    * - step2: filter out nodes based on a given list of acceptable entries
    */
-  private[this] def postFilterNode(entries: Set[LDAPEntry], returnType: QueryReturnType, limitToNodeIds:Option[Seq[NodeId]]) : Seq[LDAPEntry] = {
+  private[this] def postFilterNode(entries: Seq[LDAPEntry], returnType: QueryReturnType, limitToNodeIds:Option[Seq[NodeId]]) : Seq[LDAPEntry] = {
 println("This is a postfilter")
     val step1 = returnType match {
                   //actually, we are able at that point to know if we have a policy server,
@@ -476,7 +476,7 @@ println("This is a postfilter")
                                    )
                }
 
-    step2.toSeq
+    step2
   }
 
   /*
@@ -538,7 +538,7 @@ println("This is a postfilter")
   }
 
   //execute a query with special filter based on the composition
-  private[this] def executeQuery(base: DN, scope: SearchScope, objectFilter: LDAPObjectTypeFilter, filter: Option[Filter], specialFilters: Set[SpecialFilter], attributes:Set[String], composition: CriterionComposition, debugId: Long) : IOResult[Set[LDAPEntry]] = {
+  private[this] def executeQuery(base: DN, scope: SearchScope, objectFilter: LDAPObjectTypeFilter, filter: Option[Filter], specialFilters: Set[SpecialFilter], attributes:Set[String], composition: CriterionComposition, debugId: Long) : IOResult[Seq[LDAPEntry]] = {
 
     def buildSearchRequest(addedSpecialFilters:Set[SpecialFilter]) : IOResult[SearchRequest] = {
       //special filter can modify the filter and the attributes to get
@@ -579,13 +579,13 @@ println("This is a postfilter")
       }
     }
 
-    def baseQuery(con:RoLDAPConnection, addedSpecialFilters:Set[SpecialFilter]) : IOResult[Set[LDAPEntry]] = {
+    def baseQuery(con:RoLDAPConnection, addedSpecialFilters:Set[SpecialFilter]) : IOResult[Seq[LDAPEntry]] = {
       //special filter can modify the filter and the attributes to get
 
       for {
         sr      <- buildSearchRequest(addedSpecialFilters)
         _       <- logPure.debug(s"[${debugId}] |--- ${sr}")
-        entries <- con.searchSet(sr)
+        entries <- con.search(sr)
         _       <- logPure.debug(s"[${debugId}] |---- after ldap search request ${entries.size} result(s)")
         post    <- postProcessQueryResults(entries, addedSpecialFilters.map( (composition,_) ), debugId)
         _       <- logPure.debug(s"[${debugId}] |---- after post-processing: ${post.size} result(s)")
@@ -594,7 +594,7 @@ println("This is a postfilter")
       }
     }
 
-    def andQuery(con:RoLDAPConnection) : IOResult[Set[LDAPEntry]] = {
+    def andQuery(con:RoLDAPConnection) : IOResult[Seq[LDAPEntry]] = {
       baseQuery(con, specialFilters)
     }
 
@@ -607,7 +607,7 @@ println("This is a postfilter")
      *   and post-process it with regex. With only one step, only entries matching
      *   that filter would be returned, even if they match other part of the OR.
      */
-    def orQuery(con:RoLDAPConnection) : IOResult[Set[LDAPEntry]] = {
+    def orQuery(con:RoLDAPConnection) : IOResult[Seq[LDAPEntry]] = {
       //optimisation: we can group regex filter to post process them all in one pass
 
       val sf = specialFilters.groupBy {
@@ -629,7 +629,7 @@ println("This is a postfilter")
         sFlat    =  specials.flatten
         _        <- logPure.debug("[%s] |--- or (special filter): %s".format(debugId, sFlat.size))
         _        <- logPure.trace("[%s] |--- or (special filter): %s".format(debugId, sFlat.map( _.dn.getRDN  ).mkString(", ")))
-        total    =  (entries ++ sFlat).toSet
+        total    =  (entries ++ sFlat).distinct
         _        <- logPure.debug(s"[${debugId}] |--- or (total): ${total.size}")
         _        <- logPure.trace(s"[${debugId}] |--- or (total): ${total.map( _.dn.getRDN  ).mkString(", ")}")
       } yield {
@@ -664,7 +664,7 @@ println("This is a postfilter")
           case ParentDNJoin => Some(e.dn.getParent)
           case NodeDnJoin => e.valuesFor("nodeId").map(nodeDit.NODES.NODE.dn )
         }
-      })
+      }).toSet
 
       logPure.debug("[%s] |-- %s sub-results (merged)".format(debugId, res.size)) *>
       logPure.trace("[%s] |-- ObjectType: %s; ids: %s".format(debugId, lot.baseDn, res.map( _.getRDN).mkString(", "))) *>
@@ -700,11 +700,11 @@ println("This is a postfilter")
   }
 
   private[this] def postProcessQueryResults(
-      results:Set[LDAPEntry]
+      results:Seq[LDAPEntry]
     , specialFilters:Set[(CriterionComposition,SpecialFilter)]
     , debugId: Long
-  ) : IOResult[Set[LDAPEntry]] = {
-    def applyFilter(specialFilter:SpecialFilter, entries:Set[LDAPEntry]) : IOResult[Set[LDAPEntry]] = {
+  ) : IOResult[Seq[LDAPEntry]] = {
+    def applyFilter(specialFilter:SpecialFilter, entries:Seq[LDAPEntry]) : IOResult[Seq[LDAPEntry]] = {
       def getRegex(regexText: String): IOResult[Pattern] = {
         IOResult.effect(s"The regular expression '${regexText}' is not valid. Expected regex syntax is the java " +
                          s"one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html"
@@ -715,7 +715,7 @@ println("This is a postfilter")
        * Apply the regex match filter on entries-> attribute after applying the valueFormatter function
        * (which can be used to normalized the value)
        */
-      def regexMatch(attr: String, regexText: String, entries: Set[LDAPEntry], valueFormatter: String => Option[String]) = {
+      def regexMatch(attr: String, regexText: String, entries: Seq[LDAPEntry], valueFormatter: String => Option[String]) = {
         for {
           pattern <- getRegex(regexText)
         } yield {
@@ -740,7 +740,7 @@ println("This is a postfilter")
        * Apply the regex NOT match filter on entries-> attribute after applying the valueFormatter function
        * (which can be used to normalized the value)
        */
-      def regexNotMatch(attr: String, regexText: String, entries: Set[LDAPEntry], valueFormatter: String => Option[String]) = {
+      def regexNotMatch(attr: String, regexText: String, entries: Seq[LDAPEntry], valueFormatter: String => Option[String]) = {
         for {
           pattern <- getRegex(regexText)
         } yield {
@@ -776,24 +776,24 @@ println("This is a postfilter")
     if(specialFilters.isEmpty) {
       results.succeed
     } else {
-     // val filterSeq = specialFilters.toSeq
+      val filterSeq = specialFilters.toSeq
 
 
       //we only know how to process homogeneous CriterionComposition. Different one are an error
       for {
-        _           <- logPure.debug(s"[${debugId}] |---- post-process with filters: ${specialFilters.mkString("[", "]  [", "]")}")
-        composition <- ZIO.foldLeft(specialFilters)(specialFilters.head._1) {
+        _           <- logPure.debug(s"[${debugId}] |---- post-process with filters: ${filterSeq.mkString("[", "]  [", "]")}")
+        composition <- ZIO.foldLeft(filterSeq)(filterSeq.head._1) {
                          case ( baseComp, (newComp, _) ) if(newComp == baseComp) => baseComp.succeed
                          case _ => s"Composition of special filters are not homogeneous, can not processed them. Special filters: ${specialFilters.toString}".fail
                        }
         results     <- composition match {
                          case And => //each step of filtering is the input of the next => pipeline
-                           ZIO.foldLeft(specialFilters)(results) { case (currentResults,(_,filter)) =>
+                           ZIO.foldLeft(filterSeq)(results) { case (currentResults,(_,filter)) =>
                              applyFilter(filter, currentResults)
                            }
                          case Or => //each step of the filtering take all entries as input, and at the end, all are merged
-                           ZIO.foldLeft(specialFilters)(Set[LDAPEntry]()) { case (currentResults, (_,filter)) =>
-                             applyFilter(filter, results).map( r => (Set() ++ r ++ currentResults))
+                           ZIO.foldLeft(filterSeq)(Seq[LDAPEntry]()) { case (currentResults, (_,filter)) =>
+                             applyFilter(filter, results).map( r => (Set() ++ r ++ currentResults).toSeq)
                            }
                        }
         _           <- logPure.debug(s"[${debugId}] |---- results (post-process): ${results.size}")
