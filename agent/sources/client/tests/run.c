@@ -44,17 +44,20 @@ void test_config_complete(void) {
     Config config;
     config_default(&config);
 
-    bool res = config_parse("tests/config/agent.toml", "tests/config/policy.toml", &config);
+    bool res = config_parse("tests/config/complete.toml", "tests/config/policy.toml", &config);
     assert(res == true);
     assert(strcmp(config.server, "rudder") == 0);
-    assert(strcmp(config.server_cert, "/tmp/cert") == 0);
-    assert(strcmp(config.agent_cert, "/tmp/client.cert") == 0);
-    assert(strcmp(config.agent_key, "/tmp/client.key") == 0);
+    assert(strcmp(config.server_cert, "tests/certs/server.cert") == 0);
+    assert(strcmp(config.agent_cert, "tests/certs/agent.cert") == 0);
+    assert(strcmp(config.agent_key, "tests/certs/agent.priv") == 0);
     assert(strcmp(config.proxy, "https://proxy.example.com") == 0);
     assert(strcmp(config.user, "rudder") == 0);
     assert(strcmp(config.password, "s8hOkUYiQJ54KbefibxM") == 0);
+    assert(strcmp(config.tmp_dir, "/tmp") == 0);
+    assert(strcmp(config.policies_dir, "/tmp/policies") == 0);
+    assert(strcmp(config.my_id, "root") == 0);
 
-    assert(config.https_port == 4443);
+    assert(config.https_port == 8443);
     assert(config.insecure == true);
     config_free(&config);
 }
@@ -66,6 +69,7 @@ void test_config_minimal(void) {
     bool res = config_parse("tests/config/minimal.toml", "tests/config/not_there.toml", &config);
     assert(res == true);
     assert(strcmp(config.server, "rudder") == 0);
+    assert(strcmp(config.my_id, "toor") == 0);
     assert(strcmp(config.server_cert, "/var/rudder/cfengine-community/ppkeys/policy_server.cert")
            == 0);
     assert(config.insecure == false);
@@ -78,8 +82,8 @@ void test_config_empty(void) {
     // file exists but no server in it, should read policy_server.dat
     bool res = config_parse("tests/config/empty.toml", "tests/config/empty.toml", &config);
     assert(res == true);
-    printf("%s\n", config.server);
     assert(strcmp(config.server, "rudder") == 0);
+    assert(strcmp(config.my_id, "toor") == 0);
     config_free(&config);
 }
 
@@ -89,10 +93,19 @@ void test_config_absent(void) {
     // will read policy_server.dat
     bool res = config_parse("tests/config/not_there.toml", "tests/config/policy.toml", &config);
     assert(res == true);
-    printf("%s\n", config.server);
     assert(strcmp(config.server, "rudder") == 0);
+    assert(strcmp(config.my_id, "toor") == 0);
     config_free(&config);
 }
+
+/// INTEGRATION TESTS
+
+void test_get_server_id(void) {
+    char* args[3] = { "get_server_id", "-c", "tests/config/test.toml" };
+    start(3, args);
+}
+
+/// MAIN
 
 int main(int argc, char* argv[]) {
 #ifdef __unix__
@@ -100,7 +113,7 @@ int main(int argc, char* argv[]) {
         color = true;
     }
 #endif
-    log_set_level(LOG_DEBUG);
+    log_set_level(LOG_TRACE);
 
     printf("\nrunning tests\n");
 
@@ -109,6 +122,7 @@ int main(int argc, char* argv[]) {
     test("config::empty", test_config_empty);
     test("config::absent", test_config_absent);
     test("logging", test_logging);
+    test("command::get_server_id", test_get_server_id);
 
     printf("\ntest result: %s. %d passed.\n", green_ok(), nb_tests);
 }

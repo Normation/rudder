@@ -9,5 +9,6 @@
 
 int upload_file(Config config, bool verbose, const char* file, UploadType type, bool new);
 int get_id(Config config, bool verbose);
+int update_policies(Config config, bool verbose);
 
 #endif /* HTTP_H */

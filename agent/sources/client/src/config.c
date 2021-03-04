@@ -7,7 +7,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h> // stat
 #include "log.h"
 #include "utils.h"
 
@@ -16,21 +15,34 @@
 void config_default(Config* config) {
     config->insecure = false;
     config->server = NULL;
+    config->my_id = NULL;
 #ifdef __unix__
-    config->server_cert = strdup("/var/rudder/cfengine-community/ppkeys/policy_server.cert");
+    config->server_cert = strdup_compat("/var/rudder/cfengine-community/ppkeys/policy_server.cert");
     // Not used for now on unix
-    config->agent_key = strdup("/var/rudder/cfengine-community/ppkeys/localhost.priv");
+    config->agent_key = strdup_compat("/var/rudder/cfengine-community/ppkeys/localhost.priv");
     // Not used for now on unix
-    config->agent_cert = strdup("/opt/rudder/etc/ssl/agent.cert");
+    config->agent_cert = strdup_compat("/opt/rudder/etc/ssl/agent.cert");
 #elif _WIN32
-    config->server_cert = strdup("C:\\Program Files\\Rudder\\etc\\ssl\\policy_server.cert");
-    config->agent_cert = strdup("C:\\Program Files\\Rudder\\etc\\ssl\\localhost.cert");
-    config->agent_key = strdup("C:\\Program Files\\Rudder\\etc\\ssl\\localhost.priv");
+    config->server_cert = strdup_compat("C:\\Program Files\\Rudder\\etc\\ssl\\policy_server.cert");
+    config->agent_cert = strdup_compat("C:\\Program Files\\Rudder\\etc\\ssl\\localhost.cert");
+    config->agent_key = strdup_compat("C:\\Program Files\\Rudder\\etc\\ssl\\localhost.priv");
 #endif
     config->https_port = 443;
     config->proxy = NULL;
-    config->user = strdup("rudder");
-    config->password = strdup("rudder");
+    config->user = strdup_compat("rudder");
+    config->password = strdup_compat("rudder");
+
+#ifdef __unix__
+    config->tmp_dir = strdup_compat("/var/rudder/tmp");
+#elif _WIN32
+    config->tmp_dir = strdup_compat("C:\\Program Files\\Rudder\\tmp");
+#endif
+
+#ifdef __unix__
+    config->policies_dir = strdup_compat("/var/rudder/cfengine-community/inputs/");
+#elif _WIN32
+    config->policies_dir = strdup_compat("C:\\Program Files\\Rudder\\policy\\");
+#endif
 }
 
 void config_free(Config* config) {
@@ -41,6 +53,9 @@ void config_free(Config* config) {
     free(config->agent_key);
     free(config->user);
     free(config->password);
+    free(config->tmp_dir);
+    free(config->policies_dir);
+    free(config->my_id);
 }
 
 bool read_string_value(toml_table_t* conf, const char* const key, bool required, char** value) {
@@ -89,14 +104,6 @@ bool read_bool_value(toml_table_t* conf, const char* const key, bool required, b
     }
 }
 
-bool file_exists(const char* path) {
-    if (path == NULL) {
-        return false;
-    }
-    struct stat buffer;
-    return (stat(path, &buffer) == 0);
-}
-
 bool parse_toml(const char* path, toml_table_t** conf) {
     FILE* fp = fopen(path, "r");
     if (fp == NULL) {
@@ -115,22 +122,35 @@ bool parse_toml(const char* path, toml_table_t** conf) {
     return true;
 }
 
-bool policy_server_read(const char* path, char** output) {
-    FILE* fp = fopen(path, "r");
-    if (fp == NULL) {
-        error("cannot open %s: %s", path, strerror(errno));
-        return false;
+bool fallback_in_file(const char* file, char** property, bool is_in_config) {
+    bool res = true;
+
+    if (is_in_config == false) {
+        debug("Falling back to '%s' for node id configuration", file);
+        char* output = NULL;
+        res = read_file_content(file, &output);
+        if (res == false) {
+            return false;
+        }
+        free(*property);
+        *property = output;
+    } else {
+        debug("Check '%s' for policy server configuration consistency", file);
+        if (file_exists(file)) {
+            char* output = NULL;
+            res = read_file_content(file, &output);
+            if (res == false) {
+                return false;
+            }
+            if (strcmp(output, *property) != 0) {
+                warn(
+                    "Node id configured in configuration ('%s') does not match value from '%s' ('%s')",
+                    *property, file, output);
+            }
+            free(output);
+        }
     }
 
-    char buffer[255];
-    char* res = fgets(buffer, sizeof(buffer), fp);
-    if (res == NULL) {
-        error("cannot read: %s", path, strerror(errno));
-        return false;
-    }
-    // strip \n
-    res[strcspn(res, "\n")] = 0;
-    *output = strdup(res);
     return true;
 }
 
@@ -145,39 +165,30 @@ bool local_config_parse(const char* path, Config* config) {
         return false;
     }
 
+    // Special case for policy server
     res = read_string_value(conf, "server", true, &config->server);
+    res = fallback_in_file(POLICY_SERVER_DAT, &config->server, res);
     if (res == false) {
-        debug("Falling back to '%s' for policy server configuration", POLICY_SERVER_DAT);
-        char* output = NULL;
-        res = policy_server_read(POLICY_SERVER_DAT, &output);
-        if (res == false) {
-            result = false;
-            goto exit;
-        }
-        free(config->server);
-        config->server = output;
-    } else {
-        debug("Check '%s' for policy server configuration consistency", POLICY_SERVER_DAT);
-        if (file_exists(POLICY_SERVER_DAT)) {
-            char* output = NULL;
-            res = policy_server_read(POLICY_SERVER_DAT, &output);
-            if (res == false) {
-                result = false;
-                goto exit;
-            }
-            if (strcmp(output, config->server) != 0) {
-                warn("Server configured in '%s' ('%s') does not match value from '%s' ('%s')", path,
-                     config->server, POLICY_SERVER_DAT, output);
-            }
-            free(output);
-        }
+        result = false;
+        goto exit;
     }
+
+    // Special case for my_id
+    res = read_string_value(conf, "my_id", true, &config->my_id);
+    res = fallback_in_file(UUID_HIVE, &config->my_id, res);
+    if (res == false) {
+        result = false;
+        goto exit;
+    }
+
     read_string_value(conf, "server_cert", false, &config->server_cert);
     read_string_value(conf, "agent_cert", false, &config->agent_cert);
     read_string_value(conf, "agent_key", false, &config->agent_key);
     read_string_value(conf, "proxy", false, &config->proxy);
     read_int_value(conf, "https_port", false, &config->https_port);
     read_bool_value(conf, "insecure", false, &config->insecure);
+    read_string_value(conf, "tmp_dir", false, &config->tmp_dir);
+    read_string_value(conf, "policies_dir", false, &config->policies_dir);
 
 exit:
     toml_free(conf);
@@ -202,16 +213,27 @@ bool config_parse(const char* config_path, const char* policy_config_path, Confi
         if (res == false) {
             return false;
         }
-    } else if (file_exists(POLICY_SERVER_DAT)) {
-        debug("Falling back to '%s' for policy server configuration as '%s' does not exist",
-              POLICY_SERVER_DAT, config_path);
-        char* output = NULL;
-        bool res = policy_server_read(POLICY_SERVER_DAT, &output);
+    } else if (file_exists(POLICY_SERVER_DAT) && file_exists(UUID_HIVE)) {
+        bool res = true;
+
+        debug(
+            "Falling back to defaults for policy server and node id configuration as '%s' does not exist",
+            config_path);
+        char* server = NULL;
+        res = read_file_content(POLICY_SERVER_DAT, &server);
         if (res == false) {
             return false;
         }
         free(config->server);
-        config->server = output;
+        config->server = server;
+
+        char* id = NULL;
+        res = read_file_content(UUID_HIVE, &id);
+        if (res == false) {
+            return false;
+        }
+        free(config->my_id);
+        config->my_id = id;
     } else {
         // we need the server config
         return false;
