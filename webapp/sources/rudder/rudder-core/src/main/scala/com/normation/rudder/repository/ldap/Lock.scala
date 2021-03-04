@@ -55,7 +55,9 @@ class ZioTReentrantLock(name: String) extends ScalaReadWriteLock {
     override def clock: Clock = ZioRuntime.environment
     override val name: String = parent.name
     override def apply[T](block: => IOResult[T]): IOResult[T] = {
+      println("readlock " + name)
       lock.readLock.use(_ => block)
+
     }
   }
 
@@ -63,6 +65,7 @@ class ZioTReentrantLock(name: String) extends ScalaReadWriteLock {
     override val clock: Clock = ZioRuntime.environment
     override val name: String = parent.name
     override def apply[T](block: => IOResult[T]): IOResult[T] = {
+      println("Writelock  " + name)
       lock.writeLock.use(_ => block)
     }
   }

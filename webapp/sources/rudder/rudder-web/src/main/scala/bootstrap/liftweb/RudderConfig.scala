@@ -2078,9 +2078,9 @@ object RudderConfig extends Loggable {
   private[this] lazy val ruleCategoriesDirectory = new File(new File(RUDDER_DIR_GITROOT),ruleCategoriesDirectoryName)
 
   lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
-      new CheckConnections(dataSourceProvider, rwLdap)
-    , new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
-    , new CheckInitUserTemplateLibrary(
+      //new CheckConnections(dataSourceProvider, rwLdap)
+    //, new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
+    /*, new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,
         roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen, asyncDeploymentAgentImpl) //new CheckDirectiveBusinessRules()
     , new CheckRudderGlobalParameter(roLDAPParameterRepository, woLDAPParameterRepository, uuidGen)
@@ -2108,9 +2108,9 @@ object RudderConfig extends Loggable {
         , uuidGen
     )
     , new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount)
-    , new CheckApiTokenAutorizationKind(rudderDit, rwLdap)
-    , new CheckNashornWarning()
-    , new LoadNodeComplianceCache(nodeInfoService, reportingServiceImpl)
+    , new CheckApiTokenAutorizationKind(rudderDit, rwLdap)*/
+     new CheckNashornWarning()
+   // , new LoadNodeComplianceCache(nodeInfoService, reportingServiceImpl)
   )
 
   //////////////////////////////////////////////////////////////////////////////////////////
