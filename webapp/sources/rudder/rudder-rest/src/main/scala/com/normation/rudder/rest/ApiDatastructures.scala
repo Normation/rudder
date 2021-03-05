@@ -522,6 +522,7 @@ trait BuildHandler[REQ, RESP, T, P] {
 
   // an utility method used to log request information
   def logReq(req: REQ): String
+  def logBody(req: REQ): String
 
 
   // discriminate endpoint based on path / action / version
@@ -632,6 +633,7 @@ trait BuildHandler[REQ, RESP, T, P] {
               // we do handle that request ! Now for actual handling;
               // in all case an response, even if an error (so Some(() => Full(...)))
               logger.debug(s"Processing request: ${logReq(req)}")
+              logger.debug(logBody(req))
               logger.debug(s"Found a valid endpoint handler: '${endpoint.schema.name}' on [${endpoint.schema.action.name.toUpperCase} ${endpoint.schema.path}] with version '${endpoint.version.value}'")
               val response: RESP = (for {
                 token         <- authz.checkAuthz(endpoint, info.path).leftMap { error =>

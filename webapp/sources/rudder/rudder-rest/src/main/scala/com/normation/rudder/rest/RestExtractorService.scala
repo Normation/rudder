@@ -214,25 +214,24 @@ final case class RestExtractorService (
 
   private[this] def extractJsonDirectiveParam (json: JValue ): Box[Option[Map[String,Seq[String]]]] = {
     json \ "parameters" match {
-      case JObject(Nil) => Full(None)
-      case x@JObject(_) => parseSectionVal(x).map(x => Some(SectionVal.toMapVariables(x)))
-      case _            => Failure(s"The value for parameter 'parameters' is malformed.")
+      case JObject(Nil) | JNothing => Full(None)
+      case x@JObject(_)            => parseSectionVal(x).map(x => Some(SectionVal.toMapVariables(x)))
+      case _                       => Failure(s"The value for parameter 'parameters' is malformed.")
     }
   }
 
   private[this] def toNodeGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
-    readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id).toBox ?~ s"Node group '$value' not found"
+    Full(NodeGroupCategoryId(value))
   }
   private[this] def toRuleCategoryId (value:String) : Box[RuleCategoryId] = {
-  Full(RuleCategoryId(value))
-  //Call to   readRule.getRuleCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Directive '$value' not found"
+    Full(RuleCategoryId(value))
   }
 
   private[this] def toGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
     Full(NodeGroupCategoryId(value))
   }
   private[this] def toDirectiveId (value:String) : Box[DirectiveId] = {
-    readDirective.getDirective(DirectiveId(value)).notOptional(s"Directive '$value' not found").map(_.id).toBox
+    Full(DirectiveId(value))
   }
 
   private[this] def toApiAccountId (value:String) : Box[ApiAccountId] = {
@@ -587,11 +586,12 @@ final case class RestExtractorService (
   def extractGroupCategory (params : Map[String,List[String]]) : Box[RestGroupCategory] = {
 
     for {
+      id          <- extractOneValue(params,"id")(toNodeGroupCategoryId)
       name        <- extractOneValue(params,"name")(toMinimalSizeString(3))
-      description <- extractOneValue(params, "description")()
+      description <- extractOneValue(params,"description")()
       parent      <- extractOneValue(params,"parent")(toNodeGroupCategoryId)
     } yield {
-      RestGroupCategory(name, description, parent)
+      RestGroupCategory(id, name, description, parent)
     }
   }
 
@@ -894,11 +894,12 @@ final case class RestExtractorService (
 
   def extractGroupCategory ( json : JValue ) : Box[RestGroupCategory] = {
     for {
+      id          <- extractJsonString(json,"id", toNodeGroupCategoryId)
       name        <- extractJsonString(json,"name", toMinimalSizeString(3))
       description <- extractJsonString(json, "description")
       parent      <- extractJsonString(json,"parent", toNodeGroupCategoryId)
     } yield {
-      RestGroupCategory(name, description, parent)
+      RestGroupCategory(id, name, description, parent)
     }
   }
 

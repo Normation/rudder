@@ -140,6 +140,13 @@ class LiftHandler(
     s"${req.requestType.method} ${req.contextPath}${req.uri} [${printJson}]"
   }
 
+  def logBody(req: Req): String = {
+    req.body match {
+      case eb: EmptyBox => (eb ?~! "Error geting request body:").messageChain
+      case Full(body)   => new String(body.take(1024), "UTF-8") + (if(body.size>1024) "..." else "")
+    }
+  }
+
   def getRequestInfo(req: Req, supportedVersions: List[ApiVersion]): Either[ApiError, RequestInfo] = {
     def getAction() = {
       import HttpAction._

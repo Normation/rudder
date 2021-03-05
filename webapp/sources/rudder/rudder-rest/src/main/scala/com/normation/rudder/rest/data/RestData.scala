@@ -107,32 +107,34 @@ final case class RestRuleCategory(
 }
 
 final case class RestGroupCategory(
-      name : Option[String] = None
-    , description : Option[String] = None
-    , parent : Option[NodeGroupCategoryId] = None
+      id         : Option[NodeGroupCategoryId] = None
+    , name       : Option[String] = None
+    , description: Option[String] = None
+    , parent     : Option[NodeGroupCategoryId] = None
   ) {
 
-  def update(category:FullNodeGroupCategory) = {
+  def update(category: FullNodeGroupCategory) = {
+    val updateId = id.getOrElse(category.id)
     val updateName = name.getOrElse(category.name)
     val updateDescription = description.getOrElse(category.description)
     category.copy(
-        name        = updateName
+        id          = updateId
+      , name        = updateName
       , description = updateDescription
     )
   }
 
-  def create(id : NodeGroupCategoryId) : Box[FullNodeGroupCategory]= {
+  def create(defaultId: () => NodeGroupCategoryId) : Box[FullNodeGroupCategory]= {
     name match {
       case Some(name) =>
         Full(
           FullNodeGroupCategory(
-              id
+              id.getOrElse(defaultId())
             , name
             , description.getOrElse("")
             , Nil
             , Nil
           )
-
         )
         case None =>
           Failure("Could not create Group Category, cause name is not defined")

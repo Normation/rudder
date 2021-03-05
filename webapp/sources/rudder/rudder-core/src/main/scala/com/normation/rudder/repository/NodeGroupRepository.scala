@@ -265,6 +265,8 @@ trait RoNodeGroupRepository {
    */
   def getRootCategory() : NodeGroupCategory
 
+  def getRootCategoryPure() : IOResult[NodeGroupCategory]
+
   /**
    * Get all pairs of (categoryid, category)
    * in a map in which keys are the parent category of the

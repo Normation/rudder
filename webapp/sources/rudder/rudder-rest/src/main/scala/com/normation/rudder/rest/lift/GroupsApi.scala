@@ -262,7 +262,7 @@ class GroupsApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = schema.name
-      val id = NodeGroupCategoryId(uuidGen.newUuid)
+      val id = () => NodeGroupCategoryId(uuidGen.newUuid)
       val x = for {
         restCategory <- { if(req.json_?) {
                             for {
@@ -281,8 +281,8 @@ class GroupsApi(
       actionResponse(
           x
         , req
-        , s"Could not update Group category '${id.value}'"
-        , Some(id.value)
+        , s"Could not create group category"
+        , None
         , authzToken.actor
       )
     }
@@ -393,7 +393,7 @@ class GroupApiService2 (
     def actualGroupCreation(change: NodeGroupChangeRequest, groupId: NodeGroupId) = {
       ( for {
         reason   <- restExtractor.extractReason(req)
-        saveDiff <- writeGroup.create(change.newGroup, change.category.getOrElse(readGroup.getRootCategory.id), modId, actor, reason).toBox
+        saveDiff <- readGroup.getRootCategoryPure().flatMap(root => writeGroup.create(change.newGroup, change.category.getOrElse(root.id), modId, actor, reason)).toBox
       } yield {
         saveDiff
       } ) match {
@@ -624,12 +624,13 @@ class GroupApiService6 (
     }
   }
 
-  def createCategory(id : NodeGroupCategoryId, restData: RestGroupCategory, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  // defaultId: the id to use if restDateDidn't provide one
+  def createCategory(defaultId : () => NodeGroupCategoryId, restData: RestGroupCategory, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
-      update   <- restData.create(id)
+      update   <- restData.create(defaultId)
       category =  update.toNodeGroupCategory
       parent   =  restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
-      _        <- writeGroup.addGroupCategorytoCategory(category,parent, modId, actor, reason).toBox
+      _        <- writeGroup.addGroupCategorytoCategory(category, parent, modId, actor, reason).toBox
     } yield {
       restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)
     }
