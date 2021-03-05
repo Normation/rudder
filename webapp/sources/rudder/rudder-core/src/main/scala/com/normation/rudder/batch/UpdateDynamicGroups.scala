@@ -277,7 +277,7 @@ class UpdateDynamicGroups(
           try {
 println("started")
 
-            val results : Box[ List[(NodeGroupId, Either[RudderError, DynGroupDiff])]] = dynGroupIds.accumulateParN(2) { case dynGroupId =>
+            val results : Box[ List[(NodeGroupId, Either[RudderError, DynGroupDiff])]] = dynGroupIds.accumulateParN(8) { case dynGroupId =>
               println("running")
               dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
             }.toBox
