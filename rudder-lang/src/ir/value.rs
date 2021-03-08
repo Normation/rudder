@@ -41,24 +41,11 @@ impl<'src> StringObject<'src> {
     }
 }
 
-/// transform into a string object if there is no variable interpolation
+/// transform into a string object
 impl<'src> TryFrom<&StringObject<'src>> for String {
     type Error = Error; // rudder-lang
 
-    // this should only be called on static variable. But should we ?
     fn try_from(value: &StringObject<'src>) -> Result<Self> {
-        // variable should probably be translated too, keeping ${} wrapper
-        // for now it cannot because it prevents the compiler from turning an interpolated variable into a string
-        if value
-            .data
-            .iter()
-            .any(|x| !matches!(x, PInterpolatedElement::Static(_)))
-        {
-            fail!(
-                value.pos,
-                "Value cannot be extracted since it contains data"
-            );
-        }
         Ok(value
             .data
             .iter()
@@ -87,6 +74,16 @@ impl<'src> Constant<'src> {
             // TODO use source instead of pos
             PValue::String(pos, s) => {
                 let so = StringObject::from_pstring(pos, s)?;
+                if so
+                    .data
+                    .iter()
+                    .any(|x| !matches!(x, PInterpolatedElement::Static(_)))
+                {
+                    fail!(
+                        so.pos,
+                        "Constant values (such as default values) can not contain interpolated variables"
+                    );
+                }
                 let value = String::try_from(&so)?;
                 Ok(Constant::String(so.pos, value))
             }

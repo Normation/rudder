@@ -29,7 +29,7 @@
       {
         "parameters": [
           {
-            "name": "service_regex",
+            "name": "name",
             "value": "${service}",
             "$errors": []
           }
@@ -41,7 +41,7 @@
       {
         "parameters": [
           {
-            "name": "service_regex",
+            "name": "name",
             "value": "${service}",
             "$errors": []
           }
