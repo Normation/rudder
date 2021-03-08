@@ -88,4 +88,9 @@ docs: libs-docs
 	asciidoctor --doctype=book --destination-dir=target/docs docs/index.adoc
 	asciidoctor --doctype=book --destination-dir=target/docs docs/contributing.adoc
 
-.PHONY: docs $(DOC_EXAMPLES) libs
+clean:
+	cargo clean
+	rm -rf target
+	rm -rf libs/std
+
+.PHONY: docs $(DOC_EXAMPLES) libs clean

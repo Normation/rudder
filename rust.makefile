@@ -47,10 +47,6 @@ check: lint
 	cargo test
 	cargo deny check
 
-clean:
-	cargo clean
-	rm -rf target
-
 veryclean: clean
 	rustup self uninstall
 	rm -rf ~/.rustup ~/.cargo

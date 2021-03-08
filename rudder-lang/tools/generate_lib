@@ -481,6 +481,8 @@ def generate_lib(resource_name, resource, lib_dir):
     renders lib in rudder lang
     '''
 
+    if not os.path.exists(lib_dir):
+        os.mkdir(lib_dir)
     file = lib_dir + "/" + resource_name + ".rl"
     out = open(file, "w")
     fmt_attribute(out, "format", "0")

@@ -15,3 +15,7 @@ apt-dependencies:
 
 test:
 	cargo test
+
+clean:
+	cargo clean
+	rm -rf target
