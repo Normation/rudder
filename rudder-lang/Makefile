@@ -85,8 +85,8 @@ libs-docs: libs
 docs: libs-docs
 	mkdir -p target/docs
 	cp -r docs/images target/docs/
-	asciidoctor --doctype=book --destination-dir=target/docs docs/index.adoc
-	asciidoctor --doctype=book --destination-dir=target/docs docs/contributing.adoc
+	asciidoctor -a stylesheet=assets/css/rudder.css --doctype=book --destination-dir=target/docs docs/index.adoc
+	asciidoctor -a stylesheet=assets/css/rudder.css --doctype=book --destination-dir=target/docs docs/contributing.adoc
 
 clean:
 	cargo clean
