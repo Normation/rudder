@@ -1,9 +1,0 @@
-server = "rudder"
-server_cert = "/tmp/cert"
-insecure = true
-unknown = "ignored"
-agent_cert = "/tmp/client.cert"
-agent_key = "/tmp/client.key"
-cfengine_port = 5308
-https_port = 4443
-proxy = "https://proxy.example.com"

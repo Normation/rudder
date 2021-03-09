@@ -1,0 +1,12 @@
+server = "rudder"
+my_id = "root"
+server_cert = "tests/certs/server.cert"
+insecure = true
+unknown = "ignored"
+agent_cert = "tests/certs/agent.cert"
+agent_key = "tests/certs/agent.priv"
+cfengine_port = 5308
+https_port = 8443
+proxy = "https://proxy.example.com"
+tmp_dir = "/tmp"
+policies_dir = "/tmp/policies"
