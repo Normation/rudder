@@ -18,6 +18,9 @@ COPY rudder-relay.sh .
 # https://github.com/gdraheim/docker-systemctl-replacement/blob/1bb5768abbf68245b7b6a8bd9d6ac4df4d78044f/files/docker/systemctl3.py
 COPY systemctl3.py /usr/bin/systemctl
 
+# Ensure scripts are executable
+RUN chmod +x rudder-relay.sh /usr/bin/systemctl
+
 RUN systemctl enable rudder-cf-execd rudder-cf-serverd httpd rudder-relayd
 
 RUN \
