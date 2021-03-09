@@ -494,7 +494,7 @@ final case class ParsedPolicyDraft(
 
 /**
  * This is the draft of the policy. Variable may not be bound yet, and
- * it may not be unique in a node coniguration (i.e: this pre-sorting,
+ * it may not be unique in a node configuration (i.e: this pre-sorting,
  * pre-merge, pre-filtering Techniques).
  */
 final case class BoundPolicyDraft(
@@ -531,27 +531,40 @@ final case class BoundPolicyDraft(
       }
   }
 
+  /**
+   * Transform to a BoundPolicyDraft to a final Policy.
+   * This is the place where we finally have all information to check if the policy structure is valid
+   * for the targeted agent.
+   * This is the place where we can check for variable consistency too, since we have the final
+   * techniques and expanded variables (like: check that a mandatory variable was expanded to "").
+   */
   def toPolicy(agent: AgentType): Either[String, Policy] = {
-    PolicyTechnique.forAgent(technique, agent).map { pt =>
-      Policy(
-          id
-        , ruleName
-        , directiveName
-        , pt
-        , acceptationDate
-        , NonEmptyList.of(PolicyVars(
+    PolicyTechnique.forAgent(technique, agent).flatMap { pt =>
+      expandedVars.collectFirst { case (_, v) if(!v.spec.constraint.mayBeEmpty && v.values.exists(_ == "")) => v } match {
+        case Some(v) =>
+          Left(s"Error for policy for directive '${directiveName}' [${id.directiveId.value}] in rule '${ruleName}' [${id.ruleId.value}]: " +
+               s"a non optional value is missing for parameter '${v.spec.description}' [param ID: ${v.spec.name}]")
+        case None =>
+          Right(Policy(
               id
+            , ruleName
+            , directiveName
+            , pt
+            , acceptationDate
+            , NonEmptyList.of(PolicyVars(
+                  id
+                , policyMode
+                , expandedVars
+                , originalVars
+                , trackerVariable
+              ))
+            , priority
             , policyMode
-            , expandedVars
-            , originalVars
-            , trackerVariable
+            , ruleOrder
+            , directiveOrder
+            , overrides
           ))
-        , priority
-        , policyMode
-        , ruleOrder
-        , directiveOrder
-        , overrides
-      )
+      }
     }
   }
 }
