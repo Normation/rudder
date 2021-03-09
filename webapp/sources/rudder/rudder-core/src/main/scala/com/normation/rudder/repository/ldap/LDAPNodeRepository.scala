@@ -71,7 +71,7 @@ class WoLDAPNodeRepository(
 
   def updateNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Node] = {
     import com.normation.rudder.services.nodes.NodeInfoService.{nodeInfoAttributes => attrs}
-    nodeLibMutex.readLock(
+    nodeLibMutex.writeLock(
       for {
         con           <- ldap
         existingEntry <- con.get(nodeDit.NODES.NODE.dn(node.id.value), attrs:_*).notOptional(s"Cannot update node with id ${node.id.value} : there is no node with that id")
@@ -79,7 +79,7 @@ class WoLDAPNodeRepository(
         _             <- checkNodeModification(oldNode, node)
         // here goes the check that we are not updating policy server
         nodeEntry     =  mapper.nodeToEntry(node)
-        result        <- nodeLibMutex.writeLock(con.save(nodeEntry, true, Seq()).chainError(s"Error when saving node entry in repository: ${nodeEntry}"))
+        result        <- con.save(nodeEntry, true, Seq()).chainError(s"Error when saving node entry in repository: ${nodeEntry}")
         // only record an event log if there is an actual change
         _             <- result match {
                            case LDIFNoopChangeRecord(_) => UIO.unit
@@ -106,7 +106,7 @@ class WoLDAPNodeRepository(
     import com.normation.inventory.ldap.core.LDAPConstants.{A_KEY_STATUS, A_AGENTS_NAME}
     if(agentKey.isEmpty && agentKeyStatus.isEmpty) UIO.unit
     else {
-      for {
+      nodeLibMutex.writeLock(for {
         // check that in the case of a certificate, we are using a certificate for the node
         _             <- agentKey match {
                            case Some(Certificate(value)) => SecurityToken.checkCertificateForNode(nodeId, Certificate(value))
@@ -137,7 +137,7 @@ class WoLDAPNodeRepository(
                              val diff = ModifyNodeDiff.keyInfo(nodeId, agentsInfo._1.map(_.securityToken), agentsInfo._2, agentKey, agentKeyStatus)
                              actionLogger.saveModifyNode(modId, actor, diff, reason)
                          }
-      } yield ()
+      } yield ())
     }
   }
 
@@ -186,21 +186,21 @@ class WoLDAPNodeRepository(
 
   override def createNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
     val entry = mapper.nodeToEntry(node)
-    for {
+    nodeLibMutex.writeLock(for {
       con <- ldap
       _   <- con.save(entry).chainError(s"Cannot create node with id '${node.id.value}'")
     } yield {
       node
-    }
+    })
   }
 
   override def deleteNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
     val entry = mapper.nodeToEntry(node)
-    for {
+    nodeLibMutex.writeLock(for {
       con <- ldap
       _   <- con.delete(entry.dn).chainError(s"Error when trying to delete node '${node.id.value}'")
     } yield {
       node
-    }
+    })
   }
 }

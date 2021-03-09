@@ -117,7 +117,7 @@ class WoLDAPParameterRepository(
     , modId     : ModificationId
     , actor     : EventActor
     , reason    : Option[String]) : IOResult[AddGlobalParameterDiff] = {
-    paramMutex.readLock(
+    paramMutex.writeLock(
       for {
         con             <- ldap
         doesntExists    <- roLDAPParameterRepository.getGlobalParameter(parameter.name).flatMap {
@@ -125,9 +125,7 @@ class WoLDAPParameterRepository(
                               case None => UIO.unit
                            }
         paramEntry      =  mapper.parameter2Entry(parameter)
-        result          <- paramMutex.writeLock {
-                              con.save(paramEntry).chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
-                           }
+        result          <- con.save(paramEntry).chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
         diff            <- diffMapper.addChangeRecords2GlobalParameterDiff(paramEntry.dn, result).toIO
         loggedAction    <- actionLogger.saveAddGlobalParameter(modId, principal = actor, addDiff = diff, reason = reason).chainError("Error when logging modification as an event")
         autoArchive     <- ZIO.when(autoExportOnModify) {
@@ -150,7 +148,7 @@ class WoLDAPParameterRepository(
     , actor     : EventActor
     , reason    : Option[String]
    ) : IOResult[Option[ModifyGlobalParameterDiff]] = {
-    paramMutex.readLock(
+    paramMutex.writeLock(
       for {
         con             <- ldap
         oldParameter    <- roLDAPParameterRepository.getGlobalParameter(parameter.name).notOptional(s"Cannot update Global Parameter '${parameter.name}': there is no parameter with that name")
@@ -161,7 +159,7 @@ class WoLDAPParameterRepository(
                              Inconsistency(s"Parameter with name '${parameter.name}' can not be updated by provider '${newProvider}' since its current provider is '${oldProvider}'").fail
                            }
         paramEntry      =  mapper.parameter2Entry(parameter)
-        result          <- paramMutex.writeLock {
+        result          <- {
                              // remove missing to clean up `overridable` (RudderAttributes:303) so that it can be removed in 7.0
                              con.save(paramEntry, removeMissingAttributes = true).chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
                            }
@@ -195,7 +193,7 @@ class WoLDAPParameterRepository(
       case Some(p) => p.value
     }
 
-    paramMutex.readLock(for {
+    paramMutex.writeLock(for {
       con          <- ldap
       optOldParam  <- roLDAPParameterRepository.getGlobalParameter(parameterName)
       res          <- optOldParam match {
@@ -205,9 +203,7 @@ class WoLDAPParameterRepository(
                             _            <- if(GenericProperty.canBeUpdated(oldParamEntry.provider, provider)) UIO.unit
                                             else Inconsistency(s"Parameter '${oldParamEntry.name}' which has property provider '${show(oldParamEntry.provider)}' " +
                                                                s"can't be deleted by property provider '${show(provider)}'").fail
-                            deleted      <- paramMutex.writeLock {
-                                              con.delete(roLDAPParameterRepository.rudderDit.PARAMETERS.parameterDN(parameterName)).chainError(s"Error when deleting Global Parameter with name ${parameterName}")
-                                            }
+                            deleted      <- con.delete(roLDAPParameterRepository.rudderDit.PARAMETERS.parameterDN(parameterName)).chainError(s"Error when deleting Global Parameter with name ${parameterName}")
                             diff         =  DeleteGlobalParameterDiff(oldParamEntry)
                             loggedAction <- actionLogger.saveDeleteGlobalParameter(modId, principal = actor, deleteDiff = diff, reason = reason)
                             autoArchive  <- ZIO.when(autoExportOnModify && deleted.nonEmpty) {
@@ -261,30 +257,28 @@ class WoLDAPParameterRepository(
     val id = ParameterArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
     val ou = rudderDit.ARCHIVES.parameterModel(id)
 
-    paramMutex.readLock(for {
-      existingParams <- getAllGlobalParameters()
+    paramMutex.writeLock(for {
+      existingParams <- getAllGlobalParameters
       con            <- ldap
       //ok, now that's the dangerous part
-      swapParams      <- paramMutex.writeLock(
-                           (for {
-                             //move old params to archive branch
-                             renamed     <- con.move(rudderDit.PARAMETERS.dn, ou.dn.getParent, Some(ou.dn.getRDN))
-                             //now, create back config param branch and save rules
-                             crOu        <- con.save(rudderDit.PARAMETERS.model)
-                             savedParams <- ZIO.foreach(newParameters) { rule =>
-                                              saveParam(con, rule)
-                                            }
-                           } yield {
-                             id
-                           }).catchAll(
-                             e => //ok, so there, we have a problem
-                               ApplicationLoggerPure.error(s"Error when importing params, trying to restore old Parameters. Error was: ${e.msg}") *>
-                               restore(con, existingParams).foldM(
-                                 err   => Chained(s"Error when rollbacking corrupted import for parameters, expect other errors. Archive ID: ${id.value}", e).fail
-                               , value => ApplicationLoggerPure.info("Rollback parameters: ok") *>
-                                          Chained("Rollbacked imported parameters to previous state", e).fail
-                               )
-                           )
+      swapParams      <- (for {
+                           //move old params to archive branch
+                           renamed     <- con.move(rudderDit.PARAMETERS.dn, ou.dn.getParent, Some(ou.dn.getRDN))
+                           //now, create back config param branch and save rules
+                           crOu        <- con.save(rudderDit.PARAMETERS.model)
+                           savedParams <- ZIO.foreach(newParameters) { rule =>
+                                            saveParam(con, rule)
+                                          }
+                         } yield {
+                           id
+                         }).catchAll(
+                           e => //ok, so there, we have a problem
+                             ApplicationLoggerPure.error(s"Error when importing params, trying to restore old Parameters. Error was: ${e.msg}") *>
+                             restore(con, existingParams).foldM(
+                               err   => Chained(s"Error when rollbacking corrupted import for parameters, expect other errors. Archive ID: ${id.value}", e).fail
+                             , value => ApplicationLoggerPure.info("Rollback parameters: ok") *>
+                                        Chained("Rollbacked imported parameters to previous state", e).fail
+                             )
                          )
     } yield {
       id
@@ -292,11 +286,11 @@ class WoLDAPParameterRepository(
   }
 
   def deleteSavedParametersArchiveId(archiveId:ParameterArchiveId) : IOResult[Unit] = {
-    for {
+    paramMutex.writeLock(for {
       con     <- ldap
-      deleted <- paramMutex.writeLock(con.delete(rudderDit.ARCHIVES.parameterModel(archiveId).dn))
+      deleted <- con.delete(rudderDit.ARCHIVES.parameterModel(archiveId).dn)
     } yield {
       ()
-    }
+    })
   }
 }

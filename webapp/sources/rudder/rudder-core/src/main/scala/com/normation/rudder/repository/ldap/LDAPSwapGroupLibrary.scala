@@ -56,6 +56,8 @@ import zio._
 import zio.syntax._
 import com.normation.ldap.sdk.syntax._
 
+import scala.annotation.tailrec
+
 trait LDAPImportLibraryUtil extends NamedZioLogger {
 
   //move user lib to archive branch
@@ -84,6 +86,7 @@ trait LDAPImportLibraryUtil extends NamedZioLogger {
         else recParent(x.getParent).map( x.getRDN :: _ )
       }
 
+      @tailrec
       def recBuildDN(root:DN, rdns:List[RDN]) : DN = rdns match {
         case Nil => root
         case h::t => recBuildDN(new DN(h,root),t)

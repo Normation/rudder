@@ -1652,6 +1652,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val nodeReadWriteMutex      = new ZioTReentrantLock("node-lock")
   private[this] lazy val parameterReadWriteMutex = new ZioTReentrantLock("parameter-lock")
   private[this] lazy val ruleReadWriteMutex      = new ZioTReentrantLock("rule-lock")
+  private[this] lazy val ruleCatReadWriteMutex   = new ZioTReentrantLock("rule-cat-lock")
 
   private[this] lazy val roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
         rudderDitImpl, roLdap, ldapEntityMapper, techniqueRepositoryImpl, uptLibReadWriteMutex)
@@ -1721,7 +1722,7 @@ object RudderConfig extends Loggable {
         rudderDitImpl
       , roLdap
       , ldapEntityMapper
-      , groupLibReadWriteMutex
+      , ruleCatReadWriteMutex
     )
   }
   private[this] lazy val woLDAPRuleCategoryRepository = {
@@ -2026,7 +2027,7 @@ object RudderConfig extends Loggable {
      rudderDitImpl
    , rwLdap
    , ldapEntityMapper
-   , groupLibReadWriteMutex
+   , ruleCatReadWriteMutex
   )
   private[this] lazy val eventLogDeploymentServiceImpl = new EventLogDeploymentService(logRepository, eventLogDetailsServiceImpl)
   private[this] lazy val nodeInfoServiceImpl = new NodeInfoServiceCachedImpl(

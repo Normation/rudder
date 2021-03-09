@@ -146,7 +146,7 @@ class WoLDAPRuleRepository(
   }
 
   private[this] def internalDeleteRule(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String], callSystem: Boolean) : IOResult[DeleteRuleDiff] = {
-    ruleMutex.readLock(for {
+    ruleMutex.writeLock(for {
       con          <- ldap
       entry        <- con.get(rudderDit.RULES.configRuleDN(id.value)).notOptional("rule with ID '%s' is not present".format(id.value))
       oldCr        <- mapper.entry2Rule(entry).toIO.chainError("Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry))
@@ -155,7 +155,7 @@ class WoLDAPRuleRepository(
                         case (false, true) => Inconsistency(s"Non-system Rule '${id.value}' can not be deleted with that method").fail
                         case _ => oldCr.succeed
                       }
-      deleted      <- ruleMutex.writeLock(con.delete(rudderDit.RULES.configRuleDN(id.value)).chainError("Error when deleting rule with ID %s".format(id)))
+      deleted      <- con.delete(rudderDit.RULES.configRuleDN(id.value)).chainError("Error when deleting rule with ID %s".format(id))
       diff         =  DeleteRuleDiff(oldCr)
       loggedAction <- actionLogger.saveDeleteRule(modId, principal = actor, deleteDiff = diff, reason = reason)
       autoArchive  <- ZIO.when(autoExportOnModify && deleted.nonEmpty  && !oldCr.isSystem) {
@@ -182,7 +182,7 @@ class WoLDAPRuleRepository(
 
 
   def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[AddRuleDiff] = {
-    ruleMutex.readLock(
+    ruleMutex.writeLock(
       for {
         con             <- ldap
         ruleExits       <- con.exists(rudderDit.RULES.configRuleDN(rule.id.value))
@@ -192,7 +192,7 @@ class WoLDAPRuleRepository(
         nameExists      <- nodeRuleNameExists(con, rule.name, rule.id)
         nameIsAvailable <- ZIO.when(nameExists) { "Cannot create a rule with name %s : there is already a rule with the same name".format(rule.name).fail }
         crEntry         =  mapper.rule2Entry(rule)
-        result          <- ruleMutex.writeLock(con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}"))
+        result          <- con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}")
         diff            <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn,result).toIO
         loggedAction    <- actionLogger.saveAddRule(modId, principal = actor, addDiff = diff, reason = reason)
         autoArchive     <- ZIO.when(autoExportOnModify && !rule.isSystem) {
@@ -209,7 +209,7 @@ class WoLDAPRuleRepository(
   }
 
   private[this] def internalUpdate(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean) : IOResult[Option[ModifyRuleDiff]] = {
-    ruleMutex.readLock(
+    ruleMutex.writeLock(
       for {
         con           <- ldap
         existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)).notOptional(s"Cannot update rule with id ${rule.id.value} : there is no rule with that id")
@@ -224,7 +224,7 @@ class WoLDAPRuleRepository(
                              s"Cannot update rule with name ${rule.name}: this name is already in use.".fail
                            }
         crEntry         =  mapper.rule2Entry(rule)
-        result          <- ruleMutex.writeLock(con.save(crEntry, true).chainError(s"Error when saving rule entry in repository: ${crEntry}"))
+        result          <- con.save(crEntry, true).chainError(s"Error when saving rule entry in repository: ${crEntry}")
         optDiff         <- diffMapper.modChangeRecords2RuleDiff(existingEntry,result).toIO.chainError("Error when mapping rule '%s' update to an diff: %s".format(rule.id.value, result))
         loggedAction    <- optDiff match {
                              case None => UIO.unit
@@ -290,12 +290,12 @@ class WoLDAPRuleRepository(
     val ou = rudderDit.ARCHIVES.ruleModel(id)
     //filter systemCr if they are not included, so that merge does not have to deal with that.
 
-    ruleMutex.readLock(
+    ruleMutex.writeLock(
       for {
         existingCrs <- getAll(true)
         con         <- ldap
         //ok, now that's the dangerous part
-        swapCr      <- ruleMutex.writeLock(for {
+        swapCr      <- (for {
                          //move old rule to archive branch
                          renamed     <- con.move(rudderDit.RULES.dn, ou.dn.getParent, Some(ou.dn.getRDN))
                          //now, create back config rule branch and save rules
@@ -327,11 +327,11 @@ class WoLDAPRuleRepository(
   }
 
   def deleteSavedRuleArchiveId(archiveId:RuleArchiveId) : IOResult[Unit] = {
-      for {
-        con     <- ldap
-        deleted <- ruleMutex.writeLock(con.delete(rudderDit.ARCHIVES.ruleModel(archiveId).dn))
-      } yield {
-        ()
-      }
+    ruleMutex.writeLock(for {
+      con     <- ldap
+      deleted <- con.delete(rudderDit.ARCHIVES.ruleModel(archiveId).dn)
+    } yield {
+      ()
+    })
   }
 }
