@@ -157,7 +157,10 @@ object SectionVal {
 
       //variable for that section: Map[String, String]
       val variables = spec.getDirectVariables.map { vspec =>
-        (vspec.name, allValues(vspec.name)(index))
+        // optionnal values not given in API are not defined here, add an empty value
+        (vspec.name, try { allValues.getOrElse(vspec.name, Seq())(index) } catch {
+          case _:IndexOutOfBoundsException => ""
+        })
       }.toMap
 
       /*
