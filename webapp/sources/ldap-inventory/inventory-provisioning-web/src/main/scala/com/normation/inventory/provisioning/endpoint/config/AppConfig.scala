@@ -261,7 +261,7 @@ class AppConfig {
   @Bean
   def multipartResolver() = {
     val c = new CommonsMultipartResolver()
-    c.setMaxUploadSize(10000000)
+    c.setMaxUploadSize(20000000)
     c
   }
 
