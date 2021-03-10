@@ -267,7 +267,7 @@ class DependencyAndDeletionServiceImpl(
     for {
       con          <- ldap
       configRules  <- searchRules(con,id)
-      diff         <- woDirectiveRepository.delete(id, modId, actor, reason).chainError(s"Error when deleting policy instanc with ID '${id.value}'.")
+      diff         <- woDirectiveRepository.delete(id, modId, actor, reason).chainError(s"Error when deleting policy instance with ID '${id.value}'.")
       updatedRules <- ZIO.foreach(configRules) { rule =>
                         //check that directive is actually in rule directives, and remove it
                         if(rule.directiveIds.exists(i => id == i)) {
