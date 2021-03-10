@@ -16,6 +16,17 @@ except Exception:
 
 logger = logging.getLogger("rudder-pkg")
 
+try:
+    import rpm
+except:
+    logger.debug("No rpm python lib found")
+
+try:
+    import apt
+except:
+    logger.debug("No apt python lib found")
+
+
 # See global variables at the end of the file
 """ Get Terminal width """
 def terminal_size():
@@ -307,7 +318,38 @@ def install_dependencies(metadata):
             logger.warning("The binary " + executable + " was not found on the system, you must install it before installing " + metadata['name'])
             return False
       else:
-        has_depends = True
+        dependencyToCheck = False
+        packageManagerQueried = False
+        try:
+          if system == "rpm":
+            dependencyToCheck = True
+            if distutils.spawn.find_executable("rpm") is not None:
+              # this is an rpm system
+              ts = rpm.TransactionSet()
+              for package in metadata["depends"]["rpm"]:
+                mi = ts.dbMatch('name', package)
+                packageManagerQueried = True
+                try :
+                  h = mi.next()
+                except StopIteration:
+                  logger.warning("The rpm package " + package + " was not found on the system, you must install it before installing " + metadata['name'])
+                  return False
+          if system == "apt":
+            dependencyToCheck = True
+            if distutils.spawn.find_executable("apt") is not None:
+              cache = apt.Cache()
+              packageManagerQueried = True
+              for package in metadata["depends"]["apt"]:
+                if not cache[package].is_installed:
+                  logger.warning("The apt package " + package + " was not found on the system, you must install it before installing " + metadata['name'])
+                  return False
+        except Exception:
+          logger.error("Could not query rpm or apt package repository to check dependencies for this plugin.")
+
+        # dependency check failed
+        if dependencyToCheck and not packageManagerQueried:
+          logger.warning("Neither rpm nor apt could be queried successfully - cannot check the dependencies for this plugin.")
+
         if not depends_printed:
           logger.info("This package depends on the following")
           depends_printed = True
