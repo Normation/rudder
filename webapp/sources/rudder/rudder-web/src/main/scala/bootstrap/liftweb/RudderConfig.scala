@@ -840,7 +840,7 @@ object RudderConfig extends Loggable {
   val restQuicksearch       = new RestQuicksearch(new FullQuickSearchService()(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit, roDirectiveRepository, nodeInfoService), userService, linkUtil)
   val restCompletion        = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository))
 
-  val secretVaultService = new SecretVaultService()
+  val secretVaultService = new SecretVaultService("/var/rudder/configuration-repository/secret-vault.json")
   val ruleApiService2 =
     new RuleApiService2(
         roRuleRepository

@@ -36,39 +36,33 @@
 */
 package com.normation.rudder.rest.lift
 
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.web.services.SecretVaultService
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.{SecretVaultApi => API}
+import com.normation.box._
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.EndpointSchema0
-import com.normation.rudder.rest.RestDataSerializer
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
-import com.normation.rudder.rest.RestUtils.getActor
-import com.normation.rudder.rest.RestUtils.toJsonError
-import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.SecretVaultApi.AddSecret
-import com.normation.rudder.rest.SecretVaultApi.DeleteSecret
-import com.normation.rudder.rest.SecretVaultApi.UpdateSecret
-import com.normation.rudder.rest.data._
+import com.normation.rudder.rest.{SecretVaultApi => API}
+import com.normation.rudder.web.services.Secret
+import com.normation.rudder.web.services.SecretVaultService
 import net.liftweb.common._
-import net.liftweb.http.JsonResponse
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
+
 class SecretVaultApi(
     restExtractorService : RestExtractorService
   , secretVaultService   : SecretVaultService
 ) extends LiftApiModuleProvider[API] {
 
-  import RestUtils._
-
   def schemas = API
+
+  def serializeSecret(secret : Secret) = {
+    (   ("name"      -> secret.name)
+      ~ ("value"     -> secret.value)
+    )
+  }
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(
@@ -86,36 +80,96 @@ class SecretVaultApi(
     val schema        = API.GetSecrets
     val restExtractor = restExtractorService
 
+
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      JsonResponse("get secret")
+      implicit val prettify = params.prettify
+      implicit val action = schema.name
+
+      val res = for {
+        secrets <- secretVaultService.getSecrets
+      } yield {
+        secrets.map(serializeSecret)
+      }
+
+      res.toBox match {
+        case Full(json) =>
+          RestUtils.toJsonResponse(None, JArray(json))
+        case eb: EmptyBox =>
+          val message = (eb ?~ s"Error when trying get secret from file").messageChain
+          RestUtils.toJsonError(None, message)(action, true)
+      }
     }
   }
 
-  object AddSecret extends LiftApiModule {
+  object AddSecret extends LiftApiModule0 {
     val schema        = API.AddSecret
     val restExtractor = restExtractorService
 
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      JsonResponse("add secret")
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val prettify = params.prettify
+      implicit val action = schema.name
+
+      val res = for {
+        secret <- restExtractorService.extractSecret(req)
+        _ <- secretVaultService.addSecret(secret).toBox
+      } yield {
+        serializeSecret(secret)
+      }
+      res match {
+        case Full(json) =>
+          RestUtils.toJsonResponse(None, json)
+        case eb: EmptyBox =>
+          val message = (eb ?~ s"Error when trying add a secret entry").messageChain
+          RestUtils.toJsonError(None, message)(action, true)
+      }
     }
   }
 
 
   object DeleteSecret extends LiftApiModule {
-    val schema        = API.AddSecret
+    val schema        = API.DeleteSecret
     val restExtractor = restExtractorService
 
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      JsonResponse("delete secret")
+      implicit val prettify = params.prettify
+      implicit val action = schema.name
+
+      val res = for {
+        _      <- secretVaultService.deleteSecret(id).toBox
+      } yield {
+        id
+      }
+      res match {
+        case Full(secretId) =>
+          RestUtils.toJsonResponse(None, id)
+        case eb: EmptyBox =>
+          val message = (eb ?~ s"Error when trying delete a secret entry").messageChain
+          RestUtils.toJsonError(None, message)(action, true)
+      }
     }
   }
 
-  object UpdateSecret extends LiftApiModule {
-    val schema        = API.AddSecret
+  object UpdateSecret extends LiftApiModule0 {
+    val schema        = API.UpdateSecret
     val restExtractor = restExtractorService
 
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      JsonResponse("delete secret")
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val prettify = params.prettify
+      implicit val action = schema.name
+
+      val res = for {
+        secret <- restExtractorService.extractSecret(req)
+        _      <- secretVaultService.updateSecret(secret).toBox
+      } yield {
+        serializeSecret(secret)
+      }
+      res match {
+        case Full(json) =>
+          RestUtils.toJsonResponse(None, json)
+        case eb: EmptyBox =>
+          val message = (eb ?~ s"Error when trying update a secret entry").messageChain
+          RestUtils.toJsonError(None, message)(action, true)
+      }
     }
   }
 
