@@ -382,7 +382,7 @@ limitations under the License.
     <bcpkix-jdk15on-version>1.60</bcpkix-jdk15on-version>
     <monix-version>2.3.3</monix-version>
     <silencer-lib-version>1.2</silencer-lib-version>
-    <better-files-version>3.7.0</better-files-version>
+    <better-files-version>3.8.0</better-files-version>
     <!--
       These one must be updated to work together
       We declare cats in "test" here, because it is not directly needed

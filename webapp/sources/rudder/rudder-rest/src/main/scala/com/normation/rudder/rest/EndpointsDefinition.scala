@@ -416,6 +416,11 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
     val (action, path) = POST / "system" / "regenerate" / "policies"
   }
 
+  final case object CleanPolicies extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description    = "Delete policies of deleted nodes or nodes that have been moved to another policy server"
+    val (action, path) = POST / "system" / "clean" / "policies"
+  }
+
   // Archive list endpoints
 
   final case object ArchivesGroupsList extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value

@@ -1,0 +1,151 @@
+/*
+*************************************************************************************
+* Copyright 2019 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+
+package com.normation.rudder.batch
+
+import java.nio.file.FileSystemException
+
+import better.files.File
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.ScheduledJobLogger
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.services.nodes.NodeInfoService
+import monix.execution.Scheduler.{global => scheduler}
+import net.liftweb.common._
+
+import scala.concurrent.duration._
+
+
+class CleanPoliciesService (nodeInfoService: NodeInfoService) extends Loggable {
+
+  def cleanPolicies: Box[List[String]] = {
+
+    def initPolicyCleaning (currentNodes : Map[NodeId,NodeInfo]) : Box[List[String]] = {
+      import File._
+
+      def cleanPoliciesRec(file: File, parentId: String): Iterator[String] = {
+        file.children.flatMap {
+          nodeFolder =>
+            if (logger.isDebugEnabled) {
+              val openfd = try {
+                (root / "proc" / "self").children.size
+              } catch {
+                case fse: FileSystemException =>
+                  -1
+              }
+              logger.debug(s"Currently ${openfd} open files by Rudder Server process")
+            }
+            val nodeId = NodeId(nodeFolder.name)
+            def delete = {
+              nodeFolder.delete()
+              Iterator(nodeFolder.name)
+            }
+            currentNodes.get(nodeId) match {
+              // Node was deleted
+              case None =>
+                delete
+              // Node was moved to another relay
+              case Some(nodeInfo) if parentId != nodeInfo.policyServerId.value  =>
+                delete
+              // Node is a policy server and has some policies generated below, let's explore those policies
+              case Some(nodeInfo) if nodeInfo.isPolicyServer && (nodeFolder / "share").exists =>
+                cleanPoliciesRec(nodeFolder / "share", nodeFolder.name)
+              // Just a valid node, or a relay without nodes, skip
+              case Some(_) =>
+                Iterator.empty
+            }
+        }
+      }
+
+      try {
+        Full(cleanPoliciesRec(root / "var" / "rudder" / "share", "root").toList )
+      } catch {
+        case fse : FileSystemException =>
+
+          val openfd = try {
+            (root / "proc" / "self").children.size
+          } catch {
+            case fse: FileSystemException =>
+              -1
+          }
+          Failure(s"Too many files open (currently ${openfd}, but number may have dropped), maybe you can raise open file descriptor limit (ulimit -n)", Full(fse), Empty)
+      }
+    }
+
+
+    (for {
+      nodes <- nodeInfoService.getAll()
+      deleted <- initPolicyCleaning(nodes)
+    } yield {
+      deleted
+    }) match {
+      case eb: EmptyBox =>
+        val error = (eb ?~! s"Error when deleting unreferenced policies directory")
+        logger.error(error.messageChain)
+        error.rootExceptionCause.foreach(ex =>
+          logger.debug("Exception was:", ex)
+        )
+        error
+      case Full(deleted) =>
+        logger.info(s"Deleted ${deleted.length} unreferenced policies folder")
+        if (logger.isDebugEnabled && deleted.length > 0)
+          logger.debug(s"Deleted policies folder of Nodes: ${deleted.mkString(",")}")
+        Full(deleted)
+    }
+  }
+}
+
+class CleanPoliciesJob(
+     cleanPoliciesService: CleanPoliciesService
+   , runInterval     : FiniteDuration
+) {
+
+  val logger = ScheduledJobLogger
+
+  if (runInterval < 1.hour) {
+    logger.info(s"Disable automatic unreferenced policies directory (update interval cannot be less than 1 hour)")
+  } else {
+    logger.debug(s"***** starting batch that purge unreferenced policies directory, every ${runInterval.toString()} *****")
+    scheduler.scheduleWithFixedDelay(1.hour, runInterval) {
+      cleanPoliciesService.cleanPolicies
+    }
+  }
+
+
+}
+
+

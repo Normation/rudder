@@ -267,6 +267,7 @@ class PolicyWriterServiceImpl(
 
     //interpret HookReturnCode as a Box
 
+
     val readTemplateTime1 = System.currentTimeMillis
     for {
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeInfos, newPostfix, backupPostfix)
