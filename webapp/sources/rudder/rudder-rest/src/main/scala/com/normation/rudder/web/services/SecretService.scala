@@ -38,22 +38,16 @@ package com.normation.rudder.web.services
 
 import better.files.Dsl.SymbolicOperations
 import better.files.File
-import com.normation.errors.IOResult
-import com.normation.errors.Inconsistency
-import com.normation.zio._
+import com.normation.errors.{IOResult, Inconsistency}
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonParser
-import net.liftweb.json.Serialization.write
 import net.liftweb.json.JsonDSL._
-import zio.Ref
+import net.liftweb.json.Serialization.write
+import net.liftweb.json.{JString, JsonParser}
 import zio._
 import zio.syntax._
-
 import java.nio.charset.StandardCharsets
 
-final case class Metadata(author: Option[String], formatVersion: Option[String], date: Option[String])
 final case class Secret(name: String, value: String)
-final case class JsonSecretFile(metadata: Metadata, secrets: List[Secret])
 
 class SecretVaultService(
   jsonDbPath: String
@@ -61,44 +55,40 @@ class SecretVaultService(
 
   private val secretsFile  = File(jsonDbPath)
 
-  private[this] val secretsCache: Ref[List[Secret]] = (for {
-    v <- Ref.make[List[Secret]](List.empty)
-  } yield v).runNow
+  private[this] def parseVersion1(json: JValue): IOResult[List[Secret]] = {
+    implicit val formats = net.liftweb.json.DefaultFormats
+    println((json \ "secrets"))
+    IOResult.effect((json \ "secrets").extract[List[Secret]])
+  }
 
-
-  private[this] def getSecretJsonContent: IOResult[JsonSecretFile] = {
-    IOResult.effectM("Unable to get content of Secret vault file") {
-      for {
-        jsonSecretFile <- if (secretsFile.exists && secretsFile.isReadable) {
-          val json = secretsFile.contentAsString(StandardCharsets.UTF_8)
-          implicit val formats = net.liftweb.json.DefaultFormats
-          JsonParser.parse(json).extract[JsonSecretFile].succeed
-        } else {
-          Inconsistency(s"Secret vault file not found or not readable: ${secretsFile.path.toString}").fail
-        }
-      } yield {
-        jsonSecretFile
-      }
+  private[this] def parseVersionOther(json: JValue, formatVersion: String): IOResult[List[Secret]] = {
+    formatVersion match {
+      case s => Inconsistency(s"Version format ${s} unknown").fail
     }
   }
 
-  def reloadFromFile: IOResult[Unit] = {
+  private[this] def getSecretJsonContent: IOResult[List[Secret]] = {
+    val content = secretsFile.contentAsString(StandardCharsets.UTF_8)
     for {
-      secretsFromFile <- getSecretJsonContent
-      _               <- secretsCache.set(secretsFromFile.secrets)
-    } yield {}
+      json     <- IOResult.effect(JsonParser.parse(content))
+      secrets <- (json \ "formatVersion") match {
+                   case JString("1.0")        => parseVersion1(json)
+                   case JString(otherVersion) => parseVersionOther(json, otherVersion)
+                   case v                     =>
+                     Inconsistency(s"Invalid format when parsing secret file ${secretsFile.path}, expected `formatVersion` 1.0").fail
+      }
+    } yield secrets
   }
 
-  def init: IOResult[Unit]  = {
+  def init(version: String): IOResult[Unit]  = {
     val json =
-      """
-        |{
-        |  "metadata": {
-        |  }
+      s"""
+        | {
+        |   "formatVersion" : "$version"
+        |   "secrets":[
         |
-        |  "secrets": [
-        |  ]
-        |}
+        |   ]
+        | }
         |
         |""".stripMargin
     for {
@@ -108,23 +98,24 @@ class SecretVaultService(
                f.write(json)
              }
            }
-      _ <- reloadFromFile
     } yield ()
   }
 
   def getSecrets: IOResult[List[Secret]] = {
     for {
-      secrets <- secretsCache.get
-    } yield {
-      secrets
-    }
+      s <- getSecretJsonContent
+    } yield s
   }
 
-  private[this] def replaceInFile(jsonSecretFile: JsonSecretFile): IOResult[Unit] = {
+  private[this] def replaceInFile(formatVersion: String, secrets: List[Secret]): IOResult[Unit] = {
     IOResult.effect{
       secretsFile.clear()
       implicit val formats = net.liftweb.json.DefaultFormats
-      secretsFile <<  write(jsonSecretFile)
+      val json =
+        ( ("formatVersion" -> formatVersion)
+        ~ ("secrets" -> secrets.map(serializeSecret))
+        )
+      secretsFile.write(net.liftweb.json.prettyRender(json))
     }
   }
 
@@ -132,43 +123,42 @@ class SecretVaultService(
     searchIn.map(_.name).contains(toFind.name)
   }
 
-  def addSecret(secret: Secret): IOResult[Unit] = {
+  def addSecret(formatVersion: String, s: Secret): IOResult[Unit] = {
     for {
-      content  <- getSecretJsonContent
-      sInCache <- secretsCache.get
-      _ <- ZIO.when(!doesSecretExists(content.secrets, secret) && !doesSecretExists(sInCache, secret)) {
-             val newSecrets     = secret :: content.secrets
-             val contentToWrite = content.copy(secrets = newSecrets)
-             for {
-               _ <- replaceInFile(contentToWrite)
-               _ <- secretsCache.update(secret :: _)
-             } yield ()
-      }
+      secrets  <- getSecretJsonContent
+      _        <- ZIO.when(!doesSecretExists(secrets, s)) {
+                    val newSecrets     = s :: secrets
+                    for {
+                      _ <- replaceInFile(formatVersion, newSecrets)
+                    } yield ()
+                 }
     } yield ()
   }
 
-  def deleteSecret(secretId: String): IOResult[Unit] = {
+  def deleteSecret(formatVersion: String, secretId: String): IOResult[Unit] = {
     for {
-      content        <- getSecretJsonContent
-      newSecrets     =  content.secrets.filter(_.name != secretId)
-      contentToWrite = content.copy(secrets = newSecrets)
-      _              <- replaceInFile(contentToWrite)
-      _              <- secretsCache.update(_.filter(_.name != secretId))
+      secrets     <- getSecretJsonContent
+      newSecrets  =  secrets.filter(_.name != secretId)
+      _           <- replaceInFile(formatVersion, newSecrets)
     } yield ()
   }
 
-  def updateSecret(secret: Secret): IOResult[Unit] = {
+  def updateSecret(formatVersion: String, updatedSecret: Secret): IOResult[Unit] = {
     for {
-      content        <- getSecretJsonContent
-      sInCache <- secretsCache.get
-      _ <- ZIO.when(doesSecretExists(content.secrets, secret) && doesSecretExists(sInCache, secret)) {
-        val newSecrets     = content.secrets.map( s => if(s.name == secret.name) secret else s)
-        val contentToWrite = content.copy(secrets = newSecrets)
-        for {
-          _ <- replaceInFile(contentToWrite)
-          _ <- secretsCache.update(_.map( s => if(s.name == secret.name) secret else s))
-        } yield ()
-      }
+      secrets <- getSecretJsonContent
+      _       <- ZIO.when(doesSecretExists(secrets, updatedSecret)) {
+                   val newSecrets = secrets.map( s => if(s.name == updatedSecret.name) updatedSecret else s)
+                   for {
+                     _ <- replaceInFile(formatVersion, newSecrets)
+                   } yield ()
+                }
     } yield ()
   }
+
+  def serializeSecret(secret : Secret): JValue = {
+    (   ("name"      -> secret.name)
+      ~ ("value"     -> secret.value)
+    )
+  }
+
 }

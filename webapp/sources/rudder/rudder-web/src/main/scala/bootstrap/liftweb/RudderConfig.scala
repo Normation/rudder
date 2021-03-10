@@ -840,7 +840,7 @@ object RudderConfig extends Loggable {
   val restQuicksearch       = new RestQuicksearch(new FullQuickSearchService()(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit, roDirectiveRepository, nodeInfoService), userService, linkUtil)
   val restCompletion        = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository))
 
-  val secretVaultService = new SecretVaultService("/var/rudder/configuration-repository/secret-vault.json")
+  val secretVaultService = new SecretVaultService("/var/rudder/configuration-repository/secrets.json")
   val ruleApiService2 =
     new RuleApiService2(
         roRuleRepository
@@ -1176,7 +1176,7 @@ object RudderConfig extends Loggable {
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
       , new SystemApi(restExtractorService,systemApiService11, systemApiService13, rudderMajorVersion, rudderFullVersion, builtTimestamp)
       , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
-      , new SecretVaultApi(restExtractorService, secretVaultService)
+      , new SecretApi(restExtractorService, secretVaultService)
         // info api must be resolved latter, because else it misses plugin apis !
     )
 
