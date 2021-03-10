@@ -538,6 +538,7 @@ class ModificationValidationPopup(
             case eb:EmptyBox =>
               val e = eb ?~! "Error when moving the group (no change request was created)"
               //early return here
+              logger.error(e.messageChain)
               e.chain.foreach { ex =>
                 parentFormTracker.addFormError(error(ex.messageChain))
                 logger.error(s"Exception when trying to update a change request:", ex)
@@ -569,6 +570,7 @@ class ModificationValidationPopup(
         onSuccessCallback(id)
       case eb:EmptyBox =>
         val e = (eb ?~! "Error when trying to save your modification")
+        logger.error(e.messageChain)
         e.chain.foreach { ex =>
           parentFormTracker.addFormError(error(ex.messageChain))
           logger.error(s"Exception when trying to update a change request:", ex)
