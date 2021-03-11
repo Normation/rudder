@@ -13,7 +13,7 @@ TEST_EXEC := test
 OUR_SRCS := $(shell find $(SRC_DIR) -name "*.[ch]" ! -path "*argtable3*")
 
 # main is handled separately
-SRCS := $(shell find $(SRC_DIR) ! -path *main.c -name *.c)
+SRCS := $(shell find $(SRC_DIR) ! -path '*main.c' -name '*.c')
 OBJS := $(patsubst $(SRC_DIR)/%,$(BUILD_DIR)/%,$(SRCS:.c=.o))
 
 DESTDIR := $(BUILD_DIR)/dest
@@ -38,8 +38,17 @@ ifeq ($(CC),gcc)
 CFLAGS_DEBUG += -fanalyzer
 endif
 
-CFLAGS_RELEASE := -O2 -g
-LDFLAGS += -lcurl -ltoml
+CFLAGS_RELEASE := -O2
+LDFLAGS += -lcurl -lm
+
+# to use static tomlc use: make STATIC_TOML=1
+# in this case you need to put its sources in ./tomlc99/
+ifdef STATIC_TOML
+CFLAGS += -I./tomlc99
+LDFLAGS += ./tomlc99/libtoml.a
+else
+LDFLAGS += -ltoml
+endif
 
 # build is debug
 b : build
@@ -53,7 +62,12 @@ $(BUILD_DIR):
 	install -d $(BUILD_DIR)
 
 # No separate dirs for debug and release, we clean at every run
-bin-target: clean $(BUILD_DIR) $(BUILD_DIR)/$(EXEC)
+bin-target: clean $(BUILD_DIR) toml $(BUILD_DIR)/$(EXEC)
+
+toml:
+ifdef STATIC_TOML
+	cd tomlc99 && make "CFLAGS=$(CFLAGS)"
+endif
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
