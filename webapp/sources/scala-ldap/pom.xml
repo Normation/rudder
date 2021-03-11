@@ -35,11 +35,8 @@ limitations under the License.
 
   <licenses>
     <license>
-      <name>Apache License, Version 2.0</name>
+      <name>Apache-2.0</name>
       <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <comments>
-        Scala-LDAP open source library is licensed under an Apache 2.0 license.
-        </comments>
     </license>
   </licenses>
 
