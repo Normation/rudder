@@ -69,7 +69,7 @@ bin-target: clean $(BUILD_DIR) toml $(BUILD_DIR)/$(EXEC)
 
 toml:
 ifdef STATIC_TOML
-	cd tomlc99 && make "CFLAGS=$(BUILD_CFLAGS)"
+	cd tomlc99 && make "CFLAGS=$(BUILD_CFLAGS) -std=c99 -fPIC"
 endif
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
