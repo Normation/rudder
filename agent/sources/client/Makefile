@@ -21,6 +21,7 @@ PREFIX :=
 
 CC ?= gcc
 
+BUILD_CPPFLAGS=$(CPPFLAGS)
 # Strict flags, only compatible with modern compilers.
 # Release flags come from packaging.
 # C99 like CFEngine, for old platforms
@@ -30,7 +31,9 @@ CFLAGS ?= -std=c99 -Wall -Wextra -Wpedantic \
           -Wwrite-strings -Wstrict-prototypes -Wold-style-definition \
           -Wredundant-decls -Wnested-externs -Wmissing-include-dirs \
           -D_FORTIFY_SOURCE=2 -fstack-protector-strong -fPIE
+BUILD_CFLAGS=$(CFLAGS)
 LDFLAGS ?= -Wl,-z,now -Wl,-z,relro -pie
+BUILD_LDLAGS=$(LDFLAGS)
 # Debug flags
 CFLAGS_DEBUG := -O -g3 -DDEBUG -fsanitize=address,undefined
 LDFLAGS_DEBUG := -fsanitize=address,undefined
@@ -39,23 +42,23 @@ CFLAGS_DEBUG += -fanalyzer
 endif
 
 CFLAGS_RELEASE := -O2
-LDFLAGS += -lcurl -lm
+BUILD_LDFLAGS += -lcurl -lm
 
 # to use static tomlc use: make STATIC_TOML=1
 # in this case you need to put its sources in ./tomlc99/
 ifdef STATIC_TOML
-CFLAGS += -I./tomlc99
-LDFLAGS += ./tomlc99/libtoml.a
+BUILD_CFLAGS += -I./tomlc99
+BUILD_LDFLAGS += ./tomlc99/libtoml.a
 else
-LDFLAGS += -ltoml
+BUILD_LDFLAGS += -ltoml
 endif
 
 # build is debug
 b : build
-build: CFLAGS += $(CFLAGS_DEBUG)
-build: LDFLAGS += $(LDFLAGS_DEBUG)
+build: BUILD_CFLAGS += $(CFLAGS_DEBUG)
+build: BUILD_LDFLAGS += $(LDFLAGS_DEBUG)
 build: bin-target
-build-release: CFLAGS += $(CFLAGS_RELEASE)
+build-release: BUILD_CFLAGS += $(CFLAGS_RELEASE)
 build-release: version bin-target
 
 $(BUILD_DIR):
@@ -66,14 +69,14 @@ bin-target: clean $(BUILD_DIR) toml $(BUILD_DIR)/$(EXEC)
 
 toml:
 ifdef STATIC_TOML
-	cd tomlc99 && make "CFLAGS=$(CFLAGS)"
+	cd tomlc99 && make "CFLAGS=$(BUILD_CFLAGS)"
 endif
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	$(CC) $(BUILD_CFLAGS) $(BUILD_CPPFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/$(EXEC): $(OBJS) $(BUILD_DIR)/$(EXEC_OBJ)
-	$(CC) $^ -o $@ $(LDFLAGS)
+	$(CC) $^ -o $@ $(BUILD_LDFLAGS)
 
 install: $(BUILD_DIR)/$(EXEC)
 	install -d $(DESTDIR)$(PREFIX)/bin/
@@ -84,21 +87,21 @@ install: $(BUILD_DIR)/$(EXEC)
 # tests
 
 $(BUILD_DIR)/%.o: $(TEST_DIR)/%.c
-	$(CC) -Isrc $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	$(CC) -Isrc $(BUILD_CFLAGS) $(BUILD_CPPFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/$(TEST_EXEC): $(OBJS) $(BUILD_DIR)/$(TEST_OBJ)
-	$(CC) $^ -o $@ $(LDFLAGS)
+	$(CC) $^ -o $@ $(BUILD_LDFLAGS)
 
 test-target: bin-target $(BUILD_DIR)/$(TEST_EXEC)
 
 t: test
-test: CFLAGS += $(CFLAGS_DEBUG)
-test: LDFLAGS += $(LDFLAGS_DEBUG)
+test: BUILD_CFLAGS += $(CFLAGS_DEBUG)
+test: BUILD_LDFLAGS += $(LDFLAGS_DEBUG)
 test: test-target
 	$(BUILD_DIR)/$(TEST_EXEC)
 
 # tests but refuse warnings, for usage in CI
-check: CFLAGS += -Werror
+check: BUILD_CFLAGS += -Werror
 check: test
 
 # tools
@@ -110,7 +113,7 @@ fmt:
 	clang-format -i $(OUR_SRCS)
 
 clippy:
-	clang-tidy $(OUR_SRCS) -- $(CFLAGS)
+	clang-tidy $(OUR_SRCS) -- $(BUILD_CFLAGS)
 
 clean:
 	rm -rf $(BUILD_DIR)
