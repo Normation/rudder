@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Get inherited node properties for a node 
+  description: This API returns all node properties for a node, including group inherited ones. 
+  operationId: nodeInheritedProperties
+  parameters:
+    - $ref: ../../components/parameters/node-id.yml
+  responses:
+    "200":
+      description: Node
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - nodeInheritedProperties
+              data:
+                type: array
+                description: Information about the node inherited properties
+                items:
+                  $ref: ../../components/schemas/node-inherited-properties.yml
+  tags:
+    - Nodes
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/nodes/node-inherited-properties.sh

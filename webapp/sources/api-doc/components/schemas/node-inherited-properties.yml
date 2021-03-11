@@ -1,0 +1,68 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+required:
+  - id
+  - properties
+properties:
+  id:
+    type: string
+    description: Unique id of the node
+    format: uuid (or "root")
+    example: 9a1773c9-0889-40b6-be89-f6504443ac1b
+  properties:
+    type: array
+    description: Node properties (either set by user or filled by third party sources)
+    items:
+      type: object
+      required:
+        - name
+        - value
+      properties:
+        name:
+          type: string
+          description: Property name
+          example: datacenter
+        value:
+          format: string or JSON
+          example: AMS2
+          description: Resolved (ie, with inheritance and overriding done) property value (can be a string or JSON object)
+        provider:
+          type: string
+          description: Property provider (if the property is not a simple node property)
+          enum:
+          - inherited
+          - overridden
+          - plugin name like datasources
+        hierarchy:
+          type: array
+          description: A description of the inheritance hierarchy for that property, with most direct parent at head and oldest one at tail
+          items:
+            type: object
+            required:
+              - kind
+              - value
+            properties:
+              kind: 
+                type: string
+                enum:
+                  - global
+                  - group
+                description: The kind of object from which the property's value is inherited
+                example: global
+              value:
+                type: string
+                description: a string representation of the value. If it was a json value, it will be escaped.
+                example: "{\"array\":[1,2],\"object\":{\"parent\":\"value\"},\"string\":\"parent\"}"
+              id: 
+                type: string
+                description: in the case of a group, its identifier
+                example: 9180b869-08a3-4173-9dd4-ab68f227e76c
+              name: 
+                type: string
+                description: in the case of a group, its name
+                example: all centos7
+        origval:
+          format: string or JSON
+          example: AMS2
+          description: The original value (ie, before overriding and inheritance resolution) for that node

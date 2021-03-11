@@ -488,7 +488,7 @@ class NodeApiInheritedProperties(
       import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
       JArray((
         ("nodeId"     -> nodeId.value)
-      ~ ("properties" -> properties.toApiJsonRenderParents)
+      ~ ("properties" -> properties.toApiJson )
       ) :: Nil)
     }
   }
