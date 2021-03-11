@@ -12,6 +12,6 @@ static const char PROG_VERSION[] = "0.0.0-dev";
 
 typedef enum upload { UploadReport, UploadInventory } UploadType;
 
-int start(int argc, char* argv[]);
+int start(int argc, const char* argv[]);
 
 #endif /* CLI_H */

@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
 #ifdef _WIN32
 #    define PATH_SEPARATOR "\\"
 #else

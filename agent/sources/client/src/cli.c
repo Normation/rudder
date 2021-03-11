@@ -11,6 +11,7 @@
 #ifdef __unix__
 #    include <unistd.h> // for isatty()
 #endif
+#include <curl/curl.h>
 #include "argtable3.h"
 
 #define REG_EXTENDED 1
@@ -18,7 +19,7 @@
 
 void help(const char* progname, void* get_server_id, void* upload_report, void* upload_inventory,
           void* argtable_no_action) {
-    printf("Client for Rudder's communcation protocol\n\n");
+    printf("Client for Rudder's communication protocol\n\n");
     printf("USAGE:\n");
     printf("       %s", progname);
     arg_print_syntax(stdout, get_server_id, "\n");
@@ -43,7 +44,7 @@ void version(const char* progname) {
 }
 
 // entry point called by main
-int start(int argc, char* argv[]) {
+int start(int argc, const char* argv[]) {
     // Logging configuration
 #ifdef __unix__
     if (isatty(STDOUT_FILENO) == 1) {
@@ -139,10 +140,10 @@ int start(int argc, char* argv[]) {
     // try the different argument parsers
     /////////////////////////////////////////
 
-    get_server_id_errors = arg_parse(argc, argv, get_server_id);
-    upload_report_errors = arg_parse(argc, argv, upload_report);
-    upload_inventory_errors = arg_parse(argc, argv, upload_inventory);
-    no_action_errors = arg_parse(argc, argv, no_action);
+    get_server_id_errors = arg_parse(argc, (char**) argv, get_server_id);
+    upload_report_errors = arg_parse(argc, (char**) argv, upload_report);
+    upload_inventory_errors = arg_parse(argc, (char**) argv, upload_inventory);
+    no_action_errors = arg_parse(argc, (char**) argv, no_action);
 
     // help and version are special and treated first
     if (no_action_errors == 0) {
@@ -205,12 +206,27 @@ int start(int argc, char* argv[]) {
         goto exit;
     }
 
+    ///////////////
+    // get curl ready
+
+    res = curl_global_init(CURL_GLOBAL_DEFAULT);
+    if (res != 0) {
+        error("Could not initialize curl");
+        exitcode = EXIT_FAILURE;
+        goto exit;
+    }
+
     /////////////////////////////////////////
     // make actions
     /////////////////////////////////////////
 
     if (get_server_id_errors == 0) {
-        exitcode = get_id(config, verbose);
+        char* node_id = NULL;
+        exitcode = get_id(config, verbose, &node_id);
+        if (exitcode == CURLE_OK) {
+            output(node_id);
+            free(node_id);
+        }
     } else if (upload_report_errors == 0) {
         exitcode = upload_file(config, verbose, *upload_report_file->filename, UploadReport, false);
     } else if (upload_inventory_errors == 0) {
@@ -220,10 +236,12 @@ int start(int argc, char* argv[]) {
     }
 
 exit:
+    debug("Freeing memory");
     arg_freetable(get_server_id, sizeof(get_server_id) / sizeof(get_server_id[0]));
     arg_freetable(upload_inventory, sizeof(upload_inventory) / sizeof(upload_inventory[0]));
     arg_freetable(upload_report, sizeof(upload_report) / sizeof(upload_report[0]));
     arg_freetable(no_action, sizeof(no_action) / sizeof(no_action[0]));
     config_free(&config);
+    curl_global_cleanup();
     return exitcode;
 }

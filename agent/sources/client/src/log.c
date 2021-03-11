@@ -20,7 +20,11 @@
  * IN THE SOFTWARE.
  */
 
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+
 #include "log.h"
+#include <stdlib.h>
+#include "utils.h"
 
 static struct {
     void* udata;
@@ -29,6 +33,34 @@ static struct {
     int level;
     bool color;
 } L;
+
+// Program output
+// Used for testing
+static struct {
+    char* last;
+    bool enabled;
+} O;
+
+void output(const char* text) {
+    O.last = strdup_compat(text);
+    if (O.enabled) {
+        printf("%s\n", text);
+    }
+}
+
+char* output_get(void) {
+    return O.last;
+}
+
+void output_set_enabled(bool enabled) {
+    O.enabled = enabled;
+}
+
+void output_free(void) {
+    if (O.last != NULL) {
+        free(O.last);
+    }
+}
 
 static const char* const level_strings[] = { "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "NONE" };
 static const char* const level_colors[] = { "\x1b[94m", "\x1b[36m", "\x1b[32m",
@@ -40,7 +72,6 @@ static void stdout_callback(log_Event* ev) {
     } else {
         fprintf(ev->udata, "%-5s ", level_strings[ev->level]);
     }
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
     vfprintf(ev->udata, ev->fmt, ev->ap);
     fprintf(ev->udata, "\n");
     fflush(ev->udata);
@@ -85,7 +116,7 @@ void log_log(int level, const char* file, int line, const char* fmt, ...) {
     lock();
 
     if (level >= L.level) {
-        init_event(&ev, stdout);
+        init_event(&ev, stderr);
         va_start(ev.ap, fmt);
         stdout_callback(&ev);
         va_end(ev.ap);

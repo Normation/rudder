@@ -69,7 +69,7 @@ void test_config_minimal(void) {
     bool res = config_parse("tests/config/minimal.toml", "tests/config/not_there.toml", &config);
     assert(res == true);
     assert(strcmp(config.server, "rudder") == 0);
-    assert(strcmp(config.my_id, "toor") == 0);
+    assert(strcmp(config.my_id, "e745a140-40bc-4b86-b6dc-084488fc906b") == 0);
     assert(strcmp(config.server_cert, "/var/rudder/cfengine-community/ppkeys/policy_server.cert")
            == 0);
     assert(config.insecure == false);
@@ -82,8 +82,8 @@ void test_config_empty(void) {
     // file exists but no server in it, should read policy_server.dat
     bool res = config_parse("tests/config/empty.toml", "tests/config/empty.toml", &config);
     assert(res == true);
-    assert(strcmp(config.server, "rudder") == 0);
-    assert(strcmp(config.my_id, "toor") == 0);
+    assert(strcmp(config.server, "127.0.0.1") == 0);
+    assert(strcmp(config.my_id, "e745a140-40bc-4b86-b6dc-084488fc906b") == 0);
     config_free(&config);
 }
 
@@ -93,16 +93,17 @@ void test_config_absent(void) {
     // will read policy_server.dat
     bool res = config_parse("tests/config/not_there.toml", "tests/config/policy.toml", &config);
     assert(res == true);
-    assert(strcmp(config.server, "rudder") == 0);
-    assert(strcmp(config.my_id, "toor") == 0);
+    assert(strcmp(config.server, "127.0.0.1") == 0);
+    assert(strcmp(config.my_id, "e745a140-40bc-4b86-b6dc-084488fc906b") == 0);
     config_free(&config);
 }
 
 /// INTEGRATION TESTS
 
 void test_get_server_id(void) {
-    char* args[3] = { "get_server_id", "-c", "tests/config/test.toml" };
-    start(3, args);
+    const char* args[4] = { "rudder_client", "get_server_id", "-c", "tests/config/test.toml" };
+    start(4, args);
+    assert(strcmp(output_get(), "root") == 0);
 }
 
 /// MAIN
@@ -113,7 +114,7 @@ int main(int argc, char* argv[]) {
         color = true;
     }
 #endif
-    log_set_level(LOG_TRACE);
+    log_set_level(LOG_NONE);
 
     printf("\nrunning tests\n");
 

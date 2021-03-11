@@ -41,4 +41,9 @@ void log_set_color(bool enable);
 
 void log_log(int level, const char* file, int line, const char* fmt, ...);
 
+void output(const char* text);
+char* output_get(void);
+void output_set_enabled(bool enabled);
+void output_free(void);
+
 #endif

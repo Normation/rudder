@@ -10,6 +10,9 @@
 
 #define PROTOCOL "https"
 
+// uuid len = 32 chars + 4 hyphen + \o
+#define MAX_ID_LEN 32 + 4 + 1
+
 #ifdef __unix__
 #    define AGENT_KEY_PASSPHRASE "Cfengine passphrase"
 #elif _WIN32

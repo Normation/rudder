@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import ssl
 
@@ -16,6 +18,12 @@ class PolicyServer(BaseHTTPRequestHandler):
             self.send_header("Content-type", "text/plain")
             self.end_headers()
             self.wfile.write(b"root\n")
+        elif self.path == "/stop":
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"test server stopping\n")
+            exit(0)
         else:
             self.send_error(404)
 

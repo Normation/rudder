@@ -98,7 +98,13 @@ t: test
 test: BUILD_CFLAGS += $(CFLAGS_DEBUG)
 test: BUILD_LDFLAGS += $(LDFLAGS_DEBUG)
 test: test-target
+	# run test server
+	tests/server.py &
+	sleep 1
+	# allow memory leaks with "ASAN_OPTIONS=detect_leaks=0"
 	$(BUILD_DIR)/$(TEST_EXEC)
+	# stop test server
+	curl -s -k https://127.0.0.1:8443/stop
 
 # tests but refuse warnings, for usage in CI
 check: BUILD_CFLAGS += -Werror

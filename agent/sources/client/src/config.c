@@ -47,6 +47,7 @@ void config_default(Config* config) {
 
 void config_free(Config* config) {
     free(config->server);
+    free(config->my_id);
     free(config->server_cert);
     free(config->proxy);
     free(config->agent_cert);
@@ -55,7 +56,6 @@ void config_free(Config* config) {
     free(config->password);
     free(config->tmp_dir);
     free(config->policies_dir);
-    free(config->my_id);
 }
 
 bool read_string_value(toml_table_t* conf, const char* const key, bool required, char** value) {
