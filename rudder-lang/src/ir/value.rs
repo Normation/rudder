@@ -115,6 +115,7 @@ pub enum Value<'src> {
     EnumExpression(EnumExpression<'src>),
     List(Vec<Value<'src>>),
     Struct(HashMap<String, Value<'src>>),
+    Variable(Token<'src>),
 }
 
 impl<'src> From<&Constant<'src>> for Value<'src> {
@@ -147,9 +148,18 @@ impl<'src> Value<'src> {
             PValue::Float(pos, n) => Ok(Value::Float(pos, n)),
             PValue::Integer(pos, n) => Ok(Value::Integer(pos, n)),
             PValue::Boolean(pos, b) => Ok(Value::Boolean(pos, b)),
-            PValue::EnumExpression(e) => Ok(Value::EnumExpression(
-                enum_list.canonify_expression(context, e)?,
-            )),
+            // PValue::EnumExpression(e) => Ok(Value::EnumExpression(
+            //     enum_list.canonify_expression(context, e)?,
+            // )),
+            PValue::EnumExpression(e) => match enum_list.canonify_expression(context, e.clone()) {
+                Ok(canonified_expr) => Ok(Value::EnumExpression(canonified_expr)),
+                Err(err) => {
+                    if let PEnumExpressionPart::Compare(None, None, value) = e.expression {
+                        return Ok(Value::Variable(value));
+                    }
+                    Err(err)
+                }
+            },
             PValue::List(l) => Ok(Value::List(map_vec_results(l.into_iter(), |x| {
                 Value::from_pvalue(enum_list, context, x)
             })?)),
@@ -161,24 +171,44 @@ impl<'src> Value<'src> {
     }
 
     pub fn context_check(&self, context: &VarContext<'src>) -> Result<()> {
-        match self {
-            Value::String(s) => {
-                map_results(s.data.iter(), |e| match e {
-                    PInterpolatedElement::Static(_) => Ok(()),
-                    PInterpolatedElement::Variable(_v) => Ok(()),
-                    // TODO
-                    //                            match getter(Token::new("", v)) {
-                    //                                None => fail!(s.pos, "Variable {} does not exist at {}", v, s.pos),
-                    //                                _ => Ok(()),
-                    //                            },
-                })
+        let exist = |tk| -> Result<()> {
+            if context.get_type(tk) == None {
+                fail!(tk, "Variable {} does not exist", tk.fragment());
             }
-            Value::Float(_, _) => unimplemented!(),
-            Value::Integer(_, _) => unimplemented!(),
-            Value::Boolean(_, _) => unimplemented!(),
+            Ok(())
+        };
+
+        match self {
+            Value::String(s) => map_results(s.data.iter(), |e| match e {
+                PInterpolatedElement::Static(_) => Ok(()),
+                PInterpolatedElement::Variable(v) => {
+                    if context.get_type(&Token::new("", v)) == None {
+                        warn!(
+                            "The interpolated variable '{}' isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated",
+                            v
+                        );
+                    }
+                    Ok(())
+                }
+            }),
+            Value::Float(tk, _) => Ok(()),
+            Value::Integer(tk, _) => Ok(()),
+            Value::Boolean(tk, _) => Ok(()),
             Value::EnumExpression(_) => Ok(()), // check already done at enum creation
-            Value::List(_) => unimplemented!(),
-            Value::Struct(_) => unimplemented!(),
+            Value::List(vec) => vec
+                .iter()
+                .map(|value| value.context_check(context))
+                .collect::<Result<()>>(),
+            Value::Struct(map) => map
+                .iter()
+                .map(|(key, value)| value.context_check(context))
+                .collect::<Result<()>>(),
+            Value::Variable(v) => {
+                if context.get_type(v) == None {
+                    warn!("The variable '{}' isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated", v.fragment());
+                }
+                Ok(())
+            }
         }
     }
 }

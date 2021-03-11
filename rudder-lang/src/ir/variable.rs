@@ -8,11 +8,11 @@ use std::collections::HashMap;
 use toml::map::Map as TomlMap;
 use toml::Value as TomlValue;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct VariableDef<'src> {
     metadata: TomlMap<String, TomlValue>,
     pub name: Token<'src>,
-    value: ComplexValue<'src>,
+    pub value: ComplexValue<'src>,
 }
 
 impl<'src> VariableDef<'src> {
@@ -41,7 +41,7 @@ impl<'src> VariableDef<'src> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct CondVariableDef<'src> {
     pub metadata: TomlMap<String, TomlValue>,
     pub name: Token<'src>,
@@ -66,7 +66,16 @@ impl<'src> CondVariableDef<'src> {
             state_params,
         } = var;
         let (error, metadata) = create_metadata(metadata);
-        context.add_variable_declaration(name, Type::Enum(Token::new("corelib.rl", "boolean")))?;
+        context.add_variable_declaration(name, Type::Enum(Token::new("rudderlang", "boolean")))?;
+        // also add report_data to variables since these are generated and therefore their existence is checked at compile time
+        context.add_variable_declaration(
+            Token::new("", "report_data.canonified_directive_id"),
+            Type::Enum(Token::new("rudder", "boolean")),
+        )?;
+        context.add_variable_declaration(
+            Token::new("", "report_data.directive_id"),
+            Type::Enum(Token::new("rudder", "boolean")),
+        )?;
         if !error.is_empty() {
             return Err(Error::from_vec(error));
         }
@@ -142,6 +151,11 @@ impl<'src> VariableDefList<'src> {
         }
     }
 
-    // TODO
-    //pub fn iterate(&self) -> TODO
+    pub fn get_definition(&self, key: &Token<'src>) -> Option<&VariableDef> {
+        self.definitions.get(key)
+    }
+
+    pub fn get(&self) -> &HashMap<Token, VariableDef> {
+        &self.definitions
+    }
 }

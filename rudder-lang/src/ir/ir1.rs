@@ -6,6 +6,7 @@ use super::{
     enums::{EnumExpression, EnumExpressionPart, EnumList},
     resource::*,
     value::*,
+    variable::VariableDef,
 };
 use crate::{error::*, parser::*};
 use std::{
@@ -27,7 +28,7 @@ pub struct IR1<'src> {
     // the context is used for variable lookup whereas variable_definitions is used for code generation
     pub context: Rc<VarContext<'src>>,
     pub enum_list: EnumList<'src>,
-    pub variable_definitions: HashMap<Token<'src>, ComplexValue<'src>>,
+    pub variable_definitions: HashMap<Token<'src>, VariableDef<'src>>,
     pub parameter_defaults:
         HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>, // also used as parameter list since that's all we have
     pub resource_list: HashSet<Token<'src>>,
@@ -64,7 +65,6 @@ impl<'src> IR1<'src> {
             variable_definitions,
             variable_extensions,
             variable_declarations,
-            condition_variable_definitions,
             parameter_defaults,
             parents,
             aliases: _aliases,
@@ -76,7 +76,7 @@ impl<'src> IR1<'src> {
         ir.add_enum_aliases(enum_aliases);
         ir.add_variables(variable_definitions);
         ir.add_variable_extensions(variable_extensions);
-        ir.add_magic_variables(variable_declarations, condition_variable_definitions);
+        ir.add_magic_variables(variable_declarations);
         ir.add_default_values(parameter_defaults);
         ir.add_resource_list(&resources);
         let children = ir.create_children_list(parents);
@@ -180,23 +180,17 @@ impl<'src> IR1<'src> {
         let context = Rc::get_mut(&mut self.context)
             .expect("Context has not been allocated before variables !");
         for variable in variables {
-            let PVariableDef {
-                metadata,
-                name,
-                value,
-            } = variable;
-            match ComplexValue::from_pcomplex_value(&self.enum_list, context, value) {
-                Err(e) => self.errors.push(e),
-                Ok(val) => match Type::from_complex_value(&val) {
-                    Err(e) => self.errors.push(e),
-                    Ok(type_) => match context.add_variable_declaration(name, type_) {
-                        Err(e) => self.errors.push(e),
-                        Ok(()) => {
-                            self.variable_definitions.insert(name, val);
-                        }
-                    },
-                },
-            }
+            self.errors.push(err!(
+                variable.name,
+                "Global variable definitions are not currently supported ({})",
+                variable.name
+            ));
+            // match VariableDef::from_pvariable_definition(variable, context, &self.enum_list) {
+            //     Ok(v) => {
+            //         self.variable_definitions.insert(v.name, v);
+            //     }
+            //     Err(e) => self.errors.push(e),
+            // }
         }
     }
 
@@ -209,7 +203,7 @@ impl<'src> IR1<'src> {
                     .errors
                     .push(err!(name, "Variable {} has never been defined", name)),
                 Some(v) => {
-                    if let Err(e) = v.extend(&self.enum_list, &self.context, value) {
+                    if let Err(e) = v.value.extend(&self.enum_list, &self.context, value) {
                         self.errors.push(e);
                     }
                 }
@@ -218,11 +212,7 @@ impl<'src> IR1<'src> {
     }
 
     /// Insert the variables declarations into the global context
-    fn add_magic_variables(
-        &mut self,
-        variables: Vec<PVariableDecl<'src>>,
-        cond_var: Vec<PCondVariableDef<'src>>,
-    ) {
+    fn add_magic_variables(&mut self, variables: Vec<PVariableDecl<'src>>) {
         let context = Rc::get_mut(&mut self.context)
             .expect("Context has not been allocated before magic variables !");
         for variable in variables {
@@ -239,11 +229,6 @@ impl<'src> IR1<'src> {
                     }
                 }
                 Err(e) => self.errors.push(e),
-            }
-        }
-        for variable in cond_var {
-            if let Err(e) = context.add_variable_declaration(variable.name, Type::Boolean) {
-                self.errors.push(e);
             }
         }
     }
@@ -429,7 +414,9 @@ mod tests {
         parse_str_err(&mut source, "enum5", "items in F.f { ga, gb }\n"); // enum items are unique within tree
 
         parse_str_err(&mut source, "enum_var1", "let G=\"x\"\n"); // global enum automatically declare an variable
-        parse_str_ok(&mut source, "enum_var2", "let E=\"x\"\n");
+
+        // keep it commented until global variable definitions are supported
+        // parse_str_ok(&mut source, "enum_var2", "let E=\"x\"\n");
 
         parse_str_err(&mut source, "enum_alias1", "enum alias A=G\n"); // alias are for items
         parse_str_err(&mut source, "enum_alias2", "enum alias a=G.a\n"); // global alias are unique like items are unique
@@ -443,6 +430,7 @@ mod tests {
     /// - variable definition are checked for non duplication, their type is known, extension are merged
     /// - variable declaration (aka magic) are checked for non duplication
     /// - context is filled
+    // global variable definition is not a currently supported feature, so definitions are wrapped in factice dummy resource definitions
     #[test]
     fn test_vars() {
         let mut source = "@format=0\n".to_string();
@@ -454,24 +442,33 @@ mod tests {
         parse_str_ok(&mut source, "magic5", "let o.m.m\n");
         parse_str_ok(&mut source, "magic6", "let p:string\n");
 
-        parse_str_ok(&mut source, "var1", "let v=\"val\"\n");
-        parse_str_err(&mut source, "var2", "let v=\"val\"\n"); // variable cannot be overridden
-        parse_str_err(&mut source, "var3", "let m=\"val\"\n"); // magic variable cannot be overridden
+        parse_str_ok(&mut source, "var1", "resource x() {\nlet v=\"val\"\n}");
+        parse_str_err(&mut source, "var2", "let v=\"val\"\n"); // global variables are not supported
+        parse_str_err(
+            &mut source,
+            "var2",
+            "resource errx() {\nlet v=\"val\"\nlet v=\"new_val\"\n}",
+        ); // variable cannot be overridden
+
         parse_str_err(&mut source, "var4", "let v\n");
 
         parse_str_ok(&mut source, "complex0", "global enum complete { X, Y }\n");
         parse_str_ok(
             &mut source,
             "complex1",
-            "let c1 = case { X => \"val\", default => \"val2\" }\n",
+            "resource y() {let c1 = case { X => \"val\", default => \"val2\" }\n}",
         );
         parse_str_ok(
             &mut source,
             "complex2",
-            "let c2 = case { X => \"val\", Y => \"val2\" }\n",
+            "resource z() {let c2 = case { X => \"val\", Y => \"val2\" }\n}",
         );
 
-        parse_str_ok(&mut source, "ext1", "v=if X => \"val\"\n");
+        parse_str_ok(
+            &mut source,
+            "ext1",
+            "resource q() {let v=\"val\"\nv=if X => \"val\"\n}",
+        );
     }
 
     /// - default values are guaranteed to be constant

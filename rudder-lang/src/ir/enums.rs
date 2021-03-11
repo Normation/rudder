@@ -308,8 +308,9 @@ impl<'src> EnumList<'src> {
                                 value
                             );
                         }
+                    // then it probably is a variable
                     } else {
-                        warn!("The variable {} isn't recognized by rudderc though we can't guarantee the expression will be valid when evaluated", value);
+                        warn!("The enum member {} isn't recognized by rudderc, so we can't guarantee it will be defined when evaluate", value);
                         Ok((value, "boolean".into(), "true".into()))
                     }
                 } else {

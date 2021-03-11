@@ -351,6 +351,7 @@ def get_agents_support(method, content, dsc_filenames):
     agents = []
     for dsc_method in dsc_filenames:
         if dsc_method.endswith("/" + method + ".ps1"):
+            print(dsc_method)
             agents.append("dsc")
             break
     if not re.search(
@@ -555,7 +556,7 @@ def generate_lib(resource_name, resource, lib_dir):
                     '"{0}"'.format(alias) for alias in state["method_aliases"]) +
                 "]"
             )
-        fmt_attribute(out, "component", quoted(escaped(state["name"])))
+        fmt_attribute(out, "name", quoted(escaped(state["name"])))
         params = [p["name"] for p in state["parameters"]]
         out.write(
             resource_name +
@@ -590,7 +591,7 @@ def translate_lib(config_file):
     dsc_methods = config_value(
         config,
         "dsc_methods",
-        "/var/rudder/configuration-repository/dsc/ncf/30_generic_methods/")
+        "/var/rudder/configuration-repository/dsc/common/initial-policy/ncf/30_generic_methods/")
 
     method_files = get_methods_filenames(
         cfengine_methods) + get_methods_filenames(alt_cfengine_methods)

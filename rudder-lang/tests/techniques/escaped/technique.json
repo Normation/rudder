@@ -16,7 +16,7 @@
         "parameters": [
           {
             "name": "command",
-            "value": "echo \"Hello de Lu\" > /tmp/myfile-sys.host.txt"
+            "value": "echo \"Hello de Lu\" > /tmp/myfile-${sys.host}.txt"
           }
         ]
       },
@@ -45,7 +45,7 @@
         "component": "File replace lines",
         "parameters": [
           {
-            "name": "file",
+            "name": "path",
             "value": "/etc/default/grub"
           },
           {

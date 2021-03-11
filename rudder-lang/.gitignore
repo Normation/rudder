@@ -5,7 +5,6 @@
 /.idea
 /tests/test_files/tmp
 /tests/tmp/
-/tools/myrudderc.conf
 /repos
 /libs/std/
 /tests/techniques/*/technique.rl*

@@ -3,10 +3,12 @@ use crate::ir::{
     enums::EnumExpressionPart,
     ir2::IR2,
     resource::{ResourceDef, StateDef, Statement},
+    variable::VariableDef,
 };
 use crate::parser::Token;
+use std::collections::HashMap;
+use std::convert::From;
 use std::str;
-use std::{collections::HashMap, convert::From};
 use toml::map::Map as TomlMap;
 use toml::Value as TomlValue;
 use uuid::Uuid;
@@ -55,7 +57,9 @@ impl<'src> Technique {
                 state
                     .statements
                     .iter()
-                    .flat_map(|stmt| statement_to_method_call(ir, stmt, "any".to_owned()))
+                    .flat_map(|stmt| {
+                        statement_to_method_call(ir, resource, state, stmt, "any".to_owned())
+                    })
                     .collect::<Vec<MethodCall>>()
             })
             .collect::<Vec<MethodCall>>();
@@ -226,7 +230,11 @@ fn format_expr(ir: &IR2, expr: &EnumExpressionPart) -> String {
     }
 }
 
-fn value_to_string(value: &Value, method_name: &str, string_delim: bool) -> Result<String> {
+fn value_to_string(
+    value: &Value,
+    variables: &HashMap<&Token, &VariableDef>,
+    string_delim: bool,
+) -> Result<String> {
     let delim = if string_delim { "\"" } else { "" };
     Ok(match value {
         Value::String(s) => format!("{}{}{}", delim, String::try_from(s)?, delim),
@@ -235,34 +243,76 @@ fn value_to_string(value: &Value, method_name: &str, string_delim: bool) -> Resu
         Value::Boolean(_, b) => format!("{}", b),
         Value::List(l) => format!(
             "[ {} ]",
-            map_strings_results(l.iter(), |x| value_to_string(value, method_name, true), ",")?
+            map_strings_results(l.iter(), |x| value_to_string(value, variables, true), ",")?
         ),
         Value::Struct(s) => unimplemented!(),
         Value::EnumExpression(_e) => unimplemented!(),
+        Value::Variable(v) => {
+            if let Some(var) = variables.get(v).and_then(|var_def| {
+                var_def
+                    .value
+                    .first_value()
+                    .and_then(|v| value_to_string(v, variables, string_delim))
+                    .ok()
+            }) {
+                return Ok(var);
+            }
+            warn!(
+                "The variable {} isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated",
+                v.fragment()
+            );
+            format!("{}${{{}}}{}", delim, v.fragment(), delim)
+        } // resolve with context
     })
 }
 
-fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Vec<MethodCall> {
+fn statement_to_method_call(
+    ir: &IR2,
+    res_def: &ResourceDef,
+    state_def: &StateDef,
+    stmt: &Statement,
+    condition: String,
+) -> Vec<MethodCall> {
+    // get variables to try to get the proper parameter value
+    let mut variables: HashMap<&Token, &VariableDef> = HashMap::new();
+    for st_from_list in &state_def.statements {
+        // variables declared after the current statemnt are not defined at this point
+        if st_from_list == stmt {
+            break;
+        } else if let Statement::VariableDefinition(v) = st_from_list {
+            variables.insert(&v.name, v);
+        }
+    }
+    variables.extend(res_def.variable_definitions.get());
+    variables.extend(&ir.variable_definitions);
+
     match stmt {
         Statement::ConditionVariableDefinition(s) => {
+            let inner_state_def = ir.get_state_def(&s.resource, &s.state).expect("BUG: a state declaration should always have valid references to a state and resource");
+
             let method_name = format!("{}_{}", *s.resource, *s.state);
             let parameters =
                 fetch_method_parameters(ir, &s.to_method(), |name, value, _metadatas| {
                     Parameter::new(
                         name,
-                        &value_to_string(value, &method_name, false)
+                        &value_to_string(value, &variables, false)
                             .expect("Value is not formatted correctly"),
                     )
                 });
+
+            let component = match s
+                .metadata
+                .get("component")
+                .or(inner_state_def.metadata.get("name"))
+            {
+                Some(TomlValue::String(s)) => s.to_owned(),
+                _ => method_name.to_owned(),
+            };
+
             vec![MethodCall {
                 parameters,
                 condition,
                 method_name,
-                component: s.metadata.get("component").map(|c| {
-                    c.as_str()
-                        .expect("Expected type string for 'component' metadata")
-                        .to_owned()
-                }),
                 id: s
                     .metadata
                     .get("id")
@@ -272,9 +322,12 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                             .to_owned()
                     })
                     .unwrap_or(Uuid::new_v4().to_string()),
+                component,
             }]
         }
         Statement::StateDeclaration(s) => {
+            let inner_state_def = ir.get_state_def(&s.resource, &s.state).expect("BUG: a state declaration should always have valid references to a state and resource");
+
             let method_alias = s
                 .metadata
                 .get("method_alias")
@@ -288,7 +341,7 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
             let mut parameters = fetch_method_parameters(ir, s, |name, value, _| {
                 Parameter::new(
                     name,
-                    &value_to_string(value, &method_name, false)
+                    &value_to_string(value, &variables, false)
                         .expect("Value is not formatted correctly"),
                 )
             });
@@ -300,18 +353,22 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                     .map(|p| p.value.clone())
                     .collect::<Vec<String>>()
                     .join(".");
-                parameters = vec![Parameter::new("variable_name", &merged_values)];
+                parameters = vec![Parameter::new("name", &merged_values)];
+            };
+
+            let component = match s
+                .metadata
+                .get("component")
+                .or(inner_state_def.metadata.get("name"))
+            {
+                Some(TomlValue::String(s)) => s.to_owned(),
+                _ => method_name.to_owned(),
             };
 
             vec![MethodCall {
                 parameters,
                 condition,
                 method_name,
-                component: s.metadata.get("component").map(|c| {
-                    c.as_str()
-                        .expect("Expected type string for 'component' metadata")
-                        .to_owned()
-                }),
                 id: s
                     .metadata
                     .get("id")
@@ -321,6 +378,7 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                             .to_owned()
                     })
                     .unwrap_or(Uuid::new_v4().to_string()),
+                component,
             }]
         }
         Statement::Case(_, enum_expressions) => enum_expressions
@@ -329,7 +387,13 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                 stmts
                     .iter()
                     .flat_map(|stmt| {
-                        statement_to_method_call(ir, stmt, format_expr(ir, &enum_expr.expression))
+                        statement_to_method_call(
+                            ir,
+                            res_def,
+                            state_def,
+                            stmt,
+                            format_expr(ir, &enum_expr.expression),
+                        )
                     })
                     .collect::<Vec<MethodCall>>()
             })

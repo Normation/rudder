@@ -12,8 +12,8 @@ bundle agent condition_alias
                                                              if => concat("any.(SLES12)");
     "Command execution_${report_data.directive_id}_0" usebundle => command_execution("pwd"),
                                                              if => concat("any.(SLES12)");
-    "Command execution_${report_data.directive_id}_0" usebundle => _method_reporting_context("Command execution", "pwd"),
-                                                             if => concat("any.(lucid)");
-    "Command execution_${report_data.directive_id}_0" usebundle => command_execution("ls"),
-                                                             if => concat("any.(lucid)");
+    "Command execution_${report_data.directive_id}_1" usebundle => _method_reporting_context("Command execution", "ls"),
+                                                             if => concat("any.(ubuntu_10_04)");
+    "Command execution_${report_data.directive_id}_1" usebundle => command_execution("ls"),
+                                                             if => concat("any.(ubuntu_10_04)");
 }
