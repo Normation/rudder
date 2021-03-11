@@ -38,7 +38,6 @@
 package com.normation.rudder.hooks
 
 import java.io.File
-
 import com.normation.NamedZioLogger
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
@@ -52,6 +51,9 @@ import com.normation.errors._
 import com.normation.zio._
 import com.normation.zio.ZioRuntime
 import com.normation.box._
+
+import java.nio.charset.StandardCharsets
+import scala.util.control.NonFatal
 
 /*
  * The goal of that file is to give a simple abstraction to run hooks in
@@ -73,8 +75,8 @@ import com.normation.box._
  * from the same set with the same set of envVariables.
  * The hooks are executed in the order of the list.
  */
-
-final case class Hooks(basePath: String, hooksFile: List[String])
+final case class HookTimeout(warn: Option[Duration], kill: Option[Duration])
+final case class Hooks(basePath: String, hooksFile: List[(String, HookTimeout)])
 /**
  * Hook env are pairs of environment variable name <=> value
  */
@@ -167,6 +169,14 @@ object HooksImplicits {
 }
 
 object RunHooks {
+  /**
+   * A hook can have a specific timeout, which allows user to either make some hook fail fast, or
+   * give long-running one more time.
+   * There is two level: warn in log and kill hook.
+   * Warn should always been shorter than kill if you want it be of any use.
+   */
+  final val HOOK_WARN_TIMEOUT = "HOOK_WARN_TIMEOUT"
+  final val HOOK_KILL_TIMEOUT = "HOOK_KILL_TIMEOUT"
 
   /**
    * Runs a list of hooks. Each hook is run sequencially (so that
@@ -184,7 +194,7 @@ object RunHooks {
    * - > 255: should not happen, but treated as reserved.
    *
    */
-  def asyncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs, warnAfterMillis: Duration = 5.minutes, killAfter: Duration = 1.hour): IOResult[(HookReturnCode, Long)] = {
+  def asyncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs, globalWarnAfter: Duration = 1.minutes, unitWarnAfter: Duration = 30.seconds, unitKillAfter: Duration = 5.minutes): IOResult[(HookReturnCode, Long)] = {
 
     import HookReturnCode._
 
@@ -236,7 +246,9 @@ object RunHooks {
      * step.
      * But we still want the whole operation to be non-bloking.
      */
-    val runAllSeq = ZIO.foldLeft(hooks.hooksFile)(Ok("",""):HookReturnCode) { case (previousCode, nextHookName) =>
+    val runAllSeq = ZIO.foldLeft(hooks.hooksFile)(Ok("",""):HookReturnCode) { case (previousCode, (nextHookName, timeouts)) =>
+      val killTimeout = timeouts.kill.getOrElse(unitKillAfter)
+      val warnTimeout = timeouts.warn.getOrElse(unitWarnAfter)
       previousCode match {
         case x: Error   => x.succeed
         case x: Success => // run the next hook
@@ -247,15 +259,23 @@ object RunHooks {
           for {
             _ <- PureHooksLogger.debug(s"Run hook: ${cmdInfo}")
             _ <- PureHooksLogger.trace(s"System environment variables: ${envVariables.show}")
+            f <- PureHooksLogger.LongExecLogger.warn(s"Hook is taking more than ${warnTimeout.render} to finish: ${cmdInfo}").delay(warnTimeout).fork
             p <- RunNuCommand.run(Cmd(path, Nil, env.toMap)).untraced
-            r <- p.await.timeout(killAfter).notOptional(s"Hook ${cmdInfo} timed out after ${killAfter.asJava.toString}").provide(ZioRuntime.environment).untraced
+            r <- p.await.timeout(killTimeout).flatMap {
+                   case Some(ok) =>
+                     ok.succeed
+                   case None =>
+                     val msg = s"Hook ${cmdInfo} timed out after ${killTimeout.asJava.toString}"
+                     PureHooksLogger.LongExecLogger.error(msg) *> Unexpected(msg).fail
+                 }.untraced
+            _ <- f.interrupt
             c =  translateReturnCode(path, r)
             _ <- logReturnCode(c)
           } yield {
             c
           }
       }
-    }.untraced
+    }.provide(ZioRuntime.environment).untraced
 
     val cmdInfo = s"'${hooks.basePath}' with environment parameters: [${hookParameters.show}]"
     (for {
@@ -263,16 +283,18 @@ object RunHooks {
       _        <- PureHooksLogger.debug(s"Run hooks: ${cmdInfo}")
       _        <- PureHooksLogger.trace(s"Hook environment variables: ${envVariables.show}")
       time_0   <- currentTimeNanos
+      f        <- PureHooksLogger.LongExecLogger.warn(s"Executing all hooks in directory ${cmdInfo} is taking more time than configured expected max duration of '${globalWarnAfter.render}'").delay(globalWarnAfter).fork
       res      <- ZioRuntime.blocking(runAllSeq)
       time_1   <- currentTimeNanos
+      _        <- f.interrupt // noop if timeout is already reached
       duration =  time_1 - time_0
-      _        <- ZIO.when(duration/1000000 > warnAfterMillis.toMillis) {
-                    PureHooksLogger.LongExecLogger.warn(s"Hooks in directory '${cmdInfo}' took more than configured expected max duration (${warnAfterMillis.toMillis}): ${duration/1000000} ms")
+      _        <- ZIO.when(duration/1_000_000 > globalWarnAfter.toMillis) {
+                    PureHooksLogger.LongExecLogger.warn(s"Executing all hooks in directory ${cmdInfo} took: ${duration / 1_000_000} ms (warn after ${globalWarnAfter.toMillis} ms)")
                   }
       _        <- PureHooksLogger.debug(s"Done in ${duration/1000} us: ${cmdInfo}") // keep that one in all cases if people want to do stats
     } yield {
       (res, duration)
-    }).chainError(s"Error when executing hooks in directory '${hooks.basePath}'.")
+    }).provide(ZioRuntime.environment).chainError(s"Error when executing hooks in directory '${hooks.basePath}'.")
   }
 
   /*
@@ -290,10 +312,13 @@ object RunHooks {
    * 30-third.hook
    * etc
    *
-   * You can get a warning if the hook took more than a given duration (in millis)
+   * You can get a warning if the hook took more than a given duration (in millis).
+   *
+   * `globalWarnAfter` is a global timeout, ie the warning will happen if the sum of all hooks given as argument is bigger than that.
+   * `unitKillAfter` is an individual timeout, ie the kill will happen if ONE hook takes more time than that value.
    */
-  def syncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs, warnAfterMillis: Duration = 5.minutes, killAfter: Duration = 1.hour): HookReturnCode = {
-    asyncRun(hooks, hookParameters, envVariables, warnAfterMillis, killAfter).either.runNow match {
+  def syncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs, globalWarnAfter: Duration = 1.minutes, unitWarnAfter: Duration = 30.seconds, unitKillAfter: Duration = 5.minutes): HookReturnCode = {
+    asyncRun(hooks, hookParameters, envVariables, globalWarnAfter, unitKillAfter, unitWarnAfter).either.runNow match {
       case Right(x)  => x._1
       case Left(err) => HookReturnCode.SystemError(s"Error when executing hooks in directory '${hooks.basePath}'. Error message is: ${err.fullMsg}")
     }
@@ -304,42 +329,77 @@ object RunHooks {
    * Hooks must be executable and not ends with one of the
    * non-executable extensions.
    */
-   def getHooks(basePath: String, ignoreSuffixes: List[String]): Box[Hooks] = getHooksPure(basePath, ignoreSuffixes).toBox
+  def getHooks(basePath: String, ignoreSuffixes: List[String]): Box[Hooks] = getHooksPure(basePath, ignoreSuffixes).toBox
 
-   def getHooksPure(basePath: String, ignoreSuffixes: List[String]): IOResult[Hooks] = {
-     IOResult.effect {
-       val dir = new File(basePath)
-       // Check that dir exists before looking in it
-       if (dir.exists) {
-         HooksLogger.debug(s"Looking for hooks in directory '${basePath}', ignoring files with suffix: '${ignoreSuffixes.mkString("','")}'")
-         // only keep executable files
-         val files = dir.listFiles().toList.flatMap { file =>
-           file match {
-             case f if (f.isDirectory) => None
-             case f =>
-               if(f.canExecute) {
-                 val name = f.getName
-                 //compare ignore case (that's why it's a regienMatches) extension and name
-                 ignoreSuffixes.find(suffix => name.regionMatches(true, name.length - suffix.length, suffix, 0, suffix.length)) match {
-                   case Some(suffix) =>
-                     HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because suffix '${suffix}' is in the ignore list")
-                     None
-                   case None      =>
-                     Some(f.getName)
-                 }
-               } else {
-                 HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because it is not executable. Check permission if not expected behavior.")
-                 None
-               }
-           }
-         }.sorted // sort them alphanumericaly
-         Hooks(basePath, files)
-       } else {
-         HooksLogger.debug(s"Ignoring hook directory '${dir.getAbsolutePath}' because path does not exists")
-         // return an empty Hook
-         Hooks(basePath, List[String]())
-       }
-     }
-   }
+  /*
+   * Check for the existence of hook limit in the 1000 first chars of the file.
+   * This method is effectful, needs to be wrap in an IO.
+   */
+  def effectfulGetHookTimeout(hook: File): HookTimeout = {
+    def get(filename: String, lines: List[String], varName: String): Option[Duration] = {
+      val pattern = s""".*${varName}\\s*=\\s*(.+)""".r
+      val pf: PartialFunction[String, Duration] = ((line: String) => line match {
+        case pattern(timeout) =>
+          try {
+            Some(Duration.fromScala(scala.concurrent.duration.Duration(timeout)))
+          } catch {
+            case ex:NumberFormatException =>
+              HooksLogger.warn(s"Error: in '${filename}', can not parse ${varName} value as a duration. Expecting format: " +
+                               s"<length>\\s+[<short unit><long unit>], for ex: 1h, 3 minutes, etc: ${timeout}")
+              None
+          }
+        case _ => None
+      }).unlift
+
+      lines.collectFirst(pf)
+    }
+
+    val filename = hook.getAbsolutePath
+    val lines = {
+      try {
+        new String(better.files.File(filename).chars(StandardCharsets.UTF_8).take(1000).toArray).split("\n").toList
+      } catch {
+        case NonFatal(ex) => Nil // ignore.
+      }
+    }
+    HookTimeout(get(filename, lines, HOOK_WARN_TIMEOUT), get(filename, lines, HOOK_KILL_TIMEOUT))
+  }
+
+  def getHooksPure(basePath: String, ignoreSuffixes: List[String]): IOResult[Hooks] = {
+    IOResult.effect {
+      val dir = new File(basePath)
+      // Check that dir exists before looking in it
+      if (dir.exists) {
+        HooksLogger.debug(s"Looking for hooks in directory '${basePath}', ignoring files with suffix: '${ignoreSuffixes.mkString("','")}'")
+        // only keep executable files
+        val files = dir.listFiles().toList.flatMap { file =>
+          file match {
+            case f if (f.isDirectory) => None
+            case f =>
+              if(f.canExecute) {
+                val name = f.getName
+                //compare ignore case (that's why it's a regienMatches) extension and name
+                ignoreSuffixes.find(suffix => name.regionMatches(true, name.length - suffix.length, suffix, 0, suffix.length)) match {
+                  case Some(suffix) =>
+                    HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because suffix '${suffix}' is in the ignore list")
+                    None
+                  case None      =>
+                    // see if file has specific timeout,
+                    Some((f.getName, effectfulGetHookTimeout(f)))
+                }
+              } else {
+                HooksLogger.debug(s"Ignoring hook '${f.getAbsolutePath}' because it is not executable. Check permission if not expected behavior.")
+                None
+              }
+          }
+        }.sortBy(_._1) // sort them alphanumericaly
+        Hooks(basePath, files)
+      } else {
+        HooksLogger.debug(s"Ignoring hook directory '${dir.getAbsolutePath}' because path does not exists")
+        // return an empty Hook
+        Hooks(basePath, List[(String, HookTimeout)]())
+      }
+    }
+  }
 
 }

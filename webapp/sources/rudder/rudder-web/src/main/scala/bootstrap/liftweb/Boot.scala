@@ -154,7 +154,7 @@ object StaticResourceRewrite extends RestHelper {
         } yield {
           val contentType = URLConnection.guessContentTypeFromName(url.getFile) match {
             // if we don't know the content type, skip the header: most of the time,
-            // browsers can live whithout it, but can't with a bad value in it
+            // browsers can live without it, but can't with a bad value in it
             case null                        => Nil
             case x if(x.contains("unknown")) => Nil
             case x                           => ("Content-Type", x) :: Nil

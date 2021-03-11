@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Use 'HOOK_WARN_TIMEOUT' or 'HOOK_KILL_TIMEOUT' to specify a time after which a warning is emitted or the hook is interrupted.
+# For example, 'HOOK_WARN_TIMEOUT' = 1 second (without quote, without text on the line after duration) will emit a warning if
+# the hook takes more than one second to run.
+
 # Hooks parameter are passed by environment variable:
 #
 # - RUDDER_GENERATION_DATETIME       : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation start
