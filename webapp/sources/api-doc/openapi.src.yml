@@ -189,6 +189,8 @@ paths:
     $ref: paths/datasources/reload-node-id.yml
   "/nodes":
     $ref: paths/nodes/all.yml
+  "/nodes/applyPolicy":
+    $ref: paths/nodes/apply-policy.yml
   "/nodes/status":
     $ref: paths/nodes/status.yml
   "/nodes/pending":
@@ -197,8 +199,8 @@ paths:
     $ref: paths/nodes/id.yml
   "/nodes/pending/{nodeId}":
     $ref: paths/nodes/pending-id.yml
-  "/nodes/applyPolicy":
-    $ref: paths/nodes/apply-policy.yml
+  "/nodes/{nodeId}/inheritedProperties":
+    $ref: paths/nodes/inherited-properties.yml
   "/nodes/{nodeId}/applyPolicy":
     $ref: paths/nodes/apply-policy-id.yml
   "/techniques":
