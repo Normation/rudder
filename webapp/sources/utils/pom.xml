@@ -24,6 +24,18 @@ limitations under the License.
 
   <artifactId>utils</artifactId>
 
+   <description>
+     Some utilitary types and functions for rudder projet,
+     in particular its result type `IOResult`.
+  </description>
+
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
   <dependencies>
     <dependency>
       <groupId>commons-io</groupId>
