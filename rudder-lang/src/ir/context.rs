@@ -72,6 +72,7 @@ impl<'src> Type<'src> {
             Value::Integer(_, _) => Type::Integer,
             Value::Boolean(_, _) => Type::Boolean,
             Value::EnumExpression(_) => Type::Boolean,
+            Value::Variable(_) => Type::String, // default type, and in v1 variables should only hold strings. Might need to check type based on context later in v2
             Value::List(_) => Type::List,
             Value::Struct(s) => {
                 let spec = s

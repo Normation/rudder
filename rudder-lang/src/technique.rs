@@ -126,18 +126,18 @@ impl Technique {
 #[derive(Serialize, Deserialize)]
 pub struct TechniqueData {
     bundle_name: String,
-    description: String,
-    name: String,
     #[serde(
         serialize_with = "version_into_string",
         deserialize_with = "string_into_version"
     )] // >=6.1
     version: Version,
-    #[serde(rename = "parameter")]
-    interpolated_parameters: Vec<InterpolatedParameter>,
     #[serde(default = "default_category")] // >=6.2
     category: String,
+    description: String,
+    name: String,
     method_calls: Vec<MethodCall>,
+    #[serde(rename = "parameter")]
+    interpolated_parameters: Vec<InterpolatedParameter>,
     // does not appear in labs. maybe skip only if empty?
     #[serde(default)] // >=6.2
     resources: Vec<Resource>,
@@ -214,12 +214,12 @@ impl InterpolatedParameter {
 
 #[derive(Serialize, Deserialize)]
 pub struct MethodCall {
-    #[serde(default)]
-    parameters: Vec<Parameter>,
+    method_name: String,
     #[serde(rename = "class_context")]
     condition: String,
-    method_name: String,
-    component: Option<String>,
+    component: String,
+    #[serde(default)]
+    parameters: Vec<Parameter>,
 }
 impl MethodCall {
     fn to_rudderlang(&self, lib: &RudderlangLib) -> Result<String> {
@@ -263,21 +263,14 @@ impl MethodCall {
             .alias
             .map(|alias| format!("  @method_alias = \"{}\"\n", alias));
 
-        let formatted_component = match &self.component {
-            Some(component) => format!("@component = \"{}\"", component),
-            None => String::new(),
-        };
+        let formatted_component = format!("@component = \"{}\"", self.component);
 
         // make an exception for condition_from_* method & condition generation
         if (lib_method.resource.name == "condition" && lib_method.state.name.starts_with("from_")) {
-            let fmted_component = match &self.component {
-                Some(component) => format!("@component = \"{}\"", component),
-                None => String::new(),
-            };
             return Ok(format!(
                 "{}{}\n{}  let {} = {}_{}({})",
                 template_vars.join("\n  "),
-                fmted_component,
+                formatted_component,
                 formatted_alias_metadata.unwrap_or(String::new()),
                 match class_parameter.strip_suffix("_${report_data.canonified_directive_id}") {
                     Some(variable) => variable,
@@ -329,6 +322,20 @@ impl MethodCall {
             .collect::<Vec<&str>>();
         // sort parameters in lib order
         lib_params.iter().fold(Vec::new(), |mut vec, name| {
+
+            // EXCEPTION: split variable_string_escaped resource parameters that appear to be joined from technique editor side
+            if lib_method.resource.name == "variable" && lib_method.state.name == "string_escaped" {
+                if self.parameters.len() == 1 && self.parameters[0].name == "name" {
+                    let values: Vec<&str> = self.parameters[0].value.split(".").collect();
+                    if values.len() == 2 {
+                        return vec![
+                            Parameter::new("prefix", values[0]),
+                            Parameter::new("name", values[1]),
+                        ];
+                    }
+                }
+                panic!("variable_string_escaped method: expected a single parameter 'name' with a dot separated value");
+            }
             for parameter in self.parameters.clone() {
                 if &parameter.name == name {
                     vec.push(parameter);

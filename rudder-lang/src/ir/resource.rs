@@ -271,10 +271,8 @@ impl<'src> StateDef<'src> {
                 "Expected 'class_parameter_index' metadata to be a number for '{}' method",
                 method_name
             ))),
-            None => Err(Error::new(format!(
-                "Expected 'class_parameter_index' metadata for '{}' method",
-                method_name
-            ))),
+            // default, 0, ie resource parameter. Useful for rudderlang declarations that do not need class_parameters
+            None => Ok(0),
         }
     }
 
@@ -338,8 +336,10 @@ impl<'src> Parameter<'src> {
     }
 
     /// returns an error if the value has an incompatible type
+    // TODO handle variables
     pub fn value_match(&self, param_ref: &Value) -> Result<()> {
-        if self.type_ != Type::from_value(param_ref) {
+        let param_type = Type::from_value(param_ref);
+        if self.type_ != param_type {
             fail!(
                 self.name,
                 "Parameter {} is of type {:?}",
@@ -366,7 +366,7 @@ pub struct StateDeclaration<'src> {
 
 /// A single statement within a state definition
 // TODO error reporting
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Statement<'src> {
     // TODO should we split variable definition and enum definition ? this would probably help generators

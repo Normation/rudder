@@ -11,7 +11,10 @@ use crate::{
         pascal_case, Call, Function, Method, Parameter, ParameterType, Parameters, Policy,
     },
     generator::Format,
-    ir::{context::Type, enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
+    ir::{
+        context::Type, enums::EnumExpressionPart, ir2::IR2, resource::*, value::*,
+        variable::VariableDef,
+    },
     parser::*,
     technique::fetch_method_parameters,
 };
@@ -78,29 +81,6 @@ impl DSC {
     fn reset_context(&mut self) {
         self.var_prefixes = HashMap::new();
         self.return_condition = None;
-    }
-
-    fn parameter_to_dsc(&self, param: &Value, param_name: &str) -> Result<String> {
-        Ok(match param {
-            Value::String(s) => {
-                // TODO integrate name to parameters
-                let param_value = s.format(
-                    |x: &str| {
-                        x.replace("\\", "\\\\") // backslash escape
-                            .replace("\"", "\\\"") // quote escape
-                            .replace("$", "${const.dollar}")
-                    }, // dollar escape
-                    |y: &str| format!("${{{}}}", y), // variable inclusion
-                );
-                format!(r#"-{} "{}""#, param_name, param_value)
-            }
-            Value::Float(_, _) => unimplemented!(),
-            Value::Integer(_, _) => unimplemented!(),
-            Value::Boolean(_, _) => unimplemented!(),
-            Value::EnumExpression(_e) => "".into(), // TODO
-            Value::List(_) => unimplemented!(),
-            Value::Struct(_) => unimplemented!(),
-        })
     }
 
     fn format_case_expr(&mut self, gc: &IR2, case: &EnumExpressionPart) -> Result<String> {
@@ -173,14 +153,30 @@ impl DSC {
     fn format_statement(
         &mut self,
         gc: &IR2,
+        res_def: &ResourceDef,
+        state_def: &StateDef,
         st: &Statement,
         condition_content: String,
     ) -> Result<Vec<Call>> {
+        // get variables to try to get the proper parameter value
+        let mut variables: HashMap<&Token, &VariableDef> = HashMap::new();
+        for st_from_list in &state_def.statements {
+            // variables declared after the current statemnt are not defined at this point
+            if st_from_list == st {
+                break;
+            } else if let Statement::VariableDefinition(v) = st_from_list {
+                variables.insert(&v.name, v);
+            }
+        }
+        variables.extend(res_def.variable_definitions.get());
+        variables.extend(&gc.variable_definitions);
+
         match st {
             Statement::ConditionVariableDefinition(var) => {
-                let inner_state_def = gc.get_state_def(&var.resource, &var.state)?;
+                let method_name = &format!("{}_{}", var.resource.fragment(), var.state.fragment());
                 let state_decl = var.to_method();
-                let method_name = &format!("{}-{}", var.resource.fragment(), var.state.fragment());
+                let inner_state_def = gc.get_state_def(&state_decl.resource, &state_decl.state)?;
+
                 let mut parameters =
                     fetch_method_parameters(gc, &state_decl, |name, value, parameter_metadatas| {
                         let content_type = parameter_metadatas
@@ -189,21 +185,29 @@ impl DSC {
                             .and_then(|type_str| ParameterType::from_str(type_str).ok())
                             .unwrap_or(ParameterType::default());
                         let string_value = &self
-                            .value_to_string(value, false)
+                            .value_to_string(value, &variables, false)
                             .expect("Value is not formatted correctly");
                         Parameter::method_parameter(name, string_value, content_type)
                     });
-                let state_def = gc.get_state_def(&var.resource, &var.state)?;
-                let class_param_index = state_def.class_parameter_index(method_name)?;
+
+                let class_param_index = inner_state_def.class_parameter_index(method_name)?;
                 if parameters.len() < class_param_index {
                     return Err(Error::new(format!(
                         "Class param index is out of bounds for {}",
                         method_name
                     )));
                 }
-                // tmp -1, index of lib generator is off 1
+
+                // EXCEPTION: reunite variable_string_escaped resource parameters that appear to be joined from cfengine side
+                if res_def.name == "variable" && state_def.name == "string_escaped" {
+                    parameters[0].value =
+                        format!("{}.{}", parameters[0].value, parameters[1].value);
+                    parameters.remove(1);
+                }
+
                 let class_param = parameters.remove(class_param_index);
-                let is_dsc_supported = match state_def.supported_targets(method_name) {
+
+                let is_dsc_supported = match inner_state_def.supported_targets(method_name) {
                     Ok(targets) => targets.contains(&"dsc".to_owned()),
                     Err(_) => true,
                 };
@@ -229,7 +233,7 @@ impl DSC {
             }
             Statement::StateDeclaration(sd) => {
                 let inner_state_def = gc.get_state_def(&sd.resource, &sd.state)?;
-                let method_name = &format!("{}-{}", sd.resource.fragment(), sd.state.fragment());
+                let method_name = &format!("{}_{}", sd.resource.fragment(), sd.state.fragment());
 
                 if let Some(var) = sd.outcome {
                     self.new_var(&var);
@@ -243,21 +247,29 @@ impl DSC {
                             .and_then(|type_str| ParameterType::from_str(type_str).ok())
                             .unwrap_or(ParameterType::default());
                         let string_value = &self
-                            .value_to_string(value, false)
+                            .value_to_string(value, &variables, false)
                             .expect("Value is not formatted correctly");
                         Parameter::method_parameter(name, string_value, content_type)
                     });
-                let state_def = gc.get_state_def(&sd.resource, &sd.state)?;
-                let class_param_index = state_def.class_parameter_index(method_name)?;
+                let class_param_index = inner_state_def.class_parameter_index(method_name)?;
                 if parameters.len() < class_param_index {
                     return Err(Error::new(format!(
                         "Class param index is out of bounds for {}",
                         method_name
                     )));
                 }
+
+                // EXCEPTION: reunite variable_string_escaped resource parameters that appear to be joined from cfengine side
+                if method_name == "variable_string_escaped" {
+                    let prefix = parameters[0].value.strip_suffix("\"").unwrap(); // parameters are quoted so unwrap will work without issue
+                    let name = parameters[1].value.strip_prefix("\"").unwrap(); // parameters are quoted so unwrap will work without issue
+                    parameters[0].value = format!("{}.{}", prefix, name);
+                    parameters.remove(1);
+                }
+
                 let class_param = parameters.remove(class_param_index);
 
-                let is_dsc_supported = match state_def.supported_targets(method_name) {
+                let is_dsc_supported = match inner_state_def.supported_targets(method_name) {
                     Ok(targets) => targets.contains(&"dsc".to_owned()),
                     Err(_) => true,
                 };
@@ -295,7 +307,13 @@ impl DSC {
                 for (case, vst) in vec {
                     let case_exp = self.format_case_expr(gc, &case.expression)?;
                     for st in vst {
-                        res.append(&mut self.format_statement(gc, st, case_exp.clone())?);
+                        res.append(&mut self.format_statement(
+                            gc,
+                            res_def,
+                            state_def,
+                            st,
+                            case_exp.clone(),
+                        )?);
                     }
                 }
                 Ok(res)
@@ -303,13 +321,12 @@ impl DSC {
             Statement::Fail(msg) => Ok(vec![Call::abort(
                 Parameters::new()
                     .message("policy_fail")
-                    .message(&self.value_to_string(msg, true)?), //self.parameter_to_dsc(msg, "Fail")?,
+                    .message(&self.value_to_string(msg, &variables, true)?),
             )]),
             Statement::LogDebug(msg) => Ok(vec![Call::log(
                 Parameters::new()
                     .message("log_debug")
-                    .message(&self.value_to_string(msg, true)?)
-                    //self.parameter_to_dsc(msg, "Log")?,
+                    .message(&self.value_to_string(msg, &variables, true)?)
                     .message("None")
                     // TODO: unique class prefix
                     .message("log_debug"),
@@ -317,7 +334,7 @@ impl DSC {
             Statement::LogInfo(msg) => Ok(vec![Call::log(
                 Parameters::new()
                     .message("log_info")
-                    .message(&self.value_to_string(msg, true)?)
+                    .message(&self.value_to_string(msg, &variables, true)?)
                     .message("None")
                     // TODO: unique class prefix
                     .message("log_info"),
@@ -325,7 +342,7 @@ impl DSC {
             Statement::LogWarn(msg) => Ok(vec![Call::log(
                 Parameters::new()
                     .message("log_warn")
-                    .message(&self.value_to_string(msg, true)?)
+                    .message(&self.value_to_string(msg, &variables, true)?)
                     .message("None")
                     // TODO: unique class prefix
                     .message("log_warn"),
@@ -349,26 +366,74 @@ impl DSC {
         }
     }
 
-    fn value_to_string(&self, value: &Value, string_delim: bool) -> Result<String> {
+    fn value_to_string(
+        &self,
+        value: &Value,
+        variables: &HashMap<&Token, &VariableDef>,
+        string_delim: bool,
+    ) -> Result<String> {
         let delim = if string_delim { "\"" } else { "" };
         Ok(match value {
-            Value::String(s) => format!("{}{}{}", delim, String::try_from(s)?, delim),
+            Value::String(s) => format!(
+                "{}{}{}",
+                delim,
+                s.data
+                    .iter()
+                    .map(|t| match t {
+                        PInterpolatedElement::Static(s) => {
+                            // replace ${const.xx}
+                            s.replace("$", "${const.dollar}")
+                                .replace("\\", "\\\\") // backslash escape
+                                .replace("\"", "\\\"") // quote escape
+                                .replace("\\n", "${const.n}")
+                                .replace("\\r", "${const.r}")
+                                .replace("\\t", "${const.t}")
+                        }
+                        PInterpolatedElement::Variable(v) => {
+                            // translate variable name
+                            format!("${{{}}}", v)
+                        }
+                    })
+                    .collect::<Vec<String>>()
+                    .concat(),
+                delim
+            ),
             Value::Float(_, n) => format!("{}", n),
             Value::Integer(_, n) => format!("{}", n),
             Value::Boolean(_, b) => format!("{}", b),
             Value::EnumExpression(_) => unimplemented!(),
             Value::List(l) => format!(
                 "[ {} ]",
-                map_strings_results(l.iter(), |x| self.value_to_string(x, true), ",")?
+                map_strings_results(l.iter(), |x| self.value_to_string(x, variables, true), ",")?
             ),
             Value::Struct(s) => format!(
                 "{{ {} }}",
                 map_strings_results(
                     s.iter(),
-                    |(x, y)| Ok(format!(r#""{}":{}"#, x, self.value_to_string(y, true)?)),
+                    |(x, y)| Ok(format!(
+                        r#""{}":{}"#,
+                        x,
+                        self.value_to_string(y, variables, true)?
+                    )),
                     ","
                 )?
             ),
+            Value::Variable(v) => {
+                if let Some(var) = variables.get(v).and_then(|var_def| {
+                    var_def
+                        .value
+                        .first_value()
+                        .and_then(|v| self.value_to_string(v, variables, string_delim))
+                        .ok()
+                }) {
+                    return Ok(var);
+                }
+                warn!(
+                    "The variable {} isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated",
+                    v.fragment()
+                );
+                format!("{}${{{}}}{}", delim, v.fragment(), delim)
+            }
         })
     }
 
@@ -450,11 +515,9 @@ impl Generator for DSC {
                         Call::variable("$ResourcesDir", "$PSScriptRoot + \"\\resources\""),
                     ]);
 
-                for methods in state
-                    .statements
-                    .iter()
-                    .flat_map(|statement| self.format_statement(gc, statement, "any".to_string()))
-                {
+                for methods in state.statements.iter().flat_map(|statement| {
+                    self.format_statement(gc, resource, state, statement, "any".to_string())
+                }) {
                     function.push_scope(methods);
                 }
 

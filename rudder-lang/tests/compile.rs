@@ -273,18 +273,26 @@ Configure_NTP state technique() {
 }"#; "s_state_expr_nested")]
 // ======= VARIABLE DEFINITIONS ======= (754)
 #[test_case("s_variabledef_string", r#"@format=0
-let varname = "value"
+resource x() {
+    let varname = "value"
+}
 "#; "s_variabledef_string")]
 #[test_case("s_variabledef_int", r#"@format=0
-let varname = 1
+resource x() {
+    let varname = 1
+}
 "#; "s_variabledef_int")]
 #[test_case("s_variabledef_list", r#"@format=0
-let varname = [ [1, 2, 3], [1], [] ]
+resource x() {
+    let varname = [ [1, 2, 3], [1], [] ]
+}
 "#; "s_variabledef_list")]
 #[test_case("s_variabledef_struct", r#"@format=0
-let varname = {
-    "key1": "value1",
-    "key2": "value2",
+resource x() {
+    let varname = {
+        "key1": "value1",
+        "key2": "value2",
+    }
 }
 "#; "s_variabledef_struct")]
 // ======= ALIAS DEFINITIONS ======= (949)

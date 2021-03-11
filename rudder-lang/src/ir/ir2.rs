@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use super::{context::*, enums::EnumList, ir1::IR1, resource::*, value::*};
+use super::{context::*, enums::EnumList, ir1::IR1, resource::*, value::*, variable::VariableDef};
 use crate::{error::*, parser::*};
 use std::{
     cmp::Ordering,
@@ -27,7 +27,7 @@ pub struct IR2<'src> {
     // the context is used for variable lookup whereas variable_definitions is used for code generation
     pub context: Rc<VarContext<'src>>,
     pub enum_list: EnumList<'src>,
-    pub variable_definitions: HashMap<Token<'src>, ComplexValue<'src>>,
+    pub variable_definitions: HashMap<Token<'src>, VariableDef<'src>>,
     pub parameter_defaults:
         HashMap<(Token<'src>, Option<Token<'src>>), Vec<Option<Constant<'src>>>>, // also used as parameter list since that's all we have
     pub resource_list: HashSet<Token<'src>>,

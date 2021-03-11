@@ -7,7 +7,7 @@ use crate::{
     error::*,
     generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise, MAX_INT, MIN_INT},
     generator::Format,
-    ir::{enums::EnumExpressionPart, ir2::IR2, resource::*, value::*},
+    ir::{enums::EnumExpressionPart, ir2::IR2, resource::*, value::*, variable::VariableDef},
     parser::*,
     // generator::cfengine::syntax::{quoted, Bundle, Method, Policy, Promise},
     // ir::{enums::EnumExpressionPart, resource::*, value::*, *},
@@ -137,9 +137,24 @@ impl CFEngine {
     fn format_statement(
         &mut self,
         gc: &IR2,
+        res_def: &ResourceDef,
+        state_def: &StateDef,
         st: &Statement,
         in_class: String,
     ) -> Result<Vec<Promise>> {
+        // get variables to try to get the proper parameter value
+        let mut variables: HashMap<&Token, &VariableDef> = HashMap::new();
+        for st_from_list in &state_def.statements {
+            // variables declared after the current statemnt are not defined at this point
+            if st_from_list == st {
+                break;
+            } else if let Statement::VariableDefinition(v) = st_from_list {
+                variables.insert(&v.name, v);
+            }
+        }
+        variables.extend(res_def.variable_definitions.get());
+        variables.extend(&gc.variable_definitions);
+
         match st {
             Statement::ConditionVariableDefinition(var) => {
                 let inner_state_def = gc.get_state_def(&var.resource, &var.state)?;
@@ -157,7 +172,7 @@ impl CFEngine {
                 // TODO setup mode and output var by calling ... bundle
                 let parameters =
                     fetch_method_parameters(gc, &var.to_method(), |_name, value, _metadatas| {
-                        self.value_to_string(value, true)
+                        self.value_to_string(value, &variables, true)
                     })
                     .into_iter()
                     .collect::<Result<Vec<String>>>()?;
@@ -170,7 +185,7 @@ impl CFEngine {
                 let class_param = var
                     .resource_params
                     .get(class_param_index)
-                    .and_then(|p| self.value_to_string(&p, false).ok())
+                    .and_then(|p| self.value_to_string(&p, &variables, false).ok())
                     .unwrap_or_else(|| "".to_string());
 
                 Ok(Method::new()
@@ -205,10 +220,8 @@ impl CFEngine {
                     .resource_params
                     .iter()
                     .chain(sd.state_params.iter())
-                    .map(|x| self.value_to_string(x, true))
+                    .map(|x| self.value_to_string(x, &variables, true))
                     .collect::<Result<Vec<String>>>()?;
-
-                let state_def = gc.get_state_def(&sd.resource, &sd.state)?;
 
                 let is_cf_supported = match inner_state_def.supported_targets(method_name) {
                     Ok(targets) => targets.contains(&"cf".to_owned()),
@@ -217,7 +230,7 @@ impl CFEngine {
                 let class_param = match sd
                     .resource_params
                     .get(inner_state_def.class_parameter_index(method_name)?)
-                    .and_then(|p| self.value_to_string(&p, false).ok())
+                    .and_then(|p| self.value_to_string(&p, &variables, false).ok())
                 {
                     Some(s) => s,
                     None => return Err(Error::new("Expected a component metadata".to_owned())),
@@ -247,7 +260,13 @@ impl CFEngine {
                 for (case, vst) in vec {
                     let case_exp = self.format_case_expr(gc, &case.expression)?;
                     for st in vst {
-                        res.append(&mut self.format_statement(gc, st, case_exp.clone())?);
+                        res.append(&mut self.format_statement(
+                            gc,
+                            res_def,
+                            state_def,
+                            st,
+                            case_exp.clone(),
+                        )?);
                     }
                 }
                 Ok(res)
@@ -255,14 +274,17 @@ impl CFEngine {
             Statement::Fail(msg) => Ok(vec![Promise::usebundle(
                 "_abort",
                 None,
-                vec![quoted("policy_fail"), self.value_to_string(msg, true)?],
+                vec![
+                    quoted("policy_fail"),
+                    self.value_to_string(msg, &variables, true)?,
+                ],
             )]),
             Statement::LogDebug(msg) => Ok(vec![Promise::usebundle(
                 "log_rudder_mode",
                 None,
                 vec![
                     quoted("log_debug"),
-                    self.value_to_string(msg, true)?,
+                    self.value_to_string(msg, &variables, true)?,
                     quoted("None"),
                     // TODO: unique class prefix
                     quoted("log_debug"),
@@ -273,7 +295,7 @@ impl CFEngine {
                 None,
                 vec![
                     quoted("log_info"),
-                    self.value_to_string(msg, true)?,
+                    self.value_to_string(msg, &variables, true)?,
                     quoted("None"),
                     // TODO: unique class prefix
                     quoted("log_info"),
@@ -284,7 +306,7 @@ impl CFEngine {
                 None,
                 vec![
                     quoted("log_warn"),
-                    self.value_to_string(msg, true)?,
+                    self.value_to_string(msg, &variables, true)?,
                     quoted("None"),
                     // TODO: unique class prefix
                     quoted("log_warn"),
@@ -310,7 +332,12 @@ impl CFEngine {
         }
     }
 
-    fn value_to_string(&self, value: &Value, string_delim: bool) -> Result<String> {
+    fn value_to_string(
+        &self,
+        value: &Value,
+        variables: &HashMap<&Token, &VariableDef>,
+        string_delim: bool,
+    ) -> Result<String> {
         let delim = if string_delim { "\"" } else { "" };
         Ok(match value {
             Value::String(s) => format!(
@@ -337,28 +364,50 @@ impl CFEngine {
                     .concat(),
                 delim
             ),
-            Value::Float(_, n) => format!("{}", n),
+            Value::Float(_, n) => format!("{}{}{}", delim, n, delim),
             Value::Integer(t, n) => {
                 if *n >= MIN_INT && *n <= MAX_INT {
-                    format!("{}", n)
+                    format!("{}{}{}", delim, n, delim)
                 } else {
                     return Err(err!(t, "Integer overflow"));
                 }
             }
-            Value::Boolean(_, b) => format!("{}", b),
+            Value::Boolean(_, b) => format!("{}{}{}", delim, b, delim),
             Value::EnumExpression(_e) => unimplemented!(),
             Value::List(l) => format!(
                 "[ {} ]",
-                map_strings_results(l.iter(), |x| self.value_to_string(x, true), ",")?
+                map_strings_results(l.iter(), |x| self.value_to_string(x, variables, true), ",")?
             ),
             Value::Struct(s) => format!(
                 "{{ {} }}",
                 map_strings_results(
                     s.iter(),
-                    |(x, y)| Ok(format!(r#""{}":{}"#, x, self.value_to_string(y, true)?)),
+                    |(x, y)| Ok(format!(
+                        r#"{}{}{}:{}"#,
+                        delim,
+                        x,
+                        delim,
+                        self.value_to_string(y, variables, true)?
+                    )),
                     ","
                 )?
             ),
+            Value::Variable(v) => {
+                if let Some(var) = variables.get(v).and_then(|var_def| {
+                    var_def
+                        .value
+                        .first_value()
+                        .and_then(|v| self.value_to_string(v, variables, string_delim))
+                        .ok()
+                }) {
+                    return Ok(var);
+                }
+                warn!(
+                    "The variable {} isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated",
+                    v.fragment()
+                );
+                format!("{}${{{}}}{}", delim, v.fragment(), delim)
+            }
         })
     }
 }
@@ -408,12 +457,13 @@ impl Generator for CFEngine {
                         ),
                     ]);
 
-                for methods in state
-                    .statements
-                    .iter()
-                    .flat_map(|statement| self.format_statement(gc, statement, "any".to_string()))
-                {
-                    bundle.add_promise_group(methods);
+                for res in state.statements.iter().map(|statement| {
+                    self.format_statement(gc, resource, state, statement, "any".to_string())
+                }) {
+                    match res {
+                        Ok(methods) => bundle.add_promise_group(methods),
+                        Err(e) => return Err(e),
+                    }
                 }
 
                 let extract = |name: &str| {
@@ -425,7 +475,7 @@ impl Generator for CFEngine {
                             TomlValue::String(s) => Some(s.to_owned()),
                             _ => None,
                         })
-                        .unwrap_or_else(|| "unknown".to_string())
+                        .unwrap_or_else(|| "unknown".to_string()) // ERROR in this case
                 };
 
                 if policy_metadata {
@@ -433,6 +483,7 @@ impl Generator for CFEngine {
                         .name(extract("name"))
                         .version(extract("version"))
                         .description(extract("description"))
+                        // add parameters
                         .bundle(bundle);
                     files.push(CommandResult::new(
                         Format::CFEngine,

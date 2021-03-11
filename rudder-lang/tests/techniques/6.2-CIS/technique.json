@@ -11,7 +11,7 @@
             {
                 "method_name": "condition_from_variable_existence",
                 "class_context": "any",
-                "component": "condition_from_variable_existence",
+                "component": "Condition from variable existence",
                 "parameters": [
                     {
                         "name": "condition",
@@ -26,7 +26,7 @@
             {
                 "method_name": "kernel_module_configuration",
                 "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false)",
-                "component": "kernel_module_configuration",
+                "component": "Kernel module configuration",
                 "parameters": [
                     {
                         "name": "name",
@@ -41,7 +41,7 @@
             {
                 "method_name": "kernel_module_not_loaded",
                 "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false)",
-                "component": "kernel_module_not_loaded",
+                "component": "Kernel module not loaded",
                 "parameters": [
                     {
                         "name": "name",

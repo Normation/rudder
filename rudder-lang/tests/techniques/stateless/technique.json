@@ -14,7 +14,7 @@
                 "component": "Variable string escaped",
                 "parameters": [
                     {
-                        "name": "variable_name",
+                        "name": "name",
                         "value": "pref.name"
                     }
                 ]
@@ -120,8 +120,8 @@
                 "component": "Variable string escaped",
                 "parameters": [
                     {
-                        "name": "variable_name",
-                        "value": "escaped////var"
+                        "name": "name",
+                        "value": "escaped.var"
                     }
                 ]
             }

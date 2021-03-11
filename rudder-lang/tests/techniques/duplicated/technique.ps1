@@ -11,10 +11,9 @@
   $local_classes = New-ClassContext
   $resources_dir = $PSScriptRoot + "\resources"
 
-  _rudder_common_report_na -componentName "Command execution" -componentKey "/usr/sbin/usermod -a -G vboxusers nwcyrille" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
-
-  _rudder_common_report_na -componentName "Command execution" -componentKey "/usr/sbin/usermod -a -G vboxusers nweric" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
-
-  _rudder_common_report_na -componentName "Command execution" -componentKey "/usr/sbin/usermod -a -G vboxusers nwantoine" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
-
+  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nwcyrille" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+  
+  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nweric" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+  
+  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nwantoine" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
 }
