@@ -42,10 +42,16 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <version>7.0.0~alpha1-SNAPSHOT</version>
   </parent>
 
-
   <description>
     Parent pom module for rudder project
   </description>
+
+  <licenses>
+    <license>
+      <name> GPL-3.0-only</name>
+      <url>https://www.gnu.org/licenses/gpl-3.0.txt</url>
+    </license>
+  </licenses>
 
   <modules>
     <module>rudder-templates</module>
