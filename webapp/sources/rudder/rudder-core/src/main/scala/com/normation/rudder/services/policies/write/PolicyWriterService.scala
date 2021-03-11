@@ -165,7 +165,9 @@ class PolicyWriterServiceImpl(
   val clock = ZioRuntime.environment
   val timingLogger = PolicyGenerationLoggerPure.timing
 
-  val hookWarnDurationMillis = (60*1000).millis
+  val hookGlobalWarnTimeout = 60.seconds // max time before warning for executing all hooks
+  val hookUnitWarnTimeout   = 2.seconds  // max time before warning for executing each hook
+  val hookUnitKillTimeout   = 20.seconds // max time before killing for executing one hook
 
   val newPostfix = ".new"
   val backupPostfix = ".bkp"
@@ -463,7 +465,9 @@ class PolicyWriterServiceImpl(
                                                      , ("RUDDER_NEXT_POLICIES_DIRECTORY", agentNodeConfig.paths.newFolder)
                                                    )
                                                    , systemEnv
-                                                   , hookWarnDurationMillis // warn if a hook took more than a minute
+                                                   , hookGlobalWarnTimeout // warn if all hooks took more than a minute
+                                                   , hookUnitWarnTimeout
+                                                   , hookUnitKillTimeout
                                                  )
                                    timeHooks1 <- currentTimeMillis
                                    _          <- timingLogger.hooks.trace(s"Run post-generation pre-move hooks for node '${nodeId}' in ${timeHooks1 - timeHooks0} ms")
@@ -497,7 +501,9 @@ class PolicyWriterServiceImpl(
                                                       , ("RUDDER_POLICIES_DIRECTORY", agentNodeConfig.paths.baseFolder)
                                                      )
                                                    , systemEnv
-                                                   , hookWarnDurationMillis // warn if a hook took more than a minute
+                                                   , hookGlobalWarnTimeout // warn if a hook took more than a minute
+                                                   , hookUnitWarnTimeout
+                                                   , hookUnitKillTimeout
                                                  )
                                    timeHooks1 <- currentTimeMillis
                                    _          <- timingLogger.hooks.trace(s"Run post-generation post-move hooks for node '${nodeId}' in ${timeHooks1 - timeHooks0} ms")

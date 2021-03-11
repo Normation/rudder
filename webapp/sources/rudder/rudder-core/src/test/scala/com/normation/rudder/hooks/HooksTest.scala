@@ -65,14 +65,14 @@ class HooksTest() extends Specification with AfterAll {
   val tmp = File(s"/tmp/rudder-test-hook/${DateTime.now.toString(ISODateTimeFormat.dateTime())}")
   tmp.createDirectoryIfNotExists(true)
 
-  List("error10.sh", "success.sh", "warning50.sh", "echoCODE.sh", "timeout.sh").foreach {i =>
+  List("error10.sh", "success.sh", "warning50.sh", "echoCODE.sh", "timeout.sh", "timeout_ok.sh").foreach {i =>
     val f = File(tmp, i)
     f.write(Resource.getAsString(s"hooks.d/test/$i"))
     f.setPermissions(PosixFilePermissions.fromString("rwxr--r--").asScala.toSet)
   }
 
   def runHooks(hooks: List[String], params: List[HookEnvPair]) = {
-    RunHooks.syncRun(Hooks(tmp.pathAsString, hooks), HookEnvPairs(params), HookEnvPairs(Nil), 1.second, 1.second)
+    RunHooks.syncRun(Hooks(tmp.pathAsString, hooks.map(f => (f, HookTimeout(None, None)))), HookEnvPairs(params), HookEnvPairs(Nil), 1.second, 1.second, 500.millis)
   }
 
   override def afterAll(): Unit = {
@@ -106,9 +106,17 @@ class HooksTest() extends Specification with AfterAll {
     res must beEqualTo(Ok("",""))
   }
 
-  "A hook should be killed after time-out duraction is reached and message contains what script failed" >> {
+  "A hook should be killed after time-out duration is reached and message contains what script failed" >> {
     val res = runHooks(List("timeout.sh"), HookEnvPair("CODE", "0") :: Nil)
     res must beLike { case SystemError(msg) if(msg.contains("/timeout.sh") && msg.contains("timed out after")) => ok }
+  }
+
+  "A hook should warn after time-out duration is reached" >> {
+    val name = "timeout_ok.sh"
+    val timeout = RunHooks.effectfulGetHookTimeout(File(tmp.pathAsString, name).toJava)
+    val res = RunHooks.syncRun(Hooks(tmp.pathAsString, List((name, timeout))), HookEnvPairs(HookEnvPair("CODE", "0") :: Nil), HookEnvPairs(Nil), 1.second, 1.second, 500.millis)
+
+    (timeout must beEqualTo(HookTimeout(Some(6.seconds), Some(10.seconds)))) and (res must beEqualTo(Ok("","")))
   }
 
 // This one is more for testing performance. I don't want to make it a test, because in
