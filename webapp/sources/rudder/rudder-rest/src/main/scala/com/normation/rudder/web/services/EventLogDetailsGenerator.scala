@@ -45,6 +45,7 @@ import com.normation.rudder.batch.{ErrorStatus, SuccessStatus}
 import com.normation.rudder.domain.eventlog.{WorkflowStepChanged, _}
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.secrets._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.workflows.{ChangeRequestId, WorkflowStepChange}
@@ -137,6 +138,11 @@ class EventLogDetailsGenerator(
       Text(s"Global Parameter ${name} ${actionName}")
     }
 
+    def secretDesc(x:EventLog, actionName: NodeSeq) = {
+      val name = (x.details \ "secret" \ "name").text
+      Text(s"Secret ${name} ${actionName}")
+    }
+
     def changeRequestDesc(x:EventLog, actionName: NodeSeq) = {
       val name = (x.details \ "changeRequest" \ "name").text
       val idNode = (x.details \ "changeRequest" \ "id").text.trim
@@ -218,6 +224,9 @@ class EventLogDetailsGenerator(
       case x:AddGlobalParameter            => globalParamDesc(x, Text(" added"))
       case x:ModifyGlobalParameter         => globalParamDesc(x, Text(" modified"))
       case x:DeleteGlobalParameter         => globalParamDesc(x, Text(" deleted"))
+      case x:AddSecret                     => secretDesc(x, Text(" added"))
+      case x:ModifySecret                  => secretDesc(x, Text(" modified"))
+      case x:DeleteSecret                  => secretDesc(x, Text(" deleted"))
       case x:CreateAPIAccountEventLog      => apiAccountDesc(x, Text(" added"))
       case x:ModifyAPIAccountEventLog      => apiAccountDesc(x, Text(" modified"))
       case x:DeleteAPIAccountEventLog      => apiAccountDesc(x, Text(" deleted"))
@@ -786,6 +795,57 @@ class EventLogDetailsGenerator(
           }
           }
 
+        // Secret
+        case x:AddSecret =>
+          "*" #> { logDetailsService.getSecretAddDetails(x.details) match {
+            case Full(secretDiff) =>
+              <div class="evloglmargin">
+
+                { secretDetails(secretXML, secretDiff.secret)}
+                { reasonHtml }
+                { xmlParameters(event.id) }
+              </div>
+            case e:EmptyBox => logger.warn(e)
+              errorMessage(e)
+          }
+          }
+
+        case x:DeleteSecret =>
+          "*" #> { logDetailsService.getSecretDeleteDetails(x.details) match {
+            case Full(secretDiff) =>
+              <div class="evloglmargin">
+
+                { secretDetails(secretXML, secretDiff.secret)}
+                { reasonHtml }
+                { xmlParameters(event.id) }
+              </div>
+            case e:EmptyBox => logger.warn(e)
+              errorMessage(e)
+          }
+          }
+
+        case mod:ModifySecret =>
+          "*" #> { logDetailsService.getSecretModifyDetails(mod.details) match {
+            case Full(modDiff) =>
+              <div class="evloglmargin">
+
+                <h4>Secret overview:</h4>
+                <ul class="evlogviewpad">
+                  <li><b>Secret name:</b> { modDiff.name }</li>
+                </ul>
+                {(
+                "#name"  #> modDiff.name &
+                  "#value" #> mapSimpleDiff(modDiff.modValue)
+                )(secretModDetailsXML)
+                }
+                { reasonHtml }
+                { xmlParameters(event.id) }
+              </div>
+            case e:EmptyBox => logger.warn(e)
+              errorMessage(e)
+          }
+          }
+
         case x:CreateAPIAccountEventLog =>
           "*" #> { logDetailsService.getApiAccountAddDetails(x.details) match {
             case Full(apiAccountDiff) =>
@@ -1126,6 +1186,13 @@ class EventLogDetailsGenerator(
       "#description" #> globalParameter.description
     )(xml)
 
+  private[this] def secretDetails(xml: NodeSeq, secret: Secret) = (
+    "#name" #> secret.name &
+      "#value" #> secret.value
+//      &
+//      "#description" #> globalParameter.description
+    )(xml)
+
   private[this] def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccount) = (
     "#id" #> apiAccount.id.value &
       "#name" #> apiAccount.name.value &
@@ -1256,6 +1323,15 @@ class EventLogDetailsGenerator(
       </ul>
     </div>
 
+  private[this] val secretXML =
+    <div>
+      <h4>Secret overview:</h4>
+      <ul class="evlogviewpad">
+        <li><b>Name:&nbsp;</b><value id="name"/></li>
+        <li><b>Value:&nbsp;</b><value id="value"/></li>
+      </ul>
+    </div>
+
   private[this] val apiAccountDetailsXML =
     <div>
       <h4>API account overview:</h4>
@@ -1346,6 +1422,12 @@ class EventLogDetailsGenerator(
       {liModDetailsXML("value", "Value")}
       {liModDetailsXML("description", "Description")}
       {liModDetailsXML("overridable", "Overridable")}
+    </xml:group>
+
+  private[this] val secretModDetailsXML =
+    <xml:group>
+      {liModDetailsXML("name", "Name")}
+      {liModDetailsXML("value", "Value")}
     </xml:group>
 
 

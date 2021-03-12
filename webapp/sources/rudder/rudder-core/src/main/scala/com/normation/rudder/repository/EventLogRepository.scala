@@ -66,6 +66,7 @@ import com.normation.rudder.domain.policies.DeleteTechniqueDiff
 import com.normation.rudder.domain.policies.ModifyDirectiveDiff
 import com.normation.rudder.domain.policies.ModifyRuleDiff
 import com.normation.rudder.domain.policies.ModifyTechniqueDiff
+import com.normation.rudder.domain.secrets.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.eventlog.EventLogFactory
@@ -278,6 +279,53 @@ trait EventLogRepository {
       , eventLogFactory.getModifyGlobalParameterFromDiff(
           principal = principal
         , modifyDiff = modifyDiff
+        , reason = reason
+      )
+    )
+  }
+
+  def saveModifySecret(
+      modId: ModificationId
+    , principal: EventActor
+    , oldSecret: Secret
+    , newSecret: Secret
+    , reason:Option[String]) = {
+    saveEventLog(
+      modId
+      , eventLogFactory.getModifySecretFromDiff(
+        principal = principal
+        , oldSecret = oldSecret
+        , newSecret = newSecret
+        , reason = reason
+      )
+    )
+  }
+
+  def saveAddSecret(
+    modId: ModificationId
+    , principal: EventActor
+    , secret   : Secret
+    , reason:Option[String]) = {
+    saveEventLog(
+      modId
+      , eventLogFactory.getAddSecretFromDiff(
+        principal = principal
+        , secret  = secret
+        , reason  = reason
+      )
+    )
+  }
+
+  def saveDeleteSecret(
+    modId: ModificationId
+    , principal: EventActor
+    , secret: Secret
+    , reason:Option[String]) = {
+    saveEventLog(
+      modId
+      , eventLogFactory.getDeleteSecretFromDiff(
+        principal = principal
+        , secret = secret
         , reason = reason
       )
     )

@@ -38,7 +38,6 @@
 package com.normation.rudder.rest
 
 import java.io.StringReader
-
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.{AclPath, ApiAccountId, ApiAccountName, ApiAclElement, HttpAction, ApiAuthorization => ApiAuthz}
@@ -101,6 +100,7 @@ import com.normation.inventory.domain.PublicKey
 import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.domain.nodes.InheritMode
+import com.normation.rudder.domain.secrets.Secret
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.services.policies.PropertyParser
 import com.normation.utils.DateFormaterService
@@ -418,6 +418,13 @@ final case class RestExtractorService (
    */
   def extractPrettify (params : Map[String,List[String]]) : Boolean = {
     extractOneValue(params, "prettify")(toBoolean).map(_.getOrElse(false)).getOrElse(false)
+  }
+
+  def extractSecret(req: Req): Box[Secret] = {
+    req.json match {
+      case Full(json) => extractSecretFromJson(json)
+      case _          => extractSecretFromJson(req.params)
+    }
   }
 
   def extractReason (req : Req) : Box[Option[String]] = {
@@ -1302,5 +1309,17 @@ final case class RestExtractorService (
       }
     }
 
+  }
+
+  def extractSecretFromJson(json: JValue): Box[Secret] = {
+    for {
+      name  <- extractJsonString(json,"name")
+      value <- extractJsonString(json, "value")
+      s     <- (name, value) match {
+                 case (None, v) => Failure(s"Missing name parameter for secret entry when parsing request")
+                 case (n, None) => Failure(s"Missing value parameter for secret entry when parsing request")
+                 case (Some(n), Some(v)) => Full(Secret(n,v))
+               }
+    } yield s
   }
 }

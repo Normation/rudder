@@ -409,6 +409,10 @@ class Boot extends Loggable {
             "secure" / (name+"Manager") / "parameterManagement"
             >> LocGroup(name+"Group")
             >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Parameter.Read ) )
+        , Menu(name+"SecretManagement", <span>Secrets</span>) /
+          "secure" / (name+"Manager") / "secretManagement"
+          >> LocGroup("administrationGroup")
+          >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Administration.Write ) )
       )
     }
 
@@ -532,6 +536,8 @@ class Boot extends Loggable {
 
   // Run a health check
   RudderConfig.healthcheckNotificationService.init
+  // Check if the file exists, if not it will create it
+  RudderConfig.secretVaultService.init("1.0").runNow
 
   private[this] def addPluginsMenuTo(plugins: List[RudderPluginDef], menus:List[Menu]) : List[Menu] = {
     //return the updated siteMap
