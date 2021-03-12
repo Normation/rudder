@@ -37,9 +37,6 @@
 
 package com.normation.rudder.services.eventlog
 
-import scala.xml._
-import scala.xml.Text
-import org.joda.time.DateTime
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.eventlog._
@@ -52,10 +49,15 @@ import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.secrets.Secret
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.marshalling._
 import net.liftweb.util.Helpers._
+import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+
+import scala.xml.Text
+import scala.xml._
 
 
 trait EventLogFactory {
@@ -212,6 +214,37 @@ trait EventLogFactory {
     , reason             : Option[String]
   ) : ModifyGlobalParameter
 
+  def getAddSecretFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , secret             : Secret
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : AddSecret
+
+  def getDeleteSecretFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , secret             : Secret
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : DeleteSecret
+
+  def getModifySecretFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , oldSecret          : Secret
+    , newSecret          : Secret
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : ModifySecret
+
   def getChangeRequestFromDiff(
       id                 : Option[Int] = None
     , modificationId     : Option[ModificationId] = None
@@ -303,6 +336,7 @@ class EventLogFactoryImpl(
   , parameterXmlSerializer : GlobalParameterSerialisation
   , apiAccountXmlSerializer: APIAccountSerialisation
   , propertySerializer     : GlobalPropertySerialisation
+  , secretXmlSerializer    : SecretSerialisation
 ) extends EventLogFactory {
 
   /////
@@ -722,6 +756,78 @@ class EventLogFactoryImpl(
       , reason = reason
       , severity = severity))
   }
+
+  override def getAddSecretFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , secret             : Secret
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : AddSecret = {
+    val details = EventLog.withContent(secretXmlSerializer.serialise(secret) % ("changeType" -> "add"))
+    AddSecret(EventLogDetails(
+      id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity))
+  }
+
+  override def getDeleteSecretFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , secret             : Secret
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : DeleteSecret = {
+
+    val details = EventLog.withContent(secretXmlSerializer.serialise(secret) % ("changeType" -> "delete"))
+    DeleteSecret(EventLogDetails(
+      id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity))
+  }
+
+  override def getModifySecretFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , oldSecret          : Secret
+    , newSecret          : Secret
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : ModifySecret = {
+
+    val diffValue = SimpleDiff.stringToXml(<diffValue/>, SimpleDiff(oldSecret.value, newSecret.value) )
+
+    val details = EventLog.withContent{
+      scala.xml.Utility.trim(<secret changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+        <name>{oldSecret.name}</name>
+        <value>{oldSecret.value}</value>
+        {diffValue}
+      </secret>)
+    }
+    ModifySecret(EventLogDetails(
+      id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity))
+  }
+
 
   override def getChangeRequestFromDiff(
       id                 : Option[Int] = None

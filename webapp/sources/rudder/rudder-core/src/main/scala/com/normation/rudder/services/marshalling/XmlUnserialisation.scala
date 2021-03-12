@@ -55,6 +55,7 @@ import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.domain.secrets.Secret
 import com.normation.rudder.rule.category.RuleCategory
 
 
@@ -294,6 +295,14 @@ trait GlobalParameterUnserialisation {
      </globalParameter>
    */
   def unserialise(xml:XNode) : Box[GlobalParameter]
+}
+
+/**
+ * That trait allows to unserialize
+ * Secret from an XML
+ */
+trait SecretUnserialisation {
+  def unserialise(xml:XNode) : Box[Secret]
 }
 
 /**

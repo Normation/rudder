@@ -36,45 +36,54 @@
 */
 package com.normation.rudder.web.services
 
-import better.files.Dsl.SymbolicOperations
 import better.files.File
-import com.normation.errors.{IOResult, Inconsistency}
+import com.normation.NamedZioLogger
+import com.normation.errors.IOResult
+import com.normation.errors.Inconsistency
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.secrets._
+import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.web.services.CurrentUserService.actor
+import com.normation.utils.StringUuidGenerator
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.Serialization.write
-import net.liftweb.json.{JString, JsonParser}
+import net.liftweb.json.JString
+import net.liftweb.json.JsonParser
 import zio._
 import zio.syntax._
+
 import java.nio.charset.StandardCharsets
 
-final case class Secret(name: String, value: String)
+trait SecretService {
+  def getSecrets: IOResult[List[Secret]]
+  def addSecret(s: Secret): IOResult[Unit]
+  def deleteSecret(secretId: String): IOResult[Unit]
+  def updateSecret(newSecret: Secret): IOResult[Unit]
+}
 
-class SecretVaultService(
-  jsonDbPath: String
-) {
+class FileSystemSecretRepository(
+    jsonDbPath   : String
+  , actionLogger : EventLogRepository
+  , uuidGen      : StringUuidGenerator
+) extends SecretService {
 
   private val secretsFile  = File(jsonDbPath)
+  val logger = NamedZioLogger(this.getClass.getName)
 
   private[this] def parseVersion1(json: JValue): IOResult[List[Secret]] = {
     implicit val formats = net.liftweb.json.DefaultFormats
-    println((json \ "secrets"))
     IOResult.effect((json \ "secrets").extract[List[Secret]])
-  }
-
-  private[this] def parseVersionOther(json: JValue, formatVersion: String): IOResult[List[Secret]] = {
-    formatVersion match {
-      case s => Inconsistency(s"Version format ${s} unknown").fail
-    }
   }
 
   private[this] def getSecretJsonContent: IOResult[List[Secret]] = {
     val content = secretsFile.contentAsString(StandardCharsets.UTF_8)
     for {
-      json     <- IOResult.effect(JsonParser.parse(content))
-      secrets <- (json \ "formatVersion") match {
+      json    <- IOResult.effect(JsonParser.parse(content))
+      secrets <- json \ "formatVersion" match {
                    case JString("1.0")        => parseVersion1(json)
-                   case JString(otherVersion) => parseVersionOther(json, otherVersion)
-                   case v                     =>
+                   case JString(otherVersion) =>
+                     Inconsistency(s"Format `${otherVersion}` is not supported in ${secretsFile.path}, expected `formatVersion` 1.0").fail
+                   case _                     =>
                      Inconsistency(s"Invalid format when parsing secret file ${secretsFile.path}, expected `formatVersion` 1.0").fail
       }
     } yield secrets
@@ -94,14 +103,14 @@ class SecretVaultService(
     for {
       _ <- ZIO.when(secretsFile.notExists){
              IOResult.effect{
-               val f = secretsFile.createFileIfNotExists(true)
+               val f = secretsFile.createFileIfNotExists(createParents = true)
                f.write(json)
              }
            }
     } yield ()
   }
 
-  def getSecrets: IOResult[List[Secret]] = {
+  override def getSecrets: IOResult[List[Secret]] = {
     for {
       s <- getSecretJsonContent
     } yield s
@@ -110,55 +119,83 @@ class SecretVaultService(
   private[this] def replaceInFile(formatVersion: String, secrets: List[Secret]): IOResult[Unit] = {
     IOResult.effect{
       secretsFile.clear()
-      implicit val formats = net.liftweb.json.DefaultFormats
       val json =
         ( ("formatVersion" -> formatVersion)
-        ~ ("secrets" -> secrets.map(serializeSecret))
+        ~ ("secrets" -> secrets.map(Secret.serializeSecret))
         )
       secretsFile.write(net.liftweb.json.prettyRender(json))
     }
   }
 
   private[this] def doesSecretExists(searchIn: List[Secret], toFind: Secret): Boolean = {
-    searchIn.map(_.name).contains(toFind.name)
+    searchIn.exists(_.name == toFind.name)
   }
 
-  def addSecret(formatVersion: String, s: Secret): IOResult[Unit] = {
+  override def addSecret(s: Secret): IOResult[Unit] = {
+    val reason = "Add a secret"
+    val modId  = ModificationId(uuidGen.newUuid)
+    val formatVersion = "1.0"
     for {
+      _        <- init(formatVersion)
       secrets  <- getSecretJsonContent
       _        <- ZIO.when(!doesSecretExists(secrets, s)) {
-                    val newSecrets     = s :: secrets
+                    val newSecrets = s :: secrets
                     for {
                       _ <- replaceInFile(formatVersion, newSecrets)
+                      _ <- actionLogger.saveAddSecret(modId, actor, s, Some(reason)).catchAll { e =>
+                        logger.error(s"Error when trying to create event log `${modId.value}` for adding secret `${s.name}`, cause : ${e.fullMsg}")
+                      }
                     } yield ()
                  }
     } yield ()
   }
 
-  def deleteSecret(formatVersion: String, secretId: String): IOResult[Unit] = {
+  override def deleteSecret(secretId: String): IOResult[Unit] = {
+    val reason = "Delete a secret"
+    val modId  = ModificationId(uuidGen.newUuid)
+    val formatVersion = "1.0"
     for {
-      secrets     <- getSecretJsonContent
-      newSecrets  =  secrets.filter(_.name != secretId)
-      _           <- replaceInFile(formatVersion, newSecrets)
+      _               <- init(formatVersion)
+      secrets         <- getSecretJsonContent
+      secretToRemove  =  secrets.find(_.name == secretId)
+      _               <- ZIO.when(secretToRemove.isDefined) {
+                           val newSecrets = secrets.filter(_.name != secretId)
+                           for {
+                             _  <- replaceInFile(formatVersion, newSecrets)
+                             _ <- secretToRemove match {
+                               case Some(s) => actionLogger.saveDeleteSecret(modId, actor, s, Some(reason)).catchAll { e =>
+                                 logger.error(s"Error when trying to create event log `${modId.value}` for deleting secret `${s.name}`, cause : ${e.fullMsg}")
+                               }
+                               case None    =>  // this case should never happen since secretToRemove is defined
+                                 Inconsistency(s"Error secret `${secretId}` doesn't exists").fail
+                             }
+                           } yield ()
+                        }
     } yield ()
   }
 
-  def updateSecret(formatVersion: String, updatedSecret: Secret): IOResult[Unit] = {
+  override def updateSecret(newSecret: Secret): IOResult[Unit] = {
+    val reason = "Update a secret"
+    val modId  = ModificationId(uuidGen.newUuid)
+    val formatVersion = "1.0"
     for {
-      secrets <- getSecretJsonContent
-      _       <- ZIO.when(doesSecretExists(secrets, updatedSecret)) {
-                   val newSecrets = secrets.map( s => if(s.name == updatedSecret.name) updatedSecret else s)
-                   for {
-                     _ <- replaceInFile(formatVersion, newSecrets)
-                   } yield ()
-                }
+      _         <- init(formatVersion)
+      secrets   <- getSecretJsonContent
+      oldSecret = secrets.find(_.name == newSecret.name)
+      _         <- ZIO.when(oldSecret.isDefined) {
+                     // Only one secret should be replaced here
+                     val newSecrets = secrets.map( s => if(s.name == newSecret.name) newSecret else s)
+                     for {
+                       _ <- replaceInFile(formatVersion, newSecrets)
+                       _ <- oldSecret match {
+                         case Some(s) => actionLogger.saveModifySecret(modId, actor, s, newSecret, Some(reason)).catchAll { e =>
+                           logger.error(s"Error when trying to update event log `${modId.value}` for updating secret `${s.name}`, cause : ${e.fullMsg}")
+                         }
+                         case None    =>  // this case should never happen since oldSecret is defined
+                           Inconsistency(s"Error secret `${newSecret.name}` doesn't exists`").fail
+                       }
+                     } yield ()
+                  }
     } yield ()
   }
-
-  def serializeSecret(secret : Secret): JValue = {
-    (   ("name"      -> secret.name)
-      ~ ("value"     -> secret.value)
-    )
-  }
-
 }

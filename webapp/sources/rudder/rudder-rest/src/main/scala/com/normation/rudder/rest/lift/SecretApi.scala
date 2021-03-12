@@ -37,17 +37,24 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.box._
-import com.normation.rudder.rest.{ApiPath, ApiVersion, AuthzToken, RestExtractorService, RestUtils, SecretVaultApi => API}
-import com.normation.rudder.web.services.SecretVaultService
+import com.normation.rudder.domain.secrets.Secret
+import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.ApiVersion
+import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.{SecretVaultApi => API}
+import com.normation.rudder.web.services.SecretService
 import net.liftweb.common._
-import net.liftweb.http.{LiftResponse, Req}
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
 
 
 class SecretApi(
     restExtractorService : RestExtractorService
-  , secretService        : SecretVaultService
+  , secretService        : SecretService
 ) extends LiftApiModuleProvider[API] {
 
   def schemas = API
@@ -74,7 +81,7 @@ class SecretApi(
       val res = for {
         secrets <- secretService.getSecrets
       } yield {
-        secrets.map(secretService.serializeSecret)
+        secrets.map(Secret.serializeSecret)
       }
 
       res.toBox match {
@@ -97,10 +104,11 @@ class SecretApi(
 
       val res = for {
         secret <- restExtractorService.extractSecret(req)
-        _      <- secretService.addSecret("1.0", secret).toBox
+        _      <- secretService.addSecret(secret).toBox
       } yield {
-        secretService.serializeSecret(secret)
+        Secret.serializeSecret(secret)
       }
+
       res match {
         case Full(json)   =>
           RestUtils.toJsonResponse(None, json)
@@ -120,10 +128,11 @@ class SecretApi(
       implicit val action = schema.name
 
       val res = for {
-        _ <- secretService.deleteSecret("1.0", id).toBox
+        _ <- secretService.deleteSecret(id).toBox
       } yield {
         id
       }
+
       res match {
         case Full(secretId) =>
           RestUtils.toJsonResponse(None, secretId)
@@ -144,9 +153,9 @@ class SecretApi(
 
       val res = for {
         secret <- restExtractorService.extractSecret(req)
-        _      <- secretService.updateSecret("1.0", secret).toBox
+        _      <- secretService.updateSecret(secret).toBox
       } yield {
-        secretService.serializeSecret(secret)
+        Secret.serializeSecret(secret)
       }
       res match {
         case Full(json)   =>

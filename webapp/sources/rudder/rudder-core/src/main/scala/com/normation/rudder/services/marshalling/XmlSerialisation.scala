@@ -52,6 +52,7 @@ import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.secrets.Secret
 
 trait XmlSerializer {
 
@@ -351,6 +352,15 @@ trait GlobalParameterSerialisation {
    */
   def serialise(param:GlobalParameter):  Elem
 }
+
+/**
+ * That trait allows to serialise
+ * Secret to an XML
+ */
+trait SecretSerialisation {
+  def serialise(param:Secret):  Elem
+}
+
 
 /**
  * That trait allows to serialise

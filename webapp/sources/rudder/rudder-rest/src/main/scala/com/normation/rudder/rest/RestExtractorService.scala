@@ -100,9 +100,9 @@ import com.normation.inventory.domain.PublicKey
 import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.domain.nodes.InheritMode
+import com.normation.rudder.domain.secrets.Secret
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.services.policies.PropertyParser
-import com.normation.rudder.web.services.Secret
 import com.normation.utils.DateFormaterService
 import org.bouncycastle.cert.X509CertificateHolder
 import zio.{Tag => _, _}

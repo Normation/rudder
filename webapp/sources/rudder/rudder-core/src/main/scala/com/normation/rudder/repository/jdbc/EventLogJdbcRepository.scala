@@ -114,6 +114,7 @@ class EventLogJdbcRepository(
     ) match {
       case Right(log)  => log
       case Left(error) =>
+        println(error)
         logEffect.warn(s"Error when trying to get the event type, recorded type was: '${eventType}'")
         UnspecializedEventLog(eventLogDetails)
       }
@@ -283,6 +284,7 @@ private object EventLogReportsMapper extends NamedZioLogger {
         ChangeRequestLogsFilter.eventList :::
         TechniqueEventLogsFilter.eventList :::
         ParameterEventsLogsFilter.eventList :::
+        SecretEventsLogsFilter.eventList :::
         ModifyGlobalPropertyEventLogsFilter.eventList
 
 
