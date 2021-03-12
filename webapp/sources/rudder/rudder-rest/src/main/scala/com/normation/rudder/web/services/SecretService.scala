@@ -126,27 +126,32 @@ class FileSystemSecretRepository(
       secretsFile.write(net.liftweb.json.prettyRender(json))
     }
   }
-
-  private[this] def doesSecretExists(searchIn: List[Secret], toFind: Secret): Boolean = {
-    searchIn.exists(_.name == toFind.name)
-  }
-
-  override def addSecret(s: Secret): IOResult[Unit] = {
+  
+  override def addSecret(secToAdd: Secret): IOResult[Unit] = {
     val reason = "Add a secret"
     val modId  = ModificationId(uuidGen.newUuid)
     val formatVersion = "1.0"
+
     for {
-      _        <- init(formatVersion)
-      secrets  <- getSecretJsonContent
-      _        <- ZIO.when(!doesSecretExists(secrets, s)) {
-                    val newSecrets = s :: secrets
-                    for {
-                      _ <- replaceInFile(formatVersion, newSecrets)
-                      _ <- actionLogger.saveAddSecret(modId, actor, s, Some(reason)).catchAll { e =>
-                        logger.error(s"Error when trying to create event log `${modId.value}` for adding secret `${s.name}`, cause : ${e.fullMsg}")
-                      }
-                    } yield ()
-                 }
+      _          <- init(formatVersion)
+      secrets    <- getSecretJsonContent
+      findSecret = secrets.find(_.name == secToAdd.name)
+      _          <- findSecret match {
+                     case Some(s) =>
+                       if(s.value != secToAdd.value) {
+                         Inconsistency(s"Error when trying to add secret `${secToAdd.name}`, this secret name is already used").fail
+                       } else {
+                         logger.warn(s"Trying to create duplicate of secret `${secToAdd.name}``")
+                       }
+                     case None =>
+                       val newSecrets = secToAdd :: secrets
+                       for {
+                         _ <- replaceInFile(formatVersion, newSecrets)
+                         _ <- actionLogger.saveAddSecret(modId, actor, secToAdd, Some(reason)).catchAll { e =>
+                                logger.error(s"Error when trying to create event log `${modId.value}` for adding secret `${secToAdd.name}`, cause : ${e.fullMsg}")
+                              }
+                       } yield ()
+                  }
     } yield ()
   }
 
@@ -158,19 +163,18 @@ class FileSystemSecretRepository(
       _               <- init(formatVersion)
       secrets         <- getSecretJsonContent
       secretToRemove  =  secrets.find(_.name == secretId)
-      _               <- ZIO.when(secretToRemove.isDefined) {
+      _             <- secretToRemove match {
+                         case Some(secToDel) =>
                            val newSecrets = secrets.filter(_.name != secretId)
                            for {
                              _  <- replaceInFile(formatVersion, newSecrets)
-                             _ <- secretToRemove match {
-                               case Some(s) => actionLogger.saveDeleteSecret(modId, actor, s, Some(reason)).catchAll { e =>
-                                 logger.error(s"Error when trying to create event log `${modId.value}` for deleting secret `${s.name}`, cause : ${e.fullMsg}")
-                               }
-                               case None    =>  // this case should never happen since secretToRemove is defined
-                                 Inconsistency(s"Error secret `${secretId}` doesn't exists").fail
-                             }
+                             _  <- actionLogger.saveDeleteSecret(modId, actor, secToDel, Some(reason)).catchAll { e =>
+                                     logger.error(s"Error when trying to create event log `${modId.value}` for deleting secret `${secToDel.name}`, cause : ${e.fullMsg}")
+                                   }
                            } yield ()
-                        }
+                         case None =>
+                           logger.warn(s"Trying to delete secret ${secretId} but it doesn't exists")
+                      }
     } yield ()
   }
 
@@ -182,19 +186,22 @@ class FileSystemSecretRepository(
       _         <- init(formatVersion)
       secrets   <- getSecretJsonContent
       oldSecret = secrets.find(_.name == newSecret.name)
-      _         <- ZIO.when(oldSecret.isDefined) {
-                     // Only one secret should be replaced here
-                     val newSecrets = secrets.map( s => if(s.name == newSecret.name) newSecret else s)
-                     for {
-                       _ <- replaceInFile(formatVersion, newSecrets)
-                       _ <- oldSecret match {
-                         case Some(s) => actionLogger.saveModifySecret(modId, actor, s, newSecret, Some(reason)).catchAll { e =>
-                           logger.error(s"Error when trying to update event log `${modId.value}` for updating secret `${s.name}`, cause : ${e.fullMsg}")
-                         }
-                         case None    =>  // this case should never happen since oldSecret is defined
-                           Inconsistency(s"Error secret `${newSecret.name}` doesn't exists`").fail
+      _         <- oldSecret match {
+                     case Some(oldSec) =>
+                       if(oldSec.value == newSecret.value) {
+                         logger.warn(s"Trying to update secret `${oldSec.name}` with the same value")
+                       } else {
+                         // Only one secret should be replaced here
+                         val newSecrets = secrets.map( s => if(s.name == newSecret.name) newSecret else s)
+                         for {
+                           _ <- replaceInFile(formatVersion, newSecrets)
+                           _ <- actionLogger.saveModifySecret(modId, actor, oldSec, newSecret, Some(reason)).catchAll { e =>
+                                  logger.error(s"Error when trying to update event log `${modId.value}` for updating secret `${oldSec.name}`, cause : ${e.fullMsg}")
+                                }
+                         } yield ()
                        }
-                     } yield ()
+                     case None =>
+                       Inconsistency(s"Error when trying to update secret `${newSecret.name}`, this secret doesn't exists").fail
                   }
     } yield ()
   }
