@@ -31,7 +31,7 @@ CFLAGS ?= -std=c99 -Wall -Wextra -Wpedantic \
           -D_FORTIFY_SOURCE=2 -fstack-protector-strong -fPIE
 BUILD_CFLAGS=$(CFLAGS)
 LDFLAGS ?= -Wl,-z,now -Wl,-z,relro -pie
-BUILD_LDLAGS=$(LDFLAGS)
+BUILD_LDFLAGS=$(LDFLAGS)
 # Debug flags
 CFLAGS_DEBUG := -O -g3 -DDEBUG -fsanitize=address,undefined
 LDFLAGS_DEBUG := -fsanitize=address,undefined
@@ -67,7 +67,7 @@ bin-target: clean $(BUILD_DIR) toml $(BUILD_DIR)/$(EXEC)
 
 toml:
 ifdef STATIC_TOML
-	cd tomlc99 && make "CFLAGS=$(BUILD_CFLAGS) -std=c99 -fPIC"
+	cd tomlc99 && $(MAKE) "CFLAGS=$(BUILD_CFLAGS) -std=c99 -fPIC"
 endif
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
