@@ -1471,6 +1471,8 @@ static void warnx(const char* fmt, ...) {
 #        if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) \
             || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
         _vsnprintf_s(opterrmsg, sizeof(opterrmsg), sizeof(opterrmsg) - 1, fmt, ap);
+#        elif defined(_AIX)
+        vsnprintf(opterrmsg, sizeof(opterrmsg) - 1, fmt, ap);
 #        else
         _vsnprintf(opterrmsg, sizeof(opterrmsg) - 1, fmt, ap);
 #        endif

@@ -1,5 +1,5 @@
---- a/src/argtable3.c	2021-03-13 15:34:14.959214228 +0100
-+++ b/src/argtable3.c	2021-03-13 15:41:28.435628640 +0100
+--- a/src/argtable3.c	2021-03-13 21:38:37.364733982 +0100
++++ b/src/argtable3.c	2021-03-13 21:37:09.740285831 +0100
 @@ -40,6 +40,9 @@
  #include "argtable3.h"
  
@@ -19,12 +19,12 @@
  
  /*
   * Windows needs warnx().  We change the definition though:
-@@ -4985,7 +4988,7 @@
- 
- #ifndef ARG_AMALGAMATION
- #    include "argtable3_private.h"
--#    if ARG_REPLACE_GETOPT == 1
-+#    if ARG_REPLACE_GETOPT == 1 
- #        include "arg_getopt.h"
- #    else
- #        include <getopt.h>
+@@ -1468,6 +1471,8 @@
+ #        if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) \
+             || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
+         _vsnprintf_s(opterrmsg, sizeof(opterrmsg), sizeof(opterrmsg) - 1, fmt, ap);
++#        elif defined(_AIX)
++        vsnprintf(opterrmsg, sizeof(opterrmsg) - 1, fmt, ap);
+ #        else
+         _vsnprintf(opterrmsg, sizeof(opterrmsg) - 1, fmt, ap);
+ #        endif
