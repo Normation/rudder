@@ -40,6 +40,9 @@
 #include "argtable3.h"
 
 #define ARG_AMALGAMATION
+#ifdef _AIX
+#define ARG_REPLACE_GETOPT 1
+#endif
 
 /*******************************************************************************
  * argtable3_private: Declares private types, constants, and interfaces
@@ -1437,7 +1440,7 @@ static const char noarg[] = "option doesn't take an argument -- %.*s";
 static const char illoptstring[] = "unknown option -- %s";
 #    endif
 
-#    ifdef _WIN32
+#    if defined(_WIN32) || defined(_AIX)
 
 /*
  * Windows needs warnx().  We change the definition though:

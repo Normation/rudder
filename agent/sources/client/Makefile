@@ -19,8 +19,6 @@ OBJS := $(patsubst $(SRC_DIR)/%,$(BUILD_DIR)/%,$(SRCS:.c=.o))
 DESTDIR := $(BUILD_DIR)/dest
 PREFIX :=
 
-CC ?= gcc
-
 BUILD_CPPFLAGS=$(CPPFLAGS)
 # Strict flags, only compatible with modern compilers.
 # Release flags come from packaging.

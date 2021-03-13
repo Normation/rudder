@@ -2,7 +2,6 @@
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
 #include "cli.h"
-#include <getopt.h>
 #include <stdio.h>
 #include <string.h>
 #include "config.h"

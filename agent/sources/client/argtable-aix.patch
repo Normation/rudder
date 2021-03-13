@@ -1,0 +1,30 @@
+--- a/src/argtable3.c	2021-03-13 15:34:14.959214228 +0100
++++ b/src/argtable3.c	2021-03-13 15:41:28.435628640 +0100
+@@ -40,6 +40,9 @@
+ #include "argtable3.h"
+ 
+ #define ARG_AMALGAMATION
++#ifdef _AIX
++#define ARG_REPLACE_GETOPT 1
++#endif
+ 
+ /*******************************************************************************
+  * argtable3_private: Declares private types, constants, and interfaces
+@@ -1437,7 +1440,7 @@
+ static const char illoptstring[] = "unknown option -- %s";
+ #    endif
+ 
+-#    ifdef _WIN32
++#    if defined(_WIN32) || defined(_AIX)
+ 
+ /*
+  * Windows needs warnx().  We change the definition though:
+@@ -4985,7 +4988,7 @@
+ 
+ #ifndef ARG_AMALGAMATION
+ #    include "argtable3_private.h"
+-#    if ARG_REPLACE_GETOPT == 1
++#    if ARG_REPLACE_GETOPT == 1 
+ #        include "arg_getopt.h"
+ #    else
+ #        include <getopt.h>
