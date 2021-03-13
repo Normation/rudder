@@ -56,9 +56,9 @@ import java.nio.charset.StandardCharsets
 
 trait SecretService {
   def getSecrets: IOResult[List[Secret]]
-  def addSecret(s: Secret): IOResult[Unit]
-  def deleteSecret(secretId: String): IOResult[Unit]
-  def updateSecret(newSecret: Secret): IOResult[Unit]
+  def addSecret(s: Secret, reason: String): IOResult[Unit]
+  def deleteSecret(secretId: String, reason: String): IOResult[Unit]
+  def updateSecret(newSecret: Secret, reason: String): IOResult[Unit]
 }
 
 class FileSystemSecretRepository(
@@ -127,8 +127,7 @@ class FileSystemSecretRepository(
     }
   }
   
-  override def addSecret(secToAdd: Secret): IOResult[Unit] = {
-    val reason = "Add a secret"
+  override def addSecret(secToAdd: Secret, reason: String): IOResult[Unit] = {
     val modId  = ModificationId(uuidGen.newUuid)
     val formatVersion = "1.0"
 
@@ -155,8 +154,7 @@ class FileSystemSecretRepository(
     } yield ()
   }
 
-  override def deleteSecret(secretId: String): IOResult[Unit] = {
-    val reason = "Delete a secret"
+  override def deleteSecret(secretId: String, reason: String): IOResult[Unit] = {
     val modId  = ModificationId(uuidGen.newUuid)
     val formatVersion = "1.0"
     for {
@@ -173,13 +171,12 @@ class FileSystemSecretRepository(
                                    }
                            } yield ()
                          case None =>
-                           logger.warn(s"Trying to delete secret ${secretId} but it doesn't exists")
+                           logger.warn(s"Trying to delete secret ${secretId} but it doesn't exist")
                       }
     } yield ()
   }
 
-  override def updateSecret(newSecret: Secret): IOResult[Unit] = {
-    val reason = "Update a secret"
+  override def updateSecret(newSecret: Secret, reason: String): IOResult[Unit] = {
     val modId  = ModificationId(uuidGen.newUuid)
     val formatVersion = "1.0"
     for {
@@ -201,7 +198,7 @@ class FileSystemSecretRepository(
                          } yield ()
                        }
                      case None =>
-                       Inconsistency(s"Error when trying to update secret `${newSecret.name}`, this secret doesn't exists").fail
+                       Inconsistency(s"Error when trying to update secret `${newSecret.name}`, this secret doesn't exist").fail
                   }
     } yield ()
   }

@@ -768,7 +768,7 @@ class EventLogFactoryImpl(
   ) : AddSecret = {
     val details = EventLog.withContent(secretXmlSerializer.serialise(secret) % ("changeType" -> "add"))
     AddSecret(EventLogDetails(
-      id = id
+        id = id
       , modificationId = modificationId
       , principal = principal
       , details = details
@@ -789,7 +789,7 @@ class EventLogFactoryImpl(
 
     val details = EventLog.withContent(secretXmlSerializer.serialise(secret) % ("changeType" -> "delete"))
     DeleteSecret(EventLogDetails(
-      id = id
+        id = id
       , modificationId = modificationId
       , principal = principal
       , details = details

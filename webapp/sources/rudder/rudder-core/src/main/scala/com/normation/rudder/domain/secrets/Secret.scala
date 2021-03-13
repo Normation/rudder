@@ -44,8 +44,8 @@ final case class Secret(name: String, value: String)
 object Secret {
 
   def serializeSecret(secret : Secret): JValue = {
-    (   ("name"      -> secret.name)
-      ~ ("value"     -> secret.value)
-      )
+    ( ("name" -> secret.name)
+    ~ ("value" -> secret.value)
+    )
   }
 }

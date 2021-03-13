@@ -1189,8 +1189,6 @@ class EventLogDetailsGenerator(
   private[this] def secretDetails(xml: NodeSeq, secret: Secret) = (
     "#name" #> secret.name &
       "#value" #> secret.value
-//      &
-//      "#description" #> globalParameter.description
     )(xml)
 
   private[this] def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccount) = (
