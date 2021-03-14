@@ -55,7 +55,8 @@ import zio.syntax._
 import java.nio.charset.StandardCharsets
 
 trait SecretService {
-  def getSecrets: IOResult[List[Secret]]
+  def getAllSecret: IOResult[List[Secret]]
+  def getSecretById(secretId: String): IOResult[Option[Secret]]
   def addSecret(s: Secret, reason: String): IOResult[Unit]
   def deleteSecret(secretId: String, reason: String): IOResult[Unit]
   def updateSecret(newSecret: Secret, reason: String): IOResult[Unit]
@@ -110,10 +111,16 @@ class FileSystemSecretRepository(
     } yield ()
   }
 
-  override def getSecrets: IOResult[List[Secret]] = {
+  override def getAllSecret: IOResult[List[Secret]] = {
     for {
       s <- getSecretJsonContent
     } yield s
+  }
+
+  override def getSecretById(id: String): IOResult[Option[Secret]] = {
+    for {
+      s <- getSecretJsonContent
+    } yield s.find(_.name == id)
   }
 
   private[this] def replaceInFile(formatVersion: String, secrets: List[Secret]): IOResult[Unit] = {

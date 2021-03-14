@@ -114,7 +114,6 @@ class EventLogJdbcRepository(
     ) match {
       case Right(log)  => log
       case Left(error) =>
-        println(error)
         logEffect.warn(s"Error when trying to get the event type, recorded type was: '${eventType}'")
         UnspecializedEventLog(eventLogDetails)
       }

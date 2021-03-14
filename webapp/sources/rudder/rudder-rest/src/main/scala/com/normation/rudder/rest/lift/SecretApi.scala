@@ -43,14 +43,12 @@ import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
-import com.normation.rudder.rest.{SecretVaultApi => API}
+import com.normation.rudder.rest.{SecretApi => API}
 import com.normation.rudder.web.services.SecretService
-import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JString
-import net.liftweb.json.JsonDSL._
 
 
 class SecretApi(
@@ -63,7 +61,8 @@ class SecretApi(
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(
       e => e match {
-        case API.GetSecrets   => GetSecrets
+        case API.GetAllSecret => GetAllSecret
+        case API.GetSecret    => GetSecret
         case API.AddSecret    => AddSecret
         case API.UpdateSecret => UpdateSecret
         case API.DeleteSecret => DeleteSecret
@@ -71,8 +70,8 @@ class SecretApi(
     )
   }
 
-  object GetSecrets extends LiftApiModule0 {
-    val schema        = API.GetSecrets
+  object GetAllSecret extends LiftApiModule0 {
+    val schema        = API.GetAllSecret
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -80,12 +79,30 @@ class SecretApi(
       implicit val action   = schema.name
 
       val res = for {
-        secrets <- secretService.getSecrets.toBox
+        secrets <- secretService.getAllSecret.toBox
       } yield {
         JArray(secrets.map(Secret.serializeSecret))
       }
 
       RestUtils.response(restExtractor, "secrets", None)(res, req, "Error when trying to get all secrets")
+    }
+  }
+
+  object GetSecret extends LiftApiModule {
+    val schema        = API.GetSecret
+    val restExtractor = restExtractorService
+
+    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val prettify = params.prettify
+      implicit val action   = schema.name
+
+      val res = for {
+        secret <- secretService.getSecretById(id).notOptional(s"Could not find secret with `${id}` name").toBox
+      } yield {
+        Secret.serializeSecret(secret)
+      }
+
+      RestUtils.response(restExtractor, "secrets", None)(res, req, s"Error when trying to get secret `${id}` value")
     }
   }
 
