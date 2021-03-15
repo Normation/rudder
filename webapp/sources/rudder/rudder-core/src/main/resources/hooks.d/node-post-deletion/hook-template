@@ -1,6 +1,7 @@
 #!/bin/sh
 
-# Use 'HOOK_WARN_TIMEOUT' or 'HOOK_KILL_TIMEOUT' to specify a time after which a warning is emitted or the hook is interrupted.
+# Use 'HOOK_WARN_TIMEOUT' or 'HOOK_KILL_TIMEOUT' *ABOVE THAT COMMENT* to specify a time after which a warning is emitted
+# or the hook is interrupted.
 # For example, 'HOOK_WARN_TIMEOUT' = 1 second (without quote, without text on the line after duration) will emit a warning if
 # the hook takes more than one second to run.
 
