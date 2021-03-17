@@ -15,13 +15,13 @@
 <body id="login-page">
   <div id="formbox">
   <fieldset>
+    <div data-lift="Login.display">
     <p class="legend col-xs-12">
       <img src="/images/login/logo-rudder.svg" data-lift="with-cached-resource" alt="Rudder"></img>
       <span>${rudder-major-version}</span>
     </p>
     <div class="plugin-info"></div>
-    <div class="col-xs-12">
-      <div data-lift="Login.display">
+      <div class="col-xs-12">
         <form class="rudder-form" name="contact" id="contact" method="post" action="/j_spring_security_check">
           <h4 class="welcome col-xs-12">Welcome, please sign in:</h4>
           <div class="form-group group-user has-feedback col-xs-12">
@@ -58,34 +58,34 @@
           </div>
         </form>
       </div>
-    </div>
-    <div class="form-footer col-xs-12">
-      <div class="no-padding col-xs-6">
-        <div class="col-xs-12">
-          <a href="/rudder-doc" target="_blank">
-          <span class="fa fa-book"></span>
-            Documentation
-          </a>
+      <div class="form-footer col-xs-12">
+        <div class="no-padding col-xs-6">
+          <div class="col-xs-12">
+            <a href="/rudder-doc" target="_blank">
+            <span class="fa fa-book"></span>
+              Documentation
+            </a>
+          </div>
+          <div class="col-xs-12">
+            <a href="https://www.rudder.io/open-source/community/" target="_blank">
+            <span class="ion ion-chatboxes"></span>
+              Community
+            </a>
+          </div>
         </div>
-        <div class="col-xs-12">
-          <a href="https://www.rudder.io/open-source/community/" target="_blank">
-          <span class="ion ion-chatboxes"></span>
-            Community
-          </a>
-        </div>
-      </div>
-      <div class="no-padding col-xs-6">
-        <div class="col-xs-12">
-          <a href="https://www.rudder.io/pricing/subscription/" target="_blank">
-          <span class="fa fa-life-ring"></span>
-            Support
-          </a>
-        </div>
-        <div class="col-xs-12">
-          <a href="https://issues.rudder.io/" target="_blank">
-            <span class="ion ion-bug"></span>
-            Bug tracker
-          </a>
+        <div class="no-padding col-xs-6">
+          <div class="col-xs-12">
+            <a href="https://www.rudder.io/pricing/subscription/" target="_blank">
+            <span class="fa fa-life-ring"></span>
+              Support
+            </a>
+          </div>
+          <div class="col-xs-12">
+            <a href="https://issues.rudder.io/" target="_blank">
+              <span class="ion ion-bug"></span>
+              Bug tracker
+            </a>
+          </div>
         </div>
       </div>
     </div>
