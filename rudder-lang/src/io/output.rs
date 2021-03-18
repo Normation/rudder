@@ -137,7 +137,7 @@ impl LogOutput {
         if !is_success {
             let output = if let Some(input) = &source {
                 format!(
-                    "An error occurred, could not create content from '{}': {}",
+                    "An error occurred, could not create content from '{}':\n{}",
                     input,
                     errors.join(" ; ")
                 )

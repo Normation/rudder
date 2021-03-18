@@ -8,6 +8,8 @@ use std::{
     collections::{HashMap, HashSet},
     rc::Rc,
 };
+use toml::map::Map as TomlMap;
+use toml::Value as TomlValue;
 
 // TODO v2: type inference, compatibility metadata
 // TODO aliases
@@ -20,6 +22,7 @@ use std::{
 /// - resource and state call must point to existing elements
 /// - cases must be complete an non overlapping
 /// - resource cannot make a loop (it cannot contain itself)
+/// - state definitions must include the following metadatas and their expected type: version, description, component, parameters, supported_formats
 /// This is currently identical to IR1, but it may diverge in the future
 /// Moreover having a different structure helps having clear compilation steps and smaller tests.
 #[derive(Debug)]
@@ -74,6 +77,11 @@ impl<'src> IR2<'src> {
                     // check for case validity
                     errors.push(ir2.cases_check(&state.context, st, true));
                 }
+            }
+
+            // check state definition metadatas are valid
+            for (name, state_def) in &resource.states {
+                errors.push(ir2.missing_or_invalid_state_def_metadata(state_def, name));
             }
         }
         // analyze global vars
@@ -184,6 +192,80 @@ impl<'src> IR2<'src> {
                 name
             );
         }
+        Ok(())
+    }
+
+    fn missing_or_invalid_state_def_metadata(
+        &self,
+        state_def: &StateDef,
+        name: &Token,
+    ) -> Result<()> {
+        match state_def.metadata.get("description") {
+            Some(TomlValue::String(_)) => (),
+            Some(_) => fail!(name, "'description' metadata must be a string"),
+            None => fail!(name, "'description' metadata is mandatory"),
+        };
+        match state_def.metadata.get("component") {
+            Some(TomlValue::String(_)) => (),
+            Some(_) => fail!(name, "'component' metadata must be a string"),
+            None => fail!(name, "'component' metadata is mandatory"),
+        };
+        match state_def.metadata.get("supported_formats") {
+            Some(TomlValue::Array(values)) => {
+                for v in values {
+                    if let TomlValue::String(_) = v {
+                        ()
+                    } else {
+                        fail!(
+                            name,
+                            "'supported_formats' metadata must be an array of strings"
+                        )
+                    }
+                }
+            }
+            Some(_) => fail!(
+                name,
+                "'supported_formats' metadata must be an array of strings"
+            ),
+            None => fail!(name, "'supported_formats' metadata is mandatory"),
+        };
+
+        // tmp, use the upcoming: `is_dependency == true` instead
+        if state_def.metadata.get("library") == None {
+            return Ok(());
+        }
+
+        match state_def.metadata.get("version") {
+            Some(TomlValue::String(_)) => (),
+            Some(_) => fail!(name, "'version' metadata must be a string"),
+            None => fail!(name, "'version' metadata is mandatory"),
+        };
+        match state_def.metadata.get("parameters") {
+            Some(TomlValue::Array(values)) => {
+                for v in values {
+                    if let TomlValue::Table(map) = v {
+                        for (key, value) in map {
+                            if !(key == "name" || key == "id" || key == "description") {
+                                fail!(name, "'parameters' metadata content must include the following informations: id, name, description")
+                            }
+                            if let TomlValue::String(_) = value {
+                                ()
+                            } else {
+                                fail!(
+                                    name,
+                                    "'parameters' metadata must be an array of tables of (String, String) pairs"
+                                )
+                            }
+                        }
+                    } else {
+                        fail!(name, "'parameters' metadata must be an array of strings")
+                    }
+                }
+            }
+            Some(_) => fail!(name, "'parameters' metadata must be an array of strings"),
+            None => fail!(name, "'parameters' metadata is mandatory"),
+        };
+
         Ok(())
     }
 

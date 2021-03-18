@@ -142,9 +142,11 @@ impl CFEngine {
     ) -> Result<Vec<Promise>> {
         match st {
             Statement::ConditionVariableDefinition(var) => {
-                let component = match var.metadata.get("component") {
+                let inner_state_def = gc.get_state_def(&var.resource, &var.state)?;
+
+                let component = match inner_state_def.metadata.get("component") {
                     Some(TomlValue::String(s)) => s.to_owned(),
-                    _ => "any".to_string(),
+                    _ => return Err(Error::new("Expected a component metadata".to_owned())),
                 };
 
                 // TODO setup mode and output var by calling ... bundle
@@ -155,10 +157,8 @@ impl CFEngine {
                     .into_iter()
                     .collect::<Result<Vec<String>>>()?;
 
-                let method_name = &format!("{}-{}", var.resource.fragment(), var.state.fragment());
-                let class_param_index = gc
-                    .get_state_def(&var.resource, &var.state)?
-                    .class_parameter_index(method_name)?;
+                let method_name = &format!("{}_{}", var.resource.fragment(), var.state.fragment());
+                let class_param_index = inner_state_def.class_parameter_index(method_name)?;
                 let class_param = var
                     .resource_params
                     .get(class_param_index)
@@ -175,14 +175,16 @@ impl CFEngine {
                     .build())
             }
             Statement::StateDeclaration(sd) => {
+                let inner_state_def = gc.get_state_def(&sd.resource, &sd.state)?;
+
                 if let Some(var) = sd.outcome {
                     self.new_var(&var);
                 }
 
-                let component = match sd.metadata.get("component") {
+                // checked in ir2, so we could directly unwrap here
+                let component = match inner_state_def.metadata.get("component") {
                     Some(TomlValue::String(s)) => s.to_owned(),
-                    // TODO what is the any component ?
-                    _ => "any".to_string(),
+                    _ => return Err(Error::new("Expected a component metadata".to_owned())),
                 };
 
                 // TODO setup mode and output var by calling ... bundle
@@ -193,17 +195,20 @@ impl CFEngine {
                     .map(|x| self.value_to_string(x, true))
                     .collect::<Result<Vec<String>>>()?;
 
-                let method_name = &format!("{}-{}", sd.resource.fragment(), sd.state.fragment());
+                let method_name = &format!("{}_{}", sd.resource.fragment(), sd.state.fragment());
                 let state_def = gc.get_state_def(&sd.resource, &sd.state)?;
-                let class_param_index = state_def.class_parameter_index(method_name)?;
-                let is_cf_supported = state_def
-                    .supported_formats(method_name)?
+
+                let is_cf_supported = inner_state_def
+                    .supported_formats(method_name)? // checked in ir2, so we could directly unwrap here
                     .contains(&"cf".to_owned());
-                let class_param = sd
+                let class_param = match sd
                     .resource_params
-                    .get(class_param_index)
+                    .get(inner_state_def.class_parameter_index(method_name)?)
                     .and_then(|p| self.value_to_string(&p, false).ok())
-                    .unwrap_or_else(|| "".to_string());
+                {
+                    Some(s) => s,
+                    None => return Err(Error::new("Expected a component metadata".to_owned())),
+                };
 
                 Ok(Method::new()
                     .resource(sd.resource.fragment().to_string())
