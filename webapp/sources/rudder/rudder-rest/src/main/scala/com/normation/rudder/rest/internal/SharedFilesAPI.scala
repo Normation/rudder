@@ -87,12 +87,13 @@ class SharedFilesAPI(
   def serialize(file:File) : IOResult[JValue] = {
     import net.liftweb.json.JsonDSL._
     IOResult.effect(s"Error when serializing file ${file.name}") {
-      val date = new DateTime(Instant.ofEpochMilli(Files.getLastModifiedTime(file.path, File.LinkOptions.default:_*).toMillis))
+
+      val date = new DateTime(Instant.ofEpochMilli(Files.getLastModifiedTime(file.path, File.LinkOptions.noFollow:_*).toMillis))
       ( ("name"  -> file.name)
-      ~ ("size"  -> file.size)
-      ~ ("type"  -> (if (file.isRegularFile) "file" else "dir"))
+      ~ ("size"  -> (if (file.isSymbolicLink) 0 else file.size ))
+      ~ ("type"  -> (if (file.isDirectory) "dir" else "file"))
       ~ ("date"  -> date.toString("yyyy-MM-dd HH:mm:ss"))
-      ~ ("rights" -> file.permissionsAsString)
+      ~ ("rights" -> file.permissionsAsString(File.LinkOptions.noFollow))
       )
     }
   }
