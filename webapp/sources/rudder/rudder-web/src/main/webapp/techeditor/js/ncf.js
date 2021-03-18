@@ -1655,10 +1655,14 @@ $scope.onImportFileChange = function (fileEl) {
                 delete ct[i].agent_support;
                 delete st[i].promiser;
                 delete ct[i].promiser;
-                if(st[i].OS_class.minorVersion === undefined) delete st[i].OS_class.minorVersion;
-                if(st[i].OS_class.majorVersion === undefined) delete st[i].OS_class.majorVersion;
-                if(ct[i].OS_class.minorVersion === undefined) delete ct[i].OS_class.minorVersion;
-                if(ct[i].OS_class.majorVersion === undefined) delete ct[i].OS_class.majorVersion;
+                if(st[i].OS_class !== undefined) {      
+                  if(st[i].OS_class.minorVersion === undefined) delete st[i].OS_class.minorVersion;
+                  if(st[i].OS_class.majorVersion === undefined) delete st[i].OS_class.majorVersion;
+                }
+                if(ct[i].OS_class !== undefined) {
+                  if(ct[i].OS_class.minorVersion === undefined) delete ct[i].OS_class.minorVersion;
+                  if(ct[i].OS_class.majorVersion === undefined) delete ct[i].OS_class.majorVersion;
+                }
                 //Store parameters to compare them separetly
                 st_params = st[i].parameters;
                 delete st[i].parameters;
