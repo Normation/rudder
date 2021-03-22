@@ -16,12 +16,13 @@ pub fn parse_content<'src>(
     filename: &str,
     content: &str,
     sources: &'src Arena<String>,
+    is_dependency: bool,
 ) -> Result<PAST<'src>> {
     let filename = sources.alloc(filename.to_owned());
     let content = sources.alloc(content.to_owned());
     // parse file
     info!("{} {}", "Parsing".bright_green(), filename.bright_yellow());
-    past.add_file(filename, content)?;
+    past.add_file(filename, content, is_dependency)?;
     Ok(past)
 }
 
@@ -31,7 +32,7 @@ pub fn technique_to_ir<'src>(
     sources: &'src Arena<String>,
 ) -> Result<IR2<'src>> {
     let mut past = RudderlangLib::past(&ctx.stdlib, &sources)?;
-    past = parse_content(past, &ctx.input, &ctx.input_content, sources)?;
+    past = parse_content(past, &ctx.input, &ctx.input_content, sources, false)?;
     // finish parsing into IR
     info!("|- {}", "Generating intermediate code".bright_green());
     let ir1 = IR1::from_past(past)?;

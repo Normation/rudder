@@ -91,7 +91,7 @@ impl IOContext {
             input_content,
             output,
             command,
-            format
+            format,
         };
         info!("I/O context: {}", ctx);
 
@@ -245,7 +245,7 @@ fn get_output_format(
                 None => Err(Error::new(
                     "Commands: missing or invalid format, plus unrecognized or invalid output file extension".to_owned(),
                 ))
-            }
+            };
         }
         (Command::ReadTechnique, Some(fmt)) => Ok((format!("{}.{}", "rl", fmt), fmt)),
         (_, Some(fmt)) => Ok((format!("{}", fmt), fmt)),

@@ -60,7 +60,7 @@ impl<'src> RudderlangLib<'src> {
             match entry {
                 Ok(entry) => {
                     let (filename, content) = io::get_content(&Some(entry.into_path()))?;
-                    past = compile::parse_content(past, &filename, &content, sources)?;
+                    past = compile::parse_content(past, &filename, &content, sources, true)?;
                 }
                 Err(err) => {
                     return Err(err!(

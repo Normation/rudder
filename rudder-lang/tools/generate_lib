@@ -486,7 +486,6 @@ def generate_lib(resource_name, resource, lib_dir):
     file = lib_dir + "/" + resource_name + ".rl"
     out = open(file, "w")
     fmt_attribute(out, "format", "0")
-    fmt_attribute(out, "library", quoted("std"))
     out.write(
         "# This file contains stubs for states directly implemented in targets languages\n")
     out.write("\n\n")
@@ -556,6 +555,7 @@ def generate_lib(resource_name, resource, lib_dir):
                     '"{0}"'.format(alias) for alias in state["method_aliases"]) +
                 "]"
             )
+        fmt_attribute(out, "component", quoted(escaped(state["name"])))
         params = [p["name"] for p in state["parameters"]]
         out.write(
             resource_name +

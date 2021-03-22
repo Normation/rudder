@@ -1007,6 +1007,7 @@ fn test_presource_def() {
                     parameters: vec![],
                     variable_definitions: vec![],
                     variable_extensions: vec![],
+                    is_dependency: false
                 },
                 vec![],
                 None
@@ -1024,6 +1025,7 @@ fn test_presource_def() {
                     parameters: vec![],
                     variable_definitions: vec![],
                     variable_extensions: vec![],
+                    is_dependency: false
                 },
                 vec![],
                 None
@@ -1041,6 +1043,7 @@ fn test_presource_def() {
                     parameters: vec![],
                     variable_definitions: vec![],
                     variable_extensions: vec![],
+                    is_dependency: false
                 },
                 vec![],
                 None
@@ -1058,6 +1061,7 @@ fn test_presource_def() {
                     parameters: vec![],
                     variable_definitions: vec![],
                     variable_extensions: vec![],
+                    is_dependency: false
                 },
                 vec![],
                 Some("hello3".into())
@@ -1075,6 +1079,7 @@ fn test_presource_def() {
                     parameters: vec![],
                     variable_definitions: vec![],
                     variable_extensions: vec![],
+                    is_dependency: false
                 },
                 vec![],
                 Some("hello4".into())
@@ -1101,6 +1106,7 @@ fn test_presource_def() {
                     ],
                     variable_definitions: vec![],
                     variable_extensions: vec![],
+                    is_dependency: false
                 },
                 vec![None, None],
                 None
@@ -1131,6 +1137,7 @@ fn test_presource_def() {
                             .1
                     ],
                     //variable_extensions: vec![],
+                    is_dependency: false
                 },
                 vec![],
                 None
@@ -1403,7 +1410,8 @@ fn test_pstate_def() {
                     name: "configuration".into(),
                     resource_name: "resource".into(),
                     parameters: vec![],
-                    statements: vec![PStatement::Noop]
+                    statements: vec![PStatement::Noop],
+                    is_dependency: false,
                 },
                 vec![]
             )
@@ -1456,7 +1464,8 @@ fn test_pdeclaration() {
                         state_params: vec![PValue::String("\"".into(), "root".to_string()), PValue::String("\"".into(), "root".to_string()), PValue::String("\"".into(), "g+w".to_string())],
                         outcome: None,
                     })
-                ]
+                ],
+                is_dependency: false,
             },vec![]))
         )));
 }

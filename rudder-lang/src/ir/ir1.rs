@@ -68,6 +68,7 @@ impl<'src> IR1<'src> {
             parameter_defaults,
             parents,
             aliases: _aliases,
+            is_dependency,
         } = past;
         let mut ir = IR1::new();
         ir.add_enums(enums);
@@ -79,7 +80,7 @@ impl<'src> IR1<'src> {
         ir.add_default_values(parameter_defaults);
         ir.add_resource_list(&resources);
         let children = ir.create_children_list(parents);
-        ir.add_resources(resources, states, children);
+        ir.add_resources(resources, states, children, is_dependency);
         //ir.add_aliases(aliases);
         if ir.errors.is_empty() {
             Ok(ir)
@@ -335,6 +336,7 @@ impl<'src> IR1<'src> {
         resources: Vec<PResourceDef<'src>>,
         states: Vec<PStateDef<'src>>,
         mut children: HashMap<Token<'src>, HashSet<Token<'src>>>,
+        is_dependency: bool,
     ) {
         // first separate states by resource
         let mut state_list = self
@@ -372,6 +374,7 @@ impl<'src> IR1<'src> {
                 self.context.clone(),
                 &self.parameter_defaults,
                 &self.enum_list,
+                is_dependency,
             );
             self.errors.extend(errs);
             if let Some(r) = resource {
@@ -402,7 +405,7 @@ mod tests {
 
     fn parse_str<'src>(name: &'src str, source: &'src str) -> Result<IR1<'src>> {
         let mut past = PAST::new();
-        past.add_file(name, source)
+        past.add_file(name, source, false)
             .expect("Test should use valid syntax");
         IR1::from_past(past)
     }

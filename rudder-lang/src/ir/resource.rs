@@ -117,6 +117,7 @@ pub struct ResourceDef<'src> {
     pub children: HashSet<Token<'src>>,
     pub context: Rc<VarContext<'src>>,
     pub variable_definitions: VariableDefList<'src>,
+    pub is_dependency: bool,
 }
 
 impl<'src> ResourceDef<'src> {
@@ -130,6 +131,7 @@ impl<'src> ResourceDef<'src> {
             Vec<Option<Constant<'src>>>,
         >,
         enum_list: &EnumList<'src>,
+        is_dependency: bool,
     ) -> (Vec<Error>, Option<Self>) {
         let PResourceDef {
             name,
@@ -137,6 +139,7 @@ impl<'src> ResourceDef<'src> {
             parameters: pparameters,
             variable_definitions,
             variable_extensions,
+            is_dependency,
         } = resource_declaration;
         // create final version of parameters
         let parameters = match create_parameters(pparameters, &parameter_defaults[&(name, None)]) {
@@ -175,6 +178,7 @@ impl<'src> ResourceDef<'src> {
                 context.clone(),
                 parameter_defaults,
                 enum_list,
+                is_dependency,
             );
             errors.extend(err);
             if let Some(st) = state {
@@ -191,6 +195,7 @@ impl<'src> ResourceDef<'src> {
                 children,
                 context,
                 variable_definitions: vars,
+                is_dependency,
             }),
         )
     }
@@ -204,6 +209,7 @@ pub struct StateDef<'src> {
     pub parameters: Vec<Parameter<'src>>,
     pub statements: Vec<Statement<'src>>,
     pub context: Rc<VarContext<'src>>,
+    pub is_dependency: bool,
     //pub is_alias: bool,
 }
 
@@ -218,6 +224,7 @@ impl<'src> StateDef<'src> {
             Vec<Option<Constant<'src>>>,
         >,
         enum_list: &EnumList<'src>,
+        is_dependency: bool,
     ) -> (Vec<Error>, Option<Self>) {
         // create final version of metadata and parameters
         let parameters = match create_parameters(
@@ -252,6 +259,7 @@ impl<'src> StateDef<'src> {
                 parameters,
                 statements,
                 context: Rc::new(context),
+                is_dependency,
             }),
         )
     }

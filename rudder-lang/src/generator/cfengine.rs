@@ -376,13 +376,11 @@ impl Generator for CFEngine {
         // TODO add global variable definitions
         for (resource_name, resource) in gc.resources.iter() {
             for (state_name, state) in resource.states.iter() {
-                // This condition actually rejects every file that is not the input filename
-                // therefore preventing from having an output in another directory
-                // Solutions: check filename rather than path, or accept everything that is not from crate root lib
-                if source_file != state_name.file() {
+                if state.is_dependency {
                     // means it's a lib file, not the file we are interested to generate
                     continue;
                 }
+
                 self.reset_context();
 
                 // Result bundle

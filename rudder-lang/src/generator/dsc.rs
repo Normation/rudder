@@ -256,6 +256,7 @@ impl DSC {
                     )));
                 }
                 let class_param = parameters.remove(class_param_index);
+
                 let is_dsc_supported = match state_def.supported_targets(method_name) {
                     Ok(targets) => targets.contains(&"dsc".to_owned()),
                     Err(_) => true,
@@ -409,7 +410,7 @@ impl Generator for DSC {
                 // This condition actually rejects every file that is not the input filename
                 // therefore preventing from having an output in another directory
                 // Solutions: check filename rather than path, or accept everything that is not from crate root lib
-                if source_file != state_name.file() {
+                if state.is_dependency {
                     // means it's a lib file, not the file we want to generate
                     continue;
                 }
