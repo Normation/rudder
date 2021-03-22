@@ -174,11 +174,9 @@ class AcceptedNodesLDAPQueryProcessor(
 
     for {
       res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId).toBox
-      _ = println("res for processor ok")
       timeres        =  (System.currentTimeMillis - timePreCompute)
       _              =  logger.debug(s"Result obtained in ${timeres}ms for query ${query.toString}")
       ldapEntries    <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition)
-      _ = println("node info service ok")
       ldapEntryTime  =  (System.currentTimeMillis - timePreCompute - timeres)
       _              =  logger.trace(s"Result of query converted in LDAP Entry in ${ldapEntryTime} ms")
 
@@ -437,8 +435,6 @@ class InternalLDAPQueryProcessor(
           entries <- (for {
             results <- executeQuery(rt.baseDn, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, nq.composition, debugId)
           } yield {
-          //  println("resultats are " + results.mkString(",") + " " + limitToNodeIds)
-
             postFilterNode(results.distinctBy(_.dn), query.returnType, limitToNodeIds)
           }).foldM(
             err =>
@@ -464,7 +460,6 @@ class InternalLDAPQueryProcessor(
    * - step2: filter out nodes based on a given list of acceptable entries
    */
   private[this] def postFilterNode(entries: Seq[LDAPEntry], returnType: QueryReturnType, limitToNodeIds:Option[Seq[NodeId]]) : Seq[LDAPEntry] = {
-println("This is a postfilter")
     val step1 = returnType match {
                   //actually, we are able at that point to know if we have a policy server,
                   //so we don't post-process anything.
