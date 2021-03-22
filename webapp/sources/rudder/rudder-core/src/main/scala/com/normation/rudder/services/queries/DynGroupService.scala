@@ -140,7 +140,9 @@ class DynGroupServiceImpl(
       }
     } yield {
       // The idea is to separete group to update groups with a query based on other groups content (objecttype group) in two seq
-      dyngroups.partition(group => group.query.map(query => query.criteria.filter(_.objectType.objectType == "group").size) == 0)
+      dyngroups.partition { group =>
+        group.query.map(query => query.criteria.filter(_.objectType.objectType == "group").size).getOrElse(0) == 0
+      }
     }).toBox
   }
   override def changesSince(lastTime: DateTime): Box[Boolean] = {

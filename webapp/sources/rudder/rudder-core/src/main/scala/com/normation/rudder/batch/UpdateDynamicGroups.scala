@@ -278,11 +278,11 @@ class UpdateDynamicGroups(
 
             val truc = (for {
               results <- dynGroupIds.accumulateParN(8) { case dynGroupId =>
-                println("running")
+                println("running1 " + dynGroupId)
                 dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
               }
               results2 <- dynGroupsWithDependencyIds.accumulateParN(1) { case dynGroupId =>
-                println("running")
+                println("running 2 " + dynGroupId)
                 dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
               }
             } yield {
