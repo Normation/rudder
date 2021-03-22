@@ -150,7 +150,7 @@ class TestPendingNodePolicies extends Specification {
       a, b, c, d, e, /*f, static */ g, h, i, j, k, l, m, n, o, pp
     ))
 
-    def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroup], Seq[NodeGroup])] = ???
+    def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroupId], Seq[NodeGroupId])] = ???
     override def changesSince(lastTime: DateTime): Box[Boolean] = Full(true)
   }
 

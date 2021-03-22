@@ -85,7 +85,7 @@ trait DynGroupService {
    * All those without dependencies on another group, and all
    * those with dependency to other groups
    */
-  def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroup], Seq[NodeGroup])]
+  def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroupId], Seq[NodeGroupId])]
 
   /**
    *  Find if changes happened since `lastTime`.
@@ -131,7 +131,7 @@ class DynGroupServiceImpl(
     }
   }.toBox
 
-  def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroup], Seq[NodeGroup])] = {
+  def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroupId], Seq[NodeGroupId])] = {
     (for {
       con         <- ldap
       entries     <- con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs:_*)
@@ -140,9 +140,10 @@ class DynGroupServiceImpl(
       }
     } yield {
       // The idea is to separete group to update groups with a query based on other groups content (objecttype group) in two seq
-      dyngroups.partition { group =>
+      val (groups, groupsDependant) = dyngroups.partition { group =>
         group.query.map(query => query.criteria.filter(_.objectType.objectType == "group").size).getOrElse(0) == 0
       }
+      (groups.map(_.id), groupsDependant.map(_.id))
     }).toBox
   }
   override def changesSince(lastTime: DateTime): Box[Boolean] = {

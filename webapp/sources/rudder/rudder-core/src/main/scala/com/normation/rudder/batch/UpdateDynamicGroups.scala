@@ -50,7 +50,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.box._
-import com.normation.zio._
 import com.normation.errors._
 //Message to send to the updater manager to start a new update of all dynamic groups or get results
 sealed trait GroupUpdateMessage
@@ -156,7 +155,7 @@ class UpdateDynamicGroups(
             dynGroupService.getAllDynGroupsWithandWithoutDependencies match {
               case Full(groups) =>
                 updateId = updateId + 1
-                LAUpdateDyngroup ! StartDynamicUpdate(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groups._1.map(_.id), groups._2.map(_.id)))
+                LAUpdateDyngroup ! StartDynamicUpdate(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groups._1, groups._2))
               case e:EmptyBox =>
                 val error = (e?~! "Error when trying to get the list of dynamic group to update")
                 logger.error( error.messageChain )
