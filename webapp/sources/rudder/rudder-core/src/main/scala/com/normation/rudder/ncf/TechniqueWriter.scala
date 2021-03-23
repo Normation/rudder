@@ -79,7 +79,6 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.errors.RudderError
@@ -111,7 +110,6 @@ class TechniqueWriter (
   , basePath            : String
   , parameterTypeService: ParameterTypeService
   , techniqueSerializer : TechniqueSerializer
-  , doRudderLangTest    : Boolean
 ) {
 
   private[this] val agentSpecific = new ClassicTechniqueWriter(basePath, parameterTypeService) :: new DSCTechniqueWriter(basePath, translater, parameterTypeService) :: Nil
@@ -268,36 +266,58 @@ class TechniqueWriter (
       updatedTechnique <- writeTechnique(technique,methods,modId,committer)
       libUpdate  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
                       toIO.chainError(s"An error occured during technique update after files were created for ncf Technique ${technique.name}")
-      _          <- ZIO.when(doRudderLangTest) {
-                      IOResult.effect(runRudderLangTestLoop(technique)).catchAll(err =>
-                        ApplicationLoggerPure.error("Error when doing rudder-lang test loop. You can disable that test with property " +
-                                                    s"'rudder.lang.test-loop.exec' in rudder config file: ${err.fullMsg}"))
-                    }
     } yield {
       updatedTechnique
     }
   }
 
-  def runRudderLangTestLoop(technique : Technique): Unit = {
-    System.getenv().asScala.get("PATH") match {
-      case Some(path: String) => RunNuCommand.run(Cmd("/opt/rudder/share/rudder-lang/tools/tester.sh", technique.bundleName.value :: technique.category :: Nil, Map("PATH" -> path))).either.runNow match {
-        case Left(error: Error) => ApplicationLogger.error(error.getMessage)
-        case Left(error: RudderError) => ApplicationLogger.error(error.msg)
-        case Right(_)  => ApplicationLogger.info(s"rudder-lang tester successfully looped for technique ${technique.bundleName.value}")
+  def callRudderc(technique : Technique) = {
+    val configFile = "/opt/rudder/etc/rudderc.conf"
+    for {
+      r <- RunNuCommand.run(Cmd("/opt/rudder/bin/rudderc", "save" :: "-j" :: "-i" :: s"\"${basePath}/${techniquePath(technique)}/technique.json\"" :: s"--config-file=${configFile}" :: Nil, Map.empty))
+      res <- r.await
+      _   <- ZIO.when(res.code != 0) {
+        Inconsistency(
+          s"An error occurred when translating technique.json file into Rudder language\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+        ).fail
       }
-      case None => ApplicationLogger.error(s"PATH environment variable must be defined to run rudder-lang test loop.")
+      r <- RunNuCommand.run(Cmd("/opt/rudder/bin/rudderc", "compile" :: "-j" :: "-f" :: "\"cf\"" :: "-i" :: s"\"${basePath}/${techniquePath(technique)}/technique.rl\"" :: s"--config-file=${configFile}" :: Nil, Map.empty))
+      res <- r.await
+      _   <- ZIO.when(res.code != 0) {
+        Inconsistency(
+          s"An error occurred when compiling technique.rl file into cfengine\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+        ).fail
+      }
+      r <- RunNuCommand.run(Cmd("/opt/rudder/bin/rudderc", "compile" :: "-j" :: "-f"  :: "\"dsc\"" :: "-i" :: s"\"${basePath}/${techniquePath(technique)}/technique.rl\"" :: s"--config-file=${configFile}" :: Nil, Map.empty))
+      res <- r.await
+      _   <- ZIO.when(res.code != 0) {
+        Inconsistency(
+          s"An error occurred when compiling technique.rl file into dsc\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+        ).fail
+      }
+    } yield  {
+      ()
     }
   }
 
   // Write and commit all techniques files
   def writeTechnique(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[Technique] = {
     for {
-      agentFiles <- writeAgentFiles(technique, methods, modId, committer)
       metadata   <- writeMetadata(technique, methods, modId, committer)
       // Before writing down technique, set all resources to Untouched state, and remove Delete resources, was the cause of #17750
-      updateResources  = technique.ressources.collect{case r if r.state != ResourceFileState.Deleted => r.copy(state = ResourceFileState.Untouched) }
-      techniqueWithResourceUpdated = technique.copy(ressources = updateResources)
+      updateResources = technique.ressources.collect{case r if r.state != ResourceFileState.Deleted => r.copy(state = ResourceFileState.Untouched) }
+                         techniqueWithResourceUpdated = technique.copy(ressources = updateResources)
       json       <- writeJson(techniqueWithResourceUpdated)
+      agentFiles <- callRudderc(technique).catchAll(e =>
+        for {
+          _ <- ApplicationLoggerPure.info(s"An error occurred when compiling technique '${technique.name}' (id : '${technique.bundleName}') with rudderc, error details will be displayed below, falling back to old saving process")
+          _ <- ApplicationLoggerPure.error(s"Rudderc error when compiling technique '${technique.name}' (id : '${technique.bundleName}'): ${e.fullMsg}")
+          - <-  writeAgentFiles (technique, methods, modId, committer)
+        } yield {
+          ()
+        }
+      )
+
       commit     <- archiver.commitTechnique(technique, modId, committer, s"Committing technique ${technique.name}")
     } yield {
       techniqueWithResourceUpdated
@@ -330,9 +350,12 @@ class TechniqueWriter (
     }
   }
 
+  def techniquePath(technique : Technique) = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}"
+
+
 
   def writeJson(technique: Technique) = {
-    val metadataPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/technique.json"
+    val metadataPath = s"${techniquePath(technique)}/technique.json"
 
     val path = s"${basePath}/${metadataPath}"
 
@@ -761,6 +784,7 @@ class TechniqueArchiverImpl (
       "technique.cf" +:
       "technique.ps1" +:
       "technique.json" +:
+      "technique.rl" +:
       technique.ressources.collect {
       case ResourceFile(path, action) if action == ResourceFileState.New | action == ResourceFileState.Modified =>
         s"resources/${path}"
