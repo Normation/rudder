@@ -178,6 +178,7 @@ impl DSC {
     ) -> Result<Vec<Call>> {
         match st {
             Statement::ConditionVariableDefinition(var) => {
+                let inner_state_def = gc.get_state_def(&var.resource, &var.state)?;
                 let state_decl = var.to_method();
                 let method_name = &format!("{}-{}", var.resource.fragment(), var.state.fragment());
                 let mut parameters =
@@ -202,13 +203,18 @@ impl DSC {
                 }
                 // tmp -1, index of lib generator is off 1
                 let class_param = parameters.remove(class_param_index);
-                let is_dsc_supported = state_def
-                    .supported_formats(method_name)?
-                    .contains(&"dsc".to_owned());
+                let is_dsc_supported = match state_def.supported_targets(method_name) {
+                    Ok(targets) => targets.contains(&"dsc".to_owned()),
+                    Err(_) => true,
+                };
 
-                let component = match var.metadata.get("component") {
+                let component = match var
+                    .metadata
+                    .get("component")
+                    .or(inner_state_def.metadata.get("name"))
+                {
                     Some(TomlValue::String(s)) => s.to_owned(),
-                    _ => "any".to_string(),
+                    _ => method_name.to_owned(),
                 };
 
                 Ok(Method::new()
@@ -222,11 +228,13 @@ impl DSC {
                     .build())
             }
             Statement::StateDeclaration(sd) => {
+                let inner_state_def = gc.get_state_def(&sd.resource, &sd.state)?;
+                let method_name = &format!("{}-{}", sd.resource.fragment(), sd.state.fragment());
+
                 if let Some(var) = sd.outcome {
                     self.new_var(&var);
                 }
 
-                let method_name = &format!("{}-{}", sd.resource.fragment(), sd.state.fragment());
                 let mut parameters =
                     fetch_method_parameters(gc, sd, |name, value, parameter_metadatas| {
                         let content_type = parameter_metadatas
@@ -248,13 +256,18 @@ impl DSC {
                     )));
                 }
                 let class_param = parameters.remove(class_param_index);
-                let is_dsc_supported = state_def
-                    .supported_formats(method_name)?
-                    .contains(&"dsc".to_owned());
+                let is_dsc_supported = match state_def.supported_targets(method_name) {
+                    Ok(targets) => targets.contains(&"dsc".to_owned()),
+                    Err(_) => true,
+                };
 
-                let component = match sd.metadata.get("component") {
+                let component = match sd
+                    .metadata
+                    .get("component")
+                    .or(inner_state_def.metadata.get("name"))
+                {
                     Some(TomlValue::String(s)) => s.to_owned(),
-                    _ => "any".to_string(),
+                    _ => method_name.to_owned(),
                 };
 
                 Ok(Method::new()
