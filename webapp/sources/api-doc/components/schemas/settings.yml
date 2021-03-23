@@ -184,6 +184,10 @@ settings:
       type: boolean
       default: true
       description: Recompute all dynamic groups at the start of policy generation
+    rudder_compute_dyngroups_max_parallelism:
+      type: int
+      default: 1
+      description: Set the parallelism to compute dynamic group, as a number of thread (i.e. 4) 
     rudder_save_db_compliance_levels:
       type: boolean
       default: true

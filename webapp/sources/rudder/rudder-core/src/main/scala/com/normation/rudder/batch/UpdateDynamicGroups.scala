@@ -81,11 +81,12 @@ final case class StartDynamicUpdate(id:Long, modId:ModificationId, started: Date
  * - else, use the given value.
  */
 class UpdateDynamicGroups(
-    dynGroupService       : DynGroupService
-  , dynGroupUpdaterService: DynGroupUpdaterService
-  , asyncDeploymentAgent  : AsyncDeploymentActor
-  , uuidGen               : StringUuidGenerator
-  , updateInterval        : Int // in minutes
+    dynGroupService              : DynGroupService
+  , dynGroupUpdaterService       : DynGroupUpdaterService
+  , asyncDeploymentAgent         : AsyncDeploymentActor
+  , uuidGen                      : StringUuidGenerator
+  , updateInterval               : Int // in minutes
+  , getComputeDynGroupParallelism: () => Box[Int]
 ) {
 
   private val propertyName = "rudder.batch.dyngroup.updateInterval"
@@ -275,8 +276,18 @@ class UpdateDynamicGroups(
           currentState = StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds, dynGroupsWithDependencyIds))
           try {
 
-            val truc = (for {
-              results <- dynGroupIds.accumulateParN(8) { case dynGroupId =>
+            val maxParallelism = {
+              val t = getComputeDynGroupParallelism().getOrElse(1)
+              if (t < 1) {
+                logger.warn(s"You can't set 'rudder_compute_dyngroups_max_parallelism' so that there is less than 1 thread for computation")
+                1
+              } else {
+                t
+              }
+            }
+
+            val result = (for {
+              results <- dynGroupIds.accumulateParN(maxParallelism) { case dynGroupId =>
                 println("running1 " + dynGroupId)
                 dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
               }
@@ -287,21 +298,8 @@ class UpdateDynamicGroups(
             } yield {
               results ++ results2
             }).toBox
-            /*
-            val results : Box[ List[(NodeGroupId, Either[RudderError, DynGroupDiff])]] = {dynGroupIds.accumulateParN(8) { case dynGroupId =>
-              println("running")
-              dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
-            } *> dynGroupsWithDependencyIds.accumulateParN(1) { case dynGroupId =>
-              println("running")
-              dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
-            }} .toBox
-*/
-       //     val results = for {
-       //       dynGroupId <- dynGroupIds
-       //     } yield {
-       //       (dynGroupId, dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")))
-       //     }
-            updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime, DateTime.now, truc)
+
+            updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime, DateTime.now, result)
           } catch {
             case e:Exception => updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime,DateTime.now,
                  // SystemError(dynGroupIds.toList.map(id => (id,Left(RudderError("Exception caught during update process."))))))

@@ -162,7 +162,7 @@ object RestTestSetUp {
       def registerCallback(callback:TechniquesLibraryUpdateNotification) : Unit = {}
     }
 
-  val fakeUpdateDynamicGroups = new UpdateDynamicGroups(null, null, null, null, 0) {
+  val fakeUpdateDynamicGroups = new UpdateDynamicGroups(null, null, null, null, 0, null) {
     override def startManualUpdate: Unit = ()
   }
   ///// query parsing ////
