@@ -319,24 +319,24 @@ class PrepareTemplateVariablesImpl(
                      variableSpec match {
                        case x : TrackerVariableSpec =>
                          variables.get(x.name) match {
-                           case None    => Inconsistency(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Misssing mandatory value for tracker variable: '${x.name}'").fail
+                           case None    => Inconsistency(s"[${agentNodeProps.nodeId.value}:${policy.technique.id.debugString}] Misssing mandatory value for tracker variable: '${x.name}'").fail
                            case Some(v) =>
                              stVariableFromVariable(v, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id).map(Some(_))
                          }
                        case x : SystemVariableSpec => systemVars.get(x.name) match {
                            case None =>
                              if(x.constraint.mayBeEmpty) { //ok, that's expected
-                               PolicyGenerationLoggerPure.trace(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Variable system named '${x.name}' not found in the extended variables environnement") *>
+                               PolicyGenerationLoggerPure.trace(s"[${agentNodeProps.nodeId.value}:${policy.technique.id.debugString}] Variable system named '${x.name}' not found in the extended variables environnement") *>
                                None.succeed
                              } else {
-                               Inconsistency(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Missing value for system variable: '${x.name}'").fail
+                               Inconsistency(s"[${agentNodeProps.nodeId.value}:${policy.technique.id.debugString}] Missing value for system variable: '${x.name}'").fail
                              }
                            case Some(sysvar) =>
                              stVariableFromVariable(sysvar, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id).map(Some(_))
                        }
                        case x : SectionVariableSpec =>
                          variables.get(x.name) match {
-                           case None    => Inconsistency(s"[${agentNodeProps.nodeId.value}:${policy.technique.id}] Misssing value for standard variable: '${x.name}'").fail
+                           case None    => Inconsistency(s"[${agentNodeProps.nodeId.value}:${policy.technique.id.debugString}] Misssing value for standard variable: '${x.name}'").fail
                            case Some(v) => stVariableFromVariable(v, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id).map(Some(_))
                          }
                      }

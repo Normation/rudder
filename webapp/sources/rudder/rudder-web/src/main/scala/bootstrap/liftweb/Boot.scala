@@ -530,7 +530,7 @@ class Boot extends Loggable {
         )
     ).either.runNow match {
       case Left(err) =>
-        ApplicationLogger.error(s"Error when trying to save the EventLog for application start: ${err}")
+        ApplicationLogger.error(s"Error when trying to save the EventLog for application start: ${err.fullMsg}")
       case Right(_)  => ApplicationLogger.info("Application Rudder started")
     }
   }
@@ -582,7 +582,7 @@ class Boot extends Loggable {
     val pluginDefs = scalaPlugins.values.toList ++ nonScala
 
     pluginDefs.foreach { plugin =>
-      PluginLogger.info(s"Initializing plugin '${plugin.name.value}': ${plugin.version}")
+      PluginLogger.info(s"Initializing plugin '${plugin.name.value}': ${plugin.version.toString}")
 
       // resources in src/main/resources/toserve/${plugin short-name} must be allowed for each plugin
       ResourceServer.allow{

@@ -37,8 +37,10 @@
 package com.normation.rudder.services.policies.nodeconfig
 
 import better.files._
+import com.normation.GitVersion
 import com.normation.cfclerk.domain._
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.services.policies.PolicyId
@@ -55,6 +57,15 @@ import org.specs2.specification.AfterAll
 
 @RunWith(classOf[JUnitRunner])
 class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll with Loggable {
+
+  implicit class ParseTechniqueVerison(s: String) {
+    def toTV: TechniqueVersion = {
+      TechniqueVersion.parse(s) match {
+        case Right(v) => v
+        case Left(e)  => throw new IllegalArgumentException(s"Error when parsing '${s}' as a technique version: ${e}")
+      }
+    }
+  }
 
   implicit class ForceGet[A](b: Box[A]) {
     def forceGet = b match {
@@ -84,21 +95,21 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
   val h0_0 = NodeConfigurationHash(NodeId("node0"), d0, 0, 0, 0, Set())
 
   val h1_0 = NodeConfigurationHash(NodeId("node1"), d0, 0, 0, 0, Set(
-    PolicyHash(PolicyId(RuleId("r0"), DirectiveId("d0"), TechniqueVersion("1.0")), 0)
-  , PolicyHash(PolicyId(RuleId("r1"), DirectiveId("d1"), TechniqueVersion("1.0")), 0)
+    PolicyHash(PolicyId(RuleId("r0"), DirectiveId(DirectiveUid("d0"), GitVersion.defaultRev), TechniqueVersionHelper("1.0")), 0)
+  , PolicyHash(PolicyId(RuleId("r1"), DirectiveId(DirectiveUid("d1"), GitVersion.defaultRev), TechniqueVersionHelper("1.0")), 0)
   ))
 
   val h2_0 = NodeConfigurationHash(NodeId("node2"), d0, 0, 0, 0, Set(
-    PolicyHash(PolicyId(RuleId("r0"), DirectiveId("d0"), TechniqueVersion("1.0")), 0)
+    PolicyHash(PolicyId(RuleId("r0"), DirectiveId(DirectiveUid("d0"), GitVersion.defaultRev), TechniqueVersionHelper("1.0")), 0)
   ))
 
   val h1_1 = NodeConfigurationHash(NodeId("node1"), d1, 0, 0, 0, Set(
-    PolicyHash(PolicyId(RuleId("r0"), DirectiveId("d0"), TechniqueVersion("1.0")), 0)
-  , PolicyHash(PolicyId(RuleId("r2"), DirectiveId("d2"), TechniqueVersion("1.0")), 0)
+    PolicyHash(PolicyId(RuleId("r0"), DirectiveId(DirectiveUid("d0"), GitVersion.defaultRev), TechniqueVersionHelper("1.0")), 0)
+  , PolicyHash(PolicyId(RuleId("r2"), DirectiveId(DirectiveUid("d2"), GitVersion.defaultRev), TechniqueVersionHelper("1.0")), 0)
   ))
 
   val h3_0 = NodeConfigurationHash(NodeId("node3"), d1, 0, 0, 0, Set(
-    PolicyHash(PolicyId(RuleId("r3"), DirectiveId("d3"), TechniqueVersion("1.0")), 0)
+    PolicyHash(PolicyId(RuleId("r3"), DirectiveId(DirectiveUid("d3"), GitVersion.defaultRev), TechniqueVersionHelper("1.0")), 0)
   ))
 
   val s1 = Set(h1_0, h0_0, h2_0)

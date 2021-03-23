@@ -239,8 +239,8 @@ class CommitAndDeployChangeRequestServiceImpl(
           case None => Failure("could not find directive context from initial state")
         }
       }
-      def failureMessage(directive : Directive)  = s"Rule ${directive.name} (id: ${directive.id.value})"
-      def getCurrentValue(directive : Directive) = roDirectiveRepo.getDirective(directive.id).toBox.flatMap {
+      def failureMessage(directive : Directive)  = s"Rule ${directive.name} (id: ${directive.id.uid.value})"
+      def getCurrentValue(directive : Directive) = roDirectiveRepo.getDirective(directive.id.uid).toBox.flatMap {
         case None => Empty
         case Some(dir) => Full(dir)
       }
@@ -324,7 +324,7 @@ class CommitAndDeployChangeRequestServiceImpl(
         }
 
         if ( initialFixed.directiveIds != currentFixed.directiveIds) {
-          debugLog(s"Rule ID ${initialFixed.id.value} attached Directives have changed: original state from CR: ${initialFixed.directiveIds.map(_.value).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.directiveIds.map(_.value).mkString("[ ", ", ", " ]")}")
+          debugLog(s"Rule ID ${initialFixed.id.value} attached Directives have changed: original state from CR: ${initialFixed.directiveIds.map(_.debugString).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.directiveIds.map(_.debugString).mkString("[ ", ", ", " ]")}")
         }
 
         //return
@@ -356,27 +356,27 @@ class CommitAndDeployChangeRequestServiceImpl(
         debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
 
         if ( initialFixed.name != currentFixed.name) {
-          debugLog(s"Directive ID ${initialFixed.id.value} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
+          debugLog(s"Directive ID ${initialFixed.id.uid.value} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
         }
 
         if ( initialFixed.shortDescription != currentFixed.shortDescription) {
-          debugLog(s"Directive ID ${initialFixed.id.value} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}")
+          debugLog(s"Directive ID ${initialFixed.id.uid.value} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}")
         }
 
         if ( initialFixed.longDescription != currentFixed.longDescription) {
-          debugLog(s"Directive ID ${initialFixed.id.value} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}")
+          debugLog(s"Directive ID ${initialFixed.id.uid.value} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}")
         }
 
         if ( initialFixed.priority != currentFixed.priority) {
-          debugLog(s"Directive ID ${initialFixed.id.value} priority has changed: original state from CR: ${initialFixed.priority}, current value: ${currentFixed.priority}")
+          debugLog(s"Directive ID ${initialFixed.id.uid.value} priority has changed: original state from CR: ${initialFixed.priority}, current value: ${currentFixed.priority}")
         }
 
         if ( initialFixed.isEnabled != currentFixed.isEnabled) {
-          debugLog(s"Directive ID ${initialFixed.id.value} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}")
+          debugLog(s"Directive ID ${initialFixed.id.uid.value} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}")
         }
 
         if ( initialFixed.techniqueVersion != currentFixed.techniqueVersion) {
-          debugLog(s"Directive ID ${initialFixed.id.value} Technique version has changed: original state from CR: ${initialFixed.techniqueVersion}, current value: ${currentFixed.techniqueVersion}")
+          debugLog(s"Directive ID ${initialFixed.id.uid.value} Technique version has changed: original state from CR: ${initialFixed.techniqueVersion}, current value: ${currentFixed.techniqueVersion}")
         }
 
         for  {
@@ -385,7 +385,7 @@ class CommitAndDeployChangeRequestServiceImpl(
           currVal = currentFixed.parameters.get(key)
         } yield {
           if ( currVal != initVal) {
-            debugLog(s"Directive ID ${initialFixed.id.value} parameter $key has changed : original state from CR: ${initVal.getOrElse("value is mising")}, current value: ${currVal.getOrElse("value is mising")}")
+            debugLog(s"Directive ID ${initialFixed.id.uid.value} parameter $key has changed : original state from CR: ${initVal.getOrElse("value is mising")}, current value: ${currVal.getOrElse("value is mising")}")
           }
         }
 
@@ -552,7 +552,7 @@ class CommitAndDeployChangeRequestServiceImpl(
         change <- directiveChanges.changes.change
         diff   <- change.diff match {
                     case DeleteDirectiveDiff(tn,d) =>
-                      dependencyService.cascadeDeleteDirective(d.id, modId, change.actor, change.reason).map( _ => DeleteDirectiveDiff(tn,d) )
+                      dependencyService.cascadeDeleteDirective(d.id.uid, modId, change.actor, change.reason).map( _ => DeleteDirectiveDiff(tn,d) )
                     case ModifyToDirectiveDiff(tn,d,rs) =>
                       // if the save returns None, then we return the original modification object
                       save(tn,d, change).map(_.getOrElse(ModifyToDirectiveDiff(tn,d,rs)))

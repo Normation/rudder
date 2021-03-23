@@ -39,15 +39,14 @@ package com.normation.rudder.web.components.popup
 
 import net.liftweb.http.js._
 import JsCmds._
-import com.normation.rudder.domain.policies.{Rule,RuleId}
+import com.normation.rudder.domain.policies.{Rule, RuleId}
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,DispatchSnippet,Templates}
+import net.liftweb.http.{DispatchSnippet, SHtml, Templates}
+
 import scala.xml._
 import net.liftweb.util.Helpers._
-import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField
-}
+import com.normation.rudder.web.model.{FormTracker, WBTextAreaField, WBTextField}
 import CreateOrCloneRulePopup._
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.eventlog.ModificationId
@@ -56,7 +55,6 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.web.ChooseTemplate
-
 import com.normation.box._
 
 class CreateOrCloneRulePopup(
@@ -197,6 +195,7 @@ class CreateOrCloneRulePopup(
       val rule =
         Rule(
             RuleId(uuidGen.newUuid)
+          , None
           , ruleName.get
           , RuleCategoryId(category.get)
           , targets = clonedRule.map( _.targets).getOrElse(Set())

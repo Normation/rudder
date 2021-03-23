@@ -37,8 +37,10 @@
 
 package com.normation.rudder.repository.xml
 
-import java.io.InputStream
+import com.normation.GitVersion.Revision
+import com.normation.GitVersion.RevisionInfo
 
+import java.io.InputStream
 import org.eclipse.jgit.lib.{Constants => JConstants}
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
@@ -46,9 +48,9 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import org.eclipse.jgit.treewalk.filter.TreeFilter
 import org.eclipse.jgit.treewalk.TreeWalk
+
 import java.io.File
 import java.io.ByteArrayOutputStream
-
 import com.normation.NamedZioLogger
 import com.normation.rudder.repository.xml.ZipUtils.Zippable
 import zio._
@@ -56,6 +58,7 @@ import zio.syntax._
 import com.normation.errors._
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.Status
+import org.joda.time.DateTime
 
 /**
  * Utility trait to find/list/get content
@@ -123,6 +126,18 @@ object GitFindUtils extends NamedZioLogger {
             ZIO.bracket(IOResult.effect(db.open(h).openStream()))(s => effectUioUnit(s.close()))(useIt)
           case _ =>
             Inconsistency(s"More than exactly one matching file were found in the git tree for path '${filePath}', I can not know which one to choose. IDs: ${ids}}").fail
+      }
+    }
+  }
+
+  /**
+   * Retrieve revisions for the given path
+   */
+  def findRevFromPath(git: Git, path: String): IOResult[Iterable[RevisionInfo]] = {
+    import scala.jdk.CollectionConverters._
+    IOResult.effectM(s"Error when looking for revisions changes in '${path}'") {
+      ZIO.foreach(git.log().addPath(path).call().asScala) { commit =>
+        RevisionInfo(Revision(commit.getId.getName), new DateTime(commit.getCommitTime.toLong*1000), commit.getAuthorIdent.getName, commit.getFullMessage).succeed
       }
     }
   }

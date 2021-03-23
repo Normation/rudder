@@ -47,7 +47,7 @@ import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmd
 import net.liftweb.util.Helpers
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 
 import scala.xml.Text
@@ -126,14 +126,14 @@ object DisplayDirectiveTree extends Loggable {
     , globalMode      : GlobalPolicyMode
       //set of all directives at least used by one rule
       //the int is the number of rule which used it
-    , usedDirectiveIds: Seq[(DirectiveId, Int)]
+    , usedDirectiveIds: Seq[(DirectiveUid, Int)]
     , onClickCategory : Option[FullActiveTechniqueCategory => JsCmd]
     , onClickTechnique: Option[(FullActiveTechniqueCategory, FullActiveTechnique) => JsCmd]
     , onClickDirective: Option[(FullActiveTechniqueCategory, FullActiveTechnique, Directive) => JsCmd]
     , createDirective : Option[(Technique, FullActiveTechnique) => JsCmd]
     , addEditLink     : Boolean
     , addActionBtns   : Boolean
-    , included        : Set[DirectiveId] = Set()
+    , included        : Set[DirectiveUid] = Set()
     , keepCategory    : FullActiveTechniqueCategory => Boolean = _ => true
     , keepTechnique   : FullActiveTechnique => Boolean = _ => true
     , keepDirective   : Directive => Boolean = _ => true
@@ -271,7 +271,7 @@ object DisplayDirectiveTree extends Loggable {
       , activeTechnique  : FullActiveTechnique
     ) : JsTreeNode = new JsTreeNode {
 
-      val isAssignedTo = usedDirectiveIds.find{ case(id,_) => id == directive.id }.map(_._2).getOrElse(0)
+      val isAssignedTo = usedDirectiveIds.find{ case(id,_) => id == directive.id.uid }.map(_._2).getOrElse(0)
 
       val agentTypes = technique.toList.flatMap(_.agentConfigs.map(_.agentType) )
       val agentCompat = AgentCompat(agentTypes)
@@ -279,13 +279,13 @@ object DisplayDirectiveTree extends Loggable {
       override def children = Nil
 
       val classes = {
-        val includedClass = if (included.contains(directive.id)) {"included"} else ""
+        val includedClass = if (included.contains(directive.id.uid)) {"included"} else ""
         val disabled = if(directive.isEnabled) "" else "is-disabled"
         s"${disabled} ${includedClass} directiveNode"
 
       }
 
-      val htmlId = s"jsTree-${directive.id.value}"
+      val htmlId = s"jsTree-${directive.id.uid.value}"
 
       val directiveTags = JsArray(directive.tags.map(tag => JsObj("key" -> tag.name.value, "value" -> Str(tag.value.value))).toList)
       override val attrs = (
@@ -306,7 +306,7 @@ object DisplayDirectiveTree extends Loggable {
               </div>
             """
             <span class="treeActions">
-              <span class="treeAction noRight directiveDetails fa fa-pencil bsTooltip"  data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent} onclick={linkUtil.redirectToDirectiveLink(directive.id).toJsCmd}> </span>
+              <span class="treeAction noRight directiveDetails fa fa-pencil bsTooltip"  data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent} onclick={linkUtil.redirectToDirectiveLink(directive.id.uid).toJsCmd}> </span>
             </span>
           } else {
             NodeSeq.Empty

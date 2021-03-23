@@ -45,6 +45,7 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors._
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Loggable
@@ -58,11 +59,10 @@ import com.normation.rudder.rest.{TechniqueApi => API, _}
 import com.normation.rudder.rest.RestUtils.response
 import com.normation.rudder.rest.JsonResponseObjects._
 import com.normation.rudder.rest.implicits._
+import com.normation.utils.ParseVersion
+import com.normation.utils.Version
 
 import scala.collection.SortedMap
-import scala.util.Success
-import scala.util.Try
-import scala.util.{Failure => TryFailure}
 
 
 
@@ -79,6 +79,7 @@ class TechniqueApi (
       case API.ListTechniques           => ChooseApi0(ListTechniques          , ListTechniquesV14                )
       case API.ListTechniquesDirectives => ChooseApiN(ListTechniquesDirectives, ListTechniquesDirectivesV14)
       case API.ListTechniqueDirectives  => ChooseApiN(ListTechniqueDirectives , ListTechniqueDirectivesV14 )
+      case API.TechniqueRevisions       => TechniqueRevisions
     }).toList
   }
 
@@ -110,7 +111,7 @@ class TechniqueApi (
       )(
           apiV6.listDirectives(techniqueName, None)
         , req
-        , s"Could not find list of directives based on '${techniqueName}' Technique"
+        , s"Could not find list of directives based on '${techniqueName.value}' Technique"
        ) ("listTechniquesDirectives")
     }
   }
@@ -121,11 +122,11 @@ class TechniqueApi (
     def process(version: ApiVersion, path: ApiPath, nv: (String, String), req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
       val (techniqueName, version) = (TechniqueName(nv._1), nv._2)
-      val directives = Try(TechniqueVersion(version)) match {
-        case Success(techniqueVersion) =>
+      val directives = TechniqueVersion.parse(version) match {
+        case Right(techniqueVersion) =>
               apiV6.listDirectives(techniqueName, Some(techniqueVersion :: Nil))
-        case TryFailure(exception) =>
-          Failure(s"Could not find list of directives based on '${techniqueName}' Technique, because we could not parse '${version}' as a valid technique version")
+        case Left(err) =>
+          Failure(s"Could not find list of directives based on '${techniqueName.value}' Technique, because we could not parse '${version}' as a valid technique version")
       }
       response(
           restExtractor
@@ -133,7 +134,7 @@ class TechniqueApi (
         , Some(s"${techniqueName.value}/${version}")
       ) ( directives
         , req
-        , s"Could not find list of directives based on version '${version}' of '${techniqueName}' Technique"
+        , s"Could not find list of directives based on version '${version}' of '${techniqueName.value}' Technique"
       ) ("listTechniqueDirectives")
     }
   }
@@ -162,9 +163,24 @@ class TechniqueApi (
         case Right(techniqueVersion) =>
           serviceV14.listDirectives(techniqueName, Some(techniqueVersion :: Nil))
         case Left(error) =>
-          Inconsistency(s"Could not find list of directives based on '${techniqueName}' technique, because we could not parse '${version}' as a valid technique version").fail
+          Inconsistency(s"Could not find list of directives based on '${techniqueName.value}' technique, because we could not parse '${version}' as a valid technique version").fail
       }
       directives.toLiftResponseList(params, schema)
+    }
+  }
+
+  object TechniqueRevisions extends LiftApiModuleString2 {
+    val schema = API.TechniqueRevisions
+    def process(version: ApiVersion, path: ApiPath, nv: (String, String), req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val (techniqueName, version) = (TechniqueName(nv._1), nv._2)
+
+      val revisions = ParseVersion.parse(version) match {
+        case Right(v) =>
+          serviceV14.techniqueRevisions(techniqueName, v)
+        case Left(error) =>
+          Inconsistency(s"Could not find list of directives based on '${techniqueName.value}' technique, because we could not parse '${version}' as a valid technique version: ${error}").fail
+      }
+      revisions.toLiftResponseList(params, schema)
     }
   }
 }
@@ -197,7 +213,7 @@ class TechniqueAPIService6 (
       ZIO.foreach(directives.filter(filter)) { directive =>
         techniques.get(directive.techniqueVersion) match {
           case None            =>
-            Inconsistency(s"Version ${directive.techniqueVersion} of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.value}'").fail
+            Inconsistency(s"Version '${directive.techniqueVersion.serialize}' of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.uid.value}'").fail
           case Some(technique) =>
             serialize(technique,directive).succeed
         }
@@ -209,7 +225,7 @@ class TechniqueAPIService6 (
         case Some(versions) =>
           ZIO.foreach(versions) { version =>
             ZIO.when(!techniques.keySet.contains(version)) {
-              Inconsistency(s"Version '${version}' of Technique '${techniqueName.value}' does not exist").fail
+              Inconsistency(s"Version '${version.serialize}' of Technique '${techniqueName.value}' does not exist").fail
             }
           }
         case None => UIO.unit
@@ -231,8 +247,9 @@ class TechniqueAPIService6 (
 }
 
 class TechniqueAPIService14 (
-    readDirective        : RoDirectiveRepository
-  , techniqueRepository  : TechniqueRepository
+    readDirective      : RoDirectiveRepository
+  , techniqueRepository: TechniqueRepository
+  , techniqueRevisions : TechniqueRevisionRepository
   ) {
 
   def listTechniques: IOResult[Seq[JRActiveTechnique]] = {
@@ -255,7 +272,7 @@ class TechniqueAPIService14 (
       ZIO.foreach(directives.filter(filter)) { directive =>
         techniques.get(directive.techniqueVersion) match {
           case None            =>
-            Inconsistency(s"Version ${directive.techniqueVersion} of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.value}'").fail
+            Inconsistency(s"Version ${directive.techniqueVersion} of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.uid.value}'").fail
           case Some(technique) =>
             JRDirective.fromDirective(technique, directive, None).succeed
         }
@@ -267,7 +284,7 @@ class TechniqueAPIService14 (
         case Some(versions) =>
           ZIO.foreach(versions) { version =>
             ZIO.when(!techniques.keySet.contains(version)) {
-              Inconsistency(s"Version '${version}' of Technique '${techniqueName.value}' does not exist").fail
+              Inconsistency(s"Version '${version.debugString}' of Technique '${techniqueName.value}' does not exist").fail
             }
           }
         case None => UIO.unit
@@ -286,4 +303,10 @@ class TechniqueAPIService14 (
     }
   }
 
+ /*
+   * List available revision for given directive
+   */
+  def techniqueRevisions(name: TechniqueName, version: Version): IOResult[List[JRRevisionInfo]] = {
+    techniqueRevisions.getTechniqueRevision(name, version).map(_.map(JRRevisionInfo.fromRevisionInfo))
+  }
 }

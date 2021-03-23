@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
 import net.liftweb.common._
@@ -48,8 +47,8 @@ import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeInfo
-
 import com.normation.errors._
+import com.normation.rudder.domain.policies.DirectiveId
 
 trait RuleValService {
   def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[RuleVal]
@@ -112,36 +111,36 @@ class RuleValServiceImpl(
   }
 
 
-  def getParsedPolicyDraft(piId : DirectiveId, ruleId:RuleId, ruleOrder: BundleOrder, ruleName: String, directiveLib: FullActiveTechniqueCategory) : Box[Option[ParsedPolicyDraft]]= {
-    directiveLib.allDirectives.get(piId) match {
-      case None => Failure(s"Cannot find directive with id '${piId.value}' when building rule '${ruleOrder.value}' (${ruleId.value})")
+  def getParsedPolicyDraft(id: DirectiveId, ruleId: RuleId, ruleOrder: BundleOrder, ruleName: String, directiveLib: FullActiveTechniqueCategory) : Box[Option[ParsedPolicyDraft]]= {
+    directiveLib.allDirectives.get(id) match {
+      case None => Failure(s"Cannot find directive with id '${id.debugString}' when building rule '${ruleOrder.value}' (${ruleId.value})")
       case Some((_, directive) ) if !(directive.isEnabled) =>
-        logger.debug("The Directive with id %s is disabled and we don't generate a ParsedPolicyDraft for Rule %s".format(piId.value, ruleId.value))
+        logger.debug("The Directive with id %s is disabled and we don't generate a ParsedPolicyDraft for Rule %s".format(id.debugString, ruleId.value))
         Full(None)
       case Some((fullActiveDirective, _) ) if !(fullActiveDirective.isEnabled) =>
         logger.debug(s"The Active Technique with id ${fullActiveDirective.id.value} is disabled and we don't generate a ParsedPolicyDraft for Rule ${ruleId.value}")
         Full(None)
       case Some((fullActiveTechnique, directive)) =>
         for {
-          technique <- Box(fullActiveTechnique.techniques.get(directive.techniqueVersion)) ?~! s"Version '${directive.techniqueVersion}' of technique '${fullActiveTechnique.techniqueName}' is not available for directive '${directive.name}' [${directive.id.value}]"
+          technique <- Box(fullActiveTechnique.techniques.get(directive.techniqueVersion)) ?~! s"Version '${directive.techniqueVersion.debugString}' of technique '${fullActiveTechnique.techniqueName.value}' is not available for directive '${directive.name}' [${directive.id.uid.value}]"
           varSpecs = technique.rootSection.getAllVariables ++ technique.systemVariableSpecs :+ technique.trackerVariableSpec
           vared <- buildVariables(varSpecs, directive.parameters)
           exists <- {
             if (vared.isDefinedAt(technique.trackerVariableSpec.name)) {
               Full("OK")
             } else {
-              logger.error("Cannot find key %s in Directive %s when building Rule %s".format(technique.trackerVariableSpec.name, piId.value, ruleId.value))
-              Failure("Cannot find key %s in Directibe %s when building Rule %s".format(technique.trackerVariableSpec.name, piId.value, ruleId.value))
+              logger.error("Cannot find key %s in Directive %s when building Rule %s".format(technique.trackerVariableSpec.name, id.debugString, ruleId.value))
+              Failure("Cannot find key %s in Directibe %s when building Rule %s".format(technique.trackerVariableSpec.name, id.debugString, ruleId.value))
             }
           }
           trackerVariable <- vared.get(technique.trackerVariableSpec.name)
           otherVars = vared - technique.trackerVariableSpec.name
           //only normal vars can be interpolated
         } yield {
-            logger.trace("Creating a ParsedPolicyDraft %s from the ruleId %s".format(fullActiveTechnique.techniqueName, ruleId.value))
+            logger.trace(s"Creating a ParsedPolicyDraft '${fullActiveTechnique.techniqueName}' from the ruleId ${ruleId.value}")
 
             Some(ParsedPolicyDraft(
-                PolicyId(ruleId, piId, technique.id.version)
+                PolicyId(ruleId, id, technique.id.version)
               , ruleName
               , directive.name
               , technique
@@ -166,7 +165,7 @@ class RuleValServiceImpl(
     val nodeIds = wantedNodeIds.intersect(allNodeInfos.keySet)
     if(nodeIds.size != wantedNodeIds.size) {
       // ignored nodes are filtered-out early during generation, so we don't have access to their node info here,
-      // they are just missing from allNodeInfos map. 
+      // they are just missing from allNodeInfos map.
       logger.debug(s"Some nodes are in the target of rule '${rule.name}' (${rule.id.value}) but are not present " +
           s"in the system. These nodes are likely in state `ignored`: ${(wantedNodeIds -- nodeIds).map( _.value).mkString(", ")}")
     }

@@ -67,7 +67,7 @@ class CheckRootRuleCategoryExport(
 
   override def checks() : Unit = {
     (for {
-      exists <- IOResult.effect(categoryDirectory.exists).chainError(s"Error when checking '${categoryDirectory}' directory existence")
+      exists <- IOResult.effect(categoryDirectory.exists).chainError(s"Error when checking '${categoryDirectory.getAbsolutePath}' directory existence")
       ident  <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
       res    <- if(!exists) {
                   BootstrapLogger.info(s"Directory '${categoryDirectory.getAbsolutePath()}' is missing, initialize it by exporting Rules") *>

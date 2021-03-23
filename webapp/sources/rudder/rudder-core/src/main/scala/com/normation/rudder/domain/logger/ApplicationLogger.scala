@@ -135,6 +135,15 @@ object GitArchiveLoggerPure extends NamedZioLogger {
   override def loggerName: String = "git-policy-archive"
 }
 
+object ConfigurationLoggerPure extends NamedZioLogger {
+  def loggerName = "configuration"
+
+  object revision extends NamedZioLogger {
+    def loggerName = "configuration.revision"
+  }
+}
+
+
 object GitArchiveLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("git-policy-archive")
 }

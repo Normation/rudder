@@ -38,6 +38,7 @@
 package com.normation.rudder.repository.jdbc
 
 import com.normation.BoxSpecMatcher
+import com.normation.GitVersion
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors._
@@ -46,7 +47,7 @@ import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
@@ -129,8 +130,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   val directivesLib = NodeConfigData.directives
   val directivesRepos = new RoDirectiveRepository() {
     def getFullDirectiveLibrary() : IOResult[FullActiveTechniqueCategory] = directivesLib.succeed
-    def getDirective(directiveId:DirectiveId) : IOResult[Option[Directive]] = ???
-    def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
+    def getDirective(directiveId:DirectiveUid) : IOResult[Option[Directive]] = ???
+    def getDirectiveWithContext(directiveId:DirectiveUid) : IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
     def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[Option[(ActiveTechnique, Directive)]] = ???
     def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : IOResult[Seq[Directive]] = ???
     def getActiveTechniqueByCategory(includeSystem:Boolean = false) : IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
@@ -930,7 +931,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   implicit def toReport(t:(DateTime,String, String, String, Int, String, String, DateTime, String, String)): Reports = {
     implicit def toRuleId(s:String) = RuleId(s)
-    implicit def toDirectiveId(s: String) = DirectiveId(s)
+    implicit def toDirectiveId(s: String) = DirectiveId(DirectiveUid(s), GitVersion.defaultRev)
     implicit def toNodeId(s: String) = NodeId(s)
 
     Reports(t._1, t._2, t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10)

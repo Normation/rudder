@@ -37,10 +37,23 @@
 
 package com.normation.rudder.repository.xml
 
+import com.normation.GitVersion
+
+import java.nio.file.Paths
+import com.normation.GitVersion.Revision
+import com.normation.GitVersion.RevisionInfo
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.GitRepositoryProvider
+import com.normation.cfclerk.services.GitRevisionProvider
+import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.errors.IOResult
-import com.normation.errors._
 import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTargetInfo
@@ -57,15 +70,35 @@ import com.normation.rudder.services.marshalling.RuleCategoryUnserialisation
 import com.normation.rudder.services.marshalling.RuleUnserialisation
 import com.normation.utils.UuidRegex
 import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.Repository
 import zio._
 import zio.syntax._
-
+import com.normation.rudder.domain.logger.ConfigurationLoggerPure
+import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.utils.Version
+import com.softwaremill.quicklens._
+import com.normation.errors._
+import com.normation.rudder.configuration.DirectiveRevisionRepository
 
 final case class GitRootCategory(
     root: String
 ) {
   def directoryPath = root + "/"
 }
+
+object GitRootCategory {
+  def getGitDirectoryPath(rootDirectory: String): GitRootCategory = {
+    val root = {
+      val p = rootDirectory.trim
+      if(p.size == 0) ""
+      else if(p.endsWith("/")) p.substring(0, p.size-1)
+      else p
+    }
+
+    GitRootCategory(root)
+  }
+}
+
 // utilities
 trait GitParseCommon[T] {
 
@@ -83,14 +116,7 @@ trait GitParseCommon[T] {
   def getArchiveForRevTreeId(revTreeId:ObjectId): IOResult[T]
 
   def getGitDirectoryPath(rootDirectory: String): GitRootCategory = {
-    val root = {
-      val p = rootDirectory.trim
-      if(p.size == 0) ""
-      else if(p.endsWith("/")) p.substring(0, p.size-1)
-      else p
-    }
-
-    GitRootCategory(root)
+    GitRootCategory.getGitDirectoryPath(rootDirectory)
   }
 }
 
@@ -316,16 +342,201 @@ class GitParseGroupLibrary(
   }
 }
 
+
+trait TechniqueRevisionRepository {
+  /*
+   * Get the technique with given name, version and revision from history
+   * (todo: what about head?)
+   */
+  def getTechnique(name: TechniqueName, version: Version, rev: Revision): IOResult[Option[Technique]]
+
+  /*
+   * Get the list of valid revisions for given technique
+   */
+  def getTechniqueRevision(name: TechniqueName, version: Version): IOResult[List[RevisionInfo]]
+}
+
+
+class GitParseTechniqueLibrary(
+    techniqueParser   : TechniqueParser
+  , val repo          : GitRepositoryProvider
+  , revisionProvider  : GitRevisionProvider
+  , libRootDirectory  : String //relative name to git root file
+  , techniqueMetadata : String
+) extends TechniqueRevisionRepository {
+
+  /**
+   * Get a technique for the specific given revision;
+   */
+  def getTechnique(name: TechniqueName, version: Version, rev: Revision): IOResult[Option[Technique]] = {
+    val root = GitRootCategory.getGitDirectoryPath(libRootDirectory).root
+    (for {
+      v      <- TechniqueVersion(version, rev).left.map(Inconsistency(_)).toIO
+      id     =  TechniqueId(name, v)
+      _      <- ConfigurationLoggerPure.revision.debug(s"Looking for technique: ${id.debugString}")
+      treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, rev.value)
+      _      <- ConfigurationLoggerPure.revision.trace(s"Git tree corresponding to revision: ${rev.value}: ${treeId.toString}")
+      paths  <- GitFindUtils.listFiles(repo.db, treeId, List(root), List(s"${id.withDefaultRev.serialize}/${techniqueMetadata}"))
+      _      <- ConfigurationLoggerPure.revision.trace(s"Found candidate paths: ${paths}")
+      tech   <- paths.size match {
+                  case 0 =>
+                    ConfigurationLoggerPure.debug(s"Technique ${id.debugString} not found") *>
+                    None.succeed
+                  case 1 =>
+                    val path = paths.head
+
+                    (for {
+                      t <- loadTechnique(repo.db, treeId, path, id)
+                    } yield {
+                      // we need to correct techniqueId revision to the one we just looked-up.
+                      // (it's normal to not have it serialized, since it's given by git, it's not intrinsic)
+                      Some(t.modify(_.id.version.rev).setTo(rev))
+                    }).tapError(err =>
+                      ConfigurationLoggerPure.revision.debug(s"Impossible to find technique with id/revision: '${id.debugString}': ${err.fullMsg}.")
+                    )
+                  case _ =>
+                    Unexpected(s"There is more than one technique with ID '${id}' in git: ${paths.mkString(",")}").fail
+                 }
+    } yield {
+      tech
+    }).tapBoth(err => ConfigurationLoggerPure.error(err.fullMsg), _ => ConfigurationLoggerPure.debug(s" -> found it!"))
+  }
+
+
+  override def getTechniqueRevision(name: TechniqueName, version: Version): IOResult[List[RevisionInfo]] = {
+    val root = GitRootCategory.getGitDirectoryPath(libRootDirectory).root
+    for {
+      _        <- ConfigurationLoggerPure.revision.debug(s"Looking for revisions of technique: ${name.value}/${version.toVersionString}")
+      current  <- revisionProvider.currentRevTreeId
+      // find the file name, then look for revision for that path
+      metadata =  "metadata.xml"
+      optPath  <- GitFindUtils.listFiles(repo.db, current, List(root), List(s"${name.value}/${version.toVersionString}/${metadata}")) // we are just looking for the path here
+      path     <- optPath.toList match {
+                    case Nil => Inconsistency(s"Technique '${name.value}/${version.toVersionString}' not found f").fail
+                    case p :: Nil => p.succeed
+                    case x => Inconsistency(s"Error, more than one technique found in `configuration-repository` for '${name.value}/${version.toVersionString}': ${x.mkString(",")}").fail
+                  }
+      // any files modified under `technique/version` directory is a revision change for it
+      base     =  path.substring(0, path.size - metadata.size)
+      revs     <- GitFindUtils.findRevFromPath(repo.git, base)
+    } yield {
+      revs.toList
+    }
+
+  }
+
+  def loadTechnique(db: Repository, revTreeId: ObjectId, gitPath: String, id: TechniqueId): IOResult[Technique] = {
+    for {
+      xml <- GitFindUtils.getFileContent(db, revTreeId, gitPath){ inputStream =>
+               ParseXml(inputStream, Some(gitPath)).chainError(s"Error when parsing file '${gitPath}' as XML")
+             }
+      res <- techniqueParser.parseXml(xml, id).toIO.chainError(s"Error when unserializing technique from file '${gitPath}'")
+    } yield {
+      res
+    }
+  }
+}
+
 class GitParseActiveTechniqueLibrary(
     categoryUnserialiser: ActiveTechniqueCategoryUnserialisation
   , uptUnserialiser     : ActiveTechniqueUnserialisation
   , piUnserialiser      : DirectiveUnserialisation
   , val repo            : GitRepositoryProvider
+  , revisionProvider    : GitRevisionProvider
   , xmlMigration        : XmlEntityMigration
   , libRootDirectory    : String //relative name to git root file
   , uptcFileName        : String = "category.xml"
   , uptFileName         : String = "activeTechniqueSettings.xml"
-) extends ParseActiveTechniqueLibrary with GitParseCommon[ActiveTechniqueCategoryContent] {
+) extends ParseActiveTechniqueLibrary with GitParseCommon[ActiveTechniqueCategoryContent] with DirectiveRevisionRepository {
+
+  /**
+   * Get a directive for the specific given revision;
+   */
+  override def getDirectiveRevision(uid: DirectiveUid, rev: Revision): IOResult[Option[(ActiveTechnique, Directive)]] = {
+    val root = getGitDirectoryPath(libRootDirectory).root
+    (for {
+      _      <- ConfigurationLoggerPure.revision.debug(s"Looking for directive: ${DirectiveId(uid, rev).debugString}")
+      treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, rev.value)
+      _      <- ConfigurationLoggerPure.revision.trace(s"Git tree corresponding to revision: ${rev.value}: ${treeId.toString}")
+      paths  <- GitFindUtils.listFiles(repo.db, treeId, List(root), List(s"${uid.value}.xml"))
+      _      <- ConfigurationLoggerPure.revision.trace(s"Found candidate paths: ${paths}")
+      pair   <- paths.size match {
+                  case 0 =>
+                    ConfigurationLoggerPure.debug(s"Directive ${DirectiveId(uid, rev).debugString} not found") *>
+                    None.succeed
+                  case 1 =>
+                    val path = paths.head
+                    val atPath = Paths.get(Paths.get(path).getParent.toString, uptFileName)
+
+                    (for {
+                      d  <- loadDirective(repo.db, treeId, path)
+                      at <- loadActiveTechnique(repo.db, treeId, atPath.toString)
+                    } yield {
+                      // for directive, we need to set directiveId and techniqueId revision to the one we just looked-up.
+                      // (it's normal to not have it serialized, since it's externally provided by git)
+                      val rd = (d
+                        .modify(_.id.rev).setTo(rev)
+                        // we need to check if the technique version wasn't already frozen
+                        .modify(_.techniqueVersion).using(v => if(v.rev == GitVersion.defaultRev) v.copy(rev = rev) else v)
+                      )
+                      Some((at, rd))
+                    }).tapError(err =>
+                      ConfigurationLoggerPure.revision.debug(s"Impossible to find directive with id/revision: '${DirectiveId(uid, rev).debugString}': ${err.fullMsg}.")
+                    )
+                  case _ =>
+                    Unexpected(s"There is more than one directive with ID '${uid}' in git: ${paths.mkString(",")}").fail
+                 }
+    } yield {
+      pair
+    }).tapError(err => ConfigurationLoggerPure.error(err.fullMsg)).tap(_ => ConfigurationLoggerPure.debug(s" -> found it!"))
+  }
+
+  /*
+   * get revision for given directive
+   */
+  def getRevisions(uid: DirectiveUid): IOResult[List[RevisionInfo]] = {
+    val root = getGitDirectoryPath(libRootDirectory).root
+    for {
+      _       <- ConfigurationLoggerPure.revision.debug(s"Looking for revisions of directive: ${uid.debugString}")
+      current <- revisionProvider.currentRevTreeId
+      // find the file name, then look for revision for that path
+      optPath <- GitFindUtils.listFiles(repo.db, current, List(root), List(uid.serialize + ".xml")) // not sur about the version here
+      path    <- optPath.toList match {
+                   case Nil => Inconsistency(s"Directive with UID '${uid.value}' not found f").fail
+                   case p :: Nil => p.succeed
+                   case x => Inconsistency(s"Error, more than one directive found in `configuration-repository` with uid '${uid.value}': ${x.mkString(",")}").fail
+                 }
+      revs   <- GitFindUtils.findRevFromPath(repo.git, path)
+    } yield {
+      revs.toList
+    }
+  }
+
+
+  def loadDirective(db: Repository, revTreeId: ObjectId, directiveGitPath: String): IOResult[Directive] = {
+    for {
+      oldXml <- GitFindUtils.getFileContent(db, revTreeId, directiveGitPath){ inputStream =>
+                  ParseXml(inputStream, Some(directiveGitPath)).chainError(s"Error when parsing file '${directiveGitPath}' as a directive")
+                }
+      xml    <- xmlMigration.getUpToDateXml(oldXml).toIO
+      res    <- piUnserialiser.unserialise(xml).toIO.chainError(s"Error when unserializing directive from file '${directiveGitPath}'")
+    } yield {
+      res._2
+    }
+  }
+
+  def loadActiveTechnique(db: Repository, revTreeId: ObjectId, activeTechniqueGitPath: String): IOResult[ActiveTechnique] = {
+    for {
+      oldXml <- GitFindUtils.getFileContent(db, revTreeId, activeTechniqueGitPath){ inputStream =>
+                  ParseXml(inputStream, Some(activeTechniqueGitPath)).chainError(s"Error when parsing file '${activeTechniqueGitPath}' as an active technique")
+                }
+      xml    <- xmlMigration.getUpToDateXml(oldXml).toIO
+      at     <- uptUnserialiser.unserialise(xml).toIO.chainError(s"Error when unserializing active technique for file '${activeTechniqueGitPath}'")
+    } yield {
+      at
+    }
+  }
+
 
   def getArchiveForRevTreeId(revTreeId:ObjectId): IOResult[ActiveTechniqueCategoryContent] = {
 
@@ -394,22 +605,13 @@ class GitParseActiveTechniqueLibrary(
                            UuidRegex.isValid(p.substring(directoryPath.size, p.size - 4))
                          }
                        }
-            directives <- ZIO.foreach(piFiles.toSeq) { piFile =>
-                         for {
-                           xml2  <- GitFindUtils.getFileContent(repo.db, revTreeId, piFile){ inputStream =>
-                                      ParseXml(inputStream, Some(piFile)).chainError(s"Error when parsing file '${piFile}' as a directive")
-                                    }
-                           piXml <- xmlMigration.getUpToDateXml(xml2).toIO
-                           res   <- piUnserialiser.unserialise(piXml).toIO.chainError(s"Error when unserializing pdirective for file '${piFile}'")
-                         } yield {
-                           val (_, directive, _) = res
-                           directive
-                         }
-                       }
+            directives <- ZIO.foreach(piFiles.toSeq) { directivePath =>
+                            loadDirective(repo.db, revTreeId, directivePath)
+                          }
           } yield {
             val pisSet = directives.toSet
             Left(ActiveTechniqueContent(
-                activeTechnique.copy(directives = pisSet.map(_.id).toList)
+                activeTechnique.copy(directives = pisSet.map(_.id.uid).toList)
               , pisSet
             ))
           }

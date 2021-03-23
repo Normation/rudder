@@ -60,7 +60,7 @@ import zio.syntax._
 sealed trait InventoryMappingRudderError extends RudderError
 object InventoryMappingRudderError {
   final case class MissingMandatoryAttribute(attribute: String, entry: LDAPEntry) extends InventoryMappingRudderError {
-    def msg = s"Missing required attribute '${attribute}' in entry: ${entry}"
+    def msg = s"Missing required attribute '${attribute}' in entry: ${entry.toLDIFString()}"
   }
   final case class MalformedDN(msg: String)      extends InventoryMappingRudderError
   final case class MissingMandatory(msg: String) extends InventoryMappingRudderError
@@ -932,7 +932,7 @@ class InventoryMapper(
   def nodeFromEntry(entry:LDAPEntry) : IOResult[NodeInventory] = {
 
     for {
-      dit                <- ditService.getDit(entry.dn).notOptional(s"DIT not found for entry ${entry.dn}")
+      dit                <- ditService.getDit(entry.dn).notOptional(s"DIT not found for entry ${entry.dn.toString}")
       inventoryStatus    =  ditService.getInventoryStatus(dit)
       id                 <- dit.NODES.NODE.idFromDN(entry.dn).toIO
       keyStatus          <- ZIO.fromEither(entry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey)))

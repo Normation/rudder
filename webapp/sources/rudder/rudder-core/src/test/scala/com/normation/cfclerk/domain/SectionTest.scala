@@ -201,7 +201,7 @@ class SectionTest extends Specification {
 }
 
 final case class SectionParser(sectionSpecParser: SectionSpecParser)  {
-  val id = new TechniqueId(new TechniqueName("test-TechniqueId"), TechniqueVersion("1.0"))
+  val id = new TechniqueId(new TechniqueName("test-TechniqueId"), TechniqueVersionHelper("1.0"))
   val policyName = "test-policyName"
 
   def parseXml(elt: Node): Either[LoadTechniqueError, SectionSpec] = {

@@ -277,14 +277,14 @@ final case class RestParameter(
 }
 
 final case class RestRule(
-      name             : Option[String]           = None
-    , category         : Option[RuleCategoryId]   = None
-    , shortDescription : Option[String]              = None
-    , longDescription  : Option[String]              = None
-    , directives       : Option[Set[DirectiveId]]    = None
-    , targets          : Option[Set[RuleTarget]]  = None
-    , enabled          : Option[Boolean]             = None
-    , tags             : Option[Tags]                = None
+      name             : Option[String]            = None
+    , category         : Option[RuleCategoryId]    = None
+    , shortDescription : Option[String]            = None
+    , longDescription  : Option[String]            = None
+    , directives       : Option[Set[DirectiveId]] = None
+    , targets          : Option[Set[RuleTarget]]   = None
+    , enabled          : Option[Boolean]           = None
+    , tags             : Option[Tags]              = None
   ) {
 
     val onlyName = name.isDefined           &&

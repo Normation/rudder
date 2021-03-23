@@ -42,7 +42,8 @@ import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class ZioCommonsTest extends Specification {
+class
+ZioCommonsTest extends Specification {
 
 
   "When we use toIO, we should ensure that evaluation is only done at run" >> {

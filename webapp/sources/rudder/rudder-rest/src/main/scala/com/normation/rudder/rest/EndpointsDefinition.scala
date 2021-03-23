@@ -179,8 +179,12 @@ object DirectiveApi extends ApiModuleProvider[DirectiveApi] {
     val description = "Get information about given directive"
     val (action, path)  = GET / "directives" / "{id}"
   }
+  final case object DirectiveRevisions extends DirectiveApi with OneParam with StartsAtVersion14 with SortIndex {val z = implicitly[Line].value
+    val description    = "Get revisions for given directive"
+    val (action, path) = GET / "directives" / "{id}" / "revisions"
+  }
   final case object CreateDirective extends DirectiveApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
-    val description = "Create a new directive"
+    val description = "Create a new directive or clone an existing one"
     val (action, path)  = PUT / "directives"
   }
   final case object DeleteDirective extends DirectiveApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
@@ -436,6 +440,10 @@ object TechniqueApi extends ApiModuleProvider[TechniqueApi] {
     val description = "List directives derived from given technique for given version"
     val (action, path)  = GET / "techniques" / "{name}" / "{version}" / "directives"
     override def dataContainer: Some[String] = Some("directives")
+  }
+  final case object TechniqueRevisions extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex {val z = implicitly[Line].value
+    val description    = "Get revisions for given technique"
+    val (action, path)  = GET / "techniques" / "{name}" / "{version}" / "revisions"
   }
 
   def endpoints = ca.mrvisser.sealerate.values[TechniqueApi].toList.sortBy( _.z )

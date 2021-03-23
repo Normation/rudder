@@ -39,6 +39,7 @@ package com.normation.rudder.services.reports
 
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
@@ -60,7 +61,7 @@ import com.normation.rudder.services.reports.ExecutionBatch.MergeInfo
 
 @RunWith(classOf[JUnitRunner])
 class ExecutionBatchTest extends Specification {
-  private implicit def str2directiveId(s:String) = DirectiveId(s)
+  private implicit def str2directiveId(s:String) = DirectiveId(DirectiveUid(s))
   private implicit def str2ruleId(s:String) = RuleId(s)
   private implicit def str2nodeId(s:String) = NodeId(s)
 
@@ -87,11 +88,11 @@ class ExecutionBatchTest extends Specification {
   ) = {
     val ruleIds = (1 to nbRules).map("rule_id_"+_+nodeId).toSeq
     val directiveIds = (1 to nbDirectives).map("directive_id_"+_+nodeId).toSeq
-    val dirPerRule = ruleIds.map(rule => (RuleId(rule), directiveIds.map(dir => DirectiveId(dir + "@@"+rule))))
+    val dirPerRule = ruleIds.map(rule => (RuleId(rule), directiveIds.map(dir => DirectiveId(DirectiveUid(dir + "@@" + rule)))))
 
 
     val treeOfData = dirPerRule map { case (ruleId, directives) =>
-      (ruleId, directives.map(dirId => (dirId, (1 to nbReportsPerDir).map("component"+dirId.value+_).toSeq)))
+      (ruleId, directives.map(dirId => (dirId, (1 to nbReportsPerDir).map("component"+dirId.serialize+_).toSeq)))
     }
 
     // create RuleExpectedReports
@@ -928,7 +929,7 @@ class ExecutionBatchTest extends Specification {
     }
 
     "have one detailed rule success directive when we create it with one success report" in {
-      nodeStatus(one).reports.head.directives.head._1 === DirectiveId("policy")
+      nodeStatus(one).reports.head.directives.head._1.serialize === "policy"
     }
 
     "have no detailed rule non-success directive when we create it with one success report" in {

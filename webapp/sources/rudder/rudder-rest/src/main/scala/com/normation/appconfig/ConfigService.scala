@@ -559,7 +559,7 @@ class GenericConfigService(
   private[this] implicit def toFeatureSwitch(p: RudderWebProperty): FeatureSwitch = FeatureSwitch.parse(p.value) match {
     case Full(status) => status
     case eb: EmptyBox =>
-      val e = eb ?~! s"Error when trying to parse property '${p.name}' with value '${p.value}' into a feature switch status"
+      val e = eb ?~! s"Error when trying to parse property '${p.name.value}' with value '${p.value}' into a feature switch status"
       logEffect.warn(e.messageChain)
       FeatureSwitch.Disabled
   }

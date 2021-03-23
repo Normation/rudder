@@ -48,9 +48,7 @@ import JsCmds._
 import JE._
 
 import scala.collection._
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.repository.ReportsRepository
-import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import org.joda.time.DateTime
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
@@ -59,13 +57,15 @@ import org.joda.time.format.DateTimeFormat
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.box._
 import com.normation.utils.DateFormaterService
+import com.normation.rudder.configuration.ConfigurationRepository
+import com.normation.rudder.domain.policies.DirectiveId
 
 /**
  * Show the reports from cfengine (raw data)
  */
 class LogDisplayer(
     reportRepository   : ReportsRepository
-  , directiveRepository: RoDirectiveRepository
+  , configRepository   : ConfigurationRepository
   , ruleRepository     : RoRuleRepository
 ) extends Loggable {
 
@@ -149,9 +149,9 @@ class LogDisplayer(
     val directiveMap = mutable.Map[DirectiveId, String]()
     val ruleMap = mutable.Map[RuleId, String]()
 
-    def getDirectiveName(directiveId : DirectiveId) : String = {
+    def getDirectiveName(directiveId: DirectiveId) : String = {
       directiveMap.getOrElse(directiveId, {
-        val result = directiveRepository.getDirective(directiveId).map(_.map(_.name).getOrElse(directiveId.value) ).toBox.openOr(directiveId.value)
+        val result = configRepository.getDirective(directiveId).map(_.map(_.directive.name).getOrElse(directiveId.serialize) ).toBox.openOr(directiveId.serialize)
         directiveMap += ( directiveId -> result)
         result
       })

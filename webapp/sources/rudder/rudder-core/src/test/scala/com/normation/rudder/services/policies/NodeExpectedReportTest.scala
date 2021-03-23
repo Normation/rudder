@@ -46,12 +46,13 @@ import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueId
-import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.cfclerk.domain.SectionVariableSpec
 import org.joda.time.DateTime
 import cats.data.NonEmptyList
+import com.normation.cfclerk.domain.TechniqueVersionHelper
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
 import net.liftweb.json._
@@ -93,7 +94,7 @@ class NodeExpectedReportTest extends Specification {
 
   def technique(x: String) = {
     PolicyTechnique(
-        TechniqueId(TechniqueName("t"+x), TechniqueVersion("1.0"))
+        TechniqueId(TechniqueName("t"+x), TechniqueVersionHelper("1.0"))
       , AgentConfig(AgentType.CfeCommunity, Nil, Nil, List(BundleName("t"+x)), Nil)
       , TrackerVariableSpec(Some(s"m_var_${x}_1"))
       , SectionSpec(name = "root", isMultivalued = false, isComponent = false, componentKey = None, children = List(
@@ -115,11 +116,11 @@ class NodeExpectedReportTest extends Specification {
 
   val r1 = RuleId("rule_1")
   val r2 = RuleId("rule_2")
-  val d1 = DirectiveId("directive_1")
-  val d2 = DirectiveId("directive_2")
-  val d3 = DirectiveId("directive_3")
+  val d1 = DirectiveId(DirectiveUid("directive_1"))
+  val d2 = DirectiveId(DirectiveUid("directive_2"))
+  val d3 = DirectiveId(DirectiveUid("directive_3"))
 
-  val p1_id = PolicyId(r1, d1, TechniqueVersion("1.0"))
+  val p1_id = PolicyId(r1, d1, TechniqueVersionHelper("1.0"))
   val p1 = Policy(
       p1_id
     , "rule name"
@@ -128,14 +129,14 @@ class NodeExpectedReportTest extends Specification {
     , DateTime.now.minusDays(1)
     , policyVars     = NonEmptyList.of(
           PolicyVars(
-              PolicyId(r1, d1, TechniqueVersion("1.0"))
+              PolicyId(r1, d1, TechniqueVersionHelper("1.0"))
             , Some(PolicyMode.Audit)
             , Map(v("1_0", "1_0_0"), mv("1_1", "1_1_0", "1_1_1"), mv("1_2", "1_2_0", "1_2_1"))
             , Map(v("1_0", "1_0_0"), mv("1_1", "1_1_0", "1_1_1"), mv("1_2", "1_2_0", "1_2_1"))
             , t1.trackerVariableSpec.toVariable(p1_id.getReportId :: p1_id.getReportId :: Nil)
           )
         , PolicyVars(
-              PolicyId(r2, d2, TechniqueVersion("1.0"))
+              PolicyId(r2, d2, TechniqueVersionHelper("1.0"))
             , None
             , Map(v("1_0", "2_0_0"), mv("1_1", "2_1_0"), mv("1_2", "2_2_0"))
             , Map(v("1_0", "2_0_0"), mv("1_1", "2_1_0"), mv("1_2", "2_2_0"))
@@ -149,7 +150,7 @@ class NodeExpectedReportTest extends Specification {
     , overrides      = Set()
   )
 
-  val p2_id = PolicyId(r2, d3, TechniqueVersion("1.0"))
+  val p2_id = PolicyId(r2, d3, TechniqueVersionHelper("1.0"))
   val p2 = Policy(
       p2_id
     , "rule name"
@@ -158,7 +159,7 @@ class NodeExpectedReportTest extends Specification {
     , DateTime.now.minusDays(1)
     , policyVars     = NonEmptyList.of(
           PolicyVars(
-              PolicyId(r2, d3, TechniqueVersion("1.0"))
+              PolicyId(r2, d3, TechniqueVersionHelper("1.0"))
             , None
             , Map(v("2_0", "3_0_0"), mv("2_1", "3_1_0"), mv("2_2", "3_2_0"))
             , Map(v("2_0", "3_0_0"), mv("2_1", "3_1_0"), mv("2_2", "3_2_0"))

@@ -194,7 +194,7 @@ class RestQuicksearch (
   private[this] implicit class JsonSearchResult(r: QuickSearchResult) {
     import com.normation.inventory.domain.NodeId
     import com.normation.rudder.domain.nodes.NodeGroupId
-    import com.normation.rudder.domain.policies.DirectiveId
+    import com.normation.rudder.domain.policies.DirectiveUid
     import com.normation.rudder.domain.policies.RuleId
     import com.normation.rudder.services.quicksearch.QuickSearchResultId._
 
@@ -203,7 +203,7 @@ class RestQuicksearch (
       val url = r.id match {
         case QRNodeId(v)      => nodeLink(NodeId(v))
         case QRRuleId(v)      => ruleLink(RuleId(v))
-        case QRDirectiveId(v) => directiveLink(DirectiveId(v))
+        case QRDirectiveId(v) => directiveLink(DirectiveUid(v))
         case QRGroupId(v)     => groupLink(NodeGroupId(v))
         case QRParameterId(v) => globalParameterLink(v)
       }

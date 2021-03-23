@@ -98,21 +98,44 @@ final case class FullActiveTechnique(
       id = id
     , techniqueName = techniqueName
     , acceptationDatetimes = acceptationDatetimes.toMap
-    , directives = directives.map( _.id )
+    , directives = directives.map( _.id.uid )
     , _isEnabled = isEnabled
     , isSystem = isSystem
   )
 
   val newestAvailableTechnique = techniques.toSeq.sortBy( _._1).reverse.map( _._2 ).headOption
 
+  /*
+   * Add some direcives for some technique, and only keep directives whose id/revision is in `keep`.
+   */
+  def addAndFilterDirectives(addDirectives: List[(TechniqueName, Directive)], keep: Set[DirectiveId]): FullActiveTechnique = {
+    val ids = directives.map(_.id)
+    // don't add a directive if it's already in directive list
+    val d2 = addDirectives.collect { case (t, d) if (t == techniqueName && !ids.contains(d.id)) => d } ::: directives
+    val d3 = d2.filter(d => keep.contains(d.id))
+    val v2 = d3.map(_.techniqueVersion).toSet
+    def predicate(pair: (TechniqueVersion, Any)): Boolean = v2.contains(pair._1)
+    this.copy(directives = d3, techniques = techniques.filter(predicate), acceptationDatetimes = acceptationDatetimes.filter(predicate))
+  }
+  def addTechniques(addTechniques: List[Technique]): FullActiveTechnique = {
+    val here = addTechniques.filter(_.id.name == techniqueName)
+    //I don't see any reasonable value for acceptation date of past technique. It needs to be in the past and
+    //must not change from generation to the next, so => Epoch.
+    this.copy(
+        techniques = techniques ++ here.map(t => (t.id.version, t))
+      , acceptationDatetimes = acceptationDatetimes ++ here.map(t => (t.id.version, new DateTime(0)))
+    )
+  }
+
   def saveDirective(directive: Directive): FullActiveTechnique = {
     this.modify(_.directives).using(directives =>
       (directive :: directives.filterNot(_.id == directive.id))
     )
   }
-  def deleteDirective(directiveId: DirectiveId): FullActiveTechnique = {
+
+  def deleteDirective(directiveUid: DirectiveUid): FullActiveTechnique = {
     this.modify(_.directives).using { directives =>
-      directives.filterNot(_.id == directiveId)
+      directives.filterNot(_.id.uid == directiveUid)
     }
   }
 }
@@ -130,7 +153,7 @@ final case class FullActiveTechniqueCategory(
   val allDirectives : Map[DirectiveId, (FullActiveTechnique, Directive)] = (
        subCategories.flatMap( _.allDirectives).toMap
     ++ activeTechniques.flatMap( at => at.directives.map( d => (d.id, (at, d))) ).toMap
-  )
+                                                                           )
 
   val allDirectivesByActiveTechniques : Map[ActiveTechniqueId, List[Directive]] = (
       subCategories.flatMap( _.allDirectivesByActiveTechniques ).toMap
@@ -159,6 +182,29 @@ final case class FullActiveTechniqueCategory(
 
   def getUpdateDateTime(id: TechniqueId): Option[DateTime] = {
     allTechniques.get(id).flatMap( _._2 )
+  }
+
+  /*
+   * Add given directive (if not already defined) and filter lib to only keep ids
+   */
+  def addAndFilterDirectives(add: List[(TechniqueName, Directive)], keep: Set[DirectiveId]): FullActiveTechniqueCategory = {
+    val subCats = subCategories.flatMap { s =>
+      val s2 = s.addAndFilterDirectives(add, keep)
+      if(s2.subCategories.isEmpty && s2.activeTechniques.isEmpty) Nil
+      else List(s2)
+    }
+    val ats = activeTechniques.flatMap { at =>
+      val at2 = at.addAndFilterDirectives(add, keep)
+      if(at2.directives.isEmpty) Nil
+      else List(at2)
+    }
+    this.copy(subCategories = subCats, activeTechniques = ats)
+  }
+
+  def addTechniques(add: List[Technique]): FullActiveTechniqueCategory = {
+    val subCats = subCategories.map(_.addTechniques(add))
+    val ats = activeTechniques.map( _.addTechniques(add))
+    this.copy(subCategories = subCats, activeTechniques = ats)
   }
 
 
@@ -215,7 +261,7 @@ final case class FullActiveTechniqueCategory(
     }
   }
 
-  def deleteDirective(directiveId: DirectiveId): FullActiveTechniqueCategory = {
+  def deleteDirective(directiveId: DirectiveUid): FullActiveTechniqueCategory = {
     this
       .modify(_.activeTechniques).using(techs => techs.map(_.deleteDirective(directiveId)))
       .modify(_.subCategories).using(subs => subs.map(_.deleteDirective(directiveId)))
@@ -286,13 +332,13 @@ trait RoDirectiveRepository {
    * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
    * Failure => an error happened.
    */
-  def getDirective(directiveId:DirectiveId) : IOResult[Option[Directive]]
+  def getDirective(directiveId:DirectiveUid) : IOResult[Option[Directive]]
 
   /**
    * retrieve a Directive with its parent Technique and the
    * binding Active Technique
    */
-  def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[Option[(Technique, ActiveTechnique, Directive)]]
+  def getDirectiveWithContext(directiveId: DirectiveUid) : IOResult[Option[(Technique, ActiveTechnique, Directive)]]
 
   /**
    * Find the active technique for which the given directive is an instance.
@@ -300,7 +346,7 @@ trait RoDirectiveRepository {
    * Return empty if no such directive is known,
    * fails if no active technique match the directive.
    */
-  def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[Option[(ActiveTechnique, Directive)]]
+  def getActiveTechniqueAndDirective(id: DirectiveId) : IOResult[Option[(ActiveTechnique, Directive)]]
 
   /**
    * Get directives for given technique.
@@ -428,7 +474,7 @@ trait WoDirectiveRepository {
    *
    * System directive can't be deleted.
    */
-  def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteDirectiveDiff]]
+  def delete(id:DirectiveUid, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteDirectiveDiff]]
 
   /**
    * Delete a directive's system.
@@ -438,7 +484,7 @@ trait WoDirectiveRepository {
    *
    * If no directive has such id, return a success.
    */
-  def deleteSystemDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteDirectiveDiff]]
+  def deleteSystemDirective(id:DirectiveUid, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[DeleteDirectiveDiff]]
 
 
 

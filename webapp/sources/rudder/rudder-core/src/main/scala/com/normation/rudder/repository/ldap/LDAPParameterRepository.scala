@@ -188,7 +188,7 @@ class WoLDAPParameterRepository(
   }
 
   def delete(parameterName: String, provider: Option[PropertyProvider], modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteGlobalParameterDiff]] = {
-    def show(provider: Option[PropertyProvider]) = provider match {
+    def debugString(provider: Option[PropertyProvider]) = provider match {
       case None    => PropertyProvider.defaultPropertyProvider.value
       case Some(p) => p.value
     }
@@ -201,8 +201,8 @@ class WoLDAPParameterRepository(
                         case Some(oldParamEntry) =>
                           for {
                             _            <- if(GenericProperty.canBeUpdated(oldParamEntry.provider, provider)) UIO.unit
-                                            else Inconsistency(s"Parameter '${oldParamEntry.name}' which has property provider '${show(oldParamEntry.provider)}' " +
-                                                               s"can't be deleted by property provider '${show(provider)}'").fail
+                                            else Inconsistency(s"Parameter '${oldParamEntry.name}' which has property provider '${debugString(oldParamEntry.provider)}' " +
+                                                               s"can't be deleted by property provider '${debugString(provider)}'").fail
                             deleted      <- con.delete(roLDAPParameterRepository.rudderDit.PARAMETERS.parameterDN(parameterName)).chainError(s"Error when deleting Global Parameter with name ${parameterName}")
                             diff         =  DeleteGlobalParameterDiff(oldParamEntry)
                             loggedAction <- actionLogger.saveDeleteGlobalParameter(modId, principal = actor, deleteDiff = diff, reason = reason)

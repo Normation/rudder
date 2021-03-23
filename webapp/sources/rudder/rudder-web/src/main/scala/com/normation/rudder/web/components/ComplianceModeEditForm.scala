@@ -214,7 +214,7 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
       case eb:EmptyBox =>
         val e = eb ?~! "Error when retrieving compliance mode from the database"
         logger.error(e.messageChain)
-        e.rootExceptionCause.foreach { ex => logger.error(s"Root exception was: ${ex}") }
+        e.rootExceptionCause.foreach { ex => logger.error(s"Root exception was: ${ex.getMessage}") }
 
         ( "#complianceMode" #> "Error when retrieving compliance mode from the database. Please, contact an admin or try again later"  )
       case Full(initScheduleParam) =>

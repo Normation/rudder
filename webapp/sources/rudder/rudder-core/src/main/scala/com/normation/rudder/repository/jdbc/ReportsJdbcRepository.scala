@@ -38,7 +38,6 @@
 package com.normation.rudder.repository.jdbc
 
 import java.sql.Timestamp
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._

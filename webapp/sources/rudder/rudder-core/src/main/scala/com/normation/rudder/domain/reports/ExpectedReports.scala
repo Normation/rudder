@@ -40,7 +40,6 @@ package com.normation.rudder.domain.reports
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
 import org.joda.time.DateTime
@@ -59,8 +58,10 @@ import com.normation.rudder.reports.ResolvedAgentRunInterval
 import org.joda.time.Duration
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.services.policies.PolicyId
 import net.liftweb.common.EmptyBox
+import com.normation.box._
 
 final case class NodeModeConfig(
     globalComplianceMode: ComplianceMode
@@ -250,8 +251,8 @@ object ExpectedReportsSerialisation {
      ~  ("rules" -> jsonRuleExpectedReports(n.ruleExpectedReports))
      ~  ("overrides" -> (n.overrides.map { o =>
           (
-            ("policy"      -> ( ("ruleId" -> o.policy.ruleId.value     ) ~ ("directiveId" -> o.policy.directiveId.value) ))
-          ~ ("overridenBy" -> ( ("ruleId" -> o.overridenBy.ruleId.value) ~ ("directiveId" -> o.overridenBy.directiveId.value) ))
+            ("policy"      -> ( ("ruleId" -> o.policy.ruleId.value     ) ~ ("directiveId" -> o.policy.directiveId.serialize) ))
+          ~ ("overridenBy" -> ( ("ruleId" -> o.overridenBy.ruleId.value) ~ ("directiveId" -> o.overridenBy.directiveId.serialize) ))
           )
         }))
     )
@@ -279,7 +280,7 @@ object ExpectedReportsSerialisation {
            ("ruleId"     -> r.ruleId.value)
          ~ ("directives" -> r.directives.map { d =>
              (
-               ("directiveId" -> d.directiveId.value)
+               ("directiveId" -> d.directiveId.serialize)
              ~ ("policyMode"  -> d.policyMode.map( _.name))
              ~ ("isSystem"    -> d.isSystem )
              ~ ("components"  -> d.components.map(jsonComponentExpectedReport))
@@ -374,12 +375,20 @@ object ExpectedReportsSerialisation {
         case (JString(drid), JString(ddid), JString(orid), JString(odid)) =>
           val (v1, v2) = {
             ((json \ "policy" \ "techniqueVersion"), (json \ "overridenBy" \ "techniqueVersion")) match {
-              case (JString(v1), JString(v2)) => (TechniqueVersion(v1), TechniqueVersion(v2))
-              case _                          => (TechniqueVersion("0.0"), TechniqueVersion("0.0"))
+              case (JString(v1), JString(v2)) => (v1, v2)
+              case _                          => ("0.0", "0.0")
             }
           }
 
-          Full(OverridenPolicy(PolicyId(RuleId(drid), DirectiveId(ddid), v1), PolicyId(RuleId(orid), DirectiveId(odid), v2)))
+          (for {
+            tv1 <- TechniqueVersion.parse(v1)
+            tv2 <- TechniqueVersion.parse(v2)
+            dd  <- DirectiveId.parse(ddid)
+            od  <- DirectiveId.parse(odid)
+          } yield {
+            OverridenPolicy(PolicyId(RuleId(drid), dd, tv1), PolicyId(RuleId(orid), od, tv2))
+          }).toBox ?~! s"Error when parsing rule expected reports from json: '${compactRender(json)}'"
+
         case _ =>
           Failure(s"Error when parsing rule expected reports from json: '${compactRender(json)}'")
       }
@@ -412,6 +421,7 @@ object ExpectedReportsSerialisation {
      ) match {
         case (JString(id), jsonMode, jsonComponents ) =>
           for {
+            rid        <- DirectiveId.parse(id).toBox
             components <- jsonComponents match {
                             case JArray(components) => sequence(components)(component)
                             case x                  => Failure(s"Error when parsing the list of components from expected directive report: '${compactRender(x)}'")
@@ -423,8 +433,7 @@ object ExpectedReportsSerialisation {
               case _           => false
             }
 
-            DirectiveExpectedReports(DirectiveId(id), policyMode(jsonMode), isSystem, components.toList)
-
+            DirectiveExpectedReports(rid, policyMode(jsonMode), isSystem, components.toList)
           }
         case _ =>
           Failure(s"Error when parsing directive expected reports from json: '${compactRender(json)}'")
@@ -447,7 +456,6 @@ object ExpectedReportsSerialisation {
         case (JString(name), Some(values), Some(unexpanded), None, None ) =>
           Full(ValueExpectedReport(name, values, unexpanded))
         case (JString(name), _, _, Some(Full(sub)), Some(composition) )=>
-          import com.normation.box.EitherToBox
           for {
             reportingLogic <-  ReportingLogic(composition).toBox
           } yield {

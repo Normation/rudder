@@ -54,10 +54,10 @@ final case class Deleted(cat: TechniqueCategory) extends TechniqueCategoryModTyp
 final case class Moved(oldId: TechniqueCategoryId, newId: TechniqueCategoryId) extends TechniqueCategoryModType
 }
 
-sealed trait TechniqueVersionModType
-final case object VersionDeleted extends TechniqueVersionModType
-final case object VersionAdded extends TechniqueVersionModType
-final case object VersionUpdated extends TechniqueVersionModType
+sealed trait TechniqueVersionModType { def name: String }
+final case object VersionDeleted extends TechniqueVersionModType { val name = "deleted" }
+final case object VersionAdded extends TechniqueVersionModType { val name = "added" }
+final case object VersionUpdated extends TechniqueVersionModType { val name = "updated" }
 
 sealed trait TechniquesLibraryUpdateType {
   val techniqueName: TechniqueName

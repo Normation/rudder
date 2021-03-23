@@ -25,7 +25,6 @@
 
 package com.normation
 
-
 import java.util.concurrent.TimeUnit
 
 import net.liftweb.common.{Logger => _, _}
@@ -41,6 +40,7 @@ import org.slf4j.Logger
 import _root_.zio._
 import _root_.zio.syntax._
 import _root_.zio.internal.Platform
+import com.normation.errors.PureResult
 import com.normation.errors.effectUioUnit
 
 
@@ -467,14 +467,19 @@ object box {
    * The same for either - not sure it should go there, but
    * we are likely to use both "toBox" in the same files
    */
-  implicit class EitherToBox[E <: RudderError, A](either: Either[E, A]) {
-    def toBox: Box[A] = either match {
-      case Left(err) => Failure(err.fullMsg)
-      case Right(x)  => Full(x)
+  implicit class EitherToBox[A](val res: Either[String, A]) extends AnyVal  {
+    def toBox: Box[A] = res match {
+      case Left(err) => Failure(err)
+      case Right(v)  => Full(v)
     }
   }
 
-
+  implicit class PureResultToBox[E <: RudderError, A](val res: PureResult[A]) extends AnyVal {
+    def toBox: Box[A] = res.fold(
+      err => Failure(err.fullMsg)
+    , suc => Full(suc)
+    )
+  }
 
   /**
    * A utility alias type / methods to create ZIO `Managed[RudderError, A]`

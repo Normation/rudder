@@ -49,7 +49,6 @@ import net.liftweb.common._
 import scala.xml._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model._
-import com.normation.rudder.repository._
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup
 import bootstrap.liftweb.RudderConfig
@@ -63,7 +62,6 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.web.ChooseTemplate
-
 import com.normation.box._
 
 object DirectiveEditForm {
@@ -89,7 +87,7 @@ class DirectiveEditForm(
     htmlId_policyConf       : String
   , technique               : Technique
   , activeTechnique         : ActiveTechnique
-  , fullActiveTechnique     : FullActiveTechnique
+  , techniques              : Map[TechniqueVersion, Technique]
   , val directive           : Directive
   , oldDirective            : Option[Directive]
   , globalMode              : GlobalPolicyMode
@@ -112,7 +110,7 @@ class DirectiveEditForm(
 
   private[this] val htmlId_save = htmlId_policyConf + "Save"
   private[this] val parameterEditor = {
-    directiveEditorService.get(technique.id, directive.id, directive.parameters) match {
+    directiveEditorService.get(technique.id, directive.id.uid, directive.parameters) match {
       case Full(pe) => pe
       case Empty => {
         val errMsg = "Can not initialize the parameter editor for Directive %s " +
@@ -160,7 +158,7 @@ class DirectiveEditForm(
       ( "#deprecation-message *" #> info.message &
         "#migrate-button *" #> {
             (for {
-              lastTechniqueVersion <- fullActiveTechnique.newestAvailableTechnique
+              lastTechniqueVersion <- techniques.toSeq.sortBy( _._1).reverse.map( _._2 ).headOption
               if( lastTechniqueVersion.id.version != directive.techniqueVersion )
             } yield {
               Text("Please upgrade to a new version: ") ++
@@ -189,7 +187,7 @@ class DirectiveEditForm(
     val versionSelect = if (isADirectiveCreation) {
       <div id="version" class="row wbBaseField form-group">
         <label for="version" class="col-xs-12 wbBaseFieldLabel"><span class="text-fit"><b>Technique version</b></span></label>
-        <div  class="col-xs-12"><input  name="version" class="form-control" readonly="" value={directive.techniqueVersion.toString}/></div>
+        <div  class="col-xs-12"><input  name="version" class="form-control" readonly="" value={directive.techniqueVersion.serialize}/></div>
       </div>
      } else { directiveVersion.toForm_! }
     val currentVersion = showDeprecatedVersion(directive.techniqueVersion)
@@ -200,17 +198,17 @@ class DirectiveEditForm(
         logger.warn("could not find id for migration select version")
         "id_not_found"
     }
-    val (disableMessage, enableBtn) = (fullActiveTechnique.isEnabled, directive._isEnabled) match{
+    val (disableMessage, enableBtn) = (activeTechnique.isEnabled, directive._isEnabled) match{
       case(false, false) =>
         ( "This Directive and its Technique are disabled."
         , <span>
             {SHtml.ajaxSubmit("Enable Directive", () => onSubmitDisable(DGModAction.Enable), ("class" ,"btn btn-sm btn-default"))}
-            <a class="btn btn-sm btn-default" href={s"/secure/administration/techniqueLibraryManagement/#${fullActiveTechnique.techniqueName}"}>Edit Technique</a>
+            <a class="btn btn-sm btn-default" href={s"/secure/administration/techniqueLibraryManagement/#${activeTechnique.techniqueName.value}"}>Edit Technique</a>
           </span>
         )
       case(false, true) =>
         ( "The Technique of this Directive is disabled."
-        , <a class="btn btn-sm btn-default" href={s"/secure/administration/techniqueLibraryManagement/#${fullActiveTechnique.techniqueName}"}>Edit Technique</a>
+        , <a class="btn btn-sm btn-default" href={s"/secure/administration/techniqueLibraryManagement/#${activeTechnique.techniqueName.value}"}>Edit Technique</a>
         )
       case(true, false) =>
         ( "This Directive is disabled."
@@ -223,7 +221,7 @@ class DirectiveEditForm(
       "#editForm" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
       "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
-          PendingChangeRequestDisplayer.checkByDirective(xml, directive.id)
+          PendingChangeRequestDisplayer.checkByDirective(xml, directive.id.uid)
         } &
       "#existingPrivateDrafts" #> displayPrivateDrafts &
       "#existingChangeRequests" #> displayChangeRequests &
@@ -232,7 +230,7 @@ class DirectiveEditForm(
         else xml ) andThen
       ClearClearable &
       //activation button: show disactivate if activated
-      "#directiveTitle *" #> <span class={ if(fullActiveTechnique.isEnabled) "" else "is-disabled" }>{directive.name}</span> &
+      "#directiveTitle *" #> <span class={ if(activeTechnique.isEnabled) "" else "is-disabled" }>{directive.name}</span> &
       "#shortDescription" #> (if(directive.shortDescription.isEmpty) NodeSeq.Empty else <div class="header-description"><p>{directive.shortDescription}</p></div>) &
       "#disactivateButtonLabel" #> {
         if (directive.isEnabled) "Disable" else "Enable"
@@ -259,7 +257,7 @@ class DirectiveEditForm(
       "#techniqueID *" #> technique.id.name.value &
       "#techniqueDescription *" #> technique.description &
       "#isDisabled" #> {
-        if (!fullActiveTechnique.isEnabled || !directive.isEnabled)
+        if (!activeTechnique.isEnabled || !directive.isEnabled)
           <div class="main-alert alert alert-warning">
             <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
             {disableMessage}
@@ -269,7 +267,7 @@ class DirectiveEditForm(
       } &
       "#nameField" #> {directiveName.toForm_!} &
       "#tagField *" #> tagsEditForm.tagsForm("directiveTags", "directiveEditTagsApp", updateTag, false) &
-      "#directiveID *" #> {directive.id.value} &
+      "#directiveID *" #> {directive.id.uid.value} &
       "#shortDescriptionField" #> directiveShortDescription.toForm_! &
       "#longDescriptionField" #> directiveLongDescription.toForm_! &
       "#priority" #> directivePriority.toForm_! &
@@ -440,18 +438,18 @@ class DirectiveEditForm(
     boxTag match {
       case Full(tags) => newTags = tags
       case eb : EmptyBox =>
-        val failure = eb ?~! s"Error when updating directive ${directive.id.value} tag"
+        val failure = eb ?~! s"Error when updating directive ${directive.id.uid.value} tag"
         formTracker.addFormError(error(failure.messageChain))
     }
   }
-  def tagsEditForm = new TagsEditForm(directive.tags, directive.id.value)
+  def tagsEditForm = new TagsEditForm(directive.tags, directive.id.uid.value)
 
   def showDeprecatedVersion (version : TechniqueVersion) = {
-    val deprecationInfo = fullActiveTechnique.techniques(version).deprecrationInfo match {
+    val deprecationInfo = techniques(version).deprecrationInfo match {
       case Some(_) => "(deprecated)"
       case None => ""
     }
-    s"${version} ${deprecationInfo}"
+    s"${version.serialize} ${deprecationInfo}"
   }
   private[this] val globalOverrideText = globalMode.overridable match {
     case Always  =>
@@ -517,7 +515,7 @@ class DirectiveEditForm(
     }
   }
 
-  val versions = fullActiveTechnique.techniques.keys.map(v => (v,showDeprecatedVersion(v))).toSeq.sortBy(_._1)
+  val versions = techniques.keys.map(v => (v,showDeprecatedVersion(v))).toSeq.sortBy(_._1)
 
   private[this] val directiveVersion = {
     val attributes = ("id" -> "selectVersion") ::

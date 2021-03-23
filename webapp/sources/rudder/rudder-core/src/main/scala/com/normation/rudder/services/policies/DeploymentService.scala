@@ -101,6 +101,7 @@ import zio.syntax._
 import com.normation.zio._
 import com.softwaremill.quicklens._
 import cats.implicits._
+import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.cfclerk.domain.SectionSpec
@@ -235,7 +236,7 @@ trait PromiseGenerationService {
                                      })  ?~! "Could not get Node Infos" //disabled node don't get new policies
              fetch2Time           =  System.currentTimeMillis
              _                    =  PolicyGenerationLogger.timing.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
-             directiveLib         <- getDirectiveLibrary() ?~! "Could not get the directive library"
+             directiveLib         <- getDirectiveLibrary(allRules.flatMap(_.directiveIds).toSet) ?~! "Could not get the directive library"
              fetch3Time           =  System.currentTimeMillis
              _                    =  PolicyGenerationLogger.timing.trace(s"Fetched directives in ${fetch3Time-fetch2Time} ms")
              groupLib             <- getGroupLibrary() ?~! "Could not get the group library"
@@ -415,7 +416,10 @@ trait PromiseGenerationService {
    * - groups library
    */
   def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]]
-  def getDirectiveLibrary(): Box[FullActiveTechniqueCategory]
+  // get full active technique category, checking that:
+  // - all ids in parameter are in it,
+  // - filtering out other directives (and pruning relevant branches).
+  def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory]
   def getGroupLibrary(): Box[FullNodeGroupCategory]
   def getAllGlobalParameters: Box[Seq[GlobalParameter]]
   def getAllInventories(): Box[Map[NodeId, NodeInventory]]
@@ -491,17 +495,7 @@ trait PromiseGenerationService {
   def getAppliedRuleIds(rules:Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId]
 
   /**
-   * Find all modified rules.
-   * For them, find all directives with variables
-   * referencing these rules.
-   * Add them to the set of rules to return, and
-   * recurse.
-   * Stop when convergence is reached
-   *
-   * No modification on back-end are performed
-   * (perhaps safe setting the "isModified" value to "true" for
-   * all dependent CR).
-   *
+   * Get all rules, including system ones
    */
   def findDependantRules() : Box[Seq[Rule]]
 
@@ -643,7 +637,7 @@ class PromiseGenerationServiceImpl (
   , override val confExpectedRepo : UpdateExpectedReportsRepository
   , override val historizationService : HistorizationService
   , override val roNodeGroupRepository: RoNodeGroupRepository
-  , override val roDirectiveRepository: RoDirectiveRepository
+  , override val configurationRepository: ConfigurationRepository
   , override val ruleApplicationStatusService: RuleApplicationStatusService
   , override val parameterService : RoParameterService
   , override val interpolatedValueCompiler:InterpolatedValueCompiler
@@ -726,7 +720,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def roRuleRepo : RoRuleRepository
   def nodeInfoService: NodeInfoService
   def roNodeGroupRepository: RoNodeGroupRepository
-  def roDirectiveRepository: RoDirectiveRepository
+  def configurationRepository: ConfigurationRepository
   def parameterService : RoParameterService
   def roInventoryRepository: ReadOnlyFullInventoryRepository
   def complianceModeService : ComplianceModeService
@@ -740,7 +734,9 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
 
   override def findDependantRules() : Box[Seq[Rule]] = roRuleRepo.getAll(true).toBox
   override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = nodeInfoService.getAll()
-  override def getDirectiveLibrary(): Box[FullActiveTechniqueCategory] = roDirectiveRepository.getFullDirectiveLibrary().toBox
+  override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = {
+    configurationRepository.getDirectiveLibrary(ids).toBox
+  }
   override def getGroupLibrary(): Box[FullNodeGroupCategory] = roNodeGroupRepository.getFullGroupLibrary().toBox
   override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = parameterService.getAllGlobalParameters()
   override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = roInventoryRepository.getAllNodeInventories(AcceptedInventory).toBox
@@ -862,7 +858,7 @@ trait PromiseGeneration_BuildNodeContext {
           case Full(x) => res.copy(ok = res.ok + x)
         }
       }
-      PolicyGenerationLogger.timing.debug(s"Merge group properties took ${timeNanoMergeProp/(1_000_000)} ms for ${nodeIds.size} nodes")
+      PolicyGenerationLogger.timing.debug(s"Merge group properties took ${timeNanoMergeProp/(1000000)} ms for ${nodeIds.size} nodes")
       all
     }
   }
@@ -1403,19 +1399,19 @@ object RuleExpectedReportBuilder extends Loggable {
       (vars.expandedVars.get(boundingVar), vars.originalVars.get(boundingVar)) match {
         case (None, None) =>
           PolicyGenerationLogger.debug("Could not find the bounded variable %s for %s in ParsedPolicyDraft %s".format(
-              boundingVar, vars.trackerVariable.spec.name, directiveId.value))
+              boundingVar, vars.trackerVariable.spec.name, directiveId.serialize))
           (Seq(DEFAULT_COMPONENT_KEY),Seq()) // this is an autobounding policy
         case (Some(variable), Some(originalVariables)) if (variable.values.size==originalVariables.values.size) =>
           (variable.values, originalVariables.values)
         case (Some(variable), Some(originalVariables)) =>
           PolicyGenerationLogger.warn("Expanded and unexpanded values for bounded variable %s for %s in ParsedPolicyDraft %s have not the same size : %s and %s".format(
-              boundingVar, vars.trackerVariable.spec.name, directiveId.value,variable.values, originalVariables.values ))
+              boundingVar, vars.trackerVariable.spec.name, directiveId.serialize,variable.values, originalVariables.values ))
           (variable.values, originalVariables.values)
         case (None, Some(originalVariables)) =>
           (Seq(DEFAULT_COMPONENT_KEY),originalVariables.values) // this is an autobounding policy
         case (Some(variable), None) =>
           PolicyGenerationLogger.warn("Somewhere in the expansion of variables, the bounded variable %s for %s in ParsedPolicyDraft %s appeared, but was not originally there".format(
-              boundingVar, vars.trackerVariable.spec.name, directiveId.value))
+              boundingVar, vars.trackerVariable.spec.name, directiveId.serialize))
           (variable.values,Seq()) // this is an autobounding policy
 
       }
@@ -1441,7 +1437,7 @@ object RuleExpectedReportBuilder extends Loggable {
                 val unexpandedValues = vars.originalVars.get(varName).map(_.values.toList).getOrElse(Nil)
                 if (values.size != unexpandedValues.size)
                   PolicyGenerationLogger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
-                    section.componentKey, directiveId.value, values, unexpandedValues))
+                    section.componentKey, directiveId.serialize, values, unexpandedValues))
 
                 ValueExpectedReport(section.name, values, unexpandedValues) :: childExpectedReports
             }
@@ -1463,8 +1459,8 @@ object RuleExpectedReportBuilder extends Loggable {
     if(allComponents.isEmpty) {
       //that log is outputed one time for each directive for each node using a technique, it's far too
       //verbose on debug.
-      PolicyGenerationLogger.trace("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
-        technique.id, directiveId))
+      PolicyGenerationLogger.trace(s"Technique '${technique.id.debugString}' does not define any components, assigning default component with " +
+                                   s"expected report = 1 for directive ${directiveId.debugString}")
 
       val trackingVarCard = getTrackingVariableCardinality
       List(ValueExpectedReport(technique.id.name.value, trackingVarCard._1.toList, trackingVarCard._2.toList))

@@ -168,7 +168,7 @@ class RuleCategoryTree(
                         , ModificationId(uuidGen.newUuid)
                         , CurrentUser.actor
                         , reason = None
-                      ).chainError(s"Error while trying to move category with requested id '${sourceCatId}' to category id '${destCatId}'")
+                      ).chainError(s"Error while trying to move category with requested id '${sourceCatId.value}' to category id '${destCatId.value}'")
             newRoot <- roRuleCategoryRepository.getRootCategory()
           } yield {
             (category.id.value, newRoot)

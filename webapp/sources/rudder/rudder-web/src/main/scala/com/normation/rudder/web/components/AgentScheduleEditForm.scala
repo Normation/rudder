@@ -151,7 +151,7 @@ class AgentScheduleEditForm(
       case eb:EmptyBox =>
         val e = eb ?~! "Error when retrieving agent schedule from the database"
         logger.error(e.messageChain)
-        e.rootExceptionCause.foreach { ex => logger.error(s"Root exception was: ${ex}") }
+        e.rootExceptionCause.foreach { ex => logger.error(s"Root exception was: ${ex.getMessage}") }
 
         ( "#cfagentSchedule" #> "Error when retrieving agent schedule from the database. Please, contact an admin or try again later"  )
       case Full(initScheduleParam) =>

@@ -138,7 +138,7 @@ final case class ConfigurationChangeRequest(
     id          : ChangeRequestId
   , modId       : Option[ModificationId]
   , info        : ChangeRequestInfo
-  , directives  : Map[DirectiveId, DirectiveChanges]
+  , directives  : Map[DirectiveUid, DirectiveChanges]
   , nodeGroups  : Map[NodeGroupId, NodeGroupChanges]
   , rules       : Map[RuleId, RuleChanges]
   , globalParams: Map[String, GlobalParameterChanges]

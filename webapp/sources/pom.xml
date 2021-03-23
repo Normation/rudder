@@ -151,7 +151,12 @@ limitations under the License.
               <artifactId>silencer-plugin_${scala-version}</artifactId>
               <version>${silencer-lib-version}</version>
             </compilerPlugin>
-          </compilerPlugins>
+            <compilerPlugin>
+              <groupId>org.wartremover</groupId>
+              <artifactId>wartremover_2.13</artifactId>
+              <version>2.4.10</version>
+            </compilerPlugin>
+        </compilerPlugins>
           <args>
             <!-- require java8, cf http://www.rudder-project.org/redmine/issues/9917 -->
             <arg>-target:jvm-1.8</arg>
@@ -187,6 +192,8 @@ limitations under the License.
             <arg>-Ycache-plugin-class-loader:last-modified</arg> <!-- Enables caching of classloaders for compiler plugins -->
             <arg>-Ycache-macro-class-loader:last-modified</arg>  <!-- and macro definitions. This can lead to performance improvements. -->
             <arg>-P:silencer:checkUnused</arg>
+<!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.StringPlusAny</arg>-->
+<!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.ToString</arg>-->
           </args>
           <jvmArgs>
             <jvmArg>-Xmx${jvmArg-Xmx}</jvmArg>
@@ -373,7 +380,7 @@ limitations under the License.
     <commons-fileupload>1.4</commons-fileupload>
     <spring-version>5.2.15.RELEASE</spring-version>
     <spring-security-version>5.3.10.RELEASE</spring-security-version>
-    <jgit-version>5.9.0.202009080501-r</jgit-version>
+    <jgit-version>5.12.0.202106070339-r</jgit-version>
     <cglib-version>3.3.0</cglib-version>
     <asm-version>5.2</asm-version>
     <bcpkix-jdk15on-version>1.68</bcpkix-jdk15on-version>

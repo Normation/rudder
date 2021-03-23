@@ -40,10 +40,10 @@ package com.normation.rudder.rest.data
 import net.liftweb.json._
 import com.normation.rudder.domain.reports._
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.json.JsonAST
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 
@@ -215,7 +215,7 @@ object JsonCompliance {
       if(level < 2) None
       else Some( directives.map { directive =>
         (
-            ("id" -> directive.id.value)
+            ("id" -> directive.id.serialize)
           ~ ("name" -> directive.name)
           ~ ("compliance" -> directive.compliance.complianceWithoutPending)
           ~ ("complianceDetails" -> percents(directive.compliance))
@@ -307,7 +307,7 @@ object JsonCompliance {
       if(level < 3) None
       else Some(directives.map { directive =>
         (
-            ("id" -> directive.id.value)
+            ("id" -> directive.id.serialize)
           ~ ("name" -> directive.name)
           ~ ("compliance" -> directive.compliance.complianceWithoutPending)
           ~ ("complianceDetails" -> percents(directive.compliance))

@@ -158,7 +158,7 @@ class ComplianceJdbcRepository(
           //be carefull to "toList", because we don't want to deduplicate if
           //two directive are actually equal
           aggregats.toList.flatMap(_.directives.values).groupBy(_.directiveId).map { case (directiveId, seq) =>
-            (run.nodeId.value, run.runTimestamp, ruleId.value, directiveId.value, ComplianceLevel.sum(seq.map(_.compliance)))
+            (run.nodeId.value, run.runTimestamp, ruleId.value, directiveId.serialize, ComplianceLevel.sum(seq.map(_.compliance)))
           }
         }
       }

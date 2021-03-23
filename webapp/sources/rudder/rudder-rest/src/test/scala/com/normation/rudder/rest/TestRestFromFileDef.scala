@@ -37,6 +37,13 @@
 
 package com.normation.rudder.rest
 
+import better.files._
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.errors.IOResult
+import com.normation.errors.RudderError
+import com.normation.errors.effectUioUnit
+import com.normation.utils.ParseVersion
+
 import scala.jdk.CollectionConverters._
 import org.junit.runner.RunWith
 import org.specs2.mutable._
@@ -54,9 +61,15 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.io.IOUtils
+import org.specs2.specification.AfterAll
 
 import java.nio.charset.StandardCharsets
 import scala.util.control.NonFatal
+import zio._
+import com.normation.zio._
+
+import java.io.InputStream
+import java.nio.file.Path
 
 /*
  * Utily data structures
@@ -81,22 +94,92 @@ final case class TestRequest(
 )
 
 @RunWith(classOf[JUnitRunner])
-class TestRestFromFileDef extends Specification with Loggable {
+class TestRestFromFileDef extends Specification with Loggable with AfterAll {
 
 
 
-  //read all file in src/test/resources/api.
-  //each file is a new test
 
-  //get stream for files in src/main/resources/api. Empty name == the "." directory
-  def filename(name: String) = "api/" + name
-  def src_test_resources_api_(name: String) = this.getClass.getClassLoader.getResourceAsStream(filename(name))
+  val restTestSetUp = RestTestSetUp.newEnv
+  // update package management revision with new commits
+  restTestSetUp.updatePackageManagementRevision()
 
-  // file to test, by default all under "src/main/resources/api", you can comment that line
-  // an uncoment the following one to test only one file.
-  val files = IOUtils.readLines(src_test_resources_api_(""), StandardCharsets.UTF_8).asScala.toList
-//  val files = List("api_settings.yml")
+  val restTest = new RestTest(restTestSetUp)
 
+  // let's say that's /var/rudder/share
+  val tmpApiTemplate = restTestSetUp.baseTempDirectory / "apiTemplates"
+  tmpApiTemplate.createDirectories()
+
+  // nodeXX appears at seleral places
+
+  override def afterAll(): Unit = {
+    if(System.getProperty("tests.clean.tmp") != "false") {
+      restTestSetUp.cleanup()
+    }
+  }
+
+  // we have two kinds of files:
+  // - yml files directly under /api are considered "use as it" (no post processing)
+  // - yml files under /api/templates are considered to need a post processing step.
+
+  // directly dir
+  def readYamlFiles(baseDir: String, tmpDir: File, only: String => Boolean): IOResult[List[(String, List[AnyRef])]] = {
+    def listFilesUnder(dir: String) = {
+      IOResult.effect(IOUtils.readLines(Resource.getAsStream(dir), StandardCharsets.UTF_8).asScala.toList)
+    }
+
+    def copyTransformApiRevision(orig: String): String = {
+      // find interesting revision for technique
+      val name = TechniqueName("packageManagement")
+      val version = ParseVersion.parse ("1.0").getOrElse(throw new Exception("bad version in test"))
+      val revision = restTestSetUp.mockTechniques.techniqueRevisionRepo.getTechniqueRevision(name, version).map(_.drop(1).head).runNow
+      orig.replaceAll("VALID-REV", revision.rev.value)
+    }
+
+    val transformations = Map(
+      ("api_revisions.yml" -> copyTransformApiRevision _)
+    )
+
+
+    // transform templates based on the map of transformation, or ident if not registered
+    def transform(name: String, s: String): String = {
+      transformations.getOrElse(name, identity[String] _)(s)
+    }
+
+    // file are copier directly into destDir
+    def copyTransform(orig: Path, destDir: File): IOResult[(String, Managed[RudderError, InputStream])] = {
+      // for now, nothing more
+      val name = orig.getFileName.toString
+      val dest = destDir / name
+      for {
+        f <- IOResult.effect(Resource.asString(orig.toString).map(s => dest.write(transform(name, s)))).notOptional(s"Missing source file: ${orig}")
+      } yield {
+        (name, Managed.make(IOResult.effect(f.newInputStream))(is => effectUioUnit(is.close())))
+      }
+    }
+
+    // the list anyref here is Yaml objects
+    def loadYamls(input: Managed[RudderError, InputStream]): IOResult[List[AnyRef]] = {
+      for {
+        tool  <- IOResult.effect(new Yaml())
+        yamls <- input.use(x => IOResult.effect(tool.loadAll(x).asScala.toList))
+      } yield {
+        yamls
+      }
+    }
+
+    for {
+      // base, directly from classpath
+      baseFiles   <- listFilesUnder(baseDir).map(_.filter(only))
+      baseIs      =  baseFiles.map { name => (name, Managed.make(IOResult.effect(Resource.getAsStream(baseDir + "/" + name)))(is => effectUioUnit(is.close()))) }
+      // templates: need copy to tmp file
+      templateDir = baseDir+"/templates"
+      templates   <- listFilesUnder(templateDir).map(_.filter(only))
+      copied      <- ZIO.foreach(templates) { t => copyTransform(Path.of(templateDir, t), tmpDir) }
+      allYamls    <- ZIO.foreach(baseIs++copied) { case (name, input) => loadYamls(input).map(y => (name, y)) }
+    } yield {
+      allYamls
+    }
+  }
 
   // try to not make everyone loose hours on java NPE
   implicit class SafeGet(data: scala.collection.mutable.Map[String, Any]) {
@@ -114,6 +197,7 @@ class TestRestFromFileDef extends Specification with Loggable {
       }
     }
   }
+
 
   /*
    * I *love* java. The snakeyaml parser returns a list of Objects. The may be null if empty, or
@@ -157,12 +241,6 @@ class TestRestFromFileDef extends Specification with Loggable {
     }
   }
 
-  // we are testing error cases, so we don't want to output error log for them
-  org.slf4j.LoggerFactory.getLogger("com.normation.rudder.rest.RestUtils").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
-
-  sequential
-
-  ///// tests ////
 
   def cleanBreakline(text: String) = text.replaceAll("(\\w)\\s+", "$1").replaceAll("(\\W)\\s+", "$1").replaceAll("\\s+$", "")
   def cleanResponse(r: LiftResponse): (Int, String) = {
@@ -171,21 +249,31 @@ class TestRestFromFileDef extends Specification with Loggable {
     (response.code, resp)
   }
 
+  // we are testing error cases, so we don't want to output error log for them
+  org.slf4j.LoggerFactory.getLogger("com.normation.rudder.rest.RestUtils").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
+
+  ///// tests ////
+
   sequential
 
-  Fragments.foreach(files) { file =>
+  val files = readYamlFiles("api", tmpApiTemplate, _.endsWith(".yml")).runNow
+//  val files = readYamlFiles("api", tmpApiTemplate, (_.endsWith("api_revisions.yml"))).runNow
 
-    val objects = (new Yaml()).loadAll(src_test_resources_api_(file)).asScala
+
+
+
+  Fragments.foreach(files) { case (name, yamls) =>
+
 
     // "." are breaking description, we need to remove it from file name
-    s"For each test defined in '${file.split("\\.").head}'" should {
-      Fragment.foreach(objects.map(readSpecification).zipWithIndex.toSeq) { x => x match {
+    s"For each test defined in '${name.split("\\.").head}'" should {
+      Fragment.foreach(yamls.map(readSpecification).zipWithIndex.toSeq) { x => x match {
         case (eb: EmptyBox, i) =>
-          val f = eb ?~! s"I wasn't able to run the ${i}th tests in file ${filename(file)}"
+          val f = eb ?~! s"I wasn't able to run the ${i}th tests in file ${name}"
           logger.error(f.messageChain)
 
           s"[${i}] failing test ${i}: can not read description" in {
-            ko(s"The yaml description ${i} in ${file} cannot be read: ${f.messageChain}")
+            ko(s"The yaml description ${i} in ${name} cannot be read: ${f.messageChain}")
           }
 
         case (Full(test), i) =>
@@ -208,7 +296,7 @@ class TestRestFromFileDef extends Specification with Loggable {
             // authorize space in response formating
             val expected = cleanBreakline(test.responseContent)
 
-            RestTestSetUp.execRequestResponse(mockReq)(response =>
+            restTest.execRequestResponse(mockReq)(response =>
               response.map(cleanResponse(_)) must beEqualTo(Full((test.responseCode, expected)))
             )
           }

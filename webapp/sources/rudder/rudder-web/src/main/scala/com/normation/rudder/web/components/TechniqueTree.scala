@@ -124,12 +124,12 @@ class TechniqueTree(
     override val attrs =  ("data-jstree" -> """{ "type" : "template" }""")  :: Nil ::: (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
   }
 
-  private[this] def directiveNode(dep: TechniqueDependencies, id:DirectiveId) : JsTreeNode = {
+  private[this] def directiveNode(dep: TechniqueDependencies, id:DirectiveUid) : JsTreeNode = {
     val (directive, ruleIds) = dep.directives(id)
 
     new JsTreeNode {
       override val attrs = ("data-jstree" -> """{ "type" : "directive" }""")  :: Nil ::: (if(!directive.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
-      override def body = {  <a href="#"><span class="treeDirective tooltipable" tooltipid={directive.id.value} title={directive.shortDescription}>{directive.name}</span></a><div class="tooltipContent" id={directive.id.value}><h3>{directive.name}</h3><div>{directive.shortDescription}</div></div> }
+      override def body = {  <a href="#"><span class="treeDirective tooltipable" tooltipid={directive.id.uid.value} title={directive.shortDescription}>{directive.name}</span></a><div class="tooltipContent" id={directive.id.uid.value}><h3>{directive.name}</h3><div>{directive.shortDescription}</div></div> }
       override def children = ruleIds.map ( k => ruleNode(k) ).toList
     }
   }

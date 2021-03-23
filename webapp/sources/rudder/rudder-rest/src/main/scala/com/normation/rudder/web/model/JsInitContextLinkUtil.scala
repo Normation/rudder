@@ -38,7 +38,7 @@
 package com.normation.rudder.web.model
 
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.workflows.ChangeRequestId
@@ -96,13 +96,13 @@ class LinkUtil (
   def redirectToRuleLink(id:RuleId) : JsCmd =
     RedirectTo(baseRuleLink(id))
 
-  def baseDirectiveLink(id:DirectiveId) =
+  def baseDirectiveLink(id:DirectiveUid) =
     s"""/secure/configurationManager/directiveManagement#{"directiveId":"${id.value}"}"""
 
-  def directiveLink(id:DirectiveId) =
+  def directiveLink(id:DirectiveUid) =
     s"""${S.contextPath}${baseDirectiveLink(id)}"""
 
-  def redirectToDirectiveLink(id:DirectiveId) : JsCmd =
+  def redirectToDirectiveLink(id:DirectiveUid) : JsCmd =
     RedirectTo(baseDirectiveLink(id))
 
   def baseNodeLink(id:NodeId) =
@@ -124,7 +124,7 @@ class LinkUtil (
      RedirectTo(baseGlobalParameterLink(name))
 
   def baseChangeRequestLink(id:ChangeRequestId) =
-    s"/secure/plugins/changes/changeRequest/${id}"
+    s"/secure/plugins/changes/changeRequest/${id.value}"
 
   def changeRequestLink(id:ChangeRequestId) =
     s"${S.contextPath}${baseChangeRequestLink(id)}"
@@ -150,7 +150,7 @@ class LinkUtil (
     }
   }
 
-  def createDirectiveLink(id:DirectiveId) = {
+  def createDirectiveLink(id:DirectiveUid) = {
     roDirectiveRepository.getDirective(id).either.runNow match {
       case Right(Some(directive)) => <span> <a href={baseDirectiveLink(id)}>{directive.name}</a> (Rudder ID: {id.value})</span>
       case Right(None)            =>

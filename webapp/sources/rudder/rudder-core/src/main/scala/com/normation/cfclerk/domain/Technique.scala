@@ -48,8 +48,6 @@ import com.normation.inventory.domain.AgentType
  *
  */
 final case class TechniqueName(value: String) extends AnyVal with Ordered[TechniqueName] {
-  override def toString = value
-
   override def compare(that: TechniqueName) = this.value.compare(that.value)
 }
 
@@ -59,7 +57,11 @@ final case class TechniqueName(value: String) extends AnyVal with Ordered[Techni
  * among all policies, and a version for that policy.
  */
 final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends Ordered[TechniqueId] {
-  override def toString() = name.toString + "/" + version.toString
+  // intented for debug/log, not serialization
+  def debugString = serialize
+  // a technique
+  def serialize = name.value + "/" + version.serialize
+  def withDefaultRev = TechniqueId(name, version.withDefaultRev)
 
   override def compare(that: TechniqueId): Int = {
     val c = this.name.compare(that.name)
