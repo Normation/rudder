@@ -48,9 +48,7 @@ import JsCmds._
 import JE._
 
 import scala.collection._
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.repository.ReportsRepository
-import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import org.joda.time.DateTime
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
@@ -59,13 +57,15 @@ import org.joda.time.format.DateTimeFormat
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.box._
 import com.normation.utils.DateFormaterService
+import com.normation.rudder.configuration.ConfigurationRepository
+import com.normation.rudder.domain.policies.DirectiveRId
 
 /**
  * Show the reports from cfengine (raw data)
  */
 class LogDisplayer(
     reportRepository   : ReportsRepository
-  , directiveRepository: RoDirectiveRepository
+  , configRepository   : ConfigurationRepository
   , ruleRepository     : RoRuleRepository
 ) extends Loggable {
 
@@ -146,13 +146,13 @@ class LogDisplayer(
    * find all reports for node passed as parameter and transform them into table data
    */
   def getReportsLineForNode (nodeId : NodeId, reports: Seq[Reports]) = {
-    val directiveMap = mutable.Map[DirectiveId, String]()
+    val directiveMap = mutable.Map[DirectiveRId, String]()
     val ruleMap = mutable.Map[RuleId, String]()
 
-    def getDirectiveName(directiveId : DirectiveId) : String = {
-      directiveMap.getOrElse(directiveId, {
-        val result = directiveRepository.getDirective(directiveId).map(_.map(_.name).getOrElse(directiveId.value) ).toBox.openOr(directiveId.value)
-        directiveMap += ( directiveId -> result)
+    def getDirectiveName(directiveRId: DirectiveRId) : String = {
+      directiveMap.getOrElse(directiveRId, {
+        val result = configRepository.getDirective(directiveRId).map(_.map(_.directive.name).getOrElse(directiveRId.serialize) ).toBox.openOr(directiveRId.serialize)
+        directiveMap += ( directiveRId -> result)
         result
       })
     }
@@ -168,7 +168,7 @@ class LogDisplayer(
 
         val ruleName = getRuleName(report.ruleId)
 
-        val directiveName = getDirectiveName(report.directiveId)
+        val directiveName = getDirectiveName(report.directiveRId)
 
         val value = if (DEFAULT_COMPONENT_KEY == report.keyValue) "-" else report.keyValue
 

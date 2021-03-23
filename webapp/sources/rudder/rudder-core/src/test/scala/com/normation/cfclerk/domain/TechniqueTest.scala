@@ -54,7 +54,7 @@ class TechniqueTest extends Specification {
     new TechniqueParser(varParser, new SectionSpecParser(varParser), new SystemVariableSpecServiceImpl())
   }
 
-  val id = TechniqueId(TechniqueName("foo"), TechniqueVersion("1.0"))
+  val id = TechniqueId(TechniqueName("foo"), TechniqueVersionHelper("1.0"))
 
   val technique = techniqueParser.parseXml(readFile("testTechnique.xml"), id).getOrElse(throw new IllegalArgumentException("Technique XML must be valid for test"))
 

@@ -65,7 +65,7 @@ final case class ModifyRuleDiff(
   , modName             : Option[SimpleDiff[String]] = None
   , modSerial           : Option[SimpleDiff[Int]] = None
   , modTarget           : Option[SimpleDiff[Set[RuleTarget]]] = None
-  , modDirectiveIds     : Option[SimpleDiff[Set[DirectiveId]]] = None
+  , modDirectiveIds     : Option[SimpleDiff[Set[DirectiveRId]]] = None
   , modShortDescription : Option[SimpleDiff[String]] = None
   , modLongDescription  : Option[SimpleDiff[String]] = None
   , modreasons          : Option[SimpleDiff[String]] = None

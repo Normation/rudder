@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.GitVersion.RevId
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.TechniqueRepository
@@ -74,11 +75,12 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST.JValue
-
 import com.normation.box._
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors._
+import com.normation.rudder.configuration.ConfigurationRepository
+import com.normation.rudder.domain.policies.DirectiveRId
 import zio._
 import zio.syntax._
 import com.normation.rudder.rest._
@@ -222,7 +224,8 @@ class DirectiveApi (
   object DirectiveDetailsV14 extends LiftApiModuleString {
     val schema = API.DirectiveDetails
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.directiveDetails(DirectiveId(id)).toLiftResponseOne(params, schema, _.id)
+      val revId = req.params.get("revId").flatMap(_.headOption).map(RevId)
+      serviceV14.directiveDetails(DirectiveRId(DirectiveId(id), revId)).toLiftResponseOne(params, schema, _.id)
     }
   }
 
@@ -232,7 +235,7 @@ class DirectiveApi (
 
       (for {
         restDirective <- zioJsonExtractor.extractDirective(req).chainError(s"Could not extract directive parameters from request").toIO
-        result        <- serviceV14.createOrCloneDirective(restDirective, DirectiveId(restDirective.id.getOrElse(uuidGen.newUuid)), restDirective.source.map(DirectiveId), params, authzToken.actor)
+        result        <- serviceV14.createOrCloneDirective(restDirective, DirectiveId(restDirective.id.getOrElse(uuidGen.newUuid)), restDirective.getSourceId, params, authzToken.actor)
       } yield {
         val action = if (restDirective.source.nonEmpty) "cloneDirective" else schema.name
         (RudderJsonResponse.ResponseSchema(action, schema.dataContainer), result)
@@ -417,8 +420,8 @@ class DirectiveApiService2 (
       name            <- Box(restDirective.name) ?~! s"Directive name is not defined in request data."
       technique       <- DirectiveApiService.extractTechnique(techniqueRepository, restDirective.techniqueName, restDirective.techniqueVersion).chainError(
                            s"Technique is not correctly defined in request data.").toBox
-      activeTechnique <- readDirective.getActiveTechnique(technique.id.name).notOptional(s"Technique ${technique.id.name} cannot be found.").toBox
-      baseDirective   =  Directive(directiveId,technique.id.version,Map(),name,"",None, _isEnabled = true)
+      activeTechnique <- readDirective.getActiveTechnique(technique.id.name).notOptional(s"Technique ${technique.id.serialize} cannot be found.").toBox
+      baseDirective   =  Directive(directiveId, None, technique.id.version,Map(),name,"",None, _isEnabled = true)
       result          =  actualDirectiveCreation(restDirective,baseDirective,activeTechnique,technique) _
     } yield {
       result
@@ -473,7 +476,7 @@ class DirectiveApiService2 (
                             } else {
                               Box(techniqueRepository.get(updatedTechniqueId))
                             }
-                          ) ?~ s"Could not find technique ${updatedTechniqueId.name} with version ${updatedTechniqueId.version.toString}."
+                          ) ?~ s"Could not find technique ${updatedTechniqueId.name.value} with version ${updatedTechniqueId.version.serialize}."
 
        updatedDirective = restDirective.updateDirective(oldDirective)
        // Check parameters of the new Directive with the current technique version, It will check that parameters are ok with the new technique
@@ -525,6 +528,7 @@ class DirectiveApiService2 (
 
 class DirectiveApiService14 (
     readDirective        : RoDirectiveRepository
+  , readRevDirective     : ConfigurationRepository
   , writeDirective       : WoDirectiveRepository
   , uuidGen              : StringUuidGenerator
   , asyncDeploymentAgent : AsyncDeploymentActor
@@ -551,7 +555,7 @@ class DirectiveApiService14 (
     }
   }
 
-  def createOrCloneDirective(restDirective: JQDirective, directiveId : DirectiveId, source: Option[DirectiveId], params: DefaultParams, actor: EventActor): IOResult[JRDirective] = {
+  def createOrCloneDirective(restDirective: JQDirective, directiveId: DirectiveId, source: Option[DirectiveRId], params: DefaultParams, actor: EventActor): IOResult[JRDirective] = {
     def actualDirectiveCreation(restDirective: JQDirective, baseDirective: Directive, activeTechnique: ActiveTechnique, technique: Technique, params: DefaultParams, actor: EventActor): IOResult[JRDirective] = {
       val newDirective = restDirective.updateDirective(baseDirective)
       val modId = ModificationId(uuidGen.newUuid)
@@ -581,7 +585,8 @@ class DirectiveApiService14 (
       case Some(cloneId) =>
         for {
           name          <- restDirective.displayName.checkMandatory(_.size > 3, v => "'displayName' is mandatory and must be at least 3 char long")
-          triple        <- readDirective.getDirectiveWithContext(cloneId).notOptional(s"Cannot find Directive '${cloneId.value}' to use as clone base.")
+          // TODO: manage revId
+          triple        <- readDirective.getDirectiveWithContext(cloneId.id).notOptional(s"Cannot find Directive '${cloneId.debugString}' to use as clone base.")
           (technique, activeTechnique, sourceDirective) = triple
           version       <- DirectiveApiService.checkTechniqueVersion(techniqueRepository, technique.id.name, restDirective.techniqueVersion).chainError(s"Cannot find a valid technique version" ).toIO
           newDirective  =  restDirective.copy(enabled = Some(false), techniqueVersion = version)
@@ -595,7 +600,7 @@ class DirectiveApiService14 (
           name            <- restDirective.displayName.checkMandatory(_.size > 3, v => "'displayName' is mandatory and must be at least 3 char long")
           technique       <- DirectiveApiService.extractTechnique(techniqueRepository, restDirective.techniqueName, restDirective.techniqueVersion).chainError(s"Technique is not correctly defined in request data.").toIO
           activeTechnique <- readDirective.getActiveTechnique(technique.id.name).notOptional(s"Technique ${technique.id.name} cannot be found.")
-          baseDirective   =  Directive(directiveId, technique.id.version, Map(), name, "", None, _isEnabled = true)
+          baseDirective   =  Directive(directiveId, None, technique.id.version, Map(), name, "", None, _isEnabled = true)
           result          <- actualDirectiveCreation(restDirective, baseDirective, activeTechnique, technique, params, actor)
         } yield {
           result
@@ -640,6 +645,7 @@ class DirectiveApiService14 (
   }
 
   def deleteDirective(id: DirectiveId, params: DefaultParams, actor: EventActor): IOResult[JRDirective] = {
+          // TODO: manage revId
     readDirective.getDirectiveWithContext(id).flatMap {
       case Some((technique, activeTechnique, directive)) =>
         val change = DirectiveChangeRequest(DGModAction.Delete, technique.id.name, activeTechnique.id, technique.rootSection, directive, Some(directive), Nil, Nil)
@@ -650,9 +656,10 @@ class DirectiveApiService14 (
   }
 
 
-  def directiveDetails(id: DirectiveId): IOResult[JRDirective] = {
+  def directiveDetails(id: DirectiveRId): IOResult[JRDirective] = {
     for {
-      triple <- readDirective.getDirectiveWithContext(id).notOptional(s"Could not find Directive ${id.value}")
+          // TODO: manage revId
+      triple <- readDirective.getDirectiveWithContext(id.id).notOptional(s"Could not find Directive ${id.debugString}")
     } yield {
       JRDirective.fromDirective(triple._1, triple._3, None)
     }

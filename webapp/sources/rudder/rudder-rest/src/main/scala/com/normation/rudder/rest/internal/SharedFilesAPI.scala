@@ -313,11 +313,11 @@ class SharedFilesAPI(
                         json \ paramName match {
                           case JString(param) =>
                             checkPathAndContinue(item, basePath)(action(param))
-                          case _ => Unexpected(s"'${paramName}' is not correctly defined for '${action}' action").fail
+                          case _ => Unexpected(s"'${paramName}' is not correctly defined for '${actionName}' action").fail
                         }
-                      case item => Unexpected(s"a value from array '${itemName}', for action '${action}' is not valid, should be a string but is: ${net.liftweb.json.compactRender(item)}").fail
+                      case item => Unexpected(s"a value from array '${itemName}', for action '${actionName}' is not valid, should be a string but is: ${net.liftweb.json.compactRender(item)}").fail
                     }.map(_ => basicSuccessResponse).toBox
-                  case _ => Failure(s"'${itemName}' is not correctly defined for '${action}' action")
+                  case _ => Failure(s"'${itemName}' is not correctly defined for '${actionName}' action")
                 }
               }
 

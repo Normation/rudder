@@ -85,6 +85,7 @@ import org.junit.runner.RunWith
 import java.io.File
 
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
+import com.normation.rudder.domain.policies.DirectiveRId
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.repository.WoDirectiveRepository
 import org.specs2.matcher.ContentMatchers
@@ -134,7 +135,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
     def getDirectiveWithContext(directiveId: DirectiveId): IOResult[Option[(domain.Technique, ActiveTechnique, Directive)]] = ???
 
-    def getActiveTechniqueAndDirective(id: DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
+    def getActiveTechniqueAndDirective(id: DirectiveRId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
 
     def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean): IOResult[Seq[Directive]] = ???
 

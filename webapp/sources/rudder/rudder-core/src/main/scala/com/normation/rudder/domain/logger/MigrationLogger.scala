@@ -60,9 +60,9 @@ final case class MigrationLogger(
   val defaultSuccessLogger : Seq[MigrableEntity] => Unit = { seq =>
     if(_logger.isTraceEnabled) {
       seq.foreach { log =>
-        _logger.trace("Migrating eventlog to format %s, id: ".format(goal) + log.id)
+        _logger.trace(s"Migrating eventlog to format ${goal}, id: ${log.id}")
       }
     }
-    _logger.debug("Successfully migrated %s eventlog to format %s".format(seq.size,goal))
+    _logger.debug(s"Successfully migrated ${seq.size} eventlogs to format ${goal}")
   }
 }

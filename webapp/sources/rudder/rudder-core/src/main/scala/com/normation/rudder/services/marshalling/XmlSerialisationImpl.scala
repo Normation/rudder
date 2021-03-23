@@ -78,6 +78,7 @@ import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.api.{ApiAccount, ApiAccountKind, ApiAuthorization}
 import com.normation.cfclerk.domain.TechniqueId
+import com.normation.rudder.domain.policies.DirectiveRId
 
 //serialize / deserialize tags
 object TagsXml {
@@ -115,7 +116,12 @@ class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
           rule.targets.map { target => <target>{target.target}</target> }
         }</targets>
         <directiveIds>{
-          rule.directiveIds.map { id => <id>{id.value}</id> }
+          rule.directiveIds.map { case DirectiveRId(id, revId) =>
+            revId match {
+              case None    => <id>{id.value}</id>
+              case Some(r) => <id revisionId={r.value}>{id.value}</id>
+            }
+          }
         }</directiveIds>
         <shortDescription>{rule.shortDescription}</shortDescription>
         <longDescription>{rule.longDescription}</longDescription>
@@ -172,7 +178,8 @@ class ActiveTechniqueSerialisationImpl(xmlVersion:String) extends ActiveTechniqu
         <isEnabled>{activeTechnique.isEnabled}</isEnabled>
         <isSystem>{activeTechnique.isSystem}</isSystem>
         <versions>{ activeTechnique.acceptationDatetimes.map { case(version,date) =>
-          <version name={version.toString}>{date.toString(ISODateTimeFormat.dateTime)}</version>
+          // we never serialize revision in xml
+          <version name={version.version.toVersionString}>{date.toString(ISODateTimeFormat.dateTime)}</version>
         } }</versions>
     )
   }
@@ -324,12 +331,12 @@ class ChangeRequestChangesSerialisationImpl(
         { change.diff match {
           case  AddDirectiveDiff(techniqueName,directive) =>
             techniqueRepo.get(TechniqueId(techniqueName,directive.techniqueVersion)) match {
-              case None => (s"Error, could not retrieve technique ${techniqueName} version ${directive.techniqueVersion.toString}")
+              case None => (s"Error, could not retrieve technique ${techniqueName.value} version ${directive.techniqueVersion.debugString}")
               case Some(technique) => <diff action="add">{directiveSerializer.serialise(techniqueName,technique.rootSection,directive)}</diff>
              }
           case DeleteDirectiveDiff(techniqueName,directive) =>
             techniqueRepo.get(TechniqueId(techniqueName,directive.techniqueVersion)) match {
-              case None => (s"Error, could not retrieve technique ${techniqueName} version ${directive.techniqueVersion.toString}")
+              case None => (s"Error, could not retrieve technique ${techniqueName.value} version ${directive.techniqueVersion.debugString}")
               case Some(technique) => <diff action="delete">{directiveSerializer.serialise(techniqueName,technique.rootSection,directive)}</diff>
              }
           case ModifyToDirectiveDiff(techniqueName,directive,rootSection) =>

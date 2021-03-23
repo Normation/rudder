@@ -1,0 +1,20 @@
+{
+  "hostname":"server.rudder.local",
+  "policyServerId":"root",
+  "localAdministratorAccountName":"root",
+  "archDescription":"",
+  "ram":"0",
+  "timezone":"UTC",
+  "os":{
+    "name":"Debian",
+    "fullName":"Jessie",
+    "version":"7.0",
+    "kernelVersion":"3.2",
+    "servicePack":""
+  },
+  "machine":{
+    "machineType":"vbox",
+    "manufacturer":""
+  }
+}
+

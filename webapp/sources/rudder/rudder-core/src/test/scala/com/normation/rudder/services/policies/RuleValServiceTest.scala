@@ -44,6 +44,7 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+
 import scala.collection.SortedMap
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.Directive
@@ -54,6 +55,7 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.policies.DirectiveRId
 
 /**
  * Test how RuleVal and ParsedPolicyDraft are constructed, and if they
@@ -72,7 +74,7 @@ class RuleValServiceTest extends Specification {
    */
     val techniqueId = TechniqueId(
         TechniqueName("techniqueName")
-      , TechniqueVersion("1.0")
+      , TechniqueVersionHelper("1.0")
     )
   val directiveId = DirectiveId("dirId")
   val ruleId = RuleId("ruleId")
@@ -128,6 +130,7 @@ class RuleValServiceTest extends Specification {
 
     val directive = Directive(
         directiveId
+      , None
       , techniqueId.version
       , Map()
       , "MyDirective"
@@ -141,10 +144,11 @@ class RuleValServiceTest extends Specification {
 
     val rule = Rule(
           ruleId
+        , None
         , "Rule Name"
         , RuleCategoryId("cat1")
         , Set(GroupTarget(NodeGroupId("nodeGroupId")))
-        , Set(directiveId)
+        , Set(DirectiveRId(directiveId))
         , ""
         , ""
         , true
@@ -221,7 +225,7 @@ class RuleValServiceTest extends Specification {
       val vars = PolicyVars(draft.id, draft.policyMode, draft.originalVariables, draft.originalVariables, draft.trackerVariable)
 
       val pt = PolicyTechnique.forAgent(draft.technique, AgentType.CfeCommunity).getOrElse(throw new RuntimeException("Test must not throws"))
-      val components = RuleExpectedReportBuilder.componentsFromVariables(pt, draft.id.directiveId, vars)
+      val components = RuleExpectedReportBuilder.componentsFromVariables(pt, draft.id.directiveRId, vars)
 
       "return a seq of two components" in {
         components.size === 2

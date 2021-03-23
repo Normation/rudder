@@ -56,6 +56,7 @@ import org.joda.time.DateTime
 import doobie._
 import com.normation.rudder.db.Doobie._
 import cats.implicits._
+import com.normation.rudder.domain.policies.DirectiveRId
 
 
 
@@ -110,7 +111,7 @@ final object DB {
 
   def insertReports(reports: List[com.normation.rudder.domain.reports.Reports]): ConnectionIO[Int] = {
     val dbreports = reports.map { r =>
-      DB.Reports[Unit]((), r.executionDate, r.nodeId.value, r.directiveId.value, r.ruleId.value, r.serial
+      DB.Reports[Unit]((), r.executionDate, r.nodeId.value, r.directiveRId.serialize, r.ruleId.value, r.serial
                       , r.component, r.keyValue, r.executionTimestamp, r.severity, "policy", r.message)
     }
 
@@ -308,10 +309,11 @@ final case class SerializedRules[T](
               at.techniqueName.value,
               technique.name,
               Opt(technique.description),
-              directive.techniqueVersion.toString,
+              directive.techniqueVersion.serialize,
               DateTime.now(), None )
     }
 
+    // TODO: this is only used for history, no version here
     def fromSerializedRule(
         rule : SerializedRules[Long]
       , ruleTargets : Seq[SerializedRuleGroups]
@@ -319,10 +321,11 @@ final case class SerializedRules[T](
     ) : Rule = {
       Rule (
           RuleId(rule.ruleId)
+        , None// TODO: we should perhaps be able to get ride of these table.
         , rule.name
         , RuleCategoryId(rule.categoryId.getOrElse("rootRuleCategory")) // this is not really useful as RuleCategory are not really serialized
         , ruleTargets.flatMap(x => RuleTarget.unser(x.targetSerialisation)).toSet
-        , directives.map(x => DirectiveId(x.directiveId)).toSet
+        , directives.map(x => DirectiveRId(DirectiveId(x.directiveId))).toSet
         , rule.shortDescription.getOrElse("")
         , rule.longDescription.getOrElse("")
         , rule.isEnabledStatus

@@ -103,6 +103,7 @@ import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.services.policies.PropertyParser
 import com.normation.utils.DateFormaterService
+import net.liftweb.common.Box.option2Box
 import org.bouncycastle.cert.X509CertificateHolder
 import zio.{Tag => _, _}
 import zio.syntax._
@@ -234,9 +235,6 @@ final case class RestExtractorService (
   private[this] def toGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
     Full(NodeGroupCategoryId(value))
   }
-  private[this] def toDirectiveId (value:String) : Box[DirectiveId] = {
-    Full(DirectiveId(value))
-  }
 
   private[this] def toApiAccountId (value:String) : Box[ApiAccountId] = {
     Full(ApiAccountId(value))
@@ -348,7 +346,11 @@ final case class RestExtractorService (
   /*
    * Convert List Functions
    */
-  private[this] def convertListToDirectiveId (values : Seq[String]) : Box[Set[DirectiveId]] = {
+  private[this] def convertListToDirectiveId (values : Seq[String]) : Box[Set[DirectiveRId]] = {
+    def toDirectiveId (value:String) : Box[DirectiveRId] = {
+      // TODO: parse value correctly
+      readDirective.getDirective(DirectiveId(value)).notOptional(s"Directive '$value' not found").map(x => DirectiveRId(x.id)).toBox
+    }
     sequence(values){ toDirectiveId }.map(_.toSet)
   }
 
@@ -503,13 +505,13 @@ final case class RestExtractorService (
             techniqueRepository.getTechniqueVersions(techniqueName).find(_ == version) match {
               case Some(version) => techniqueRepository.get(TechniqueId(techniqueName,version)) match {
                 case Some(technique) => Full(technique)
-                case None => Failure(s" Technique ${techniqueName} version ${version} is not a valid Technique")
+                case None => Failure(s" Technique '${techniqueName.value}' version '${version.serialize}' is not a valid Technique")
               }
-              case None => Failure(s" version ${version} of Technique ${techniqueName}  is not valid")
+              case None => Failure(s" version '${version.serialize}' of Technique '${techniqueName.value}'  is not valid")
             }
           case None => techniqueRepository.getLastTechniqueByName(techniqueName) match {
             case Some(technique) => Full(technique)
-            case None => Failure( s"Error while fetching last version of technique ${techniqueName}")
+            case None => Failure( s"Error while fetching last version of technique '${techniqueName.value}''")
           }
         }
       case None => Failure("techniqueName should not be empty")
@@ -521,7 +523,7 @@ final case class RestExtractorService (
           case Some(version) =>
             techniqueRepository.getTechniqueVersions(techniqueName).find(_ == version) match {
               case Some(version) => Full(Some(version))
-              case None => Failure(s" version ${version} of Technique ${techniqueName}  is not valid")
+              case None => Failure(s" version '${version.serialize}' of technique '${techniqueName.value}' is not valid")
             }
           case None => Full(None)
      }
@@ -619,7 +621,8 @@ final case class RestExtractorService (
   }
   def extractGroupProperties (params : Map[String, List[String]]) : Box[Option[List[GroupProperty]]] = {
     // properties coming from the API are always provider=rudder / mode=read-write
-    extractProperties(params, (k,v) => GroupProperty.parse(k, v, None, None))
+    // TODO: parse revision correctly
+    extractProperties(params, (k,v) => GroupProperty.parse(k, None, v, None, None))
   }
 
   def extractProperties[A](params : Map[String, List[String]], make:(String, String) => PureResult[A]): Box[Option[List[A]]] = {
@@ -782,7 +785,7 @@ final case class RestExtractorService (
       priority         <- extractOneValue(params, "priority")(toInt)
       parameters       <- extractOneValue(params, "parameters")(toDirectiveParam)
       techniqueName    <- extractOneValue(params, "techniqueName")(x => Full(TechniqueName(x)))
-      techniqueVersion <- extractOneValue(params, "techniqueVersion")(x => Full(TechniqueVersion(x)))
+      techniqueVersion <- extractOneValue(params, "techniqueVersion")(x => TechniqueVersion.parse(x).toBox)
       policyMode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault(_).toBox)
       tagsList         <- extractList(params, "tags")(sequence(_)(toTag))
       tags             = tagsList.map(t => Tags(t.toSet))
@@ -863,7 +866,7 @@ final case class RestExtractorService (
       priority         <- extractJsonInt(json,"priority")
       parameters       <- extractJsonDirectiveParam(json)
       techniqueName    <- extractJsonString(json, "techniqueName", x => Full(TechniqueName(x)))
-      techniqueVersion <- extractJsonString(json, "techniqueVersion", x => Full(TechniqueVersion(x)))
+      techniqueVersion <- extractJsonString(json, "techniqueVersion", x => TechniqueVersion.parse(x).toBox)
       policyMode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault(_).toBox)
       tags             <- extractTagsFromJson(json \ "tags")  ?~! "Error when extracting Directive tags"
     } yield {

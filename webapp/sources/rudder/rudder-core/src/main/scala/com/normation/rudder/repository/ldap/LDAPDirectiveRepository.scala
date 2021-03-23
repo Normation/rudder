@@ -50,6 +50,7 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
+import com.normation.inventory.ldap.core.LDAPConstants.A_REV_ID
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk.LDAPIOResult._
@@ -92,12 +93,16 @@ class RoLDAPDirectiveRepository(
   /**
    * Retrieve the directive entry for the given ID, with the given connection
    */
-  def getDirectiveEntry(con:RoLDAPConnection, id:DirectiveId, attributes:String*) : LDAPIOResult[Option[LDAPEntry]] = {
-    con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn,  EQ(A_DIRECTIVE_UUID, id.value), attributes:_*).flatMap(piEntries =>
+  def getDirectiveEntry(con:RoLDAPConnection, rid: DirectiveRId, attributes:String*) : LDAPIOResult[Option[LDAPEntry]] = {
+    val filter = rid.revId match {
+      case None    => EQ(A_DIRECTIVE_UUID, rid.id.value)
+      case Some(r) => AND(EQ(A_DIRECTIVE_UUID, rid.id.value), EQ(A_REV_ID, r.value))
+    }
+    con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter, attributes:_*).flatMap(piEntries =>
       piEntries.size match {
         case 0 => None.succeed
         case 1 => Some(piEntries(0)).succeed
-        case _ => LDAPRudderError.Consistancy(s"Error, the directory contains multiple occurrence of directive with id '${id.value}'. DN: ${piEntries.map( _.dn).mkString("; ")}").fail
+        case _ => LDAPRudderError.Consistancy(s"Error, the directory contains multiple occurrence of directive with id '${rid.debugString}'. DN: ${piEntries.map( _.dn).mkString("; ")}").fail
       }
     )
   }
@@ -113,7 +118,7 @@ class RoLDAPDirectiveRepository(
   override def getDirective(id:DirectiveId) : IOResult[Option[Directive]] = {
     userLibMutex.readLock(for {
       con       <- ldap
-      optEntry  <- getDirectiveEntry(con, id)
+      optEntry  <- getDirectiveEntry(con, DirectiveRId(id))
       directive <- optEntry match {
                      case Some(entry) => mapper.entry2Directive(entry).map(e => Some(e)).chainError("Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, entry)).toIO
                      case None => None.succeed
@@ -123,8 +128,8 @@ class RoLDAPDirectiveRepository(
     })
   }
 
-  override def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[Option[(Technique, ActiveTechnique, Directive)]] = {
-    this.getActiveTechniqueAndDirective(directiveId).chainError(s"Error when retrieving directive with ID ${directiveId.value}''").flatMap {
+  override def getDirectiveWithContext(id: DirectiveId) : IOResult[Option[(Technique, ActiveTechnique, Directive)]] = {
+    this.getActiveTechniqueAndDirective(DirectiveRId(id)).chainError(s"Error when retrieving directive with ID ${id.value}''").flatMap {
       case None    => None.succeed
       case Some((activeTechnique, directive)) =>
         val activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
@@ -140,7 +145,7 @@ class RoLDAPDirectiveRepository(
    * For that method, we can optionnaly get a directive entry. But if we get one, not having a corresponding
    * technique is an error
    */
-  def getActiveTechniqueAndDirectiveEntries(id:DirectiveId): IOResult[Option[(LDAPEntry, LDAPEntry)]] = {
+  def getActiveTechniqueAndDirectiveEntries(id: DirectiveRId): IOResult[Option[(LDAPEntry, LDAPEntry)]] = {
     userLibMutex.readLock(for {
       con      <- ldap
       optEntry <- getDirectiveEntry(con, id)
@@ -161,13 +166,13 @@ class RoLDAPDirectiveRepository(
    * Return empty if no such directive is known,
    * fails if no active technique match the directive.
    */
-  override def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[Option[(ActiveTechnique, Directive)]] = {
-    getActiveTechniqueAndDirectiveEntries(id).chainError("Can not find Active Technique entry in LDAP").flatMap {
+  override def getActiveTechniqueAndDirective(rid: DirectiveRId) : IOResult[Option[(ActiveTechnique, Directive)]] = {
+    getActiveTechniqueAndDirectiveEntries(rid).chainError("Can not find Active Technique entry in LDAP").flatMap {
       case None => None.succeed
       case Some((uptEntry, piEntry)) =>
         for {
-          activeTechnique     <- mapper.entry2ActiveTechnique(uptEntry).toIO.chainError("Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry))
-          directive           <- mapper.entry2Directive(piEntry).toIO.chainError("Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, piEntry))
+          activeTechnique     <- mapper.entry2ActiveTechnique(uptEntry).toIO.chainError(s"Error when mapping active technique entry to its entity. Entry: ${uptEntry}")
+          directive           <- mapper.entry2Directive(piEntry).toIO.chainError(s"Error when transforming LDAP entry into a directive for id '${rid.debugString}'. Entry: ${piEntry}")
         } yield {
           Some((activeTechnique, directive))
         }
@@ -466,7 +471,7 @@ class RoLDAPDirectiveRepository(
 
   def getFullDirectiveLibrary() : IOResult[FullActiveTechniqueCategory] = {
     //data structure to holds all relation between objects
-final case class AllMaps(
+    final case class AllMaps(
         categories: Map[ActiveTechniqueCategoryId, ActiveTechniqueCategory]
       , activeTechiques: Map[ActiveTechniqueId, ActiveTechnique]
       , categoriesByCategory: Map[ActiveTechniqueCategoryId, List[ActiveTechniqueCategoryId]]
@@ -617,7 +622,7 @@ class WoLDAPDirectiveRepository(
     userLibMutex.writeLock(for {
       con         <- ldap
       uptEntry    <- getUPTEntry(con, inActiveTechniqueId, "1.1").notOptional(s"Can not find the User Policy Entry with id '${inActiveTechniqueId.value}' to add directive '${directive.id.value}'")
-      canAdd      <- getDirectiveEntry(con, directive.id).flatMap { //check if the directive already exists elsewhere
+      canAdd      <- getDirectiveEntry(con, DirectiveRId(directive.id)).flatMap { //check if the directive already exists elsewhere
                        case None          => None.succeed
                        case Some(otherPi) =>
                          if(otherPi.dn.getParent == uptEntry.dn) {
@@ -631,7 +636,7 @@ class WoLDAPDirectiveRepository(
                          } else Inconsistency(s"An other directive with the id '${directive.id.value}' exists in an other category that the one with id '${inActiveTechniqueId.value}}': ${otherPi.dn}}").fail
                      }
       // We have to keep the old rootSection to generate the event log
-      oldRootSection <- getActiveTechniqueAndDirective(directive.id).map {
+      oldRootSection <- getActiveTechniqueAndDirective(DirectiveRId(directive.id)).map {
                           // Directory did not exist before, this is a Rule addition.
                           case None => None
                           case Some((oldActiveTechnique, oldDirective)) =>
@@ -727,7 +732,7 @@ class WoLDAPDirectiveRepository(
   }
 
   private[this] def internalDeleteDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String], callSystem: Boolean) : IOResult[Option[DeleteDirectiveDiff]] = {
-    userLibMutex.writeLock(getActiveTechniqueAndDirectiveEntries(id).flatMap {
+    userLibMutex.writeLock(getActiveTechniqueAndDirectiveEntries(DirectiveRId(id)).flatMap {
       case None => // directive already deleted, do nothing
         None.succeed
       case Some((uptEntry, entry)) =>
@@ -1026,8 +1031,8 @@ class WoLDAPDirectiveRepository(
     userLibMutex.writeLock(for {
       con             <- ldap
       activeTechnique <- getUPTEntry(con, uactiveTechniqueId, A_ACCEPTATION_DATETIME).notOptional(s"Active technique with id '${uactiveTechniqueId.value}' was not found")
+      oldAcceptations <- ZIO.fromEither(mapper.unserializeAcceptations(activeTechnique(A_ACCEPTATION_DATETIME).getOrElse("")))
       saved           <- {
-                           val oldAcceptations = mapper.unserializeAcceptations(activeTechnique(A_ACCEPTATION_DATETIME).getOrElse(""))
                            val json = JsonAST.compactRender(mapper.serializeAcceptations(oldAcceptations ++ datetimes))
                            activeTechnique.resetValuesTo(A_ACCEPTATION_DATETIME, json)
                            con.save(activeTechnique)

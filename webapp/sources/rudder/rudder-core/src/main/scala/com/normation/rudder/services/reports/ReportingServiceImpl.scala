@@ -64,6 +64,10 @@ import zio.syntax._
 
 object ReportingServiceUtils {
 
+  def log(msg: String) = ZIO.succeed(println(msg)) // you actual log lib
+  val effect = Task.effect(throw new RuntimeException("I'm some impure code!")) // here, exception is caught and you get a ZIO[Any, Throwable, Something]
+  val withLogError = effect.flatMapError(exception => log(exception.getMessage) *> ZIO.succeed(exception) )
+
   /*
    * Build rule status reports from node reports, deciding which directives should be "skipped"
    */
@@ -71,7 +75,7 @@ object ReportingServiceUtils {
     val toKeep = nodeReports.values.flatMap( _.reports ).filter(_.ruleId == ruleId).toList
     // we don't keep overrides for a directive which is already in "toKeep" or that don't target that rule
     val toKeepDir = toKeep.map(_.directives.keySet).toSet.flatten
-    val overrides = nodeReports.values.flatMap( _.overrides.filterNot(r => r.policy.ruleId != ruleId || toKeepDir.contains(r.policy.directiveId))).toList.distinct
+    val overrides = nodeReports.values.flatMap( _.overrides.filterNot(r => r.policy.ruleId != ruleId || toKeepDir.contains(r.policy.directiveRId))).toList.distinct
     // and we must make overrides unique - ie, we don't keep overridden that are overridden by directive themselve in the overridden list
     val overrides2 = overrides.filterNot(o => overrides.exists(_.policy == o.overridenBy))
     RuleStatusReport(ruleId, toKeep, overrides2)

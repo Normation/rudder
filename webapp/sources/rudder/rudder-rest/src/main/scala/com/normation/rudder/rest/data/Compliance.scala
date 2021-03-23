@@ -40,10 +40,10 @@ package com.normation.rudder.rest.data
 import net.liftweb.json._
 import com.normation.rudder.domain.reports._
 import net.liftweb.json.JsonDSL._
-import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.json.JsonAST
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.DirectiveRId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 
@@ -86,7 +86,7 @@ final case class ByRuleRuleCompliance(
 )
 
 final case class ByRuleDirectiveCompliance(
-    id        : DirectiveId
+    id        : DirectiveRId
   , name      : String
   , compliance: ComplianceLevel
   , components: Seq[ByRuleComponentCompliance]
@@ -139,7 +139,7 @@ final case class ByNodeRuleCompliance(
 )
 
 final case class ByNodeDirectiveCompliance(
-    id        : DirectiveId
+    id        : DirectiveRId
   , name      : String
   , compliance: ComplianceLevel
   , components: Map[String, ComponentStatusReport]
@@ -148,7 +148,7 @@ final case class ByNodeDirectiveCompliance(
 object ByNodeDirectiveCompliance {
 
   def apply(d: DirectiveStatusReport, directiveName : String): ByNodeDirectiveCompliance = {
-    new ByNodeDirectiveCompliance(d.directiveId, directiveName, d.compliance, d.components)
+    new ByNodeDirectiveCompliance(d.directiveRId, directiveName, d.compliance, d.components)
   }
 }
 
@@ -204,7 +204,7 @@ object JsonCompliance {
       if(level < 2) None
       else Some( directives.map { directive =>
         (
-            ("id" -> directive.id.value)
+            ("id" -> directive.id.serialize)
           ~ ("name" -> directive.name)
           ~ ("compliance" -> directive.compliance.complianceWithoutPending)
           ~ ("complianceDetails" -> percents(directive.compliance))
@@ -291,7 +291,7 @@ object JsonCompliance {
       if(level < 3) None
       else Some(directives.map { directive =>
         (
-            ("id" -> directive.id.value)
+            ("id" -> directive.id.serialize)
           ~ ("name" -> directive.name)
           ~ ("compliance" -> directive.compliance.complianceWithoutPending)
           ~ ("complianceDetails" -> percents(directive.compliance))

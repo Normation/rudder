@@ -91,19 +91,19 @@ object TechniqueEventLog {
   def xmlForDelete(name: TechniqueName, version: TechniqueVersion) =
     <deletedTechnique>
       <name>{name.value}</name>
-      <version>{version.toString}</version>
+      <version>{version.serialize}</version>
     </deletedTechnique>
 
   def xmlForAdd(name: TechniqueName, version: TechniqueVersion) =
     <addedTechnique>
       <name>{name.value}</name>
-      <version>{version.toString}</version>
+      <version>{version.serialize}</version>
     </addedTechnique>
 
   def xmlForUpdate(name: TechniqueName, version: TechniqueVersion) =
     <modifiedTechnique>
       <name>{name.value}</name>
-      <version>{version.toString}</version>
+      <version>{version.serialize}</version>
     </modifiedTechnique>
 
 }

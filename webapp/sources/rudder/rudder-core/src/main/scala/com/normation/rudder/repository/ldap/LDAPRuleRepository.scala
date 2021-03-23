@@ -79,7 +79,7 @@ class RoLDAPRuleRepository(
   def getOpt(id:RuleId) : IOResult[Option[Rule]]  = {
     ruleMutex.readLock(for {
       con     <- ldap
-      crEntry <- con.get(rudderDit.RULES.configRuleDN(id.value))
+      crEntry <- con.get(rudderDit.RULES.configRuleDN(id, None))
       rule    <- crEntry match {
                    case None    => None.succeed
                    case Some(r) => mapper.entry2Rule(r).map(Some(_)).toIO.chainError(s"Error when transforming LDAP entry into a rule for id '${id.value}'. Entry: ${r}")
@@ -152,14 +152,14 @@ class WoLDAPRuleRepository(
   private[this] def internalDeleteRule(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String], callSystem: Boolean) : IOResult[DeleteRuleDiff] = {
     ruleMutex.writeLock(for {
       con          <- ldap
-      entry        <- con.get(rudderDit.RULES.configRuleDN(id.value)).notOptional("rule with ID '%s' is not present".format(id.value))
+      entry        <- con.get(rudderDit.RULES.configRuleDN(id, None)).notOptional("rule with ID '%s' is not present".format(id.value))
       oldCr        <- mapper.entry2Rule(entry).toIO.chainError("Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry))
       checkSystem  <-  (oldCr.isSystem, callSystem) match {
                         case (true, false) => Unexpected(s"System Rule '${id.value}' can't be deleted").fail
                         case (false, true) => Inconsistency(s"Non-system Rule '${id.value}' can not be deleted with that method").fail
                         case _ => oldCr.succeed
                       }
-      deleted      <- con.delete(rudderDit.RULES.configRuleDN(id.value)).chainError("Error when deleting rule with ID %s".format(id))
+      deleted      <- con.delete(rudderDit.RULES.configRuleDN(id, None)).chainError("Error when deleting rule with ID %s".format(id))
       diff         =  DeleteRuleDiff(oldCr)
       loggedAction <- actionLogger.saveDeleteRule(modId, principal = actor, deleteDiff = diff, reason = reason)
       autoArchive  <- ZIO.when(autoExportOnModify && deleted.nonEmpty  && !oldCr.isSystem) {
@@ -189,7 +189,7 @@ class WoLDAPRuleRepository(
     ruleMutex.writeLock(
       for {
         con             <- ldap
-        ruleExits       <- con.exists(rudderDit.RULES.configRuleDN(rule.id.value))
+        ruleExits       <- con.exists(rudderDit.RULES.configRuleDN(rule.id, rule.revId))
         idDoesntExist   <- ZIO.when(ruleExits) {
                              s"Cannot create a rule with ID '${rule.id.value}' : there is already a rule with the same id".fail
                            }
@@ -216,7 +216,7 @@ class WoLDAPRuleRepository(
     ruleMutex.writeLock(
       for {
         con           <- ldap
-        existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)).notOptional(s"Cannot update rule with id ${rule.id.value} : there is no rule with that id")
+        existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id, rule.revId)).notOptional(s"Cannot update rule with id ${rule.id.value} : there is no rule with that id")
         oldRule       <- mapper.entry2Rule(existingEntry).toIO.chainError(s"Error when transforming LDAP entry into a Rule for id ${rule.id.value}. Entry: ${existingEntry}")
         systemCheck   <- (oldRule.isSystem, systemCall) match {
                          case (true, false) => s"System rule '${oldRule.name}' (${oldRule.id.value}) can not be modified".fail

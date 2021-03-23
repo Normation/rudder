@@ -68,7 +68,7 @@ class UseExistingMachineIdFinder(
       con   <- ldap
       entry <- con.searchSub(rootDN, AND(IS(OC_MACHINE),EQ(A_MACHINE_UUID, entity.id.value)), "1.1").map(_.headOption).notOptional(s"No machine entry found for id '${entity.id.value}'") //TODO: error if more than one !! #555
       dit   <- inventoryDitService.getDit(entry.dn) match {
-                 case None    => s"No DIT found for machine DN ${entry.dn}".fail
+                 case None    => s"No DIT found for machine DN ${entry.dn.toString}".fail
                  case Some(x) => x.succeed
                }
     } yield {

@@ -38,6 +38,8 @@
 package com.normation.rudder.repository.ldap
 
 import cats.implicits._
+import com.normation.GitVersion.ParseRev
+import com.normation.GitVersion.RevId
 import com.normation.NamedZioLogger
 import com.normation.cfclerk.domain._
 import com.normation.errors.{OptionToIoResult => _}
@@ -46,6 +48,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.InventoryMappingResult._
 import com.normation.errors._
+import com.normation.inventory.ldap.core.InventoryMappingRudderError
 import com.normation.inventory.ldap.core.InventoryMappingRudderError.UnexpectedObject
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPConstants._
@@ -68,15 +71,16 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries._
 import com.unboundid.ldap.sdk.DN
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json._
-import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
 import zio._
 import zio.syntax._
 import com.normation.ldap.sdk.syntax._
 import com.normation.rudder.domain.logger.ApplicationLogger
+import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonAST.JObject
+
+import scala.util.control.NonFatal
 
 final object NodeStateEncoder {
   implicit def enc(state: NodeState): String = state.name
@@ -486,17 +490,23 @@ class LDAPEntityMapper(
   //////////////////////////////    ActiveTechnique    //////////////////////////////
 
   //two utilities to serialize / deserialize Map[TechniqueVersion,DateTime]
-  def unserializeAcceptations(value:String):Map[TechniqueVersion, DateTime] = {
+  def unserializeAcceptations(value:String): PureResult[Map[TechniqueVersion, DateTime]] = {
     import net.liftweb.json.JsonAST.JField
     import net.liftweb.json.JsonAST.JString
     import net.liftweb.json.JsonParser._
 
     parse(value) match {
       case JObject(fields) =>
-        fields.collect { case JField(version, JString(date)) =>
-          (TechniqueVersion(version) -> GeneralizedTime(date).dateTime)
-        }.toMap
-      case _ => Map()
+        fields.collect { case JField(version, JString(date)) => (version, date) }.traverse { case(v, d) =>
+          TechniqueVersion.parse(v).leftMap(Unexpected).flatMap(version =>
+            try {
+              Right((version, GeneralizedTime(d).dateTime))
+            } catch {
+              case NonFatal(ex) => Left(SystemError(s"Error when trying to parse '${d}' as a datetime", ex))
+            }
+          )
+        }.map(_.toMap)
+      case _ => Right(Map())
     }
   }
 
@@ -518,7 +528,10 @@ class LDAPEntityMapper(
         refTechniqueUuid     <- e.required(A_TECHNIQUE_UUID).map(x => TechniqueName(x))
         isEnabled            =  e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem             =  e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-        acceptationDatetimes =  e(A_ACCEPTATION_DATETIME).map(unserializeAcceptations(_)).getOrElse(Map())
+        acceptationDatetimes <- e(A_ACCEPTATION_DATETIME) match {
+                                  case Some(v) => unserializeAcceptations(v).leftMap(e => InventoryMappingRudderError.UnexpectedObject(e.fullMsg))
+                                  case None    => Right(Map.empty[TechniqueVersion, DateTime])
+                                }
       } yield {
          ActiveTechnique(ActiveTechniqueId(id), refTechniqueUuid, acceptationDatetimes, Nil, isEnabled, isSystem)
       }
@@ -669,7 +682,7 @@ class LDAPEntityMapper(
                                case None => Right(None)
                                case Some(value) => PolicyMode.parse(value).map {Some(_) }
                              }
-        version          <- tryo(TechniqueVersion(s_version)).toPureResult
+        version          <- TechniqueVersion.parse(s_version).leftMap(Unexpected)
         name             =  e(A_NAME).getOrElse(id)
         params           =  parsePolicyVariables(e.valuesFor(A_DIRECTIVE_VARIABLES).toSeq)
         shortDescription =  e(A_DESCRIPTION).getOrElse("")
@@ -684,6 +697,7 @@ class LDAPEntityMapper(
       } yield {
         Directive(
             DirectiveId(id)
+          , ParseRev(e(A_REV_ID))
           , version
           , params
           , name
@@ -701,9 +715,10 @@ class LDAPEntityMapper(
 
   def userDirective2Entry(directive:Directive, parentDN:DN) : LDAPEntry = {
     val entry = rudderDit.ACTIVE_TECHNIQUES_LIB.directiveModel(
-        directive.id.value,
-        directive.techniqueVersion,
-        parentDN
+        directive.id
+      , directive.revId
+      , directive.techniqueVersion
+      , parentDN
     )
 
     entry.resetValuesTo(A_DIRECTIVE_VARIABLES, policyVariableToSeq(directive.parameters):_*)
@@ -775,7 +790,8 @@ class LDAPEntityMapper(
         } yield {
           ruleTarget
         }
-        val directiveIds = e.valuesFor(A_DIRECTIVE_UUID).map(x => DirectiveId(x))
+        val revId = ParseRev(e(A_REV_ID))
+        val directiveIds = e.valuesFor(A_DIRECTIVE_UUID).map(x => JsonDirectiveId.ruleParse(x).toDirectiveRId)
         val name = e(A_NAME).getOrElse(id)
         val shortDescription = e(A_DESCRIPTION).getOrElse("")
         val longDescription = e(A_LONG_DESCRIPTION).getOrElse("")
@@ -785,6 +801,7 @@ class LDAPEntityMapper(
 
         Rule(
             RuleId(id)
+          , revId
           , name
           , category
           , targets
@@ -805,9 +822,10 @@ class LDAPEntityMapper(
    * Map a rule to an LDAP Entry.
    * WARN: serial is NEVER mapped.
    */
-  def rule2Entry(rule:Rule) : LDAPEntry = {
+  def rule2Entry(rule: Rule): LDAPEntry = {
     val entry = rudderDit.RULES.ruleModel(
-        rule.id.value
+        rule.id
+      , rule.revId
       , rule.name
       , rule.isEnabledStatus
       , rule.isSystem
@@ -815,7 +833,7 @@ class LDAPEntityMapper(
     )
 
     entry.resetValuesTo(A_RULE_TARGET, rule.targets.map( _.target).toSeq :_* )
-    entry.resetValuesTo(A_DIRECTIVE_UUID, rule.directiveIds.map( _.value).toSeq :_* )
+    entry.resetValuesTo(A_DIRECTIVE_UUID, rule.directiveIds.map(t => JsonDirectiveId.fromRId(t).serialize).toSeq :_* )
     entry.resetValuesTo(A_DESCRIPTION, rule.shortDescription)
     entry.resetValuesTo(A_LONG_DESCRIPTION, rule.longDescription.toString)
     entry.resetValuesTo(A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(rule.tags)))
@@ -977,8 +995,9 @@ class LDAPEntityMapper(
         provider    =  e(A_PROPERTY_PROVIDER).map(PropertyProvider.apply)
         parsed      =  e(A_PARAMETER_VALUE).getOrElse("").parseGlobalParameter(name, e.hasAttribute("overridable"))
         mode        =  e(A_INHERIT_MODE).flatMap(InheritMode.parseString(_).toOption)
+        revId       =  e(A_REV_ID).map(RevId(_))
     } yield {
-      GlobalParameter(name, parsed, mode, description, provider)
+      GlobalParameter(name, revId, parsed, mode, description, provider)
     }
     } else Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_PARAMETER, e)))
   }
@@ -988,6 +1007,7 @@ class LDAPEntityMapper(
     val entry = rudderDit.PARAMETERS.parameterModel(
         parameter.name
     )
+    parameter.revId.foreach(r => entry.resetValuesTo(A_REV_ID, r.value))
     entry.resetValuesTo(A_PARAMETER_VALUE, parameter.value.serializeGlobalParameter)
     entry.resetValuesTo(A_DESCRIPTION, parameter.description)
     parameter.provider.foreach(p =>
@@ -1035,3 +1055,31 @@ class LDAPEntityMapper(
 final case class JsonApiAcl(acl: List[JsonApiAuthz]) extends AnyVal
 final case class JsonApiAuthz(path: String, actions: List[String])
 
+// Used for some cases where we need to serialize (id, revId) and need to have a name for it, for ex for derivation
+// For compatibility reason, in rule we need to be compatible with old format and json, so special parse.
+final case class JsonDirectiveId(id: String, revId: Option[String]) {
+  def toDirectiveRId: DirectiveRId = DirectiveRId(DirectiveId(id), ParseRev(revId))
+  def serialize = {
+    implicit val formats = Serialization.formats(NoTypeHints)
+    Serialization.write(this)
+  }
+  def json = ("id" -> id) ~ ("revId" -> revId)
+}
+object JsonDirectiveId {
+  def ruleParse(value: String) = value match {
+    case null | "" => // ??? That should not happen, what we do? (keep previous behavior)
+      JsonDirectiveId("", None)
+    case s if s.head == '{' =>
+      try {
+        implicit val format = net.liftweb.json.DefaultFormats
+        parse(s).extract[JsonDirectiveId]
+      } catch {
+        case NonFatal(e) => /// ??? for compat ?
+          JsonDirectiveId(s, None)
+      }
+    case s => JsonDirectiveId(s, None)
+  }
+  def fromRId(rid: DirectiveRId) = {
+    JsonDirectiveId(rid.id.value, rid.revId.map(_.value))
+  }
+}

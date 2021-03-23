@@ -38,6 +38,7 @@
 package com.normation.rudder.rest
 
 import com.github.ghik.silencer.silent
+import com.normation.GitVersion.RevId
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
@@ -378,7 +379,7 @@ object JsonResponseObjects {
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
         .withFieldRenamed(_.name, _.displayName)
         .withFieldComputed(_.categoryId, _.categoryId.value)
-        .withFieldComputed(_.directives, _.directiveIds.map(_.value).toList.sorted)
+        .withFieldComputed(_.directives, _.directiveIds.map(_.id.value).toList.sorted)
         .withFieldComputed(_.targets, _.targets.toList.sortBy(_.target).map(t => JRRuleTarget(t)))
         .withFieldRenamed(_.isEnabledStatus, _.enabled)
         .withFieldComputed(_.tags, x => JRTags.fromTags(rule.tags))
@@ -728,7 +729,13 @@ trait RudderJsonEncoders {
 
 /*
  * Object used in JSON query POST/PUT request.
- * For disambiguation, objects are prefixed by JQ
+ * For disambiguation, objects are prefixed by JQ.
+ *
+ * Note about id/revision: it does not make sense to try to change a
+ * revision, it's immutable. Only head can be changed, so revId is never
+ * specified in JQ object.
+ * It can make sense to clone a specific revision, so sourceId can have a
+ * sourceRevId too.
  */
 object JsonQueryObjects {
   import JsonResponseObjects.JRRuleTarget
@@ -795,6 +802,7 @@ object JsonQueryObjects {
     , tags             : Option[Tags]                             = None
       //for clone
     , source           : Option[String]                           = None
+    , sourceRevId      : Option[String]                           = None
   ) {
     val onlyName = displayName.isDefined    &&
                    shortDescription.isEmpty &&
@@ -823,6 +831,11 @@ object JsonQueryObjects {
         , tags
       ))
     }
+
+    def getSourceId = source match {
+      case None    => None
+      case Some(x) => Some(DirectiveRId(DirectiveId(x), sourceRevId.map(RevId)))
+    }
   }
 
   final case class JQRule(
@@ -837,6 +850,7 @@ object JsonQueryObjects {
     , tags             : Option[Tags]                = None
       //for clone
     , source           : Option[String]              = None
+    , sourceRevId      : Option[String]              = None
   ) {
 
     val onlyName = displayName.isDefined    &&
@@ -853,7 +867,7 @@ object JsonQueryObjects {
       val updateCategory   = category.map(RuleCategoryId).getOrElse(rule.categoryId)
       val updateShort      = shortDescription.getOrElse(rule.shortDescription)
       val updateLong       = longDescription.getOrElse(rule.longDescription)
-      val updateDirectives = directives.getOrElse(rule.directiveIds)
+      val updateDirectives = directives.map(_.map(DirectiveRId(_))).getOrElse(rule.directiveIds)
       val updateTargets    = targets.map(t => Set[RuleTarget](RuleTarget.merge(t.map(_.toRuleTarget)))).getOrElse(rule.targets)
       val updateEnabled    = enabled.getOrElse(rule.isEnabledStatus)
       val updateTags       = tags.getOrElse(rule.tags)
@@ -885,10 +899,11 @@ object JsonQueryObjects {
 
   final case class JQGroupProperty(
       name       : String
+    , revId      : Option[String]
     , value      : ConfigValue
     , inheritMode: Option[InheritMode]
   ) {
-    def toGroupProperty = GroupProperty(name, value, inheritMode, Some(PropertyProvider.defaultPropertyProvider))
+    def toGroupProperty = GroupProperty(name, revId.map(RevId), value, inheritMode, Some(PropertyProvider.defaultPropertyProvider))
   }
 
   final case class JQStringQuery(
@@ -911,15 +926,16 @@ object JsonQueryObjects {
   )
 
   final case class JQGroup(
-      id          : Option[String] = None
-    , displayName : Option[String] = None
-    , description : Option[String] = None
-    , properties  : Option[List[GroupProperty]]
-    , query       : Option[StringQuery] = None
-    , dynamic     : Option[Boolean] = None
-    , enabled     : Option[Boolean] = None
+      id          : Option[String]              = None
+    , displayName : Option[String]              = None
+    , description : Option[String]              = None
+    , properties  : Option[List[GroupProperty]] = None
+    , query       : Option[StringQuery]         = None
+    , dynamic     : Option[Boolean]             = None
+    , enabled     : Option[Boolean]             = None
     , category    : Option[NodeGroupCategoryId] = None
-    , source      : Option[String] = None
+    , source      : Option[String]              = None
+    , sourceRevId : Option[String]              = None
   ) {
 
     val onlyName = displayName.isDefined &&
@@ -1162,11 +1178,12 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
   def extractDirectiveFromParams(params: Map[String,List[String]]) : PureResult[JQDirective] = {
 
     for {
-      enabled    <- params.parse("enabled"    , JsonDecoder[Boolean])
-      priority   <- params.parse("priority"   , JsonDecoder[Int])
-      parameters <- params.parse("parameters" , JsonDecoder[Map[String, JQDirectiveSection]])
-      policyMode <- params.parse2("policyMode", PolicyMode.parseDefault(_))
-      tags       <- params.parse("tags"       , JsonDecoder[Tags])
+      enabled    <- params.parse("enabled"          , JsonDecoder[Boolean])
+      priority   <- params.parse("priority"         , JsonDecoder[Int])
+      parameters <- params.parse("parameters"       , JsonDecoder[Map[String, JQDirectiveSection]])
+      policyMode <- params.parse2("policyMode"      , PolicyMode.parseDefault(_))
+      tags       <- params.parse("tags"             , JsonDecoder[Tags])
+      tv         <- params.parse2("techniqueVersion", TechniqueVersion.parse(_).left.map(Inconsistency(_)))
     } yield {
       JQDirective(
           params.optGet("id")
@@ -1177,10 +1194,11 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         , parameters
         , priority
         , params.optGet("techniqueName").map(TechniqueName)
-        , params.optGet("techniqueVersion").map(TechniqueVersion(_))
+        , tv
         , policyMode
         , tags
         , params.optGet("source")
+        , params.optGet("sourceRevId")
       )
     }
   }

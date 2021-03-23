@@ -105,11 +105,34 @@ final case class FullActiveTechnique(
 
   val newestAvailableTechnique = techniques.toSeq.sortBy( _._1).reverse.map( _._2 ).headOption
 
+  /*
+   * Add some direcives for some technique, and only keep directives whose id/revision is in `keep`.
+   */
+  def addAndFilterDirectives(addDirectives: List[(TechniqueName, Directive)], keep: Set[DirectiveRId]): FullActiveTechnique = {
+    val ids = directives.map(_.rid)
+    // don't add a directive if it's already in directive list
+    val d2 = addDirectives.collect { case (t, d) if (t == techniqueName && !ids.contains(d.rid)) => d } ::: directives
+    val d3 = d2.filter(d => keep.contains(d.rid))
+    val v2 = d3.map(_.techniqueVersion).toSet
+    def predicate(pair: (TechniqueVersion, Any)): Boolean = v2.contains(pair._1)
+    this.copy(directives = d3, techniques = techniques.filter(predicate), acceptationDatetimes = acceptationDatetimes.filter(predicate))
+  }
+  def addTechniques(addTechniques: List[Technique]): FullActiveTechnique = {
+    val here = addTechniques.filter(_.id.name == techniqueName)
+    //I don't see any reasonable value for acceptation date of past technique. It needs to be in the past and
+    //must not change from generation to the next, so => Epoch.
+    this.copy(
+        techniques = techniques ++ here.map(t => (t.id.version, t))
+      , acceptationDatetimes = acceptationDatetimes ++ here.map(t => (t.id.version, new DateTime(0)))
+    )
+  }
+
   def saveDirective(directive: Directive): FullActiveTechnique = {
     this.modify(_.directives).using(directives =>
       (directive :: directives.filterNot(_.id == directive.id))
     )
   }
+
   def deleteDirective(directiveId: DirectiveId): FullActiveTechnique = {
     this.modify(_.directives).using { directives =>
       directives.filterNot(_.id == directiveId)
@@ -127,9 +150,9 @@ final case class FullActiveTechniqueCategory(
   , isSystem        : Boolean = false // by default, we can't create system Category
 ) {
 
-  val allDirectives : Map[DirectiveId, (FullActiveTechnique, Directive)] = (
+  val allDirectives : Map[DirectiveRId, (FullActiveTechnique, Directive)] = (
        subCategories.flatMap( _.allDirectives).toMap
-    ++ activeTechniques.flatMap( at => at.directives.map( d => (d.id, (at, d))) ).toMap
+    ++ activeTechniques.flatMap( at => at.directives.map( d => (DirectiveRId(d.id, d.revId), (at, d))) ).toMap
   )
 
   val allDirectivesByActiveTechniques : Map[ActiveTechniqueId, List[Directive]] = (
@@ -159,6 +182,29 @@ final case class FullActiveTechniqueCategory(
 
   def getUpdateDateTime(id: TechniqueId): Option[DateTime] = {
     allTechniques.get(id).flatMap( _._2 )
+  }
+
+  /*
+   * Add given directive (if not already defined) and filter lib to only keep ids
+   */
+  def addAndFilterDirectives(add: List[(TechniqueName, Directive)], keep: Set[DirectiveRId]): FullActiveTechniqueCategory = {
+    val subCats = subCategories.flatMap { s =>
+      val s2 = s.addAndFilterDirectives(add, keep)
+      if(s2.subCategories.isEmpty && s2.activeTechniques.isEmpty) Nil
+      else List(s2)
+    }
+    val ats = activeTechniques.flatMap { at =>
+      val at2 = at.addAndFilterDirectives(add, keep)
+      if(at2.directives.isEmpty) Nil
+      else List(at2)
+    }
+    this.copy(subCategories = subCats, activeTechniques = ats)
+  }
+
+  def addTechniques(add: List[Technique]): FullActiveTechniqueCategory = {
+    val subCats = subCategories.map(_.addTechniques(add))
+    val ats = activeTechniques.map( _.addTechniques(add))
+    this.copy(subCategories = subCats, activeTechniques = ats)
   }
 
 
@@ -292,7 +338,7 @@ trait RoDirectiveRepository {
    * retrieve a Directive with its parent Technique and the
    * binding Active Technique
    */
-  def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[Option[(Technique, ActiveTechnique, Directive)]]
+  def getDirectiveWithContext(directiveId: DirectiveId) : IOResult[Option[(Technique, ActiveTechnique, Directive)]]
 
   /**
    * Find the active technique for which the given directive is an instance.
@@ -300,7 +346,7 @@ trait RoDirectiveRepository {
    * Return empty if no such directive is known,
    * fails if no active technique match the directive.
    */
-  def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[Option[(ActiveTechnique, Directive)]]
+  def getActiveTechniqueAndDirective(rid: DirectiveRId) : IOResult[Option[(ActiveTechnique, Directive)]]
 
   /**
    * Get directives for given technique.

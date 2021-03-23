@@ -56,6 +56,7 @@ import com.normation.rudder.domain.policies.CompositeRuleTarget
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.domain.policies.DirectiveRId
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import net.liftweb.common._
@@ -285,8 +286,8 @@ class DependencyAndDeletionServiceImpl(
       diff         <- woDirectiveRepository.delete(id, modId, actor, reason).chainError(s"Error when deleting policy instance with ID '${id.value}'.")
       updatedRules <- ZIO.foreach(configRules) { rule =>
                         //check that directive is actually in rule directives, and remove it
-                        if(rule.directiveIds.exists(i => id == i)) {
-                          val newRule = rule.copy(directiveIds = rule.directiveIds - id)
+                        if(rule.directiveIds.exists(i => id == i.id)) {
+                          val newRule = rule.copy(directiveIds = rule.directiveIds.filterNot( _.id == id))
                           val updatedRuleRes = if(rule.isSystem) {
                             woRuleRepository.updateSystem(newRule, modId, actor, reason)
                           } else {
@@ -399,18 +400,18 @@ class DependencyAndDeletionServiceImpl(
      * - the directive is enable ;
      */
     def filterRules(rules:Seq[Rule]) : IOResult[Seq[Rule]] = {
-        val enabledCr: Seq[(Rule,DirectiveId)] = rules.collect {
-          case rule if(rule.isEnabledStatus && rule.directiveIds.size > 0) => rule.directiveIds.map(id => (rule, id))
+        val enabledCr: Seq[(Rule, DirectiveRId)] = rules.collect {
+          case rule if(rule.isEnabledStatus && rule.directiveIds.size > 0) => rule.directiveIds.map((rule, _))
         }.flatten
         //group by target, and check if target is enable
-        ZIO.foreach(enabledCr.groupBy { case (rule,id) => id }.toSeq) { case (id, seq) =>
+        ZIO.foreach(enabledCr.groupBy { case (rule,idAndRev) => idAndRev }.toSeq) { case (id, seq) =>
           for {
-            optPair <- roDirectiveRepository.getActiveTechniqueAndDirective(id).chainError(s"Error when retrieving directive with ID ${id.value}'")
+            optPair <- roDirectiveRepository.getActiveTechniqueAndDirective(id).chainError(s"Error when retrieving directive with ID '${id.debugString}'")
             // here, if we don't have a directive for the ID, we assume it's a directive that was
             // deleted but not cleanly removed everywhere.
             res     <- optPair match {
                          case None =>
-                           logPure.warn(s"Directive with id '${id.value}' is referenced in rules with names: '${seq.map(r =>r._1.name).mkString("','")}' but it was not found. Perhaps these rules should be updated (saved again).") *>
+                           logPure.warn(s"Directive with id '${id.debugString}' is referenced in rules with names: '${seq.map(r =>r._1.name).mkString("','")}' but it was not found. Perhaps these rules should be updated (saved again).") *>
                            Seq().succeed
                          case Some((activeTechnique, directive)) =>
                            if(directive.isEnabled && activeTechnique.isEnabled) {

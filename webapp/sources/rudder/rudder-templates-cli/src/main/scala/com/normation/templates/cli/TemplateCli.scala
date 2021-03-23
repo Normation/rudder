@@ -273,7 +273,7 @@ object ParseVariables extends Loggable {
 
   def fromFile(file: File):  IOResult[Set[STVariable]] = {
     for {
-      jsonString <- IOResult.effect(s"Error when trying to read file ${file.getAbsoluteFile}")(FileUtils.readFileToString(file, "UTF-8"))
+      jsonString <- IOResult.effect(s"Error when trying to read file ${file.getAbsolutePath}")(FileUtils.readFileToString(file, "UTF-8"))
       vars       <- fromString(jsonString)
     } yield {
       vars

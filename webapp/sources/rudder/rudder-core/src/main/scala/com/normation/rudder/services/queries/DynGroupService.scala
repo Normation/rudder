@@ -210,12 +210,12 @@ object CheckPendingNodeInDynGroups {
 
   // for debuging message
   implicit class DynGroupsToString(val gs: List[(NodeGroupId, Set[NodeId])]) extends AnyVal {
-    def show: String = gs.map { case (id, nodes) =>
+    def debugString: String = gs.map { case (id, nodes) =>
       id.value + ":" + nodes.map(_.value).mkString(",")
     }.mkString("[", "][", "]")
   }
   implicit class ResToString(val gs: List[DynGroup]) extends AnyVal {
-    def show: String = gs.map { case DynGroup(id, dep, nodes, q, inc) =>
+    def debugString: String = gs.map { case DynGroup(id, dep, nodes, q, inc) =>
       id.value + ":" + nodes.size + "{"+dep.map(_.value).mkString(",")+"}"
     }.mkString("[", "][", "]")
   }
@@ -288,9 +288,9 @@ class CheckPendingNodeInDynGroups(
     def recProcess(todo: List[DynGroup], blocked: List[DynGroup], done: List[(NodeGroupId, Set[NodeId])]): Box[List[(NodeGroupId, Set[NodeId])]] = {
       import com.normation.rudder.domain.queries.{And => CAnd}
 
-      NodeLogger.PendingNode.Policies.trace("TODO   :" + todo.show   )
-      NodeLogger.PendingNode.Policies.trace("BLOCKED:" + blocked.show)
-      NodeLogger.PendingNode.Policies.trace("DONE   :" + done.show   )
+      NodeLogger.PendingNode.Policies.trace("TODO   :" + todo.debugString   )
+      NodeLogger.PendingNode.Policies.trace("BLOCKED:" + blocked.debugString)
+      NodeLogger.PendingNode.Policies.trace("DONE   :" + done.debugString   )
 
       (todo, blocked, done) match {
 
@@ -380,7 +380,7 @@ class CheckPendingNodeInDynGroups(
     // start the process ! End at the end, transform the result into a map.
     val res = recProcess(nodep, withdep, Nil)
     // end result
-    res.foreach(r => NodeLogger.PendingNode.Policies.debug("Result: " + r.show) )
+    res.foreach(r => NodeLogger.PendingNode.Policies.debug("Result: " + r.debugString) )
     res
   }
 

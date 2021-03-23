@@ -68,7 +68,7 @@ class ReadOnlySoftwareDAOImpl(
     for {
       entries <- con.searchOne(inventoryDitService.getSoftwareBaseDN, OR(ids map {x:SoftwareUuid => EQ(A_SOFTWARE_UUID,x.value) }:_*)).map(_.toVector)
       soft    <- ZIO.foreach(entries) { entry =>
-                   ZIO.fromEither(mapper.softwareFromEntry(entry)).chainError(s"Error when mapping LDAP entry '${entry.dn}' to a software. Entry details: ${entry}")
+                   ZIO.fromEither(mapper.softwareFromEntry(entry)).chainError(s"Error when mapping LDAP entry '${entry.dn.toString}' to a software. Entry details: ${entry.toLDIFString()}")
                  }
     } yield {
       soft
@@ -124,7 +124,7 @@ class ReadOnlySoftwareDAOImpl(
       ids           <- ZIO.foreach(softwareEntry) { entry =>
                          entry(A_SOFTWARE_UUID) match {
                            case Some(value) => value.succeed
-                           case _ => Inconsistency(s"Missing attribute ${A_SOFTWARE_UUID} for entry ${entry.dn} ${entry.toString()}").fail
+                           case _ => Inconsistency(s"Missing attribute ${A_SOFTWARE_UUID} for entry ${entry.dn.toString} ${entry.toString()}").fail
                          }
                        }
       softIds       =  ids.map(id => SoftwareUuid(id)).toSet

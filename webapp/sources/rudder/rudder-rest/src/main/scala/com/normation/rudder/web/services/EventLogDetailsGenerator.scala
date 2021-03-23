@@ -159,7 +159,7 @@ class EventLogDetailsGenerator(
         case Full(WorkflowStepChange(crId,from,to)) =>
           Text("Change request #") ++
             <a href={changeRequestLink(crId)} onclick="noBubble(event);">{crId}</a> ++
-            Text(s" status modified from ${from} to ${to}")
+            Text(s" status modified from '${from.value}' to '${to.value}''")
 
         case eb:EmptyBox => val fail = eb ?~! "could not display workflow step event log"
           logger.error(fail.msg)
@@ -617,7 +617,7 @@ class EventLogDetailsGenerator(
 
                 <b>The Technique library was reloaded and following Techniques were updated:</b>
                 <ul>{ details.map {technique =>
-                  <li class="eventLogUpdatePolicy">{ "%s (version %s)".format(technique.name.value, technique.version.toString)}</li>
+                  <li class="eventLogUpdatePolicy">{ s"${technique.name.value} (version ${technique.version.debugString})" }</li>
                 } }</ul>
                 { reasonHtml }
                 { xmlParameters(event.id) }

@@ -138,7 +138,7 @@ class CreateOrUpdateGlobalParameterPopup(
       val savedChangeRequest = {
         for {
           value <- parseValue(parameterValue.get, jsonCheck).toBox
-          param =  GlobalParameter(parameterName.get, value, InheritMode.parseString(parameterInheritMode.get).toOption, parameterDescription.get, None)
+          param =  GlobalParameter(parameterName.get, None, value, InheritMode.parseString(parameterInheritMode.get).toOption, parameterDescription.get, None)
           diff  <- globalParamDiffFromAction(param)
           cr    =  ChangeRequestService.createChangeRequestFromGlobalParameter(
                       changeRequestName.get

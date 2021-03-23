@@ -244,7 +244,8 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
         _  <- Update[DB.SerializedRuleDirectives]("""
                  insert into rulesdirectivesjoin (rulepkeyid, directiveid)
                  values (?, ?)
-               """).updateMany(r.directiveIds.toList.map(d => DB.SerializedRuleDirectives(pk, d.value)))
+               """).updateMany(r.directiveIds.filter(_.revId.isEmpty).toList.map(d => DB.SerializedRuleDirectives(pk, d.id.value)))
+                // TODO: above, we need to filter directive with non empty rev to avoid ducplicate insert. Not sure it's what we want.
         _  <- Update[DB.SerializedRuleGroups]("""
                  insert into rulesgroupjoin (rulepkeyid, targetserialisation)
                  values (?, ?)

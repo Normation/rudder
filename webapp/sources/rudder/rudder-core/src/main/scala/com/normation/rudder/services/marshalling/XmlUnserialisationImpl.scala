@@ -37,6 +37,8 @@
 
 package com.normation.rudder.services.marshalling
 
+import com.normation.GitVersion.ParseRev
+
 import scala.xml.{NodeSeq, Text, Node => XNode}
 import net.liftweb.common._
 import net.liftweb.common.Box._
@@ -143,9 +145,10 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
                                }
       fileFormatOk          <- TestFileFormat(directive)
       id                    <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + xml)
+      revId                 =  ParseRev((directive \ "revisionId").map(_.text).mkString(""))
       ptName                <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + xml)
       name                  <- (directive \ "displayName").headOption.map( _.text.trim ) ?~! ("Missing attribute 'displayName' in entry type directive : " + xml)
-      techniqueVersion      <- (directive \ "techniqueVersion").headOption.map( x => TechniqueVersion(x.text) ) ?~! ("Missing attribute 'techniqueVersion' in entry type directive : " + xml)
+      techniqueVersion      <- (directive \ "techniqueVersion").headOption.flatMap( x => TechniqueVersion.parse(x.text).toBox) ?~! ("Missing attribute 'techniqueVersion' in entry type directive : " + xml)
       sectionVal            <- parseSectionVal(directive)
       shortDescription      <- (directive \ "shortDescription").headOption.map( _.text ) ?~! ("Missing attribute 'shortDescription' in entry type directive : " + xml)
       longDescription       <- (directive \ "longDescription").headOption.map( _.text ) ?~! ("Missing attribute 'longDescription' in entry type directive : " + xml)
@@ -159,6 +162,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
           TechniqueName(ptName)
         , Directive(
               id               = DirectiveId(id)
+            , revId            = revId
             , name             = name
             , techniqueVersion = techniqueVersion
             , parameters       = SectionVal.toMapVariables(sectionVal)
@@ -237,6 +241,7 @@ class NodeGroupUnserialisationImpl(
                              } else {
                                GroupProperty.parse(
                                    (p\\"name").text.trim
+                                 , ParseRev((p\\"revisionId").text.trim)
                                  , (p\\"value").text.trim
                                  , (p\\"inheritMode").headOption.flatMap(p => InheritMode.parseString(p.text.trim).toOption)
                                  , (p\\"provider").headOption.map(p => PropertyProvider(p.text.trim))
@@ -274,6 +279,7 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
                           ("Missing attribute 'category' in entry type rule: " + entry)
       name             <- (rule \ "displayName").headOption.map( _.text.trim ) ?~!
                           ("Missing attribute 'displayName' in entry type rule: " + entry)
+      revisionId       =  ParseRev((rule \ "revisionId").headOption.map( _.text.trim))
       shortDescription <- (rule \ "shortDescription").headOption.map( _.text ) ?~!
                           ("Missing attribute 'shortDescription' in entry type rule: " + entry)
       longDescription  <- (rule \ "longDescription").headOption.map( _.text ) ?~!
@@ -284,12 +290,15 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
                           ("Missing attribute 'isSystem' in entry type rule: " + entry)
       targets          <- sequence((rule \ "targets" \ "target")) { t => RuleTarget.unser(t.text) } ?~!
                           ("Invalid attribute in 'target' entry: " + entry)
-      directiveIds     = (rule \ "directiveIds" \ "id" ).map( n => DirectiveId( n.text ) ).toSet
+      directiveIds     = (rule \ "directiveIds" \ "id" ).map { n =>
+                            DirectiveRId( DirectiveId(n.text), ParseRev((n \ "@revisionId").text) )
+                          }.toSet
       tags             =  TagsXml.getTags( rule \ "tags")
 
     } yield {
       Rule(
           RuleId(id)
+        , revisionId
         , name
         , category
         , targets.toSet
@@ -374,7 +383,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
       acceptationDates <- sequence(activeTechnique \ "versions" \ "version" ) { version =>
                             for {
                               ptVersionName   <- version.attribute("name").map( _.text) ?~! "Missing attribute 'name' for acceptation date in PT '%s' (%s): '%s'".format(ptName, id, version)
-                              ptVersion       <- tryo { TechniqueVersion(ptVersionName) }
+                              ptVersion       <- TechniqueVersion.parse(ptVersionName).toBox ?~! s"Error when trying to parse '${ptVersionName}' as a technique version."
                               acceptationDate <- tryo { dateFormatter.parseDateTime(version.text) }
                             } yield {
                               (ptVersion, acceptationDate)
@@ -646,9 +655,11 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
       description      <- (globalParam \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type globalParameter : " + entry)
       provider         =  (globalParam \ "provider").headOption.map(x => PropertyProvider(x.text))
       mode             =  (globalParam \ "inheritMode").headOption.flatMap(x => InheritMode.parseString(x.text).toOption)
-      g                <- GlobalParameter.parse(name, value, mode, description, provider).toBox
+                          // TODO: no version in param for now
+      g                <- GlobalParameter.parse(name, None, value, mode, description, provider).toBox
     } yield {
-      g
+      g                          // TODO: no version in param for now
+
     }
   }
 }

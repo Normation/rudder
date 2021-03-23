@@ -324,7 +324,7 @@ class CommitAndDeployChangeRequestServiceImpl(
         }
 
         if ( initialFixed.directiveIds != currentFixed.directiveIds) {
-          debugLog(s"Rule ID ${initialFixed.id.value} attached Directives have changed: original state from CR: ${initialFixed.directiveIds.map(_.value).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.directiveIds.map(_.value).mkString("[ ", ", ", " ]")}")
+          debugLog(s"Rule ID ${initialFixed.id.value} attached Directives have changed: original state from CR: ${initialFixed.directiveIds.map(_.debugString).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.directiveIds.map(_.debugString).mkString("[ ", ", ", " ]")}")
         }
 
         //return

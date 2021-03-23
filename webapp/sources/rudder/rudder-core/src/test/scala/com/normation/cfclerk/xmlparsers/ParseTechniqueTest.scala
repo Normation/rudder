@@ -42,7 +42,7 @@ import java.io.FileNotFoundException
 import com.normation.cfclerk.domain.LoadTechniqueError
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.inventory.domain.AgentType
 import org.junit.runner._
@@ -60,7 +60,7 @@ class ParseTechniqueTest extends Specification {
     new TechniqueParser(varParser, new SectionSpecParser(varParser), new SystemVariableSpecServiceImpl())
   }
 
-  val id = TechniqueId(TechniqueName("test"), TechniqueVersion("1.0"))
+  val id = TechniqueId(TechniqueName("test"), TechniqueVersionHelper("1.0"))
 
   "When a technique has both root bundles/tmls and a 'cfengine-community' agent block, parsing should fails" >> {
     techniqueParser.parseXml(readFile("parseTechnique/technique_one_default_one_agent_id.xml"), id) must

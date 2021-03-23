@@ -1,0 +1,12 @@
+# Cron file for Rudder
+#
+# Will manually run cf-agent in case cf-execd is no longer running. cf-agent will fire up a new cf-execd.
+#
+# To temporarily avoid this behaviour, run 'rudder agent disable'
+
+{{#classes.slackware}}
+0,5,10,15,20,25,30,35,40,45,50,55 * * * * /opt/rudder/bin/rudder agent check -q >> /var/log/rudder/agent-check/check.log 2>&1
+{{/classes.slackware}}
+{{^classes.slackware}}
+0,5,10,15,20,25,30,35,40,45,50,55 * * * * root /opt/rudder/bin/rudder agent check -q >> /var/log/rudder/agent-check/check.log 2>&1
+{{/classes.slackware}}

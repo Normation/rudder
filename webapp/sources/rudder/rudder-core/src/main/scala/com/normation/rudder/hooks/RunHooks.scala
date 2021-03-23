@@ -93,7 +93,7 @@ final case class HookEnvPairs(values: List[HookEnvPair]) extends AnyVal {
    * Formatted string
    * [key1:val1][key2:val2]...
    */
-  def show: String = values.map(_.show).mkString(" ")
+  def debugString: String = values.map(_.show).mkString(" ")
 }
 
 object HookEnvPairs {
@@ -254,11 +254,11 @@ object RunHooks {
         case x: Success => // run the next hook
           val path = hooks.basePath + File.separator + nextHookName
           val env = envVariables.add(hookParameters)
-          val cmdInfo = s"'${path}' with environment parameters: [${hookParameters.show}]"
+          val cmdInfo = s"'${path}' with environment parameters: [${hookParameters.debugString}]"
 
           for {
             _ <- PureHooksLogger.debug(s"Run hook: ${cmdInfo}")
-            _ <- PureHooksLogger.trace(s"System environment variables: ${envVariables.show}")
+            _ <- PureHooksLogger.trace(s"System environment variables: ${envVariables.debugString}")
             f <- PureHooksLogger.LongExecLogger.warn(s"Hook is taking more than ${warnTimeout.render} to finish: ${cmdInfo}").delay(warnTimeout).fork
             p <- RunNuCommand.run(Cmd(path, Nil, env.toMap)).untraced
             r <- p.await.timeout(killTimeout).flatMap {
@@ -277,11 +277,11 @@ object RunHooks {
       }
     }.provide(ZioRuntime.environment).untraced
 
-    val cmdInfo = s"'${hooks.basePath}' with environment parameters: [${hookParameters.show}]"
+    val cmdInfo = s"'${hooks.basePath}' with environment parameters: [${hookParameters.debugString}]"
     (for {
       //cmdInfo is just for comments/log. We use "*" to synthetize
       _        <- PureHooksLogger.debug(s"Run hooks: ${cmdInfo}")
-      _        <- PureHooksLogger.trace(s"Hook environment variables: ${envVariables.show}")
+      _        <- PureHooksLogger.trace(s"Hook environment variables: ${envVariables.debugString}")
       time_0   <- currentTimeNanos
       f        <- PureHooksLogger.LongExecLogger.warn(s"Executing all hooks in directory ${cmdInfo} is taking more time than configured expected max duration of '${globalWarnAfter.render}'").delay(globalWarnAfter).fork
       res      <- ZioRuntime.blocking(runAllSeq)

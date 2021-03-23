@@ -60,9 +60,6 @@ import com.normation.rudder.rest.JsonResponseObjects._
 import com.normation.rudder.rest.implicits._
 
 import scala.collection.SortedMap
-import scala.util.Success
-import scala.util.Try
-import scala.util.{Failure => TryFailure}
 
 
 
@@ -110,7 +107,7 @@ class TechniqueApi (
       )(
           apiV6.listDirectives(techniqueName, None)
         , req
-        , s"Could not find list of directives based on '${techniqueName}' Technique"
+        , s"Could not find list of directives based on '${techniqueName.value}' Technique"
        ) ("listTechniquesDirectives")
     }
   }
@@ -121,11 +118,11 @@ class TechniqueApi (
     def process(version: ApiVersion, path: ApiPath, nv: (String, String), req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
       val (techniqueName, version) = (TechniqueName(nv._1), nv._2)
-      val directives = Try(TechniqueVersion(version)) match {
-        case Success(techniqueVersion) =>
+      val directives = TechniqueVersion.parse(version) match {
+        case Right(techniqueVersion) =>
               apiV6.listDirectives(techniqueName, Some(techniqueVersion :: Nil))
-        case TryFailure(exception) =>
-          Failure(s"Could not find list of directives based on '${techniqueName}' Technique, because we could not parse '${version}' as a valid technique version")
+        case Left(err) =>
+          Failure(s"Could not find list of directives based on '${techniqueName.value}' Technique, because we could not parse '${version}' as a valid technique version")
       }
       response(
           restExtractor
@@ -133,7 +130,7 @@ class TechniqueApi (
         , Some(s"${techniqueName.value}/${version}")
       ) ( directives
         , req
-        , s"Could not find list of directives based on version '${version}' of '${techniqueName}' Technique"
+        , s"Could not find list of directives based on version '${version}' of '${techniqueName.value}' Technique"
       ) ("listTechniqueDirectives")
     }
   }
@@ -197,7 +194,7 @@ class TechniqueAPIService6 (
       ZIO.foreach(directives.filter(filter)) { directive =>
         techniques.get(directive.techniqueVersion) match {
           case None            =>
-            Inconsistency(s"Version ${directive.techniqueVersion} of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.value}'").fail
+            Inconsistency(s"Version '${directive.techniqueVersion.serialize}' of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.value}'").fail
           case Some(technique) =>
             serialize(technique,directive).succeed
         }
@@ -209,7 +206,7 @@ class TechniqueAPIService6 (
         case Some(versions) =>
           ZIO.foreach(versions) { version =>
             ZIO.when(!techniques.keySet.contains(version)) {
-              Inconsistency(s"Version '${version}' of Technique '${techniqueName.value}' does not exist").fail
+              Inconsistency(s"Version '${version.serialize}' of Technique '${techniqueName.value}' does not exist").fail
             }
           }
         case None => UIO.unit

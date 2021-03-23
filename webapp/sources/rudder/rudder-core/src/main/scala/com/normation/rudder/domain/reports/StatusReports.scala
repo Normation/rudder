@@ -38,11 +38,9 @@
 package com.normation.rudder.domain.reports
 
 import org.joda.time.DateTime
-
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveRId
 import com.normation.rudder.domain.policies.RuleId
-
 import net.liftweb.common.Loggable
 import com.normation.rudder.services.reports._
 
@@ -154,7 +152,7 @@ final class AggregatedStatusReport private(
   /**
    * rebuild all the trees from the available status
    */
-  lazy val directives: Map[DirectiveId, DirectiveStatusReport] = {
+  lazy val directives: Map[DirectiveRId, DirectiveStatusReport] = {
     //toSeq is mandatory; here, we may have some directive only different
     //by rule or node and we don't want to loose the weight
     DirectiveStatusReport.merge(reports.toSeq.flatMap( _.directives.values))
@@ -192,7 +190,7 @@ final case class RuleNodeStatusReport(
   , agentRunTime  : Option[DateTime]
   , configId      : Option[NodeConfigId]
     //only one DirectiveStatusReport by directiveId
-  , directives    : Map[DirectiveId, DirectiveStatusReport]
+  , directives    : Map[DirectiveRId, DirectiveStatusReport]
   , expirationDate: DateTime
 ) extends StatusReport {
 
@@ -200,11 +198,11 @@ final case class RuleNodeStatusReport(
 
   override def toString() = s"""[[${nodeId.value}: ${ruleId.value}; run: ${agentRunTime.getOrElse("no time")};${configId.map(_.value).getOrElse("no config id")}->${expirationDate}]
   |  compliance:${compliance}
-  |  ${directives.values.toSeq.sortBy( _.directiveId.value ).map { x => s"${x}" }.mkString("\n  ")}]
+  |  ${directives.values.toSeq.sortBy( _.directiveRId.serialize ).map { x => s"${x}" }.mkString("\n  ")}]
   |""".stripMargin('|')
 
 
-  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
+  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveRId, String, ComponentValueStatusReport)] = {
       directives.values.flatMap( _.getValues(predicate)).toSeq
   }
 
@@ -216,7 +214,7 @@ final case class RuleNodeStatusReport(
     val dirs = (
         directives.values.filter(directive(_))
         .flatMap(_.withFilteredElements(component, values))
-        .map(x => (x.directiveId, x)).toMap
+        .map(x => (x.directiveRId, x)).toMap
     )
     if(dirs.isEmpty) None
     else Some(this.copy(directives = dirs))
@@ -236,16 +234,16 @@ object RuleNodeStatusReport {
 }
 
 final case class DirectiveStatusReport(
-    directiveId: DirectiveId
+    directiveRId: DirectiveRId
     //only one component status report by component name
   , components : Map[String, ComponentStatusReport]
 ) extends StatusReport {
   override lazy val compliance = ComplianceLevel.sum(components.map(_._2.compliance) )
-  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
-      components.values.flatMap( _.getValues(predicate) ).toSeq.map { case(s,v) => (directiveId,s,v) }
+  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveRId, String, ComponentValueStatusReport)] = {
+      components.values.flatMap( _.getValues(predicate) ).toSeq.map { case(s,v) => (directiveRId,s,v) }
   }
 
-  override def toString() = s"""[${directiveId.value} =>
+  override def toString() = s"""[${directiveRId.serialize} =>
                                |    ${components.values.toSeq.sortBy(_.componentName).mkString("\n    ")}
                                |]"""
 
@@ -266,10 +264,10 @@ final case class DirectiveStatusReport(
 
 object DirectiveStatusReport {
 
-  def merge(directives: Iterable[DirectiveStatusReport]): Map[DirectiveId, DirectiveStatusReport] = {
-    directives.groupBy( _.directiveId).map { case (directiveId, reports) =>
+  def merge(directives: Iterable[DirectiveStatusReport]): Map[DirectiveRId, DirectiveStatusReport] = {
+    directives.groupBy( _.directiveRId).map { case (directiveRId, reports) =>
       val newComponents = ComponentStatusReport.merge(reports.flatMap( _.components.values))
-      (directiveId, DirectiveStatusReport(directiveId, newComponents))
+      (directiveRId, DirectiveStatusReport(directiveRId, newComponents))
     }.toMap
   }
 }
@@ -489,7 +487,7 @@ object NodeStatusReportSerialization {
         ~ ("numberReports" -> r.compliance.total)
         ~ ("directives"    -> (r.directives.values.map { d =>
           (
-            ("directiveId"   -> d.directiveId.value)
+            ("directiveId"   -> d.directiveRId.serialize)
           ~ ("compliance"    -> d.compliance.pc.toJson)
           ~ ("numberReports" -> d.compliance.total)
           ~ ("components"    -> (d.components.values.map { c =>

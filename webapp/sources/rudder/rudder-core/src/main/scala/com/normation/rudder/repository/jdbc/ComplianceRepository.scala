@@ -157,8 +157,8 @@ class ComplianceJdbcRepository(
           //get a map of all (directiveId -> seq(directives)
           //be carefull to "toList", because we don't want to deduplicate if
           //two directive are actually equal
-          aggregats.toList.flatMap(_.directives.values).groupBy(_.directiveId).map { case (directiveId, seq) =>
-            (run.nodeId.value, run.runTimestamp, ruleId.value, directiveId.value, ComplianceLevel.sum(seq.map(_.compliance)))
+          aggregats.toList.flatMap(_.directives.values).groupBy(_.directiveRId).map { case (directiveRId, seq) =>
+            (run.nodeId.value, run.runTimestamp, ruleId.value, directiveRId.serialize, ComplianceLevel.sum(seq.map(_.compliance)))
           }
         }
       }

@@ -131,7 +131,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def getFullDirectiveLibrary() : IOResult[FullActiveTechniqueCategory] = directivesLib.succeed
     def getDirective(directiveId:DirectiveId) : IOResult[Option[Directive]] = ???
     def getDirectiveWithContext(directiveId:DirectiveId) : IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
-    def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[Option[(ActiveTechnique, Directive)]] = ???
+    def getActiveTechniqueAndDirective(id:DirectiveRId) : IOResult[Option[(ActiveTechnique, Directive)]] = ???
     def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : IOResult[Seq[Directive]] = ???
     def getActiveTechniqueByCategory(includeSystem:Boolean = false) : IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
     def getActiveTechniqueByActiveTechnique(id:ActiveTechniqueId) : IOResult[Option[ActiveTechnique]] = ???
@@ -930,7 +930,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   implicit def toReport(t:(DateTime,String, String, String, Int, String, String, DateTime, String, String)): Reports = {
     implicit def toRuleId(s:String) = RuleId(s)
-    implicit def toDirectiveId(s: String) = DirectiveId(s)
+    implicit def toDirectiveId(s: String) = DirectiveRId(DirectiveId(s), None)
     implicit def toNodeId(s: String) = NodeId(s)
 
     Reports(t._1, t._2, t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10)

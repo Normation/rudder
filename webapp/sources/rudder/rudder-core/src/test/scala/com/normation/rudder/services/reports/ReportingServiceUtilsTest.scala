@@ -37,9 +37,10 @@
 
 package com.normation.rudder.services.reports
 
-import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveRId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.AggregatedStatusReport
 import com.normation.rudder.domain.reports.DirectiveStatusReport
@@ -68,30 +69,30 @@ class ReportingServiceUtilsTest extends Specification {
   val rule1 = RuleId("rule1")
   val rule2 = RuleId("rule2")
   val rule3 = RuleId("rule3")
-  val dir1  = DirectiveId("dir1")
-  val dir2  = DirectiveId("dir2")
-  val dir3  = DirectiveId("dir3")
+  val dir1  = DirectiveRId(DirectiveId("dir1"))
+  val dir2  = DirectiveRId(DirectiveId("dir2"))
+  val dir3  = DirectiveRId(DirectiveId("dir3"))
 
   val expiration = new DateTime(0) // not used
 
   val noOverrides = Nil
-  def dirReport(id: DirectiveId) = (id, DirectiveStatusReport(id, Map()))
-  def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*) = {
+  def dirReport(id: DirectiveRId) = (id, DirectiveStatusReport(id, Map()))
+  def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveRId*) = {
     RuleNodeStatusReport(nodeId, ruleId, None, None, directives.map(dirReport _).toMap, expiration)
   }
 
   // a case where the same directive is on two rules
-  def thisOverrideThatOn(overrider: RuleId, overridden: RuleId, directive: DirectiveId) = {
+  def thisOverrideThatOn(overrider: RuleId, overridden: RuleId, directive: DirectiveRId) = {
     OverridenPolicy(
-        PolicyId(overridden, directive, TechniqueVersion("1.0")) //this one is
-      , PolicyId(overrider , directive, TechniqueVersion("1.0")) //overriden by that one
+        PolicyId(overridden, directive, TechniqueVersionHelper("1.0")) //this one is
+      , PolicyId(overrider , directive, TechniqueVersionHelper("1.0")) //overriden by that one
     )
   }
   // a case where two directive from the same unique technique are on two rules
-  def thisOverrideThatOn2(overrider: RuleId, directiver: DirectiveId, overridden: RuleId, directiven: DirectiveId) = {
+  def thisOverrideThatOn2(overrider: RuleId, directiver: DirectiveRId, overridden: RuleId, directiven: DirectiveRId) = {
     OverridenPolicy(
-        PolicyId(overridden, directiven, TechniqueVersion("1.0")) //this one is
-      , PolicyId(overrider , directiver, TechniqueVersion("1.0")) //overridden by that one
+        PolicyId(overridden, directiven, TechniqueVersionHelper("1.0")) //this one is
+      , PolicyId(overrider , directiver, TechniqueVersionHelper("1.0")) //overridden by that one
     )
   }
 

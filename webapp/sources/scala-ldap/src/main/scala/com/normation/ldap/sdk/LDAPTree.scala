@@ -59,7 +59,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
         _children += ((r,child))
         () // unit is expected
       case None => {
-        throw new IllegalArgumentException(s"Try to add a child Tree but the RDN of the root of this child is not defined. Parent: '${root.dn}', child root: ${child.root}.")
+        throw new IllegalArgumentException(s"Try to add a child Tree but the RDN of the root of this child is not defined. Parent: '${root.dn.toString}', child root: ${child.root.toString()}.")
       }
     }
   }
@@ -77,8 +77,8 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
   override def toString(): String = {
     val children = {
         if(_children.nonEmpty) {
-          val c = _children.map{ case(k,v) => s"${k} -> ${v}" }
-          s"children:{${c}}"
+          val c = _children.map{ case(k,v) => s"${k.toString} -> ${v.toString}" }
+          s"children:{${c.toString()}}"
         } else {
           "no child"
         }
@@ -147,7 +147,7 @@ object LDAPTree {
     else if(entries.map(_.dn).toSet.size != entries.size) {
       val s = entries.map(_.dn).toSet
       val res = entries.map(_.dn).filter(x => ! s.contains(x))
-      LDAPRudderError.Consistancy(s"Some entries have the same dn, what is forbiden: ${res}").fail
+      LDAPRudderError.Consistancy(s"Some entries have the same dn, what is forbiden: ${res.toString}").fail
     } else {
       val used = Buffer[DN]()
       /*
@@ -170,7 +170,7 @@ object LDAPTree {
 
       if(used.size < entries.size-1) {
         val s = entries.map(_.dn).filter(x => !used.contains(x))
-        LDAPRudderError.Consistancy(s"Some entries have no parents: ${s}").fail
+        LDAPRudderError.Consistancy(s"Some entries have no parents: ${s.toString()}").fail
       } else root.succeed
     }
   }
@@ -183,7 +183,7 @@ object LDAPTree {
    */
   def diff(source:LDAPTree, target:LDAPTree, removeMissing:Boolean) :  Either[Consistancy, List[TreeModification]] = {
     if(source.root.dn != target.root.dn) {
-      Left(Consistancy(s"DN of the two LDAP tree's root are different: ${source.root.dn} <> ${target.root.dn}"))
+      Left(Consistancy(s"DN of the two LDAP tree's root are different: ${source.root.dn.toString()} <> ${target.root.dn.toString()}"))
     } else {
       //modification on root
       val rootDiff = LDAPEntry.merge(source.root, target.root, removeMissing = removeMissing)

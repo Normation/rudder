@@ -373,8 +373,11 @@ class EventLogFactoryImpl(
               }
             ) ++
             modifyDiff.modDirectiveIds.map(x =>
-              SimpleDiff.toXml[Set[DirectiveId]](<directiveIds/>, x){ ids =>
-                ids.toSeq.map { id => <id>{id.value}</id> }
+              SimpleDiff.toXml[Set[DirectiveRId]](<directiveIds/>, x){ ids =>
+                ids.toSeq.map { case DirectiveRId(id, rev) => rev match {
+                  case None    => <id>{id.value}</id>
+                  case Some(r) => <id revisionId={r.value}>{id.value}</id>
+                }}
               }
             ) ++
             modifyDiff.modShortDescription.map(x =>

@@ -58,7 +58,6 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
-
 import com.normation.box._
 
 class ComplianceApi(
@@ -273,7 +272,7 @@ class ComplianceAPIService(
       val nonEmptyRules = reportsByRule.map { case (ruleId, reports) =>
 
         //aggregate by directives
-        val byDirectives = reports.flatMap { r => r.directives.values.map(d => (r.nodeId, d)).toSeq }.groupBy( _._2.directiveId)
+        val byDirectives = reports.flatMap { r => r.directives.values.map(d => (r.nodeId, d)).toSeq }.groupBy( _._2.directiveRId)
 
         (
           ruleId,
@@ -382,7 +381,7 @@ class ComplianceAPIService(
                     rule.id
                   , rule.name
                   , ComplianceLevel(noAnswer = rule.directiveIds.size)
-                  , rule.directiveIds.map { id => ByNodeDirectiveCompliance(id, directiveLib.get(id).map(_._2.name).getOrElse("Unknown Directive"), ComplianceLevel(noAnswer = 1), Map())}.toSeq
+                  , rule.directiveIds.map { rid => ByNodeDirectiveCompliance(rid, directiveLib.get(rid).map(_._2.name).getOrElse("Unknown Directive"), ComplianceLevel(noAnswer = 1), Map())}.toSeq
                 )
               }).toSeq
           ))
@@ -404,7 +403,7 @@ class ComplianceAPIService(
                     r.ruleId
                   , ruleMap.get(r.ruleId).map(_.name).getOrElse("Unknown rule")
                   , r.compliance
-                  , r.directives.toSeq.map { case (_, directiveReport) => ByNodeDirectiveCompliance(directiveReport,directiveLib.get(directiveReport.directiveId).map(_._2.name).getOrElse("Unknown Directive")) }
+                  , r.directives.toSeq.map { case (_, directiveReport) => ByNodeDirectiveCompliance(directiveReport,directiveLib.get(directiveReport.directiveRId).map(_._2.name).getOrElse("Unknown Directive")) }
                 )
               )
           )

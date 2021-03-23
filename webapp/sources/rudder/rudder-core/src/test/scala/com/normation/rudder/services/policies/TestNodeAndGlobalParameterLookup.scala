@@ -79,7 +79,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
         case Failure(m, _, _) => r.pattern.matcher(m).matches()
       }
 
-      result(res, "ok", "Didn't get failure matching regex " + r.toString, v, Failure(r.toString()).toString, v.value.toString)
+      result(res, "ok", "Didn't get failure matching regex " + r.toString, v, Failure(r.toString()).messageChain, v.value.toString)
     }
   }
 

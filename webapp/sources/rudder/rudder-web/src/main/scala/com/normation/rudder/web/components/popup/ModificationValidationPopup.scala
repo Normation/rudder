@@ -442,7 +442,7 @@ class ModificationValidationPopup(
   ) : Box[Option[ChangeRequestDirectiveDiff]] = {
 
     techniqueRepo.get(TechniqueId(techniqueName,directive.techniqueVersion)).map(_.rootSection) match {
-      case None => Failure(s"Could not get root section for technique ${techniqueName.value} version ${directive.techniqueVersion}")
+      case None => Failure(s"Could not get root section for technique ${techniqueName.value} version ${directive.techniqueVersion.debugString}")
       case Some(rootSection) =>
         initialState match {
           case None =>

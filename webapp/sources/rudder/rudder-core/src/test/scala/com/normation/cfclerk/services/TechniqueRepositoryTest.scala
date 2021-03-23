@@ -66,8 +66,10 @@ import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.utils.StringUuidGeneratorImpl
 import org.joda.time.DateTime
 import com.normation.errors._
+import com.normation.rudder.domain.policies.DirectiveRId
 import zio._
 import zio.syntax._
+
 import scala.collection.SortedMap
 import net.liftweb.common._
 
@@ -128,7 +130,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = FullActiveTechniqueCategory(ActiveTechniqueCategoryId("Active Techniques"), "", "", Nil, Nil, true).succeed
     override def getDirective(directiveId: DirectiveId): IOResult[Option[Directive]] = ???
     override def getDirectiveWithContext(directiveId: DirectiveId): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
-    override def getActiveTechniqueAndDirective(id: DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
+    override def getActiveTechniqueAndDirective(id: DirectiveRId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
     override def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean): IOResult[Seq[Directive]] = ???
     override def getActiveTechniqueByCategory(includeSystem: Boolean): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
     override def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId): IOResult[Option[ActiveTechnique]] = ???
@@ -178,7 +180,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
    */
   override def afterAll() = {
     if(System.getProperty("tests.clean.tmp") != "false") {
-      logger.info("Deleting directory " + setupRepos.abstractRoot.getAbsoluteFile)
+      logger.info("Deleting directory " + setupRepos.abstractRoot.getAbsolutePath)
       FileUtils.deleteDirectory(setupRepos.abstractRoot)
     }
   }
