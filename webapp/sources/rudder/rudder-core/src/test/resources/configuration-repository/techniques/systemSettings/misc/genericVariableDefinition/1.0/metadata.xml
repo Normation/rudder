@@ -16,11 +16,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 <TECHNIQUE name="Variable (string)">
   <DESCRIPTION>Defines a variable. Its value can be used in other Directive parameters with the following syntax: ${generic_variable_definition.variablename}</DESCRIPTION>
-  <COMPATIBLE>
-    <OS>Every OS</OS>
-    <AGENT version=">= 3.1.5">cfengine-community</AGENT>
-  </COMPATIBLE>
-
   <MULTIINSTANCE>true</MULTIINSTANCE>
 
   <BUNDLES>

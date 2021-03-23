@@ -220,6 +220,9 @@ trait EndpointSchema {
   //the type of parameter parsed from Path: Unit, (String), (String, Int), etc
   type RESOURCES
   def getResources(path: ApiPath): Either[ApiError.BadParam, RESOURCES]
+
+  // data container name: the expected object key in answer
+  def dataContainer: Option[String]
 }
 
 

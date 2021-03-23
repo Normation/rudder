@@ -87,6 +87,7 @@ import com.normation.box._
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.domain.archives.ParameterArchiveId
+import com.normation.rudder.domain.nodes.GenericProperty.StringToConfigValue
 import com.normation.rudder.domain.parameters.AddGlobalParameterDiff
 import com.normation.rudder.domain.parameters.DeleteGlobalParameterDiff
 import com.normation.rudder.domain.parameters.GlobalParameter
@@ -779,7 +780,7 @@ class MockRules() {
                 val p2 = inDelete(p, that.id)
                 recUpdate(p2.modify(_.childs).using(children => that :: children.filterNot(_.id == that.id)), pp2.reverse).succeed
             }
-    }
+        }
       ).map(_ => that)
     }
 
@@ -925,11 +926,8 @@ class MockRules() {
 
     val predicate = (includeSytem: Boolean) => (r: Rule) => if(includeSytem) true else r.isSystem == false
 
-    def getOpt(ruleId: RuleId): IOResult[Option[Rule]] =
+    override def getOpt(ruleId: RuleId): IOResult[Option[Rule]] =
       rulesMap.get.map(_.get(ruleId))
-
-    override def get(ruleId: RuleId): IOResult[Rule] =
-      getOpt(ruleId).flatMap(_.notOptional(s"rule with id '${ruleId.value}' was not found"))
 
     override def getAll(includeSytem: Boolean): IOResult[Seq[Rule]] = {
       rulesMap.get.map(_.valuesIterator.filter(predicate(includeSytem)).toSeq)
@@ -1107,6 +1105,7 @@ class MockGlobalParam() {
 
   }
 }
+
 
 // internal storage format for node repository
 final case class NodeDetails(info: NodeInfo, nInv: NodeInventory, mInv: Option[MachineInventory])
@@ -1631,14 +1630,27 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
 
 class MockNodeGroups(nodesRepo: MockNodes) {
 
+  val g0props = List(
+    GroupProperty(
+        "stringParam"  // inherited from global param
+      , "string".toConfigValue
+      , Some(InheritMode.parseString("map").getOrElse(null))
+      , Some(PropertyProvider("datasources"))
+    )
+  , GroupProperty.parse("jsonParam"
+      , """{ "group":"string", "array": [5,6], "json": { "g1":"g1"} }"""
+      , None
+      , None
+    ).getOrElse(null) // for test
+  )
 
-  val g0 = NodeGroup (NodeGroupId("0000f5d3-8c61-4d20-88a7-bb947705ba8a"), "Real nodes"           , "", Nil, None, false, Set(nodesRepo.rootId, nodesRepo.node1.id, nodesRepo.node2.id), true)
-  val g1 = NodeGroup (NodeGroupId("1111f5d3-8c61-4d20-88a7-bb947705ba8a"), "Empty group"          , "", Nil, None, false, Set(), true)
-  val g2 = NodeGroup (NodeGroupId("2222f5d3-8c61-4d20-88a7-bb947705ba8a"), "only root"            , "", Nil, None, false, Set(NodeId("root")), true)
-  val g3 = NodeGroup (NodeGroupId("3333f5d3-8c61-4d20-88a7-bb947705ba8a"), "Even nodes"           , "", Nil, None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 == 0), true)
-  val g4 = NodeGroup (NodeGroupId("4444f5d3-8c61-4d20-88a7-bb947705ba8a"), "Odd nodes"            , "", Nil, None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 != 0), true)
-  val g5 = NodeGroup (NodeGroupId("5555f5d3-8c61-4d20-88a7-bb947705ba8a"), "Nodes id divided by 3", "", Nil, None, false, nodesRepo.nodeIds.filter(_.value.toInt%3 == 0), true)
-  val g6 = NodeGroup (NodeGroupId("6666f5d3-8c61-4d20-88a7-bb947705ba8a"), "Nodes id divided by 5", "", Nil, None, false, nodesRepo.nodeIds.filter(_.value.toInt%5 == 0), true)
+  val g0 = NodeGroup (NodeGroupId("0000f5d3-8c61-4d20-88a7-bb947705ba8a"), "Real nodes"           , "", g0props, None, false, Set(nodesRepo.rootId, nodesRepo.node1.id, nodesRepo.node2.id), true)
+  val g1 = NodeGroup (NodeGroupId("1111f5d3-8c61-4d20-88a7-bb947705ba8a"), "Empty group"          , "", Nil    , None, false, Set(), true)
+  val g2 = NodeGroup (NodeGroupId("2222f5d3-8c61-4d20-88a7-bb947705ba8a"), "only root"            , "", Nil    , None, false, Set(NodeId("root")), true)
+  val g3 = NodeGroup (NodeGroupId("3333f5d3-8c61-4d20-88a7-bb947705ba8a"), "Even nodes"           , "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 == 0), true)
+  val g4 = NodeGroup (NodeGroupId("4444f5d3-8c61-4d20-88a7-bb947705ba8a"), "Odd nodes"            , "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 != 0), true)
+  val g5 = NodeGroup (NodeGroupId("5555f5d3-8c61-4d20-88a7-bb947705ba8a"), "Nodes id divided by 3", "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%3 == 0), true)
+  val g6 = NodeGroup (NodeGroupId("6666f5d3-8c61-4d20-88a7-bb947705ba8a"), "Nodes id divided by 5", "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%5 == 0), true)
   val groups = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
 
   val groupsTargets = groups.map{ case (id, g) => (GroupTarget(g.id), g) }
@@ -1721,12 +1733,13 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     val categories = RefM.make(groupLib).runNow
 
     override def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = categories.get
-    override def getNodeGroup(id: NodeGroupId): IOResult[(NodeGroup, NodeGroupCategoryId)] = {
-      categories.get.flatMap(root =>
+
+    override def getNodeGroupOpt(id: NodeGroupId): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
+      categories.get.map(root =>
         ((root.allGroups.get(id), root.categoryByGroupId.get(id)) match {
           case (Some(g), Some(c)) => Some((g.nodeGroup,c))
           case _                  => None
-        }).notOptional(s"Group with id '${id.value}' was not found'")
+        })
       )
     }
     override def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory] = {
@@ -1743,12 +1756,13 @@ class MockNodeGroups(nodesRepo: MockNodes) {
         val c = immutable.SortedMap((root.id :: parents, CategoryAndNodeGroup(root.toNodeGroupCategory, root.ownGroups.values.map(_.nodeGroup).toSet)))
         root.subCategories.foldLeft(c) { case (current, n) => current ++ getChildren(root.id :: parents, n) }
       }
-      categories.get.map { root =>
+      val c = categories.get.map { root =>
         val all = getChildren(Nil, root)
         if (includeSystem) all else {
           all.filterNot(_._2.category.isSystem)
         }
       }
+      c
     }
 
     override def getCategoryHierarchy: IOResult[immutable.SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = getGroupsByCategory(true).map(

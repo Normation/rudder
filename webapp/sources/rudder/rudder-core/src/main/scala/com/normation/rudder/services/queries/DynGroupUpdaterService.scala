@@ -89,19 +89,19 @@ trait DynGroupUpdaterService {
 class DynGroupUpdaterServiceImpl(
   roNodeGroupRepository: RoNodeGroupRepository,
   woNodeGroupRepository: WoNodeGroupRepository,
-  queryProcessor     : QueryProcessor
+  queryProcessor       : QueryProcessor
 ) extends DynGroupUpdaterService with Loggable {
 
   override def computeDynGroup (group : NodeGroup): Box[NodeGroup] = {
     for {
-      _              <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
-      timePreCompute =  System.currentTimeMillis
-      query          <- Box(group.query) ?~! s"No query defined for group '${group.name}' (${group.id.value})"
-      newMembers     <- queryProcessor.processOnlyId(query) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.value})"
+      _               <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
+      timePreCompute  =  System.currentTimeMillis
+      query           <- Box(group.query) ?~! s"No query defined for group '${group.name}' (${group.id.value})"
+      newMembers      <- queryProcessor.processOnlyId(query) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.value})"
       //save
-      newMemberIdsSet = newMembers.toSet
-      timeGroupCompute=  (System.currentTimeMillis - timePreCompute)
-      _               =  logger.debug(s"Dynamic group ${group.id.value} with name ${group.name} computed in ${timeGroupCompute} ms")
+      newMemberIdsSet  = newMembers.toSet
+      timeGroupCompute = (System.currentTimeMillis - timePreCompute)
+      _                = logger.debug(s"Dynamic group ${group.id.value} with name ${group.name} computed in ${timeGroupCompute} ms")
     } yield {
       group.copy(serverList = newMemberIdsSet)
     }

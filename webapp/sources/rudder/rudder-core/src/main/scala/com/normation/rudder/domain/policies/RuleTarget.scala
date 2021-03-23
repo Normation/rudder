@@ -337,7 +337,7 @@ object RuleTarget extends Loggable {
     }
   }
 
-  def unser(s:String) : Option[RuleTarget] = {
+  def unserOne(s: String): Option[SimpleTarget] = {
     s match {
       case GroupTarget.r(g) =>
         Some(GroupTarget(NodeGroupId(g)))
@@ -352,14 +352,20 @@ object RuleTarget extends Loggable {
       case AllNodesWithoutRole.r() =>
         Some(AllNodesWithoutRole)
       case _ =>
-        try {
-          unserJson(parse(s))
-        } catch {
-          case e : Exception =>
-            logger.error(s"Error when trying to read the following serialized Rule target as a composite target: '${s}'. Reported parsing error cause was: ${e.getMessage}")
-            None
-        }
+        None
     }
+  }
+
+  def unser(s:String) : Option[RuleTarget] = {
+    unserOne(s).orElse(
+      try {
+        unserJson(parse(s))
+      } catch {
+        case e : Exception =>
+          logger.error(s"Error when trying to read the following serialized Rule target as a composite target: '${s}'. Reported parsing error cause was: ${e.getMessage}")
+          None
+      }
+    )
   }
 
   /**

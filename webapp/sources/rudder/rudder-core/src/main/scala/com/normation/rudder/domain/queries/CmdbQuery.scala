@@ -895,9 +895,9 @@ case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) {
 
 final case class CriterionLine(objectType:ObjectCriterion, attribute:Criterion, comparator:CriterionComparator, value:String="")
 
-sealed abstract class CriterionComposition
-final case object And extends CriterionComposition
-final case object Or extends CriterionComposition
+sealed abstract class CriterionComposition { def value: String }
+final case object And extends CriterionComposition { val value = "and" }
+final case object Or extends CriterionComposition { val value = "or" }
 object CriterionComposition {
     def parse(s:String) : Option[CriterionComposition] = {
     s.toLowerCase match {

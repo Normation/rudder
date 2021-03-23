@@ -55,11 +55,13 @@ trait RoRuleRepository {
 
   /**
    * Try to find the rule with the given ID.
-   * Empty: no directive with such ID
-   * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
-   * Failure => an error happened.
    */
-  def get(ruleId:RuleId) : IOResult[Rule]
+  def getOpt(ruleId:RuleId) : IOResult[Option[Rule]]
+
+  /**
+   * Find the rule with the given ID (error if not found)
+   */
+  def get(ruleId:RuleId) : IOResult[Rule] = getOpt(ruleId).notOptional(s"Rule with id '${ruleId.value}' was not found")
 
   /**
    * Return all rules.

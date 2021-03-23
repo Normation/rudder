@@ -69,17 +69,21 @@ class RoLDAPRuleRepository(
 
   override def loggerName: String = this.getClass.getName
 
+
   /**
    * Try to find the rule with the given ID.
    * Empty: no directive with such ID
    * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
    * Failure => an error happened.
    */
-  def get(id:RuleId) : IOResult[Rule]  = {
+  def getOpt(id:RuleId) : IOResult[Option[Rule]]  = {
     ruleMutex.readLock(for {
       con     <- ldap
-      crEntry <- con.get(rudderDit.RULES.configRuleDN(id.value)).notOptional(s"Rule with id '${id.value}' was not found")
-      rule    <- mapper.entry2Rule(crEntry).toIO.chainError("Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, crEntry))
+      crEntry <- con.get(rudderDit.RULES.configRuleDN(id.value))
+      rule    <- crEntry match {
+                   case None    => None.succeed
+                   case Some(r) => mapper.entry2Rule(r).map(Some(_)).toIO.chainError(s"Error when transforming LDAP entry into a rule for id '${id.value}'. Entry: ${r}")
+                 }
     } yield {
       rule
     })

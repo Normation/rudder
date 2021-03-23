@@ -44,14 +44,15 @@ import com.normation.rudder.MockRules
 import com.normation.rudder.MockTechniques
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.rest.data.RestRule
-import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.utils.StringUuidGeneratorImpl
-import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.core.Fragments
+import com.normation.rudder.rest.JsonQueryObjects._
+import com.normation.rudder.rest.JsonResponseObjects._
+import com.normation.rudder.rest.JsonResponseObjects.JRRuleTarget._
+import com.normation.rudder.rest.implicits._
 
 @RunWith(classOf[JUnitRunner])
 class RestDataExtractorTest extends Specification {
@@ -76,31 +77,30 @@ class RestDataExtractorTest extends Specification {
   "extract RuleTarget" >> {
     val tests = List(
       ("""group:3d5d1d6c-4ba5-4ffc-b5a4-12ce02336f52"""
-      , GroupTarget(NodeGroupId("3d5d1d6c-4ba5-4ffc-b5a4-12ce02336f52"))
+      , JRRuleTarget(GroupTarget(NodeGroupId("3d5d1d6c-4ba5-4ffc-b5a4-12ce02336f52")))
       )
     , ("""group:hasPolicyServer-root"""
-      , GroupTarget(NodeGroupId("hasPolicyServer-root"))
+      , JRRuleTarget(GroupTarget(NodeGroupId("hasPolicyServer-root")))
       )
     , ("""policyServer:root"""
-      , PolicyServerTarget(NodeId("root"))
+      , JRRuleTarget(PolicyServerTarget(NodeId("root")))
       )
     , ("""special:all"""
-      , AllTarget
+      , JRRuleTarget(AllTarget)
       )
     , ("""{"include":{"or":["special:all"]},"exclude":{"or":["group:all-nodes-with-dsc-agent"]}}"""
-      , TargetExclusion(TargetUnion(Set(AllTarget)), TargetUnion(Set(GroupTarget(NodeGroupId("all-nodes-with-dsc-agent")))))
+      , JRRuleTarget(TargetExclusion(TargetUnion(Set(AllTarget)), TargetUnion(Set(GroupTarget(NodeGroupId("all-nodes-with-dsc-agent"))))))
       )
     , ("""{"include":{"or":[]},"exclude":{"or":[]}}"""
-      , TargetExclusion(TargetUnion(Set()), TargetUnion(Set()))
+      , JRRuleTarget(TargetExclusion(TargetUnion(Set()), TargetUnion(Set())))
       )
     , ("""{"or":["special:all"]}"""
-      , TargetUnion(Set(AllTarget))
+      , JRRuleTarget(TargetUnion(Set(AllTarget)))
       )
     )
 
     Fragments.foreach(tests) { case (json, expected) =>
-      val s = s"""{ "target": ${if(json.startsWith("{")) json else s""""${json}""""} }"""
-      (extract.toRuleTarget(jparse(s), "target") must beEqualTo(Full(Some(expected))))
+      (extractRuleTargetJson(json) must beEqualTo(Right(expected)))
     }
   }
 
@@ -127,21 +127,38 @@ class RestDataExtractorTest extends Specification {
               }
             ]
          }"""
-      , RestRule(
-            Some("Security policy")
-          , Some(RuleCategoryId("38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca"))
+      , JQRule(
+            Some("0c1713ae-cb9d-4f7b-abda-ca38c5d643ea")
+          , Some("Security policy")
+          , Some("38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca")
           , Some("Baseline applying CIS guidelines")
           , Some("This rules should be applied to all Linux nodes required basic hardening")
           , Some(Set(DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f")))
-          , Some(Set(AllTarget))
+          , Some(Set(JRRuleTargetString(AllTarget)))
           , Some(true)
           , Some(Tags(Set(Tag(TagName("customer"), TagValue("MyCompany")))))
+          , Some("b9f6d98a-28bc-4d80-90f7-d2f14269e215")
         )
+      ),
+      ("""{
+            "source": "b9f6d98a-28bc-4d80-90f7-d2f14269e215"
+         }"""
+      , JQRule(source = Some("b9f6d98a-28bc-4d80-90f7-d2f14269e215"))
+      ),
+      ("""{
+            "category": "38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca"
+         }"""
+      , JQRule(category = Some("38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca"))
+      ),
+      ("""{
+            "tags": []
+         }"""
+      , JQRule(tags = Some(Tags(Set())))
       )
     )
 
     Fragments.foreach(tests) { case (json, expected) =>
-      (extract.extractRuleFromJSON(jparse(json)) must beEqualTo(Full(expected)))
+      (ruleDecoder.decodeJson(json)) must beEqualTo(Right(expected))
     }
   }
 }

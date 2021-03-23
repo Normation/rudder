@@ -35,9 +35,8 @@ response:
   content: >-
     {
       "action":"ruleDetails",
-      "id":"xxxxxxxx-2675-43b9-ab57-bfbab84346aa",
       "result":"error",
-      "errorDetails":"Could not get Rule xxxxxxxx-2675-43b9-ab57-bfbab84346aa details cause is:Could not find Rule xxxxxxxx-2675-43b9-ab57-bfbab84346aa."
+      "errorDetails":"Could not get rule with id: 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa';cause was:Inconsistency:Rule with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found"
     }
 ---
 description: List rules
@@ -118,7 +117,7 @@ response:
       }
     }
 ---
-description: Create a rule
+description: Create a rule (JSON)
 method: PUT
 url: /api/latest/rules
 headers:
@@ -161,7 +160,52 @@ response:
       }
     }
 ---
-description: Clone a rule
+description: Create a rule (PARAMS)
+method: PUT
+url: /api/latest/rules
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  id: "0c1713ae-cb9d-4f7b-0001-ca38c5d643ea"
+  displayName: "Security policy"
+  shortDescription: "Baseline applying CIS guidelines"
+  longDescription: "This rules should be applied to all Linux nodes required basic hardening"
+  category: "rootRuleCategory"
+  directives: >-
+    ["e9a1a909-2490-4fc9-95c3-9d0aa01717c9", "16d86a56-93ef-49aa-86b7-0d10102e4ea9"]
+  targets: >-
+    [{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}]
+  enabled: "true"
+  system: "false"
+  tags: >-
+    [{"customer": "MyCompany"}]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createRule",
+      "id":"0c1713ae-cb9d-4f7b-0001-ca38c5d643ea",
+      "result":"success",
+      "data":{
+        "rules":[
+          {
+            "id":"0c1713ae-cb9d-4f7b-0001-ca38c5d643ea",
+            "displayName": "Security policy",
+            "categoryId":"rootRuleCategory",
+            "shortDescription": "Baseline applying CIS guidelines",
+            "longDescription": "This rules should be applied to all Linux nodes required basic hardening",
+            "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9","e9a1a909-2490-4fc9-95c3-9d0aa01717c9"],
+            "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
+            "enabled":true,
+            "system":false,
+            "tags":[{"customer":"MyCompany"}]
+          }
+        ]
+      }
+    }
+---
+description: Clone a rule (JSON)
 method: PUT
 url: /api/latest/rules
 headers:
@@ -202,7 +246,48 @@ response:
       }
     }
 ---
-description: Update a rule
+description: Clone a rule (PARAMS)
+method: PUT
+url: /api/latest/rules
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  source: "208716db-2675-43b9-ab57-bfbab84346aa"
+  id: "00000000-cb9d-4f7b-0001-ca38c5d643ea"
+  displayName: "clone from api of 50-rule-technique-ncf"
+  shortDescription: "not and ncf technique rule"
+  longDescription: "Some long description"
+  category: "rootRuleCategory"
+  enabled: "true"
+  system: "false"
+  tags: >-
+    [{"customer": "MyCompany"}]
+response:
+  code: 200
+  content: >-
+    {"action":"cloneRule",
+      "id": "00000000-cb9d-4f7b-0001-ca38c5d643ea",
+      "result":"success",
+      "data":{
+        "rules":[
+          {
+            "id": "00000000-cb9d-4f7b-0001-ca38c5d643ea",
+            "displayName":"clone from api of 50-rule-technique-ncf",
+            "categoryId":"rootRuleCategory",
+            "shortDescription":"not and ncf technique rule",
+            "longDescription":"Some long description",
+            "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+            "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
+            "enabled":true,
+            "system":false,
+            "tags":[{"customer":"MyCompany"}]
+          }
+        ]
+      }
+    }
+---
+description: Update a rule (JSON)
 method: POST
 url: /api/latest/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
 headers:
@@ -235,7 +320,51 @@ response:
             "shortDescription": "Baseline applying CIS guidelines updated",
             "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
             "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
-            "targets":["special:all"],
+            "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
+            "enabled":false,
+            "system":false,
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+          }
+        ]
+      }
+    }
+---
+description: Update a rule (PARAMS)
+method: POST
+url: /api/latest/rules/0c1713ae-cb9d-4f7b-0001-ca38c5d643ea
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  id: "0c1713ae-cb9d-4f7b-0001-ca38c5d643ea"
+  displayName: "Security policy updated"
+  shortDescription: "Baseline applying CIS guidelines updated"
+  longDescription: "This rules should be applied to all Linux nodes required basic hardening updated"
+  directives: >-
+    ["16d86a56-93ef-49aa-86b7-0d10102e4ea9"]
+  targets: >-
+    ["special:all"]
+  enabled: "false"
+  system: "false"
+  tags: >-
+    [{"customer": "MyCompany"}, {"more":"tags"}]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateRule",
+      "id":"0c1713ae-cb9d-4f7b-0001-ca38c5d643ea",
+      "result":"success",
+      "data":{
+        "rules":[
+          {
+            "id":"0c1713ae-cb9d-4f7b-0001-ca38c5d643ea",
+            "displayName": "Security policy updated",
+            "categoryId":"rootRuleCategory",
+            "shortDescription": "Baseline applying CIS guidelines updated",
+            "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
+            "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+            "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
             "enabled":false,
             "system":false,
             "tags":[{"customer":"MyCompany"},{"more":"tags"}]
@@ -263,7 +392,7 @@ response:
             "shortDescription": "Baseline applying CIS guidelines updated",
             "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
             "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
-            "targets":["special:all"],
+            "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
             "enabled":false,
             "system":false,
             "tags":[{"customer":"MyCompany"},{"more":"tags"}]
@@ -272,7 +401,7 @@ response:
       }
     }
 ---
-description: Move a rule to a new category
+description: Move a rule to a new category (JSON)
 method: POST
 url: /api/latest/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
 headers:
@@ -297,7 +426,40 @@ response:
             "shortDescription": "Baseline applying CIS guidelines updated",
             "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
             "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
-            "targets":["special:all"],
+            "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
+            "enabled":false,
+            "system":false,
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+          }
+        ]
+      }
+    }
+---
+description: Move a rule to a new category (PARAMS)
+method: POST
+url: /api/latest/rules/0c1713ae-cb9d-4f7b-0001-ca38c5d643ea
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  category: "category1"
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateRule",
+      "id":"0c1713ae-cb9d-4f7b-0001-ca38c5d643ea",
+      "result":"success",
+      "data":{
+        "rules":[
+          {
+            "id":"0c1713ae-cb9d-4f7b-0001-ca38c5d643ea",
+            "displayName": "Security policy updated",
+            "categoryId":"category1",
+            "shortDescription": "Baseline applying CIS guidelines updated",
+            "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
+            "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+            "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
             "enabled":false,
             "system":false,
             "tags":[{"customer":"MyCompany"},{"more":"tags"}]
@@ -325,7 +487,7 @@ response:
             "shortDescription": "Baseline applying CIS guidelines updated",
             "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
             "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
-            "targets":["special:all"],
+            "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
             "enabled":false,
             "system":false,
             "tags":[{"customer":"MyCompany"},{"more":"tags"}]
@@ -334,7 +496,35 @@ response:
       }
     }
 ---
-description: Create a rule category
+description: Delete a rule
+method: DELETE
+url: /api/latest/rules/0c1713ae-cb9d-4f7b-0001-ca38c5d643ea
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteRule",
+      "id":"0c1713ae-cb9d-4f7b-0001-ca38c5d643ea",
+      "result":"success",
+      "data":{
+        "rules":[
+          {
+            "id":"0c1713ae-cb9d-4f7b-0001-ca38c5d643ea",
+            "displayName": "Security policy updated",
+            "categoryId":"category1",
+            "shortDescription": "Baseline applying CIS guidelines updated",
+            "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
+            "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+            "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
+            "enabled":false,
+            "system":false,
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+          }
+        ]
+      }
+    }
+---
+description: Create a rule category (JSON)
 method: PUT
 url: /api/latest/rules/categories
 headers:
@@ -365,7 +555,37 @@ response:
       }
     }
 ---
-description: Move rule category 2 into rule category 1
+description: Create a rule category (PARAMS)
+method: PUT
+url: /api/latest/rules/categories
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  parent: "rootRuleCategory"
+  name: "category 3"
+  id: "d882961b-279a-4ba5-0001-5198eaf00d35"
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createRuleCategory",
+      "id":"d882961b-279a-4ba5-0001-5198eaf00d35",
+      "result":"success",
+      "data":{
+        "ruleCategories":
+          {
+            "id":"d882961b-279a-4ba5-0001-5198eaf00d35",
+            "name": "category 3",
+            "description":"",
+            "parent": "rootRuleCategory",
+            "categories":[],
+            "rules":[]
+          }
+      }
+    }
+---
+description: Move rule category 2 into rule category 1 (JSON)
 method: POST
 url: /api/latest/rules/categories/d882961b-279a-4ba5-b755-5198eaf00d35
 headers:
@@ -396,6 +616,36 @@ response:
       }
     }
 ---
+description: Move rule category 3 into rule category 1 (PARAMS)
+method: POST
+url: /api/latest/rules/categories/d882961b-279a-4ba5-0001-5198eaf00d35
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  parent: "category1"
+  name: "category 3 update"
+  description: "category 3"
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateRuleCategory",
+      "id":"d882961b-279a-4ba5-0001-5198eaf00d35",
+      "result":"success",
+      "data":{
+        "ruleCategories":
+          {
+            "id":"d882961b-279a-4ba5-0001-5198eaf00d35",
+            "name": "category 3 update",
+            "description":"category 3",
+            "parent": "category1",
+            "categories":[],
+            "rules":[]
+          }
+      }
+    }
+---
 description: Get rule tree
 method: GET
 url: /api/latest/rules/tree
@@ -404,6 +654,7 @@ response:
   content: >-
     {
       "action":"getRuleTree",
+      "id":"rootRuleCategory",
       "result":"success",
       "data":{
         "ruleCategories":{
@@ -418,7 +669,15 @@ response:
               "description":"description of category 1",
               "parent":"rootRuleCategory",
               "categories":[
-              {
+                {
+                  "id":"d882961b-279a-4ba5-0001-5198eaf00d35",
+                  "name":"category 3 update",
+                  "description":"category 3",
+                  "parent":"category1",
+                  "categories":[],
+                  "rules":[]
+                },
+                {
                   "id":"d882961b-279a-4ba5-b755-5198eaf00d35",
                   "name":"category 2 update",
                   "description":"category 2",
@@ -432,6 +691,17 @@ response:
           ],
           "rules":[
             {
+              "id":"00000000-cb9d-4f7b-0001-ca38c5d643ea",
+              "displayName":"clone from api of 50-rule-technique-ncf",
+              "categoryId":"rootRuleCategory",
+              "shortDescription":"not and ncf technique rule",
+              "longDescription":"Some long description",
+              "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+              "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
+              "enabled":true,
+              "system":false,
+              "tags":[{"customer":"MyCompany"}]
+            },{
               "id":"00000000-cb9d-4f7b-abda-ca38c5d643ea",
               "displayName":"clone from api of 50-rule-technique-ncf",
               "categoryId":"rootRuleCategory",
@@ -524,6 +794,7 @@ response:
   content: >-
     {
       "action":"getRuleCategoryDetails",
+      "id":"category1",
       "result":"success",
       "data":{
         "ruleCategories":{
@@ -531,7 +802,7 @@ response:
               "name":"Category 1",
               "description":"description of category 1",
               "parent":"rootRuleCategory",
-              "categories":["d882961b-279a-4ba5-b755-5198eaf00d35"],
+              "categories":["d882961b-279a-4ba5-0001-5198eaf00d35","d882961b-279a-4ba5-b755-5198eaf00d35"],
               "rules":[]
         }
       }

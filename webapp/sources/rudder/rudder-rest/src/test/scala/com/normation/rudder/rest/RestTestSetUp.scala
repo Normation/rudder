@@ -277,7 +277,7 @@ object RestTestSetUp {
   }
   val asyncDeploymentAgent = new AsyncDeploymentActor(policyGeneration, eventLogger, deploymentStatusSerialisation, () => Duration("0s").succeed, () => AllGeneration.succeed)
 
-  val findDependencies = new FindDependencies { //never find any dependencies
+  val findDependencies  = new FindDependencies { //never find any dependencies
     override def findRulesForDirective(id: DirectiveId): IOResult[Seq[Rule]] = Nil.succeed
     override def findRulesForTarget(target: RuleTarget): IOResult[Seq[Rule]] = Nil.succeed
   }
@@ -305,8 +305,7 @@ object RestTestSetUp {
   val workflowLevelService = new DefaultWorkflowLevel(new NoWorkflowServiceImpl(
     commitAndDeployChangeRequest
   ))
-  val restExtractorService =
-  RestExtractorService (
+  val restExtractorService = RestExtractorService (
       mockRules.ruleRepo
     , mockDirectives.directiveRepo
     , null //roNodeGroupRepository
@@ -317,6 +316,8 @@ object RestTestSetUp {
     , uuidGen
     , null
   )
+
+  val zioJsonExtractor = new ZioJsonExtractor(queryParser)
 
   val restDataSerializer = RestDataSerializerImpl(
       mockTechniques.techniqueRepo
@@ -444,13 +445,25 @@ object RestTestSetUp {
     )
 
   val ruleCategoryService = new RuleCategoryService()
-  val ruleApiService6 = new RuleApiService6 (
+  val ruleApiService6  = new RuleApiService6 (
         mockRules.ruleCategoryRepo
       , mockRules.ruleRepo
       , mockRules.ruleCategoryRepo
       , ruleCategoryService
       , restDataSerializer
     )
+  val ruleApiService14 = new RuleApiService14 (
+        mockRules.ruleRepo
+      , mockRules.ruleRepo
+      , uuidGen
+      , asyncDeploymentAgent
+      , workflowLevelService
+      , restExtractorService
+      , restDataSerializer
+      , mockRules.ruleCategoryRepo
+      , mockRules.ruleCategoryRepo
+      , ruleCategoryService
+  )
 
   val fieldFactory = new DirectiveFieldFactory {
     override def forType(fieldType: VariableSpec, id: String): DirectiveField = default(id)
@@ -476,7 +489,20 @@ object RestTestSetUp {
   }
   val directiveEditorService = new DirectiveEditorServiceImpl(mockTechniques.techniqueRepo, new Section2FieldService(fieldFactory, Translator.defaultTranslators))
   val directiveApiService2 =
-    new DirectiveAPIService2(
+    new DirectiveApiService2 (
+        mockDirectives.directiveRepo
+      , mockDirectives.directiveRepo
+      , uuidGen
+      , asyncDeploymentAgent
+      , workflowLevelService
+      , restExtractorService
+      , directiveEditorService
+      , restDataSerializer
+      , mockTechniques.techniqueRepo
+    )
+
+  val directiveApiService14 =
+    new DirectiveApiService14 (
         mockDirectives.directiveRepo
       , mockDirectives.directiveRepo
       , uuidGen
@@ -492,13 +518,18 @@ object RestTestSetUp {
       mockDirectives.directiveRepo
     , restDataSerializer
     , mockTechniques.techniqueRepo
-    )
+  )
+
+  val techniqueAPIService14 = new TechniqueAPIService14(
+      mockDirectives.directiveRepo
+    , mockTechniques.techniqueRepo
+  )
 
   val systemApi = new SystemApi(restExtractorService, apiService11, apiService13, "5.0", "5.0.0", "some time")
   val authzToken = AuthzToken(EventActor("fakeToken"))
   val systemStatusPath = "api" + systemApi.Status.schema.path
 
-  val ApiVersions = ApiVersion(11 , false) :: Nil
+  val ApiVersions = ApiVersion(13 , true) :: ApiVersion(14 , false) :: Nil
 
   val nodeInfo = mockNodes.nodeInfoService
   val softDao = mockNodes.softwareDao
@@ -525,21 +556,28 @@ object RestTestSetUp {
     , restExtractorService
     , restDataSerializer
   )
+  val parameterApiService14 = new ParameterApiService14(
+      mockParameters.paramsRepo
+    , mockParameters.paramsRepo
+    , uuidGen
+    , workflowLevelService
+  )
 
-  val groupService2 = new GroupApiService2(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, uuidGen, asyncDeploymentAgent, workflowLevelService, restExtractorService, mockNodes.queryProcessor, restDataSerializer)
-  val groupService6 = new GroupApiService6(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, restDataSerializer)
+  val groupService2  = new GroupApiService2( mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, uuidGen, asyncDeploymentAgent, workflowLevelService, restExtractorService, mockNodes.queryProcessor, restDataSerializer)
+  val groupService6  = new GroupApiService6( mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, restDataSerializer)
+  val groupService14 = new GroupApiService14(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockParameters.paramsRepo, uuidGen, asyncDeploymentAgent, workflowLevelService, restExtractorService, queryParser, mockNodes.queryProcessor, restDataSerializer)
   val groupApiInheritedProperties = new GroupApiInheritedProperties(mockNodeGroups.groupsRepo, mockParameters.paramsRepo)
 
   val rudderApi = {
     //append to list all new format api to test it
     val modules = List(
         systemApi
-      , new ParameterApi(restExtractorService, parameterApiService2)
-      , new TechniqueApi(restExtractorService, techniqueAPIService6)
-      , new DirectiveApi(mockDirectives.directiveRepo, restExtractorService, directiveApiService2, uuidGen)
-      , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, uuidGen)
+      , new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14)
+      , new TechniqueApi(restExtractorService, techniqueAPIService6, techniqueAPIService14)
+      , new DirectiveApi(mockDirectives.directiveRepo, restExtractorService, zioJsonExtractor, uuidGen, directiveApiService2, directiveApiService14)
+      , new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService14, uuidGen)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12,  nodeApiService13, null, DeleteMode.Erase)
-      , new GroupsApi(mockNodeGroups.groupsRepo, restExtractorService, uuidGen, groupService2, groupService6, groupApiInheritedProperties)
+      , new GroupsApi(mockNodeGroups.groupsRepo, restExtractorService, zioJsonExtractor, uuidGen, groupService2, groupService6, groupService14, groupApiInheritedProperties)
     )
     val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled), None)
     modules.foreach { module =>

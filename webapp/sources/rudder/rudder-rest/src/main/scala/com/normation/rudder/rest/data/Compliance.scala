@@ -50,7 +50,7 @@ import com.normation.rudder.domain.reports.ComplianceLevel
 
 
 /**
- * Here, we want to present two view of compliance:
+ * Here, we want to present two views of compliance:
  * - by node
  * - by rule
  *

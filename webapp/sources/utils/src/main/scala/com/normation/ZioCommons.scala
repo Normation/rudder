@@ -43,6 +43,7 @@ import _root_.zio.syntax._
 import _root_.zio.internal.Platform
 import com.normation.errors.effectUioUnit
 
+
 /**
  * This is our based error for Rudder. Any method that can
  * error should return that RudderError type to allow
@@ -229,9 +230,31 @@ object errors {
     }
   }
   implicit class OptionToIoResult[A](val res: Option[A]) extends AnyVal {
-    def notOptional(error: => String) = res match {
+    /*
+     * Extract value or fail if the result is None.
+     */
+    def notOptional(error: => String): IOResult[A] = res match {
       case None    => Inconsistency(error).fail
       case Some(x) => x.succeed
+    }
+    /*
+     * Check a predicate on an optional value, succeeding if the value is None.
+     */
+    def checkOptional(predicate: A => Boolean, msg: String => String): IOResult[Unit] = {
+      res match {
+        case None    => UIO.unit
+        case Some(x) => if(predicate(x)) UIO.unit else Inconsistency(msg(x.toString)).fail
+      }
+    }
+    /*
+     * Extract an optional value and then check a predicate on it, failing if predicate is not
+     * met or if value is None.
+     */
+    def checkMandatory(predicate: A => Boolean, msg: String => String): IOResult[A] = {
+      res match {
+        case None    => Inconsistency(msg("")).fail
+        case Some(x) => if(predicate(x)) x.succeed else Inconsistency(msg(x.toString)).fail
+      }
     }
   }
 

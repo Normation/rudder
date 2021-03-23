@@ -165,7 +165,6 @@ final case class RestDataSerializerImpl (
   }
 
   def serializeRule (rule:Rule , crId: Option[ChangeRequestId]): JValue = {
-
    (   ( "changeRequestId"  -> crId.map(_.value.toString))
      ~ ( "id"               -> rule.id.value )
      ~ ( "displayName"      -> rule.name )

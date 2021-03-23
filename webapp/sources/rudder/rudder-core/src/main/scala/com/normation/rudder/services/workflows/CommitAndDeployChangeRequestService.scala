@@ -582,9 +582,6 @@ class CommitAndDeployChangeRequestServiceImpl(
                         // if the update returns None, then we return the original modification object
                         woNodeGroupRepo.update(resultingGroup, modId, change.actor, change.reason).map(_.getOrElse(ModifyToNodeGroupDiff(n))).toBox
                       }
-
-
-
                   }
       } yield {
         diff

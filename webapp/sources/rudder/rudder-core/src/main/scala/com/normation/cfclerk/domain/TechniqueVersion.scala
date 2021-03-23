@@ -81,24 +81,34 @@ final class TechniqueVersion(val epoch: Int, val upsreamTechniqueVersion: Upstre
   override lazy val hashCode : Int = 7 + 13 * epoch + 41 * upsreamTechniqueVersion.hashCode
 
   override lazy val toString = {
-    if(epoch < 1) upsreamTechniqueVersion.value
-    else epoch.toString + ":" + upsreamTechniqueVersion.value
+    if(epoch < 1) upsreamTechniqueVersion.parsed.toVersionStringNoEpoch
+    else epoch.toString + ":" + upsreamTechniqueVersion.parsed.toVersionStringNoEpoch
   }
 }
 
 object TechniqueVersion {
 
+  def apply(v: Version) = new TechniqueVersion(v.epoch.toInt, UpstreamTechniqueVersion(v.copy(epoch = 0)))
+
   def apply(value: String): TechniqueVersion = {
     ParseVersion.parse(value) match {
-      case Right(v)  => new TechniqueVersion(v.epoch.toInt, UpstreamTechniqueVersion(v.toVersionStringNoEpoch))
+      case Right(v)  => TechniqueVersion(v)
       case Left(err) => throw new TechniqueVersionFormatException(err)
     }
   }
+
+  def parse(value: String): Either[String, TechniqueVersion] = {
+    ParseVersion.parse(value).map(TechniqueVersion(_))
+  }
 }
 
-case class UpstreamTechniqueVersion(value: String) extends Ordered[UpstreamTechniqueVersion] {
+case class UpstreamTechniqueVersion(parsed: Version) extends Ordered[UpstreamTechniqueVersion] {
+  def compare(upsreamTechniqueVersion: UpstreamTechniqueVersion): Int = {
+    parsed.compareTo(upsreamTechniqueVersion.parsed)
+  }
+}
 
-  val parsed = checkValid(value)
+object UpstreamTechniqueVersion {
 
   def checkValid(value: String): Version = {
   import scala.util.matching.Regex
@@ -116,10 +126,6 @@ case class UpstreamTechniqueVersion(value: String) extends Ordered[UpstreamTechn
         case Left(err) => throw new TechniqueVersionFormatException(err)
       }
     }
-  }
-
-  def compare(upsreamTechniqueVersion: UpstreamTechniqueVersion): Int = {
-    parsed.compareTo(upsreamTechniqueVersion.parsed)
   }
 
 }

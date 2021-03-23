@@ -148,7 +148,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   }
 
   val rulesRepos = new RoRuleRepository {
-    def get(ruleId:RuleId) : IOResult[Rule] = ???
+    def getOpt(ruleId:RuleId) : IOResult[Option[Rule]] = ???
     def getAll(includeSytem:Boolean = false) : IOResult[Seq[Rule]] = ???
     def getIds(includeSytem:Boolean = false) : IOResult[Set[RuleId]] = ???
 

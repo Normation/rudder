@@ -47,16 +47,32 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JString
 import org.slf4j.LoggerFactory
 
-final case class DefaultParams(prettify: Boolean) extends AnyVal
+final case class DefaultParams(
+    prettify                : Boolean
+  , reason                  : Option[String]
+  , changeRequestName       : Option[String]
+  , changeRequestDescription: Option[String]
+)
 
 trait LiftApiModule extends ApiModule[Req, Full[LiftResponse], AuthzToken, DefaultParams] {
-  def restExtractor: RestExtractorService
-
   override def handler(version: ApiVersion, path: ApiPath, resources: schema.RESOURCES, req: Req, params: DefaultParams, authzToken: AuthzToken): Full[LiftResponse] = {
     Full(process(version, path, resources, req, params, authzToken))
   }
   override def getParam(req: Req): Either[ApiError.BadParam, DefaultParams] = {
-    Right(DefaultParams(restExtractor.extractPrettify(req.params)))
+    // prettify is always given in the param list
+    val defaultPrettify = false
+    val prettify = req.params.get("pretiffy") match {
+      case None               => defaultPrettify
+      case Some(value :: Nil) => value.toLowerCase match {
+        case "true"  => true
+        case "false" => false
+        case _       => defaultPrettify
+      }
+      case _                  => defaultPrettify
+    }
+    def get(name: String): Option[String] = req.params.get(name).flatMap(_.headOption)
+
+    Right(DefaultParams(prettify, get("reason"), get("changeRequestName"), get("changeRequestDescription")))
   }
 
   // As in our case, we always return Full, we are adding that method to simplify plombing
@@ -205,3 +221,37 @@ class LiftHandler(
     liftApi
   }
 }
+
+
+/*
+ * some type machinery to be able to have an implementation for old RuleApi up to V13
+ * and an other for API with zio_json in V14 (and choose processing based on that)
+ */
+final case class ChooseApi0[A <: LiftApiModule0](old: A, current: A) extends LiftApiModule0 {
+  override val schema = old.schema
+  override def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    if(version.value < 14) old.process0(version, path, req, params, authzToken)
+    else current.process0(version, path, req, params, authzToken)
+  }
+}
+trait LiftApiModuleN[R] extends LiftApiModule {
+  type Aux[a] = EndpointSchema { type RESOURCES = a }
+  override val schema: Aux[R]
+}
+
+final case class ChooseApiN[R](old: LiftApiModuleN[R], current: LiftApiModuleN[R]) extends LiftApiModule {
+  override val schema = old.schema
+  override def process(version: ApiVersion, path: ApiPath, resources: R, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    if(version.value < 14) old.process(version, path, resources, req, params, authzToken)
+    else current.process(version, path, resources, req, params, authzToken)
+  }
+}
+
+/*
+ * An interface that can be extended by module which are in `ChooseApiN` for String
+ */
+trait LiftApiModuleString extends LiftApiModuleN[String]
+trait LiftApiModuleString2 extends LiftApiModuleN[(String,String)]
+
+///// end type machinery /////
+

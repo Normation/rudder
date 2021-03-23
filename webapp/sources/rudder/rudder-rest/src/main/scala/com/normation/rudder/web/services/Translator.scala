@@ -38,7 +38,8 @@
 package com.normation.rudder.web.services
 
 import com.normation.utils.Utils.isEmpty
-import scala.collection.mutable.{ Map => MutMap }
+
+import scala.collection.mutable.{Map => MutMap}
 import net.liftweb.common._
 import org.apache.commons.io.FilenameUtils
 import org.joda.time.format.DateTimeFormat

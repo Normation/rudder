@@ -118,6 +118,7 @@ limitations under the License.
             <format>html</format>
             <format>xml</format>
           </formats>
+          <check/>
         </configuration>
       </plugin>
        <plugin>
@@ -392,6 +393,7 @@ limitations under the License.
     <jgrapht-version>1.4.0</jgrapht-version>
     <reflections-version>0.9.12</reflections-version>
     <graalvm-version>21.1.0</graalvm-version>
+    <chimney-version>0.6.1</chimney-version>
 
     <!--
       These one must be updated to work together
@@ -407,6 +409,7 @@ limitations under the License.
     <cats-effect-version>2.2.0</cats-effect-version>
     <dev-zio-version>1.0.3</dev-zio-version>
     <zio-cats-version>2.2.0.1</zio-cats-version>
+    <zio-json-version>0.1</zio-json-version>
 
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
@@ -467,11 +470,6 @@ limitations under the License.
         <groupId>org.tpolecat</groupId>
         <artifactId>doobie-core_${scala-binary-version}</artifactId>
         <version>${doobie-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.monix</groupId>
-        <artifactId>monix-reactive_${scala-binary-version}</artifactId>
-        <version>${monix-version}</version>
       </dependency>
       <dependency>
         <groupId>org.typelevel</groupId>
@@ -742,6 +740,16 @@ limitations under the License.
       <groupId>dev.zio</groupId>
       <artifactId>zio-streams_${scala-binary-version}</artifactId>
       <version>${dev-zio-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.zio</groupId>
+      <artifactId>zio-json_${scala-binary-version}</artifactId>
+      <version>${zio-json-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.scalaland</groupId>
+      <artifactId>chimney_${scala-binary-version}</artifactId>
+      <version>${chimney-version}</version>
     </dependency>
     <!-- zio/cats compat -->
     <dependency>

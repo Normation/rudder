@@ -45,13 +45,6 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors._
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.ApiVersion
-import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RestDataSerializer
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils.response
-import com.normation.rudder.rest.{TechniqueApi => API}
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Loggable
@@ -61,24 +54,31 @@ import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JValue
 import zio._
 import zio.syntax._
+import com.normation.rudder.rest.{TechniqueApi => API, _}
+import com.normation.rudder.rest.RestUtils.response
+import com.normation.rudder.rest.JsonResponseObjects._
+import com.normation.rudder.rest.implicits._
 
 import scala.collection.SortedMap
 import scala.util.Success
 import scala.util.Try
 import scala.util.{Failure => TryFailure}
 
+
+
 class TechniqueApi (
     restExtractorService: RestExtractorService
-  , apiV6               : TechniqueAPIService6
+  , apiV6     : TechniqueAPIService6
+  , serviceV14: TechniqueAPIService14
 ) extends LiftApiModuleProvider[API] {
 
   def schemas = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
-      case API.ListTechniques           => ListTechniques
-      case API.ListTechniquesDirectives => ListTechniquesDirectives
-      case API.ListTechniqueDirectives  => ListTechniqueDirectives
+      case API.ListTechniques           => ChooseApi0(ListTechniques          , ListTechniquesV14                )
+      case API.ListTechniquesDirectives => ChooseApiN(ListTechniquesDirectives, ListTechniquesDirectivesV14)
+      case API.ListTechniqueDirectives  => ChooseApiN(ListTechniqueDirectives , ListTechniqueDirectivesV14 )
     }).toList
   }
 
@@ -98,7 +98,7 @@ class TechniqueApi (
     }
   }
 
-  object ListTechniquesDirectives extends LiftApiModule {
+  object ListTechniquesDirectives extends LiftApiModuleString {
     val schema = API.ListTechniquesDirectives
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, name: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -115,7 +115,7 @@ class TechniqueApi (
     }
   }
 
-  object ListTechniqueDirectives extends LiftApiModule {
+  object ListTechniqueDirectives extends LiftApiModuleString2 {
     val schema = API.ListTechniqueDirectives
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, nv: (String, String), req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -138,6 +138,35 @@ class TechniqueApi (
     }
   }
 
+  object ListTechniquesV14 extends LiftApiModule0 {
+    val schema = API.ListTechniques
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      serviceV14.listTechniques.toLiftResponseList(params, schema)
+    }
+  }
+
+  object ListTechniquesDirectivesV14 extends LiftApiModuleString {
+    val schema = API.ListTechniquesDirectives
+    def process(version: ApiVersion, path: ApiPath, name: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val techniqueName = TechniqueName(name)
+      serviceV14.listDirectives(techniqueName, None).toLiftResponseList(params, schema)
+    }
+  }
+
+  object ListTechniqueDirectivesV14 extends LiftApiModuleString2 {
+    val schema = API.ListTechniqueDirectives
+    def process(version: ApiVersion, path: ApiPath, nv: (String, String), req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val (techniqueName, version) = (TechniqueName(nv._1), nv._2)
+
+      val directives = TechniqueVersion.parse(version) match {
+        case Right(techniqueVersion) =>
+          serviceV14.listDirectives(techniqueName, Some(techniqueVersion :: Nil))
+        case Left(error) =>
+          Inconsistency(s"Could not find list of directives based on '${techniqueName}' technique, because we could not parse '${version}' as a valid technique version").fail
+      }
+      directives.toLiftResponseList(params, schema)
+    }
+  }
 }
 
 class TechniqueAPIService6 (
@@ -197,6 +226,64 @@ class TechniqueAPIService6 (
     } yield {
       serializedDirectives.toList
     }).toBox.map(v => JArray(v.toList))
+  }
+
+}
+
+class TechniqueAPIService14 (
+    readDirective        : RoDirectiveRepository
+  , techniqueRepository  : TechniqueRepository
+  ) {
+
+  def listTechniques: IOResult[Seq[JRActiveTechnique]] = {
+    for {
+      lib              <- readDirective.getFullDirectiveLibrary()
+      activeTechniques =  lib.allActiveTechniques.values.toSeq
+      serialized       =  activeTechniques.map(JRActiveTechnique.fromTechnique)
+    } yield {
+      serialized
+    }
+  }
+
+  def listDirectives (techniqueName : TechniqueName, wantedVersions: Option[List[TechniqueVersion]]): IOResult[Seq[JRDirective]] = {
+    def serializeDirectives (directives : Seq[Directive], techniques : SortedMap[TechniqueVersion, Technique], wantedVersions: Option[List[TechniqueVersion]] ): IOResult[Seq[JRDirective]] = {
+      val filter = (d: Directive) => wantedVersions match {
+        case None => true
+        case Some(versions) => versions.contains(d.techniqueVersion)
+      }
+
+      ZIO.foreach(directives.filter(filter)) { directive =>
+        techniques.get(directive.techniqueVersion) match {
+          case None            =>
+            Inconsistency(s"Version ${directive.techniqueVersion} of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.value}'").fail
+          case Some(technique) =>
+            JRDirective.fromDirective(technique, directive, None).succeed
+        }
+      }
+    }
+
+    def checkWantedVersions( techniques : SortedMap[TechniqueVersion, Technique], wantedVersions: Option[List[TechniqueVersion]]) = {
+      wantedVersions match {
+        case Some(versions) =>
+          ZIO.foreach(versions) { version =>
+            ZIO.when(!techniques.keySet.contains(version)) {
+              Inconsistency(s"Version '${version}' of Technique '${techniqueName.value}' does not exist").fail
+            }
+          }
+        case None => UIO.unit
+      }
+    }
+
+    for {
+      lib        <- readDirective.getFullDirectiveLibrary()
+      activeTech <- lib.allActiveTechniques.values.find { _.techniqueName == techniqueName }.notOptional(s"Technique '${techniqueName.value}' does not exist")
+
+      // Check if version we want exists in technique library, We don't need the result
+      _                    <- checkWantedVersions(activeTech.techniques, wantedVersions)
+      serializedDirectives <- serializeDirectives(activeTech.directives, activeTech.techniques, wantedVersions)
+    } yield {
+      serializedDirectives
+    }
   }
 
 }

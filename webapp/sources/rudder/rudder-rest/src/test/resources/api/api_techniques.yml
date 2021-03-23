@@ -74,7 +74,6 @@ response:
   content: >-
     {
       "action":"listTechniquesDirectives",
-      "id":"packageManagement",
       "result":"success",
       "data":{
         "directives":[
@@ -282,7 +281,6 @@ response:
   content: >-
     {
       "action":"listTechniqueDirectives",
-      "id":"packageManagement/1.0",
       "result":"success",
       "data":{
         "directives":[
@@ -488,7 +486,6 @@ response:
   content: >-
     {
       "action":"listTechniqueDirectives",
-      "id":"genericVariableDefinition/1.0",
       "result":"success",
       "data":{
         "directives":[]
@@ -503,9 +500,8 @@ response:
   content: >-
     {
       "action":"listTechniqueDirectives",
-      "id":"genericVariableDefinition/3.0",
       "result":"error",
-      "errorDetails":"Could not find list of directives based on version '3.0'of 'genericVariableDefinition'Technique <-Inconsistency:Version '3.0'of Technique 'genericVariableDefinition'does not exist"
+      "errorDetails":"Inconsistency:Version '3.0'of Technique 'genericVariableDefinition'does not exist"
     }
 ---
 description: Try to get directive for a technique/bad version
@@ -516,7 +512,6 @@ response:
   content: >-
     {
       "action":"listTechniqueDirectives",
-      "id":"packageManagement/X.Y",
       "result":"error",
-      "errorDetails":"Could not find list of directives based on version 'X.Y'of 'packageManagement'Technique <-Could not find list of directives based on 'packageManagement'Technique,because we could not parse 'X.Y'as a valid technique version"
+      "errorDetails":"Inconsistency:Version 'X.Y'of Technique 'packageManagement'does not exist"
     }

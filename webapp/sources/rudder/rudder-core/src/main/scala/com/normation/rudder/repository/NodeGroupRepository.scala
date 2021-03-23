@@ -209,12 +209,18 @@ trait RoNodeGroupRepository {
   def getFullGroupLibrary(): IOResult[FullNodeGroupCategory]
 
   /**
-   * Get a server group by its id
+   * Get a server group by its id. Fail if not present.
    * @param id
    * @return
    */
-  def getNodeGroup(id: NodeGroupId) : IOResult[(NodeGroup,NodeGroupCategoryId)]
+  def getNodeGroup(id: NodeGroupId) : IOResult[(NodeGroup,NodeGroupCategoryId)] = {
+    getNodeGroupOpt(id).notOptional(s"Group with id '${id.value}' was not found'")
+  }
 
+  /**
+   * Get the node group corresponding to that ID, or None if none were found.
+   */
+  def getNodeGroupOpt(id: NodeGroupId): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]]
 
   /**
    * Fetch the parent category of the NodeGroup
@@ -295,8 +301,7 @@ trait RoNodeGroupRepository {
 
   /**
    * Get the direct parent of the given category.
-   * Return empty for root of the hierarchy, fails if the category
-   * is not in the repository
+   * Fails if the category is not in the repository or for root category
    */
   def getParentGroupCategory(id:NodeGroupCategoryId) : IOResult[NodeGroupCategory]
 
@@ -328,6 +333,9 @@ trait WoNodeGroupRepository {
    */
   def create(group: NodeGroup, into: NodeGroupCategoryId, modId: ModificationId, actor:EventActor, why: Option[String]): IOResult[AddNodeGroupDiff]
 
+  /**
+   * Used in relay-server plugin
+   */
   def createPolicyServerTarget(target: PolicyServerTarget, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[LDIFChangeRecord]
 
     /**

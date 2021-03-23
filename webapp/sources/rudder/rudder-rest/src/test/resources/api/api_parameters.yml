@@ -29,9 +29,8 @@ response:
   content: >-
     {
       "action":"parameterDetails",
-      "id":"xxxxxxxx",
       "result":"error",
-      "errorDetails":"Could not get Parameter xxxxxxxx details cause is:Could not find Parameter xxxxxxxx."
+      "errorDetails":"Inconsistency:Could not find Parameter xxxxxxxx"
     }
 ---
 description: List parameters
@@ -71,7 +70,7 @@ response:
       }
     }
 ---
-description: Create a parameter
+description: Create a parameter (JSON)
 comment: see how keys are reordered an bigint truncated
 method: PUT
 url: /api/latest/parameters
@@ -101,7 +100,37 @@ response:
       }
     }
 ---
-description: Update a parameter
+description: Create a parameter (PARAMS)
+comment: see how keys are reordered an bigint truncated
+method: PUT
+url: /api/latest/parameters
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  id: "someJson2"
+  description: "A description for the new parameter"
+  value: >-
+    {"some":"json","bool":true,"int":1,"dec":1.465245,"arr":[1,3,2],"obj":{"b":"b", "a":"a"}, "big":0.142857142857142857142857142857142857}
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createParameter",
+      "id":"someJson2",
+      "result":"success",
+      "data":{
+        "parameters":[
+          {
+            "id":"someJson2",
+            "value":{"arr":[1,3,2],"big":0.14285714285714285,"bool":true,"dec":1.465245,"int":1,"obj":{"a":"a","b":"b"},"some":"json"},
+            "description":"A description for the new parameter"
+          }
+        ]
+      }
+    }
+---
+description: Update a parameter (JSON)
 method: POST
 url: /api/latest/parameters/someJson
 headers:
@@ -123,6 +152,35 @@ response:
         "parameters":[
           {
             "id":"someJson",
+            "value": "string",
+            "description":"a new description",
+            "inheritMode": "opa"
+          }
+        ]
+      }
+    }
+---
+description: Update a parameter (PARAMS)
+method: POST
+url: /api/latest/parameters/someJson2
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  description: "a new description"
+  value: "string"
+  inheritMode: "opa"
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateParameter",
+      "id":"someJson2",
+      "result":"success",
+      "data":{
+        "parameters":[
+          {
+            "id":"someJson2",
             "value": "string",
             "description":"a new description",
             "inheritMode": "opa"
@@ -163,8 +221,6 @@ body: >-
     "provider":"system"
   }
 response:
-  code: 200
-  content: >-
   code: 200
   content: >-
     {

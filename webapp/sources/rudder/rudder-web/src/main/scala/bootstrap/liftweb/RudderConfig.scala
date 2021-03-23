@@ -843,6 +843,8 @@ object RudderConfig extends Loggable {
       , typeParameterService
     )
 
+  val zioJsonExtractor = new ZioJsonExtractor(queryParser)
+
   val tokenGenerator = new TokenGeneratorImpl(32)
 
   implicit val userService = new UserService {
@@ -875,9 +877,35 @@ object RudderConfig extends Loggable {
       , ruleCategoryService
       , restDataSerializer
     )
+  val ruleApiService13 =
+    new RuleApiService14 (
+        roRuleRepository
+      , woRuleRepository
+      , uuidGen
+      , asyncDeploymentAgent
+      , workflowLevelService
+      , restExtractorService
+      , restDataSerializer
+      , roRuleCategoryRepository
+      , woRuleCategoryRepository
+      , ruleCategoryService
+    )
 
   val directiveApiService2 =
-    new DirectiveAPIService2 (
+    new DirectiveApiService2 (
+        roDirectiveRepository
+      , woDirectiveRepository
+      , uuidGen
+      , asyncDeploymentAgent
+      , workflowLevelService
+      , restExtractorService
+      , directiveEditorService
+      , restDataSerializer
+      , techniqueRepositoryImpl
+    )
+
+  val directiveApiService14 =
+    new DirectiveApiService14 (
         roDirectiveRepository
       , woDirectiveRepository
       , uuidGen
@@ -893,6 +921,12 @@ object RudderConfig extends Loggable {
     new TechniqueAPIService6 (
         roDirectiveRepository
       , restDataSerializer
+      , techniqueRepositoryImpl
+    )
+
+  val techniqueApiService14 =
+    new TechniqueAPIService14 (
+        roDirectiveRepository
       , techniqueRepositoryImpl
     )
 
@@ -914,6 +948,20 @@ object RudderConfig extends Loggable {
     , woNodeGroupRepository
     , restDataSerializer
   )
+
+  val groupApiService14 =
+    new GroupApiService14 (
+        roNodeGroupRepository
+      , woNodeGroupRepository
+      , roLDAPParameterRepository
+      , uuidGen
+      , asyncDeploymentAgent
+      , workflowLevelService
+      , restExtractorService
+      , queryParser
+      , queryProcessor
+      , restDataSerializer
+    )
 
   val nodeApiService2 = new NodeApiService2 (
       newNodeManager
@@ -973,6 +1021,13 @@ object RudderConfig extends Loggable {
       , workflowLevelService
       , restExtractorService
       , restDataSerializer
+    )
+  val parameterApiService14 =
+    new ParameterApiService14 (
+        roLDAPParameterRepository
+      , woLDAPParameterRepository
+      , uuidGen
+      , workflowLevelService
     )
 
   // System API
@@ -1159,12 +1214,8 @@ object RudderConfig extends Loggable {
   }
 
   val ApiVersions =
-    ApiVersion(8  , true) ::
-    ApiVersion(9  , true) ::
-    ApiVersion(10 , true) ::
-    ApiVersion(11 , true) :: // rudder 5.0
-    ApiVersion(12 , false) :: // rudder 6.0, 6.1
-    ApiVersion(13 , false) :: // rudder 6.2
+    ApiVersion(12 , true) :: // rudder 6.0, 6.1
+    ApiVersion(13 , true) :: // rudder 6.2
     ApiVersion(14 , false) :: // rudder 7.0
     Nil
 
@@ -1180,14 +1231,14 @@ object RudderConfig extends Loggable {
 
     val modules = List(
         new ComplianceApi(restExtractorService, complianceAPIService)
-      , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService6, groupInheritedProperties)
-      , new DirectiveApi(roDirectiveRepository, restExtractorService, directiveApiService2, stringUuidGenerator)
+      , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, groupApiService2, groupApiService6, groupApiService14, groupInheritedProperties)
+      , new DirectiveApi(roDirectiveRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, directiveApiService2, directiveApiService14)
       , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, restExtractorService, techniqueSerializer, stringUuidGenerator, gitRepo, resourceFileService)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12, nodeApiService13, nodeInheritedProperties, RUDDER_DEFAULT_DELETE_NODE_MODE)
-      , new ParameterApi(restExtractorService, parameterApiService2)
+      , new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14)
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
-      , new TechniqueApi(restExtractorService, techniqueApiService6)
-      , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
+      , new TechniqueApi(restExtractorService, techniqueApiService6, techniqueApiService14)
+      , new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService13, stringUuidGenerator)
       , new SystemApi(restExtractorService,systemApiService11, systemApiService13, rudderMajorVersion, rudderFullVersion, builtTimestamp)
       , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
       , new PluginApi(restExtractorService, pluginSettingsService)
@@ -2204,13 +2255,7 @@ object RudderConfig extends Loggable {
   ////////////////////////////// Directive Editor and web fields //////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
 
-  import java.util.Locale
-
   import com.normation.cfclerk.domain._
-  import org.joda.time.format.DateTimeFormat
-
-  lazy val isoDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd").withLocale(Locale.ENGLISH)
-  lazy val isoTimeFormatter = DateTimeFormat.forPattern("HH:mm:ss").withLocale(Locale.ENGLISH)
 
   object FieldFactoryImpl extends DirectiveFieldFactory {
     //only one field
@@ -2224,8 +2269,8 @@ object RudderConfig extends Loggable {
           case str: SizeVType => new InputSizeField(id, () => configService.rudder_featureSwitch_directiveScriptEngine().toBox, str.name.substring(prefixSize.size))
           case SharedFileVType => new FileField(id)
           case DestinationPathVType => default(id)
-          case DateVType(r) => new DateField(isoDateFormatter)(id)
-          case TimeVType(r) => new TimeField(isoTimeFormatter)(id)
+          case DateVType(r) => new DateField(Translator.isoDateFormatter)(id)
+          case TimeVType(r) => new TimeField(Translator.isoTimeFormatter)(id)
           case PermVType => new FilePermsField(id)
           case BooleanVType => new CheckboxField(id)
           case TextareaVType(r) => new TextareaField(id, () => configService.rudder_featureSwitch_directiveScriptEngine().toBox)
@@ -2248,20 +2293,11 @@ object RudderConfig extends Loggable {
   }
 
   private[this] lazy val section2FieldService: Section2FieldService = {
-      def translators = {
-        val t = new Translators()
-        t.add(StringTranslator)
-        t.add(new DateTimeTranslator(isoDateFormatter, isoTimeFormatter))
-        t.add(FilePermsTranslator)
-        t.add(FileTranslator)
-        t.add(DestinationFileTranslator)
-        t.add(SelectFieldTranslator)
-        t
-      }
-    new Section2FieldService(FieldFactoryImpl, translators)
+    new Section2FieldService(FieldFactoryImpl, Translator.defaultTranslators)
   }
   private[this] lazy val directiveEditorServiceImpl: DirectiveEditorService =
     new DirectiveEditorServiceImpl(techniqueRepositoryImpl, section2FieldService)
+
   private[this] lazy val reportDisplayerImpl = new ReportDisplayer(
       roLdapRuleRepository
     , roLdapDirectiveRepository

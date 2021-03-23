@@ -68,28 +68,35 @@ object ComplianceApi extends ApiModuleProvider[ComplianceApi] {
   final case object GetRulesCompliance extends ComplianceApi with ZeroParam with StartsAtVersion7 with SortIndex { val z = implicitly[Line].value
     val description = "Get compliance information for all rules"
     val (action, path)  = GET / "compliance" / "rules"
+    val dataContainer = Some("rules")
   }
   final case object GetRulesComplianceId extends ComplianceApi with OneParam with StartsAtVersion7 with SortIndex { val z = implicitly[Line].value
     val description = "Get compliance information for the given rule"
     val (action, path)  = GET / "compliance" / "rules" / "{id}"
+    val dataContainer = Some("rules")
   }
   final case object GetNodesCompliance extends ComplianceApi with ZeroParam with StartsAtVersion7 with SortIndex { val z = implicitly[Line].value
     val description = "Get compliance information for all nodes"
     val (action, path)  = GET / "compliance" / "nodes"
+    val dataContainer = Some("nodes")
   }
   final case object GetNodeComplianceId extends ComplianceApi with OneParam with StartsAtVersion7 with SortIndex { val z = implicitly[Line].value
     val description = "Get compliance information for the given node"
     val (action, path)  = GET / "compliance" / "nodes" / "{id}"
+    val dataContainer = Some("nodes")
   }
   final case object GetGlobalCompliance extends ComplianceApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = implicitly[Line].value
     val description = "Get the global compliance (alike what one has on Rudder main dashboard)"
     val (action, path)  = GET / "compliance"
+    val dataContainer = Some("globalCompliance")
   }
 
   def endpoints = ca.mrvisser.sealerate.values[ComplianceApi].toList.sortBy( _.z )
 }
 
-sealed trait GroupApi extends EndpointSchema with SortIndex
+sealed trait GroupApi extends EndpointSchema with SortIndex {
+  override def dataContainer = Some("groups")
+}
 object GroupApi extends ApiModuleProvider[GroupApi] {
   // API v2
   final case object ListGroups extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
@@ -134,24 +141,30 @@ object GroupApi extends ApiModuleProvider[GroupApi] {
   final case object GetGroupCategoryDetails extends GroupApi with GeneralApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about the given group category"
     val (action, path)  = GET / "groups" / "categories" / "{id}"
+    override def dataContainer = Some("groupCategories")
   }
   final case object DeleteGroupCategory extends GroupApi with GeneralApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Delete given group category"
     val (action, path)  = DELETE / "groups" / "categories" / "{id}"
+    override def dataContainer = Some("groupCategories")
   }
   final case object UpdateGroupCategory extends GroupApi with GeneralApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Update information for given group category"
     val (action, path)  = POST / "groups" / "categories" / "{id}"
+    override def dataContainer = Some("groupCategories")
   }
   final case object CreateGroupCategory extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Create a new group category"
     val (action, path)  = PUT / "groups" / "categories"
+    override def dataContainer = Some("groupCategories")
   }
 
   def endpoints = ca.mrvisser.sealerate.values[GroupApi].toList.sortBy( _.z )
 }
 
-sealed trait DirectiveApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait DirectiveApi extends EndpointSchema with GeneralApi with SortIndex {
+  override def dataContainer = Some("directives")
+}
 object DirectiveApi extends ApiModuleProvider[DirectiveApi] {
 
   final case object ListDirectives extends DirectiveApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
@@ -182,7 +195,9 @@ object DirectiveApi extends ApiModuleProvider[DirectiveApi] {
   def endpoints = ca.mrvisser.sealerate.values[DirectiveApi].toList.sortBy( _.z )
 }
 
-sealed trait NcfApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait NcfApi extends EndpointSchema with GeneralApi with SortIndex {
+  override def dataContainer = Some("techniques")
+}
 object NcfApi extends ApiModuleProvider[NcfApi] {
 
   final case object UpdateTechnique extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
@@ -235,8 +250,9 @@ object NcfApi extends ApiModuleProvider[NcfApi] {
   def endpoints = ca.mrvisser.sealerate.values[NcfApi].toList.sortBy( _.z )
 }
 
-sealed trait NodeApi extends EndpointSchema with SortIndex
-
+sealed trait NodeApi extends EndpointSchema with SortIndex {
+  override def dataContainer = Some("nodes")
+}
 object NodeApi extends ApiModuleProvider[NodeApi] {
 
   final case object ListAcceptedNodes extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
@@ -310,7 +326,9 @@ object NodeApi extends ApiModuleProvider[NodeApi] {
   }
   def endpoints = ca.mrvisser.sealerate.values[NodeApi].toList.sortBy( _.z )
 }
-sealed trait ParameterApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait ParameterApi extends EndpointSchema with GeneralApi with SortIndex {
+  override def dataContainer = Some("parameters")
+}
 object ParameterApi extends ApiModuleProvider[ParameterApi] {
 
   final case object ListParameters extends ParameterApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
@@ -337,7 +355,9 @@ object ParameterApi extends ApiModuleProvider[ParameterApi] {
   def endpoints = ca.mrvisser.sealerate.values[ParameterApi].toList.sortBy( _.z )
 }
 
-sealed trait SettingsApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait SettingsApi extends EndpointSchema with GeneralApi with SortIndex {
+  override def dataContainer = Some("settings")
+}
 object SettingsApi extends ApiModuleProvider[SettingsApi] {
   final case object GetAllSettings extends SettingsApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about all Rudder settings"
@@ -378,9 +398,9 @@ object SettingsApi extends ApiModuleProvider[SettingsApi] {
   def endpoints = ca.mrvisser.sealerate.values[SettingsApi].toList.sortBy( _.z )
 }
 
-
-
-sealed trait PluginApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait PluginApi extends EndpointSchema with GeneralApi with SortIndex {
+    override def dataContainer: Option[String] = Some("plugins")
+}
 object PluginApi extends ApiModuleProvider[PluginApi] {
 
   final case object GetPluginsSettings extends PluginApi with ZeroParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
@@ -394,7 +414,9 @@ object PluginApi extends ApiModuleProvider[PluginApi] {
   def endpoints = ca.mrvisser.sealerate.values[PluginApi].toList.sortBy( _.z )
 }
 
-sealed trait TechniqueApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait TechniqueApi extends EndpointSchema with GeneralApi with SortIndex {
+  override def dataContainer = Some("techniques")
+}
 object TechniqueApi extends ApiModuleProvider[TechniqueApi] {
 
   final case object ListTechniques extends TechniqueApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
@@ -404,16 +426,20 @@ object TechniqueApi extends ApiModuleProvider[TechniqueApi] {
   final case object ListTechniquesDirectives extends TechniqueApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "List directives derived from given technique"
     val (action, path)  = GET / "techniques" / "{name}" / "directives"
+    override def dataContainer: Some[String] = Some("directives")
   }
   final case object ListTechniqueDirectives extends TechniqueApi with TwoParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "List directives derived from given technique for given version"
     val (action, path)  = GET / "techniques" / "{name}" / "{version}" / "directives"
+    override def dataContainer: Some[String] = Some("directives")
   }
 
   def endpoints = ca.mrvisser.sealerate.values[TechniqueApi].toList.sortBy( _.z )
 }
 
-sealed trait RuleApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait RuleApi extends EndpointSchema with GeneralApi with SortIndex {
+  override def dataContainer: Option[String] = Some("rules")
+}
 object RuleApi extends ApiModuleProvider[RuleApi] {
 
   final case object ListRules extends RuleApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
@@ -428,6 +454,7 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
   final case object GetRuleTree extends RuleApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Get rule categories and rule structured in a tree format"
     val (action, path)  = GET / "rules" / "tree"
+    override def dataContainer = None
   }
   final case object RuleDetails extends RuleApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about given rule"
@@ -444,24 +471,30 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
   final case object GetRuleCategoryDetails extends RuleApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about given rule category"
     val (action, path)  = GET / "rules" / "categories" / "{id}"
+    override def dataContainer = None
   }
   final case object DeleteRuleCategory extends RuleApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Delete given category"
     val (action, path)  = DELETE / "rules" / "categories" / "{id}"
+    override def dataContainer = Some("rulesCategories")
   }
   final case object UpdateRuleCategory extends RuleApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Update information about given rule category"
     val (action, path)  = POST / "rules" / "categories" / "{id}"
+    override def dataContainer = None
   }
   final case object CreateRuleCategory extends RuleApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Create a new rule category"
     val (action, path)  = PUT / "rules" / "categories"
+    override def dataContainer = None
   }
 
   def endpoints = ca.mrvisser.sealerate.values[RuleApi].toList.sortBy( _.z )
 }
 
-sealed trait SystemApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait SystemApi extends EndpointSchema with GeneralApi with SortIndex {
+  override def dataContainer = None // nothing normalized here ?
+}
 object SystemApi extends ApiModuleProvider[SystemApi] {
 
   final case object Info extends SystemApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = implicitly[Line].value
@@ -688,7 +721,9 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
   def endpoints = ca.mrvisser.sealerate.values[SystemApi].toList.sortBy( _.z )
 }
 
-sealed trait InfoApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait InfoApi extends EndpointSchema with GeneralApi with SortIndex {
+  override def dataContainer = None
+}
 object InfoApi extends ApiModuleProvider[InfoApi] {
 
   final case object ApiGeneralInformations extends InfoApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
@@ -715,7 +750,9 @@ object InfoApi extends ApiModuleProvider[InfoApi] {
  * one to send inventory if you don't want to use file watcher parsing,
  * and control start/stop/restart of file watcher.
  */
-sealed trait InventoryApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait InventoryApi extends EndpointSchema with GeneralApi with SortIndex {
+  override def dataContainer: Option[String] = None
+}
 object InventoryApi extends ApiModuleProvider[InventoryApi] {
 
   final case object QueueInformation extends InventoryApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
@@ -754,7 +791,9 @@ object InventoryApi extends ApiModuleProvider[InventoryApi] {
  * Note that these endpoint don't have token ID has parameter because an user can only manage
  * its own token, and Rudder will make the mapping server side.
  */
-sealed trait UserApi extends EndpointSchema with InternalApi with SortIndex
+sealed trait UserApi extends EndpointSchema with InternalApi with SortIndex {
+  override def dataContainer: Option[String] = None
+}
 object UserApi extends ApiModuleProvider[UserApi] {
   final case object GetApiToken extends UserApi with ZeroParam with StartsAtVersion10 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about user personal UserApi token"

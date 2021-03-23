@@ -141,6 +141,16 @@ object PropertyProvider {
   final val defaultPropertyProvider = PropertyProvider("default")
 }
 
+/*
+ * Utility class to ease update of generic property values
+ */
+final case class PatchProperty(
+    name       : Option[String]           = None
+  , value      : Option[ConfigValue]      = None
+  , provider   : Option[PropertyProvider] = None
+  , description: Option[String]           = None
+  , inheritMode: Option[InheritMode]      = None
+)
 
 /*
  * A property is backed by an HOCON config that MUST looks like:
@@ -178,13 +188,28 @@ trait GenericProperty[P <: GenericProperty[_]] {
     GenericProperty.getMode(config)
   }
 
-  final def withName(name: String): P             = fromConfig(config.withValue(GenericProperty.NAME, name.toConfigValue))
-  final def withValue(value: ConfigValue): P      = fromConfig(config.withValue(GenericProperty.VALUE, value))
-  final def withValue(value: String): P           = fromConfig(config.withValue(GenericProperty.VALUE, value.toConfigValue))
-  final def withProvider(p: PropertyProvider): P  = fromConfig(config.withValue(GenericProperty.PROVIDER, p.value.toConfigValue))
-  final def withDescription(d: String): P         = fromConfig(config.withValue(GenericProperty.DESCRIPTION, d.toConfigValue))
-  final def withMode(m: InheritMode): P           = fromConfig(config.withValue(GenericProperty.INHERIT_MODE, m.toConfigValue))
+  final def withName(name: String): P             = patch(PatchProperty(name        = Some(name)))
+  final def withValue(value: ConfigValue): P      = patch(PatchProperty(value       = Some(value)))
+  final def withValue(value: String): P           = patch(PatchProperty(value       = Some(value.toConfigValue)))
+  final def withProvider(p: PropertyProvider): P  = patch(PatchProperty(provider    = Some(p)))
+  final def withDescription(d: String): P         = patch(PatchProperty(description = Some(d)))
+  final def withMode(m: InheritMode): P           = patch(PatchProperty(inheritMode = Some(m)))
+  final def patch(p: PatchProperty): P = {
+    def patchOne[A](key: String, update: Option[A], toValue: A => ConfigValue)(c: Config): Config = {
+      update match {
+        case None    => c
+        case Some(u) => c.withValue(key, toValue(u))
+      }
+    }
 
+    fromConfig(List(
+        patchOne[String          ](GenericProperty.NAME        , p.name       , _.toConfigValue)(_)
+      , patchOne[ConfigValue     ](GenericProperty.VALUE       , p.value      , identity)(_)
+      , patchOne[PropertyProvider](GenericProperty.PROVIDER    , p.provider   , _.value.toConfigValue)(_)
+      , patchOne[String          ](GenericProperty.DESCRIPTION , p.description, _.toConfigValue)(_)
+      , patchOne[InheritMode     ](GenericProperty.INHERIT_MODE, p.inheritMode, _.value.toConfigValue)(_)
+    ).foldLeft(config) { case (c, patchStep) => patchStep(c) })
+  }
   override def toString: String = this.getClass.getSimpleName+"("+this.config.root.render(ConfigRenderOptions.defaults())+")"
 }
 
@@ -446,6 +471,33 @@ object GenericProperty {
       case JArray(arr)      => ConfigValueFactory.fromIterable(arr.map(x => fromJsonValue(x)).asJava)
     }
   }
+  def fromZioJson(value: zio.json.ast.Json): ConfigValue = {
+    import zio.json.ast.Json._
+    import scala.jdk.CollectionConverters._
+    value match {
+      case Null     => ConfigValueFactory.fromAnyRef("")
+      case Str(s)   =>
+        ConfigValueFactory.fromAnyRef(s)
+      case Num(num) =>
+        // check if we need to use long or double
+        // yes, that may be not exact, but config only support double.
+        // We really need one `fromAnyRef` for each case to have the correct type
+        try {
+          ConfigValueFactory.fromAnyRef(num.longValueExact())
+        } catch {
+          case ex: ArithmeticException =>
+          ConfigValueFactory.fromAnyRef(num.doubleValue())
+        }
+      case Bool(b)  => ConfigValueFactory.fromAnyRef(b)
+      case Obj(arr) => {
+                         //key insertion order is not kept, no need to try to use LinkedHashMap
+                         val m = new java.util.HashMap[String, ConfigValue]()
+                         arr.foreach(f => m.put(f._1, fromZioJson(f._2)))
+                         ConfigValueFactory.fromMap(m)
+                       }
+      case Arr(arr) => ConfigValueFactory.fromIterable(arr.map(x => fromZioJson(x)).asJava)
+    }
+  }
 
   def toJsonValue(value: ConfigValue): JValue = {
     value.valueType() match {
@@ -619,7 +671,6 @@ object GroupProperty {
     GenericProperty.parseConfig(json).map(new GroupProperty(_))
   }
 }
-
 
 object CompareProperties {
   import cats.implicits._

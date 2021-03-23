@@ -172,15 +172,19 @@ class RoLDAPNodeGroupRepository(
     } }
   }
 
-  def getNodeGroup(id: NodeGroupId): IOResult[(NodeGroup, NodeGroupCategoryId)] = {
-    for {
+  def getNodeGroupOpt(id: NodeGroupId): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
+    groupLibMutex.readLock (for {
       con     <- ldap
-      sgEntry <- groupLibMutex.readLock { getSGEntry(con, id) }.notOptional(s"Error when retrieving the entry for NodeGroup '${id.value}")
-      sg      <- mapper.entry2NodeGroup(sgEntry).toIO.chainError("Error when mapping server group entry to its entity. Entry: %s".format(sgEntry))
+      sgEntry <- getSGEntry(con, id)
+      sg      <- sgEntry match {
+                   case None => None.succeed
+                   case Some(x) => mapper.entry2NodeGroup(x).toIO.chainError(s"Error when mapping server group entry to its entity. Entry: ${sgEntry}").map(y =>
+                                     Some((y, mapper.dn2NodeGroupCategoryId(x.dn.getParent)))
+                                   )
+                 }
     } yield {
-      //a group parent entry is its parent category
-      (sg, mapper.dn2NodeGroupCategoryId(sgEntry.dn.getParent))
-    }
+      sg
+    })
   }
 
   def getAllGroupCategories(includeSystem:Boolean = false) : IOResult[Seq[NodeGroupCategory]] = {
@@ -248,8 +252,7 @@ class RoLDAPNodeGroupRepository(
 
   /**
    * Get the direct parent of the given category.
-   * Return empty for root of the hierarchy, fails if the category
-   * is not in the repository
+   * Fails if the category is not in the repository or for root category
    */
   def getParentGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory] = {
     groupLibMutex.readLock { for {

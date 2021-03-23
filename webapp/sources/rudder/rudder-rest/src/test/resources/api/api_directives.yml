@@ -213,9 +213,8 @@ response:
   content: >-
     {
       "action":"directiveDetails",
-      "id":"xxxxxxxx-2675-43b9-ab57-bfbab84346aa",
       "result":"error",
-      "errorDetails":"Could not find Directive 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa'details <-Inconsistency:Could not find Directive xxxxxxxx-2675-43b9-ab57-bfbab84346aa"
+      "errorDetails":"Inconsistency:Could not find Directive xxxxxxxx-2675-43b9-ab57-bfbab84346aa"
     }
 ---
 description: List directives
@@ -375,14 +374,14 @@ response:
       }
     }
 ---
-description: Create a package directive with newpkg1 and newpkg2
+description: Create a package directive with newpkg1 and newpkg2 (JSON)
 method: PUT
 url: /api/latest/directives
 headers:
   - "Content-Type: application/json"
 body: >-
   {
-    "id": "1bc636c0-61b0-410c-96dd-66bcfc95804d",
+    "id": "1bc636c0-61b0-410c-0000-66bcfc95804d",
     "displayName": "Manage newpkg1 and newpkg2",
     "shortDescription": "A short description for manage newpkg1 and newpkg2",
     "longDescription": "A long description for  manage newpkg1 and newpkg2",
@@ -398,12 +397,12 @@ response:
   content: >-
     {
       "action":"createDirective",
-      "id":"1bc636c0-61b0-410c-96dd-66bcfc95804d",
+      "id":"1bc636c0-61b0-410c-0000-66bcfc95804d",
       "result":"success",
       "data":{
         "directives":[
           {
-            "id":"1bc636c0-61b0-410c-96dd-66bcfc95804d",
+            "id":"1bc636c0-61b0-410c-0000-66bcfc95804d",
             "displayName": "Manage newpkg1 and newpkg2",
             "shortDescription": "A short description for manage newpkg1 and newpkg2",
             "longDescription": "A long description for  manage newpkg1 and newpkg2",
@@ -600,15 +599,241 @@ response:
       }
     }
 ---
-description: Clone a directive
+description: Create a package directive with newpkg1 and newpkg2 (PARAMS)
+method: PUT
+url: /api/latest/directives
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  id: 1bc636c0-61b0-410c-0001-66bcfc95804d
+  displayName: Manage newpkg1 and newpkg2
+  shortDescription: A short description for manage newpkg1 and newpkg2
+  longDescription: A long description for  manage newpkg1 and newpkg2
+  enabled: "true"
+  techniqueName: packageManagement
+  techniqueVersion: "1.0"
+  parameters: >-
+    {"section":{"name":"sections","sections":[{"section":{"name":"Package","vars":[{"var":{"name":"PACKAGE_LIST","value":"newpkg1"}},{"var":{"name":"PACKAGE_STATE","value":"present"}}],"sections":[{"section":{"name":"Package architecture","vars":[{"var":{"name":"PACKAGE_ARCHITECTURE","value":"default"}},{"var":{"name":"PACKAGE_ARCHITECTURE_SPECIFIC","value":""}}]}},{"section":{"name":"Package manager","vars":[{"var":{"name":"PACKAGE_MANAGER","value":"default"}}]}},{"section":{"name":"Package version","vars":[{"var":{"name":"PACKAGE_VERSION","value":"latest"}},{"var":{"name":"PACKAGE_VERSION_SPECIFIC","value":""}}]}},{"section":{"name":"Post-modification script","vars":[{"var":{"name":"PACKAGE_POST_HOOK_COMMAND","value":""}}]}}]}},{"section":{"name":"Package","vars":[{"var":{"name":"PACKAGE_LIST","value":"newpkg2"}},{"var":{"name":"PACKAGE_STATE","value":"present"}}],"sections":[{"section":{"name":"Package architecture","vars":[{"var":{"name":"PACKAGE_ARCHITECTURE","value":"default"}},{"var":{"name":"PACKAGE_ARCHITECTURE_SPECIFIC","value":""}}]}},{"section":{"name":"Package manager","vars":[{"var":{"name":"PACKAGE_MANAGER","value":"default"}}]}},{"section":{"name":"Package version","vars":[{"var":{"name":"PACKAGE_VERSION","value":"latest"}},{"var":{"name":"PACKAGE_VERSION_SPECIFIC","value":""}}]}},{"section":{"name":"Post-modification script","vars":[{"var":{"name":"PACKAGE_POST_HOOK_COMMAND","value":""}}]}}]}}]}}
+  policyMode: enforce
+  tags: >-
+    [{"customer":"MyCompany"}]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createDirective",
+      "id":"1bc636c0-61b0-410c-0001-66bcfc95804d",
+      "result":"success",
+      "data":{
+        "directives":[
+          {
+            "id":"1bc636c0-61b0-410c-0001-66bcfc95804d",
+            "displayName": "Manage newpkg1 and newpkg2",
+            "shortDescription": "A short description for manage newpkg1 and newpkg2",
+            "longDescription": "A long description for  manage newpkg1 and newpkg2",
+            "techniqueName":"packageManagement",
+            "techniqueVersion":"1.0",
+            "parameters":{
+              "section":{
+                "name":"sections",
+                "sections":[
+                  {
+                    "section":{
+                      "name":"Package",
+                      "vars":[
+                        {
+                          "var":{
+                            "name":"PACKAGE_LIST",
+                            "value":"newpkg1"
+                          }
+                        },
+                        {
+                          "var":{
+                            "name":"PACKAGE_STATE",
+                            "value":"present"
+                          }
+                        }
+                      ],
+                      "sections":[
+                        {
+                          "section":{
+                            "name":"Package architecture",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_ARCHITECTURE",
+                                  "value":"default"
+                                }
+                              },
+                              {
+                                "var":{
+                                  "name":"PACKAGE_ARCHITECTURE_SPECIFIC",
+                                  "value":""
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section":{
+                            "name":"Package manager",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_MANAGER",
+                                  "value":"default"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section":{
+                            "name":"Package version",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_VERSION",
+                                  "value":"latest"
+                                }
+                              },
+                              {
+                                "var":{
+                                  "name":"PACKAGE_VERSION_SPECIFIC",
+                                  "value":""
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section":{
+                            "name":"Post-modification script",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_POST_HOOK_COMMAND",
+                                  "value":""
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section":{
+                      "name":"Package",
+                      "vars":[
+                        {
+                          "var":{
+                            "name":"PACKAGE_LIST",
+                            "value":"newpkg2"
+                          }
+                        },
+                        {
+                          "var":{
+                            "name":"PACKAGE_STATE",
+                            "value":"present"
+                          }
+                        }
+                      ],
+                      "sections":[
+                        {
+                          "section":{
+                            "name":"Package architecture",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_ARCHITECTURE",
+                                  "value":"default"
+                                }
+                              },
+                              {
+                                "var":{
+                                  "name":"PACKAGE_ARCHITECTURE_SPECIFIC",
+                                  "value":""
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section":{
+                            "name":"Package manager",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_MANAGER",
+                                  "value":"default"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section":{
+                            "name":"Package version",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_VERSION",
+                                  "value":"latest"
+                                }
+                              },
+                              {
+                                "var":{
+                                  "name":"PACKAGE_VERSION_SPECIFIC",
+                                  "value":""
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section":{
+                            "name":"Post-modification script",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_POST_HOOK_COMMAND",
+                                  "value":""
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "priority":5,
+            "enabled":true,
+            "system":false,
+            "policyMode":"enforce",
+            "tags":[
+              {
+                "customer":"MyCompany"
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Clone a directive (JSON)
 method: PUT
 url: /api/latest/directives
 headers:
   - "Content-Type: application/json"
 body: >-
   {
-    "source": "1bc636c0-61b0-410c-96dd-66bcfc95804d",
-    "id": "00000000-61b0-410c-96dd-66bcfc95804d",
+    "source": "1bc636c0-61b0-410c-0000-66bcfc95804d",
+    "id": "00000000-61b0-410c-0000-66bcfc95804d",
     "displayName":"clone from api of new package management",
     "shortDescription":"this is a clone",
     "longDescription":"Some long description",
@@ -621,12 +846,12 @@ response:
   code: 200
   content: >-
     {"action":"cloneDirective",
-      "id": "00000000-61b0-410c-96dd-66bcfc95804d",
+      "id": "00000000-61b0-410c-0000-66bcfc95804d",
       "result":"success",
       "data":{
         "directives":[
           {
-            "id": "00000000-61b0-410c-96dd-66bcfc95804d",
+            "id": "00000000-61b0-410c-0000-66bcfc95804d",
             "displayName":"clone from api of new package management",
             "shortDescription":"this is a clone",
             "longDescription":"Some long description",
@@ -643,9 +868,52 @@ response:
       }
     }
 ---
-description: Update a directive
+description: Clone a directive (PARAMS)
+method: PUT
+url: /api/latest/directives
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  source: "1bc636c0-61b0-410c-0001-66bcfc95804d"
+  id: "00000000-61b0-410c-0001-66bcfc95804d"
+  displayName: "clone from api of new package management"
+  shortDescription: "this is a clone"
+  longDescription: "Some long description"
+  enabled: "true"
+  priority: "8"
+  policyMode: "default"
+  tags: >-
+    [{"other": "tags"}, {"nothing":"related"}]
+response:
+  code: 200
+  content: >-
+    {"action":"cloneDirective",
+      "id": "00000000-61b0-410c-0001-66bcfc95804d",
+      "result":"success",
+      "data":{
+        "directives":[
+          {
+            "id": "00000000-61b0-410c-0001-66bcfc95804d",
+            "displayName":"clone from api of new package management",
+            "shortDescription":"this is a clone",
+            "longDescription":"Some long description",
+            "techniqueName":"packageManagement",
+            "techniqueVersion":"1.0",
+            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Package","vars":[{"var":{"name":"PACKAGE_LIST","value":"newpkg1"}},{"var":{"name":"PACKAGE_STATE","value":"present"}}],"sections":[{"section":{"name":"Package architecture","vars":[{"var":{"name":"PACKAGE_ARCHITECTURE","value":"default"}},{"var":{"name":"PACKAGE_ARCHITECTURE_SPECIFIC","value":""}}]}},{"section":{"name":"Package manager","vars":[{"var":{"name":"PACKAGE_MANAGER","value":"default"}}]}},{"section":{"name":"Package version","vars":[{"var":{"name":"PACKAGE_VERSION","value":"latest"}},{"var":{"name":"PACKAGE_VERSION_SPECIFIC","value":""}}]}},{"section":{"name":"Post-modification script","vars":[{"var":{"name":"PACKAGE_POST_HOOK_COMMAND","value":""}}]}}]}},{"section":{"name":"Package","vars":[{"var":{"name":"PACKAGE_LIST","value":"newpkg2"}},{"var":{"name":"PACKAGE_STATE","value":"present"}}],"sections":[{"section":{"name":"Package architecture","vars":[{"var":{"name":"PACKAGE_ARCHITECTURE","value":"default"}},{"var":{"name":"PACKAGE_ARCHITECTURE_SPECIFIC","value":""}}]}},{"section":{"name":"Package manager","vars":[{"var":{"name":"PACKAGE_MANAGER","value":"default"}}]}},{"section":{"name":"Package version","vars":[{"var":{"name":"PACKAGE_VERSION","value":"latest"}},{"var":{"name":"PACKAGE_VERSION_SPECIFIC","value":""}}]}},{"section":{"name":"Post-modification script","vars":[{"var":{"name":"PACKAGE_POST_HOOK_COMMAND","value":""}}]}}]}}]}},
+            "priority":8,
+            "enabled":false,
+            "system":false,
+            "policyMode":"default",
+            "tags":[{"nothing":"related"},{"other":"tags"}]
+          }
+        ]
+      }
+    }
+---
+description: Update a directive (JSON)
 method: POST
-url: /api/latest/directives/1bc636c0-61b0-410c-96dd-66bcfc95804d
+url: /api/latest/directives/1bc636c0-61b0-410c-0000-66bcfc95804d
 headers:
   - "Content-Type: application/json"
 body: >-
@@ -665,12 +933,12 @@ response:
   content: >-
     {
       "action":"updateDirective",
-      "id":"1bc636c0-61b0-410c-96dd-66bcfc95804d",
+      "id":"1bc636c0-61b0-410c-0000-66bcfc95804d",
       "result":"success",
       "data":{
         "directives":[
           {
-            "id":"1bc636c0-61b0-410c-96dd-66bcfc95804d",
+            "id":"1bc636c0-61b0-410c-0000-66bcfc95804d",
             "displayName": "Manage only newpkg3",
             "shortDescription": "A short description updated",
             "longDescription": "A long description updated",
@@ -686,20 +954,64 @@ response:
       }
     }
 ---
-description: Get updated directive
+description: Update a directive (PARAMS)
+method: POST
+url: /api/latest/directives/1bc636c0-61b0-410c-0001-66bcfc95804d
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  displayName: "Manage only newpkg3"
+  shortDescription: "A short description updated"
+  longDescription: "A long description updated"
+  enabled: "false"
+  techniqueName: "packageManagement"
+  techniqueVersion: "1.0"
+  parameters: >-
+    {"section":{"name":"sections","sections":[{"section":{"name":"Package","vars":[{"var":{"name":"PACKAGE_LIST","value":"newpkg3"}},{"var":{"name":"PACKAGE_STATE","value":"present"}}],"sections":[{"section":{"name":"Package architecture","vars":[{"var":{"name":"PACKAGE_ARCHITECTURE","value":"default"}},{"var":{"name":"PACKAGE_ARCHITECTURE_SPECIFIC","value":""}}]}},{"section":{"name":"Package manager","vars":[{"var":{"name":"PACKAGE_MANAGER","value":"default"}}]}},{"section":{"name":"Package version","vars":[{"var":{"name":"PACKAGE_VERSION","value":"latest"}},{"var":{"name":"PACKAGE_VERSION_SPECIFIC","value":""}}]}},{"section":{"name":"Post-modification script","vars":[{"var":{"name":"PACKAGE_POST_HOOK_COMMAND","value":""}}]}}]}}]}}
+  policyMode: "enforce"
+  tags: >-
+    [{"other": "tags"}]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateDirective",
+      "id":"1bc636c0-61b0-410c-0001-66bcfc95804d",
+      "result":"success",
+      "data":{
+        "directives":[
+          {
+            "id":"1bc636c0-61b0-410c-0001-66bcfc95804d",
+            "displayName": "Manage only newpkg3",
+            "shortDescription": "A short description updated",
+            "longDescription": "A long description updated",
+            "techniqueName":"packageManagement",
+            "techniqueVersion":"1.0",
+            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Package","vars":[{"var":{"name":"PACKAGE_LIST","value":"newpkg3"}},{"var":{"name":"PACKAGE_STATE","value":"present"}}],"sections":[{"section":{"name":"Package architecture","vars":[{"var":{"name":"PACKAGE_ARCHITECTURE","value":"default"}},{"var":{"name":"PACKAGE_ARCHITECTURE_SPECIFIC","value":""}}]}},{"section":{"name":"Package manager","vars":[{"var":{"name":"PACKAGE_MANAGER","value":"default"}}]}},{"section":{"name":"Package version","vars":[{"var":{"name":"PACKAGE_VERSION","value":"latest"}},{"var":{"name":"PACKAGE_VERSION_SPECIFIC","value":""}}]}},{"section":{"name":"Post-modification script","vars":[{"var":{"name":"PACKAGE_POST_HOOK_COMMAND","value":""}}]}}]}}]}},            "priority":5,
+            "enabled":false,
+            "system":false,
+            "policyMode":"enforce",
+            "tags":[{"other":"tags"}]
+          }
+        ]
+      }
+    }
+---
+description: Get updated directive (JSON)
 method: GET
-url: /api/latest/directives/1bc636c0-61b0-410c-96dd-66bcfc95804d
+url: /api/latest/directives/1bc636c0-61b0-410c-0000-66bcfc95804d
 response:
   code: 200
   content: >-
     {
       "action":"directiveDetails",
-      "id":"1bc636c0-61b0-410c-96dd-66bcfc95804d",
+      "id":"1bc636c0-61b0-410c-0000-66bcfc95804d",
       "result":"success",
       "data":{
         "directives":[
           {
-            "id":"1bc636c0-61b0-410c-96dd-66bcfc95804d",
+            "id":"1bc636c0-61b0-410c-0000-66bcfc95804d",
             "displayName": "Manage only newpkg3",
             "shortDescription": "A short description updated",
             "longDescription": "A long description updated",
@@ -715,20 +1027,20 @@ response:
       }
     }
 ---
-description: Delete a directive
-method: DELETE
-url: /api/latest/directives/1bc636c0-61b0-410c-96dd-66bcfc95804d
+description: Get updated directive (PARAMS)
+method: GET
+url: /api/latest/directives/1bc636c0-61b0-410c-0001-66bcfc95804d
 response:
   code: 200
   content: >-
     {
-      "action":"deleteDirective",
-      "id":"1bc636c0-61b0-410c-96dd-66bcfc95804d",
+      "action":"directiveDetails",
+      "id":"1bc636c0-61b0-410c-0001-66bcfc95804d",
       "result":"success",
       "data":{
         "directives":[
           {
-            "id":"1bc636c0-61b0-410c-96dd-66bcfc95804d",
+            "id":"1bc636c0-61b0-410c-0001-66bcfc95804d",
             "displayName": "Manage only newpkg3",
             "shortDescription": "A short description updated",
             "longDescription": "A long description updated",
@@ -744,20 +1056,108 @@ response:
       }
     }
 ---
-description: Delete a directive
+description: Delete a directive (JSON ORIG)
 method: DELETE
-url: /api/latest/directives/00000000-61b0-410c-96dd-66bcfc95804d
+url: /api/latest/directives/1bc636c0-61b0-410c-0000-66bcfc95804d
 response:
   code: 200
   content: >-
     {
       "action":"deleteDirective",
-      "id":"00000000-61b0-410c-96dd-66bcfc95804d",
+      "id":"1bc636c0-61b0-410c-0000-66bcfc95804d",
       "result":"success",
       "data":{
         "directives":[
           {
-            "id": "00000000-61b0-410c-96dd-66bcfc95804d",
+            "id":"1bc636c0-61b0-410c-0000-66bcfc95804d",
+            "displayName": "Manage only newpkg3",
+            "shortDescription": "A short description updated",
+            "longDescription": "A long description updated",
+            "techniqueName":"packageManagement",
+            "techniqueVersion":"1.0",
+            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Package","vars":[{"var":{"name":"PACKAGE_LIST","value":"newpkg3"}},{"var":{"name":"PACKAGE_STATE","value":"present"}}],"sections":[{"section":{"name":"Package architecture","vars":[{"var":{"name":"PACKAGE_ARCHITECTURE","value":"default"}},{"var":{"name":"PACKAGE_ARCHITECTURE_SPECIFIC","value":""}}]}},{"section":{"name":"Package manager","vars":[{"var":{"name":"PACKAGE_MANAGER","value":"default"}}]}},{"section":{"name":"Package version","vars":[{"var":{"name":"PACKAGE_VERSION","value":"latest"}},{"var":{"name":"PACKAGE_VERSION_SPECIFIC","value":""}}]}},{"section":{"name":"Post-modification script","vars":[{"var":{"name":"PACKAGE_POST_HOOK_COMMAND","value":""}}]}}]}}]}},            "priority":5,
+            "enabled":false,
+            "system":false,
+            "policyMode":"enforce",
+            "tags":[{"other":"tags"}]
+          }
+        ]
+      }
+    }
+---
+description: Delete a directive (JSON CLONE)
+method: DELETE
+url: /api/latest/directives/00000000-61b0-410c-0000-66bcfc95804d
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteDirective",
+      "id":"00000000-61b0-410c-0000-66bcfc95804d",
+      "result":"success",
+      "data":{
+        "directives":[
+          {
+            "id": "00000000-61b0-410c-0000-66bcfc95804d",
+            "displayName":"clone from api of new package management",
+            "shortDescription":"this is a clone",
+            "longDescription":"Some long description",
+            "techniqueName":"packageManagement",
+            "techniqueVersion":"1.0",
+            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Package","vars":[{"var":{"name":"PACKAGE_LIST","value":"newpkg1"}},{"var":{"name":"PACKAGE_STATE","value":"present"}}],"sections":[{"section":{"name":"Package architecture","vars":[{"var":{"name":"PACKAGE_ARCHITECTURE","value":"default"}},{"var":{"name":"PACKAGE_ARCHITECTURE_SPECIFIC","value":""}}]}},{"section":{"name":"Package manager","vars":[{"var":{"name":"PACKAGE_MANAGER","value":"default"}}]}},{"section":{"name":"Package version","vars":[{"var":{"name":"PACKAGE_VERSION","value":"latest"}},{"var":{"name":"PACKAGE_VERSION_SPECIFIC","value":""}}]}},{"section":{"name":"Post-modification script","vars":[{"var":{"name":"PACKAGE_POST_HOOK_COMMAND","value":""}}]}}]}},{"section":{"name":"Package","vars":[{"var":{"name":"PACKAGE_LIST","value":"newpkg2"}},{"var":{"name":"PACKAGE_STATE","value":"present"}}],"sections":[{"section":{"name":"Package architecture","vars":[{"var":{"name":"PACKAGE_ARCHITECTURE","value":"default"}},{"var":{"name":"PACKAGE_ARCHITECTURE_SPECIFIC","value":""}}]}},{"section":{"name":"Package manager","vars":[{"var":{"name":"PACKAGE_MANAGER","value":"default"}}]}},{"section":{"name":"Package version","vars":[{"var":{"name":"PACKAGE_VERSION","value":"latest"}},{"var":{"name":"PACKAGE_VERSION_SPECIFIC","value":""}}]}},{"section":{"name":"Post-modification script","vars":[{"var":{"name":"PACKAGE_POST_HOOK_COMMAND","value":""}}]}}]}}]}},
+            "priority":8,
+            "enabled":false,
+            "system":false,
+            "policyMode":"default",
+            "tags":[{"nothing":"related"},{"other":"tags"}]
+          }
+        ]
+      }
+    }
+---
+description: Delete a directive (PARAMS ORIG)
+method: DELETE
+url: /api/latest/directives/1bc636c0-61b0-410c-0001-66bcfc95804d
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteDirective",
+      "id":"1bc636c0-61b0-410c-0001-66bcfc95804d",
+      "result":"success",
+      "data":{
+        "directives":[
+          {
+            "id":"1bc636c0-61b0-410c-0001-66bcfc95804d",
+            "displayName": "Manage only newpkg3",
+            "shortDescription": "A short description updated",
+            "longDescription": "A long description updated",
+            "techniqueName":"packageManagement",
+            "techniqueVersion":"1.0",
+            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Package","vars":[{"var":{"name":"PACKAGE_LIST","value":"newpkg3"}},{"var":{"name":"PACKAGE_STATE","value":"present"}}],"sections":[{"section":{"name":"Package architecture","vars":[{"var":{"name":"PACKAGE_ARCHITECTURE","value":"default"}},{"var":{"name":"PACKAGE_ARCHITECTURE_SPECIFIC","value":""}}]}},{"section":{"name":"Package manager","vars":[{"var":{"name":"PACKAGE_MANAGER","value":"default"}}]}},{"section":{"name":"Package version","vars":[{"var":{"name":"PACKAGE_VERSION","value":"latest"}},{"var":{"name":"PACKAGE_VERSION_SPECIFIC","value":""}}]}},{"section":{"name":"Post-modification script","vars":[{"var":{"name":"PACKAGE_POST_HOOK_COMMAND","value":""}}]}}]}}]}},            "priority":5,
+            "enabled":false,
+            "system":false,
+            "policyMode":"enforce",
+            "tags":[{"other":"tags"}]
+          }
+        ]
+      }
+    }
+---
+description: Delete a directive (PARAMS CLONE)
+method: DELETE
+url: /api/latest/directives/00000000-61b0-410c-0001-66bcfc95804d
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteDirective",
+      "id":"00000000-61b0-410c-0001-66bcfc95804d",
+      "result":"success",
+      "data":{
+        "directives":[
+          {
+            "id": "00000000-61b0-410c-0001-66bcfc95804d",
             "displayName":"clone from api of new package management",
             "shortDescription":"this is a clone",
             "longDescription":"Some long description",
@@ -776,13 +1176,12 @@ response:
 ---
 description: Get deleted directive
 method: GET
-url: /api/latest/directives/1bc636c0-61b0-410c-96dd-66bcfc95804d
+url: /api/latest/directives/1bc636c0-61b0-410c-0000-66bcfc95804d
 response:
   code: 500
   content: >-
     {
       "action":"directiveDetails",
-      "id":"1bc636c0-61b0-410c-96dd-66bcfc95804d",
       "result":"error",
-      "errorDetails":"Could not find Directive '1bc636c0-61b0-410c-96dd-66bcfc95804d'details <-Inconsistency:Could not find Directive 1bc636c0-61b0-410c-96dd-66bcfc95804d"
+      "errorDetails":"Inconsistency:Could not find Directive 1bc636c0-61b0-410c-0000-66bcfc95804d"
     }

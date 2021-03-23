@@ -38,7 +38,6 @@
 package com.normation.rudder.rest
 
 import scala.jdk.CollectionConverters._
-import org.apache.commons.io.IOUtils
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
@@ -54,9 +53,10 @@ import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.util.Helpers.tryo
+import org.apache.commons.io.IOUtils
 
 import java.nio.charset.StandardCharsets
-import java.util.{ArrayList => JUList}
+import scala.util.control.NonFatal
 
 /*
  * Utily data structures
@@ -74,6 +74,7 @@ final case class TestRequest(
   , url            : String
   , queryBody      : String
   , headers        : List[String]
+  , params         : List[(String, String)]
   , responseType   : ResponseType
   , responseCode   : Int
   , responseContent: String
@@ -91,7 +92,28 @@ class TestRestFromFileDef extends Specification with Loggable {
   def filename(name: String) = "api/" + name
   def src_test_resources_api_(name: String) = this.getClass.getClassLoader.getResourceAsStream(filename(name))
 
-  val files = IOUtils.readLines(src_test_resources_api_(""), StandardCharsets.UTF_8).asScala
+  // file to test, by default all under "src/main/resources/api", you can comment that line
+  // an uncoment the following one to test only one file.
+  val files = IOUtils.readLines(src_test_resources_api_(""), StandardCharsets.UTF_8).asScala.toList
+//  val files = List("api_parameters.yml")
+
+
+  // try to not make everyone loose hours on java NPE 
+  implicit class SafeGet(data: scala.collection.mutable.Map[String, Any]) {
+    def safe[A](key: String, default: Option[A], map: Any => A): A = {
+      data.get(key) match {
+        case null | None | Some(null) => default match {
+          case Some(a) => a
+          case None => throw new IllegalArgumentException(s"Missing mandatory key '${key}' in data: ${data}")
+        }
+        case Some(a) => try {
+          map(a)
+        } catch {
+          case NonFatal(ex) =>throw new IllegalArgumentException(s"Error when mapping key '${key}' in data: ${data}:\n ${ex.getMessage}")
+        }
+      }
+    }
+  }
 
   /*
    * I *love* java. The snakeyaml parser returns a list of Objects. The may be null if empty, or
@@ -99,26 +121,38 @@ class TestRestFromFileDef extends Specification with Loggable {
    * a Map[String, Object]. Which not much better. Expects other cast along the line.
    */
   def readSpecification(obj: Object): Box[TestRequest] = {
-    import java.util.{ Map => juMap }
-    type YMap = juMap[String, Any]
+    import java.util.{ Map => JUMap }
+    import java.util.{ArrayList => JUList}
+    type YMap = JUMap[String, Any]
+
+    // transform parameter "Any" to a scala List[(String, String)] where key can be repeated.
+    // Can throw exception since it's used in a `safe`
+    def paramsToScala(t: Any): List[(String, String)] = {
+      t.asInstanceOf[JUMap[String, Any]].asScala.toList.flatMap{
+        case (k, v: String   ) => List((k,v))
+        case (k, v: JUList[_]) => v.asScala.map(x => (k,x.toString)).toList
+        case (k, x           ) => throw new IllegalArgumentException(s"Can not parse '${x}:${x.getClass.getName}' as either a string or a list of string")
+      }
+    }
 
     if(obj == null) Failure("The YAML document is empty")
     else tryo {
       val data = obj.asInstanceOf[YMap].asScala
       val response = data("response").asInstanceOf[YMap].asScala
       TestRequest(
-          data.get("description").map( _.asInstanceOf[String] ).getOrElse("")
-        , data("method").asInstanceOf[String]
-        , data("url").asInstanceOf[String]
-        , data.get("body").map(_.asInstanceOf[String]).getOrElse("")
-        , data.get("headers").map(_.asInstanceOf[JUList[String]]).map(_.asScala.toList).getOrElse(Nil)
-        , response.get("type").map( _.asInstanceOf[String] ).getOrElse("json") match {
+          data    .safe("description", Some("")    , _.asInstanceOf[String] )
+        , data    .safe("method"     , None        , _.asInstanceOf[String])
+        , data    .safe("url"        , None        , _.asInstanceOf[String])
+        , data    .safe("body"       , Some("")    , _.asInstanceOf[String])
+        , data    .safe("headers"    , Some(Nil)   , _.asInstanceOf[JUList[String]].asScala.toList)
+        , data    .safe("params"     , Some(Nil)   , x => paramsToScala(x))
+        , response.safe("type"       , Some("json"), _.asInstanceOf[String] ) match {
             case "json" => ResponseType.Json
             case "text" => ResponseType.Text
             case x      => throw new IllegalArgumentException(s"Unrecognized response type: '${x}'. Use 'json' or 'text'")
           }
-        , response("code").asInstanceOf[Int]
-        , response("content").asInstanceOf[String]
+        , response.safe("code"       , None        , _.asInstanceOf[Int])
+        , response.safe("content"    , None        , _.asInstanceOf[String])
       )
     }
   }
@@ -136,12 +170,15 @@ class TestRestFromFileDef extends Specification with Loggable {
     val resp = cleanBreakline(new String(response.data, "UTF-8"))
     (response.code, resp)
   }
-  Fragments.foreach(files.toSeq) { file =>
 
-    s"For each test defined in ${file}" should {
+  sequential
 
-      val objects = (new Yaml()).loadAll(src_test_resources_api_(file)).asScala
+  Fragments.foreach(files) { file =>
 
+    val objects = (new Yaml()).loadAll(src_test_resources_api_(file)).asScala
+
+    // "." are breaking description, we need to remove it from file name
+    s"For each test defined in '${file.split("\\.").head}'" should {
       Fragment.foreach(objects.map(readSpecification).zipWithIndex.toSeq) { x => x match {
         case (eb: EmptyBox, i) =>
           val f = eb ?~! s"I wasn't able to run the ${i}th tests in file ${filename(file)}"
@@ -164,6 +201,8 @@ class TestRestFromFileDef extends Specification with Loggable {
               val parts = h.split(":")
               (parts(0), List(parts.tail.mkString(":").trim))
             }.toMap
+            // query string may have already set some params
+            mockReq.parameters = mockReq.parameters ++ test.params
             mockReq.contentType = mockReq.headers.get("Content-Type").flatMap(_.headOption).getOrElse("text/plain")
 
             // authorize space in response formating

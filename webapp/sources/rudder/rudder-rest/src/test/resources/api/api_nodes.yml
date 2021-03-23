@@ -50,7 +50,7 @@ response:
             },
             "ipAddresses":["127.0.0.1","192.168.0.100"],
             "description":"",
-            "lastInventoryDate":"2021-01-30 01:20",
+            "lastInventoryDate":"2021-01-30T01:20:00+01:00",
             "policyServerId":"root",
             "managementTechnology":[{
               "name":"Rudder",
