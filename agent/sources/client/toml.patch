@@ -1,0 +1,11 @@
+--- a/tomlc99/Makefile	2021-01-28 03:53:31.000000000 +0100
++++ b/tomlc99/Makefile	2021-03-18 17:24:24.440455804 +0100
+@@ -24,7 +24,7 @@
+ 	ar -rcs $@ $^
+ 
+ libtoml.so: toml.o
+-	$(CC) -shared -o $@ $^
++	$(CC) $(LDFLAGS) -shared -o $@ $^
+ 
+ toml_json: toml_json.c $(LIB)
+ 

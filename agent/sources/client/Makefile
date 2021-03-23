@@ -30,7 +30,7 @@ CFLAGS ?= -std=c99 -Wall -Wextra -Wpedantic \
           -Wredundant-decls -Wnested-externs -Wmissing-include-dirs \
           -D_FORTIFY_SOURCE=2 -fstack-protector-strong -fPIE
 BUILD_CFLAGS=$(CFLAGS)
-LDFLAGS ?= -Wl,-z,now -Wl,-z,relro -pie
+LDFLAGS ?= -Wl,-z,now -Wl,-z,relro -pie -fstack-protector-strong
 BUILD_LDFLAGS=$(LDFLAGS)
 # Debug flags
 CFLAGS_DEBUG := -O -g3 -DDEBUG -fsanitize=address,undefined
@@ -42,13 +42,26 @@ endif
 CFLAGS_RELEASE := -O2
 BUILD_LDFLAGS += -lcurl -lm
 
+BUILD_DEP:=
+
 # to use static tomlc use: make STATIC_TOML=1
 # in this case you need to put its sources in ./tomlc99/
 ifdef STATIC_TOML
 BUILD_CFLAGS += -I./tomlc99
 BUILD_LDFLAGS += ./tomlc99/libtoml.a
+BUILD_DEP += toml
 else
 BUILD_LDFLAGS += -ltoml
+endif
+
+# Cross compilation
+# you need the mingw-w64 package for this
+ifeq (windows,$(TARGET))
+CC := x86_64-w64-mingw32-gcc
+BUILD_DEP += curl
+BUILD_CFLAGS += -I./curl/include/
+BUILD_LDFLAGS += -L./curl/lib/
+EXEC := rudder_client.exe
 endif
 
 # build is debug
@@ -63,12 +76,23 @@ $(BUILD_DIR):
 	install -d $(BUILD_DIR)
 
 # No separate dirs for debug and release, we clean at every run
-bin-target: clean $(BUILD_DIR) toml $(BUILD_DIR)/$(EXEC)
+bin-target: clean $(BUILD_DIR) $(BUILD_DEP) $(BUILD_DIR)/$(EXEC)
 
-toml:
-ifdef STATIC_TOML
-	cd tomlc99 && $(MAKE) "CFLAGS=$(BUILD_CFLAGS) -std=c99 -fPIC"
-endif
+curl:
+	wget -nv http://repository.rudder.io/build-dependencies/curl/curl-7.69.1_1-win64-mingw.zip
+	unzip curl-7.69.1_1-win64-mingw.zip
+	mv curl-7.69.1-win64-mingw/ curl
+	rm curl-7.69.1_1-win64-mingw.zip
+
+tomlc99:
+	wget -nv http://repository.rudder.io/build-dependencies/tomlc99/tomlc99-c5d2e37.tar.gz
+	tar xf tomlc99-c5d2e37.tar.gz
+	mv tomlc99-master tomlc99
+	rm tomlc99-c5d2e37.tar.gz
+	patch -p1 < toml.patch
+
+toml: tomlc99
+	cd tomlc99 && $(MAKE) CC=$(CC) "CFLAGS=$(CFLAGS) -std=c99 -fPIC" LDFLAGS="$(LDFLAGS)"
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(BUILD_CFLAGS) $(BUILD_CPPFLAGS) -c -o $@ $<
