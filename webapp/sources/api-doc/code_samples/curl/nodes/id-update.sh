@@ -14,3 +14,6 @@ curl --header "X-API-Token: yourToken" --request POST --header "Content-Type: ap
 
 # Removing the key "env_type" and changing "shell" and use default policy mode
 curl --header "X-API-Token: yourToken" --request POST https://rudder.example.com/rudder/api/latest/nodes/17dadf50-6056-4c8b-a935-6b97d14b89a7 --data "properties=shell=/bin/false" -d "properties=env_type=" -d "policyMode=default"
+
+# Reset the key status to accept next inventory with its new key
+curl --header "X-API-Token: yourToken" --request POST -H "Content-Type: application/json" 'https://rudder.example.com/rudder/api/latest/nodes/root' -d '{"agentKey":{"status":"undefined"}}'
