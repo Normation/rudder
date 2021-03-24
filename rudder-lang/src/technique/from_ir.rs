@@ -16,10 +16,16 @@ impl<'src> Technique {
             .resources
             .iter()
             .filter_map(|(tk, res)| {
-                if res.metadata.get("library") == Some(&TomlValue::String("std".to_owned())) {
-                    return None;
-                } else {
+                if res
+                    .states
+                    .iter()
+                    .find(|(tk, sd)| !sd.is_dependency)
+                    .is_some()
+                // means at least one state from the resource is a technique
+                {
                     return Some(res);
+                } else {
+                    return None;
                 }
             })
             .collect::<Vec<&ResourceDef>>();
@@ -43,6 +49,7 @@ impl<'src> Technique {
         let method_calls: Vec<MethodCall> = resource
             .states
             .iter()
+            .filter(|(tk, sd)| !sd.is_dependency) // do not print dependencies
             .flat_map(|(_, state)| {
                 state
                     .statements

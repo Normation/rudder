@@ -54,6 +54,7 @@ pub struct PAST<'src> {
     pub parameter_defaults: Vec<(Token<'src>, Option<Token<'src>>, Vec<Option<PValue<'src>>>)>, // separate parameter defaults since they will be processed first
     pub parents: Vec<(Token<'src>, Token<'src>)>,
     pub aliases: Vec<PAliasDef<'src>>,
+    pub is_dependency: bool,
 }
 
 impl<'src> PAST<'src> {
@@ -62,7 +63,12 @@ impl<'src> PAST<'src> {
     }
 
     /// The parse function that should be called to parse a file
-    pub fn add_file(&mut self, filename: &'src str, content: &'src str) -> Result<()> {
+    pub fn add_file(
+        &mut self,
+        filename: &'src str,
+        content: &'src str,
+        is_dependency: bool,
+    ) -> Result<()> {
         let pfile = fix_error_type(pfile(PInput::new_extra(content, filename)))?;
         if pfile.header.version != 0 {
             return Err(Error::new(format!(
@@ -77,14 +83,16 @@ impl<'src> PAST<'src> {
                 PDeclaration::Enum(e) => self.enums.push(e),
                 PDeclaration::SubEnum(e) => self.sub_enums.push(e),
                 PDeclaration::EnumAlias(e) => self.enum_aliases.push(e),
-                PDeclaration::Resource((r, d, p)) => {
+                PDeclaration::Resource((mut r, d, p)) => {
+                    r.is_dependency = is_dependency;
                     self.parameter_defaults.push((r.name, None, d));
                     if let Some(parent) = p {
                         self.parents.push((r.name, parent))
                     };
                     self.resources.push(r);
                 }
-                PDeclaration::State((s, d)) => {
+                PDeclaration::State((mut s, d)) => {
+                    s.is_dependency = is_dependency;
                     self.parameter_defaults
                         .push((s.resource_name, Some(s.name), d));
                     self.states.push(s);
@@ -816,6 +824,7 @@ pub struct PResourceDef<'src> {
     pub parameters: Vec<PParameter<'src>>,
     pub variable_definitions: Vec<PVariableDef<'src>>,
     pub variable_extensions: Vec<PVariableExt<'src>>,
+    pub is_dependency: bool,
 }
 // separate default parameters and parents because they are stored separately
 fn presource_def(i: PInput) -> PResult<(PResourceDef, Vec<Option<PValue>>, Option<Token>)> {
@@ -834,6 +843,7 @@ fn presource_def(i: PInput) -> PResult<(PResourceDef, Vec<Option<PValue>>, Optio
                 parameters,
                 variable_definitions: vars.0,
                 variable_extensions: vars.1,
+                is_dependency: false,
             },
             parameter_defaults,
             parent)
@@ -1179,6 +1189,7 @@ pub struct PStateDef<'src> {
     pub resource_name: Token<'src>,
     pub parameters: Vec<PParameter<'src>>,
     pub statements: Vec<PStatement<'src>>,
+    pub is_dependency: bool,
 }
 // separate parameter defaults since they will be stored separately
 fn pstate_def(i: PInput) -> PResult<(PStateDef, Vec<Option<PValue>>)> {
@@ -1197,6 +1208,7 @@ fn pstate_def(i: PInput) -> PResult<(PStateDef, Vec<Option<PValue>>)> {
                 resource_name,
                 parameters,
                 statements,
+                is_dependency: false,
             },
             parameter_defaults)
         }
