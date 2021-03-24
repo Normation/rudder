@@ -142,9 +142,16 @@ impl CFEngine {
     ) -> Result<Vec<Promise>> {
         match st {
             Statement::ConditionVariableDefinition(var) => {
-                let component = match var.metadata.get("component") {
+                let inner_state_def = gc.get_state_def(&var.resource, &var.state)?;
+                let method_name = &format!("{}_{}", var.resource.fragment(), var.state.fragment());
+
+                let component = match var
+                    .metadata
+                    .get("component")
+                    .or(inner_state_def.metadata.get("name"))
+                {
                     Some(TomlValue::String(s)) => s.to_owned(),
-                    _ => "any".to_string(),
+                    _ => method_name.to_owned(),
                 };
 
                 // TODO setup mode and output var by calling ... bundle
@@ -155,10 +162,11 @@ impl CFEngine {
                     .into_iter()
                     .collect::<Result<Vec<String>>>()?;
 
-                let method_name = &format!("{}-{}", var.resource.fragment(), var.state.fragment());
-                let class_param_index = gc
-                    .get_state_def(&var.resource, &var.state)?
-                    .class_parameter_index(method_name)?;
+                let is_cf_supported = match inner_state_def.supported_targets(method_name) {
+                    Ok(targets) => targets.contains(&"cf".to_owned()),
+                    Err(_) => true,
+                };
+                let class_param_index = inner_state_def.class_parameter_index(method_name)?;
                 let class_param = var
                     .resource_params
                     .get(class_param_index)
@@ -169,20 +177,27 @@ impl CFEngine {
                     .resource(var.resource.fragment().to_string())
                     .state(var.state.fragment().to_string())
                     .parameters(parameters)
+                    .supported(is_cf_supported)
                     .report_parameter(class_param)
                     .report_component(component)
                     .condition(self.format_class(in_class)?)
                     .build())
             }
             Statement::StateDeclaration(sd) => {
+                let inner_state_def = gc.get_state_def(&sd.resource, &sd.state)?;
+                let method_name = &format!("{}_{}", sd.resource.fragment(), sd.state.fragment());
+
                 if let Some(var) = sd.outcome {
                     self.new_var(&var);
                 }
 
-                let component = match sd.metadata.get("component") {
+                let component = match sd
+                    .metadata
+                    .get("component")
+                    .or(inner_state_def.metadata.get("name"))
+                {
                     Some(TomlValue::String(s)) => s.to_owned(),
-                    // TODO what is the any component ?
-                    _ => "any".to_string(),
+                    _ => method_name.to_owned(),
                 };
 
                 // TODO setup mode and output var by calling ... bundle
@@ -193,17 +208,20 @@ impl CFEngine {
                     .map(|x| self.value_to_string(x, true))
                     .collect::<Result<Vec<String>>>()?;
 
-                let method_name = &format!("{}-{}", sd.resource.fragment(), sd.state.fragment());
                 let state_def = gc.get_state_def(&sd.resource, &sd.state)?;
-                let class_param_index = state_def.class_parameter_index(method_name)?;
-                let is_cf_supported = state_def
-                    .supported_formats(method_name)?
-                    .contains(&"cf".to_owned());
-                let class_param = sd
+
+                let is_cf_supported = match inner_state_def.supported_targets(method_name) {
+                    Ok(targets) => targets.contains(&"cf".to_owned()),
+                    Err(_) => true,
+                };
+                let class_param = match sd
                     .resource_params
-                    .get(class_param_index)
+                    .get(inner_state_def.class_parameter_index(method_name)?)
                     .and_then(|p| self.value_to_string(&p, false).ok())
-                    .unwrap_or_else(|| "".to_string());
+                {
+                    Some(s) => s,
+                    None => return Err(Error::new("Expected a component metadata".to_owned())),
+                };
 
                 Ok(Method::new()
                     .resource(sd.resource.fragment().to_string())

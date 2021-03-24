@@ -270,7 +270,7 @@ impl<'src> StateDef<'src> {
         }
     }
 
-    pub fn supported_formats(&self, method_name: &str) -> Result<Vec<String>> {
+    pub fn supported_targets(&self, method_name: &str) -> Result<Vec<String>> {
         match self.metadata.get("supported_targets") {
             Some(TomlValue::Array(parameters)) => parameters
                 .iter()

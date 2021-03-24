@@ -96,7 +96,7 @@ macro_rules! err {
 
         Error::new(
             format!(
-                "{}:\n{} {}",
+                "{}: {} {}\n",
                 $origin.position_str().bright_yellow(),
                 "!-->".bright_blue(),
                 format!( $ ( $ arg ) * )

@@ -19,7 +19,7 @@ impl Generator for JSON {
         dest_file: Option<&Path>,
         _policy_metadata: bool,
     ) -> Result<Vec<CommandResult>> {
-        let content = Technique::from(gc).to_json()?;
+        let content = Technique::from_ir(gc)?.to_json()?;
         Ok(vec![CommandResult::new(
             Format::JSON,
             match dest_file {
