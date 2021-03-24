@@ -126,6 +126,7 @@ object Constants {
   val XML_TAG_DEPLOYMENT_STATUS = "deploymentStatus"
   val XML_TAG_CHANGE_REQUEST = "changeRequest"
   val XML_TAG_GLOBAL_PARAMETER = "globalParameter"
+  val XML_TAG_SECRET = "secret"
   val XML_TAG_API_ACCOUNT = "apiAccount"
   val XML_TAG_GLOBAL_PROPERTY = "globalProperty"
 

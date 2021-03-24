@@ -78,6 +78,7 @@ import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.api.{ApiAccount, ApiAccountKind, ApiAuthorization}
 import com.normation.cfclerk.domain.TechniqueId
+import com.normation.rudder.domain.secrets.Secret
 
 //serialize / deserialize tags
 object TagsXml {
@@ -283,6 +284,15 @@ class GlobalParameterSerialisationImpl(xmlVersion:String) extends GlobalParamete
        ++{param.inheritMode.map(m => <inheritMode>{m.value}</inheritMode>).getOrElse(NodeSeq.Empty)}++
        <description>{param.description}</description>
        ++{param.provider.map(p => <provider>{p.value}</provider>).getOrElse(NodeSeq.Empty)}
+    )
+  }
+}
+
+class SecretSerialisationImpl(xmlVersion:String) extends SecretSerialisation {
+  def serialise(secret:Secret):  Elem = {
+    createTrimedElem(XML_TAG_SECRET, xmlVersion) (
+      <name>{secret.name}</name>
+      <value>{secret.value}</value>
     )
   }
 }

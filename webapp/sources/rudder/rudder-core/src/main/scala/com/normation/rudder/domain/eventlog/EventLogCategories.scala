@@ -55,6 +55,7 @@ final case object WorkflowLogCategory extends EventLogCategory
 final case object PolicyServerLogCategory extends EventLogCategory
 final case object ImportExportItemsLogCategory extends EventLogCategory
 final case object ParameterLogCategory extends EventLogCategory
+final case object SecretLogCategory extends EventLogCategory
 final case object GlobalPropertyEventLogCategory extends EventLogCategory
 final case object SettingsLogCategory extends EventLogCategory
 final case object NodeLogCategory extends EventLogCategory
@@ -243,6 +244,18 @@ final case object ModifyNodeEventType extends RollbackEventLogType {
   }
 }
 
+final case object AddSecretEventType extends NoRollbackEventLogType {
+  def serialize = "SecretAdded"
+}
+
+final case object ModifySecretEventType extends NoRollbackEventLogType {
+  def serialize = "SecretModified"
+}
+
+final case object DeleteSecretEventType extends NoRollbackEventLogType {
+  def serialize = "SecretDeleted"
+}
+
 final case object PromoteNodeToRelayEventType extends NoRollbackEventLogType {
   def serialize = "NodePromotedToRelay"
 }
@@ -335,6 +348,9 @@ object ModificationWatchList {
     , ModifyNodeEventType
     , PromoteNodeToRelayEventType
 
+    , AddSecretEventType
+    , ModifySecretEventType
+    , DeleteSecretEventType
   ) ++ ModifyGlobalPropertyEventLogsFilter.eventTypes
 
 }
@@ -403,6 +419,9 @@ object EventTypeFactory {
     , ModifyNodeEventType
     , PromoteNodeToRelayEventType
 
+    , AddSecretEventType
+    , ModifySecretEventType
+    , DeleteSecretEventType
   ) ::: ModifyGlobalPropertyEventLogsFilter.eventTypes
 
   def apply(s:String) : EventLogType = {

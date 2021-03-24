@@ -753,6 +753,38 @@ object UserApi extends ApiModuleProvider[UserApi] {
   def endpoints = ca.mrvisser.sealerate.values[UserApi].toList.sortBy( _.z )
 }
 
+
+sealed trait SecretApi extends EndpointSchema with GeneralApi with SortIndex
+object SecretApi extends ApiModuleProvider[SecretApi] {
+  final case object GetAllSecret extends SecretApi with ZeroParam with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
+    val description    = "Get the list of key-value pair secret"
+    val (action, path) = GET / "secret"
+  }
+
+  final case object GetSecret extends SecretApi with OneParam with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
+    val description    = "Get one key-value pair secret"
+    val (action, path) = GET / "secret" / "{id}"
+  }
+
+  final case object AddSecret extends SecretApi with ZeroParam with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
+    val description    = "Add a key-value pair secret"
+    val (action, path) = PUT / "secret"
+  }
+
+  final case object UpdateSecret extends SecretApi with ZeroParam with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
+    val description    = "Update an existing key-value pair secret"
+    val (action, path) = POST / "secret"
+  }
+
+  final case object DeleteSecret extends SecretApi with OneParam with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
+    val description    = "Delete a secret"
+    val (action, path) = DELETE / "secret" / "{id}"
+  }
+
+  def endpoints = ca.mrvisser.sealerate.values[SecretApi].toList.sortBy( _.z )
+
+}
+
 /*
  * All API.
  */
@@ -770,6 +802,7 @@ object AllApi {
     RuleApi.endpoints :::
     InventoryApi.endpoints :::
     InfoApi.endpoints :::
+    SecretApi.endpoints :::
     // UserApi is not declared here, it will be contributed by plugin
     Nil
 }

@@ -74,6 +74,10 @@ import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
+import com.normation.rudder.domain.secrets.AddSecretDiff
+import com.normation.rudder.domain.secrets.DeleteSecretDiff
+import com.normation.rudder.domain.secrets.ModifySecretDiff
+import com.normation.rudder.domain.secrets.Secret
 import com.typesafe.config.ConfigValue
 
 /**
@@ -152,6 +156,13 @@ trait EventLogDetailsService {
 
   def getGlobalParameterModifyDetails(xml:NodeSeq) : Box[ModifyGlobalParameterDiff]
 
+  // Secrets
+  def getSecretAddDetails(xml:NodeSeq) : Box[AddSecretDiff]
+
+  def getSecretDeleteDetails(xml:NodeSeq) : Box[DeleteSecretDiff]
+
+  def getSecretModifyDetails(xml:NodeSeq) : Box[ModifySecretDiff]
+
   // API Account
   def getApiAccountAddDetails(xml:NodeSeq) : Box[AddApiAccountDiff]
 
@@ -181,6 +192,7 @@ class EventLogDetailsServiceImpl(
   , techniqueUnserialiser           : ActiveTechniqueUnserialisation
   , deploymentStatusUnserialisation : DeploymentStatusUnserialisation
   , globalParameterUnserialisation  : GlobalParameterUnserialisation
+  , secretUnserialisation           : SecretUnserialisation
   , apiAccountUnserialisation       : ApiAccountUnserialisation
 ) extends EventLogDetailsService {
 
@@ -772,6 +784,21 @@ class EventLogDetailsServiceImpl(
     }
   }
 
+  // Secrets
+  def getSecretFromXML(xml:NodeSeq, changeType:String) : Box[Secret] = {
+    for {
+      entry           <- getEntryContent(xml)
+      s               <- (entry \ "secret").headOption ?~! (s"Entry type is not a secret: ${entry}")
+      changeTypeAddOk <- {
+                           if(s.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
+                           else Failure(s"Secret attribute does not have changeType=${changeType} in ${entry}")
+                         }
+      secret          <- secretUnserialisation.unserialise(s)
+    } yield {
+      secret
+    }
+  }
+
   def getGlobalParameterAddDetails(xml:NodeSeq) : Box[AddGlobalParameterDiff] = {
     getGlobalParameterFromXML(xml, "add").map { globalParam =>
       AddGlobalParameterDiff(globalParam)
@@ -805,6 +832,38 @@ class EventLogDetailsServiceImpl(
         , modValue = (modValue)
         , modDescription = modDescription
         , modInheritMode = modInheritMode
+      )
+    }
+  }
+
+  def getSecretAddDetails(xml:NodeSeq) : Box[AddSecretDiff] = {
+    getSecretFromXML(xml, "add").map { secret =>
+      AddSecretDiff(secret)
+    }
+  }
+
+  def getSecretDeleteDetails(xml:NodeSeq) : Box[DeleteSecretDiff] = {
+    getSecretFromXML(xml, "delete").map { secret =>
+      DeleteSecretDiff(secret)
+    }
+  }
+
+  def getSecretModifyDetails(xml:NodeSeq) : Box[ModifySecretDiff] = {
+    for {
+      entry              <- getEntryContent(xml)
+      secret             <- (entry \ "secret").headOption ?~!
+        (s"Entry type is not a Secret: ${entry}")
+      name               <- (secret \ "name").headOption.map( _.text ) ?~!
+        (s"Missing attribute 'name' in entry type Secret: ${entry}")
+      value               <- (secret \ "value").headOption.map( _.text ) ?~!
+        (s"Missing attribute 'value' in entry type Secret: ${entry}")
+      modValue           <- getFromToString((secret \ "diffValue").headOption)
+      fileFormatOk       <- TestFileFormat(secret)
+    } yield {
+      ModifySecretDiff(
+          name = name
+        , value = value
+        , modValue = (modValue)
       )
     }
   }

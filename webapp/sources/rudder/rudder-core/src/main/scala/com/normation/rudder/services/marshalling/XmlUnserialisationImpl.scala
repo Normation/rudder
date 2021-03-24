@@ -87,6 +87,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.box._
+import com.normation.rudder.domain.secrets.Secret
 
 final case class XmlUnserializerImpl (
     rule        : RuleUnserialisation
@@ -649,6 +650,23 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
       g                <- GlobalParameter.parse(name, value, mode, description, provider).toBox
     } yield {
       g
+    }
+  }
+}
+
+class SecretUnserialisationImpl extends SecretUnserialisation {
+  def unserialise(entry:XNode) : Box[Secret] = {
+    for {
+      secret      <- {
+        if(entry.label ==  XML_TAG_SECRET) Full(entry)
+        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_SECRET, entry))
+      }
+      fileFormatOk     <- TestFileFormat(secret)
+
+      name             <- (secret \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type globalParameter : " + entry)
+      value            <- (secret \ "value").headOption.map( _.text ) ?~! ("Missing attribute 'value' in entry type globalParameter : " + entry)
+    } yield {
+      Secret(name, value)
     }
   }
 }

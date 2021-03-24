@@ -840,6 +840,12 @@ object RudderConfig extends Loggable {
   val restQuicksearch       = new RestQuicksearch(new FullQuickSearchService()(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit, roDirectiveRepository, nodeInfoService), userService, linkUtil)
   val restCompletion        = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository))
 
+  val secretVaultService = new FileSystemSecretRepository(
+    "/var/rudder/configuration-repository/secrets.json"
+    , eventLogRepository
+    , stringUuidGenerator
+  )
+
   val ruleApiService2 =
     new RuleApiService2(
         roRuleRepository
@@ -1175,7 +1181,7 @@ object RudderConfig extends Loggable {
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
       , new SystemApi(restExtractorService,systemApiService11, systemApiService13, rudderMajorVersion, rudderFullVersion, builtTimestamp)
       , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
-//      , new HealthcheckApi(restExtractorService, restDataSerializer, healthcheckService, healthcheckNotificationService)
+      , new SecretApi(restExtractorService, secretVaultService)
         // info api must be resolved latter, because else it misses plugin apis !
     )
 
@@ -1301,6 +1307,8 @@ object RudderConfig extends Loggable {
     new DeploymentStatusSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val globalParameterSerialisation: GlobalParameterSerialisation =
     new GlobalParameterSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
+  private[this] lazy val secretSerialisation: SecretSerialisation =
+    new SecretSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val apiAccountSerialisation: APIAccountSerialisation =
     new APIAccountSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val propertySerialization: GlobalPropertySerialisation =
@@ -1323,6 +1331,7 @@ object RudderConfig extends Loggable {
     , globalParameterSerialisation
     , apiAccountSerialisation
     , propertySerialization
+    , secretSerialisation
   )
   private[this] lazy val pathComputer = new PathComputerImpl(
       Constants.NODE_PROMISES_PARENT_DIR_BASE
@@ -1372,6 +1381,7 @@ object RudderConfig extends Loggable {
     , new ActiveTechniqueUnserialisationImpl
     , new DeploymentStatusUnserialisationImpl
     , new GlobalParameterUnserialisationImpl
+    , new SecretUnserialisationImpl
     , new ApiAccountUnserialisationImpl
   )
 
