@@ -350,10 +350,10 @@ class InventoryProcessor(
                  case Left(err) =>
                    InventoryProcessingLogger.error(s"Error when trying to process report: ${err.fullMsg}")
                  case Right(report) =>
-                   InventoryProcessingLogger.debug("Report saved.")
+                   InventoryProcessingLogger.debug("Inventory saved.")
                }
-      _      <- InventoryProcessingLogger.info(s"Report '${report.name}' for node '${report.node.main.hostname}' [${report.node.main.id.value}] (signature:${report.node.main.keyStatus.value}) "+
-                s"processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
+      _      <- InventoryProcessingLogger.info(s"Inventory '${report.name}' for node '${report.node.main.hostname}' [${report.node.main.id.value}] (signature:${report.node.main.keyStatus.value}) "+
+                s"processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)}")
     } yield ()
   }
 }
