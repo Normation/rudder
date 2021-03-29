@@ -45,6 +45,8 @@ lint: version
 
 check: lint
 	cargo test
+
+check-vulns:
 	cargo deny check
 
 veryclean: clean
