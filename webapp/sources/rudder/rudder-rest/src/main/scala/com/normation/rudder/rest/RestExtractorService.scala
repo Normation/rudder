@@ -926,8 +926,13 @@ final case class RestExtractorService (
                        case JNothing => Full(None)
                        case x        => GenericProperty.parseValue(compactRender(x)).map(x => Some(x)).toBox
                      }
+      inheritMode <- (json \ "inheritMode" ) match {
+                       case JString(s) => InheritMode.parseString(s).map(x => Some(x)).toBox
+                       case JNothing   => Full(None)
+                       case x          => Failure("Can not parse inherit mode: " + x)
+                     }
     } yield {
-      RestParameter(value, description)
+      RestParameter(value, description, inheritMode)
     }
   }
 

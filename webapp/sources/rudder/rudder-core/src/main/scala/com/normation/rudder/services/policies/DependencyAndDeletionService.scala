@@ -171,27 +171,20 @@ trait DependencyAndDeletionService {
 
 ///////////////////////////////// default implementation /////////////////////////////////
 
-class DependencyAndDeletionServiceImpl(
+trait FindDependencies {
+  def findRulesForDirective(id: DirectiveId): IOResult[Seq[Rule]]
+  def findRulesForTarget(target:RuleTarget) : IOResult[Seq[Rule]]
+}
+
+class FindDependenciesImpl(
     ldap                 : LDAPConnectionProvider[RoLDAPConnection]
   , rudderDit            : RudderDit
-  , roDirectiveRepository: RoDirectiveRepository
-  , woDirectiveRepository: WoDirectiveRepository
-  , woRuleRepository     : WoRuleRepository
-  , woGroupRepository    : WoNodeGroupRepository
   , mapper               : LDAPEntityMapper
-) extends DependencyAndDeletionService with NamedZioLogger {
+) extends FindDependencies {
 
-  override def loggerName: String = this.getClass.getName
-
-  /**
-   * Utility method that find rules which depends upon a directive.
-   * Some rules may be omited
-   */
-  private[this] def searchRules(
-      con:RoLDAPConnection
-    , id:DirectiveId
-  ): IOResult[Seq[Rule]] = {
+  def findRulesForDirective(id: DirectiveId): IOResult[Seq[Rule]] = {
     for {
+      con     <- ldap
       entries <- con.searchOne(rudderDit.RULES.dn, EQ(A_DIRECTIVE_UUID, id.value))
       res     <- ZIO.foreach(entries) { entry =>
                    mapper.entry2Rule(entry).toIO
@@ -200,6 +193,30 @@ class DependencyAndDeletionServiceImpl(
       res
     }
   }
+
+  def findRulesForTarget(target:RuleTarget) : IOResult[Seq[Rule]] = {
+    for {
+      con     <- ldap
+      entries <- con.searchOne(rudderDit.RULES.dn, SUB(A_RULE_TARGET,null,Array(target.target),null))
+      res     <- ZIO.foreach(entries) { entry =>
+                   mapper.entry2Rule(entry).toIO
+                 }
+    } yield {
+      res
+    }
+  }
+}
+
+class DependencyAndDeletionServiceImpl(
+    findDependencies     : FindDependencies
+  , roDirectiveRepository: RoDirectiveRepository
+  , woDirectiveRepository: WoDirectiveRepository
+  , woRuleRepository     : WoRuleRepository
+  , woGroupRepository    : WoNodeGroupRepository
+) extends DependencyAndDeletionService with NamedZioLogger {
+
+  override def loggerName: String = this.getClass.getName
+
 
 
   /**
@@ -246,8 +263,7 @@ class DependencyAndDeletionServiceImpl(
    */
   override def directiveDependencies(id:DirectiveId, boxGroupLib: Box[FullNodeGroupCategory], onlyForState:ModificationStatus = DontCare) : Box[DirectiveDependencies] = {
     for {
-      con         <- ldap
-      configRules <- searchRules(con,id)
+      configRules <- findDependencies.findRulesForDirective(id)
       groupLib    <- boxGroupLib.toIO
       filtered    <- onlyForState match {
                        case DontCare        => configRules.succeed
@@ -265,8 +281,7 @@ class DependencyAndDeletionServiceImpl(
    */
   override def cascadeDeleteDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DirectiveDependencies] = {
     for {
-      con          <- ldap
-      configRules  <- searchRules(con,id)
+      configRules  <- findDependencies.findRulesForDirective(id)
       diff         <- woDirectiveRepository.delete(id, modId, actor, reason).chainError(s"Error when deleting policy instance with ID '${id.value}'.")
       updatedRules <- ZIO.foreach(configRules) { rule =>
                         //check that directive is actually in rule directives, and remove it
@@ -307,7 +322,6 @@ class DependencyAndDeletionServiceImpl(
    */
   def techniqueDependencies(id:ActiveTechniqueId, boxGroupLib: Box[FullNodeGroupCategory], onlyForState:ModificationStatus = DontCare) : Box[TechniqueDependencies] = {
     for {
-      con         <- ldap
       directives  <- roDirectiveRepository.getDirectives(id)
       //if we are asked only for enable directives, remove disabled ones
       filteredPis =  onlyForState match {
@@ -318,7 +332,7 @@ class DependencyAndDeletionServiceImpl(
       groupLib    <- boxGroupLib.toIO
       piAndCrs    <- ZIO.foreach(filteredPis) { directive =>
                       for {
-                        configRules  <- searchRules(con,directive.id)
+                        configRules  <- findDependencies.findRulesForDirective(directive.id)
                         filtered     <- onlyForState match {
                                           case DontCare        => configRules.succeed
                                           case OnlyEnableable  => filterRules(configRules, groupLib)
@@ -350,7 +364,6 @@ class DependencyAndDeletionServiceImpl(
    */
   def cascadeDeleteTechnique(id:ActiveTechniqueId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[TechniqueDependencies] = {
     for {
-      con        <- ldap
       directives <- roDirectiveRepository.getDirectives(id)
       piMap      =  directives.map(directive => (directive.id, directive) ).toMap
       deletedPis <- ZIO.foreach(directives) { directive =>
@@ -372,17 +385,6 @@ class DependencyAndDeletionServiceImpl(
   /////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////// Target dependencies //////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////
-
-  private[this] def searchRules(con:RoLDAPConnection, target:RuleTarget) : IOResult[Seq[Rule]] = {
-    for {
-      entries <- con.searchOne(rudderDit.RULES.dn, SUB(A_RULE_TARGET,null,Array(target.target),null))
-      res     <- ZIO.foreach(entries) { entry =>
-                   mapper.entry2Rule(entry).toIO
-                 }
-    } yield {
-      res
-    }
-  }
 
   /**
    * Find all rules that depend on that
@@ -424,8 +426,7 @@ class DependencyAndDeletionServiceImpl(
     }
 
     for {
-      con          <- ldap
-      configRules  <- searchRules(con,target)
+      configRules  <- findDependencies.findRulesForTarget(target)
       filtered     <- if(onlyEnableable) filterRules(configRules) else configRules.succeed
     } yield {
       TargetDependencies(target,filtered.toSet)
@@ -459,8 +460,7 @@ class DependencyAndDeletionServiceImpl(
     targetToDelete match {
       case GroupTarget(groupId) =>
         for {
-          con           <- ldap
-          configRules   <- searchRules(con,targetToDelete)
+          configRules   <- findDependencies.findRulesForTarget(targetToDelete)
           updatedRules  <- ZIO.foreach(configRules)(updateRule)
           deletedTarget <- woGroupRepository.delete(groupId, modId, actor, reason).chainError(
                             "Error when deleting target %s. All dependent rules where updated %s".format(

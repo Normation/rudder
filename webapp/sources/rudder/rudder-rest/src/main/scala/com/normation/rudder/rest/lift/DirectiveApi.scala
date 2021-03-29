@@ -74,7 +74,6 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonDSL._
 
 import com.normation.box._
 
@@ -241,7 +240,7 @@ class DirectiveAPIService2 (
                   )
       id        <- workflow.startWorkflow(cr, actor, None) ?~! s"Could not start workflow for change request creation on Directive '${directive.name}'"
         optCrId = if (workflow.needExternalValidation()) Some(id) else None
-        jsonDirective = ("directives" -> JArray(List(serialize(technique, directive, optCrId))))
+        jsonDirective = JArray(List(serialize(technique, directive, optCrId)))
       } yield {
         jsonDirective
       }

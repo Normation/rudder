@@ -2041,13 +2041,11 @@ object RudderConfig extends Loggable {
     , FiniteDuration(LDAP_CACHE_NODE_INFO_MIN_INTERVAL.toMillis, "millis")
   )
   private[this] lazy val dependencyAndDeletionServiceImpl: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
-        roLdap
-      , rudderDitImpl
+        new FindDependenciesImpl(roLdap, rudderDitImpl, ldapEntityMapper)
       , roLdapDirectiveRepository
       , woLdapDirectiveRepository
       , woLdapRuleRepository
       , woLdapNodeGroupRepository
-      , ldapEntityMapper
   )
 
   private[this] lazy val logDisplayerImpl: LogDisplayer = new LogDisplayer(reportsRepositoryImpl, roLdapDirectiveRepository, roLdapRuleRepository)

@@ -41,6 +41,9 @@ import com.normation.utils.Utils.isEmpty
 import scala.collection.mutable.{ Map => MutMap }
 import net.liftweb.common._
 import org.apache.commons.io.FilenameUtils
+import org.joda.time.format.DateTimeFormat
+
+import java.util.Locale
 
 class Serializer[T](techniques: (String, T => String)*) {
   //all the known properties for that type
@@ -135,6 +138,23 @@ class Translators {
       case Some(t: Translator[T @unchecked]) => Some[Translator[T]](t)
       case _ => None
     }
+  }
+}
+
+object Translator {
+
+  val isoDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd").withLocale(Locale.ENGLISH)
+  val isoTimeFormatter = DateTimeFormat.forPattern("HH:mm:ss").withLocale(Locale.ENGLISH)
+
+  val defaultTranslators = {
+    val t = new Translators()
+    t.add(StringTranslator)
+    t.add(new DateTimeTranslator(isoDateFormatter, isoTimeFormatter))
+    t.add(FilePermsTranslator)
+    t.add(FileTranslator)
+    t.add(DestinationFileTranslator)
+    t.add(SelectFieldTranslator)
+    t
   }
 }
 
