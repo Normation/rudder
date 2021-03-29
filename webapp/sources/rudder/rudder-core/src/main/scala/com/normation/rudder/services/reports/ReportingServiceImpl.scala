@@ -60,6 +60,7 @@ import com.normation.zio._
 import net.liftweb.common._
 import org.joda.time._
 import zio._
+import zio.syntax._
 
 object ReportingServiceUtils {
 
@@ -352,13 +353,23 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       case Some(t) => t match {
         case update:UpdateCompliance =>
           ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${actions.map(_.nodeId.value).mkString(", ")}") *>
-          IOResult.effectNonBlocking {
-            cache = cache ++ actions.map { case x: UpdateCompliance => (x.nodeId, x.nodeCompliance) }
-          }
+          // all action should be homogeneous, but still, fails on other cases
+          (for {
+            updates <- ZIO.foreach(actions) { case a => a match {
+                         case x: UpdateCompliance => (x.nodeId, x.nodeCompliance).succeed
+                         case x                   => Inconsistency(s"Error: found an action of incorrect type in an 'update' for cache: ${x}").fail
+                       }}
+            _       <-  IOResult.effectNonBlocking { cache = cache ++ updates }
+          } yield ())
+
         case delete: RemoveNodeInCache =>
-          IOResult.effectNonBlocking {
-            cache = cache.removedAll(actions.map { case x: RemoveNodeInCache => (x.nodeId) })
-          }
+          for {
+            deletes <- ZIO.foreach(actions) { case a => a match {
+                         case x: RemoveNodeInCache => x.nodeId.succeed
+                         case x                    => Inconsistency(s"Error: found an action of incorrect type in a 'delete' for cache: ${x}").fail
+                       }}
+            _       <-  IOResult.effectNonBlocking { cache = cache.removedAll(deletes) }
+          } yield ()
 
         // need to compute compliance
         case _ =>

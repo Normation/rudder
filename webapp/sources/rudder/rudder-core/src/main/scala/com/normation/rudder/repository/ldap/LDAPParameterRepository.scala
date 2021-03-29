@@ -258,7 +258,7 @@ class WoLDAPParameterRepository(
     val ou = rudderDit.ARCHIVES.parameterModel(id)
 
     paramMutex.writeLock(for {
-      existingParams <- getAllGlobalParameters
+      existingParams <- getAllGlobalParameters()
       con            <- ldap
       //ok, now that's the dangerous part
       swapParams      <- (for {

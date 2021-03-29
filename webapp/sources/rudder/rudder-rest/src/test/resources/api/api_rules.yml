@@ -1,7 +1,7 @@
 ---
 description: Get a rule
 method: GET
-url: /api/rules/208716db-2675-43b9-ab57-bfbab84346aa
+url: /api/latest/rules/208716db-2675-43b9-ab57-bfbab84346aa
 response:
   code: 200
   content: >-
@@ -27,9 +27,22 @@ response:
       }
     }
 ---
+description: Get a missing rule
+method: GET
+url: /api/latest/rules/xxxxxxxx-2675-43b9-ab57-bfbab84346aa
+response:
+  code: 500
+  content: >-
+    {
+      "action":"ruleDetails",
+      "id":"xxxxxxxx-2675-43b9-ab57-bfbab84346aa",
+      "result":"error",
+      "errorDetails":"Could not get Rule xxxxxxxx-2675-43b9-ab57-bfbab84346aa details cause is:Could not find Rule xxxxxxxx-2675-43b9-ab57-bfbab84346aa."
+    }
+---
 description: List rules
 method: GET
-url: /api/rules
+url: /api/latest/rules
 response:
   code: 200
   content: >-
@@ -94,11 +107,9 @@ response:
             "categoryId":"rootRuleCategory",
             "shortDescription":"default rule",
             "longDescription":"",
-            "directives":[
-              "16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
-              "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-              "99f4ef91-537b-4e03-97bc-e65b447514cc"
-            ],
+            "directives":["16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
+            "99f4ef91-537b-4e03-97bc-e65b447514cc",
+            "e9a1a909-2490-4fc9-95c3-9d0aa01717c9"],
             "targets":["special:all"],
             "enabled":true,
             "system":false,
@@ -109,7 +120,7 @@ response:
 ---
 description: Create a rule
 method: PUT
-url: /api/rules
+url: /api/latest/rules
 headers:
   - "Content-Type: application/json"
 body: >-
@@ -140,7 +151,7 @@ response:
             "categoryId":"rootRuleCategory",
             "shortDescription": "Baseline applying CIS guidelines",
             "longDescription": "This rules should be applied to all Linux nodes required basic hardening",
-            "directives":["e9a1a909-2490-4fc9-95c3-9d0aa01717c9", "16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+            "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9","e9a1a909-2490-4fc9-95c3-9d0aa01717c9"],
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
             "enabled":true,
             "system":false,
@@ -152,7 +163,7 @@ response:
 ---
 description: Clone a rule
 method: PUT
-url: /api/rules
+url: /api/latest/rules
 headers:
   - "Content-Type: application/json"
 body: >-
@@ -193,7 +204,7 @@ response:
 ---
 description: Update a rule
 method: POST
-url: /api/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
+url: /api/latest/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
 headers:
   - "Content-Type: application/json"
 body: >-
@@ -235,7 +246,7 @@ response:
 ---
 description: Get updated rule
 method: GET
-url: /api/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
+url: /api/latest/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
 response:
   code: 200
   content: >-
@@ -263,12 +274,12 @@ response:
 ---
 description: Move a rule to a new category
 method: POST
-url: /api/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
+url: /api/latest/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
 headers:
   - "Content-Type: application/json"
 body: >-
   {
-    "category": "category1",
+    "category": "category1"
   }
 response:
   code: 200
@@ -297,7 +308,7 @@ response:
 ---
 description: Delete a rule
 method: DELETE
-url: /api/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
+url: /api/latest/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
 response:
   code: 200
   content: >-
@@ -323,22 +334,9 @@ response:
       }
     }
 ---
-description: Get a missing rule
-method: GET
-url: /api/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
-response:
-  code: 500
-  content: >-
-    {
-      "action":"ruleDetails",
-      "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
-      "result":"error",
-      "errorDetails":"Could not get Rule 0c1713ae-cb9d-4f7b-abda-ca38c5d643ea details cause is:Could not find Rule 0c1713ae-cb9d-4f7b-abda-ca38c5d643ea."
-    }
----
 description: Create a category
 method: PUT
-url: /api/rules/categories
+url: /api/latest/rules/categories
 headers:
   - "Content-Type: application/json"
 body: >-
@@ -367,9 +365,9 @@ response:
       }
     }
 ---
-description: Update a category
+description: Move category 2 into category 1
 method: POST
-url: /api/rules/categories/d882961b-279a-4ba5-b755-5198eaf00d35
+url: /api/latest/rules/categories/d882961b-279a-4ba5-b755-5198eaf00d35
 headers:
   - "Content-Type: application/json"
 body: >-
@@ -400,7 +398,7 @@ response:
 ---
 description: Get rule tree
 method: GET
-url: /api/rules/tree
+url: /api/latest/rules/tree
 response:
   code: 200
   content: >-
@@ -434,17 +432,6 @@ response:
           ],
           "rules":[
             {
-              "id":"208716db-2675-43b9-ab57-bfbab84346aa",
-              "displayName":"50-rule-technique-ncf",
-              "categoryId":"rootRuleCategory",
-              "shortDescription":"ncf technique rule",
-              "longDescription":"",
-              "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
-              "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
-              "enabled":true,
-              "system":false,
-              "tags":[{"datacenter":"Paris"},{"serverType":"webserver"}]
-            },{
               "id":"00000000-cb9d-4f7b-abda-ca38c5d643ea",
               "displayName":"clone from api of 50-rule-technique-ncf",
               "categoryId":"rootRuleCategory",
@@ -456,12 +443,36 @@ response:
               "system":false,
               "tags":[{"customer":"MyCompany"}]
             },{
-              "id":"rulecopyGitFile",
-              "displayName":"90-copy-git-file",
+              "id":"208716db-2675-43b9-ab57-bfbab84346aa",
+              "displayName":"50-rule-technique-ncf",
               "categoryId":"rootRuleCategory",
               "shortDescription":"ncf technique rule",
               "longDescription":"",
-              "directives":["directive-copyGitFile"],
+              "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+              "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
+              "enabled":true,
+              "system":false,
+              "tags":[{"datacenter":"Paris"},{"serverType":"webserver"}]
+            },{
+              "id":"ff44fb97-b65e-43c4-b8c2-000000000000",
+              "displayName":"99-rule-technique-std-lib",
+              "categoryId":"rootRuleCategory",
+              "shortDescription":"updated copy of default rule",
+              "longDescription":"",
+              "directives":["99f4ef91-537b-4e03-97bc-e65b447514cc"],
+              "targets":["special:all"],
+              "enabled":true,
+              "system":false,
+              "tags":[]
+            },{
+              "id":"ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
+              "displayName":"60-rule-technique-std-lib",
+              "categoryId":"rootRuleCategory",
+              "shortDescription":"default rule",
+              "longDescription":"",
+              "directives":["16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
+              "99f4ef91-537b-4e03-97bc-e65b447514cc",
+              "e9a1a909-2490-4fc9-95c3-9d0aa01717c9"],
               "targets":["special:all"],
               "enabled":true,
               "system":false,
@@ -478,17 +489,6 @@ response:
               "system":false,
               "tags":[]
             },{
-              "id":"ff44fb97-b65e-43c4-b8c2-000000000000",
-              "displayName":"99-rule-technique-std-lib",
-              "categoryId":"rootRuleCategory",
-              "shortDescription":"updated copy of default rule",
-              "longDescription":"",
-              "directives":["99f4ef91-537b-4e03-97bc-e65b447514cc"],
-              "targets":["special:all"],
-              "enabled":true,
-              "system":false,
-              "tags":[]
-            },{
               "id":"rule2",
               "displayName":"50.Deploy PLOP STACK",
               "categoryId":"rootRuleCategory",
@@ -500,14 +500,12 @@ response:
               "system":false,
               "tags":[]
             },{
-              "id":"ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
-              "displayName":"60-rule-technique-std-lib",
+              "id":"rulecopyGitFile",
+              "displayName":"90-copy-git-file",
               "categoryId":"rootRuleCategory",
-              "shortDescription":"default rule",
+              "shortDescription":"ncf technique rule",
               "longDescription":"",
-              "directives":["16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
-              "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-              "99f4ef91-537b-4e03-97bc-e65b447514cc"],
+              "directives":["directive-copyGitFile"],
               "targets":["special:all"],
               "enabled":true,
               "system":false,
@@ -517,3 +515,25 @@ response:
         }
       }
     }
+---
+description: Get minimal info on rule category category1
+method: GET
+url: /api/latest/rules/categories/category1
+response:
+  code: 200
+  content: >-
+    {
+      "action":"getRuleCategoryDetails",
+      "result":"success",
+      "data":{
+        "ruleCategories":{
+              "id":"category1",
+              "name":"Category 1",
+              "description":"description of category 1",
+              "parent":"rootRuleCategory",
+              "categories":["d882961b-279a-4ba5-b755-5198eaf00d35"],
+              "rules":[]
+        }
+      }
+    }
+

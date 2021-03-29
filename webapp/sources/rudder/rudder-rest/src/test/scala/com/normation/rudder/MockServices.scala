@@ -86,6 +86,11 @@ import scala.collection.SortedMap
 import com.normation.box._
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
+import com.normation.rudder.domain.archives.ParameterArchiveId
+import com.normation.rudder.domain.parameters.AddGlobalParameterDiff
+import com.normation.rudder.domain.parameters.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.parameters.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.services.queries._
 import com.unboundid.ldif.LDIFChangeRecord
@@ -150,7 +155,7 @@ class MockTechniques(configurationRepositoryRoot: File, gitRepo: GitRepositoryPr
   )
   val stringUuidGen = new StringUuidGeneratorImpl()
 
-  val techniqueRepository = new TechniqueRepositoryImpl(techniqueReader, Seq(), stringUuidGen)
+  val techniqueRepo = new TechniqueRepositoryImpl(techniqueReader, Seq(), stringUuidGen)
 
   ///////////////////////////  policyServer and systemVariables  ///////////////////////////
 
@@ -183,7 +188,7 @@ class MockTechniques(configurationRepositoryRoot: File, gitRepo: GitRepositoryPr
                                    , RudderServerRole("rudder-relay-promises-only"    , "rudder.server-roles.relay-promises-only")
                                    , RudderServerRole("rudder-cfengine-mission-portal", "rudder.server-roles.cfengine-mission-portal")
                                  )
-    , serverVersion            = "5.1.0"
+    , serverVersion            = "6.2.0"
 
     //denybadclocks is runtime properties
     , getDenyBadClocks         = () => Full(true)
@@ -312,19 +317,20 @@ class MockDirectives(mockTechniques: MockTechniques) {
       , "directive2", "", None, ""
     )
 
+    // a directive with two iterations
     val pkgTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("packageManagement"), TechniqueVersion("1.0")))
     val pkgDirective = Directive(
         DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f")
       , TechniqueVersion("1.0")
       , Map(
-            ("PACKAGE_LIST", Seq("htop"))
-          , ("PACKAGE_STATE", Seq("present"))
-          , ("PACKAGE_VERSION", Seq("latest"))
-          , ("PACKAGE_VERSION_SPECIFIC", Seq(""))
-          , ("PACKAGE_ARCHITECTURE", Seq("default"))
-          , ("PACKAGE_ARCHITECTURE_SPECIFIC", Seq(""))
-          , ("PACKAGE_MANAGER", Seq("default"))
-          , ("PACKAGE_POST_HOOK_COMMAND", Seq(""))
+            ("PACKAGE_LIST", Seq("htop", "jq"))
+          , ("PACKAGE_STATE", Seq("present", "present"))
+          , ("PACKAGE_VERSION", Seq("latest", "latest"))
+          , ("PACKAGE_VERSION_SPECIFIC", Seq("", ""))
+          , ("PACKAGE_ARCHITECTURE", Seq("default", "default"))
+          , ("PACKAGE_ARCHITECTURE_SPECIFIC", Seq("", ""))
+          , ("PACKAGE_MANAGER", Seq("default", "default"))
+          , ("PACKAGE_POST_HOOK_COMMAND", Seq("", ""))
         )
       , "directive 16617aa8-1f02-4e4a-87b6-d0bcdfb4019f", "", None, ""
     )
@@ -457,7 +463,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
     )
   }
 
-  val techniqueRepos = mockTechniques.techniqueRepository
+  val techniqueRepos = mockTechniques.techniqueRepo
   implicit class UnsafeGet(repo: TechniqueRepositoryImpl) {
     def unsafeGet(id: TechniqueId) = repo.get(id).getOrElse(throw new RuntimeException(s"Bad init for test: technique '${id.toString()}' not found"))
   }
@@ -631,7 +637,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
     override def move(categoryId: ActiveTechniqueCategoryId, intoParent: ActiveTechniqueCategoryId, optionNewName: Option[ActiveTechniqueCategoryId], modificationId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueCategoryId] = ???
   }
 
-  val initDirectivesTree = new InitDirectivesTree(mockTechniques.techniqueRepository, directiveRepo, directiveRepo, new StringUuidGeneratorImpl())
+  val initDirectivesTree = new InitDirectivesTree(mockTechniques.techniqueRepo, directiveRepo, directiveRepo, new StringUuidGeneratorImpl())
 
   initDirectivesTree.copyReferenceLib(includeSystem = true)
 
@@ -959,6 +965,76 @@ class MockRules() {
   }
 }
 
+class MockGlobalParam() {
+  import com.normation.rudder.domain.nodes.GenericProperty._
+
+  val mode = {
+    import InheritMode._
+    InheritMode(ObjectMode.Override, ArrayMode.Prepend, StringMode.Append)
+  }
+
+  val stringParam = GlobalParameter("stringParam", "some string".toConfigValue, None, "a simple string param", None)
+  val jsonParam = GlobalParameter.parse("jsonParam", """{ "string":"a string", "array": [1, 2], "json": { "var1":"val1", "var2":"val2"} }""", None, "a simple string param", None).getOrElse(throw new RuntimeException("error in mock jsonParam"))
+  val modeParam = GlobalParameter("modeParam", "some string".toConfigValue, Some(mode), "a simple string param", None)
+  val systemParam = GlobalParameter("systemParam", "some string".toConfigValue, None, "a simple string param", Some(PropertyProvider.systemPropertyProvider))
+  val all = List(stringParam, jsonParam, modeParam, systemParam).map(p => (p.name, p)).toMap
+
+  val paramsRepo = new RoParameterRepository with WoParameterRepository {
+
+    val paramsMap = RefM.make[Map[String, GlobalParameter]](all).runNow
+
+
+    override def getGlobalParameter(parameterName: String): IOResult[Option[GlobalParameter]] = {
+      paramsMap.get.map(_.get(parameterName))
+    }
+
+    override def getAllGlobalParameters(): IOResult[Seq[GlobalParameter]] = {
+      paramsMap.get.map(_.valuesIterator.toSeq)
+    }
+
+    override def saveParameter(parameter: GlobalParameter, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[AddGlobalParameterDiff] = {
+      paramsMap.update(params => params.get(parameter.name) match {
+        case Some(_) =>
+          Inconsistency(s"parameter already exists: ${parameter.name}").fail
+        case None    =>
+          (params + (parameter.name -> parameter)).succeed
+      }).map(_ => AddGlobalParameterDiff(parameter))
+    }
+
+    override def updateParameter(parameter: GlobalParameter, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[ModifyGlobalParameterDiff]] = {
+      paramsMap.update(params => params.get(parameter.name) match {
+        case Some(_)                =>
+          (params + (parameter.name -> parameter)).succeed
+        case None                   =>
+          Inconsistency(s"param does not exist: ${parameter.name}").fail
+        }
+      // TODO: ModifyGlobalParameterDiff not computed
+      ).map(_ => Some(ModifyGlobalParameterDiff(parameter.name)))
+
+    }
+
+    override def delete(parameterName: String, provider: Option[PropertyProvider], modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteGlobalParameterDiff]] = {
+      paramsMap.modify(params => params.get(parameterName) match {
+        case Some(r)                =>
+          val m = (params - parameterName)
+          (Some(DeleteGlobalParameterDiff(r)), m).succeed
+        case None                   =>
+          (None, params).succeed
+        }
+      )
+    }
+
+    override def swapParameters(newParameters: Seq[GlobalParameter]): IOResult[ParameterArchiveId] = {
+      paramsMap.set(newParameters.map(p => (p.name, p)).toMap) *> ParameterArchiveId("mock repo implementation").succeed
+    }
+
+    override def deleteSavedParametersArchiveId(saveId: ParameterArchiveId): IOResult[Unit] = {
+      UIO.unit
+    }
+
+  }
+}
+
 // internal storage format for node repository
 final case class NodeDetails(info: NodeInfo, nInv: NodeInventory, mInv: Option[MachineInventory])
 final case class NodeBase(
@@ -1158,7 +1234,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
         , root.id
         , node2.keyStatus
       )
-
     )
   }
 
@@ -1282,8 +1357,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     override def move(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
     override def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
   }
-
-
 
   val defaultModesConfig = NodeModeConfig(
       globalComplianceMode = GlobalComplianceMode(FullCompliance, 30)
