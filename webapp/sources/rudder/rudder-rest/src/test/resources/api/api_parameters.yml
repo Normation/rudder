@@ -1,0 +1,193 @@
+---
+description: Get a string parameter
+method: GET
+url: /api/latest/parameters/stringParam
+response:
+  code: 200
+  content: >-
+    {
+      "action":"parameterDetails",
+      "id":"stringParam",
+      "result":"success",
+      "data":{
+        "parameters":[
+          {
+            "id":"stringParam",
+            "value":"some string",
+            "description":"a simple string param"
+          }
+        ]
+      }
+    }
+---
+description: Get a missing parameter
+method: GET
+url: /api/latest/parameters/xxxxxxxx
+response:
+  code: 500
+  content: >-
+    {
+      "action":"parameterDetails",
+      "id":"xxxxxxxx",
+      "result":"error",
+      "errorDetails":"Could not get Parameter xxxxxxxx details cause is:Could not find Parameter xxxxxxxx."
+    }
+---
+description: List parameters
+method: GET
+url: /api/latest/parameters
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listParameters",
+      "result":"success",
+      "data":{
+        "parameters":[
+          {
+            "id":"stringParam",
+            "value":"some string",
+            "description":"a simple string param"
+          },
+          {
+            "id":"jsonParam",
+            "value":{"array":[1,2],"json":{"var1":"val1","var2":"val2"},"string":"a string"},
+            "description":"a simple string param"
+          },
+          {
+            "id":"systemParam",
+            "value":"some string",
+            "description":"a simple string param",
+            "provider":"system"
+          }
+        ]
+      }
+    }
+---
+description: Create a parameter
+method: PUT
+url: /api/latest/parameters
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "someJson",
+    "description": "A description for the new parameter",
+    "value": { "some":"json" }
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createParameter",
+      "id":"someJson",
+      "result":"success",
+      "data":{
+        "parameters":[
+          {
+            "id":"someJson",
+            "value":{"some":"json"},
+            "description":"A description for the new parameter"
+          }
+        ]
+      }
+    }
+---
+description: Update a parameter
+method: POST
+url: /api/latest/parameters/someJson
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "description": "a new description",
+    "value": { "some":"json", "somemore":"value" },
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateParameter",
+      "id":"someJson",
+      "result":"success",
+      "data":{
+        "parameters":[
+          {
+            "id":"someJson",
+            "value": { "some":"json", "somemore":"value" },
+            "description":"a new description"
+          }
+        ]
+      }
+    }
+---
+description: Get updated parameter
+method: GET
+url: /api/latest/parameters/someJson
+response:
+  code: 200
+  content: >-
+    {
+      "action":"parameterDetails",
+      "id":"someJson",
+      "result":"success",
+      "data":{
+        "parameters":[
+          {
+            "id":"someJson",
+            "value": { "some":"json", "somemore":"value" },
+            "description":"a new description"
+          }
+        ]
+      }
+    }
+---
+description: Update for provider does nothing
+method: POST
+url: /api/latest/parameters/someJson
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "provider":"system"
+  }
+response:
+  code: 200
+  content: >-
+  code: 200
+  content: >-
+    {
+      "action":"updateParameter",
+      "id":"someJson",
+      "result":"success",
+      "data":{
+        "parameters":[
+          {
+            "id":"someJson",
+            "value": { "some":"json", "somemore":"value" },
+            "description":"a new description"
+          }
+        ]
+      }
+    }
+---
+description: Delete a parameter
+method: DELETE
+url: /api/latest/parameters/someJson
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteParameter",
+      "id":"someJson",
+      "result":"success",
+      "data":{
+        "parameters":[
+          {
+            "id":"someJson",
+            "value": { "some":"json", "somemore":"value" },
+            "description":"a new description"
+          }
+        ]
+      }
+    }

@@ -162,24 +162,26 @@ final case class RestDataSerializerImpl (
      ~ ( "categoryId"       -> rule.categoryId.value)
      ~ ( "shortDescription" -> rule.shortDescription )
      ~ ( "longDescription"  -> rule.longDescription )
-     ~ ( "directives"       -> rule.directiveIds.map(_.value) )
+     ~ ( "directives"       -> rule.directiveIds.toList.map(_.value).sorted )
      ~ ( "targets"          -> rule.targets.map(_.toJson) )
      ~ ( "enabled"          -> rule.isEnabledStatus )
      ~ ( "system"           -> rule.isSystem )
-     ~ ( "tags"             -> JArray(rule.tags.tags.map ( t => JObject( JField(t.name.value,t.value.value) :: Nil) ).toList))
+     ~ ( "tags"             -> JArray(rule.tags.tags.toList.sortBy(_.name.value).map ( t => JObject( JField(t.name.value,t.value.value) :: Nil) ).toList))
    )
   }
 
   def serializeRuleCategory (category:RuleCategory, parent: RuleCategoryId, rulesMap : Map[RuleCategoryId,Seq[Rule]], detailLevel : DetailLevel): JValue = {
 
+    val ruleList = rulesMap.get(category.id).getOrElse(Nil).sortBy(_.id.value)
+    val children = category.childs.sortBy(_.id.value)
     val (rules ,categories) : (Seq[JValue],Seq[JValue]) = detailLevel match {
       case FullDetails =>
-        ( rulesMap.get(category.id).getOrElse(Nil).map(serializeRule(_,None))
-        , category.childs.map(serializeRuleCategory(_,category.id, rulesMap, detailLevel))
+        ( ruleList.map(serializeRule(_,None))
+        , children.map(serializeRuleCategory(_,category.id, rulesMap, detailLevel))
         )
       case MinimalDetails =>
-        ( rulesMap.get(category.id).getOrElse(Nil).map(rule => JString(rule.id.value))
-        , category.childs.map(cat => JString(cat.id.value))
+        ( ruleList.map(rule => JString(rule.id.value))
+        , children.map(cat => JString(cat.id.value))
         )
     }
     (   ( "id" -> category.id.value)
@@ -194,8 +196,9 @@ final case class RestDataSerializerImpl (
   def serializeParameter (parameter:GlobalParameter, crId: Option[ChangeRequestId]): JValue = {
    (   ( "changeRequestId" -> crId.map(_.value.toString))
      ~ ( "id"              -> parameter.name )
-     ~ ( "value"           -> parameter.valueAsString)
+     ~ ( "value"           -> parameter.jsonValue)
      ~ ( "description"     -> parameter.description )
+     ~ ( "provider"        -> parameter.provider.flatMap(x => if(x == PropertyProvider.defaultPropertyProvider) None else Some(x.value)))
    )
   }
 
@@ -272,7 +275,7 @@ final case class RestDataSerializerImpl (
     ~ ( "enabled"          -> directive.isEnabled )
     ~ ( "system"           -> directive.isSystem )
     ~ ( "policyMode"       -> directive.policyMode.map(_.name).getOrElse("default"))
-    ~ ( "tags"             -> JArray(directive.tags.tags.map ( t => JObject( JField(t.name.value,t.value.value) :: Nil) ).toList))
+    ~ ( "tags"             -> JArray(directive.tags.tags.toList.sortBy(_.name.value).map ( t => JObject( JField(t.name.value,t.value.value) :: Nil) ).toList))
     )
   }
 

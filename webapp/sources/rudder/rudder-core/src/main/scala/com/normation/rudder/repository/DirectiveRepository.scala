@@ -111,9 +111,9 @@ final case class FullActiveTechnique(
     )
   }
   def deleteDirective(directiveId: DirectiveId): FullActiveTechnique = {
-    this.modify(_.directives).using(directives =>
+    this.modify(_.directives).using { directives =>
       directives.filterNot(_.id == directiveId)
-    )
+    }
   }
 }
 

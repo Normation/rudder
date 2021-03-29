@@ -64,7 +64,7 @@ class RestDataExtractorTest extends Specification {
       mockRules.ruleRepo
     , mockDirectives.directiveRepo
     , null
-    , mockTechniques.techniqueRepository
+    , mockTechniques.techniqueRepo
     , null
     , null
     , null
