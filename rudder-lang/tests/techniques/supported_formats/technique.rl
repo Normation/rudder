@@ -10,17 +10,17 @@ resource supported_formats()
 
 supported_formats state technique() {
   @component = "Condition once"
-  condition("""cfengine_only""").once() as condition_once_cfengine_only
+  condition("cfengine_only").once() as condition_once_cfengine_only
 
   @component = "Directory present"
-  directory("""shared_cf_dsc""").present() as directory_present_shared_cf_dsc
+  directory("shared_cf_dsc").present() as directory_present_shared_cf_dsc
 
   @component = "Directory present"
-  if windows => directory("""shared_cf_dsc_condition""").present() as directory_present_shared_cf_dsc_condition
+  if windows => directory("shared_cf_dsc_condition").present() as directory_present_shared_cf_dsc_condition
 
   @component = "Registry key present"
-  registry_key("""DSC_ONLY""").present() as registry_key_present_DSC_ONLY
+  registry("DSC_ONLY").key_present() as registry_key_present_DSC_ONLY
 
   @component = "Registry key present"
-  if windows => registry_key("""IF_DSC_ONLY""").present() as registry_key_present_IF_DSC_ONLY
+  if windows => registry("IF_DSC_ONLY").key_present() as registry_key_present_IF_DSC_ONLY
 }

@@ -30,8 +30,7 @@
         ],
         "class_context": "any",
         "method_name": "condition_once",
-        "component": "Condition once",
-        "id": "e524c692-0faa-4f13-96d5-59f40139b30a"
+        "component": "Condition once"
       }
     ],
     "resources": []
