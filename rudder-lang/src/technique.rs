@@ -21,6 +21,7 @@ use std::{
     fmt,
     str::{self, FromStr},
 };
+use uuid::Uuid;
 
 // Techniques are limited subsets of CFEngine in JSON representation
 // that only carry method calls and Rudder metadata
@@ -220,7 +221,11 @@ pub struct MethodCall {
     condition: String,
     method_name: String,
     component: Option<String>,
+    #[serde(default = "generate_id")] // >=7.0
     id : String,
+}
+fn generate_id () -> String {
+    Uuid::new_v4().to_string()
 }
 impl MethodCall {
     fn to_rudderlang(&self, lib: &RudderlangLib) -> Result<String> {
