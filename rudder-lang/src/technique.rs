@@ -222,9 +222,9 @@ pub struct MethodCall {
     method_name: String,
     component: Option<String>,
     #[serde(default = "generate_id")] // >=7.0
-    id : String,
+    id: String,
 }
-fn generate_id () -> String {
+fn generate_id() -> String {
     Uuid::new_v4().to_string()
 }
 impl MethodCall {

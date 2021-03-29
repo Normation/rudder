@@ -263,11 +263,15 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                         .expect("Expected type string for 'component' metadata")
                         .to_owned()
                 }),
-                id: s.metadata.get("id").map(|c| {
-                    c.as_str()
-                        .expect("Expected type string for 'id' metadata")
-                        .to_owned()
-                }).unwrap_or(Uuid::new_v4().to_string()),
+                id: s
+                    .metadata
+                    .get("id")
+                    .map(|c| {
+                        c.as_str()
+                            .expect("Expected type string for 'id' metadata")
+                            .to_owned()
+                    })
+                    .unwrap_or(Uuid::new_v4().to_string()),
             }]
         }
         Statement::StateDeclaration(s) => {
@@ -305,15 +309,18 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                 method_name,
                 component: s.metadata.get("component").map(|c| {
                     c.as_str()
-                       .expect("Expected type string for 'component' metadata")
-                       .to_owned()
-
+                        .expect("Expected type string for 'component' metadata")
+                        .to_owned()
                 }),
-                id: s.metadata.get("id").map(|c| {
+                id: s
+                    .metadata
+                    .get("id")
+                    .map(|c| {
                         c.as_str()
                             .expect("Expected type string for 'id' metadata")
                             .to_owned()
-                   }).unwrap_or(Uuid::new_v4().to_string()),
+                    })
+                    .unwrap_or(Uuid::new_v4().to_string()),
             }]
         }
         Statement::Case(_, enum_expressions) => enum_expressions

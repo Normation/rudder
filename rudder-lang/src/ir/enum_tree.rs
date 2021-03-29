@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
-    ir::resource::create_metadata,
     error::*,
+    ir::resource::create_metadata,
     parser::{PEnum, PMetadata, PSubEnum, Token},
 };
 use std::{
