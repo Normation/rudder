@@ -1,6 +1,6 @@
 server = "rudder"
 my_id = "root"
-server_cert = "tests/certs/server.cert"
+server_pubkey_hash = "tests/certs/policy_server_hash"
 insecure = true
 unknown = "ignored"
 agent_cert = "tests/certs/agent.cert"

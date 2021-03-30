@@ -14,6 +14,9 @@ elif [ "$1" = "--language" ]; then
 elif [ "$1" = "--scala" ]; then
   cd webapp/sources && mvn clean install -Dmaven.test.postgres=false
   exit 0
+elif [ "$1" = "--client" ]; then
+  cd agent/sources/client && make check
+  exit 0
 fi
 
 ###################

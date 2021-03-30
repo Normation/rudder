@@ -440,7 +440,7 @@ To be completed.
 
 All nodes currently have:
 
-- An RSA 4046 key pair (1024 bits for agents installed before ...)
+- An RSA 4096 key pair (1024 bits for agents installed before ...)
 
 - A certificate based on this key for policy update, only on Windows
 

@@ -10,7 +10,7 @@
 
 #define PROTOCOL "https"
 
-// uuid len = 32 chars + 4 hyphen + \o
+// uuid length = 32 chars + 4 hyphen + \0
 #define MAX_ID_LEN 32 + 4 + 1
 
 #ifdef __unix__
@@ -33,6 +33,12 @@ static const char UUID_HIVE[] = "tests/config/uuid.hive";
 static const char UUID_HIVE[] = "/opt/rudder/etc/uuid.hive";
 #endif
 
+#ifdef DEBUG
+static const char POLICY_SERVER_HASH[] = "tests/certs/policy_server_hash";
+#else
+static const char POLICY_SERVER_HASH[] = "/var/rudder/lib/ssl/policy_server_hash";
+#endif
+
 static const char DEFAULT_CONF_FILE[] = "/opt/rudder/etc/agent.conf";
 
 // FIXME use base from config instead
@@ -45,8 +51,8 @@ typedef struct config {
 
     // WARNING: Disables certificate validation, only for testing/development
     bool insecure;
-    // Policy server certificate path
-    char* server_cert;
+    // Policy server public key path
+    char* server_pubkey_hash;
     // Policy server
     char* server;
     // My id

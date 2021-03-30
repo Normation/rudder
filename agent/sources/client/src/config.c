@@ -17,13 +17,14 @@ void config_default(Config* config) {
     config->server = NULL;
     config->my_id = NULL;
 #ifdef __unix__
-    config->server_cert = strdup_compat("/var/rudder/cfengine-community/ppkeys/policy_server.cert");
+    config->server_pubkey_hash = strdup_compat("/var/rudder/lib/ssl/policy_server_hash");
     // Not used for now on unix
     config->agent_key = strdup_compat("/var/rudder/cfengine-community/ppkeys/localhost.priv");
     // Not used for now on unix
     config->agent_cert = strdup_compat("/opt/rudder/etc/ssl/agent.cert");
 #elif _WIN32
-    config->server_cert = strdup_compat("C:\\Program Files\\Rudder\\etc\\ssl\\policy_server.cert");
+    config->server_pubkey_hash =
+        strdup_compat("C:\\Program Files\\Rudder\\var\\lib\\ssl\\policy_server_hash");
     config->agent_cert = strdup_compat("C:\\Program Files\\Rudder\\etc\\ssl\\localhost.cert");
     config->agent_key = strdup_compat("C:\\Program Files\\Rudder\\etc\\ssl\\localhost.priv");
 #endif
@@ -48,7 +49,7 @@ void config_default(Config* config) {
 void config_free(Config* config) {
     free(config->server);
     free(config->my_id);
-    free(config->server_cert);
+    free(config->server_pubkey_hash);
     free(config->proxy);
     free(config->agent_cert);
     free(config->agent_key);
@@ -181,7 +182,16 @@ bool local_config_parse(const char* path, Config* config) {
         goto exit;
     }
 
-    read_string_value(conf, "server_cert", false, &config->server_cert);
+    read_string_value(conf, "server_pubkey_hash", false, &config->server_pubkey_hash);
+    char* hash = NULL;
+    res = read_file_content(config->server_pubkey_hash, &hash);
+    if (res == false) {
+        return false;
+    }
+    free(config->server_pubkey_hash);
+    // Replace path by hash value
+    config->server_pubkey_hash = hash;
+
     read_string_value(conf, "agent_cert", false, &config->agent_cert);
     read_string_value(conf, "agent_key", false, &config->agent_key);
     read_string_value(conf, "proxy", false, &config->proxy);

@@ -11,9 +11,10 @@ use std::{
     thread, time,
 };
 
-fn fake_server_start() {
+fn fake_server_start(id: String) {
     thread::spawn(|| {
         Command::new("tests/server.py")
+            .arg(id)
             .spawn()
             .expect("failed to execute process")
     });
@@ -164,7 +165,18 @@ mod tests {
             ("nodes", "root,c745a140-40bc-4b86-b6dc-084488fc906b"),
         ];
 
-        fake_server_start();
+        // Wrong certificate
+        fake_server_start("e745a140-40bc-4b86-b6dc-084488fc906b".to_string());
+        let response = client
+            .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+            .form(&params_sync)
+            .send()
+            .unwrap();
+        fake_server_stop();
+        assert_eq!(response.status(), hyper::StatusCode::OK);
+
+        // Good certificate
+        fake_server_start("37817c4d-fbf7-4850-a985-50021f4e8f41".to_string());
         let response = client
             .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
             .form(&params_sync)

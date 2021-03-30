@@ -1,8 +1,0 @@
-#!/bin/sh
-
-set -ex
-
-CC=clang make check
-CC=gcc   make check
-
-make clippy

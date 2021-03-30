@@ -47,7 +47,7 @@ void test_config_complete(void) {
     bool res = config_parse("tests/config/complete.toml", "tests/config/policy.toml", &config);
     assert(res == true);
     assert(strcmp(config.server, "rudder") == 0);
-    assert(strcmp(config.server_cert, "tests/certs/server.cert") == 0);
+    assert(strcmp(config.server_pubkey_hash, "sha256//ZE9q37dB6Nq+ZJz1cdrfdt+qPL+Xk8sKkLDMTp4QemY=") == 0);
     assert(strcmp(config.agent_cert, "tests/certs/agent.cert") == 0);
     assert(strcmp(config.agent_key, "tests/certs/agent.priv") == 0);
     assert(strcmp(config.proxy, "https://proxy.example.com") == 0);
@@ -70,8 +70,6 @@ void test_config_minimal(void) {
     assert(res == true);
     assert(strcmp(config.server, "rudder") == 0);
     assert(strcmp(config.my_id, "e745a140-40bc-4b86-b6dc-084488fc906b") == 0);
-    assert(strcmp(config.server_cert, "/var/rudder/cfengine-community/ppkeys/policy_server.cert")
-           == 0);
     assert(config.insecure == false);
     config_free(&config);
 }

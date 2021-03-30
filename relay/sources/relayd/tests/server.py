@@ -4,11 +4,10 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import ssl
 import time
 from pprint import pprint
+import sys
 
 PORT = 4443
-
-ID = "37817c4d-fbf7-4850-a985-50021f4e8f41"
-
+nodeid = sys.argv[1]
 
 class PolicyServer(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -17,7 +16,7 @@ class PolicyServer(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
             self.end_headers()
-            self.wfile.write(str.encode(ID))
+            self.wfile.write(str.encode(nodeid))
         elif self.path == "/stop":
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
@@ -42,16 +41,15 @@ class PolicyServer(BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
-
 server_address = ('', PORT)
 httpd = HTTPServer(server_address, PolicyServer)
 httpd.socket = ssl.wrap_socket(
     httpd.socket,
     server_side=True,
     certfile='tests/files/keys/' +
-    ID +
+    nodeid +
     '.cert',
     keyfile='tests/files/keys/' +
-    ID +
+    nodeid +
     '.nopass.priv')
 httpd.serve_forever()

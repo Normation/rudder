@@ -43,6 +43,11 @@
 int common_options(CURL** curl, bool verbose, const Config config) {
     CURLcode ret = 0;
 
+    if (verbose) {
+        ret = curl_easy_setopt(*curl, CURLOPT_VERBOSE, 1L);
+        CURL_CHECK(*curl, ret);
+    }
+
     // Enforce TLS 1.2+
     debug("Enforcing TLS 1.2+");
     ret = curl_easy_setopt(*curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
@@ -65,27 +70,21 @@ int common_options(CURL** curl, bool verbose, const Config config) {
     }
     CURL_CHECK(*curl, ret);
 
-    // Specify server cert path. We use it directly as CA.
-    debug("Setting server certificate '%s'", config.server_cert);
-    ret = curl_easy_setopt(*curl, CURLOPT_CAINFO, config.server_cert);
-    CURL_CHECK(*curl, ret);
+    if (!config.insecure) {
+        // Pin public key
+        debug("Setting server pinned public key '%s'", config.server_pubkey_hash);
+        ret = curl_easy_setopt(*curl, CURLOPT_PINNEDPUBLICKEY, config.server_pubkey_hash);
+        CURL_CHECK(*curl, ret);
+    } else {
+        warn("Skipping certificate validation as configured");
+    }
 
-    // Do not validate hostname. We can do it as we check certificate is identical
+    // Do not validate hostname or certificate. We can do it as we check certificate is identical
     // to the one we know.
     ret = curl_easy_setopt(*curl, CURLOPT_SSL_VERIFYHOST, 0L);
     CURL_CHECK(*curl, ret);
-
-    // Skip all verifications
-    if (config.insecure) {
-        warn("Skiping certificate validation as configured");
-        ret = curl_easy_setopt(*curl, CURLOPT_SSL_VERIFYPEER, 0L);
-        CURL_CHECK(*curl, ret);
-    }
-
-    if (verbose) {
-        ret = curl_easy_setopt(*curl, CURLOPT_VERBOSE, 1L);
-        CURL_CHECK(*curl, ret);
-    }
+    ret = curl_easy_setopt(*curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    CURL_CHECK(*curl, ret);
 
     return CURLE_OK;
 }

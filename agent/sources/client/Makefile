@@ -35,10 +35,6 @@ BUILD_LDFLAGS=$(LDFLAGS)
 # Debug flags
 CFLAGS_DEBUG := -O -g3 -DDEBUG -fsanitize=address,undefined
 LDFLAGS_DEBUG := -fsanitize=address,undefined
-ifeq ($(CC),gcc)
-CFLAGS_DEBUG += -fanalyzer
-endif
-
 CFLAGS_RELEASE := -O2
 BUILD_LDFLAGS += -lcurl -lm
 
@@ -130,7 +126,9 @@ test: test-target
 
 # tests but refuse warnings, for usage in CI
 check: BUILD_CFLAGS += -Werror
-check: test
+check:
+	CC=clang make test
+	CC=gcc   make test
 
 # tools
 
