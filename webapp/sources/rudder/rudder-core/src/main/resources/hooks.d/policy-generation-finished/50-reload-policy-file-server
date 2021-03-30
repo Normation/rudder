@@ -11,4 +11,12 @@
 
 # Signal to cf-serverd that it shall look-up the new promises
 
+ACL_BACK="/var/rudder/tmp/cf-serverd.backup"
+ACL_FILE="/var/rudder/cfengine-community/inputs/common/1.0/cf-serverd.cf"
+if [ -f "${ACL_BACK}" ]; then
+  if [ "$(stat --format=%Y "${ACL_BACK}")" -ge "$(stat --format=%Y "${ACL_FILE}")" ]; then
+    exit 0
+  fi
+fi
+cp "${ACL_FILE}" "${ACL_BACK}"
 systemctl reload-or-restart rudder-cf-serverd
