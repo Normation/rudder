@@ -4,8 +4,8 @@
 pub mod context;
 pub mod enum_tree;
 pub mod enums;
+pub mod ir1;
+pub mod ir2;
 pub mod resource;
 pub mod value;
 pub mod variable;
-pub mod ir1;
-pub mod ir2;

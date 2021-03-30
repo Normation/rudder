@@ -9,6 +9,7 @@ use std::str;
 use std::{collections::HashMap, convert::From};
 use toml::map::Map as TomlMap;
 use toml::Value as TomlValue;
+use uuid::Uuid;
 
 impl<'src> Technique {
     pub fn from_ir(ir: &IR2<'src>) -> Result<Self> {
@@ -257,18 +258,20 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                 parameters,
                 condition,
                 method_name,
-<<<<<<< HEAD
-                component: s.metadata.get("component").and_then(|c| {
-                    Some(
-                        c.as_str()
-                            .expect("Expected type string for 'component' metadata")
-                            .to_owned(),
-                    )
+                component: s.metadata.get("component").map(|c| {
+                    c.as_str()
+                        .expect("Expected type string for 'component' metadata")
+                        .to_owned()
                 }),
-=======
-                component: extract_meta_string(&s.metadata, "component"),
-                id: extract_meta_string(&s.metadata, "id"),
->>>>>>> 52c206b0b (fixup! fixup! fixup! fixup! fixup! fixes #18953: Port technique editor in elm)
+                id: s
+                    .metadata
+                    .get("id")
+                    .map(|c| {
+                        c.as_str()
+                            .expect("Expected type string for 'id' metadata")
+                            .to_owned()
+                    })
+                    .unwrap_or(Uuid::new_v4().to_string()),
             }]
         }
         Statement::StateDeclaration(s) => {
@@ -304,14 +307,20 @@ fn statement_to_method_call(ir: &IR2, stmt: &Statement, condition: String) -> Ve
                 parameters,
                 condition,
                 method_name,
-                component: s.metadata.get("component").and_then(|c| {
-                    Some(
-                        c.as_str()
-                            .expect("Expected type string for 'component' metadata")
-                            .to_owned(),
-                    )
+                component: s.metadata.get("component").map(|c| {
+                    c.as_str()
+                        .expect("Expected type string for 'component' metadata")
+                        .to_owned()
                 }),
-                id: extract_meta_string(&s.metadata, "id"),
+                id: s
+                    .metadata
+                    .get("id")
+                    .map(|c| {
+                        c.as_str()
+                            .expect("Expected type string for 'id' metadata")
+                            .to_owned()
+                    })
+                    .unwrap_or(Uuid::new_v4().to_string()),
             }]
         }
         Statement::Case(_, enum_expressions) => enum_expressions
