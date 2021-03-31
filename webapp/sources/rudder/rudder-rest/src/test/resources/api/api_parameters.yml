@@ -23,6 +23,7 @@ response:
 description: Get a missing parameter
 method: GET
 url: /api/latest/parameters/xxxxxxxx
+comment: notice that key in json parameter value are sorted alpha-num, since rudder 6.2 / use of config.
 response:
   code: 500
   content: >-
@@ -51,7 +52,7 @@ response:
           },
           {
             "id":"jsonParam",
-            "value":{"array":[1,2],"json":{"var1":"val1","var2":"val2"},"string":"a string"},
+            "value":{"array":[1,3,2], "json":{"var1":"val1","var2":"val2"}, "string":"a string"},
             "description":"a simple string param"
           },
           {
@@ -71,6 +72,7 @@ response:
     }
 ---
 description: Create a parameter
+comment: see how keys are reordered an bigint truncated
 method: PUT
 url: /api/latest/parameters
 headers:
@@ -79,7 +81,7 @@ body: >-
   {
     "id": "someJson",
     "description": "A description for the new parameter",
-    "value": { "some":"json" }
+    "value":{"some":"json","bool":true,"int":1,"dec":1.465245,"arr":[1,3,2],"obj":{"b":"b", "a":"a"}, "big":0.142857142857142857142857142857142857}
   }
 response:
   code: 200
@@ -92,7 +94,7 @@ response:
         "parameters":[
           {
             "id":"someJson",
-            "value":{"some":"json"},
+            "value":{"arr":[1,3,2],"big":0.14285714285714285,"bool":true,"dec":1.465245,"int":1,"obj":{"a":"a","b":"b"},"some":"json"},
             "description":"A description for the new parameter"
           }
         ]
@@ -107,7 +109,7 @@ headers:
 body: >-
   {
     "description": "a new description",
-    "value": { "some":"json", "somemore":"value" },
+    "value": "string",
     "inheritMode": "opa"
   }
 response:
@@ -121,7 +123,7 @@ response:
         "parameters":[
           {
             "id":"someJson",
-            "value": { "some":"json", "somemore":"value" },
+            "value": "string",
             "description":"a new description",
             "inheritMode": "opa"
           }
@@ -143,7 +145,7 @@ response:
         "parameters":[
           {
             "id":"someJson",
-            "value": { "some":"json", "somemore":"value" },
+            "value": "string",
             "description":"a new description",
             "inheritMode": "opa"
           }
@@ -173,7 +175,7 @@ response:
         "parameters":[
           {
             "id":"someJson",
-            "value": { "some":"json", "somemore":"value" },
+            "value": "string",
             "description":"a new description",
             "inheritMode": "opa"
           }
@@ -195,7 +197,7 @@ response:
         "parameters":[
           {
             "id":"someJson",
-            "value": { "some":"json", "somemore":"value" },
+            "value": "string",
             "description":"a new description",
             "inheritMode": "opa"
           }

@@ -974,7 +974,7 @@ class MockGlobalParam() {
   }
 
   val stringParam = GlobalParameter("stringParam", "some string".toConfigValue, None, "a simple string param", None)
-  val jsonParam = GlobalParameter.parse("jsonParam", """{ "string":"a string", "array": [1, 2], "json": { "var1":"val1", "var2":"val2"} }""", None, "a simple string param", None).getOrElse(throw new RuntimeException("error in mock jsonParam"))
+  val jsonParam = GlobalParameter.parse("jsonParam", """{ "string":"a string", "array": [1, 3, 2], "json": { "var1":"val1", "var2":"val2"} }""", None, "a simple string param", None).getOrElse(throw new RuntimeException("error in mock jsonParam"))
   val modeParam = GlobalParameter("modeParam", "some string".toConfigValue, Some(mode), "a simple string param", None)
   val systemParam = GlobalParameter("systemParam", "some string".toConfigValue, None, "a simple string param", Some(PropertyProvider.systemPropertyProvider))
   val all = List(stringParam, jsonParam, modeParam, systemParam).map(p => (p.name, p)).toMap
