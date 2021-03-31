@@ -924,7 +924,7 @@ final case class RestExtractorService (
       description <- extractJsonString(json, "description")
       value       <- (json \ "value") match {
                        case JNothing => Full(None)
-                       case x        => GenericProperty.parseValue(compactRender(x)).map(x => Some(x)).toBox
+                       case x        => Full(Some(GenericProperty.fromJsonValue(x)))
                      }
       inheritMode <- (json \ "inheritMode" ) match {
                        case JString(s) => InheritMode.parseString(s).map(x => Some(x)).toBox
