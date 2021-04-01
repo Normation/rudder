@@ -488,7 +488,7 @@ final case class ContextForNoAnswer(
             //      More over, we group together the cases where we have config for the run, because without
             //      a current expected config, it should be impossible (no way to paired it with that run).
             //      Just log an error for dev.
-            case ((AgentRunWithNodeConfig(AgentRunId(_, t), optConfigId, _, _)), None) =>
+            case ((AgentRunWithNodeConfig(AgentRunId(_, t), optConfigId, _)), None) =>
               if(nodeConfigIdInfos.isDefinedAt(nodeId)) {
                 runType("nodeId exists in DB but has no version (due to cleaning?). Need regeneration, no expected report yet.", NoExpectedReport(t, None))
               } else {
@@ -500,7 +500,7 @@ final case class ContextForNoAnswer(
             //
             // #2 : run without config ID (neither in it nor found)
             //      no expected config for the run. Why so? At least, a recent config.
-            case ((AgentRunWithNodeConfig(AgentRunId(_, t), None, _, _)), Some(currentConfig)) =>
+            case ((AgentRunWithNodeConfig(AgentRunId(_, t), None, _)), Some(currentConfig)) =>
               /*
                * Here, we want to check two things:
                * - does the run should have contain a config id ?
@@ -549,7 +549,7 @@ final case class ContextForNoAnswer(
             // #3 : run with a version ID !
             //      But no corresponding expected Node. A
             //      And no current one.
-            case ((AgentRunWithNodeConfig(AgentRunId(_, t), Some((rv,None)), _, _)), Some(currentConfig)) =>
+            case ((AgentRunWithNodeConfig(AgentRunId(_, t), Some((rv,None)), _)), Some(currentConfig)) =>
               //it's a bad version, but we have config id in DB => likelly a corruption on node
               //expirationTime is the date after which we must have gotten a report for the current version
               val configurationExpirationTime = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
@@ -565,7 +565,7 @@ final case class ContextForNoAnswer(
             //      So this is the standard case.
             //      We have to check if run version == expected, if it's the case: nominal case.
             //      Else, we need to check if the node version is not too old,
-            case ((AgentRunWithNodeConfig(AgentRunId(_, t), Some((rv, Some(runConfig))), _, _)), Some(currentConfig)) =>
+            case ((AgentRunWithNodeConfig(AgentRunId(_, t), Some((rv, Some(runConfig))), _)), Some(currentConfig)) =>
               runConfig.endDate match {
 
                 case None =>

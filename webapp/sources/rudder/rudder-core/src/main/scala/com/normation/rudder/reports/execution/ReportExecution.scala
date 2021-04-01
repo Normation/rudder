@@ -54,7 +54,6 @@ final case class AgentRunId(
 final case class AgentRun (
     agentRunId       : AgentRunId
   , nodeConfigVersion: Option[NodeConfigId]
-  , isCompleted      : Boolean
   , insertionId      : Long
 )
 
@@ -65,7 +64,6 @@ final case class AgentRun (
 final case class AgentRunWithNodeConfig (
     agentRunId       : AgentRunId
   , nodeConfigVersion: Option[(NodeConfigId, Option[NodeExpectedReports])]
-  , isCompleted      : Boolean
   , insertionId      : Long
 )
 

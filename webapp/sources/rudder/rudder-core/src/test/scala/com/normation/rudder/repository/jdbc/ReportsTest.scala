@@ -183,10 +183,10 @@ class ReportsTest extends DBCommon {
     "get reports" in {
       val res = repostsRepo.getReportsfromId(0, DateTime.now().plusDays(1)).openOrThrowException("Test failed")
       val expected = Seq(
-          AgentRun(AgentRunId(NodeId("n0"),run1),None,true, 109)
-        , AgentRun(AgentRunId(NodeId("n1"),run1),Some(NodeConfigId("n1_run1")),true, 115)
-        , AgentRun(AgentRunId(NodeId("n1"),run2),Some(NodeConfigId("n1_run2")),true, 118)
-        , AgentRun(AgentRunId(NodeId("n2"),run1),Some(NodeConfigId("n2_run1")),true, 120)
+          AgentRun(AgentRunId(NodeId("n0"),run1),None, 109)
+        , AgentRun(AgentRunId(NodeId("n1"),run1),Some(NodeConfigId("n1_run1")), 115)
+        , AgentRun(AgentRunId(NodeId("n1"),run2),Some(NodeConfigId("n1_run2")), 118)
+        , AgentRun(AgentRunId(NodeId("n2"),run1),Some(NodeConfigId("n2_run1")), 120)
       )
 
       val checkInsert = transacRun(xa => sql"""select id from ruddersysevents""".query[Long].to[Vector].transact(xa)).size

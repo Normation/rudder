@@ -375,7 +375,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
          * of case where they are not correct in the reports, we need to sort the correct
          * one from the others.
          */
-        type T = (String, DateTime, Option[String], Boolean, Long)
+        type T = (String, DateTime, Option[String], Long)
 
         //we want to match: """End execution with config [75rz605art18a05]"""
         // the (?s) allows . to match any characters, even non displayable ones
@@ -387,12 +387,12 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                    case v  => Some(NodeConfigId(v))
 
                  })
-                 AgentRun(AgentRunId(NodeId(t._1), t._2), optNodeConfigId, t._4, t._5)
+                 AgentRun(AgentRunId(NodeId(t._1), t._2), optNodeConfigId, t._4)
                })
         }
 
         val getRunsQuery = """select
-                             |  nodeid, executiontimestamp, coalesce(keyvalue, '') as nodeconfigid, true as complete, id as insertionid
+                             |  nodeid, executiontimestamp, coalesce(keyvalue, '') as nodeconfigid, id as insertionid
                              |from ruddersysevents where id > ? and id <= ? and
                              |    eventtype = 'control' and
                              |    component = 'end'""".stripMargin
@@ -418,23 +418,19 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
               recDisctinct(a :: t)
             } else (a, b) match {
               //by default, take the one with a configId.
-              case (AgentRun(_, Some(idA), _, _), AgentRun(_, None, _, _)) => recDisctinct(a :: t)
-              case (AgentRun(_, None, _, _), AgentRun(_, Some(idB), _, _)) => recDisctinct(b :: t)
+              case (AgentRun(_, Some(idA), _), AgentRun(_, None,  _)) => recDisctinct(a :: t)
+              case (AgentRun(_, None, _), AgentRun(_, Some(idB),  _)) => recDisctinct(b :: t)
               //this one, with two config id, should never happen, but still...
               //we don't care if they are the same, because we still prefer the one completed, and
               //the one with the higher serial.
-              case (AgentRun(_, Some(idA), isCompleteA, serialA), AgentRun(_, Some(idB), isCompleteB, serialB)) =>
-                if(isCompleteA && !isCompleteB) {
-                  recDisctinct(a :: t)
-                } else if(!isCompleteA && isCompleteB) {
-                  recDisctinct(b :: t)
-                } else { //ok.. use serial...
+              case (AgentRun(_, Some(idA), serialA), AgentRun(_, Some(idB), serialB)) =>
+                  //ok.. use serial...
                   if(serialA <= serialB) {
                     recDisctinct(a :: t)
                   } else {
                     recDisctinct(b :: t)
                   }
-                }
+
             }
         }
       }
