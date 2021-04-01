@@ -732,14 +732,14 @@ object JsonPropertySerialisation {
         case ParentProperty.Global(value) =>
           (
             ( "kind"  -> "global")
-          ~ ( "value" -> GenericProperty.serializeToJson(value))
+          ~ ( "value" -> GenericProperty.toJsonValue(value))
           )
         case ParentProperty.Group(name, id, value) =>
           (
             ( "kind"  -> "group" )
           ~ ( "name"  -> name    )
           ~ ( "id"    -> id.value)
-          ~ ( "value" -> GenericProperty.serializeToJson(value))
+          ~ ( "value" -> GenericProperty.toJsonValue(value))
           )
         case _ => JNothing
       }
@@ -749,24 +749,29 @@ object JsonPropertySerialisation {
   implicit class JsonNodePropertyHierarchy(val prop: NodePropertyHierarchy) extends AnyVal {
     implicit def formats = DefaultFormats
 
-    def toApiJson: JObject = {
-      prop.hierarchy match {
-        case Nil  => prop.prop.toJson
-        case list => prop.prop.toJson ~ ("hierarchy" -> JArray(list.map(_.toJson)))
-      }
-    }
 
-    def toApiJsonRenderParents = {
+    private def buildHierarchy(displayParents: List[ParentProperty] => JValue): JObject = {
       val (parents, origval) = prop.hierarchy match {
-        case Nil => (None, None)
-        case _   =>
+        case Nil  => (None, None)
+        case list =>
           (
-            Some(prop.hierarchy.reverse.map(p => s"<p>from <b>${p.displayName}</b>:<pre>${p.value.render(ConfigRenderOptions.defaults().setOriginComments(false))}</pre></p>").mkString(""))
+            Some(displayParents(list))
           , prop.hierarchy.headOption.map(v => GenericProperty.toJsonValue(v.value))
           )
       }
 
       prop.prop.toJson ~ ("hierarchy" -> parents) ~ ("origval" -> origval)
+
+    }
+
+    def toApiJson: JObject = {
+      buildHierarchy(list => list.reverse.map(_.toJson))
+    }
+
+    def toApiJsonRenderParents = {
+      buildHierarchy(list => list.reverse.map(p =>
+        s"<p>from <b>${p.displayName}</b>:<pre>${p.value.render(ConfigRenderOptions.defaults().setOriginComments(false))}</pre></p>"
+      ).mkString(""))
     }
 
   }

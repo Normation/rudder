@@ -271,6 +271,10 @@ object NodeApi extends ApiModuleProvider[NodeApi] {
   // WARNING: read_only user can access this endpoint
   //    No modifications are performed here
   //    POST over GET is required here because we can provide too many information to be passed as URL parameters
+  final case object NodeDisplayInheritedProperties extends NodeApi with InternalApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all proporeties for that node, included inherited ones, for displaying in node property tab (internal)"
+    val (action, path)  = GET / "nodes" / "{id}" / "displayInheritedProperties"
+  }
   final case object NodeDetailsTable extends NodeApi with InternalApi with ZeroParam  with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
     val description = "Getting data to build a Node table"
     val (action, path)  = POST / "nodes" / "details"
