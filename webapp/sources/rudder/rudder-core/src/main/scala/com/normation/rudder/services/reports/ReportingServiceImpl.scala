@@ -65,14 +65,16 @@ import zio.syntax._
 object ReportingServiceUtils {
 
   /*
-   * Build rule status reports from node reports, decide=ing which directive should be "skipped"
+   * Build rule status reports from node reports, deciding which directives should be "skipped"
    */
   def buildRuleStatusReport(ruleId: RuleId, nodeReports: Map[NodeId, NodeStatusReport]): RuleStatusReport = {
     val toKeep = nodeReports.values.flatMap( _.reports ).filter(_.ruleId == ruleId).toList
     // we don't keep overrides for a directive which is already in "toKeep" or that don't target that rule
     val toKeepDir = toKeep.map(_.directives.keySet).toSet.flatten
     val overrides = nodeReports.values.flatMap( _.overrides.filterNot(r => r.policy.ruleId != ruleId || toKeepDir.contains(r.policy.directiveId))).toList.distinct
-    RuleStatusReport(ruleId, toKeep, overrides)
+    // and we must make overrides unique - ie, we don't keep overridden that are overridden by directive themselve in the overridden list
+    val overrides2 = overrides.filterNot(o => overrides.exists(_.policy == o.overridenBy))
+    RuleStatusReport(ruleId, toKeep, overrides2)
   }
 }
 
