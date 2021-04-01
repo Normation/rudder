@@ -5,6 +5,7 @@ module MethodConditions exposing (..)
 -- This file model the "condition" form applied to generic methods
 --
 
+
 type OS = AIX     { version : Maybe  Int }
         | Linux   ( Maybe LinuxOS )
         | Solaris { major : Maybe  Int, minor : Maybe Int }
@@ -212,3 +213,153 @@ parseOs os =
                           Nothing -> Nothing
                           x       -> Just (AIX { version = x })
     _ -> Nothing
+
+
+noVersion = {major = Nothing, minor = Nothing }
+
+osList : List (Maybe OS)
+osList =
+  [ Nothing
+  , Just (Linux Nothing)
+  , Just (Linux (Just (Debian noVersion)))
+  , Just (Linux (Just (Ubuntu noVersion)))
+  , Just (Linux (Just (RH noVersion)))
+  , Just (Linux (Just (Centos noVersion)))
+  , Just (Linux (Just (Fedora {version = Nothing})))
+  , Just (Linux (Just (Oracle)))
+  , Just (Linux (Just (Amazon)))
+  , Just (Linux (Just (Suse)))
+  , Just (Linux (Just (SLES {version = Nothing, sp = Nothing})))
+  , Just (Linux (Just (SLED {version = Nothing, sp = Nothing})))
+  , Just (Linux (Just (OpenSuse noVersion)))
+  , Just (Linux (Just (Slackware noVersion)))
+  , Just Windows
+  , Just ( AIX {version = Nothing} )
+  , Just ( Solaris noVersion)
+  ]
+
+-- VERSION in the condition part --
+-- some OS only have one version (+maybe service packs). Deals with it here
+hasVersion: Maybe OS -> Bool
+hasVersion os =
+  case os of
+    Just (Linux (Just (Fedora _))) -> True
+    Just (Linux (Just (SLES _))) -> True
+    Just (Linux (Just (SLED _))) -> True
+    Just (AIX _) -> True
+    _ -> False
+
+getVersion: Maybe OS -> Maybe Int
+getVersion os =
+  case os of
+    Just (Linux (Just (Fedora v))) -> v.version
+    Just (Linux (Just (SLES v))) -> v.version
+    Just (Linux (Just (SLED v))) -> v.version
+    Just (AIX v) -> v.version
+    _ -> Nothing
+
+updateVersion:  Maybe Int -> Maybe OS -> Maybe OS
+updateVersion newVersion os =
+  case os of
+    Just (Linux (Just (SLES v))) -> Just (Linux (Just (SLES {v | version = newVersion})))
+    Just (Linux (Just (SLED v))) -> Just (Linux (Just (SLED {v | version = newVersion})))
+    Just (Linux (Just (Fedora v))) -> Just (Linux (Just (Fedora {v | version = newVersion})))
+    Just (AIX v) -> Just (AIX {v | version = newVersion})
+    _ -> os
+
+-- for OS with service patcks
+hasSP: Maybe OS -> Bool
+hasSP os =
+  case os of
+    Just (Linux (Just (SLES _))) -> True
+    Just (Linux (Just (SLED _))) -> True
+    _ -> False
+
+getSP: Maybe OS -> Maybe Int
+getSP os =
+  case os of
+    Just (Linux (Just (SLES v))) -> v.sp
+    Just (Linux (Just (SLED v))) -> v.sp
+    _ -> Nothing
+
+updateSP:  Maybe Int -> Maybe OS -> Maybe OS
+updateSP newSP os =
+  case os of
+    Just (Linux (Just (SLES v))) -> Just (Linux (Just (SLES {v | sp = newSP})))
+    Just (Linux (Just (SLED v))) -> Just (Linux (Just (SLED {v | sp = newSP})))
+    _ -> os
+
+-- most OS have a major+minor version
+hasMajorMinorVersion: Maybe OS -> Bool
+hasMajorMinorVersion os =
+  case os of
+    Just (Linux (Just (Debian _))) -> True
+    Just (Linux (Just (Ubuntu _)))-> True
+    Just (Linux (Just (RH _))) -> True
+    Just (Linux (Just (Centos _))) -> True
+    Just (Linux (Just (OpenSuse _))) -> True
+    Just (Linux (Just (Slackware _))) -> True
+    Just (Solaris _) -> True
+    _ -> False
+
+
+getMajorVersion:  Maybe OS -> Maybe Int
+getMajorVersion os =
+  case os of
+    Just (Linux (Just (Debian v))) -> v.major
+    Just (Linux (Just (Ubuntu v)))-> v.major
+    Just (Linux (Just (RH v))) -> v.major
+    Just (Linux (Just (Centos v))) -> v.major
+    Just (Linux (Just (OpenSuse v))) -> v.major
+    Just (Linux (Just (Slackware v))) -> v.major
+    Just (Solaris v) -> v.major
+    _ -> Nothing
+
+getMinorVersion:  Maybe OS -> Maybe Int
+getMinorVersion os =
+  case os of
+    Just (Linux (Just (Debian v))) -> v.minor
+    Just (Linux (Just (Ubuntu v)))-> v.minor
+    Just (Linux (Just (RH v))) -> v.minor
+    Just (Linux (Just (Centos v))) -> v.minor
+    Just (Linux (Just (OpenSuse v))) -> v.minor
+    Just (Linux (Just (Slackware v))) -> v.minor
+    Just (Solaris v) -> v.minor
+    _ -> Nothing
+
+updateMajorVersion: Maybe Int -> Maybe OS -> Maybe OS
+updateMajorVersion newMajor os =
+  case os of
+    Just (Linux (Just (Debian v))) -> Just (Linux (Just (Debian {v | major = newMajor})))
+    Just (Linux (Just (Ubuntu v)))-> Just (Linux (Just (Ubuntu {v | major = newMajor})))
+    Just (Linux (Just (RH v))) -> Just (Linux (Just (RH {v | major = newMajor})))
+    Just (Linux (Just (Centos v))) -> Just (Linux (Just (Centos {v | major = newMajor})))
+    Just (Linux (Just (OpenSuse v))) -> Just (Linux (Just (OpenSuse {v | major = newMajor})))
+    Just (Linux (Just (Slackware v))) -> Just (Linux (Just (Slackware {v | major = newMajor})))
+    Just (Solaris v) -> Just ( Solaris { v | major = newMajor } )
+    _ -> os
+
+updateMinorVersion: Maybe Int -> Maybe OS -> Maybe OS
+updateMinorVersion newMinor os =
+  case os of
+    Just (Linux (Just (Debian v))) -> Just (Linux (Just (Debian {v | minor = newMinor})))
+    Just (Linux (Just (Ubuntu v)))-> Just (Linux (Just (Ubuntu {v | minor = newMinor})))
+    Just (Linux (Just (RH v))) -> Just (Linux (Just (RH {v | minor = newMinor})))
+    Just (Linux (Just (Centos v))) -> Just (Linux (Just (Centos {v | minor = newMinor})))
+    Just (Linux (Just (OpenSuse v))) -> Just (Linux (Just (OpenSuse {v | minor = newMinor})))
+    Just (Linux (Just (Slackware v))) -> Just (Linux (Just (Slackware {v | minor = newMinor})))
+    Just (Solaris v) -> Just ( Solaris { v | minor = newMinor } )
+    _ -> os
+
+
+osClass: Maybe OS -> String
+osClass maybeOs =
+  case maybeOs of
+    Nothing -> "optGroup"
+    Just os ->
+      case os of
+        AIX _ -> "optGroup"
+        Solaris _ -> "optGroup"
+        Windows -> "optGroup"
+        Linux Nothing -> "optGroup"
+        Linux (Just _) -> "optChild"

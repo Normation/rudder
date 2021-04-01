@@ -92,11 +92,22 @@ final case class ByRuleDirectiveCompliance(
   , components: Seq[ByRuleComponentCompliance]
 )
 
-final case class ByRuleComponentCompliance(
-    name      : String
+trait ByRuleComponentCompliance {
+  def name : String
+  def compliance : ComplianceLevel
+}
+
+final case class ByRuleGroupComponentCompliance(
+  name      : String
+  , compliance: ComplianceLevel
+  , subComponents     : Seq[ByRuleComponentCompliance]
+) extends ByRuleComponentCompliance
+
+final case class ByRuleUniqueComponentCompliance(
+  name      : String
   , compliance: ComplianceLevel
   , nodes     : Seq[ByRuleNodeCompliance]
-)
+) extends ByRuleComponentCompliance
 
 final case class ByRuleNodeCompliance(
     id    : NodeId
@@ -213,14 +224,19 @@ object JsonCompliance {
        })
     }
 
-    private[this] def components(components: Seq[ByRuleComponentCompliance], level: Int): Option[JsonAST.JValue] = {
+    private[this] def components(comps: Seq[ByRuleComponentCompliance], level: Int): Option[JsonAST.JValue] = {
       if(level < 3) None
-      else Some(components.map { component =>
+      else Some(comps.map { component =>
         (
             ("name" -> component.name)
           ~ ("compliance" -> component.compliance.complianceWithoutPending)
           ~ ("complianceDetails" -> percents(component.compliance))
-          ~ ("nodes" -> nodes(component.nodes, level))
+          ~ (component match {
+              case component : ByRuleGroupComponentCompliance =>
+                ("components" ->   components(component.subComponents, level))
+              case component: ByRuleUniqueComponentCompliance =>
+                ("nodes" -> nodes(component.nodes, level))
+            })
         )
       })
     }
@@ -300,14 +316,19 @@ object JsonCompliance {
       })
     }
 
-    private[this] def components(components: Map[String, ComponentStatusReport], level: Int): Option[JsonAST.JValue] = {
+    private[this] def components(comps: Map[String, ComponentStatusReport], level: Int): Option[JsonAST.JValue] = {
       if(level < 4) None
-      else Some(components.map { case (_, component) =>
+      else Some(comps.map { case (_, component) =>
         (
             ("name" -> component.componentName)
           ~ ("compliance" -> component.compliance.complianceWithoutPending)
           ~ ("complianceDetails" -> percents(component.compliance))
-          ~ ("values" -> values(component.componentValues, level))
+          ~ (component match {
+              case component : GroupComponentStatusReport =>
+                val sub = component.subComponents.map(c => (c.componentName, c)).toMap
+                ("components" -> components(sub, level))
+              case component: UniqueComponentStatusReport => ("values" -> values(component.componentValues, level))
+            })
         )
       })
     }

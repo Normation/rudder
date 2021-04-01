@@ -163,6 +163,15 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
       case x => x
     }
 
+    val composition = (root \ ("@reporting")).headOption.map( _.text) match {
+      case null | Some("") | None => None
+      case Some(x) => ReportingLogic(x) match {
+        case Right(x) => Some(x)
+        case Left(error) =>
+          logger.error(s"There was an error when parsing reporting logic in technique ${id.name.value}/${id.version.toString}, error is : ${error.msg} for element ${root}")
+          None
+      }
+    }
     // Checking if we have predefined values
     for {
       name     <- optName
@@ -190,10 +199,10 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
     /**
      * A key must be define if and only if we are in a multivalued, component section.
      */
-    _ <-          if(isMultivalued && isComponent && effectiveComponentKey.isEmpty) {
+    _ <-          if(isMultivalued && isComponent && effectiveComponentKey.isEmpty && composition.isEmpty) {
                     Left(LoadTechniqueError.Parsing("Section '%s' is multivalued and is component. A componentKey attribute must be specified".format(name)))
                   } else Right("ok")
-      sectionSpec = SectionSpec(name, isMultivalued, isComponent, effectiveComponentKey, displayPriority, description, children)
+      sectionSpec = SectionSpec(name, isMultivalued, isComponent, effectiveComponentKey, displayPriority, description, children, composition)
       res <- if (isMultivalued) sectionSpec.cloneVariablesInMultivalued
              else Right(sectionSpec)
     } yield {

@@ -37,6 +37,7 @@
 
 package com.normation.rudder.domain.reports
 
+import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
@@ -130,14 +131,24 @@ final case class DirectiveExpectedReports (
 /**
  * The Cardinality is per Component
  */
-final case class ComponentExpectedReport(
+trait ComponentExpectedReport {
+  def componentName : String
+}
+
+final case class GroupComponentExpectedReport (
+  componentName   : String
+, reportingLogic : ReportingLogic
+, subComponents : List[ComponentExpectedReport]
+) extends  ComponentExpectedReport
+
+final case class UniqueComponentExpectedReport(
     componentName             : String
 
   //TODO: change that to have a Seq[(String, String).
   //or even better, un Seq[ExpectedValue] where expectedValue is the pair
   , componentsValues          : List[String]
   , unexpandedComponentsValues: List[String]
-) {
+) extends  ComponentExpectedReport {
 
   /**
    * Get a normalized list of pair of (value, unexpandedvalue).
@@ -246,25 +257,39 @@ object ExpectedReportsSerialisation {
     )
   }
 
+  def jsonComponentExpectedReport(c : ComponentExpectedReport): JValue = {
+
+    c match {
+      case c: UniqueComponentExpectedReport =>
+        (("componentName" -> c.componentName)
+          ~ ("values" -> c.componentsValues)
+          ~ ("unexpanded" -> c.unexpandedComponentsValues)
+          )
+      case c: GroupComponentExpectedReport =>
+        import ReportingLogic._
+        (("componentName" -> c.componentName)
+          ~ ("composition" -> (c.reportingLogic match {
+          case WorstReport => "worst"
+          case SumReport => "sum"
+          case FocusReport(component) => s"focus:${component}"
+        }))
+          ~ ("subComponents" -> c.subComponents.map(jsonComponentExpectedReport))
+          )
+    }
+  }
   def jsonRuleExpectedReports(rules: List[RuleExpectedReports]): JArray = {
     (
       rules.map { r =>
          (
            ("ruleId"     -> r.ruleId.value)
-         ~ ("directives" -> (r.directives.map { d =>
+         ~ ("directives" -> r.directives.map { d =>
              (
                ("directiveId" -> d.directiveId.value)
              ~ ("policyMode"  -> d.policyMode.map( _.name))
              ~ ("isSystem"    -> d.isSystem )
-             ~ ("components"  -> (d.components.map { c =>
-                 (
-                   ("componentName" -> c.componentName)
-                 ~ ("values"        -> c.componentsValues)
-                 ~ ("unexpanded"    -> c.unexpandedComponentsValues)
-                 )
-               }))
+             ~ ("components"  -> d.components.map(jsonComponentExpectedReport))
              )
-           }))
+           })
          )
       }
     )
@@ -404,6 +429,7 @@ object ExpectedReportsSerialisation {
             }
 
             DirectiveExpectedReports(DirectiveId(id), policyMode(jsonMode), isSystem, components.toList)
+
           }
         case _ =>
           Failure(s"Error when parsing directive expected reports from json: '${compactRender(json)}'")
@@ -417,9 +443,22 @@ object ExpectedReportsSerialisation {
         // , (json \ "cardinality") // #10625: ignore cardinality
         , (json \ "values").extractOpt[List[String]]
         , (json \ "unexpanded").extractOpt[List[String]]
+        , (json \ "subComponents") match {
+        case JArray(subs) => Some(com.normation.utils.Control.sequence(subs)(component))
+        case _=> None
+      }
+
+        , (json \ "reportingRule").extractOpt[String]
      ) match {
-        case (JString(name), Some(values), Some(unexpanded) ) =>
-          tryo(ComponentExpectedReport(name, values, unexpanded))
+        case (JString(name), Some(values), Some(unexpanded), None, None ) =>
+          Full(UniqueComponentExpectedReport(name, values, unexpanded))
+        case (JString(name), _, _, Some(Full(sub)), Some(composition) )=>
+          import com.normation.box.EitherToBox
+          for {
+            reportingLogic <-  ReportingLogic(composition).toBox
+          } yield {
+            GroupComponentExpectedReport(name, reportingLogic, sub.toList)
+          }
         case _ =>
           Failure(s"Error when parsing component expected reports from json: '${compactRender(json)}'")
       }

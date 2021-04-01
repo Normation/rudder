@@ -51,6 +51,12 @@ techniqueList model techniques =
       ]
     ]
 
+allMethodCalls: MethodElem -> List MethodCall
+allMethodCalls call =
+  case call of
+    Call _ c -> [ c ]
+    Block _ b -> List.concatMap allMethodCalls b.calls
+
 techniqueItem: Model -> Technique -> Html Msg
 techniqueItem model technique =
   let
@@ -61,7 +67,7 @@ techniqueItem model technique =
                       else
                         [ ]
                     _ -> []
-    hasDeprecatedMethod = List.any (\m -> Maybe.Extra.isJust m.deprecated )(List.concatMap (\c -> Maybe.Extra.toList (Dict.get c.methodName.value model.methods)) technique.calls)
+    hasDeprecatedMethod = List.any (\m -> Maybe.Extra.isJust m.deprecated )(List.concatMap (\c -> Maybe.Extra.toList (Dict.get c.methodName.value model.methods)) (List.concatMap allMethodCalls technique.elems))
   in
     li activeClass [
       div [ class "item",  onClick (SelectTechnique technique) ] [

@@ -37,12 +37,11 @@
 
 package com.normation.rudder.domain.reports
 
+import com.normation.cfclerk.domain.ReportingLogic
 import org.joda.time.DateTime
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
-
 import net.liftweb.common.Loggable
 import com.normation.rudder.services.reports._
 
@@ -278,11 +277,52 @@ object DirectiveStatusReport {
  * For a component, store the report status, as the worse status of the component
  * Or error if there is an unexpected component value
  */
-final case class ComponentStatusReport(
+sealed trait ComponentStatusReport extends  StatusReport {
+  def componentName : String
+  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(String, ComponentValueStatusReport)]
+  def withFilteredElement(predicate: ComponentValueStatusReport => Boolean): Option[ComponentStatusReport]
+  def componentValues : Map[String, ComponentValueStatusReport]
+  def status : ReportType
+}
+
+final case class GroupComponentStatusReport (
+    componentName : String
+  , reportingLogic: ReportingLogic
+  , subComponents : List[ComponentStatusReport]
+) extends  ComponentStatusReport {
+  def findChildren(componentName : String): List[ComponentStatusReport] = {
+    subComponents.find(_.componentName == componentName).toList :::
+    subComponents.collect{case g :GroupComponentStatusReport => g}.flatMap(_.findChildren(componentName))
+  }
+  def compliance: ComplianceLevel = {
+    val sum = ComplianceLevel.sum(subComponents.map(_.compliance))
+    import ReportingLogic._
+    reportingLogic match {
+      case WorstReport =>
+        ComplianceLevel.compute(ReportType.getWorseType(subComponents.map(_.status)) :: Nil)
+      case SumReport => ComplianceLevel.sum(subComponents.map(_.compliance))
+      case FocusReport(component) => ComplianceLevel.sum(findChildren(component).map(_.compliance))
+    }
+  }
+
+  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(String, ComponentValueStatusReport)] = {
+    subComponents.flatMap(_.getValues(predicate))
+  }
+
+  def componentValues    : Map[String, ComponentValueStatusReport] = getValues(_ => true).toMap
+  def withFilteredElement(predicate: ComponentValueStatusReport => Boolean): Option[ComponentStatusReport]  = {
+    subComponents.flatMap(_.withFilteredElement(predicate)) match {
+      case Nil => None
+      case l => Some(this.copy(subComponents = l))
+    }
+  }
+
+}
+final case class UniqueComponentStatusReport  (
     componentName      : String
     //only one ComponentValueStatusReport by value
   , componentValues    : Map[String, ComponentValueStatusReport]
-) extends StatusReport {
+) extends  ComponentStatusReport {
 
   override def toString() = s"${componentName}:${componentValues.values.toSeq.sortBy(_.componentValue).mkString("[", ",", "]")}"
 
@@ -294,6 +334,7 @@ final case class ComponentStatusReport(
       componentValues.values.filter(predicate(_)).toSeq.map(x => (componentName, x))
   }
 
+  def status : ReportType = ReportType.getWorseType(getValues(_ => true).map(_._2.status))
   /*
    * Rebuild a componentStatusReport, keeping only values matching the predicate
    */
@@ -307,9 +348,37 @@ final case class ComponentStatusReport(
 object ComponentStatusReport extends Loggable {
 
   def merge(components: Iterable[ComponentStatusReport]): Map[String, ComponentStatusReport] = {
-    components.groupBy( _.componentName).map { case (cptName, reports) =>
-      val newValues = ComponentValueStatusReport.merge(reports.flatMap( _.componentValues.values))
-      (cptName, ComponentStatusReport(cptName, newValues))
+    components.groupBy( _.componentName).flatMap { case (cptName, reports) =>
+
+      val valueComponents = reports.collect{ case c : UniqueComponentStatusReport => c }.toList match {
+        case Nil => None
+        case r =>
+          val newValues = ComponentValueStatusReport.merge(r.flatMap( _.componentValues.values))
+          Some(UniqueComponentStatusReport(cptName, newValues))
+      }
+      val groupComponent= reports.collect{ case c : GroupComponentStatusReport => c }.toList match {
+        case Nil => None
+        case r =>
+          import ReportingLogic._
+          val reportingLogic = r.map(_.reportingLogic).reduce(
+            (a,b) => (a,b) match {
+                       case(WorstReport, _)    => WorstReport
+                       case(_, WorstReport)    => WorstReport
+                       case(SumReport, _)      => SumReport
+                       case(_, SumReport)      => SumReport
+                       case(FocusReport(a), _) => FocusReport(a)
+            }
+          )
+          Some(GroupComponentStatusReport(cptName, reportingLogic, ComponentStatusReport.merge(r.flatMap(_.subComponents)).values.toList))
+      }
+
+      (valueComponents,groupComponent) match {
+        case (None, None) => Nil
+        case (Some(v),None) => (cptName, v) :: Nil
+        case (None,Some(v)) => (cptName, v) :: Nil
+        case (Some(value), Some(group)) => (cptName, group.copy(subComponents = value :: group.subComponents)) :: Nil
+      }
+
     }.toMap
   }
 }
@@ -474,7 +543,35 @@ object NodeStatusReportSerialization {
   implicit class SetRuleNodeStatusReportToJs(reports: Set[RuleNodeStatusReport]) {
     import ComplianceLevelSerialisation._
 
+    def componentValueToJson(c : ComponentStatusReport) : JValue =
+      c match {
+        case c : UniqueComponentStatusReport =>
+          ( ("componentName" -> c.componentName)
+          ~ ("compliance"    -> c.compliance.pc.toJson)
+          ~ ("numberReports" -> c.compliance.total)
+          ~ ("values"        -> c.componentValues.values.map { v =>
+              ( ("value"         -> v.componentValue)
+              ~ ("compliance"    -> v.compliance.pc.toJson)
+              ~ ("numberReports" -> v.compliance.total)
+              ~ ("unexpanded"    -> v.unexpandedComponentValue)
+              ~ ("messages"      -> v.messages.map { m =>
+                  ( ("message" -> m.message )
+                  ~ ("type"    -> m.reportType.severity)
+                  )
+                })
+              )
+            })
+          )
+        case c : GroupComponentStatusReport =>
+          ( ("componentName" -> c.componentName)
+            ~ ("compliance"    -> c.compliance.pc.toJson)
+            ~ ("numberReports" -> c.compliance.total)
+            ~ ("subComponents" -> c.subComponents.map(componentValueToJson))
+            ~ ("reportingLogic" -> c.reportingLogic.toString)
+          )
+      }
     def toJValue: JValue = {
+
 
       //here, I'm not sure that we want compliance or
       //compliance percents. Having a normalized value
@@ -482,41 +579,19 @@ object NodeStatusReportSerialization {
       //but in that case, we should also keep the total
       //number of events to be able to rebuild raw data
 
-      ("rules" -> (reports.map { r =>
-        (
-          ("ruleId"        -> r.ruleId.value)
+      "rules" -> reports.map { r =>
+        ( ("ruleId"        -> r.ruleId.value)
         ~ ("compliance"    -> r.compliance.pc.toJson)
         ~ ("numberReports" -> r.compliance.total)
-        ~ ("directives"    -> (r.directives.values.map { d =>
-          (
-            ("directiveId"   -> d.directiveId.value)
-          ~ ("compliance"    -> d.compliance.pc.toJson)
-          ~ ("numberReports" -> d.compliance.total)
-          ~ ("components"    -> (d.components.values.map { c =>
-              (
-                ("componentName" -> c.componentName)
-              ~ ("compliance"    -> c.compliance.pc.toJson)
-              ~ ("numberReports" -> c.compliance.total)
-              ~ ("values"        -> (c.componentValues.values.map { v =>
-                  (
-                    ("value"         -> v.componentValue)
-                  ~ ("compliance"    -> v.compliance.pc.toJson)
-                  ~ ("numberReports" -> v.compliance.total)
-                  ~ ("unexpanded"    -> v.unexpandedComponentValue)
-                  ~ ("messages"      -> (v.messages.map { m =>
-                      (
-                        ("message" -> m.message )
-                      ~ ("type"    -> m.reportType.severity)
-                      )
-                    }))
-                  )
-                }))
-              )
-            }))
-          )
-          }))
+        ~ ("directives"    -> r.directives.values.map { d =>
+            ( ("directiveId"   -> d.directiveId.value)
+            ~ ("compliance"    -> d.compliance.pc.toJson)
+            ~ ("numberReports" -> d.compliance.total)
+            ~ ("components"    -> d.components.values.map(componentValueToJson))
+            )
+          })
         )
-      }))
+      }
     }
 
     def toJson = prettyRender(toJValue)

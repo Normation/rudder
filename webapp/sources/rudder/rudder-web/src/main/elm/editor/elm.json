@@ -9,7 +9,7 @@
             "NoRedInk/elm-json-decode-pipeline": "1.0.0",
             "TSFoster/elm-uuid": "4.1.0",
             "ThinkAlexandria/elm-pretty-print-json": "1.0.1",
-            "annaghi/dnd-list": "5.0.0",
+            "arsduo/elm-dom-drag-drop": "1.0.0",
             "elm/browser": "1.0.2",
             "elm/core": "1.0.5",
             "elm/file": "1.0.5",
@@ -24,6 +24,7 @@
             "elm-community/maybe-extra": "5.2.0",
             "elm-community/string-extra": "4.0.1",
             "jxxcarlson/elm-markdown": "10.1.0",
+            "visotype/elm-dom": "1.1.3",
             "toastal/either": "3.5.2"
         },
         "indirect": {

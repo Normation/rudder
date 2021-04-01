@@ -24,15 +24,55 @@ parseCondition : String -> Condition
 parseCondition class_context =
      case String.split "." class_context of
        [] -> Condition Nothing ""
+       [ "any" ] -> Condition Nothing ""
        [_] ->
          case parseOs class_context of
            Nothing ->  Condition Nothing class_context
            os -> Condition os ""
+       [ head , "any" ] ->
+         case parseOs head of
+           Nothing ->  Condition Nothing head
+           os -> Condition os ""
+
        head :: rest ->
          case parseOs head of
            Nothing ->  Condition Nothing class_context
            os -> Condition os (String.join "." rest)
 
+decodeMethodElem : Maybe CallId -> Decoder MethodElem
+decodeMethodElem parent =
+
+  oneOf [(map (Call parent) decodeMethodCall), (map (Block parent) decodeBlock) ]
+
+decodeCompositionRule : Decoder ReportingLogic
+decodeCompositionRule =
+  let
+    innerDecoder =
+      \v ->
+        case v of
+          "worst"    -> succeed WorstReport
+          "sum"      -> succeed SumReport
+          "component"-> succeed FocusReport
+                          |> required "value" string
+          _          -> fail (v ++ " is not a valid composition Rule")
+  in succeed innerDecoder
+    |> required "type" string
+    |> resolve
+
+decodeBlock : Decoder MethodBlock
+decodeBlock =
+  succeed MethodBlock
+    |> required "id" (map CallId string)
+    |> required "component"  string
+    |> required "condition"  (map parseCondition string)
+    |> required "reportingLogic" decodeCompositionRule
+    |> required "calls" (list  (lazy (\_ -> decodeMethodElem Nothing)))
+    >> andThen (\block -> succeed { block | calls = List.map (\x ->
+                                                               case x of
+                                                                 Block _ b -> Block (Just block.id) b
+                                                                 Call _ c -> Call (Just block.id) c
+                                   ) block.calls}
+               )
 
 decodeMethodCall : Decoder MethodCall
 decodeMethodCall =
@@ -51,7 +91,7 @@ decodeTechnique =
     |> required "name"  string
     |> required "description"  string
     |> required "category"  string
-    |> required "method_calls" (list decodeMethodCall)
+    |> required "method_calls" (list (lazy (\_ -> decodeMethodElem Nothing)))
     |> required "parameter" (list decodeTechniqueParameter)
     |> required "resources" (list decodeResource)
 

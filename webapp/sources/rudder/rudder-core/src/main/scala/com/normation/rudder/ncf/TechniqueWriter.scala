@@ -213,10 +213,32 @@ class TechniqueWriter (
 
   def techniqueMetadataContent(technique : EditorTechnique, methods: Map[BundleName, GenericMethod]) : PureResult[XmlNode] = {
 
-    def reportingValuePerMethod (component: String, calls :Seq[MethodCall]) : PureResult[Seq[XmlNode]] = {
+    def reportingValuePerBlock (component: String, calls :Seq[MethodBlock]) : PureResult[Seq[XmlNode]] = {
 
       for {
-        spec <- calls.toList.traverse { call =>
+        res <- calls.toList.traverse(block =>
+          for {
+            childs <- reportingSections(block.calls)
+          } yield {
+
+            import com.normation.cfclerk.domain.ReportingLogic._
+            val reportingLogic = block.reportingLogic match {
+              case WorstReport => "worst"
+              case SumReport => "sum"
+              case FocusReport(component) => s"focus:${component}"
+            }
+            <SECTION component="true" multivalued="true" name={component} reporting={reportingLogic}>
+                {childs}
+            </SECTION>
+          })
+      } yield {
+        res
+      }
+    }
+
+    def reportingValuePerMethod (component: String, calls :Seq[MethodCall]) : PureResult[Seq[XmlNode]] = {
+      for {
+        spec <- calls.toList.traverse ( call =>
           for {
             method <- methods.get(call.methodId) match {
               case None => Left(MethodNotFound(s"Cannot find method ${call.methodId.value} when writing a method call of Technique '${technique.bundleName.value}'", None))
@@ -231,7 +253,7 @@ class TechniqueWriter (
             <VALUE>{class_param}</VALUE>
           }
 
-        }
+        )
       } yield {
 
         <SECTION component="true" multivalued="true" name={component}>
@@ -243,6 +265,27 @@ class TechniqueWriter (
       }
     }
 
+    def reportingSections(sections : List[MethodElem]) = {
+      val expectedReportingMethodsWithValues =
+        for {
+          (component, methodCalls) <- sections.collect{case m : MethodCall => m }.filterNot(_.methodId.value.startsWith("_")).groupBy(_.component).toList.sortBy(_._1)
+        } yield {
+          (component, methodCalls)
+        }
+      val expectedGroupReportingMethodsWithValues =
+        for {
+          (component, methodCalls) <- sections.collect{case m : MethodBlock => m }.groupBy(_.component).toList.sortBy(_._1)
+        } yield {
+          (component, methodCalls)
+        }
+
+      for {
+        uniqueSection <- expectedReportingMethodsWithValues.traverse((reportingValuePerMethod _).tupled)
+        groupSection <- expectedGroupReportingMethodsWithValues.traverse((reportingValuePerBlock _).tupled)
+      } yield {
+        groupSection ::: uniqueSection
+      }
+    }
     def parameterSection(parameter : TechniqueParameter) : Seq[XmlNode] = {
       // Here we translate technique parameters into Rudder variables
       // ncf technique parameters ( having an id and a name, which is used inside the technique) were translated into Rudder variables spec
@@ -262,15 +305,9 @@ class TechniqueWriter (
     }
     // Regroup method calls from which we expect a reporting
     // We filter those starting by _, which are internal methods
-    val expectedReportingMethodsWithValues =
-      for {
-        (component, methodCalls) <- technique.methodCalls.filterNot(_.methodId.value.startsWith("_")).groupBy(_.component).toList.sortBy(_._1)
-      } yield {
-        (component, methodCalls)
-      }
 
     for {
-      reportingSection     <- expectedReportingMethodsWithValues.traverse((reportingValuePerMethod _).tupled)
+      reportingSection <- reportingSections(technique.methodCalls.toList)
       agentSpecificSection <- agentSpecific.traverse(_.agentMetadata(technique, methods))
     } yield {
       <TECHNIQUE name={technique.name}>
@@ -397,11 +434,25 @@ trait AgentSpecificTechniqueWriter {
 class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterTypeService) extends AgentSpecificTechniqueWriter {
 
   // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true
-  def methodNeedReporting(call : MethodCall, method : GenericMethod) =  (! method.agentSupport.contains(AgentType.CfeCommunity)) || call.condition != "any" && call.condition != "cfengine-community"
-  def needReportingBundle(technique : EditorTechnique, methods : Map[BundleName, GenericMethod]) = technique.methodCalls.exists(c => methods.get(c.methodId).map(m => methodNeedReporting(c,m)).getOrElse(true))
+  def truthyCondition(condition : String) = condition.isEmpty || condition == "any" || condition == "cfengine-community"
+  def methodNeedReporting(methods : Map[BundleName, GenericMethod])(call : MethodElem) : Boolean = {
+    call match {
+      case c : MethodCall => methods.get(c.methodId).map(m =>  ! m.agentSupport.contains(AgentType.CfeCommunity) || ! truthyCondition((c.condition))).getOrElse(true)
+      case b : MethodBlock => ! truthyCondition(b.condition) || b.calls.exists(methodNeedReporting(methods))
+    }
+  }
 
-  def canonifyCondition(methodCall: MethodCall) = {
-    methodCall.condition.replaceAll("""(\$\{[^\}]*})""","""",canonify("$1"),"""")
+  def needReportingBundle(technique : EditorTechnique, methods : Map[BundleName, GenericMethod]) = technique.methodCalls.exists(methodNeedReporting(methods))
+
+  def canonifyCondition(methodCall: MethodCall, parentBlock : List[MethodBlock]) = {
+
+    val condition = (parentBlock.map(_.condition).filterNot(truthyCondition), truthyCondition(methodCall.condition)) match {
+      case (Nil, true) => "any"
+      case (list, true) => list.mkString(".")
+      case (Nil, false) => methodCall.condition
+      case (list, false) => list.mkString("", ".", s".${methodCall.condition}")
+    }
+    condition.replaceAll("""(\$\{[^\}]*})""","""",canonify("$1"),"""")
   }
 
   // regex to match double quote characters not preceded by a backslash, and backslash not preceded by backslash or not followed by a backslash or a quote (simple or double)
@@ -418,35 +469,40 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
 
     val bundleParams = if (technique.parameters.nonEmpty) technique.parameters.map(_.name.canonify).mkString("(",",",")") else ""
 
-    val methodCalls =
-      ( for {
-        (method,index) <- technique.methodCalls.zipWithIndex
-        method_info <- methods.get(method.methodId)
-        (_, classParameterValue) <- method.parameters.find( _._1 == method_info.classParameter)
+    def bundleMethodCall( parentBlocks : List[MethodBlock])(method : MethodElem) : List[String] = {
+      method match {
+        case call : MethodCall =>
+          (for {
+            method_info <- methods.get(call.methodId)
+            (_, classParameterValue) <- call.parameters.find( _._1 == method_info.classParameter)
 
-        params <- Control.sequence(method_info.parameters) {
-          p =>
-            import  com.normation.box.EitherToBox
-            for {
-              (_,value) <- Box(method.parameters.find(_._1 == p.id))
-              escaped   <- parameterTypeService.translate(value, p.parameterType, AgentType.CfeCommunity).toBox
-            } yield {
-              escaped
+            params <- Control.sequence(method_info.parameters) {
+              p =>
+                import  com.normation.box.EitherToBox
+                for {
+                  (_,value) <- Box(call.parameters.find(_._1 == p.id))
+                  escaped   <- parameterTypeService.translate(value, p.parameterType, AgentType.CfeCommunity).toBox
+                } yield {
+                  escaped
+                }
             }
-        }
+          }  yield {
+            val condition = canonifyCondition(call, parentBlocks)
+            val promiser = call.id
+            // Check constraint and missing value
+            val args = params.mkString(", ")
 
-      } yield {
-        val condition = canonifyCondition(method)
-        val promiser = s"${escapeCFEngineString(method.component)}_$${report_data.directive_id}_${index}"
-        // Check constraint and missing value
-        val args = params.mkString(", ")
+            s"""    "${promiser}" usebundle => ${reportingContext(call, classParameterValue)},
+               |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
+               |    "${promiser}" usebundle => ${call.methodId.value}(${args}),
+               |     ${promiser.map(_ => ' ')}         if => concat("${condition}");""".stripMargin('|')
 
-        s"""    "${promiser}" usebundle => ${reportingContext(method, classParameterValue)},
-           |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
-           |    "${promiser}" usebundle => ${method.methodId.value}(${args}),
-           |     ${promiser.map(_ => ' ')}         if => concat("${condition}");""".stripMargin('|')
-
-      }).mkString("\n")
+          }).toList
+        case block : MethodBlock =>
+          block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
+      }
+    }
+    val methodCalls = technique.methodCalls.flatMap(bundleMethodCall(Nil)).mkString("\n")
 
     val content = {
       import net.liftweb.json._
@@ -485,44 +541,50 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
       val bundleParams = if (technique.parameters.nonEmpty) technique.parameters.map(_.name.canonify).mkString("(",",",")") else ""
       val args = technique.parameters.map(p => s"$${${p.name.canonify}}").mkString(", ")
 
-      val methodsReporting =
-        ( for {
-          (method,index) <- technique.methodCalls.zipWithIndex
-          // Skip that method if name starts with _
-          if ! method.methodId.value.startsWith("_")
-          method_info <- methods.get(method.methodId)
-          (_,classParameterValue) <- method.parameters.find(_._1 == method_info.classParameter)
+      def bundleMethodCall( parentBlocks : List[MethodBlock])(method : MethodElem) : List[String] = {
+        method match {
+          case call : MethodCall =>
+            (for {
+              method_info <- methods.get(call.methodId)
+              // Skip that method if name starts with _
+              if ! call.methodId.value.startsWith("_")
+              (_, classParameterValue) <- call.parameters.find( _._1 == method_info.classParameter)
 
-          escapedClassParameterValue = escapeCFEngineString(classParameterValue)
-          classPrefix = s"$${class_prefix}_${method_info.classPrefix}_${escapedClassParameterValue}"
-          promiser = s"dummy_report_${index}"
-        } yield {
-          def naReport(condition : String, message : String) = {
-            s"""    "${promiser}" usebundle => ${reportingContext(method, classParameterValue)},
-               |     ${promiser.map(_ => ' ')}     unless => ${condition};
-               |    "${promiser}" usebundle => log_na_rudder("${message}", "${escapedClassParameterValue}", "${classPrefix}", @{args}),
-               |     ${promiser.map(_ => ' ')}     unless => ${condition};""".stripMargin('|')
-          }
+              escapedClassParameterValue = escapeCFEngineString(classParameterValue)
+              classPrefix = s"$${class_prefix}_${method_info.classPrefix}_${escapedClassParameterValue}"
+
+            }  yield {
+              val promiser = call.id
+              def naReport(condition : String, message : String) = {
+                s"""    "${promiser}" usebundle => ${reportingContext(call, classParameterValue)},
+                   |     ${promiser.map(_ => ' ')}     unless => ${condition};
+                   |    "${promiser}" usebundle => log_na_rudder("${message}", "${escapedClassParameterValue}", "${classPrefix}", @{args}),
+                   |     ${promiser.map(_ => ' ')}     unless => ${condition};""".stripMargin('|')
+              }
 
 
-          // Write report if the method does not support CFEngine ...
-          ( if (! method_info.agentSupport.contains(AgentType.CfeCommunity)) {
-            val message = s"""'${method_info.name}' method is not available on classic Rudder agent, skip"""
-            val condition = "\"false\""
-            Some((condition,message))
-         } else {
-           // ... or if the condition needs rudder_reporting
-           if (methodNeedReporting(method, method_info)) {
-             val message =  s"""Skipping method '${method_info.name}' with key parameter '${escapedClassParameterValue}' since condition '${method.condition}' is not reached"""
-             val condition = s"""concat("${canonifyCondition(method)}")"""
-             Some((condition,message))
-           } else {
-             None
-           }
-         }).map((naReport _).tupled)
-       }).flatten
-
-       val content =
+              // Write report if the method does not support CFEngine ...
+              (if (! method_info.agentSupport.contains(AgentType.CfeCommunity)) {
+                val message = s"""'${method_info.name}' method is not available on classic Rudder agent, skip"""
+                val condition = "\"false\""
+                Some((condition,message))
+              } else {
+                // ... or if the condition needs rudder_reporting
+                if (methodNeedReporting(methods)(call)) {
+                  val message = s"""Skipping method '${method_info.name}' with key parameter '${escapedClassParameterValue}' since condition '${call.condition}' is not reached"""
+                  val condition = s"""concat("${canonifyCondition(call, parentBlocks)}")"""
+                  Some((condition, message))
+                } else {
+                  None
+                }
+              }).map((naReport _).tupled)
+            }).toList.flatten
+          case block : MethodBlock =>
+            block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
+        }
+      }
+      val methodsReporting = technique.methodCalls.map(bundleMethodCall(Nil)).mkString("\n")
+      val content =
         s"""bundle agent ${technique.bundleName.value}_rudder_reporting${bundleParams}
            |{
            |  vars:
@@ -549,24 +611,20 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
       tech +: repo
     }
   }
+
   def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] )  : PureResult[NodeSeq] = {
-    // We need to add reporting bundle if there is a method call that does not support cfengine (agent support does not contains both cfe agent)
-    val noAgentSupportReporting = technique.methodCalls.exists(  m =>
-                         methods.get(m.methodId).exists( gm =>
-                           ! (gm.agentSupport.contains(AgentType.CfeEnterprise) || (gm.agentSupport.contains(AgentType.CfeCommunity)))
-                         )
-                       )
+
     val needReporting = needReportingBundle(technique, methods)
     val xml = <AGENT type="cfengine-community,cfengine-nova">
       <BUNDLES>
         <NAME>{technique.bundleName.value}</NAME>
-        {if (noAgentSupportReporting || needReporting) <NAME>{technique.bundleName.value}_rudder_reporting</NAME>}
+        {if (needReporting) <NAME>{technique.bundleName.value}_rudder_reporting</NAME>}
       </BUNDLES>
       <FILES>
         <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/technique.cf"}>
           <INCLUDED>true</INCLUDED>
         </FILE>
-        { if (noAgentSupportReporting || needReporting)
+        { if (needReporting)
           <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/rudder_reporting.cf"}>
             <INCLUDED>true</INCLUDED>
           </FILE>
@@ -603,85 +661,92 @@ class DSCTechniqueWriter(
 
   def writeAgentFiles(technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ): IOResult[Seq[String]] = {
 
-    def toDscFormat(call : MethodCall) : PureResult[String]= {
+    def toDscFormat(parentBlocks: List[MethodBlock])(method : MethodElem) : PureResult[List[String]] = {
+      method match {
+        case call : MethodCall =>
+          if (call.methodId.value.startsWith("_")) {
+            Right(Nil)
+          } else {
+            val componentName = s"""-componentName "${call.component.replaceAll("\"", "`\"")}""""
 
-      val componentName = s"""-componentName "${call.component.replaceAll("\"", "`\"")}""""
 
+            def canonifyCondition(methodCall: MethodCall) = {
+               methodCall.condition.replaceAll("""(\$\{[^\}]*})""","""" + \$(Canonify-Class $1) + """")
+            }
 
-      def canonifyCondition(methodCall: MethodCall) = {
-        methodCall.condition.replaceAll("""(\$\{[^\}]*})""","""" + \$(Canonify-Class $1) + """")
-      }
+            def naReport(method : GenericMethod, expectedReportingValue : String) =
+              s"""_rudder_common_report_na ${componentName} -componentKey ${expectedReportingValue} -message "Not applicable" ${genericParams}"""
+            for {
 
-      def naReport(method : GenericMethod, expectedReportingValue : String) =
-        s"""_rudder_common_report_na ${componentName} -componentKey ${expectedReportingValue} -message "Not applicable" ${genericParams}"""
-      for {
+              // First translate parameters to Dsc values
+              params    <- ((call.parameters.toList).traverse {
+                              case (id, arg) =>
+                                translater.translateToAgent(arg, AgentType.Dsc) match {
+                                  case Full(dscValue) =>
+                                    parameterTypeService.translate(dscValue, methods.get(call.methodId).flatMap(_.parameters.find(_.id == id)).map(_.parameterType).getOrElse(ParameterType.StringParameter), AgentType.Dsc).map(dscValue => (id,dscValue))
 
-        // First translate parameters to Dsc values
-        params    <- ((call.parameters.toList).traverse {
-                        case (id, arg) =>
-                          translater.translateToAgent(arg, AgentType.Dsc) match {
-                            case Full(dscValue) =>
-                              parameterTypeService.translate(dscValue, methods.get(call.methodId).flatMap(_.parameters.find(_.id == id)).map(_.parameterType).getOrElse(ParameterType.StringParameter), AgentType.Dsc).map(dscValue => (id,dscValue))
+                                  case eb : EmptyBox =>
+                                    val fail = eb ?~! s"Error when translating parameter '${arg}' of technique of method ${call.methodId} of technique ${technique.name}"
+                                    Left(IOError(fail.messageChain,None))
+                                }
+                           }).map(_.toMap)
 
-                            case eb : EmptyBox =>
-                              val fail = eb ?~! s"Error when translating parameter '${arg}' of technique of method ${call.methodId} of technique ${technique.name}"
-                              Left(IOError(fail.messageChain,None))
-                          }
-                     }).map(_.toMap)
+              // Translate condition
+              condition <- translater.translateToAgent(canonifyCondition(call), AgentType.Dsc) match {
+                             case Full(c) => Right(c)
+                             case eb : EmptyBox =>
+                               val fail = eb ?~! s"Error when translating condition '${call.condition}' of technique of method ${call.methodId} of technique ${technique.name}"
+                               Left(IOError(fail.messageChain,None))
+                           }
 
-        // Translate condition
-        condition <- translater.translateToAgent(canonifyCondition(call), AgentType.Dsc) match {
-                       case Full(c) => Right(c)
-                       case eb : EmptyBox =>
-                         val fail = eb ?~! s"Error when translating condition '${call.condition}' of technique of method ${call.methodId} of technique ${technique.name}"
-                         Left(IOError(fail.messageChain,None))
-                     }
+              methodParams =
+                ( for {
+                  (id, arg) <- params
+                } yield {
+                s"""-${id.validDscName} ${arg}"""
+                }).mkString(" ")
 
-        methodParams =
-          ( for {
-            (id, arg) <- params
-          } yield {
-          s"""-${id.validDscName} ${arg}"""
-          }).mkString(" ")
+              effectiveCall =
+                s"""$$local_classes = Merge-ClassContext $$local_classes $$(${call.methodId.validDscName} ${methodParams} ${componentName} ${genericParams}).get_item("classes")"""
 
-        effectiveCall =
-          s"""$$local_classes = Merge-ClassContext $$local_classes $$(${call.methodId.validDscName} ${methodParams} ${componentName} ${genericParams}).get_item("classes")"""
+              // Check if method exists
+              method <- methods.get(call.methodId) match {
+                          case Some(method) =>
+                            Right(method)
+                          case None =>
+                            Left(MethodNotFound(s"Method '${call.methodId.value}' not found when writing dsc Technique '${technique.name}' methods calls", None))
+                        }
+              // Check if class parameter is correctly defined
+              classParameter <- params.get(method.classParameter) match {
+                                  case Some(classParameter) =>
+                                    Right(classParameter)
+                                  case None =>
+                                    Left(MethodNotFound(s"Parameter '${method.classParameter.value}' for method '${method.id.value}' not found when writing dsc Technique '${technique.name}' methods calls",None))
+                                }
 
-        // Check if method exists
-        method <- methods.get(call.methodId) match {
-                    case Some(method) =>
-                      Right(method)
-                    case None =>
-                      Left(MethodNotFound(s"Method '${call.methodId.value}' not found when writing dsc Technique '${technique.name}' methods calls", None))
-                  }
-        // Check if class parameter is correctly defined
-        classParameter <- params.get(method.classParameter) match {
-                            case Some(classParameter) =>
-                              Right(classParameter)
-                            case None =>
-                              Left(MethodNotFound(s"Parameter '${method.classParameter.value}' for method '${method.id.value}' not found when writing dsc Technique '${technique.name}' methods calls",None))
-                          }
-
-      } yield {
-       if (method.agentSupport.contains(AgentType.Dsc)) {
-         if (condition == "any" ) {
-           s"  ${effectiveCall}"
-         } else{
-
-           s"""|  $$class = "${condition}"
-               |  if (Evaluate-Class $$class $$local_classes $$system_classes) {
-               |    ${effectiveCall}
-               |  } else {
-               |    ${naReport(method,classParameter)}
-               |  }""".stripMargin('|')
+            } yield {
+              if (method.agentSupport.contains(AgentType.Dsc)) {
+                if (condition == "any" ) {
+                  s"  ${effectiveCall}" :: Nil
+                } else {
+                  s"""|  $$class = "${condition}"
+                      |  if (Evaluate-Class $$class $$local_classes $$system_classes) {
+                      |    ${effectiveCall}
+                      |  } else {
+                      |    ${naReport(method,classParameter)}
+                      |  }""".stripMargin('|') :: Nil
+                }
+              } else {
+                s"  ${naReport(method,classParameter)}" :: Nil
+              }
+           }
          }
-       } else {
-         s"  ${naReport(method,classParameter)}"
-       }
+
+      case block : MethodBlock =>
+        block.calls.flatTraverse(toDscFormat(block :: parentBlocks))
       }
     }
 
-    val filteredCalls = technique.methodCalls.filterNot(_.methodId.value.startsWith("_"))
 
     val parameters = technique.parameters match {
       case Nil => ""
@@ -696,7 +761,7 @@ class DSCTechniqueWriter(
 
     for {
 
-      calls <- filteredCalls.toList.traverse(toDscFormat).toIO
+      calls <- technique.methodCalls.toList.traverse(toDscFormat(Nil)).toIO
 
       content =
         s"""|function ${technique.bundleName.validDscName} {

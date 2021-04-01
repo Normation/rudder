@@ -13,7 +13,7 @@ encodeTechnique technique =
   , ("description" , string technique.description )
   , ("category"    , string technique.category )
   , ("parameter"   , list encodeTechniqueParameters technique.parameters )
-  , ("method_calls", list encodeMethodCall technique.calls )
+  , ("method_calls", list encodeMethodElem technique.elems )
   , ("resources"   , list encodeResource technique.resources )
   ]
 
@@ -38,15 +38,41 @@ encodeTechniqueParameters param =
   , ("description", string param.description)
   ]
 
+encodeMethodElem: MethodElem -> Value
+encodeMethodElem call =
+  case call of
+    Block _ b -> encodeMethodBlock b
+    Call _ c -> encodeMethodCall c
 
 encodeMethodCall: MethodCall -> Value
 encodeMethodCall call =
-  object [
+
+  object (
+    (if ( String.isEmpty call.component) then identity else  (::) ("component"    , string call.component))[
     ("id"           , string call.id.value)
   , ("method_name"  , string call.methodName.value)
   , ("class_context",  string <| conditionStr call.condition)
-  , ("component"    , string call.component)
   , ("parameters"   , list encodeCallParameters call.parameters)
+  ] )
+
+encodeCompositionRule: ReportingLogic -> Value
+encodeCompositionRule composition =
+  case composition of
+    WorstReport ->
+      object [ ("type", string "worst")]
+    SumReport ->
+      object [ ("type", string "sum")]
+    FocusReport value ->
+      object [ ("type", string "component"), ("value", string value)]
+
+encodeMethodBlock: MethodBlock -> Value
+encodeMethodBlock call =
+  object [
+    ("reportingLogic"  , encodeCompositionRule call.reportingLogic)
+  , ("condition",  string <| conditionStr call.condition)
+  , ("component"    , string call.component)
+  , ("calls"   , list encodeMethodElem call.calls)
+  , ("id"   , string call.id.value)
   ]
 
 encodeCallParameters: CallParameter -> Value

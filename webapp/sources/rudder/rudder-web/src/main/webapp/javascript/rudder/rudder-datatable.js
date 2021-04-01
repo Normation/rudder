@@ -648,9 +648,19 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
         }
     } ];
 
-    var params = jQuery.extend({"fnDrawCallback" : function( oSettings ) {
-      createInnerTable(this, localNodeComponentValueTable());
-    }}, defaultParams);
+    var params = jQuery.extend(
+        {"createdRow": function( row, data, dataIndex ) {
+
+            console.log(row);
+            var tt = this.api().row(row)
+            if(data.composition === undefined) {
+              createInnerTablerow(tt, data, localNodeComponentValueTable());
+            } else {
+              createInnerTablerow(tt, data,localComponentTable())
+            }
+        }
+
+    }, defaultParams);
     return function (gridId,data) {createTable(gridId,data,columns, params, contextPath);}
   };
 
@@ -906,6 +916,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
  *   }
  */
 function createComponentTable(isTopLevel, isNodeView, contextPath) {
+  console.log("nani?")
   if (isTopLevel) {
     var complianceWidth = "26.3%";
   } else {
@@ -917,7 +928,8 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
     , "mDataProp": "component"
     , "sTitle": "Component"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        if(! oData.noExpand || isNodeView ) {
+        console.log(oData)
+        if(! oData.noExpand || isNodeView || oData.composition !== undefined ) {
           $(nTd).addClass("listopen");
         } else {
           $(nTd).addClass("noExpand");
@@ -928,6 +940,7 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
     , "mDataProp": "compliancePercent"
     , "sTitle": "Status"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+
         var elem = buildComplianceBar(oData.compliance);
         $(nTd).empty();
         $(nTd).append(elem);
@@ -940,13 +953,27 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
     , "bLengthChange": false
     , "bInfo" : false
     , "aaSorting": [[ 0, "asc" ]]
-    , "fnDrawCallback" : function( oSettings ) {
+    , "createdRow": function( row, data, dataIndex ) {
+
+        console.log(row);
+        var tt = this.api().row(row)
+        if(data.composition === undefined) {
         if(isNodeView) {
-          createInnerTable(this, createNodeComponentValueTable(contextPath));
+          createInnerTablerow(tt, data, createNodeComponentValueTable(contextPath));
+        } else {
+          createInnerTablerow(tt, data, createRuleComponentValueTable(contextPath));
+        }
+        } else {
+          createInnerTablerow(tt, data,createComponentTable(isTopLevel, isNodeView, contextPath))
+        }
+    }
+    /*, "fnDrawCallback" : function( oSettings ) {
+        console.log(oSettings)
+        if(isNodeView) {          createInnerTable(this, createNodeComponentValueTable(contextPath));
         } else {
           createInnerTable(this, createRuleComponentValueTable(contextPath));
         }
-      }
+      }*/
   }
 
  return function (gridId,data) {createTable(gridId,data,columns, params, contextPath);}
@@ -958,7 +985,7 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
  *   Javascript object containing all data to create a line in the DataTable
  *   { "value" : value of the key [String]
  *   , "status" : Worst status of the Directive [String]
- *   , "statusClass" : Class to use on status cell [String]
+ *   , "statusClass" : Class to use on stats cell [String]
  *   , "messages" : Message linked to that value, only used in message popup [ Array[String] ]
  *   , "jsid"    : unique identifier for the line [String]
  *   }
@@ -2082,6 +2109,61 @@ function changeCursor(clickable){
 /*
  * Function to define opening of an inner table
  */
+function createInnerTablerow(row, data,  createFunction, contextPath, kind) {
+
+    console.log(row)
+    $(row.node()).unbind();
+    $(row.node()).click( function (e) {
+      if ($(e.target).hasClass('noExpand')) {
+        return false;
+      } else {
+        var fnData = data
+        var i = $.inArray( row.node(), anOpen );
+        var detailsId = fnData.jsid ;
+        if (kind !== undefined) {
+          detailsId += "-"+kind
+        }
+        detailsId += "-details";
+        if ( i === -1 ) {
+          $(row.node()).addClass("opened");
+          $(row.node()).find("td.listopen").removeClass("listopen").addClass("listclose");
+          var table = $("<table></table>");
+          var tableId = fnData.jsid;
+          if (kind !== undefined) {
+            tableId += "-"+kind;
+          }
+          tableId += "-table";
+          table.attr("id",tableId);
+          table.attr("cellspacing",0);
+          table.addClass("noMarginGrid");
+          var div = $("<div></div>");
+          div.addClass("innerDetails");
+          div.attr("id",detailsId);
+          div.append(table);
+          var nDetailsRow = row.child( div, 'details' ).show();
+          var res = createFunction(tableId, fnData.details);
+
+          console.log(res)
+          console.log(fnData)
+          console.log(row)
+          console.log(div)
+          console.log(row.child())
+          $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
+          $('#'+detailsId).slideDown(300);
+          anOpen.push( row.node() );
+        } else {
+          $(row.node()).removeClass("opened");
+          $(row.node()).find("td.listclose").removeClass("listclose").addClass("listopen");
+          $('#'+detailsId).slideUp(300, function () {
+            row.child().remove();
+          } );
+
+          anOpen.splice( i, 1 );
+        }
+      }
+    } );
+}
+
 function createInnerTable(myTable,  createFunction, contextPath, kind) {
   var plusTd = $(myTable.fnGetNodes());
   plusTd.each( function () {

@@ -71,6 +71,7 @@ import com.normation.rudder.repository.ldap.NodeStateEncoder
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.ncf.GenericMethod
 import com.normation.rudder.ncf.MethodCall
+import com.normation.rudder.ncf.MethodElem
 import com.normation.rudder.ncf.ParameterId
 import com.normation.rudder.ncf.MethodParameter
 import com.normation.rudder.ncf.TechniqueParameter
@@ -80,11 +81,15 @@ import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control
 import com.normation.box._
+import com.normation.cfclerk.domain.FocusReport
+import com.normation.cfclerk.domain.ReportingLogic
+import com.normation.cfclerk.domain.SumReport
 import com.normation.rudder.ncf.ResourceFileState
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.domain.WorstReport
 import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.ncf.Constraint._
@@ -100,6 +105,7 @@ import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.domain.nodes.InheritMode
 import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.ncf.MethodBlock
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.services.policies.PropertyParser
 import com.normation.utils.DateFormaterService
@@ -1178,7 +1184,7 @@ final case class RestExtractorService (
       category    <- OptionnalJson.extractJsonString(json, "category").map(_.filter(_.nonEmpty).getOrElse("ncf_techniques"))
       description <- CompleteJson.extractJsonString(json, "description")
       name        <- CompleteJson.extractJsonString(json, "name")
-      calls       <- CompleteJson.extractJsonArray(json , "method_calls")(extractMethodCall(_, methods, supportMissingId))
+      calls       <- CompleteJson.extractJsonArray(json , "method_calls")(extractMethodElem(_, methods, supportMissingId))
       parameters  <- CompleteJson.extractJsonArray(json , "parameter")(extractTechniqueParameter(creation))
       files       <- OptionnalJson.extractJsonArray(json , "resources")(extractResourceFile).map(_.getOrElse(Nil))
     } yield {
@@ -1194,6 +1200,29 @@ final case class RestExtractorService (
       (parameterId,value)
     }
   }
+
+  def extractMethodElem(json:JValue, methods: Map[BundleName, GenericMethod], supportMissingId : Boolean) : Box[MethodElem] = {
+    json \ "method_name" match {
+      case JString(_) => extractMethodCall(json,methods,supportMissingId)
+      case _ => extractMethodBlock(json,methods,supportMissingId)
+    }
+  }
+
+
+  def extractMethodBlock (json : JValue, methods: Map[BundleName, GenericMethod], supportMissingId : Boolean) : Box[MethodBlock] = {
+
+    for {
+      id        <-    CompleteJson.extractJsonString(json,"id")
+      condition       <- CompleteJson.extractJsonString(json, "condition")
+      component       <- CompleteJson.extractJsonString(json, "component")
+      reportingLogic <- CompleteJson.extractJsonObj(json,"reportingLogic", extractCompositionRule)
+      // Args was removed in 6.1.0 and replaced by parameters. keept it when we are reading old format techniques, ie when migrating from 6.1
+      childs <- CompleteJson.extractJsonArray(json,"calls" )(extractMethodElem(_, methods, supportMissingId))
+    } yield {
+      MethodBlock(id,component, reportingLogic, condition, childs)
+    }
+  }
+
 
   def extractMethodCall (json : JValue, methods: Map[BundleName, GenericMethod], supportMissingId : Boolean) : Box[MethodCall] = {
 
@@ -1234,6 +1263,21 @@ final case class RestExtractorService (
     }
   }
 
+  def extractCompositionRule(json : JValue) : Box[ReportingLogic] = {
+    for {
+      type_  <- CompleteJson.extractJsonString(json, "type")
+      optValue  <- OptionnalJson.extractJsonString(json, "value")
+      result <-
+        type_ match {
+          case  "worst" => Full(WorstReport)
+          case "sum" => Full(SumReport)
+          case "component" => Full(FocusReport(optValue.getOrElse("")))
+          case _ => Failure("")
+        }
+    } yield {
+      result
+    }
+  }
   def extractMethodConstraint(json : JValue) : Box[List[Constraint]] = {
     for {
       allowEmpty <- CompleteJson.extractJsonBoolean(json, "allow_empty_string")

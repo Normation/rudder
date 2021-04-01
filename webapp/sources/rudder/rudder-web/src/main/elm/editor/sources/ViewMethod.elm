@@ -2,7 +2,6 @@ module ViewMethod exposing (..)
 
 import DataTypes exposing (..)
 import Dict
-import DnDList.Groups
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -10,7 +9,10 @@ import List.Extra
 import MethodConditions exposing (..)
 import Regex
 import String.Extra
-
+import MethodElemUtils exposing (..)
+import Dom.DragDrop as DragDrop
+import Dom exposing (..)
+import Json.Decode
 --
 -- This file deals with one method container (condition, parameters, etc)
 --
@@ -18,141 +20,7 @@ import String.Extra
 {-
   CONDITION
 -}
-noVersion = {major = Nothing, minor = Nothing }
 
-osList : List (Maybe OS)
-osList =
-  [ Nothing
-  , Just (Linux Nothing)
-  , Just (Linux (Just (Debian noVersion)))
-  , Just (Linux (Just (Ubuntu noVersion)))
-  , Just (Linux (Just (RH noVersion)))
-  , Just (Linux (Just (Centos noVersion)))
-  , Just (Linux (Just (Fedora {version = Nothing})))
-  , Just (Linux (Just (Oracle)))
-  , Just (Linux (Just (Amazon)))
-  , Just (Linux (Just (Suse)))
-  , Just (Linux (Just (SLES {version = Nothing, sp = Nothing})))
-  , Just (Linux (Just (SLED {version = Nothing, sp = Nothing})))
-  , Just (Linux (Just (OpenSuse noVersion)))
-  , Just (Linux (Just (Slackware noVersion)))
-  , Just Windows
-  , Just ( AIX {version = Nothing} )
-  , Just ( Solaris noVersion)
-  ]
-
--- VERSION in the condition part --
--- some OS only have one version (+maybe service packs). Deals with it here
-hasVersion: Maybe OS -> Bool
-hasVersion os =
-  case os of
-    Just (Linux (Just (Fedora _))) -> True
-    Just (Linux (Just (SLES _))) -> True
-    Just (Linux (Just (SLED _))) -> True
-    Just (AIX _) -> True
-    _ -> False
-
-getVersion: Maybe OS -> Maybe Int
-getVersion os =
-  case os of
-    Just (Linux (Just (Fedora v))) -> v.version
-    Just (Linux (Just (SLES v))) -> v.version
-    Just (Linux (Just (SLED v))) -> v.version
-    Just (AIX v) -> v.version
-    _ -> Nothing
-
-updateVersion:  Maybe Int -> Maybe OS -> Maybe OS
-updateVersion newVersion os =
-  case os of
-    Just (Linux (Just (SLES v))) -> Just (Linux (Just (SLES {v | version = newVersion})))
-    Just (Linux (Just (SLED v))) -> Just (Linux (Just (SLED {v | version = newVersion})))
-    Just (Linux (Just (Fedora v))) -> Just (Linux (Just (Fedora {v | version = newVersion})))
-    Just (AIX v) -> Just (AIX {v | version = newVersion})
-    _ -> os
-
--- for OS with service patcks
-hasSP: Maybe OS -> Bool
-hasSP os =
-  case os of
-    Just (Linux (Just (SLES _))) -> True
-    Just (Linux (Just (SLED _))) -> True
-    _ -> False
-
-getSP: Maybe OS -> Maybe Int
-getSP os =
-  case os of
-    Just (Linux (Just (SLES v))) -> v.sp
-    Just (Linux (Just (SLED v))) -> v.sp
-    _ -> Nothing
-
-updateSP:   Maybe OS -> Maybe Int -> Maybe OS
-updateSP os newSP =
-  case os of
-    Just (Linux (Just (SLES v))) -> Just (Linux (Just (SLES {v | sp = newSP})))
-    Just (Linux (Just (SLED v))) -> Just (Linux (Just (SLED {v | sp = newSP})))
-    _ -> os
-
--- most OS have a major+minor version
-hasMajorMinorVersion: Maybe OS -> Bool
-hasMajorMinorVersion os =
-  case os of
-    Just (Linux (Just (Debian _))) -> True
-    Just (Linux (Just (Ubuntu _)))-> True
-    Just (Linux (Just (RH _))) -> True
-    Just (Linux (Just (Centos _))) -> True
-    Just (Linux (Just (OpenSuse _))) -> True
-    Just (Linux (Just (Slackware _))) -> True
-    Just (Solaris _) -> True
-    _ -> False
-
-
-getMajorVersion:  Maybe OS -> Maybe Int
-getMajorVersion os =
-  case os of
-    Just (Linux (Just (Debian v))) -> v.major
-    Just (Linux (Just (Ubuntu v)))-> v.major
-    Just (Linux (Just (RH v))) -> v.major
-    Just (Linux (Just (Centos v))) -> v.major
-    Just (Linux (Just (OpenSuse v))) -> v.major
-    Just (Linux (Just (Slackware v))) -> v.major
-    Just (Solaris v) -> v.major
-    _ -> Nothing
-
-getMinorVersion:  Maybe OS -> Maybe Int
-getMinorVersion os =
-  case os of
-    Just (Linux (Just (Debian v))) -> v.minor
-    Just (Linux (Just (Ubuntu v)))-> v.minor
-    Just (Linux (Just (RH v))) -> v.minor
-    Just (Linux (Just (Centos v))) -> v.minor
-    Just (Linux (Just (OpenSuse v))) -> v.minor
-    Just (Linux (Just (Slackware v))) -> v.minor
-    Just (Solaris v) -> v.minor
-    _ -> Nothing
-
-updateMajorVersion: Maybe Int -> Maybe OS -> Maybe OS
-updateMajorVersion newMajor os =
-  case os of
-    Just (Linux (Just (Debian v))) -> Just (Linux (Just (Debian {v | major = newMajor})))
-    Just (Linux (Just (Ubuntu v)))-> Just (Linux (Just (Ubuntu {v | major = newMajor})))
-    Just (Linux (Just (RH v))) -> Just (Linux (Just (RH {v | major = newMajor})))
-    Just (Linux (Just (Centos v))) -> Just (Linux (Just (Centos {v | major = newMajor})))
-    Just (Linux (Just (OpenSuse v))) -> Just (Linux (Just (OpenSuse {v | major = newMajor})))
-    Just (Linux (Just (Slackware v))) -> Just (Linux (Just (Slackware {v | major = newMajor})))
-    Just (Solaris v) -> Just ( Solaris { v | major = newMajor } )
-    _ -> os
-
-updateMinorVersion: Maybe Int -> Maybe OS -> Maybe OS
-updateMinorVersion newMinor os =
-  case os of
-    Just (Linux (Just (Debian v))) -> Just (Linux (Just (Debian {v | minor = newMinor})))
-    Just (Linux (Just (Ubuntu v)))-> Just (Linux (Just (Ubuntu {v | minor = newMinor})))
-    Just (Linux (Just (RH v))) -> Just (Linux (Just (RH {v | minor = newMinor})))
-    Just (Linux (Just (Centos v))) -> Just (Linux (Just (Centos {v | minor = newMinor})))
-    Just (Linux (Just (OpenSuse v))) -> Just (Linux (Just (OpenSuse {v | minor = newMinor})))
-    Just (Linux (Just (Slackware v))) -> Just (Linux (Just (Slackware {v | minor = newMinor})))
-    Just (Solaris v) -> Just ( Solaris { v | minor = newMinor } )
-    _ -> os
 
 -- /END VERSION in the condition part --
 
@@ -237,26 +105,21 @@ checkConstraint call constraint =
   DISPLAY ONE METHOD EXTENDED
 -}
 
-osClass: Maybe OS -> String
-osClass maybeOs =
-  case maybeOs of
-    Nothing -> "optGroup"
-    Just os ->
-      case os of
-        AIX _ -> "optGroup"
-        Solaris _ -> "optGroup"
-        Windows -> "optGroup"
-        Linux Nothing -> "optGroup"
-        Linux (Just _) -> "optChild"
 
-showMethodTab: Model -> Method -> MethodCall -> MethodCallUiInfo -> Html Msg
-showMethodTab model method call uiInfo=
+
+showMethodTab: Model -> Method -> Maybe CallId ->  MethodCall -> MethodCallUiInfo -> Html Msg
+showMethodTab model method parentId call uiInfo=
   case uiInfo.tab of
     CallParameters ->
       div [ class "tab-parameters"] (List.map2 (\m c -> showParam model call (Maybe.withDefault Untouched (Dict.get c.id.value uiInfo.validation)) m c )  method.parameters call.parameters)
     Conditions ->
       let
         condition = call.condition
+        updateConditonVersion = \f s ->
+                      let
+                        updatedCall = Call parentId { call | condition = {condition | os =  f  (String.toInt s) condition.os } }
+                      in
+                        MethodCallModified updatedCall
       in
       div [ class "tab-conditions"] [
         div [class "form-group condition-form", id "os-form"] [
@@ -269,12 +132,16 @@ showMethodTab model method call uiInfo=
                 , span [ class "caret" ] []
                 ]
               , ul [ class "dropdown-menu", attribute "aria-labelledby" "OsCondition", style "margin-left" "0px" ]
-                 ( List.map (\os -> li [ onClick (UpdateCondition call.id {condition | os = os }), class (osClass os) ] [ a [href "#" ] [ text (osName os) ] ] ) osList )
+                 ( List.map (\os ->
+                     let
+                       updatedCondition = {condition | os = os }
+                     in
+                       li [ onClick (MethodCallModified (Call parentId {call | condition = updatedCondition })), class (osClass os) ] [ a [href "#" ] [ text (osName os) ] ] ) osList )
               ]
-            , if (hasMajorMinorVersion condition.os ) then input [readonly model.hasWriteRights,value (Maybe.withDefault "" (Maybe.map String.fromInt (getMajorVersion condition.os) )), onInput (\s -> UpdateCondition call.id {condition | os = updateMajorVersion  (String.toInt s) condition.os}  ),type_ "number", style "display" "inline-block", style "width" "auto", style "margin-left" "5px",  class "form-control", placeholder "Major version"] [] else text ""
-            , if (hasMajorMinorVersion condition.os ) then input [readonly model.hasWriteRights, value (Maybe.withDefault "" (Maybe.map String.fromInt (getMinorVersion condition.os) )), onInput (\s -> UpdateCondition call.id {condition | os = updateMinorVersion  (String.toInt s) condition.os}  ), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Minor version"] []  else text ""
-            , if (hasVersion condition.os ) then input [readonly model.hasWriteRights, value (Maybe.withDefault "" (Maybe.map String.fromInt (getVersion condition.os) )), onInput (\s -> UpdateCondition call.id {condition | os = updateVersion  (String.toInt s) condition.os}  ), type_ "number",style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Version"] []  else text ""
-            , if (hasSP condition.os ) then input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getSP condition.os) )), onInput (\s -> UpdateCondition call.id {condition | os = updateSP condition.os (String.toInt s)}  ), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Service pack"] []  else text ""
+            , if (hasMajorMinorVersion condition.os ) then input [readonly model.hasWriteRights,value (Maybe.withDefault "" (Maybe.map String.fromInt (getMajorVersion condition.os) )), onInput (updateConditonVersion updateMajorVersion),type_ "number", style "display" "inline-block", style "width" "auto", style "margin-left" "5px",  class "form-control", placeholder "Major version"] [] else text ""
+            , if (hasMajorMinorVersion condition.os ) then input [readonly model.hasWriteRights, value (Maybe.withDefault "" (Maybe.map String.fromInt (getMinorVersion condition.os) )), onInput (updateConditonVersion updateMinorVersion), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Minor version"] []  else text ""
+            , if (hasVersion condition.os ) then input [readonly model.hasWriteRights, value (Maybe.withDefault "" (Maybe.map String.fromInt (getVersion condition.os) )), onInput  (updateConditonVersion updateVersion), type_ "number",style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Version"] []  else text ""
+            , if (hasSP condition.os ) then input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getSP condition.os) )), onInput (updateConditonVersion updateSP), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Service pack"] []  else text ""
 
             ]
           ]
@@ -304,7 +171,11 @@ showMethodTab model method call uiInfo=
         ]
       , div [ class "form-group condition-form" ] [
           label [ for "advanced"] [ text "Other conditions:" ]
-        , textarea [  readonly (not model.hasWriteRights), name "advanced", class "form-control", rows 1, id "advanced", value condition.advanced, onInput (\s -> UpdateCondition call.id {condition | advanced = s })  ] [] --ng-pattern="/^[a-zA-Z0-9_!.|${}\[\]()@:]+$/" ng-model="method_call.advanced_class" ng-change="updateClassContext(method_call)"></textarea>
+        , textarea [  readonly (not model.hasWriteRights), name "advanced", class "form-control", rows 1, id "advanced", value condition.advanced, onInput (\s ->
+                     let
+                       updatedCondition = {condition | advanced = s }
+                       updatedCall = Call parentId {call | condition = updatedCondition }
+                     in MethodCallModified updatedCall)  ] [] --ng-pattern="/^[a-zA-Z0-9_!.|${}\[\]()@:]+$/" ng-model="method_call.advanced_class" ng-change="updateClassContext(method_call)"></textarea>
           {-<div ng-messages="CForm.form.cfClasses.$error" role="alert">
                                 <div ng-message="pattern" class="text-danger">This field should only contains alphanumerical characters (a-zA-Z0-9) or the following characters _!.|${}[]()@:</div>
                               </div>
@@ -390,8 +261,10 @@ showMethodTab model method call uiInfo=
         ]
       ]
 
-methodDetail: Method -> MethodCall -> MethodCallUiInfo -> Model -> Html Msg
-methodDetail method call ui model =
+
+
+methodDetail: Method -> MethodCall -> Maybe CallId -> MethodCallUiInfo -> Model -> Html Msg
+methodDetail method call parentId ui model =
   let
     activeClass = (\c -> if c == ui.tab then "active" else "" )
   in
@@ -399,14 +272,14 @@ methodDetail method call ui model =
     div [] [
       div [ class "form-group"] [
         label [ for "component"] [ text "Report component:"]
-      , input [ readonly (not model.hasWriteRights), type_ "text", name "component", class "form-control", value call.component,  placeholder method.name] []
+      , input [ readonly (not model.hasWriteRights), type_ "text", name "component", class "form-control", value call.component,  placeholder method.name,  onInput  (\s -> MethodCallModified (Call parentId {call  | component = s }))] []
       ]
     , ul [ class "tabs-list"] [
         li [ class (activeClass CallParameters), onClick (SwitchTabMethod call.id CallParameters) ] [text "Parameters"] -- click select param tabs, class active if selected
       , li [ class (activeClass Conditions), onClick (SwitchTabMethod call.id Conditions) ] [text "Conditions"]
       , li [class (activeClass Result), onClick (SwitchTabMethod call.id Result) ] [text "Result conditions"]
       ]
-    , div [ class "tabs" ] [ (showMethodTab model method call ui) ]
+    , div [ class "tabs" ] [ (showMethodTab model method parentId call ui) ]
     , div [ class "method-details-footer"] [
           button [ class "btn btn-outline-secondary btn-sm" , type_ "button", onClick (ResetMethodCall call)] [ -- ng-disabled="!canResetMethod(method_call)" ng-click="resetMethod(method_call)"
             text "Reset "
@@ -427,34 +300,28 @@ methodDetail method call ui model =
     ]
   ]
 
-showMethodCall: Model -> MethodCallUiInfo -> DnDList.Groups.Model -> Int -> MethodCall -> Html Msg
-showMethodCall model ui dnd index call =
+
+showMethodCall: Model -> MethodCallUiInfo -> Maybe CallId ->  MethodCall -> Element Msg
+showMethodCall model ui  parentId call =
   let
     method = case Dict.get call.methodName.value model.methods of
                Just m -> m
                Nothing -> Method call.methodName call.methodName.value "" "" (Maybe.withDefault (ParameterId "") (Maybe.map .id (List.head call.parameters))) [] [] Nothing Nothing Nothing
-    dragAttributes =
-       case dndSystem.info dnd of
-         Just { dragIndex } ->
-           if dragIndex /= index then
-             dndSystem.dropEvents index call.id.value
-           else
-             [ ]
-         Nothing ->
-            dndSystem.dragEvents index call.id.value
   in
-    if (List.isEmpty dragAttributes) then
-      li [ class "dndPlaceholder"] [ ]
-    else
-      li [ class (if (ui.mode == Opened) then "active" else "") ] [ --     ng-class="{'active': methodIsSelected(method_call), 'missingParameters': checkMissingParameters(method_call.parameters, method.parameter).length > 0, 'errorParameters': checkErrorParameters(method_call.parameters).length > 0, 'is-edited' : canResetMethod(method_call)}"
-        callBody model ui call dragAttributes False
-      , case ui.mode of
-         Opened -> div [ class "method-details" ] [ methodDetail method call ui model ]
-         Closed -> div [] []
-      ]
+      element "li"
+      |> addClass (if (ui.mode == Opened) then "active" else "") --     ng-class="{'active': methodIsSelected(method_call), 'missingParameters': checkMissingParameters(method_call.parameters, method.parameter).length > 0, 'errorParameters': checkErrorParameters(method_call.parameters).length > 0, 'is-edited' : canResetMethod(method_call)}"
+      |> appendChild (callBody model ui call parentId)
+      |> addAttribute (hidden (Maybe.withDefault False (Maybe.map ((==) (Move (Call parentId  call))) (DragDrop.currentlyDraggedObject model.dnd) )))
+      |> appendChildConditional
+         ( element "div"
+           |> addClass "method-details"
+           |> appendNode (methodDetail method call parentId ui model )
+         ) (ui.mode == Opened)
 
-callBody : Model -> MethodCallUiInfo ->  MethodCall ->  List (Attribute Msg) -> Bool -> Html Msg
-callBody model ui call dragAttributes isGhost =
+
+
+callBody : Model -> MethodCallUiInfo ->  MethodCall -> Maybe CallId -> Element Msg
+callBody model ui call pid =
   let
     method = case Dict.get call.methodName.value model.methods of
                    Just m -> m
@@ -466,105 +333,121 @@ callBody model ui call dragAttributes isGhost =
                            Nothing -> ""
     classParameter = getClassParameter method
     paramValue = call.parameters |> List.Extra.find (\c -> c.id == classParameter.name) |> Maybe.map (.value)  |> Maybe.withDefault ""
+
     editAction = case ui.mode of
-                   Opened -> CloseMethod call.id
-                   Closed -> OpenMethod  call.id
+                   Opened -> UIMethodAction call.id {ui | mode = Closed}
+                   Closed -> UIMethodAction call.id {ui | mode = Opened}
 
     nbErrors = List.length (List.filter ( List.any ( (/=) Nothing) ) []) -- get errors
+    dragElem =  element "div"
+                |> addClass "cursorMove"
+                |> Dom.appendChild
+                           ( element "i"
+                             |> addClass "fas fa-grip-horizontal"
+                           )
+    cloneIcon = element "i" |> addClass "fa fa-clone"
+    cloneButton = element "button"
+                  |> addClass "text-success method-action tooltip-bs"
+                  |> addAction ("click", GenerateId (\s -> CloneMethod call (CallId s)))
+                  |> addAttributeList
+                     [ type_ "button", title "Clone this method", attribute "data-toggle" "tooltip"
+                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
+                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     ]
+                  |> appendChild cloneIcon
+    removeIcon = element "i" |> addClass "fa fa-times-circle"
+    removeButton = element "button"
+                  |> addClass "text-danger method-action tooltip-bs"
+                  |> addAction ("click", RemoveMethod call.id)
+                  |> addAttribute (type_ "button")
+                  |> appendChild removeIcon
+    condition = element "div"
+                |> addClass "method-condition flex-form"
+                |> appendChildList
+                   [ element "label"
+                     |> appendText "Condition:"
+                   , element "span"
+                     |> appendText (conditionStr call.condition)
+                     |> addAttributeList
+                        [ class "popover-bs", title (conditionStr call.condition)
+                        , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "top"
+                        , attribute "data-title" (conditionStr call.condition), attribute "data-content" "<small>Click <span class='text-info'>3</span> times to copy the whole condition below</small>"
+                        , attribute "data-template" """<div class="popover condition" role="tooltip"><div class="arrow"></div><h3 class="popover-header"></h3><div class="popover-body"></div></div>"""
+                        , attribute "data-html" "true"
+                        ]
+                  ]
+    methodName = element "div"
+                 |> addClass "method-name"
+                 |> appendText  (if (String.isEmpty call.component) then method.name else call.component)
+                 |> appendChild
+                    ( element "span"
+                      |> appendChild
+                         ( element "i"
+                           |> addAttributeList
+                              [ class deprecatedClass
+                              , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-container" "body"
+                              , attribute "data-placement" "auto", attribute "data-title" method.name, attribute "data-content" "{{getTooltipContent(method_call)}}"
+                              , attribute "data-html" "true"
+                              ]
+                         )
+                    )
+
+    methodContent = element "div"
+                    |> addClass  "method-param flex-form"
+                    |> addActionStopAndPrevent ("ondragstart", Ignore)
+                    |> addActionStopAndPrevent ("dragstart", Ignore)
+                    |> addListenerStopAndPrevent ("dragStart", Json.Decode.succeed Ignore)
+                    |> appendChildList
+                       [ element "label" |> appendText ((parameterName classParameter) ++ ":")
+                       , element "span"
+                         |> appendText paramValue
+                       ]
+
+    warns = element "div"
+            |> addClass "warns"
+            |> appendChild
+               ( element "span"
+                 |> addClass  "warn-param error popover-bs"
+                 |> appendChild (element "b" |> appendText (String.fromInt nbErrors)  )
+                 |> appendText (" invalid " ++ (if nbErrors == 1 then "parameter" else "parameters") )
+               )
+    currentDrag = case DragDrop.currentlyDraggedObject model.dnd of
+                    Just (Move x) -> getId x == call.id
+                    Nothing -> False
+                    _ -> False
   in
-  div ( class "method" :: id call.id.value :: if isGhost then List.reverse ( style  "z-index" "1" :: style "pointer-events" "all" :: id "ghost" :: style "opacity" "0.7" :: style "background-color" "white" :: dndSystem.ghostStyles model.dnd) else []) [
-    div  (class "cursorMove" :: dragAttributes) [ p [] [ text ":::"] ]
-  , div [ class "method-info"] [
-      div [ hidden (not model.hasWriteRights), class "btn-holder" ] [
-        button [ class "text-success method-action tooltip-bs", onClick ( GenerateId (\s -> CloneMethod call (CallId s)) ), type_ "button"
-               , title "Clone this method", attribute "data-toggle" "tooltip"
-               , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
-               , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'""" ] [
-          i [ class "fa fa-clone"] []
+  element "div"
+  |> addClass "method"
+  |> addAttribute (id call.id.value)
+  |> addAttribute (hidden currentDrag)
+  |> DragDrop.makeDraggable model.dnd (Move (Call pid call)) dragDropMessages
+  |> Dom.appendChildList
+     [ dragElem
+     , element "div"
+       |> addClass "method-info"
+       |> appendChildList
+          [ element "div"
+            |> addClass "btn-holder"
+            |> addAttribute (hidden (not model.hasWriteRights))
+            |> appendChildList
+               [ cloneButton
+               , removeButton
+               ]
+          , element "div"
+            |> addClass "flex-column"
+            |> appendChildConditional condition (call.condition.os /= Nothing || call.condition.advanced /= "")
+            |> appendChildList
+               [ methodName
+               , methodContent
+               ]
+            |> appendChildConditional warns (nbErrors > 0)
         ]
-      , button [  class "text-danger method-action", type_ "button", onClick (RemoveMethod call.id) ] [
-          i [ class "fa fa-times-circle" ] []
-        ]
-      ]
-    , div [ class "flex-column" ] [
-        if (call.condition.os == Nothing && call.condition.advanced == "") then
-          text ""
-        else
-          div [ class "method-condition flex-form" ] [
-            label [] [ text "Condition:" ]
-          , textarea [ class "form-control popover-bs", rows 1, readonly True, value (conditionStr call.condition), title (conditionStr call.condition)
-                            --msd-elastic
-                            --ng-click="$event.stopPropagation();"
-                     , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "top"
-                     , attribute "data-title" (conditionStr call.condition), attribute "data-content" "<small>Click <span class='text-info'>3</span> times to copy the whole condition below</small>"
-                     , attribute "data-template" """<div class="popover condition" role="tooltip"><div class="arrow"></div><h3 class="popover-header"></h3><div class="popover-body"></div></div>"""
-                     , attribute "data-html" "true" ] []
-          ]
-        , div [ class "method-name" ] [
-            text (if (String.isEmpty call.component) then method.name else call.component)
-          , span [ class "cursor-help" ] [
-              i [ class deprecatedClass
-                , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-container" "body"
-                , attribute "data-placement" "auto", attribute "data-title" method.name, attribute "data-content" "{{getTooltipContent(method_call)}}"
-                , attribute "data-html" "true" ]  []
-            ]
-          ]
-        , div [ class "method-content"] [
-            div [ class "method-param flex-form" ] [ --  ng-if="getClassParameter(method_call).value && checkMissingParameters(method_call.parameters, method.parameter).length<=0 && checkErrorParameters(method_call.parameters).length<=0"
-              label [] [ text ((parameterName classParameter) ++ ":")]
-            , textarea [ class "form-control", rows 1, readonly True, value paramValue ] [] -- msd elastic  ng-click="$event.stopPropagation();"
-            ]
-          ]
-        , div [class "warns" ] [
-             ( if nbErrors > 0 then
-                 span [ class "warn-param error popover-bs", hidden (nbErrors == 0) ] [
-                   b [] [ text (String.fromInt nbErrors) ]
-                 , text (" invalid " ++ (if nbErrors == 1 then "parameter" else "parameters") )
-                 ]
-               else
-                 text ""
-             )
-              {-
-                                  ng-click="selectMethod(method_call)"
-                                  data-toggle="popover"
-                                  data-trigger="hover"
-                                  data-container="body"
-                                   data-placement="top"
-                                  data-title="<b>{{checkErrorParameters(method_call.parameters).length}}</b> invalid parameter{{checkErrorParameters(method_call.parameters).length > 1 ? 's' : ''}}"
-                                  data-content="{{getErrorTooltipMessage(checkErrorParameters(method_call.parameters))}}"
-                                  data-html="true"
-                                  >
-                                  <b>{{checkErrorParameters(method_call.parameters).length}}</b> invalid parameter{{checkErrorParameters(method_call.parameters).length > 1 ? "s" : ""}}
-                                </span>
-                              </div> -}
-            ]
-              -- here used to be one entry for each for each param but we can be smart with elm
+       , element "div"
+         |> addAttributeList [ class "edit-method popover-bs", onClick editAction
+                 , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "left"
+                 --, attribute "data-template" "{{getStatusTooltipMessage(method_call)}}", attribute "data-container" "body"
+                 , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'""" ]
+         |> appendChild (element "i" |> addClass "ion ion-edit" )
 
-{- error display <div class="warns" ng-if="!getClassParameter(method_call).value || checkMissingParameters(method_call.parameters, method.parameter).length>0 || checkErrorParameters(method_call.parameters).length>0">
-                                <span
-                                  class="warn-param warning popover-bs"
-                                  ng-click="selectMethod(method_call)"
-                                  data-toggle="popover"
-                                  data-trigger="hover"
-                                  data-container="body"
-                                  data-placement="top"
-                                  data-title="<b>{{checkMissingParameters(method_call.parameters, method.parameter).length}}</b> required parameter{{checkMissingParameters(method_call.parameters, method.parameter).length > 1 ? 's' : ''}} missing"
-                                  data-content="{{getWarningTooltipMessage(checkMissingParameters(method_call.parameters, method.parameter))}}"
-                                  data-html="true"
-                                  >
-                                  <b>{{checkMissingParameters(method_call.parameters, method.parameter).length}}</b> required parameter{{checkMissingParameters(method_call.parameters, method.parameter).length > 1 ? 's' : ''}} missing
-                                </span>
-                                <span -}
-        ]
-      ]
-
-
-
-  , div [ class "edit-method popover-bs", onClick editAction
-          , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "left"
-          --, attribute "data-template" "{{getStatusTooltipMessage(method_call)}}", attribute "data-container" "body"
-          , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'""" ] [
-      i [ class "ion ion-edit"] []
-    ]
-  ]
+     ]
 

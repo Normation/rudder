@@ -103,6 +103,9 @@ import com.softwaremill.quicklens._
 import cats.implicits._
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.utils.ParseMaxParallelism
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.rudder.domain.reports.GroupComponentExpectedReport
+import com.normation.rudder.domain.reports.UniqueComponentExpectedReport
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -1421,26 +1424,43 @@ object RuleExpectedReportBuilder extends Loggable {
     /*
      * We can have several components, one by section.
      * If there is no component for that policy, the policy is autobounded to DEFAULT_COMPONENT_KEY
+     *
      */
-    val allComponents = technique.rootSection.getAllSections.flatMap { section =>
+    def sectionToExpectedReports (section : SectionSpec): List[ComponentExpectedReport] = {
+      def childExpectedReports = section.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports).toList
       if(section.isComponent) {
-        section.componentKey match {
+        logger.info("section")
+        logger.info(section)
+        section.reportingLogic match {
           case None =>
-            //a section that is a component without componentKey variable: card=1, value="None"
-            Some(ComponentExpectedReport(section.name, List(DEFAULT_COMPONENT_KEY), List(DEFAULT_COMPONENT_KEY)))
-          case Some(varName) =>
-            //a section with a componentKey variable: card=variable card
-            val values           = vars.expandedVars.get(varName).map( _.values.toList).getOrElse(Nil)
-            val unexpandedValues = vars.originalVars.get(varName).map( _.values.toList).getOrElse(Nil)
-            if (values.size != unexpandedValues.size)
-              PolicyGenerationLogger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
-                  section.componentKey, directiveId.value, values, unexpandedValues ))
-            Some(ComponentExpectedReport(section.name, values, unexpandedValues))
+            section.componentKey match {
+              case None =>
+                //a section that is a component without componentKey variable: card=1, value="None"
+                UniqueComponentExpectedReport(section.name, List(DEFAULT_COMPONENT_KEY), List(DEFAULT_COMPONENT_KEY)) :: Nil
+              case Some(varName) =>
+                //a section with a componentKey variable: card=variable card
+                val values = vars.expandedVars.get(varName).map(_.values.toList).getOrElse(Nil)
+                val unexpandedValues = vars.originalVars.get(varName).map(_.values.toList).getOrElse(Nil)
+                if (values.size != unexpandedValues.size)
+                  PolicyGenerationLogger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
+                    section.componentKey, directiveId.value, values, unexpandedValues))
+
+                UniqueComponentExpectedReport(section.name, values, unexpandedValues) :: childExpectedReports
+            }
+          case Some(rule) =>
+            GroupComponentExpectedReport(section.name, rule, section.children.toList.flatMap{
+              case s : SectionSpec => sectionToExpectedReports(s)
+              case _ => Nil
+            }) :: Nil
+
         }
       } else {
-        None
+        childExpectedReports
       }
-    }.toList
+    }
+
+
+    val allComponents = technique.rootSection.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports).toList
 
     if(allComponents.isEmpty) {
       //that log is outputed one time for each directive for each node using a technique, it's far too
@@ -1449,7 +1469,7 @@ object RuleExpectedReportBuilder extends Loggable {
         technique.id, directiveId))
 
       val trackingVarCard = getTrackingVariableCardinality
-      List(ComponentExpectedReport(technique.id.name.value, trackingVarCard._1.toList, trackingVarCard._2.toList))
+      List(UniqueComponentExpectedReport(technique.id.name.value, trackingVarCard._1.toList, trackingVarCard._2.toList))
     } else {
       allComponents
     }

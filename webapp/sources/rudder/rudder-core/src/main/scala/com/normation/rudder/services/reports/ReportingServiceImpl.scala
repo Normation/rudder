@@ -580,7 +580,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
      * So nodeIds === returnedMap.keySet holds
      */
     val t0 = System.currentTimeMillis
-    for {
+    val res = for {
       complianceMode      <- getGlobalComplianceMode()
       unexpectedMode      <- getUnexpectedInterpretation()
       // we want compliance on these nodes
@@ -606,6 +606,8 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     } yield {
       nodeStatusReports
     }
+    print(res)
+    res
   }
 
   /*
@@ -633,6 +635,9 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       t3                =  System.currentTimeMillis
       _                 =  TimingDebugLogger.trace(s"Compliance: get Node Config Id Infos: ${t3-t2}ms")
     } yield {
+      TimingDebugLogger.info(nodeConfigIdInfos)
+      TimingDebugLogger.info(currentConfigs)
+      TimingDebugLogger.info(runs)
       ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos)
     }
   }

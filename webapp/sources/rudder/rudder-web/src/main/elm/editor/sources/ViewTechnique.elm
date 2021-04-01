@@ -7,9 +7,13 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import ViewMethod exposing (..)
+import ViewBlock exposing (..)
 import ViewMethodsList exposing (..)
 import ViewTechniqueTabs exposing (..)
 import ViewTechniqueList exposing (..)
+import Dom exposing (..)
+import Dom.DragDrop as DragDrop
+import MethodElemUtils exposing (..)
 
 --
 -- This file deals with the UI of one technique
@@ -82,6 +86,74 @@ showTechnique model technique origin ui =
               [ i [] [ text "New Technique" ] ]
             else
               [ span [class "technique-version" ] [ text technique.version ] , text (" - " ++ technique.name) ]
+
+    methodsList =
+      element "ul"
+      |> addAttributeList [ id "methods", class "list-unstyled" ]
+      |> appendChild
+           ( element "li"
+             |> addAttribute (id "no-methods")
+             |> appendChildList
+                [ element "i"
+                  |> addClass "fas fa-sign-in-alt"
+                  |> addStyle ("transform", "rotate(90deg)")
+                , element "span"
+                  |> appendText " Drag and drop generic methods here from the list on the right to build target configuration for this technique."
+                ]
+             |> DragDrop.makeDroppable model.dnd StartList dragDropMessages
+             |> addAttribute (hidden (not (List.isEmpty technique.elems)))
+           )
+      |> appendChild
+           ( element "li"
+             |> addAttribute (id "no-methods")
+             |> addStyle ("text-align", "center")
+             |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd StartList) then "1" else  "0.4"))
+             |> appendChild
+                ( element "i"
+                  |> addClass "fas fa-sign-in-alt"
+                  |> addStyle ("transform", "rotate(90deg)")
+                )
+             |> addStyle ("padding", "3px 15px")
+             |> DragDrop.makeDroppable model.dnd StartList dragDropMessages
+             |> addAttribute (hidden (case DragDrop.currentlyDraggedObject model.dnd of
+                                                   Nothing -> True
+                                                   Just (Move x) ->Maybe.withDefault True (Maybe.map (\c->  (getId x) == (getId c)) (List.head technique.elems))
+                                                   Just _ -> False
+                             ) )
+           )
+      |> appendChildList
+           ( List.concatMap ( \ call ->
+               case call of
+                 Call parentId c ->
+                   let
+                     methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Dict.empty True) (Dict.get c.id.value ui.callsUI)
+                     currentDrag = case DragDrop.currentlyDraggedObject model.dnd of
+                                     Nothing -> True
+                                     Just (Move x) ->(getId x) == c.id
+                                     Just _ -> False
+                     base =     [ showMethodCall model methodUi parentId c ]
+                     dropElem = AfterElem Nothing (Call parentId c)
+                     dropTarget =  element "li"
+                                   |> addAttribute (id "no-methods") |> addStyle ("padding", "3px 15px")
+                                   |> addStyle ("text-align", "center")
+                                   |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd dropElem) then "1" else  "0.4"))
+                                   |> DragDrop.makeDroppable model.dnd dropElem dragDropMessages
+                                   |> addAttribute (hidden currentDrag)
+                                   |> appendChild
+                                      ( element "i"
+                                        |> addClass "fas fa-sign-in-alt"
+                                        |> addStyle ("transform", "rotate(90deg)")
+                                      )
+                   in
+                      List.reverse (dropTarget :: base)
+                 Block parentId b ->
+                   let
+                     methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Dict.empty True) (Dict.get b.id.value ui.callsUI)
+                   in
+                     [ showMethodBlock model ui methodUi parentId b ]
+             ) technique.elems
+           )
+
   in
     div [ class "main-container" ] [
       div [ class "main-header" ] [
@@ -146,7 +218,7 @@ showTechnique model technique origin ui =
         , h5 [] [
             text "Generic Methods"
           , span [ class "badge badge-secondary" ] [
-              span [] [ text (String.fromInt (List.length technique.calls ) ) ]
+              span [] [ text (String.fromInt (List.length technique.elems ) ) ]
             ]
           , if (model.genericMethodsOpen || (not model.hasWriteRights) ) then text "" else
                 button [class "btn-sm btn btn-success", type_ "button", onClick OpenMethods] [
@@ -155,21 +227,7 @@ showTechnique model technique origin ui =
                 ]
           ]
        ,  div [ class "row"] [
-            ul [ id "methods", class "list-unstyled" ]
-              ( ( if List.isEmpty technique.calls then
-                    [ li [ id "no-methods" ] [
-                        text "Drag and drop generic methods here from the list on the right to build target configuration for this technique."
-                      ]
-                    ]
-                else
-                    List.indexedMap (\ index call ->
-                      let
-                            methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Dict.empty) (Dict.get call.id.value ui.callsUI)
-                      in
-                        showMethodCall model methodUi model.dnd (index) call
-                   ) technique.calls
-              ))
-
+            render methodsList
           ]
         ]
       ]
@@ -202,15 +260,6 @@ view model =
       techniqueList model model.techniques
     , div [ class "template-main" ] [central]
     , methodsList model
-    , ( case model.mode of
-         TechniqueDetails technique _ _->
-           case maybeDragCard model technique.calls of
-             Just c ->
-               callBody model (MethodCallUiInfo Closed CallParameters Dict.empty) c  ( List.reverse (class "method" :: [] )) True
-             _ ->
-               text ""
-         _ -> text ""
-       )
     , case model.modal of
         Nothing -> text ""
         Just (DeletionValidation technique) ->
@@ -238,8 +287,3 @@ view model =
           ]
     ]
 
-
-maybeDragCard : Model -> List MethodCall -> Maybe MethodCall
-maybeDragCard model methods =
-   dndSystem.info model.dnd
-        |> Maybe.andThen (\{ dragIndex } -> methods |> List.drop dragIndex |> List.head)
