@@ -552,9 +552,7 @@ object ComplianceData extends Loggable {
         , explanation
         , JsonTagSerialisation.serializeTags(rule.tags)
       )
-
     }
-
     JsTableData(ruleComplianceLine.toList)
   }
 
@@ -565,8 +563,7 @@ object ComplianceData extends Loggable {
     , onRuleScreen: Option[Rule] // if we are on a rule, we want to adapt message
   ) : List[DirectiveComplianceLine] = {
     val overridesData = for {
-      // we don't want to write an overriden directive several time for the same overriding rule/directive.
-      over                            <- overrides.groupBy(_.overridenBy).map(_._2.head)
+      over                            <- overrides
       (overridenTech , overridenDir)  <- directiveLib.allDirectives.get(over.policy.directiveId)
       overridingRule                  <- rules.find( _.id == over.overridenBy.ruleId)
       (overridingTech, overridingDir) <- directiveLib.allDirectives.get(over.overridenBy.directiveId)

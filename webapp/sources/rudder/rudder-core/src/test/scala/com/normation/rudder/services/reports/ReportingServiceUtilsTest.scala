@@ -70,6 +70,7 @@ class ReportingServiceUtilsTest extends Specification {
   val rule3 = RuleId("rule3")
   val dir1  = DirectiveId("dir1")
   val dir2  = DirectiveId("dir2")
+  val dir3  = DirectiveId("dir3")
 
   val expiration = new DateTime(0) // not used
 
@@ -184,4 +185,46 @@ class ReportingServiceUtilsTest extends Specification {
       RuleStatusReport(rule2, List(rnReport(node2, rule2, dir2)), noOverrides)
     )
   }
+
+  /*
+   * More complexe for one node:
+   * - 3 directives: dir1 (most prioritary), dir2 and dir3 (less)
+   * - 3 rules: rule1 has dir2, dir3 (skipped),  rule2 has all 3 (so dir1 ok, other skipped), rule3 has all 3 (skipped)
+   * There is no ducplication of reports.
+   */
+  "a rule not overriden on all nodes is not written overriden" in {
+    val reports = List(
+      NodeStatusReport(node1, NoRunNoExpectedReport, RunComplianceInfo.OK
+        , List(
+              // on rule1, both dir2 and dir3 are overridden by rule2/dir1
+              thisOverrideThatOn2(rule2, dir1, rule1, dir2)
+            , thisOverrideThatOn2(rule2, dir1, rule1, dir3)
+              // on rule2, both dir2 and dir3 are overridden by rule2/dir1
+            , thisOverrideThatOn2(rule2, dir1, rule2, dir2)
+            , thisOverrideThatOn2(rule2, dir1, rule2, dir3)
+              // on rule3, dir2, dir2 and dir3 are overridden by rule2/dir1
+            , thisOverrideThatOn2(rule2, dir1, rule3, dir1)
+            , thisOverrideThatOn2(rule2, dir1, rule3, dir2)
+            , thisOverrideThatOn2(rule2, dir1, rule3, dir3)
+              // and these one are real but should not be kept to avoid having several time the same "skipped"
+            , thisOverrideThatOn2(rule1, dir2, rule1, dir3)
+            , thisOverrideThatOn2(rule2, dir2, rule2, dir3)
+            , thisOverrideThatOn2(rule3, dir1, rule3, dir2)
+            , thisOverrideThatOn2(rule3, dir1, rule3, dir3)
+            , thisOverrideThatOn2(rule3, dir2, rule3, dir3)
+          )
+          // only one expected report: dir1 on rule2
+        , Set(rnReport(node1, rule2, dir1))
+      )
+    ).map(r => (r.nodeId, r)).toMap
+
+    ReportingServiceUtils.buildRuleStatusReport(rule1, reports).isSameReportAs(
+      RuleStatusReport(rule1, List(), List(thisOverrideThatOn2(rule2, dir1, rule1, dir2), thisOverrideThatOn2(rule2, dir1, rule1, dir3)))
+    ) and ReportingServiceUtils.buildRuleStatusReport(rule2, reports).isSameReportAs(
+      RuleStatusReport(rule2, List(rnReport(node1, rule2, dir1)), List(thisOverrideThatOn2(rule2, dir1, rule2, dir2), thisOverrideThatOn2(rule2, dir1, rule2, dir3)))
+    ) and ReportingServiceUtils.buildRuleStatusReport(rule3, reports).isSameReportAs(
+      RuleStatusReport(rule3, List(), List(thisOverrideThatOn2(rule2, dir1, rule3, dir1), thisOverrideThatOn2(rule2, dir1, rule3, dir2), thisOverrideThatOn2(rule2, dir1, rule3, dir3)))
+    )
+  }
+
 }
