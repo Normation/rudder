@@ -43,7 +43,7 @@ getTechniques  model =
     req
 
 getTechniquesCategories : Model -> Cmd Msg
-getTechniquesCategories  model =
+getTechniquesCategories model =
   let
     req =
       request

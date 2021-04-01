@@ -1,14 +1,12 @@
 module DataTypes exposing (..)
 
 import Dict exposing (Dict)
-import DnDList.Groups
-import Either exposing (Either(..))
 import File exposing (File)
 import Http exposing (Error)
 import Json.Decode exposing (Value)
 import MethodConditions exposing (..)
 import Regex
-
+import Dom.DragDrop as DragDrop
 
 --
 -- All our data types
@@ -54,7 +52,7 @@ type alias Method =
   , agentSupport   : List Agent
   , parameters     : List MethodParameter
   , documentation  : Maybe String
-  , deprecated     :  Maybe String
+  , deprecated     : Maybe String
   , rename         : Maybe String
   }
 
@@ -64,9 +62,23 @@ type alias Technique =
   , name        : String
   , description : String
   , category    : String
-  , calls       : List MethodCall
+  , elems       : List MethodElem
   , parameters  : List TechniqueParameter
   , resources   : List Resource
+  }
+
+type MethodElem = Call (Maybe CallId) MethodCall | Block (Maybe CallId) MethodBlock
+
+
+
+type ReportingLogic = WorstReport | SumReport | FocusReport String
+
+type alias MethodBlock =
+  { id : CallId
+  , component : String
+  , condition : Condition
+  , reportingLogic : ReportingLogic
+  , calls : List MethodElem
   }
 
 type alias MethodCall =
@@ -94,38 +106,13 @@ type alias TechniqueCategory =
   , name : String
   }
 
-config : DnDList.Groups.Config (Either Method MethodCall)
-config =
-    { beforeUpdate = \_ _ list -> list
-    , listen       = DnDList.Groups.OnDrag
-    , operation    = DnDList.Groups.Swap
-    , groups       =
-        { listen     = DnDList.Groups.OnDrag
-        , operation  = DnDList.Groups.InsertAfter
-        , comparator =
-           (\drag drop ->
-               case (drag,drop) of
-                 (Left  _ , Left  _ ) -> True
-                 (Right _ , Right _ ) -> True
-                 _                    -> False
-          )
-        , setter     =
-           (\drag drop ->
-               case (drag,drop) of
-                 ( Right _ , Left method ) ->
-                   Right (MethodCall (CallId "") method.id (List.map (\p -> CallParameter p.name "") method.parameters) (Condition Nothing "") "")
-                 _                         -> drop
-          )
-        }
-    }
-
-dndSystem : DnDList.Groups.System (Either Method MethodCall) Msg
-dndSystem =
-  DnDList.Groups.create config DndEvent
-
 type TechniqueState = Creation TechniqueId | Edit Technique | Clone Technique TechniqueId
 
 type ModalState = DeletionValidation Technique
+
+type DragElement = NewMethod Method | NewBlock | Move MethodElem
+
+type DropElement = StartList | AfterElem (Maybe CallId) MethodElem | InBlock MethodBlock
 
 type alias Model =
   { techniques         : List Technique
@@ -136,7 +123,7 @@ type alias Model =
   , techniqueFilter    : String
   , methodsUI          : MethodListUI
   , genericMethodsOpen : Bool
-  , dnd                : DnDList.Groups.Model
+  , dnd                : DragDrop.State DragElement DropElement
   , modal              : Maybe ModalState
   , hasWriteRights     : Bool
   }
@@ -170,6 +157,7 @@ type alias MethodCallUiInfo =
   { mode       : MethodCallMode
   , tab        : MethodCallTab
   , validation : Dict String  ( ValidationState MethodCallParamError )
+  , showChildDetails : Bool
   }
 
 type alias TechniqueUiInfo =
@@ -196,11 +184,11 @@ type Msg =
   | GetTechniqueResources  (Result Error (List Resource))
   | GetCategories (Result Error (List TechniqueCategory))
   | GetMethods   (Result Error (Dict String Method))
-  | OpenMethod   CallId
-  | CloseMethod  CallId
+  | UIMethodAction CallId MethodCallUiInfo
   | RemoveMethod CallId
   | CloneMethod  MethodCall CallId
   | MethodCallParameterModified MethodCall ParameterId String
+  | MethodCallModified MethodElem
   | TechniqueParameterModified ParameterId TechniqueParameter
   | TechniqueParameterRemoved ParameterId
   | TechniqueParameterAdded ParameterId
@@ -217,7 +205,7 @@ type Msg =
   | NewTechnique TechniqueId
   | Ignore
   | AddMethod Method CallId
-  | DndEvent DnDList.Groups.Msg
+  | AddBlock CallId
   | SetCallId CallId
   | StartSaving
   | Copy String
@@ -235,4 +223,16 @@ type Msg =
   | ImportFile File
   | ParseImportedFile File String
   | ScrollCategory String
-  | UpdateCondition CallId Condition
+  | MoveStarted DragElement
+  | MoveTargetChanged DropElement
+  | MoveCanceled
+  | MoveCompleted DragElement DropElement
+  | SetMissingIds String
+
+dragDropMessages : DragDrop.Messages Msg DragElement DropElement
+dragDropMessages =
+  { dragStarted = MoveStarted
+  , dropTargetChanged = MoveTargetChanged
+  , dragEnded = MoveCanceled
+  , dropped = MoveCompleted
+  }

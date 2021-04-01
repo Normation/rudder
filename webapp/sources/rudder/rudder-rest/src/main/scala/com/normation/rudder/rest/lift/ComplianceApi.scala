@@ -58,8 +58,10 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
-
 import com.normation.box._
+import com.normation.rudder.domain.reports.ComponentStatusReport
+import com.normation.rudder.domain.reports.BlockStatusReport
+import com.normation.rudder.domain.reports.ValueStatusReport
 
 class ComplianceApi(
     restExtractorService: RestExtractorService
@@ -250,16 +252,16 @@ class ComplianceAPIService(
     } yield {
 
       //flatMap of Set is ok, since nodeRuleStatusReport are different for different nodeIds
-      val reportsByRule = reportsByNode.flatMap { case(nodeId, status) => status.reports }.groupBy( _.ruleId)
+      val reportsByRule = reportsByNode.flatMap { case (nodeId, status) => status.reports }.groupBy(_.ruleId)
 
       // get an empty-initialized array of compliances to be used
       // as defaults
-      val initializedCompliances : Map[RuleId, ByRuleRuleCompliance] = {
+      val initializedCompliances: Map[RuleId, ByRuleRuleCompliance] = {
         (rules.map { rule =>
           val nodeIds = groupLib.getNodeIds(rule.targets, nodeInfos)
 
           (rule.id, ByRuleRuleCompliance(
-              rule.id
+            rule.id
             , rule.name
             , ComplianceLevel(noAnswer = nodeIds.size)
             , compliance.mode
@@ -273,7 +275,49 @@ class ComplianceAPIService(
       val nonEmptyRules = reportsByRule.map { case (ruleId, reports) =>
 
         //aggregate by directives
-        val byDirectives = reports.flatMap { r => r.directives.values.map(d => (r.nodeId, d)).toSeq }.groupBy( _._2.directiveId)
+        val byDirectives = reports.flatMap { r => r.directives.values.map(d => (r.nodeId, d)).toSeq }.groupBy(_._2.directiveId)
+
+        def components(name : String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
+
+          val (groupsComponents, uniqueComponents) = nodeComponents.partitionMap {
+            case (a, b: BlockStatusReport) => Left((a, b))
+            case (a, b: ValueStatusReport) => Right((a, b)
+
+            )
+          }
+
+          (if (groupsComponents.isEmpty)
+            Nil
+          else {
+            val bidule = groupsComponents.flatMap { case (nodeId, c) => c.subComponents.map(sub => (nodeId, sub))}.groupBy((_._2.componentName))
+              ByRuleBlockCompliance(
+                name
+                , ComplianceLevel.sum(groupsComponents.map(_._2.compliance))
+                , bidule.flatMap(c => components(c._1, c._2)).toList
+              ) :: Nil
+            }) ::: (
+          if (uniqueComponents.isEmpty)
+            Nil
+          else
+            ByRuleValueCompliance(
+              name
+              , ComplianceLevel.sum(uniqueComponents.map(_._2.compliance))
+              , //here, we finally group by nodes for each components !
+              {
+                val byNode = uniqueComponents.groupBy(_._1)
+                byNode.map { case (nodeId, components) =>
+
+                  ByRuleNodeCompliance(
+                    nodeId
+                    , nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node")
+                    , uniqueComponents.toSeq.sortBy(_._2.componentName).flatMap(_._2.componentValues.values)
+                  )
+                }.toSeq
+              }
+            ) :: Nil
+            )
+          }
+
 
         (
           ruleId,
@@ -290,22 +334,7 @@ class ComplianceAPIService(
                   , //here we want the compliance by components of the directive. Get all components and group by their name
                     {
                       val byComponents = nodeDirectives.flatMap { case (nodeId, d) => d.components.values.map(c => (nodeId, c)).toSeq }.groupBy( _._2.componentName )
-                      byComponents.map { case (name, nodeComponents) =>
-                        ByRuleComponentCompliance(
-                            name
-                          , ComplianceLevel.sum( nodeComponents.map(_._2.compliance))
-                          , //here, we finally group by nodes for each components !
-                            {
-                              val byNode = nodeComponents.groupBy(_._1)
-                              byNode.map { case (nodeId, components) =>
-                                ByRuleNodeCompliance(
-                                    nodeId
-                                  , nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node")
-                                  , components.toSeq.sortBy(_._2.componentName).flatMap(_._2.componentValues.values)
-                                )
-                              }.toSeq
-                            }
-                        )
+                      byComponents.flatMap { case (name, nodeComponents) => components(name,nodeComponents.toList)
                       }.toSeq
                     }
                 )

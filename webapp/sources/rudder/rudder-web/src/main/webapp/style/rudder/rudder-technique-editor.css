@@ -505,6 +505,9 @@ ul.tabs-list > li > .badge.empty{
   color: #0519258c;
   background-color: #f3f8ff;
   cursor: pointer;
+  transition-property: opacity;
+  transition-duration: .5s;
+  text-align:center
 }
 
 /* FILEMANAGER */
@@ -909,6 +912,20 @@ button.btn.clipboard:hover {
   animation: pulse 1s forwards;
 }
 
+
+.block-child{
+  border-top: none;
+  border-bottom-left-radius : 4px;
+  border-bottom-right-radius: 4px;
+  background-color: #fff;
+  padding: 10px 10px 0 20px;
+  font-size: 14px;
+  position: relative;
+  opacity: 1;
+  transition:opacity 0.25s ease-in;
+  transition-property: opacity, height, padding;
+}
+
 /* METHOD DETAILS */
 .method-details{
   border: 1px solid #a7d0f1;
@@ -1018,6 +1035,7 @@ ul.list-unstyled > li{
   border: 1px solid #e5e5e5;
   border-radius: 4px;
   display: flex;
+
 }
 .active .method {
   border-top-color: #a7d0f1;
@@ -1030,18 +1048,18 @@ ul.list-unstyled > li{
   padding-top : 10px;
   padding-bottom : 10px;
 }
-#methods .method .method-info, #ghost.method .method-info{
-  padding: 8px;
+#methods .method .method-info{
+  padding: 2px 5px;
   position: relative;
   flex: 1;
 }
-#methods .method .method-info .btn-holder, #ghost.method .method-info .btn-holder  {
+#methods .method .method-info .btn-holder{
   position: absolute;
   right: 6px;
   top: 6px;
   z-index: 10;
 }
-#methods .method .method-info .btn-holder .method-action, #ghost.method .method-info .btn-holder .method-action {
+#methods .method .method-info .btn-holder .method-action {
   background-color: transparent;
   border: none;
   cursor: pointer;;
@@ -1057,6 +1075,9 @@ ul.list-unstyled > li{
 }
 #methods .method .method-info .btn-holder + .row > div:first-child{
   padding-right: 70px;
+}
+#methods .method .method-info label {
+  margin-bottom: 0;
 }
 .method .cursorMove {
   background-color: #ededed;
@@ -1077,27 +1098,46 @@ ul.list-unstyled > li{
   width: 100%;
   align-items: baseline;
 }
-
-#ghost .cursorMove {
- cursor : grabbing;
- z-index : 1;
- pointer-events: all;
+.cursorMove p {
+  margin : 0;
 }
-.method .method-condition ~ div:before,
-.method .method-condition > label:before {
+
+
+.block-child:before{
   content: "";
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 5px;
+  left: 0;
+  width: 3px;
+  background-color: #337ab7;
+
+}
+
+
+.block-child .block-child:before{
+
+  background-color: #222b32;
+}
+
+
+.block-child .block-child .block-child:before{
+
+  background-color: #8fb92a;
+}
+
+.method .method-condition ~ div:before,
+.method .method-condition ~ label:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
   width: 3px;
   background-color: #337ab7;
 }
-.method .method-condition > label:before{
-  top: 25px;
-}
 .method .method-condition ~ div{
-  padding-left: 15px;
+  padding-left: 10px;
 }
 .method .method-name {
   font-size: 16px;
@@ -1448,12 +1488,25 @@ ul.list-unstyled > li{
       -webkit-box-shadow: 0 0 0 0 rgba(199, 218, 252, 0);
   }
 }
-
 .optGroup {
     font-weight: bold;
     font-style: italic;
 }
-
 .dropdown-menu .optChild a {
     padding-left: 35px;
+}
+.expandBlockChild {
+  position:absolute;
+  bottom:-11px;
+  left: 50%;
+  padding:3px;
+  opacity: 0.5;
+  border-radius:100%;
+  background-color: #efefef;
+  transition-property: opacity;
+  transition-duration: .2s;
+  z-index:1;
+}
+.expandBlockChild:hover {
+  opacity: 1;
 }

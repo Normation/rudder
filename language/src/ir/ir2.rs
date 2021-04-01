@@ -307,9 +307,9 @@ impl<'src> IR2<'src> {
                     }
                 }
             }
-            Statement::Case(_name, cases) => map_results(cases.iter(), |(_c, sts)| {
-                map_results(sts.iter(), |st| self.binding_check(st))
-            }),
+            Statement::Case(_name, cases) => {
+                map_results(cases.iter(), |(_c, st)| self.binding_check(st))
+            }
             _ => Ok(()),
         }
     }
@@ -329,9 +329,11 @@ impl<'src> IR2<'src> {
                 if !errors.is_empty() {
                     return Err(Error::from_vec(errors));
                 }
-                fix_results(cases.iter().flat_map(|(_cond, sts)| {
-                    sts.iter().map(|st| self.enum_expression_check(context, st))
-                }))
+                fix_results(
+                    cases
+                        .iter()
+                        .map(|(_cond, st)| self.enum_expression_check(context, st)),
+                )
             }
             _ => Ok(()),
         }
@@ -362,9 +364,11 @@ impl<'src> IR2<'src> {
                     if cases.is_empty() {
                         fail!(keyword, "Case list must not be empty in { }", keyword)
                     }
-                    fix_results(cases.iter().flat_map(|(_cond, sts)| {
-                        sts.iter().map(|st| self.cases_check(variables, st, false))
-                    }))?;
+                    fix_results(
+                        cases
+                            .iter()
+                            .map(|(_cond, st)| self.cases_check(variables, st, false)),
+                    )?;
                 } else {
                     fail!(
                         keyword,

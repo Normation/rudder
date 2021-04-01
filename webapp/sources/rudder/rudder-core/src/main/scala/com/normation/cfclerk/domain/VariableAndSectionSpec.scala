@@ -40,6 +40,8 @@ package com.normation.cfclerk.domain
 import cats.implicits._
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
 import com.normation.cfclerk.xmlparsers.EmptyReportKeysValue
+import com.normation.errors.PureResult
+import com.normation.errors.Unexpected
 
 /**
  * This file define the model for metadata of object
@@ -100,6 +102,7 @@ final case class SectionSpec(
   , displayPriority : DisplayPriority = HighDisplayPriority
   , description     : String = ""
   , children        : Seq[SectionChildSpec] = Seq()
+  , reportingLogic  : Option[ReportingLogic] = None
 ) extends SectionChildSpec {
 
   lazy val getDirectVariables : Seq[VariableSpec] = {
@@ -136,10 +139,6 @@ final case class SectionSpec(
   private def recCloneMultivalued: Either[LoadTechniqueError, SectionSpec] = {
     val multivaluedChildren = children.toList.traverse { child => child match {
       case s: SectionSpec =>
-        if (s.isMultivalued) LoadTechniqueError.Consistancy(
-          "A multivalued section should not contain other multivalued sections." +
-            " It may contain only imbricated sections or variables.").invalidNel
-        else
           s.recCloneMultivalued.toValidatedNel
       case v: SectionVariableSpec => v.cloneSetMultivalued.validNel
     } }.leftMap(errs => LoadTechniqueError.Accumulated(errs)).toEither
@@ -434,6 +433,34 @@ object DisplayPriority {
       case HighDisplayPriority.priority => Some(HighDisplayPriority)
       case LowDisplayPriority.priority  => Some(LowDisplayPriority)
       case _                            => None
+    }
+  }
+}
+
+sealed  trait ReportingLogic {
+  def value : String
+}
+
+object ReportingLogic {
+
+  final case object WorstReport extends ReportingLogic {
+    val value = "worst"
+  }
+  final case object SumReport extends ReportingLogic {
+    val value = "sum"
+  }
+  final case class FocusReport(component : String) extends ReportingLogic {
+    val value = s"${FocusReport.key}:${component}"
+  }
+  object FocusReport {
+    val key = "focus"
+  }
+  def apply(value : String) : PureResult[ReportingLogic] = {
+    value match {
+      case WorstReport.value => Right(WorstReport)
+      case SumReport.value => Right(SumReport)
+      case s"${FocusReport.key}:${a}" => Right(FocusReport(a))
+      case _ => Left(Unexpected(s"Value '${value}' is not a valid reporting composition rule."))
     }
   }
 }

@@ -37,6 +37,7 @@
 
 package com.normation.rudder.web.services
 
+import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.inventory.domain.NodeId
@@ -417,12 +418,38 @@ final case class NodeComplianceLine (
  *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
-final case class ComponentComplianceLine (
+
+sealed trait ComponentComplianceLine extends JsTableLine {
+  def component : String
+  def compliance : ComplianceLevel
+}
+
+
+final case class BlockComplianceLine (
     component   : String
   , compliance  : ComplianceLevel
-  , details     : JsTableData[ValueComplianceLine]
+  , details     : JsTableData[ComponentComplianceLine]
+  , reportingLogic: ReportingLogic
+) extends ComponentComplianceLine {
+
+  val json = {
+    JsObj(
+      ("component" -> escapeHTML(component))
+      , ("compliance" -> jsCompliance(compliance))
+      , ("compliancePercent" -> compliance.compliance)
+      , ("details" -> details.json)
+      , ("jsid" -> nextFuncName)
+      , ("composition" -> reportingLogic.toString)
+    )
+  }
+}
+
+final case class ValueComplianceLine (
+    component   : String
+  , compliance  : ComplianceLevel
+  , details     : JsTableData[ComponentValueComplianceLine]
   , noExpand    : Boolean
-) extends JsTableLine {
+) extends ComponentComplianceLine {
 
   val json = {
     JsObj (
@@ -448,7 +475,7 @@ final case class ComponentComplianceLine (
  *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
-final case class ValueComplianceLine (
+final case class ComponentValueComplianceLine (
     value       : String
   , messages    : List[(String, String)]
   , compliance  : ComplianceLevel
@@ -656,8 +683,15 @@ object ComplianceData extends Loggable {
       components    : Set[ComponentStatusReport]
     , includeMessage: Boolean
   ) : JsTableData[ComponentComplianceLine] = {
-
-    val componentsComplianceData = components.map { component =>
+    val componentsComplianceData = components.map {
+      case component : BlockStatusReport =>
+        BlockComplianceLine(
+          component.componentName
+          , component.compliance
+          , getComponentsComplianceDetails(component.subComponents.toSet, includeMessage)
+          , component.reportingLogic
+        )
+      case component : ValueStatusReport =>
 
       val (noExpand, values) = if(!includeMessage) {
         (true, getValuesComplianceDetails(component.componentValues.values.toSet))
@@ -667,7 +701,7 @@ object ComplianceData extends Loggable {
         (noExpand, getValuesComplianceDetails(component.componentValues.values.toSet))
       }
 
-      ComponentComplianceLine(
+      ValueComplianceLine(
           component.componentName
         , component.compliance
         , values
@@ -683,7 +717,7 @@ object ComplianceData extends Loggable {
   // From Node Point of view
   private[this] def getValuesComplianceDetails (
       values  : Set[ComponentValueStatusReport]
-  ) : JsTableData[ValueComplianceLine] = {
+  ) : JsTableData[ComponentValueComplianceLine] = {
     val valuesComplianceData = for {
       value <- values
     } yield {
@@ -692,7 +726,7 @@ object ComplianceData extends Loggable {
       val key = value.unexpandedComponentValue
       val messages = value.messages.map(x => (x.reportType.severity, x.message.getOrElse("")))
 
-      ValueComplianceLine(
+      ComponentValueComplianceLine(
           key
         , messages
         , value.compliance

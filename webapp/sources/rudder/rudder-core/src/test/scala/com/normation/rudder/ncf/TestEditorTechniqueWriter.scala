@@ -38,8 +38,8 @@
 package com.normation.rudder.ncf
 
 import java.io.InputStream
-
 import com.normation.cfclerk.domain
+import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.RootTechniqueCategory
 import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.cfclerk.domain.TechniqueCategoryId
@@ -82,8 +82,8 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
-import java.io.File
 
+import java.io.File
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.repository.WoDirectiveRepository
@@ -313,19 +313,25 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         BundleName("technique_by_Rudder")
       , "Test Technique created through Rudder API"
       , "ncf_techniques"
-      , MethodCall(
-            BundleName("package_install_version")
-          , "id1"
-          , List((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
-          , "any"
-          , "Customized component"
-        ) ::
-        MethodCall(
-            BundleName("command_execution")
-          , "id2"
-          , List((ParameterId("command"),"Write-Host \"testing special characters ` è &é 'à é \""))
-          , "windows"
-          , "Command execution"
+      , MethodBlock (
+            "id_method"
+          , "block component"
+          , ReportingLogic.WorstReport
+          , "debian"
+          , MethodCall(
+                BundleName("package_install_version")
+              , "id1"
+              , List((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
+              , "any"
+              , "Customized component"
+            ) ::
+            MethodCall(
+                BundleName("command_execution")
+              , "id2"
+              , List((ParameterId("command"),"Write-Host \"testing special characters ` è &é 'à é \""))
+              , "windows"
+              , "Command execution"
+            ) :: Nil
         ) ::
         MethodCall(
             BundleName("service_start")

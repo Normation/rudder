@@ -60,32 +60,6 @@ class SectionTest extends Specification {
 
   val sectionParser = SectionParser(sectionSpecParser)
 
-
-  "Example <variableUnderSections>" should {
-    "leads to a parsing exception due to variable under <SECTIONS> tag" in {
-      sectionParser.parseXml(sectionsTag("variableUnderSections")) must beLeft[LoadTechniqueError].like { case e =>
-        e.fullMsg must =~("<%s> must contain only <%s> children".format(SECTIONS_ROOT, SECTION))
-      }
-    }
-  }
-
-  "Example <nonUniqueSectionNames>" should {
-    "leads to a parsing exception due to multiple section with the same name" in {
-      sectionParser.parseXml(sectionsTag("nonUniqueSectionNames")) must beLeft[LoadTechniqueError].like { case e =>
-        e.fullMsg must =~("At least two sections have the same name")
-      }
-    }
-  }
-
-  "Example <nonUniqueVariableNames>" should {
-    "leads to a parsing exception due to multiple variables with the same name" in {
-      sectionParser.parseXml(sectionsTag("nonUniqueVariableNames")) must beLeft[LoadTechniqueError].like { case e =>
-        e.fullMsg must =~("At least two variables have the same name")
-      }
-    }
-  }
-
-
   ///// test on the well formed example /////
 
 

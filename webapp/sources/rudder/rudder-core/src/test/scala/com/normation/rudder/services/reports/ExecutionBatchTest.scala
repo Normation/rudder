@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.reports
 
+import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -98,7 +99,7 @@ class ExecutionBatchTest extends Specification {
         RuleExpectedReports(ruleId,
           directives.map { case (directiveId, components) =>
             DirectiveExpectedReports(directiveId, None, false,
-              components.map(componentName => ComponentExpectedReport(componentName, componentName :: Nil, componentName :: Nil)).toList
+              components.map(componentName => ValueExpectedReport(componentName, componentName :: Nil, componentName :: Nil)).toList
             )
           }.toList
         )
@@ -107,7 +108,7 @@ class ExecutionBatchTest extends Specification {
 
     val executionReports = expectedReports.flatMap { case RuleExpectedReports(ruleId, directives) =>
       directives.flatMap { case DirectiveExpectedReports(directiveId, _, _, components) =>
-        components.flatMap { case ComponentExpectedReport(componentName, componentsValues, _) =>
+        components.flatMap { case ValueExpectedReport(componentName, componentsValues, _) =>
           componentsValues.map { case value =>
             ResultSuccessReport(now, ruleId, directiveId, nodeId, 0, componentName, value, now, "empty text")
           }
@@ -238,7 +239,7 @@ class ExecutionBatchTest extends Specification {
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
     )
 
-    val expectedComponent = new ComponentExpectedReport(
+    val expectedComponent = new ValueExpectedReport(
         "component"
       , List("foo", "bar")
       , List("foo", "bar")
@@ -284,7 +285,7 @@ class ExecutionBatchTest extends Specification {
     )
     val noAnswer = Seq[ResultReports]()
 
-    val expectedComponent = new ComponentExpectedReport(
+    val expectedComponent = new ValueExpectedReport(
         "component"
       , List("some key", "other key")
       , List("some key", "other key")
@@ -313,7 +314,7 @@ class ExecutionBatchTest extends Specification {
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message")
     )
 
-    val expectedComponent = new ComponentExpectedReport(
+    val expectedComponent = new ValueExpectedReport(
         "component"
       , List("None", "None")
       , List("None", "None")
@@ -344,6 +345,179 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
+
+  "A block, in worst case report" should {
+    val reports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val badReports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val expectedComponent = BlockExpectedReport(
+      "block"
+    , ReportingLogic.WorstReport
+    , new ValueExpectedReport(
+      "component"
+      , List("foo", "bar")
+      , List("foo", "bar")
+    ) :: Nil
+    )
+
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+
+    "return a component globally repaired " in {
+      withGood.compliance === ComplianceLevel( repaired = 1)
+    }
+    "return a component with two key values " in {
+      withGood.componentValues.size === 2
+    }
+    "return a component with the key values foo which is repaired " in {
+      withGood.componentValues("foo").messages.size === 1 and
+        withGood.componentValues("foo").messages.head.reportType ===  EnforceRepaired
+    }
+    "return a component with the key values bar which is a success " in {
+      withGood.componentValues("bar").messages.size === 1 and
+        withGood.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+
+    "only one reports in plus, mark the whole block unexpected" in {
+      withBad.compliance === ComplianceLevel(unexpected = 1)
+    }
+    "with bad reports return a component with two key values " in {
+      withBad.componentValues.size === 2
+    }
+    "with bad reports return a component with the key values foo which is unexpected " in {
+      withBad.componentValues("foo").messages.size === 2 and
+        withBad.componentValues("foo").messages.head.reportType ===  Unexpected
+    }
+    "with bad reports return a component with the key values bar which is a success " in {
+      withBad.componentValues("bar").messages.size === 1 and
+        withBad.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+  }
+
+  "A block, with reporting focus " should {
+    val reports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component1", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val badReports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component1", "foo", executionTimestamp, "message"),
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val expectedComponent = BlockExpectedReport(
+      "block"
+      , ReportingLogic.FocusReport("component")
+      , new ValueExpectedReport(
+        "component"
+        , List( "bar")
+        , List( "bar")
+      )  :: new ValueExpectedReport(
+        "component1"
+        , List("foo")
+        , List("foo")
+      )  :: Nil
+    )
+
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+
+    "return a success block " in {
+      withGood.compliance === ComplianceLevel(success = 1)
+    }
+    "return a component with two key values " in {
+      withGood.componentValues.size === 2
+    }
+    "return a component with the key values foo which is repaired " in {
+      withGood.componentValues("foo").messages.size === 1 and
+        withGood.componentValues("foo").messages.head.reportType ===  EnforceRepaired
+    }
+    "return a component with the key values bar which is a success " in {
+      withGood.componentValues("bar").messages.size === 1 and
+        withGood.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+
+    "only one reports in plus, mark the whole key unexpected" in {
+      withBad.compliance === ComplianceLevel(success = 1,  unexpected = 1)
+    }
+    "with bad reports return a component with two key values " in {
+      withBad.componentValues.size === 2
+    }
+    "with bad reports return a component with the key values foo with one unexpected and one repaired " in {
+      withBad.componentValues("foo").messages.size === 2 and
+        withBad.componentValues("foo").messages.map(_.reportType) ===  Unexpected :: EnforceRepaired ::Nil
+    }
+    "with bad reports return a component with the key values bar which is a success " in {
+      withBad.componentValues("bar").messages.size === 1 and
+        withBad.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+  }
+
+  "A block, with Sum reporting logic" should {
+    val reports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val badReports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val expectedComponent = BlockExpectedReport(
+      "block"
+      , ReportingLogic.SumReport
+      , new ValueExpectedReport(
+        "component"
+        , List("foo", "bar")
+        , List("foo", "bar")
+      ) :: Nil
+    )
+
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+
+    "return a component globally repaired " in {
+      withGood.compliance === ComplianceLevel(success = 1, repaired = 1)
+    }
+    "return a component with two key values " in {
+      withGood.componentValues.size === 2
+    }
+    "return a component with the key values foo which is repaired " in {
+      withGood.componentValues("foo").messages.size === 1 and
+        withGood.componentValues("foo").messages.head.reportType ===  EnforceRepaired
+    }
+    "return a component with the key values bar which is a success " in {
+      withGood.componentValues("bar").messages.size === 1 and
+        withGood.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+
+    "only one reports in plus, mark the whole key unexpected" in {
+      withBad.compliance === ComplianceLevel(success = 1,  unexpected = 2)
+    }
+    "with bad reports return a component with two key values " in {
+      withBad.componentValues.size === 2
+    }
+    "with bad reports return a component with the key values foo which is unknwon " in {
+      withBad.componentValues("foo").messages.size === 2 and
+        withBad.componentValues("foo").messages.head.reportType ===  Unexpected
+    }
+    "with bad reports return a component with the key values bar which is a success " in {
+      withBad.componentValues("bar").messages.size === 1 and
+        withBad.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+  }
+
   // Test the component part
   "A component, with a cfengine keys" should {
     val reports = Seq[ResultReports](
@@ -357,7 +531,7 @@ class ExecutionBatchTest extends Specification {
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")
     )
 
-    val expectedComponent = new ComponentExpectedReport("component"
+    val expectedComponent = new ValueExpectedReport("component"
       , List("${sys.bla}", "${sys.foo}")
       , List("${sys.bla}", "${sys.foo}")
     )
@@ -398,7 +572,7 @@ class ExecutionBatchTest extends Specification {
      * Here, we must be able to decide between node1 and node2 value for the repair, because we know at generation time
      * what is expected.
      */
-    val expectedComponent = new ComponentExpectedReport("component"
+    val expectedComponent = new ValueExpectedReport("component"
       , List("node1", "node2", "bar")
       , List("${rudder.node.hostname}", "${rudder.node.hostname}", "bar")
     )
@@ -445,7 +619,7 @@ class ExecutionBatchTest extends Specification {
 
   "Shall we speak about unexpected" should {
     // we asked for a value "foo" and a variable ${param}
-    val expectedComponent = new ComponentExpectedReport("component"
+    val expectedComponent = new ValueExpectedReport("component"
       , List("foo", "${param}")
       , List("foo", "${param}")
     )
@@ -522,7 +696,7 @@ class ExecutionBatchTest extends Specification {
       // expected components are the list of key for patterns
       val expectedComponent = {
         val values = patterns.map( _._1 )
-        new ComponentExpectedReport("component", values.toList, values.toList)
+        new ValueExpectedReport("component", values.toList, values.toList)
       }
 
       val resultReports : Seq[ResultReports] = reports.map( x => x match {
@@ -735,7 +909,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new ComponentExpectedReport("component", List("value"), List() )) //here, we automatically must have "value" infered as unexpanded var
+                , List(new ValueExpectedReport("component", List("value"), List() )) //here, we automatically must have "value" infered as unexpanded var
               )
             )
         )
@@ -769,7 +943,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new ComponentExpectedReport("component", List("value"), List() ))
+                , List(new ValueExpectedReport("component", List("value"), List() ))
               )
             )
         )
@@ -797,7 +971,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new ComponentExpectedReport("component", List("value"), List() ))
+                , List(new ValueExpectedReport("component", List("value"), List() ))
               )
             )
          )
@@ -827,7 +1001,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new ComponentExpectedReport("component", List("value"), List() ))
+                , List(new ValueExpectedReport("component", List("value"), List() ))
               )
             )
         )
@@ -852,7 +1026,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new ComponentExpectedReport("component", List("value"), List() ))
+                , List(new ValueExpectedReport("component", List("value"), List() ))
               )
             )
          )
@@ -879,12 +1053,12 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                     new ComponentExpectedReport("component" , List("value"), List() )
-                   , new ComponentExpectedReport("component2", List("value"), List() )
+                     new ValueExpectedReport("component" , List("value"), List() )
+                   , new ValueExpectedReport("component2", List("value"), List() )
                  ))
                , DirectiveExpectedReports("policy2", None, false, List(
-                     new ComponentExpectedReport("component" , List("value"), List() )
-                   , new ComponentExpectedReport("component2", List("value"), List() )
+                     new ValueExpectedReport("component" , List("value"), List() )
+                   , new ValueExpectedReport("component2", List("value"), List() )
                  ))
             )
         )
@@ -920,12 +1094,12 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                     new ComponentExpectedReport("component" , List("value"), List() )
-                   , new ComponentExpectedReport("component2", List("value"), List() )
+                     new ValueExpectedReport("component" , List("value"), List() )
+                   , new ValueExpectedReport("component2", List("value"), List() )
                  ))
                , DirectiveExpectedReports("policy2", None, false, List(
-                     new ComponentExpectedReport("component" , List("value"), List() )
-                   , new ComponentExpectedReport("component2", List("value"), List() )
+                     new ValueExpectedReport("component" , List("value"), List() )
+                   , new ValueExpectedReport("component2", List("value"), List() )
                  ))
              )
         )
@@ -972,7 +1146,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                   new ComponentExpectedReport("component", List("value", "value2", "value3"), List() )
+                   new ValueExpectedReport("component", List("value", "value2", "value3"), List() )
                ))
              )
         )
@@ -1017,7 +1191,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                  new ComponentExpectedReport("component", List("""some\"text"""), List("""some\text""") )
+                  ValueExpectedReport("component", List("""some\"text"""), List("""some\text""") )
               ))
             )
         )
@@ -1045,7 +1219,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                  new ComponentExpectedReport("component", List("""${sys.workdir}/inputs/\"test"""), List() )
+                ValueExpectedReport("component", List("""${sys.workdir}/inputs/\"test"""), List() )
               ))
             )
         )
@@ -1072,7 +1246,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                new ComponentExpectedReport("component", List("""${sys.workdir}/inputs/"test"""), List("""${sys.workdir}/inputs/"test""") )
+                ValueExpectedReport("component", List("""${sys.workdir}/inputs/"test"""), List("""${sys.workdir}/inputs/"test""") )
               ))
             )
         )
@@ -1098,7 +1272,7 @@ class ExecutionBatchTest extends Specification {
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
               )
 
-    val expectedComponent = new ComponentExpectedReport(
+    val expectedComponent = ValueExpectedReport(
         "component"
       , List("/var/cfengine", "bar")
       , List("/var/cfengine", "bar")

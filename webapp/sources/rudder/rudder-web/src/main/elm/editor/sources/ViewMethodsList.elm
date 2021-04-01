@@ -3,7 +3,6 @@ module ViewMethodsList exposing (..)
 import DataTypes exposing (..)
 import Dict
 import Dict.Extra
-import DnDList.Groups
 import Json.Decode
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -12,6 +11,8 @@ import Markdown.Render
 import Markdown.Option exposing (..)
 import Maybe.Extra
 import String.Extra
+import Dom exposing (..)
+import Dom.DragDrop as DragDrop
 
 --
 -- Display the method list/category UI
@@ -36,9 +37,40 @@ methodsList model =
     _ ->
       let
         filter = model.methodsUI.filter
-        filterMethods = List.filter (\(_,m) -> filterMethod filter m ) (List.indexedMap (Tuple.pair) (Dict.values model.methods))
-        methodByCategories = Dict.Extra.groupBy (\(_,m) -> Maybe.withDefault m.id.value (List.head (String.split "_" m.id.value)) |> String.Extra.toTitleCase) (filterMethods)
+        filterMethods = List.filter ( filterMethod filter )  (Dict.values model.methods)
+        methodByCategories = Dict.Extra.groupBy (\m -> Maybe.withDefault m.id.value (List.head (String.split "_" m.id.value)) |> String.Extra.toTitleCase) (filterMethods)
         dscIcon = if filter.agent == Just Dsc then "dsc-icon-white.svg" else "dsc-icon.svg"
+
+        block = element "li"
+              |> DragDrop.makeDraggable model.dnd NewBlock dragDropMessages
+              |> appendChild
+                 ( element "div"
+                   |> addClass "method"
+                   |> appendChildList
+                      [ element "div"
+                        |> addClass "cursorMove"
+                        |> appendChild
+                           ( element "i"
+                             |> addClass "fas fa-grip-horizontal"
+                           )
+                      , element "div"
+                        |> addAttributeList [ class "method-name col",  onClick (GenerateId (\s -> AddBlock (CallId s))) ]
+                        |> appendText "New block"
+                      ]
+                 )
+        blockHeader = element "h5"
+                        |> addAttribute ( id "block" )
+                        |> appendText "Block"
+        methodsElem = element "div"
+                      |> addAttribute (id "methods-list-container")
+                      |> appendChild
+                         ( element "ul"
+                           |> addClass "list-unstyled"
+                           |> appendChildList
+                              [ blockHeader, block ]
+                         )
+                      |> appendChildList
+                         (List.map (showMethodsCategories model) (Dict.toList methodByCategories) )
       in
         div [ class "template-sidebar sidebar-right col-methods", onClick OpenMethods ] [
          div [ class "sidebar-header" ] [
@@ -91,10 +123,15 @@ methodsList model =
              if List.isEmpty (Dict.toList model.methods) then
                div [ class "empty" ] [ text "No method matches the filters." ]
              else
-               div [ id "methods-list-container" ] (List.map (showMethodsCategories model) (Dict.toList methodByCategories) )
+               (render methodsElem)
            , ul [ id "categories-list" ]
+
+
                ( h4 [ id "categories" ] [ text "Categories" ] ::
-                 List.map (\(c,b) -> showCategory c b ) (Dict.toList (Dict.map( \k methods -> List.all (\(_,m) -> Maybe.Extra.isJust m.deprecated) methods) methodByCategories))
+                 li [ class ("active") ] [
+                   a [  onClick (ScrollCategory "block") ] [ text "Block" ]
+                 ] ::
+                 List.map (\(c,b) -> showCategory c b ) (Dict.toList (Dict.map( \_ methods -> List.all (\m -> Maybe.Extra.isJust m.deprecated) methods) methodByCategories))
                )
 
            ]
@@ -113,16 +150,22 @@ filterMethod filter method =
              _ -> False
          )
 
-showMethodsCategories : Model -> (String, (List  (Int, Method))) -> Html Msg
+showMethodsCategories : Model -> (String, List  Method) -> Element Msg
 showMethodsCategories model (category, methods) =
   let
     addIndex = case model.mode of
-      TechniqueDetails t _ _ -> List.length t.calls
+      TechniqueDetails t _ _ -> List.length t.elems
       _ -> 0
+    header = element "h5"
+             |> addAttribute ( id category )
+             |> appendText category
+    methodsElem = List.map (\m  -> showMethod model.methodsUI m model.dnd) methods
   in
-    ul [ class "list-unstyled" ]
-      (h5 [ id category ] [ text category ]
-      :: (List.map (\(index,m)  -> showMethod model.methodsUI m (index+addIndex)) methods) )
+    element "ul"
+    |> addClass "list-unstyled"
+    |> appendChildList
+       ( header :: methodsElem)
+
 
 
 showCategory: String -> Bool -> Html Msg
@@ -142,47 +185,59 @@ showCategory  category allDeprecated =
       )
   ]
 
-showMethod: MethodListUI -> Method -> Int -> Html Msg
-showMethod ui method index =
+showMethod: MethodListUI -> Method -> ( DragDrop.State DragElement DropElement) -> Element Msg
+showMethod ui method dnd =
   let
     docOpen = List.member method.id ui.docsOpen
-    attributes = class ("method " ++ (if docOpen then "doc-opened" else ""))::  id method.id.value :: dndSystem.dragEvents index method.id.value
+    attributes = class ("method " ++ (if docOpen then "doc-opened" else ""))::  id method.id.value :: []
   in
-    li []
-      ( div  attributes   --ng-class="{'used':isUsed(method)
-        (div [ class "cursorMove" ] [
-          b [] [ text ":::" ]
-        ] ::
-        div [ class "method-name col",  onClick (GenerateId (\s -> AddMethod method (CallId s))) ]
-          ( text method.name ::
-            ( case method.deprecated of
-              Nothing -> text ""
-              Just _ ->
-                span [ class "cursor-help" ] [
-                  i [ class "fa fa-info-circle tooltip-icon deprecated-icon popover-bs"
-                    , attribute "data-toggle" "popover", attribute "data-trigger" "hover"
-                    , attribute "data-container" "body", attribute "data-placement" "top"
-                    , attribute "data-title" method.name, attribute "data-content" (getTooltipContent method)
-                    , attribute "data-html" "true"
-                  ] []
-                ]
-            ) ::
-            if (List.member Dsc method.agentSupport) then  [ img [ src "../../images/dsc-icon.svg",  class "dsc-icon" ] [] ] else []
-          )
-         ::
-        case method.documentation of
-         Just _ ->
-           [ div [ class "show-doc", onClick (ToggleDoc method.id)] [
-             i [ class "fa fa-book" ] [] ] ]
-         Nothing -> []
-        )
-       ::
-      case method.documentation of
-        Just doc ->
-          if docOpen then
-            [ div [ class "markdown" ] [ Html.map (\_ -> Ignore) (Markdown.Render.toHtml Standard doc) ] ]
-          else
-            []
-        Nothing -> []
-      )
-
+    element "li"
+    |> DragDrop.makeDraggable dnd (NewMethod method) dragDropMessages
+    |> appendChild
+       ( element "div"
+       |> addAttributeList  attributes   --ng-class="{'used':isUsed(method)
+       |> appendChildList
+          [ element "div"
+            |> addClass "cursorMove"
+            |> appendChild
+                           ( element "i"
+                             |> addClass "fas fa-grip-horizontal"
+                           )
+          , element "div"
+            |> addAttributeList [ class "method-name col",  onClick (GenerateId (\s -> AddMethod method (CallId s))) ]
+            |> appendText method.name
+            |> appendChildConditional
+               ( element "span"
+                 |> addClass "cursor-help"
+                 |> appendChild
+                    ( element "i"
+                      |> addAttributeList
+                         [ class "fa fa-info-circle tooltip-icon deprecated-icon popover-bs"
+                         , attribute "data-toggle" "popover", attribute "data-trigger" "hover"
+                         , attribute "data-container" "body", attribute "data-placement" "top"
+                         , attribute "data-title" method.name, attribute "data-content" (getTooltipContent method)
+                         , attribute "data-html" "true"
+                         ]
+                    )
+               ) (Maybe.Extra.isJust  method.deprecated )
+            |> appendChildConditional
+               ( element "img"
+                 |> addAttributeList [ src "../../images/dsc-icon.svg",  class "dsc-icon" ]
+               ) (List.member Dsc method.agentSupport)
+          ]
+       |> appendChildConditional
+            ( element "div"
+              |> addAttributeList [ class "show-doc", onClick (ToggleDoc method.id)]
+              |> appendChild
+                   (element "i" |> addClass "fa fa-book" )
+            ) (Maybe.Extra.isJust method.documentation)
+       )
+    |> if docOpen then
+         ( appendChild
+           ( element "div"
+             |> addClass "markdown"
+             |> appendNode ( Html.map (\_ -> Ignore) (Markdown.Render.toHtml Standard (Maybe.withDefault "" method.documentation)))
+           )
+         )
+       else
+         identity
