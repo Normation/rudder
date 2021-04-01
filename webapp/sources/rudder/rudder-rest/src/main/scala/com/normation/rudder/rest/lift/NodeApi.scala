@@ -126,7 +126,12 @@ import zio.ZIO
 import zio.duration._
 
 
-
+// how to render parent properties in the returned json
+sealed trait RenderInheritedProperties
+final object RenderInheritedProperties {
+  case object HTML extends RenderInheritedProperties
+  case object JSON extends RenderInheritedProperties
+}
 
 
 /*
@@ -152,21 +157,22 @@ class NodeApi (
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
-      case API.ListPendingNodes         => ListPendingNodes
-      case API.NodeDetails              => NodeDetails
-      case API.NodeInheritedProperties  => NodeInheritedProperties
-      case API.PendingNodeDetails       => PendingNodeDetails
-      case API.DeleteNode               => DeleteNode
-      case API.ChangePendingNodeStatus  => ChangePendingNodeStatus
-      case API.ChangePendingNodeStatus2 => ChangePendingNodeStatus2
-      case API.ApplyPolicyAllNodes      => ApplyPocicyAllNodes
-      case API.UpdateNode               => UpdateNode
-      case API.ListAcceptedNodes        => ListAcceptedNodes
-      case API.ApplyPolicy              => ApplyPolicy
-      case API.GetNodesStatus           => GetNodesStatus
-      case API.NodeDetailsTable         => NodeDetailsTable
-      case API.NodeDetailsSoftware      => NodeDetailsSoftware
-      case API.NodeDetailsProperty      => NodeDetailsProperty
+      case API.ListPendingNodes               => ListPendingNodes
+      case API.NodeDetails                    => NodeDetails
+      case API.NodeInheritedProperties        => NodeInheritedProperties
+      case API.NodeDisplayInheritedProperties => NodeDisplayInheritedProperties
+      case API.PendingNodeDetails             => PendingNodeDetails
+      case API.DeleteNode                     => DeleteNode
+      case API.ChangePendingNodeStatus        => ChangePendingNodeStatus
+      case API.ChangePendingNodeStatus2       => ChangePendingNodeStatus2
+      case API.ApplyPolicyAllNodes            => ApplyPocicyAllNodes
+      case API.UpdateNode                     => UpdateNode
+      case API.ListAcceptedNodes              => ListAcceptedNodes
+      case API.ApplyPolicy                    => ApplyPolicy
+      case API.GetNodesStatus                 => GetNodesStatus
+      case API.NodeDetailsTable               => NodeDetailsTable
+      case API.NodeDetailsSoftware            => NodeDetailsSoftware
+      case API.NodeDetailsProperty            => NodeDetailsProperty
     })
   }
 
@@ -188,7 +194,7 @@ class NodeApi (
     val schema = API.NodeInheritedProperties
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      inheritedProperties.getNodePropertiesTree(NodeId(id)).either.runNow match {
+      inheritedProperties.getNodePropertiesTree(NodeId(id), RenderInheritedProperties.JSON).either.runNow match {
         case Right(properties) =>
           toJsonResponse(None, properties)("nodeInheritedProperties", params.prettify)
         case Left(err) =>
@@ -197,6 +203,18 @@ class NodeApi (
     }
   }
 
+  object NodeDisplayInheritedProperties extends LiftApiModule {
+    val schema = API.NodeDisplayInheritedProperties
+    val restExtractor = restExtractorService
+    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      inheritedProperties.getNodePropertiesTree(NodeId(id), RenderInheritedProperties.HTML).either.runNow match {
+        case Right(properties) =>
+          toJsonResponse(None, properties)("nodeDisplayInheritedProperties", params.prettify)
+        case Left(err) =>
+          toJsonError(None, err.fullMsg)("nodeDisplayInheritedProperties", params.prettify)
+      }
+    }
+  }
 
 
   object PendingNodeDetails extends LiftApiModule {
@@ -477,7 +495,7 @@ class NodeApiInheritedProperties(
   /*
    * Full list of node properties, including inherited ones for a node
    */
-  def getNodePropertiesTree(nodeId: NodeId): IOResult[JValue] = {
+  def getNodePropertiesTree(nodeId: NodeId, renderInHtml: RenderInheritedProperties): IOResult[JValue] = {
     for {
       nodeInfo     <- infoService.getNodeInfoPure(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
       groups       <- groupRepo.getFullGroupLibrary()
@@ -486,12 +504,19 @@ class NodeApiInheritedProperties(
       properties   <- MergeNodeProperties.forNode(nodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap).toIO
     } yield {
       import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
+      val rendered = renderInHtml match {
+        case RenderInheritedProperties.HTML => properties.toApiJsonRenderParents
+        case RenderInheritedProperties.JSON => properties.toApiJson
+      }
       JArray((
         ("nodeId"     -> nodeId.value)
-      ~ ("properties" -> properties.toApiJson )
+      ~ ("properties" -> rendered    )
       ) :: Nil)
     }
   }
+
+
+
 
 }
 
@@ -611,7 +636,7 @@ class NodeApiService13 (
       ~  ("lastInventory" ->  DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))
       ~  ("software" -> JObject(softs.map(s => JField(s.name.getOrElse(""), JString(s.version.map(_.value).getOrElse("N/A"))))))
       ~  ("properties" -> JObject(properties.map(s => JField(s.name, s.toJson))))
-      ~  ("inheritedProperties" -> JObject(inheritedProperties.map(s => JField(s.prop.name, s.toApiJsonRenderParents))))
+      ~  ("inheritedProperties" -> JObject(inheritedProperties.map(s => JField(s.prop.name, s.toApiJson))))
       )
   }
 
