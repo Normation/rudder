@@ -48,8 +48,8 @@
         </div>
         <div class="header-description">
           <p>
-            Global Parameters are key/value pairs. Once defined, you can use the key in a directive parameter
-            field and it will be replaced by the value for that key during policy generation.
+            Global Parameters are key/value pairs. Once defined, they will be inherited by group properties and node properties,
+            you can use them in directive parameters.
           </p>
         </div>
       </div>
@@ -64,12 +64,12 @@
                   </div>
                   <div>
                     <p>
-                      The syntax to use a parameter is <b>${rudder.param.&lt;key&gt;}</b>, where &lt;key&gt; is the name you chose for your
-                      Global Parameter.
+                      The syntax to use a parameter is the same as using a node property <b>${node.properties&lsqb;key&rsqb;}</b>, where &lt;key&gt;
+                      is the name you chose for your Global Parameter.
                     </p>
                     <p>
-                      Be careful to enter exactly <b>rudder.param</b> (lower case) and your parameter name with the same case
-                      (Global Parameter keys are case sensitive).
+                      Be careful to enter exactly <b>node.properties</b> (lower case) and your parameter name with the same case
+                      (Global Parameter keys are case sensitive). Also, remember that their value can be overriden by group and node properties.
                     </p>
                   </div>
                 </div>
