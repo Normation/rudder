@@ -135,9 +135,10 @@ final case class MethodParameter(
   , parameterType : ParameterType.ParameterType
 )
 final case class TechniqueParameter (
-    id   : ParameterId
-  , name : ParameterId
+    id          : ParameterId
+  , name        : ParameterId
   , description : String
+  , mayBeEmpty    : Boolean
 )
 
 object ParameterType {
@@ -184,7 +185,7 @@ object ParameterType {
       }
     }
   }
-  
+
   class PlugableParameterTypeService extends ParameterTypeService {
 
 
@@ -316,6 +317,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
       ( ("id" -> parameter.id.value)
       ~ ("name" -> parameter.name.value)
       ~ ("description" -> parameter.description)
+      ~ ("mayBeEmpty" -> parameter.mayBeEmpty)
       )
     }
 

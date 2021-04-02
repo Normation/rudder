@@ -1281,8 +1281,9 @@ final case class RestExtractorService (
               }
       name <- CompleteJson.extractJsonString(json, "name", a => Full(ParameterId(a)))
       description <- OptionnalJson.extractJsonString(json, "description")
+      mayBeEmpty <- OptionnalJson.extractJsonBoolean(json, "mayBeEmpty")
     } yield {
-      TechniqueParameter(id, name, description.getOrElse("") )
+      TechniqueParameter(id, name, description.getOrElse(""), mayBeEmpty.getOrElse(false) )
     }
   }
 
