@@ -33,7 +33,7 @@ $(document).ready(function(){
   };
   var app  = Elm.Editor.init({node: main, flags: initValues});
   app.ports.copy.subscribe(function(value) {
-     navigator.clipboard.writeText(value).then(function(){  console.log('Async: Copying to clipboard was successful!');}, function() {})()
+     navigator.clipboard.writeText(value).then(function(){  }, function() {})()
   });
 
   angular.bootstrap('#filemanager-editor', ['filemanager-editor']);
@@ -54,7 +54,6 @@ $(document).ready(function(){
 
 
   app.ports.store.subscribe(function(kv) {
-    console.log(kv);
     var key = kv[0];
     var json = kv[1];
     localStorage.setItem(key, JSON.stringify(json));
@@ -76,8 +75,6 @@ $(document).ready(function(){
 
   });
 
-  console.log(app)
-  console.log(app.ports)
   app.ports.successNotification.subscribe(function(str) {
     createSuccessNotification(str)
   });
