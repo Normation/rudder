@@ -12,6 +12,7 @@ decodeTechniqueParameter =
     |> required "id" (map ParameterId string)
     |> required "name" string
     |> required "description" string
+    |> optional "mayBeEmpty" bool False
 
 decodeCallParameter : Decoder CallParameter
 decodeCallParameter =

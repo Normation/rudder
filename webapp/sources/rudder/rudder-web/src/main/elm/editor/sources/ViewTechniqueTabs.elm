@@ -49,12 +49,26 @@ techniqueParameter model technique param opened =
           ]
 
         ]
+    (beEmptyTitle, beEmptyClass) =
+      if (param.mayBeEmpty) then
+        ( "Parameter value can be empty.\nWhen adding a parameter to an existing technique, policy will be generated with an empty value and automatically deployed to your nodes, so be careful when adding one"
+        , "btn-outline-primary"
+        )
+      else
+        ( "Parameter cannot be empty and needs a value.\nIf you add a parameter to an existing technique, policy generation will fail and you will need to update all directives with the new parameter value"
+        , "btn-info"
+        )
   in
     li [] [
       span [ class "border" ] []
     , div [ class "param" ] [
         div [ class "input-group" ] [
           input [readonly (not model.hasWriteRights), type_ "text",  class "form-control", value param.name, placeholder "Parameter name", onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
+        , div [ class "input-group-btn" ] [
+            button [ class ("btn btn-outline " ++ beEmptyClass), title beEmptyTitle, onClick (TechniqueParameterModified param.id {param | mayBeEmpty = not param.mayBeEmpty }) ] [
+              text ( if param.mayBeEmpty then "May be empty" else "Required" )
+            ]
+          ]
         , div [ class "input-group-btn" ] [
             button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ (canonify param.name) ++ "}")) ] [
               i [ class "ion ion-clipboard" ] []

@@ -401,7 +401,7 @@ update msg model =
           case model.mode of
             TechniqueDetails t o ui->
               let
-                parameters = List.append t.parameters [  TechniqueParameter paramId "" "" ]
+                parameters = List.append t.parameters [  TechniqueParameter paramId "" "" False ]
               in
                 TechniqueDetails { t | parameters = parameters } o ui
             _ -> model.mode
