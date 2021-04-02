@@ -808,20 +808,16 @@
                       Please consider participating in the survey!
                     </p>
                   </div>
+                  <div class="pull-left">
                   <form class="lift:form.ajax">
+
                     <ul>
                       <li class="rudder-form">
-                        <div class="input-group">
+                        <div class="input-group col-xs-12">
                           <label class="input-group-addon" for="sendMetricsCheckbox">
-                            <input id="sendMetricsCheckbox" type="checkbox">
-                            <label for="sendMetricsCheckbox" class="label-radio">
-                              <span class="ion ion-checkmark-round"></span>
-                            </label>
-                            <span class="ion ion-checkmark-round check-icon"></span>
-                          </label>
-                          <label class="form-control" for="sendMetricsCheckbox">
                             Send anonymous usage statistics
                           </label>
+                          <input id="sendMetricsCheckbox" type="select" class="form-control">
                         </div>
                       </li>
                     </ul>
@@ -829,6 +825,8 @@
                       <input type="submit" value="Reload" id="sendMetricsSubmit"/>
                     </lift:authz>
                   </form>
+
+                  </div>
                 </div>
               </div>
             </div>

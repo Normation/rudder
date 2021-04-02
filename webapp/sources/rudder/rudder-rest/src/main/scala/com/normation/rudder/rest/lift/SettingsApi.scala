@@ -74,6 +74,7 @@ import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.box._
 import com.normation.errors._
+import com.normation.rudder.services.policies.SendMetrics
 import zio._
 import zio.syntax._
 
@@ -619,22 +620,27 @@ final case object RestChangesGraphs extends RestBooleanSetting {
   def set = (value : Boolean, _, _) => configService.set_display_changes_graph(value)
 }
 
-final case object RestSendMetrics extends RestSetting[Option[Boolean]] {
+final case object RestSendMetrics extends RestSetting[Option[SendMetrics]] {
   val startPolicyGeneration = true
-  def toJson(value : Option[Boolean]) : JValue = value.map(JBool(_)).getOrElse(JString("not defined"))
+  def toJson(value : Option[SendMetrics]) : JValue = JString ( value match {
+    case None => "not defined"
+    case Some(SendMetrics.NoMetrics) => "no"
+    case Some(SendMetrics.MinimalMetrics) => "minimal"
+    case Some(SendMetrics.CompleteMetrics) => "complete"
+  })
   def parseJson(json: JValue) = {
     json match {
-      case JBool(value)           => Full(Some(value))
-      case JString("not defined") => Full(None)
-      case x                      => Failure("Invalid value "+x)
+      case JString(s)    => parseParam(s)
+      case x                      => Failure(s"Invalid value for 'send metrics' settings, should be a json string 'no'/'minimal'/'complete', but is instead: ${net.liftweb.json.compactRender(x)}")
     }
   }
-  def parseParam(param : String) = {
+  def parseParam(param : String): Box[Option[SendMetrics]] = {
     param match {
-      case "true"        => Full(Some(true))
-      case "false"       => Full(Some(false))
+      case "complete"|"true"        => Full(Some(SendMetrics.CompleteMetrics))
+      case "no"|"false"       => Full(Some(SendMetrics.NoMetrics))
+      case "minimal"       => Full(Some(SendMetrics.MinimalMetrics))
       case "not defined" => Full(None)
-      case _             => Failure(s"value for boolean should be true or false instead of ${param}")
+      case _             => Failure(s"value for 'send metrics' settings should be 'no', 'minimal' or 'complete' instead of ${param}")
     }
   }
   val key = "send_metrics"

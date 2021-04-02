@@ -38,7 +38,6 @@
 package com.normation.rudder.web.snippet.administration
 
 import java.nio.charset.StandardCharsets
-
 import net.liftweb.http._
 import net.liftweb.common._
 import bootstrap.liftweb.RudderConfig
@@ -71,6 +70,7 @@ import com.normation.box._
 import com.normation.rudder.reports.AgentReportingHTTPS
 import com.normation.rudder.reports.AgentReportingProtocol
 import com.normation.rudder.reports.AgentReportingSyslog
+import com.normation.rudder.services.policies.SendMetrics
 
 import scala.xml.Text
 
@@ -1133,12 +1133,13 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
         }
 
         ( "#sendMetricsCheckbox" #> {
-            SHtml.ajaxCheckbox(
-                value.getOrElse(false)
-              , (b : Boolean) => { currentSendMetrics = Some(b); check()}
+            SHtml.ajaxSelectElem(
+                Seq(SendMetrics.CompleteMetrics, SendMetrics.MinimalMetrics, SendMetrics.NoMetrics)
+              , value
               , ("id","sendMetricsCheckbox")
-            )
-          }&
+            )( (v : SendMetrics) => { currentSendMetrics = Some(v); check()} )
+
+        }&
           "#sendMetricsSubmit " #> {
             SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-success"))
           }&

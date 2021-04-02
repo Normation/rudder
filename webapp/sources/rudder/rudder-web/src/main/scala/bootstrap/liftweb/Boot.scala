@@ -417,7 +417,12 @@ class Boot extends Loggable {
         "secure" / "administration" / "index" >> TestAccess ( ()
             => userIsAllowed("/secure/index",AuthorizationType.Administration.Read, AuthorizationType.Technique.Read) )).submenus (
 
-          Menu("policyServerManagement", <span>General</span>) /
+          Menu("Setup", <span>Setup</span>) /
+            "secure" / "administration" / "setup"
+            >> LocGroup("administrationGroup")
+            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Administration.Read ) )
+
+        , Menu("policyServerManagement", <span>General</span>) /
             "secure" / "administration" / "policyServerManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Administration.Read) )
