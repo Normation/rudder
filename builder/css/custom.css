@@ -66,9 +66,16 @@ ul.dropdown-menu > li > a{
 }
 .btn.btn-outline-primary{
   color: #337ab7;
+  background-color: #fff ;
+  transition-property: background-color, color;
+  transition-duration: .2s;
+
 }
 .btn.btn-outline-primary:hover{
   background-color: #286090;
+  color: #fff !important;
+  transition-property: background-color, color;
+  transition-duration: .2s;
 }
 .popover{
   max-width: 450px;
