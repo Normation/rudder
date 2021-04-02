@@ -374,6 +374,22 @@ object SettingsApi extends ApiModuleProvider[SettingsApi] {
   def endpoints = ca.mrvisser.sealerate.values[SettingsApi].toList.sortBy( _.z )
 }
 
+
+
+sealed trait PluginApi extends EndpointSchema with GeneralApi with SortIndex
+object PluginApi extends ApiModuleProvider[PluginApi] {
+
+  final case object GetPluginsSettings extends PluginApi with ZeroParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "List plugin system settings"
+    val (action, path)  = GET / "plugins" / "settings"
+  }
+  final case object UpdatePluginsSettings extends PluginApi with ZeroParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Update plugin system settings"
+    val (action, path)  = POST / "plugins" / "settings"
+  }
+  def endpoints = ca.mrvisser.sealerate.values[PluginApi].toList.sortBy( _.z )
+}
+
 sealed trait TechniqueApi extends EndpointSchema with GeneralApi with SortIndex
 object TechniqueApi extends ApiModuleProvider[TechniqueApi] {
 

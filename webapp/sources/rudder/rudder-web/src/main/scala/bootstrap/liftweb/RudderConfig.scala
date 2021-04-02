@@ -40,7 +40,7 @@ package bootstrap.liftweb
 import java.io.File
 import java.security.Security
 import java.util.concurrent.TimeUnit
-
+import better.files.File.root
 import bootstrap.liftweb.checks._
 import com.normation.appconfig._
 import com.normation.box._
@@ -78,6 +78,7 @@ import com.normation.inventory.services.provisioning.NodeInventoryDNFinderServic
 import com.normation.inventory.services.provisioning.PreCommit
 import com.normation.inventory.services.provisioning.ReportUnmarshaller
 import com.normation.ldap.sdk._
+import com.normation.plugins.FilePluginSettingsService
 import com.normation.plugins.ReadPluginPackageInfo
 import com.normation.plugins.SnippetExtensionRegister
 import com.normation.plugins.SnippetExtensionRegisterImpl
@@ -709,6 +710,7 @@ object RudderConfig extends Loggable {
 
   val ldapInventoryMapper = inventoryMapper
 
+  val pluginSettingsService = new FilePluginSettingsService(root / "opt" / "rudder" / "etc" / "rudder-pkg" / "rudder-pkg.conf" )
   ////////////////////////////////////////////////
   ////////// plugable service providers //////////
   ////////////////////////////////////////////////
@@ -1151,6 +1153,7 @@ object RudderConfig extends Loggable {
     ApiVersion(11 , true) :: // rudder 5.0
     ApiVersion(12 , false) :: // rudder 6.0, 6.1
     ApiVersion(13 , false) :: // rudder 6.2
+    ApiVersion(14 , false) :: // rudder 7.0
     Nil
 
   val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")
@@ -1175,7 +1178,7 @@ object RudderConfig extends Loggable {
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, stringUuidGenerator)
       , new SystemApi(restExtractorService,systemApiService11, systemApiService13, rudderMajorVersion, rudderFullVersion, builtTimestamp)
       , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
-//      , new HealthcheckApi(restExtractorService, restDataSerializer, healthcheckService, healthcheckNotificationService)
+      , new PluginApi(restExtractorService, pluginSettingsService)
         // info api must be resolved latter, because else it misses plugin apis !
     )
 

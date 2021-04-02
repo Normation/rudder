@@ -13,8 +13,8 @@ import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
-
 import com.normation.box._
+import com.normation.rudder.services.policies.SendMetrics
 import com.normation.zio._
 
 class SendMetricsPopup extends DispatchSnippet with Loggable {
@@ -63,10 +63,10 @@ class SendMetricsPopup extends DispatchSnippet with Loggable {
         }
         if (showPopup) {
           // ajax callback
-          def ajaxCall(value : Option[Boolean]) = {
+          def ajaxCall(value : Option[SendMetrics]) = {
             SHtml.ajaxInvoke(() =>
               value match {
-                case _ : Some[Boolean] =>
+                case _ : Some[SendMetrics] =>
                   configService.set_send_server_metrics(value,CurrentUser.actor,Some("Property modified from 'Send metrics' popup")).toBox match {
                     case Full(_) => JsRaw(s"""$$("#sendMetricsPopup").bsModal('hide')""")
                     case eb : EmptyBox =>
@@ -87,8 +87,9 @@ class SendMetricsPopup extends DispatchSnippet with Loggable {
             )
           }
           OnLoad(JsRaw(s"""
-            $$("#noSendMetrics").click(function(){${ajaxCall(Some(false)).toJsCmd}});
-            $$("#yesSendMetrics").click(function(){${ajaxCall(Some(true)).toJsCmd}});
+            $$("#noSendMetrics").click(function(){${ajaxCall(Some(SendMetrics.NoMetrics)).toJsCmd}});
+            $$("#yesSendMetrics").click(function(){${ajaxCall(Some(SendMetrics.CompleteMetrics)).toJsCmd}});
+            $$("#minimalSendMetrics").click(function(){${ajaxCall(Some(SendMetrics.MinimalMetrics)).toJsCmd}});
             $$("#laterSendMetrics").click(function(){${ajaxCall(None).toJsCmd}});
             $$("#sendMetricsPopup").bsModal();"""))
         } else {

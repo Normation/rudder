@@ -89,6 +89,12 @@ final case class ResolvedRudderServerRole(
   , val configValue: Option[Iterable[String]]
 )
 
+sealed  trait SendMetrics
+object  SendMetrics {
+  case object NoMetrics extends  SendMetrics
+  case object MinimalMetrics extends  SendMetrics
+  case object CompleteMetrics extends  SendMetrics
+}
 object SystemVariableService {
 
   // we use that variable to take care of an unexpected missing variable.
@@ -129,7 +135,7 @@ class SystemVariableServiceImpl(
   , getModifiedFilesTtl             : () => Box[Int]
   , getCfengineOutputsTtl           : () => Box[Int]
   , getStoreAllCentralizedLogsInFile: () => Box[Boolean]
-  , getSendMetrics                  : () => Box[Option[Boolean]]
+  , getSendMetrics                  : () => Box[Option[SendMetrics]]
   , getSyslogProtocol               : () => Box[SyslogProtocol]
   , getSyslogProtocolDisabled       : () => Box[Boolean]
   , getReportProtocolDefault        : () => Box[AgentReportingProtocol]
@@ -189,11 +195,14 @@ class SystemVariableServiceImpl(
 
     val varServerVersion = systemVariableSpecService.get("SERVER_VERSION").toVariable(Seq(serverVersion))
 
-    val sendMetricsValue = if (getSendMetrics().getOrElse(None).getOrElse(false)) {
-      "yes"
-    } else {
-      "no"
+    import SendMetrics._
+    val sendMetricsValue = getSendMetrics().getOrElse(None) match {
+      case None => "no"
+      case Some(NoMetrics) => "no"
+      case Some(MinimalMetrics) => "minimal"
+      case Some(CompleteMetrics) => "complete"
     }
+
     val varSendMetrics = systemVariableSpecService.get("SEND_METRICS").toVariable(Seq(sendMetricsValue))
 
     val storeAllCentralizedLogsInFile = getProp("STORE_ALL_CENTRALIZED_LOGS_IN_FILE", getStoreAllCentralizedLogsInFile)

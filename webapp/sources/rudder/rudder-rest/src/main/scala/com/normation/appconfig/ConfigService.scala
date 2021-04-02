@@ -72,6 +72,7 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.errors._
 import com.normation.rudder.domain.eventlog.ModifyRudderSyslogProtocolEventType
 import com.normation.rudder.domain.eventlog.ModifyRudderVerifyCertificates
+import com.normation.rudder.services.policies.SendMetrics
 import zio._
 import zio.syntax._
 
@@ -170,7 +171,7 @@ trait ReadConfigService {
   /**
    * Send Metrics
    */
-  def send_server_metrics(): IOResult[Option[Boolean]]
+  def send_server_metrics(): IOResult[Option[SendMetrics]]
 
   /**
    * Report protocol
@@ -289,7 +290,7 @@ trait UpdateConfigService {
   /**
    * Send Metrics
    */
-  def set_send_server_metrics(value : Option[Boolean], actor : EventActor, reason: Option[String]): IOResult[Unit]
+  def set_send_server_metrics(value : Option[SendMetrics], actor : EventActor, reason: Option[String]): IOResult[Unit]
 
   /**
    * Set the compliance mode
@@ -482,11 +483,6 @@ class LDAPBasedConfigService(
   }
   private[this] implicit def serBoolean(x: Boolean): String = if(x) "true" else "false"
 
-  private[this] implicit def toOptionBoolean(p: RudderWebProperty): Option[Boolean] = p.value.toLowerCase match {
-    case "true" | "1" => Some(true)
-    case "none" => None
-    case _ => Some(false)
-  }
 
   private[this] implicit def toSyslogProtocol(p: RudderWebProperty): SyslogProtocol = p.value match {
     case SyslogTCP.value => // value is TCP
@@ -507,6 +503,22 @@ class LDAPBasedConfigService(
   private[this] implicit def serOptionPolicyMode(x: Option[PolicyMode]): String = x match {
     case None    => "default"
     case Some(p) => p.name
+  }
+
+  private[this] implicit def toOptionSendMetrics (p: RudderWebProperty): Option[SendMetrics] = {
+    p.value.toLowerCase match {
+      case "true" | "1" | "complete" => Some(SendMetrics.CompleteMetrics)
+      case "minimal"  => Some(SendMetrics.MinimalMetrics)
+      case "false" | "no" => Some(SendMetrics.NoMetrics)
+      case _ => None
+    }
+  }
+
+  private[this] implicit def serSendMetrics(x: Option[SendMetrics]): String = x match {
+    case None    => "default"
+    case Some(SendMetrics.NoMetrics) => "no"
+    case Some(SendMetrics.MinimalMetrics) => "minimal"
+    case Some(SendMetrics.CompleteMetrics) => "complete"
   }
 
   private[this] implicit def toNodeState(p: RudderWebProperty): NodeState = {
@@ -674,12 +686,11 @@ class LDAPBasedConfigService(
   /**
    * Send Metrics
    */
-  def send_server_metrics(): IOResult[Option[Boolean]] = get("send_server_metrics")
+  def send_server_metrics(): IOResult[Option[SendMetrics]] = get("send_server_metrics")
 
-  def set_send_server_metrics(value : Option[Boolean], actor : EventActor, reason: Option[String]): IOResult[Unit] = {
-    val newVal = value.map(_.toString).getOrElse("none")
+  def set_send_server_metrics(value : Option[SendMetrics], actor : EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifySendServerMetricsEventType,actor,reason)
-    save("send_server_metrics",newVal,Some(info))
+    save("send_server_metrics",value,Some(info))
   }
 
   /**
