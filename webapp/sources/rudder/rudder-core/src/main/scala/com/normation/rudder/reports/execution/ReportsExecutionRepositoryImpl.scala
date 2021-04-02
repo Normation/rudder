@@ -93,7 +93,6 @@ final case class RoReportsExecutionRepositoryImpl (
           Some(AgentRunWithNodeConfig(
             AgentRunId(nodeId, lastRunByNode(nodeId).agentRunId.date)
             , expectedReports.get(nodeAndConfigId).map(optionalExpectedReport => (nodeAndConfigId.version, optionalExpectedReport))
-            , true
             , lastRunByNode(nodeId).insertionId)))
       }
       // and finally mark them read. It's so much easier to do it now than to carry all data all the way long
@@ -162,7 +161,7 @@ final case class RoReportsExecutionRepositoryImpl (
 
           val innerFromFrag = (
             fr"""from (
-                 select reportsexecution.nodeid, reportsexecution.date, reportsexecution.nodeconfigid, reportsexecution.complete, reportsexecution.insertionid from
+                 select reportsexecution.nodeid, reportsexecution.date, reportsexecution.nodeconfigid, reportsexecution.insertionid from
                     reportsexecution where (nodeid, insertionid) in (
                       select nodeid, max(insertionid) as insertionid
                         from reportsexecution
@@ -180,7 +179,7 @@ final case class RoReportsExecutionRepositoryImpl (
             // Here to make the query faster, we distinct only on the reportexecution to get the last run
             // but we need to get the matching last entry on nodeconfigurations.
             // I didn't find any better solution than doing a distinct on the table
-            runs <- (fr""" select r.nodeid, r.date, r.nodeconfigid, r.complete, r.insertionid,
+            runs <- (fr""" select r.nodeid, r.date, r.nodeconfigid, r.insertionid,
                          c.nodeid, c.nodeconfigid, c.begindate, c.enddate, c.configuration
                    """ ++
               innerFromFrag ++
@@ -202,7 +201,7 @@ final case class RoReportsExecutionRepositoryImpl (
             val runsMap = (runs.map { case (r, optConfig) =>
               val run = r.toAgentRun
               val config = run.nodeConfigVersion.map(c => (c, optConfig))
-              (run.agentRunId.nodeId, AgentRunWithNodeConfig(run.agentRunId, config, run.isCompleted, run.insertionId))
+              (run.agentRunId.nodeId, AgentRunWithNodeConfig(run.agentRunId, config, run.insertionId))
             }).toMap
             ids.map(id => (id, runsMap.get(id))).toMap
 

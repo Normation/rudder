@@ -140,10 +140,9 @@ final object DB {
       nodeId      : String
     , date        : DateTime
     , nodeConfigId: Option[String]
-    , isCompleted : Boolean
     , insertionId : Long
   ) {
-    def toAgentRun = RudderAgentRun(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId), isCompleted, insertionId)
+    def toAgentRun = RudderAgentRun(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId), insertionId)
   }
 
   final case class UncomputedAgentRun(

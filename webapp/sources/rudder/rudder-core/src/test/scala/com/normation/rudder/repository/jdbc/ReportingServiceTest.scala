@@ -984,9 +984,9 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   implicit def toNodeId(id: String): NodeId = NodeId(id)
   implicit def toConfigId(id: String): NodeConfigId = NodeConfigId(id)
 
-  implicit def agentRuns(runs:(String, Option[(DateTime, Option[String], Boolean, Long)])*): Map[NodeId, Option[AgentRun]] = {
+  implicit def agentRuns(runs:(String, Option[(DateTime, Option[String], Long)])*): Map[NodeId, Option[AgentRun]] = {
     runs.map { case (id, opt) =>
-      NodeId(id) -> opt.map(e => AgentRun(AgentRunId(NodeId(id), e._1), e._2.map(NodeConfigId(_)), e._3, e._4))
+      NodeId(id) -> opt.map(e => AgentRun(AgentRunId(NodeId(id), e._1), e._2.map(NodeConfigId(_)), e._3))
     }.toMap
   }
 }
