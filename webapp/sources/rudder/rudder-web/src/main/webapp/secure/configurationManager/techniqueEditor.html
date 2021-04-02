@@ -384,6 +384,12 @@
                         <div class="input-group">
                           <input type="text" class="form-control" ng-model="param.name" placeholder="Parameter name" required/>
                           <div class="input-group-btn">
+                            <button class="btn btn-outline" title="{{ param.mayBeEmpty ? 'Parameter value can be empty.\nWhen adding a parameter to an existing technique, policy will be generated with an empty value and automatically deployed to your nodes, so be careful when adding one' : 'Parameter cannot be empty and needs a value.\nIf you add a parameter to an existing technique, policy generation will fail and you will need to update all directives with the new parameter value'}}"
+                                    ng-click="param.mayBeEmpty = !param.mayBeEmpty" ng-class="param.mayBeEmpty ? 'btn-outline-primary' : 'btn-info'" type="button" >
+                              {{ param.mayBeEmpty ? "May be empty" : "Required"}}
+                            </button>
+                          </div>
+                          <div class="input-group-btn">
                             <button class="btn btn-outline-secondary clipboard" type="button" data-clipboard-text="{{'${'+getBundleName(param.name)+'}'}}" title="Copy to clipboard">
                               <i class="ion ion-clipboard"></i>
                             </button>

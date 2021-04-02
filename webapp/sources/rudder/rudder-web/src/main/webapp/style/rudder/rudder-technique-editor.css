@@ -85,9 +85,13 @@ ul.dropdown-menu > li > a{
 }
 .btn.btn-outline-primary{
   color: #337ab7;
+  transition-property: background-color, color;
+  transition-duration: .2s;
 }
 .btn.btn-outline-primary:hover{
   background-color: #286090;
+  transition-property: background-color, color;
+  transition-duration: .2s;
 }
 .popover{
   max-width: 450px;
@@ -123,6 +127,19 @@ ul.dropdown-menu > li > a{
 }
 .btn.btn-danger.btn-outline:hover{
   background-color: #c9302c;
+}
+.btn.btn-info.btn-outline,.btn.btn-info.btn-outline:active,.btn.btn-info.btn-outline:focus{
+  color: #31708f;
+  background-color: #fff;
+  border-color: #31708f;
+  transition-property: background-color, color;
+  transition-duration: .2s;
+}
+.btn.btn-info.btn-outline:hover{
+  background-color: #00acd6;
+  color: #fff;
+  transition-property: background-color, color;
+  transition-duration: .2s;
 }
 .no-margin{
 	margin: 0 !important;

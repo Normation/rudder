@@ -1370,6 +1370,7 @@ $scope.onImportFileChange = function (fileEl) {
 
   $scope.addParameter = function() {
     $scope.newParam.id = uuidv4();
+    $scope.newParam.mayBeEmpty = false;
     $scope.selectedTechnique.parameter.push(angular.copy($scope.newParam));
     $scope.newParam.name = "";
   }
