@@ -49,7 +49,9 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import org.joda.time.format.ISODateTimeFormat
-
+import com.normation.box._
+import com.normation.errors._
+import com.normation.rudder.utils.ParseMaxParallelism
 //Message to send to the updater manager to start a new update of all dynamic groups or get results
 sealed trait GroupUpdateMessage
 
@@ -58,11 +60,11 @@ final object GroupUpdateMessage {
   final case object ManualStartUpdate extends GroupUpdateMessage
   final case object ForceStartUpdate  extends GroupUpdateMessage
   final case object DelayedUpdate     extends GroupUpdateMessage
-  final case class  DynamicUpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends GroupUpdateMessage
+  final case class  DynamicUpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Box[ List[(NodeGroupId, Either[RudderError, DynGroupDiff])]]) extends GroupUpdateMessage
 }
 
 //a container to hold the list of dynamic group to update
-final case class GroupsToUpdate(ids:Seq[NodeGroupId]) extends AnyVal
+final case class GroupsToUpdate(idsWithoutDependencies:Seq[NodeGroupId], idsWithDependencies:Seq[NodeGroupId])
 
 sealed trait DynamicGroupUpdaterStates //states into wich the updater process can be
 //the process is idle
@@ -80,11 +82,12 @@ final case class StartDynamicUpdate(id:Long, modId:ModificationId, started: Date
  * - else, use the given value.
  */
 class UpdateDynamicGroups(
-    dynGroupService       : DynGroupService
-  , dynGroupUpdaterService: DynGroupUpdaterService
-  , asyncDeploymentAgent  : AsyncDeploymentActor
-  , uuidGen               : StringUuidGenerator
-  , updateInterval        : Int // in minutes
+    dynGroupService              : DynGroupService
+  , dynGroupUpdaterService       : DynGroupUpdaterService
+  , asyncDeploymentAgent         : AsyncDeploymentActor
+  , uuidGen                      : StringUuidGenerator
+  , updateInterval               : Int // in minutes
+  , getComputeDynGroupParallelism: () => Box[String]
 ) {
 
   private val propertyName = "rudder.batch.dyngroup.updateInterval"
@@ -151,10 +154,10 @@ class UpdateDynamicGroups(
 
         currentState match {
           case IdleGroupUpdater =>
-            dynGroupService.getAllDynGroups match {
-              case Full(groupIds) =>
+            dynGroupService.getAllDynGroupsWithandWithoutDependencies match {
+              case Full(groups) =>
                 updateId = updateId + 1
-                LAUpdateDyngroup ! StartDynamicUpdate(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groupIds.map(_.id)))
+                LAUpdateDyngroup ! StartDynamicUpdate(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groups._1, groups._2))
               case e:EmptyBox =>
                 val error = (e?~! "Error when trying to get the list of dynamic group to update")
                 logger.error( error.messageChain )
@@ -227,16 +230,14 @@ class UpdateDynamicGroups(
         logger.debug(s"Dynamic group update in ${new Duration(end.getMillis - start.getMillis).toPeriod().toString} (started at ${start.toString(format)}, ended at ${end.toString(format)})")
 
         for {
-          (id,boxRes) <- results
+          result <- results
+          (id,eitherRes) <- result
         } {
-          boxRes match {
-            case e:EmptyBox =>
-              val error = (e ?~! s"Error when updating dynamic group '${id.value}'")
-              logger.error(error.messageChain)
-              error.rootExceptionCause.foreach(ex =>
-                logger.error("Exception was:", ex)
-              )
-            case Full(diff) =>
+          eitherRes match {
+            case Left(e) =>
+              val error = (e.fullMsg + s" Error when updating dynamic group '${id.value}'")
+              logger.error(error)
+            case Right(diff) =>
               val addedNodes = displayNodechange(diff.added)
               val removedNodes = displayNodechange(diff.removed)
               logger.debug(s"Group ${id.value}: adding ${addedNodes}, removing ${removedNodes}")
@@ -267,19 +268,44 @@ class UpdateDynamicGroups(
         //
         //Process a dynamic group update
         //
-        case StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds)) => {
-          logger.trace(s"***** Start a new update, id: ${processId}")
-          currentState = StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds))
+        case StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds, dynGroupsWithDependencyIds)) => {
+          logger.trace(s"Start a new dynamic group update, id: ${processId}")
+          currentState = StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds, dynGroupsWithDependencyIds))
           try {
-            val results = for {
-              dynGroupId <- dynGroupIds
+
+            // We want to limit the number of parallel execution and threads to the number of core/2 (minimum 1) by default.
+            // This is taken from the system environment variable because we really want to be able to change it at runtime.
+            val maxParallelism = ParseMaxParallelism(
+                getComputeDynGroupParallelism().getOrElse("1")
+              , 1
+              , "rudder_compute_dyngroups_max_parallelism"
+              , (s:String) => logger.warn(s)
+            )
+
+            logger.debug(s"Starting computation of dynamic groups with max ${maxParallelism} threads for computing groups without dependencies")
+            val initialTime = System.currentTimeMillis
+            val result = (for {
+              results <- dynGroupIds.accumulateParN(maxParallelism) { case dynGroupId =>
+                dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
+              }
+
+              timeComputeNonDependantGroups = (System.currentTimeMillis - initialTime)
+              _                             = logger.debug(s"Computing dynamic groups without dependencies finished in ${timeComputeNonDependantGroups} ms")
+              preComputeDependantGroups     = System.currentTimeMillis
+
+              results2 <- dynGroupsWithDependencyIds.accumulateParN(1) { case dynGroupId =>
+                dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
+              }
+              _                             = logger.debug(s"Computing dynamic groups with dependencies finished in ${System.currentTimeMillis - preComputeDependantGroups} ms")
             } yield {
-              (dynGroupId, dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")))
-            }
-            updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime, DateTime.now, results.toMap)
+              results ++ results2
+            }).toBox
+
+            updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime, DateTime.now, result)
           } catch {
             case e:Exception => updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime,DateTime.now,
-                  dynGroupIds.map(id => (id,Failure("Exception caught during update process.",Full(e), Empty))).toMap)
+              Failure("Exception caught during update process.", Full(e), Empty)
+            )
           }
         }
       }

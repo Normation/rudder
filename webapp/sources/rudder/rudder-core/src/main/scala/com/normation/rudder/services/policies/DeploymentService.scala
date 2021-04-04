@@ -102,6 +102,7 @@ import com.normation.zio._
 import com.softwaremill.quicklens._
 import cats.implicits._
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
+import com.normation.rudder.utils.ParseMaxParallelism
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -167,27 +168,13 @@ trait PromiseGenerationService {
      */
     val computeDynGroupsEnabled = getComputeDynGroups().getOrElse(true)
 
-    val maxParallelism = {
-      // We want to limit the number of parallel execution and threads to the number of core/2 (minimum 1) by default.
-      // This is taken from the system environment variable because we really want to be able to change it at runtime.
-      def threadForProc(mult: Double): Int = {
-        Math.max(1, (java.lang.Runtime.getRuntime.availableProcessors * mult).ceil.toInt)
-      }
-      val t = try {
-        getMaxParallelism().getOrElse("x0.5") match {
-          case s if s.charAt(0) == 'x' => threadForProc(s.substring(1).toDouble)
-          case other => other.toInt
-        }
-      } catch {
-        case ex: IllegalArgumentException => threadForProc(1)
-      }
-      if(t < 1) {
-        PolicyGenerationLogger.warn(s"You can't set 'rudder_generation_max_parallelism' so that there is less than 1 thread for generation")
-        1
-      } else {
-        t
-      }
-    }
+    val maxParallelism = ParseMaxParallelism(
+        getMaxParallelism().getOrElse("x0.5")
+      , 1
+      , "rudder_generation_max_parallelism"
+      , (s:String) => PolicyGenerationLogger.warn(s)
+    )
+
     val jsTimeout = {
       // by default 5s but can be overrided
       val t = getJsTimeout().getOrElse(5)

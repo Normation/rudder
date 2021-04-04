@@ -180,6 +180,7 @@ object RestTestSetUp {
 
   val fakeDynGroupService = new DynGroupService() {
     override def getAllDynGroups(): Box[Seq[NodeGroup]] = Full(Seq())
+    override def getAllDynGroupsWithandWithoutDependencies():  Box[(Seq[NodeGroupId], Seq[NodeGroupId])] = Full(Seq(), Seq())
     override def changesSince(lastTime: DateTime): Box[Boolean] = Full(false)
   }
   val fakeDynGroupUpdaterService = new DynGroupUpdaterService() {
@@ -193,7 +194,7 @@ object RestTestSetUp {
       Full(group)
     }
   }
-  val fakeUpdateDynamicGroups = new UpdateDynamicGroups(fakeDynGroupService, fakeDynGroupUpdaterService, null, null, 0) {
+  val fakeUpdateDynamicGroups = new UpdateDynamicGroups(fakeDynGroupService, fakeDynGroupUpdaterService, null, null, 0, null) {
     // for some reason known only by Scala inheritance rules, the underlying LAUpdateDyngroup is null, so we need to override that.
     override val laUpdateDyngroupManager = new LAUpdateDyngroupManager() {
       override protected def messageHandler: PartialFunction[GroupUpdateMessage, Unit] = {

@@ -433,10 +433,9 @@ class InternalLDAPQueryProcessor(
           rt      = nodeObjectTypes.copy(filter = finalLdapFilter)
           _       <- logPure.debug(s"[${debugId}] |- (final query) ${rt}")
           entries <- (for {
-            con     <- ldap
             results <- executeQuery(rt.baseDn, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, nq.composition, debugId)
           } yield {
-            postFilterNode(results.groupBy(_.dn).map(_._2.head).toSeq, query.returnType, limitToNodeIds)
+            postFilterNode(results.distinctBy(_.dn), query.returnType, limitToNodeIds)
           }).foldM(
             err =>
               logPure.debug(s"[${debugId}] `-> error: ${err.fullMsg}") *>
