@@ -288,11 +288,9 @@ class UpdateDynamicGroups(
 
             val result = (for {
               results <- dynGroupIds.accumulateParN(maxParallelism) { case dynGroupId =>
-                println("running1 " + dynGroupId)
                 dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
               }
               results2 <- dynGroupsWithDependencyIds.accumulateParN(1) { case dynGroupId =>
-                println("running 2 " + dynGroupId)
                 dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
               }
             } yield {
@@ -302,8 +300,8 @@ class UpdateDynamicGroups(
             updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime, DateTime.now, result)
           } catch {
             case e:Exception => updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime,DateTime.now,
-                 // SystemError(dynGroupIds.toList.map(id => (id,Left(RudderError("Exception caught during update process."))))))
-null)
+              Failure("Exception caught during update process.", Full(e), Empty)
+            )
           }
         }
       }
