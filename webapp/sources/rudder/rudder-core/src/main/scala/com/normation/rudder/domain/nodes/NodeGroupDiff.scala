@@ -76,6 +76,7 @@ final case class ModifyNodeGroupDiff(
   , modNodeList   : Option[SimpleDiff[Set[NodeId]]]         = None
   , modIsActivated: Option[SimpleDiff[Boolean]]             = None
   , modIsSystem   : Option[SimpleDiff[Boolean]]             = None
+  , modCategory   : Option[SimpleDiff[NodeGroupCategoryId]] = None
 ) extends NodeGroupDiff {
 
   def needDeployment : Boolean = {

@@ -90,7 +90,7 @@ class UpdateDynamicGroups(
   private val propertyName = "rudder.batch.dyngroup.updateInterval"
   val logger = ScheduledJobLogger
 
-  protected val laUpdateDyngroupManager = new LAUpdateDyngroupManager
+  protected lazy val laUpdateDyngroupManager = new LAUpdateDyngroupManager
   //start batch
   if(updateInterval < 1) {
     logger.info("Disable dynamic group updates since property %s is 0 or negative".format(propertyName))

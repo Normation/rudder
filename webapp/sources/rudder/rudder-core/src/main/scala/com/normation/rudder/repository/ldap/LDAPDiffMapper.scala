@@ -66,6 +66,8 @@ import com.unboundid.ldif.LDIFModifyChangeRecord
 import com.unboundid.ldif.LDIFModifyDNChangeRecord
 import net.liftweb.common._
 
+import scala.util.control.NonFatal
+
 class LDAPDiffMapper(
     mapper         : LDAPEntityMapper
   , cmdbQueryParser: CmdbQueryParser
@@ -387,12 +389,17 @@ class LDAPDiffMapper(
         case noop:LDIFNoopChangeRecord => Right(None)
 
         /*
-         * We have to keep a track of moves beetween category, if not git  repository would not be synchronized with LDAP
+         * We have to keep a track of moves beetween category, if not git repository would not be synchronized with LDAP
          */
         case move:LDIFModifyDNChangeRecord =>
           logger.info("Group DN entry '%s' moved to '%s'".format(beforeChangeEntry.dn,move.getNewDN))
-          mapper.entry2NodeGroup(beforeChangeEntry).map(oldGroup => Some(ModifyNodeGroupDiff(oldGroup.id, oldGroup.name)))
-
+          try {
+            val oldCat = mapper.dn2NodeGroupCategoryId(beforeChangeEntry.dn.getParent)
+            val newCat = mapper.dn2NodeGroupCategoryId(move.getNewDN.getParent)
+            mapper.entry2NodeGroup(beforeChangeEntry).map(oldGroup => Some(ModifyNodeGroupDiff(oldGroup.id, oldGroup.name, modCategory = Some(SimpleDiff(oldCat, newCat)))))
+          } catch {
+            case NonFatal(ex) => Left(Err.UnexpectedObject(s"Error when trying to parse a node group move entry: ${ex.getMessage}"))
+          }
         case _ => Left(Err.UnexpectedObject("Bad change record type for requested action 'update node group': %s".format(change)))
       }
   }

@@ -57,18 +57,11 @@ import com.normation.rudder.batch._
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.appconfig.FeatureSwitch
-import com.normation.rudder.domain.nodes.AddNodeGroupDiff
-import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
-import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.nodes.NodeGroupCategory
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyServerTarget
 import com.normation.rudder.domain.policies.PolicyMode.Audit
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.Rule
@@ -89,7 +82,6 @@ import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository._
 import com.normation.rudder.rest.lift._
 import com.normation.rudder.rest.v1.RestStatus
-import com.normation.rudder.rest.v1.RestTechniqueReload
 import com.normation.rudder.rule.category.RuleCategoryService
 import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
@@ -111,11 +103,10 @@ import com.normation.rudder.services.policies.PromiseGenerationService
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
-import com.normation.rudder.services.queries.DynGroupDiff
 import com.normation.rudder.services.queries.DynGroupService
-import com.normation.rudder.services.queries.DynGroupUpdaterService
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.DefaultStringQueryParser
+import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
 import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.system.DebugInfoScriptResult
@@ -134,7 +125,6 @@ import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
-import com.unboundid.ldif.LDIFChangeRecord
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -155,10 +145,11 @@ import zio._
 import zio.syntax._
 import zio.duration._
 
-import scala.collection.immutable
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
+import com.normation.box._
+import com.normation.rudder.rest.v1.RestTechniqueReload
 
 
 /*
@@ -186,30 +177,7 @@ object RestTestSetUp {
       def registerCallback(callback:TechniquesLibraryUpdateNotification) : Unit = {}
     }
 
-  val fakeDynGroupService = new DynGroupService() {
-    override def getAllDynGroups(): Box[Seq[NodeGroup]] = Full(Seq())
-    override def changesSince(lastTime: DateTime): Box[Boolean] = Full(false)
-  }
-  val fakeDynGroupUpdaterService = new DynGroupUpdaterService() {
-    override def update(dynGroupId: NodeGroupId, modId: ModificationId, actor: EventActor, reason: Option[String]): Box[DynGroupDiff] = {
-      Full(DynGroupDiff(Set(), Set(), Set()))
-    }
-    override def updateAll(modId: ModificationId, actor: EventActor, reason: Option[String]): Box[Seq[DynGroupDiff]] = {
-      Full(Seq())
-    }
-    override def computeDynGroup(group: NodeGroup): Box[NodeGroup] = {
-      Full(group)
-    }
-  }
-  val fakeUpdateDynamicGroups = new UpdateDynamicGroups(fakeDynGroupService, fakeDynGroupUpdaterService, null, null, 0) {
-    // for some reason known only by Scala inheritance rules, the underlying LAUpdateDyngroup is null, so we need to override that.
-    override val laUpdateDyngroupManager = new LAUpdateDyngroupManager() {
-      override protected def messageHandler: PartialFunction[GroupUpdateMessage, Unit] = {
-        case _ => ()
-      }
-    }
-    override def startManualUpdate: Unit = ()
-  }
+
   ///// query parsing ////
   def DN(rdn: String, parent: DN) = new DN(new RDN(rdn),  parent)
   val LDAP_BASEDN = new DN("cn=rudder-configuration")
@@ -233,40 +201,19 @@ object RestTestSetUp {
   val mockRules = new MockRules()
   val mockNodes = new MockNodes()
   val mockParameters = new MockGlobalParam()
-  object nodeGroupRepository extends RoNodeGroupRepository with WoNodeGroupRepository {
-    override def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = ???
-    override def getNodeGroup(id: NodeGroupId): IOResult[(NodeGroup, NodeGroupCategoryId)] = ???
-    override def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory] = ???
-    override def getAll(): IOResult[Seq[NodeGroup]] = ???
-    override def getGroupsByCategory(includeSystem: Boolean): IOResult[immutable.SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = ???
-    override def findGroupWithAnyMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = ???
-    override def findGroupWithAllMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = ???
-    override def getRootCategory(): NodeGroupCategory = ???
-    override def getRootCategoryPure(): IOResult[NodeGroupCategory] = ???
-    override def getCategoryHierarchy: IOResult[immutable.SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = ???
-    override def getAllGroupCategories(includeSystem: Boolean): IOResult[List[NodeGroupCategory]] = ???
-    override def getGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory] = ???
-    override def getParentGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory] = ???
-    override def getParents_NodeGroupCategory(id: NodeGroupCategoryId): IOResult[List[NodeGroupCategory]] = ???
-    override def getAllNonSystemCategories(): IOResult[Seq[NodeGroupCategory]] = ???
-    override def create(group: NodeGroup, into: NodeGroupCategoryId, modId: ModificationId, actor: EventActor, why: Option[String]): IOResult[AddNodeGroupDiff] = ???
-    override def createPolicyServerTarget(target: PolicyServerTarget, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[LDIFChangeRecord] = ???
-    override def update(group: NodeGroup, modId: ModificationId, actor: EventActor, whyDescription: Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = ???
-    override def updateDiffNodes(group: NodeGroupId, add: List[NodeId], delete: List[NodeId], modId: ModificationId, actor: EventActor, whyDescription: Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = ???
-    override def updateSystemGroup(group: NodeGroup, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = ???
-    override def updateDynGroupNodes(group: NodeGroup, modId: ModificationId, actor: EventActor, whyDescription: Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = ???
-    override def move(group: NodeGroupId, containerId: NodeGroupCategoryId, modId: ModificationId, actor: EventActor, whyDescription: Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = ???
-    override def delete(id: NodeGroupId, modId: ModificationId, actor: EventActor, whyDescription: Option[String]): IOResult[DeleteNodeGroupDiff] = {
-      // todo
-      DeleteNodeGroupDiff(NodeGroup(id, "", "", Nil, None, false, Set(), false)).succeed
-    }
-    override def deletePolicyServerTarget(policyServer: PolicyServerTarget): IOResult[PolicyServerTarget] = ???
-    override def addGroupCategorytoCategory(that: NodeGroupCategory, into: NodeGroupCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[NodeGroupCategory] = ???
-    override def saveGroupCategory(category: NodeGroupCategory, modificationId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[NodeGroupCategory] = ???
-    override def saveGroupCategory(category: NodeGroupCategory, containerId: NodeGroupCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[NodeGroupCategory] = ???
-    override def delete(id: NodeGroupCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty: Boolean): IOResult[NodeGroupCategoryId] = ???
-  }
+  val mockNodeGroups = new MockNodeGroups(mockNodes)
   val uuidGen = new StringUuidGeneratorImpl()
+
+  val dynGroupUpdaterService = new DynGroupUpdaterServiceImpl(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockNodes.queryProcessor)
+
+  object dynGroupService extends DynGroupService {
+    override def getAllDynGroups(): Box[Seq[NodeGroup]] = {
+      mockNodeGroups.groupsRepo.getFullGroupLibrary().map(_.allGroups.collect {
+        case(id, t) if(t.nodeGroup.isDynamic) => t.nodeGroup
+      }.toSeq).toBox
+    }
+    override def changesSince(lastTime: DateTime): Box[Boolean] = Full(false)
+  }
 
   val deploymentStatusSerialisation = new DeploymentStatusSerialisation {
     override def serialise(deploymentStatus: CurrentDeploymentStatus): Elem = <test/>
@@ -330,26 +277,26 @@ object RestTestSetUp {
     override def findRulesForDirective(id: DirectiveId): IOResult[Seq[Rule]] = Nil.succeed
     override def findRulesForTarget(target: RuleTarget): IOResult[Seq[Rule]] = Nil.succeed
   }
-  val dependencySercive = new DependencyAndDeletionServiceImpl(findDependencies, mockDirectives.directiveRepo, mockDirectives.directiveRepo, mockRules.ruleRepo, nodeGroupRepository)
+  val dependencyService = new DependencyAndDeletionServiceImpl(findDependencies, mockDirectives.directiveRepo, mockDirectives.directiveRepo, mockRules.ruleRepo, mockNodeGroups.groupsRepo)
 
   val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
     new CommitAndDeployChangeRequestServiceImpl(
         uuidGen
       , mockDirectives.directiveRepo
       , mockDirectives.directiveRepo
-      , null // roNodeGroupRepository
-      , null // woNodeGroupRepository
+      , mockNodeGroups.groupsRepo
+      , mockNodeGroups.groupsRepo
       , mockRules.ruleRepo
       , mockRules.ruleRepo
       , mockParameters.paramsRepo
       , mockParameters.paramsRepo
       , asyncDeploymentAgent
-      , dependencySercive
+      , dependencyService
       , () => false.succeed // configService.rudder_workflow_enabled _
       , null // xmlSerializer
       , null // xmlUnserializer
       , null // sectionSpecParser
-      , null // dynGroupUpdaterService
+      , dynGroupUpdaterService
     )
   val workflowLevelService = new DefaultWorkflowLevel(new NoWorkflowServiceImpl(
     commitAndDeployChangeRequest
@@ -445,6 +392,17 @@ object RestTestSetUp {
     , null
     , FiniteDuration(100, "millis")
   )
+
+  val fakeUpdateDynamicGroups = new UpdateDynamicGroups(dynGroupService, dynGroupUpdaterService, asyncDeploymentAgent, uuidGen, 1) {
+    // for some reason known only by Scala inheritance rules, the underlying LAUpdateDyngroup is null, so we need to override that.
+    override lazy val laUpdateDyngroupManager = new LAUpdateDyngroupManager() {
+      override protected def messageHandler: PartialFunction[GroupUpdateMessage, Unit] = {
+        case _ => ()
+      }
+    }
+    override def startManualUpdate: Unit = ()
+  }
+
   val apiService11 = new SystemApiService11(
         fakeUpdatePTLibService
       , fakeScriptLauncher
@@ -560,15 +518,20 @@ object RestTestSetUp {
     , restDataSerializer
   )
 
+  val groupService2 = new GroupApiService2(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, uuidGen, asyncDeploymentAgent, workflowLevelService, restExtractorService, mockNodes.queryProcessor, restDataSerializer)
+  val groupService6 = new GroupApiService6(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, restDataSerializer)
+  val groupApiInheritedProperties = new GroupApiInheritedProperties(mockNodeGroups.groupsRepo, mockParameters.paramsRepo)
+
   val rudderApi = {
     //append to list all new format api to test it
     val modules = List(
         systemApi
+      , new ParameterApi(restExtractorService, parameterApiService2)
+      , new TechniqueApi(restExtractorService, techniqueAPIService6)
+      , new DirectiveApi(mockDirectives.directiveRepo, restExtractorService, directiveApiService2, uuidGen)
       , new RuleApi(restExtractorService, ruleApiService2, ruleApiService6, uuidGen)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12,  nodeApiService13, null, DeleteMode.Erase)
-      , new DirectiveApi(mockDirectives.directiveRepo, restExtractorService, directiveApiService2, uuidGen)
-      , new TechniqueApi(restExtractorService, techniqueAPIService6)
-      , new ParameterApi(restExtractorService, parameterApiService2)
+      , new GroupsApi(mockNodeGroups.groupsRepo, restExtractorService, uuidGen, groupService2, groupService6, groupApiInheritedProperties)
     )
     val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled), None)
     modules.foreach { module =>
