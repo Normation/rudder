@@ -12,7 +12,7 @@
 # Signal to cf-serverd that it shall look-up the new promises
 
 export PATH="/opt/rudder/bin:$PATH"
-ACL_BAC="/var/rudder/tmp/cf-serverd.sha256"
+ACL_BACK="/var/rudder/tmp/cf-serverd.sha256"
 ACL_FILE="/var/rudder/cfengine-community/inputs/common/1.0/cf-serverd.cf"
 ACL_HASH=$(openssl sha256 -r "${ACL_FILE}" | cut -d' ' -f 1)
 if [ -f "${ACL_BACK}" ]; then
