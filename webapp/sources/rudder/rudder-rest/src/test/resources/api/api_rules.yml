@@ -334,7 +334,7 @@ response:
       }
     }
 ---
-description: Create a category
+description: Create a rule category
 method: PUT
 url: /api/latest/rules/categories
 headers:
@@ -365,7 +365,7 @@ response:
       }
     }
 ---
-description: Move category 2 into category 1
+description: Move rule category 2 into rule category 1
 method: POST
 url: /api/latest/rules/categories/d882961b-279a-4ba5-b755-5198eaf00d35
 headers:

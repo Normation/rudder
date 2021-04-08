@@ -138,7 +138,7 @@ final case class RestGroupCategory(
           )
         )
         case None =>
-          Failure("Could not create Group Category, cause name is not defined")
+          Failure("Could not create group Category, cause: name is not defined")
       }
   }
 }

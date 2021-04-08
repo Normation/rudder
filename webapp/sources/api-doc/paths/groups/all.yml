@@ -50,7 +50,7 @@ put:
     content:
       application/json:
         schema:
-          $ref: ../../components/schemas/group.yml
+          $ref: ../../components/schemas/group-new.yml
   responses:
     "200":
       description: Group information
@@ -82,7 +82,7 @@ put:
                   groups:
                     type: array
                     items:
-                      $ref: ../../components/schemas/group-new.yml
+                      $ref: ../../components/schemas/group.yml
   tags:
     - Groups
   x-code-samples:

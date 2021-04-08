@@ -95,6 +95,9 @@ import com.normation.rudder.domain.queries._
 import com.normation.rudder.services.queries._
 import com.unboundid.ldif.LDIFChangeRecord
 
+import scala.collection.immutable
+import scala.util.control.NonFatal
+
 /*
  * Mock services for test, especially reposositories, and provides
  * test data (nodes, directives, etc)
@@ -108,6 +111,18 @@ object MkTags {
   def apply(tags: (String, String)*) = {
     Tags(tags.map{ case (k, v) => Tag(TagName(k), TagValue(v))}.toSet)
   }
+}
+
+object Diff {
+
+  class DiffBetween[A](old: A, current: A) {
+    def apply[B](path: A => B): Option[SimpleDiff[B]] = {
+      if(path(old) == path(current)) None
+      else Some(SimpleDiff(path(old), path(current)))
+    }
+  }
+
+  def apply[A](old: A, current: A) = new DiffBetween(old, current)
 }
 
 class MockGitConfigRepo(prefixTestResources: String = "") {
@@ -188,7 +203,7 @@ class MockTechniques(configurationRepositoryRoot: File, gitRepo: GitRepositoryPr
                                    , RudderServerRole("rudder-relay-promises-only"    , "rudder.server-roles.relay-promises-only")
                                    , RudderServerRole("rudder-cfengine-mission-portal", "rudder.server-roles.cfengine-mission-portal")
                                  )
-    , serverVersion            = "6.2.0"
+    , serverVersion            = "7.0.0"
 
     //denybadclocks is runtime properties
     , getDenyBadClocks         = () => Full(true)
@@ -489,7 +504,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
        |${fatc.subCategories.sortBy(_.id.value).map(displayFullActiveTechniqueCategory(_, indent2)).mkString("", "\n", "")}""".stripMargin
   }
 
-  val directiveRepo = new RoDirectiveRepository with WoDirectiveRepository {
+  object directiveRepo extends RoDirectiveRepository with WoDirectiveRepository {
     override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = rootActiveTechniqueCategory.get
 
     override def getDirective(directiveId: DirectiveId): IOResult[Option[Directive]] = {
@@ -572,26 +587,56 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     override def containsDirective(id: ActiveTechniqueCategoryId): UIO[Boolean] = ???
 
+    def buildDirectiveDiff(old: Option[(SectionSpec, TechniqueName, Directive)], current: Directive): Option[ModifyDirectiveDiff] = {
+      (old, current) match {
+        case (None, _)                    => None
+        case (Some(t), c2) if(t._3 == c2) => None
+        case (Some((spec, tn, c1)), c2)   =>
+          val diff = Diff(c1, c2)
+          Some(ModifyDirectiveDiff(tn, c2.id, c2.name
+            , diff(_.name)
+            , diff(_.techniqueVersion)
+            , diff(d => SectionVal.directiveValToSectionVal(spec, d.parameters))
+            , diff(_.shortDescription)
+            , diff(_.longDescription)
+            , diff(_.priority)
+            , diff(_.isEnabled)
+            , diff(_.isSystem)
+            , diff(_.policyMode)
+            , diff(_.tags.tags)
+          ))
+      }
+    }
+    def saveGen(inActiveTechniqueId: ActiveTechniqueId, directive: Directive) = {
+      rootActiveTechniqueCategory.modify(r =>
+        r.saveDirective(inActiveTechniqueId, directive).toIO.map(c =>
+          // TODO: this is false, we should get root section spec for each directive/technique version
+          (r.allDirectives.get(directive.id).map(p => (p._1.techniques.head._2.rootSection,  p._1.techniqueName,  p._2)), c)
+        )
+      ).map(buildDirectiveDiff(_, directive))
+    }
     override def saveDirective(inActiveTechniqueId: ActiveTechniqueId, directive: Directive, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DirectiveSaveDiff]] = {
-      // TODO: manage diff result
       if(directive.isSystem) Inconsistency(s"Can not modify system directive '${directive.id}' here").fail
-      else rootActiveTechniqueCategory.update(_.saveDirective(inActiveTechniqueId, directive).toIO).map(_ => None)
+      else saveGen(inActiveTechniqueId, directive)
     }
 
     override def saveSystemDirective(inActiveTechniqueId: ActiveTechniqueId, directive: Directive, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DirectiveSaveDiff]] = {
-      // TODO: manage diff result
       if(!directive.isSystem) Inconsistency(s"Can not modify non system directive '${directive.id}' here").fail
-      else rootActiveTechniqueCategory.update(_.saveDirective(inActiveTechniqueId, directive).toIO).map(_ => None)
+      else saveGen(inActiveTechniqueId, directive)
     }
 
+    def deleteGen(id: DirectiveId) = {
+      // TODO: we should check if directive is system
+      rootActiveTechniqueCategory.modify(r =>
+        (r.allDirectives.get(id), r.deleteDirective(id)).succeed
+      ).map(_.map(p => DeleteDirectiveDiff(p._1.techniqueName, p._2)))
+    }
     override def delete(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = {
-      // TODO: manage diff result and isSystem
-      rootActiveTechniqueCategory.update(_.deleteDirective(id).succeed).map(_ => None)
+      deleteGen(id)
     }
 
     override def deleteSystemDirective(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = {
-      // TODO: manage diff result and isSystem
-      rootActiveTechniqueCategory.update(_.deleteDirective(id).succeed).map(_ => None)
+      deleteGen(id)
     }
 
     override def addTechniqueInUserLibrary(categoryId: ActiveTechniqueCategoryId, techniqueName: TechniqueName, versions: Seq[TechniqueVersion], modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechnique] = {
@@ -874,14 +919,17 @@ class MockRules() {
   }
 
 
-  val ruleRepo = new RoRuleRepository with WoRuleRepository {
+  object ruleRepo  extends RoRuleRepository with WoRuleRepository {
 
     val rulesMap = RefM.make(rules.all.map(r => (r.id,r)).toMap).runNow
 
     val predicate = (includeSytem: Boolean) => (r: Rule) => if(includeSytem) true else r.isSystem == false
 
+    def getOpt(ruleId: RuleId): IOResult[Option[Rule]] =
+      rulesMap.get.map(_.get(ruleId))
+
     override def get(ruleId: RuleId): IOResult[Rule] =
-      rulesMap.get.flatMap(_.get(ruleId).notOptional(s"rule node found: ${ruleId.value}"))
+      getOpt(ruleId).flatMap(_.notOptional(s"rule with id '${ruleId.value}' was not found"))
 
     override def getAll(includeSytem: Boolean): IOResult[Seq[Rule]] = {
       rulesMap.get.map(_.valuesIterator.filter(predicate(includeSytem)).toSeq)
@@ -900,30 +948,48 @@ class MockRules() {
       }).map(_ => AddRuleDiff(rule))
     }
 
+    def buildRuleDiff(old: Rule, current: Rule): Option[ModifyRuleDiff] = {
+      if(old == current) None
+      else {
+        val diff = Diff(old, current)
+        Some(ModifyRuleDiff(current.id, current.name
+          , diff(_.name)
+          , None
+          , diff(_.targets)
+          , diff(_.directiveIds)
+          , diff(_.shortDescription)
+          , diff(_.longDescription)
+          , None // mod reasons ?
+          , diff(_.isEnabledStatus)
+          , diff(_.isSystem)
+          , diff(_.categoryId)
+          , diff(_.tags.tags)
+        ))
+      }
+    }
+
     override def update(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[ModifyRuleDiff]] = {
-      rulesMap.update(rules => rules.get(rule.id) match {
+      rulesMap.modify(rules => rules.get(rule.id) match {
         case Some(r) if(r.isSystem) =>
           Inconsistency(s"rule is system (can't be updated here): ${rule.id.value}").fail
         case Some(r)                =>
-          (rules + (rule.id -> rule)).succeed
+          (r, (rules + (rule.id -> rule))).succeed
         case None                   =>
           Inconsistency(s"rule does not exist: ${rule.id.value}").fail
         }
-      // TODO: ModifyRuleDiff not computed
-      ).map(_ => Some(ModifyRuleDiff(rule.id, rule.name)))
+      ).map(buildRuleDiff(_, rule))
     }
 
     override def updateSystem(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[ModifyRuleDiff]] = {
-      rulesMap.update(rules => rules.get(rule.id) match {
+      rulesMap.modify(rules => rules.get(rule.id) match {
         case Some(r) if(r.isSystem) =>
-          (rules + (rule.id -> rule)).succeed
+          (r, (rules + (rule.id -> rule))).succeed
         case Some(r)                =>
           Inconsistency(s"rule is not system (can't be updated here): ${rule.id.value}").fail
         case None                   =>
           Inconsistency(s"rule does not exist: ${rule.id.value}").fail
         }
-      // TODO: ModifyRuleDiff not computed
-      ).map(_ => Some(ModifyRuleDiff(rule.id, rule.name)))
+      ).map(buildRuleDiff(_, rule))
     }
 
     override def delete(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[DeleteRuleDiff] = {
@@ -974,7 +1040,8 @@ class MockGlobalParam() {
   }
 
   val stringParam = GlobalParameter("stringParam", "some string".toConfigValue, None, "a simple string param", None)
-  val jsonParam = GlobalParameter.parse("jsonParam", """{ "string":"a string", "array": [1, 3, 2], "json": { "var1":"val1", "var2":"val2"} }""", None, "a simple string param", None).getOrElse(throw new RuntimeException("error in mock jsonParam"))
+  // json: the key will be sorted alpha-num by Config lib; array value order is kept.
+  val jsonParam = GlobalParameter.parse("jsonParam", """{ "string":"a string", "array": [1, 3, 2], "json": { "var2":"val2", "var1":"val1"} }""", None, "a simple string param", None).getOrElse(throw new RuntimeException("error in mock jsonParam"))
   val modeParam = GlobalParameter("modeParam", "some string".toConfigValue, Some(mode), "a simple string param", None)
   val systemParam = GlobalParameter("systemParam", "some string".toConfigValue, None, "a simple string param", Some(PropertyProvider.systemPropertyProvider))
   val all = List(stringParam, jsonParam, modeParam, systemParam).map(p => (p.name, p)).toMap
@@ -1002,15 +1069,21 @@ class MockGlobalParam() {
     }
 
     override def updateParameter(parameter: GlobalParameter, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[ModifyGlobalParameterDiff]] = {
-      paramsMap.update(params => params.get(parameter.name) match {
-        case Some(_)                =>
-          (params + (parameter.name -> parameter)).succeed
+      paramsMap.modify(params => params.get(parameter.name) match {
+        case Some(old)              =>
+          (old, (params + (parameter.name -> parameter))).succeed
         case None                   =>
           Inconsistency(s"param does not exist: ${parameter.name}").fail
         }
-      // TODO: ModifyGlobalParameterDiff not computed
-      ).map(_ => Some(ModifyGlobalParameterDiff(parameter.name)))
-
+      ).map { old =>
+        val diff = Diff(old, parameter)
+        Some(ModifyGlobalParameterDiff(parameter.name
+          , diff(_.value)
+          , diff(_.description)
+          , diff(_.provider)
+          , diff(_.inheritMode)
+        ))
+      }
     }
 
     override def delete(parameterName: String, provider: Option[PropertyProvider], modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteGlobalParameterDiff]] = {
@@ -1103,11 +1176,11 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       rootNode
     , rootHostname
     , Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None))
-    , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
+    , Linux(Debian, "Stretch", new Version("9.4"), None, new Version("4.5"))
     , List("127.0.0.1", "192.168.0.100")
     , DateTime.parse("2021-01-30T01:20+01:00")
     , UndefinedKey
-    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey(PUBKEY), Set()))
+    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), PublicKey(PUBKEY), Set()))
     , rootId
     , rootAdmin
     , Set( //by default server roles for root
@@ -1174,11 +1247,11 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       node1Node
     , hostname1
     , Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None))
-    , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
+    , Linux(Debian, "Buster", new Version("10.6"), None, new Version("4.19"))
     , List("192.168.0.10")
     , DateTime.parse("2021-01-30T01:20+01:00")
     , UndefinedKey
-    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey(PUBKEY), Set()))
+    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("6.2.0")), PublicKey(PUBKEY), Set()))
     , rootId
     , admin1
     , Set()
@@ -1258,7 +1331,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , List("192.168.0.5")
     , DateTime.parse("2021-01-30T01:20+01:00")
     , UndefinedKey
-    , Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("5.0.0")), Certificate("windows-node-dsc-certificate"), Set()))
+    , Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("7.0.0")), Certificate("windows-node-dsc-certificate"), Set()))
     , rootId
     , admin1
     , Set()
@@ -1421,89 +1494,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     )
   }).map(n => (n.id, n)).toMap
 
-  /**
-   *   ************************************************************************
-   *                         Some groups
-   *   ************************************************************************
-   */
-
-  val g0id = NodeGroupId("0")
-  val g0 = NodeGroup (g0id, "Real nodes", "", Nil, None, false, Set(rootId, node1.id, node2.id), true)
-  val g1 = NodeGroup (NodeGroupId("1"), "Empty group", "", Nil, None, false, Set(), true)
-  val g2 = NodeGroup (NodeGroupId("2"), "only root", "", Nil, None, false, Set(NodeId("root")), true)
-  val g3 = NodeGroup (NodeGroupId("3"), "Even nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt == 2), true)
-  val g4 = NodeGroup (NodeGroupId("4"), "Odd nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt != 2), true)
-  val g5 = NodeGroup (NodeGroupId("5"), "Nodes id divided by 3", "", Nil, None, false, nodeIds.filter(_.value.toInt == 3), true)
-  val g6 = NodeGroup (NodeGroupId("6"), "Nodes id divided by 5", "", Nil, None, false, nodeIds.filter(_.value.toInt == 5), true)
-  val groups = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
-
-  val groupsTargets = groups.map{ case (id, g) => (GroupTarget(g.id), g) }
-
-  val groupsTargetInfos = (groupsTargets.map(gt =>
-    ( gt._1.groupId
-    , FullRuleTargetInfo(
-          FullGroupTarget(gt._1,gt._2)
-        , ""
-        , ""
-        , true
-        , false
-      )
-    )
-  )).toMap
-
-  val emptyGroupLib = FullNodeGroupCategory(
-      NodeGroupCategoryId("/")
-    , "/"
-    , "root of group categories"
-    , List()
-    , List()
-    , true
-  )
-
-  val groupLib = emptyGroupLib.copy(
-      targetInfos = List(
-          FullRuleTargetInfo(
-              FullGroupTarget(
-                  GroupTarget(NodeGroupId("a-group-for-root-only"))
-                , NodeGroup(NodeGroupId("a-group-for-root-only")
-                    , "Serveurs [€ðŋ] cassés"
-                    , "Liste de l'ensemble de serveurs cassés à réparer"
-                    , Nil
-                    , None
-                    , true
-                    , Set(NodeId("root"))
-                    , true
-                    , false
-                  )
-              )
-              , "Serveurs [€ðŋ] cassés"
-              , "Liste de l'ensemble de serveurs cassés à réparer"
-              , true
-              , false
-            )
-        , FullRuleTargetInfo(
-              FullOtherTarget(PolicyServerTarget(NodeId("root")))
-            , "special:policyServer_root"
-            , "The root policy server"
-            , true
-            , true
-          )
-        , FullRuleTargetInfo(
-            FullOtherTarget(AllTargetExceptPolicyServers)
-            , "special:all_exceptPolicyServers"
-            , "All groups without policy servers"
-            , true
-            , true
-          )
-        , FullRuleTargetInfo(
-            FullOtherTarget(AllTarget)
-            , "special:all"
-            , "All nodes"
-            , true
-            , true
-          )
-      ) ++ groupsTargetInfos.valuesIterator
-  )
 
   object softwareDao extends ReadOnlySoftwareDAO {
     val softRef = RefM.make(softwares.map(s => (s.id, s)).toMap).runNow
@@ -1582,7 +1572,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
             case A_POLICY_SERVER_UUID => Right((n: NodeDetails) => List(n.info.policyServerId.value))
             case _ => Left(Inconsistency(s"object '${objectName}' doesn't have attribute '${attribute}'"))
          }
-        case _ => Left(Unexpected("Not yet implemented in test, see `MockServices.scala`"))
+        case x => Left(Unexpected(s"Case value '${x}' for query processor not yet implemented in test, see `MockServices.scala`"))
       }
     }
 
@@ -1592,7 +1582,14 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
         case NotExists => Right(nodeValues.isEmpty)
         case Equals    => Right(nodeValues.exists(_ == expectedValue))
         case NotEquals => Right(nodeValues.nonEmpty && nodeValues.forall(_ != expectedValue))
-        case _         => Left(Unexpected("Not yet implemented in test, see `MockServices.scala`"))
+        case Regex     =>
+          try {
+            val p = expectedValue.r.pattern
+            Right(nodeValues.exists(p.matcher(_).matches()))
+          } catch {
+            case NonFatal(ex) => Left(Unexpected(s"Error in regex comparator in test: ${ex.getMessage}"))
+          }
+        case x         => Left(Unexpected(s"Comparator '${x} / ${expectedValue}' not yet implemented in test, see `MockServices.scala`"))
       }
     }
 
@@ -1632,3 +1629,370 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   }
 }
 
+class MockNodeGroups(nodesRepo: MockNodes) {
+
+
+  val g0 = NodeGroup (NodeGroupId("0000f5d3-8c61-4d20-88a7-bb947705ba8a"), "Real nodes"           , "", Nil, None, false, Set(nodesRepo.rootId, nodesRepo.node1.id, nodesRepo.node2.id), true)
+  val g1 = NodeGroup (NodeGroupId("1111f5d3-8c61-4d20-88a7-bb947705ba8a"), "Empty group"          , "", Nil, None, false, Set(), true)
+  val g2 = NodeGroup (NodeGroupId("2222f5d3-8c61-4d20-88a7-bb947705ba8a"), "only root"            , "", Nil, None, false, Set(NodeId("root")), true)
+  val g3 = NodeGroup (NodeGroupId("3333f5d3-8c61-4d20-88a7-bb947705ba8a"), "Even nodes"           , "", Nil, None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 == 0), true)
+  val g4 = NodeGroup (NodeGroupId("4444f5d3-8c61-4d20-88a7-bb947705ba8a"), "Odd nodes"            , "", Nil, None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 != 0), true)
+  val g5 = NodeGroup (NodeGroupId("5555f5d3-8c61-4d20-88a7-bb947705ba8a"), "Nodes id divided by 3", "", Nil, None, false, nodesRepo.nodeIds.filter(_.value.toInt%3 == 0), true)
+  val g6 = NodeGroup (NodeGroupId("6666f5d3-8c61-4d20-88a7-bb947705ba8a"), "Nodes id divided by 5", "", Nil, None, false, nodesRepo.nodeIds.filter(_.value.toInt%5 == 0), true)
+  val groups = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
+
+  val groupsTargets = groups.map{ case (id, g) => (GroupTarget(g.id), g) }
+
+  val groupsTargetInfos = (groupsTargets.map(gt =>
+    ( gt._1.groupId
+    , FullRuleTargetInfo(
+          FullGroupTarget(gt._1,gt._2)
+        , ""
+        , ""
+        , true
+        , false
+      )
+    )
+  )).toMap
+
+  val groupLib = FullNodeGroupCategory(
+      NodeGroupCategoryId("GroupRoot")
+    , "GroupRoot"
+    , "root of group categories"
+    , List(
+        FullNodeGroupCategory(
+            NodeGroupCategoryId("category1")
+          , "category 1"
+          , "the first category"
+          , Nil
+          , Nil
+          , false
+        )
+      )
+    , List(
+          FullRuleTargetInfo(
+              FullGroupTarget(
+                  GroupTarget(NodeGroupId("a-group-for-root-only"))
+                , NodeGroup(NodeGroupId("a-group-for-root-only")
+                    , "Serveurs [€ðŋ] cassés"
+                    , "Liste de l'ensemble de serveurs cassés à réparer"
+                    , Nil
+                    , None
+                    , true
+                    , Set(NodeId("root"))
+                    , true
+                    , false
+                  )
+              )
+              , "Serveurs [€ðŋ] cassés"
+              , "Liste de l'ensemble de serveurs cassés à réparer"
+              , true
+              , false
+            )
+        , FullRuleTargetInfo(
+              FullOtherTarget(PolicyServerTarget(NodeId("root")))
+            , "special:policyServer_root"
+            , "The root policy server"
+            , true
+            , true
+          )
+        , FullRuleTargetInfo(
+            FullOtherTarget(AllTargetExceptPolicyServers)
+            , "special:all_exceptPolicyServers"
+            , "All groups without policy servers"
+            , true
+            , true
+          )
+        , FullRuleTargetInfo(
+            FullOtherTarget(AllTarget)
+            , "special:all"
+            , "All nodes"
+            , true
+            , true
+          )
+      ) ++ groupsTargetInfos.valuesIterator
+    , true
+  )
+
+  object groupsRepo extends RoNodeGroupRepository with WoNodeGroupRepository {
+
+    implicit val ordering = com.normation.rudder.repository.NodeGroupCategoryOrdering
+
+    val categories = RefM.make(groupLib).runNow
+
+    override def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = categories.get
+    override def getNodeGroup(id: NodeGroupId): IOResult[(NodeGroup, NodeGroupCategoryId)] = {
+      categories.get.flatMap(root =>
+        ((root.allGroups.get(id), root.categoryByGroupId.get(id)) match {
+          case (Some(g), Some(c)) => Some((g.nodeGroup,c))
+          case _                  => None
+        }).notOptional(s"Group with id '${id.value}' was not found'")
+      )
+    }
+    override def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory] = {
+      for {
+        root <- categories.get
+        cid  <- root.categoryByGroupId.get(id).notOptional(s"Category for group '${id.value}' not found")
+        cat  <- root.allCategories.get(cid).map(_.toNodeGroupCategory).notOptional(s"Category '${cid.value}' not found")
+      } yield cat
+    }
+    override def getAll(): IOResult[Seq[NodeGroup]] = categories.get.map(_.allGroups.values.map(_.nodeGroup).toSeq)
+
+    override def getGroupsByCategory(includeSystem: Boolean): IOResult[immutable.SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = {
+      def getChildren(parents: List[NodeGroupCategoryId], root: FullNodeGroupCategory) : immutable.SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup] = {
+        val c = immutable.SortedMap((root.id :: parents, CategoryAndNodeGroup(root.toNodeGroupCategory, root.ownGroups.values.map(_.nodeGroup).toSet)))
+        root.subCategories.foldLeft(c) { case (current, n) => current ++ getChildren(root.id :: parents, n) }
+      }
+      categories.get.map { root =>
+        val all = getChildren(Nil, root)
+        if (includeSystem) all else {
+          all.filterNot(_._2.category.isSystem)
+        }
+      }
+    }
+
+    override def getCategoryHierarchy: IOResult[immutable.SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = getGroupsByCategory(true).map(
+      _.map { case (k,v) => (k, v.category) }
+    )
+
+    override def findGroupWithAnyMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = {
+      categories.get.map { root =>
+        root.allGroups.collect { case(_, c) if(c.nodeGroup.serverList.exists(s => nodeIds.contains(s))) => c.nodeGroup.id }.toSeq
+      }
+    }
+
+    override def findGroupWithAllMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = {
+      categories.get.map { root =>
+        root.allGroups.collect { case(_, c) if(nodeIds.forall(s => c.nodeGroup.serverList.contains(s))) => c.nodeGroup.id }.toSeq
+      }
+    }
+
+    override def getRootCategoryPure(): IOResult[NodeGroupCategory] = categories.get.map(_.toNodeGroupCategory)
+    override def getRootCategory(): NodeGroupCategory = getRootCategoryPure().runNow
+
+    override def getAllGroupCategories(includeSystem: Boolean): IOResult[Seq[NodeGroupCategory]] = {
+      categories.get.map(_.allCategories.values.collect {
+        case c if(!c.isSystem || c.isSystem && includeSystem) => c.toNodeGroupCategory
+      }).map(_.toSeq)
+    }
+
+    override def getGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory] = {
+      categories.get.flatMap(_.allCategories.get(id).notOptional(s"Category '${id.value}' not found").map(_.toNodeGroupCategory))
+    }
+
+    override def getParentGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory] = {
+      categories.get.flatMap { root =>
+        root.parentCategories.get(id).notOptional(s"Parent of category '${id.value}' not found").map(_.toNodeGroupCategory)
+      }
+    }
+
+
+    // get parents from nearest to root
+    def recGetParent(root: FullNodeGroupCategory, id: NodeGroupCategoryId): List[FullNodeGroupCategory] = {
+      root.parentCategories.get(id) match {
+        case Some(cat) => cat :: recGetParent(root, cat.id)
+        case None => Nil
+      }
+    }
+
+    override def getParents_NodeGroupCategory(id: NodeGroupCategoryId): IOResult[List[NodeGroupCategory]] = {
+      categories.get.map(recGetParent(_, id).map(_.toNodeGroupCategory))
+    }
+
+    override def getAllNonSystemCategories(): IOResult[Seq[NodeGroupCategory]] = getAllGroupCategories(false)
+
+    // returns (parents, group) if found
+    def recGetCat(root: FullNodeGroupCategory, id: NodeGroupCategoryId) : Option[(List[FullNodeGroupCategory], FullNodeGroupCategory)] = {
+      if(root.id == id) Some((Nil, root))
+      else root.subCategories.foldLeft(Option.empty[(List[FullNodeGroupCategory], FullNodeGroupCategory)]) { case (found, cat) =>
+        found match {
+          case Some(x) => Some(x)
+          case None    => recGetCat(cat, id).map { case (p, r) => (root :: p, r) }
+        }
+      }
+    }
+
+    // Add `toAdd` at the bottom of the list (which goes from direct parent to root),
+    // and modify children category along the way.
+    // So, if there is a non-empty list, head is direct parent: replace toAdd in children, then recurse
+    @tailrec
+    def recUpdateCat(toAdd: FullNodeGroupCategory, parents: List[FullNodeGroupCategory]): FullNodeGroupCategory = {
+      import com.softwaremill.quicklens._
+      parents match {
+        case Nil     => toAdd
+        case p :: pp =>
+          recUpdateCat(
+              p.modify(_.subCategories).using(children => toAdd :: children.filterNot(_.id == toAdd.id))
+            , pp
+          )
+      }
+    }
+
+    def inDeleteCat(root: FullNodeGroupCategory, id: NodeGroupCategoryId): FullNodeGroupCategory = {
+      import com.softwaremill.quicklens._
+      recGetCat(root, id) match {
+        case Some((p :: pp, x)) => recUpdateCat(p.modify(_.subCategories).using(_.filterNot(_.id == id)), pp.reverse)
+        case _                  => root
+      }
+    }
+
+    // only used in relay plugin
+    override def createPolicyServerTarget(target: PolicyServerTarget, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[LDIFChangeRecord] = ???
+
+    // create group into Some(cat) (group must not exists) or update group (into=None, group must exists)
+    def createOrUpdate(group: NodeGroup, into: Option[NodeGroupCategoryId]): IOResult[Option[NodeGroup]] = {
+      categories.modify(root =>
+        for {
+          catId <- into match {
+                     case Some(catId) => root.allGroups.get(group.id) match {
+                       case Some(n) => Inconsistency(s"Group with id '${n.nodeGroup.id.value}' already exists'").fail
+                       case None    => catId.succeed
+                     }
+                     case None => root.categoryByGroupId.get(group.id) match {
+                       case None     => Inconsistency(s"Group '${group.id.value}' not found").fail
+                       case Some(id) => id.succeed
+                     }
+                   }
+          cat   <- root.allCategories.get(catId) match {
+                     case None      => Inconsistency(s"Category '${catId.value}' not found").fail
+                     case Some(cat) => cat.succeed
+                   }
+          // previous group, for diff
+          old   = cat.ownGroups.get(group.id).map(_.nodeGroup)
+        } yield {
+          val t = FullRuleTargetInfo(FullGroupTarget(GroupTarget(group.id), group), group.name, group.description, group.isEnabled, group.isSystem)
+          import com.softwaremill.quicklens._
+          val c = cat.modify(_.targetInfos).using(children => t :: children.filterNot(_.target.target.target == t.target.target.target))
+          val parents = recGetParent(root, c.id)
+          (old, recUpdateCat(c, parents))
+        }
+      )
+    }
+
+    override def create(group: NodeGroup, into: NodeGroupCategoryId, modId: ModificationId, actor: EventActor, why: Option[String]): IOResult[AddNodeGroupDiff] = {
+      createOrUpdate(group, Some(into)).flatMap {
+        case None    => AddNodeGroupDiff(group).succeed
+        case Some(_) => Inconsistency(s"Group '${group.id.value}' was present'").fail
+      }
+    }
+
+    override def update(group: NodeGroup, modId: ModificationId, actor: EventActor, whyDescription: Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = {
+      createOrUpdate(group, None).flatMap {
+        case None      => Inconsistency(s"Group '${group.id.value}' was missing").fail
+        case Some(old) =>
+          val diff = Diff(old, group)
+          Some(ModifyNodeGroupDiff(group.id, group.name
+          , diff(_.name)
+          , diff(_.description)
+          , diff(_.properties)
+          , diff(_.query)
+          , diff(_.isDynamic)
+          , diff(_.serverList)
+          , diff(_.isEnabled)
+          , diff(_.isSystem)
+        )).succeed
+      }
+    }
+
+    override def delete(id: NodeGroupId, modId: ModificationId, actor: EventActor, whyDescription: Option[String]): IOResult[DeleteNodeGroupDiff] = {
+       def recDelete(id: NodeGroupId, current: FullNodeGroupCategory): FullNodeGroupCategory = {
+         current.copy(
+             targetInfos = current.targetInfos.filterNot(_.toTargetInfo.target.target == s"group:${id.value}")
+           , subCategories = current.subCategories.map(recDelete(id, _))
+         )
+       }
+      categories.modify(root =>
+        root.allGroups.get(id) match {
+          case None    => Inconsistency(s"Group already deleted").fail
+          case Some(g) => (g, recDelete(id, root)).succeed
+        }
+      ).map(g => DeleteNodeGroupDiff(g.nodeGroup))
+    }
+    override def delete(id: NodeGroupCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty: Boolean): IOResult[NodeGroupCategoryId] = {
+       def recDelete(id: NodeGroupCategoryId, current: FullNodeGroupCategory): FullNodeGroupCategory = {
+         current.copy(subCategories = current.subCategories.filterNot(_.id == id).map(c => recDelete(id, c)))
+       }
+      categories.update(root =>
+        root.allCategories.get(id) match {
+          case None      => root.succeed
+          case Some(cat) => recDelete(id, root).succeed
+        }
+      ).map(_ => id)
+    }
+
+    override def updateDiffNodes(group: NodeGroupId, add: List[NodeId], delete: List[NodeId], modId: ModificationId, actor: EventActor, whyDescription: Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = ???
+
+    override def updateSystemGroup(group: NodeGroup, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = ???
+
+    override def updateDynGroupNodes(group: NodeGroup, modId: ModificationId, actor: EventActor, whyDescription: Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = ???
+
+    override def move(group: NodeGroupId, containerId: NodeGroupCategoryId, modId: ModificationId, actor: EventActor, whyDescription: Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = ???
+
+    override def deletePolicyServerTarget(policyServer: PolicyServerTarget): IOResult[PolicyServerTarget] = ???
+
+
+    def updateCategory(t: FullNodeGroupCategory, into: FullNodeGroupCategory, root: FullNodeGroupCategory): FullNodeGroupCategory = {
+      import com.softwaremill.quicklens._
+      val c = into.modify(_.subCategories).using(children => t :: children.filterNot(_.id == t.id))
+      val parents = recGetParent(root, c.id)
+      recUpdateCat(c, parents)
+    }
+
+    override def addGroupCategorytoCategory(that: NodeGroupCategory, into: NodeGroupCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[NodeGroupCategory] = {
+      categories.update(root =>
+        for {
+          cat <- root.allCategories.get(into).notOptional(s"Missing target parent category '${into.value}'")
+        } yield {
+          val t = FullNodeGroupCategory(that.id, that.name, that.description, Nil, Nil, that.isSystem)
+          updateCategory(t, cat, root)
+        }
+      ).map(_ => that)
+    }
+
+    override def saveGroupCategory(category: NodeGroupCategory, modificationId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[NodeGroupCategory] = {
+      categories.update(root =>
+        for {
+          cat <- root.parentCategories.get(category.id).notOptional(s"Missing target parent category of '${category.id.value}'")
+        } yield {
+          val t = FullNodeGroupCategory(category.id, category.name, category.description, Nil, Nil, category.isSystem)
+          updateCategory(t, cat, root)
+        }
+      ).map(_ => category)
+    }
+
+
+    override def saveGroupCategory(category: NodeGroupCategory, containerId: NodeGroupCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[NodeGroupCategory] = {
+      categories.update(root =>
+        for {
+          cat <- root.allCategories.get(containerId).notOptional(s"Missing target parent category '${containerId.value}'")
+        } yield {
+          val t = FullNodeGroupCategory(category.id, category.name, category.description, Nil, Nil, category.isSystem)
+          updateCategory(t, cat, root)
+        }
+      ).map(_ => category)
+    }
+  }
+}
+
+
+object TEST {
+  import com.normation.zio._
+
+  val mock = new MockNodeGroups(new MockNodes)
+  val repo = mock.groupsRepo
+
+  val prog = for {
+    pair      <- repo.getNodeGroup(NodeGroupId("1111f5d3-8c61-4d20-88a7-bb947705ba8a"))
+    (g,catId) =  pair
+    nodes     =  Set(NodeId("node1"))
+    g1        =  g.copy(serverList = nodes)
+    _         <- repo.update(g1, ModificationId("plop"), EventActor("plop"), None)
+    pair2     <- repo.getNodeGroup(NodeGroupId("1111f5d3-8c61-4d20-88a7-bb947705ba8a"))
+    res       =  if(pair2._1.serverList == nodes) "ok" else s"oups, list=${pair2._1.serverList}"
+    _         <- effectUioUnit(println(s"**** " + res))
+  } yield (res)
+
+  def main(args: Array[String]): Unit = prog.runNow
+
+
+}

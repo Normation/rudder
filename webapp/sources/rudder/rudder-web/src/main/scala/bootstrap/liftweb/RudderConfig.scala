@@ -894,8 +894,6 @@ object RudderConfig extends Loggable {
       , restDataSerializer
     )
 
-  val groupApiService5 = new GroupApiService5 (groupApiService2)
-
   val groupApiService6 =
     new GroupApiService6 (
       roNodeGroupRepository
@@ -1168,7 +1166,7 @@ object RudderConfig extends Loggable {
 
     val modules = List(
         new ComplianceApi(restExtractorService, complianceAPIService)
-      , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService5, groupApiService6, groupInheritedProperties)
+      , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, stringUuidGenerator, groupApiService2, groupApiService6, groupInheritedProperties)
       , new DirectiveApi(roDirectiveRepository, restExtractorService, directiveApiService2, stringUuidGenerator)
       , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, restExtractorService, techniqueSerializer, stringUuidGenerator, gitRepo, resourceFileService)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12, nodeApiService13, nodeInheritedProperties, RUDDER_DEFAULT_DELETE_NODE_MODE)

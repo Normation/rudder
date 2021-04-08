@@ -1,7 +1,7 @@
 ---
 description: Get node (minimal)
 method: GET
-url: /api/nodes/node1?include=minimal
+url: /api/latest/nodes/node1?include=minimal
 response:
   code: 200
   content: >-
@@ -22,7 +22,7 @@ response:
 ---
 description: Get node (full)
 method: GET
-url: /api/nodes/node1?include=full
+url: /api/latest/nodes/node1?include=full
 response:
   code: 200
   content: >-
@@ -39,9 +39,9 @@ response:
             "os":{
               "type":"Linux",
               "name":"Debian",
-              "version":"7.0",
-              "fullName":"Jessie",
-              "kernelVersion":"3.2"
+              "version":"9.4",
+              "fullName":"Stretch",
+              "kernelVersion":"4.5"
             },
             "machine":{
               "id":"machine1",
@@ -54,7 +54,7 @@ response:
             "policyServerId":"root",
             "managementTechnology":[{
               "name":"Rudder",
-              "version":"4.0.0",
+              "version":"7.0.0",
               "capabilities":[],
               "nodeKind":"root",
               "rootComponents":[
@@ -98,7 +98,7 @@ response:
 ---
 description: List node with select and include managementTechnologie
 method: GET
-url: /api/nodes?include=minimal,managementTechnologyDetails&select=nodeAndPolicyServer&where=[{"objectType":"node","attribute":"nodeHostname","comparator":"eq","value":"node1.localhost"}]
+url: /api/latest/nodes?include=minimal,managementTechnologyDetails&select=nodeAndPolicyServer&where=[{"objectType":"node","attribute":"nodeHostname","comparator":"eq","value":"node1.localhost"}]
 response:
   code: 200
   content: >-

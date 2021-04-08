@@ -80,7 +80,7 @@ trait RestDataSerializer {
 
   def serializeCR(changeRequest:ChangeRequest , status : WorkflowNodeId, isAcceptable : Boolean, apiVersion: ApiVersion) : JValue
 
-  def serializeGroup(group : NodeGroup, crId: Option[ChangeRequestId]): JValue
+  def serializeGroup(group: NodeGroup, cat: Option[NodeGroupCategoryId], crId: Option[ChangeRequestId]): JValue
   def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel, apiVersion: ApiVersion): JValue
 
   def serializeParameter (parameter:GlobalParameter , crId: Option[ChangeRequestId]): JValue
@@ -160,6 +160,10 @@ final case class RestDataSerializerImpl (
 
   }
 
+  def serializeTags(tags: Tags): JValue = {
+    JArray(tags.tags.toList.sortBy(_.name.value).map ( t => JObject( JField(t.name.value,t.value.value) :: Nil) ).toList)
+  }
+
   def serializeRule (rule:Rule , crId: Option[ChangeRequestId]): JValue = {
 
    (   ( "changeRequestId"  -> crId.map(_.value.toString))
@@ -172,7 +176,7 @@ final case class RestDataSerializerImpl (
      ~ ( "targets"          -> rule.targets.map(_.toJson) )
      ~ ( "enabled"          -> rule.isEnabledStatus )
      ~ ( "system"           -> rule.isSystem )
-     ~ ( "tags"             -> JArray(rule.tags.tags.toList.sortBy(_.name.value).map ( t => JObject( JField(t.name.value,t.value.value) :: Nil) ).toList))
+     ~ ( "tags"             -> serializeTags(rule.tags))
    )
   }
 
@@ -209,31 +213,35 @@ final case class RestDataSerializerImpl (
    )
   }
 
-  override def serializeGroup (group : NodeGroup, crId: Option[ChangeRequestId]): JValue = {
+  override def serializeGroup (group: NodeGroup, cat: Option[NodeGroupCategoryId], crId: Option[ChangeRequestId]): JValue = {
     val query = group.query.map(query => query.toJSON)
     (
         ("changeRequestId" -> crId.map(_.value.toString))
       ~ ("id"              -> group.id.value)
       ~ ("displayName"     -> group.name)
       ~ ("description"     -> group.description)
+      ~ ("category"        -> cat.map(_.value))
       ~ ("query"           -> query)
-      ~ ("nodeIds"         -> group.serverList.map(_.value))
+      ~ ("nodeIds"         -> group.serverList.toSeq.map(_.value).sorted)
       ~ ("dynamic"         -> group.isDynamic)
       ~ ("enabled"         -> group.isEnabled )
-      ~ ("groupClass"      -> List(group.id.value, group.name).map(RuleTarget.toCFEngineClassName _) )
+      ~ ("groupClass"      -> List(group.id.value, group.name).map(RuleTarget.toCFEngineClassName _).sorted)
       ~ ("properties"      -> group.properties.toApiJson)
     )
   }
 
   override def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel, apiVersion: ApiVersion): JValue = {
+    val groupList = category.ownGroups.values.toSeq.sortBy(_.nodeGroup.id.value)
+    val subCat = category.subCategories.sortBy(_.id.value)
+
     val (groups ,categories) : (Seq[JValue],Seq[JValue]) = detailLevel match {
       case FullDetails =>
-        ( category.ownGroups.values.map(fullGroup => serializeGroup(fullGroup.nodeGroup,None)).toSeq
-        , category.subCategories.map(serializeGroupCategory(_,category.id, detailLevel, apiVersion))
+        ( groupList.map(fullGroup => serializeGroup(fullGroup.nodeGroup, Some(category.id), None))
+        , subCat.map(serializeGroupCategory(_,category.id, detailLevel, apiVersion))
         )
       case MinimalDetails =>
-        ( category.ownGroups.keys.map(id => JString(id.value) ).toSeq
-        , category.subCategories.map(cat => JString(cat.id.value))
+        ( groupList.map(g => JString(g.nodeGroup.id.value) )
+        , subCat.map(cat => JString(cat.id.value))
         )
     }
     (   ( "id" -> category.id.value)
@@ -411,10 +419,11 @@ final case class RestDataSerializerImpl (
       val dynamic :JValue     = diff.modIsDynamic.map(displaySimpleDiff(_)).getOrElse(initialState.isDynamic)
       val enabled :JValue     = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
       val properties: JValue  = diff.modProperties.map(displaySimpleDiff(_)).getOrElse(initialState.properties.toApiJson)
-
+      val category: JValue    = diff.modCategory.map(displaySimpleDiff(_)(_.value))
       ( ("id"          -> initialState.id.value)
       ~ ("displayName" -> name)
       ~ ("description" -> description)
+      ~ ("category"    -> category)
       ~ ("query"       -> query)
       ~ ("properties"  -> properties)
       ~ ("nodeIds"     -> serverList)
@@ -429,12 +438,12 @@ final case class RestDataSerializerImpl (
     } yield {
       diff match {
         case AddNodeGroupDiff(group) =>
-          val change = serializeGroup(group,None)
+          val change = serializeGroup(group, None, None)
           (   ("action" -> create)
             ~ ("change" -> change)
           )
         case DeleteNodeGroupDiff(group) =>
-          val change = serializeGroup(group,None)
+          val change = serializeGroup(group, None, None)
           (   ("action" -> delete)
             ~ ("change" -> change)
           )
