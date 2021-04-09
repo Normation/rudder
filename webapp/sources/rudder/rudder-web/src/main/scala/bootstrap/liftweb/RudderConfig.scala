@@ -844,6 +844,13 @@ object RudderConfig extends Loggable {
     "secrets/secrets.json"
     , eventLogRepository
     , stringUuidGenerator
+    , personIdentService
+    , gitRepo
+    , new File(RUDDER_DIR_GITROOT)
+    , prettyPrinter
+    , gitModificationRepository
+    , RUDDER_CHARSET.name
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
 
   val ruleApiService2 =
