@@ -60,6 +60,7 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import com.normation.rudder.domain.queries.ResultTransformation._
 
 /**
  * Test pending node policies with group of groups
@@ -111,11 +112,11 @@ class TestPendingNodePolicies extends Specification {
   //the node that we will try to accept
   val node = NodeId("node")
 
-  def orQuery     (g: NodeGroup) = Query(null, Or , List(cl, sub(g), cl))
-  def andQuery    (g: NodeGroup) = Query(null, And, List(cl, sub(g), cl))
-  def onlySubQuery(g: NodeGroup) = Query(null, And, List(sub(g)))
-  val dummyQuery0 = Query(null, And, List(cl)) // will return 0 node
-  val dummyQuery1 = Query(null, Or , List(cl)) // will return 1 node
+  def orQuery     (g: NodeGroup) = Query(null, Or , Identity, List(cl, sub(g), cl))
+  def andQuery    (g: NodeGroup) = Query(null, And, Identity, List(cl, sub(g), cl))
+  def onlySubQuery(g: NodeGroup) = Query(null, And, Identity, List(sub(g)))
+  val dummyQuery0 = Query(null, And, Identity, List(cl)) // will return 0 node
+  val dummyQuery1 = Query(null, Or , Identity, List(cl)) // will return 1 node
 
   def ng(id: String, q: Query, dyn: Boolean = true) =
     NodeGroup(NodeGroupId(id), id, id, Nil, Some(q), dyn, Set(), true, false)

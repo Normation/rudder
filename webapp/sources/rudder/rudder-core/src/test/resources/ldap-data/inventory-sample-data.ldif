@@ -203,7 +203,7 @@ dn: softwareId=soft0,ou=Software,ou=Inventories,cn=rudder-configuration
 softwareId: soft0
 objectClass: software
 objectClass: top
-cn: Software 1
+cn: Software 0
 softwareVersion: 1.0.0
 description: First software
 
@@ -211,7 +211,7 @@ dn: softwareId=soft1,ou=Software,ou=Inventories,cn=rudder-configuration
 softwareId: soft1
 objectClass: software
 objectClass: top
-cn: Software 2
+cn: Software 1
 softwareVersion: 2.0-rc
 description: Second software
 

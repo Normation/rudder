@@ -927,37 +927,69 @@ final case object NodeAndPolicyServerReturnType extends QueryReturnType{
   override val value = "nodeAndPolicyServer"
 }
 
+sealed trait ResultTransformation {
+  def value: String
+}
+object ResultTransformation {
+  // no result transformation
+  final case object Identity extends ResultTransformation { val value = "identity" }
+  // invert result: substract from "all nodes" the one matching that query
+  final case object Invert   extends ResultTransformation { val value = "invert" }
+
+  def all = ca.mrvisser.sealerate.values[ResultTransformation]
+
+  def parse(value: String): PureResult[ResultTransformation] = {
+    value.toLowerCase match {
+      case "none" | Identity.value => Right(Identity)
+      case Invert.value            => Right(Invert)
+      case _ =>Left(Inconsistency(s"Can not parse '${value}' as a result transformation; expecting: ${all.map(_.value).mkString("'", "', '", "'")}"))
+    }
+  }
+}
+
 final case class Query(
-    val returnType:QueryReturnType,  //"node" or "node and policy servers"
-    val composition:CriterionComposition,
-    val criteria: List[CriterionLine] //list of all criteria to be matched by returned values
+    returnType : QueryReturnType  //"node" or "node and policy servers"
+  , composition: CriterionComposition
+  , transform  : ResultTransformation
+  , criteria   : List[CriterionLine] //list of all criteria to be matched by returned values
 ) {
-    override def toString() = "{ returnType:'%s' with '%s' criteria [%s] }".format(returnType, composition,
-          criteria.map{x => "%s.%s %s %s".format(x.objectType.objectType, x.attribute.name, x.comparator.id, x.value)}.mkString(" ; "))
+  override def toString() = s"{ returnType:'${returnType.value}' (${transform.value}) with '${composition.toString}' criteria [${
+      criteria.map{x => s"${x.objectType.objectType}.${x.attribute.name} ${x.comparator.id} ${x.value}" }.mkString(" ; ")
+    }] }"
+
 
      /*
        *  { "select":"...", "composition":"...", "where": [
        *      { "objectType":"...", "attribute":"...", "comparator":"..", "value":"..." }
        *      ...
        *    ]}
+       *
+       * Make "transform" optional: don't display it if it's identity
        */
-     lazy val toJSON =
-              ("select" -> returnType.value) ~
-              ("composition" -> composition.toString) ~
-              ("where" -> criteria.map( c =>
-                ("objectType" -> c.objectType.objectType) ~
-                ("attribute" -> c.attribute.name) ~
-                ("comparator" -> c.comparator.id) ~
-                ("value" -> c.value)
-              ) )
+  lazy val toJSON = {
+    val t = transform match {
+      case ResultTransformation.Identity => None
+      case x                             => Some(x.value)
+    }
+    ("select" -> returnType.value) ~
+    ("composition" -> composition.toString) ~
+    ("transform" -> t) ~
+    ("where" -> criteria.map( c =>
+      ("objectType" -> c.objectType.objectType) ~
+      ("attribute" -> c.attribute.name) ~
+      ("comparator" -> c.comparator.id) ~
+      ("value" -> c.value)
+    ) )
+  }
 
-    lazy val toJSONString = compactRender(toJSON)
+  lazy val toJSONString = compactRender(toJSON)
 
     override def equals(other:Any) : Boolean = {
       other match {
-        case Query(rt,comp,crit) => //criteria order does not matter
+        case Query(rt,comp,t,crit) => //criteria order does not matter
           this.returnType == rt &&
           this.composition == comp &&
+          this.transform == t &&
           this.criteria.size == crit.size &&
           this.criteria.forall(c1 => crit.exists(c2 => c1 == c2))
           //we don't care if the cardinal of equals criterion is not the same on the two,
@@ -966,5 +998,5 @@ final case class Query(
       }
     }
 
-    override def hashCode() = returnType.hashCode * 17 + composition.hashCode * 3 + criteria.toSet.hashCode * 7
+    override def hashCode() = returnType.hashCode * 17 + composition.hashCode * 3 + transform.hashCode * 11 + criteria.toSet.hashCode * 7
 }

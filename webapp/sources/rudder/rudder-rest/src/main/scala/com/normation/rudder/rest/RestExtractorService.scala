@@ -189,6 +189,10 @@ final case class RestExtractorService (
     Full(Some(value))
   }
 
+  private[this] def toQueryTransform(value: String): Box[Option[String]] = {
+    Full(if(value.isBlank) None else Some(value))
+  }
+
   private[this] def toMinimalSizeString (minimalSize : Int) (value:String) : Box[String] = {
     if (value.size >= minimalSize){
       Full(value)
@@ -1022,9 +1026,10 @@ final case class RestExtractorService (
               // Composition defaults to None/And
               optComposition <-extractOneValue(params,COMPOSITION)(toQueryComposition)
               composition = optComposition.getOrElse(None)
+              transform <- extractOneValue(params, TRANSFORM)(toQueryTransform)
 
               // Query may fail when parsing
-              stringQuery = StringQuery(returnType,composition,criterion.toList)
+              stringQuery = StringQuery(returnType,composition,transform.flatten,criterion.toList)
               query <- queryParser.parse(stringQuery)
             } yield {
                Some(query)

@@ -433,10 +433,24 @@ class InternalLDAPQueryProcessor(
           rt      = nodeObjectTypes.copy(filter = finalLdapFilter)
           _       <- logPure.debug(s"[${debugId}] |- (final query) ${rt}")
           entries <- (for {
-            con     <- ldap
-            results <- executeQuery(rt.baseDn, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, nq.composition, debugId)
+            con      <- ldap
+            results  <- executeQuery(rt.baseDn, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, nq.composition, debugId)
+            // if we need to invert result, do it here
+            finalRes <- query.transform match {
+                          case ResultTransformation.Identity => results.succeed
+                          case ResultTransformation.Invert   =>
+                            for {
+                              _      <- logPure.debug(s"[${debugId}] |- (need to get all nodeIds for inversion) ")
+                              allIds <- executeQuery(rt.baseDn, rt.scope, nodeObjectTypes.objectFilter, Some(ALL), Set(), Set(), nq.composition, debugId)
+                              ids    =  results.flatMap(x => x(A_NODE_UUID)).toSet
+                              res    =  allIds.collect { case e if(!ids.contains(e.value_!(A_NODE_UUID))) => e }
+                              _      <- logPure.debug(s"[${debugId}] |- (invert) entries after inversion: ${res.size}")
+                            } yield {
+                              res
+                            }
+                          }
           } yield {
-            postFilterNode(results.groupBy(_.dn).map(_._2.head).toSeq, query.returnType, limitToNodeIds)
+            postFilterNode(finalRes.groupBy(_.dn).map(_._2.head).toSeq, query.returnType, limitToNodeIds)
           }).foldM(
             err =>
               logPure.debug(s"[${debugId}] `-> error: ${err.fullMsg}") *>
@@ -539,7 +553,7 @@ class InternalLDAPQueryProcessor(
   //execute a query with special filter based on the composition
   private[this] def executeQuery(base: DN, scope: SearchScope, objectFilter: LDAPObjectTypeFilter, filter: Option[Filter], specialFilters: Set[SpecialFilter], attributes:Set[String], composition: CriterionComposition, debugId: Long) : IOResult[Seq[LDAPEntry]] = {
 
-    def buildSearchRequest(addedSpecialFilters:Set[SpecialFilter]) : IOResult[SearchRequest] = {
+    def buildSearchRequest(addedSpecialFilters: Set[SpecialFilter]): IOResult[SearchRequest] = {
       //special filter can modify the filter and the attributes to get
       for {
         params      <- ZIO.foldLeft(addedSpecialFilters)((filter,attributes)) {

@@ -144,10 +144,12 @@ class SearchNodeComponent(
 
   def buildQuery(isGroupsPage : Boolean) : NodeSeq = {
 
-    if(None == query) query = Some(Query(NodeReturnType,And,List(defaultLine)))
+    if(None == query) query = Some(Query(NodeReturnType,And,ResultTransformation.Identity,List(defaultLine)))
     val lines = ArrayBuffer[CriterionLine]()
     var composition = query.get.composition
     var rType = query.get.returnType //for now, don't move
+    var transform = query.get.transform
+
     def addLine(i:Int) : JsCmd = {
       if(i >= 0) {
         //used same info than previous line
@@ -156,7 +158,7 @@ class SearchNodeComponent(
         //defaults values
         lines.insert(i+1, defaultLine)
       }
-      query = Some(Query(rType, composition, lines.toList))
+      query = Some(Query(rType, composition, transform, lines.toList))
       initUpdate = false
       ajaxCriteriaRefresh(isGroupsPage)
     }
@@ -172,7 +174,7 @@ class SearchNodeComponent(
           errors remove line
         }
 
-        query = Some(Query(rType, composition, lines.toList))
+        query = Some(Query(rType, composition, transform, lines.toList))
       }
       initUpdate = false
       ajaxCriteriaRefresh(isGroupsPage)
@@ -187,7 +189,7 @@ class SearchNodeComponent(
           case _ =>
         }
       }
-      val newQuery = Query(rType, composition, lines.toList)
+      val newQuery = Query(rType, composition, transform, lines.toList)
       query = Some(newQuery)
       if(errors.isEmpty) {
         // ********* EXECUTE QUERY ***********
@@ -244,7 +246,7 @@ class SearchNodeComponent(
      */
 
     def displayQuery(html: NodeSeq, isGroupPage: Boolean): NodeSeq = {
-      val Query(otName,comp, criteria) = query.get
+      val Query(otName,comp, trans, criteria) = query.get
       val checkBox = {
         SHtml.checkbox(
             rType==NodeAndPolicyServerReturnType
@@ -272,8 +274,23 @@ class SearchNodeComponent(
         )
       }
 
+      val transformCheckbox = {
+        SHtml.checkbox(
+            transform==ResultTransformation.Invert
+          , { value:Boolean =>
+              if (value)
+                transform = ResultTransformation.Invert
+              else
+                transform = ResultTransformation.Identity
+            }
+          , ("id", "transformResult")
+          , ( "class", "compositionCheckbox")
+        )
+      }
+
       ( "#typeQuery"   #> checkBox &
         "#composition" #> radio    &
+        "#transformResult" #> transformCheckbox &
         "#submitSearch * " #> SHtml.ajaxSubmit("Search", () => processForm(isGroupsPage), ("id" -> "SubmitSearch"), ("class" -> "submitButton btn btn-primary"))    &
         "#query_lines *" #> criteria.zipWithIndex.flatMap { case (cl,i) => displayQueryLine(cl,i, criteria.size > 1)}
       ).apply(html

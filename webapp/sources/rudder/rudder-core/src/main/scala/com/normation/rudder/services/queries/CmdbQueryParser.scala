@@ -44,6 +44,7 @@ import JsonParser.ParseException
 import CmdbQueryParser._
 import cats.implicits._
 import com.normation.utils.Control.sequence
+import com.normation.box._
 
 /**
  * This trait is the general interface that
@@ -56,13 +57,14 @@ import com.normation.utils.Control.sequence
 
 //only string version of the query - no domain here
 final case class StringCriterionLine(objectType:String, attribute:String, comparator:String, value:Option[String]=None)
-final case class StringQuery(returnType:QueryReturnType,composition:Option[String],criteria:List[StringCriterionLine])
+final case class StringQuery(returnType:QueryReturnType,composition:Option[String],transform:Option[String], criteria:List[StringCriterionLine])
 
 object CmdbQueryParser {
   //query attribute
   val TARGET = "select"
   val COMPOSITION = "composition"
   val CRITERIA = "where"
+  val TRANSFORM = "transform"
 
   //criterion attribute
   val OBJECT = "objectType"
@@ -108,9 +110,13 @@ trait DefaultStringQueryParser extends StringQueryParser {
                                    case None    => Failure(s"The requested composition '${query.composition}' is not know")
                                  }
                }
+      trans <- query.transform match {
+               case None    => Full(ResultTransformation.Identity)
+               case Some(x) => ResultTransformation.parse(x).toBox
+             }
       lines <- sequence(query.criteria)(parseLine)
     } yield {
-      Query(query.returnType, comp , lines.toList)
+      Query(query.returnType, comp, trans, lines.toList)
     }
   }
 
@@ -186,6 +192,14 @@ trait JsonQueryLexer extends QueryLexer {
     }
   }
 
+  def parseTransform(json: JObject ) : Box[Option[String]] = {
+    json.values.get(TRANSFORM) match {
+      case None => Full(None)
+      case Some(x:String) => Full(if(x.nonEmpty) Some(x) else None)
+      case Some(x) => failureBadFormat(TRANSFORM,x)
+    }
+  }
+
   def parseCriterionLine(json: JObject ) : Box[List[StringCriterionLine]] = {
     json.values.get(CRITERIA) match {
       case None => Full(List[StringCriterionLine]())
@@ -226,9 +240,10 @@ trait JsonQueryLexer extends QueryLexer {
         for {
           target <- parseTarget(q)
           composition <- parseComposition(q)
+          transform <- parseTransform(q)
           criteria <- parseCriterionLine(q)
         } yield {
-          StringQuery(target,composition,criteria.toList)
+          StringQuery(target, composition, transform, criteria.toList)
         }
       case x => Failure("Failed to parse the query, bad structure. Expected a JSON object, found: '%s'".format(x))
     }
