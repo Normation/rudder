@@ -37,6 +37,7 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.box._
+import com.normation.errors.IOResult
 import com.normation.rudder.domain.secrets.Secret
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ApiVersion
@@ -81,7 +82,7 @@ class SecretApi(
       val res = for {
         secrets <- secretService.getAllSecret.toBox
       } yield {
-        JArray(secrets.map(Secret.serializeSecret))
+        JArray(secrets.map(Secret.serializeSecretInfo))
       }
 
       RestUtils.response(restExtractor, "secrets", None)(res, req, "Error when trying to get all secrets")
@@ -99,7 +100,7 @@ class SecretApi(
       val res = for {
         secret <- secretService.getSecretById(id).notOptional(s"Could not find secret with `${id}` name").toBox
       } yield {
-        Secret.serializeSecret(secret)
+        JArray(List(Secret.serializeSecretInfo(secret)))
       }
 
       RestUtils.response(restExtractor, "secrets", None)(res, req, s"Error when trying to get secret `${id}` value")
@@ -118,10 +119,10 @@ class SecretApi(
         secret <- restExtractorService.extractSecret(req)
         _      <- secretService.addSecret(secret, "Add a secret").toBox
       } yield {
-        Secret.serializeSecret(secret)
+        JArray(List(Secret.serializeSecretInfo(secret)))
       }
 
-      RestUtils.response(restExtractor, "secret", None)(res, req, "Error when trying to add a secret")
+      RestUtils.response(restExtractor, "secrets", None)(res, req, "Error when trying to add a secret")
     }
   }
 
@@ -134,12 +135,16 @@ class SecretApi(
       implicit val action = schema.name
 
       val res = for {
-        _ <- secretService.deleteSecret(id, "Delete a secret").toBox
+        toDelete <- secretService.getSecretById(id).toBox
+        _        <- secretService.deleteSecret(id, "Delete a secret").toBox
       } yield {
-        JString(id)
+        toDelete match {
+          case Some(s) => JArray(List(Secret.serializeSecretInfo(s)))
+          case None => JArray(List(Secret.serializeSecretInfo(Secret(id, "", "")))) // don't know what to do here
+        }
       }
 
-      RestUtils.response(restExtractor, "secretName", None)(res, req, "Error when trying to delete a secret")
+      RestUtils.response(restExtractor, "secrets", None)(res, req, "Error when trying to delete a secret")
     }
   }
 
@@ -155,10 +160,10 @@ class SecretApi(
         secret <- restExtractorService.extractSecret(req)
         _      <- secretService.updateSecret(secret, "Update a secret").toBox
       } yield {
-        Secret.serializeSecret(secret)
+        JArray(List(Secret.serializeSecretInfo(secret)))
       }
 
-      RestUtils.response(restExtractor, "secret", None)(res, req, s"Error when trying to update a secret")
+      RestUtils.response(restExtractor, "secrets", None)(res, req, s"Error when trying to update a secret")
     }
   }
 

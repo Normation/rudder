@@ -68,7 +68,7 @@ class FileSystemSecretRepository(
   , uuidGen      : StringUuidGenerator
 ) extends SecretService {
 
-  private val secretsFile  = File(jsonDbPath)
+  private val secretsFile  = File(s"/var/rudder/configuration-repository/${jsonDbPath}")
   val logger = NamedZioLogger(this.getClass.getName)
 
   private[this] def parseVersion1(json: JValue): IOResult[List[Secret]] = {
@@ -128,7 +128,7 @@ class FileSystemSecretRepository(
       secretsFile.clear()
       val json =
         ( ("formatVersion" -> formatVersion)
-        ~ ("secrets" -> secrets.map(Secret.serializeSecret))
+        ~ ("secrets" -> secrets.map(serializeSecret))
         )
       secretsFile.write(net.liftweb.json.prettyRender(json))
     }
@@ -192,8 +192,8 @@ class FileSystemSecretRepository(
       oldSecret = secrets.find(_.name == newSecret.name)
       _         <- oldSecret match {
                      case Some(oldSec) =>
-                       if(oldSec.value == newSecret.value) {
-                         logger.warn(s"Trying to update secret `${oldSec.name}` with the same value")
+                       if(oldSec.value == newSecret.value && oldSec.description == newSecret.description) {
+                         UIO.unit
                        } else {
                          // Only one secret should be replaced here
                          val newSecrets = secrets.map( s => if(s.name == newSecret.name) newSecret else s)
@@ -208,5 +208,12 @@ class FileSystemSecretRepository(
                        Inconsistency(s"Error when trying to update secret `${newSecret.name}`, this secret doesn't exist").fail
                   }
     } yield ()
+  }
+
+  private[this] def serializeSecret(secret : Secret): JValue = {
+    ( ("name" -> secret.name)
+      ~ ("description" -> secret.description)
+      ~ ("value" -> secret.value)
+      )
   }
 }

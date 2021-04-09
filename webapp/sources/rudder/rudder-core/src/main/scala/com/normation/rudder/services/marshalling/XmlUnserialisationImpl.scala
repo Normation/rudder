@@ -663,10 +663,11 @@ class SecretUnserialisationImpl extends SecretUnserialisation {
       }
       fileFormatOk     <- TestFileFormat(secret)
 
-      name             <- (secret \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type globalParameter : " + entry)
-      value            <- (secret \ "value").headOption.map( _.text ) ?~! ("Missing attribute 'value' in entry type globalParameter : " + entry)
+      name             <- (secret \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type secret : " + entry)
+//      value            <- (secret \ "value").headOption.map( _.text ) ?~! ("Missing attribute 'value' in entry type secret : " + entry)
+      description      <- (secret \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type secret : " + entry)
     } yield {
-      Secret(name, value)
+      Secret(name, "", description)
     }
   }
 }

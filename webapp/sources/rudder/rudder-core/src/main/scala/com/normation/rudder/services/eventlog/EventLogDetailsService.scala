@@ -855,15 +855,17 @@ class EventLogDetailsServiceImpl(
         (s"Entry type is not a Secret: ${entry}")
       name               <- (secret \ "name").headOption.map( _.text ) ?~!
         (s"Missing attribute 'name' in entry type Secret: ${entry}")
-      value               <- (secret \ "value").headOption.map( _.text ) ?~!
-        (s"Missing attribute 'value' in entry type Secret: ${entry}")
-      modValue           <- getFromToString((secret \ "diffValue").headOption)
+      description        <- (secret \ "description").headOption.map( _.text ) ?~!
+        (s"Missing attribute 'description' in entry type Secret: ${entry}")
+      modValue           <- tryo{(secret \ "valueHasChanged").text.toBoolean}
+      modDescription     <- getFromToString((secret \ "diffDescription").headOption)
       fileFormatOk       <- TestFileFormat(secret)
     } yield {
       ModifySecretDiff(
           name = name
-        , value = value
+        , description = description
         , modValue = (modValue)
+        , modDescription = (modDescription)
       )
     }
   }
