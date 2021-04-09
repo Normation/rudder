@@ -39,13 +39,12 @@ package com.normation.rudder.domain.secrets
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
 
-final case class Secret(name: String, value: String)
+final case class Secret(name: String, value: String, description: String)
 
 object Secret {
-
-  def serializeSecret(secret : Secret): JValue = {
-    (   ("name"      -> secret.name)
-      ~ ("value"     -> secret.value)
-      )
+  def serializeSecretInfo(secret : Secret): JValue = {
+    ( ("name" -> secret.name)
+    ~ ("description" -> secret.description)
+    )
   }
 }

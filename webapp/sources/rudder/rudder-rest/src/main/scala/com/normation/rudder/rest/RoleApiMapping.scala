@@ -106,8 +106,8 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
                                      SystemApi.ArchivesFullList.x :: SystemApi.ArchivesGroupsList.x :: SystemApi.ArchivesRulesList.x ::
                                      SystemApi.GetAllZipArchive.x :: SystemApi.GetDirectivesZipArchive.x :: SystemApi.GetGroupsZipArchive.x ::
                                      SystemApi.GetRulesZipArchive.x :: SystemApi.Info.x :: SystemApi.Status.x :: SystemApi.ArchivesParametersList.x ::
-                                     SystemApi.GetParametersZipArchive.x :: SystemApi.GetHealthcheckResult.x ::  SecretVaultApi.GetSecrets.x ::
-                                     SecretVaultApi.AddSecret.x :: SecretVaultApi.DeleteSecret.x :: SecretVaultApi.UpdateSecret.x :: Nil
+                                     SystemApi.GetParametersZipArchive.x :: SystemApi.GetHealthcheckResult.x ::  SecretApi.GetAllSecret.x ::
+                                     SecretApi.GetSecret.x :: SecretApi.AddSecret.x :: SecretApi.DeleteSecret.x :: SecretApi.UpdateSecret.x :: Nil
         case Administration.Write => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
         case Administration.Edit  => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
 

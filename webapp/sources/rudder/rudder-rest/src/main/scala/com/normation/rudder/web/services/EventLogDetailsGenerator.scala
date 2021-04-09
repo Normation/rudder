@@ -827,15 +827,23 @@ class EventLogDetailsGenerator(
         case mod:ModifySecret =>
           "*" #> { logDetailsService.getSecretModifyDetails(mod.details) match {
             case Full(modDiff) =>
+              val hasChanged = {
+                if(modDiff.modValue)
+                  Some(<div id="value"><br/><b>The value has been changed</b></div><br/>)
+                else
+                  None
+              }
               <div class="evloglmargin">
 
                 <h4>Secret overview:</h4>
                 <ul class="evlogviewpad">
                   <li><b>Secret name:</b> { modDiff.name }</li>
+                  <li><b>Secret description:</b> { modDiff.description }</li>
                 </ul>
                 {(
                 "#name"  #> modDiff.name &
-                  "#value" #> mapSimpleDiff(modDiff.modValue)
+                  "#value" #> hasChanged &
+                  "#description" #> mapSimpleDiff(modDiff.modDescription)
                 )(secretModDetailsXML)
                 }
                 { reasonHtml }
@@ -1188,9 +1196,7 @@ class EventLogDetailsGenerator(
 
   private[this] def secretDetails(xml: NodeSeq, secret: Secret) = (
     "#name" #> secret.name &
-      "#value" #> secret.value
-//      &
-//      "#description" #> globalParameter.description
+      "#description" #> secret.description
     )(xml)
 
   private[this] def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccount) = (
@@ -1328,7 +1334,7 @@ class EventLogDetailsGenerator(
       <h4>Secret overview:</h4>
       <ul class="evlogviewpad">
         <li><b>Name:&nbsp;</b><value id="name"/></li>
-        <li><b>Value:&nbsp;</b><value id="value"/></li>
+        <li><b>Description:&nbsp;</b><value id="description"/></li>
       </ul>
     </div>
 
@@ -1428,6 +1434,7 @@ class EventLogDetailsGenerator(
     <xml:group>
       {liModDetailsXML("name", "Name")}
       {liModDetailsXML("value", "Value")}
+      {liModDetailsXML("description", "Description")}
     </xml:group>
 
 

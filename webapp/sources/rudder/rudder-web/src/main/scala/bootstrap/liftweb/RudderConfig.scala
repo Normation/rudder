@@ -841,9 +841,16 @@ object RudderConfig extends Loggable {
   val restCompletion        = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository))
 
   val secretVaultService = new FileSystemSecretRepository(
-    "/var/rudder/configuration-repository/secrets.json"
+    "secrets/secrets.json"
     , eventLogRepository
     , stringUuidGenerator
+    , personIdentService
+    , gitRepo
+    , new File(RUDDER_DIR_GITROOT)
+    , prettyPrinter
+    , gitModificationRepository
+    , RUDDER_CHARSET.name
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
 
   val ruleApiService2 =

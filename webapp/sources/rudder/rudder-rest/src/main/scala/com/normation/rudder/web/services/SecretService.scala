@@ -38,12 +38,17 @@ package com.normation.rudder.web.services
 
 import better.files.File
 import com.normation.NamedZioLogger
+import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.secrets._
 import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.web.services.CurrentUserService.actor
+import com.normation.rudder.repository.xml._
+import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
@@ -55,19 +60,28 @@ import zio.syntax._
 import java.nio.charset.StandardCharsets
 
 trait SecretService {
-  def getSecrets: IOResult[List[Secret]]
-  def addSecret(s: Secret): IOResult[Unit]
-  def deleteSecret(secretId: String): IOResult[Unit]
-  def updateSecret(newSecret: Secret): IOResult[Unit]
+  def getAllSecret: IOResult[List[Secret]]
+  def getSecretById(secretId: String): IOResult[Option[Secret]]
+  def addSecret(s: Secret, reason: String): IOResult[Unit]
+  def deleteSecret(secretId: String, reason: String): IOResult[Unit]
+  def updateSecret(newSecret: Secret, reason: String): IOResult[Unit]
 }
 
 class FileSystemSecretRepository(
-    jsonDbPath   : String
-  , actionLogger : EventLogRepository
-  , uuidGen      : StringUuidGenerator
-) extends SecretService {
+    jsonDbPath         : String
+  , actionLogger       : EventLogRepository
+  , uuidGen            : StringUuidGenerator
+  , personIdentService : PersonIdentService
+  , override val gitRepo                  : GitRepositoryProvider
+  , override val gitRootDirectory         : java.io.File
+  , override val xmlPrettyPrinter         : RudderPrettyPrinter
+  , override val gitModificationRepository: GitModificationRepository
+  , override val encoding                 : String
+  , override val groupOwner               : String
+) extends SecretService with GitArchiverUtils {
 
-  private val secretsFile  = File(jsonDbPath)
+  override val relativePath = "secrets"
+  private val secretsFile = File(s"/var/rudder/configuration-repository/${jsonDbPath}")
   val logger = NamedZioLogger(this.getClass.getName)
 
   private[this] def parseVersion1(json: JValue): IOResult[List[Secret]] = {
@@ -90,6 +104,8 @@ class FileSystemSecretRepository(
   }
 
   def init(version: String): IOResult[Unit]  = {
+    val modId  = ModificationId(uuidGen.newUuid)
+
     val json =
       s"""
         | {
@@ -100,20 +116,29 @@ class FileSystemSecretRepository(
         | }
         |
         |""".stripMargin
-    for {
-      _ <- ZIO.when(secretsFile.notExists){
-             IOResult.effect{
-               val f = secretsFile.createFileIfNotExists(createParents = true)
-               f.write(json)
-             }
-           }
-    } yield ()
+
+    ZIO.when(secretsFile.notExists) {
+      IOResult.effect {
+        val f = secretsFile.createFileIfNotExists(createParents = true)
+        f.write(json)
+        for {
+          ident <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
+          _     <- commitAddFile(modId, ident, secretsFile.canonicalPath, "Create secrets file")
+        } yield ()
+      }
+    }
   }
 
-  override def getSecrets: IOResult[List[Secret]] = {
+  override def getAllSecret: IOResult[List[Secret]] = {
     for {
       s <- getSecretJsonContent
     } yield s
+  }
+
+  override def getSecretById(id: String): IOResult[Option[Secret]] = {
+    for {
+      s <- getSecretJsonContent
+    } yield s.find(_.name == id)
   }
 
   private[this] def replaceInFile(formatVersion: String, secrets: List[Secret]): IOResult[Unit] = {
@@ -121,14 +146,13 @@ class FileSystemSecretRepository(
       secretsFile.clear()
       val json =
         ( ("formatVersion" -> formatVersion)
-        ~ ("secrets" -> secrets.map(Secret.serializeSecret))
+        ~ ("secrets" -> secrets.map(serializeSecret))
         )
       secretsFile.write(net.liftweb.json.prettyRender(json))
     }
   }
   
-  override def addSecret(secToAdd: Secret): IOResult[Unit] = {
-    val reason = "Add a secret"
+  override def addSecret(secToAdd: Secret, reason: String): IOResult[Unit] = {
     val modId  = ModificationId(uuidGen.newUuid)
     val formatVersion = "1.0"
 
@@ -150,13 +174,15 @@ class FileSystemSecretRepository(
                          _ <- actionLogger.saveAddSecret(modId, actor, secToAdd, Some(reason)).catchAll { e =>
                                 logger.error(s"Error when trying to create event log `${modId.value}` for adding secret `${secToAdd.name}`, cause : ${e.fullMsg}")
                               }
+                         ident <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
+                         _     <- commitAddFile(modId, ident, secretsFile.canonicalPath, "Saving added Secret")
+
                        } yield ()
                   }
     } yield ()
   }
 
-  override def deleteSecret(secretId: String): IOResult[Unit] = {
-    val reason = "Delete a secret"
+  override def deleteSecret(secretId: String, reason: String): IOResult[Unit] = {
     val modId  = ModificationId(uuidGen.newUuid)
     val formatVersion = "1.0"
     for {
@@ -171,15 +197,16 @@ class FileSystemSecretRepository(
                              _  <- actionLogger.saveDeleteSecret(modId, actor, secToDel, Some(reason)).catchAll { e =>
                                      logger.error(s"Error when trying to create event log `${modId.value}` for deleting secret `${secToDel.name}`, cause : ${e.fullMsg}")
                                    }
+                             ident <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
+                             _     <- commitAddFile(modId, ident, secretsFile.canonicalPath, "Saving deleted Secret")
                            } yield ()
                          case None =>
-                           logger.warn(s"Trying to delete secret ${secretId} but it doesn't exists")
+                           logger.warn(s"Trying to delete secret ${secretId} but it doesn't exist")
                       }
     } yield ()
   }
 
-  override def updateSecret(newSecret: Secret): IOResult[Unit] = {
-    val reason = "Update a secret"
+  override def updateSecret(newSecret: Secret, reason: String): IOResult[Unit] = {
     val modId  = ModificationId(uuidGen.newUuid)
     val formatVersion = "1.0"
     for {
@@ -188,8 +215,8 @@ class FileSystemSecretRepository(
       oldSecret = secrets.find(_.name == newSecret.name)
       _         <- oldSecret match {
                      case Some(oldSec) =>
-                       if(oldSec.value == newSecret.value) {
-                         logger.warn(s"Trying to update secret `${oldSec.name}` with the same value")
+                       if(oldSec.value == newSecret.value && oldSec.description == newSecret.description) {
+                         UIO.unit
                        } else {
                          // Only one secret should be replaced here
                          val newSecrets = secrets.map( s => if(s.name == newSecret.name) newSecret else s)
@@ -198,11 +225,21 @@ class FileSystemSecretRepository(
                            _ <- actionLogger.saveModifySecret(modId, actor, oldSec, newSecret, Some(reason)).catchAll { e =>
                                   logger.error(s"Error when trying to update event log `${modId.value}` for updating secret `${oldSec.name}`, cause : ${e.fullMsg}")
                                 }
+                           ident <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
+                           _     <- commitAddFile(modId, ident, secretsFile.canonicalPath, "Saving updated Secret")
+
                          } yield ()
                        }
                      case None =>
-                       Inconsistency(s"Error when trying to update secret `${newSecret.name}`, this secret doesn't exists").fail
+                       Inconsistency(s"Error when trying to update secret `${newSecret.name}`, this secret doesn't exist").fail
                   }
     } yield ()
+  }
+
+  private[this] def serializeSecret(secret : Secret): JValue = {
+    ( ("name" -> secret.name)
+      ~ ("description" -> secret.description)
+      ~ ("value" -> secret.value)
+      )
   }
 }

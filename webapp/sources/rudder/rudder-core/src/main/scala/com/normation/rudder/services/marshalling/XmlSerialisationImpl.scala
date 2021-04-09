@@ -292,7 +292,7 @@ class SecretSerialisationImpl(xmlVersion:String) extends SecretSerialisation {
   def serialise(secret:Secret):  Elem = {
     createTrimedElem(XML_TAG_SECRET, xmlVersion) (
       <name>{secret.name}</name>
-      <value>{secret.value}</value>
+      <description>{secret.description}</description>
     )
   }
 }

@@ -1315,10 +1315,12 @@ final case class RestExtractorService (
     for {
       name  <- extractJsonString(json,"name")
       value <- extractJsonString(json, "value")
-      s     <- (name, value) match {
-                 case (None, v) => Failure(s"Missing name parameter for secret entry when parsing request")
-                 case (n, None) => Failure(s"Missing value parameter for secret entry when parsing request")
-                 case (Some(n), Some(v)) => Full(Secret(n,v))
+      description <- extractJsonString(json, "description")
+      s     <- (name, value, description) match {
+                 case (None, v, d) => Failure(s"Missing `name` parameter for secret entry when parsing request")
+                 case (n, None, d) => Failure(s"Missing `value` parameter for secret entry when parsing request")
+                 case (n, v, None) => Failure(s"Missing `description` parameter for secret entry when parsing request")
+                 case (Some(n), Some(v), Some(d)) => Full(Secret(n,v,d))
                }
     } yield s
   }

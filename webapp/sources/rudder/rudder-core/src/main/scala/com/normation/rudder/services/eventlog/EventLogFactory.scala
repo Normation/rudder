@@ -768,7 +768,7 @@ class EventLogFactoryImpl(
   ) : AddSecret = {
     val details = EventLog.withContent(secretXmlSerializer.serialise(secret) % ("changeType" -> "add"))
     AddSecret(EventLogDetails(
-      id = id
+        id = id
       , modificationId = modificationId
       , principal = principal
       , details = details
@@ -789,7 +789,7 @@ class EventLogFactoryImpl(
 
     val details = EventLog.withContent(secretXmlSerializer.serialise(secret) % ("changeType" -> "delete"))
     DeleteSecret(EventLogDetails(
-      id = id
+        id = id
       , modificationId = modificationId
       , principal = principal
       , details = details
@@ -809,13 +809,25 @@ class EventLogFactoryImpl(
     , reason             : Option[String]
   ) : ModifySecret = {
 
-    val diffValue = SimpleDiff.stringToXml(<diffValue/>, SimpleDiff(oldSecret.value, newSecret.value) )
+    val diffValue = {
+      if(oldSecret.value != newSecret.value)
+        <valueHasChanged> True </valueHasChanged>
+      else
+        <valueHasChanged> False </valueHasChanged>
+    }
+
+    val diffDescription = {
+      if(oldSecret.description != newSecret.description)
+        Some(SimpleDiff.stringToXml(<diffDescription/>, SimpleDiff(oldSecret.description, newSecret.description) ))
+      else
+        None
+    }
 
     val details = EventLog.withContent{
       scala.xml.Utility.trim(<secret changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <name>{oldSecret.name}</name>
-        <value>{oldSecret.value}</value>
-        {diffValue}
+        <description>{oldSecret.description}</description>
+        {diffValue ++ diffDescription}
       </secret>)
     }
     ModifySecret(EventLogDetails(

@@ -46,8 +46,9 @@ final case class AddSecretDiff(secret: Secret) extends SecretDiff
 final case class DeleteSecretDiff(secret: Secret) extends SecretDiff
 
 final case class ModifySecretDiff(
-    name          : String
-  , value         : String
-  , modValue      : Option[SimpleDiff[String]] = None
+    name     : String
+  , description  : String
+  , modValue : Boolean
+  , modDescription : Option[SimpleDiff[String]] = None
 ) extends SecretDiff
 
