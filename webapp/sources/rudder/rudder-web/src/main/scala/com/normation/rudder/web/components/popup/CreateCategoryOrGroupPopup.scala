@@ -59,8 +59,8 @@ import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.web.ChooseTemplate
-
 import com.normation.box._
+import com.normation.rudder.domain.queries.ResultTransformation
 
 /**
  * Create a group or a category
@@ -267,7 +267,7 @@ class CreateCategoryOrGroupPopup(
             , comparator = ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0)
             , value      = "Linux"
             )
-        val query = Some(groupGenerator.flatMap(_.query).getOrElse(Query(NodeReturnType,And,List(defaultLine))))
+        val query = Some(groupGenerator.flatMap(_.query).getOrElse(Query(NodeReturnType,And,ResultTransformation.Identity,List(defaultLine))))
         val isDynamic = piStatic.get match { case "dynamic" => true ; case _ => false }
         val srvList =  groupGenerator.map(_.serverList).getOrElse(Set[NodeId]())
         val nodeId = NodeGroupId(uuidGen.newUuid)

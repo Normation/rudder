@@ -533,7 +533,54 @@ class TestQueryProcessor extends Loggable {
       //s2,s3 not ok because in the "not regex" pattern
       //s4 ok because only 127.0.0.1
 
-    testQueries(q0  :: q1 :: q1_ :: q2 :: q2_ :: q3 :: q3_2 :: q4 :: q5 :: q6 :: q7 :: q8 :: q9 :: Nil, true)
+    // test query that matches a software version
+    val q10 = TestQuery(
+      "q10",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"software", "attribute":"softwareVersion", "comparator":"regex", "value":"1\\.0.*" }
+      ] }
+      """).openOrThrowException("For tests"),
+      Seq(s(2), s(7)) )
+
+    // test "notRegex" query: "I want node for which ram is not "100000000" (ie not node1)
+    val q11 = TestQuery(
+      "q11",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"node", "attribute":"ram", "comparator":"notRegex", "value":"100000000" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s.filterNot(n => n == s(1)) )
+
+    // test query that doesn't match a software name, ie we want all nodes on which "software 1" is not
+    // installed (we don't care if there is 0 or 1000 other software)
+    // THIS DOES NOT WORK DUE TO: https://issues.rudder.io/issues/19137
+//    val q12 = TestQuery(
+//      "q12",
+//      parser("""
+//      { "select":"node", "composition":"or", "where":[
+//        { "objectType":"software", "attribute":"cn", "comparator":"notRegex", "value":"Software 1" }
+//      ] }
+//      """).openOrThrowException("For tests"),
+//      s.filterNot(n => n == s(2)) )
+
+    testQueries(q0 :: q1 :: q1_ :: q2 :: q2_ :: q3 :: q3_2 :: q4 :: q5 :: q6 :: q7 :: q8 :: q9 :: q10 :: q11 :: Nil, true)
+  }
+
+  @Test def invertQueries(): Unit = {
+    // test inverting queries
+    // try workaround for https://issues.rudder.io/issues/19137
+    val q0 = TestQuery(
+      "q0",
+      parser("""
+      { "select":"node", "composition":"or", "transform":"invert", "where":[
+        { "objectType":"software", "attribute":"cn", "comparator":"regex", "value":"Software 1" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s.filterNot(n => n == s(2)) )
+
+    testQueries(q0 :: Nil, true)
   }
 
   @Test def dateQueries(): Unit = {

@@ -45,6 +45,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 
 import net.liftweb.common._
+import com.normation.rudder.domain.queries.ResultTransformation._
 
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
@@ -74,28 +75,31 @@ class TestStringQueryParser {
   }
 
 
-  val valid1_0 = StringQuery(NodeReturnType, Some("and"), List(
+  val valid1_0 = StringQuery(NodeReturnType, Some("and"), None, List(
       StringCriterionLine("node","name","exists"),
       StringCriterionLine("machine","name","gt",Some("plop")),
       StringCriterionLine("node","id","eq",Some("foo"))
   ))
 
-  val valid1_1 = StringQuery(NodeReturnType, Some("and"), List())
-  val valid1_2 = StringQuery(NodeReturnType, Some("or"), List())
-  val valid1_3 = StringQuery(NodeReturnType, None, List()) //default to and
+  val valid1_1 = StringQuery(NodeReturnType, Some("and"), None, List())
+  val valid1_2 = StringQuery(NodeReturnType, Some("or"), None, List())
+  val valid1_3 = StringQuery(NodeReturnType, None, None, List()) //default to and
+  val valid2_1 = StringQuery(NodeReturnType, None, Some("identity"), List()) //default to and
+  val valid2_2 = StringQuery(NodeReturnType, None, Some("none"), List()) //default to and
+  val valid2_3 = StringQuery(NodeReturnType, None, Some("invert"), List()) //default to and
 
 
-  val unvalidComp = StringQuery(NodeReturnType, Some("foo"), List())
-  val unknowObjectType = StringQuery(NodeReturnType, None, List(
+  val unvalidComp = StringQuery(NodeReturnType, Some("foo"), None, List())
+  val unknowObjectType = StringQuery(NodeReturnType, None, None, List(
       StringCriterionLine("unknown","name","exists")
   ))
-  val unknowAttribute = StringQuery(NodeReturnType, None, List(
+  val unknowAttribute = StringQuery(NodeReturnType, None, None, List(
       StringCriterionLine("node","unknown","exists")
   ))
-  val unknowComparator = StringQuery(NodeReturnType, None, List(
+  val unknowComparator = StringQuery(NodeReturnType, None, None, List(
       StringCriterionLine("node","name","unknown")
   ))
-  val missingRequiredValue = StringQuery(NodeReturnType, None, List(
+  val missingRequiredValue = StringQuery(NodeReturnType, None, None, List(
       StringCriterionLine("node","name","eq")
   ))
 
@@ -104,7 +108,7 @@ class TestStringQueryParser {
   def basicParsing(): Unit = {
 
     assertEquals(
-      Full(Query(NodeReturnType, And, List(
+      Full(Query(NodeReturnType, And, Identity, List(
           CriterionLine(oc1,c1,Exists),
           CriterionLine(oc2,c3,Greater,"plop"),
           CriterionLine(oc1,c2,Equals,"foo")
@@ -113,16 +117,29 @@ class TestStringQueryParser {
     )
 
     assertEquals(
-      Full(Query(NodeReturnType, And, List())),
+      Full(Query(NodeReturnType, And, Identity, List())),
       parser.parse(valid1_1)
     )
     assertEquals(
-      Full(Query(NodeReturnType, Or, List())),
+      Full(Query(NodeReturnType, Or, Identity, List())),
       parser.parse(valid1_2)
     )
     assertEquals(
-      Full(Query(NodeReturnType, And, List())),
+      Full(Query(NodeReturnType, And, Identity, List())),
       parser.parse(valid1_3)
+    )
+
+    assertEquals(
+      Full(Query(NodeReturnType, And, Identity, List())),
+      parser.parse(valid2_1)
+    )
+    assertEquals(
+      Full(Query(NodeReturnType, And, Identity, List())),
+      parser.parse(valid2_2)
+    )
+    assertEquals(
+      Full(Query(NodeReturnType, And, Invert, List())),
+      parser.parse(valid2_3)
     )
 
     assertFalse(parser.parse(unvalidComp).isDefined)

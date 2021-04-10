@@ -107,6 +107,11 @@ class TestJsonQueryLexing {
 {  "select":"node" }
 """
 
+  val valid5_0 = //invert, get none
+"""
+{  "select":"node", "transform":"invert", "where":[] }
+"""
+
   val errorMissing1 =
 """
 {  "composition":"or", "where":[
@@ -172,19 +177,21 @@ class TestJsonQueryLexing {
         StringCriterionLine("node", "ram", "exists")
       )
 
-    val query = StringQuery(NodeReturnType,Some("or"), where)
+    val query = StringQuery(NodeReturnType,Some("or"),None,where)
 
     assertEquals(Full(query), lexer.lex(valid1_0))
     assertEquals(Full(query), lexer.lex(valid1_1))
 
-    assertEquals(Full(StringQuery(NodeReturnType,Some("or"), Nil)), lexer.lex(valid2_0) )
-    assertEquals(Full(StringQuery(NodeReturnType,Some("or"), Nil)), lexer.lex(valid2_1) )
+    assertEquals(Full(StringQuery(NodeReturnType,Some("or"),None, Nil)), lexer.lex(valid2_0) )
+    assertEquals(Full(StringQuery(NodeReturnType,Some("or"),None, Nil)), lexer.lex(valid2_1) )
 
-    assertEquals(Full(StringQuery(NodeReturnType,None, where)), lexer.lex(valid3_0) )
-    assertEquals(Full(StringQuery(NodeReturnType,None, where)), lexer.lex(valid3_1) )
+    assertEquals(Full(StringQuery(NodeReturnType,None,None,where)), lexer.lex(valid3_0) )
+    assertEquals(Full(StringQuery(NodeReturnType,None,None,where)), lexer.lex(valid3_1) )
 
-    assertEquals(Full(StringQuery(NodeReturnType,None, Nil)), lexer.lex(valid4_0) )
-    assertEquals(Full(StringQuery(NodeReturnType,None, Nil)), lexer.lex(valid4_1) )
+    assertEquals(Full(StringQuery(NodeReturnType,None,None, Nil)), lexer.lex(valid4_0) )
+    assertEquals(Full(StringQuery(NodeReturnType,None,None, Nil)), lexer.lex(valid4_1) )
+
+    assertEquals(Full(StringQuery(NodeReturnType,None, Some("invert"), Nil)), lexer.lex(valid5_0) )
 
     assertFalse(lexer.lex(errorMissing1).isDefined)
     assertFalse(lexer.lex(errorMissing2_0).isDefined)

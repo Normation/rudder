@@ -55,6 +55,7 @@ import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
 import com.normation.rudder.domain.parameters.GlobalParameter
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
+import com.normation.rudder.domain.queries.ResultTransformation._
 
 /*
  * This class test the JsEngine. 6.0
@@ -124,17 +125,17 @@ class TestMergeGroupProperties extends Specification {
 
   val parent1   = NodeGroup(NodeGroupId("parent1"), "parent1", "",
       List(GroupProperty("foo", "bar1".toConfigValue, None, None))
-    , Some(Query(NodeReturnType, And, List()))
+    , Some(Query(NodeReturnType, And, Identity, List()))
     , true, Set(), true
   )
   val parent2Prop = GroupProperty("foo", "bar2".toConfigValue, None, None)
   val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
       List(parent2Prop)
-    , Some(Query(NodeReturnType, And, List()))
+    , Some(Query(NodeReturnType, And, Identity, List()))
     , true, Set(), true
   )
   val childProp = GroupProperty("foo", "baz".toConfigValue, None, None)
-  val query = Query(NodeReturnType, And, List(parent1.toCriterion))
+  val query = Query(NodeReturnType, And, Identity, List(parent1.toCriterion))
   val child = NodeGroup(NodeGroupId("child"), "child", "",
       List(childProp)
     , Some(query)
@@ -172,12 +173,12 @@ class TestMergeGroupProperties extends Specification {
     "be able to detect conflict" in {
       val parent1 = NodeGroup(NodeGroupId("parent1"), "parent1", "",
           List(GroupProperty("dns", "1.1.1.1".toConfigValue, None, None))
-        , Some(Query(NodeReturnType, And, List()))
+        , Some(Query(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
       val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
           List(GroupProperty("dns", "9.9.9.9".toConfigValue, None, None))
-        , Some(Query(NodeReturnType, And, List()))
+        , Some(Query(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
 
@@ -191,17 +192,17 @@ class TestMergeGroupProperties extends Specification {
     "be able to correct conflict" in {
       val parent1 = NodeGroup(NodeGroupId("parent1"), "parent1", "",
           List(GroupProperty("dns", "1.1.1.1".toConfigValue, None, None))
-        , Some(Query(NodeReturnType, And, List()))
+        , Some(Query(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
       val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
           List(GroupProperty("dns", "9.9.9.9".toConfigValue, None, None))
-        , Some(Query(NodeReturnType, And, List()))
+        , Some(Query(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
       val priorize   = NodeGroup(NodeGroupId("parent3"), "parent3", "",
           Nil
-        , Some(Query(NodeReturnType, And, List(parent1.toCriterion, parent2.toCriterion)))
+        , Some(Query(NodeReturnType, And, Identity, List(parent1.toCriterion, parent2.toCriterion)))
         , true, Set(), true
       )
 
@@ -221,22 +222,22 @@ class TestMergeGroupProperties extends Specification {
     "one can solve conflicts at parent level" in {
       val parent1 = NodeGroup(NodeGroupId("parent1"), "parent1", "",
           List(GroupProperty("dns", "1.1.1.1".toConfigValue, None, None))
-        , Some(Query(NodeReturnType, And, List()))
+        , Some(Query(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
       val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
           List(GroupProperty("dns", "9.9.9.9".toConfigValue, None, None))
-        , Some(Query(NodeReturnType, And, List()))
+        , Some(Query(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
       val priorize   = NodeGroup(NodeGroupId("parent3"), "parent3", "",
           Nil
-        , Some(Query(NodeReturnType, And, List(parent1.toCriterion, parent2.toCriterion)))
+        , Some(Query(NodeReturnType, And, Identity, List(parent1.toCriterion, parent2.toCriterion)))
         , true, Set(), true
       )
       val parent4   = NodeGroup(NodeGroupId("parent4"), "parent4", "",
           Nil
-        , Some(Query(NodeReturnType, And, List(parent1.toCriterion)))
+        , Some(Query(NodeReturnType, And, Identity, List(parent1.toCriterion)))
         , true, Set(), true
       )
 
@@ -278,12 +279,12 @@ class TestMergeGroupProperties extends Specification {
       }.toList
       val parent = NodeGroup(NodeGroupId("parent1"), "parent1", "",
           toProps(parentProps)
-        , Some(Query(NodeReturnType, And, List()))
+        , Some(Query(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
       val child = NodeGroup(NodeGroupId("child"), "child", "",
           toProps(childProps)
-        , Some(Query(NodeReturnType, And, List(parent1.toCriterion)))
+        , Some(Query(NodeReturnType, And, Identity, List(parent1.toCriterion)))
         , true, Set(), true
       )
       parent :: child :: Nil

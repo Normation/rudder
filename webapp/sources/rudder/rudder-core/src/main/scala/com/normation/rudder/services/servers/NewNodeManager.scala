@@ -71,6 +71,7 @@ import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HooksLogger
@@ -830,7 +831,7 @@ class AcceptHostnameAndIp(
     }
 
     for {
-      duplicatesH    <- queryProcessor.process(Query(NodeReturnType,Or,hostnameCriterion)).map { nodesInfo =>
+      duplicatesH    <- queryProcessor.process(Query(NodeReturnType, Or, ResultTransformation.Identity, hostnameCriterion)).map { nodesInfo =>
                           //here, all nodes found are duplicate-in-being. They should be unique, but
                           //if not, we will don't group them that the duplicate appears in the list
                           nodesInfo.map( ni => ni.hostname)

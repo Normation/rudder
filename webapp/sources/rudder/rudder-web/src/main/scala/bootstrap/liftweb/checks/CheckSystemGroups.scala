@@ -144,7 +144,7 @@ class CheckSystemGroups(
             , Equals
             , policyServerId
           )
-          val query = Query(NodeAndPolicyServerReturnType,And,criteria :: Nil)
+          val query = Query(NodeAndPolicyServerReturnType,And, ResultTransformation.Identity, criteria :: Nil)
 
           val updatedGroup = group.copy(isDynamic = true, query = Some(query))
           rwRepos.updateSystemGroup(updatedGroup, modId, RudderEventActor, Some(message)).toBox
