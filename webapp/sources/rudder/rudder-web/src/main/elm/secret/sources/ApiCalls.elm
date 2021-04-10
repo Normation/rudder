@@ -2,12 +2,12 @@ module ApiCalls exposing (..)
 
 import DataTypes exposing (Model, Msg(..), Secret)
 import Http exposing (emptyBody, expectJson, jsonBody, request, send)
-import JsonDecoder exposing (decodeDeleteSecret, decodeGetAllSecrets, decodeOneSecret)
+import JsonDecoder exposing (decodeSecretsApi)
 import JsonEncoder exposing (encodeSecret)
 
 getUrl: DataTypes.Model -> String -> String
-getUrl m parameter =
-  m.contextPath ++ "/secure/api/latest/secret" ++ parameter
+getUrl m url =
+  m.contextPath ++ "/secure/api" ++ url
 
 getSecret : Model -> String -> Cmd Msg
 getSecret model secretName =
@@ -16,9 +16,9 @@ getSecret model secretName =
       request
         { method          = "GET"
         , headers         = []
-        , url             = getUrl model secretName
+        , url             = getUrl model ("/secret/" ++ secretName)
         , body            = emptyBody
-        , expect          = expectJson decodeOneSecret
+        , expect          = expectJson decodeSecretsApi
         , timeout         = Nothing
         , withCredentials = False
         }
@@ -32,9 +32,9 @@ getAllSecrets model =
       request
         { method          = "GET"
         , headers         = []
-        , url             = getUrl model ""
+        , url             = getUrl model "/secret"
         , body            = emptyBody
-        , expect          = expectJson decodeGetAllSecrets
+        , expect          = expectJson decodeSecretsApi
         , timeout         = Nothing
         , withCredentials = False
         }
@@ -48,9 +48,9 @@ deleteSecret secretName model =
       request
         { method          = "DELETE"
         , headers         = []
-        , url             = getUrl model secretName
+        , url             = getUrl model ("/secret/" ++ secretName)
         , body            = emptyBody
-        , expect          = expectJson decodeDeleteSecret
+        , expect          = expectJson decodeSecretsApi
         , timeout         = Nothing
         , withCredentials = False
         }
@@ -64,9 +64,9 @@ addSecret model secret =
       request
         { method          = "PUT"
         , headers         = []
-        , url             = getUrl model ""
+        , url             = getUrl model "/secret"
         , body            = jsonBody (encodeSecret secret)
-        , expect          = expectJson decodeOneSecret
+        , expect          = expectJson decodeSecretsApi
         , timeout         = Nothing
         , withCredentials = False
         }
@@ -80,9 +80,9 @@ updateSecret model secret =
       request
         { method          = "POST"
         , headers         = []
-        , url             = getUrl model ""
+        , url             = getUrl model "/secret"
         , body            = jsonBody (encodeSecret secret)
-        , expect          = expectJson decodeOneSecret
+        , expect          = expectJson decodeSecretsApi
         , timeout         = Nothing
         , withCredentials = False
         }

@@ -6,6 +6,7 @@ import Json.Encode exposing (Value, object, string)
 encodeSecret: Secret -> Value
 encodeSecret secret =
   object
-  [ ("name", string secret.name)
+  [ ("name", string secret.info.name)
   , ("value", string secret.value)
+  , ("description", string secret.info.description)
   ]
