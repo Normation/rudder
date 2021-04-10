@@ -27,6 +27,9 @@
 # if ${TEST} is defined, property file is not read and curl command not executed
 set -e
 
+ACL_BACK="/var/rudder/tmp/cf-serverd.sha256"
+WAIT_TIMER=5
+
 source ${RUDDER_NODE_IDS_PATH}
 
 if [ -z "${TEST}" ]; then
@@ -61,6 +64,21 @@ fi
 
 # Signal to cf-serverd that it shall look-up the new promises
 if [ -n "${RUDDER_NODE_IDS[0]}" ] && (( ${TO_UPDATE} > 0 )) ; then
+  # wait for the server to be reloaded if needed
+  WAIT="yes"
+  if [ -f "${ACL_BACK}"  ]
+  then
+    acl_date=$(stat --format %Y "${ACL_BACK}")
+    now=$(date +%s)
+    if [ $((now - acl_date)) -gt 60 ]; then # if cf-serverd.cf has changed more than a minute ago
+      WAIT="no"
+    fi
+  fi
+
+  if [ "${WAIT}" = yes ]
+  then
+    sleep "${WAIT_TIMER}" # 2s systemd wait + 3s cf-serverd startup
+  fi
 
   # takes only the TO_UPDATE first nodes - nodes id are expected to be sorted as wanted
   NODES_LIST="${RUDDER_NODE_IDS[*]:0:${TO_UPDATE}}"
