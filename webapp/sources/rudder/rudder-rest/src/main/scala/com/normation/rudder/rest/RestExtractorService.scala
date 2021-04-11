@@ -190,7 +190,7 @@ final case class RestExtractorService (
   }
 
   private[this] def toQueryTransform(value: String): Box[Option[String]] = {
-    Full(if(value.isBlank) None else Some(value))
+    Full(if(value.isEmpty) None else Some(value))
   }
 
   private[this] def toMinimalSizeString (minimalSize : Int) (value:String) : Box[String] = {
