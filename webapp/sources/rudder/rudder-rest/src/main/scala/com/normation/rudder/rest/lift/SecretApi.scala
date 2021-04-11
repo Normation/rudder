@@ -37,7 +37,6 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.box._
-import com.normation.errors.IOResult
 import com.normation.rudder.domain.secrets.Secret
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ApiVersion
@@ -49,7 +48,6 @@ import com.normation.rudder.web.services.SecretService
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
-import net.liftweb.json.JString
 
 
 class SecretApi(
@@ -157,10 +155,14 @@ class SecretApi(
       implicit val action = schema.name
 
       val res = for {
-        secret <- restExtractorService.extractSecret(req)
-        _      <- secretService.updateSecret(secret, "Update a secret").toBox
+        secret        <- restExtractorService.extractSecret(req)
+        _             <- secretService.updateSecret(secret, "Update a secret").toBox
+        updatedSecret <- secretService.getSecretById(secret.name).toBox
       } yield {
-        JArray(List(Secret.serializeSecretInfo(secret)))
+        updatedSecret match {
+          case Some(s) => JArray(List(Secret.serializeSecretInfo(s)))
+          case None => JArray(List(Secret.serializeSecretInfo(Secret(secret.name, "", "")))) // don't know what to do here
+        }
       }
 
       RestUtils.response(restExtractor, "secrets", None)(res, req, s"Error when trying to update a secret")

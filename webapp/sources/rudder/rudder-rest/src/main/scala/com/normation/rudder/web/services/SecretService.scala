@@ -168,16 +168,20 @@ class FileSystemSecretRepository(
                          logger.warn(s"Trying to create duplicate of secret `${secToAdd.name}``")
                        }
                      case None =>
-                       val newSecrets = secToAdd :: secrets
-                       for {
-                         _ <- replaceInFile(formatVersion, newSecrets)
-                         _ <- actionLogger.saveAddSecret(modId, actor, secToAdd, Some(reason)).catchAll { e =>
-                                logger.error(s"Error when trying to create event log `${modId.value}` for adding secret `${secToAdd.name}`, cause : ${e.fullMsg}")
-                              }
-                         ident <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
-                         _     <- commitAddFile(modId, ident, secretsFile.canonicalPath, "Saving added Secret")
+                       if(secToAdd.name.isBlank || secToAdd.value.isBlank || secToAdd.description.isBlank)
+                         Inconsistency("Error when trying to add secret: empty field found. All parameters are mandatory").fail
+                       else {
+                         val newSecrets = secToAdd :: secrets
+                         for {
+                           _ <- replaceInFile(formatVersion, newSecrets)
+                           _ <- actionLogger.saveAddSecret(modId, actor, secToAdd, Some(reason)).catchAll { e =>
+                             logger.error(s"Error when trying to create event log `${modId.value}` for adding secret `${secToAdd.name}`, cause : ${e.fullMsg}")
+                           }
+                           ident <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
+                           _     <- commitAddFile(modId, ident, secretsFile.canonicalPath, "Saving added Secret")
 
-                       } yield ()
+                         } yield ()
+                       }
                   }
     } yield ()
   }
@@ -189,7 +193,7 @@ class FileSystemSecretRepository(
       _               <- init(formatVersion)
       secrets         <- getSecretJsonContent
       secretToRemove  =  secrets.find(_.name == secretId)
-      _             <- secretToRemove match {
+      _               <- secretToRemove match {
                          case Some(secToDel) =>
                            val newSecrets = secrets.filter(_.name != secretId)
                            for {
@@ -203,7 +207,7 @@ class FileSystemSecretRepository(
                          case None =>
                            logger.warn(s"Trying to delete secret ${secretId} but it doesn't exist")
                       }
-    } yield ()
+    } yield secretToRemove
   }
 
   override def updateSecret(newSecret: Secret, reason: String): IOResult[Unit] = {
@@ -215,11 +219,20 @@ class FileSystemSecretRepository(
       oldSecret = secrets.find(_.name == newSecret.name)
       _         <- oldSecret match {
                      case Some(oldSec) =>
-                       if(oldSec.value == newSecret.value && oldSec.description == newSecret.description) {
+                       if((oldSec.value == newSecret.value && oldSec.description == newSecret.description) || (newSecret.value.isBlank && newSecret.description.isBlank)) {
                          UIO.unit
                        } else {
                          // Only one secret should be replaced here
-                         val newSecrets = secrets.map( s => if(s.name == newSecret.name) newSecret else s)
+                         val newSecrets = secrets.map( s =>
+                           if(s.name == newSecret.name) {
+                             (newSecret.description.isBlank, newSecret.value.isBlank) match {
+                               case (true, false)  => newSecret.copy(description = s.description)
+                               case (false, true)  => newSecret.copy(value = s.value)
+                               case (true, true)   => s
+                               case (false, false) => newSecret
+                             }
+                           } else s
+                         )
                          for {
                            _ <- replaceInFile(formatVersion, newSecrets)
                            _ <- actionLogger.saveModifySecret(modId, actor, oldSec, newSecret, Some(reason)).catchAll { e =>
@@ -233,13 +246,13 @@ class FileSystemSecretRepository(
                      case None =>
                        Inconsistency(s"Error when trying to update secret `${newSecret.name}`, this secret doesn't exist").fail
                   }
-    } yield ()
+    } yield newSecret
   }
 
   private[this] def serializeSecret(secret : Secret): JValue = {
     ( ("name" -> secret.name)
-      ~ ("description" -> secret.description)
-      ~ ("value" -> secret.value)
-      )
+    ~ ("description" -> secret.description)
+    ~ ("value" -> secret.value)
+    )
   }
 }
