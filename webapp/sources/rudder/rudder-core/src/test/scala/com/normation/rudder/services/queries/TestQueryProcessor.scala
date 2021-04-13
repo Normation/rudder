@@ -134,7 +134,8 @@ class TestQueryProcessor extends Loggable {
     new NodeId("node6"),new NodeId("node7")
   )
 
-  val sr = NodeId("root") +: s
+  val root = NodeId("root")
+  val sr = root +: s
 
   @Test def ensureNodeLoaded(): Unit = {
     //just check that we correctly loaded demo data in serve
@@ -438,7 +439,7 @@ class TestQueryProcessor extends Loggable {
         (s(0) :: s(1) :: s(7) :: //nodeId
         s(2) :: s(7) :: //software
         s(4) :: s(5) :: s(6) :: s(7) :: //machine
-        s(2) :: sr(0) :: // free space
+        s(2) :: root :: // free space
         s(2) :: //bios
         Nil).distinct)
 
@@ -483,7 +484,7 @@ class TestQueryProcessor extends Loggable {
         , { "objectType":"fileSystemLogicalElement" , "attribute":"mountPoint" , "comparator":"regex", "value":"[/]" }
       ] }
       """).openOrThrowException("For tests"),
-      s(3) :: s(7) :: sr(0) ::  Nil)
+      s(3) :: s(7) :: root ::  Nil)
 
     //test regex for "not containing word", see http://stackoverflow.com/questions/406230/regular-expression-to-match-string-not-containing-a-word
     //here, we don't want to have node0 or node1
@@ -569,6 +570,9 @@ class TestQueryProcessor extends Loggable {
   }
 
   @Test def invertQueries(): Unit = {
+    // soft0: root, node2, node7
+    // soft1: node2
+
     // test inverting queries
     // try workaround for https://issues.rudder.io/issues/19137
     val q0 = TestQuery(
@@ -580,7 +584,46 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s.filterNot(n => n == s(2)) )
 
-    testQueries(q0 :: Nil, true)
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      { "select":"nodeAndPolicyServer", "composition":"or", "transform":"invert", "where":[
+        { "objectType":"software", "attribute":"cn", "comparator":"regex", "value":"Software 1" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr.filterNot(n => n == s(2)) )
+
+    // invert works ok for include system or not
+    val q2 = TestQuery(
+      "q2",
+      parser("""
+      { "select":"node", "composition":"or", "transform":"invert", "where":[
+        { "objectType":"software", "attribute":"cn", "comparator":"regex", "value":"Software 0" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s.filterNot(n => Set(s(2), s(7)).contains(n)) )
+
+    // invert works ok for include system or not
+    val q3 = TestQuery(
+      "q3",
+      parser("""
+      { "select":"nodeAndPolicyServer", "composition":"or", "transform":"invert", "where":[
+        { "objectType":"software", "attribute":"cn", "comparator":"regex", "value":"Software 0" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr.filterNot(n => Set(s(2), s(7), root).contains(n)) )
+
+    // nothing (no software has that name) is inverted to all
+    val q4 = TestQuery(
+      "q4",
+      parser("""
+      { "select":"nodeAndPolicyServer", "composition":"or", "transform":"invert", "where":[
+        { "objectType":"software", "attribute":"cn", "comparator":"regex", "value":"Software XXX" }
+      ] }
+      """).openOrThrowException("For tests"),
+      sr )
+
+    testQueries(q0 :: q1 :: q2 :: q3 :: q4 :: Nil, true)
   }
 
   @Test def dateQueries(): Unit = {
@@ -651,7 +694,7 @@ class TestQueryProcessor extends Loggable {
         { "objectType":"node" , "attribute":"agentName"  , "comparator":"eq", "value":"cfengine" }
       ] }
       """).openOrThrowException("For tests"),
-      sr(0) :: sr(1) :: sr(2) :: sr(3) :: sr(4) :: sr(5) :: sr(7)  :: sr(8) :: Nil)
+      root :: sr(1) :: sr(2) :: sr(3) :: sr(4) :: sr(5) :: sr(7)  :: sr(8) :: Nil)
 
     val community = TestQuery(
       "community",
@@ -660,7 +703,7 @@ class TestQueryProcessor extends Loggable {
         { "objectType":"node"   , "attribute":"agentName"  , "comparator":"eq", "value":"community" }
       ] }
       """).openOrThrowException("For tests"),
-      sr(0) :: sr(2) :: sr(4) :: sr(5) :: sr(7) :: sr(8) :: Nil)
+      root :: sr(2) :: sr(4) :: sr(5) :: sr(7) :: sr(8) :: Nil)
 
     val nova = TestQuery(
       "nova",

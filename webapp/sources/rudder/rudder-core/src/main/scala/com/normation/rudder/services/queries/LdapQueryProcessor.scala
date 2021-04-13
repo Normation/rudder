@@ -107,6 +107,7 @@ final case class LDAPNodeQuery(
     nodeFilters       : Option[Set[ExtendedFilter]]
     //the final composition to apply
   , composition       : CriterionComposition
+  , transform         : ResultTransformation
     //that map MUST not contains node related filters
   , objectTypesFilters: Map[DnType, Map[String, List[SubQuery]]]
   , nodeInfoFilters   : Seq[NodeInfoMatcher]
@@ -354,8 +355,8 @@ class InternalLDAPQueryProcessor(
           case And =>
             val s = if(dnMapSet.isEmpty) Set[DN]() else dnMapSet.foldLeft(dnMapSet.head._2)( _ intersect _._2 )
             // Here if s is empty, it means we are ANDing with an empty Set, so we could simply drop all computation from there
-            if(s.isEmpty) {
-              logPure.debug(s"[${debugId}] `-> early stop query (empty sub-query)")
+            if(s.isEmpty && normalizedQuery.transform != ResultTransformation.Invert) {
+              logPure.logEffect.debug(s"[${debugId}] `-> early stop query (non-inverted empty sub-query)")
               return None
             }
             s
@@ -471,7 +472,8 @@ class InternalLDAPQueryProcessor(
   /**
    * That method allows to post-process a list of nodes based on
    * the resultType.
-   * - step1: filter out policy server if we only want "simple" nodes
+   * - step1: ~filter out policy server if we only want "simple" nodes~ => no, we need to do
+   *   that in `queryAndChekNodeId` where we know about server roles
    * - step2: filter out nodes based on a given list of acceptable entries
    */
   private[this] def postFilterNode(entries: Seq[LDAPEntry], returnType: QueryReturnType, limitToNodeIds:Option[Seq[NodeId]]) : Seq[LDAPEntry] = {
@@ -926,7 +928,7 @@ class InternalLDAPQueryProcessor(
       } else { nodeFilters }
 
       val nodeInfos = nodeInfoFilters.map { case QueryFilter.NodeInfo(c, comp, value) => c.matches(comp, value)}
-      LDAPNodeQuery(mainFilters, query.composition, subQueries, nodeInfos)
+      LDAPNodeQuery(mainFilters, query.composition, query.transform, subQueries, nodeInfos)
     }
   }
 }
