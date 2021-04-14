@@ -235,6 +235,7 @@ policyServerId:root
 nodeHostname: root.normation.com
 inventoryDate: 20130515123456.948Z
 publicKey: "test"
+software: softwareId=soft0,ou=Software,ou=Inventories,cn=rudder-configuration
 
 # Example of a node
 dn: nodeId=node0,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
