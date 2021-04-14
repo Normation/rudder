@@ -74,9 +74,14 @@ class PluginVersion:
         if eq == True:
             return False if self.mode == other.mode else self.mode == 'nightly'
         else:
+            if StrictVersion(self.rudderVersion) < StrictVersion(other.rudderVersion):
+                return True
+            elif StrictVersion(self.rudderVersion) == StrictVersion(other.rudderVersion):
+                return StrictVersion(self.pluginShortVersion) < StrictVersion(other.pluginShortVersion)
+            else:
+                return False
 
-            return  StrictVersion(self.rudder_version) < StrictVersion(other.rudder_version) and StrictVersion(self.pluginShortVersion) < StrictVersion(other.pluginShortVersion)
-        
+
     def __le__(self, other):
         if self.__eq__(other) == True:
             return True
@@ -96,7 +101,7 @@ class PluginVersion:
     Define an object based on a .rpkg file.
 """
 class Rpkg:
-    def __init__(self, longName, shortName, path, version, metadata): 
+    def __init__(self, longName, shortName, path, version, metadata):
         self.longName = longName
         self.shortName = shortName
         self.path = path
@@ -152,7 +157,7 @@ class Rpkg:
 
     def __lt__(self, other):
         return self.version.versionToCompare < other.version.versionToCompare
-        
+
     def __le__(self, other):
         return self.version.versionToCompare <= other.version.versionToCompare
 

@@ -63,9 +63,11 @@ class TestEncoding(unittest.TestCase):
     def test_global_compare(self, W, X, Y, Z, iw, ix, iy, iz, mode1, mode2):
         v1 = str(W) + "." + str(X) + "-" + str(Y) + "." + str(Z) + mode1
         v2 = str(W + iw) + "." + str(X + ix) + "-" + str(Y + iy) + "." + str(Z + iz) + mode2
-         
+
         # Special reverse case where just the mode change
-        if iw == ix == iy == iz == 0 and mode1 == "":
+        if iw == ix == iy == iz == 0 and mode1 == "" == mode2:
+          self.assertEqual(PluginVersion(v1), PluginVersion(v2))
+        elif iw == ix == iy == iz == 0 and mode1 == "":
           self.assertGreaterEqual(PluginVersion(v1), PluginVersion(v2))
           self.assertLessEqual(PluginVersion(v2), PluginVersion(v1))
         else:
