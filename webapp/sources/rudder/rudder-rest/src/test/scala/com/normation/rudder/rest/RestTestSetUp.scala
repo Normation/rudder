@@ -151,7 +151,6 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
 import com.normation.box._
-import com.normation.rudder.rest.v1.RestTechniqueReload
 
 
 /*
