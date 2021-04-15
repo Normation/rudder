@@ -111,6 +111,7 @@ class SettingsApi(
       RestChangeMessageManadatory ::
       RestChangeMessagePrompt ::
       RestChangeRequestEnabled ::
+      RestChangeRequestEmailNotification ::
       RestChangeRequestSelfValidation ::
       RestChangeRequestSelfDeployment ::
       RestChangesGraphs ::
@@ -507,6 +508,12 @@ final case object RestChangeRequestEnabled extends RestBooleanSetting {
     def get = configService.rudder_workflow_enabled()
     def set = (value : Boolean, _, _) => configService.set_rudder_workflow_enabled(value)
   }
+final case object RestChangeRequestEmailNotification extends RestBooleanSetting {
+  val startPolicyGeneration = false
+  val key = "enable_email_notification"
+  def get = configService.rudder_workflow_email_notification_enabled()
+  def set = (value : Boolean, _, _) => configService.set_rudder_workflow_email_notification_enabled(value)
+}
 final case object RestChangeRequestSelfDeployment extends RestBooleanSetting {
     val startPolicyGeneration = false
     val key = "enable_self_deployment"

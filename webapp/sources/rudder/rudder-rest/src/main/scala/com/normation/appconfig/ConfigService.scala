@@ -103,6 +103,7 @@ trait ReadConfigService {
   def rudder_workflow_enabled(): IOResult[Boolean]
   def rudder_workflow_self_validation(): IOResult[Boolean]
   def rudder_workflow_self_deployment(): IOResult[Boolean]
+  def rudder_workflow_email_notification_enabled(): IOResult[Boolean]
 
   /**
    * CFEngine server properties
@@ -253,6 +254,7 @@ trait UpdateConfigService {
   def set_rudder_workflow_enabled(value: Boolean): IOResult[Unit]
   def set_rudder_workflow_self_validation(value: Boolean): IOResult[Unit]
   def set_rudder_workflow_self_deployment(value: Boolean): IOResult[Unit]
+  def set_rudder_workflow_email_notification_enabled(value: Boolean): IOResult[Unit]
 
   /**
    * Set CFEngine server properties
@@ -401,6 +403,7 @@ class LDAPBasedConfigService(
        rudder.ui.changeMessage.mandatory=false
        rudder.ui.changeMessage.explanation=Please enter a reason explaining this change.
        rudder.workflow.enabled=false
+       rudder.workflow.email.notification.enabled=false
        rudder.workflow.self.validation=false
        rudder.workflow.self.deployment=true
        cfengine.server.denybadclocks=true
@@ -578,6 +581,8 @@ class LDAPBasedConfigService(
       false.succeed
     }
   }
+
+  def rudder_workflow_email_notification_enabled() = get("rudder_workflow_email_notification_enabled")
   def rudder_workflow_self_validation() = get("rudder_workflow_self_validation")
   def rudder_workflow_self_deployment() = get("rudder_workflow_self_deployment")
   def set_rudder_workflow_enabled(value: Boolean): IOResult[Unit] = {
@@ -588,6 +593,8 @@ class LDAPBasedConfigService(
       Inconsistency("You can't change the change validation workflow type. Perhaps are you missing the 'changes validation' plugin?").fail
     }
   }
+
+  def set_rudder_workflow_email_notification_enabled(value: Boolean): IOResult[Unit] = save("rudder_workflow_email_notification_enabled", value)
   def set_rudder_workflow_self_validation(value: Boolean): IOResult[Unit] = save("rudder_workflow_self_validation", value)
   def set_rudder_workflow_self_deployment(value: Boolean): IOResult[Unit] = save("rudder_workflow_self_deployment", value)
 
