@@ -40,7 +40,6 @@ package com.normation.rudder.rest.internal
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermissions
-
 import better.files._
 import com.normation.rudder.rest.RestExtractorService
 import net.liftweb.common.Box
@@ -67,6 +66,7 @@ import com.normation.errors.IOResult
 import zio.ZIO
 import zio.syntax._
 
+import java.nio.file.NoSuchFileException
 import scala.jdk.CollectionConverters._
 
 class SharedFilesAPI(
@@ -87,10 +87,9 @@ class SharedFilesAPI(
   def serialize(file:File) : IOResult[JValue] = {
     import net.liftweb.json.JsonDSL._
     IOResult.effect(s"Error when serializing file ${file.name}") {
-
       val date = new DateTime(Instant.ofEpochMilli(Files.getLastModifiedTime(file.path, File.LinkOptions.noFollow:_*).toMillis))
       ( ("name"  -> file.name)
-      ~ ("size"  -> (if (file.isSymbolicLink) 0 else file.size ))
+      ~ ("size"  -> (try { file.size } catch {case _ : NoSuchFileException => 0L }))
       ~ ("type"  -> (if (file.isDirectory) "dir" else "file"))
       ~ ("date"  -> date.toString("yyyy-MM-dd HH:mm:ss"))
       ~ ("rights" -> file.permissionsAsString(File.LinkOptions.noFollow))
