@@ -947,6 +947,16 @@ object ResultTransformation {
   }
 }
 
+// This object and the apply method are necessary to allow backward compatibilty in 6.2.5 for plugin scale-out relay due to changes to apply method in https://issues.rudder.io/issues/19138
+// This can be removed in 7.0
+object Query{
+  def apply (
+    returnType : QueryReturnType  //"node" or "node and policy servers"
+    , composition: CriterionComposition
+    , criteria   : List[CriterionLine] //list of all criteria to be matched by returned values
+  ) : Query = Query(returnType, composition, ResultTransformation.Identity, criteria)
+}
+
 final case class Query(
     returnType : QueryReturnType  //"node" or "node and policy servers"
   , composition: CriterionComposition
