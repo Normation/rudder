@@ -58,13 +58,13 @@ limitations under the License.
   <repositories>
     <repository>
       <id>rudder-release</id>
-      <url>http://www.rudder-project.org/maven-releases/</url>
+      <url>https://repository.rudder.io/maven/releases/</url>
       <layout>default</layout>
       <snapshots><enabled>false</enabled></snapshots>
     </repository>
     <repository>
       <id>rudder-snapshot</id>
-      <url>http://www.rudder-project.org/maven-snapshots/</url>
+      <url>https://repository.rudder.io/maven/snapshots/</url>
       <layout>default</layout>
       <snapshots><enabled>true</enabled></snapshots>
     </repository>
