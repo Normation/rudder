@@ -6,7 +6,7 @@
             <This sends everything else to /public
             <id>nexus</id>
             <mirrorOf>*</mirrorOf>
-            <url>http://nexus.normation.com/nexus/content/groups/public</url>
+            <url>https://nexus.normation.com/nexus/content/groups/public</url>
           </mirror>
         </mirrors>
         -->
@@ -42,7 +42,7 @@
                </executions>
                <configuration>
                   <serverId>nexus-releases</serverId>
-                  <nexusUrl>http://nexus.normation.com/nexus/</nexusUrl>
+                  <nexusUrl>https://nexus.normation.com/nexus/</nexusUrl>
                   <skipStaging>true</skipStaging>
                </configuration>
              </plugin>
@@ -65,20 +65,20 @@
       <!--      <repositories>
         <repository>
           <id>normation</id>
-          <url>http://nexus.normation.com/nexus/content/repositories/private-releases</url>
+          <url>https://nexus.normation.com/nexus/content/repositories/private-releases</url>
           <releases><enabled>true</enabled></releases>
           <snapshots><enabled>true</enabled></snapshots>
           </repository>
           <repository>
           <id>normation-snapshot</id>
-          <url>http://nexus.normation.com/nexus/content/repositories/snapshots</url>
+          <url>https://nexus.normation.com/nexus/content/repositories/snapshots</url>
           <releases><enabled>true</enabled></releases>
           <snapshots><enabled>true</enabled></snapshots>
         </repository>
 
         <repository>
           <id>normation-public</id>
-          <url>http://nexus.normation.com/nexus/content/repositories/releases</url>
+          <url>https://nexus.normation.com/nexus/content/repositories/releases</url>
           <releases><enabled>true</enabled></releases>
           <snapshots><enabled>true</enabled></snapshots>
         </repository>
@@ -86,13 +86,13 @@
 
             <repository>
       <id>rudder-release</id>
-      <url>http://www.rudder-project.org/maven-releases/</url>
+      <url>https://repository.rudder.io/maven/releases/</url>
       <layout>default</layout>
       <snapshots><enabled>false</enabled></snapshots>
     </repository>
     <repository>
       <id>rudder-snapshot</id>
-      <url>http://www.rudder-project.org/maven-snapshots/</url>
+      <url>https://repository.rudder.io/maven/snapshots/</url>
       <layout>default</layout>
       <snapshots><enabled>true</enabled></snapshots>
     </repository>
@@ -101,7 +101,7 @@
       <!--<pluginRepositories>
         <pluginRepository>
           <id>normation</id>
-          <url>http://nexus.normation.com/nexus/content/repositories/private-releases</url>
+          <url>https://nexus.normation.com/nexus/content/repositories/private-releases</url>
           <releases><enabled>true</enabled></releases>
           <snapshots><enabled>true</enabled></snapshots>
         </pluginRepository>
