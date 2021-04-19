@@ -39,7 +39,6 @@ package com.normation.rudder.domain
 
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.archives._
-import com.normation.rudder.domain.queries.Query
 import com.unboundid.ldap.sdk._
 import com.normation.ldap.sdk._
 import com.normation.inventory.ldap.core._
@@ -55,6 +54,7 @@ import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.ldap.sdk.syntax._
+import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.rule.category.RuleCategoryId
 
 
@@ -370,7 +370,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     /**
      * Create a new group entry
      */
-    def groupModel(uuid:String, parentDN:DN, name:String, description : String, query: Option[Query], isDynamic : Boolean, srvList : Set[NodeId], isEnabled : Boolean, isSystem : Boolean) : LDAPEntry = {
+    def groupModel(uuid:String, parentDN:DN, name:String, description : String, query: Option[QueryTrait], isDynamic : Boolean, srvList : Set[NodeId], isEnabled : Boolean, isSystem : Boolean) : LDAPEntry = {
       val mod = LDAPEntry(group.groupDN(uuid, parentDN))
       mod.resetValuesTo(A_OC, OC.objectClassNames(OC_RUDDER_NODE_GROUP).toSeq:_*)
       mod.resetValuesTo(A_NAME, name)

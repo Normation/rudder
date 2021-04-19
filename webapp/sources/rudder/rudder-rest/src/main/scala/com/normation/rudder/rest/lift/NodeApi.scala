@@ -46,7 +46,6 @@ import java.io.PipedOutputStream
 import java.net.ConnectException
 import java.nio.charset.StandardCharsets
 import java.util.Arrays
-
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
@@ -58,7 +57,6 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.nodes.CompareProperties
 import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.WoNodeRepository
 import com.normation.rudder.rest.ApiPath
@@ -103,6 +101,7 @@ import com.normation.rudder.domain.nodes.NodePropertyHierarchy
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
+import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
@@ -1037,7 +1036,7 @@ class NodeApiService6 (
     }
   }
 
-  def queryNodes ( query: Query, state: InventoryStatus, detailLevel : NodeDetailLevel, version : ApiVersion)( implicit prettify : Boolean) = {
+  def queryNodes ( query: QueryTrait, state: InventoryStatus, detailLevel : NodeDetailLevel, version : ApiVersion)( implicit prettify : Boolean) = {
     implicit val action = s"list${state.name.capitalize}Nodes"
     ( for {
         nodeIds <-  acceptedNodeQueryProcessor.processOnlyId(query)

@@ -38,7 +38,6 @@
 package com.normation.rudder.rest
 
 import java.io.StringReader
-
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.{AclPath, ApiAccountId, ApiAccountName, ApiAclElement, HttpAction, ApiAuthorization => ApiAuthz}
@@ -47,7 +46,6 @@ import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.queries.NodeReturnType
-import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.repository._
@@ -101,6 +99,7 @@ import com.normation.inventory.domain.PublicKey
 import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.domain.nodes.InheritMode
+import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.services.policies.PropertyParser
 import com.normation.utils.DateFormaterService
@@ -167,7 +166,7 @@ final case class RestExtractorService (
     }
   }
 
-  private[this] def toQuery (value:String) : Box[Query] = {
+  private[this] def toQuery (value:String) : Box[QueryTrait] = {
     queryParser(value)
   }
 
@@ -1011,7 +1010,7 @@ final case class RestExtractorService (
     }
   }
 
-  def extractQuery (params : Map[String,List[String]]) : Box[Option[Query]] = {
+  def extractQuery (params : Map[String,List[String]]) : Box[Option[QueryTrait]] = {
     extractOneValue(params,"query")(toQuery) match {
       case Full(None) =>
         extractOneValue(params,CRITERIA)(toQueryCriterion) match {

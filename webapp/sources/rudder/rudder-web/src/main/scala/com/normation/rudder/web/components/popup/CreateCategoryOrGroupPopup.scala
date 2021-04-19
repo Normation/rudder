@@ -39,7 +39,6 @@ package com.normation.rudder.web.components.popup
 
 import com.normation.rudder.domain.nodes._
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.NodeReturnType
 import net.liftweb.http.js._
 import JsCmds._
@@ -60,6 +59,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.box._
+import com.normation.rudder.domain.queries.NewQuery
 import com.normation.rudder.domain.queries.ResultTransformation
 
 /**
@@ -267,7 +267,7 @@ class CreateCategoryOrGroupPopup(
             , comparator = ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0)
             , value      = "Linux"
             )
-        val query = Some(groupGenerator.flatMap(_.query).getOrElse(Query(NodeReturnType,And,ResultTransformation.Identity,List(defaultLine))))
+        val query = Some(groupGenerator.flatMap(_.query).getOrElse(NewQuery(NodeReturnType,And,ResultTransformation.Identity,List(defaultLine))))
         val isDynamic = piStatic.get match { case "dynamic" => true ; case _ => false }
         val srvList =  groupGenerator.map(_.serverList).getOrElse(Set[NodeId]())
         val nodeId = NodeGroupId(uuidGen.newUuid)

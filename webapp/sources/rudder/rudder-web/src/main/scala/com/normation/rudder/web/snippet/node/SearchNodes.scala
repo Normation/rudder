@@ -42,7 +42,6 @@ import scala.xml.NodeSeq.seqToNodeSeq
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.web.components.SearchNodeComponent
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import bootstrap.liftweb.RudderConfig
@@ -57,8 +56,10 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
-
 import com.normation.box._
+import com.normation.rudder.domain.queries.NewQuery
+import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.ResultTransformation
 
 /**
  *
@@ -121,7 +122,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     </head> }
   }
 
-  private[this] def setCreationPopup(query : Option[Query], serverList : Box[Seq[NodeInfo]]) : Unit = {
+  private[this] def setCreationPopup(query : Option[NewQuery], serverList : Box[Seq[NodeInfo]]) : Unit = {
       creationPopup.set(Full(new CreateCategoryOrGroupPopup(
           // create a totally invalid group
           Some(new NodeGroup(
@@ -143,7 +144,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       )))
   }
 
-  private[this] def setSearchComponent(query:Option[Query]) : SearchNodeComponent = {
+  private[this] def setSearchComponent(query:Option[NewQuery]) : SearchNodeComponent = {
     def showNodeDetails(nodeId:String, displayCompliance : Boolean) : JsCmd = {
       linkUtil.redirectToNodeLink(NodeId(nodeId))
     }
@@ -179,7 +180,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
    */
   private[this] def parseHashtag(): JsCmd = {
     def executeQuery(query:String) : JsCmd = {
-      val q = queryParser(query)
+      val q = queryParser(query).map(_ match { case q : NewQuery => q; case q : Query => NewQuery(q.returnType, q.composition, ResultTransformation.Identity, q.criteria)})
       val sc = setSearchComponent(q)
 
       q match {
@@ -217,7 +218,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       case eb:EmptyBox => Alert("Error when trying to retrieve the resquest, please try again")
     }
   }
-  private def updateQueryHash(button: Boolean, query: Option[Query]): JsCmd = {
+  private def updateQueryHash(button: Boolean, query: Option[NewQuery]): JsCmd = {
     query match {
       case Some(q) =>
         JsRaw(s"updateHashString('query', ${q.toJSONString})")

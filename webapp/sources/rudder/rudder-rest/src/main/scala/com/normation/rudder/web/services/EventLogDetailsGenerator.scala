@@ -46,7 +46,7 @@ import com.normation.rudder.domain.eventlog.{WorkflowStepChanged, _}
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.workflows.{ChangeRequestId, WorkflowStepChange}
 import com.normation.rudder.reports.{AgentRunInterval, HeartbeatConfiguration}
 import com.normation.rudder.repository._
@@ -441,7 +441,7 @@ class EventLogDetailsGenerator(
                   "#shortDescription *" #> mapSimpleDiff(modDiff.modDescription) &
                   "#query" #> (
                     modDiff.modQuery.map { diff =>
-                      val mapOptionQuery = (opt:Option[Query]) =>
+                      val mapOptionQuery = (opt:Option[QueryTrait]) =>
                         opt match {
                           case None => Text("None")
                           case Some(q) => Text(q.toJSONString)

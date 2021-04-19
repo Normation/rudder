@@ -43,8 +43,7 @@ import scala.collection.mutable.Buffer
 import com.normation.rudder.domain.queries.{
   CriterionComposition,
   Or,And,
-  CriterionLine,
-  Query
+  CriterionLine
 }
 import net.liftweb.http.js._
 import JsCmds._
@@ -74,11 +73,11 @@ import com.normation.box._
  */
 class SearchNodeComponent(
     htmlId           : String // unused ...
-  , _query           : Option[Query]
+  , _query           : Option[NewQuery]
   , _srvList         : Box[Seq[NodeInfo]]
   , onUpdateCallback : () => JsCmd = { () => Noop } // this one is not used yet
   , onClickCallback  : Option[(String, Boolean) => JsCmd] = None // this callback is used when we click on an element in the grid
-  , onSearchCallback : (Boolean, Option[Query]) => JsCmd = {(_, _) => Noop } // this callback is used when a research is done and the state of the Search button changes
+  , onSearchCallback : (Boolean, Option[NewQuery]) => JsCmd = {(_, _) => Noop } // this callback is used when a research is done and the state of the Search button changes
   , saveButtonId     : String = "" // the id of the save button, that gets disabled when one change the form
   , groupPage        : Boolean
 ) extends DispatchSnippet with Loggable {
@@ -128,7 +127,7 @@ class SearchNodeComponent(
    * Page/component which includes SearchNodeComponent can use it.
    * @return
    */
-  def getQuery() : Option[Query] = query
+  def getQuery() : Option[NewQuery] = query
 
   var dispatch : DispatchIt = {
     case "showQuery" => { _ => buildQuery(false)}
@@ -144,7 +143,7 @@ class SearchNodeComponent(
 
   def buildQuery(isGroupsPage : Boolean) : NodeSeq = {
 
-    if(None == query) query = Some(Query(NodeReturnType,And,ResultTransformation.Identity,List(defaultLine)))
+    if(None == query) query = Some(NewQuery(NodeReturnType,And,ResultTransformation.Identity,List(defaultLine)))
     val lines = ArrayBuffer[CriterionLine]()
     var composition = query.get.composition
     var rType = query.get.returnType //for now, don't move
@@ -158,7 +157,7 @@ class SearchNodeComponent(
         //defaults values
         lines.insert(i+1, defaultLine)
       }
-      query = Some(Query(rType, composition, transform, lines.toList))
+      query = Some(NewQuery(rType, composition, transform, lines.toList))
       initUpdate = false
       ajaxCriteriaRefresh(isGroupsPage)
     }
@@ -174,7 +173,7 @@ class SearchNodeComponent(
           errors remove line
         }
 
-        query = Some(Query(rType, composition, transform, lines.toList))
+        query = Some(NewQuery(rType, composition, transform, lines.toList))
       }
       initUpdate = false
       ajaxCriteriaRefresh(isGroupsPage)
@@ -189,7 +188,7 @@ class SearchNodeComponent(
           case _ =>
         }
       }
-      val newQuery = Query(rType, composition, transform, lines.toList)
+      val newQuery = NewQuery(rType, composition, transform, lines.toList)
       query = Some(newQuery)
       if(errors.isEmpty) {
         // ********* EXECUTE QUERY ***********
@@ -246,7 +245,7 @@ class SearchNodeComponent(
      */
 
     def displayQuery(html: NodeSeq, isGroupPage: Boolean): NodeSeq = {
-      val Query(otName,comp, trans, criteria) = query.get
+      val NewQuery(otName,comp, trans, criteria) = query.get
       val checkBox = {
         SHtml.checkbox(
             rType==NodeAndPolicyServerReturnType
