@@ -40,7 +40,6 @@ package com.normation.rudder.web.components
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.web.model._
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -58,6 +57,9 @@ import scala.xml._
 import net.liftweb.util.Helpers._
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.queries.NewQuery
+import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.web.ChooseTemplate
@@ -106,7 +108,7 @@ class NodeGroupForm(
   private[this] val nodeGroupForm = new LocalSnippet[NodeGroupForm]
   private[this] val searchNodeComponent = new LocalSnippet[SearchNodeComponent]
 
-  private[this] var query : Option[Query] = nodeGroup.toOption.flatMap(_.query)
+  private[this] var query : Option[NewQuery] = nodeGroup.toOption.flatMap(_.query.map(_ match { case q : NewQuery => q; case q : Query => NewQuery(q.returnType, q.composition, ResultTransformation.Identity, q.criteria)}))
   private[this] var srvList : Box[Seq[NodeInfo]] = getNodeList(nodeGroup)
 
 
@@ -137,7 +139,7 @@ class NodeGroupForm(
     }
   }
 
-  private[this] def saveButtonCallBack(searchStatus : Boolean, query: Option[Query]) : JsCmd = {
+  private[this] def saveButtonCallBack(searchStatus : Boolean, query: Option[NewQuery]) : JsCmd = {
     JsRaw(s"""$$('#${saveButtonId}').button();
         $$('#${saveButtonId}').button("option", "disabled", ${searchStatus});""")
   }

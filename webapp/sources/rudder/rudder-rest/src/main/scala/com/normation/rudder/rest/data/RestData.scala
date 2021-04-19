@@ -54,7 +54,6 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.ActiveTechnique
-import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.NodeState
@@ -63,6 +62,7 @@ import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.workflows.ChangeRequestInfo
 import com.typesafe.config.ConfigValue
 
@@ -209,7 +209,7 @@ final case class RestGroup(
     , name        : Option[String] = None
     , description : Option[String] = None
     , properties  : Option[List[GroupProperty]]
-    , query       : Option[Query] = None
+    , query       : Option[QueryTrait] = None
     , isDynamic   : Option[Boolean] = None
     , enabled     : Option[Boolean] = None
     , category    : Option[NodeGroupCategoryId] = None

@@ -1616,7 +1616,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       }
     }
 
-    override def process(query: Query): Box[Seq[NodeInfo]] = {
+    override def process(query: QueryTrait): Box[Seq[NodeInfo]] = {
       for {
         nodes    <- nodeInfoService.nodeBase.get
         matching <- filterForLines(query.criteria, query.composition, nodes.map(_._2).toList).toIO
@@ -1625,7 +1625,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       }
     }.toBox
 
-    override def processOnlyId(query: Query): Box[Seq[NodeId]] = process(query).map(_.map(_.id))
+    override def processOnlyId(query: QueryTrait): Box[Seq[NodeId]] = process(query).map(_.map(_.id))
   }
 }
 

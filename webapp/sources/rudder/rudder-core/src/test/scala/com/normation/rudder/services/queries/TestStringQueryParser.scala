@@ -108,7 +108,7 @@ class TestStringQueryParser {
   def basicParsing(): Unit = {
 
     assertEquals(
-      Full(Query(NodeReturnType, And, Identity, List(
+      Full(NewQuery(NodeReturnType, And, Identity, List(
           CriterionLine(oc1,c1,Exists),
           CriterionLine(oc2,c3,Greater,"plop"),
           CriterionLine(oc1,c2,Equals,"foo")
@@ -117,28 +117,28 @@ class TestStringQueryParser {
     )
 
     assertEquals(
-      Full(Query(NodeReturnType, And, Identity, List())),
+      Full(NewQuery(NodeReturnType, And, Identity, List())),
       parser.parse(valid1_1)
     )
     assertEquals(
-      Full(Query(NodeReturnType, Or, Identity, List())),
+      Full(NewQuery(NodeReturnType, Or, Identity, List())),
       parser.parse(valid1_2)
     )
     assertEquals(
-      Full(Query(NodeReturnType, And, Identity, List())),
+      Full(NewQuery(NodeReturnType, And, Identity, List())),
       parser.parse(valid1_3)
     )
 
     assertEquals(
-      Full(Query(NodeReturnType, And, Identity, List())),
+      Full(NewQuery(NodeReturnType, And, Identity, List())),
       parser.parse(valid2_1)
     )
     assertEquals(
-      Full(Query(NodeReturnType, And, Identity, List())),
+      Full(NewQuery(NodeReturnType, And, Identity, List())),
       parser.parse(valid2_2)
     )
     assertEquals(
-      Full(Query(NodeReturnType, And, Invert, List())),
+      Full(NewQuery(NodeReturnType, And, Invert, List())),
       parser.parse(valid2_3)
     )
 

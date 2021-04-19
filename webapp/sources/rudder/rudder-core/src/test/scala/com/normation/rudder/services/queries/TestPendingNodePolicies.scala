@@ -48,10 +48,11 @@ import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.ExactStringComparator
 import com.normation.rudder.domain.queries.ObjectCriterion
-import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.StringComparator
 import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.domain.queries.And
+import com.normation.rudder.domain.queries.NewQuery
+import com.normation.rudder.domain.queries.QueryTrait
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
@@ -112,13 +113,13 @@ class TestPendingNodePolicies extends Specification {
   //the node that we will try to accept
   val node = NodeId("node")
 
-  def orQuery     (g: NodeGroup) = Query(null, Or , Identity, List(cl, sub(g), cl))
-  def andQuery    (g: NodeGroup) = Query(null, And, Identity, List(cl, sub(g), cl))
-  def onlySubQuery(g: NodeGroup) = Query(null, And, Identity, List(sub(g)))
-  val dummyQuery0 = Query(null, And, Identity, List(cl)) // will return 0 node
-  val dummyQuery1 = Query(null, Or , Identity, List(cl)) // will return 1 node
+  def orQuery     (g: NodeGroup) = NewQuery(null, Or , Identity, List(cl, sub(g), cl))
+  def andQuery    (g: NodeGroup) = NewQuery(null, And, Identity, List(cl, sub(g), cl))
+  def onlySubQuery(g: NodeGroup) = NewQuery(null, And, Identity, List(sub(g)))
+  val dummyQuery0 = NewQuery(null, And, Identity, List(cl)) // will return 0 node
+  val dummyQuery1 = NewQuery(null, Or , Identity, List(cl)) // will return 1 node
 
-  def ng(id: String, q: Query, dyn: Boolean = true) =
+  def ng(id: String, q: QueryTrait, dyn: Boolean = true) =
     NodeGroup(NodeGroupId(id), id, id, Nil, Some(q), dyn, Set(), true, false)
 
   // groups
@@ -155,7 +156,7 @@ class TestPendingNodePolicies extends Specification {
 
   // a fake query checker
   val queryChecker = new QueryChecker {
-    override def check(query: Query, nodeIds: Seq[NodeId]): Box[Seq[NodeId]] = {
+    override def check(query: QueryTrait, nodeIds: Seq[NodeId]): Box[Seq[NodeId]] = {
       // make a 0 criteria request raise an error like LDAP would do,
       // see: https://www.rudder-project.org/redmine/issues/12338
       if(query.criteria.isEmpty) {
