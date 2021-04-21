@@ -138,8 +138,12 @@ endif
 
 # Quality
 
-check:
-	cd relayd && make check
+lint:
+	# For CI
+	cd rudder-pkg && pylint3 --rcfile=./.pylintrc ./rudder-pkg > pylint.log || true
+
+check: lint
+	cd rudder-pkg/lib/rudder-pkg/tests && ./testall
 
 # Clean
 
