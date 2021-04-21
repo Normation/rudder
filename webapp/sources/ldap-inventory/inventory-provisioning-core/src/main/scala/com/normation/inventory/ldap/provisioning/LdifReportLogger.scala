@@ -105,10 +105,10 @@ class DefaultLDIFReportLogger(val LDIFLogDir:String = DefaultLDIFReportLogger.de
     , LDIFRecords: => Seq[LDIFRecord]
   ) : Task[String] = {
     val LDIFFile = fileFromName(reportName,tag)
-    IO.bracket(IO.effect(new LDIFWriter(LDIFFile)))(writer =>  IO.effect(writer.close).catchAll(ex =>
-      logger.debug("LDIF log for report processing: " + LDIFFile.getAbsolutePath)
-    )) { writer =>
-      ZIO.when(logger.logEffect.isTraceEnabled) {
+    ZIO.when(logger.logEffect.isTraceEnabled) {
+      IO.bracket(IO.effect(new LDIFWriter(LDIFFile)))(writer =>  IO.effect(writer.close).catchAll(ex =>
+        logger.debug("LDIF log for report processing: " + LDIFFile.getAbsolutePath)
+      )) { writer =>
         Task.effect {
           val ldif = LDIFRecords //that's important, else we evaluate again and again LDIFRecords
 
@@ -122,7 +122,7 @@ class DefaultLDIFReportLogger(val LDIFLogDir:String = DefaultLDIFReportLogger.de
             writer.writeLDIFRecord(new LDIFModifyChangeRecord("cn=dummy", new Modification(REPLACE,"dummy", "dummy")), c)
           }
         }
-      } *> UIO.succeed(LDIFFile.getAbsolutePath)
-    }
+      }
+    } *> UIO.succeed(LDIFFile.getAbsolutePath)
   }
 }
