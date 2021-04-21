@@ -29,11 +29,11 @@ test_rudder_pkg()
 
 test_shell()
 {
-  mkdir shellcheck
+  mkdir -p .shellcheck
   find . \( -path ./.git -prune -o -path ./rudder-lang/target -prune -o -path ./relay/sources/relayd/target -prune \) -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
     while IFS="" read -r file
     do
-      shellcheck --format=checkstyle "$file" > shellcheck/$(basename ${file}).log || true
+      shellcheck --format=checkstyle "$file" > .shellcheck/$(basename ${file}).log || true
     done
 }
 
