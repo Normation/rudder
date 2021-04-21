@@ -66,7 +66,7 @@ elif [ "$1" = "--language" ]; then
 elif [ "$1" = "--rudder-pkg" ]; then
   test_rudder_pkg
   exit 0
-elif [ "$1" = "--webapp" ]; then
+elif [ "$1" = "--scala" ]; then
   test_webapp_hooks
   test_webapp_mvn
   exit 0

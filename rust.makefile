@@ -40,7 +40,9 @@ build: version
 	RUSTFLAGS="--codegen link-arg=-Wl,--strip-all" cargo build --release
 
 lint: version
-	cargo clippy --message-format json --all-targets --examples --tests > cargo-clippy.json
+	# to be sure clippy is actually run
+	touch src/lib.rs
+	cargo clippy --message-format json --all-targets --examples --tests > target/cargo-clippy.json
 
 check: lint
 	cargo test
