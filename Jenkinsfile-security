@@ -1,11 +1,10 @@
-// Check vulns in dependencies when running on repo branches
+// Check vulns in dependencies
 
 pipeline {
     agent none
 
     stages {
-        stage('webapp') {
-            when { not { changeRequest() } }
+        stage('deps-webapp') {
             agent { label 'scala' }
             steps {
                 dir('webapp/sources') {
@@ -20,8 +19,7 @@ pipeline {
                 }
             }
         }
-        stage('relayd') {
-            when { not { changeRequest() } }
+        stage('deps-relayd') {
             agent { label 'rust' }
             steps {
                 dir('relay/sources/relayd') {
@@ -29,8 +27,7 @@ pipeline {
                 }
             }
         }
-        stage('language') {
-            when { not { changeRequest() } }
+        stage('deps-language') {
             agent { label 'rust' }
             steps {
                 dir('rudder-lang') {

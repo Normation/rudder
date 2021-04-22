@@ -17,6 +17,20 @@ pipeline {
                 }
             }
         }
+        stage('api-doc') {
+            agent { label 'docs' }
+            steps {
+                dir('api-doc') {
+                    sh script: 'make', label: 'build API docs'
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
+                }
+                // TODO publish if on main branch
+            }
+        }
         stage('rudder-pkg') {
             agent { label 'script' }
             steps {
