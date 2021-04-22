@@ -1,7 +1,5 @@
 pipeline {
-    agent {
-        label :'rust && scala'
-    }
+    agent { label 'rust && scala' }
 
     stages {
         stage('shell') {
