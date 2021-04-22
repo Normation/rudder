@@ -1,5 +1,7 @@
 pipeline {
-    agent rust
+    agent {
+        label :'rust && scala'
+    }
 
     stages {
         stage('shell') {
