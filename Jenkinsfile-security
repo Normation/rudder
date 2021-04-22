@@ -10,20 +10,14 @@ pipeline {
             agent { label 'scala' }
             steps {
                 dir('webapp/sources') {
-                    withMaven() {
+                    withMaven(options: [artifactsPublisher(disabled: true)]) {
                         sh script: 'mvn -DfailBuildOnCVSS=11 -DcveValidForHours=100 org.owasp:dependency-check-maven:6.1.5:aggregate', label: "check webapp dependencies"
                     }
                 }
             }
             post {
                 always {
-            		//archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html'
-                    publishHTML (target : [allowMissing: false,
-                                 alwaysLinkToLastBuild: true,
-                                 reportDir: 'webapp/sources/target/',
-                                 reportFiles: 'dependency-check-report.html',
-                                 reportName: 'Webapp Dependency Check',
-                                 reportTitles: 'Dependency Check'])
+            		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html'
                 }
             }
         }
