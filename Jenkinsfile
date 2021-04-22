@@ -7,7 +7,7 @@ pipeline {
                 sh './qa-test --shell'
             }
         }
-        /*
+
         stage('rudder-pkg') {
             steps {
                 sh './qa-test --rudder-pkg'
@@ -15,17 +15,29 @@ pipeline {
         }
         stage('webapp') {
             steps {
-                sh './qa-test --scala'
+                dir('webapp/sources') {
+                    sh "mvn clean install -Dmaven.test.postgres=false"
+                }
             }
-        }*/
+            post {
+                always {
+                    // mvn test results
+                    junit 'webapp/sources/**/target/surefire-reports/*.xml'
+                }
+            }
+        }
         stage('relayd') {
             steps {
-                sh './qa-test --relayd'
+                dir('relay/sources/relayd') {
+                    sh 'make check'
+                }
             }
         }/*
         stage('language') {
             steps {
-                sh './qa-test --language'
+                dir('rudder-lang') {
+                    sh 'make check'
+                }
             }
         }*/
     }
