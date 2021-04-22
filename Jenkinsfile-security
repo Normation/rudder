@@ -1,0 +1,37 @@
+pipeline {
+    agent none
+
+    stages {
+        stage('webapp') {
+            agent { label 'scala' }
+            steps {
+                dir('webapp/sources') {
+                    withMaven() {
+                        sh script: 'mvn org.owasp:dependency-check-maven:6.1.5:aggregate', label: "check webapp dependencies"
+                    }
+                }
+            }
+            post {
+                always {
+            		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html'
+                }
+            }
+        }
+        stage('relayd') {
+            agent { label 'rust' }
+            steps {
+                dir('relay/sources/relayd') {
+                    sh script: 'cargo deny check', label: 'check relayd dependencies'
+                }
+            }
+        }
+        stage('language') {
+            agent { label 'rust' }
+            steps {
+                dir('rudder-lang') {
+                    sh script: 'cargo deny check', label: 'check language dependencies'
+                }
+            }
+        }
+    }
+}
