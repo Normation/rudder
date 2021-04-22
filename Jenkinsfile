@@ -5,14 +5,14 @@ pipeline {
         stage('shell') {
             agent { label 'script' }
             steps {
-                sh './qa-test --shell'
+                sh script: './qa-test --shell', label: 'Shell scripts lint'
             }
         }
         stage('rudder-pkg') {
             agent { label 'script' }
             steps {
                 dir ('relay/sources') {
-                    sh 'make check'
+                    sh script: 'make check', label: 'rudder-pkg tests'
                 }
             }
         }
@@ -37,13 +37,13 @@ pipeline {
             agent { label 'rust' }
             steps {
                 dir('relay/sources/relayd') {
-                    sh 'make check'
+                    sh script: 'make check', label: 'Relayd tests'
                 }
             }
             post {
                 always {
                     // linters results
-                    recordIssues enabledForFailure: true, id: 'relayd', failOnError: true, sourceDirectory: 'relay/sources/relayd', tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json')
+                    recordIssues enabledForFailure: true, id: 'relayd', failOnError: true, sourceDirectory: 'relay/sources/relayd', tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8')
                 }
             }
         }
@@ -51,13 +51,13 @@ pipeline {
             agent { label 'rust' }
             steps {
                 dir('rudder-lang') {
-                    sh 'make check'
+                    sh script: 'make check', label: 'Language tests'
                 }
             }
             post {
                 always {
                     // linters results
-                    recordIssues enabledForFailure: true, id: 'language', failOnError: true, sourceDirectory: 'rudder-lang', tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json')
+                    recordIssues enabledForFailure: true, id: 'language', failOnError: true, sourceDirectory: 'rudder-lang', tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8')
                 }
             }
         }
