@@ -1,6 +1,8 @@
 pipeline {
     agent none
 
+    // FIXME add API doc build
+
     stages {
         stage('shell') {
             agent { label 'script' }
