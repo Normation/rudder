@@ -6,7 +6,7 @@ pipeline {
 
     stages {
         stage('deps-webapp') {
-            when { not { changeRequest() } }
+            //when { not { changeRequest() } }
             agent { label 'scala' }
             steps {
                 dir('webapp/sources') {
