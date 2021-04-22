@@ -2,31 +2,6 @@
 
 set -ex
 
-test_relayd()
-{
-  cd relay/sources/relayd && make check
-}
-
-test_language()
-{
-  cd rudder-lang && make check
-}
-
-test_webapp_mvn()
-{
-  cd webapp/sources && mvn clean install -Dmaven.test.postgres=false
-}
-
-test_webapp_hooks()
-{
-  webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh
-}
-
-test_rudder_pkg()
-{
-  cd relay/sources/ && make check && cd -
-}
-
 test_shell()
 {
   mkdir -p .shellcheck
@@ -57,20 +32,7 @@ test_python_error()
 
 #####
 
-if [ "$1" = "--relayd" ]; then
-  test_relayd
-  exit 0
-elif [ "$1" = "--language" ]; then
-  test_language
-  exit 0
-elif [ "$1" = "--rudder-pkg" ]; then
-  test_rudder_pkg
-  exit 0
-elif [ "$1" = "--scala" ]; then
-  test_webapp_hooks
-  test_webapp_mvn
-  exit 0
-elif [ "$1" = "--shell" ]; then
+if [ "$1" = "--shell" ]; then
   test_shell
   exit 0
 else

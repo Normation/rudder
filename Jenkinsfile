@@ -48,7 +48,7 @@ pipeline {
             agent { label 'scala' }
             steps {
                 dir('webapp/sources') {
-                    withMaven() {
+                    withMaven(options: [artifactsPublisher(disabled: true)]) {
                         sh script: 'mvn clean install -Dmaven.test.postgres=false', label: "webapp tests"
                     }
                 }
@@ -95,13 +95,7 @@ pipeline {
     }
 
     post {
-        success {
-            slackSend (color: '#00FF00', message: "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
-        }
-
-
         failure {
-            when { not { changeRequest() } }
             slackSend (color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
         }
     }
