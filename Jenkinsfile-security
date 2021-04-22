@@ -1,7 +1,8 @@
-// Check vulns in dependencies when running on repo branches
+// Check vulns in dependencies on repo branches
 
 pipeline {
     agent none
+    triggers { cron('@daily') }
 
     stages {
         stage('deps-webapp') {
@@ -16,7 +17,13 @@ pipeline {
             }
             post {
                 always {
-            		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html'
+            		//archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html'
+                    publishHTML (target : [allowMissing: false,
+                                 alwaysLinkToLastBuild: true,
+                                 reportDir: 'webapp/sources/target/',
+                                 reportFiles: 'dependency-check-report.html',
+                                 reportName: 'Webapp Dependency Check',
+                                 reportTitles: 'Dependency Check'])
                 }
             }
         }
@@ -41,7 +48,7 @@ pipeline {
     }
 
     post {
-        failure {
+        changed {
             slackSend (color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
         }
     }
