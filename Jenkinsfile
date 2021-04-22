@@ -1,32 +1,40 @@
 pipeline {
-    agent { label 'rust && scala' }
+    agent none
 
     stages {
         stage('shell') {
+            agent { label 'script' }
             steps {
                 sh './qa-test --shell'
             }
         }
-
         stage('rudder-pkg') {
+            agent { label 'script' }
             steps {
-                sh './qa-test --rudder-pkg'
+                dir ('relay/sources') {
+                    sh 'make check'
+                }
             }
         }
         stage('webapp') {
+            agent { label 'scala' }
             steps {
                 dir('webapp/sources') {
-                    sh "mvn clean install -Dmaven.test.postgres=false"
+                    sh 'rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh'
+                    withMaven(maven: 'latest') {
+                        sh 'mvn clean install -Dmaven.test.postgres=false'
+                    }
                 }
             }
             post {
                 always {
-                    // mvn test results
+                    // collect test results
                     junit 'webapp/sources/**/target/surefire-reports/*.xml'
                 }
             }
         }
         stage('relayd') {
+            agent { label 'rust' }
             steps {
                 dir('relay/sources/relayd') {
                     sh 'make check'
@@ -40,6 +48,7 @@ pipeline {
             }
         }
         stage('language') {
+            agent { label 'rust' }
             steps {
                 dir('rudder-lang') {
                     sh 'make check'
