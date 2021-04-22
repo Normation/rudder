@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent rust
 
     stages {
         stage('shell') {
