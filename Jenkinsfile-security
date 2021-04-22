@@ -1,10 +1,11 @@
-// Check vulns in dependencies
+// Check vulns in dependencies when running on repo branches
 
 pipeline {
     agent none
 
     stages {
         stage('deps-webapp') {
+            when { not { changeRequest() } }
             agent { label 'scala' }
             steps {
                 dir('webapp/sources') {
@@ -20,6 +21,7 @@ pipeline {
             }
         }
         stage('deps-relayd') {
+            when { not { changeRequest() } }
             agent { label 'rust' }
             steps {
                 dir('relay/sources/relayd') {
@@ -28,12 +30,25 @@ pipeline {
             }
         }
         stage('deps-language') {
+            when { not { changeRequest() } }
             agent { label 'rust' }
             steps {
                 dir('rudder-lang') {
                     sh script: 'cargo deny check', label: 'check language dependencies'
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            slackSend (color: '#00FF00', message: "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+        }
+
+
+        failure {
+            when { not { changeRequest() } }
+            slackSend (color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
         }
     }
 }

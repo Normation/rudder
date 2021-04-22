@@ -1,8 +1,6 @@
 pipeline {
     agent none
 
-    // FIXME add API doc build
-
     stages {
         stage('shell') {
             agent { label 'script' }
@@ -12,8 +10,8 @@ pipeline {
             post {
                 always {
                     // linters results
-                    recordIssues enabledForFailure: true, id: 'shellcheck', name: 'Shell scripts', failOnError: true, sourceCodeEncoding: 'UTF-8',
-                                 tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8')
+                    recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
+                                 tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
                 }
             }
         }
@@ -60,6 +58,7 @@ pipeline {
                 always {
                     // collect test results
                     junit 'webapp/sources/**/target/surefire-reports/*.xml'
+                    archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
                 }
             }
         }
@@ -95,5 +94,15 @@ pipeline {
         }
     }
 
+    post {
+        success {
+            slackSend (color: '#00FF00', message: "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+        }
 
+
+        failure {
+            when { not { changeRequest() } }
+            slackSend (color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+        }
+    }
 }
