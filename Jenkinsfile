@@ -32,20 +32,27 @@ pipeline {
                     sh 'make check'
                 }
             }
-        }/*
+            post {
+                always {
+                    // linters results
+                    recordIssues enabledForFailure: true, id: 'relayd', failOnError: true, sourceDirectory: 'relay/sources/relayd', tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.log')
+                }
+            }
+        }
         stage('language') {
             steps {
                 dir('rudder-lang') {
                     sh 'make check'
                 }
             }
-        }*/
-    }
-
-    post {
-        always {
-            // linters results
-            recordIssues enabledForFailure: true, id: relayd, failOnError: true, sourceDirectory: 'relay/sources/relayd', tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.log')
+            post {
+                always {
+                    // linters results
+                    recordIssues enabledForFailure: true, id: 'language', failOnError: true, sourceDirectory: 'rudder-lang', tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.log')
+                }
+            }
         }
     }
+
+
 }
