@@ -11,7 +11,7 @@ pipeline {
                 always {
                     // linters results
                     recordIssues enabledForFailure: true, id: 'shellcheck', failOnError: true, sourceCodeEncoding: 'UTF-8',
-                                 tool: checkStyle(pattern: 'shellcheck/*.log', reportEncoding: 'UTF-8')
+                                 tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8')
                 }
             }
         }
