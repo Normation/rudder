@@ -20,7 +20,7 @@ pipeline {
             agent { label 'scala' }
             steps {
                 dir('webapp/sources') {
-                    withMaven(maven: 'latest') {
+                    withMaven() {
                         sh script: 'mvn clean install -Dmaven.test.postgres=false', label: "Webapp tests"
                     }
                 }
