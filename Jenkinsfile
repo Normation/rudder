@@ -57,8 +57,8 @@ pipeline {
             post {
                 always {
                     // linters results
-                    recordIssues enabledForFailure: true, id: 'relayd', name: 'relayd', failOnError: true, sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
-                                 tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8')
+                    recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', failOnError: true, sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
+                                 tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
                 }
             }
         }
@@ -72,8 +72,8 @@ pipeline {
             post {
                 always {
                     // linters results
-                    recordIssues enabledForFailure: true, id: 'language', name: 'language', failOnError: true, sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
-                                 tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8')
+                    recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', failOnError: true, sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
+                                 tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
                 }
             }
         }
