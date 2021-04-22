@@ -20,11 +20,11 @@ pipeline {
             agent { label 'scala' }
             steps {
                 dir('webapp/sources') {
-                    sh 'rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh'
                     withMaven(maven: 'latest') {
-                        sh 'mvn clean install -Dmaven.test.postgres=false'
+                        sh script: 'mvn clean install -Dmaven.test.postgres=false', label: "Webapp tests"
                     }
                 }
+                sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "Hooks tests"
             }
             post {
                 always {
