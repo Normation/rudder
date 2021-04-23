@@ -37,7 +37,6 @@ if [ "$1" = "--shell" ]; then
   exit 0
 else
   # quick tests to be launched during merge
-  test_webapp_hooks
   test_rudder_pkg
   test_shell_error
   test_python_error
