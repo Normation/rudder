@@ -11,6 +11,7 @@ pipeline {
                 always {
                     // linters results
                     recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
+                                 qualityGates: [[threshold: 1, type: 'TOTAL_HIGH']]
                                  tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
                 }
             }
@@ -40,6 +41,7 @@ pipeline {
                 always {
                     // linters results
                     recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
+                                 qualityGates: [[threshold: 1, type: 'TOTAL_HIGH']]
                                  tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
                 }
             }
@@ -73,6 +75,7 @@ pipeline {
                 always {
                     // linters results
                     recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', failOnError: true, sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
+                                 qualityGates: [[threshold: 1, type: 'TOTAL_HIGH'], [threshold: 1, type: 'TOTAL_NORMAL']]
                                  tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
                 }
             }
@@ -88,6 +91,7 @@ pipeline {
                 always {
                     // linters results
                     recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', failOnError: true, sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
+                                 qualityGates: [[threshold: 1, type: 'TOTAL_HIGH'], [threshold: 1, type: 'TOTAL_NORMAL']]
                                  tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
                 }
             }
