@@ -40,8 +40,10 @@ build: version
 	RUSTFLAGS="--codegen link-arg=-Wl,--strip-all" cargo build --release
 
 lint: version
-	RUSTFLAGS="-D warnings" cargo check --all-targets --examples --tests
-	cargo clippy --all-targets --examples --tests
+	# to be sure clippy is actually run
+	touch src/lib.rs
+	mkdir -p target
+	cargo clippy --message-format json --all-targets --examples --tests > target/cargo-clippy.json
 
 check: lint
 	cargo test
@@ -56,9 +58,6 @@ veryclean: clean
 outdated:
 	# only check on our dependencies
 	cargo outdated --root-deps-only
-
-deps-update: update outdated
-	[ -d fuzz ] && cd fuzz && cargo update
 
 dev-env: build-env
 	rustup component add rustfmt

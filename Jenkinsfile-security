@@ -1,0 +1,49 @@
+// Check vulns in dependencies on repo branches
+
+pipeline {
+    agent none
+    triggers { cron('@daily') }
+
+    stages {
+        stage('deps-webapp') {
+            //when { not { changeRequest() } }
+            agent { label 'scala' }
+            steps {
+                dir('webapp/sources') {
+                    withMaven(options: [artifactsPublisher(disabled: true)]) {
+                        sh script: 'mvn -DfailBuildOnCVSS=11 -DcveValidForHours=100 org.owasp:dependency-check-maven:6.1.5:aggregate', label: "check webapp dependencies"
+                    }
+                }
+            }
+            post {
+                always {
+            		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html'
+                }
+            }
+        }
+        stage('deps-relayd') {
+            when { not { changeRequest() } }
+            agent { label 'rust' }
+            steps {
+                dir('relay/sources/relayd') {
+                    sh script: 'cargo deny check', label: 'check relayd dependencies'
+                }
+            }
+        }
+        stage('deps-language') {
+            when { not { changeRequest() } }
+            agent { label 'rust' }
+            steps {
+                dir('rudder-lang') {
+                    sh script: 'cargo deny check', label: 'check language dependencies'
+                }
+            }
+        }
+    }
+
+    post {
+        changed {
+            slackSend (color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+        }
+    }
+}

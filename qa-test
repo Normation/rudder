@@ -2,40 +2,41 @@
 
 set -ex
 
-##################
-### Slow tests ###
-##################
-if [ "$1" = "--relayd" ]; then
-  cd relay/sources && make check
+test_shell()
+{
+  mkdir -p .shellcheck
+  find . \( -path ./.git -prune -o -path ./rudder-lang/target -prune -o -path ./relay/sources/relayd/target -prune \) -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
+    while IFS="" read -r file
+    do
+      shellcheck --format=checkstyle "$file" > .shellcheck/$(basename ${file}).log || true
+    done
+}
+
+# fails on error and ignores other levels
+test_shell_error()
+{
+  # Shellcheck
+  find . \( -path ./.git -prune -o -path ./rudder-lang/target -prune -o -path ./relay/sources/relayd/target -prune \) -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
+    while IFS="" read -r file
+    do
+      # with recent shellcheck, "-S error" replaces this hack
+      shellcheck -f gcc "$file" | grep " error: " && exit 1 || true
+    done
+}
+
+# fails on error and ignores other levels
+test_python_error()
+{
+  find . ! -wholename '*rudder-lang/repos/*' ! -name 'convertOpenLDAPSchema.py' ! -name 'systemctl3.py' ! -wholename '*jsondiff/*' -name '*.py' | xargs pylint -E --persistent=n --disable=C,R,import-error,no-member,no-name-in-module
+}
+
+#####
+
+if [ "$1" = "--shell" ]; then
+  test_shell
   exit 0
-elif [ "$1" = "--language" ]; then
-  cd rudder-lang && make test
-  exit 0
-elif [ "$1" = "--scala" ]; then
-  cd webapp/sources && mvn clean install -Dmaven.test.postgres=false
-  exit 0
-elif [ "$1" = "--client" ]; then
-  cd agent/sources/client && make check
-  exit 0
+else
+  # quick tests to be launched during merge
+  test_shell_error
+  test_python_error
 fi
-
-###################
-### Quick tests ###
-###################
-webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh
-
-# Python linter
-export PYTHONPATH=./relay/sources/rudder-pkg/lib/rudder-pkg/:./relay/sources/rudder-pkg/lib:$PYTHONPATH
-find . ! -wholename '*rudder-lang/repos/*' ! -name 'convertOpenLDAPSchema.py' ! -name 'systemctl3.py' ! -wholename '*jsondiff/*' -name '*.py' | xargs pylint -E --persistent=n --disable=C,R,import-error,no-member,no-name-in-module
-pylint -E --persistent=n --disable=C,R,no-member relay/sources/rudder-pkg/rudder-pkg
-
-# Rudder-pkg check
-cd relay/sources/rudder-pkg/lib/rudder-pkg/tests && ./testall && cd -
-
-# Shellcheck
-find . \( -path ./.git -prune -o -path ./rudder-lang/target -prune -o -path ./rudder-lang/repos -prune -o -path ./relay/sources/relayd/target -prune \) -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
-  while IFS="" read -r file
-  do
-    # with recent shellcheck, "-S error" replaces this hack
-    shellcheck -f gcc "$file" | grep " error: " && exit 1 || true
-  done
