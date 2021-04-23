@@ -4,7 +4,7 @@
 .DEFAULT_GOAL := build
 SHELL := /bin/bash
 PATH := $(PATH):$(HOME)/.cargo/bin:$(PATH)
-DEBUGOPT:=$(shell make -v --debug=n >/dev/null2>&1 && echo --debug=n)
+DEBUGOPT:=$(shell make -v --debug=n >/dev/null 2>&1 && echo --debug=n)
 
 APT := apt update && apt install -y --no-install-recommends
 YUM := yum install -y 
@@ -40,8 +40,10 @@ build: version
 	RUSTFLAGS="--codegen link-arg=-Wl,--strip-all" cargo build --release
 
 lint: version
-	RUSTFLAGS="-D warnings" cargo check --all-targets --examples --tests
-	cargo clippy --all-targets --examples --tests
+	# to be sure clippy is actually run
+	touch src/lib.rs
+	mkdir -p target
+	cargo clippy --message-format json --all-targets --examples --tests > target/cargo-clippy.json
 
 check: lint
 	cargo test
@@ -60,9 +62,6 @@ veryclean: clean
 outdated:
 	# only check on our dependencies
 	cargo outdated --root-deps-only
-
-deps-update: update outdated
-	[ -d fuzz ] && cd fuzz && cargo update
 
 dev-env: build-env
 	rustup component add rustfmt
