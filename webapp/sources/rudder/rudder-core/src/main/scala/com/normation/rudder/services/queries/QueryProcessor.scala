@@ -39,7 +39,7 @@ package com.normation.rudder.services.queries
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import net.liftweb.common.Box
 
 trait QueryProcessor {
@@ -50,13 +50,13 @@ trait QueryProcessor {
    * @param select - attributes to fetch in the ldap entry. If empty, all attributes are fetched
    * @return
    */
-  def process(query:QueryTrait) : Box[Seq[NodeInfo]]
+  def process(query:Query) : Box[Seq[NodeInfo]]
 
   /**
    * Only get node ids corresponding to that request, with minimal consistency check.
    * This method is useful to maximize performance (low memory, high throughout) for ex for dynamic groups.
    */
-  def processOnlyId(query:QueryTrait) : Box[Seq[NodeId]]
+  def processOnlyId(query:Query) : Box[Seq[NodeId]]
 }
 
 
@@ -74,6 +74,6 @@ trait QueryChecker {
    *   Full(seq) with seq being the list of nodeId which verify
    *   query.
    */
-  def check(query:QueryTrait, nodeIds:Seq[NodeId]) : Box[Seq[NodeId]]
+  def check(query:Query, nodeIds:Seq[NodeId]) : Box[Seq[NodeId]]
 
 }

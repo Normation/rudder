@@ -165,7 +165,7 @@ class AcceptedNodesLDAPQueryProcessor(
    * @return
    */
   private[this] def queryAndChekNodeId(
-      query:QueryTrait,
+      query:Query,
       select:Seq[String],
       limitToNodeIds:Option[Seq[NodeId]]
   ) : Box[Seq[QueryResult]] = {
@@ -213,7 +213,7 @@ class AcceptedNodesLDAPQueryProcessor(
     }
   }
 
-  override def process(query:QueryTrait) : Box[Seq[NodeInfo]] = {
+  override def process(query:Query) : Box[Seq[NodeInfo]] = {
 
     //only keep the one of the form Full(...)
     queryAndChekNodeId(query, NodeInfoService.nodeInfoAttributes, None).map { seq => seq.flatMap {
@@ -227,7 +227,7 @@ class AcceptedNodesLDAPQueryProcessor(
     } }
   }
 
-  override def processOnlyId(query:QueryTrait) : Box[Seq[NodeId]] = {
+  override def processOnlyId(query:Query) : Box[Seq[NodeId]] = {
     //only keep the one of the form Full(...)
     queryAndChekNodeId(query, Seq(A_NODE_UUID), None).map { seq => seq.flatMap {
       case QueryResult(nodeEntry, _ , _) =>
@@ -250,7 +250,7 @@ class PendingNodesLDAPQueryChecker(
     val checker:InternalLDAPQueryProcessor
 ) extends QueryChecker {
 
-  override def check(query:QueryTrait, limitToNodeIds:Seq[NodeId]) : Box[Seq[NodeId]] = {
+  override def check(query:Query, limitToNodeIds:Seq[NodeId]) : Box[Seq[NodeId]] = {
     if(query.criteria.isEmpty) {
       LoggerFactory.getILoggerFactory.getLogger(Logger.loggerNameFor(classOf[InternalLDAPQueryProcessor])).debug(
         s"Checking a query with 0 criterium will always lead to 0 nodes: ${query}"
@@ -306,7 +306,7 @@ class InternalLDAPQueryProcessor(
    * implement process&check method
    */
   def internalQueryProcessor(
-      query         : QueryTrait
+      query         : Query
     , select        : Seq[String] = Seq()
     , limitToNodeIds: Option[Seq[NodeId]] = None
     , debugId       : Long = 0L
@@ -832,7 +832,7 @@ class InternalLDAPQueryProcessor(
    * After that point, we only know how to handle NODES, but
    * perhaps
    */
-  private def normalize(query:QueryTrait) : PureResult[LDAPNodeQuery] = {
+  private def normalize(query:Query) : PureResult[LDAPNodeQuery] = {
     sealed trait QueryFilter
     object QueryFilter {
       final case class Ldap    (dnType: DnType, objectType: String, filter: ExtendedFilter)                   extends QueryFilter
@@ -868,7 +868,7 @@ class InternalLDAPQueryProcessor(
       }
     }
 
-    def checkAndSplitFilterType(q: QueryTrait): PureResult[Seq[QueryFilter]] = {
+    def checkAndSplitFilterType(q: Query): PureResult[Seq[QueryFilter]] = {
       // Compute in one go all data for a filter, fails if one filter fails to build
       q.criteria.traverse { case crit@CriterionLine(ot, a, comp, value) =>
         // objectType may be overriden in the attribute (for node state).

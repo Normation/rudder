@@ -80,11 +80,11 @@ trait QueryLexer {
 }
 
 trait StringQueryParser {
-  def parse(query:StringQuery) : Box[QueryTrait]
+  def parse(query:StringQuery) : Box[Query]
 }
 
 trait CmdbQueryParser extends StringQueryParser with QueryLexer {
-  def apply(query:String) : Box[QueryTrait] = for {
+  def apply(query:String) : Box[Query] = for {
     sq <- lex(query)
     q <- parse(sq)
   } yield q
@@ -100,7 +100,7 @@ trait DefaultStringQueryParser extends StringQueryParser {
 
   def criterionObjects : Map[String,ObjectCriterion]
 
-  override def parse(query:StringQuery) : Box[QueryTrait] = {
+  override def parse(query:StringQuery) : Box[Query] = {
 
     for {
       comp  <- query.composition match {

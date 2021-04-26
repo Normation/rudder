@@ -99,7 +99,7 @@ import com.normation.inventory.domain.PublicKey
 import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.domain.nodes.InheritMode
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.services.policies.PropertyParser
 import com.normation.utils.DateFormaterService
@@ -166,7 +166,7 @@ final case class RestExtractorService (
     }
   }
 
-  private[this] def toQuery (value:String) : Box[QueryTrait] = {
+  private[this] def toQuery (value:String) : Box[Query] = {
     queryParser(value)
   }
 
@@ -1010,7 +1010,7 @@ final case class RestExtractorService (
     }
   }
 
-  def extractQuery (params : Map[String,List[String]]) : Box[Option[QueryTrait]] = {
+  def extractQuery (params : Map[String,List[String]]) : Box[Option[Query]] = {
     extractOneValue(params,"query")(toQuery) match {
       case Full(None) =>
         extractOneValue(params,CRITERIA)(toQueryCriterion) match {

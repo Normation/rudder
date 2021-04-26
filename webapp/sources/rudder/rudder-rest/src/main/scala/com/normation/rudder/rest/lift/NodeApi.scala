@@ -101,7 +101,7 @@ import com.normation.rudder.domain.nodes.NodePropertyHierarchy
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
@@ -1036,7 +1036,7 @@ class NodeApiService6 (
     }
   }
 
-  def queryNodes ( query: QueryTrait, state: InventoryStatus, detailLevel : NodeDetailLevel, version : ApiVersion)( implicit prettify : Boolean) = {
+  def queryNodes ( query: Query, state: InventoryStatus, detailLevel : NodeDetailLevel, version : ApiVersion)( implicit prettify : Boolean) = {
     implicit val action = s"list${state.name.capitalize}Nodes"
     ( for {
         nodeIds <-  acceptedNodeQueryProcessor.processOnlyId(query)

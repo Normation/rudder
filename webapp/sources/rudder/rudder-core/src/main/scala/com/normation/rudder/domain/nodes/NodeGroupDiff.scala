@@ -40,7 +40,7 @@ package com.normation.rudder.domain.nodes
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.policies.TriggerDeploymentDiff
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 
 /**
  * That file defines "diff" objects for NodeGroups (groups, etc).
@@ -71,7 +71,7 @@ final case class ModifyNodeGroupDiff(
   , modName       : Option[SimpleDiff[String]]              = None
   , modDescription: Option[SimpleDiff[String]]              = None
   , modProperties : Option[SimpleDiff[List[GroupProperty]]] = None
-  , modQuery      : Option[SimpleDiff[Option[QueryTrait]]]       = None
+  , modQuery      : Option[SimpleDiff[Option[Query]]]       = None
   , modIsDynamic  : Option[SimpleDiff[Boolean]]             = None
   , modNodeList   : Option[SimpleDiff[Set[NodeId]]]         = None
   , modIsActivated: Option[SimpleDiff[Boolean]]             = None

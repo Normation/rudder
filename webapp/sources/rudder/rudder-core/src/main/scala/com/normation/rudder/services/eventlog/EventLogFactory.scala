@@ -51,7 +51,7 @@ import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.marshalling._
 import net.liftweb.util.Helpers._
@@ -551,7 +551,7 @@ class EventLogFactoryImpl(
         <displayName>{modifyDiff.name}</displayName>{
           modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
           modifyDiff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x ) ) ++
-          modifyDiff.modQuery.map(x => SimpleDiff.toXml[Option[QueryTrait]](<query/>, x){ t =>
+          modifyDiff.modQuery.map(x => SimpleDiff.toXml[Option[Query]](<query/>, x){ t =>
             t match {
               case None => <none/>
               case Some(y) => Text(y.toJSONString)

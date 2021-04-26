@@ -62,7 +62,7 @@ import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.workflows.ChangeRequestInfo
 import com.typesafe.config.ConfigValue
 
@@ -209,7 +209,7 @@ final case class RestGroup(
     , name        : Option[String] = None
     , description : Option[String] = None
     , properties  : Option[List[GroupProperty]]
-    , query       : Option[QueryTrait] = None
+    , query       : Option[Query] = None
     , isDynamic   : Option[Boolean] = None
     , enabled     : Option[Boolean] = None
     , category    : Option[NodeGroupCategoryId] = None

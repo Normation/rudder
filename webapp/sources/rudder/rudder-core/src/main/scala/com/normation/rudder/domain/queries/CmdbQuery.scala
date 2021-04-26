@@ -951,7 +951,7 @@ object ResultTransformation {
 // This trait and the apply method are necessary to allow backward compatibilty in 6.2.5 for plugin scale-out relay due to changes to apply method in https://issues.rudder.io/issues/19138
 // This can be removed in 7.0, going back to a case class Query with 4 fields
 // The issue was that we added a new field to a case class and this breaks binary compatibility
-sealed trait QueryTrait {
+sealed trait Query {
   def  returnType : QueryReturnType  //"node" or "node and policy servers"
   def  composition: CriterionComposition
   def  criteria   : List[CriterionLine] //list of all criteria to be matched by returned values
@@ -990,7 +990,7 @@ sealed trait QueryTrait {
 
     override def equals(other:Any) : Boolean = {
       other match {
-        case a :  QueryTrait => //criteria order does not matter
+        case a :  Query => //criteria order does not matter
           this.returnType == a.returnType &&
           this.composition == a.composition &&
           this.transform == a.transform &&
@@ -1005,21 +1005,26 @@ sealed trait QueryTrait {
     override def hashCode() = returnType.hashCode * 17 + composition.hashCode * 3 + transform.hashCode * 11 + criteria.toSet.hashCode * 7
 }
 
-final case class Query(
+final case class OldQuery(
     returnType : QueryReturnType  //"node" or "node and policy servers"
   , composition: CriterionComposition
   , criteria   : List[CriterionLine] //list of all criteria to be matched by returned values
-) extends QueryTrait {
+) extends Query {
   override  def transform : ResultTransformation = ResultTransformation.Identity
 }
 
 object  Query {
   def apply (
-      returnType : QueryReturnType  //"node" or "node and policy servers"
+    returnType : QueryReturnType  //"node" or "node and policy servers"
     , composition: CriterionComposition
     , transform  : ResultTransformation
     , criteria   : List[CriterionLine] //list of all criteria to be matched by returned values
   ) : NewQuery = NewQuery(returnType, composition, transform, criteria)
+  def apply (
+    returnType : QueryReturnType  //"node" or "node and policy servers"
+    , composition: CriterionComposition
+    , criteria   : List[CriterionLine] //list of all criteria to be matched by returned values
+  ) : OldQuery = OldQuery(returnType, composition, criteria)
 }
 
 final case class NewQuery(
@@ -1027,4 +1032,4 @@ final case class NewQuery(
   , composition: CriterionComposition
   , transform  : ResultTransformation
   , criteria   : List[CriterionLine] //list of all criteria to be matched by returned values
-) extends QueryTrait
+) extends Query

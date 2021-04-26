@@ -40,7 +40,7 @@ package com.normation.rudder.domain.nodes
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionLine
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.SubGroupComparator
 
 /**
@@ -70,7 +70,7 @@ object NodeGroup {
   /*
    * Check the query part of subgroupiness.
    */
-  def isSubqueryQuery(subgroup: QueryTrait, group: QueryTrait, groupId: NodeGroupId): Boolean = {
+  def isSubqueryQuery(subgroup: Query, group: Query, groupId: NodeGroupId): Boolean = {
     // you need to refined query to be a subgroup
     (subgroup.composition == And) &&
     // not sure about that one: it seems that they should have the same type,
@@ -106,7 +106,7 @@ final case class NodeGroup(
   , name       : String
   , description: String
   , properties : List[GroupProperty]
-  , query      : Option[QueryTrait]
+  , query      : Option[Query]
   , isDynamic  : Boolean = true
   , serverList : Set[NodeId]
   , _isEnabled : Boolean

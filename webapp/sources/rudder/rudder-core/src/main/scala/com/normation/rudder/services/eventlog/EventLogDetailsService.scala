@@ -73,7 +73,7 @@ import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import com.typesafe.config.ConfigValue
 
 /**
@@ -450,7 +450,7 @@ class EventLogDetailsServiceImpl(
       displayName     <- (group \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry)
       name            <- getFromToString((group \ "name").headOption)
       description     <- getFromToString((group \ "description").headOption)
-      query           <- getFromTo[Option[QueryTrait]]((group \ "query").headOption, {s =>
+      query           <- getFromTo[Option[Query]]((group \ "query").headOption, {s =>
                           //check for <from><none></none></from> or the same with <to>, <none/>, etc
                           if( (s \ "none").isEmpty) cmdbQueryParser(s.text).map( Some(_) )
                           else Full(None)

@@ -67,8 +67,8 @@ import com.normation.errors._
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.queries.NewQuery
+import com.normation.rudder.domain.queries.OldQuery
 import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.domain.queries.QueryTrait
 
 /**
  * A service used to manage dynamic groups : find
@@ -184,7 +184,7 @@ class DynGroupServiceImpl(
 
 object CheckPendingNodeInDynGroups {
 
-  final case class DynGroup(id: NodeGroupId, dependencies: Set[NodeGroupId], testNodes: Set[NodeId], query: QueryTrait, includeNodes: Set[NodeId])
+  final case class DynGroup(id: NodeGroupId, dependencies: Set[NodeGroupId], testNodes: Set[NodeId], query: Query, includeNodes: Set[NodeId])
 
   // for debuging message
   implicit class DynGroupsToString(val gs: List[(NodeGroupId, Set[NodeId])]) extends AnyVal {
@@ -344,7 +344,7 @@ class CheckPendingNodeInDynGroups(
               (g, next :: q)
             }
           }
-          DynGroup(g.id, dep, nodeIds, query match {case q : Query => q.copy(criteria = criteria); case q : NewQuery => q.copy(criteria = criteria)}, Set())
+          DynGroup(g.id, dep, nodeIds, query match {case q : OldQuery => q.copy(criteria = criteria); case q : NewQuery => q.copy(criteria = criteria)}, Set())
         }
       } else {
         None
