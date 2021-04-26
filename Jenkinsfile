@@ -91,7 +91,6 @@ pipeline {
                 always {
                     // linters results
                     recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', failOnError: true, sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
-                                 qualityGates: [[threshold: 1, type: 'TOTAL_HIGH', unstable: true], [threshold: 1, type: 'TOTAL_NORMAL', unstable: true]]
                                  tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
                 }
             }
