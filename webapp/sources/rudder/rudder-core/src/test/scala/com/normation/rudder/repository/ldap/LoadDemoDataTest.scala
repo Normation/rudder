@@ -62,12 +62,14 @@ class LoadDemoDataTest extends Specification {
       "099-1-rudder"  ::
       Nil
   ) map { name =>
-    this.getClass.getClassLoader.getResource("ldap-data/schema/" + name + ".ldif").getPath
+    // toURI is needed for https://issues.rudder.io/issues/19186
+    this.getClass.getClassLoader.getResource("ldap-data/schema/" + name + ".ldif").toURI.getPath
   }
 
   val baseDN = "cn=rudder-configuration"
   val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
-    this.getClass.getClassLoader.getResource(name).getPath
+    // toURI is needed for https://issues.rudder.io/issues/19186
+    this.getClass.getClassLoader.getResource(name).toURI.getPath
   }
 
 

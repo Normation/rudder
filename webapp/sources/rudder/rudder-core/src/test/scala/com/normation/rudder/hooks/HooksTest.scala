@@ -81,6 +81,9 @@ class HooksTest() extends Specification with AfterAll {
     }
   }
 
+  // there is a lot of error/Warning level log in these tests, so we are disabling them. Reenable by changing level to debug
+  org.slf4j.LoggerFactory.getLogger("hooks").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
+
   "A successful hook should be a success" >> {
     val res = runHooks(List("success.sh"), Nil)
     res must beEqualTo(Ok("",""))

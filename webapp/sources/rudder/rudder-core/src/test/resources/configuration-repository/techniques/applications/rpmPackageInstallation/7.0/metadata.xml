@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
   It will ensure that the defined packages are installed, up-to-date or removed using the yum/zypper package manager.</DESCRIPTION>
 
-  <DEPRECATED>This technique is deprecated, use "Package Management" instead.</DEPRECATED>  
+  <DEPRECATED>This technique is deprecated, use "Package Management" instead.</DEPRECATED>
   <MULTIINSTANCE>true</MULTIINSTANCE>
   <COMPATIBLE>
     <OS version=">= 4 (Nahant)">RHEL / CentOS</OS>
@@ -42,7 +42,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   <TRACKINGVARIABLE>
     <SAMESIZEAS>RPM_PACKAGE_REDLIST</SAMESIZEAS>
   </TRACKINGVARIABLE>
-  
+
   <SECTIONS>
     <SECTION name="ZMD process" component="true" />
     <SECTION name="Check interval" component="false">
@@ -50,7 +50,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <NAME>RPM_PACKAGE_CHECK_INTERVAL</NAME>
         <DESCRIPTION>Check package statuses every (minutes)</DESCRIPTION>
         <LONGDESCRIPTION>By default, check packages every 5 minutes. Increase this value to reduce load on managed nodes. Note that when any setting is changed for a host, package statuses will be checked immediately and this timer will be reset</LONGDESCRIPTION>
-        <UNIQUEVARIABLE>true</UNIQUEVARIABLE>
         <CONSTRAINT>
           <DEFAULT>5</DEFAULT>
           <TYPE>integer</TYPE>
@@ -143,7 +142,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       </SECTION>
       <SECTION name="Post-modification hook" component="true" componentKey="RPM_PACKAGE_REDLIST">
         <INPUT>
-          <NAME>RPM_PACKAGE_POST_HOOK_RUN</NAME> 
+          <NAME>RPM_PACKAGE_POST_HOOK_RUN</NAME>
           <DESCRIPTION>Should the command(s) below be run if the above package has been modified?</DESCRIPTION>
           <CONSTRAINT>
             <TYPE>boolean</TYPE>
@@ -162,4 +161,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     </SECTION>
   </SECTIONS>
 
-</TECHNIQUE>       
+</TECHNIQUE>

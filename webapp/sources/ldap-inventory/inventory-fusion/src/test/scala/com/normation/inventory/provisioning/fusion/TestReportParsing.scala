@@ -75,10 +75,15 @@ class TestReportParsing extends Specification with Loggable {
   val parser = new FusionReportUnmarshaller(new StringUuidGeneratorImpl)
   def parseRun(report: String) = ZioRuntime.unsafeRun(parser.parse(report))
 
+  // we are testing some error etc, so make the standard output cleaner:
+  org.slf4j.LoggerFactory.getLogger("inventory-processing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
+
+
   "All inventories in the fusion-report directory" should {
     "be correctly parsed and give a non generic OS type" in {
 
-      val dir = new File(this.getClass.getClassLoader.getResource("fusion-report").getFile)
+      // toURI is needed for https://issues.rudder.io/issues/19186
+      val dir = new File(this.getClass.getClassLoader.getResource("fusion-report").toURI.getPath)
       val fileNames = dir.listFiles().collect { case f if(f.getName.endsWith(".ocs") || f.getName.endsWith(".xml")) => f.getName }.toList
 
       fileNames must contain { (f:String) =>

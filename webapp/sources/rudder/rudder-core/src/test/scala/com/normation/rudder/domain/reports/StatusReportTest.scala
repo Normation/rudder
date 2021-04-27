@@ -38,6 +38,7 @@
 package com.normation.rudder.domain.reports
 
 import com.github.ghik.silencer.silent
+
 import scala.io.Source
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
@@ -265,6 +266,10 @@ class StatusReportTest extends Specification {
 
     "performance for compute ReportType" should {
 
+      val logger = org.slf4j.LoggerFactory.getLogger("performance-test").asInstanceOf[ch.qos.logback.classic.Logger]
+      // you can look at individual results by setting log level to "TRACE" here:
+      logger.setLevel(ch.qos.logback.classic.Level.OFF)
+
       val nbSet = 90
       val sizeSet = 100
 
@@ -290,10 +295,10 @@ class StatusReportTest extends Specification {
           val t0_0 = System.nanoTime
           initData.map(x => ComplianceLevel.compute(x._2))
           val t1_1 = System.nanoTime
-          println(s"${i}th call to compute for ${nbSet} sets took ${(t1_1-t0_0)/1000} µs")
+          logger.trace(s"${i}th call to compute for ${nbSet} sets took ${(t1_1-t0_0)/1000} µs")
         }
         val t1 = System.nanoTime
-        println(s"Time to run test is ${(t1-t0)/1000} µs")
+        logger.debug(s"Time to run test is ${(t1-t0)/1000} µs")
         ((t1-t0) must be lessThan( 200000*1000 )).when(runTest) // tests show 60030µs
       }
 
@@ -309,10 +314,10 @@ class StatusReportTest extends Specification {
           @silent // remove unused
           val  result = ComplianceLevel.sum(source)
           val t1_1 = System.nanoTime
-          println(s"${i}th call to sum for ${nbSet} sets took ${(t1_1-t0_0)/1000} µs")
+          logger.trace(s"${i}th call to sum for ${nbSet} sets took ${(t1_1-t0_0)/1000} µs")
         }
         val t1 = System.nanoTime
-        println(s"Time to run test for sum is ${(t1-t0)/1000} µs")
+        logger.debug(s"Time to run test for sum is ${(t1-t0)/1000} µs")
         ((t1-t0) must be lessThan( 50000*1000 )).when(runTest)  // tests show 3159µs on recent XPS but 30795 µs on XPS 15 9650
       }
     }

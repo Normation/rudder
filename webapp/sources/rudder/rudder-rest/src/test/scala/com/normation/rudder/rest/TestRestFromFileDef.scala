@@ -82,6 +82,8 @@ final case class TestRequest(
 @RunWith(classOf[JUnitRunner])
 class TestRestFromFileDef extends Specification with Loggable {
 
+
+
   //read all file in src/test/resources/api.
   //each file is a new test
 
@@ -120,6 +122,9 @@ class TestRestFromFileDef extends Specification with Loggable {
       )
     }
   }
+
+  // we are testing error cases, so we don't want to output error log for them
+  org.slf4j.LoggerFactory.getLogger("com.normation.rudder.rest.RestUtils").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
 
   sequential
 

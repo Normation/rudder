@@ -55,12 +55,8 @@ class LDAPTreeTest extends Specification {
 
     }
 
-    println("tree: " + tree)
     tree.c1children.addChild(LDAPTree(LDAPEntry(dn3)))
-
-    println("add1 " + tree.toLDIFString())
     tree.c1children.addChild(LDAPTree(LDAPEntry(dn3)))
-    println("add2 " + tree.toLDIFString())
 
     "have the correct dn" in {
       dn1 must beEqualTo(tree.root.dn) and (
