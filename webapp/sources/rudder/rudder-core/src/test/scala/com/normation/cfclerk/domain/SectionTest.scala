@@ -48,6 +48,11 @@ import scala.xml._
 
 @RunWith(classOf[JUnitRunner])
 class SectionTest extends Specification {
+
+
+  // we are testing error cases, so we don't want to output error log for them
+  org.slf4j.LoggerFactory.getLogger("com.normation.cfclerk.xmlparsers").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
+
   val doc = readFile("testSections.xml")
   def sectionsTag(example:String) = (doc \\ "examples" \ example \ "SECTIONS").head
 

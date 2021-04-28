@@ -74,6 +74,11 @@ import scala.concurrent.duration._
 @RunWith(classOf[JUnitRunner])
 class TestBuildNodeConfiguration extends Specification {
 
+  // a logger for timing information
+  val logger = org.slf4j.LoggerFactory.getLogger("timing-test").asInstanceOf[ch.qos.logback.classic.Logger]
+  // set to trace to see timing
+  logger.setLevel(ch.qos.logback.classic.Level.OFF)
+
   sequential
 
   val t0 = System.currentTimeMillis()
@@ -81,7 +86,7 @@ class TestBuildNodeConfiguration extends Specification {
   import NodeConfigData._
   val data = new TestNodeConfiguration()
   val t0_1 = System.currentTimeMillis()
-  println(s"Test node configuration   : ${t0_1-t0} ms")
+  logger.trace(s"Test node configuration   : ${t0_1-t0} ms")
 
   def newNode(i: Int) = node1.copy(node = node1Node.copy(id = NodeId("node"+i), name = "node"+ i), hostname = s"node$i.localhost")
 
@@ -125,14 +130,15 @@ class TestBuildNodeConfiguration extends Specification {
   val jsTimeout                 = FiniteDuration(5, "minutes")
   val generationContinueOnError = false
 
-  org.slf4j.LoggerFactory.getLogger("policy.generation.timing.buildNodeConfig").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+  // you can debug detail timing by setting "TRACE" level below:
+  org.slf4j.LoggerFactory.getLogger("policy.generation").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
 
   "build node configuration" in {
 
-    println(s"init   : ${System.currentTimeMillis-t0} ms")
+    logger.trace(s"init   : ${System.currentTimeMillis-t0} ms")
 
     for(i <- 0 until 10) {
-      println("\n--------------------------------")
+      logger.trace("\n--------------------------------")
       val t1 = System.currentTimeMillis()
       val ruleVal = ruleValService.buildRuleVal(rule, directiveLib, groupLib, allNodes)
       val ruleVals = Seq(ruleVal.getOrElse(throw new RuntimeException("oups")))
@@ -142,9 +148,9 @@ class TestBuildNodeConfiguration extends Specification {
       BuildNodeConfiguration.buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts.ok, allNodeModes, scriptEngineEnabled, globalPolicyMode, maxParallelism, jsTimeout, generationContinueOnError)
       val t4 = System.currentTimeMillis()
 
-      println(s"ruleval: ${t2-t1} ms")
-      println(s"context: ${t3-t2} ms")
-      println(s"config : ${t4-t3} ms")
+      logger.trace(s"ruleval: ${t2-t1} ms")
+      logger.trace(s"context: ${t3-t2} ms")
+      logger.trace(s"config : ${t4-t3} ms")
     }
     true === true
   }
@@ -161,7 +167,7 @@ class TestBuildNodeConfiguration extends Specification {
 //  def main(args: Array[String]): Unit = {
 //
 //    def nano = UIO.effectTotal(System.nanoTime)
-//    def log(s: String, t1: Long, t2: Long) = UIO.effectTotal(println(s + s"${(t2-t1)/1000} µs"))
+//    def log(s: String, t1: Long, t2: Long) = UIO.effectTotal(logger.trace(s + s"${(t2-t1)/1000} µs"))
 //
 //    val count = 0 until 1
 //    val prog =
@@ -179,7 +185,7 @@ class TestBuildNodeConfiguration extends Specification {
 //                }
 //        t4   <- nano
 //        _    <- log(s"external $j : ", t1, t4)
-//        _    <- ref.get.flatMap(t => UIO.effectTotal(println(s"inner sum $j: ${t/1000} µs")))
+//        _    <- ref.get.flatMap(t => UIO.effectTotal(logger.trace(s"inner sum $j: ${t/1000} µs")))
 //      } yield ()
 //    }
 //    ZioRuntime.unsafeRun(prog)

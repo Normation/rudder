@@ -130,6 +130,12 @@ import com.normation.zio._
  */
 object NodeConfigData {
 
+  // a logger for timing information
+  val logger = org.slf4j.LoggerFactory.getLogger("timing-test").asInstanceOf[ch.qos.logback.classic.Logger]
+  // set to trace to see timing
+  logger.setLevel(ch.qos.logback.classic.Level.OFF)
+
+
   //a valid, not used pub key
   //cfengine key hash is: 081cf3aac62624ebbc83be7e23cb104d
   val PUBKEY =
@@ -496,19 +502,19 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
 
   val EXPECTED_SHARE = configurationRepositoryRoot/"expected-share"
   val t1 = System.currentTimeMillis()
-  println(s"Paths inits             : ${t1-t0} ms")
+  NodeConfigData.logger.trace(s"Paths inits             : ${t1-t0} ms")
 
   val repo = GitRepositoryProviderImpl.make(configurationRepositoryRoot.getAbsolutePath).runNow
   val t2 = System.currentTimeMillis()
-  println(s"Git repo provider       : ${t2-t1} ms")
+  NodeConfigData.logger.trace(s"Git repo provider       : ${t2-t1} ms")
 
 
   val variableSpecParser = new VariableSpecParser
   val t2bis = System.currentTimeMillis()
-  println(s"var Spec Parser        : ${t2bis-t2} ms")
+  NodeConfigData.logger.trace(s"var Spec Parser        : ${t2bis-t2} ms")
   val systemVariableServiceSpec = new SystemVariableSpecServiceImpl()
   val t3 = System.currentTimeMillis()
-  println(s"System Var Spec service : ${t3-t2bis} ms")
+  NodeConfigData.logger.trace(s"System Var Spec service : ${t3-t2bis} ms")
 
   val draftParser: TechniqueParser = new TechniqueParser(
       variableSpecParser
@@ -516,7 +522,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
     , systemVariableServiceSpec
   )
   val t4 = System.currentTimeMillis()
-  println(s"Technique parser        : ${t4-t3} ms")
+  NodeConfigData.logger.trace(s"Technique parser        : ${t4-t3} ms")
 
   val reader = new GitTechniqueReader(
                 draftParser
@@ -528,11 +534,11 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
               , "default-directive-names.conf"
             )
   val t5 = System.currentTimeMillis()
-  println(s"Git tech reader         : ${t5-t4} ms")
+  NodeConfigData.logger.trace(s"Git tech reader         : ${t5-t4} ms")
 
   val techniqueRepository = new TechniqueRepositoryImpl(reader, Seq(), new StringUuidGeneratorImpl())
   val t6 = System.currentTimeMillis()
-  println(s"Technique repository    : ${t6-t5} ms")
+  NodeConfigData.logger.trace(s"Technique repository    : ${t6-t5} ms")
 
   val draftServerManagement = new PolicyServerManagementService() {
     override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) = ???
@@ -541,7 +547,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
     override def updateAuthorizedNetworks(policyServerId: NodeId, addNetworks: Seq[String], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor): Box[Seq[String]] = ???
   }
   val t7 = System.currentTimeMillis()
-  println(s"Policy Server Management: ${t7-t6} ms")
+  NodeConfigData.logger.trace(s"Policy Server Management: ${t7-t6} ms")
 
   val systemVariableService = new SystemVariableServiceImpl(
       systemVariableServiceSpec
@@ -583,7 +589,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
   )
 
   val t8 = System.currentTimeMillis()
-  println(s"System variable Service: ${t8-t7} ms")
+  NodeConfigData.logger.trace(s"System variable Service: ${t8-t7} ms")
 
   //a test node - CFEngine
   val nodeId = NodeId("c8813416-316f-4307-9b6a-ca9c109a9fb0")
@@ -653,7 +659,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
   val globalSystemVariables = systemVariableService.getGlobalSystemVariables(globalAgentRun).openOrThrowException("I should get global system variable in test!")
 
   val t9 = System.currentTimeMillis()
-  println(s"Nodes & groupes         : ${t9-t8} ms")
+  NodeConfigData.logger.trace(s"Nodes & groupes         : ${t9-t8} ms")
 
 
   //
@@ -1059,7 +1065,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
   }
 
   val t10 = System.currentTimeMillis()
-  println(s"Get techniques & directives: ${t10-t9} ms")
+  NodeConfigData.logger.trace(s"Get techniques & directives: ${t10-t9} ms")
 
 
 

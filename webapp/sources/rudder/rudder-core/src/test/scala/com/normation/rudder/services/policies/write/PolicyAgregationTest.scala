@@ -60,6 +60,10 @@ class PolicyAgregationTest extends Specification {
   implicit def str2pId(id: String) = TechniqueId(TechniqueName(id), TechniqueVersion("1.0"))
   implicit def str2PolicyId(id: String) = PolicyId(RuleId("r_"+id), DirectiveId("d_"+id), TechniqueVersion("1.0"))
 
+
+  // we are testing error cases, so we don't want to output error log for them
+  org.slf4j.LoggerFactory.getLogger("policy-generation").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
+
   def compareValues(expected: Seq[(String, String)], actual1: Seq[String], actual2: Seq[String]) = {
     val actual = actual1.zip(actual2)
 

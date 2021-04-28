@@ -90,14 +90,16 @@ class TestInventory extends Specification {
     if(null == r) {
       throw new IllegalArgumentException("Can not find ressources to load: " + n)
     }
-    r.getPath()
+    // toURI is needed for https://issues.rudder.io/issues/19186
+    r.toURI.getPath()
   }
 
   val baseDN = "cn=rudder-configuration"
 
 
   val bootstrapLDIFs = ("ldap-data/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
-    this.getClass.getClassLoader.getResource(name).getPath
+    // toURI is needed for https://issues.rudder.io/issues/19186
+    this.getClass.getClassLoader.getResource(name).toURI.getPath
   }
 
   val ldap = InMemoryDsConnectionProvider[RwLDAPConnection](

@@ -62,6 +62,9 @@ class TestFileHistoryLogRepository {
     def runNow = ZioRuntime.unsafeRun(thing.either)
   }
 
+  // you can debug detail by setting "TRACE" level below:
+  org.slf4j.LoggerFactory.getLogger("inventory-processing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.WARN)
+
   @Test def basicTest: Unit = {
     val id1 = "data1"
     assertEquals(Right(List()), repos.getIds.map(_.toList).runNow)

@@ -78,10 +78,12 @@ class TestQueryProcessor extends Loggable {
       "099-1-rudder"  ::
       Nil
   ) map { name =>
-    this.getClass.getClassLoader.getResource("ldap-data/schema/" + name + ".ldif").getPath
+    // toURI is needed for https://issues.rudder.io/issues/19186
+    this.getClass.getClassLoader.getResource("ldap-data/schema/" + name + ".ldif").toURI.getPath
   }
   val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
-     this.getClass.getClassLoader.getResource(name).getPath
+     // toURI is needed for https://issues.rudder.io/issues/19186
+     this.getClass.getClassLoader.getResource(name).toURI.getPath
   }
   val ldap = InMemoryDsConnectionProvider[RoLDAPConnection](
       baseDNs = "cn=rudder-configuration" :: Nil

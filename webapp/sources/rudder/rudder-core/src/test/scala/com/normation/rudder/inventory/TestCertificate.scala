@@ -68,6 +68,9 @@ import zio.syntax._
 class TestCertificate extends Specification with Loggable {
   Security.addProvider(new BouncyCastleProvider())
 
+  // we are testing error cases, so we don't want to output error log for them
+  org.slf4j.LoggerFactory.getLogger("inventory-processing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
+
   val repository = scala.collection.mutable.Map[NodeId, FullInventory]()
 
   // our callback logic to wait for save done

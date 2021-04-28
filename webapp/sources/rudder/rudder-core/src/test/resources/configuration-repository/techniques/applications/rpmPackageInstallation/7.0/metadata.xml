@@ -45,7 +45,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <NAME>RPM_PACKAGE_CHECK_INTERVAL</NAME>
         <DESCRIPTION>Check package statuses every (minutes)</DESCRIPTION>
         <LONGDESCRIPTION>By default, check packages every 5 minutes. Increase this value to reduce load on managed nodes. Note that when any setting is changed for a host, package statuses will be checked immediately and this timer will be reset</LONGDESCRIPTION>
-        <UNIQUEVARIABLE>true</UNIQUEVARIABLE>
         <CONSTRAINT>
           <DEFAULT>5</DEFAULT>
           <TYPE>integer</TYPE>
