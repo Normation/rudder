@@ -54,7 +54,8 @@ class CheckNormationOidTest extends Specification {
 
   val regex = """.*objectIdentifier NormationOID 1.3.6.1.4.1.35061.*""".r
 
-  val rudderSchemaFile = this.getClass.getClassLoader.getResource("ldap/rudder.schema").getPath
+  // toURI is needed for https://issues.rudder.io/issues/19186
+  val rudderSchemaFile = this.getClass.getClassLoader.getResource("ldap/rudder.schema").toURI.getPath
 
   "Normation OID" should {
 

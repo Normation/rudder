@@ -63,6 +63,13 @@ class ExecutionBatchTest extends Specification {
   private implicit def str2ruleId(s:String) = RuleId(s)
   private implicit def str2nodeId(s:String) = NodeId(s)
 
+  // a logger for timing information
+  val logger = org.slf4j.LoggerFactory.getLogger("timing-test").asInstanceOf[ch.qos.logback.classic.Logger]
+  // set to trace to see timing
+  logger.setLevel(ch.qos.logback.classic.Level.OFF)
+  // also disable executionbatch since we are testing error cases:
+  org.slf4j.LoggerFactory.getLogger("com.normation.rudder.services.reports.ExecutionBatch").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
+
   import ReportType._
 
   val strictUnexpectedInterpretation = UnexpectedReportInterpretation(Set())
@@ -1138,10 +1145,10 @@ class ExecutionBatchTest extends Specification {
         val t0_0 = System.currentTimeMillis
         runData.map(x => (ExecutionBatch.mergeCompareByRule _).tupled(x))
         val t1_1 = System.currentTimeMillis
-        println(s"${i}th call to mergeCompareByRule for ${nodeList.size} nodes took ${t1_1-t0_0}ms")
+        logger.trace(s"${i}th call to mergeCompareByRule for ${nodeList.size} nodes took ${t1_1-t0_0}ms")
       }
       val t1 = System.currentTimeMillis
-      println(s"Time to run test is ${t1-t0} ms")
+      logger.debug(s"Time to run test is ${t1-t0} ms")
       (t1-t0) must be lessThan( 50000 ) // On my Dell XPS15, this test runs in 7500-8500 ms
     }
   }

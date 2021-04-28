@@ -260,8 +260,8 @@ class WriteSystemTechniquesTest extends TechniquesTest{
   val parallelism = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors()/2)
 
   // uncomment to have timing information
-  org.slf4j.LoggerFactory.getLogger("policy.generation").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.DEBUG)
-  org.slf4j.LoggerFactory.getLogger("policy.generation.timing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+  org.slf4j.LoggerFactory.getLogger("policy.generation").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
+  //org.slf4j.LoggerFactory.getLogger("policy.generation.timing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
   PolicyGenerationLogger.debug(s"Max parallelism: ${parallelism}")
 
