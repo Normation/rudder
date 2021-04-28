@@ -216,6 +216,7 @@ export CFENGINE_TEST_OVERRIDE_WORKDIR TEMP NCF_TREE PYTHONPATH
       if [ $RETVAL -eq 0 ] && echo "$OUT" | grep -q -F -e "R: $TEST Pass"; then
         RESULT=Pass
       else
+        echo "$OUT"
         RESULT=FAIL
       fi
     else
