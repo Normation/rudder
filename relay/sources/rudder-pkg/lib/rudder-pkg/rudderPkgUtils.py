@@ -350,6 +350,9 @@ def rpkg_metadata(package_file):
   return json.loads(output)
 
 def install_dependencies(metadata):
+  dependencyToCheck = False
+  packageManagerQueried = False
+
   # not supported yet
   has_depends = False
   depends_printed = False
@@ -361,8 +364,6 @@ def install_dependencies(metadata):
             logger.warning("The binary " + executable + " was not found on the system, you must install it before installing " + metadata['name'])
             return False
       else:
-        dependencyToCheck = False
-        packageManagerQueried = False
         try:
           if system == "rpm":
             dependencyToCheck = True
@@ -389,14 +390,15 @@ def install_dependencies(metadata):
         except Exception:
           logger.error("Could not query rpm or apt package repository to check dependencies for this plugin.")
 
-        # dependency check failed
-        if dependencyToCheck and not packageManagerQueried:
-          logger.warning("Neither rpm nor apt could be queried successfully - cannot check the dependencies for this plugin.")
-
         if not depends_printed:
           logger.info("This package depends on the following")
           depends_printed = True
         logger.info("  on " + system + " : " + ", ".join(metadata["depends"][system]))
+
+        # dependency check failed
+    if dependencyToCheck and not packageManagerQueried:
+       logger.warning("Neither rpm nor apt could be queried successfully - cannot check the dependencies for this plugin.")
+
     if has_depends:
       logger.info("It is up to you to make sure those dependencies are installed")
   return True
