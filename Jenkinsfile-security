@@ -1,3 +1,6 @@
+@Library('slack-notification')
+import org.gradiant.jenkins.slack.SlackNotifier
+
 // Check vulns in dependencies on repo branches
 
 pipeline {
@@ -18,6 +21,9 @@ pipeline {
             post {
                 always {
             		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html'
+                    script {
+                        new SlackNotifier().notifyResult("scala-team")
+                    }
                 }
             }
         }
@@ -29,6 +35,13 @@ pipeline {
                     sh script: 'cargo deny check', label: 'check relayd dependencies'
                 }
             }
+            post {
+                always {
+                    script {
+                        new SlackNotifier().notifyResult("rust-team")
+                    }
+                }
+            }
         }
         stage('deps-language') {
             when { not { changeRequest() } }
@@ -38,12 +51,13 @@ pipeline {
                     sh script: 'cargo deny check', label: 'check language dependencies'
                 }
             }
-        }
-    }
-
-    post {
-        changed {
-            slackSend (color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+            post {
+                always {
+                    script {
+                        new SlackNotifier().notifyResult("rust-team")
+                    }
+                }
+            }
         }
     }
 }
