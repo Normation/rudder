@@ -30,6 +30,9 @@ pipeline {
         stage('deps-relayd') {
             when { not { changeRequest() } }
             agent { label 'rust' }
+            environment {
+                PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
+            }
             steps {
                 dir('relay/sources/relayd') {
                     sh script: 'cargo deny check', label: 'check relayd dependencies'
@@ -46,6 +49,9 @@ pipeline {
         stage('deps-language') {
             when { not { changeRequest() } }
             agent { label 'rust' }
+            environment {
+                PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
+            }
             steps {
                 dir('rudder-lang') {
                     sh script: 'cargo deny check', label: 'check language dependencies'
