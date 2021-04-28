@@ -3,6 +3,7 @@
 
 use std::{thread, time};
 
+#[allow(clippy::result_unit_err)]
 pub fn start_api() -> Result<(), ()> {
     let mut retry = 10;
     while retry > 0 {

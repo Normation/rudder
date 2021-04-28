@@ -53,6 +53,7 @@ pub fn check_prometheus(metrics: &str, mut expected: HashMap<&str, &str>) -> boo
 
 // Checks number of start execution reports
 // (so number of runlogs if everything goes well)
+#[allow(clippy::result_unit_err)]
 pub fn start_number(db: &PgConnection, expected: usize) -> Result<(), ()> {
     let mut retry = 10;
     while retry > 0 {

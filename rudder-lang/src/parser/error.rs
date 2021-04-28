@@ -106,7 +106,7 @@ where
             PErrorKind::Nom(_) => other,
             _ => match (&self.context, &other.context) {
                 (Some(first), Some(sec)) => {
-                    if first.text.offset(&sec.text) < 0 {
+                    if first.text.offset(&sec.text) == 0 {
                         return other;
                     }
                     self

@@ -354,7 +354,7 @@ impl MethodCall {
             static ref CONDITION_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
             static ref ANY_RE: Regex = Regex::new(r"(any\.)").unwrap();
             static ref CONDITION_FROM_RE: Regex =
-                Regex::new(r"any\.\((\w*)_\${report_data\.canonified_directive_id}_(true|false)")
+                Regex::new(r"any\.\((\w*)_\$\{report_data\.canonified_directive_id\}_(true|false)")
                     .unwrap();
         }
         // remove `any.` from condition

@@ -69,7 +69,7 @@ fn compile_file(
     format: &Format,
 ) -> Result<(), String> {
     let (input, input_content) = io::get_content(&Some(source.to_path_buf()))
-        .expect(&format!("Could not get content from '{:?}'", source));
+        .unwrap_or_else(|_| panic!("Could not get content from '{:?}'", source));
     let io = rudderc::io::IOContext {
         stdlib: PathBuf::from("libs/"),
         input,

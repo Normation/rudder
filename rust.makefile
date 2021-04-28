@@ -62,7 +62,7 @@ lint: version
 	# to be sure clippy is actually run
 	touch src/lib.rs
 	mkdir -p target
-	cargo clippy --message-format json --all-targets --examples --tests > target/cargo-clippy.json
+	cargo clippy --message-format json --all-targets --examples --tests -- --deny warnings > target/cargo-clippy.json
 
 check: lint
 	cargo test
