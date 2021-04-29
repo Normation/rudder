@@ -22,7 +22,7 @@
     _rudder_common_report_na -componentName "Command execution" -componentKey "Write-Host `"testing special characters ` è &é 'à é `"" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
   }
 
-  $class = "package_install_version_$($node.properties[apache_package_name])_repaired"
+  $class = "package_install_version_" + $(Canonify-Class $($node.properties[apache_package_name])) + "_repaired"
   if (Evaluate-Class $class $local_classes $system_classes) {
     $local_classes = Merge-ClassContext $local_classes $(Service-Start -ServiceName "$($node.properties[apache_package_name])" -componentName "Customized component" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
   } else {
