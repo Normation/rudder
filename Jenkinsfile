@@ -208,7 +208,9 @@ pipeline {
 
                             }
                         }
-                        stage('language') {
+                        stage('language-test') {
+                            when { changeRequest() }
+
                             environment {
                                 RUSTC_WRAPPER = "sccache"
                             }
@@ -221,8 +223,8 @@ pipeline {
                             post {
                                 always {
                                     // linters results
-                                    recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
-                                                 tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
+                                    //recordIssues enabledForFailure: true, id: 'language-test', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
+                                    //             tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language-test', name: 'cargo language')
 
                                     script {
                                         new SlackNotifier().notifyResult("rust-team")
@@ -230,20 +232,27 @@ pipeline {
                                 }
                             }
                         }
-                        stage('language-doc-publish') {
-                            when { not { changeRequest() } }
+                        stage('language-publish') {
+                            //when { not { changeRequest() } }
+                            environment {
+                                RUSTC_WRAPPER = "sccache"
+                            }
                             steps {
                                 dir('rudder-lang') {
+                                    // FIXME: enable
+                                    //sh script: 'make check', label: 'language tests'
+
+                                    //sh script: 'make docs', label: 'language docs'
                                     withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                        //sh script: 'rsync -avz -e "ssh -i${KEY_FILE} -p${SSH_PORT}" target/docs/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/rudder-lang/${env.RUDDER_VERSION}', label: 'publish relay API docs'
+                                    //    sh script: 'rsync -avz -e "ssh -i${KEY_FILE} -p${SSH_PORT}" target/docs/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/rudder-lang/${env.RUDDER_VERSION}', label: 'publish relay API docs'
                                     }
                                 }
                             }
                             post {
                                 always {
                                     // linters results
-                                    recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
-                                                 tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
+                                    //recordIssues enabledForFailure: true, id: 'language-publish', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
+                                    //             tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language-publish', name: 'cargo language')
 
                                     script {
                                         new SlackNotifier().notifyResult("rust-team")
