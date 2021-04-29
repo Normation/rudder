@@ -25,10 +25,10 @@ pipeline {
                     }
                 }
                 stage('api-doc') {
-                    agent { label 'docs' }
+                    agent { label 'api-docs' }
 
                     stages {
-                        stage('api-doc') {
+                        stage('api-doc-test') {
                             when {
                                 anyOf {
                                     branch 'master'
@@ -100,22 +100,55 @@ pipeline {
                 }
                 stage('webapp') {
                     agent { label 'scala' }
-                    steps {
-                        dir('webapp/sources') {
-                            withMaven(options: [artifactsPublisher(disabled: true)]) {
-                                sh script: 'mvn clean install -Dmaven.test.postgres=false', label: "webapp tests"
+
+                    stages {
+                        stage('webapp-test') {
+                            when { changeRequest() }
+                            steps {
+                                sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
+                                dir('webapp/sources') {
+                                    withMaven(maven: "latest",
+                                              // don't archive jars
+                                              options: [artifactsPublisher(disabled: true)]
+                                    ) {
+                                        sh script: 'mvn clean test -Dmaven.test.postgres=false', label: "webapp tests"
+                                    }
+                                }
+                            }
+                            post {
+                                always {
+                                    // collect test results
+                                    junit 'webapp/sources/**/target/surefire-reports/*.xml'
+
+                                    script {
+                                        new SlackNotifier().notifyResult("scala-team")
+                                    }
+                                }
                             }
                         }
-                        sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
-                    }
-                    post {
-                        always {
-                            // collect test results
-                            junit 'webapp/sources/**/target/surefire-reports/*.xml'
-                            archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
+                        stage('webapp-publish') {
+                            when { not { changeRequest() } }
+                            steps {
+                                sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
+                                dir('webapp/sources') {
+                                    withMaven(maven: "latest",
+                                              globalMavenSettingsConfig: "1bfa2e1a-afda-4cb4-8568-236c44b94dbf",
+                                              // don't archive jars
+                                              options: [artifactsPublisher(disabled: true)]
+                                    ) {
+                                        sh script: 'mvn --update-snapshots clean package deploy', label: "webapp deploy"
+                                    }
+                                }
+                            }
+                            post {
+                                always {
+                                    // collect test results
+                                    archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
 
-                            script {
-                                new SlackNotifier().notifyResult("scala-team")
+                                    script {
+                                        new SlackNotifier().notifyResult("scala-team")
+                                    }
+                                }
                             }
                         }
                     }
