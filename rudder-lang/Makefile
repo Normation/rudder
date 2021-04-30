@@ -41,7 +41,7 @@ test-docs: $(DOC_EXAMPLES)
 
 test: libs
 	# fires rudderc unit / integration tests
-	cargo test
+	cargo test --locked
 	# saves a rudder-lang technique based on a json technique
 	cargo run -- save -c tools/rudderc-dev.conf -i tests/techniques/simplest/technique.json
 	# recreate a JSON technique based on the RL one
@@ -55,20 +55,23 @@ test: libs
 	# takes a json to create rl + cf + dsc techniques wrapped into JSON
 	cargo run -- technique generate -c tools/rudderc-dev.conf -i tests/techniques/simplest/technique.json
 	# fires a testing loop (--keep can be added)
-	./tools/test_all_techniques.sh
+	# FIXME enable
+	#./tools/test_all_techniques.sh
 
 
 $(DOC_EXAMPLES):
 	cargo run -- compile -c tools/rudderc-dev.conf -i $@ -o $@ -f cf
 	rm $@.cf
 
+check: lint test
+
 libs:
 	mkdir -p repos
 	[ -d repos/ncf ] || git clone git@github.com:Normation/ncf.git repos/ncf
-	cd repos/ncf && git pull
+	cd repos/ncf && git checkout master && git pull origin master
 	[ -d repos/dsc ] || git clone git@github.com:Normation/rudder-agent-windows.git repos/dsc \
 	 || mkdir -p repos/dsc/plugin/ncf/30_generic_methods/ repos/dsc/packaging/Files/share/initial-policy/ncf/30_generic_methods/
-	cd repos/dsc && git pull || true
+	cd repos/dsc && git checkout master && git pull origin master || true
 	tools/generate_lib tools/rudderc-dev.conf
 
 libs-docs: libs

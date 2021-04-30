@@ -11,3 +11,5 @@ yum-dependencies:
 apt-dependencies:
 	$(APT) pkg-config libpq-dev libssl-dev
 
+check: lint
+	cargo test --locked

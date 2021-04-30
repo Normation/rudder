@@ -56,16 +56,14 @@ version:
 build: version
 	# strip release binaries, cf. https://github.com/rust-lang/cargo/issues/3483#issuecomment-431209957
 	# should be configurable in Cargo.toml in the future https://github.com/rust-lang/rust/issues/72110
-	RUSTFLAGS="--codegen link-arg=-Wl,--strip-all" cargo build --release
+	RUSTFLAGS="--codegen link-arg=-Wl,--strip-all" cargo build --release --locked
 
 lint: version
 	# to be sure clippy is actually run
 	touch src/lib.rs
 	mkdir -p target
+	cargo fmt --all -- --check
 	cargo clippy --message-format json --all-targets --examples --tests -- --deny warnings > target/cargo-clippy.json
-
-check: lint
-	cargo test
 
 check-vulns:
 	cargo deny check
