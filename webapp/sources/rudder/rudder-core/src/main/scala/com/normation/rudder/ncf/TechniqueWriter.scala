@@ -570,6 +570,11 @@ class DSCTechniqueWriter(
 
       val componentName = s"""-componentName "${call.component.replaceAll("\"", "`\"")}""""
 
+
+      def canonifyCondition(methodCall: MethodCall) = {
+        methodCall.condition.replaceAll("""(\$\{[^\}]*})""","""" + \$(Canonify-Class $1) + """")
+      }
+
       def naReport(method : GenericMethod, expectedReportingValue : String) =
         s"""_rudder_common_report_na ${componentName} -componentKey ${expectedReportingValue} -message "Not applicable" ${genericParams}"""
       for {
@@ -588,7 +593,7 @@ class DSCTechniqueWriter(
                      }).map(_.toMap)
 
         // Translate condition
-        condition <- translater.translateToAgent(call.condition, AgentType.Dsc) match {
+        condition <- translater.translateToAgent(canonifyCondition(call), AgentType.Dsc) match {
                        case Full(c) => Right(c)
                        case eb : EmptyBox =>
                          val fail = eb ?~! s"Error when translating condition '${call.condition}' of technique of method ${call.methodId} of technique ${technique.name}"
@@ -625,6 +630,7 @@ class DSCTechniqueWriter(
          if (condition == "any" ) {
            s"  ${effectiveCall}"
          } else{
+
            s"""|  $$class = "${condition}"
                |  if (Evaluate-Class $$class $$local_classes $$system_classes) {
                |    ${effectiveCall}
