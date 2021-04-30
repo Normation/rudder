@@ -98,6 +98,7 @@ bundle agent file_from_remote_template(source_template, destination, template_ty
 
     any::
       # combine both for reporting
+      "old_result_class"    usebundle => _classes_combine_two("${copy_class_prefix}", "${template_class_prefix}", "${old_class_prefix}");
       "result_class"    usebundle => _classes_combine_two("${copy_class_prefix}", "${template_class_prefix}", "${class_prefix}");
 
       "report"          usebundle => _log_v3("Build file ${destination} from template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
