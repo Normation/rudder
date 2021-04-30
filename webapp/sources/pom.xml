@@ -370,19 +370,19 @@ limitations under the License.
     <commons-lang-version>3.11</commons-lang-version>
     <commons-codec-version>1.15</commons-codec-version>
     <commons-fileupload>1.4</commons-fileupload>
-    <spring-version>5.2.9.RELEASE</spring-version>
-    <spring-security-version>5.3.5.RELEASE</spring-security-version>
+    <spring-version>5.2.14.RELEASE</spring-version>
+    <spring-security-version>5.3.9.RELEASE</spring-security-version>
     <jgit-version>5.9.0.202009080501-r</jgit-version>
     <cglib-version>3.3.0</cglib-version>
     <asm-version>5.2</asm-version>
-    <bcpkix-jdk15on-version>1.66</bcpkix-jdk15on-version>
+    <bcpkix-jdk15on-version>1.68</bcpkix-jdk15on-version>
     <silencer-lib-version>1.7.1</silencer-lib-version>
     <better-files-version>3.9.1</better-files-version>
     <sourcecode-version>0.2.1</sourcecode-version>
     <quicklens-version>1.6.1</quicklens-version>
     <hikaricp-version>3.4.5</hikaricp-version>
     <nuprocess-version>2.0.1</nuprocess-version>
-    <postgresql-version>42.2.18</postgresql-version>
+    <postgresql-version>42.2.20</postgresql-version>
     <json-path-version>2.4.0</json-path-version>
     <scalaj-version>2.4.2</scalaj-version>
     <unboundid-version>5.1.1</unboundid-version>
