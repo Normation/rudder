@@ -87,6 +87,8 @@ import java.io.File
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
+import com.normation.rudder.services.nodes.SecretEngine
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -219,7 +221,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   }
 
 
-  val valueCompiler = new InterpolatedValueCompilerImpl
+  val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
+  val valueCompiler = new InterpolatedValueCompilerImpl(propertyEngineService)
   val parameterTypeService : PlugableParameterTypeService = new PlugableParameterTypeService
   val writer = new TechniqueWriter(
       TestTechniqueArchiver

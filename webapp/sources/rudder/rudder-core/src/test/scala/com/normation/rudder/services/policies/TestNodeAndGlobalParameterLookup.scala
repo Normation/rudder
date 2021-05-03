@@ -57,8 +57,12 @@ import net.liftweb.json._
 import com.normation.errors._
 import cats.implicits._
 import com.normation.rudder.domain.nodes.GenericProperty
+import com.normation.rudder.domain.nodes.GenericProperty.StringToConfigValue
+import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
+import com.normation.rudder.services.nodes.RudderPropertyEngine
 import com.typesafe.config.ConfigValue
-
+import net.liftweb.json.JsonDSL._
+import zio.syntax.ToZio
 
 /**
  * Test how parametrized variables are replaced for
@@ -68,6 +72,13 @@ import com.typesafe.config.ConfigValue
 
 @RunWith(classOf[JUnitRunner])
 class TestNodeAndGlobalParameterLookup extends Specification {
+
+  class FakeEncryptedPasswordEngine extends RudderPropertyEngine {
+    override def name: String = "fakeEncryptorEngineTesting"
+
+    override def process(namespace: List[String], parameters: ConfigValue): IOResult[String] = "encrypted-string-test" .succeed
+
+  }
 
   //matcher for failure
   def beFailure[T](r: Regex) = new Matcher[Box[T]] {
@@ -90,8 +101,19 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   import NodeConfigData._
   //null is for RuleValService, only used in
   //rule lookup, node tested here.
-  val compiler = new InterpolatedValueCompilerImpl()
+  val propertyEngineService  = new PropertyEngineServiceImpl(
+    List (
+      new FakeEncryptedPasswordEngine
+    )
+  )
+
+  val compiler = new InterpolatedValueCompilerImpl(propertyEngineService)
   val lookupService = new RuleValServiceImpl(compiler)
+  val data = new TestNodeConfiguration()
+  val buildContext              = new PromiseGeneration_BuildNodeContext {
+    override def interpolatedValueCompiler: InterpolatedValueCompiler = compiler
+    override def systemVarService: SystemVariableService = data.systemVariableService
+  }
 
   val context = ParamInterpolationContext(
       parameters      = Map()
@@ -248,6 +270,59 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     "parse a non valid cfengine variable as a string" in {
       test(all(_), """${something . cfengine}""", List(CharSeq("${something . cfengine"), CharSeq("}")))
     }
+
+    "parse a valid engine" in {
+      test(
+        all(_)
+        , """${rudder.engine[foo]("tst")}"""
+        , List(RudderEngine("foo", List.empty, "tst".toConfigValue))
+      )
+    }
+
+    "parse a valid engine with methods" in {
+      test(
+        all(_)
+        , """${rudder.engine[foo][bar]("toto")}"""
+        , List(RudderEngine("foo", List("bar"), "toto".toConfigValue))
+      )
+    }
+
+    "parse an engine with space" in {
+      test(
+        all(_)
+        , """${rudder . engine [ foo ] [ bar] (  "bar" ) }"""
+        , List(RudderEngine("foo", List("bar"), "bar".toConfigValue))
+      )
+    }
+
+    "parse an engine with multiple method" in {
+      test(
+        all(_)
+        , """${rudder.engine[foo][bar][baz]("toto")}"""
+        , List(RudderEngine("foo", List("bar", "baz"), "toto".toConfigValue))
+      )
+    }
+
+    "parse engine with UTF-8 parameter" in {
+      val s = """${rudder.engine[foo]("emo😄ji")}"""
+      test(all(_), s, List(RudderEngine("foo", List.empty, "emo😄ji".toConfigValue)))
+    }
+
+    "fails when an engine with empty method between" in {
+      val s = """${rudder.engine[foo][][bar]("test")}"""
+      PropertyParser.parse(s) must beLeft
+    }
+
+    "fails when an engine with empty method at the end" in {
+      val s = """${rudder.engine[foo][bar][]("test")}"""
+      PropertyParser.parse(s) must beLeft
+    }
+
+    "fails when an engine with empty method at the beginning" in {
+      val s = """${rudder.engine[][foo][bar]("test")}"""
+      PropertyParser.parse(s) must beLeft
+    }
+
 
     "parse blank test" in {
       test(all(_), "      ",
@@ -609,6 +684,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val p1value = compileAndGet("${rudder.param.p2}")
       val p2value = compileAndGet("${rudder.param.p3}")
       val p3value = compileAndGet("${rudder.param.p4}")
+      val analyseParam = new AnalyseParamInterpolation(propertyEngineService)
       val c = context.copy(parameters = Map(
           ("p1", p1value)
         , ("p2", p2value)
@@ -616,7 +692,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
         , ("p4", (i:ParamInterpolationContext) => Right(res))
       ))
 
-      (AnalyseParamInterpolation.maxEvaluationDepth == 5) and
+      (analyseParam.maxEvaluationDepth == 5) and
       (i(c) must beEqualTo(Right(res)))
     }
 
@@ -626,6 +702,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val p1value = compileAndGet("${rudder.param.p2}")
       val p2value = compileAndGet("${rudder.param.p3}")
       val p3value = compileAndGet("${rudder.param.p4}")
+      val analyseParam = new AnalyseParamInterpolation(propertyEngineService)
       val c = context.copy(parameters = Map(
           ("p1", p1value)
         , ("p2", p2value)
@@ -634,7 +711,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
         , ("p5", (i:ParamInterpolationContext) => Right(res))
       ))
 
-      (AnalyseParamInterpolation.maxEvaluationDepth == 5) and
+      (analyseParam.maxEvaluationDepth == 5) and
       (i(c) match {
         case Right(_) => ko("Was expecting an error due to too deep evaluation")
         case Left(_) => ok
@@ -653,6 +730,145 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       }
     }
 
+
+
+    "interpolate engine in JSON" in {
+      val before = """{"login":"admin", "password":"${rudder.engine[fakeEncryptorEngineTesting](\"someId\")}"}"""
+      val after = """{"login":"admin", "password":"encrypted-string-test"}"""
+      buildContext.parseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))
+    }
+
+    "interpolate unknown engine in JSON" in {
+      val before =
+        """{
+          |  "login" : "admin",
+          |  "password" : {
+          |    "value" : "${rudder.engine[UNKNOWN](\"someId\")}"
+          |  }
+          |}
+          |""".stripMargin
+
+      buildContext.parseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(before))
+    }
+
+    "interpolate engine in nested JSON object" in {
+      val before =
+        """{
+          |  "login" : "admin",
+          |  "password" : {
+          |    "value" : "${rudder.engine[fakeEncryptorEngineTesting](\"someId\")}"
+          |  }
+          |}
+          |""".stripMargin
+
+      val after =
+        """{
+          |  "login" : "admin",
+          |  "password" : {
+          |    "value" : "encrypted-string-test"
+          |  }
+          |}
+          |""".stripMargin
+
+      buildContext.parseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))
+    }
+
+    "interpolate engine in JSON array" in {
+      val before =
+        """{
+          |  "login" : "admin",
+          |  "data" : ["foo", "${rudder.engine[fakeEncryptorEngineTesting](\"someId\")}", "bar"]
+          |}
+          |""".stripMargin
+
+      val after =
+        """{
+          |  "login" : "admin",
+          |  "data" : ["foo", "encrypted-string-test", "bar"]
+          |}
+          |""".stripMargin
+      buildContext.parseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))
+    }
+
+    "interpolate engine in nested JSON array" in {
+      val before =
+        """{
+          |  "login" : "admin",
+          |  "data" : [
+          |      {
+          |        "foo" : "bar"
+          |      },
+          |      "xzy",
+          |      {
+          |        "shouldBeInterpolated" : "${rudder.engine[fakeEncryptorEngineTesting](\"someId\")}"
+          |      }
+          |  ]
+          |}
+          |""".stripMargin
+
+      val after =
+        """{
+          |  "login" : "admin",
+          |  "data" : [
+          |      {
+          |        "foo" : "bar"
+          |      },
+          |      "xzy",
+          |      {
+          |        "shouldBeInterpolated" : "encrypted-string-test"
+          |      }
+          |  ]
+          |}
+          |""".stripMargin
+      buildContext.parseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))
+    }
+
+    "interpolate engine multiple time" in {
+      val before =
+        """{
+          |  "login" : "${rudder.engine[fakeEncryptorEngineTesting](\"someId\")}",
+          |  "data" : [
+          |      {
+          |        "foo" : "${rudder.engine[fakeEncryptorEngineTesting](\"someId\")}"
+          |      },
+          |      "${rudder.engine[fakeEncryptorEngineTesting](\"someId\")}",
+          |      "${rudder.engine[fakeEncryptorEngineTesting](\"someId\")}",
+          |      {
+          |        "shouldBeInterpolated" : "${rudder.engine[fakeEncryptorEngineTesting](\"someId\")}"
+          |      }
+          |  ]
+          |  "moreData" : {
+          |    "nestedStruct" : {
+          |       "array" : [{"value":"${rudder.engine[fakeEncryptorEngineTesting](\"someId\")}"}]
+          |    }
+          |  }
+          |
+          |}
+          |""".stripMargin
+
+      val after =
+        """{
+          |  "login" : "encrypted-string-test",
+          |  "data" : [
+          |      {
+          |        "foo" : "encrypted-string-test"
+          |      },
+          |      "encrypted-string-test",
+          |      "encrypted-string-test",
+          |      {
+          |        "shouldBeInterpolated" : "encrypted-string-test"
+          |      }
+          |  ]
+          |  "moreData" : {
+          |    "nestedStruct" : {
+          |       "array" : [{"value":"encrypted-string-test"}]
+          |    }
+          |  }
+          |}
+          |""".stripMargin
+
+      buildContext.parseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))
+    }
   }
 
   "A single parameter" should {
@@ -702,13 +918,13 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
     "fails when the part after ${rudder.} is empty" in {
       getError(lookupParam(Seq(badEmptyRudder), context)) must beMatching(
-        """.*\Q'== ${rudder.} =='. Error message is: Expected (rudderNode | parameters | oldParameter):1:13, found "} =="\E.*""".r
+        """.*\Q'== ${rudder.} =='. Error message is: Expected (rudderNode | parameters | oldParameter | rudderEngine):1:13, found "} =="\E.*""".r
       )
     }
 
     "fails when the part after ${rudder.} is not recognised" in {
       getError(lookupParam(Seq(badUnknown), context.copy(parameters = p(fooParam)))) must beMatching(
-         """.*\Q'== ${rudder.foo} =='. Error message is: Expected (rudderNode | parameters | oldParameter):1:13, found "foo} =="\E.*""".r
+         """.*\Q'== ${rudder.foo} =='. Error message is: Expected (rudderNode | parameters | oldParameter | rudderEngine):1:13, found "foo} =="\E.*""".r
       )
     }
   }

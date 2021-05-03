@@ -54,6 +54,7 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 
 /**
  * Test how RuleVal and ParsedPolicyDraft are constructed, and if they
@@ -61,11 +62,12 @@ import com.normation.inventory.domain.AgentType
  */
 @RunWith(classOf[JUnitRunner])
 class RuleValServiceTest extends Specification {
-
+  
   /**
    * Instanciate the services
    */
-  val ruleValService = new RuleValServiceImpl(new InterpolatedValueCompilerImpl())
+  val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
+  val ruleValService = new RuleValServiceImpl(new InterpolatedValueCompilerImpl(propertyEngineService))
 
   /**
    * Create the objects for tests

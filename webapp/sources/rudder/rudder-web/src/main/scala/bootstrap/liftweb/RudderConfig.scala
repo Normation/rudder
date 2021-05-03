@@ -657,6 +657,7 @@ object RudderConfig extends Loggable {
   val inventoryHistoryLogRepository: InventoryHistoryLogRepository = diffRepos
   val inventoryEventLogService: InventoryEventLogService = inventoryLogEventServiceImpl
   val ruleApplicationStatus: RuleApplicationStatusService = ruleApplicationStatusImpl
+  val propertyEngineService: PropertyEngineService = propertyEngineServiceImpl
   val newNodeManager: NewNodeManager = newNodeManagerImpl
   val nodeGrid: NodeGrid = nodeGridImpl
   val nodeSummaryService: NodeSummaryService = nodeSummaryServiceImpl
@@ -1268,6 +1269,11 @@ object RudderConfig extends Loggable {
   )
 
   private[this] lazy val ruleApplicationStatusImpl: RuleApplicationStatusService = new RuleApplicationStatusServiceImpl()
+  private[this] lazy val propertyEngineServiceImpl: PropertyEngineService = new PropertyEngineServiceImpl(
+    List(
+      new SecretEngine
+    )
+  )
 
   def DN(rdn: String, parent: DN) = new DN(new RDN(rdn),  parent)
   private[this] lazy val LDAP_BASEDN = new DN("cn=rudder-configuration")
@@ -1362,7 +1368,6 @@ object RudderConfig extends Loggable {
     , techniqueRepository
     , sectionSpecParser
   )
-
   private[this] lazy val entityMigration = DefaultXmlEventLogMigration
 
   private[this] lazy val eventLogDetailsServiceImpl = new EventLogDetailsServiceImpl(
@@ -1849,7 +1854,7 @@ object RudderConfig extends Loggable {
     )
     service
   }
-  lazy val interpolationCompiler = new InterpolatedValueCompilerImpl()
+  lazy val interpolationCompiler = new InterpolatedValueCompilerImpl(propertyEngineService)
   lazy val typeParameterService : PlugableParameterTypeService = new PlugableParameterTypeService()
   private[this] lazy val ruleValService: RuleValService = new RuleValServiceImpl(interpolationCompiler)
 
