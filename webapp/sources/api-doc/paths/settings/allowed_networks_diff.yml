@@ -15,17 +15,16 @@ post:
           properties:
             allowed_networks:
               type: object
-              optional:
-                - add
-                - delete
-              example: '{ "delete":["162.168.1.0/24"], "add": ["162.168.2.0/24] }' 
               properties:
                 add:
                   type: array
                   description: List of networks to add to existing allowed networks for that server
+                  example: '{ "delete":["162.168.1.0/24"], "add": ["162.168.2.0/24] }'
                 delete:
                   type: array
                   description: List of networks to remove from existing allowed networks for that server
+                  example: '{ "delete":["162.168.1.0/24"], "add": ["162.168.2.0/24] }'
+
   responses:
     "200":
       description: Allowed Networks
