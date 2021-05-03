@@ -542,7 +542,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
 
   val draftServerManagement = new PolicyServerManagementService() {
     override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) = ???
-    override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = Full(List("192.168.49.0/24"))
+    override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = Full(List("192.168.12.0/24", "192.168.49.0/24", "127.0.0.1/24"))
     override def deleteRelaySystemObjectsPure(policyServerId: NodeId): IOResult[Unit] = ???
     override def updateAuthorizedNetworks(policyServerId: NodeId, addNetworks: Seq[String], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor): Box[Seq[String]] = ???
   }
