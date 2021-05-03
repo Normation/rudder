@@ -205,7 +205,7 @@ final case class SystemVariableSpec(
   val description: String,
   val longDescription: String = "",
   val valueslabels: Seq[ValueLabel] = Seq(),
-  val multivalued: Boolean = false,
+  val multivalued: Boolean,
 
   // we expect that by default the variable will be checked
   val checked: Boolean = true,

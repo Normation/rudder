@@ -69,8 +69,12 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                             "COMMUNITYPORT" , "The port used by the community edition"
                                             , multivalued  = false
                         )
-    , SystemVariableSpec(        "NODEROLE" , "List of nodeConfiguration roles")
-    , SystemVariableSpec(    "TOOLS_FOLDER" , "Tools folder")
+    , SystemVariableSpec(        "NODEROLE" , "List of nodeConfiguration roles"
+                                            , multivalued = false
+                        )
+    , SystemVariableSpec(    "TOOLS_FOLDER" , "Tools folder"
+                                            , multivalued = false
+                        )
     , SystemVariableSpec(
                                   "DAVUSER" , "Username for webdav user"
                                             , multivalued = false
@@ -87,17 +91,24 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                    "RUDDER_REPORTS_DB_USER" , "Login of the Rudder database user (rudder by default)"
                                             , multivalued = false
                                           )
-    , SystemVariableSpec(       "INPUTLIST" , "Input list")
-    , SystemVariableSpec(      "BUNDLELIST" , "Bundle list")
+    , SystemVariableSpec(       "INPUTLIST" , "Input list"
+                                            , multivalued = false
+                        )
+    , SystemVariableSpec(      "BUNDLELIST" , "Bundle list"
+                                            , multivalued = false
+                        )
     , SystemVariableSpec(
                                     "NOVA" , "The Cfengine Nova agent"
+                                           , multivalued = false
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(      "COMMUNITY" , "The Cfengine Community agent"
+                                           , multivalued = false
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                      "SHARED_FILES_FOLDER" , "The path to the shared files folder"
+                                           , multivalued = false
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
@@ -107,6 +118,7 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                         )
     , SystemVariableSpec(
          "CONFIGURATION_REPOSITORY_FOLDER" , "The path to the configuration repository folder"
+                                           , multivalued = false
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
@@ -115,10 +127,12 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                         )
     , SystemVariableSpec(
          "RELAY_SYNC_PROMISES"             , "Synchronize policies on relay with Rsync in rsync mode"
+                                           , multivalued = false
                                            ,  constraint = Constraint(typeName = BooleanVType, default=Some("true"))
                         )
     , SystemVariableSpec(
          "RELAY_SYNC_SHAREDFILES"          , "Synchronize sharedfiles on relay with Rsync in rsync mode"
+                                           , multivalued = false
                                            , constraint = Constraint(typeName = BooleanVType, default=Some("true"))
                         )
 
@@ -128,26 +142,32 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       //
     , SystemVariableSpec(
                       "MANAGED_NODES_NAME" , "Hostname of nodes managed by the policy server"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                         "MANAGED_NODES_ID" , "UUID of nodes managed by the policy server"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                         "MANAGED_NODES_IP" , "IP of nodes managed by the policy server. A node may have several IPs - they are all here."
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                      "MANAGED_NODES_ADMIN" , "Administrator login of nodes managed by the policy server"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                        "MANAGED_NODES_KEY" , "Hash of CFEngine KEY of nodes managed by the policy server"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                        "POLICY_SERVER_KEY" , "Hash of CFEngine KEY of the policy server"
+                                           , multivalued = false
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
       // end
@@ -158,39 +178,48 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       //
     , SystemVariableSpec(
                           "SUB_NODES_NAME" , "Hostname of nodes managed by the policy server AND relays under it"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                             "SUB_NODES_ID" , "UUID of nodes managed by the policy server AND relays under if"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                        "SUB_NODES_KEYHASH" , "Crypto key hash (standard one, not CFEngine format) of node private key"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                         "SUB_NODES_SERVER" , "Policy server to which the node is connected"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
       // end
     , SystemVariableSpec(
                  "MANAGED_NODES_CERT_UUID" , "UUID of node with certificate"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                    "MANAGED_NODES_CERT_CN" , "CN of certificate of the node"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                   "MANAGED_NODES_CERT_PEM" , "PEM encoded certificate of the node"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                    "MANAGED_NODES_CERT_DN" , "DN of certificate of the node"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                      "AUTHORIZED_NETWORKS" , "Networks authorized to connect to the policy server"
+                                           , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
       // this variable may be empty, has it is not filled by rudder, but by cf-clerk
@@ -325,6 +354,7 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
     )
     , SystemVariableSpec(
                           "SERVER_VERSION" , "Version of rudder server webapp, as displayed in the UI (not the package version)"
+                                           , multivalued = false
     )
     , SystemVariableSpec(
                    "RUDDER_INVENTORY_VARS" , "Rudder inventory variables"
