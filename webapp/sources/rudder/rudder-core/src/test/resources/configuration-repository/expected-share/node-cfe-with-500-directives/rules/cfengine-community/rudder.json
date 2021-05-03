@@ -3,7 +3,11 @@
   "AGENT_RUN_SCHEDULE":"\"Min01\", \"Min06\", \"Min11\", \"Min16\", \"Min21\", \"Min26\", \"Min31\", \"Min36\", \"Min41\", \"Min46\", \"Min51\", \"Min56\"",
   "AGENT_RUN_SPLAYTIME":"4",
   "AGENT_TYPE":"cfengine-community",
-  "AUTHORIZED_NETWORKS":"192.168.49.0/24",
+  "AUTHORIZED_NETWORKS":[
+    "192.168.12.0/24",
+    "192.168.49.0/24",
+    "127.0.0.1/24"
+  ],
   "CFENGINE_OUTPUTS_TTL":"7",
   "COMMUNITYPORT":"5309",
   "CONFIGURATION_REPOSITORY_FOLDER":"/tmp/test-rudder-config-repo-2020-01-07T23:50:33.122+01:00/configuration-repository",

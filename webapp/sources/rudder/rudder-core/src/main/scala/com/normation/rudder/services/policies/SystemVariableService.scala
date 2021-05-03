@@ -103,7 +103,7 @@ object SystemVariableService {
       case Left(MissingSystemVariable(name)) =>
         ApplicationLogger.error(s"System variable '${name}' is missing. This is most likely denote a desynchronisation between your system variable and " +
                                 s"your Rudder version. Please check that both are well synchronized. If it's the case, please report that problem.")
-        SystemVariableSpec(name, "THIS IS DEFAULT GENERATED VARIABLE SPEC. THE CORRECT ONE WAS NOT FOUND. PLEASE SEE YOUR RUDDER LOG.")
+        SystemVariableSpec(name, "THIS IS DEFAULT GENERATED VARIABLE SPEC. THE CORRECT ONE WAS NOT FOUND. PLEASE SEE YOUR RUDDER LOG.", multivalued = false)
 
       case Right(spec) => spec
     }).toVariable(initValues)
