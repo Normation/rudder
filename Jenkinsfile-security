@@ -17,7 +17,7 @@ pipeline {
                         // don't archive jars
                         options: [artifactsPublisher(disabled: true)]
                     ) {
-                        sh script: 'mvn -DfailBuildOnCVSS=11 -DcveValidForHours=48 org.owasp:dependency-check-maven:6.1.5:aggregate', label: "check webapp dependencies"
+                        sh script: 'mvn -DfailBuildOnCVSS=7 -DcveValidForHours=48 org.owasp:dependency-check-maven:6.1.5:aggregate', label: "check webapp dependencies"
                     }
                 }
             }
