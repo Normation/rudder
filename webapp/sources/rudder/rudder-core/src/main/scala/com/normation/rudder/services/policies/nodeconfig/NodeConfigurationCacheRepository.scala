@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.policies.nodeconfig
 
+import better.files.File
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TechniqueVersionFormatException
 import com.normation.inventory.domain.NodeId
@@ -62,16 +63,55 @@ import cats.implicits._
 import org.joda.time.format.ISODateTimeFormat
 
 import scala.util.control.NonFatal
-
 import zio._
 import zio.syntax._
 import com.normation.errors._
 import com.normation.box._
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
+import com.normation.zio._
+
+import java.nio.charset.StandardCharsets
 
 final case class PolicyHash(
     draftId   : PolicyId
   , cacheValue: Int
 )
+
+
+final case class NodeConfigurationHashes(hashes: List[NodeConfigurationHash])
+
+object NodeConfigurationHashes {
+
+  // we really want to have one line by node
+  def toJson(hashes: NodeConfigurationHashes): String = {
+    s"""{"hashes": [${hashes.hashes.map(x => NodeConfigurationHash.toJson(x)).mkString("\n  ",",\n  ","\n") }] }"""
+  }
+
+  def fromJson(json: String): IOResult[NodeConfigurationHashes] = {
+    for {
+      jval <- IOResult.effect(parse(json))
+      arr  <- (jval \ "hashes") match {
+                case JNothing | JNull => Nil.succeed
+                case JArray(arr) => arr.succeed
+                case x => Inconsistency(s"Can not parse json as a cache of node configuration hashes. Found: ${compactRender(x).take(100)}...").fail
+              }
+      // ignore only invalide node config hashses
+      hs   <- ZIO.foldLeft(arr)(List.empty[NodeConfigurationHash]) { case (all, current) =>
+                NodeConfigurationHash.extractNodeConfigCache(current) match {
+                  case Left((m,j)) =>
+                    PolicyGenerationLoggerPure.error(s"Can not parse following json as node configuration hash: ${m}; corresponding entry will be ignored: ${compactRender(j)}. ") *>
+                    all.succeed
+                  case Right(h)    =>
+                    (h :: all).succeed
+                }
+              }
+    } yield {
+      NodeConfigurationHashes(hs)
+    }
+  }
+
+}
 
 /**
  * NodeConfigurationHash keep a track of anything that would mean
@@ -119,22 +159,18 @@ object NodeConfigurationHash {
    * } (minified)
    *
    */
-  def toJson(hash: NodeConfigurationHash): String = {
-    compactRender(
-      (
-        ("i" -> JArray(List(hash.id.value, hash.writtenDate.toString(ISODateTimeFormat.dateTime()), hash.nodeInfoHash, hash.parameterHash, hash.nodeContextHash)))
-      ~ ("p" -> JArray(hash.policyHash.toList.map(p => JArray(List(p.draftId.ruleId.value, p.draftId.directiveId.value, p.draftId.techniqueVersion.toString, p.cacheValue)))))
-      )
+  def toJvalue(hash: NodeConfigurationHash): JValue = {
+    (
+      ("i" -> JArray(List(hash.id.value, hash.writtenDate.toString(ISODateTimeFormat.dateTime()), hash.nodeInfoHash, hash.parameterHash, hash.nodeContextHash)))
+    ~ ("p" -> JArray(hash.policyHash.toList.map(p => JArray(List(p.draftId.ruleId.value, p.draftId.directiveId.value, p.draftId.techniqueVersion.toString, p.cacheValue)))))
     )
   }
+  def toJson(hash: NodeConfigurationHash): String = {
+    compactRender(toJvalue(hash))
+  }
 
-  def fromJson(json: String): Either[(String, JValue), NodeConfigurationHash] = {
-    def jval = try {
-      Right(parse(json))
-    } catch {
-      case NonFatal(ex) => Left((s"Error when parsing node configuration cache entry. Expection was: ${ex.getMessage}", JString(json)))
-    }
 
+  def extractNodeConfigCache(j: JValue): Either[(String, JValue), NodeConfigurationHash] = {
     def readDate(date: String): Either[(String,JValue), DateTime] = try {
       Right(ISODateTimeFormat.dateTimeParser().parseDateTime(date))
     } catch {
@@ -152,26 +188,32 @@ object NodeConfigurationHash {
       }
     }
 
-    def extractNodeConfigCAche(j: JValue): Either[(String, JValue), NodeConfigurationHash] = {
-      j match {
-        case JObject(List(
-                 JField("i", JArray(List(JString(nodeId), JString(date), JInt(nodeInfoCache), JInt(paramCache), JInt(nodeContextCache))))
-               , JField("p", JArray(policies))
-             )) =>
+    j match {
+      case JObject(List(
+               JField("i", JArray(List(JString(nodeId), JString(date), JInt(nodeInfoCache), JInt(paramCache), JInt(nodeContextCache))))
+             , JField("p", JArray(policies))
+           )) =>
 
-          for {
-            d <- readDate(date)
-            p <- policies.traverse(readPolicy(_))
-          } yield {
-            NodeConfigurationHash(NodeId(nodeId), d, nodeInfoCache.toInt, paramCache.toInt, nodeContextCache.toInt, p.toSet)
-          }
-        case _ => Left((s"Cannot parse node configuration hash (use 'DEBUG' log level for details).", j))
-      }
+        for {
+          d <- readDate(date)
+          p <- policies.traverse(readPolicy(_))
+        } yield {
+          NodeConfigurationHash(NodeId(nodeId), d, nodeInfoCache.toInt, paramCache.toInt, nodeContextCache.toInt, p.toSet)
+        }
+      case _ => Left((s"Cannot parse node configuration hash (use 'DEBUG' log level for details).", j))
+    }
+  }
+
+  def fromJson(json: String): Either[(String, JValue), NodeConfigurationHash] = {
+    def jval = try {
+      Right(parse(json))
+    } catch {
+      case NonFatal(ex) => Left((s"Error when parsing node configuration cache entry. Expection was: ${ex.getMessage}", JString(json)))
     }
 
     for {
       v <- jval
-      x <- extractNodeConfigCAche(v)
+      x <- extractNodeConfigCache(v)
     } yield {
       x
     }
@@ -387,6 +429,125 @@ class InMemoryNodeConfigurationHashRepository extends NodeConfigurationHashRepos
     val toAdd = NodeConfigurationHash.map(c => (c.id, c)).toMap
     repository ++= toAdd
     Full(toAdd.keySet)
+  }
+}
+
+
+object FileBasedNodeConfigurationHashRepository {
+  // default path, to use in rudder (can be change for tests)
+  val defaultHashesPath = "/var/rudder/policy-generation-info/node-configuration-hashes.json"
+}
+
+/*
+ * A version of the repository that stores nodeinfo cache in the file (by default):
+ * /var/rudder/policy-generation-info/node-configuration-hashes.json
+ * Format on disc is a list of hashes in an object: { "nodeConfigurationHashes": [ { .... }, {.... } ] }
+ */
+class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigurationHashRepository {
+
+  val semaphore = Semaphore.make(1).runNow
+
+  val hashesFile = File(path)
+
+  def checkFile(file: File) : IOResult[Unit] = {
+    for {
+      _ <- ZIO.whenM(IOResult.effect(!hashesFile.parent.exists)) { IOResult.effect(hashesFile.parent.createDirectories()) }
+      _ <- ZIO.whenM(IOResult.effect(!(hashesFile.parent.isDirectory && hashesFile.parent.isWriteable))) {
+             ApplicationLoggerPure.error(s"File at path '${hashesFile.parent.pathAsString}' must be writtable directory")
+           }
+      _ <- ZIO.whenM(IOResult.effect(!hashesFile.exists)) { IOResult.effect(hashesFile.touch()) }
+      _ <- ZIO.whenM(IOResult.effect(!(hashesFile.isRegularFile && hashesFile.isWriteable))) {
+             ApplicationLoggerPure.error(s"File at path '${hashesFile.pathAsString}' must be writtable file")
+           }
+    } yield ()
+
+    if(file.isWriteable && file.isRegularFile) UIO.unit
+    else Inconsistency(s"File to store node configuration hashes is not a regular file with write permission: ${file.pathAsString}").fail
+  }
+
+
+  // some check to run when class is instanciated. Won't fail, but may help debug problems.
+  def init: Unit = {
+    checkFile(hashesFile).catchAll(err => ApplicationLoggerPure.error(err.fullMsg)).runNow
+  }
+
+  // read the file, of return the empty string if file does not exists
+  def readHashesAsJsonString(): IOResult[String] = {
+    IOResult.effect(hashesFile.exists).flatMap {
+      case true  => IOResult.effect(hashesFile.contentAsString(StandardCharsets.UTF_8))
+      case false => "".succeed
+    }
+  }
+
+  private def timeLog[A](msg: String => String)(effect: IOResult[A]): IOResult[A] = {
+    for {
+      t0  <- currentTimeMillis
+      res <- effect
+      t1  <- currentTimeMillis
+      _   <- PolicyGenerationLoggerPure.timing.debug(msg(s"${t1 - t0} ms"))
+    } yield res
+  }
+
+  /*
+   * We never want to fail policy generation because we didn't successfully read cache,
+   * but we want to output a BIR error, and return an empty cache.
+   */
+  private def nonAtomicRead(): UIO[NodeConfigurationHashes] = {
+    (for {
+      json   <- readHashesAsJsonString()
+      hashes <- NodeConfigurationHashes.fromJson(json)
+    } yield hashes).catchAll(err =>
+      PolicyGenerationLoggerPure.error(s"Error when trying to read node configuration hashes, they will be ignored: a full generation will take place. Error was: ${err.fullMsg}") *>
+      NodeConfigurationHashes(Nil).succeed
+    )
+  }
+
+  private def nonAtomicWrite(hashes: NodeConfigurationHashes): IOResult[Unit] = {
+    import java.nio.file.StandardOpenOption._
+    IOResult.effect(hashesFile.writeText(NodeConfigurationHashes.toJson(hashes))(Seq(WRITE, CREATE, TRUNCATE_EXISTING), StandardCharsets.UTF_8))
+  }
+
+
+  ///// interface implementation /////
+
+  override def deleteAllNodeConfigurations(): Box[Unit] = {
+    timeLog(s => s"Deleting node configuration hashes took ${s}")(semaphore.withPermits(1)(
+      IOResult.effect(hashesFile.delete()).unit
+    )).toBox
+  }
+
+  override def deleteNodeConfigurations(nodeIds: Set[NodeId]): Box[Set[NodeId]] = {
+    timeLog(s => s"Deleting up to ${nodeIds.size} node configuration hashes from cache took ${s}")(semaphore.withPermits(1) {
+      for {
+        hashes  <- nonAtomicRead()
+        updated =  NodeConfigurationHashes(hashes.hashes.filterNot(c => nodeIds.contains(c.id)))
+        _       <- nonAtomicWrite(updated)
+      } yield nodeIds
+    }).toBox
+  }
+
+  override def onlyKeepNodeConfiguration(nodeIds: Set[NodeId]): Box[Set[NodeId]] = {
+    timeLog(s => s"Keeping at most ${nodeIds.size} node configuration hashes from cache took ${s}")(semaphore.withPermits(1) {
+      for {
+        hashes  <- nonAtomicRead()
+        updated =  NodeConfigurationHashes(hashes.hashes.filter(c => nodeIds.contains(c.id)))
+        _       <- nonAtomicWrite(updated)
+      } yield nodeIds
+    }).toBox
+  }
+
+  override def getAll(): Box[Map[NodeId, NodeConfigurationHash]] = {
+    timeLog(s => s"Get all node configuration hashes took ${s}")(semaphore.withPermits(1) {
+      nonAtomicRead().map(h => h.hashes.map(x => (x.id, x)).toMap)
+    }).toBox
+  }
+
+  override def save(hashes: Set[NodeConfigurationHash]): Box[Set[NodeId]] = {
+    timeLog(s => s"Updating node configuration hashes took ${s}")(semaphore.withPermits(1) {
+      for {
+        _       <- nonAtomicWrite(NodeConfigurationHashes(hashes.toList.sortBy(_.id.value)))
+      } yield hashes.map(_.id)
+    }).toBox
   }
 }
 
