@@ -124,6 +124,11 @@ object PolicyWriterServiceImpl {
       file.parent.createDirectoryIfNotExists(true).setPermissions(defaultFolderPermissions)
       file.writeText(text)(Seq(StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE), StandardCharsets.UTF_8).setPermissions(defaultPermissions)
     }
+
+    def createParentsAndWrite(content: Array[Byte]) = IOResult.effect {
+      file.parent.createDirectoryIfNotExists(true).setPermissions(defaultFolderPermissions)
+      file.writeByteArray(content)(Seq(StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)).setPermissions(defaultPermissions)
+    }
   }
 }
 
@@ -747,13 +752,8 @@ class PolicyWriterServiceImpl(
                                  case None =>
                                    Unexpected(s"Error when trying to open resource '${templateId.displayPath}'. Check that the file exists is correctly commited in Git, or that the metadata for the technique are corrects.").fail
                                  case Some(inputStream) =>
-                                   for {
-                                     _       <- PolicyGenerationLoggerPure.trace(s"Loading resource: ${templateId.displayPath}")
-                                               //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
-                                     content <- IOResult.effect(s"Error when copying technique resource '${templateId.displayPath}'")(inputStream.asString(false))
-                                   } yield {
-                                     TechniqueResourceCopyInfo(templateId, templateOutPath, content)
-                                   }
+                                     TechniqueResourceCopyInfo(templateId, templateOutPath, inputStream.byteArray).succeed
+
                                }
                              }
                } yield {
@@ -950,9 +950,10 @@ class PolicyWriterServiceImpl(
     resources.get((file.id, agentType)) match {
       case None    => Unexpected(s"Can not open the technique resource file ${file.id} for reading").fail
       case Some(s) =>
+
         for {
           _ <- destination.createParentsAndWrite(s.content).chainError(
-                 s"Error when copying technique resoure file '${file.id}' to '${destination.pathAsString}'"
+                 s"Error when copying technique resource file '${file.id}' to '${destination.pathAsString}'"
                )
         } yield {
           destination.pathAsString
