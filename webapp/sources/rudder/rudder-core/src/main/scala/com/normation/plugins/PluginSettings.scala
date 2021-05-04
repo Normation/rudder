@@ -38,7 +38,6 @@
 package com.normation.plugins
 
 import better.files.File
-import better.files.File.root
 import com.normation.errors.IOResult
 
 import java.util.Properties

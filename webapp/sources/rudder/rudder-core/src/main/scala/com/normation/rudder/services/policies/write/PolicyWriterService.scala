@@ -132,6 +132,7 @@ object PolicyWriterServiceImpl {
         optGroupOwner.foreach(parent.setGroup)
       }
     }
+
   }
 
   def moveFile(src: File, dest: File, mvOptions: File.CopyOptions, optPerms: Option[Set[PosixFilePermission]], optGroupOwner: Option[String]) = {
@@ -200,6 +201,17 @@ class PolicyWriterServiceImpl(
       }
       createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
       file.writeText(text)(Seq(WRITE, TRUNCATE_EXISTING, CREATE), charset).setPermissions(filePerms)
+      optGroupOwner.foreach(file.setGroup)
+    }
+
+    def createParentsAndWrite(content: Array[Byte], isRootServer: Boolean) = IOResult.effect {
+      val (optGroupOwner, filePerms, dirPerms) = if(isRootServer) {
+        (None      , rootFilePerms   , rootDirectoryPerms   )
+      } else {
+        (groupOwner, defaultFilePerms, defaultDirectoryPerms)
+      }
+      createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
+      file.writeByteArray(content)(Seq(WRITE, TRUNCATE_EXISTING, CREATE)).setPermissions(filePerms)
       optGroupOwner.foreach(file.setGroup)
     }
   }
@@ -780,13 +792,8 @@ class PolicyWriterServiceImpl(
                                  case None =>
                                    Unexpected(s"Error when trying to open resource '${templateId.displayPath}'. Check that the file exists is correctly commited in Git, or that the metadata for the technique are corrects.").fail
                                  case Some(inputStream) =>
-                                   for {
-                                     _       <- PolicyGenerationLoggerPure.trace(s"Loading resource: ${templateId.displayPath}")
-                                               //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
-                                     content <- IOResult.effect(s"Error when copying technique resource '${templateId.displayPath}'")(inputStream.asString(false))
-                                   } yield {
-                                     TechniqueResourceCopyInfo(templateId, templateOutPath, content)
-                                   }
+                                     TechniqueResourceCopyInfo(templateId, templateOutPath, inputStream.byteArray).succeed
+
                                }
                              }
                } yield {
@@ -987,9 +994,10 @@ class PolicyWriterServiceImpl(
     resources.get((file.id, agentType)) match {
       case None    => Unexpected(s"Can not open the technique resource file ${file.id} for reading").fail
       case Some(s) =>
+
         for {
           _ <- destination.createParentsAndWrite(s.content, isRootServer).chainError(
-                 s"Error when copying technique resoure file '${file.id}' to '${destination.pathAsString}'"
+                 s"Error when copying technique resource file '${file.id}' to '${destination.pathAsString}'"
                )
         } yield {
           destination.pathAsString
