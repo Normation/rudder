@@ -1943,7 +1943,11 @@ object RudderConfig extends Loggable {
     )
   }
 
-  lazy val nodeConfigurationHashRepo: NodeConfigurationHashRepository = new LdapNodeConfigurationHashRepository(rudderDit, rwLdap)
+  lazy val nodeConfigurationHashRepo: NodeConfigurationHashRepository = {
+    val x = new FileBasedNodeConfigurationHashRepository(FileBasedNodeConfigurationHashRepository.defaultHashesPath)
+    x.init
+    x
+  }
 
   private[this] lazy val reportingServiceImpl = new CachedReportingServiceImpl(
       new ReportingServiceImpl(

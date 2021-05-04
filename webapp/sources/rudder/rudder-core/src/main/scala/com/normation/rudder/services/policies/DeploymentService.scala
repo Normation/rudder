@@ -101,6 +101,7 @@ import zio.syntax._
 import com.normation.zio._
 import com.softwaremill.quicklens._
 import cats.implicits._
+import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -1307,7 +1308,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       toCache    =  allNodeConfigs.view.filterKeys(updated.contains(_)).values.toSet
       _          <- nodeConfigurationService.save(toCache.map(x => NodeConfigurationHash(x, generationTime)))
       ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
-      _          =  PolicyGenerationLogger.timing.debug(s"Node configuration cached in LDAP in ${ldapWrite1} ms")
+      _          =  PolicyGenerationLogger.timing.debug(s"Node configuration hashes stored in '${FileBasedNodeConfigurationHashRepository.defaultHashesPath}' in ${ldapWrite1} ms")
     } yield {
       written.toSet
     }
