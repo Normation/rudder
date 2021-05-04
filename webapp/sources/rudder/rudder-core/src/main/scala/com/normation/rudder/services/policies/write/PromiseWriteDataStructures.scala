@@ -138,7 +138,7 @@ final case class TechniqueTemplateCopyInfo(
 final case class TechniqueResourceCopyInfo(
     id         : TechniqueResourceId
   , destination: String
-  , content    : String //template resource as a file
+  , content    : Array[Byte] //template resource as a file
 ) {
   override def toString() = s"Technique resource ${id.name}; destination ${destination}"
 }
