@@ -84,7 +84,10 @@ post:
                 type: string
                 description: The id of the action
                 enum:
-                  - modifySetting
+                  - modifyAllowedNetworks
+              id:
+                type: string
+                description: The id of the modified node
               data:
                 type: object
                 description: Information about the allowed_networks settings
