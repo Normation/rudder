@@ -105,9 +105,9 @@ final case class AgentNodeWritableConfiguration(
  */
 final case class NodePoliciesPaths(
     nodeId      : NodeId
-  , baseFolder  : String //directory where the file have to be in the end
-  , newFolder   : String //poclicies are temporarly store in a policyName.new directory
-  , backupFolder: String
+  , baseFolder  : String // /var/rudder/share/xxxx-xxxxx-xxxx/rules/cfengine-community
+  , newFolder   : String // /var/rudder/share/xxxx-xxxxx-xxxx/rules.new/cfengine-community
+  , backupFolder: Option[String]
 )
 
 /**
