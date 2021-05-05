@@ -16,7 +16,7 @@ grant {
     permission java.net.SocketPermission "localhost:0", "listen";
 
     // "standard" properies that can be read by anyone
-    permission java.util.PropertyPermission "*", "read";
+    permission java.util.PropertyPermission "*", "read,write";
 
     // needed by thread factory to try to kill the thread
     permission java.lang.RuntimePermission "modifyThread";
@@ -37,6 +37,9 @@ grant {
     permission java.lang.RuntimePermission "fileSystemProvider";
     permission java.lang.RuntimePermission "getClassLoader";
     permission java.lang.RuntimePermission "accessSystemModules";
+    // needed by graalvm
+    permission java.lang.RuntimePermission "localeServiceProvider";
+    permission java.lang.reflect.ReflectPermission "newProxyInPackage.com.oracle.truffle.api.object";
 
     permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
 

@@ -485,9 +485,10 @@ object JsEngine {
       val message = s"Error when trying to get the java script engine. Check with your system administrator that you JVM support JSR-223 with javascript"
       try {
         // create a script engine manager
+        System.setProperty("polyglot.js.nashorn-compat", "true")
         val factory = new ScriptEngineManager()
         // create a JavaScript engine
-        factory.getEngineByName("JavaScript") match {
+        factory.getEngineByName("graal.js") match {
           case null   => Unexpected(message).fail
           case engine => engine.succeed
         }

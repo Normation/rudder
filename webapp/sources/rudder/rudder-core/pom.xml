@@ -239,5 +239,22 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${spring-version}</version>
       <scope>test</scope>
     </dependency>
+
+    <!-- new js engine -->
+    <dependency>
+      <groupId>org.graalvm.js</groupId>
+      <artifactId>js-scriptengine</artifactId>
+      <version>${graalvm-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.js</groupId>
+      <artifactId>js</artifactId>
+      <version>${graalvm-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.truffle</groupId>
+      <artifactId>truffle-api</artifactId>
+      <version>${graalvm-version}</version>
+    </dependency>
   </dependencies>
 </project>

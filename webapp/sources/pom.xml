@@ -391,6 +391,8 @@ limitations under the License.
     <cafeine-version>2.8.6</cafeine-version>
     <jgrapht-version>1.4.0</jgrapht-version>
     <reflections-version>0.9.12</reflections-version>
+    <graalvm-version>21.1.0</graalvm-version>
+
     <!--
       These one must be updated to work together
       We declare cats in "test" here, because it is not directly needed
