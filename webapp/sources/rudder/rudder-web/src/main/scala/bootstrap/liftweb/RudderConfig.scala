@@ -287,7 +287,16 @@ object RudderConfig extends Loggable {
       x.millis
     }
   }
-  val RUDDER_DIR_BACKUP = config.getString("rudder.dir.backup")
+  val RUDDER_DIR_BACKUP = {
+    try {
+      config.getString("rudder.dir.backup").trim match {
+        case "" => None
+        case x  => Some(x)
+      }
+    } catch {
+      case ex: ConfigException => None
+    }
+  }
   val RUDDER_DIR_DEPENDENCIES = config.getString("rudder.dir.dependencies")
   val RUDDER_DIR_LOCK = config.getString("rudder.dir.lock") //TODO no more used ?
   val RUDDER_DIR_SHARED_FILES_FOLDER = config.getString("rudder.dir.shared.files.folder")
