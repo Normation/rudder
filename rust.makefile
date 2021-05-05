@@ -51,7 +51,7 @@ version:
 	cargo --version
 	rustc --version
 	@echo "RUSTC_WRAPPER=$${RUSTC_WRAPPER}"
-	sccache --show-stats
+	sccache --show-stats || true
 
 build: version
 	# strip release binaries, cf. https://github.com/rust-lang/cargo/issues/3483#issuecomment-431209957
