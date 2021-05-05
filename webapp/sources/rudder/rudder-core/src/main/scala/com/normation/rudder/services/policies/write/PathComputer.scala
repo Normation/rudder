@@ -65,7 +65,7 @@ trait PathComputer {
 class PathComputerImpl(
       baseFolder: String //  "/var/rudder"
     , relativeShareFolder: String // "share"
-    , backupFolder: String // "/var/rudder/backup/"
+    , backupFolder: Option[String] // "/var/rudder/backup/"
     , communityAgentRootPath: String // "/var/rudder/cfengine-community/inputs"
     , enterpriseAgentRootPath: String // "/var/cfengine/inputs"
     , chainDepthLimit: Int = 20 // max number of relay, to detect cycles
@@ -97,7 +97,7 @@ class PathComputerImpl(
             searchedNodeId
           , FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix)
           , FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix + newPostfix)
-          , FilenameUtils.normalize(backupFolder + path + promisesPrefix)
+          , backupFolder.map(x => FilenameUtils.normalize(x + path + promisesPrefix))
         )
       }
     }

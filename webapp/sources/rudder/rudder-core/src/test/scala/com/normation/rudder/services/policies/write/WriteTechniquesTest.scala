@@ -121,7 +121,7 @@ object TestSystemData {
     val pathComputer = new PathComputerImpl(
         SHARE.getParent + "/"
       , SHARE.getName
-      , abstractRoot.getAbsolutePath + "/backup"
+      , Some(abstractRoot.getAbsolutePath + "/backup")
       , rootGeneratedPromisesDir.getAbsolutePath // community will go under our share
       , "/" // we don't want to use entreprise agent root path
     )

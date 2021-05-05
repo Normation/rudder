@@ -53,6 +53,8 @@ import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.RunHooks
 import com.normation.templates.FillTemplatesService
 import com.normation.templates.STVariable
+
+import java.nio.charset.Charset
 import net.liftweb.common._
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST.JValue
@@ -63,14 +65,12 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.Policy
-import java.nio.charset.Charset
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.PosixFilePermission
 import java.util.concurrent.TimeUnit
-
 import com.normation.rudder.hooks.HookReturnCode
 import zio._
 import zio.syntax._
@@ -87,6 +87,7 @@ import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.templates.FillTemplateThreadUnsafe
 import com.normation.templates.FillTemplateTimer
+import org.apache.commons.io.FileUtils
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -135,9 +136,13 @@ object PolicyWriterServiceImpl {
 
   }
 
-  def moveFile(src: File, dest: File, mvOptions: File.CopyOptions, optPerms: Option[Set[PosixFilePermission]], optGroupOwner: Option[String]) = {
+  def moveFile(src: File, dest: File, mvOptions: Option[File.CopyOptions], optPerms: Option[Set[PosixFilePermission]], optGroupOwner: Option[String]) = {
     createParentsIfNotExist(dest, optPerms, optGroupOwner)
-    src.moveTo(dest)(mvOptions)
+    // must use FileUtils on different fs, see: https://issues.rudder.io/issues/19218
+    mvOptions match {
+      case Some(opts) => src.moveTo(dest)(opts)
+      case None       => FileUtils.moveDirectory(src.toJava, dest.toJava)
+    }
     optGroupOwner.foreach(dest.setGroup(_))
   }
 }
@@ -705,12 +710,12 @@ class PolicyWriterServiceImpl(
                         config.nodeInfo.id
                       , pathComputer.getRootPath(agentType)
                       , pathComputer.getRootPath(agentType) + newsFileExtension
-                      , pathComputer.getRootPath(agentType) + backupFileExtension
+                      , Some(pathComputer.getRootPath(agentType) + backupFileExtension)
                     ).succeed
                   } else {
                     pathComputer.computeBaseNodePath(config.nodeInfo.id, rootNodeConfigId, allNodeInfos).map { case NodePoliciesPaths(id, base, news, backup) =>
                         val postfix = agentType.toRulesPath
-                        NodePoliciesPaths(id, base + postfix, news + postfix, backup + postfix)
+                        NodePoliciesPaths(id, base + postfix, news + postfix, backup.map(_ + postfix))
                     }.toIO
                   }
       } yield {
@@ -898,29 +903,45 @@ class PolicyWriterServiceImpl(
     } else {
       for {
         mvOptions  <- getMoveOptions(sortedFolder.head)
+        (newMvOpt, backupMvOpt) = mvOptions
         newFolders <- Ref.make(List.empty[NodePoliciesPaths])
-                      // can't trivialy parallelise because we need parents before children
-        _          <- ZIO.foreachParN_(maxParallelism)(sortedFolder) { case folder @ NodePoliciesPaths(nodeId, baseFolder, newFolder, backupFolder) =>
+        count      <- Ref.make(0)
+        totalNum   =  sortedFolder.size
+                      // can't trivialy parallelise because we need parents before
+                      // here, base folder, newFolder and backupFolder target agent directory under rules: we need one level up appart for root.
+        _          <- (ZIO.foreachParN_(maxParallelism)(sortedFolder) { case folder @ NodePoliciesPaths(nodeId, baseFolderAgent, newFolderAgent, backupFolderAgent) =>
                         val (optGroupOwner, perms) = if(nodeId == Constants.ROOT_POLICY_SERVER_ID) (None, rootDirectoryPerms) else (groupOwner, defaultDirectoryPerms)
+                        val (baseFolder, newFolder, backupFolder) = nodeId match {
+                          case Constants.ROOT_POLICY_SERVER_ID =>
+                            // root server doesn't have the "rule" middle directory, don't get parent
+                            (File(baseFolderAgent), File(newFolderAgent), backupFolderAgent.map(x => File(x)))
+                          case _                               =>
+                            // get parent of /var/rudder/share/xxxx-xxxx-xxxx/rules/cfengine-community
+                            (File(baseFolderAgent).parent, File(newFolderAgent).parent, backupFolderAgent.map(x => File(x).parent))
+                        }
                         for {
                           _ <- PolicyGenerationLoggerPure.trace(s"Backuping old policies from '${baseFolder}' to '${backupFolder} ")
-                          _ <- backupNodeFolder(baseFolder, backupFolder, mvOptions, optGroupOwner, perms)
+                          _ <- backupNodeFolder(baseFolder, backupFolder, backupMvOpt, optGroupOwner, perms)
                           _ <- newFolders.update( folder :: _ )
                           _ <- PolicyGenerationLoggerPure.trace(s"Copying new policies into '${baseFolder}'")
-                          _ <- moveNewNodeFolder(newFolder, baseFolder, mvOptions, optGroupOwner, perms)
+                          _ <- moveNewNodeFolder(newFolder, baseFolder, newMvOpt, optGroupOwner, perms)
                         } yield ()
-                      }.catchAll(err =>
+                      }).tapError(err =>
                         //in case of any error, restore all folders which were backuped, i.e in newFolders
                         //here we do "as best as possible"
                         for {
                           folders <- newFolders.get
                           _       <- ZIO.foreach(folders) { folder =>
-                                       val (optGroupOwner, perms) = if(folder.nodeId == Constants.ROOT_POLICY_SERVER_ID) (None, rootDirectoryPerms) else (groupOwner, defaultDirectoryPerms)
-                                       PolicyGenerationLoggerPure.error(s"Error when moving policies to their node folder. Restoring old policies on folder ${folder.baseFolder}. Error was: ${err.fullMsg}") *>
-                                       restoreBackupNodeFolder(folder.baseFolder, folder.backupFolder, mvOptions, optGroupOwner, perms).catchAll(err =>
-                                         PolicyGenerationLoggerPure.error(s"could not restore old policies into ${folder.baseFolder} ")
-                                       )
-                                     }
+                                       folder.backupFolder match {
+                                         case None    => PolicyGenerationLoggerPure.error(s"Error when moving policies to their node folder. Error was: ${err.fullMsg}")
+                                         case Some(x) =>
+                                           val (optGroupOwner, perms) = if(folder.nodeId == Constants.ROOT_POLICY_SERVER_ID) (None, rootDirectoryPerms) else (groupOwner, defaultDirectoryPerms)
+                                           PolicyGenerationLoggerPure.error(s"Error when moving policies to their node folder. Restoring old policies on folder ${folder.baseFolder}. Error was: ${err.fullMsg}") *>
+                                          restoreBackupNodeFolder(folder.baseFolder, x, backupMvOpt, optGroupOwner, perms).catchAll(err =>
+                                             PolicyGenerationLoggerPure.error(s"could not restore old policies into ${folder.baseFolder} ")
+                                           )
+                                         }
+                          }
                         } yield ()
                       )
       } yield ()
@@ -929,9 +950,10 @@ class PolicyWriterServiceImpl(
   ///////////// utilities /////////////
 
   // check if we can use an atomic move or if we need a standard one
-  def getMoveOptions(examplePath: NodePoliciesPaths): IOResult[File.CopyOptions] = {
-    val default    = StandardCopyOption.REPLACE_EXISTING :: Nil
-    val atomically = StandardCopyOption.ATOMIC_MOVE :: default
+  // first is for move from rules.new to rule. It really should be atomic.
+  // second if for backup
+  def getMoveOptions(examplePath: NodePoliciesPaths): IOResult[(Option[File.CopyOptions], Option[File.CopyOptions])] = {
+    val atomically = StandardCopyOption.ATOMIC_MOVE :: StandardCopyOption.REPLACE_EXISTING :: Nil
 
     def testMove(file: File, destination: String): Task[File] = {
       IO.effect {
@@ -941,34 +963,45 @@ class PolicyWriterServiceImpl(
           destDir.createDirectoryIfNotExists(true)
           file.moveTo(destDir / file.name)(atomically)
         }
+        File(destDir, file.name).delete(false)
       }.catchAll(ex => IO.effect(file.delete(true)) *> ex.fail)
+    }
+
+    def decideIfAtomic(src: File, destDir: String): IOResult[Option[File.CopyOptions]] = {
+      testMove(src, destDir).map(_ => Some(atomically)).catchAll {
+        // since we don't really use these options, it's just a warning about performances
+        case ex: AtomicMoveNotSupportedException =>
+          PolicyGenerationLoggerPure.warn(s"Node policy directories (${src.parent}, ${destDir}) " +
+                                s"are not on the same file system. Rudder won't be able to use atomic move for policies, which may have dire " +
+                                s"effect on policy generation performance. You should use the same file system.") *>
+          None.succeed
+        case ex: Throwable =>
+          val err = SystemError("Error when testing for policy 'mv' mode", ex)
+          PolicyGenerationLoggerPure.debug(err.fullMsg) *> err.fail
+      }
     }
 
     // try to create a file in new folder parent, move it to base folder, move
     // it to backup. In case of AtomicNotSupported execption, revert to
     // simple move
-    (for {
-      n  <- currentTimeNanos
-      f1 <- IO.effect {
-              File(examplePath.newFolder).parent.createChild("test-rudder-policy-mv-options" + n.toString, true, true)
-            }
-      f2 <- testMove(f1, examplePath.baseFolder)
-      _  <- PolicyGenerationLoggerPure.trace(s"Can use atomic move from policy new folder to base folder")
-      f3 <- testMove(f2, examplePath.backupFolder)
-      _  <- PolicyGenerationLoggerPure.trace(s"Can use atomic move from policy base folder to archive folder")
-      _  <- PolicyGenerationLoggerPure.debug(s"Using atomic move for node policies")
-      _  <- IO.effect(f3.delete(true))
+    for {
+      n    <- currentTimeNanos
+      f1   <- IOResult.effect {
+                File(examplePath.newFolder).parent.createChild("test-rudder-policy-mv-options" + n.toString, true, true)
+              }
+      opt1 <- decideIfAtomic(f1, examplePath.baseFolder)
+      _    <- PolicyGenerationLoggerPure.debug(s"Can use atomic move from policy new folder to base folder")
+      f2   <- IOResult.effect {
+                File(examplePath.baseFolder).parent.createChild("test-rudder-policy-mv-options" + n.toString, true, true)
+              }
+      opt2 <- examplePath.backupFolder match {
+                case Some(b) => decideIfAtomic(f2, b)
+                // if backup disable, we don't case about the kind of move
+                case None => None.succeed
+              }
+      _     <- PolicyGenerationLoggerPure.debug(s"Can use atomic move from policy base folder to archive folder")
     } yield {
-      atomically
-    }).catchAll {
-      case ex: AtomicMoveNotSupportedException =>
-        PolicyGenerationLoggerPure.warn(s"Node policy directories (${examplePath.baseFolder}, ${examplePath.newFolder}, ${examplePath.backupFolder}) " +
-                              s"are not on the same file system. Rudder won't be able to use atomic move for policies, which may have dire " +
-                              s"effect on policy generation performance. You should use the file system.") *>
-        default.succeed
-      case ex: Throwable =>
-        val err = SystemError("Error when testing for policy 'mv' mode", ex)
-        PolicyGenerationLoggerPure.debug(err.fullMsg) *> err.fail
+      (opt1, opt2)
     }
   }
 
@@ -1006,34 +1039,37 @@ class PolicyWriterServiceImpl(
   }
 
   /**
-   * Move the machine policies folder to the backup folder
+   * Move the machine policies folder to the backup folder if it's not None, else ignore backup.
    */
-  private[this] def backupNodeFolder(nodeFolder: String, backupFolder: String, mvOptions: File.CopyOptions, optGroupOwner: Option[String], perms: Set[PosixFilePermission]): IOResult[Unit] = {
-    IOResult.effect {
-      val src = File(nodeFolder)
-      if (src.isDirectory()) {
-        val dest = File(backupFolder)
-        if (dest.isDirectory) {
-          // force deletion of previous backup
-          dest.delete(false, File.LinkOptions.noFollow)
+  private[this] def backupNodeFolder(nodeFolder: File, backupFolder: Option[File], mvOptions: Option[File.CopyOptions], optGroupOwner: Option[String], perms: Set[PosixFilePermission]): IOResult[Unit] = {
+    backupFolder match {
+      case None => // just delete base
+        ZIO.whenM(IOResult.effect(nodeFolder.exists)) {
+          IOResult.effect(nodeFolder.delete(false, File.LinkOptions.noFollow))
         }
-        PolicyGenerationLogger.trace(s"Backup old '${nodeFolder}' into ${backupFolder}")
-        moveFile(src, dest, mvOptions, Some(perms), optGroupOwner)
-      }
+      case Some(d) =>
+        IOResult.effect {
+          if (nodeFolder.isDirectory()) {
+            if (d.isDirectory) {
+              // force deletion of previous backup
+              d.delete(false, File.LinkOptions.noFollow)
+            }
+            PolicyGenerationLogger.trace(s"Backup old '${nodeFolder}' into ${backupFolder}")
+            moveFile(nodeFolder, d, mvOptions, Some(perms), optGroupOwner)
+          }
+        }
     }
   }
 
   /**
-   * Move the newly created folder to the final location
+   * Move the newly created folder to the final location, ie we move
+   *  var/rudder/share/00000038-55a2-4b97-8529-5154cbb63a18/rules.new/ into var/rudder/share/00000038-55a2-4b97-8529-5154cbb63a18/rules
    */
-  private[this] def moveNewNodeFolder(sourceFolder: String, destinationFolder: String, mvOptions: File.CopyOptions, optGroupOwner: Option[String], perms: Set[PosixFilePermission]): IOResult[Unit] = {
-
-    val src = File(sourceFolder)
+  private[this] def moveNewNodeFolder(src: File, dest: File, mvOptions: Option[File.CopyOptions], optGroupOwner: Option[String], perms: Set[PosixFilePermission]): IOResult[Unit] = {
 
     for {
       b <- IOResult.effect(src.isDirectory)
       _ <- if (b) {
-             val dest = File(destinationFolder)
              for {
                _ <- PolicyGenerationLoggerPure.trace(s"Moving folders: \n  from ${src.pathAsString}\n  to   ${dest.pathAsString}")
                _ <- ZIO.whenM(IOResult.effect(dest.isDirectory)) {
@@ -1049,7 +1085,7 @@ class PolicyWriterServiceImpl(
                     }
              } yield ()
            } else {
-             PolicyGenerationLoggerPure.error(s"Could not find freshly created policies at '${sourceFolder}'") *>
+             PolicyGenerationLoggerPure.error(s"Could not find freshly created policies at '${src.pathAsString}'") *>
              Inconsistency(s"Source policies at '${src.pathAsString}' are missing'").fail
            }
     } yield ()
@@ -1060,7 +1096,7 @@ class PolicyWriterServiceImpl(
    * @param nodeFolder
    * @param backupFolder
    */
-  private[this] def restoreBackupNodeFolder(nodeFolder: String, backupFolder: String, mvOptions: File.CopyOptions, optGroupOwner: Option[String], perms: Set[PosixFilePermission]): IOResult[Unit] = {
+  private[this] def restoreBackupNodeFolder(nodeFolder: String, backupFolder: String, mvOptions: Option[File.CopyOptions], optGroupOwner: Option[String], perms: Set[PosixFilePermission]): IOResult[Unit] = {
     IOResult.effectM {
       val src = File(backupFolder)
       if (src.isDirectory()) {

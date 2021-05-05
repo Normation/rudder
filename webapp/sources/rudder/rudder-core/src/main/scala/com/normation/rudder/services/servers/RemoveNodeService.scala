@@ -433,7 +433,7 @@ class RemoveNodeServiceImpl(
           , ("RUDDER_NODE_ROLES"                 , nodeInfo.serverRoles.map(_.value).mkString(","))
           , ("RUDDER_POLICIES_DIRECTORY_CURRENT" , optNodePaths.map(_.baseFolder).getOrElse(""))
           , ("RUDDER_POLICIES_DIRECTORY_NEW"     , optNodePaths.map(_.newFolder).getOrElse(""))
-          , ("RUDDER_POLICIES_DIRECTORY_ARCHIVE" , optNodePaths.map(_.backupFolder).getOrElse(""))
+          , ("RUDDER_POLICIES_DIRECTORY_ARCHIVE" , optNodePaths.flatMap(_.backupFolder).getOrElse(""))
             // for compat in 4.1. Remove in 4.2
           , ("RUDDER_NODEID"                     , nodeInfo.id.value)
           , ("RUDDER_NODE_POLICY_SERVER"         , nodeInfo.policyServerId.value)

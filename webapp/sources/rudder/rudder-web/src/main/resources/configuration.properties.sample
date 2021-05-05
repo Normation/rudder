@@ -319,6 +319,7 @@ rudder.generated.policies.group.owner=rudder-policy-reader
 # CAUTION: For performance and consistency, it is necessary that the rudder.dir.backup is on the same
 # filesystem as /var/rudder/share/ , otherwise the policies change for nodes is non-atomic (move becomes
 # copy then delete), and can result to incomplete/partial policies being distributed to nodes.
+# Comment that option to disable policy backup.
 rudder.dir.backup=/var/rudder/share/backup/
 
 #
