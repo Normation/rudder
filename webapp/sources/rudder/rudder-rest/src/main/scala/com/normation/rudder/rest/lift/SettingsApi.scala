@@ -131,6 +131,7 @@ class SettingsApi(
       RestGenerationDelay ::
       RestPolicyGenerationTrigger ::
       RestNodeAcceptDuplicatedHostname ::
+      RestComputeDynGroupMaxParallelism ::
       Nil
 
   val allSettings_v8 = RestUseReverseDNS :: allSettings_v10
@@ -827,6 +828,13 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
     val key = "node_accept_duplicated_hostname"
     def get = configService.node_accept_duplicated_hostname()
     def set = (value : Boolean, _, _) => configService.set_node_accept_duplicated_hostname(value)
+  }
+
+  final case object RestComputeDynGroupMaxParallelism extends RestStringSetting {
+    val startPolicyGeneration = false
+    val key = "rudder_compute_dyngroups_max_parallelism"
+    def get = configService.rudder_compute_dyngroups_max_parallelism()
+    def set = (value : String, _, _) => configService.set_rudder_compute_dyngroups_max_parallelism(value)
   }
 
   // if the directive is missing for policy server, it may be because it misses dedicated allowed networks.

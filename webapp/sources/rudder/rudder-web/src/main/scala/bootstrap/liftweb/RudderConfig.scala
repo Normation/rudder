@@ -2068,6 +2068,7 @@ object RudderConfig extends Loggable {
     , asyncDeploymentAgentImpl
     , uuidGen
     , RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL
+    , () => configService.rudder_compute_dyngroups_max_parallelism().toBox
   )
 
   private[this] lazy val dynGroupUpdaterService = new DynGroupUpdaterServiceImpl(roLdapNodeGroupRepository, woLdapNodeGroupRepository, queryProcessor)

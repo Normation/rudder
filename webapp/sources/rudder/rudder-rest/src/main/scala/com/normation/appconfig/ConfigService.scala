@@ -236,6 +236,8 @@ trait ReadConfigService {
   def rudder_generation_trigger(): IOResult[PolicyGenerationTrigger]
   def rudder_generation_js_timeout(): IOResult[Int]
 
+  def rudder_compute_dyngroups_max_parallelism(): IOResult[String]
+
   def rudder_generation_continue_on_error(): IOResult[Boolean]
 }
 
@@ -381,6 +383,8 @@ trait UpdateConfigService {
   def set_rudder_generation_trigger(value: PolicyGenerationTrigger): IOResult[Unit]
   def set_rudder_generation_js_timeout(value: Int): IOResult[Unit]
 
+  def set_rudder_compute_dyngroups_max_parallelism(value: String): IOResult[Unit]
+
   def set_rudder_generation_continue_on_error(value: Boolean): IOResult[Unit]
 }
 
@@ -442,6 +446,7 @@ class LDAPBasedConfigService(
        rudder.generation.delay=0s
        rudder.generation.trigger=all
        node.accept.duplicated.hostname=false
+       rudder.compute.dyngroups.max.parallelism=1
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -800,5 +805,8 @@ class LDAPBasedConfigService(
 
   def rudder_generation_trigger(): IOResult[PolicyGenerationTrigger] = get("rudder_generation_trigger")
   def set_rudder_generation_trigger(value: PolicyGenerationTrigger): IOResult[Unit] = save("rudder_generation_trigger", value)
+
+  def rudder_compute_dyngroups_max_parallelism(): IOResult[String] = get("rudder_compute_dyngroups_max_parallelism")
+  def set_rudder_compute_dyngroups_max_parallelism(value: String): IOResult[Unit] = save("rudder_compute_dyngroups_max_parallelism", value)
 
 }
