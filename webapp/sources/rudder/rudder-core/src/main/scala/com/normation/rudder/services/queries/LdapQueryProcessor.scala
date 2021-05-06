@@ -464,7 +464,7 @@ class InternalLDAPQueryProcessor(
                       res
                     }
                   }
-      postFiltered = postFilterNode(inverted.groupBy(_.dn).map(_._2.head).toSeq, query.returnType, limitToNodeIds)
+      postFiltered = postFilterNode(inverted.distinctBy(_.dn), query.returnType, limitToNodeIds)
     } yield {
       LdapQueryProcessorResult(postFiltered, nq.nodeInfoFilters)
     }

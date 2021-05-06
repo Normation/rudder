@@ -83,6 +83,13 @@ trait DynGroupService {
   def getAllDynGroups(): Box[Seq[NodeGroup]]
 
   /**
+   * Retrieve the list of all dynamic groups, in 2 parts
+   * All those without dependencies on another group, and all
+   * those with dependency to other groups
+   */
+  def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroupId], Seq[NodeGroupId])]
+
+  /**
    *  Find if changes happened since `lastTime`.
    */
   def changesSince(lastTime: DateTime): Box[Boolean]
@@ -114,7 +121,7 @@ class DynGroupServiceImpl(
     for {
       con         <- ldap
       entries     <- con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs:_*)
-      dyngroupIds <- ZIO.foreach(entries) { entry =>
+      dyngroups <- ZIO.foreach(entries) { entry =>
                        mapper.entry2NodeGroup(entry).toIO.chainError(s"Can not map entry to a node group: ${entry}")
                      }
     } yield {
@@ -122,10 +129,25 @@ class DynGroupServiceImpl(
       // This does not treat all cases (what happens when you have a group depending on a group which also depends on another group content)
       // We will sort by number of group queries we have in our group (the more group we depend on, the more we want to update it last)
       def numberOfQuery(group : NodeGroup) = group.query.map( _.criteria.filter(_.objectType.objectType == "group").size).getOrElse(0)
-      dyngroupIds.sortBy(numberOfQuery)
+      dyngroups.sortBy(numberOfQuery)
     }
   }.toBox
 
+  def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroupId], Seq[NodeGroupId])] = {
+    (for {
+      con         <- ldap
+      entries     <- con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs:_*)
+      dyngroups <- ZIO.foreach(entries) { entry =>
+        mapper.entry2NodeGroup(entry).toIO.chainError(s"Can not map entry to a node group: ${entry}")
+      }
+    } yield {
+      // The idea is to separete group to update groups with a query based on other groups content (objecttype group) in two seq
+      val (groups, groupsDependant) = dyngroups.partition { group =>
+        group.query.map(query => query.criteria.filter(_.objectType.objectType == "group").size).getOrElse(0) == 0
+      }
+      (groups.map(_.id), groupsDependant.map(_.id))
+    }).toBox
+  }
   override def changesSince(lastTime: DateTime): Box[Boolean] = {
     val n0 = System.currentTimeMillis
     if(n0 - lastTime.getMillis < 100) {

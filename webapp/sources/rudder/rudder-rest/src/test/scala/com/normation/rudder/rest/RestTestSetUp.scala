@@ -149,6 +149,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
 import com.normation.box._
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.rest.v1.RestTechniqueReload
 
 
@@ -213,6 +214,8 @@ object RestTestSetUp {
       }.toSeq).toBox
     }
     override def changesSince(lastTime: DateTime): Box[Boolean] = Full(false)
+
+    override def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroupId], Seq[NodeGroupId])] = ???
   }
 
   val deploymentStatusSerialisation = new DeploymentStatusSerialisation {
@@ -393,7 +396,7 @@ object RestTestSetUp {
     , FiniteDuration(100, "millis")
   )
 
-  val fakeUpdateDynamicGroups = new UpdateDynamicGroups(dynGroupService, dynGroupUpdaterService, asyncDeploymentAgent, uuidGen, 1) {
+  val fakeUpdateDynamicGroups = new UpdateDynamicGroups(dynGroupService, dynGroupUpdaterService, asyncDeploymentAgent, uuidGen, 1, () => Full("1")) {
     // for some reason known only by Scala inheritance rules, the underlying LAUpdateDyngroup is null, so we need to override that.
     override lazy val laUpdateDyngroupManager = new LAUpdateDyngroupManager() {
       override protected def messageHandler: PartialFunction[GroupUpdateMessage, Unit] = {

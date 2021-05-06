@@ -48,3 +48,39 @@ object Utils {
       case Right(a) => Full(a)
     }
 }
+
+/**
+ * An object to transform parse a number into a parallelism number, which accept either an
+ * integer or a multiplicator based on the number of cores.
+ * This method is effectful.
+ */
+object ParseMaxParallelism {
+  /*
+   * value: the string to transform in to a number, either a positive Int ("1", etc)
+   *        or a mutiplicator like "x0.5", "x2", etc (where what is after the 'x' is a double.
+   * defaultValue: the value to use if the string is not parsable or result is < 1
+   * propertyName, loggerWarn: used to log message if there is an error with the parsing.
+   */
+  def apply(value: String, defaultValue: Int, propertyName: String, loggerWarn: String => Unit): Int = {
+    def threadForProc(mult: Double): Int = {
+      Math.max(1, (java.lang.Runtime.getRuntime.availableProcessors * mult).ceil.toInt)
+    }
+
+    val t = try {
+      value match {
+        case s if s.charAt(0) == 'x' => threadForProc(s.substring(1).toDouble)
+        case other => other.toInt
+      }
+    } catch {
+      case ex: IllegalArgumentException =>
+        loggerWarn(s"Error when trying to parse '${value}' for '${propertyName}', defaulting to '${defaultValue}'.")
+        defaultValue
+    }
+    if (t < 1) {
+      loggerWarn(s"You can't set '${propertyName}' to ${t} (parsed from '${value}'. Defaulting to '${defaultValue}''")
+      defaultValue
+    } else {
+      t
+    }
+  }
+}
