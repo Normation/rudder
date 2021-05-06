@@ -205,16 +205,25 @@ bundle agent schedule_simple_generic(job_id, agent_periodicity,
       "nodups" expression => strcmp("${mode}", "nodups");
       "catchup" expression => strcmp("${mode}", "catchup");
 
-    pass2.!catchup::
-      "should_run" expression => strcmp("${schedule_generic.current_run_id}", "${schedule_generic.job_run_id}");
-    pass2.catchup::
-      "should_run" not => islessthan("${schedule_generic.current_run_id}", "${schedule_generic.job_run_id}");
     pass2::
-      "job_${job_id}_run" expression => "should_run.!job_${job_id}_persist.!job_${job_id}_error",
+      "should_run" expression => strcmp("${schedule_generic.current_run_id}", "${schedule_generic.job_run_id}");
+    # detect if we are in the catchup phase
+    pass2.catchup::
+      "should_catchup" not => islessthan("${schedule_generic.current_run_id}", "${schedule_generic.job_run_id}");
+
+    # We should run the job if
+    # * we are in the right interval (should_run) and not already run in the right interval
+    # * we need to catchup, but we didn't already catchup, nor was it run in the interval
+    pass2::
+      "job_${job_id}_run" expression => "((should_run.!job_${job_id}_persist)|(should_catchup.!job_${job_id}_catchup_persist.!job_${job_id}_persist)).!job_${job_id}_error",
                           scope => "namespace";
-    pass2.(nodups|catchup)::
+    pass2.(nodups|catchup).should_run::
       "job_${job_id}_persist" expression => "job_${job_id}_run",
                               persistence => "${class_persist}";
+
+    pass2.should_catchup::
+       "job_${job_id}_catchup_persist" expression => "job_${job_id}_run",
+                                      persistence => "${class_persist}";
 
     any::
       "pass2" expression => "any";
