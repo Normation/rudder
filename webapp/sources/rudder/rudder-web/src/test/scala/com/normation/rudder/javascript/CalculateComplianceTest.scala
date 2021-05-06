@@ -41,6 +41,8 @@ package com.normation.rudder.javascript
 import com.normation.cfclerk.domain.Variable
 import com.normation.errors.RudderError
 import com.normation.rudder.services.policies.JsEngine
+import com.normation.rudder.services.policies.JsRudderLibBinding
+
 import javax.script.SimpleBindings
 import org.junit.runner.RunWith
 import org.specs2.matcher.Matcher
@@ -83,11 +85,10 @@ class CalculateComplianceTest extends Specification {
   }
 
 
-  val emptyJsBindings = new SimpleBindings()
   def js(js: String): Either[RudderError, String] = {
-    JsEngine.SandboxedJsEngine.sandboxed(this.getClass.getClassLoader.getResource("rudder-js.policy")) { box =>
+    JsEngine.SandboxedJsEngine.sandboxed() { box =>
       for {
-        x <- box.singleEval(js, emptyJsBindings)
+        x <- box.singleEval(js, JsRudderLibBinding.Crypt.jsRudderLib)
       } yield x
     }.either.runNow
   }

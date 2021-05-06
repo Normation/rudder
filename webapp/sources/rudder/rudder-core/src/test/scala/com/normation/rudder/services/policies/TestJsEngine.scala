@@ -37,8 +37,6 @@
 
 package com.normation.rudder.services.policies
 
-import java.net.URL
-
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
@@ -54,9 +52,9 @@ import com.normation.errors.RudderError
 import com.normation.rudder.services.policies.JsEngine.SandboxedJsEngine
 
 import scala.concurrent.duration._
-import zio.syntax._
 import com.normation.zio._
-
+import zio._
+import zio.syntax._
 
 /*
  * This class test the JsEngine.
@@ -73,8 +71,6 @@ class TestJsEngine extends Specification {
   val noscriptVariable     = variableSpec.toVariable(Seq("simple ${rudder} value"))
   val get4scriptVariable   = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS} 2+2"))
   val infiniteloopVariable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}while(true){}"))
-
-  val policyFile = this.getClass.getClassLoader.getResource("rudder-js.policy")
 
   /**
    * A failure matcher utility that pattern matches the result message
@@ -102,8 +98,8 @@ class TestJsEngine extends Specification {
     )
   }
 
-  def runSandboxed[T](policyFileUrl: URL)(script: SandboxedJsEngine => IOResult[T]): Either[RudderError, T] =
-    JsEngine.SandboxedJsEngine.sandboxed(policyFileUrl)(script).either.runNow
+  def runSandboxed[T](maxThread: Int = 1)(script: SandboxedJsEngine => IOResult[T]): Either[RudderError, T] =
+    JsEngine.SandboxedJsEngine.sandboxed(maxThread)(script).either.runNow
 
   def contextEnabled[T](script: JsEngine => IOResult[T]): Either[RudderError, T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled, 1, 1.second) (script).either.runNow
   def contextDisabled[T](script: JsEngine => IOResult[T]): Either[RudderError, T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Disabled, 1, 1.second) (script).either.runNow
@@ -120,7 +116,7 @@ class TestJsEngine extends Specification {
 
   "Getting the scripting engine" should {
     "correctly get the engine instance" in {
-      (JsEngine.SandboxedJsEngine.getJsEngine().either.runNow match {
+      (JsEngine.SandboxedJsEngine.getJsEngine(1).either.runNow match {
         case Right(engine) =>
           ok("ok")
         case Left(err) =>
@@ -129,8 +125,8 @@ class TestJsEngine extends Specification {
     }
 
     "let test have direct access to the engine" in {
-      val engine = JsEngine.SandboxedJsEngine.getJsEngine().runNow
-      engine.eval("1 + 1") === 2.0
+      val res = JsEngine.SandboxedJsEngine.getJsEngine(1).flatMap(_.buildContext.use(_.eval("js", "1 + 1").asInt().succeed)).runNow
+      res === 2
     }
   }
 
@@ -152,7 +148,7 @@ class TestJsEngine extends Specification {
   "When getting the sandboxed environement, one " should {
 
     "still be able to do dangerous things, because it's only the JsEngine which is sandboxed" in {
-      runSandboxed(policyFile) { box =>
+      runSandboxed() { box =>
         val dir = new java.io.File(s"/tmp/rudder-test-${System.currentTimeMillis}")
         val res = IOResult.effect((dir).createNewFile())
         //but clean tmp after all :)
@@ -161,39 +157,48 @@ class TestJsEngine extends Specification {
       } must beEqualTo(Right(true))
     }
 
-    "not be able to access FS with safeExec" in {
-      runSandboxed(policyFile) { box =>
-        box.safeExec("write to fs")( (new java.io.File("/tmp/rudder-test-fromjsengine").createNewFile()).succeed )
-      } must beFailure("(?s).*access denied to.*/tmp/rudder-test-fromjsengine.*".r)
-    }
+//  this is now directly managed in the JS engine
+//    "not be able to access FS with safeExec" in {
+//      runSandboxed() { box =>
+//        box.safeExec("write to fs")( (new java.io.File("/tmp/rudder-test-fromjsengine").createNewFile()).succeed )
+//      } must beRight(false)
+//    }
 
     "be able to do simple operation with JS" in {
-      runSandboxed(policyFile) { box =>
-        box.singleEval("'thestring'.substring(0,3)", JsRudderLibBinding.Crypt.bindings)
+      runSandboxed() { box =>
+        box.singleEval("'thestring'.substring(0,3)", JsRudderLibBinding.Crypt.jsRudderLib)
       } must beEqualTo(Right("the"))
     }
 
+    "can be executed in parallel, safely even with more thread than wanted" in {
+      val res: IOResult[List[String]] = JsEngine.SandboxedJsEngine.sandboxed(2)(js =>
+        ZIO.foreachParN(6)(Range(0,20).toList) { i => js.singleEval(s"'processing $i'", JsRudderLibBinding.Crypt.jsRudderLib)}
+      )
+
+      res.runNow must containTheSameElementsAs(Range(0,20).map(i => s"processing $i"))
+    }
+
     "get a scripting error if the script is eval to null" in {
-      runSandboxed(policyFile) { box =>
-        box.singleEval("null", JsRudderLibBinding.Crypt.bindings)
+      runSandboxed() { box =>
+        box.singleEval("null", JsRudderLibBinding.Crypt.jsRudderLib)
       } must beFailure("(?s).*null.*".r)
     }
 
     "not be able to access FS with JS" in {
-      runSandboxed(policyFile) { box =>
-        box.singleEval("""(new java.io.File("/tmp/rudder-test-fromjsengine")).createNewFile();""", JsRudderLibBinding.Crypt.bindings)
-      } must beFailure("(?s).*access denied to.*".r)
+      runSandboxed() { box =>
+        box.singleEval("""(new java.io.File("/tmp/rudder-test-fromjsengine")).createNewFile();""", JsRudderLibBinding.Crypt.jsRudderLib)
+      } must beFailure("(?s).*java is not defined.*".r)
     }
 
     "not be able to kill the system with JS" in {
-      runSandboxed(policyFile) { box =>
-        box.singleEval("""java.lang.System.exit(0);""", JsRudderLibBinding.Crypt.bindings)
-      } must beFailure("(?s).*access denied to.*".r)
+      runSandboxed() { box =>
+        box.singleEval("""java.lang.System.exit(0);""", JsRudderLibBinding.Crypt.jsRudderLib)
+      } must beFailure("(?s).*java is not defined.*".r)
     }
 
     "not be able to loop for ever with JS" in {
-      runSandboxed(policyFile) { box =>
-        box.singleEval("""while(true){}""", JsRudderLibBinding.Crypt.bindings)
+      runSandboxed() { box =>
+        box.singleEval("""while(true){}""", JsRudderLibBinding.Crypt.jsRudderLib)
       } must beFailure("(?s).*took more than.*, aborting.*".r)
     }
 
@@ -223,6 +228,9 @@ class TestJsEngine extends Specification {
       val ok = contextEnabled { engine =>
         engine.eval(setFooVariable, JsRudderLibBinding.Crypt)
       }
+      val ok2 = contextEnabled { engine =>
+        engine.eval(setFooVariable, JsRudderLibBinding.Crypt)
+      }
 
       // not ok if two eval
       val ko = contextEnabled { engine =>
@@ -232,8 +240,9 @@ class TestJsEngine extends Specification {
         } yield r
       }
 
-      (ok must beVariableValue(v => v == "some value")) and
-      (ko must beFailure("(?s)Invalid script.*foo.*Variable test.*".r))
+      (ok  must beVariableValue(v => v == "some value")) and
+      (ok2 must beVariableValue(v => v == "some value")) and
+      (ko  must beFailure("(?s)Invalid script.*foo.*Variable test.*".r))
     }
 
   }

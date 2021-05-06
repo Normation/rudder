@@ -37,44 +37,32 @@
 
 package com.normation.rudder.services.policies
 
-import java.security.Permission
 import java.util.concurrent._
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import java.util.concurrent.atomic.AtomicInteger
-
 import com.normation.cfclerk.domain.HashAlgoConstraint._
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.services.policies.HashOsType._
 import com.normation.rudder.services.policies.JsEngine._
 import ca.mrvisser.sealerate
-import javax.script.Bindings
-import javax.script.ScriptEngine
-import javax.script.ScriptEngineManager
-import javax.script.ScriptException
-import java.io.FilePermission
 
+import javax.script.Bindings
+import javax.script.ScriptException
 import org.apache.commons.codec.digest.Md5Crypt
 import org.apache.commons.codec.digest.Sha2Crypt
 import com.normation.cfclerk.domain.AixPasswordHashAlgo
 import com.normation.cfclerk.domain.AbstactPassword
-import java.security.NoSuchAlgorithmException
-import java.net.URL
-import java.net.URLPermission
-import java.nio.file.Paths
-import java.security.CodeSource
-import java.security.ProtectionDomain
-import java.util.logging.LoggingPermission
-import java.security.cert.Certificate
 
-import sun.security.provider.PolicyFile
+import java.security.NoSuchAlgorithmException
 import com.github.ghik.silencer.silent
 import com.normation.rudder.domain.logger.JsDirectiveParamLogger
 import com.normation.errors._
 import com.normation.rudder.domain.logger.JsDirectiveParamLoggerPure
+import org.graalvm.polyglot.HostAccess
+import org.graalvm.polyglot.proxy.ProxyObject
 import zio._
 import zio.syntax._
 
@@ -102,47 +90,72 @@ abstract class ImplicitGetBytes {
  * we need to define each class of the lib as class, because
  * nashorn can't access static field.
  */
+@HostAccess.Export
 class JsLibHash() extends ImplicitGetBytes {
+  @HostAccess.Export
   def md5    (s: String): String = MD5.hash(s)
+  @HostAccess.Export
   def sha1   (s: String): String = SHA1.hash(s)
+  @HostAccess.Export
   def sha256 (s: String): String = SHA256.hash(s)
+  @HostAccess.Export
   def sha512 (s: String): String = SHA512.hash(s)
 }
 
+@HostAccess.Export
 trait JsLibPassword extends ImplicitGetBytes {
 
   /// Standard Unix (crypt) specific
 
+  @HostAccess.Export
   def cryptMd5    (s: String): String = Md5Crypt.md5Crypt(s)
+  @HostAccess.Export
   def cryptSha256 (s: String): String = Sha2Crypt.sha256Crypt(s)
+  @HostAccess.Export
   def cryptSha512 (s: String): String = Sha2Crypt.sha512Crypt(s)
 
+  @HostAccess.Export
   def cryptMd5    (s: String, salt: String): String = Md5Crypt.md5Crypt(s, salt)
+  @HostAccess.Export
   def cryptSha256 (s: String, salt: String): String = Sha2Crypt.sha256Crypt(s, "$5$" + salt)
+  @HostAccess.Export
   def cryptSha512 (s: String, salt: String): String = Sha2Crypt.sha512Crypt(s, "$6$" + salt)
 
   /// Aix specific
 
+  @HostAccess.Export
   def aixMd5    (s: String): String = AixPasswordHashAlgo.smd5(s)
+  @HostAccess.Export
   def aixSha256 (s: String): String = AixPasswordHashAlgo.ssha256(s)
+  @HostAccess.Export
   def aixSha512 (s: String): String = AixPasswordHashAlgo.ssha512(s)
 
+  @HostAccess.Export
   def aixMd5    (s: String, salt: String): String = AixPasswordHashAlgo.smd5(s, Some(salt))
+  @HostAccess.Export
   def aixSha256 (s: String, salt: String): String = AixPasswordHashAlgo.ssha256(s, Some(salt))
+  @HostAccess.Export
   def aixSha512 (s: String, salt: String): String = AixPasswordHashAlgo.ssha512(s, Some(salt))
 
   /// one automatically choosing correct hash also based of the kind of HashOsType
   /// method accessible from JS
 
+  @HostAccess.Export
   def md5    (s: String): String
+  @HostAccess.Export
   def sha256 (s: String): String
+  @HostAccess.Export
   def sha512 (s: String): String
 
+  @HostAccess.Export
   def md5    (s: String, salt: String): String
+  @HostAccess.Export
   def sha256 (s: String, salt: String): String
+  @HostAccess.Export
   def sha512 (s: String, salt: String): String
 
   /// Advertised methods
+  @HostAccess.Export
   def unix(algo: String, s: String): String = {
     algo.toLowerCase match {
       case "md5" => cryptMd5(s)
@@ -153,6 +166,7 @@ trait JsLibPassword extends ImplicitGetBytes {
     }
   }
 
+  @HostAccess.Export
   def unix(algo: String, s: String, salt: String): String = {
     algo.toLowerCase match {
       case "md5" => cryptMd5(s, salt)
@@ -163,6 +177,7 @@ trait JsLibPassword extends ImplicitGetBytes {
     }
   }
 
+  @HostAccess.Export
   def aix(algo: String, s: String): String = {
     algo.toLowerCase match {
       case "md5" => aixMd5(s)
@@ -173,6 +188,7 @@ trait JsLibPassword extends ImplicitGetBytes {
     }
   }
 
+  @HostAccess.Export
   def aix(algo: String, s: String, salt: String): String = {
     algo.toLowerCase match {
       case "md5" => aixMd5(s, salt)
@@ -183,6 +199,7 @@ trait JsLibPassword extends ImplicitGetBytes {
     }
   }
 
+  @HostAccess.Export
   def auto(algo: String, s: String): String = {
     algo.toLowerCase match {
       case "md5" => md5(s)
@@ -193,6 +210,7 @@ trait JsLibPassword extends ImplicitGetBytes {
     }
   }
 
+  @HostAccess.Export
   def auto(algo: String, s: String, salt: String): String = {
     algo.toLowerCase match {
       case "md5" => md5(s, salt)
@@ -242,48 +260,76 @@ trait JsLibPassword extends ImplicitGetBytes {
  *   * unix generated Unix crypt password compatible hashes (Linux, BSD, ...)
  *   * aix generates AIX password compatible hashes
  */
+import org.graalvm.polyglot._
 final class JsRudderLibImpl(
   hashKind: HashOsType
-) {
+) extends ProxyObject {
 
   ///// simple hash algorithms /////
   private val hash = new JsLibHash()
-  // with the getter, it will be accessed with rudder.hash...
-  def getHash() = hash
 
   ///// unix password hash /////
   private val password = hashKind match {
     case CryptHash =>
       new JsLibPassword() {
         /// method accessible from JS
+        @HostAccess.Export
         def md5    (s: String): String = super.cryptMd5(s)
+        @HostAccess.Export
         def sha256 (s: String): String = super.cryptSha256(s)
+        @HostAccess.Export
         def sha512 (s: String): String = super.cryptSha512(s)
 
+        @HostAccess.Export
         def md5    (s: String, salt: String): String = super.cryptMd5(s, salt)
+        @HostAccess.Export
         def sha256 (s: String, salt: String): String = super.cryptSha256(s, salt)
+        @HostAccess.Export
         def sha512 (s: String, salt: String): String = super.cryptSha512(s, salt)
 
       }
     case AixHash =>
       new JsLibPassword() {
         /// method accessible from JS
+        @HostAccess.Export
         def md5    (s: String): String = super.aixMd5(s)
+        @HostAccess.Export
         def sha256 (s: String): String = super.aixSha256(s)
+        @HostAccess.Export
         def sha512 (s: String): String = super.aixSha512(s)
 
+        @HostAccess.Export
         def md5    (s: String, salt: String): String = super.aixMd5(s, salt)
+        @HostAccess.Export
         def sha256 (s: String, salt: String): String = super.aixSha256(s, salt)
+        @HostAccess.Export
         def sha512 (s: String, salt: String): String = super.aixSha512(s, salt)
 
       }
   }
 
-  // with the getter, it will be accessed with rudder.password...
+  // nashorn
+  def getHash() = hash
   def getPassword = password
+
+  // with the Proxy interface, it will be accessed with rudder.password... or rudder.hash...
+  val members = Map(
+    ("password", password)
+  , ("hash", hash)
+  )
+
+  override def getMember(key: String): AnyRef = members.get(key).getOrElse(s"Requested access to unknown member '${key}' in JS proxy object")
+  override def getMemberKeys: AnyRef = members.keys.toArray
+  override def hasMember(key: String): Boolean = members.isDefinedAt(key)
+  override def putMember(key: String, value: Value): Unit = ()
 }
 
-sealed trait JsRudderLibBinding { def bindings: Bindings }
+
+
+sealed trait JsRudderLibBinding {
+  def bindings: Bindings
+  def jsRudderLib: JsRudderLibImpl
+}
 
 object JsRudderLibBinding {
 
@@ -299,13 +345,18 @@ object JsRudderLibBinding {
   /*
    * Be carefull, as bindings are mutable, we can't have
    * a val for bindings, else the same context is shared...
+   *
+   * We have one for AIX and one for Crypt to specialize the
+   * "auto" methods
    */
   final object Aix extends JsRudderLibBinding {
-    def bindings = toBindings("rudder", new JsRudderLibImpl(AixHash))
+    val jsRudderLib = new JsRudderLibImpl(AixHash)
+    def bindings = toBindings("rudder", jsRudderLib)
   }
 
   final object Crypt extends JsRudderLibBinding {
-    def bindings = toBindings("rudder", new JsRudderLibImpl(CryptHash))
+    val jsRudderLib = new JsRudderLibImpl(CryptHash)
+    def bindings = toBindings("rudder", jsRudderLib)
   }
 }
 
@@ -328,21 +379,11 @@ final object JsEngineProvider {
    * So we just provide eval-indep lib here, but we don't
    * have any for now.
    *
-   * Security policy are taken from `rudder-js.policy` file in the classpath
-   * unlessthe file `/opt/rudder/etc/rudder-js.policy` is defined.
    */
   def withNewEngine[T](feature: FeatureSwitch, maxThread: Int = 1, timeout: FiniteDuration)(script: JsEngine => IOResult[T]): IOResult[T] = {
     feature match {
       case FeatureSwitch.Enabled  =>
-        val defaultPath = this.getClass.getClassLoader.getResource("rudder-js.policy")
-        val userPolicies = Paths.get("/opt/rudder/etc/rudder-js.policy")
-        val url = if(userPolicies.toFile.canRead) {
-          userPolicies.toUri.toURL
-        } else {
-          defaultPath
-        }
-
-        val res = SandboxedJsEngine.sandboxed(url, maxThread, timeout) { engine => script(engine) }
+        val res = SandboxedJsEngine.sandboxed(maxThread, timeout) { engine => script(engine) }
 
         //we may want to debug hard to debug case here, especially when we had a stackoverflow below
         res.foldM(
@@ -434,6 +475,15 @@ object JsEngine {
     }.untraced
   }
 
+  final case class GraalEngine(engine: Engine) {
+    def buildContext = Managed.make(IOResult.effect(Context.newBuilder("js").engine(engine)
+      .allowHostAccess(HostAccess.EXPLICIT)
+      .allowIO(false)
+      .allowCreateProcess(false)
+      .allowCreateThread(false)
+      .allowNativeAccess(false)
+      .build()))(x => effectUioUnit(x.close(true)))
+  }
   final object SandboxedJsEngine {
     /*
      * The value is purelly arbitrary. We expects that a normal use case ends in tens of ms.
@@ -451,17 +501,14 @@ object JsEngine {
      * This is expensive, several seconds on a 8-core i7 @ 3.5Ghz.
      * So you should minimize the number of time it is done.
      */
-    def sandboxed[T](policyFileUrl: URL, maxThread: Int = 1, timeout: FiniteDuration = DEFAULT_MAX_EVAL_DURATION)(script: SandboxedJsEngine => IOResult[T]): IOResult[T] = {
+    def sandboxed[T](maxThread: Int = 1, timeout: FiniteDuration = DEFAULT_MAX_EVAL_DURATION)(script: SandboxedJsEngine => IOResult[T]): IOResult[T] = {
       final case class ManagedJsEnv(pool: ExecutorService, engine: SandboxedJsEngine)
 
       val managedJsEngine = Managed.make(
-        getJsEngine().flatMap( jsEngine =>
+        getJsEngine(maxThread).flatMap( jsEngine =>
           IOResult.effect {
-            val sandbox = new SandboxSecurityManager(policyFileUrl)
-            val threadFactory = new RudderJsEngineThreadFactory(sandbox)
-            val pool = Executors.newFixedThreadPool(maxThread, threadFactory)
-            System.setSecurityManager(sandbox)
-            ManagedJsEnv(pool, new SandboxedJsEngine(jsEngine, sandbox, pool, timeout))
+            val pool = Executors.newFixedThreadPool(maxThread)
+            ManagedJsEnv(pool, new SandboxedJsEngine(jsEngine, pool, timeout))
           }
         )
       ) { managedJsEnv =>
@@ -471,7 +518,6 @@ object JsEngine {
           //check & clear interruption of the calling thread
           Thread.currentThread().isInterrupted()
           //restore the "none" security manager
-          System.setSecurityManager(null)
         }.foldM(
           err => JsDirectiveParamLoggerPure.error(err.fullMsg)
         , ok  => ok.succeed
@@ -481,21 +527,15 @@ object JsEngine {
       managedJsEngine.use(managedJsEnv => script(managedJsEnv.engine).untraced).untraced
     }
 
-    protected[policies] def getJsEngine(): IOResult[ScriptEngine] = {
+    /*
+     * Context are monothreaded, so we need one for each thread.
+     * But actually, we can create one Engine and reuse it for each context, benefiting from
+     * it's warmup for all context.
+     * Return a Queue filled with the number of conte
+     */
+    protected[policies] def getJsEngine(number: Int): IOResult[GraalEngine] = {
       val message = s"Error when trying to get the java script engine. Check with your system administrator that you JVM support JSR-223 with javascript"
-      try {
-        // create a script engine manager
-        System.setProperty("polyglot.js.nashorn-compat", "true")
-        val factory = new ScriptEngineManager()
-        // create a JavaScript engine
-        factory.getEngineByName("graal.js") match {
-          case null   => Unexpected(message).fail
-          case engine => engine.succeed
-        }
-      } catch {
-        case ex: Exception =>
-         Unexpected(s"${message}. Exception message was: ${ex.getMessage}").fail
-      }
+      IOResult.effect(message)(GraalEngine(Engine.create()))
     }
   }
 
@@ -507,13 +547,7 @@ object JsEngine {
    * So generally, you want to manage that in a contained scope.
    */
 
-  final class SandboxedJsEngine private (jsEngine: ScriptEngine, sm: SecurityManager, pool: ExecutorService, maxTime: FiniteDuration) extends JsEngine {
-
-    // we need to preload Permission to avoid loops - see #13014
-    val preload1 = new FilePermission("not a real path", "read")
-    val preload2 = new URLPermission("file://not/a/real/url", "read")
-    val preload3 = new RuntimePermission("not a real action", "read")
-    val preload4 = new LoggingPermission("control", null)
+  final class SandboxedJsEngine private (jsEngine: GraalEngine, pool: ExecutorService, maxTime: FiniteDuration) extends JsEngine {
 
     private[this] trait KillingThread {
       /**
@@ -557,15 +591,13 @@ object JsEngine {
           (if (value.startsWith(default)) {
             val script = value.substring(default.length())
             //do something with script
-            singleEval(script, lib.bindings).map(reconstructPassword(_, isPassword))
+            singleEval(script, lib.jsRudderLib).map(reconstructPassword(_, isPassword))
+          } else if (value.startsWith(js)) {
+            val script = value.substring(js.length())
+            //do something with script
+            singleEval(script, lib.jsRudderLib).map(reconstructPassword(_, isPassword))
           } else {
-            if (value.startsWith(js)) {
-              val script = value.substring(js.length())
-              //do something with script
-              singleEval(script, lib.bindings).map(reconstructPassword(_, isPassword))
-            } else {
-              value.succeed
-            }
+            value.succeed
           }).chainError(s"Invalid script '${value}' for Variable ${variable.spec.name} - please check method call and/or syntax")
         }
         copied <- variable.copyWithSavedValues(values).toIO
@@ -581,18 +613,21 @@ object JsEngine {
      * The thread is also restricted, and can't do dangerous things (access
      * to FS, Network, System (jvm), class loader, etc).
      */
-    def singleEval(value: String, bindings: Bindings): IOResult[String] = {
-      val res = safeExec(value) {
-        try {
-          jsEngine.eval(value, bindings) match {
-            case null => Unexpected(s"The script '${value}' was evaluated to disallowed value 'null'").fail
-            case x    => x.toString.succeed
+    def singleEval(value: String, jsRudderLib: JsRudderLibImpl): IOResult[String] = {
+      jsEngine.buildContext.use(context =>
+        (safeExec(value) {
+          try {
+            context.getBindings("js").putMember("rudder", jsRudderLib)
+            val res = context.eval("js", value) match { // returned Value object is never null, it has a method to check that!
+              case x if(x.isNull) => Unexpected(s"The script '${value}' was evaluated to disallowed value 'null'").fail
+              case x              => x.toString().succeed
+            }
+            res
+          } catch {
+            case ex: ScriptException => SystemError("Error with script evaluation", ex).fail
           }
-        } catch {
-          case ex: ScriptException => SystemError("Error with script evaluation", ex).fail
-        }
-      }
-      res.untraced
+        }).untraced
+      )
     }
 
     /**
@@ -654,108 +689,4 @@ object JsEngine {
       }).untraced.uninterruptible
     }
   }
-
-  /*
-   * A sandboxed security manager, allowing only restricted
-   * set of operation for restricted thread.
-   * The RudderJsEngineThreadFactory take care of correctly initializing
-   * threads.
-   *
-   * BE CAREFUL - this sandbox won't prevent an attacker to get/do things.
-   * It's goal is to prevent a user to do obviously bad things on the servers,
-   * but more by mistake (because he didn't understood when the script is evalued,
-   * for example).
-   *
-   * The security rules are taken from a rudder-js.policy file.
-   *
-   */
-  protected[policies] class SandboxSecurityManager(policyFileUrl: URL) extends SecurityManager {
-    //by default, we don't sand box. Thread will do it in their factory
-    val isSandboxed = {
-      val itl = new InheritableThreadLocal[Boolean]()
-      itl.set(false)
-      itl
-    }
-
-    val protectionDomain = new ProtectionDomain(new CodeSource(null, Array[Certificate]()), null)
-    // policy file must be instanciate here else it need to follows its own rules...
-    val policyFile = new PolicyFile(policyFileUrl)
-
-    override def checkPermission(permission: Permission): Unit = {
-
-      /*
-       * TIP for the future myself: when bug happens here, don't try to put a println here,
-       * it will bring desolation in your debug session.
-       * You can try to put one in new catch all test after policyFile (as showned).
-       *
-       * There should be a way to tell "do not check privilege for the current method,
-       * else obviously it will loop", but I don't know how.
-       */
-
-
-      if(isSandboxed.get) {
-        // there some perms which are hard to specify in that file
-        permission match {
-          // this seems to be now mandatory to avoid loops, see #13014
-          case x: FilePermission if(x.getActions == "read" && (x.getName.startsWith("/opt/rudder/share/webapps")|| x.getName.startsWith("/opt/rudder/etc/rudder-jetty-base/"))) => // ok
-          // jar and classes
-          case x: FilePermission if( x.getActions == "read" && (x.getName.contains(".class") || x.getName.endsWith(".jar")  || x.getName.endsWith(".so") ) ) => // ok
-          // configuration files
-          case x: FilePermission if( x.getActions == "read" && (x.getName.endsWith(".cfg") || x.getName.endsWith(".properties") ) )  => // ok
-          // cert files and config
-          case x: FilePermission if( x.getActions == "read" && (x.getName.endsWith(".certs") || x.getName.endsWith("jre/lib/security/cacerts") || x.getName.contains("/security/policy/unlimited")) )  => // ok
-          case x: LoggingPermission  => // ok
-          // else look in the dynamic rules from rudder-js.policy files
-          case x if(policyFile.implies(protectionDomain, permission)) => // ok
-//          kept for a future myself
-//          case x: URLPermission => // ok
-//            throw new Throwable("url perm: " + permission)
-
-          case x =>
-            //JsDirectiveParamLogger.warn(s"Script tries to access protected resources: ${permission.toString}")
-            throw new SecurityException("access denied to: " + permission)    // error
-        }
-      } else {
-        // don't check anything - it's the nearest to having a
-        // null SecurityManager, what is the default in Rudder
-      }
-    }
-
-    override def checkPermission(permission: Permission , context: Any): Unit = {
-      if(isSandboxed.get) this.checkPermission(permission)
-      else super.checkPermission(permission, context)
-    }
-  }
-
-  /**
-   * A thread factory that works with a SandboxSecurityManager and correctly
-   * set the sandboxed value of the thread.
-   */
-  protected[policies] class RudderJsEngineThreadFactory(sm: SandboxSecurityManager) extends ThreadFactory {
-    val RUDDER_JSENGINE_THREAD = "rudder-jsengine"
-    class SandboxedThread(group: ThreadGroup, target: Runnable, name: String, stackSize: Long) extends Thread(group, target, name, stackSize) {
-      override def run(): Unit = {
-        sm.isSandboxed.set(true)
-        super.run()
-      }
-    }
-
-    val threadNumber = new AtomicInteger(1)
-    val group = sm.getThreadGroup()
-
-    override def newThread(r: Runnable): Thread = {
-      val t = new SandboxedThread(group, r, RUDDER_JSENGINE_THREAD + "-" + threadNumber.getAndIncrement(), 0)
-
-      if(t.isDaemon) {
-        t.setDaemon(false)
-      }
-      if(t.getPriority != Thread.NORM_PRIORITY) {
-        t.setPriority(Thread.NORM_PRIORITY)
-      }
-
-      t
-    }
-
-  }
-
 }
