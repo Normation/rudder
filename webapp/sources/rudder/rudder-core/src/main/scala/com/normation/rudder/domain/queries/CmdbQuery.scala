@@ -419,16 +419,17 @@ final case object DateComparator extends LDAPCriterionType {
   override val comparators = OrderedComparators.comparators.filterNot( c => c == Regex || c == NotRegex)
   val fmt = "dd/MM/yyyy"
   val frenchFmt = DateTimeFormat.forPattern(fmt).withLocale(Locale.FRANCE)
+  def error(value: String, e: Exception) = Inconsistency(s"Invalide date: '${value}', expected format is: '${fmt}'. Error was: ${e.getMessage}")
 
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = try {
     Right(frenchFmt.parseDateTime(v).toString)
   } catch {
     case e:Exception =>
-      Left(Inconsistency(s"Invalide date: '${v}'. Error was: ${e.getMessage}"))
+      Left(error(v, e))
   }
   //init a jquery datepicker
   override def initForm(formId:String) : JsCmd = OnLoad(JsRaw(
-    """var init = $.datepicker.regional['en-GB'];
+    """var init = $.datepicker.regional['en'];
        init['showOn'] = 'focus';
        $('#%s').datepicker(init);
        """.format(formId)))
@@ -441,7 +442,7 @@ final case object DateComparator extends LDAPCriterionType {
     Right(date)
   } catch {
     case e:Exception =>
-      Left(Inconsistency(s"Invalide date: '${value}'. Error was: ${e.getMessage}"))
+      Left(error(value, e))
   }
 
   /*
