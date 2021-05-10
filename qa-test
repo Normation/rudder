@@ -24,7 +24,7 @@ test_shell_error()
     do
       # with recent shellcheck, "-S error" replaces this hack
       # kept as this runs on machines running rudder-dev
-      shellcheck --format gcc "$file" | grep " error: " && exit 1
+      shellcheck --format gcc "$file" | grep " error: " && exit 1 || true
     done
 }
 
