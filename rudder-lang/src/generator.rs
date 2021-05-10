@@ -6,6 +6,8 @@ pub mod dsc;
 pub mod json;
 pub mod markdown;
 
+plop
+
 pub use self::{cfengine::CFEngine, dsc::DSC, json::JSON, markdown::Markdown};
 use crate::{command::CommandResult, error::*, ir::ir2::IR2};
 use serde::{Deserialize, Deserializer, Serialize};

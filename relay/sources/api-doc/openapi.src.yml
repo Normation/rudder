@@ -5,7 +5,7 @@ info:
   title: Rudder relay API
   version: "1"
   description: introduction.yml
-  x-logo:
+  x-logo:fzef:ezfezfez
     url: "assets/rudder.png"
   contact:
     email: dev@rudder.io

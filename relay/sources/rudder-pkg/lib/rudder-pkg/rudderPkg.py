@@ -13,6 +13,9 @@ import rudderPkgUtils as utils
 from lxml import html
 import traceback
 
+fezfezf
+fezfezfz
+truc(à)
 logger = logging.getLogger("rudder-pkg")
 
 

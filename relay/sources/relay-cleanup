@@ -1,7 +1,14 @@
 #!/bin/sh
+rvevev
+
+
+truc()
+
+$(]
 
 # remove all files and their metadata in BASEDIR that have expired
-
+vrevre
+v
 BASEDIR="/var/rudder/shared-files"
 date=$(date +%s)
 find "${BASEDIR}" -type f -name '*.metadata' | xargs grep -H 'expires=' | sed 's/^\(.*\).metadata:expires=/\1 /' |

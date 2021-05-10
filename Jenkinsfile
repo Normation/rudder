@@ -29,6 +29,19 @@ pipeline {
                         }
                     }
                 }
+                stage('python') {
+                    agent { label 'script' }
+                    steps {
+                        sh script: './qa-test --python', label: 'python scripts lint'
+                    }
+                    post {
+                        always {
+                            script {
+                                new SlackNotifier().notifyResult("shell-team")
+                            }
+                        }
+                    }
+                }
                 stage('api-doc') {
                     agent { label 'api-docs' }
 
