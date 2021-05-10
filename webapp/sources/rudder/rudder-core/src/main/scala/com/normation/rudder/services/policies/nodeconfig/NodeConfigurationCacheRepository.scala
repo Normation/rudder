@@ -543,11 +543,17 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
   }
 
   override def save(hashes: Set[NodeConfigurationHash]): Box[Set[NodeId]] = {
-    timeLog(s => s"Updating node configuration hashes took ${s}")(semaphore.withPermits(1) {
-      for {
-        _       <- nonAtomicWrite(NodeConfigurationHashes(hashes.toList.sortBy(_.id.value)))
-      } yield hashes.map(_.id)
-    }).toBox
+    val nodeIds = hashes.map(_.id)
+    timeLog(s => s"Updating node configuration hashes took ${s}")(
+      if(hashes.size == 0) nodeIds.succeed
+      else semaphore.withPermits(1) {
+        for {
+          current  <- nonAtomicRead()
+          filtered =  current.hashes.filterNot(h => nodeIds.contains(h.id))
+          updated  =  (filtered ++ hashes).sortBy(_.id.value)
+          _        <- nonAtomicWrite(NodeConfigurationHashes(updated))
+        } yield nodeIds
+      }).toBox
   }
 }
 
