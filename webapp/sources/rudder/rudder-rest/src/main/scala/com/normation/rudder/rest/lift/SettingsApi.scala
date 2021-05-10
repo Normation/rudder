@@ -134,19 +134,13 @@ class SettingsApi(
       RestComputeDynGroupMaxParallelism ::
       Nil
 
-  val allSettings_v8 = RestUseReverseDNS :: allSettings_v10
-
   val allSettings_v12 =   RestReportProtocolDefault :: RestSyslogProtocolDisabled :: allSettings_v10
 
   def allSettings(version: ApiVersion) = {
-    if(version.value <= 8)  {
-      allSettings_v8
+    if (version.value <= 10) {
+      allSettings_v10
     } else {
-      if (version.value <= 10) {
-        allSettings_v10
-      } else {
-        allSettings_v12
-      }
+      allSettings_v12
     }
   }
 
