@@ -29,6 +29,7 @@ use crate::{
 };
 use anyhow::Error;
 use configuration::main::CertificateVerificationModel;
+use lazy_static::lazy_static;
 use reqwest::{Certificate, Client};
 use std::{
     collections::HashMap, fs, fs::create_dir_all, path::Path, process::exit, string::ToString,
@@ -48,6 +49,10 @@ use tracing_subscriber::{
     },
     reload::Handle,
 };
+
+lazy_static! {
+    static ref USER_AGENT: String = format!("rudder-relayd/{}", crate_version!());
+}
 
 // There are two main phases in execution:
 //
@@ -278,10 +283,14 @@ impl JobConfig {
                 )?)?;
                 Self::new_http_client(vec![cert])?
             }
-            CertificateVerificationModel::System => Client::builder().https_only(true).build()?,
+            CertificateVerificationModel::System => Client::builder()
+                .user_agent(USER_AGENT.clone())
+                .https_only(true)
+                .build()?,
             CertificateVerificationModel::DangerousNone => {
                 warn!("Certificate verification is disabled, it should not be done in production");
                 Client::builder()
+                    .user_agent(USER_AGENT.clone())
                     .danger_accept_invalid_certs(true)
                     .build()?
             }
@@ -309,14 +318,16 @@ impl JobConfig {
                         };
                         Self::new_http_client(certs)?
                     }
-                    CertificateVerificationModel::System => {
-                        Client::builder().https_only(true).build()?
-                    }
+                    CertificateVerificationModel::System => Client::builder()
+                        .user_agent(USER_AGENT.clone())
+                        .https_only(true)
+                        .build()?,
                     CertificateVerificationModel::DangerousNone => {
                         warn!(
                         "Certificate verification is disabled, it should not be done in production"
                         );
                         Client::builder()
+                            .user_agent(USER_AGENT.clone())
                             .danger_accept_invalid_certs(true)
                             .build()?
                     }
@@ -376,7 +387,7 @@ impl JobConfig {
     //
     // Not efficient in "System" case, but it's deprecated anyway
     fn new_http_client(certs: Vec<Certificate>) -> Result<Client, Error> {
-        let mut client = Client::builder();
+        let mut client = Client::builder().user_agent(USER_AGENT.clone());
 
         client = client
             // Let's enforce https to prevent misconfigurations
