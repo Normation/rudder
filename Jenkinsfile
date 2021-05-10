@@ -202,6 +202,7 @@ pipeline {
                                 // System dependencies: libpq-dev postgresql
                                 dir('relay/sources/relayd') {
                                     sh script: 'make check', label: 'relayd tests'
+                                    sh script: 'make clean', label: 'relayd clean'
                                 }
                             }
                             post {
@@ -224,6 +225,7 @@ pipeline {
                             steps {
                                 dir('rudder-lang') {
                                     sh script: 'make check', label: 'language tests'
+                                    sh script: 'make clean', label: 'language clean'
                                 }
                             }
                             post {

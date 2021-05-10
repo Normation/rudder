@@ -9,7 +9,7 @@ pipeline {
 
     stages {
         stage('deps-webapp') {
-            when { not { changeRequest() } }
+            //when { not { changeRequest() } }
             agent { label 'scala' }
             steps {
                 dir('webapp/sources') {
@@ -18,12 +18,13 @@ pipeline {
                         options: [artifactsPublisher(disabled: true)]
                     ) {
                         sh script: 'mvn -DfailBuildOnCVSS=7 -DcveValidForHours=48 -DsuppressionFiles=dependency-check-suppression.xml org.owasp:dependency-check-maven:6.1.6:aggregate', label: "check webapp dependencies"
+                        sh script: 'mvn license:aggregate-third-party-report', label: 'list webapp dependencies'
                     }
                 }
             }
             post {
                 always {
-            		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html'
+            		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html, webapp/sources/target/site/aggregate-third-party-report.html'
                     script {
                         new SlackNotifier().notifyResult("scala-team")
                     }
@@ -31,18 +32,21 @@ pipeline {
             }
         }
         stage('deps-relayd') {
-            when { not { changeRequest() } }
+            //when { not { changeRequest() } }
             agent { label 'rust' }
             environment {
                 PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
             }
             steps {
                 dir('relay/sources/relayd') {
+                    sh script: 'mkdir -p target', label: 'create target directory'
                     sh script: 'cargo deny check', label: 'check relayd dependencies'
+                    sh script: 'cargo deny list > target/relayd-dependencies.txt', label: 'list relayd dependencies'
                 }
             }
             post {
                 always {
+                    archiveArtifacts artifacts: 'relay/sources/relayd/target/relayd-dependencies.txt'
                     script {
                         new SlackNotifier().notifyResult("rust-team")
                     }
@@ -50,18 +54,21 @@ pipeline {
             }
         }
         stage('deps-language') {
-            when { not { changeRequest() } }
+            //when { not { changeRequest() } }
             agent { label 'rust' }
             environment {
                 PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
             }
             steps {
                 dir('rudder-lang') {
+                    sh script: 'mkdir -p target', label: 'create target directory'
                     sh script: 'cargo deny check', label: 'check language dependencies'
+                    sh script: 'cargo deny list > target/language-dependencies.txt', label: 'list language dependencies'
                 }
             }
             post {
                 always {
+                    archiveArtifacts artifacts: 'rudder-lang/target/language-dependencies.txt'
                     script {
                         new SlackNotifier().notifyResult("rust-team")
                     }
