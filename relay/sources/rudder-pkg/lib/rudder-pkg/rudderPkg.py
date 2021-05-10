@@ -15,7 +15,6 @@ import traceback
 
 logger = logging.getLogger("rudder-pkg")
 
-
 """
     Expect a list of path as parameter.
     Try to install the given rpkgs.
