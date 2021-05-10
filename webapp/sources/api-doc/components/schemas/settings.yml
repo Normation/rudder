@@ -187,7 +187,7 @@ settings:
     rudder_compute_dyngroups_max_parallelism:
       type: string
       default: "1"
-      description: Set the parallelism to compute dynamic group, as a number of thread (i.e. 4), or a multiplicative of the number of core (x0.5) 
+      description: Set the parallelism to compute dynamic group, as a number of thread (i.e. 4), or a multiplicative of the number of core (x0.5)
     rudder_save_db_compliance_levels:
       type: boolean
       default: true
@@ -216,3 +216,7 @@ settings:
       type: string
       default: "all"
       description: Should policy generation be triggered automatically after a change (value 'all'), or should we wait until a manual launch (through api or UI, value 'onlyManual') or even no policy generation at all (value "none")
+    rudder_verify_certificates:
+      type: boolean
+      default: false
+      description: Enforce certificate validation in all HTTPS calls
