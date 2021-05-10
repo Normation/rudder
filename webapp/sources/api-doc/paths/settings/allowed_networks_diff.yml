@@ -19,11 +19,11 @@ post:
                 add:
                   type: array
                   description: List of networks to add to existing allowed networks for that server
-                  example: '{ "add": ["162.168.2.0/24], ... }'
+                  example: '{ "add": ["162.168.2.0/24] }'
                 delete:
                   type: array
                   description: List of networks to remove from existing allowed networks for that server
-                  example: '{ "delete":["162.168.1.0/24"], ... }'
+                  example: '{ "delete": ["162.168.1.0/24"] }'
 
   responses:
     "200":
