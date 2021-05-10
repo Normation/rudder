@@ -547,8 +547,8 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
   override def save(hashes: Set[NodeConfigurationHash]): Box[Set[NodeId]] = {
     timeLog(s => s"Updating node configuration hashes took ${s}")(semaphore.withPermits(1) {
       for {
-        allHashes  <- getAll()
-        updated    =  allHashes ++ hashes.map(x => (x.id, x)).toMap
+        allHashes  <- nonAtomicRead()
+        updated    =  allHashes.hashes.map(x => (x.id, x)).toMap ++ hashes.map(x => (x.id, x)).toMap
         _          <- nonAtomicWrite(NodeConfigurationHashes(updated.values.toList.sortBy(_.id.value)))
       } yield hashes.map(_.id)
     }).toBox
