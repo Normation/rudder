@@ -19,7 +19,7 @@ test_shell()
 test_shell_error()
 {
   # Shellcheck
-  find . \( -path ./.git -prune -o -path ./rudder-lang/target -prune -o -path ./relay/sources/relayd/target -prune \) -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
+  find . \( -path ./.git -prune -o -path ./rudder-lang/target -prune -o -path ./rudder-lang/repos -prune -o -path ./relay/sources/relayd/target -prune \) -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
     while IFS="" read -r file
     do
       # with recent shellcheck, "-S error" replaces this hack
