@@ -24,6 +24,19 @@ pipeline {
                         }
                     }
                 }
+                stage('python') {
+                    agent { label 'script' }
+                    steps {
+                        sh script: './qa-test --python', label: 'python scripts lint'
+                    }
+                    post {
+                        always {
+                            script {
+                                new SlackNotifier().notifyResult("shell-team")
+                            }
+                        }
+                    }
+                }
                 stage('api-doc') {
                     agent { label 'api-docs' }
 
@@ -144,6 +157,7 @@ pipeline {
                                 always {
                                     // collect test results
                                     archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
+                                    junit 'webapp/sources/**/target/surefire-reports/*.xml'
 
                                     script {
                                         new SlackNotifier().notifyResult("scala-team")
