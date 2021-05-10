@@ -1,7 +1,12 @@
-import ncf 
+#!/usr/bin/python3
+
+import ncf
 import codecs
 import re
 import unittest
+from shutil import which
+
+ncf.CFPROMISES_PATH = which("cf-promises")
 
 def custom_gm_metadata(alt_path = ''):
   all_metadata = {}
@@ -15,7 +20,7 @@ def custom_gm_metadata(alt_path = ''):
       metadata = result["result"]
       metadata["filename"] = file
       all_metadata[metadata['bundle_name']] = metadata
-    except NcfError as e:
+    except ncf.NcfError as e:
       print("Could not parse generic method in '" + file + "'")
       continue # skip this file, it doesn't have the right tags in - yuk!
   return all_metadata
@@ -36,13 +41,16 @@ def should_ignore(filename):
     reason = "skipped for a good reason"
     result = True
   if result:
-    print("Skipping %s, %s"%(filename, reason))
+    pass
+    #print("Skipping %s, %s"%(filename, reason))
   return result
 
+# Each GM must define a class_prefix and an old_class_prefix
 class TestClassPrefix(unittest.TestCase):
+#class TestClassPrefix(unittest.TestCase):
   def setUp(self):
     self.metadata = custom_gm_metadata()
-      
+
   def test_class_prefix(self):
     test_result = 0
     for k in self.metadata:
@@ -52,7 +60,7 @@ class TestClassPrefix(unittest.TestCase):
         filename = self.metadata[k]["filename"]
         if not should_ignore(filename):
           self.assertTrue(test_pattern_on_file(filename, class_prefix_pattern) != None)
-    
+
   def test_old_class_prefix(self):
     test_result = 0
     for k in self.metadata:
@@ -60,12 +68,17 @@ class TestClassPrefix(unittest.TestCase):
         filename = self.metadata[k]["filename"]
         class_prefix = self.metadata[k]["class_prefix"]
         class_parameter = self.metadata[k]["class_parameter"]
-  
+
         class_pattern1 = "\"old_class_prefix\"\s+string\s+=>\s+canonify\(\"" + class_prefix + "_" + "\${" + class_parameter + "}\"\);"
         class_pattern2 = "\"old_class_prefix\"\s+string\s+=>\s+\"" + class_prefix + "_" + "\${canonified_" + class_parameter + "}\";"
-  
+
         if not should_ignore(filename):
           self.assertTrue(test_pattern_on_file(filename, class_pattern1) != None or test_pattern_on_file(filename, class_pattern2) != None)
 
 if __name__ == '__main__':
-  unittest.main()
+  test = TestClassPrefix()
+  test.setUp()
+  test.test_class_prefix()
+  test.test_old_class_prefix()
+  print("R: " + __file__ + " Pass")
+

@@ -6,13 +6,14 @@ import ncf
 import os.path
 import subprocess
 import shutil
-from pprint import pprint
 
 class TestNcf(unittest.TestCase):
 
   def setUp(self):
-    self.test_technique_file = os.path.realpath('test_technique.cf')
-    self.test_generic_method_file = 'test_generic_method.cf'
+    self.dirname = os.path.dirname(os.path.realpath(__file__))
+    self.test_technique_file = self.dirname+ '/test_technique.cf'
+    self.test_generic_method_file = self.dirname + '/test_generic_method.cf'
+    self.technique_metadata_test_content = self.dirname + '/technique_metadata_test_content.cf'
     with open(self.test_technique_file) as fd:
       self.technique_content = fd.read()
     with open(self.test_generic_method_file) as fd:
@@ -29,7 +30,6 @@ class TestNcf(unittest.TestCase):
             { 'method_name': 'file_replace_lines', "component" : "Edit conf file",'args': ['/etc/httpd/conf/httpd.conf', 'ErrorLog \"/var/log/httpd/error_log\"', 'ErrorLog "/projet/logs/httpd/error_log"'],  'class_context': 'redhat' },
           ]
         }
-    self.technique_metadata_test_content = os.path.realpath('technique_metadata_test_content.cf')
     all_tags = ncf.tags["generic_method"]
     self.methods_expected_tags = [ tag for tag in all_tags if not tag in ncf.optionnal_tags["generic_method"] ]
 

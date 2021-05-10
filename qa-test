@@ -1,9 +1,34 @@
 #!/bin/bash
 set -e
 
-make test-common
+test_style()
+{
+  cd ./tests/style/ && ./testall && cd -
+}
 
-find .  -path ./api -prune -o  -name '*.py' -exec echo "Running pylint on {}" \; -exec pylint -E --disable=C,R --persistent=n {} \;
-mv ncf test.ncf
-pylint3 -E --disable=C,R --persistent=n --init-hook="sys.path[0:0] = ['./tools']" test.ncf
-mv test.ncf ncf
+test_unit()
+{
+  cd ./tests/unit/ && ./testall && cd -
+}
+
+test_python()
+{
+  find . -path ./api -prune -o -name '*.py' -exec echo "Running pylint on {}" \; -exec pylint -E --disable=C,R --init-hook="import sys; sys.path.append('./tools')" --persistent=n {} \;
+}
+
+
+if [ "$1" = "--python" ]; then
+  test_python
+  exit 0
+elif [ "$1" = "--style" ]; then
+  test_style
+  exit 0
+elif [ "$1" = "--unit" ]; then
+  test_unit
+  exit 0
+else
+  test_python
+  test_style
+  test_unit
+  exit 0
+fi
