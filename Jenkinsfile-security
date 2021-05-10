@@ -9,7 +9,7 @@ pipeline {
 
     stages {
         stage('deps-webapp') {
-            //when { not { changeRequest() } }
+            when { not { changeRequest() } }
             agent { label 'scala' }
             steps {
                 dir('webapp/sources') {
@@ -32,7 +32,7 @@ pipeline {
             }
         }
         stage('deps-relayd') {
-            //when { not { changeRequest() } }
+            when { not { changeRequest() } }
             agent { label 'rust' }
             environment {
                 PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
@@ -54,7 +54,7 @@ pipeline {
             }
         }
         stage('deps-language') {
-            //when { not { changeRequest() } }
+            when { not { changeRequest() } }
             agent { label 'rust' }
             environment {
                 PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
