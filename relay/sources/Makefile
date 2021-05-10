@@ -139,8 +139,10 @@ endif
 # Quality
 
 lint:
-	# For CI
-	cd rudder-pkg && pylint3 --rcfile=./.pylintrc ./rudder-pkg > pylint.log || true
+	# Collect all warnings
+	cd rudder-pkg && pylint3 --disable=import-error,no-member --rcfile=.pylintrc-ci rudder-pkg lib/rudder-pkg/*.py > pylint.log || true
+	# Fail on errors
+	cd rudder-pkg && pylint3 --errors-only --disable=import-error,no-member rudder-pkg lib/rudder-pkg/*.py
 
 check: lint
 	cd rudder-pkg/lib/rudder-pkg/tests && ./testall
