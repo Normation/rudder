@@ -527,12 +527,6 @@ final case object RestRequireTimeSynch extends RestBooleanSetting {
     def get = configService.cfengine_server_denybadclocks()
     def set = (value : Boolean, _, _) => configService.set_cfengine_server_denybadclocks(value)
   }
-final case object RestUseReverseDNS extends RestBooleanSetting {
-    val key = "use_reverse_dns"
-    val startPolicyGeneration = true
-    def get = false.succeed
-    def set = (value : Boolean, _, _) => UIO.unit
-  }
 final case object RestRelaySyncMethod extends RestSetting[RelaySynchronizationMethod] {
     val key = "relay_server_synchronization_method"
     val startPolicyGeneration = true
