@@ -542,10 +542,14 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
     }).toBox
   }
 
+  // This method updates the hashes given in parameters - it should not replace the whole set
+  // so we need to load them all, to update and save
   override def save(hashes: Set[NodeConfigurationHash]): Box[Set[NodeId]] = {
     timeLog(s => s"Updating node configuration hashes took ${s}")(semaphore.withPermits(1) {
       for {
-        _       <- nonAtomicWrite(NodeConfigurationHashes(hashes.toList.sortBy(_.id.value)))
+        allHashes  <- getAll()
+        updated    =  allHashes ++ hashes.map(x => (x.id, x)).toMap
+        _          <- nonAtomicWrite(NodeConfigurationHashes(updated.values.toList.sortBy(_.id.value)))
       } yield hashes.map(_.id)
     }).toBox
   }
