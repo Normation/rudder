@@ -21,7 +21,7 @@ from pprint import pprint
 
 # Verbose output
 VERBOSE = 0
-CFENGINE_PATH="/opt/rudder/bin/cf-promises"
+CFPROMISES_PATH="/opt/rudder/bin/cf-promises"
 
 dirs = [ "10_ncf_internals", "20_cfe_basics", "30_generic_methods", "40_it_ops_knowledge", "50_techniques", "60_services", "ncf-hooks.d" ]
 
@@ -328,7 +328,7 @@ def parse_technique_methods(technique_file, gen_methods):
 
   env = os.environ.copy()
   env['RES_OPTIONS'] = 'attempts:0'
-  out = check_output([CFENGINE_PATH, "-pjson", "-f", technique_file], env=env)
+  out = check_output([CFPROMISES_PATH, "-pjson", "-f", technique_file], env=env)
   try:
     promises = json.loads(out)
   except Exception as e:

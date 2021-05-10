@@ -25,7 +25,7 @@ all: install
 
 # no dependency
 depend: localdepends
-localdepends: 
+localdepends:
 
 # Install ncf in DESTDIR
 install:
@@ -48,9 +48,7 @@ test-unsafe: test-common
 	cd tests/acceptance/ && ./testall --info --unsafe
 
 test-common:
-	[ `id | cut -d\( -f2 | cut -d\) -f1` = 'root' ] || type fakeroot 2>/dev/null || { echo "Not running as root and fakeroot not found." ; exit 1 ; }
-	cd tests/style/ && ./testall
-	cd tests/unit/ && ./testall
+	./qa-test
 
 clean:
 	rm -rf tests/style/.succeeded
@@ -59,6 +57,7 @@ clean:
 	rm -f tests/style/test.xml
 	rm -f tests/style/xml.tmp
 	rm -rf tests/style/workdir/
+	rm -rf tests/unit/test.log
 	rm -rf tests/acceptance/.succeeded
 	rm -f tests/acceptance/summary.log
 	rm -f tests/acceptance/test.log
