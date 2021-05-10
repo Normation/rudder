@@ -8,7 +8,10 @@ test_shell()
   find . \( -path ./.git -prune -o -path ./rudder-lang/target -prune -o -path ./relay/sources/relayd/target -prune \) -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
     while IFS="" read -r file
     do
+      # collect all warnings
       shellcheck --format=checkstyle "$file" > .shellcheck/$(basename ${file}).log || true
+      # fail on >=error
+      shellcheck --severity error "$file"
     done
 }
 
@@ -20,20 +23,28 @@ test_shell_error()
     while IFS="" read -r file
     do
       # with recent shellcheck, "-S error" replaces this hack
-      shellcheck -f gcc "$file" | grep " error: " && exit 1 || true
+      # kept as this runs on machines running rudder-dev
+      shellcheck --format gcc "$file" | grep " error: " && exit 1
     done
 }
 
 # fails on error and ignores other levels
 test_python_error()
 {
-  find . ! -wholename '*rudder-lang/repos/*' ! -name 'convertOpenLDAPSchema.py' ! -name 'systemctl3.py' ! -wholename '*jsondiff/*' -name '*.py' | xargs pylint -E --persistent=n --disable=C,R,import-error,no-member,no-name-in-module
+  PYLINT="pylint"
+  if type pylint3 >/dev/null; then
+    PYLINT="pylint3"
+  fi
+  find . ! -wholename '*rudder-lang/repos/*' ! -name 'convertOpenLDAPSchema.py' ! -name 'systemctl3.py' ! -wholename '*jsondiff/*' -name '*.py' | xargs ${PYLINT} -E --persistent=n --disable=C,R,import-error,no-member,no-name-in-module
 }
 
 #####
 
 if [ "$1" = "--shell" ]; then
   test_shell
+  exit 0
+elif [ "$1" = "--python" ]; then
+  test_python_error
   exit 0
 else
   # quick tests to be launched during merge
