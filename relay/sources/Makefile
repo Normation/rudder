@@ -28,7 +28,10 @@ target/man-source/%: man/%.adoc
 	asciidoctor -D target/man-source -b manpage $<
 
 autocomplete/rudder-pkg.sh:
-	if type pip3 >/dev/null 2>&1; then pip3 install infi.docopt-completion; else pip install infi.docopt-completion; fi
+	# docopt-completion needs python3
+	pip3 install infi.docopt-completion
+	# rudder-pkg may use dodopt python2
+	if head -n1 $(CURDIR)/rudder-pkg/rudder-pkg | grep python2 >/dev/null 2>&1; then pip install docopt; fi
 	mkdir -p autocomplete
 	export PYTHONPATH=$(CURDIR)/rudder-pkg/lib/rudder-pkg:$$PYTHONPATH; cd autocomplete && docopt-completion $(CURDIR)/rudder-pkg/rudder-pkg --manual-bash && cd -
 
