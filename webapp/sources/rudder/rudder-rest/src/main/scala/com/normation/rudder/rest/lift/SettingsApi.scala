@@ -75,8 +75,6 @@ import net.liftweb.json.JsonDSL._
 import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.services.policies.SendMetrics
-import zio._
-import zio.syntax._
 
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal

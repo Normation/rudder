@@ -309,7 +309,12 @@ object RudderConfig extends Loggable {
   val RUDDER_DIR_SHARED_FILES_FOLDER = config.getString("rudder.dir.shared.files.folder")
   val RUDDER_WEBDAV_USER = config.getString("rudder.webdav.user")
   val RUDDER_WEBDAV_PASSWORD = config.getString("rudder.webdav.password") ; filteredPasswords += "rudder.webdav.password"
-  val RUDDER_COMMUNITY_PORT = config.getInt("rudder.community.port")
+  val CFENGINE_POLICY_DISTRIBUTION_PORT = try {
+    config.getInt("rudder.policy.distribution.port.cfengine")
+  } catch {
+    case ex: ConfigException => config.getInt("rudder.community.port") // for compat
+  }
+  val HTTPS_POLICY_DISTRIBUTION_PORT    = config.getInt("rudder.policy.distribution.port.https")
   val RUDDER_JDBC_DRIVER = config.getString("rudder.jdbc.driver")
   val RUDDER_JDBC_URL = config.getString("rudder.jdbc.url")
   val RUDDER_JDBC_USERNAME = config.getString("rudder.jdbc.username")
@@ -1804,7 +1809,8 @@ object RudderConfig extends Loggable {
       systemVariableSpecService
     , psMngtService
     , RUDDER_DIR_DEPENDENCIES
-    , RUDDER_COMMUNITY_PORT
+    , CFENGINE_POLICY_DISTRIBUTION_PORT
+    , HTTPS_POLICY_DISTRIBUTION_PORT
     , RUDDER_DIR_SHARED_FILES_FOLDER
     , RUDDER_WEBDAV_USER
     , RUDDER_WEBDAV_PASSWORD

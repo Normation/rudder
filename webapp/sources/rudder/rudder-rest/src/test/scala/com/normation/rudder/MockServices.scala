@@ -185,31 +185,31 @@ class MockTechniques(configurationRepositoryRoot: File, gitRepo: GitRepositoryPr
   val systemVariableService = new SystemVariableServiceImpl(
       systemVariableServiceSpec
     , policyServerManagementService
-    , toolsFolder              = "tools_folder"
-    , communityPort            = 5309
-    , sharedFilesFolder        = "/var/rudder/configuration-repository/shared-files"
-    , webdavUser               = "rudder"
-    , webdavPassword           = "rudder"
-    , reportsDbUri             = "rudder"
-    , reportsDbUser            = "rudder"
-    , syslogPort               = 514
-    , configurationRepository  = configurationRepositoryRoot.getAbsolutePath
-    , serverRoles              = Seq(
-                                     RudderServerRole("rudder-ldap"                   , "rudder.server-roles.ldap")
-                                   , RudderServerRole("rudder-inventory-endpoint"     , "rudder.server-roles.inventory-endpoint")
-                                   , RudderServerRole("rudder-db"                     , "rudder.server-roles.db")
-                                   , RudderServerRole("rudder-relay-top"              , "rudder.server-roles.relay-top")
-                                   , RudderServerRole("rudder-web"                    , "rudder.server-roles.web")
-                                   , RudderServerRole("rudder-relay-promises-only"    , "rudder.server-roles.relay-promises-only")
-                                   , RudderServerRole("rudder-cfengine-mission-portal", "rudder.server-roles.cfengine-mission-portal")
-                                 )
-    , serverVersion            = "7.0.0"
-
+    , toolsFolder                     = "tools_folder"
+    , policyDistribCfenginePort       = 5309
+    , policyDistribHttpsPort          = 443
+    , sharedFilesFolder               = "/var/rudder/configuration-repository/shared-files"
+    , webdavUser                      = "rudder"
+    , webdavPassword                  = "rudder"
+    , reportsDbUri                    = "rudder"
+    , reportsDbUser                   = "rudder"
+    , syslogPort                      = 514
+    , configurationRepository         = configurationRepositoryRoot.getAbsolutePath
+    , serverRoles                     = Seq(
+                                            RudderServerRole("rudder-ldap"                   , "rudder.server-roles.ldap")
+                                          , RudderServerRole("rudder-inventory-endpoint"     , "rudder.server-roles.inventory-endpoint")
+                                          , RudderServerRole("rudder-db"                     , "rudder.server-roles.db")
+                                          , RudderServerRole("rudder-relay-top"              , "rudder.server-roles.relay-top")
+                                          , RudderServerRole("rudder-web"                    , "rudder.server-roles.web")
+                                          , RudderServerRole("rudder-relay-promises-only"    , "rudder.server-roles.relay-promises-only")
+                                          , RudderServerRole("rudder-cfengine-mission-portal", "rudder.server-roles.cfengine-mission-portal")
+                                        )
+    , serverVersion                   = "7.0.0"
     //denybadclocks is runtime properties
-    , getDenyBadClocks         = () => Full(true)
-    , getSyncMethod            = () => Full(Classic)
-    , getSyncPromises          = () => Full(false)
-    , getSyncSharedFiles       = () => Full(false)
+    , getDenyBadClocks                = () => Full(true)
+    , getSyncMethod                   = () => Full(Classic)
+    , getSyncPromises                 = () => Full(false)
+    , getSyncSharedFiles              = () => Full(false)
     // TTLs are runtime properties too
     , getModifiedFilesTtl             = () => Full(30)
     , getCfengineOutputsTtl           = () => Full(7)

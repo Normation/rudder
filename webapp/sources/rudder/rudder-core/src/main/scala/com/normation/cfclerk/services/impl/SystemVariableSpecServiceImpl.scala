@@ -66,7 +66,11 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                             , multivalued  = false
                         )
     , SystemVariableSpec(
-                            "COMMUNITYPORT" , "The port used by the community edition"
+                            "COMMUNITYPORT" , "The port used for policy distribution by cf-engine"
+                                            , multivalued  = false
+                        )
+    , SystemVariableSpec(
+           "HTTPS_POLICY_DISTRIBUTION_PORT" , "The port used for policy distribution on HTTPS"
                                             , multivalued  = false
                         )
     , SystemVariableSpec(        "NODEROLE" , "List of nodeConfiguration roles"

@@ -115,7 +115,8 @@ class SystemVariableServiceImpl(
   , policyServerManagementService: PolicyServerManagementService
   // Variables definitions
   , toolsFolder              : String
-  , communityPort            : Int
+  , policyDistribCfenginePort: Int
+  , policyDistribHttpsPort   : Int
   , sharedFilesFolder        : String
   , webdavUser               : String
   , webdavPassword           : String
@@ -156,7 +157,8 @@ class SystemVariableServiceImpl(
   val varWebdavUser                 = systemVariableSpecService.get("DAVUSER"                        ).toVariable(Seq(webdavUser))
   val varWebdavPassword             = systemVariableSpecService.get("DAVPASSWORD"                    ).toVariable(Seq(webdavPassword))
   val varSharedFilesFolder          = systemVariableSpecService.get("SHARED_FILES_FOLDER"            ).toVariable(Seq(sharedFilesFolder))
-  val varCommunityPort              = systemVariableSpecService.get("COMMUNITYPORT"                  ).toVariable(Seq(communityPort.toString))
+  val varPolicyDistribCfenginePort  = systemVariableSpecService.get("COMMUNITYPORT"                  ).toVariable(Seq(policyDistribCfenginePort.toString))
+  val varPolicyDistribHttpsPort     = systemVariableSpecService.get("HTTPS_POLICY_DISTRIBUTION_PORT" ).toVariable(Seq(policyDistribHttpsPort.toString))
   val syslogPortConfig              = systemVariableSpecService.get("SYSLOGPORT"                     ).toVariable(Seq(syslogPort.toString))
   val configurationRepositoryFolder = systemVariableSpecService.get("CONFIGURATION_REPOSITORY_FOLDER").toVariable(Seq(configurationRepository))
 
@@ -211,8 +213,9 @@ class SystemVariableServiceImpl(
     val vars =
       varToolsFolder ::
       varSharedFilesFolder ::
-      varCommunityPort ::
-      varWebdavUser  ::
+      varPolicyDistribCfenginePort ::
+      varPolicyDistribHttpsPort ::
+      varWebdavUser ::
       varWebdavPassword ::
       syslogPortConfig ::
       configurationRepositoryFolder ::
