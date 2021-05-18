@@ -17,7 +17,7 @@
 #####################################################################################
 #
 # @name File Augeas set
-# @description Use Augeas binaries to call Augtool commands and options to set a node label's value.
+# @description Use augeas commands and options to set a node label's value.
 #
 # @documentation Augeas is a tool that provides an abstraction layer for all the complexities that turn around editing files with regular expressions.
 # It's a tree based hierarchy tool, that handles system configuration files where you can securely modify your files and to do so you have to provide
@@ -27,16 +27,18 @@
 #
 # In this method, we introduce using augtool commands and options in order to set the value of a given node's label in the parameters
 # (which means that you simply want to modify your configuration file), this can be done by specifying the path to it.
-# The method has in total 4 parameters: path, value, lens and hosts.
 #
-# Actually there is two ways you can use this method, either you simply provide a path to the node's label as a parameter or you specify a file
+# Actually there are two ways you can use this method, either you simply provide a path to the node's label as a parameter or you specify a file
 # associated with a lens then you put the regular path. When you only specify the path to the node's label, your request will includes by default Augeas
 # charging all the lenses and files, on the other hand, if you have a specific file for example such as a Json file and you want to associate it
 # to the existing Json lens, then in that case, you need to fill in addition the file and the lens parameter, this way Augeas won't load all its files and
 # lenses except the ones you have specified.
 #
-# The generic method will set a node label's value on the agent, otherwise, if Augeas isn't installed on the agent, it will produces an error.
-# The method provides a way to make a backup of the file you modified before applying any changes on the node, you can find them in the '/var/rudder/modified-files/' directory.
+# *Warning*: When you don't specify the file and lens to use, no backup of the file is made before
+# editing it.
+#
+# *Note*: Specifying the file and lens makes the edition way faster as it avoids having to load
+# all the default lenses and files.
 #
 # #### Two uses cases examples:
 #
@@ -56,58 +58,91 @@
 #
 # @parameter path            The path to the file and node label
 # @parameter value           The value to set
-# @parameter lens            The lens specified by the user in case he wants to load a specified lens associated with its file
-# @parameter file            The file specified by the user in case he wants to load a specified file associated with its lens
+# @parameter lens            Load a specific lens (optional)
+# @parameter file            Load a specific file (optional)
 # @parameter_constraint file "allow_empty_string" : true
 # @parameter_constraint lens "allow_empty_string" : true
 # @class_prefix file_augeas_set
 # @class_parameter path
 
-
 bundle agent file_augeas_set(path, value, lens, file)
 {
- vars:
-     "old_class_prefix" string => canonify("file_augeas_set_${path}");
-     "args" slist => {"${path}", "${value}", "${lens}","${file}"};
-     "report_param" string => join("_", args);
-     "class_prefix" string => canonify("file_augeas_set_${report_param}");
+  vars:
+      "old_class_prefix" string => canonify("file_augeas_set_${path}");
+      "args" slist => {"${path}", "${value}", "${lens}","${file}"};
+      "report_param" string => join("_", args);
+      "class_prefix" string => canonify("file_augeas_set_${report_param}");
 
-   pass1.file_defined::
-     "result" string => "printf \"set /augeas/load/${lens}/lens \"${lens}.lns\" \n set /augeas/load/${lens}/incl \"${file}\" \n load \n set /files${path} ${value} \n save\" | ${ncf_paths.path[augtool]} --noautoload -b";
-     "timestamp" string => execresult("LANG=C date +%s","useshell");
-     "date" string => canonify(execresult("LANG=C date +\"%a_%b_%e_%H_%M_%S_%Y\"","useshell"));
-     "cfile" string => canonify("${file}");
+      "cpath" string => canonify("${path}");
 
-   pass1.!file_defined::
-     "result" string => "printf \"set /files${path} ${value} \n save\" | ${ncf_paths.path[augtool]}";
+    pass1.file_defined::
+      "command" string => "printf \"set /augeas/load/${lens}/lens \"${lens}.lns\" \n set /augeas/load/${lens}/incl \"${file}\" \n load \n set /files${path} ${value} \n save \n errors\" | ${ncf_paths.path[augtool]} --noautoload --new";
+      "cfile" string => canonify("${file}");
 
- classes:
-     "pass2" expression => "pass1";
-     "pass1";
+    pass1.!file_defined::
+      "command" string => "printf \"set /files${path} ${value} \n save\" | ${ncf_paths.path[augtool]}";
 
-   pass2::
-     "variable_defined" expression => returnszero("${result}","useshell");
-     "copy" expression => returnszero("mv ${file}.augsave /var/rudder/modified-files/${cfile}_$(timestamp)_$(date)_cf_before_edit","useshell"),
-                    if => fileexists("${file}.augsave");
-     "augeas_binaries" expression => fileexists("${ncf_paths.path[augtool]}");
+    pass1.augeas_binaries.!pass2::
+      "output" string => execresult("${command}", "useshell"), comment => "${path}";
 
-   pass1::
-     "file_defined" expression => not(strcmp("${file}",""));
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1";
 
- methods:
-    pass2.augeas_binaries.variable_defined::
+      "should_report"    expression => "${report_data.should_report}";
+
+    pass1::
+      "augeas_binaries" expression => fileexists("${ncf_paths.path[augtool]}");
+      "file_defined"    expression => not(strcmp("${file}",""));
+
+    pass2.augeas_binaries::
+      "repaired" expression => regcmp("Saved.*", "${output}");
+      "kept"     expression => regcmp(" *\(no errors\)", "${output}");
+      "error"    expression => regcmp("error:.*", "${output}");
+      # failsafe in case nothing matched
+      "error"    expression => "!kept.!repaired";
+
+    pass3.augeas_binaries::
+      "cp_ok"    expression => "file_from_local_source_${cfile}_ok";
+      "ok"       expression => "!error",
+                         if => "!file_defined";
+      "ok"       expression => "!error.(!repaired|cp_ok)",
+                         if => "file_defined";
+
+  methods:
+    pass2::
+      "disable_reporting_${class_prefix}" usebundle => disable_reporting;
+      # allows automatic backup in case file path was provided
+      "copy file"    usebundle => file_from_local_source("${file}.augnew", "${file}"),
+                            if => "file_defined.repaired";
+      "remove"       usebundle => file_absent("${file}.augnew"),
+                            if => fileexists("${file}.augnew");
+      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
+                                                  if => "should_report";
+
+    pass3.augeas_binaries.ok.kept::
        "success" usebundle => _classes_success("${old_class_prefix}");
        "success" usebundle => _classes_success("${class_prefix}");
-       "report" usebundle => _log("Setting the node value for ${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+       "report"  usebundle => _log("Setting the node value for ${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 
-    pass2.augeas_binaries.!variable_defined::
+    pass3.augeas_binaries.ok.repaired::
+       "repaired" usebundle => _classes_repaired("${old_class_prefix}");
+       "repaired" usebundle => _classes_repaired("${class_prefix}");
+       "report"   usebundle => _log("Setting the node value for ${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass3.augeas_binaries.!ok::
       "failure" usebundle => _classes_failure("${old_class_prefix}");
       "failure" usebundle => _classes_failure("${class_prefix}");
-      "report" usebundle => _log("Augeas binaries does exist, but your request has failed. Setting the node value for ${path}","${old_class_prefix}", "${class_prefix}", @{args});
+      "report"  usebundle => _log("Augeas binaries does exist, but your request has failed. Setting the node value for ${path}","${old_class_prefix}", "${class_prefix}", @{args});
 
-    pass2.!augeas_binaries::
+    pass3.!augeas_binaries::
       "failure" usebundle => _classes_failure("${old_class_prefix}");
       "failure" usebundle => _classes_failure("${class_prefix}");
-      "report" usebundle => _log("Augeas binaries does not exist.", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"  usebundle => _log("Augeas binaries does not exist.", "${old_class_prefix}", "${class_prefix}", @{args});
+
+  reports:
+    info::
+      "Augeas output: ${output}";
 }
 

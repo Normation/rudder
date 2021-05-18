@@ -1,13 +1,3 @@
- #######################################################
-#
-# Read a file into a string
-# Currently in staging since the method does not behave
-# as intended. The fix need to deprecate this one and
-# develop a new one. Until then, the test will be set
-# to staging.
-#
-#######################################################
-
 bundle common acc_path
 {
   vars:
@@ -28,40 +18,32 @@ bundle agent init
   vars:
     "tmp"   string => getenv("TEMP", 1024);
 
-    "file[0]"   string => "${tmp}/etc/hosts0";
-    "value[0]" string => "127.0.0.1";
-    "lens[0]"   string => "Hosts";
-    "path[0]"   string => "/etc/hosts/1/ipaddr";
+    "file[0]"   string => "${tmp}/etc/sshd_config0";
+    "value[0]"  string => "yes";
+    "lens[0]"   string => "Sshd";
+    "path[0]"   string => "${tmp}/etc/sshd_config0/PermitRootLogin";
     "status[0]" string => "success";
     "mode[0]"   string => "enforce";
 
-    "file[1]"   string => "${tmp}/etc/hosts1";
-    "value[1]" string => "127.0.0.1";
-    "lens[1]"   string => "";
-    "path[1]"   string => "/etc/hosts/1/ipaddr";
-    "status[1]" string => "error";
+    "file[1]"   string => "${tmp}/etc/sshd_config1";
+    "value[1]"  string => "no";
+    "lens[1]"   string => "Sshd";
+    "path[1]"   string => "${tmp}/etc/sshd_config1/PermitRootLogin";
+    "status[1]" string => "repaired";
     "mode[1]"   string => "enforce";
 
-    #file is null but the lens should be enough for augeas
-    "file[2]"   string => "";
-    "value[2]" string => "127.0.0.1";
-    "lens[2]"   string => "Hosts";
-    "path[2]"   string => "/etc/hosts/1/ipaddr";
+    "file[2]"   string => "${tmp}/etc/sshd_config1";
+    "value[2]"  string => "yes";
+    "lens[2]"   string => "Sshd";
+    "path[2]"   string => "${tmp}/etc/sshd_config1/StrictModes";
     "status[2]" string => "success";
     "mode[2]"   string => "enforce";
-
-    "file[3]"   string => "${tmp}/etc/hosts3";
-    "value[3]"  string => "0.1.2.3";
-    "lens[3]"   string => "Hosts";
-    "path[3]"   string => "/etc/hosts/1/ipaddr";
-    "status[3]" string => "repaired";
-    "mode[3]"   string => "enforce";
 
     "indices" slist => getindices("file");
 
   files:
-    "${tmp}/etc/hosts${indices}"
-      copy_from => local_cp("/etc/hosts");
+    "${tmp}/etc/sshd_config${indices}"
+       copy_from => local_cp("${this.promise_dirname}/file_augeas_set.sshd_config_yes");
 }
 
 #######################################################
@@ -75,7 +57,6 @@ bundle agent test
     "ph0"  usebundle => apply_gm("file_augeas_set", @{args0},  "${init.status[0]}",  "ph0",  "${init.mode[0]}");
     "ph1"  usebundle => apply_gm("file_augeas_set", @{args1},  "${init.status[1]}",  "ph1",  "${init.mode[1]}");
     "ph2"  usebundle => apply_gm("file_augeas_set", @{args2},  "${init.status[2]}",  "ph2",  "${init.mode[2]}");
-    "ph3"  usebundle => apply_gm("file_augeas_set", @{args3},  "${init.status[3]}",  "ph3",  "${init.mode[3]}");
 }
 
 #######################################################
@@ -83,10 +64,13 @@ bundle agent test
 bundle agent check
 {
   classes:
+      "classes_ok" expression => "ph0_ok.ph1_ok.ph2_ok";
+    classes_ok::
+      "content_0" expression => returnszero("diff ${init.file[0]} ${this.promise_dirname}/file_augeas_set.sshd_config_yes 2>/dev/null", "useshell");
+      "content_1" expression => returnszero("diff ${init.file[1]} ${this.promise_dirname}/file_augeas_set.sshd_config_no 2>/dev/null", "useshell");
+      "content_ok" expression => "content_0.content_1";
 
-    "classes_ok" expression => "ph0_ok.ph1_ok.ph2_ok.ph3_ok";
-
-    "ok" expression => "classes_ok";
+      "ok" expression => "classes_ok.content_ok";
 
   reports:
     ok::
