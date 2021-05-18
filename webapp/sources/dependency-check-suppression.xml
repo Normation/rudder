@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+<!-- wrong version detection, only version before 08-12-2014 are vulnerable -->
+<suppress>
+   <notes><![CDATA[
+   file name: org.eclipse.jgit-5.9.0.202009080501-r.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/org\.eclipse\.jgit@.*$</packageUrl>
+   <cve>CVE-2014-9390</cve>
+</suppress>
+</suppressions>
