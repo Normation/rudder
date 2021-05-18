@@ -8,4 +8,39 @@
    <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/org\.eclipse\.jgit@.*$</packageUrl>
    <cve>CVE-2014-9390</cve>
 </suppress>
+<!-- YUI embeded in liftweb is not used -->
+<suppress>
+   <notes><![CDATA[
+   file name: lift-webkit_2.13-3.4.x.jar: YUI.js
+   ]]></notes>
+   <packageUrl regex="true">^pkg:javascript/YUI@2.6.0$</packageUrl>
+   <cve>CVE-2010-4207</cve>
+   <cve>CVE-2010-4207</cve>
+   <cve>CVE-2010-4208</cve>
+   <cve>CVE-2010-4710</cve>
+   <cve>CVE-2012-5881</cve>
+   <cve>CVE-2012-5882</cve>
+</suppress>
+<!-- jquery embeded in liftweb is not used -->
+<suppress>
+   <notes><![CDATA[
+   file name: lift-webkit_2.13-3.4.x.jar: jquery.js
+   ]]></notes>
+   <packageUrl regex="true">^pkg:javascript/jquery@1\.[34]\.[24]</packageUrl>
+   <cve>CVE-2011-4969</cve>
+   <cve>CVE-2012-6708</cve>
+   <cve>CVE-2015-9251</cve>
+   <cve>CVE-2019-11358</cve>
+   <cve>CVE-2020-11022</cve>
+   <cve>CVE-2020-11023</cve>
+</suppress>
+<!-- jquery embeded in scala-compiler is not used -->
+<suppress>
+   <notes><![CDATA[
+   file name: scala-compiler-2.13.x.jar: jquery.min.js
+   ]]></notes>
+   <packageUrl regex="true">^pkg:javascript/jquery@3\.4\.1$</packageUrl>
+   <cve>CVE-2020-11022</cve>
+   <cve>CVE-2020-11023</cve>
+</suppress>
 </suppressions>
