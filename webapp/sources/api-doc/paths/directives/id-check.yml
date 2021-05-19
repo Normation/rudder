@@ -9,7 +9,7 @@ post:
   requestBody:
     required: true
     content:
-      application/x-www-form-urlencoded:
+      application/json:
         schema:
           # FIXME add techniqueVersion
           $ref: ../../components/schemas/directive.yml
