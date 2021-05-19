@@ -44,7 +44,6 @@ import java.nio.file.Path
 import java.nio.file.StandardWatchEventKinds
 import java.nio.file.WatchKey
 import java.util.concurrent.TimeUnit
-
 import better.files._
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
@@ -59,8 +58,12 @@ import zio._
 import zio.syntax._
 import zio.duration._
 import com.normation.zio._
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.filefilter.TrueFileFilter
 import org.joda.time.DateTime
 import zio.clock.Clock
+
+import java.io.FileNotFoundException
 
 final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
   def start(): IOResult[Unit] = {
@@ -176,17 +179,33 @@ class SchedulerMissedNotify(
 ){
 
   /*
-   * List all files that need to be add again - simply all files older than period
+   * List all files that need to be add again - simply all files older than period.
+   * Be careful that files can disapear in the middle of a java.nio.Files.walk, so just
+   * don't use that (or better files methods that use that)
+   * See: https://issues.rudder.io/issues/19268
    */
   def listFiles(d: Duration): UIO[List[File]] = {
-    IOResult.effect{
-      val ageLimit = DateTime.now().minusMillis(d.toMillis.toInt)
-      val filter = (f:File) => {
-        Watchers.hasValidInventoryExtension(f) && (f.isRegularFile && ageLimit.isAfter(f.lastModifiedTime.toEpochMilli))
-      }
-      directories.flatMap(_.collectChildren(filter).toList)
-    }.catchAll(err =>
-      InventoryProcessingLogger.error(s"Error when looking for old inventories that weren't processed: ${err.fullMsg}")*>
+    import scala.jdk.CollectionConverters._
+    (for {
+      // if that fails, just exit
+      ageLimit <- IOResult.effect(DateTime.now().minusMillis(d.toMillis.toInt))
+      filter   =  (f:File) => if(f.exists && Watchers.hasValidInventoryExtension(f) && (f.isRegularFile && ageLimit.isAfter(f.lastModifiedTime.toEpochMilli))) Some(f) else None
+      // if the listing fails, just exit
+      children <- ZIO.foreach(directories)(d => IOResult.effect(FileUtils.listFilesAndDirs(d.toJava, TrueFileFilter.TRUE, TrueFileFilter.TRUE).asScala))
+      // filter file by file. In case of error, just skip it. Speficically ignore FileNotFound (davfs temp files disapear)
+      filtered <- ZIO.foreach(children.flatten) { file =>
+                    IO.effect(filter(File(file.toPath))).catchAll {
+                      case _:FileNotFoundException => // just ignore
+                        InventoryProcessingLogger.trace(s"Ignoring file '${file.toString}' when processing old inventories: " +
+                                                        s"FileNotFoundException (likely if disapeared between directory listing and filtering)"
+                        ) *> UIO.effectTotal(None)
+                      case ex: Throwable => // log and switch to the next
+                        InventoryProcessingLogger.warn(s"Error when processing file in old inventories: '${file.toString}': ${ex.getMessage}") *>
+                        UIO.effectTotal(None)
+                    }
+                  }
+    } yield (filtered.flatten)).catchAll(err =>
+      InventoryProcessingLogger.warn(s"Error when looking for old inventories that weren't processed: ${err.fullMsg}")*>
       Nil.succeed
     )
   }
@@ -201,7 +220,6 @@ class SchedulerMissedNotify(
       _     <- addFiles(files)
       _     <- UIO.unit.delay(period)
     } yield ()
-
     (loop(Duration.Zero) *> loop(period).forever).forkDaemon.provide(zclock)
   }
 }
