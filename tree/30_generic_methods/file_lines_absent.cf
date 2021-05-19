@@ -18,6 +18,7 @@
 
 # @name File lines absent
 # @description Ensure that a line is absent in a specific location
+# @documentation Edit the file, and ensure it does not contain the defined line. Regular expression can be used for both the file name and the lines absent.
 #
 # @parameter path File name to edit (absolute path on the target node)
 # @parameter lines Line(s) to remove in the file
