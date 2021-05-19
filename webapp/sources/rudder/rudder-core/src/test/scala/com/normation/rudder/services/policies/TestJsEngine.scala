@@ -157,13 +157,6 @@ class TestJsEngine extends Specification {
       } must beEqualTo(Right(true))
     }
 
-//  this is now directly managed in the JS engine
-//    "not be able to access FS with safeExec" in {
-//      runSandboxed() { box =>
-//        box.safeExec("write to fs")( (new java.io.File("/tmp/rudder-test-fromjsengine").createNewFile()).succeed )
-//      } must beRight(false)
-//    }
-
     "be able to do simple operation with JS" in {
       runSandboxed() { box =>
         box.singleEval("'thestring'.substring(0,3)", JsRudderLibBinding.Crypt.jsRudderLib)
