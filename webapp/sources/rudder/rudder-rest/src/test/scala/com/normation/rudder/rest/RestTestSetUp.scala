@@ -180,7 +180,7 @@ object RestTestSetUp {
 
   val fakeDynGroupService = new DynGroupService() {
     override def getAllDynGroups(): Box[Seq[NodeGroup]] = Full(Seq())
-    override def getAllDynGroupsWithandWithoutDependencies():  Box[(Seq[NodeGroupId], Seq[NodeGroupId])] = Full(Seq(), Seq())
+    override def getAllDynGroupsWithandWithoutDependencies():  Box[(Seq[NodeGroupId], Seq[NodeGroupId])] = Full((Seq(), Seq()))
     override def changesSince(lastTime: DateTime): Box[Boolean] = Full(false)
   }
   val fakeDynGroupUpdaterService = new DynGroupUpdaterService() {
