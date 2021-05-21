@@ -1,2 +1,0 @@
-server = "rudder"
-server_pubkey_hash = "tests/certs/policy_server_hash"

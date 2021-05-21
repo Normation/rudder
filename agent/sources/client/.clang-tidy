@@ -1,4 +1,0 @@
----
-Checks: 'clang-diagnostic-*,clang-analyzer-*,*,-clang-analyzer-alpha.*,-llvmlibc-restrict-system-libc-headers,-llvm-header-guard,-llvm-include-order,-android-*,-google-*,-cppcoreguidelines*,-readability-magic-numbers,-llvm-else-after-return,-readability-else-after-return'
-...
-
