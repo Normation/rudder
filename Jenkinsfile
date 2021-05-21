@@ -217,6 +217,7 @@ pipeline {
                                     }
                                     sh script: 'make check', label: 'language tests'
                                     sh script: 'make docs', label: 'language docs'
+                                    sh script: 'make clean', label: 'relayd clean'
                                 }
                             }
                             post {
@@ -252,6 +253,7 @@ pipeline {
                                     withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
                                         sh script: 'rsync -avz -e "ssh -i${KEY_FILE} -p${SSH_PORT}" target/docs/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/rudder-lang/${RUDDER_VERSION}', label: 'publish relay API docs'
                                     }
+				    sh script: 'make clean', label: 'language clean'
                                 }
                             }
                             post {
