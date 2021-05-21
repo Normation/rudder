@@ -233,10 +233,13 @@ trait PooledConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionP
 
   def poolSize : Int
   def ldifFileLogger:LDIFFileLogger
+  def poolname: String
 
   // for performance reason, operation on pool can't be wrapped into ZIO
   protected lazy val pool = try {
-    new LDAPConnectionPool(self.newUnboundidConnection, poolSize)
+    val p = new LDAPConnectionPool(self.newUnboundidConnection, poolSize)
+    p.setConnectionPoolName(poolname)
+    p
   } catch {
     case ex: LDAPException =>
       val msg = s"Error during LDAP connection pool initialisation. Exception: " +
@@ -308,7 +311,7 @@ class ROPooledAnonymousConnectionProvider(
   override val poolSize : Int = 2,
   val blockingModule: Blocking
 ) extends AnonymousConnection with PooledConnectionProvider[RoLDAPConnection] {
-
+  override def poolname: String = s"rudder-anonymous-ro"
   def newConnection = {
     LDAPIOResult.effectNonBlocking(new RoLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
   }
@@ -326,6 +329,7 @@ class RWPooledAnonymousConnectionProvider(
   override val poolSize : Int = 2,
   val blockingModule: Blocking
 ) extends AnonymousConnection with PooledConnectionProvider[RwLDAPConnection] {
+  override def poolname: String = s"rudder-anonymous-rw"
   def newConnection = {
     LDAPIOResult.effectNonBlocking(new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
   }
@@ -389,6 +393,7 @@ class ROPooledSimpleAuthConnectionProvider(
   override val poolSize : Int = 2,
   val blockingModule: Blocking
 ) extends SimpleAuthConnection with PooledConnectionProvider[RoLDAPConnection] {
+  override def poolname: String = s"rudder-authenticated-ro"
   def newConnection = {
     LDAPIOResult.effectNonBlocking(new RoLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
   }
@@ -408,6 +413,9 @@ class RWPooledSimpleAuthConnectionProvider(
   override val poolSize : Int = 2,
   val blockingModule: Blocking
 ) extends SimpleAuthConnection with PooledConnectionProvider[RwLDAPConnection]{
+
+  override def poolname: String = s"rudder-authenticated-rw"
+
   def newConnection = {
     LDAPIOResult.effectNonBlocking(new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
   }
