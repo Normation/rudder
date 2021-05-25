@@ -219,37 +219,46 @@ class AppConfigAuth extends ApplicationContextAware {
     // For that, we let the user either let undefined udder.auth.admin.login,
     // or let empty udder.auth.admin.login or rudder.auth.admin.password
 
-    val admins = if(config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
+    val defaultEncoder = PasswordEncoder.BCRYPT
+    val (encoder, admins) = if(config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
       val login = config.getString("rudder.auth.admin.login")
       val password = config.getString("rudder.auth.admin.password")
 
       if(login.isEmpty || password.isEmpty) {
-        Map.empty[String, RudderUserDetail]
+        (defaultEncoder, Map.empty[String, RudderUserDetail])
       } else {
-        Map(login -> RudderUserDetail(
-            RudderAccount.User(
-                login
-              , password
-            )
-          , RoleToRights.parseRole(Seq("administrator")).toSet
-          , SYSTEM_API_ACL
-        ))
+        // check if the password is in plain text (for compat before #19308) or bcrypt-encoded
+        val passwordEncoder = if(password.startsWith("$2y$")) {
+          PasswordEncoder.BCRYPT
+        } else {
+          PasswordEncoder.PlainText
+        }
+        (
+          passwordEncoder
+        , Map(login -> RudderUserDetail(
+              RudderAccount.User(
+                  login
+                , password
+              )
+            , RoleToRights.parseRole(Seq("administrator")).toSet
+            , SYSTEM_API_ACL
+          ))
+        )
       }
     } else {
-      Map.empty[String, RudderUserDetail]
+      (defaultEncoder, Map.empty[String, RudderUserDetail])
     }
 
     if(admins.isEmpty) {
       logger.info("No master admin account is defined. You can define one with 'rudder.auth.admin.login' and 'rudder.auth.admin.password' properties in the configuration file")
     }
 
-    val passwordEncoder = PasswordEncoder.PlainText
     val authConfigProvider = new UserDetailListProvider {
-      override def authConfig: UserDetailList = UserDetailList(passwordEncoder, admins)
+      override def authConfig: UserDetailList = UserDetailList(encoder, admins)
     }
     val provider = new DaoAuthenticationProvider()
     provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider))
-    provider.setPasswordEncoder(passwordEncoder) // force password encode to plaintext only
+    provider.setPasswordEncoder(encoder) // force password encoder to the one we want
     provider
   }
 

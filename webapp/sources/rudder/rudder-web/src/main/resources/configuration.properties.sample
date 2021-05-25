@@ -492,6 +492,10 @@ rudder.batch.storeAgentRunTimes.updateInterval=5
 # By default, the accound is disabled (either by letting the
 # the login or the password empty, or by commenting it).
 #
+# The password is a bcrypt hash, you can create it for example with the following command:
+#  htpasswd -nBC 12 "" | tr -d ':\n'
+# Where htpasswd is provided by apache tools.
+#
 
 #rudder.auth.admin.login=rootadmin
 #rudder.auth.admin.password=secret
