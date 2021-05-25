@@ -117,7 +117,7 @@ class FusionReportUnmarshaller(
        * At least, the presence of that tag is a good indicator
        * that we have an actual Fusion Inventory report
        */
-      deviceId <- ZIO.fromOption(optText(doc \ "DEVICEID")).mapError(_ => Inconsistency("The XML does not seems to be a Fusion Inventory report (no device id found)"))
+      deviceId <- optText(doc \ "DEVICEID").notOptional("The XML does not seems to be a Fusion Inventory report (no device id found)")
     } yield {
 
       var report = {
@@ -300,11 +300,6 @@ class FusionReportUnmarshaller(
    * Because it is fully supported since Rudder 4.1 (so migration are OK).
    */
   def processRudderElement(xml: NodeSeq, report: InventoryReport) : IOResult[InventoryReport]  = {
-    // From an option and error message creates an option,
-    // transform correctly option in a for comprehension
-    def boxFromOption[T]( opt : Option[T], errorMessage : String) : IOResult[T] = {
-      ZIO.fromOption(opt).mapError(_ => InventoryError.Inconsistency(errorMessage))
-    }
 
     // Check that a seq contains only one or identical values, if not fails
     def uniqueValueInSeq[T]( seq: Seq[T], errorMessage : String) : IOResult[T] = {
@@ -366,11 +361,11 @@ class FusionReportUnmarshaller(
      */
     val agentList = ZIO.foreach(xml \\ "AGENT") { agentXML =>
       val agent = for {
-         agentName <- boxFromOption(optText(agentXML \ "AGENT_NAME"), "could not parse agent name (tag AGENT_NAME) from rudder specific inventory")
+         agentName <- optText(agentXML \ "AGENT_NAME").notOptional("could not parse agent name (tag AGENT_NAME) from rudder specific inventory")
          agentType <- ZIO.fromEither(AgentType.fromValue(agentName))
 
-         rootUser  <- boxFromOption(optText(agentXML \\ "OWNER") ,"could not parse rudder user (tag OWNER) from rudder specific inventory")
-         policyServerId <- boxFromOption(optText(agentXML \\ "POLICY_SERVER_UUID") ,"could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
+         rootUser  <- optText(agentXML \\ "OWNER").notOptional("could not parse rudder user (tag OWNER) from rudder specific inventory")
+         policyServerId <- optText(agentXML \\ "POLICY_SERVER_UUID").notOptional("could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
          optCert = optText(agentXML \ "AGENT_CERT")
          optKey  = optText(agentXML \ "AGENT_KEY").orElse(optText(agentXML \ "CFENGINE_KEY"))
          securityToken <- agentType match {
@@ -399,38 +394,54 @@ class FusionReportUnmarshaller(
       }
     }
 
-    ( for {
-        agents         <- agentList.map(_.flatten)
-        agentOK        <- ZIO.when(agents.size < 1) {
-                            Inconsistency(s"No <AGENT> entry was correctly defined in <RUDDER> extension tag (missing or see previous errors)").fail
-                          }
-        uuid           <- boxFromOption(optText(xml \ "UUID"), "could not parse uuid (tag UUID) from rudder specific inventory")
-        rootUser       <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
-        policyServerId <- uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
-        serverRoles    =  processServerRoles(xml).toSet
-        // Node Custom properties from agent hooks
-        customProperties =  processCustomProperties(xml \ "CUSTOM_PROPERTIES")
-        // hostname is a special case processed in `processHostname`
-        // capabilties should be per agent
-        capabilities   =  processAgentCapabilities(xml)
-      } yield {
-
-        report.copy (
-          node = report.node.copy (
-              main = report.node.main.copy (
-                  rootUser = rootUser
-                , policyServerId = NodeId(policyServerId)
-                , id = NodeId(uuid)
-              )
-            , agents = agents.map(_._1.copy(capabilities = capabilities))
-            , customProperties = customProperties
-            , serverRoles = serverRoles
-          )
-        )
-    } ) catchAll { eb =>
-        val fail = Chained(s"Error when parsing <RUDDER> extention node in inventory report with name '${report.name}'. Rudder extension attribute won't be available in report.", eb)
-        InventoryProcessingLogger.error(fail.fullMsg) *> report.succeed
+    // to keep things consistent with previous behavior in 6.x, we don't fail if there is no rudder tag (perhaps it
+    // has an impact on root server init).
+    // We still fail on several rudder tag, which always was buggy
+    val checkNumberOfRudderTag: IOResult[Unit] = {
+      val size = xml.size
+      if(size == 1) ZIO.unit
+      else if(size < 1) {
+        // even if we don't fail to keep behavior, we at leat log the problem.
+        InventoryProcessingLogger.error(s"This rudder inventory does not have any <rudder> tag defined. This tag is mandatory.") *> ZIO.unit
+      } else {
+        Inconsistency(s"A rudder inventory must have exactly one <rudder> tag, found ${size}").fail
+      }
     }
+
+    checkNumberOfRudderTag.andThen(
+      ( for {
+          agents         <- agentList.map(_.flatten)
+          agentOK        <- ZIO.when(agents.size < 1) {
+                              Inconsistency(s"No <AGENT> entry was correctly defined in <RUDDER> extension tag (missing or see previous errors)").fail
+                            }
+          uuid           <- optText(xml \ "UUID").notOptional("could not parse uuid (tag UUID) from rudder specific inventory")
+          rootUser       <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
+          policyServerId <- uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
+          serverRoles    =  processServerRoles(xml).toSet
+          // Node Custom properties from agent hooks
+          customProperties =  processCustomProperties(xml \ "CUSTOM_PROPERTIES")
+          // hostname is a special case processed in `processHostname`
+          // capabilties should be per agent
+          capabilities   =  processAgentCapabilities(xml)
+        } yield {
+
+          report.copy (
+            node = report.node.copy (
+                main = report.node.main.copy (
+                    rootUser = rootUser
+                  , policyServerId = NodeId(policyServerId)
+                  , id = NodeId(uuid)
+                )
+              , agents = agents.map(_._1.copy(capabilities = capabilities))
+              , customProperties = customProperties
+              , serverRoles = serverRoles
+            )
+          )
+      } ) catchAll { eb =>
+          val fail = Chained(s"Error when parsing <RUDDER> extention node in inventory report with name '${report.name}'. Rudder extension attribute won't be available in report.", eb)
+          InventoryProcessingLogger.error(fail.fullMsg) *> report.succeed
+      }
+    )
   }
 
   /**
