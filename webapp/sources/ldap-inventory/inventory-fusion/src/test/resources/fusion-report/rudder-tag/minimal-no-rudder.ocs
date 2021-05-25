@@ -9,7 +9,7 @@
       <VERSION>5.0.8</VERSION>
     </OPERATINGSYSTEM>
     <RUDDER>
-      <HOSTNAME>debian-6-64.labo.normation.com</HOSTNAME>
+       <HOSTNAME>debian-6-64.labo.normation.com</HOSTNAME>
       <UUID>b9a71482-5030-4699-984d-b03d28bbbf36</UUID>
     </RUDDER>
   </CONTENT>
