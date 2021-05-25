@@ -74,10 +74,13 @@ class TestReportParsing extends Specification with Loggable {
 
   val parser = new FusionReportUnmarshaller(new StringUuidGeneratorImpl)
   def parseRun(report: String) = ZioRuntime.unsafeRun(parser.parse(report))
+  def parseRunEither(report: String) = ZioRuntime.unsafeRun(parser.parse(report).either)
 
   // we are testing some error etc, so make the standard output cleaner:
-  org.slf4j.LoggerFactory.getLogger("inventory-processing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
+  org.slf4j.LoggerFactory.getLogger("inventory-processing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.ERROR)
 
+
+  sequential
 
   "All inventories in the fusion-report directory" should {
     "be correctly parsed and give a non generic OS type" in {
@@ -185,6 +188,19 @@ class TestReportParsing extends Specification with Loggable {
     "be 'ppc64' on AIX" in {
       val arch = parseRun("fusion-report/sovma136-2014-02-10-07-13-43.ocs").node.archDescription
       arch must beEqualTo(Some("ppc64"))
+    }
+  }
+
+  "Rudder tag in inventory" should {
+
+    "ok-ish when not present (have an eror log)" in {
+      val res = parseRunEither("fusion-report/rudder-tag/minimal-no-rudder.ocs")
+      res must beRight
+    }
+
+    "can't be two" in {
+      val res = parseRunEither("fusion-report/rudder-tag/minimal-one-agent-two-rudder-fails.ocs")
+      res must beLeft
     }
   }
 
