@@ -2,10 +2,6 @@
 :imagesdir: images/
 :toc: left
 
-// TODO list
-// Comment migrer une technique
-// Le mapping avec le ncf existant
-
 = Rudder language
 
 alias _rudder-lang_

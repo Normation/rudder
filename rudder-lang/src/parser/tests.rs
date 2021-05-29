@@ -265,7 +265,7 @@ fn test_penum() {
         ))
     );
     assert_eq!(
-        // to test preceeding megtadata, directly test a pdeclaration
+        // to test preceding megtadata, directly test a pdeclaration
         map_res(penum, "enum abc3 {\n@metadata=\"value\"\n a, b, }"),
         Ok((
             "",

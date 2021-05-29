@@ -157,7 +157,7 @@ file state name(a,b) {}
 "#; "s_statedef_empty")]
 #[test_case("f_statedef_undefined_resource", r#"@format=0
 @metadata=1
-NonExistantResource state name(a,b) {
+NonExistentResource state name(a,b) {
 }
 "#; "f_statedef_undefined_resource")]
 // #[test_case("f_state_declaration", r#"@format=0

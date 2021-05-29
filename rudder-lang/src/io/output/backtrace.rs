@@ -28,7 +28,7 @@ impl Backtrace {
         }
     }
 
-    /// this funtion can be invoked from anywhere in the code to get a proper backtrace up to the creation of the programs thread
+    /// this function can be invoked from anywhere in the code to get a proper backtrace up to the creation of the programs thread
     /// This could be done for debug purposes or placed at strategic places like panic calls
     fn format_symbol(index: usize, sym: &backtrace::BacktraceSymbol) -> Option<String> {
         lazy_static! {

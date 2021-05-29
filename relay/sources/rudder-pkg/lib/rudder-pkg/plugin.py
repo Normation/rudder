@@ -6,7 +6,7 @@ logger = logging.getLogger("rudder-pkg")
 
 """
     Define a Plugin object, which is a group of all the rpkgs corresponding to the plugin.
-    Since multiple rpkgs can provide the exact same plugin, we are using sets. For each multiple occurence,
+    Since multiple rpkgs can provide the exact same plugin, we are using sets. For each multiple occurrence,
     only the last rpkg file checked will be kept.
 """
 class Plugin:

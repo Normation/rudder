@@ -169,7 +169,7 @@ def check_url():
     else:
       True
   except Exception as e:
-    fail("An error occured while checking access to %s:\n%s"%(URL, e))
+    fail("An error occurred while checking access to %s:\n%s"%(URL, e))
 
 """
    From a complete url, try to download a file. The destination path will be determined by the complete url
@@ -234,7 +234,7 @@ def verifyHash(targetPath, shaSumPath):
       if match:
         fileHash.append(match.group('hash'))
     if len(fileHash) != 1:
-      logger.warning('Multiple hash found matching the package, this should not happend')
+      logger.warning('Multiple hash found matching the package, this should not happened')
     if sha512(targetPath) in fileHash:
       logger.info("=> OK!\n")
       return True
@@ -253,7 +253,7 @@ def verifyHash(targetPath, shaSumPath):
 """
 def download_and_verify(completeUrl, dst=""):
     global GPG_HOME
-    # donwload the target file
+    # download the target file
     logger.info("downloading rpkg file  %s"%(completeUrl))
     targetPath = download(completeUrl, dst)
     # download the attached SHASUM and SHASUM.asc

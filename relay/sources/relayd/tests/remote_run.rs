@@ -218,7 +218,7 @@ mod tests {
         let params = [
             ("asynchronous", "false"),
             ("keep_output", "true"),
-            ("classes", "clas~1,class2,class3"),
+            ("classes", "class~1,class2,class3"),
             ("nodes", "node2.rudder.local,server.rudder.local"),
         ];
         let response = client
@@ -230,7 +230,7 @@ mod tests {
         assert_eq!(response.status(), hyper::StatusCode::BAD_REQUEST);
         assert_eq!(
             response.text().unwrap(),
-            "invalid condition: clas~1, should match ^[a-zA-Z0-9][a-zA-Z0-9_]*$".to_string()
+            "invalid condition: class~1, should match ^[a-zA-Z0-9][a-zA-Z0-9_]*$".to_string()
         );
     }
 }

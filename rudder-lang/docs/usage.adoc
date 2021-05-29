@@ -319,7 +319,7 @@ If you decided to go with the `--json-output` option, it means output will consi
 ** Length always 0 in case of error # TODO check for technique generate
 ** Length always 3 when `technique generate called`
 ** Length always 1 in any other case since other commands only generate 1 format
-* `content` field is null if its content has succesfully been written to a file
+* `content` field is null if its content has successfully been written to a file
 * `destination` field is null if content is directly written in the JSON
 * `errors` field is an array of strings
 # TODO log field

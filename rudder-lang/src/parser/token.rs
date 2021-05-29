@@ -94,7 +94,7 @@ impl<'src> From<Token<'src>> for PInput<'src> {
     }
 }
 
-/// Token comparision only compares the string value, not the position
+/// Token comparison only compares the string value, not the position
 /// PartialEq used by tests and by Token users
 impl<'src> PartialEq for Token<'src> {
     fn eq(&self, other: &Token) -> bool {

@@ -332,7 +332,7 @@ def deep_del(haystack, deep_list, delfrom, del_condition, index=0):
 # ARGUMENTS
   # haystack: object to look into 
   # deep_list (array of string): ordered list of keys to search from
-  # needle (string): the final key to look for withing deep_list matched object
+  # needle (string): the final key to look for within deep_list matched object
   # values (optional, array of string): match if needle value is contained in this array
   # index is an internal counter
 def get_if_contains(haystack, deep_list, needle, values=None, index=0):

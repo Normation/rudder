@@ -698,7 +698,7 @@ fn pmetadata(i: PInput) -> PResult<Option<PMetadata>> {
             // update line and column of toml error message.
             let (line, col) = match e.line_col() {
                 // line: file line count must be added to local metadatas line count
-                // col: as toml receieves the string without the preceeding `@`, 1 must be added to the offset to have an exact value. + 1 to turn the index into a count
+                // col: as toml receieves the string without the preceding `@`, 1 must be added to the offset to have an exact value. + 1 to turn the index into a count
                 Some((line, col)) => (line + i.location_line() as usize, col + 1 + 1),
                 None => (i.location_line() as usize, i.location_offset()),
             };

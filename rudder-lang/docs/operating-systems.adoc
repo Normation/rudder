@@ -48,7 +48,7 @@ Yet any _sub-enum_ is a standalone, meaning it is directly defined on its own: `
 
 NOTE: The fact `ubuntu_20` is part of `ubuntu` -> `linux` -> `system` is only important for accuracy sake: `if linux` evaluates to true on `ubunutu_20`
 
-=== Example with `ubuntu_20_10` as the targetted OS
+=== Example with `ubuntu_20_10` as the targeted OS
 
 The following expressions will be evaluated to `true`:
 

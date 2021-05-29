@@ -496,7 +496,7 @@ impl Call {
     }
 
     pub fn log(parameters: Parameters) -> Self {
-        //       $ReportString = "An unknown error occured while running command '$CommandName'"
+        //       $ReportString = "An unknown error occurred while running command '$CommandName'"
         //       if ($AuditOnly) {
         //         [ComplianceStatus]::audit_error
         //     }

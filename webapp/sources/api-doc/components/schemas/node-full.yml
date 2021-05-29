@@ -157,7 +157,7 @@ properties:
           example: "node"
         rootComponents:
           type: array
-          description: Roles fullfilled by the agent
+          description: Roles fulfilled by the agent
           items:
             type: string
             description: A role that node fulfills in management technology

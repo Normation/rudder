@@ -54,6 +54,12 @@ pipeline {
                                 }
                             }
                             steps {
+                                dir('webapp/sources/api-doc') {
+                                    sh script: 'typos', label: 'check typos'
+                                }
+                                dir('relay/sources/api-doc') {
+                                    sh script: 'typos', label: 'check typos'
+                                }
                                 dir('api-doc') {
                                     sh script: 'make', label: 'build API docs'
                                 }
@@ -101,6 +107,7 @@ pipeline {
                     agent { label 'script' }
                     steps {
                         dir ('relay/sources') {
+                            sh script: 'typos --exclude "api-doc/*" --exclude "relayd/*"', label: 'check typos'
                             sh script: 'make check', label: 'rudder-pkg tests'
                         }
                     }
@@ -176,12 +183,12 @@ pipeline {
                 stage('rust') {
                     agent { label 'rust' }
 
-                    // sccache server is run via systemd on the builder
-                    // because of https://github.com/mozilla/sccache/blob/master/docs/Jenkins.md
-
                     environment {
                         PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
                     }
+
+                    // sccache server is run via systemd on the builder
+                    // because of https://github.com/mozilla/sccache/blob/master/docs/Jenkins.md
 
                     stages {
                         // No built-in support for Rust tooling in Jenkins, let's do it ourselves
@@ -215,6 +222,7 @@ pipeline {
                                                 credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
                                         }
                                     }
+                                    sh script: 'typos', label: 'check typos'
                                     sh script: 'make check', label: 'language tests'
                                     sh script: 'make docs', label: 'language docs'
                                     sh script: 'make clean', label: 'relayd clean'
@@ -248,6 +256,7 @@ pipeline {
                                                 credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
                                         }
                                     }
+                                    sh script: 'typos', label: 'check typos'
                                     sh script: 'make check', label: 'language tests'
                                     sh script: 'make docs', label: 'language docs'
                                     withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
@@ -275,6 +284,7 @@ pipeline {
                             steps {
                                 // System dependencies: libpq-dev postgresql
                                 dir('relay/sources/relayd') {
+                                    sh script: 'typos --exclude "*.pem"', label: 'check typos'
                                     sh script: 'make check', label: 'relayd tests'
                                 }
                             }

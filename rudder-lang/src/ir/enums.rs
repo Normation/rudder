@@ -188,7 +188,7 @@ impl<'src> EnumList<'src> {
         // insert keys
         self.enums
             .get_mut(&tree_name)
-            .expect("BUG: tree disapeared from 2 lines above")
+            .expect("BUG: tree disappeared from 2 lines above")
             .extend(e)?;
         Ok(None)
     }
@@ -679,7 +679,7 @@ impl<'src> EnumExpressionPart<'src> {
             EnumExpressionPart::RangeCompare(var, tree, left, right) => {
                 let list = variables.entry((*var, *tree)).or_insert_with(HashSet::new);
                 // we only need one variable for its siblings
-                // a range must be withing siblings
+                // a range must be within siblings
                 // -> pushing only one item is sufficient
                 if let Some(item) = left {
                     list.insert(*item);
