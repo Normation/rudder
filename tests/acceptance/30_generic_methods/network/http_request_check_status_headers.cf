@@ -22,12 +22,12 @@ body common control
 bundle agent init
 {
   vars:
-    "nonexistant_url"       string => "https://repository.rudder.io/non_existant";
-    "existant_url"          string => "https://www.google.fr";
-    "canon_nonexistant_url" string => canonify("${nonexistant_url}");
-    "canon_existant_url"    string => canonify("${existant_url}");
-    "expected_nonexistant"  string => "404";
-    "expected_existant"     string => "200";
+    "nonexistent_url"       string => "https://repository.rudder.io/non_existent";
+    "existent_url"          string => "https://www.google.fr";
+    "canon_nonexistent_url" string => canonify("${nonexistent_url}");
+    "canon_existent_url"    string => canonify("${existent_url}");
+    "expected_nonexistent"  string => "404";
+    "expected_existent"     string => "200";
     "headers"               string => "";
     "method"                string => "GET";
 
@@ -39,8 +39,8 @@ bundle agent test
 {
 
   methods:
-    "ph" usebundle => http_request_check_status_headers("${init.method}", "${init.nonexistant_url}", "${init.expected_nonexistant}", "${init.headers}");
-    "ph" usebundle => http_request_check_status_headers("${init.method}", "${init.existant_url}", "${init.expected_existant}", "${init.headers}");
+    "ph" usebundle => http_request_check_status_headers("${init.method}", "${init.nonexistent_url}", "${init.expected_nonexistent}", "${init.headers}");
+    "ph" usebundle => http_request_check_status_headers("${init.method}", "${init.existent_url}", "${init.expected_existent}", "${init.headers}");
 
 
 }
@@ -50,9 +50,9 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "non_existant_returns_ok" expression => "http_request_check_status_headers_${init.canon_nonexistant_url}_reached.http_request_check_status_headers_${init.canon_nonexistant_url}_kept";
-      "existant_returns_ok"     expression => "http_request_check_status_headers_${init.canon_existant_url}_reached.http_request_check_status_headers_${init.canon_existant_url}_kept";
-      "ok"                      expression => "non_existant_returns_ok.existant_returns_ok";
+      "non_existent_returns_ok" expression => "http_request_check_status_headers_${init.canon_nonexistent_url}_reached.http_request_check_status_headers_${init.canon_nonexistent_url}_kept";
+      "existent_returns_ok"     expression => "http_request_check_status_headers_${init.canon_existent_url}_reached.http_request_check_status_headers_${init.canon_existent_url}_kept";
+      "ok"                      expression => "non_existent_returns_ok.existent_returns_ok";
 
   reports:
     ok::
@@ -60,9 +60,9 @@ bundle agent check
     !ok::
       "$(this.promise_filename) FAIL";
 
-    !non_existant_returns_ok::
-      "Wrong status for ${init.nonexistant_url}";
+    !non_existent_returns_ok::
+      "Wrong status for ${init.nonexistent_url}";
 
-    !existant_returns_ok::
-      "Wrong status for ${init.existant_url}";
+    !existent_returns_ok::
+      "Wrong status for ${init.existent_url}";
 }

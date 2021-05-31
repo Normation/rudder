@@ -33,7 +33,7 @@ bundle common inputs
       # see https://cfengine.com/dev/issues/2912
       "generic_framework"      string => execresult("${list_compatible_inputs} ${sys.cf_version} ${sys.inputdir} 20_cfe_basics 30_generic_methods 40_it_ops_knowledge", "useshell");
 
-      # The Techniques and Services part are choosen separatly, as we may not want to load
+      # The Techniques and Services part are chosen separatly, as we may not want to load
       # them all automatically in the future
       # This fetches the techniques cf files
       "techniques"            string  => execresult("${list_compatible_inputs} ${sys.cf_version} ${sys.inputdir} 50_techniques", "useshell");

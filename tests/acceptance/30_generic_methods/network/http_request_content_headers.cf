@@ -22,10 +22,10 @@ body common control
 bundle agent init
 {
   vars:
-    "existant_url"          string => "https://postman-echo.com/post";
-    "nonexistant_url"       string => "https://postman-echo.com/something";
-    "canon_nonexistant_url" string => canonify("${nonexistant_url}");
-    "canon_existant_url"    string => canonify("${existant_url}");
+    "existent_url"          string => "https://postman-echo.com/post";
+    "nonexistent_url"       string => "https://postman-echo.com/something";
+    "canon_nonexistent_url" string => canonify("${nonexistent_url}");
+    "canon_existent_url"    string => canonify("${existent_url}");
     "headers"               string => "Content-type: application/xml";
     "method"                string => "POST";
     "content"               string => "<?xml version='1.0' encoding='UTF-8'?>
@@ -42,8 +42,8 @@ bundle agent test
 {
 
   methods:
-    "ph" usebundle => http_request_content_headers("${init.method}", "${init.nonexistant_url}", "${init.content}", "${init.headers}");
-    "ph" usebundle => http_request_content_headers("${init.method}", "${init.existant_url}", "${init.content}", "${init.headers}");
+    "ph" usebundle => http_request_content_headers("${init.method}", "${init.nonexistent_url}", "${init.content}", "${init.headers}");
+    "ph" usebundle => http_request_content_headers("${init.method}", "${init.existent_url}", "${init.content}", "${init.headers}");
 
 
 }
@@ -53,9 +53,9 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "non_existant_returns_ok" expression => "http_request_content_headers_${init.canon_nonexistant_url}_reached.http_request_content_headers_${init.canon_nonexistant_url}_failed";
-      "existant_returns_ok"     expression => "http_request_content_headers_${init.canon_existant_url}_reached.http_request_content_headers_${init.canon_existant_url}_repaired";
-      "ok"                      expression => "non_existant_returns_ok.existant_returns_ok";
+      "non_existent_returns_ok" expression => "http_request_content_headers_${init.canon_nonexistent_url}_reached.http_request_content_headers_${init.canon_nonexistent_url}_failed";
+      "existent_returns_ok"     expression => "http_request_content_headers_${init.canon_existent_url}_reached.http_request_content_headers_${init.canon_existent_url}_repaired";
+      "ok"                      expression => "non_existent_returns_ok.existent_returns_ok";
 
   reports:
     ok::
@@ -63,9 +63,9 @@ bundle agent check
     !ok::
       "$(this.promise_filename) FAIL";
 
-    !non_existant_returns_ok::
-      "Wrong status for ${init.nonexistant_url}";
+    !non_existent_returns_ok::
+      "Wrong status for ${init.nonexistent_url}";
 
-    !existant_returns_ok::
-      "Wrong status for ${init.existant_url}";
+    !existent_returns_ok::
+      "Wrong status for ${init.existent_url}";
 }

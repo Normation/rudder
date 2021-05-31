@@ -329,7 +329,7 @@ def parse_technique_methods(technique_file, gen_methods):
   try:
     promises = json.loads(out)
   except Exception as e:
-      raise NcfError("An error occured while parsing technique '"+technique_file+"'", cause = e)
+      raise NcfError("An error occurred while parsing technique '"+technique_file+"'", cause = e)
 
   # Sanity check: if more than one bundle, this is a weird file and I'm quitting
   bundle_count = 0

@@ -143,7 +143,7 @@ bundle agent check
 
   reports:
     pass3::
-      "####################${const.endl}Missing at least one of the folowing lines:${const.endl}${init.printable_lines[${init.indices}]} ${const.endl}in the following output: ${const.endl}${getfacl_output[${init.indices}]}${const.endl}   ####################"
+      "####################${const.endl}Missing at least one of the following lines:${const.endl}${init.printable_lines[${init.indices}]} ${const.endl}in the following output: ${const.endl}${getfacl_output[${init.indices}]}${const.endl}   ####################"
         ifvarclass => "lines_matches_${init.indices}_${init.canonified_lines[${init.indices}]}";
     pass3.ok::
       "$(this.promise_filename) Pass";

@@ -742,7 +742,7 @@ bundle agent check
       "Test for file nb ${init.indices} FAILED"
         ifvarclass => "!ph${init.indices}_ok.execute_${init.indices}";
 
-      "####################${const.endl}Missing at least one of the folowing lines:${const.endl}${init.printable_lines[${init.indices}]} ${const.endl}in the following output: ${const.endl}${getfacl_output[${init.indices}]}${const.endl}   ####################"
+      "####################${const.endl}Missing at least one of the following lines:${const.endl}${init.printable_lines[${init.indices}]} ${const.endl}in the following output: ${const.endl}${getfacl_output[${init.indices}]}${const.endl}   ####################"
         ifvarclass => "lines_matches_failed_${init.indices}";
     pass3.ok::
       "$(this.promise_filename) Pass";

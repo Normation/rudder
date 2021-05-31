@@ -165,7 +165,7 @@ bundle agent log_na_rudder(message, class_parameter, unique_prefix, args)
 
 # @name Logger for Rudder - legacy interface (DEPRECATED)
 # @deprecated Use [log_rudder](#log_rudder) instead.
-# @description Logging output for Rudder reports. This interface is for compatiblity with older generic methods and techniques, and is replaced by log_rudder.
+# @description Logging output for Rudder reports. This interface is for compatibility with older generic methods and techniques, and is replaced by log_rudder.
 #
 # @parameter message              The common part of the message to display
 # @parameter old_class_prefix     The prefix of the class for different states (0.x version, empty to force new style logging only)

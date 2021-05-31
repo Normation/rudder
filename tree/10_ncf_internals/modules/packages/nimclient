@@ -63,7 +63,7 @@ list_updates () {
     # This function should return the list of package updates that are available
     # NAME=
     # VERSION=
-    # ARCHITECUTRE=
+    # ARCHITECTURE=
     # If you can't get a list of updates available, then you can't use
     # version=latest and mission portal won't report updates available. If
     # there is no valid cached list, AND it is unable to get a list it should

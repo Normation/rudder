@@ -9,6 +9,7 @@ pipeline {
             agent { label 'script' }
             steps {
                 sh script: './qa-test', label: 'qa-test'
+                sh script: './qa-test --typos', label: 'check typos'
             }
         }
     }
