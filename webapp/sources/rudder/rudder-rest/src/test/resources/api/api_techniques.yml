@@ -513,5 +513,5 @@ response:
     {
       "action":"listTechniqueDirectives",
       "result":"error",
-      "errorDetails":"Inconsistency:Version 'X.Y'of Technique 'packageManagement'does not exist"
+      "errorDetails":"Inconsistency:Could not find list of directives based on 'packageManagement'technique,because we could not parse 'X.Y'as a valid technique version"
     }
