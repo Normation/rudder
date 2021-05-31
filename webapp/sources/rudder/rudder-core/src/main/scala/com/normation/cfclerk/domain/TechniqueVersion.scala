@@ -88,17 +88,27 @@ final class TechniqueVersion(val epoch: Int, val upsreamTechniqueVersion: Upstre
 
 object TechniqueVersion {
 
-  def apply(v: Version) = new TechniqueVersion(v.epoch.toInt, UpstreamTechniqueVersion(v.copy(epoch = 0)))
+  // A technique is much more strict than a general version: only numbers are allowed in
+  // the first parts
+  protected def apply(v: Version): Either[String, TechniqueVersion] = {
+    if((v.head :: v.parts).exists {
+      case PartType.Chars(_) => true
+      case _                 => false
+    }) Left("Technique version must be composed of digits") else Right(new TechniqueVersion(v.epoch.toInt, UpstreamTechniqueVersion(v.copy(epoch = 0))))
+  }
 
   def apply(value: String): TechniqueVersion = {
-    ParseVersion.parse(value) match {
-      case Right(v)  => TechniqueVersion(v)
+    (for {
+      v <- ParseVersion.parse(value)
+      t <- TechniqueVersion(v)
+    } yield t) match {
+      case Right(v)  => v
       case Left(err) => throw new TechniqueVersionFormatException(err)
     }
   }
 
   def parse(value: String): Either[String, TechniqueVersion] = {
-    ParseVersion.parse(value).map(TechniqueVersion(_))
+    ParseVersion.parse(value).flatMap(TechniqueVersion(_))
   }
 }
 
@@ -107,29 +117,6 @@ case class UpstreamTechniqueVersion(parsed: Version) extends Ordered[UpstreamTec
     parsed.compareTo(upsreamTechniqueVersion.parsed)
   }
 }
-
-object UpstreamTechniqueVersion {
-
-  def checkValid(value: String): Version = {
-  import scala.util.matching.Regex
-      if (value.isEmpty || !value(0).isDigit)
-        throw new TechniqueVersionFormatException("The upstream_version should start with a digit : " + value)
-
-      val validReg = new Regex("[A-Za-z0-9.+\\-:~]*")
-      validReg.findPrefixOf(value) match {
-        case Some(matchReg) if (matchReg != value) =>
-          throw new TechniqueVersionFormatException("The upstream_version contains invalid charaters.\n" +
-            "The upstream_version may contain only alphanumerics and " +
-            "the characters . + - : ~ (full stop, plus, hyphen, colon, tilde).")
-      case _ => ParseVersion.parse(value) match {
-        case Right(v)  => v
-        case Left(err) => throw new TechniqueVersionFormatException(err)
-      }
-    }
-  }
-
-}
-
 
 // alternative implementation with a parser
 
@@ -260,8 +247,8 @@ object ParseVersion {
   import fastparse._, NoWhitespace._
 
   def ascii = Charset.forName("US-ASCII").newEncoder()
-  // chars allowed in a version. Only ascii, non control, non space
-  def versionChar(c: Char) = ascii.canEncode(c) && !(c.isDigit || c.isControl || c.isSpaceChar || separatorChar(c))
+  // chars allowed in a version. Only ascii, non control, non space, non separator - including ":" used for epoch
+  def versionChar(c: Char) = ascii.canEncode(c) && !(c.isDigit || c.isControl || c.isSpaceChar || separatorChar(c) || c == ':')
   def separatorChar(c: Char) = List('~', '+', ',', '-', '.').contains(c)
 
   def num[_ :P] = P(CharIn("0-9").rep(1).!.map(_.toLong))
