@@ -143,12 +143,14 @@ class TechniqueVersionTest extends Specification {
 
   "Invalid version" should {
 
-    val msg1 = "The version format of a technique should be : [epoch:]upstream_version"
+    val msg1 = "Error when parsing 'a:18' as a version. Only ascii (non-control, non-space) chars are allowed in a version string"
+
     "throw a TechniqueVersionFormatException : %s".format(msg1) in {
       TechniqueVersion("a:18") must throwA[TechniqueVersionFormatException].like { case e => e.getMessage must contain(msg1) }
     }
 
-    val msg2 = "The upstream_version should start with a digit"
+    val msg2 = "Technique version must be composed of digits"
+
     "throw a TechniqueVersionFormatException : %s".format(msg2) in {
       TechniqueVersion("a15") must throwA[TechniqueVersionFormatException].like { case e => e.getMessage must contain(msg2) }
     }
