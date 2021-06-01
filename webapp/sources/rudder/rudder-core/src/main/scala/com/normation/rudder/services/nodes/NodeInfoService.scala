@@ -309,7 +309,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
         }
       }
 
-      def mapOneNode(id: String, nodeEntry: LDAPEntry, nodeInventories: MutMap[String, LDAPEntry], machineInventories: MutMap[String, LDAPEntry]): IOResult[Option[(NodeId, (LDAPNodeInfo, NodeInfo))]] = {
+      def mapOneNode(id: String, nodeEntry: LDAPEntry, nodeInventories: Map[String, LDAPEntry], machineInventories: Map[String, LDAPEntry]): IOResult[Option[(NodeId, (LDAPNodeInfo, NodeInfo))]] = {
         nodeInventories.get(id) match {
           case None =>
             logPure.debug(s"Node with id '${id}' is in ou=Nodes,cn=rudder-configuration but doesn't have an inventory") *> None.succeed
@@ -331,45 +331,39 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
       }
 
       def getUpdatedCache(allNodeEntries: AllNodeEntries): IOResult[LocalNodeInfoCache] = {
-        //some map of things - mutable, yes
-        val nodes = MutMap[String, LDAPEntry]() //node_uuid -> entry
-        val nodeInventories = MutMap[String, LDAPEntry]() // node_uuid -> entry
-        val machineInventories = MutMap[String, LDAPEntry]() // machine_dn -> entry
-
         val t0 = System.currentTimeMillis
 
         // two vars to keep track of the new last modification time and entries csn
         var lastModif = lastKnowModification
         val entriesCSN = scala.collection.mutable.Buffer[String]()
 
-
-        //look for the maxed timestamp
-        (allNodeEntries.deleted ++ allNodeEntries.active).foreach { e =>
-          e.getAsGTime(A_MOD_TIMESTAMP) match {
-            case None    => //nothing
-            case Some(x) =>
-              if(x.dateTime.isAfter(lastModif)) {
-                lastModif = x.dateTime
-                entriesCSN.clear()
-              }
-              if(x.dateTime == lastModif) {
-                e("entryCSN").map(csn => entriesCSN.append(csn))
-              }
+        def lookForMaxTimestamp(entries: Seq[LDAPEntry]) : Unit = {
+          entries.foreach { e =>
+            e.getAsGTime(A_MOD_TIMESTAMP) match {
+              case None => //nothing
+              case Some(x) =>
+                if (x.dateTime.isAfter(lastModif)) {
+                  lastModif = x.dateTime
+                  entriesCSN.clear()
+                }
+                if (x.dateTime == lastModif) {
+                  e("entryCSN").map(csn => entriesCSN.append(csn))
+                }
+            }
           }
         }
+        lookForMaxTimestamp(allNodeEntries.deleted)
+        lookForMaxTimestamp(allNodeEntries.active)
 
-        // now, create the nodeInfo
-        allNodeEntries.active.foreach { e =>
-          if(e.isA(OC_MACHINE)) {
-            machineInventories += (e.dn.toString -> e)
-          } else if(e.isA(OC_NODE)) {
-            nodeInventories += (e.value_!(A_NODE_UUID) -> e)
-          } else if(e.isA(OC_RUDDER_NODE)) {
-            nodes += (e.value_!(A_NODE_UUID) -> e)
-          } else {
-            // it's an error, don't use
-          }
-        }
+        val machineInventories = allNodeEntries.active.map { case e if e.isA(OC_MACHINE) =>
+          (e.dn.toString -> e)
+        }.toMap
+        val nodeInventories = allNodeEntries.active.map { case e if e.isA(OC_NODE) =>
+          (e.value_!(A_NODE_UUID) -> e)
+        }.toMap
+        val nodes = allNodeEntries.active.map { case e if e.isA(OC_RUDDER_NODE) =>
+          (e.value_!(A_NODE_UUID) -> e)
+        }.toMap
 
         val t1 = System.currentTimeMillis
         TimingDebugLogger.debug(s"Getting node info entries: ${t1-t0}ms")
