@@ -168,7 +168,7 @@ def check_url():
     else:
       True
   except Exception as e:
-    fail("An error occured while checking access to %s:\n%s"%(URL, e))
+    fail("An error occurred while checking access to %s:\n%s"%(URL, e))
 
 """
    From a complete url, try to download a file. The destination path will be determined by the complete url
