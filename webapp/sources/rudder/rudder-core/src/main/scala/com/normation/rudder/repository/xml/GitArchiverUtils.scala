@@ -57,6 +57,7 @@ import zio._
 import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 import scala.xml.Elem
+import com.normation.zio._
 
 /**
  * Utility trait that factor out file commits.
@@ -71,9 +72,9 @@ trait GitArchiverUtils {
   }
 
   // semaphores to replace `synchronized`
-  val semaphoreAdd    = Semaphore.make(1)
-  val semaphoreMove   = Semaphore.make(1)
-  val semaphoreDelete = Semaphore.make(1)
+  val semaphoreAdd    = Semaphore.make(1).runNow
+  val semaphoreMove   = Semaphore.make(1).runNow
+  val semaphoreDelete = Semaphore.make(1).runNow
 
 
   def gitRepo : GitRepositoryProvider
@@ -128,24 +129,22 @@ trait GitArchiverUtils {
    * commitMessage is used for the message of the commit.
    */
   def commitAddFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
-    semaphoreAdd.flatMap(lock =>
-      lock.withPermit(
-        for {
-          _      <- GitArchiveLoggerPure.debug(s"Add file '${gitPath}' from configuration repository")
-          add    <- IOResult.effect(gitRepo.git.add.addFilepattern(gitPath).call)
-          status <- IOResult.effect(gitRepo.git.status.call)
-         //for debugging
-          _      <- if(!(status.getAdded.contains(gitPath) || status.getChanged.contains(gitPath))) {
-                      GitArchiveLoggerPure.debug(s"Auto-archive gitRepo.git failure: not found in gitRepo.git added files: '${gitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
-                    } else UIO.unit
-          rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
-          commit <- IOResult.effect(GitCommitId(rev.getName))
-          _      <- GitArchiveLoggerPure.debug(s"file '${gitPath}' was added in commit '${commit.value}'")
-          mod    <- gitModificationRepository.addCommit(commit, modId)
-        } yield {
-          commit
-        }
-      )
+    semaphoreAdd.withPermit(
+      for {
+        _      <- GitArchiveLoggerPure.debug(s"Add file '${gitPath}' from configuration repository")
+        add    <- IOResult.effect(gitRepo.git.add.addFilepattern(gitPath).call)
+        status <- IOResult.effect(gitRepo.git.status.call)
+       //for debugging
+        _      <- if(!(status.getAdded.contains(gitPath) || status.getChanged.contains(gitPath))) {
+                    GitArchiveLoggerPure.debug(s"Auto-archive gitRepo.git failure: not found in gitRepo.git added files: '${gitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
+                  } else UIO.unit
+        rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
+        commit <- IOResult.effect(GitCommitId(rev.getName))
+        _      <- GitArchiveLoggerPure.debug(s"file '${gitPath}' was added in commit '${commit.value}'")
+        mod    <- gitModificationRepository.addCommit(commit, modId)
+      } yield {
+        commit
+      }
     )
   }
 
@@ -154,23 +153,21 @@ trait GitArchiverUtils {
    * commitMessage is used for the message of the commit.
    */
   def commitRmFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
-    semaphoreDelete.flatMap(lock =>
-      lock.withPermit(
-        for {
-          _      <- GitArchiveLoggerPure.debug(s"remove file '${gitPath}' from configuration repository")
-          rm     <- IOResult.effect(gitRepo.git.rm.addFilepattern(gitPath).call)
-          status <- IOResult.effect(gitRepo.git.status.call)
-          _      <- if(!status.getRemoved.contains(gitPath)) {
-                      GitArchiveLoggerPure.debug(s"Auto-archive gitRepo.git failure: not found in gitRepo.git removed files: '${gitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
-                    } else UIO.unit
-          rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
-          commit <- IOResult.effect(GitCommitId(rev.getName))
-          _      <- GitArchiveLoggerPure.debug(s"file '${gitPath}' was removed in commit '${commit.value}'")
-          mod    <- gitModificationRepository.addCommit(commit, modId)
-        } yield {
-          commit
-        }
-      )
+    semaphoreDelete.withPermit(
+      for {
+        _      <- GitArchiveLoggerPure.debug(s"remove file '${gitPath}' from configuration repository")
+        rm     <- IOResult.effect(gitRepo.git.rm.addFilepattern(gitPath).call)
+        status <- IOResult.effect(gitRepo.git.status.call)
+        _      <- if(!status.getRemoved.contains(gitPath)) {
+                    GitArchiveLoggerPure.debug(s"Auto-archive gitRepo.git failure: not found in gitRepo.git removed files: '${gitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
+                  } else UIO.unit
+        rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
+        commit <- IOResult.effect(GitCommitId(rev.getName))
+        _      <- GitArchiveLoggerPure.debug(s"file '${gitPath}' was removed in commit '${commit.value}'")
+        mod    <- gitModificationRepository.addCommit(commit, modId)
+      } yield {
+        commit
+      }
     )
   }
 
@@ -182,27 +179,25 @@ trait GitArchiverUtils {
    * commitMessage is used for the message of the commit.
    */
   def commitMvDirectory(modId : ModificationId, commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
-    semaphoreMove.flatMap(lock =>
-      lock.withPermit(
-        for {
-          _      <- GitArchiveLoggerPure.debug(s"move file '${oldGitPath}' from configuration repository to '${newGitPath}'")
-          update <- IOResult.effect {
-                      gitRepo.git.rm.addFilepattern(oldGitPath).call
-                      gitRepo.git.add.addFilepattern(newGitPath).call
-                      gitRepo.git.add.setUpdate(true).addFilepattern(newGitPath).call //if some files were removed from dest dir
-                    }
-          status <- IOResult.effect(gitRepo.git.status.call)
-          _      <- if(!status.getAdded.asScala.exists( path => path.startsWith(newGitPath) ) ) {
-                      GitArchiveLoggerPure.debug(s"Auto-archive gitRepo.git failure when moving directory (not found in added file): '${newGitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
-                    } else UIO.unit
-          rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
-          commit <- IOResult.effect(GitCommitId(rev.getName))
-          _      <- GitArchiveLoggerPure.debug(s"file '${oldGitPath}' was moved to '${newGitPath}' in commit '${commit.value}'")
-          mod    <- gitModificationRepository.addCommit(commit, modId)
-        } yield {
-          commit
-        }
-      )
+    semaphoreMove.withPermit(
+      for {
+        _      <- GitArchiveLoggerPure.debug(s"move file '${oldGitPath}' from configuration repository to '${newGitPath}'")
+        update <- IOResult.effect {
+                    gitRepo.git.rm.addFilepattern(oldGitPath).call
+                    gitRepo.git.add.addFilepattern(newGitPath).call
+                    gitRepo.git.add.setUpdate(true).addFilepattern(newGitPath).call //if some files were removed from dest dir
+                  }
+        status <- IOResult.effect(gitRepo.git.status.call)
+        _      <- if(!status.getAdded.asScala.exists( path => path.startsWith(newGitPath) ) ) {
+                    GitArchiveLoggerPure.debug(s"Auto-archive gitRepo.git failure when moving directory (not found in added file): '${newGitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
+                  } else UIO.unit
+        rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
+        commit <- IOResult.effect(GitCommitId(rev.getName))
+        _      <- GitArchiveLoggerPure.debug(s"file '${oldGitPath}' was moved to '${newGitPath}' in commit '${commit.value}'")
+        mod    <- gitModificationRepository.addCommit(commit, modId)
+      } yield {
+        commit
+      }
     )
   }
 
