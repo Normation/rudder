@@ -49,6 +49,12 @@ pipeline {
                                 }
                             }
                             steps {
+                                dir('webapp/sources/api-doc') {
+                                    sh script: 'typos', label: 'check typos'
+                                }
+                                dir('relay/sources/api-doc') {
+                                    sh script: 'typos', label: 'check typos'
+                                }
                                 dir('api-doc') {
                                     sh script: 'make', label: 'build API docs'
                                 }
@@ -72,6 +78,12 @@ pipeline {
                             }
                             agent { label 'docs' }
                             steps {
+                                dir('webapp/sources/api-doc') {
+                                    sh script: 'typos', label: 'check typos'
+                                }
+                                dir('relay/sources/api-doc') {
+                                    sh script: 'typos', label: 'check typos'
+                                }
                                 dir('api-doc') {
                                     sh script: 'make', label: 'build API docs'
                                     withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
@@ -96,6 +108,7 @@ pipeline {
                     agent { label 'script' }
                     steps {
                         dir ('relay/sources') {
+                            sh script: 'typos --exclude "api-doc/*" --exclude "relayd/*"', label: 'check typos'
                             sh script: 'make check', label: 'rudder-pkg tests'
                         }
                     }
@@ -201,6 +214,7 @@ pipeline {
                             steps {
                                 // System dependencies: libpq-dev postgresql
                                 dir('relay/sources/relayd') {
+                                    sh script: 'typos --exclude "*.pem"', label: 'check typos'
                                     sh script: 'make check', label: 'relayd tests'
                                     sh script: 'make clean', label: 'relayd clean'
                                 }

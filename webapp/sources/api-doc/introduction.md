@@ -206,7 +206,7 @@ Parameters in URLs are used to indicate which resource you want to interact with
 
 ##### Directly in JSON format
 
-JSON format is the prefered way to interact with Rudder API for creating or updating resources.
+JSON format is the preferred way to interact with Rudder API for creating or updating resources.
 You'll also have to set the *Content-Type* header to **application/json** (without it the JSON content would be ignored).
 In a `curl` `POST` request, that header can be provided with the `-H` parameter:
 

@@ -12,7 +12,7 @@ distinguished_name = req_distinguished_name
 # keyCertSign: certificate signature
 # cRLSign: crl signature
 # digitalSignature: file signature (not used for crl, may be used for DHE)
-# dataEncipherment: file encryption (usualy no used, we cipher a temporary key instead)
+# dataEncipherment: file encryption (usually no used, we cipher a temporary key instead)
 # keyEncipherment: key exchange (for tls with RSA)
 # keyAgreement: key exchange (for tls with DHE)
 

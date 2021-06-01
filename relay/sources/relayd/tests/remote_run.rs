@@ -153,7 +153,7 @@ mod tests {
         let params = [
             ("asynchronous", "false"),
             ("keep_output", "true"),
-            ("classes", "clas~1,class2,class3"),
+            ("classes", "class~1,class2,class3"),
             ("nodes", "node2.rudder.local,server.rudder.local"),
         ];
         let res = client
@@ -161,6 +161,6 @@ mod tests {
             .form(&params)
             .send();
 
-        assert_eq!(res.unwrap().text().unwrap(), "Unhandled rejection: invalid condition: clas~1, should match ^[a-zA-Z0-9][a-zA-Z0-9_]*$".to_string());
+        assert_eq!(res.unwrap().text().unwrap(), "Unhandled rejection: invalid condition: class~1, should match ^[a-zA-Z0-9][a-zA-Z0-9_]*$".to_string());
     }
 }
