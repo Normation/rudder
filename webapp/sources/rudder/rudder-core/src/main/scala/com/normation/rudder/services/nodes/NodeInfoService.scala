@@ -240,8 +240,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
   def ldapMapper     : LDAPEntityMapper
   def inventoryMapper: InventoryMapper
 
-  val semaphore = Semaphore.make(1)
-
+  val semaphore = Semaphore.make(1).runNow
   /*
    * Compare if cache is up to date (based on internal state of the cache)
    */
@@ -306,9 +305,13 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
       def getDataIO(lastKnowModification: DateTime): IOResult[AllNodeEntries] = {
         for {
           con     <- ldap
+          t0      <- currentTimeMillis
           deleted <- con.search(removedDit.NODES.dn, One, AND(IS(OC_NODE), GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification).toString)), A_MOD_TIMESTAMP , "entryCSN")
+          t1      <- currentTimeMillis
           active  <- getNodeInfoEntries(con, searchAttributes, AcceptedInventory)
+          t2      <- currentTimeMillis
         } yield {
+          TimingDebugLogger.debug(s"Getting node info data from LDAP: ${t2-t0}ms total (${t1-t0}ms for removed nodes, ${t2-t1} for accepted inventories)")
           AllNodeEntries(deleted, active)
         }
       }
@@ -392,6 +395,8 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                 LocalNodeInfoCache(map, lastModif, entriesCSN.toSeq, map.filter{case(_, (_, n)) => !n.isPolicyServer && n.serverRoles.isEmpty}.size).succeed
               }
         } yield {
+          val t2 = System.currentTimeMillis
+          TimingDebugLogger.debug(s"Converting ${nodes.size} node info entries to node info: ${t2-t1}ms")
           ok
         }
       }
@@ -405,7 +410,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     }
 
     //actual logic that check what to do (invalidate cache or not). We want it to be fully synchronized.
-    semaphore.flatMap(_.withPermit(
+    semaphore.withPermit(
       for {
         t0      <- currentTimeMillis
         notInit <- IOResult.effect(nodeCache.isEmpty)
@@ -439,7 +444,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
       } yield {
         res
       }
-    ))
+    )
   }
 
   /**
@@ -528,9 +533,9 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
    * Clear cache.
    */
   override def clearCache(): Unit = {
-    semaphore.flatMap((_.withPermit(
+    semaphore.withPermit(
       (this.nodeCache = None).succeed
-    ))).runNow
+    ).runNow
   }
 
   // return the cache last update time, or epoch if cache is not init
@@ -570,8 +575,13 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
       }
     }
 
-    withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
-      cache.values.collect{ case (x, y) if predicate(y) => x}.toSet.succeed
+    // if nodeIds is empty, return an empty set
+    if (!nodeIds.isEmpty) {
+      withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
+        cache.values.collect { case (x, y) if predicate(y) => x }.toSet.succeed
+      }
+    } else {
+      Set[LDAPNodeInfo]().succeed
     }
   }.toBox
 
