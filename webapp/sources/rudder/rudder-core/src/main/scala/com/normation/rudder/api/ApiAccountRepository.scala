@@ -57,6 +57,7 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import zio._
 import zio.syntax._
 import com.normation.errors._
+import com.normation.zio._
 
 /**
  * A repository to retrieve API Accounts
@@ -188,14 +189,14 @@ final class WoLDAPApiAccountRepository(
    * We want to make all API account modification purely exclusive.
    * The action is rare, so there is no contention/scalling problem here.
    */
-  val semaphore = Semaphore.make(1)
+  val semaphore = Semaphore.make(1).runNow
 
   override def save(
       principal : ApiAccount
     , modId     : ModificationId
     , actor     : EventActor
   ) : IOResult[ApiAccount] = {
-    semaphore.flatMap( _.withPermit(
+    semaphore.withPermit(
       for {
         ldap     <- ldapConnexion
         existing <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, principal.token.value)) map {
@@ -246,7 +247,7 @@ final class WoLDAPApiAccountRepository(
       } yield {
         principal
       }
-    ))
+    )
   }
 
   override def delete(
