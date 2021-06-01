@@ -353,14 +353,14 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
         lookForMaxTimestamp(allNodeEntries.deleted)
         lookForMaxTimestamp(allNodeEntries.active)
 
-        val machineInventories = allNodeEntries.active.flatMap { e =>
-          if (e.isA(OC_MACHINE)) { Some(e.dn.toString -> e) } else { None }
+        val machineInventories = allNodeEntries.active.collect { case e if e.isA(OC_MACHINE) =>
+          e.dn.toString -> e
         }.toMap
-        val nodeInventories = allNodeEntries.active.flatMap { e =>
-          if (e.isA(OC_NODE)) { Some(e.value_!(A_NODE_UUID) -> e) } else { None }
+        val nodeInventories = allNodeEntries.active.collect { case e if e.isA(OC_NODE) =>
+          e.value_!(A_NODE_UUID) -> e
         }.toMap
-        val nodes = allNodeEntries.active.flatMap { e =>
-          if (e.isA(OC_RUDDER_NODE)) { Some(e.value_!(A_NODE_UUID) -> e) } else { None }
+        val nodes = allNodeEntries.active.collect { case e if e.isA(OC_RUDDER_NODE) =>
+          e.value_!(A_NODE_UUID) -> e
         }.toMap
 
         val t1 = System.currentTimeMillis
