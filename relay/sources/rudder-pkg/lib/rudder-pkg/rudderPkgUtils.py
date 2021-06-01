@@ -193,7 +193,7 @@ def verifyHash(targetPath, shaSumPath):
         if match:
             fileHash.append(match.group('hash'))
     if len(fileHash) != 1:
-        logger.warning('Multiple hash found matching the package, this should not happend')
+        logger.warning('Multiple hash found matching the package, this should not happened')
     if sha512(targetPath) in fileHash:
         logger.info("=> OK!\n")
         return True
@@ -212,7 +212,7 @@ def verifyHash(targetPath, shaSumPath):
 """
 def download_and_verify(completeUrl, dst="", quiet=False):
     global GPG_HOME
-    # donwload the target file
+    # download the target file
     logger.info("downloading rpkg file  %s"%(completeUrl))
     targetPath = download(completeUrl, dst, quiet)
     # download the attached SHASUM and SHASUM.asc
