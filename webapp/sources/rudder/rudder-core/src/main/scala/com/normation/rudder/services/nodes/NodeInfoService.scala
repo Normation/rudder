@@ -288,8 +288,6 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
      * date of the last modification
      */
     def getDataFromBackend(lastKnowModification: DateTime): IOResult[LocalNodeInfoCache] = {
-      import scala.collection.mutable.{Map => MutMap}
-
       final case class AllNodeEntries(
           deleted: Seq[LDAPEntry]
         , active : Seq[LDAPEntry]
@@ -355,14 +353,14 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
         lookForMaxTimestamp(allNodeEntries.deleted)
         lookForMaxTimestamp(allNodeEntries.active)
 
-        val machineInventories = allNodeEntries.active.map { case e if e.isA(OC_MACHINE) =>
-          (e.dn.toString -> e)
+        val machineInventories = allNodeEntries.active.flatMap { e =>
+          if (e.isA(OC_MACHINE)) { Some(e.dn.toString -> e) } else { None }
         }.toMap
-        val nodeInventories = allNodeEntries.active.map { case e if e.isA(OC_NODE) =>
-          (e.value_!(A_NODE_UUID) -> e)
+        val nodeInventories = allNodeEntries.active.flatMap { e =>
+          if (e.isA(OC_NODE)) { Some(e.value_!(A_NODE_UUID) -> e) } else { None }
         }.toMap
-        val nodes = allNodeEntries.active.map { case e if e.isA(OC_RUDDER_NODE) =>
-          (e.value_!(A_NODE_UUID) -> e)
+        val nodes = allNodeEntries.active.flatMap { e =>
+          if (e.isA(OC_RUDDER_NODE)) { Some(e.value_!(A_NODE_UUID) -> e) } else { None }
         }.toMap
 
         val t1 = System.currentTimeMillis
