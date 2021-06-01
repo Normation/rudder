@@ -83,6 +83,12 @@ pipeline {
                             }
                             agent { label 'docs' }
                             steps {
+                                dir('webapp/sources/api-doc') {
+                                    sh script: 'typos', label: 'check typos'
+                                }
+                                dir('relay/sources/api-doc') {
+                                    sh script: 'typos', label: 'check typos'
+                                }
                                 dir('api-doc') {
                                     sh script: 'make', label: 'build API docs'
                                     withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {

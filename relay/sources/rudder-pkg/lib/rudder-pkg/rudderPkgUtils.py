@@ -234,7 +234,7 @@ def verifyHash(targetPath, shaSumPath):
       if match:
         fileHash.append(match.group('hash'))
     if len(fileHash) != 1:
-      logger.warning('Multiple hash found matching the package, this should not happened')
+      logger.warning('Multiple hash found matching the package, this should not happen')
     if sha512(targetPath) in fileHash:
       logger.info("=> OK!\n")
       return True
