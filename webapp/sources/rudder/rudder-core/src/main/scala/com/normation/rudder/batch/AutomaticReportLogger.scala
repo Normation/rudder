@@ -79,9 +79,9 @@ class AutomaticReportLogger(
   val logger = ScheduledJobLogger
 
   if (reportLogInterval < 1) {
-    logger.info("Disable dynamic group updates sinces property %s is 0 or negative".format(propertyName))
+    logger.info("Disable automatic non-compliant logger since property %s is 0 or negative".format(propertyName))
   } else {
-    logger.trace("***** starting Automatic Report Logger batch *****")
+    logger.trace("***** starting Automatic Non-Compliant Logger batch *****")
     (new LAAutomaticReportLogger) ! StartAutomaticReporting
   }
 
