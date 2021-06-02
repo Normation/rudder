@@ -419,7 +419,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                                            s" '${lastUpdate}' => reseting cache with ${newCache.nodeInfos.size} entries") *>
                                          logPure.trace(s"NodeInfo cache updated entries: [${newCache.nodeInfos.keySet.map{ _.value }.mkString(", ")}]") *>
                                          IOResult.effect({nodeCache = Some(newCache); () }) *>
-                                         newCache.nodeInfos.succeed
+                                         useCache(newCache.nodeInfos)
                                      )
                      } yield {
                        updated
@@ -427,15 +427,15 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                   } else {
                     logPure.debug(s"NodeInfo cache is up to date, ${nodeCache.map(c => s"last modification time: '${c.lastModTime}' for: '${c.lastModEntryCSN.mkString("','")}'").getOrElse("")}") *>
                     (nodeCache match {
-                      case Some(cache) => cache.nodeInfos.succeed
+                      case Some(cache) => useCache(cache.nodeInfos)
                       case None => Inconsistency("When trying to access Node information from cache was empty, but it should not, this is a developper issue, please open an issue on https://issues.rudder.io").fail
                     })
                   }
-        res    <- useCache(info)
+  
         t1     <- currentTimeMillis
         _      <- IOResult.effect(TimingDebugLogger.debug(s"Get node info (${label}): ${t1-t0}ms"))
       } yield {
-        res
+        info
       }
     )
   }
