@@ -45,7 +45,7 @@ pub fn start(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
         path.clone(),
         job_config.cfg.processing.reporting.cleanup,
     ));
-    watch(&path, &job_config, &sender);
+    watch(&path, job_config.cfg.processing.reporting.catchup, &sender);
 }
 
 fn serve(
