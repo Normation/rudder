@@ -374,7 +374,7 @@ object NodeDetailLevel {
                   ( "type"  -> mem.memType ) ~
                   ( "caption"  -> mem.caption ) ~
                   ( "quantity" -> mem.quantity ) ~
-                  ( "capacity" -> mem.capacity.map(MemorySize.sizeMb) )
+                  ( "capacity" -> mem.capacity.map(MemorySize.sizeMb) ) ~
                   ( "slotNumber"   -> mem.slotNumber ) ~
                   ( "description"  -> mem.description ) ~
                   ( "serialNumber" -> mem.serialNumber )
