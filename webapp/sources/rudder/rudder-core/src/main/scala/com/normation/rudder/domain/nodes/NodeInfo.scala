@@ -93,8 +93,8 @@ final case class NodeInfo(
   val isSystem                   = node.isSystem
   val isPolicyServer             = node.isPolicyServer
   val creationDate               = node.creationDate
-  val nodeReportingConfiguration = node.nodeReportingConfiguration
-  val properties                 = node.properties
+  def nodeReportingConfiguration = node.nodeReportingConfiguration
+  def properties                 = node.properties
   val policyMode                 = node.policyMode
   /**
    * Get a digest of the key in the proprietary CFEngine digest format. It is
