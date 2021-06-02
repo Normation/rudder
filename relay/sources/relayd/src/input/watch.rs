@@ -4,14 +4,12 @@
 use crate::{
     configuration::main::{CatchupConfig, CleanupConfig, WatchedDirectory},
     processing::ReceivedFile,
-    JobConfig,
 };
 use anyhow::Error;
 use futures::{future, StreamExt};
 use inotify::{Inotify, WatchMask};
 use std::{
     path::Path,
-    sync::Arc,
     time::{Duration, SystemTime},
 };
 use tokio::{
@@ -71,15 +69,11 @@ pub async fn cleanup(path: WatchedDirectory, cfg: CleanupConfig) -> Result<(), E
     }
 }
 
-pub fn watch(path: WatchedDirectory, job_config: &Arc<JobConfig>, tx: mpsc::Sender<ReceivedFile>) {
+pub fn watch(path: WatchedDirectory, cfg: CatchupConfig, tx: mpsc::Sender<ReceivedFile>) {
     info!("Starting file watcher on {:#?}", &path);
     let report_span = span!(Level::TRACE, "watcher");
     let _report_enter = report_span.enter();
-    tokio::spawn(list_files(
-        path.clone(),
-        job_config.cfg.processing.reporting.catchup,
-        tx.clone(),
-    ));
+    tokio::spawn(list_files(path.clone(), cfg, tx.clone()));
     tokio::spawn(watch_files(path, tx));
 }
 
