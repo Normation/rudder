@@ -45,7 +45,11 @@ pub fn start(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
         incoming_path.clone(),
         job_config.cfg.processing.inventory.cleanup,
     ));
-    watch(&incoming_path, &job_config, &sender);
+    watch(
+        &incoming_path,
+        job_config.cfg.processing.inventory.catchup,
+        &sender,
+    );
 
     let updates_path = job_config
         .cfg
@@ -64,7 +68,11 @@ pub fn start(job_config: &Arc<JobConfig>, stats: &mpsc::Sender<Event>) {
         updates_path.clone(),
         job_config.cfg.processing.inventory.cleanup,
     ));
-    watch(&updates_path, &job_config, &sender);
+    watch(
+        &updates_path,
+        job_config.cfg.processing.inventory.catchup,
+        &sender,
+    );
 }
 
 fn serve(
