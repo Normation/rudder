@@ -403,41 +403,50 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     }
 
     //actual logic that check what to do (invalidate cache or not). We want it to be fully synchronized.
-    semaphore.withPermit(
-      for {
-        t0      <- currentTimeMillis
-        notInit <- IOResult.effect(nodeCache.isEmpty)
-        clean   <- isUpToDate()
-        info    <- if(notInit || !clean) {
-                     for {
-                       lastUpdate <- IOResult.effect(nodeCache.map(_.lastModTime).getOrElse(new DateTime(0)))
-                       updated    <- getDataFromBackend(lastUpdate).foldM(
-                                       err      =>
-                                         IOResult.effect({nodeCache = None; ()}) *> Chained("Could not get node information from database", err).fail
-                                     , newCache =>
-                                         logPure.debug(s"NodeInfo cache is not up to date, last modification time: '${newCache.lastModTime}', last cache update:"+
-                                           s" '${lastUpdate}' => reseting cache with ${newCache.nodeInfos.size} entries") *>
-                                         logPure.trace(s"NodeInfo cache updated entries: [${newCache.nodeInfos.keySet.map{ _.value }.mkString(", ")}]") *>
-                                         IOResult.effect({nodeCache = Some(newCache); () }) *>
-                                         useCache(newCache.nodeInfos)
-                                     )
-                     } yield {
-                       updated
-                     }
-                  } else {
-                    logPure.debug(s"NodeInfo cache is up to date, ${nodeCache.map(c => s"last modification time: '${c.lastModTime}' for: '${c.lastModEntryCSN.mkString("','")}'").getOrElse("")}") *>
-                    (nodeCache match {
-                      case Some(cache) => useCache(cache.nodeInfos)
-                      case None => Inconsistency("When trying to access Node information from cache was empty, but it should not, this is a developper issue, please open an issue on https://issues.rudder.io").fail
-                    })
-                  }
-  
-        t1     <- currentTimeMillis
-        _      <- IOResult.effect(TimingDebugLogger.debug(s"Get node info (${label}): ${t1-t0}ms"))
-      } yield {
-        info
-      }
-    )
+    for {
+      // only checking the cache should be in a semaphore - logic to read it does not need to
+      // we cannot get (cache, t0), because it fails with Cannot prove that NoSuchElementException <:< com.normation.errors.RudderError
+      // at least in Rudder 6.1
+      result <- semaphore.withPermit(
+          for {
+            t0           <- currentTimeMillis
+            notInit      <- IOResult.effect(nodeCache.isEmpty)
+            clean        <- isUpToDate()
+            updatedCache <- if(notInit || !clean) {
+                         for {
+                           lastUpdate <- IOResult.effect(nodeCache.map(_.lastModTime).getOrElse(new DateTime(0)))
+                           updated    <- getDataFromBackend(lastUpdate).foldM(
+                                           err      =>
+                                             IOResult.effect({nodeCache = None; ()}) *> Chained("Could not get node information from database", err).fail
+                                         , newCache =>
+                                             logPure.debug(s"NodeInfo cache is not up to date, last modification time: '${newCache.lastModTime}', last cache update:"+
+                                               s" '${lastUpdate}' => reseting cache with ${newCache.nodeInfos.size} entries") *>
+                                             logPure.trace(s"NodeInfo cache updated entries: [${newCache.nodeInfos.keySet.map{ _.value }.mkString(", ")}]") *>
+                                             IOResult.effect({nodeCache = Some(newCache); () }) *>
+                                             newCache.nodeInfos.succeed
+                                         )
+                         } yield {
+                           updated
+                         }
+                      } else {
+                        logPure.debug(s"NodeInfo cache is up to date, ${nodeCache.map(c => s"last modification time: '${c.lastModTime}' for: '${c.lastModEntryCSN.mkString("','")}'").getOrElse("")}") *>
+                        (nodeCache match {
+                          case Some(cache) => cache.nodeInfos.succeed
+                          case None => Inconsistency("When trying to access Node information from cache was empty, but it should not, this is a developper issue, please open an issue on https://issues.rudder.io").fail
+                        })
+                      }
+            t1     <- currentTimeMillis
+            _      <- IOResult.effect(TimingDebugLogger.debug(s"Get cache for node info (${label}): ${t1-t0}ms"))
+          } yield {
+            (t0, updatedCache)
+          }
+      )
+      res    <- useCache(result._2) // this does not need to be in a semaphore
+      t2     <- currentTimeMillis
+      _      <- IOResult.effect(TimingDebugLogger.debug(s"Get node info (${label}): ${t2-result._1}ms"))
+    } yield {
+      res
+    }
   }
 
   /**
