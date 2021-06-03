@@ -375,7 +375,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
         TimingDebugLogger.debug(s"Getting node info entries: ${t1-t0}ms")
 
         for {
-          res <- ZIO.foreachPar(nodes) { case (id, nodeEntry) => mapOneNode(id, nodeEntry, nodeInventories, machineInventories) }
+          res <- ZIO.foreach(nodes) { case (id, nodeEntry) => mapOneNode(id, nodeEntry, nodeInventories, machineInventories) }
           map = res.flatten.toMap
           // here, we must ensure that root ID is on the list, else chaos ensue.
           // If root is missing, invalidate the case
