@@ -441,9 +441,10 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
             (t0, updatedCache)
           }
       )
-      res    <- useCache(result._2) // this does not need to be in a semaphore
-      t2     <- currentTimeMillis
-      _      <- IOResult.effect(TimingDebugLogger.debug(s"Get node info (${label}): ${t2-result._1}ms"))
+      (t0, updatedCache) = result
+      res                <- useCache(updatedCache) // this does not need to be in a semaphore
+      t2                 <- currentTimeMillis
+      _                  <- IOResult.effect(TimingDebugLogger.debug(s"Get node info (${label}): ${t2-t0}ms"))
     } yield {
       res
     }

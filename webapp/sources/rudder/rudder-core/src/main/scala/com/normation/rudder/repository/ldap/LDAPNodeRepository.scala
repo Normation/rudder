@@ -71,16 +71,22 @@ class WoLDAPNodeRepository(
 
   def updateNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Node] = {
     import com.normation.rudder.services.nodes.NodeInfoService.{nodeInfoAttributes => attrs}
-    nodeLibMutex.writeLock(
       for {
         con           <- ldap
-        existingEntry <- con.get(nodeDit.NODES.NODE.dn(node.id.value), attrs:_*).notOptional(s"Cannot update node with id ${node.id.value} : there is no node with that id")
-        oldNode       <- mapper.entryToNode(existingEntry).toIO.chainError(s"Error when transforming LDAP entry into a node for id ${node.id.value} . Entry: ${existingEntry}")
-        _             <- checkNodeModification(oldNode, node)
-        // here goes the check that we are not updating policy server
-        nodeEntry     =  mapper.nodeToEntry(node)
-        result        <- con.save(nodeEntry, true, Seq()).chainError(s"Error when saving node entry in repository: ${nodeEntry}")
-        // only record an event log if there is an actual change
+        writeResult   <- nodeLibMutex.writeLock(
+          for {
+            existingEntry <- con.get(nodeDit.NODES.NODE.dn(node.id.value), attrs:_*).notOptional(s"Cannot update node with id ${node.id.value} : there is no node with that id")
+            oldNode       <- mapper.entryToNode(existingEntry).toIO.chainError(s"Error when transforming LDAP entry into a node for id ${node.id.value} . Entry: ${existingEntry}")
+            _             <- checkNodeModification(oldNode, node)
+            // here goes the check that we are not updating policy server
+            nodeEntry     =  mapper.nodeToEntry(node)
+            result        <- con.save(nodeEntry, true, Seq()).chainError(s"Error when saving node entry in repository: ${nodeEntry}")
+          } yield {
+            (oldNode, result)
+          }
+        )
+        (oldNode, result) = writeResult
+       // only record an event log if there is an actual change
         _             <- result match {
                            case LDIFNoopChangeRecord(_) => UIO.unit
                            case _                       =>
@@ -90,7 +96,6 @@ class WoLDAPNodeRepository(
       } yield {
         node
       }
-    )
   }
 
   def updateNodeKeyInfo(nodeId: NodeId, agentKey: Option[SecurityToken], agentKeyStatus: Option[KeyStatus], modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Unit] = {
