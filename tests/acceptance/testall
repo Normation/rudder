@@ -134,7 +134,7 @@ usage() {
   echo "testall [-q] [--gainroot=<command>] [--agent=<agent>] [--cfpromises=<cf-promises>] [--cfserverd=<cf-serverd>] [--cfkey=<cf-key>] [--no-nova] [--staging] [--unsafe] [--no-network] [--gdb] [--printlog] [--info] [--verbose] [<test> <test>...]"
   echo
   echo "If no test is given, all standard tests are run:"
-  echo "  Tests with names of form <file>.cf are expected to run succesfully"
+  echo "  Tests with names of form <file>.cf are expected to run successfully"
   echo "  Tests with names of form <file>.x.cf are expected to crash"
   echo
   echo "If arguments are given, those are executed as tests"

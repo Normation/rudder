@@ -59,14 +59,14 @@
 # policies supposed to only be in dry-run mode.
 #
 # WARNING:
-# WARNING: Be carefull to have a different promiser content for each call to this method!
+# WARNING: Be careful to have a different promiser content for each call to this method!
 # WARNING:
 # WARNING: The bodies defined here are used when no action body is specified in a promise.
 # WARNING: All ncf action bodies check the two global dry-run classes and prevent any modification
 # WARNING: when one of them if defined. This also means that:
 # WARNING:
 # WARNING: * You need to check for them in all of your custom bodies
-# WARNING: * promise type specific dry-run is NOT considered by action bodies, and will be overriden
+# WARNING: * promise type specific dry-run is NOT considered by action bodies, and will be overridden
 # WARNING:   when using any action body.
 # WARNING:
 #

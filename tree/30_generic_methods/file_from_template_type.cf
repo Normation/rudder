@@ -81,7 +81,7 @@
 # ```
 # # Copy the file from the policy server
 # file_copy_from_remote_source("/PATH_TO_MY_FILE/ntp.conf.mustache", "${sys.workdir}/tmp/templates/ntp.conf.mustache")
-# # Define the `ntp` varibale in the `configuration` prefix from the json file
+# # Define the `ntp` variable in the `configuration` prefix from the json file
 # variable_dict_from_file("configuration", "ntp", "/tmp/ntp.json")
 # # Expand yout template
 # file_from_template_type("${sys.workdir}/tmp/templates/ntp.conf.mustache", "/etc/ntp.conf", "mustache")

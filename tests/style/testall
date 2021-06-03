@@ -119,7 +119,7 @@ usage() {
   echo "testall [-q] [--gainroot=<command>] [--staging] [--unsafe] [--no-network] --printlog] [<test> <test>...]"
   echo
   echo "If no test is given, all standard tests are run:"
-  echo "  Tests with names of form <file>.{sh,py,pl} are expected to run succesfully"
+  echo "  Tests with names of form <file>.{sh,py,pl} are expected to run successfully"
   echo "  Tests with names of form <file>.x.{sh,py,pl} are expected to crash"
   echo
   echo "If arguments are given, those are executed as tests"

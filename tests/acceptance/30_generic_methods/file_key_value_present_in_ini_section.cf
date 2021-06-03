@@ -231,7 +231,7 @@ bundle agent check
       "pass1" expression => "any";
 
     pass2::
-      # file 10 is non existant
+      # file 10 is non existent
       "content_ok_${indices}" expression => and(
                                             strcmp("${content[${indices}]}", "${init.expected[${indices}]}"),
                                             fileexists("${init.file[${indices}]}")

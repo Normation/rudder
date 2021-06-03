@@ -56,7 +56,7 @@
 #
 # The supported service managers are:
 #
-# * systemd (any unkown action will be passed directly)
+# * systemd (any unknown action will be passed directly)
 # * upstart
 # * smf (for Solaris)
 # * service command (for non-boot actions, any unknown action will be passed directly)

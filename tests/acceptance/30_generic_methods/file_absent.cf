@@ -25,7 +25,7 @@ bundle agent init
     "tmp"                      string => getenv("TEMP", 1024);
     "destination_file"         string => "${tmp}/remove_test";
     "destination_file_canon"   string => canonify("${destination_file}");
-    "not_a_file"               string => "${tmp}/nonexistantfilenamefromncftests";
+    "not_a_file"               string => "${tmp}/nonexistentfilenamefromncftests";
     "not_a_file_canon"         string => canonify("${not_a_file}");
 
     "destination_folder"       string => "${tmp}/no_remove_folder";
@@ -67,8 +67,8 @@ bundle agent check
       "First test: File ${init.destination_file} exists even though it should have been removed!";
     ok_1::  "First test OK (removing existing file, ${init.destination_file})";
     !ok_1:: "First test failed (removing existing file, ${init.destination_file})";
-    ok_2::  "Second test OK (removing a non existant file, ${init.not_a_file_canon})";
-    !ok_2:: "Second test failed (removing a non existant file, ${init.not_a_file_canon})";
+    ok_2::  "Second test OK (removing a non existent file, ${init.not_a_file_canon})";
+    !ok_2:: "Second test failed (removing a non existent file, ${init.not_a_file_canon})";
     !ok_3:: "Third test failed (removing a folder should fail, ${init.destination_folder_canon})";
 
     !ok_2:: #debug

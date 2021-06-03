@@ -71,7 +71,7 @@ JAVA_OPTS=\\\"-Djava.awt.headless=true -XX:+UseConcMarkSweepGC\\\"";
     "key_value_separator1"  string => "=";
     "parameter_separator1"  string => " ";
 
-# Second test: ensure that a key-value is correctly remove at the beggining of the line
+# Second test: ensure that a key-value is correctly remove at the beginning of the line
     "base_text2"  string => "#
 GRUB_CMDLINE_XEN=\\\"dom0_max_vcpus=32 dom0_mem=16G\\\"";
 
