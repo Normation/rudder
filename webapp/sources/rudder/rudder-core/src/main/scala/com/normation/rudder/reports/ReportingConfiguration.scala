@@ -217,7 +217,7 @@ object AgentReportingProtocol {
 
   def allProtocols: Set[AgentReportingProtocol] = values[AgentReportingProtocol]
   def parse(value: String) : Either[RudderError, AgentReportingProtocol] = {
-    allProtocols.find { _.value == value.toUpperCase() } match {
+    allProtocols.find { _.value.equalsIgnoreCase(value) } match {
       case None =>
         Left(Unexpected(s"Unable to parse reporting protocol mame '${value}'. was expecting ${allProtocols.map(_.value).mkString("'", "' or '", "'")}."))
       case Some(protocol) =>

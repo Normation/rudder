@@ -506,7 +506,7 @@ class LDAPBasedConfigService(
   }
 
   private[this] implicit def toOptionPolicyMode(p: RudderWebProperty): Option[PolicyMode] = {
-    PolicyMode.allModes.find( _.name == p.value.toLowerCase())
+    PolicyMode.allModes.find( _.name.equalsIgnoreCase(p.value))
   }
 
   private[this] implicit def serOptionPolicyMode(x: Option[PolicyMode]): String = x match {
@@ -515,7 +515,7 @@ class LDAPBasedConfigService(
   }
 
   private[this] implicit def toNodeState(p: RudderWebProperty): NodeState = {
-    NodeState.values.find( _.name == p.value.toLowerCase()).getOrElse(NodeState.Enabled) //default value is "enabled"
+    NodeState.values.find( _.name.equalsIgnoreCase(p.value)).getOrElse(NodeState.Enabled) //default value is "enabled"
   }
 
   private[this] implicit def serState(x: NodeState): String = x.name
