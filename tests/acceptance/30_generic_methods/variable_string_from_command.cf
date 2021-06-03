@@ -62,7 +62,7 @@ bundle agent init
     "expected_value[4]" string => "hey";
     "mode[4]"           string => "enforce";
 
-    # with stderr, stdout and a successfull command
+    # with stderr, stdout and a successful command
     "var_prefix[5]"     string => "my";
     "var_name[5]"       string => "var5";
     "command[5]"        string => "${tmp}/test5.sh";
@@ -107,7 +107,7 @@ bundle agent init
     "expected_value[14]" string => "hey";
     "mode[14]"           string => "audit";
 
-    # with stderr, stdout and a successfull command
+    # with stderr, stdout and a successful command
     "var_prefix[15]"     string => "my";
     "var_name[15]"       string => "var15";
     "command[15]"        string => "${tmp}/test5.sh";

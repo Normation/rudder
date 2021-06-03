@@ -30,8 +30,8 @@
 # * disable
 # * is-enabled
 #
-# When using service, init.d or systemd, any unkown action will be passed as is to the command
-# wich allows support for try-restart, force-reload, etc.
+# When using service, init.d or systemd, any unknown action will be passed as is to the command
+# which allows support for try-restart, force-reload, etc.
 #
 # This bundle can be seen as a kind of service_bundle, but:
 #

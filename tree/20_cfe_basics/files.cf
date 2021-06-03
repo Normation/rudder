@@ -154,7 +154,7 @@ ${section_end}"
 # It will create the section if it does not exist yet.
 # You can choose the insert_type:
 # * Use "preserve_block" to insert blocks of text
-# * Use "literal" to insert independant lines
+# * Use "literal" to insert independent lines
 bundle edit_line ncf_ensure_section_content_type(section_start, section_end, content, insert_type)
 {
   vars:
@@ -188,7 +188,7 @@ ${section_end}"
 # It will create the section if it does not exist yet.
 # You can choose the insert_type:
 # * Use "preserve_block" to insert blocks of text
-# * Use "literal" to insert independant lines
+# * Use "literal" to insert independent lines
 # content_to_delete is a regexp to delete all lines (even outside section) matching the regex
 bundle edit_line ncf_ensure_section_content_and_purge_type(section_start, section_end, content, insert_type, content_to_delete)
 {

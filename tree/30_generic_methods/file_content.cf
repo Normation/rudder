@@ -24,7 +24,7 @@
 # * If *enforce* is set to *true* the file content will be forced
 # * If *enforce* is set to *false* the file content will be forced line by line.
 #   Which means that each line managed can not be duplicated and the order will
-#   not be guaranted.
+#   not be guaranteed.
 #
 # In most cases, the *enforce* parameter should be set to *true*.
 # When *enforce* is set to *false*, and the managed lines are:

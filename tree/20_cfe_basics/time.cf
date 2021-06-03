@@ -20,7 +20,7 @@
 #
 #
 # There are 2 kind of scheduling: purely periodic and calendar based
-# For wich we are providing 2 series of methods.
+# For which we are providing 2 series of methods.
 #
 # There are 6 cases for error handling, based on:
 #  * 2 miss -> 0 job, 1 job, 2 jobs
@@ -56,7 +56,7 @@ bundle agent ncf_date(test_timestamp)
 }
 
 # Store a unique host value based on IP + hostname
-# Splay is a predictible constant pseudorandom number
+# Splay is a predictable constant pseudorandom number
 # You can change its content if you want to run tests by calling this bundle with a parameter - it will define when the run should be run next
 bundle agent ncf_splay(test_splay)
 {

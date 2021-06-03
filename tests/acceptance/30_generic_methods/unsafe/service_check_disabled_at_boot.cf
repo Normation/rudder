@@ -1,6 +1,6 @@
 #######################################################
 #
-# Test if disable cron at boot, and try with an unkown service to check error case
+# Test if disable cron at boot, and try with an unknown service to check error case
 #
 #######################################################
 

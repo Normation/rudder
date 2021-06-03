@@ -40,7 +40,7 @@ that contains some dummy content
         args    => "\"${destination_content}\" > \"${destination_file}\"",
         contain => in_shell;
 
-      # we need to sleep there, because the time comparision granularity is not precise enough
+      # we need to sleep there, because the time comparison granularity is not precise enough
       "/bin/sleep"
         args => "1";
 
@@ -63,11 +63,11 @@ bundle agent test
 bundle agent check
 {
   vars:
-    "content_comparision"    string => "/usr/bin/diff \"${init.destination_file}\" \"${init.source_file}\"";
+    "content_comparison"    string => "/usr/bin/diff \"${init.destination_file}\" \"${init.source_file}\"";
 
   classes:
     "ok"
-      expression => returnszero("${content_comparision}", "noshell"),
+      expression => returnszero("${content_comparison}", "noshell"),
       ifvarclass => canonify("file_copy_from_local_source_${init.destination_file}_reached");
 
   reports:

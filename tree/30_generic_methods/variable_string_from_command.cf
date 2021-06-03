@@ -23,7 +23,7 @@
 #
 # * Only `stdout` is kept
 # * The variable will only be defined if the exit code of the command is 0
-# * If the variable definition is sucessful, the method will report a success, it will
+# * If the variable definition is successful, the method will report a success, it will
 # report an error otherwise.
 # * The command will be executed even in *Audit mode*
 #

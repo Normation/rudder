@@ -17,6 +17,10 @@ test_python()
   find . -path ./api -prune -o -name '*.py' -exec echo "Running pylint on {}" \; -exec ${pylintCmd} -E --disable=C,R --init-hook="import sys; sys.path.append('./tools')" --persistent=n {} \;
 }
 
+test_typos()
+{
+  typos --exclude builder* --exclude tree/20_cfe_basics/cfengine
+}
 
 if [ "$1" = "--python" ]; then
   test_python
@@ -26,6 +30,9 @@ elif [ "$1" = "--style" ]; then
   exit 0
 elif [ "$1" = "--unit" ]; then
   test_unit
+  exit 0
+elif [ "$1" = "--typos" ]; then
+  test_typos
   exit 0
 else
   test_python

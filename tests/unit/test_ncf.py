@@ -102,9 +102,9 @@ class TestNcf(unittest.TestCase):
   # Tests to obtain the generic methods that a Technique uses
   ###########################################################
 
-  def test_parse_technique_generic_method_calls_nonexistant_file(self):
-    """Attempting to parse a non existant file should return an exception"""
-    self.assertRaises(Exception, ncf.parse_technique_methods, "/dev/nonexistant")
+  def test_parse_technique_generic_method_calls_nonexistent_file(self):
+    """Attempting to parse a non existent file should return an exception"""
+    self.assertRaises(Exception, ncf.parse_technique_methods, "/dev/nonexistent")
 
   def test_parse_technique_generic_method_calls(self):
     """Parsing a technique should return a list of it's generic method calls"""
@@ -139,7 +139,7 @@ class TestNcf(unittest.TestCase):
 
     # Get list of generic_methods without prefix "_" on the filesystem
     list_methods_files = []
-    ## Get recursivly each promises in the basic path and the alternative one
+    ## Get recursively each promises in the basic path and the alternative one
     list_methods_files += [os.path.join(full_path,filename) for full_path, dirname, files in os.walk(base_dir) for filename in files if not filename.startswith('_') and filename.endswith('.cf')]
 
     filenames = ncf.get_all_generic_methods_filenames()

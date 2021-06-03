@@ -235,7 +235,7 @@ def list_updates(online):
 #            special chars
 # v\s+\|[^\|]+                 \|\s+(?P<name>\S+)\s+                \|\s+(?P<version>\S+)\s+          \|\s+(?P<arch>\S+)\s*$
 #
-# The first char will always be "v" which means there is a new version avaialble on search outputs.
+# The first char will always be "v" which means there is a new version available on search outputs.
 
       match = re.match("v\s+\|[^\|]+\|\s+(?P<name>\S+)\s+\|\s+(?P<version>\S+)\s+\|\s+(?P<arch>\S+)\s*$", line.decode("utf-8"))
       if match is not None:

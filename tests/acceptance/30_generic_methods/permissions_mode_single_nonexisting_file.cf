@@ -1,6 +1,6 @@
 #######################################################
 #
-# Test checking if using permissions methods on a non existant file causes an error
+# Test checking if using permissions methods on a non existent file causes an error
 #
 #######################################################
 
