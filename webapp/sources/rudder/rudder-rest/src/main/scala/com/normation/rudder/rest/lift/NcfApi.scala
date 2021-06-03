@@ -44,7 +44,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.ncf.CheckConstraint
 import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.Technique
+import com.normation.rudder.ncf.EditorTechnique
 import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
@@ -314,7 +314,7 @@ class NcfApi(
 
   object CreateTechnique extends LiftApiModule0 {
 
-    def moveRessources(technique : Technique, internalId : String) = {
+    def moveRessources(technique : EditorTechnique, internalId : String) = {
       val workspacePath =      s"workspace/${internalId}/${technique.version.value}/resources"
       val finalPath =  s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources"
 

@@ -74,7 +74,7 @@ import com.normation.rudder.ncf.MethodCall
 import com.normation.rudder.ncf.ParameterId
 import com.normation.rudder.ncf.MethodParameter
 import com.normation.rudder.ncf.TechniqueParameter
-import com.normation.rudder.ncf.{Technique => NcfTechnique}
+import com.normation.rudder.ncf.{EditorTechnique => NcfTechnique}
 import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.services.workflows.WorkflowLevelService

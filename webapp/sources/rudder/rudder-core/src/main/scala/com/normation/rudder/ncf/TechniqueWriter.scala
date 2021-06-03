@@ -42,17 +42,18 @@ import cats.implicits._
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import java.nio.charset.StandardCharsets
 
+import java.nio.charset.StandardCharsets
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.GitArchiverUtils
 import com.normation.cfclerk.services.GitRepositoryProvider
+
 import java.io.{File => JFile}
 import java.nio.file.Files
 import java.nio.file.Paths
-
 import better.files.File
+import better.files.File.root
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
@@ -84,9 +85,7 @@ import com.normation.rudder.hooks.RunNuCommand
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.repository.WoDirectiveRepository
-
-import scala.jdk.CollectionConverters._
-import com.normation.zio._
+import org.joda.time.DateTime
 
 trait NcfError extends RudderError {
   def message : String
@@ -97,6 +96,40 @@ trait NcfError extends RudderError {
 final case class IOError(message : String, exception : Option[Throwable]) extends NcfError
 final case class TechniqueUpdateError(message : String, exception : Option[Throwable]) extends NcfError
 final case class MethodNotFound(message : String, exception : Option[Throwable]) extends NcfError
+
+class RudderCRunner (
+    configFilePath : String
+  , rudderCPath    : String
+  , outputPath     : String
+)  {
+  def compileTechnique(technique : EditorTechnique) = {
+    for {
+      r <- RunNuCommand.run(Cmd(rudderCPath, "save" :: "-j" :: "-i" :: s""""${outputPath}/${technique.path}/technique.json"""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
+      res <- r.await
+      _ <- ZIO.when(res.code != 0) {
+        Inconsistency(
+          s"An error occurred when translating technique.json file into Rudder language\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+        ).fail
+      }
+      r <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: """"cf"""" :: "-i" :: s""""${outputPath}/${technique.path}/technique.rl"""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
+      res <- r.await
+      _ <- ZIO.when(res.code != 0) {
+        Inconsistency(
+          s"An error occurred when compiling technique.rl file into cfengine\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+        ).fail
+      }
+      r <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: """"dsc"""" :: "-i" :: s""""${outputPath}/${technique.path}/technique.rl"""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
+      res <- r.await
+      _ <- ZIO.when(res.code != 0) {
+        Inconsistency(
+          s"An error occurred when compiling technique.rl file into dsc\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+        ).fail
+      }
+    } yield {
+      ()
+    }
+  }
+}
 
 class TechniqueWriter (
     archiver            : TechniqueArchiver
@@ -110,6 +143,8 @@ class TechniqueWriter (
   , basePath            : String
   , parameterTypeService: ParameterTypeService
   , techniqueSerializer : TechniqueSerializer
+  , compiler            : RudderCRunner
+  , errorLogPath        : String
 ) {
 
   private[this] val agentSpecific = new ClassicTechniqueWriter(basePath, parameterTypeService) :: new DSCTechniqueWriter(basePath, translater, parameterTypeService) :: Nil
@@ -176,7 +211,7 @@ class TechniqueWriter (
     }
   }
 
-  def techniqueMetadataContent(technique : Technique, methods: Map[BundleName, GenericMethod]) : PureResult[XmlNode] = {
+  def techniqueMetadataContent(technique : EditorTechnique, methods: Map[BundleName, GenericMethod]) : PureResult[XmlNode] = {
 
     def reportingValuePerMethod (component: String, calls :Seq[MethodCall]) : PureResult[Seq[XmlNode]] = {
 
@@ -261,7 +296,7 @@ class TechniqueWriter (
     }
   }
 
-  def writeTechniqueAndUpdateLib(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[Technique] = {
+  def writeTechniqueAndUpdateLib(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[EditorTechnique] = {
     for {
       updatedTechnique <- writeTechnique(technique,methods,modId,committer)
       libUpdate  <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
@@ -271,52 +306,35 @@ class TechniqueWriter (
     }
   }
 
-  def callRudderc(technique : Technique) = {
-    val configFile = "/opt/rudder/etc/rudderc.conf"
-    for {
-      r <- RunNuCommand.run(Cmd("/opt/rudder/bin/rudderc", "save" :: "-j" :: "-i" :: s"\"${basePath}/${techniquePath(technique)}/technique.json\"" :: s"--config-file=${configFile}" :: Nil, Map.empty))
-      res <- r.await
-      _   <- ZIO.when(res.code != 0) {
-        Inconsistency(
-          s"An error occurred when translating technique.json file into Rudder language\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
-        ).fail
-      }
-      r <- RunNuCommand.run(Cmd("/opt/rudder/bin/rudderc", "compile" :: "-j" :: "-f" :: "\"cf\"" :: "-i" :: s"\"${basePath}/${techniquePath(technique)}/technique.rl\"" :: s"--config-file=${configFile}" :: Nil, Map.empty))
-      res <- r.await
-      _   <- ZIO.when(res.code != 0) {
-        Inconsistency(
-          s"An error occurred when compiling technique.rl file into cfengine\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
-        ).fail
-      }
-      r <- RunNuCommand.run(Cmd("/opt/rudder/bin/rudderc", "compile" :: "-j" :: "-f"  :: "\"dsc\"" :: "-i" :: s"\"${basePath}/${techniquePath(technique)}/technique.rl\"" :: s"--config-file=${configFile}" :: Nil, Map.empty))
-      res <- r.await
-      _   <- ZIO.when(res.code != 0) {
-        Inconsistency(
-          s"An error occurred when compiling technique.rl file into dsc\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
-        ).fail
-      }
-    } yield  {
-      ()
-    }
-  }
-
   // Write and commit all techniques files
-  def writeTechnique(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[Technique] = {
+  def writeTechnique(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[EditorTechnique] = {
     for {
       metadata   <- writeMetadata(technique, methods, modId, committer)
       // Before writing down technique, set all resources to Untouched state, and remove Delete resources, was the cause of #17750
       updateResources = technique.ressources.collect{case r if r.state != ResourceFileState.Deleted => r.copy(state = ResourceFileState.Untouched) }
                          techniqueWithResourceUpdated = technique.copy(ressources = updateResources)
       json       <- writeJson(techniqueWithResourceUpdated)
-      agentFiles <- callRudderc(technique).catchAll(e =>
+      agentFiles <- compiler.compileTechnique(technique).catchAll { e =>
+        val errorPath : File = root / errorLogPath /  "rudderc" / "failures" / s"${DateTime.now()}_${technique.bundleName.value}.log"
         for {
-          _ <- ApplicationLoggerPure.info(s"An error occurred when compiling technique '${technique.name}' (id : '${technique.bundleName}') with rudderc, error details will be displayed below, falling back to old saving process")
-          _ <- ApplicationLoggerPure.error(s"Rudderc error when compiling technique '${technique.name}' (id : '${technique.bundleName}'): ${e.fullMsg}")
-          - <-  writeAgentFiles (technique, methods, modId, committer)
+          _ <- ApplicationLoggerPure.error(s"An error occurred when compiling technique '${technique.name}' (id : '${technique.bundleName}') with rudderc, error details in ${errorPath}, falling back to old saving process")
+          _ <- IOResult.effect {
+                errorPath.createFileIfNotExists(true)
+                errorPath.write(
+                  s"""
+                  |error =>
+                  |  ${e.fullMsg}
+                  |technique data =>
+                  |  ${net.liftweb.json.prettyRender(techniqueSerializer.serializeTechniqueMetadata(technique))}""".stripMargin)
+               }.catchAll(e2 =>
+                   ApplicationLoggerPure.error(s"Error when writing error log of '${technique.name}' (id : '${technique.bundleName}') in in ${errorPath}: ${e2.fullMsg}") *>
+                   ApplicationLoggerPure.error(s"Error when compiling '${technique.name}' (id : '${technique.bundleName}') with rudderc was: ${e.fullMsg}")
+               )
+          _   <- writeAgentFiles(technique, methods, modId, committer)
         } yield {
           ()
         }
-      )
+      }
 
       commit     <- archiver.commitTechnique(technique, modId, committer, s"Committing technique ${technique.name}")
     } yield {
@@ -324,7 +342,7 @@ class TechniqueWriter (
     }
   }
 
-  def writeAgentFiles(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : IOResult[Seq[String]] = {
+  def writeAgentFiles(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : IOResult[Seq[String]] = {
     for {
       // Create/update agent files, filter None by flattening to list
       files  <- ZIO.foreach(agentSpecific)(_.writeAgentFiles(technique, methods)).map(_.flatten)
@@ -333,7 +351,7 @@ class TechniqueWriter (
     }
   }
 
-  def writeMetadata(technique : Technique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : IOResult[String] = {
+  def writeMetadata(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : IOResult[String] = {
 
     val metadataPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
 
@@ -350,12 +368,8 @@ class TechniqueWriter (
     }
   }
 
-  def techniquePath(technique : Technique) = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}"
-
-
-
-  def writeJson(technique: Technique) = {
-    val metadataPath = s"${techniquePath(technique)}/technique.json"
+  def writeJson(technique: EditorTechnique) = {
+    val metadataPath = s"${technique.path}/technique.json"
 
     val path = s"${basePath}/${metadataPath}"
 
@@ -375,16 +389,16 @@ class TechniqueWriter (
 
 trait AgentSpecificTechniqueWriter {
 
-  def writeAgentFiles( technique : Technique, methods : Map[BundleName, GenericMethod] ) : IOResult[Seq[String]]
+  def writeAgentFiles( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ) : IOResult[Seq[String]]
 
-  def agentMetadata ( technique : Technique, methods : Map[BundleName, GenericMethod] ) : PureResult[NodeSeq]
+  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ) : PureResult[NodeSeq]
 }
 
 class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterTypeService) extends AgentSpecificTechniqueWriter {
 
   // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true
   def methodNeedReporting(call : MethodCall, method : GenericMethod) =  (! method.agentSupport.contains(AgentType.CfeCommunity)) || call.condition != "any" && call.condition != "cfengine-community"
-  def needReportingBundle(technique : Technique, methods : Map[BundleName, GenericMethod]) = technique.methodCalls.exists(c => methods.get(c.methodId).map(m => methodNeedReporting(c,m)).getOrElse(true))
+  def needReportingBundle(technique : EditorTechnique, methods : Map[BundleName, GenericMethod]) = technique.methodCalls.exists(c => methods.get(c.methodId).map(m => methodNeedReporting(c,m)).getOrElse(true))
 
   def canonifyCondition(methodCall: MethodCall) = {
     methodCall.condition.replaceAll("""(\$\{[^\}]*})""","""",canonify("$1"),"""")
@@ -400,7 +414,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
 
 
 
-  def writeAgentFiles( technique : Technique, methods : Map[BundleName, GenericMethod] )  : IOResult[Seq[String]] = {
+  def writeAgentFiles( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] )  : IOResult[Seq[String]] = {
 
     val bundleParams = if (technique.parameters.nonEmpty) technique.parameters.map(_.name.canonify).mkString("(",",",")") else ""
 
@@ -535,7 +549,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
       tech +: repo
     }
   }
-  def agentMetadata ( technique : Technique, methods : Map[BundleName, GenericMethod] )  : PureResult[NodeSeq] = {
+  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] )  : PureResult[NodeSeq] = {
     // We need to add reporting bundle if there is a method call that does not support cfengine (agent support does not contains both cfe agent)
     val noAgentSupportReporting = technique.methodCalls.exists(  m =>
                          methods.get(m.methodId).exists( gm =>
@@ -584,10 +598,10 @@ class DSCTechniqueWriter(
   val genericParams =
     "-reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly"
 
-  def computeTechniqueFilePath(technique : Technique) =
+  def computeTechniqueFilePath(technique : EditorTechnique) =
     s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/technique.ps1"
 
-  def writeAgentFiles(technique : Technique, methods : Map[BundleName, GenericMethod] ): IOResult[Seq[String]] = {
+  def writeAgentFiles(technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ): IOResult[Seq[String]] = {
 
     def toDscFormat(call : MethodCall) : PureResult[String]= {
 
@@ -721,7 +735,7 @@ class DSCTechniqueWriter(
     }
   }
 
-  def agentMetadata(technique : Technique, methods : Map[BundleName, GenericMethod] ) = {
+  def agentMetadata(technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ) = {
     val xml = <AGENT type="dsc">
       <BUNDLES>
         <NAME>{technique.bundleName.validDscName}</NAME>
@@ -749,7 +763,7 @@ class DSCTechniqueWriter(
 
 trait TechniqueArchiver {
   def deleteTechnique(techniqueName : String, techniqueVersion : String, category : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
-  def commitTechnique(technique : Technique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
+  def commitTechnique(technique : EditorTechnique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
 }
 
 class TechniqueArchiverImpl (
@@ -775,7 +789,7 @@ class TechniqueArchiverImpl (
     }).chainError(s"error when deleting and committing Technique '${techniqueName}/${techniqueVersion}").unit
   }
 
-  def commitTechnique(technique : Technique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
+  def commitTechnique(technique : EditorTechnique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
 
     val techniqueGitPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}"
     val filesToAdd = (

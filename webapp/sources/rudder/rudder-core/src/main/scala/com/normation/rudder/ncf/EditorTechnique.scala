@@ -95,7 +95,7 @@ case class ResourceFile(
   , state : ResourceFileState
 )
 
-final case class Technique(
+final case class EditorTechnique(
     bundleName  : BundleName
   , name        : String
   , category    : String
@@ -104,7 +104,9 @@ final case class Technique(
   , description : String
   , parameters  : Seq[TechniqueParameter]
   , ressources  : Seq[ResourceFile]
-)
+) {
+  val path = s"techniques/${category}/${bundleName.value}/${version.value}"
+}
 
 final case class MethodCall(
     methodId   : BundleName
@@ -311,7 +313,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
   import net.liftweb.json.JsonDSL._
 
-  def serializeTechniqueMetadata(technique: ncf.Technique): JValue = {
+  def serializeTechniqueMetadata(technique: ncf.EditorTechnique): JValue = {
 
     def serializeTechniqueParameter(parameter: TechniqueParameter): JValue = {
       ( ("id" -> parameter.id.value)
@@ -406,7 +408,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 }
 
 class ResourceFileService( gitReposProvider    : GitRepositoryProvider) {
-  def getResources(technique: Technique) = {
+  def getResources(technique: EditorTechnique) = {
     getResourcesFromDir(s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources", technique.bundleName.value, technique.version.value)
 
   }

@@ -100,7 +100,7 @@ import org.apache.commons.io.FileUtils
 import org.specs2.specification.BeforeAfterAll
 
 @RunWith(classOf[JUnitRunner])
-class TestTechniqueWriter extends Specification with ContentMatchers with Loggable with BeforeAfterAll {
+class TestEditorTechniqueWriter extends Specification with ContentMatchers with Loggable with BeforeAfterAll {
   sequential
   lazy val basePath = "/tmp/test-technique-writer-" + DateTime.now.toString()
 
@@ -116,7 +116,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
 
   val expectedPath = "src/test/resources/configuration-repository"
   object TestTechniqueArchiver extends TechniqueArchiver {
-    def commitTechnique(technique : Technique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = UIO.unit
+    def commitTechnique(technique : EditorTechnique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = UIO.unit
     def deleteTechnique(techniqueName: String, techniqueVersion: String, category : String, modId: ModificationId, commiter: EventActor, msg: String): IOResult[Unit] = UIO.unit
   }
 
@@ -221,6 +221,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
 
   val valueCompiler = new InterpolatedValueCompilerImpl
   val parameterTypeService : PlugableParameterTypeService = new PlugableParameterTypeService
+  val techniqueCompiler = new RudderCRunner("/opt/rudder/etc/rudderc.conf","/opt/rudder/bin/rudderc",basePath)
   val writer = new TechniqueWriter(
       TestTechniqueArchiver
     , TestLibUpdater
@@ -233,7 +234,8 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
     , basePath
     , parameterTypeService
     , new TechniqueSerializer(parameterTypeService)
-    , false
+    , techniqueCompiler
+    , basePath
   )
   val dscWriter = new DSCTechniqueWriter(basePath, valueCompiler, new ParameterType.PlugableParameterTypeService)
   val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService)
@@ -307,7 +309,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   Nil ).map(m => (m.id,m)).toMap
 
   val technique =
-    Technique(
+    EditorTechnique(
         BundleName("technique_by_Rudder")
       , "Test Technique created through Rudder API"
       , "ncf_techniques"
@@ -405,7 +407,7 @@ class TestTechniqueWriter extends Specification with ContentMatchers with Loggab
   }
 
   val technique_any =
-    Technique(
+    EditorTechnique(
         BundleName("technique_any")
       , "Test Technique created through Rudder API"
       , "ncf_techniques"

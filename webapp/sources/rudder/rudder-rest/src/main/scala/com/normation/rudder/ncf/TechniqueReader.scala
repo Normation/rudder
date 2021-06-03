@@ -61,7 +61,7 @@ class TechniqueReader(
       result
     }
   }
-  def readTechniquesMetadataFile: IOResult[List[Technique]] = {
+  def readTechniquesMetadataFile: IOResult[List[EditorTechnique]] = {
     for {
       methods        <- readMethodsMetadataFile
       techniqueFiles <- getAllTechniqueFiles(configuration_repository / "techniques")
