@@ -205,7 +205,8 @@ class RemoveNodeServiceImpl(
    * External services can update it.
    */
   val postNodeDeleteActions = Ref.make(
-       new CloseNodeConfiguration(nodeConfigurationsRepo)
+       new RemoveFromCache(nodeInfoService)
+    :: new CloseNodeConfiguration(nodeConfigurationsRepo)
     :: new DeletePolicyServerPolicies(policyServerManagement)
     :: new ResetKeyStatus(ldap, deletedDit)
     :: new CleanUpCFKeys()
@@ -513,6 +514,14 @@ class RemoveNodeServiceImpl(
 }
 
 
+class RemoveFromCache(nodeInfoService: NodeInfoServiceCached) extends PostNodeDeleteAction {
+  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+    NodeLoggerPure.Delete.debug(s"  - remove node from NodeInfoService Cache'${nodeId.value}'") *>
+    nodeInfoService.removeNodeFromCache(nodeId).catchAll(err =>
+      NodeLoggerPure.Delete.error(s"Error when removing node ${(nodeId, info).name} from cache: ${err.fullMsg}")
+    )
+  }
+}
 /*
  * Close expected reports for node.
  * Also delete nodes_info for that node.
@@ -528,6 +537,7 @@ class CloseNodeConfiguration(expectedReportsRepository: UpdateExpectedReportsRep
     } yield ()
   }
 }
+
 // when the node is a policy server, delete directive/rule/group related to it
 class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementService) extends PostNodeDeleteAction {
   override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {

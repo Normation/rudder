@@ -272,13 +272,21 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
   override def getNumberOfManagedNodes: Int = nodeCache.map(_.managedNodes).getOrElse(0)
 
   /*
-     * Our cache
-     */
+   * Our cache
+   */
   private[this] var nodeCache = Option.empty[LocalNodeInfoCache]
 
   // we need modifyTimestamp to search for update and entryCSN to remove already processed entries
   private[this] val searchAttributes = nodeInfoAttributes :+ A_MOD_TIMESTAMP :+ "entryCSN"
 
+  /**
+   * Remove a node from cache. It cannot fail - if node is not in cache, it is a success
+   */
+  def removeNodeFromCache(nodeId: NodeId): IOResult[Unit] = {
+    semaphore.withPermit(
+      IOResult.effect( { nodeCache = nodeCache.map(x => x.copy(nodeInfos = x.nodeInfos.removed(nodeId))) })
+    )
+  }
   /**
    * That's the method that do all the logic
    */
