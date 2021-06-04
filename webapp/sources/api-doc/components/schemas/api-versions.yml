@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+properties:
+  latest:
+    type: int
+    description: Lastest API version available
+    example: 12
+  all:
+    type: array
+    description: List of API version and status
+    items:
+      $ref: ../../components/schemas/api-version.yml

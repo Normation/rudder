@@ -28,6 +28,8 @@ security:
   # Apply the same auth everywhere
   - "API-Tokens": []
 tags:
+  - name: API Info
+    description: Information about API endpoints and versions
   - name: Compliance
     description: Access compliance data
   - name: Rules
@@ -91,6 +93,12 @@ tags:
 
       Manage web interface customization.
 paths:
+  "/info":
+    $ref: paths/info/all.yml
+  "/info/{sectionId}":
+    $ref: paths/info/section-id.yml
+  "/info/details/{endpointName}":
+    $ref: paths/info/endpoint-id.yml
   "/createnodes":
     $ref: paths/create-node/all.yml
   "/usermanagement/users":
