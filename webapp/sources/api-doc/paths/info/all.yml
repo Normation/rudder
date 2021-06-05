@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: List all endoints
+  description: List all endpoints and their version
+  operationId: apiGeneralInformations
+  responses:
+    "200":
+      description: API endpoints
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - apiGeneralInformations
+              data:
+                type: object
+                required:
+                  - documentation
+                  - availableVersions
+                  - endpoints
+                properties:
+                  documentation:
+                    type: string
+                    description: Link to Rudder API description
+                  availableVersions:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/api-versions.yml
+                  endpoints:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/api-endpoints.yml
+  tags:
+    - API Info
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/info/all.sh
