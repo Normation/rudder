@@ -194,6 +194,7 @@ class WoLDAPNodeRepository(
     })
   }
 
+  // this method is unused
   override def deleteNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
     val entry = mapper.nodeToEntry(node)
     nodeLibMutex.writeLock(for {
