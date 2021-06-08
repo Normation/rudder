@@ -76,7 +76,6 @@ pipeline {
                                     }
                                 }
                             }
-                            agent { label 'docs' }
                             steps {
                                 dir('webapp/sources/api-doc') {
                                     sh script: 'typos', label: 'check typos'
