@@ -18,23 +18,25 @@
 #
 #####################################################################################
 set -e
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+NCF_TREE=$GIT_ROOT/tree
 
 # Check that no tests use the group "root" for perms - this works on Linux but not on most UNIXes
 
-FILES_TO_CHECK=`find "${NCF_TREE}/../tests/" -name "*.cf"`
-NB_ERROR=0
+FILES_TO_CHECK=`find "${GIT_ROOT}/tests/" -name "*.cf"`
+ERRORS=0
 for f in $FILES_TO_CHECK
 do
   if egrep -q "^[^#]*perms\s*=>\s*mog\([^,]+,\s*[^,]+,\s*['\"]root['\"]\)" ${f}; then
     echo "File $f uses 'root' group, will break tests on non-Linux OSes"
-    NB_ERROR=`expr $NB_ERROR + 1`
+    ERRORS=`expr $ERRORS + 1`
   fi
 done
 
-if [ $NB_ERROR -eq 0 ]; then
+if [ $ERRORS -eq 0 ]; then
   echo "R: $0 Pass"
 else
   echo "R: $0 Fail"
 fi
 
-exit $NB_ERROR
+exit $ERRORS

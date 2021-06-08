@@ -1,6 +1,8 @@
 #!/bin/sh
 
 set -e
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+NCF_TREE=$GIT_ROOT/tree
 
 # Source code should respect normal ordering to avoid misunderstanding
 # This can help detect bugs
