@@ -312,9 +312,23 @@ object RudderConfig extends Loggable {
   val CFENGINE_POLICY_DISTRIBUTION_PORT = try {
     config.getInt("rudder.policy.distribution.port.cfengine")
   } catch {
-    case ex: ConfigException => config.getInt("rudder.community.port") // for compat
+    case ex: ConfigException =>
+      try {
+        config.getInt("rudder.community.port") // for compat
+      } catch {
+        case ex: ConfigException =>
+          ApplicationLogger.info("Property 'rudder.policy.distribution.port.cfengine' is missing or empty in Rudder configuration file. Default to 5309")
+          5309
+      }
   }
-  val HTTPS_POLICY_DISTRIBUTION_PORT    = config.getInt("rudder.policy.distribution.port.https")
+  val HTTPS_POLICY_DISTRIBUTION_PORT = try {
+    config.getInt("rudder.policy.distribution.port.https")
+  } catch {
+    case ex: ConfigException =>
+      ApplicationLogger.info("Property 'rudder.policy.distribution.port.https' is missing or empty in Rudder configuration file. Default to 443")
+      443
+  }
+
   val RUDDER_JDBC_DRIVER = config.getString("rudder.jdbc.driver")
   val RUDDER_JDBC_URL = config.getString("rudder.jdbc.url")
   val RUDDER_JDBC_USERNAME = config.getString("rudder.jdbc.username")
