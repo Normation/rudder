@@ -1,11 +1,13 @@
 #!/bin/sh
 
 set -e
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+NCF_TREE=$GIT_ROOT/tree
 
 # All tests written in shell should use "set -e". This test checks those tests.
 # (It is thus somewhat a meta test test.)
 
-ALL_SHELL_TESTS=`find "${NCF_TREE}/../tests/style/" -name "*.sh"`
+ALL_SHELL_TESTS=`find "${GIT_ROOT}/tests/quick" -name "*.sh"`
 
 ERRORS=0
 for file in ${ALL_SHELL_TESTS}
@@ -21,3 +23,4 @@ if [ ${ERRORS} -eq 0 ]; then
 else
   echo "R: $0 FAIL"
 fi
+exit $ERRORS

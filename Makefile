@@ -41,14 +41,11 @@ install:
 	ln -sf ../share/ncf/ncf $(DESTDIR)/bin/ncf
 	mkdir -p $(DESTDIR)/share/man/man1
 
-test: test-common
+test:
 	cd tests/acceptance/ && ./testall --info
 
-test-unsafe: test-common
+test-unsafe:
 	cd tests/acceptance/ && ./testall --info --unsafe
-
-test-common:
-	./qa-test
 
 clean:
 	rm -rf tests/style/.succeeded

@@ -1,12 +1,14 @@
 #!/bin/sh
 
 set -e
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+NCF_TREE=$GIT_ROOT/tree
 
 # Check that all generic_methods bundles that start with _ do not have any promises aside from "meta-promises"
 
 ALLOWED_TYPES="vars classes methods reports"
 
-ERRS=0
+ERRORS=0
 FILES_TO_CHECK=`find "${NCF_TREE}/30_generic_methods/" -name "_*.cf"`
 for file in ${FILES_TO_CHECK}
 do
@@ -24,14 +26,15 @@ do
 
     if [ ${TYPE_OK} -ne 1 ]; then
       echo "File ${file} contains a forbidden promise type (${found_type}) in an internal bundle"
-      ERRS=`expr ${ERRS} + 1`
+      ERRORS=`expr ${ERRORS} + 1`
     fi
   done
 
 done
 
-if [ ${ERRS} -eq 0 ]; then
+if [ ${ERRORS} -eq 0 ]; then
   echo "R: $0 Pass"
 else
   echo "R: $0 FAIL"
 fi
+exit $ERRORS

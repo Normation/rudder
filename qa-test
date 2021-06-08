@@ -1,18 +1,14 @@
 #!/bin/bash
 set -e
 
-test_style()
+test_quick()
 {
-  cd ./tests/style/ && ./testall && cd -
-}
-
-test_unit()
-{
-  cd ./tests/unit/ && ./testall && cd -
+  avocado run --disable-sysinfo tests/quick
 }
 
 test_python()
 {
+  export PYTHONPATH="./tests/testlib:${PYTHONPATH}"
   [ -x "$(command -v pylint3)" ] && pylintCmd="pylint3" || pylintCmd="pylint"
   find . -path ./api -prune -o -name '*.py' -exec echo "Running pylint on {}" \; -exec ${pylintCmd} -E --disable=C,R --init-hook="import sys; sys.path.append('./tools')" --persistent=n {} \;
 }
@@ -25,18 +21,13 @@ test_typos()
 if [ "$1" = "--python" ]; then
   test_python
   exit 0
-elif [ "$1" = "--style" ]; then
-  test_style
-  exit 0
-elif [ "$1" = "--unit" ]; then
-  test_unit
+elif [ "$1" = "--quick" ]; then
+  test_quick
   exit 0
 elif [ "$1" = "--typos" ]; then
   test_typos
   exit 0
 else
   test_python
-  test_style
-  test_unit
   exit 0
 fi

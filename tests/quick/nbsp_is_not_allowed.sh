@@ -1,6 +1,8 @@
 #!/bin/sh
 
 set -e
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+NCF_TREE=$GIT_ROOT/tree
 
 # NBSP breaks scripts and cfengine code, they should never appear
 
@@ -11,9 +13,9 @@ FIND_ARGS="-type f -not -wholename */.git/* -not -wholename */api/flask/* -not -
 while read line
 do
   export FIND_ARGS="${FIND_ARGS} -not -wholename */${line}"
-done < ${NCF_TREE}/../.gitignore
+done < $GIT_ROOT/.gitignore
 
-ALL_TESTS=`find ${NCF_TREE}/.. ${FIND_ARGS}`
+ALL_TESTS=`find ${GIT_ROOT} ${FIND_ARGS}`
 
 ERRORS=0
 for file in ${ALL_TESTS}

@@ -1,19 +1,25 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import unittest
+import sys
+import os
+DIRNAME = os.path.dirname(os.path.abspath(__file__))
+GIT_ROOT = DIRNAME + '/../..'
+TESTLIB_PATH = DIRNAME + '/../testlib'
+sys.path.insert(0, GIT_ROOT + '/tools')
 import ncf
 import os.path
 import subprocess
 import shutil
+import avocado
 
-class TestNcf(unittest.TestCase):
+class TestNcf(avocado.Test):
 
   def setUp(self):
     self.dirname = os.path.dirname(os.path.realpath(__file__))
-    self.test_technique_file = self.dirname+ '/test_technique.cf'
-    self.test_generic_method_file = self.dirname + '/test_generic_method.cf'
-    self.technique_metadata_test_content = self.dirname + '/technique_metadata_test_content.cf'
+    self.test_technique_file = self.dirname+ '/test_ncf_api_assets/test_technique.cf'
+    self.test_generic_method_file = self.dirname + '/test_ncf_api_assets/test_generic_method.cf'
+    self.technique_metadata_test_content = self.dirname + '/test_ncf_api_assets/technique_metadata_test_content.cf'
     with open(self.test_technique_file) as fd:
       self.technique_content = fd.read()
     with open(self.test_generic_method_file) as fd:
@@ -199,6 +205,3 @@ class TestNcf(unittest.TestCase):
     self.assertEqual("c.d", ncf.class_context_and("any", "c.d"))
     self.assertEqual("a|b", ncf.class_context_and("a|b", "any"))
     self.assertEqual("any", ncf.class_context_and("any", "any"))
-
-if __name__ == '__main__':
-  unittest.main()
