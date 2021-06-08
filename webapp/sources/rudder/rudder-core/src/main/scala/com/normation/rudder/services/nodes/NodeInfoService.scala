@@ -287,6 +287,14 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
       IOResult.effect( { nodeCache = nodeCache.map(x => x.copy(nodeInfos = x.nodeInfos.removed(nodeId))) })
     )
   }
+
+  /**
+   * Update cache, without doing anything with the data
+   */
+  def updateCache(): IOResult[Unit] = {
+    withUpToDateCache("update cache")(_ => UIO.unit)
+  }
+
   /**
    * That's the method that do all the logic
    */
@@ -546,6 +554,11 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     semaphore.withPermit(
       (this.nodeCache = None).succeed
     ).runNow
+  }
+
+  // return the cache last update time, or epoch if cache is not init
+  def getCacheLastUpdate: UIO[DateTime] = {
+    semaphore.withPermit(UIO.effectTotal(this.nodeCache.map(_.lastModTime).getOrElse(new DateTime(0))))
   }
 
   def getAll(): Box[Map[NodeId, NodeInfo]] = withUpToDateCache("all nodes info") { cache =>
