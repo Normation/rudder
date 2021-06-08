@@ -525,7 +525,7 @@ GPG_RUDDER_KEY_FINGERPRINT = "7C16 9817 7904 212D D58C  B4D1 9322 C330 474A 19E8
 
 p = Popen("rudder agent version", shell=True, stdout=PIPE)
 line = p.communicate()[0]
-m = re.match(r'Rudder agent (((\d+\.\d+)\.\d+)(\.((beta|rc)\d+))?)\..*?', line.decode('utf-8'))
+m = re.match(r'Rudder agent (((\d+\.\d+)\.\d+)(\.((beta|rc)\d+))?)(\.|~).*?', line.decode('utf-8'))
 if m:
   RUDDER_MAJOR=m.group(3)
   RUDDER_VERSION=m.group(2)
