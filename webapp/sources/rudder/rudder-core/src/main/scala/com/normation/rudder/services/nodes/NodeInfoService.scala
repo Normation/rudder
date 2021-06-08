@@ -281,6 +281,13 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
   private[this] val searchAttributes = nodeInfoAttributes :+ A_MOD_TIMESTAMP :+ "entryCSN"
 
   /**
+   * Update cache, without doing anything with the data
+   */
+  def updateCache(): IOResult[Unit] = {
+    withUpToDateCache("update cache")(_ => UIO.unit)
+  }
+
+  /**
    * That's the method that do all the logic
    */
   private[this] def withUpToDateCache[T](label: String)(useCache: Map[NodeId, (LDAPNodeInfo, NodeInfo)] => IOResult[T]): IOResult[T] = {
@@ -524,6 +531,11 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     semaphore.flatMap((_.withPermit(
       (this.nodeCache = None).succeed
     ))).runNow
+  }
+
+  // return the cache last update time, or epoch if cache is not init
+  def getCacheLastUpdate: UIO[DateTime] = {
+    semaphore.withPermit(UIO.effectTotal(this.nodeCache.map(_.lastModTime).getOrElse(new DateTime(0))))
   }
 
   def getAll(): Box[Map[NodeId, NodeInfo]] = withUpToDateCache("all nodes info") { cache =>
