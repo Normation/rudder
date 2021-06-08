@@ -80,5 +80,5 @@ if __name__ == '__main__':
   test.setUp()
   test.test_class_prefix()
   test.test_old_class_prefix()
-  print("R: " + __file__ + " Pass")
+  print("R: ./30_generic_methods/all_generic_methods_should_define_prefixes.py Pass")
 
