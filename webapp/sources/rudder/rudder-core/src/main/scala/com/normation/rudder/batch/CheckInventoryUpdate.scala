@@ -46,10 +46,14 @@ import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import zio._
 import zio.duration._
 import com.normation.zio._
+import org.joda.time.DateTime
 
 /**
- * A naive scheduler which checks every N seconds if inventories are updated.
+ * A scheduler which checks every N seconds if inventories are updated.
  * If so, I will trigger a promise generation.
+ *
+ * Note that without this scheduler, if nobody needs the nodeInfoCache, it will never
+ * be updated.
  */
 class CheckInventoryUpdate(
     nodeInfoCacheImpl   : NodeInfoServiceCachedImpl
@@ -57,6 +61,11 @@ class CheckInventoryUpdate(
   , uuidGen             : StringUuidGenerator
   , updateInterval      : Duration
 ) {
+
+  // we need to store the time of last modification we saw so that is someone else update the cache
+  // (for example, a user is using the UI), then even if the cache is upToDate, we now we have to start
+  // a policy generation.
+  val lastUpdate = Ref.make(new DateTime(0)).runNow
 
   val logger = ScheduledJobLoggerPure
   //start batch
@@ -67,13 +76,19 @@ class CheckInventoryUpdate(
   }
 
   // type annotation is necessary to avoid a "Any was infered, perhaps an error"
-  val prog: UIO[Unit] = nodeInfoCacheImpl.isUpToDate().flatMap {
-    case true  =>
-      logger.trace("No update in node inventories main information detected")
-    case false =>
-      logger.info("Update in node inventories main information detected: triggering a policy generation") *>
-      IOResult.effectNonBlocking(asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor))
-  }.catchAll(err => logger.error(s"Error when trying to update node inventories information. Error is: ${err.fullMsg}"))
+  val prog: UIO[Unit] = {
+    (for {
+      _         <- nodeInfoCacheImpl.updateCache()
+      cacheTime <- nodeInfoCacheImpl.getCacheLastUpdate
+      lastSeen  <- lastUpdate.getAndUpdate(_ => cacheTime)
+      _         <- if(lastSeen.isBefore(cacheTime)) {
+                     logger.info("Update in node inventories main information detected: triggering a policy generation") *>
+                     IOResult.effectNonBlocking(asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor))
+                   } else {
+                     logger.trace("No update in node inventories main information detected")
+                   }
+    } yield ()).catchAll(err => logger.error(s"Error when trying to update node inventories information. Error is: ${err.fullMsg}"))
+  }
 
   ZioRuntime.unsafeRun(prog.repeat(Schedule.fixed(updateInterval)).delay(30.seconds).provide(ZioRuntime.environment).forkDaemon)
 }
