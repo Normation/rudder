@@ -18,7 +18,7 @@ limitations under the License.
 
   <groupId>com.normation</groupId>
   <artifactId>parent-pom</artifactId>
-  <version>6.1.13</version>
+  <version>6.1.13-backport-19351-19414</version>
   <packaging>pom</packaging>
 
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
