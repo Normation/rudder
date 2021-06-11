@@ -182,7 +182,7 @@ class NcfApi(
         for {
           json      <- req.json ?~! "No JSON data sent"
           methodMap <- techniqueReader.readMethodsMetadataFile.toBox
-          technique <- restExtractor.extractNcfTechnique(json, methodMap, false, false)
+          technique <- restExtractor.extractEditorTechnique(json, methodMap, false, false)
           updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor ).toBox
         } yield {
           JObject(JField("technique", techniqueSerializer.serializeTechniqueMetadata(updatedTechnique)))
@@ -345,7 +345,7 @@ class NcfApi(
         for {
           json      <- req.json ?~! "No JSON data sent"
           methodMap <- techniqueReader.readMethodsMetadataFile.toBox
-          technique <- restExtractor.extractNcfTechnique(json, methodMap, true, false)
+          technique <- restExtractor.extractEditorTechnique(json, methodMap, true, false)
           internalId <- OptionnalJson.extractJsonString(json, "internalId")
           isNameTaken = isTechniqueNameExist(technique.bundleName)
           _ <- if(isNameTaken) Failure(s"Technique name and ID must be unique. '${technique.name}' already used") else Full(())
