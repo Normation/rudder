@@ -43,7 +43,6 @@ import com.normation.errors.RudderError
 import com.normation.rudder.services.policies.JsEngine
 import com.normation.rudder.services.policies.JsRudderLibBinding
 
-import javax.script.SimpleBindings
 import org.junit.runner.RunWith
 import org.specs2.matcher.Matcher
 import org.specs2.mutable._

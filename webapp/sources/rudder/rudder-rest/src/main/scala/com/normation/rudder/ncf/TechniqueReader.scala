@@ -61,12 +61,12 @@ class TechniqueReader(
       result
     }
   }
-  def readTechniquesMetadataFile: IOResult[List[Technique]] = {
+  def readTechniquesMetadataFile: IOResult[List[EditorTechnique]] = {
     for {
       methods        <- readMethodsMetadataFile
       techniqueFiles <- getAllTechniqueFiles(configuration_repository / "techniques")
       techniques     <- foreach(techniqueFiles)( file =>
-                          restExtractor.extractNcfTechnique(parse(file.contentAsString), methods, false, true).toIO
+                          restExtractor.extractEditorTechnique(parse(file.contentAsString), methods, false, true).toIO
                             .chainError("An Error occured while extracting data from techniques ncf API")
                         )
     } yield {

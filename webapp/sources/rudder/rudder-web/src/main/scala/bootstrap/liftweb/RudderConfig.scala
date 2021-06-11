@@ -100,6 +100,7 @@ import com.normation.rudder.migration._
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.ncf.ResourceFileService
+import com.normation.rudder.ncf.RudderCRunner
 import com.normation.rudder.ncf.TechniqueArchiverImpl
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
@@ -1085,6 +1086,7 @@ object RudderConfig extends Loggable {
 
   val techniqueArchiver = new TechniqueArchiverImpl(gitRepo, new File(RUDDER_DIR_GITROOT), prettyPrinter, "/", gitModificationRepository, personIdentService, RUDDER_GROUP_OWNER_CONFIG_REPO)
   val techniqueSerializer = new TechniqueSerializer(typeParameterService)
+  val techniqueCompiler = new RudderCRunner("/opt/rudder/etc/rudderc.conf","/opt/rudder/bin/rudderc",RUDDER_DIR_GITROOT)
   val ncfTechniqueWriter = new TechniqueWriter(
       techniqueArchiver
     , updateTechniqueLibrary
@@ -1097,7 +1099,8 @@ object RudderConfig extends Loggable {
     , RUDDER_DIR_GITROOT
     , typeParameterService
     , techniqueSerializer
-    , RUDDER_LANG_EXEC_TEST_LOOP
+    , techniqueCompiler
+    , "/var/log/rudder"
   )
   val ncfTechniqueReader : ncf.TechniqueReader = new ncf.TechniqueReader(
       restExtractorService

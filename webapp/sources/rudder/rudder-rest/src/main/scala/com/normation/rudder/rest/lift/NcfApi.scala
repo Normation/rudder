@@ -44,7 +44,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.ncf.CheckConstraint
 import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.Technique
+import com.normation.rudder.ncf.EditorTechnique
 import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
@@ -182,7 +182,7 @@ class NcfApi(
         for {
           json      <- req.json ?~! "No JSON data sent"
           methodMap <- techniqueReader.readMethodsMetadataFile.toBox
-          technique <- restExtractor.extractNcfTechnique(json, methodMap, false, false)
+          technique <- restExtractor.extractEditorTechnique(json, methodMap, false, false)
           updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor ).toBox
         } yield {
           JObject(JField("technique", techniqueSerializer.serializeTechniqueMetadata(updatedTechnique)))
@@ -314,7 +314,7 @@ class NcfApi(
 
   object CreateTechnique extends LiftApiModule0 {
 
-    def moveRessources(technique : Technique, internalId : String) = {
+    def moveRessources(technique : EditorTechnique, internalId : String) = {
       val workspacePath =      s"workspace/${internalId}/${technique.version.value}/resources"
       val finalPath =  s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources"
 
@@ -345,7 +345,7 @@ class NcfApi(
         for {
           json      <- req.json ?~! "No JSON data sent"
           methodMap <- techniqueReader.readMethodsMetadataFile.toBox
-          technique <- restExtractor.extractNcfTechnique(json, methodMap, true, false)
+          technique <- restExtractor.extractEditorTechnique(json, methodMap, true, false)
           internalId <- OptionnalJson.extractJsonString(json, "internalId")
           isNameTaken = isTechniqueNameExist(technique.bundleName)
           _ <- if(isNameTaken) Failure(s"Technique name and ID must be unique. '${technique.name}' already used") else Full(())

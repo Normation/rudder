@@ -74,7 +74,7 @@ import com.normation.rudder.ncf.MethodCall
 import com.normation.rudder.ncf.ParameterId
 import com.normation.rudder.ncf.MethodParameter
 import com.normation.rudder.ncf.TechniqueParameter
-import com.normation.rudder.ncf.{Technique => NcfTechnique}
+import com.normation.rudder.ncf.EditorTechnique
 import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.services.workflows.WorkflowLevelService
@@ -1171,7 +1171,7 @@ final case class RestExtractorService (
 
   def extractId[T] (req : Req)(fun : String => Full[T])  = extractString("id")(req)(fun)
 
-  def extractNcfTechnique (json : JValue, methods: Map[BundleName, GenericMethod], creation : Boolean, supportMissingId : Boolean) : Box[NcfTechnique] = {
+  def extractEditorTechnique (json : JValue, methods: Map[BundleName, GenericMethod], creation : Boolean, supportMissingId : Boolean) : Box[EditorTechnique] = {
     for {
       bundleName  <- CompleteJson.extractJsonString(json, "bundle_name", s => Full(BundleName(s)))
       version     <- CompleteJson.extractJsonString(json, "version")
@@ -1182,7 +1182,7 @@ final case class RestExtractorService (
       parameters  <- CompleteJson.extractJsonArray(json , "parameter")(extractTechniqueParameter(creation))
       files       <- OptionnalJson.extractJsonArray(json , "resources")(extractResourceFile).map(_.getOrElse(Nil))
     } yield {
-      NcfTechnique(bundleName, name, category, calls, new Version(version), description, parameters, files)
+      EditorTechnique(bundleName, name, category, calls, new Version(version), description, parameters, files)
     }
   }
 
