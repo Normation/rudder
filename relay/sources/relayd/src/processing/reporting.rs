@@ -39,7 +39,7 @@ pub fn start(job_config: &Arc<JobConfig>) {
         job_config.cfg.processing.reporting.cleanup,
     ));
     tokio::spawn(cleanup(
-        failed_path.clone(),
+        failed_path,
         job_config.cfg.processing.reporting.cleanup,
     ));
     tokio::spawn(serve(job_config.clone(), receiver));
