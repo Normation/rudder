@@ -508,7 +508,6 @@ object RestTestSetUp {
       , uuidGen
       , asyncDeploymentAgent
       , workflowLevelService
-      , restExtractorService
       , directiveEditorService
       , restDataSerializer
       , mockTechniques.techniqueRepo

@@ -78,6 +78,7 @@ import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.queries.ResultTransformation
+import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.rest.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyHtml
 import com.normation.rudder.rest.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyJson
 import com.normation.rudder.rest.lift.RenderInheritedProperties
@@ -354,6 +355,37 @@ object JsonResponseObjects {
 
   final case class JRDirectives(directives: List[JRDirective])
 
+  final case class JRDirectiveTreeCategory (
+      name : String
+    , description : String
+    , subCategories : List[JRDirectiveTreeCategory]
+    , techniques    : List [JRDirectiveTreeTechnique]
+  )
+  object JRDirectiveTreeCategory {
+    def fromActiveTechniqueCategory(technique: FullActiveTechniqueCategory): JRDirectiveTreeCategory =
+      JRDirectiveTreeCategory(
+        technique.name
+      , technique.description
+      , technique.subCategories.map(fromActiveTechniqueCategory)
+      , technique.activeTechniques.map(JRDirectiveTreeTechnique.fromActiveTechnique)
+      )
+  }
+
+  final  case class JRDirectiveTreeTechnique (
+      name : String
+    , directives : List[JRDirective]
+  )
+  object JRDirectiveTreeTechnique {
+    def fromActiveTechnique (technique: FullActiveTechnique) : JRDirectiveTreeTechnique = {
+      JRDirectiveTreeTechnique(
+        technique.techniqueName.value
+      , technique.directives.flatMap{
+          d =>
+            technique.techniques.get(d.techniqueVersion).map( t =>  JRDirective.fromDirective(t, d, None))
+        }
+      )
+    }
+  }
   final case class JRRule(
       changeRequestId : Option[String] = None
     , id              : String
@@ -367,6 +399,7 @@ object JsonResponseObjects {
     , system          : Boolean
     , tags            : List[Map[String, String]]
   )
+
   object JRRule {
     // create an empty json rule with just ID set
     def empty(id: String) = JRRule(None, id, "", "", "", "", Nil, Nil, false, false, Nil)
@@ -678,6 +711,8 @@ trait RudderJsonEncoders {
   implicit lazy val directiveSectionEncoder: JsonEncoder[JRDirectiveSection] = DeriveJsonEncoder.gen
   implicit val directiveEncoder: JsonEncoder[JRDirective] = DeriveJsonEncoder.gen
   implicit val directivesEncoder: JsonEncoder[JRDirectives] = DeriveJsonEncoder.gen
+  implicit val directiveTreeTechniqueEncoder: JsonEncoder[JRDirectiveTreeTechnique] = DeriveJsonEncoder.gen
+  implicit val directiveTreeEncoder: JsonEncoder[JRDirectiveTreeCategory] = DeriveJsonEncoder.gen
 
   implicit val activeTechniqueEncoder: JsonEncoder[JRActiveTechnique] = DeriveJsonEncoder.gen
 

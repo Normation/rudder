@@ -1,0 +1,42 @@
+get:
+  summary: Get directive tree
+  description: Get all information about all directives in a tree like structure (with categories and techniques)
+  operationId: directivesTree
+  responses:
+    '200':
+      description: Directives tree
+      content:
+        application/json:
+          schema:
+            type: object
+              required:
+                - result
+                - action
+                - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - directivesTree
+            data:
+              type: object
+              required:
+                - directiveTree
+              properties:
+                directives:
+                    type: object
+                    items:
+                      $ref: ../../components/schemas/directiveTree.yml
+  tags:
+    - Directives
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/directives/tree.sh
