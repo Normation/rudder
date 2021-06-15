@@ -1,17 +1,13 @@
 package com.normation.rudder.services.nodes
 
-import com.normation.errors.IOResult
-import com.normation.inventory.domain.{InventoryStatus, MachineUuid, NodeId}
-import com.normation.inventory.ldap.core.{InventoryDit, InventoryMapper}
+import com.normation.inventory.domain.{MachineUuid, NodeId}
+import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants.{A_CONTAINER_DN, A_DESCRIPTION, A_HOSTNAME, A_NAME, A_NODE_UUID, A_POLICY_SERVER_UUID}
-import com.normation.ldap.sdk.LDAPIOResult.LDAPIOResult
-import com.normation.ldap.sdk.{LDAPConnectionProvider, LDAPEntry, RoLDAPConnection}
 import com.normation.rudder.domain.RudderLDAPConstants.A_POLICY_MODE
 import com.normation.rudder.domain.{NodeDit, RudderDit}
 import com.normation.rudder.domain.nodes.{MachineInfo, Node, NodeInfo}
 import com.normation.rudder.domain.nodes.NodeState.Enabled
 import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.unboundid.ldap.sdk.{DN, RDN}
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
@@ -19,14 +15,13 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 import scala.collection.mutable.{Map => MutMap}
+import scala.collection.mutable.Buffer
 
 /*
  * Test the cache behaviour
  */
 @RunWith(classOf[JUnitRunner])
 class NodeInfoServiceCachedTest extends Specification {
-
-  sequential
 
   def DN(rdn: String, parent: DN) = new DN(new RDN(rdn),  parent)
   val LDAP_BASEDN = new DN("cn=rudder-configuration")
@@ -37,21 +32,6 @@ class NodeInfoServiceCachedTest extends Specification {
   val nodeDit = new NodeDit(new DN("cn=rudder-configuration"))
   val inventoryDit = new InventoryDit(DN("ou=Accepted Inventories", DN("ou=Inventories", LDAP_BASEDN)), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
 
-  val nodeInfoService = new NodeInfoServiceCached() {
-    override def ldap: LDAPConnectionProvider[RoLDAPConnection] = ???
-    override def nodeDit: NodeDit = ???
-    override def inventoryDit: InventoryDit = ???
-    override def removedDit: InventoryDit = ???
-    override def pendingDit: InventoryDit = ???
-    override def ldapMapper: LDAPEntityMapper = ???
-    override def inventoryMapper: InventoryMapper = ???
-    override protected[this] def checkUpToDate(lastKnowModification: DateTime, lastModEntryCSN: Seq[String]): IOResult[Boolean] = ???
-    override def getNodeInfoEntries(con: RoLDAPConnection, attributes: Seq[String], status: InventoryStatus): LDAPIOResult[Seq[LDAPEntry]] = ???
-    override def getNewNodeInfoEntries(con: RoLDAPConnection, lastKnowModification: DateTime, searchAttributes: Seq[String]): LDAPIOResult[Seq[LDAPEntry]] = ???
-    def setNodeCache(newCache : Option[LocalNodeInfoCache]) = {
-      nodeCache = newCache
-    }
-  }
   def createNodeInfo(
       id: NodeId
     , machineUuid: Option[MachineUuid]) : NodeInfo = {
@@ -85,7 +65,7 @@ class NodeInfoServiceCachedTest extends Specification {
     LDAPNodeInfo(nodeEntry, nodeInvEntry, machineEntry)
   }
 
-  def ldapNodeInfosToMaps(ldapNodeInfos: Seq[LDAPNodeInfo]) = {
+  def ldapNodeInfosToMaps(ldapNodeInfos: Seq[LDAPNodeInfo]): NodeInfoServiceCached.InfoMaps = {
     val seqs = ldapNodeInfos.map(x => (x.nodeEntry, x.nodeInventoryEntry, x.machineEntry))
 
     val nodeEntries = MutMap() ++ (for {
@@ -108,7 +88,7 @@ class NodeInfoServiceCachedTest extends Specification {
       (machineDn, machineEntry)
     }).toMap
 
-    (nodeEntries, nodeInventoriesEntries, machineEntries)
+    NodeInfoServiceCached.InfoMaps(nodeEntries, nodeInventoriesEntries, machineEntries, Buffer())
   }
 
   " with a standard cache " should {
@@ -125,13 +105,12 @@ class NodeInfoServiceCachedTest extends Specification {
     val ldapNodesInfos = nodeInfos.map { case nodeinfo =>
       (nodeinfo.id, (createLdapNodeInfo(nodeinfo), nodeinfo))
     }.toMap
-
-    nodeInfoService.setNodeCache(Some(LocalNodeInfoCache(ldapNodesInfos, new DateTime(), Seq(), ldapNodesInfos.size)))
+    val cache = LocalNodeInfoCache(ldapNodesInfos, new DateTime(), Seq(), ldapNodesInfos.size)
 
     " be idempotent" in {
-      val (nodeEntries, nodeInventoriesEntries, machineEntries) = ldapNodeInfosToMaps(ldapNodesInfos.values.map(_._1).toSeq)
+      val infoMaps = ldapNodeInfosToMaps(ldapNodesInfos.values.map(_._1).toSeq)
 
-      val ldap = nodeInfoService.constructNodes(nodeEntries, nodeInventoriesEntries, machineEntries)
+      val ldap = NodeInfoServiceCached.constructNodesFromPartialUpdate(cache, infoMaps)
 
       ldapNodesInfos.values.map(_._1).toSeq.sortBy(e => e.nodeEntry.dn.toString) === ldap.sortBy(e => e.nodeEntry.dn.toString)
     }
@@ -146,16 +125,14 @@ class NodeInfoServiceCachedTest extends Specification {
         (nodeinfo.id, (createLdapNodeInfo(nodeinfo), nodeinfo))
       }.toMap
 
-      val (nodeEntries, nodeInventoriesEntries, machineEntries) = ldapNodeInfosToMaps(newLdapNodesInfos.values.map(_._1).toSeq)
+      val infoMaps = ldapNodeInfosToMaps(newLdapNodesInfos.values.map(_._1).toSeq)
 
-      val ldap = nodeInfoService.constructNodes(nodeEntries, nodeInventoriesEntries, machineEntries)
+      val ldap = NodeInfoServiceCached.constructNodesFromPartialUpdate(cache, infoMaps)
 
       newLdapNodesInfos.values.map(_._1).toSeq === ldap.toSeq
     }
 
     "update an existing entry if we update a nodeInventory (policy server) " in {
-
-      nodeInfoService.setNodeCache(Some(LocalNodeInfoCache(ldapNodesInfos, new DateTime(), Seq(), ldapNodesInfos.size)))
 
       val nodes = Map("1" -> Some("M1"))
       val nodeInfo = nodes.map { case (id, machineId) =>
@@ -167,7 +144,8 @@ class NodeInfoServiceCachedTest extends Specification {
       val newNodeInfo = nodeInfo.copy(policyServerId = NodeId("test"))
       val ldapInventoryEntry = createLdapNodeInfo(newNodeInfo).nodeInventoryEntry
 
-      val ldap = nodeInfoService.constructNodes(MutMap(), MutMap(ldapInventoryEntry.value_!(A_NODE_UUID) -> ldapInventoryEntry), MutMap())
+      val infoMaps = NodeInfoServiceCached.InfoMaps(MutMap(), MutMap(ldapInventoryEntry.value_!(A_NODE_UUID) -> ldapInventoryEntry), MutMap(), Buffer())
+      val ldap = NodeInfoServiceCached.constructNodesFromPartialUpdate(cache, infoMaps)
 
       ldap.size == 1 and
         ldap.head.nodeInventoryEntry === ldapInventoryEntry and
@@ -179,8 +157,6 @@ class NodeInfoServiceCachedTest extends Specification {
 
 
     "update an existing entry if we update a node (policy mode) " in {
-      nodeInfoService.setNodeCache(Some(LocalNodeInfoCache(ldapNodesInfos, new DateTime(), Seq(), ldapNodesInfos.size)))
-
       val nodes = Map("1" -> Some("M1"))
       val nodeInfo = nodes.map { case (id, machineId) =>
         createNodeInfo(NodeId(id), machineId.map(MachineUuid(_)))
@@ -194,11 +170,9 @@ class NodeInfoServiceCachedTest extends Specification {
       val newNodeInfo = nodeInfo.copy(node = newNode )
       val ldapNodeEntry = createLdapNodeInfo(newNodeInfo).nodeEntry
 
-      val ldap = nodeInfoService.constructNodes(
-            MutMap(ldapNodeEntry.value_!(A_NODE_UUID) -> ldapNodeEntry)
-          , MutMap()
-          , MutMap()
-      )
+      val infoMaps = NodeInfoServiceCached.InfoMaps(MutMap(ldapNodeEntry.value_!(A_NODE_UUID) -> ldapNodeEntry), MutMap(), MutMap(), Buffer())
+
+      val ldap = NodeInfoServiceCached.constructNodesFromPartialUpdate(cache, infoMaps)
 
       ldap.size == 1 and
         ldap.head.nodeEntry          === ldapNodeEntry and

@@ -67,8 +67,15 @@ import com.normation.errors._
 import com.normation.box._
 import com.normation.zio._
 import com.normation.ldap.sdk.syntax._
+import com.normation.rudder.domain.logger.NodeLoggerPure
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
+import com.normation.rudder.services.nodes.NodeInfoServiceCached.UpdatedNodeEntries
+import com.normation.rudder.services.nodes.NodeInfoServiceCached.buildInfoMaps
 
 import scala.concurrent.duration.FiniteDuration
+import scala.collection.mutable.{Map => MutMap}
+import scala.collection.mutable.Buffer
 
 /*
  * General logic for the cache implementation of NodeInfo.
@@ -229,6 +236,213 @@ final case class LocalNodeInfoCache(
 )
 
 
+/*
+ * Companion object of NodeInfoServiceCached where pure computing function are
+ * put. Here, you will find:
+ *
+ * - the logic to build a `LDAPNodeInfo` from existing cache and partial updates,
+ * -
+ */
+object NodeInfoServiceCached {
+  val logEffect = NodeLoggerPure.Cache.logEffect
+
+  // goes over each 3 maps to ensure the consistency of the maps
+  // for each updated node, we need to look for matching nodeInventories and machineInventories
+  // same for the other two
+  // and construct relevant LDAPNodeInfo
+  def constructNodesFromPartialUpdate(
+      currentCache: LocalNodeInfoCache
+    , infoMaps    : InfoMaps
+  ): Seq[LDAPNodeInfo] = {
+    // utility
+    def getMachineInventory(
+        optContainerDn: Option[String]
+      , machineInventories: MutMap[String, LDAPEntry] // only read
+      , managedMachineInventories: scala.collection.mutable.Buffer[String]
+      , cacheEntry:  Option[(LDAPNodeInfo, NodeInfo)]
+    ): Option[LDAPEntry] = {
+      for {
+        containerDn  <- optContainerDn
+        machineEntry <- machineInventories.get(containerDn) match {
+          case Some(value) =>
+            // machine inventory is handled
+            managedMachineInventories += containerDn
+            Some(value)
+          case None        => // look in cache
+            cacheEntry.flatMap(_._1.machineEntry)
+        }
+      } yield {
+        machineEntry
+      }
+    }
+
+    val managedNodeInventories = scala.collection.mutable.Buffer[String]()
+    val managedMachineInventories = scala.collection.mutable.Buffer[String]()
+
+    // we have three loops with map/filter on entries
+
+    // loop1: for nodes
+    val nodeEntries = for {
+      (id, nodeEntry) <- infoMaps.nodes
+      cacheEntry      =  currentCache.nodeInfos.get(NodeId(id))
+      nodeInv         <- infoMaps.nodeInventories.get(id) match {
+                           case Some(inv) =>
+                             // Node inventory with this is handled, so we should look for it again
+                             managedNodeInventories += id
+                             Some(inv)
+                           case None      => // look in cache
+                             cacheEntry.map(_._1.nodeInventoryEntry)
+                         }
+      machineInv      =  getMachineInventory(nodeInv(A_CONTAINER_DN), infoMaps.machineInventories, managedMachineInventories, cacheEntry)
+      ldapNode        =  LDAPNodeInfo(nodeEntry, nodeInv, machineInv)
+    } yield {
+      ldapNode
+    }
+
+
+    logEffect.trace(s"nodeEntries are nodeEntries: ${nodeEntries.mkString(",")}")
+
+    // loop2: for node inventories
+    val inventoryEntries = for {
+      (id, nodeInv)  <- infoMaps.nodeInventories
+      skip           =  managedNodeInventories.contains(id)
+      ldapNode       <- if (skip) {
+                          None
+                        } else {
+                          // the node can only be in the cache by construct
+                          // machine entry can be in ldap response or cache
+                          val cacheEntry = currentCache.nodeInfos.get(NodeId(id))
+
+                          for {
+                            nodeEntry  <- cacheEntry.map(_._1.nodeEntry)
+                            machineInv = getMachineInventory(nodeInv(A_CONTAINER_DN), infoMaps.machineInventories, managedMachineInventories, cacheEntry)
+                          } yield {
+                            LDAPNodeInfo(nodeEntry, nodeInv, machineInv)
+                          }
+                        }
+    } yield {
+      ldapNode
+    }
+    logEffect.trace(s"inventoryEntries are inventoryEntries: ${inventoryEntries.mkString(",")}")
+
+    // loop3: for machine inventories
+    val machineInventoriesEntries = for {
+      machineInventory <- infoMaps.machineInventories
+      containerDn      =  machineInventory._1
+      skip             =  managedMachineInventories.contains(containerDn)
+      ldapNode         <- if (skip) {
+                            Nil
+                          } else {
+                            // by construct, everything can be found in cache
+                            // the tricky part: there may be several nodes with the same containerDn
+                            currentCache.nodeInfos.collect { case (nodeId, (ldap, nodeinfo)) if(ldap.nodeInventoryEntry(A_CONTAINER_DN).equals(Some(containerDn))) =>
+                              LDAPNodeInfo(ldap.nodeEntry, ldap.nodeInventoryEntry, Some(machineInventory._2))
+                            }
+                          }
+    } yield {
+      ldapNode
+    }
+
+    logEffect.trace(s"machineInventoriesEntries are machineInventoriesEntries: ${machineInventoriesEntries.mkString(",")}")
+
+    (nodeEntries ++ inventoryEntries ++ machineInventoriesEntries).toSeq
+  }
+
+  /*
+   * Simpler version of `constructNodesFromPartialUpdate` where we assume that we have all datas,
+   * so we can only loop one time for nodes and be done.
+   */
+  def constructNodesFromAllEntries(infoMaps: InfoMaps): IOResult[Seq[LDAPNodeInfo]] = {
+    for {
+      ldapNodesRef <- Ref.make(List.empty[LDAPNodeInfo])
+      rootMissing  <- Ref.make(true)
+      _            <- ZIO.foreach(infoMaps.nodes) { case (id, nodeEntry) =>
+                        infoMaps.nodeInventories.get(id) match {
+                          case None =>
+                            NodeLoggerPure.Cache.debug(s"Node with id '${id}' is in ou=Nodes,cn=rudder-configuration but doesn't have an inventory: skipping it")
+                          case Some(nodeInv) =>
+                            val machineInv =  for {
+                                                containerDn  <- nodeInv(A_CONTAINER_DN)
+                                                machineEntry <- infoMaps.machineInventories.get(containerDn)
+                                              } yield {
+                                                machineEntry
+                                              }
+                            ldapNodesRef.update(list => LDAPNodeInfo(nodeEntry, nodeInv, machineInv) :: list) *>
+                            ZIO.when(id == Constants.ROOT_POLICY_SERVER_ID.value) { rootMissing.set(false) }
+                        }
+                      }
+      // here, we must ensure that root ID is on the list, else chaos ensue.
+      // If root is missing, invalidate the case
+      _            <- ZIO.whenM(rootMissing.get) {
+                        val msg = "'root' node is missing from the list of nodes. Rudder can not work in that state. We clear the cache now to try" +
+                                  "to auto-correct the problem. If it persists, try to run 'rudder agent inventory && rudder agent run' " +
+                                  "from the root server and check /var/log/rudder/webapp/ logs for additionnal information."
+                        NodeLoggerPure.Cache.error(msg) *> msg.fail
+                      }
+      ldapNodes    <- ldapNodesRef.get
+    } yield {
+      ldapNodes
+    }
+  }
+
+  // utility class to move around deleted and existing/updated node entries
+  final case class UpdatedNodeEntries(
+     deleted: Seq[LDAPEntry]
+   , updated: Seq[LDAPEntry]
+  )
+  // utility class to move around entries (node, inventories, CSN) from LDAP
+  final case class InfoMaps(
+    //some map of things - mutable, yes
+      nodes: MutMap[String, LDAPEntry] //node_uuid -> entry
+    , nodeInventories: MutMap[String, LDAPEntry] // node_uuid -> entry
+    , machineInventories: MutMap[String, LDAPEntry] // machine_dn -> entry
+    , entriesCSN: Buffer[String]
+  )
+  // logic to sort out different kind of node entries from generic LDAP entries
+  def buildInfoMaps(updatedNodeEntries: UpdatedNodeEntries, currentLastModif: DateTime): (InfoMaps, DateTime) = {
+    val infoMaps = InfoMaps(MutMap.empty, MutMap.empty, MutMap.empty, Buffer())
+    val t0 = System.currentTimeMillis
+
+    // two vars to keep track of the new last modification time and entries csn
+    var lastModif = currentLastModif
+
+    //look for the maxed timestamp
+    (updatedNodeEntries.deleted ++ updatedNodeEntries.updated).foreach { e =>
+      e.getAsGTime(A_MOD_TIMESTAMP) match {
+        case None    => //nothing
+        case Some(x) =>
+          if(x.dateTime.isAfter(lastModif)) {
+            lastModif = x.dateTime
+            infoMaps.entriesCSN.clear()
+          }
+          if(x.dateTime == lastModif) {
+            e("entryCSN").map(csn => infoMaps.entriesCSN.append(csn))
+          }
+      }
+    }
+
+    // now, create the nodeInfo
+    updatedNodeEntries.updated.foreach { e =>
+      if(e.isA(OC_MACHINE)) {
+        infoMaps.machineInventories += (e.dn.toString -> e)
+      } else if(e.isA(OC_NODE)) {
+        infoMaps.nodeInventories += (e.value_!(A_NODE_UUID) -> e)
+      } else if(e.isA(OC_RUDDER_NODE)) {
+        infoMaps.nodes += (e.value_!(A_NODE_UUID) -> e)
+      } else {
+        // it's an error, don't use
+      }
+    }
+
+    val t1 = System.currentTimeMillis
+    NodeLoggerPure.Cache.trace(s"Updated entries are machineInventories: ${infoMaps.machineInventories.mkString(",")} \n" +
+      s"nodeInventories: ${infoMaps.nodeInventories.mkString(",")}  \n" +
+      s"nodes: ${infoMaps.nodes.mkString(",")} ")
+    TimingDebugLogger.debug(s"Getting node info entries: ${t1-t0}ms")
+    (infoMaps, lastModif)
+  }
+}
+
 trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with CachedRepository {
   import NodeInfoService._
 
@@ -268,12 +482,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
    *
    * attributes is the list of attributes needed in returned entries
    */
-  def getNodeInfoEntries(con: RoLDAPConnection, attributes: Seq[String], status: InventoryStatus): LDAPIOResult[Seq[LDAPEntry]]
-  def getNewNodeInfoEntries(
-                             con: RoLDAPConnection
-                           , lastKnowModification: DateTime
-                           , searchAttributes: Seq[String]
-                           ): LDAPIOResult[Seq[LDAPEntry]]
+  def getNodeInfoEntries(con: RoLDAPConnection, attributes: Seq[String], status: InventoryStatus, lastModification: Option[DateTime]): LDAPIOResult[Seq[LDAPEntry]]
 
   override def getNumberOfManagedNodes: Int = nodeCache.map(_.managedNodes).getOrElse(0)
 
@@ -284,113 +493,6 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
 
   // we need modifyTimestamp to search for update and entryCSN to remove already processed entries
   private[this] val searchAttributes = nodeInfoAttributes :+ A_MOD_TIMESTAMP :+ "entryCSN"
-
-  import scala.collection.mutable.{Map => MutMap}
-
-  // goes over each 3 maps to ensure the consistency of the maps
-  // for each updated node, we need to look for matching nodeInventories and machineInventories
-  // same for the other two
-  // and construct relevant LDAPNodeInfo
-  def constructNodes(
-         nodes              : MutMap[String, LDAPEntry]
-       , nodeInventories    : MutMap[String, LDAPEntry]
-       , machineInventories : MutMap[String, LDAPEntry]): Seq[LDAPNodeInfo] = {
-
-    val managedNodeInventories = scala.collection.mutable.Buffer[String]()
-    val managedMachineInventories = scala.collection.mutable.Buffer[String]()
-
-    val nodeEntries = for {
-      nodeEntry  <- nodes
-      id         =  nodeEntry._1
-      cacheEntry = nodeCache.flatMap ( x => x.nodeInfos.get(NodeId(id)))
-      nodeInv    <- nodeInventories.get(id) match {
-        case Some(inv) =>
-          // Node inventory with this is handled, so we should look for it again
-          managedNodeInventories += id
-          Some(inv)
-        case None      => // look in cache
-          cacheEntry.map(_._1.nodeInventoryEntry)
-      }
-      machineInv = for {
-        containerDn  <- nodeInv(A_CONTAINER_DN)
-        machineEntry <- machineInventories.get(containerDn) match {
-          case Some(value) =>
-            // machine inventory is handled
-            managedMachineInventories += containerDn
-            Some(value)
-          case None        => // look in cache
-            cacheEntry.flatMap(_._1.machineEntry)
-        }
-      } yield {
-        machineEntry
-      }
-      ldapNode = LDAPNodeInfo(nodeEntry._2, nodeInv, machineInv)
-    } yield {
-      ldapNode
-    }
-
-    logEffect.trace(s"nodeEntries are nodeEntries: ${nodeEntries.mkString(",")}")
-
-    val inventoryEntries = for {
-      nodeInventory  <- nodeInventories
-      id              = nodeInventory._1
-      continue        = !managedNodeInventories.contains(id)
-      ldapNode       <- if (!continue) {
-        None
-      } else {
-        // the node can only be in the cache by construct
-        // machine entry can be in ldap response or cache
-        for {
-          nodeInv    <- Some(nodeInventory._2)
-          cacheEntry  = nodeCache.flatMap ( x => x.nodeInfos.get(NodeId(id)))
-          nodeEntry  <- cacheEntry.map(_._1.nodeEntry)
-          machineInv = for {
-            containerDn  <- nodeInv(A_CONTAINER_DN)
-            machineEntry <- machineInventories.get(containerDn) match {
-              case Some(value) =>
-                managedMachineInventories += containerDn
-                Some(value)
-              case None        => // look in cache
-                cacheEntry.flatMap(_._1.machineEntry)
-            }
-          } yield {
-            machineEntry
-          }
-
-        } yield {
-          LDAPNodeInfo(nodeEntry, nodeInv, machineInv)
-        }
-
-      }
-    } yield {
-      ldapNode
-    }
-    logEffect.trace(s"inventoryEntries are inventoryEntries: ${inventoryEntries.mkString(",")}")
-
-    val machineInventoriesEntries = (for {
-      machineInventory <- machineInventories
-      containerDn      =  machineInventory._1
-      continue         = !managedMachineInventories.contains(containerDn)
-      ldapNode         <- if (!continue) {
-        None
-      } else {
-        // by construct, everything can be found in cache
-        // the tricky part: there may be several nodes with the same containerDn
-        val cacheEntries = nodeCache.map( x => x.nodeInfos.filter { case (nodeId, (ldap, nodeinfo)) =>
-          ldap.nodeInventoryEntry(A_CONTAINER_DN).equals(Some(containerDn))})
-        cacheEntries.map( _.map { case (id, (ldap, _)) =>
-          LDAPNodeInfo(ldap.nodeEntry, ldap.nodeInventoryEntry, Some(machineInventory._2))
-        }
-        )
-      }
-    } yield {
-      ldapNode
-    }).flatten
-
-    logEffect.trace(s"machineInventoriesEntries are machineInventoriesEntries: ${machineInventoriesEntries.mkString(",")}")
-
-    (nodeEntries ++ inventoryEntries ++ machineInventoriesEntries).toSeq
-  }
 
   /**
    * Remove a node from cache. It cannot fail - if node is not in cache, it is a success
@@ -408,28 +510,35 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     withUpToDateCache("update cache")(_ => UIO.unit)
   }
 
+
   /**
    * That's the method that do all the logic
    */
   private[this] def withUpToDateCache[T](label: String)(useCache: Map[NodeId, (LDAPNodeInfo, NodeInfo)] => IOResult[T]): IOResult[T] = {
     /*
      * Get all relevant info from backend along with the
-     * date of the last modification
+     * date of the last modification.
+     * If `existingCache` is None, all data will be fetched to fully build a fresh new cache.
+     * If `existingCache` is Some(cache), then only a partial update will be computed based on
+     * modified entries since cache last update datetime.
+     *
+     * That method is not threadsafe and must be enclosed in a semaphore or other guarding mean.
      */
-    def getUpdatedDataFromBackend(lastKnowModification: DateTime): IOResult[LocalNodeInfoCache] = {
+    def getDataFromBackend(existingCache: Option[LocalNodeInfoCache]): IOResult[LocalNodeInfoCache] = {
 
-      final case class UpdatedNodeEntries(
-         deleted: Seq[LDAPEntry]
-       , updated: Seq[LDAPEntry]
-      )
+      // Find entries modified since `lastKnowModification` (or all entries if None)
+      def getUpdatedDataIO(lastKnowModification: Option[DateTime]): IOResult[UpdatedNodeEntries] = {
+        val filter = lastKnowModification match {
+          case Some(date) => AND(IS(OC_NODE), GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(date).toString))
+          case None       => AND(IS(OC_NODE))
+        }
 
-      def getUpdatedDataIO(lastKnowModification: DateTime): IOResult[UpdatedNodeEntries] = {
         for {
           con     <- ldap
           t0      <- currentTimeMillis
-          deleted <- con.search(removedDit.NODES.dn, One, AND(IS(OC_NODE), GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification).toString)), A_MOD_TIMESTAMP , "entryCSN")
+          deleted <- con.search(removedDit.NODES.dn, One, filter, A_MOD_TIMESTAMP , "entryCSN")
           t1      <- currentTimeMillis
-          updated  <- getNewNodeInfoEntries(con, lastKnowModification, searchAttributes)
+          updated <- getNodeInfoEntries(con, searchAttributes, AcceptedInventory, lastKnowModification)
           t2      <- currentTimeMillis
         } yield {
           TimingDebugLogger.debug(s"Getting updated node info data from LDAP: ${t2-t0}ms total (${t1-t0}ms for removed nodes, ${t2-t1} for accepted inventories)")
@@ -437,232 +546,63 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
         }
       }
 
-      def buildUpdatedCache(updatedEntries: UpdatedNodeEntries): LocalNodeInfoCache = {
-        //some map of things - mutable, yes
-        val nodes = MutMap[String, LDAPEntry]() //node_uuid -> entry
-        val nodeInventories = MutMap[String, LDAPEntry]() // node_uuid -> entry
-        val machineInventories = MutMap[String, LDAPEntry]() // machine_dn -> entry
+      // create a fresh new cache with `updatedEntries`.  If `existingCache` is None, we assume these entries are all
+      // available entries, else we assume these are only the ones updated since cache last update.
+      def getUpdatedCache(existingCache: Option[LocalNodeInfoCache], updatedEntries: UpdatedNodeEntries): IOResult[(LocalNodeInfoCache, Int)] = {
+        // if we don't have an existing cache, then we are (re)initializing cache, so we get all entries since epoch
+        val (infoMaps, lastModif) = buildInfoMaps(updatedEntries, existingCache.map(_.lastModTime).getOrElse(new DateTime(0)))
 
-        val t0 = System.currentTimeMillis
-
-        // two vars to keep track of the new last modification time and entries csn
-        var lastModif = lastKnowModification
-        val entriesCSN = scala.collection.mutable.Buffer[String]()
-
-
-        //look for the maxed timestamp
-        (updatedEntries.deleted ++ updatedEntries.updated).foreach { e =>
-          e.getAsGTime(A_MOD_TIMESTAMP) match {
-            case None    => //nothing
-            case Some(x) =>
-              if(x.dateTime.isAfter(lastModif)) {
-                lastModif = x.dateTime
-                entriesCSN.clear()
-              }
-              if(x.dateTime == lastModif) {
-                e("entryCSN").map(csn => entriesCSN.append(csn))
-              }
-          }
-        }
-        // now, order the object and put the in respective maps
-        updatedEntries.updated.foreach { e =>
-          if(e.isA(OC_MACHINE)) {
-            machineInventories += (e.dn.toString -> e)
-          } else if(e.isA(OC_NODE)) {
-            nodeInventories += (e.value_!(A_NODE_UUID) -> e)
-          } else if(e.isA(OC_RUDDER_NODE)) {
-            nodes += (e.value_!(A_NODE_UUID) -> e)
-          } else {
-            // it's an error, don't use
-          }
-        }
-
-        logEffect.trace(s"Updated entries are machineInventories: ${machineInventories.mkString(",")} \n" +
-          s"nodeInventories: ${nodeInventories.mkString(",")}  \n" +
-          s"nodes: ${nodes.mkString(",")} ")
-
-        val t1 = System.currentTimeMillis
-        TimingDebugLogger.debug(s"Getting updated node info entries: ${t1-t0}ms")
-
-
-        // now we need to ensure the consistency of the maps
-        // for each updated node, we need to look for matching nodeInventories and machineInventories
-        // same for the other two
-        val newEntries = constructNodes(nodes, nodeInventories, machineInventories)
-
-        logEffect.debug(s"Found ${newEntries.size} new entries to update cache")
-        // now construct the nodeInfo
-
-
-        val updatedNodeInfos = (for {
-          ldapNode <- newEntries
-          id        = ldapNode.nodeEntry.value_!(A_NODE_UUID)
-          res      <- ldapMapper.convertEntriesToNodeInfos(
-                           ldapNode.nodeEntry
-                         , ldapNode.nodeInventoryEntry
-                         , ldapNode.machineEntry).foldM(
-            err      =>
-              logPure.error(s"An error occured while updating node cache: can not unserialize node with id '${id}', it will be ignored: ${err.fullMsg}") *> None.succeed
-            , nodeInfo => Some((nodeInfo.id, (ldapNode,nodeInfo))).succeed
-          ).toBox
+        for {
+          newEntries <- existingCache match {
+                          case None        => // full build
+                            NodeInfoServiceCached.constructNodesFromAllEntries(infoMaps)
+                          case Some(cache) => // only update what need to be updated
+                            NodeInfoServiceCached.constructNodesFromPartialUpdate(cache, infoMaps).succeed
+                        }
+          _          <- NodeLoggerPure.Cache.debug(s"Found ${newEntries.size} new entries to update cache")
+          // now construct the nodeInfo
+          updated    <- ZIO.foreach(newEntries) { ldapNode =>
+                         val id = ldapNode.nodeEntry.value_!(A_NODE_UUID) // id is mandatory
+                         ldapMapper.convertEntriesToNodeInfos(
+                             ldapNode.nodeEntry
+                           , ldapNode.nodeInventoryEntry
+                           , ldapNode.machineEntry
+                         ).foldM(
+                             err      => NodeLoggerPure.Cache.error(s"An error occured while updating node cache: can not unserialize node with id '${id}', it will be ignored: ${err.fullMsg}") *> None.succeed
+                           , nodeInfo => Some((nodeInfo.id, (ldapNode,nodeInfo))).succeed
+                         )
+                       }
+          _          <- NodeLoggerPure.Cache.trace(s"Updated entries are updatedNodeInfos: ${updated.mkString("\n")}")
         } yield {
-          res
-        }).flatten.toMap
-
-        logEffect.trace(s"Updated entries are updatedNodeInfos: ${updatedNodeInfos.mkString("\n")}")
-
-        val t2 = System.currentTimeMillis
-        TimingDebugLogger.debug(s"Converting ${updatedNodeInfos.size} node info entries to node info to update cache: ${t2-t1}ms")
-
-
-        // by construct, there is an existing cache
-        val cache = nodeCache.get.nodeInfos ++ updatedNodeInfos
-
-        LocalNodeInfoCache(cache, lastModif, entriesCSN.toSeq, cache.filter{case(_, (_, n)) => !n.isPolicyServer && n.serverRoles.isEmpty}.size)
+          val allEntries = existingCache.map(_.nodeInfos).getOrElse(Map()) ++ updated.flatten.toMap
+          val cache = LocalNodeInfoCache(allEntries, lastModif, infoMaps.entriesCSN.toSeq, allEntries.filter{case(_, (_, n)) => !n.isPolicyServer && n.serverRoles.isEmpty}.size)
+          (cache, infoMaps.nodes.size)
+        }
       }
 
-
       for {
-        data  <- getUpdatedDataIO(lastKnowModification)
-        cache = buildUpdatedCache(data)
+        t0          <- currentTimeMillis
+        data        <- getUpdatedDataIO(existingCache.map(_.lastModTime))
+        res         <- getUpdatedCache(existingCache, data)
+        (cache, nb) =  res
+        t1          <- currentTimeMillis
+        _           <- TimingDebugLoggerPure.debug(s"Converting ${nb} node info entries to node info: ${t1 - t0}ms")
       } yield {
         cache
       }
     }
 
-
-    /*
-     * Get all relevant info from backend along with the
-     * date of the last modification
-     * This is only for the init of cache
-     */
-    def getDataFromBackend(): IOResult[LocalNodeInfoCache] = {
-      import scala.collection.mutable.{Map => MutMap}
-
-      final case class AllNodeEntries(
-          deleted: Seq[LDAPEntry]
-        , active : Seq[LDAPEntry]
-      )
-
-      def getDataIO(): IOResult[AllNodeEntries] = {
-        for {
-          con     <- ldap
-          t0      <- currentTimeMillis
-          deleted <- con.search(removedDit.NODES.dn, One, AND(IS(OC_NODE)), A_MOD_TIMESTAMP , "entryCSN")
-          t1      <- currentTimeMillis
-          active  <- getNodeInfoEntries(con, searchAttributes, AcceptedInventory)
-          t2      <- currentTimeMillis
-        } yield {
-          TimingDebugLogger.debug(s"Getting node info data from LDAP: ${t2-t0}ms total (${t1-t0}ms for removed nodes, ${t2-t1} for accepted inventories)")
-          AllNodeEntries(deleted, active)
-        }
-      }
-
-      def mapOneNode(id: String, nodeEntry: LDAPEntry, nodeInventories: MutMap[String, LDAPEntry], machineInventories: MutMap[String, LDAPEntry]): IOResult[Option[(NodeId, (LDAPNodeInfo, NodeInfo))]] = {
-        nodeInventories.get(id) match {
-          case None =>
-            logPure.debug(s"Node with id '${id}' is in ou=Nodes,cn=rudder-configuration but doesn't have an inventory") *> None.succeed
-          case Some(nodeInv) =>
-            val machineInv =  for {
-                                containerDn  <- nodeInv(A_CONTAINER_DN)
-                                machineEntry <- machineInventories.get(containerDn)
-                              } yield {
-                                machineEntry
-                              }
-            val ldapNode = LDAPNodeInfo(nodeEntry, nodeInv, machineInv)
-
-            ldapMapper.convertEntriesToNodeInfos(ldapNode.nodeEntry, ldapNode.nodeInventoryEntry, ldapNode.machineEntry).foldM(
-                err      =>
-                  logPure.error(s"An error occured while updating node cache: can not unserialize node with id '${id}', it will be ignored: ${err.fullMsg}") *> None.succeed
-              , nodeInfo => Some((nodeInfo.id, (ldapNode,nodeInfo))).succeed
-            )
-        }
-      }
-
-      def getUpdatedCache(allNodeEntries: AllNodeEntries): IOResult[LocalNodeInfoCache] = {
-        //some map of things - mutable, yes
-        val nodes = MutMap[String, LDAPEntry]() //node_uuid -> entry
-        val nodeInventories = MutMap[String, LDAPEntry]() // node_uuid -> entry
-        val machineInventories = MutMap[String, LDAPEntry]() // machine_dn -> entry
-
-        val t0 = System.currentTimeMillis
-
-        // two vars to keep track of the new last modification time and entries csn
-        var lastModif = new DateTime(0)
-        val entriesCSN = scala.collection.mutable.Buffer[String]()
-
-
-        //look for the maxed timestamp
-        (allNodeEntries.deleted ++ allNodeEntries.active).foreach { e =>
-          e.getAsGTime(A_MOD_TIMESTAMP) match {
-            case None    => //nothing
-            case Some(x) =>
-              if(x.dateTime.isAfter(lastModif)) {
-                lastModif = x.dateTime
-                entriesCSN.clear()
-              }
-              if(x.dateTime == lastModif) {
-                e("entryCSN").map(csn => entriesCSN.append(csn))
-              }
-          }
-        }
-
-        // now, create the nodeInfo
-        allNodeEntries.active.foreach { e =>
-          if(e.isA(OC_MACHINE)) {
-            machineInventories += (e.dn.toString -> e)
-          } else if(e.isA(OC_NODE)) {
-            nodeInventories += (e.value_!(A_NODE_UUID) -> e)
-          } else if(e.isA(OC_RUDDER_NODE)) {
-            nodes += (e.value_!(A_NODE_UUID) -> e)
-          } else {
-            // it's an error, don't use
-          }
-        }
-
-        val t1 = System.currentTimeMillis
-        TimingDebugLogger.debug(s"Getting node info entries: ${t1-t0}ms")
-
-        for {
-          res <- ZIO.foreach(nodes) { case (id, nodeEntry) => mapOneNode(id, nodeEntry, nodeInventories, machineInventories) }
-          map = res.flatten.toMap
-          // here, we must ensure that root ID is on the list, else chaos ensue.
-          // If root is missing, invalidate the case
-          ok <- if(map.get(Constants.ROOT_POLICY_SERVER_ID).isEmpty) {
-                val msg = "'root' node is missing from the list of nodes. Rudder can not work in that state. We clear the cache now to try" +
-                          "to auto-correct the problem. If it persists, try to run 'rudder agent inventory && rudder agent run' " +
-                          "from the root server and check /var/log/rudder/webapp/ logs for additionnal information."
-                logPure.error(msg) *> msg.fail
-              } else {
-                LocalNodeInfoCache(map, lastModif, entriesCSN.toSeq, map.filter{case(_, (_, n)) => !n.isPolicyServer && n.serverRoles.isEmpty}.size).succeed
-              }
-        } yield {
-          val t2 = System.currentTimeMillis
-          TimingDebugLogger.debug(s"Converting ${nodes.size} node info entries to node info: ${t2-t1}ms")
-          ok
-        }
-      }
-
-      for {
-        data  <- getDataIO()
-        cache <- getUpdatedCache(data)
-      } yield {
-        cache
-      }
-    }
-
+    // Here finaly comes the whole logic that
     for {
       // only checking the cache validity should be in a semaphore - logic to read it does not need to
       // we cannot get (cache, t0), because it fails with Cannot prove that NoSuchElementException <:< com.normation.errors.RudderError
       result <- semaphore.withPermit(
         for {
           t0           <- currentTimeMillis
-          notInit      <- IOResult.effect(nodeCache.isEmpty)
-          clean        <- isUpToDate()
-          updatedCache <- if(notInit) {
+          updatedCache <- nodeCache match {
+                    case None =>
                       for {
-                        //lastUpdate <- IOResult.effect(nodeCache.map(_.lastModTime).getOrElse(new DateTime(0)))
-                        updated    <- getDataFromBackend().foldM(
+                        updated    <- getDataFromBackend(None).foldM(
                           err      =>
                             IOResult.effect({nodeCache = None; ()}) *> Chained("Could not get node information from database", err).fail
                           , newCache =>
@@ -670,44 +610,44 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                               s" with ${newCache.nodeInfos.size} entries") *>
                               logPure.trace(s"NodeInfo cache initialized entries: [${newCache.nodeInfos.keySet.map{ _.value }.mkString(", ")}]") *>
                               IOResult.effect({nodeCache = Some(newCache); () }) *>
-                              newCache.nodeInfos.succeed
+                              newCache.succeed
                         )
                       } yield {
                         updated
                       }
-                    } else {
-                      if (!clean) {
-                        for {
-                          lastUpdate <- IOResult.effect(nodeCache.map(_.lastModTime).getOrElse(new DateTime(0)))
-                          updated <- getUpdatedDataFromBackend(lastUpdate).foldM(
-                            err =>
-                              IOResult.effect({
-                                nodeCache = None; ()
-                              }) *> Chained("Could not get updated node information from database", err).fail
-                            , newCache =>
-                              logPure.debug(s"NodeInfo cache is not up to date, last modification time: '${newCache.lastModTime}', last cache update:" +
-                                s" '${lastUpdate}' => updating cache with ${newCache.nodeInfos.size} entries") *>
-                                logPure.trace(s"NodeInfo cache updated entries: [${
-                                  newCache.nodeInfos.keySet.map {
-                                    _.value
-                                  }.mkString(", ")
-                                }]") *>
+
+                    case Some(currentCache) =>
+                      isUpToDate().flatMap(isClean =>
+                        if (!isClean) {
+                          for {
+                            updated <- getDataFromBackend(Some(currentCache)).foldM(
+                              err =>
                                 IOResult.effect({
-                                  nodeCache = Some(newCache); ()
-                                }) *>
-                                newCache.nodeInfos.succeed
-                          )
-                        } yield {
-                          updated
+                                  nodeCache = None; ()
+                                }) *> Chained("Could not get updated node information from database", err).fail
+                              , newCache =>
+                                logPure.debug(s"NodeInfo cache is not up to date, last modification time: '${newCache.lastModTime}', last cache update:" +
+                                  s" '${currentCache.lastModTime}' => updating cache with ${newCache.nodeInfos.size} entries") *>
+                                  logPure.trace(s"NodeInfo cache updated entries: [${
+                                    newCache.nodeInfos.keySet.map {
+                                      _.value
+                                    }.mkString(", ")
+                                  }]") *>
+                                  IOResult.effect({
+                                    nodeCache = Some(newCache); ()
+                                  }) *>
+                                  newCache.succeed
+                            )
+                          } yield {
+                            updated
+                          }
+                        } else {
+                          logPure.debug(s"NodeInfo cache is up to date, ${nodeCache.map(c => s"last modification time: '${c.lastModTime}' for: '${c.lastModEntryCSN.mkString("','")}'").getOrElse("")}") *>
+                          currentCache.succeed
                         }
-                      } else {
-                        logPure.debug(s"NodeInfo cache is up to date, ${nodeCache.map(c => s"last modification time: '${c.lastModTime}' for: '${c.lastModEntryCSN.mkString("','")}'").getOrElse("")}") *>
-                          (nodeCache match {
-                            case Some(cache) => cache.nodeInfos.succeed
-                            case None => Inconsistency("When trying to access Node information from cache was empty, but it should not, this is a developper issue, please open an issue on https://issues.rudder.io").fail
-                          })
-                      }
+                      )
                     }
+
           t1     <- currentTimeMillis
           _      <- IOResult.effect(TimingDebugLogger.debug(s"Get cache for node info (${label}): ${t1-t0}ms"))
         } yield {
@@ -716,7 +656,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
       )
       (t0, updatedCache) = result
       t1                 <- currentTimeMillis
-      res                <- useCache(updatedCache) // this does not need to be in a semaphore
+      res                <- useCache(updatedCache.nodeInfos) // this does not need to be in a semaphore
       t2                 <- currentTimeMillis
       _                  <- IOResult.effect(TimingDebugLogger.debug(s"Get node info (${label}): ${t2-t0}ms - exploring the cache took ${t2-t1}ms "))
     } yield {
@@ -733,7 +673,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
 
     for {
       con        <- ldap
-      allEntries <- getNodeInfoEntries(con, searchAttributes, status)
+      allEntries <- getNodeInfoEntries(con, searchAttributes, status, None)
       res        <- {
                     //some map of things - mutable, yes
                     val nodeInventories = MutMap[String, LDAPEntry]() // node_uuid -> entry
@@ -900,7 +840,7 @@ class NaiveNodeInfoServiceCachedImpl(
    * - ou=Nodes,
    * - ou=[Node, Machine], ou=Accepted Inventories, etc
    */
-  override def getNodeInfoEntries(con: RoLDAPConnection, searchAttributes: Seq[String], status: InventoryStatus ): LDAPIOResult[Seq[LDAPEntry]] = {
+  override def getNodeInfoEntries(con: RoLDAPConnection, searchAttributes: Seq[String], status: InventoryStatus, lastModification: Option[DateTime]): LDAPIOResult[Seq[LDAPEntry]] = {
     for {
       nodeInvs    <- con.search(inventoryDit.NODES.dn, One, BuildFilter.ALL, searchAttributes:_*)
       machineInvs <- con.search(inventoryDit.MACHINES.dn, One, BuildFilter.ALL, searchAttributes:_*)
@@ -946,13 +886,15 @@ class NodeInfoServiceCachedImpl(
    *  Reason:
    * - only these three entries are used for node info (and none of their
    *   subentries)
-   * - if a node is deleted, it must go to RemovedInventories (and so the
-   *   machine, but we don't care as soon as we know a node went there)
+   * - if a node is deleted, it either go to RemovedInventories (and so the
+   *   machine, but we don't care as soon as we know a node went there) and we
+   *   will see its based on modifity timestamps, or if "node full erase" is enabled,
+   *   a special call to "remove node from cache" must be done
    * - for ou=Node, all modifications happen in the entry, so the modifyTimestamp
    *   is changed accordingly.
    *
    * Moreover, it is less costly to only do one search and post-filter result
-   * than to do 2.
+   * than to do 2 or more.
    *
    * We also need to filter out entry in the previous last modify set to not
    * have them always matching. The reason is that modifyTimestamp is on
@@ -1028,14 +970,14 @@ class NodeInfoServiceCachedImpl(
    * - ou=Nodes,
    * - ou=[Node, Machine], ou=Accepted Inventories, etc
    */
-  override def getNodeInfoEntries(con: RoLDAPConnection, searchAttributes: Seq[String], status: InventoryStatus): LDAPIOResult[Seq[LDAPEntry]] = {
+  override def getNodeInfoEntries(con: RoLDAPConnection, searchAttributes: Seq[String], status: InventoryStatus, lastModification: Option[DateTime]): LDAPIOResult[Seq[LDAPEntry]] = {
     val dit = status match {
       case AcceptedInventory => inventoryDit
       case PendingInventory  => pendingDit
       case RemovedInventory  => removedDit
     }
 
-    val filter = Seq(
+    val filterNodes = OR(Seq(
           AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${dit.NODES.dn.toString}"))
         , AND(IS(OC_MACHINE), Filter.create(s"entryDN:dnOneLevelMatch:=${dit.MACHINES.dn.toString}"))
       ) ++ (if(status == AcceptedInventory) {
@@ -1043,28 +985,15 @@ class NodeInfoServiceCachedImpl(
         } else {
           Seq()
         }
-      )
+      ):_*)
 
-    con.search(nodeDit.BASE_DN, Sub, OR(filter:_*), searchAttributes:_*)
+    val filter = lastModification match {
+      case None    => filterNodes
+      case Some(d) => AND(filterNodes, GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(d).toString))
+    }
+
+    con.search(nodeDit.BASE_DN, Sub, filter, searchAttributes:_*)
   }
 
-  override def getNewNodeInfoEntries(
-       con: RoLDAPConnection
-     , lastKnowModification: DateTime
-     , searchAttributes: Seq[String]
-    ): LDAPIOResult[Seq[LDAPEntry]] = {
-
-    val filters =
-      AND(
-        OR(
-          AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))
-        , AND(IS(OC_MACHINE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.MACHINES.dn.toString}"))
-        , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
-        )
-      , GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification).toString)
-     )
-
-    con.search(nodeDit.BASE_DN, Sub, filters, searchAttributes:_*)
-  }
 }
 
