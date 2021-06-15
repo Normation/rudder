@@ -3,17 +3,15 @@ import distutils.spawn
 from pprint import pprint
 from pkg_resources import parse_version
 import fcntl, termios, struct, traceback
+import subprocess
 
-try:
-    from subprocess import Popen, PIPE, DEVNULL
-except:
-    from subprocess import Popen, PIPE
-    DEVNULL = open(os.devnull, 'wb')
+
 try:
     import ConfigParser as configparser
 except Exception:
     import configparser
 
+DEVNULL = open(os.devnull, 'wb')
 logger = logging.getLogger("rudder-pkg")
 
 try:
@@ -28,6 +26,56 @@ except:
 
 
 # See global variables at the end of the file
+
+def makedirs(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+def run(cmd, input=None, stdout=DEVNULL, stderr=DEVNULL, capture_output=False, shell=False, check=False):
+    """
+    Local version of the run method define in the python 3.5+ versions of the subprocess module.
+    It returns a tuple (exit code, stdout, stderr) instead of a CompletedProcess object.
+
+    The catch part is for compatibility with older python versions (ie 2.7) that do not support
+    the subprocess.run function. We should be able to remove it when we will drop the support
+    for centos7 for the rudder-server-root package
+    """
+    logger.debug("Execute: %s"%cmd)
+    if capture_output:
+        stdout=subprocess.PIPE
+        stderr=subprocess.PIPE
+    try:
+        process = subprocess.run(
+            args=cmd,
+            input=input,
+            stdout=stdout,
+            stderr=stderr,
+            shell=shell,
+            check=check
+        )
+        return (process.returncode, process.stdout, process.stderr)
+    except AttributeError as e:
+        if input is not None:
+            stdin=subprocess.PIPE
+        else:
+            stdin=None
+        process = subprocess.Popen(
+            args=cmd,
+            stdin=stdin,
+            stdout=stdout,
+            stderr=stderr,
+            shell=shell
+        )
+        output, error = process.communicate(input=input)
+        retcode = process.poll()
+        if check and retcode != 0:
+            logger.error("execution of '%s' failed"%cmd)
+            logger.error(error)
+            fail(output, retcode)
+        return (retcode, output, error)
+    except:
+        fail('Could not execute %s'%cmd, 1)
+
 """ Get Terminal width """
 def terminal_size():
    try:
@@ -39,38 +87,6 @@ def terminal_size():
    except:
        pass
    return 25, 80
-
-"""
-
-    Run a command in a shell like a script would do
-    And inform the user of its execution.
-"""
-def shell(command, comment=None, keep_output=False, fail_exit=True, keep_error=False):
-  if comment is not None:
-    logger.info(comment)
-    logger.info(" $ " + command)
-  if keep_output or keep_error:
-    if keep_output:
-      keep_out = PIPE
-    else:
-      keep_out = DEVNULL
-    if keep_error:
-      keep_err = PIPE
-    else:
-      keep_err = DEVNULL
-    process = Popen(command, stdout=keep_out, stderr=keep_err, shell=True, universal_newlines=True)
-    output, error = process.communicate()
-    retcode = process.poll()
-  else: # keep tty management and thus colors
-    process = Popen(command, shell=True)
-    retcode = process.wait()
-    output = None
-    error = None
-  if fail_exit and retcode != 0:
-    logger.error("execution of '%s' failed"%(command))
-    logger.error(error)
-    fail(output, retcode)
-  return (retcode, output, error)
 
 def fail(message, code=1, exit_on_error=True):
     logger.debug(traceback.format_exc())
@@ -85,12 +101,6 @@ def sha512(fname):
             hash_sha512.update(chunk)
     return hash_sha512.hexdigest()
 
-def createPath(path):
-    try:
-        os.makedirs(path)
-    except OSError:
-        if not os.path.isdir(path):
-            fail("Could not create dir %s"%(path))
 """
    Print dict list in a fancy manner
    Assume the list is following the format:
@@ -143,7 +153,7 @@ def download(completeUrl, dst="", quiet=False):
     else:
         fileDst = dst
     fileDir = os.path.dirname(fileDst)
-    createPath(fileDir)
+    makedirs(fileDir)
     try:
       r = requests.get(completeUrl, auth=(USERNAME, PASSWORD), stream=True)
       columns = terminal_size()[1]
@@ -193,7 +203,7 @@ def verifyHash(targetPath, shaSumPath):
         if match:
             fileHash.append(match.group('hash'))
     if len(fileHash) != 1:
-        logger.warning('Multiple hash found matching the package, this should not happened')
+        logger.warning('Multiple hash found matching the package, this should not happen')
     if sha512(targetPath) in fileHash:
         logger.info("=> OK!\n")
         return True
@@ -222,10 +232,10 @@ def download_and_verify(completeUrl, dst="", quiet=False):
     logger.info("downloading shasum sign file  %s"%(baseUrl + "/SHA512SUMS.asc"))
     signPath = download(baseUrl + "/SHA512SUMS.asc", dst, quiet)
     # verify authenticity
-    gpgCommand = "/usr/bin/gpg --homedir " + GPG_HOME + " --verify " + signPath + " " + shaSumPath
+    gpgCommand = ["/usr/bin/gpg", "--homedir", GPG_HOME, "--verify", "--", signPath, shaSumPath]
     logger.debug("Executing %s"%(gpgCommand))
     logger.info("verifying shasum file signature %s"%(gpgCommand))
-    shell(gpgCommand, keep_output=False, fail_exit=True, keep_error=False)
+    run(gpgCommand, check=True)
     logger.info("=> OK!\n")
     # verify hash
     if verifyHash(targetPath, shaSumPath):
@@ -273,16 +283,20 @@ def check_plugin_compatibility(metadata):
 """Add the rudder key to a custom home for trusted gpg keys"""
 def getRudderKey():
     logger.debug("check if rudder gpg key is already trusted")
-    checkKeyCommand = "/usr/bin/gpg --homedir " + GPG_HOME + " --fingerprint"
-    output = shell(checkKeyCommand, keep_output=True, fail_exit=False, keep_error=False)[1]
+    checkKeyCommand = ['/usr/bin/gpg', "--homedir", GPG_HOME, "--fingerprint"]
+    process = run(checkKeyCommand, check=True, capture_output=True)
+    output = process[1].decode('utf-8')
+    logger.debug('Looking for GPG key: %s'%GPG_RUDDER_KEY_FINGERPRINT)
     if output.find(GPG_RUDDER_KEY_FINGERPRINT) == -1:
         logger.debug("rudder gpg key was not found, adding it from %s"%(GPG_RUDDER_KEY))
-        addKeyCommand = "/usr/bin/gpg --homedir " + GPG_HOME + " --import " + GPG_RUDDER_KEY
-        shell(addKeyCommand, keep_output=True, fail_exit=True, keep_error=False)
+        addKeyCommand = ["/usr/bin/gpg", "--homedir", GPG_HOME, "--import", GPG_RUDDER_KEY]
         logger.debug("executing %s"%(addKeyCommand))
-        trustKeyCommand = "printf '5\\ny\\n' | gpg --batch --homedir " + GPG_HOME + " --command-fd 0 --edit-key \"Rudder Project\" trust quit 2> /dev/null"
-        shell(trustKeyCommand, keep_output=True, fail_exit=True, keep_error=False)
+        run(addKeyCommand, check=True)
+
+        # Accept manually the key
+        trustKeyCommand = ["gpg", "--batch", "--homedir", GPG_HOME, "--command-fd", "0", "--edit-key", '"Rudder Project"', "trust", "quit"]
         logger.debug("executing %s"%(trustKeyCommand))
+        run(trustKeyCommand, input=b"5\ny\nn", check=True)
     logger.debug("=> OK!")
 
 # Indexing methods
@@ -303,8 +317,9 @@ def db_save():
 
 
 def rpkg_metadata(package_file):
-  (_, output, _) = shell("ar p '" + package_file + "' metadata", keep_output=True)
-  return json.loads(output)
+  cmd = ["ar", "p", package_file, "metadata"]
+  process = run(cmd, check=True, capture_output=True)
+  return json.loads(process[1].decode('utf-8'))
 
 def install_dependencies(metadata):
   dependencyToCheck = False
@@ -361,10 +376,15 @@ def install_dependencies(metadata):
   return True
 
 
-def extract_scripts(metadata,package_file):
+def extract_archive_from_rpkg(rpkgPath, dst, archive):
+  makedirs(dst)
+  ar = run(["ar", "p", rpkgPath, archive], stdout=subprocess.PIPE, check=True)
+  tar = run(["tar", "xvJ", "--no-same-owner", "-C", dst], input=ar[1], check=True, capture_output=True)
+  return tar[1].decode('utf-8')
+
+def extract_scripts(metadata, package_file):
   package_dir = DB_DIRECTORY + "/" + metadata["name"]
-  shell("mkdir -p " + package_dir + "; ar p '" + package_file + "' scripts.txz | tar xJ --no-same-owner -C " + package_dir)
-  return package_dir
+  return extract_archive_from_rpkg(package_file, package_dir, "scripts.txz")
 
 
 def run_script(name, script_dir, exist, exit_on_error=True):
@@ -376,7 +396,7 @@ def run_script(name, script_dir, exist, exit_on_error=True):
       param = "upgrade"
     else:
       param = "install"
-    shell(script + " " + param, fail_exit=exit_on_error)
+    run([script, param], check=True)
 
 
 def jar_status(name, enable):
@@ -418,7 +438,7 @@ def install(metadata, package_file, exist):
   files = []
   for tarfile in metadata['content']:
     dest = metadata['content'][tarfile]
-    (_, file_list, _) = shell("mkdir -p " + dest + "; ar p '" + package_file + "' " + tarfile + " | tar xJv --no-same-owner -C " + dest, keep_output=True)
+    file_list = extract_archive_from_rpkg(package_file, dest, tarfile)
     files.append(dest+'/')
     files.extend([ dest + '/' + x for x in file_list.split("\n") if x != ''])
 
@@ -438,8 +458,8 @@ def readConf():
         URL = config.get(REPO, 'url')
         USERNAME = config.get(REPO, 'username')
         PASSWORD = config.get(REPO, 'password')
-        createPath(FOLDER_PATH)
-        createPath(GPG_HOME)
+        makedirs(FOLDER_PATH)
+        makedirs(GPG_HOME)
     except Exception as e:
         print("Could not read the conf file %s"%(CONFIG_PATH))
         fail(e)
@@ -463,7 +483,7 @@ def list_plugin_name():
                 pluginName[metadata['name']] = (metadata['name'].replace("rudder-plugin-", ""), "")
     return pluginName
 
-############# Variables ############# 
+############# Variables #############
 """ Defining global variables."""
 
 CONFIG_PATH = "/opt/rudder/etc/rudder-pkg/rudder-pkg.conf"
@@ -474,13 +494,12 @@ GPG_RUDDER_KEY = "/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub"
 GPG_RUDDER_KEY_FINGERPRINT = "7C16 9817 7904 212D D58C  B4D1 9322 C330 474A 19E8"
 
 
-p = Popen("rudder agent version", shell=True, stdout=PIPE)
-line = p.communicate()[0]
-m = re.match(r'Rudder agent (\d+\.\d+)\..*', line.decode('utf-8'))
-if m:
-  RUDDER_VERSION=m.group(1)
-else:
-  print("Warning, cannot retrieve major Rudder version ! Verify that rudder is well installed on the system")
+try:
+    p = run(["rudder", "agent", "version"], capture_output=True)
+    m = re.match(r'Rudder agent (\d+\.\d+)\..*', p[1].decode('utf-8'))
+    RUDDER_VERSION=m.group(1)
+except:
+    print("Warning, cannot retrieve major Rudder version ! Verify that rudder is well installed on the system")
 
 # Local install specific variables
 DB = { "plugins": { } }

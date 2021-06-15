@@ -22,4 +22,5 @@ OUR_DIR=`dirname "$0"`
 
 export PYTHONPATH=../:$PYTHONPATH
 python3 test.py
+python3 rudderPkgUtils.test.py
 
