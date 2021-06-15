@@ -25,20 +25,29 @@ pub fn start(job_config: &Arc<JobConfig>) {
     let span = span!(Level::TRACE, "reporting");
     let _enter = span.enter();
 
-    let path = job_config
+    let incoming_path = job_config
         .cfg
         .processing
         .reporting
         .directory
         .join("incoming");
+    let failed_path = job_config.cfg.processing.reporting.directory.join("failed");
 
     let (sender, receiver) = mpsc::channel(1_024);
-    tokio::spawn(serve(job_config.clone(), receiver));
     tokio::spawn(cleanup(
-        path.clone(),
+        incoming_path.clone(),
         job_config.cfg.processing.reporting.cleanup,
     ));
-    watch(path, job_config.cfg.processing.reporting.catchup, sender);
+    tokio::spawn(cleanup(
+        failed_path.clone(),
+        job_config.cfg.processing.reporting.cleanup,
+    ));
+    tokio::spawn(serve(job_config.clone(), receiver));
+    watch(
+        incoming_path,
+        job_config.cfg.processing.reporting.catchup,
+        sender,
+    );
 }
 
 /// Should run forever except for fatal errors
