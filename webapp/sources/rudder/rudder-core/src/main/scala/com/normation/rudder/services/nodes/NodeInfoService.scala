@@ -99,10 +99,6 @@ import scala.collection.mutable.Buffer
  * - make the oracle be called only every X seconds (because we can tolerate such a
  *   a latency in datas, and frequently, call to nodeinfoservice are done in batch
  *   to fill several kind of informations (it should not, but the code is like that)
- * - today, when the cache is dirty, we discard it completely and rebuilt it from
- *   scratch. It's clearly simpler than having to diff/merge it with only dirty
- *   entries, but it means that the little change on one node lead to 10 000 nodeinfo
- *   being rebuilt (so, much data on the wires, jvm gb pression, etc).
  */
 
 /**
@@ -336,7 +332,8 @@ object NodeInfoServiceCached {
       }
     }
     val nbNodeEntries = result.updated.size
-    logEffect.trace(s"nodeEntries are nodeEntries: ${result.updated.mkString(",")}")
+    logEffect.trace(s"Constructing nodes from partial update")
+    logEffect.trace(s"  -- nodeEntries: ${result.updated.mkString(",")}")
 
     /*
      * Loop 2: for node inventories.
@@ -359,7 +356,7 @@ object NodeInfoServiceCached {
     }
 
     val nbNodeInvs = result.updated.size - nbNodeEntries
-    logEffect.trace(s"inventoryEntries are inventoryEntries: ${result.updated.iterator.drop(nbNodeEntries).mkString(",")}")
+    logEffect.trace(s"  -- inventoryEntries: ${result.updated.iterator.drop(nbNodeEntries).mkString(",")}")
 
     /* loop3: for machine inventories
      * Very similar than node inventories, for same reasons, but one machine can be mapped to several nodes!
@@ -379,7 +376,7 @@ object NodeInfoServiceCached {
       }
     }
 
-    logEffect.trace(s"machineInventoriesEntries are machineInventoriesEntries: ${result.updated.iterator.drop(nbNodeEntries+nbNodeInvs).mkString(",")}")
+    logEffect.trace(s"  -- machineInventoriesEntries: ${result.updated.iterator.drop(nbNodeEntries+nbNodeInvs).mkString(",")}")
 
     result
   }
@@ -395,6 +392,9 @@ object NodeInfoServiceCached {
       _            <- ZIO.foreach(infoMaps.nodes) { case (id, nodeEntry) =>
                         infoMaps.nodeInventories.get(id) match {
                           case None =>
+                            // We can safely skip it - when the inventory will appear, it will be caught up in the partial update
+                            // For the case where we have an inventory but no node, it's the same
+                            // If partial update get only part of the object (inv, or node), then the nodeErrors will fetch it
                             NodeLoggerPure.Cache.debug(s"Node with id '${id}' is in ou=Nodes,cn=rudder-configuration but doesn't have an inventory: skipping it") *>
                             results.update { x => x.nodeErrors.addOne(id) ; x }
                           case Some(nodeInv) =>
@@ -518,6 +518,9 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
    */
   def getBackendLdapNodeInfo(nodeIds: Seq[String]): IOResult[Seq[LDAPNodeInfo]]
 
+  // containerDn look like  machineId=000f6268-e825-d13c-fa14-f9e55d05038c,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+  def getBackendLdapContainerinfo(containersDn: Seq[String]): IOResult[Seq[LDAPNodeInfo]]
+
   override def getNumberOfManagedNodes: Int = nodeCache.map(_.managedNodes).getOrElse(0)
 
   /*
@@ -597,6 +600,9 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
           _          <- NodeLoggerPure.Cache.debug(s"Found ${updates.updated.size} new entries to update cache")
           compensate <- getBackendLdapNodeInfo(updates.nodeErrors.toSeq).catchAll(err => // we don't want to fail because we tried to compensate
                           NodeLoggerPure.Cache.warn(s"Error when trying to find in LDAP node entries: ${updates.nodeErrors.mkString(", ")}: ${err.fullMsg}") *> Seq().succeed
+                        )
+          compensateContainer <- getBackendLdapContainerinfo(updates.containerErrors.toSeq).catchAll(err => // we don't want to fail because we tried to compensate
+                          NodeLoggerPure.Cache.warn(s"Error when trying to find in LDAP containers entries: ${updates.containerErrors.mkString(", ")}: ${err.fullMsg}") *> Seq().succeed
                         )
           _          <- ZIO.when(updates.nodeErrors.size > 0) {
                           NodeLoggerPure.Cache.debug(s"${updates.nodeErrors.size} were in errors, compensated ${compensate.size}")
@@ -1057,7 +1063,29 @@ class NodeInfoServiceCachedImpl(
       // here, we ignore error cases
       res.updated.toSeq
     }
+  }
 
+  // containerDn look like  machineId=000f6268-e825-d13c-fa14-f9e55d05038c,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+  override def getBackendLdapContainerinfo(containersDn: Seq[String]): IOResult[Seq[LDAPNodeInfo]] = {
+    for {
+      con         <- ldap
+      containers  =  containersDn.map(dn => new DN(dn).getRDN.getAttributeValues()(0)) // I'm using the same logic as up so that I can get all machines in one query, rather than on get per dn
+      machineInvs <- con.search(inventoryDit.MACHINES.dn, One, OR(containers.map(id => EQ(A_MACHINE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
+      nodeInvs    <- con.search(inventoryDit.NODES.dn   , One, OR(containersDn.map(container => EQ(A_CONTAINER_DN, container)):_*), NodeInfoService.nodeInfoAttributes:_*)
+      nodeIds      = nodeInvs.flatMap(_(A_NODE_UUID))
+      nodeEntries <- con.search(nodeDit.NODES.dn        , One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
+      infoMaps    <- IOResult.effect {
+        val res = NodeInfoServiceCached.InfoMaps()
+        nodeEntries.foreach(e => res.nodes.addOne((e.value_!(A_NODE_UUID), e)))
+        nodeInvs.foreach(e => res.nodeInventories.addOne((e.value_!(A_NODE_UUID), e)))
+        machineInvs.foreach(e => res.machineInventories.addOne((e.dn.toString, e)))
+        res
+      }
+      res         <- NodeInfoServiceCached.constructNodesFromAllEntries(infoMaps, checkRoot = false)
+    } yield {
+      // here, we ignore error cases
+      res.updated.toSeq
+    }
   }
 }
 
