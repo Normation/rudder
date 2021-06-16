@@ -104,9 +104,9 @@ import com.normation.cfclerk.services.impl.SimpleGitRevisionProvider
 import com.normation.cfclerk.services.impl.TechniqueRepositoryImpl
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
+
 import java.io.File
 import java.nio.file.{Files, Paths}
-
 import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.FullOtherTarget
@@ -117,6 +117,10 @@ import com.normation.eventlog.EventActor
 import net.liftweb.common.Full
 import net.liftweb.common.Box
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.FullInventory
+import com.normation.inventory.domain.MachineInventory
+import com.normation.inventory.domain.PendingInventory
+import com.normation.inventory.domain.VMWare
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.repository.FullNodeGroupCategory
 import org.apache.commons.io.FileUtils
@@ -135,6 +139,8 @@ object NodeConfigData {
   // set to trace to see timing
   logger.setLevel(ch.qos.logback.classic.Level.OFF)
 
+  val machine1Accepted = MachineInventory(MachineUuid("machine1"), AcceptedInventory, VirtualMachineType(VMWare), Some("machine1"))
+  val machine2Pending = MachineInventory(MachineUuid("machine2"), PendingInventory, VirtualMachineType(VMWare), Some("machine2"))
 
   //a valid, not used pub key
   //cfengine key hash is: 081cf3aac62624ebbc83be7e23cb104d
