@@ -362,5 +362,47 @@ class NodeInfoServiceCachedTest extends Specification {
       (step2res must beSome)
 
     }
+
+    "a new entry, with only the container first, and then on next cache update inventory is ignored then found" in {
+      // our new node
+      val nodeInv = new FullInventory(
+        NodeConfigData.nodeInventory1.modify(_.main.status).setTo(PendingInventory)
+          .modify(_.main.id.value).setTo("testCacheNode2")
+        , Some(NodeConfigData.machine1Accepted.modify(_.id.value).setTo("testCacheMachine2")
+          .modify(_.name).setTo(Some("testCacheMachine2"))
+        )
+      )
+      val modid = ModificationId("test")
+      val actor = EventActor("test")
+      val nodeId = nodeInv.node.main.id
+
+      // *************** start ****************
+      // add inventory to pending, but machine to accepted
+      ldapFullInventoryRepository.save(nodeInv).runNow
+      //wait a bit for cache
+      Thread.sleep(50)
+      // load cache
+      nodeInfoService.getAll().forceGet
+
+      // it should look very empty
+
+      // *************** step1 ****************
+      // cache does not know about node1 yet
+      val step1 = acceptNodeAndMachineInNodeOu.acceptOne(nodeInv, modid, actor).forceGet
+      val step1res = nodeInfoService.getNodeInfo(nodeId).forceGet
+
+      // *************** step2 ****************
+      // second new node step: cache converge
+      val step2 = acceptInventory.acceptOne(nodeInv, modid, actor).forceGet
+      val step2res = nodeInfoService.getNodeInfo(nodeId).forceGet
+
+      val step3res = nodeInfoService.getNodeInfo(nodeId).forceGet
+
+      (step1res === None) and
+        (step2res must beSome) and
+        (step2res.get.machine must beSome)
+
+    }
   }
+
 }

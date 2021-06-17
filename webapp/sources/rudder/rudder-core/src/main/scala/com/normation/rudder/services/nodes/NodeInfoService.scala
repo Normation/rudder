@@ -357,6 +357,7 @@ object NodeInfoServiceCached {
 
     val nbNodeInvs = result.updated.size - nbNodeEntries
     logEffect.trace(s"  -- inventoryEntries: ${result.updated.iterator.drop(nbNodeEntries).mkString(",")}")
+    logEffect.debug(s"  -- following nodes were not complete for cache: ${result.nodeErrors.mkString(",")}")
 
     /* loop3: for machine inventories
      * Very similar than node inventories, for same reasons, but one machine can be mapped to several nodes!
@@ -377,7 +378,8 @@ object NodeInfoServiceCached {
     }
 
     logEffect.trace(s"  -- machineInventoriesEntries: ${result.updated.iterator.drop(nbNodeEntries+nbNodeInvs).mkString(",")}")
-
+    logEffect.debug(s"  -- following machineInventories were not complete for cache: ${result.containerErrors.mkString(",")}")
+println(s"  -- following machineInventories were not complete for cache: ${result.containerErrors.mkString(",")}")
     result
   }
 
@@ -601,14 +603,17 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
           compensate <- getBackendLdapNodeInfo(updates.nodeErrors.toSeq).catchAll(err => // we don't want to fail because we tried to compensate
                           NodeLoggerPure.Cache.warn(s"Error when trying to find in LDAP node entries: ${updates.nodeErrors.mkString(", ")}: ${err.fullMsg}") *> Seq().succeed
                         )
-          compensateContainer <- getBackendLdapContainerinfo(updates.containerErrors.toSeq).catchAll(err => // we don't want to fail because we tried to compensate
-                          NodeLoggerPure.Cache.warn(s"Error when trying to find in LDAP containers entries: ${updates.containerErrors.mkString(", ")}: ${err.fullMsg}") *> Seq().succeed
-                        )
           _          <- ZIO.when(updates.nodeErrors.size > 0) {
                           NodeLoggerPure.Cache.debug(s"${updates.nodeErrors.size} were in errors, compensated ${compensate.size}")
                         }
+          compensateContainer <- getBackendLdapContainerinfo(updates.containerErrors.toSeq).catchAll(err => // we don't want to fail because we tried to compensate
+                          NodeLoggerPure.Cache.warn(s"Error when trying to find in LDAP containers entries: ${updates.containerErrors.mkString(", ")}: ${err.fullMsg}") *> Seq().succeed
+                        )
+          _          <- ZIO.when(updates.containerErrors.size > 0) {
+                          NodeLoggerPure.Cache.debug(s"${updates.containerErrors.size} were in errors, compensated ${compensateContainer.size}")
+                        }
           // now construct the nodeInfo
-          updated    <- ZIO.foreach(updates.updated ++ compensate) { ldapNode =>
+          updated    <- ZIO.foreach(updates.updated ++ compensate ++ compensateContainer) { ldapNode =>
                          val id = ldapNode.nodeEntry.value_!(A_NODE_UUID) // id is mandatory
                          ldapMapper.convertEntriesToNodeInfos(
                              ldapNode.nodeEntry
@@ -902,6 +907,8 @@ class NaiveNodeInfoServiceCachedImpl(
   }
 
   override def getBackendLdapNodeInfo(nodeIds: Seq[String]): IOResult[Seq[LDAPNodeInfo]] = ???
+
+  override def getBackendLdapContainerinfo(containersDn: Seq[String]): IOResult[Seq[LDAPNodeInfo]] = ???
 }
 
 /**
@@ -1043,21 +1050,24 @@ class NodeInfoServiceCachedImpl(
     con.search(nodeDit.BASE_DN, Sub, filter, searchAttributes:_*)
   }
 
-  override def getBackendLdapNodeInfo(nodeIds: Seq[String]): IOResult[Seq[LDAPNodeInfo]] = {
+  // Utility method to construct infomaps for getBackEnd methods
+  private[this] def constructInfoMaps(nodeEntries: Seq[LDAPEntry], nodeInvs: Seq[LDAPEntry], machineInvs: Seq[LDAPEntry]) = {
+    val res = NodeInfoServiceCached.InfoMaps()
+    nodeEntries.foreach(e => res.nodes.addOne((e.value_!(A_NODE_UUID), e)))
+    nodeInvs.foreach(e => res.nodeInventories.addOne((e.value_!(A_NODE_UUID), e)))
+    machineInvs.foreach(e => res.machineInventories.addOne((e.dn.toString, e)))
+    res
+  }
 
+  override def getBackendLdapNodeInfo(nodeIds: Seq[String]): IOResult[Seq[LDAPNodeInfo]] = {
+    println(s"looking for  nodeIds ${nodeIds}")
     for {
       con         <- ldap
       nodeEntries <- con.search(nodeDit.NODES.dn        , One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
       nodeInvs    <- con.search(inventoryDit.NODES.dn   , One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
       containers  =  nodeInvs.flatMap(e => e(A_CONTAINER_DN).map(dn => new DN(dn).getRDN.getAttributeValues()(0)))
       machineInvs <- con.search(inventoryDit.MACHINES.dn, One, OR(containers.map(id => EQ(A_MACHINE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
-      infoMaps    <- IOResult.effect {
-                       val res = NodeInfoServiceCached.InfoMaps()
-                       nodeEntries.foreach(e => res.nodes.addOne((e.value_!(A_NODE_UUID), e)))
-                       nodeInvs.foreach(e => res.nodeInventories.addOne((e.value_!(A_NODE_UUID), e)))
-                       machineInvs.foreach(e => res.machineInventories.addOne((e.dn.toString, e)))
-                       res
-                     }
+      infoMaps    <- IOResult.effect { constructInfoMaps(nodeEntries, nodeInvs, machineInvs) }
       res         <- NodeInfoServiceCached.constructNodesFromAllEntries(infoMaps, checkRoot = false)
     } yield {
       // here, we ignore error cases
@@ -1067,23 +1077,24 @@ class NodeInfoServiceCachedImpl(
 
   // containerDn look like  machineId=000f6268-e825-d13c-fa14-f9e55d05038c,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
   override def getBackendLdapContainerinfo(containersDn: Seq[String]): IOResult[Seq[LDAPNodeInfo]] = {
+    println(s"looking for  ${containersDn}")
     for {
       con         <- ldap
       containers  =  containersDn.map(dn => new DN(dn).getRDN.getAttributeValues()(0)) // I'm using the same logic as up so that I can get all machines in one query, rather than on get per dn
       machineInvs <- con.search(inventoryDit.MACHINES.dn, One, OR(containers.map(id => EQ(A_MACHINE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
+      _ = println(s"machineInvs ${machineInvs}")
       nodeInvs    <- con.search(inventoryDit.NODES.dn   , One, OR(containersDn.map(container => EQ(A_CONTAINER_DN, container)):_*), NodeInfoService.nodeInfoAttributes:_*)
+      _ = println(s"nodeInvs ${nodeInvs}")
+
       nodeIds      = nodeInvs.flatMap(_(A_NODE_UUID))
+      _ = println(s"nodeIds ${nodeIds}")
       nodeEntries <- con.search(nodeDit.NODES.dn        , One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
-      infoMaps    <- IOResult.effect {
-        val res = NodeInfoServiceCached.InfoMaps()
-        nodeEntries.foreach(e => res.nodes.addOne((e.value_!(A_NODE_UUID), e)))
-        nodeInvs.foreach(e => res.nodeInventories.addOne((e.value_!(A_NODE_UUID), e)))
-        machineInvs.foreach(e => res.machineInventories.addOne((e.dn.toString, e)))
-        res
-      }
+      _ = println(s"nodeEntries ${nodeEntries}")
+      infoMaps    <- IOResult.effect { constructInfoMaps(nodeEntries, nodeInvs, machineInvs) }
       res         <- NodeInfoServiceCached.constructNodesFromAllEntries(infoMaps, checkRoot = false)
     } yield {
       // here, we ignore error cases
+      println(s"${res.updated}")
       res.updated.toSeq
     }
   }
