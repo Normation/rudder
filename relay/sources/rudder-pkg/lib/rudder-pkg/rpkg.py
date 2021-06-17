@@ -7,7 +7,7 @@ import rudderPkgUtils as utils
 class RudderVersion:
     def __init__(self, version):
         match = re.search(r'(?P<wx>[0-9]+.[0-9]+)-(?P<yz>[0-9]+.[0-9]+)', version)
-        self.version = [ LooseVersion(match.group("wx")), LooseVersion(match.group("yz")) ]
+        self.version = [LooseVersion(match.group('wx')), LooseVersion(match.group('yz'))]
 
     def __eq__(self, other):
         if isinstance(other, RudderVersion):
@@ -36,35 +36,52 @@ class RudderVersion:
         return not self.__lt__(other)
 
 
-
-"""
+'''
     Versions can contains the words "-SNAPSHOT" at the end, this should not be a problem at the moment since it is only present in nightly.
     Moreover, we should not have to compare a nightly version to a release one.
-"""
+'''
+
+
 class PluginVersion:
     def __init__(self, pluginLongVersion):
-        match = re.search(r'(?P<rudderVersion>[0-9]+\.[0-9]+)-(?P<pluginShortVersion>[0-9]+\.[0-9]+)(-(?P<mode>[a-zA-Z]+))?', pluginLongVersion)
+        match = re.search(
+            r'(?P<rudderVersion>[0-9]+\.[0-9]+)-(?P<pluginShortVersion>[0-9]+\.[0-9]+)(-(?P<mode>[a-zA-Z]+))?',
+            pluginLongVersion,
+        )
         if match.group('mode') is None:
             self.mode = 'release'
         elif match.group('mode') in ['SNAPSHOT', 'nightly']:
             self.mode = 'nightly'
         else:
-            utils.fail("The version %s does not respect the version syntax. Unknown mode found: %s"%(pluginLongVersion, match.group('mode')))
+            utils.fail(
+                'The version %s does not respect the version syntax. Unknown mode found: %s'
+                % (pluginLongVersion, match.group('mode'))
+            )
 
         if match.group('rudderVersion') is None or match.group('pluginShortVersion') is None:
-            utils.fail("The version %s does not respect the version syntax [0-9]+.[0-9]+-[0-9]+.[0-9]+(-SNAPSHOT)?"%(pluginLongVersion))
+            utils.fail(
+                'The version %s does not respect the version syntax [0-9]+.[0-9]+-[0-9]+.[0-9]+(-SNAPSHOT)?'
+                % (pluginLongVersion)
+            )
         else:
             self.rudderVersion = match.group('rudderVersion')
             self.pluginShortVersion = match.group('pluginShortVersion')
             self.pluginLongVersion = pluginLongVersion
-            self.versionToCompare = RudderVersion(self.rudderVersion + "-" + self.pluginShortVersion)
+            self.versionToCompare = RudderVersion(
+                self.rudderVersion + '-' + self.pluginShortVersion
+            )
 
     def __hash__(self):
         return hash((self.mode, self.rudderVersion, self.pluginShortVersion))
 
     def __eq__(self, other):
         if isinstance(other, PluginVersion):
-            return self.mode == other.mode and self.rudderVersion == other.rudderVersion and self.pluginShortVersion == other.pluginShortVersion and self.versionToCompare == other.versionToCompare
+            return (
+                self.mode == other.mode
+                and self.rudderVersion == other.rudderVersion
+                and self.pluginShortVersion == other.pluginShortVersion
+                and self.versionToCompare == other.versionToCompare
+            )
         return False
 
     # nightly are inferior to their release equivalent
@@ -74,7 +91,7 @@ class PluginVersion:
             return False if self.mode == other.mode else self.mode == 'nightly'
         else:
             return self.versionToCompare < other.versionToCompare
-        
+
     def __le__(self, other):
         if self.__eq__(other) == True:
             return True
@@ -90,11 +107,14 @@ class PluginVersion:
     def __ge__(self, other):
         return not self.__lt__(other)
 
-"""
+
+'''
     Define an object based on a .rpkg file.
-"""
+'''
+
+
 class Rpkg:
-    def __init__(self, longName, shortName, path, version, metadata): 
+    def __init__(self, longName, shortName, path, version, metadata):
         self.longName = longName
         self.shortName = shortName
         self.path = path
@@ -109,39 +129,39 @@ class Rpkg:
 
     def show_metadata(self):
         # Mandatory
-        print("Name: " + self.metadata['name'])
-        print("Short name: " + self.metadata['name'].replace("rudder-plugin-", ""))
-        print("Version: " + self.metadata['version'])
+        print('Name: ' + self.metadata['name'])
+        print('Short name: ' + self.metadata['name'].replace('rudder-plugin-', ''))
+        print('Version: ' + self.metadata['version'])
 
         # Description
-        description = ""
+        description = ''
         if 'description' in self.metadata:
             description = self.metadata['description']
-        print("Description:")
+        print('Description:')
         for line in textwrap.wrap(description, 80):
-            print("  " + line)
+            print('  ' + line)
 
         # Build info
-        print("Build-date: " + self.metadata['build-date'])
-        print("Build-commit: " + self.metadata['build-commit'])
+        print('Build-date: ' + self.metadata['build-date'])
+        print('Build-commit: ' + self.metadata['build-commit'])
 
         # Dependencies info
         if 'depends' in self.metadata:
-          for dependType in self.metadata['depends'].keys():
-              prefix = "Depends %s: "%(dependType)
-              suffix = ', '.join(str(x) for x in self.metadata['depends'][dependType])
-              print(prefix + suffix)
+            for dependType in self.metadata['depends'].keys():
+                prefix = 'Depends %s: ' % (dependType)
+                suffix = ', '.join(str(x) for x in self.metadata['depends'][dependType])
+                print(prefix + suffix)
 
         # Jar info
-        jar = ""
+        jar = ''
         if 'jar-file' in self.metadata:
             jar = ', '.join(str(x) for x in self.metadata['jar-files'])
-        print("Jar files: " + jar)
+        print('Jar files: ' + jar)
 
         # Content info
-        print("Content:")
+        print('Content:')
         for iContent in self.metadata['content'].keys():
-            print("  %s: %s"%(iContent, self.metadata['content'][iContent]))
+            print('  %s: %s' % (iContent, self.metadata['content'][iContent]))
 
     def __eq__(self, other):
         if isinstance(other, Rpkg):
@@ -150,7 +170,7 @@ class Rpkg:
 
     def __lt__(self, other):
         return self.version.versionToCompare < other.version.versionToCompare
-        
+
     def __le__(self, other):
         return self.version.versionToCompare <= other.version.versionToCompare
 
@@ -173,10 +193,13 @@ class Rpkg:
         return self.path
 
     def show(self):
-        print(self.path + ":")
+        print(self.path + ':')
         print(json.dumps(self.metadata, indent=4, sort_keys=True))
 
     def toTabulate(self):
-        return [self.longName, self.version.mode, self.version.pluginLongVersion, str(self.isCompatible(None))]
-
-
+        return [
+            self.longName,
+            self.version.mode,
+            self.version.pluginLongVersion,
+            str(self.isCompatible(None)),
+        ]

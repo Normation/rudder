@@ -76,8 +76,9 @@ Commands:
 #   rudder-pkg upgrade package   # from std dir / from repo
 
 import sys, logging
-sys.path.insert(0,"/opt/rudder/share/python")
-sys.path.insert(0,"/opt/rudder/share/python/rudder-pkg")
+
+sys.path.insert(0, '/opt/rudder/share/python')
+sys.path.insert(0, '/opt/rudder/share/python/rudder-pkg')
 
 import docopt
 import rudderPkg
@@ -85,26 +86,26 @@ import rudderPkgLogger
 import rudderPkgUtils as utils
 
 ## MAIN
-if __name__ == "__main__":
+if __name__ == '__main__':
     # hackish way to make docopt compatible with the rudder command syntax
     # docopt parse the complete list given in argv BUT, if nothing is passed,
     # it will parse sys.argv[1:]
-    args = docopt.docopt(__doc__, argv=["package"]  + sys.argv[1:])
+    args = docopt.docopt(__doc__, argv=['package'] + sys.argv[1:])
     if args['--debug']:
         rudderPkgLogger.startLogger('DEBUG')
     else:
         rudderPkgLogger.startLogger('INFO')
-    logger = logging.getLogger("rudder-pkg")
+    logger = logging.getLogger('rudder-pkg')
     utils.db_load()
     utils.readConf()
 
     if args['install-file']:
         rudderPkg.install_file(args['<package.rpkg>'], None)
     if args['show']:
-        version = ""
-        mode = "release"
+        version = ''
+        mode = 'release'
         if args['--nightly']:
-            mode = "nightly"
+            mode = 'nightly'
         if args['--version']:
             version = args['--version']
         rudderPkg.package_show(args['<package>'], version, mode)
@@ -122,9 +123,9 @@ if __name__ == "__main__":
         if args['--version']:
             version = args['--version']
         if args['--nightly']:
-            rudderPkg.upgrade_all("nightly", version)
+            rudderPkg.upgrade_all('nightly', version)
         else:
-            rudderPkg.upgrade_all("release", version)
+            rudderPkg.upgrade_all('release', version)
 
     elif args['licenses']:
         utils.check_url()
@@ -138,14 +139,18 @@ if __name__ == "__main__":
         utils.check_url()
         if args['--version']:
             if args['--nightly']:
-                rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "nightly")
+                rudderPkg.package_install_specific_version(
+                    args['<package>'], args['--version'], 'nightly'
+                )
             else:
-                rudderPkg.package_install_specific_version(args['<package>'], args['--version'], "release")
+                rudderPkg.package_install_specific_version(
+                    args['<package>'], args['--version'], 'release'
+                )
         else:
             if args['--nightly']:
-                rudderPkg.package_install_latest(args['<package>'], "nightly", None)
+                rudderPkg.package_install_latest(args['<package>'], 'nightly', None)
             else:
-                rudderPkg.package_install_latest(args['<package>'], "release", None)
+                rudderPkg.package_install_latest(args['<package>'], 'release', None)
     elif args['remove']:
         rudderPkg.remove(args['<package>'])
     elif args['rudder-postupgrade']:
@@ -175,4 +180,4 @@ if __name__ == "__main__":
     if utils.jetty_needs_restart:
         logger.info('Restarting rudder-jetty')
         utils.run(['systemctl', 'restart', 'rudder-jetty'])
-        logger.info("done")
+        logger.info('done')
