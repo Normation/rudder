@@ -36,7 +36,7 @@ import com.normation.rudder.domain.nodes.{MachineInfo, Node, NodeInfo}
 import com.normation.rudder.domain.nodes.NodeState.Enabled
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.reports.ReportingConfiguration
-import com.normation.rudder.repository.ldap.{LDAPEntityMapper, WoLDAPNodeRepository}
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.servers.AcceptFullInventoryInNodeOu
@@ -74,7 +74,7 @@ class NodeInfoServiceCachedTest extends Specification {
 
   val rudderDit = new RudderDit(DN("ou=Rudder", LDAP_BASEDN))
   val nodeDit = new NodeDit(new DN("cn=rudder-configuration"))
-  val inventoryDit = new InventoryDit(DN("ou=Accepted Inventories", DN("ou=Inventories", LDAP_BASEDN)), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
+  val inventoryDit = InventoryDit(DN("ou=Accepted Inventories", DN("ou=Inventories", LDAP_BASEDN)), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
 
   def createNodeInfo(
       id: NodeId
@@ -411,8 +411,11 @@ class NodeInfoServiceCachedTest extends Specification {
 
       // *************** step1 ****************
       // cache does not know about testCacheNode2 yet
+      val step1res = nodeInfoService.getNodeInfo(nodeId).forceGet
+
+
       // move the node to the accepted
-      // put back the machine to pending so that accept works
+      // *************** step2 ****************
       ldapFullInventoryRepository.moveNode(nodeId, PendingInventory, AcceptedInventory).runNow
 
       // create the entry in ou=Nodes
@@ -424,27 +427,13 @@ class NodeInfoServiceCachedTest extends Specification {
         saved
       }).runNow
 
-
-      ldap.server.exportToLDIF("/tmp/ldif-post-move", false, false)
-
       ldapFullInventoryRepository.move(MachineUuid("testCacheMachine2"), PendingInventory)
 
-      ldap.server.exportToLDIF("/tmp/ldif-post-node", false, false)
-
-      println("Moved to accepted")
-      val step1res = nodeInfoService.getNodeInfo(nodeId).forceGet
-      println("step1res = " +step1res)
       Thread.sleep(500)
-      // *************** step2 ****************
-      // second new node step: cache converge
-      //val step2 = acceptInventory.acceptOne(nodeInv, modid, actor).forceGet
-      ldap.server.exportToLDIF("/tmp/ldif", false, false)
       val step2res = nodeInfoService.getNodeInfo(nodeId).forceGet
+      // It should find the container via compensation
 
-      println("step2res " + step2res)
-
-      (step1res must beSome) and
-        (step1res.get.machine === None)
+      (step1res === None) and
         (step2res must beSome) and
         (step2res.get.machine must beSome)
 

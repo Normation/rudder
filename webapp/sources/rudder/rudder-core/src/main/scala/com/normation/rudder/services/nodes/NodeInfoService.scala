@@ -270,14 +270,13 @@ object NodeInfoServiceCached {
   ): NodeUpdates = {
 
     // get machine inventory from inventory map. It will not look in cache
-    def getMachineInventory(
-        optContainerDn: Option[String]
-      , machineInventories: MutMap[String, LDAPEntry] // only read
-      , managedMachineInventories: scala.collection.mutable.Buffer[String]
-      , cacheEntry:  () => Option[LDAPEntry]
-    ): Option[LDAPEntry] = {
+    def getNonOptionnalMachineInventory(
+         containerDn: String
+       , machineInventories: MutMap[String, LDAPEntry] // only read
+       , managedMachineInventories: scala.collection.mutable.Buffer[String]
+       , cacheEntry:  () => Option[LDAPEntry]
+        ): Option[LDAPEntry] = {
       for {
-        containerDn  <- optContainerDn
         machineEntry <- machineInventories.get(containerDn) match {
           case Some(value) =>
             // machine inventory is handled
@@ -308,27 +307,52 @@ object NodeInfoServiceCached {
         case Some(nodeInv) =>
           // Node inventory with this is handled, so we should not look for it again
           managedNodeInventories += id
-          val machineInv = getMachineInventory(
-              nodeInv(A_CONTAINER_DN)
-            , infoMaps.machineInventories
-            , managedMachineInventories
-            , () => currentCache.nodeInfos.get(NodeId(id)).flatMap(_._1.machineEntry)
-          )
-          result.updated.addOne(LDAPNodeInfo(nodeEntry, nodeInv, machineInv))
-        case None      => // look in cache
-          currentCache.nodeInfos.get(NodeId(id)) match {
-            case None             => // oups, mark as problem
-               result.nodeErrors.addOne(id)
-            case Some((ldapInfo, nodeInfo)) => // use that
-              val nodeInv = ldapInfo.nodeInventoryEntry
-              val machineInv = getMachineInventory(
-                  nodeInv(A_CONTAINER_DN)
+          // if a containerDn is defined, we must find a node
+          nodeInv(A_CONTAINER_DN) match {
+            case Some(containerDn) =>
+              val machineInv = getNonOptionnalMachineInventory(
+                  containerDn
                 , infoMaps.machineInventories
                 , managedMachineInventories
-                , () => ldapInfo.machineEntry
+                , () => currentCache.nodeInfos.get(NodeId(id)).flatMap(_._1.machineEntry)
               )
-              result.updated.addOne(LDAPNodeInfo(nodeEntry, nodeInv, machineInv))
-        }
+              machineInv match {
+                case Some(_) =>
+                  result.updated.addOne(LDAPNodeInfo(nodeEntry, nodeInv, machineInv))
+                case None =>
+                  // container is defined, but not found. This is an error
+                  result.nodeErrors.addOne(id)
+              }
+            case None => // no container expected
+              result.updated.addOne(LDAPNodeInfo(nodeEntry, nodeInv, None))
+          }
+        case None      => // look in cache
+          currentCache.nodeInfos.get(NodeId(id)) match {
+            case None => // oups, mark as problem
+              result.nodeErrors.addOne(id)
+            case Some((ldapInfo, nodeInfo)) => // use that
+              val nodeInv = ldapInfo.nodeInventoryEntry
+              // if a containerDn is defined, we must find a node
+              nodeInv(A_CONTAINER_DN) match {
+                case Some(containerDn) =>
+                  val machineInv = getNonOptionnalMachineInventory(
+                    containerDn
+                    , infoMaps.machineInventories
+                    , managedMachineInventories
+                    , () => ldapInfo.machineEntry
+                  )
+                  machineInv match {
+                    case Some(_) =>
+                      result.updated.addOne(LDAPNodeInfo(nodeEntry, nodeInv, machineInv))
+                    case None =>
+                      // container is defined, but not found. This is an error
+                      result.nodeErrors.addOne(id)
+                  }
+                case None => // no container expected
+                  result.updated.addOne(LDAPNodeInfo(nodeEntry, nodeInv, None))
+              }
+          }
+
       }
     }
     val nbNodeEntries = result.updated.size
@@ -349,8 +373,24 @@ object NodeInfoServiceCached {
             result.nodeErrors.addOne(id)
           case Some((ldapInfo, nodeInfo)) =>
             val nodeEntry = ldapInfo.nodeEntry
-            val machineInv = getMachineInventory(nodeInv(A_CONTAINER_DN), infoMaps.machineInventories, managedMachineInventories, () => ldapInfo.machineEntry)
-            result.updated.addOne(LDAPNodeInfo(nodeEntry, nodeInv, machineInv))
+            nodeInv(A_CONTAINER_DN) match {
+              case Some(containerDn) =>
+                val machineInv = getNonOptionnalMachineInventory(
+                  containerDn
+                  , infoMaps.machineInventories
+                  , managedMachineInventories
+                  , () => ldapInfo.machineEntry
+                )
+                machineInv match {
+                  case Some(_) =>
+                    result.updated.addOne(LDAPNodeInfo(nodeEntry, nodeInv, machineInv))
+                  case None =>
+                    // container is defined, but not found. This is an error
+                    result.nodeErrors.addOne(id)
+                }
+              case None =>
+                result.updated.addOne(LDAPNodeInfo(nodeEntry, nodeInv, None))
+            }
         }
       }
     }
@@ -379,7 +419,7 @@ object NodeInfoServiceCached {
 
     logEffect.trace(s"  -- machineInventoriesEntries: ${result.updated.iterator.drop(nbNodeEntries+nbNodeInvs).mkString(",")}")
     logEffect.debug(s"  -- following machineInventories were not complete for cache: ${result.containerErrors.mkString(",")}")
-println(s"  -- following machineInventories were not complete for cache: ${result.containerErrors.mkString(",")}")
+
     result
   }
 
@@ -600,15 +640,22 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                         }
           // try to compasente for errors: for node id, get full info from backend, for containers, dedicated search (todo)
           _          <- NodeLoggerPure.Cache.debug(s"Found ${updates.updated.size} new entries to update cache")
-          compensate <- getBackendLdapNodeInfo(updates.nodeErrors.toSeq).catchAll(err => // we don't want to fail because we tried to compensate
-                          NodeLoggerPure.Cache.warn(s"Error when trying to find in LDAP node entries: ${updates.nodeErrors.mkString(", ")}: ${err.fullMsg}") *> Seq().succeed
-                        )
+          compensate <- if (updates.nodeErrors.nonEmpty) {
+                          getBackendLdapNodeInfo(updates.nodeErrors.toSeq).catchAll(err => // we don't want to fail because we tried to compensate
+                            NodeLoggerPure.Cache.warn(s"Error when trying to find in LDAP node entries: ${updates.nodeErrors.mkString(", ")}: ${err.fullMsg}") *> Seq().succeed
+                          )
+                        } else {
+                           Seq().succeed
+                        }
           _          <- ZIO.when(updates.nodeErrors.size > 0) {
                           NodeLoggerPure.Cache.debug(s"${updates.nodeErrors.size} were in errors, compensated ${compensate.size}")
                         }
-          compensateContainer <- getBackendLdapContainerinfo(updates.containerErrors.toSeq).catchAll(err => // we don't want to fail because we tried to compensate
+          compensateContainer <- if (updates.containerErrors.nonEmpty) {
+                        getBackendLdapContainerinfo(updates.containerErrors.toSeq).catchAll(err => // we don't want to fail because we tried to compensate
                           NodeLoggerPure.Cache.warn(s"Error when trying to find in LDAP containers entries: ${updates.containerErrors.mkString(", ")}: ${err.fullMsg}") *> Seq().succeed
-                        )
+                        )} else {
+                          Seq().succeed
+                        }
           _          <- ZIO.when(updates.containerErrors.size > 0) {
                           NodeLoggerPure.Cache.debug(s"${updates.containerErrors.size} were in errors, compensated ${compensateContainer.size}")
                         }
@@ -1060,50 +1107,33 @@ class NodeInfoServiceCachedImpl(
   }
 
   override def getBackendLdapNodeInfo(nodeIds: Seq[String]): IOResult[Seq[LDAPNodeInfo]] = {
-    println(s"compensate: looking for  nodeIds ${nodeIds}")
     for {
       con         <- ldap
       nodeEntries <- con.search(nodeDit.NODES.dn        , One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
-      _ = println("nodeEntries " + nodeEntries)
-
       nodeInvs    <- con.search(inventoryDit.NODES.dn   , One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
-      _ = println("nodeInvs " + nodeInvs)
       containers  =  nodeInvs.flatMap(e => e(A_CONTAINER_DN).map(dn => new DN(dn).getRDN.getAttributeValues()(0)))
-      _ = println("containers " + containers)
       machineInvs <- con.search(inventoryDit.MACHINES.dn, One, OR(containers.map(id => EQ(A_MACHINE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
-      _ = println("machineInvs " + machineInvs)
       infoMaps    <- IOResult.effect { constructInfoMaps(nodeEntries, nodeInvs, machineInvs) }
       res         <- NodeInfoServiceCached.constructNodesFromAllEntries(infoMaps, checkRoot = false)
     } yield {
       // here, we ignore error cases
-      println("Compensating returns infoMaps " + infoMaps)
-
-      println("Compensating returns " + res)
-
       res.updated.toSeq
     }
   }
 
   // containerDn look like  machineId=000f6268-e825-d13c-fa14-f9e55d05038c,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
   override def getBackendLdapContainerinfo(containersDn: Seq[String]): IOResult[Seq[LDAPNodeInfo]] = {
-    println(s"looking for  ${containersDn}")
     for {
       con         <- ldap
       containers  =  containersDn.map(dn => new DN(dn).getRDN.getAttributeValues()(0)) // I'm using the same logic as up so that I can get all machines in one query, rather than on get per dn
       machineInvs <- con.search(inventoryDit.MACHINES.dn, One, OR(containers.map(id => EQ(A_MACHINE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
-      _ = println(s"machineInvs ${machineInvs}")
       nodeInvs    <- con.search(inventoryDit.NODES.dn   , One, OR(containersDn.map(container => EQ(A_CONTAINER_DN, container)):_*), NodeInfoService.nodeInfoAttributes:_*)
-      _ = println(s"nodeInvs ${nodeInvs}")
-
       nodeIds      = nodeInvs.flatMap(_(A_NODE_UUID))
-      _ = println(s"nodeIds ${nodeIds}")
       nodeEntries <- con.search(nodeDit.NODES.dn        , One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
-      _ = println(s"nodeEntries ${nodeEntries}")
       infoMaps    <- IOResult.effect { constructInfoMaps(nodeEntries, nodeInvs, machineInvs) }
       res         <- NodeInfoServiceCached.constructNodesFromAllEntries(infoMaps, checkRoot = false)
     } yield {
       // here, we ignore error cases
-      println(s"${res.updated}")
       res.updated.toSeq
     }
   }

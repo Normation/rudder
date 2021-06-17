@@ -117,7 +117,6 @@ import com.normation.eventlog.EventActor
 import net.liftweb.common.Full
 import net.liftweb.common.Box
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.MachineInventory
 import com.normation.inventory.domain.PendingInventory
 import com.normation.inventory.domain.VMWare
