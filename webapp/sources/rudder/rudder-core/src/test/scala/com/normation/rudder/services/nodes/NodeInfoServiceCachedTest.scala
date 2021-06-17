@@ -328,6 +328,7 @@ class NodeInfoServiceCachedTest extends Specification {
       val nodeInv = new FullInventory(
         NodeConfigData.nodeInventory1.modify(_.main.status).setTo(PendingInventory)
                                      .modify(_.main.id.value).setTo("testCacheNode")
+                                     .modify(_.machineId).setTo(Some(MachineUuid("testCacheMachine"), PendingInventory))
         , Some(NodeConfigData.machine2Pending.modify(_.id.value).setTo("testCacheMachine")
                                              .modify(_.name).setTo(Some("testCacheMachine"))
         )
@@ -359,7 +360,8 @@ class NodeInfoServiceCachedTest extends Specification {
       val step2res = nodeInfoService.getNodeInfo(nodeId).forceGet
 
       (step1res === None) and
-      (step2res must beSome)
+      (step2res must beSome) and
+        (step2res.get.machine must beSome)
 
     }
 
@@ -368,6 +370,7 @@ class NodeInfoServiceCachedTest extends Specification {
       val nodeInv = new FullInventory(
         NodeConfigData.nodeInventory1.modify(_.main.status).setTo(PendingInventory)
           .modify(_.main.id.value).setTo("testCacheNode2")
+          .modify(_.machineId).setTo(Some(MachineUuid("testCacheMachine2"), AcceptedInventory))
         , Some(NodeConfigData.machine1Accepted.modify(_.id.value).setTo("testCacheMachine2")
           .modify(_.name).setTo(Some("testCacheMachine2"))
         )
@@ -377,26 +380,36 @@ class NodeInfoServiceCachedTest extends Specification {
       val nodeId = nodeInv.node.main.id
 
       // *************** start ****************
-      // add inventory to pending, but machine to accepted
+      // Force init of cache
+      nodeInfoService.getAll().forceGet
+
+      // add node inventory to pending, but machine to accepted
       ldapFullInventoryRepository.save(nodeInv).runNow
+      ldap.server.exportToLDIF("/tmp/ldif-before", false, false)
+
       //wait a bit for cache
-      Thread.sleep(50)
+      Thread.sleep(500)
       // load cache
       nodeInfoService.getAll().forceGet
 
-      // it should look very empty
-
       // *************** step1 ****************
-      // cache does not know about node1 yet
-      val step1 = acceptNodeAndMachineInNodeOu.acceptOne(nodeInv, modid, actor).forceGet
+      // cache does not know about testCacheNode2 yet
+      // move the node to the accepted
+      // put back the machine to pending so that accept works
+     // ldapFullInventoryRepository.moveNode(nodeId, PendingInventory, AcceptedInventory).runNow
+      ldapFullInventoryRepository.move(MachineUuid("testCacheMachine2"), PendingInventory)
+      val step1 = acceptInventory.acceptOne(nodeInv, modid, actor).forceGet
+      println("Moved to accepted")
       val step1res = nodeInfoService.getNodeInfo(nodeId).forceGet
-
+      println("step1res = " +step1res)
+      Thread.sleep(500)
       // *************** step2 ****************
       // second new node step: cache converge
-      val step2 = acceptInventory.acceptOne(nodeInv, modid, actor).forceGet
+      //val step2 = acceptInventory.acceptOne(nodeInv, modid, actor).forceGet
+      ldap.server.exportToLDIF("/tmp/ldif", false, false)
       val step2res = nodeInfoService.getNodeInfo(nodeId).forceGet
 
-      val step3res = nodeInfoService.getNodeInfo(nodeId).forceGet
+      println("step2res " + step2res)
 
       (step1res === None) and
         (step2res must beSome) and

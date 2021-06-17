@@ -1060,17 +1060,26 @@ class NodeInfoServiceCachedImpl(
   }
 
   override def getBackendLdapNodeInfo(nodeIds: Seq[String]): IOResult[Seq[LDAPNodeInfo]] = {
-    println(s"looking for  nodeIds ${nodeIds}")
+    println(s"compensate: looking for  nodeIds ${nodeIds}")
     for {
       con         <- ldap
       nodeEntries <- con.search(nodeDit.NODES.dn        , One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
+      _ = println("nodeEntries " + nodeEntries)
+
       nodeInvs    <- con.search(inventoryDit.NODES.dn   , One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
+      _ = println("nodeInvs " + nodeInvs)
       containers  =  nodeInvs.flatMap(e => e(A_CONTAINER_DN).map(dn => new DN(dn).getRDN.getAttributeValues()(0)))
+      _ = println("containers " + containers)
       machineInvs <- con.search(inventoryDit.MACHINES.dn, One, OR(containers.map(id => EQ(A_MACHINE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
+      _ = println("machineInvs " + machineInvs)
       infoMaps    <- IOResult.effect { constructInfoMaps(nodeEntries, nodeInvs, machineInvs) }
       res         <- NodeInfoServiceCached.constructNodesFromAllEntries(infoMaps, checkRoot = false)
     } yield {
       // here, we ignore error cases
+      println("Compensating returns infoMaps " + infoMaps)
+
+      println("Compensating returns " + res)
+
       res.updated.toSeq
     }
   }
