@@ -35,7 +35,8 @@ import com.normation.rudder.domain.{NodeDit, RudderDit}
 import com.normation.rudder.domain.nodes.{MachineInfo, Node, NodeInfo}
 import com.normation.rudder.domain.nodes.NodeState.Enabled
 import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
+import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.rudder.repository.ldap.{LDAPEntityMapper, WoLDAPNodeRepository}
 import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.servers.AcceptFullInventoryInNodeOu
@@ -50,8 +51,8 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-
 import com.normation.zio._
+
 import scala.collection.mutable.{Map => MutMap}
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
@@ -283,7 +284,6 @@ class NodeInfoServiceCachedTest extends Specification {
       , () => Full(None)
       , () => Full(NodeState.Enabled)
     )
-
     /*
      * Our cached node info service. For test, we need to override the search for entries, because the in memory
      * LDAP does not support searching only under some branch AND does not have an entryCSN.
@@ -379,6 +379,23 @@ class NodeInfoServiceCachedTest extends Specification {
       val actor = EventActor("test")
       val nodeId = nodeInv.node.main.id
 
+      /** Create the node here, to "cheat" to simulate acceptation */
+      val name = nodeInv.node.name.getOrElse(nodeInv.node.main.id.value)
+      val description = nodeInv.node.description.getOrElse("")
+
+      val node = Node(
+          nodeId
+        , name
+        , description
+        , NodeState.Enabled
+        , false
+        , false
+        , DateTime.now // won't be used on save - dummy value
+        , ReportingConfiguration(None,None, None) // use global schedule, and default configuration for reporting
+        , Nil //no user properties for now
+        , None
+      )
+
       // *************** start ****************
       // Force init of cache
       nodeInfoService.getAll().forceGet
@@ -396,9 +413,24 @@ class NodeInfoServiceCachedTest extends Specification {
       // cache does not know about testCacheNode2 yet
       // move the node to the accepted
       // put back the machine to pending so that accept works
-     // ldapFullInventoryRepository.moveNode(nodeId, PendingInventory, AcceptedInventory).runNow
+      ldapFullInventoryRepository.moveNode(nodeId, PendingInventory, AcceptedInventory).runNow
+
+      // create the entry in ou=Nodes
+      val nodeEntry = ldapMapper.nodeToEntry(node)
+      (for {
+        con <- ldap
+        saved <- con.save(nodeEntry)
+      } yield {
+        saved
+      }).runNow
+
+
+      ldap.server.exportToLDIF("/tmp/ldif-post-move", false, false)
+
       ldapFullInventoryRepository.move(MachineUuid("testCacheMachine2"), PendingInventory)
-      val step1 = acceptInventory.acceptOne(nodeInv, modid, actor).forceGet
+
+      ldap.server.exportToLDIF("/tmp/ldif-post-node", false, false)
+
       println("Moved to accepted")
       val step1res = nodeInfoService.getNodeInfo(nodeId).forceGet
       println("step1res = " +step1res)
@@ -411,7 +443,8 @@ class NodeInfoServiceCachedTest extends Specification {
 
       println("step2res " + step2res)
 
-      (step1res === None) and
+      (step1res must beSome) and
+        (step1res.get.machine === None)
         (step2res must beSome) and
         (step2res.get.machine must beSome)
 
