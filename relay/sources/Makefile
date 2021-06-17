@@ -18,6 +18,10 @@ GET=get() { $(PROXY_ENV) curl -s -L -o "$$1.part" "$$2" && { openssl dgst -sha25
 DESTDIR = $(CURDIR)/target
 APACHE_VHOSTDIR = apache2/sites-available
 
+PYLINT=$(shell if type pylint3 >/dev/null 2>/dev/null; then echo pylint3; else echo pylint; fi)
+
+PY_SOURCES=rudder-pkg/rudder-pkg rudder-pkg/lib/rudder-pkg
+
 rudder-pkg/rudder_plugins_key.pub:
 	$(GET) rudder-pkg/rudder_plugins_key.pub https://repository.rudder.io/apt/rudder_apt_key.pub $(RUDDER_PLUGINS_KEY_SHA256)
 
@@ -141,11 +145,21 @@ endif
 
 # Quality
 
+fmt:
+	blue ${PY_SOURCES}
+
 lint:
 	# Collect all warnings
-	cd rudder-pkg && pylint3 --disable=import-error,no-member --rcfile=.pylintrc-ci rudder-pkg lib/rudder-pkg/*.py > pylint.log || true
+	cd rudder-pkg && ${PYLINT} --disable=import-error,no-member --rcfile=.pylintrc-ci rudder-pkg lib/rudder-pkg/*.py > pylint.log || true
 	# Fail on errors
-	cd rudder-pkg && pylint3 --errors-only --disable=import-error,no-member rudder-pkg lib/rudder-pkg/*.py
+	cd rudder-pkg && ${PYLINT} --errors-only --disable=import-error,no-member rudder-pkg lib/rudder-pkg/*.py
+
+	# check format
+	blue --check ${PY_SOURCES}
+
+	# check for common vulnerabilities
+	# -ll => only fail for >= medium level, skip low
+	bandit -ll -r ${PY_SOURCES}
 
 check: lint
 	cd rudder-pkg/lib/rudder-pkg/tests && ./testall
