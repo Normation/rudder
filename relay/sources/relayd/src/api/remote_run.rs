@@ -363,6 +363,7 @@ impl RunParameters {
                     .join(","),
             );
         }
+        cmd.arg("--".to_string());
         cmd.arg(nodes.join(","));
         debug!("Remote run command: '{:#?}'", cmd);
         cmd
