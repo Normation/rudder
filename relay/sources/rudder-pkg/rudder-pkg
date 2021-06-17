@@ -173,5 +173,6 @@ if __name__ == "__main__":
             rudderPkg.plugin_disable_all()
 
     if utils.jetty_needs_restart:
-        utils.shell("service rudder-jetty restart", "Restarting jetty")
+        logger.info('Restarting rudder-jetty')
+        utils.run(['systemctl', 'restart', 'rudder-jetty'])
         logger.info("done")
