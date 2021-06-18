@@ -69,7 +69,7 @@ mod tests {
         assert_eq!(response.status(), hyper::StatusCode::OK);
         assert_eq!(response.text().unwrap(), "OK\nEND\n".to_string());
         assert_eq!(
-            "remote run -D class2,class3 server.rudder.local".to_string(),
+            "remote run -D class2,class3 -- server.rudder.local".to_string(),
             read_to_string("target/tmp/api_test.txt").unwrap()
         );
 
@@ -88,7 +88,7 @@ mod tests {
         assert_eq!(response.status(), hyper::StatusCode::OK);
         assert_eq!(response.text().unwrap(), "OK\nEND\n".to_string());
         assert_eq!(
-            "remote run -D class2,class45 node1.rudder.local".to_string(),
+            "remote run -D class2,class45 -- node1.rudder.local".to_string(),
             read_to_string("target/tmp/api_test.txt").unwrap()
         );
 
@@ -106,7 +106,7 @@ mod tests {
         assert_eq!(response.status(), hyper::StatusCode::OK);
         assert_eq!(response.text().unwrap(), "OK\nEND\n".to_string());
         assert_eq!(
-            "remote run -D class2,class46 node1.rudder.local".to_string(),
+            "remote run -D class2,class46 -- node1.rudder.local".to_string(),
             read_to_string("target/tmp/api_test.txt").unwrap()
         );
 
@@ -129,7 +129,7 @@ mod tests {
         // async, let's wait a bit
         thread::sleep(time::Duration::from_millis(700));
         assert_eq!(
-            "remote run -D class2,class4 server.rudder.local".to_string(),
+            "remote run -D class2,class4 -- server.rudder.local".to_string(),
             read_to_string("target/tmp/api_test.txt").unwrap()
         );
 
@@ -150,7 +150,7 @@ mod tests {
         assert_eq!(response.status(), hyper::StatusCode::OK);
         assert_eq!(response.text().unwrap(), "OK\nEND\n".to_string());
         assert_eq!(
-            "remote run -D class2,class5 server.rudder.local".to_string(),
+            "remote run -D class2,class5 -- server.rudder.local".to_string(),
             read_to_string("target/tmp/api_test.txt").unwrap()
         );
 
@@ -209,7 +209,7 @@ mod tests {
         assert_eq!(response.status(), hyper::StatusCode::OK);
         assert_eq!(response.text().unwrap(), "".to_string());
         assert_eq!(
-            "remote run -D class2,class6 server.rudder.local".to_string(),
+            "remote run -D class2,class6 -- server.rudder.local".to_string(),
             read_to_string("target/tmp/api_test.txt").unwrap()
         );
 
