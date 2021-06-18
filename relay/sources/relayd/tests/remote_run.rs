@@ -187,7 +187,7 @@ mod tests {
         assert_eq!(response.status(), hyper::StatusCode::OK);
         assert_eq!(response.text().unwrap(), "OK\nEND\nREMOTE\n".to_string());
         assert_eq!(
-            "remote run -D class2,class5 server.rudder.local".to_string(),
+            "remote run -D class2,class5 -- server.rudder.local".to_string(),
             read_to_string("target/tmp/api_test.txt").unwrap()
         );
         assert!(Path::new("target/tmp/api_test_remote.txt").exists());
