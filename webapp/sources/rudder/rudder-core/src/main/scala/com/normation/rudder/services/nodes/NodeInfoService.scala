@@ -952,8 +952,10 @@ class NaiveNodeInfoServiceCachedImpl(
       nodeInvs ++ machineInvs ++ nodes
     }
   }
-
-  override def getBackendLdapNodeInfo(nodeIds: Seq[String]): IOResult[Seq[LDAPNodeInfo]] = ???
+  // necessary for tests
+  override def getBackendLdapNodeInfo(nodeIds: Seq[String]): IOResult[Seq[LDAPNodeInfo]] = {
+    Seq().succeed
+  }
 
   override def getBackendLdapContainerinfo(containersDn: Seq[String]): IOResult[Seq[LDAPNodeInfo]] = ???
 }
