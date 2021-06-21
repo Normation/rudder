@@ -432,7 +432,7 @@ object NodeInfoServiceCached {
       results      <- Ref.make(NodeUpdates())
       rootMissing  <- Ref.make(checkRoot)
                       // foreach cannot work on mutableMap
-      _            <- ZIO.foreach(infoMaps.nodes.toList) { case (id, nodeEntry) =>
+      _            <- ZIO.foreach(infoMaps.nodes:Iterable[(String, LDAPEntry)]) { case (id, nodeEntry) =>
                         infoMaps.nodeInventories.get(id) match {
                           case None =>
                             // We can safely skip it - when the inventory will appear, it will be caught up in the partial update
@@ -661,7 +661,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                           NodeLoggerPure.Cache.debug(s"${updates.containerErrors.size} were in errors, compensated ${compensateContainer.size}")
                         }
           // now construct the nodeInfo
-          updated    <- ZIO.foreach(updates.updated.toList ++ compensate.toList ++ compensateContainer.toList) { ldapNode =>
+          updated    <- ZIO.foreach((updates.updated ++ compensate ++ compensateContainer) : Iterable[LDAPNodeInfo]) { ldapNode =>
                          val id = ldapNode.nodeEntry.value_!(A_NODE_UUID) // id is mandatory
                          ldapMapper.convertEntriesToNodeInfos(
                              ldapNode.nodeEntry
