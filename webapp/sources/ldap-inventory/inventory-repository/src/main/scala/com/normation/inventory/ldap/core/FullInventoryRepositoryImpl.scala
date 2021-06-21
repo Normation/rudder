@@ -47,6 +47,8 @@ import com.normation.inventory.services.core._
 import com.normation.ldap.sdk.BuildFilter.EQ
 import com.normation.ldap.sdk.LDAPIOResult._
 import com.normation.ldap.sdk._
+import com.normation.utils.HostnameRegex
+import com.normation.utils.NodeIdRegex
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
@@ -366,6 +368,9 @@ class FullInventoryRepositoryImpl(
 
   override def save(inventory:FullInventory) : IOResult[Seq[LDIFChangeRecord]] = {
     (for {
+      // check validity of standard fields
+      _          <- NodeIdRegex.checkNodeId(inventory.node.main.id.value).toIO
+      _          <- HostnameRegex.checkHostname(inventory.node.main.hostname).toIO
       con        <- ldap
       resServer  <- con.saveTree(mapper.treeFromNode(inventory.node))
       resMachine <- inventory.machine match {
