@@ -269,7 +269,7 @@ object NodeInfoServiceCached {
     , infoMaps    : InfoMaps
   ): NodeUpdates = {
 
-    // get machine inventory from inventory map. It will not look in cache
+    // get machine inventory from inventory map. it will lazely use cacheEntry if not found in machineInventories
     def getNonOptionnalMachineInventory(
          containerDn: String
        , machineInventories: MutMap[String, LDAPEntry] // only read
