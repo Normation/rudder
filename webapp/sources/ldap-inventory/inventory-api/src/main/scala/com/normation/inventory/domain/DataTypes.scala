@@ -100,7 +100,7 @@ case object SecurityToken {
     subject.find { case (k,v) => k == ParsedSecurityToken.nodeidOID } match {
       case None        => InventoryError.SecurityToken(s"Certificate subject doesn't contain node ID in 'UID' attribute: ${formatSubject(subject)}").fail
       case Some((k,v)) =>
-        if(v.trim.toLowerCase == nodeId.value.toLowerCase) {
+        if(v.trim.equalsIgnoreCase(nodeId.value)) {
           UIO.unit
         } else {
           InventoryError.SecurityToken(s"Certificate subject doesn't contain same node ID in 'UID' attribute as inventory node ID: ${formatSubject(subject)}").fail

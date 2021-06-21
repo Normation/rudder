@@ -248,7 +248,7 @@ final case class RestExtractorService (
       case "open" => Full(workflowLevelService.getWorkflowService().openSteps)
       case "closed" => Full(workflowLevelService.getWorkflowService().closedSteps)
       case "all" =>  Full(possiblestates)
-      case value => possiblestates.find(_.value.toLowerCase == value) match {
+      case value => possiblestates.find(_.value.equalsIgnoreCase(value)) match {
         case Some(state) => Full(Seq(state))
         case None => Failure(s"'${value}' is not a possible state for change requests")
       }
@@ -257,7 +257,7 @@ final case class RestExtractorService (
 
   private[this] def toWorkflowTargetStatus (value : String) : Box[WorkflowNodeId] = {
     val possiblestates = workflowLevelService.getWorkflowService().stepsValue
-    possiblestates.find(_.value.toLowerCase == value.toLowerCase) match {
+    possiblestates.find(_.value.equalsIgnoreCase(value)) match {
       case Some(state) => Full(state)
       case None => Failure(s"'${value}' is not a possible state for change requests, availabled values are: ${possiblestates.mkString("[ ", ", ", " ]")}")
     }
