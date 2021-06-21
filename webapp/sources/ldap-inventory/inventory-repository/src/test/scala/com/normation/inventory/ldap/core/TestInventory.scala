@@ -276,7 +276,7 @@ class TestInventory extends Specification {
   implicit class ForceGet[A, B](opt: Either[A, Option[B]]) {
     def forceGet: Some[B]  = opt match {
       case Right(Some(b)) => Some(b)
-      case _              => throw new Exception("in Test")
+      case x              => throw new Exception(s"in Test: ${x}")
     }
   }
 
@@ -396,10 +396,11 @@ class TestInventory extends Specification {
   "Trying to add specific Windows" should {
 
     "Allow to save and read it back" in {
+      val nodeId = NodeId("windows-2012")
 
       val node =  NodeInventory(
           NodeSummary(
-              NodeId("windows 2012")
+              nodeId
             , AcceptedInventory
             , "administrator"
             , "localhost"
@@ -417,7 +418,7 @@ class TestInventory extends Specification {
       )
 
       repo.save(FullInventory(node, None)).isOK and {
-        val Some(FullInventory(n, m)) = repo.get(NodeId("windows 2012"), AcceptedInventory).testRun.forceGet
+        val Some(FullInventory(n, m)) = repo.get(nodeId, AcceptedInventory).testRun.forceGet
         n === node
       }
 
