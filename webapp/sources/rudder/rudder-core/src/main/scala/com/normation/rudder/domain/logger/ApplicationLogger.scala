@@ -94,6 +94,10 @@ object NodeLoggerPure extends NamedZioLogger { parent =>
   object Delete extends NamedZioLogger {
     def loggerName: String = parent.loggerName + ".delete"
   }
+
+  object Cache extends NamedZioLogger {
+    def loggerName: String = parent.loggerName + ".cache"
+  }
 }
 
 /*
