@@ -110,9 +110,8 @@ trait ComparatorList {
 
   def comparators : Seq[CriterionComparator]
   def comparatorForString(s: String) : Option[CriterionComparator] = {
-    val lower = s.toLowerCase
     for(comp <- comparators) {
-      if(lower == comp.id.toLowerCase) return Some(comp)
+      if(s.equalsIgnoreCase(comp.id)) return Some(comp)
     }
     None
   }
@@ -878,9 +877,8 @@ case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) {
 
   //optionnaly retrieve the criterion from a "string" attribute
   def criterionForName(name:String) : (Option[Criterion]) = {
-    val lower = name.toLowerCase
     for(c <- criteria) {
-      if(lower == c.name.toLowerCase) return Some(c)
+      if(name.equalsIgnoreCase(c.name)) return Some(c)
     }
     None
   }

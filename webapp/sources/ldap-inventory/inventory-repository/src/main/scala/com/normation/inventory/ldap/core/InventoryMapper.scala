@@ -485,7 +485,7 @@ class InventoryMapper(
         case _ => None
       }
     }
-    val machineTypes = objectClassNames.filter(x => machineTypesNames.exists(y => x.toLowerCase == y.toLowerCase))
+    val machineTypes = objectClassNames.filter(x => machineTypesNames.exists(y => x.equalsIgnoreCase(y)))
     val types = OC.demux(machineTypes.toSeq:_*) - OC(OC_MACHINE)
     if(types.size == 1) objectClass2MachineType(types.head) else None
   }

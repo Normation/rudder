@@ -160,7 +160,7 @@ class InfoApi(
         }
       }
 
-      val json = endpoints.filter(e => e.schema.name.toLowerCase() == name.toLowerCase() && e.schema.kind != ApiKind.Internal).sortBy( _.version.value ).toList match {
+      val json = endpoints.filter(e => e.schema.name.equalsIgnoreCase(name) && e.schema.kind != ApiKind.Internal).sortBy( _.version.value ).toList match {
         case Nil =>
           ( "documentation" -> "https://docs.rudder.io/api/") ~
           ( "error" -> s"No endpoint with name '${name}' defined.")
