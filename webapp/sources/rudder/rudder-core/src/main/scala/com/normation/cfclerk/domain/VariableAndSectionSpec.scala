@@ -40,7 +40,6 @@ package com.normation.cfclerk.domain
 import cats.implicits._
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
 import com.normation.cfclerk.xmlparsers.EmptyReportKeysValue
-import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
 
@@ -445,7 +444,6 @@ object ReportingLogic {
   final case object WorstReport extends ReportingLogic
   final case object SumReport extends ReportingLogic
   final case class FocusReport(component : String) extends ReportingLogic
-  import zio.syntax._
   def apply(value : String) : PureResult[ReportingLogic] = {
     value match {
       case "worst" => Right(WorstReport)

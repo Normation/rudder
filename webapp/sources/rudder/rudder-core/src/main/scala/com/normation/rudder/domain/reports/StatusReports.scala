@@ -38,6 +38,9 @@
 package com.normation.rudder.domain.reports
 
 import com.normation.cfclerk.domain.ReportingLogic
+import com.normation.cfclerk.domain.ReportingLogic.FocusReport
+import com.normation.cfclerk.domain.ReportingLogic.SumReport
+import com.normation.cfclerk.domain.ReportingLogic.WorstReport
 import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
@@ -295,7 +298,6 @@ final case class BlockStatusReport (
     subComponents.collect{case g :BlockStatusReport => g}.flatMap(_.findChildren(componentName))
   }
   def compliance: ComplianceLevel = {
-    val sum = ComplianceLevel.sum(subComponents.map(_.compliance))
     import ReportingLogic._
     reportingLogic match {
       case WorstReport =>
@@ -317,6 +319,15 @@ final case class BlockStatusReport (
     }
   }
 
+  def status: ReportType = {
+    reportingLogic match {
+      case WorstReport =>
+        ReportType.getWorseType(subComponents.map(_.status))
+      case SumReport =>
+        ReportType.getWorseType(subComponents.map(_.status))
+      case FocusReport(component) => ReportType.getWorseType(findChildren(component).map(_.status))
+    }
+  }
 }
 final case class ValueStatusReport  (
     componentName      : String

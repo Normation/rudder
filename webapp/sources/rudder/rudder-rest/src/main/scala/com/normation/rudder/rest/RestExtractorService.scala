@@ -81,15 +81,12 @@ import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control
 import com.normation.box._
-import com.normation.cfclerk.domain.FocusReport
 import com.normation.cfclerk.domain.ReportingLogic
-import com.normation.cfclerk.domain.SumReport
 import com.normation.rudder.ncf.ResourceFileState
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.cfclerk.domain.WorstReport
 import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.ncf.Constraint._
@@ -1264,6 +1261,7 @@ final case class RestExtractorService (
   }
 
   def extractCompositionRule(json : JValue) : Box[ReportingLogic] = {
+    import ReportingLogic._
     for {
       type_  <- CompleteJson.extractJsonString(json, "type")
       optValue  <- OptionnalJson.extractJsonString(json, "value")
