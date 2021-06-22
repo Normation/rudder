@@ -29,6 +29,7 @@ struct Config {
     #[serde(rename = "shared")]
     libs: LibsConfig,
     compile: IOPaths,
+    lint: IOPaths,
     save: IOPaths,
     technique_generate: IOPaths,
     technique_read: IOPaths,
@@ -73,6 +74,7 @@ impl IOContext {
             Command::GenerateTechnique => config.technique_generate,
             Command::Save => config.save,
             Command::ReadTechnique => config.technique_read,
+            Command::Lint => config.lint,
         };
         let (input, input_str, input_content) =
             get_input(&command_config.input, &opt.input, opt.stdin)?;

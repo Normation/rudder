@@ -3,6 +3,8 @@
 
 pub mod compile;
 pub use compile::compile;
+mod lint;
+pub use lint::lint;
 mod save;
 pub use save::save;
 mod technique_generate;
@@ -21,6 +23,7 @@ pub enum Command {
     GenerateTechnique,
     Save,
     Compile,
+    Lint,
 }
 impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -32,6 +35,7 @@ impl fmt::Display for Command {
                 Command::GenerateTechnique => "generate technique",
                 Command::Save => "save",
                 Command::Compile => "compile",
+                Command::Lint => "lint",
             }
         )
     }
@@ -46,6 +50,7 @@ impl fmt::Debug for Command {
                 Command::GenerateTechnique => "Technique generation",
                 Command::Save => "Saving",
                 Command::Compile => "Compilation",
+                Command::Lint => "Lint",
             }
         )
     }

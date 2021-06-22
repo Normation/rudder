@@ -80,6 +80,8 @@ fn main() {
     let command_result = match command {
         // compile = rd -> cf / dsc
         Command::Compile => command::compile(&ctx, true),
+        // lint = rd -> ()
+        Command::Lint => command::lint(&ctx, true),
         // save = json -> rd
         Command::Save => command::save(&ctx),
         // read = rd -> json
