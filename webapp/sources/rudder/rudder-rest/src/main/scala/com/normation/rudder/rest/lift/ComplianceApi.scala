@@ -60,8 +60,8 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import com.normation.box._
 import com.normation.rudder.domain.reports.ComponentStatusReport
-import com.normation.rudder.domain.reports.GroupComponentStatusReport
-import com.normation.rudder.domain.reports.UniqueComponentStatusReport
+import com.normation.rudder.domain.reports.BlockStatusReport
+import com.normation.rudder.domain.reports.ValueStatusReport
 
 class ComplianceApi(
     restExtractorService: RestExtractorService
@@ -280,8 +280,8 @@ class ComplianceAPIService(
         def components(name : String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
 
           val (groupsComponents, uniqueComponents) = nodeComponents.partitionMap {
-            case (a, b: GroupComponentStatusReport) => Left((a, b))
-            case (a, b: UniqueComponentStatusReport) => Right((a, b)
+            case (a, b: BlockStatusReport) => Left((a, b))
+            case (a, b: ValueStatusReport) => Right((a, b)
 
             )
           }
@@ -290,7 +290,7 @@ class ComplianceAPIService(
             Nil
           else {
             val bidule = groupsComponents.flatMap { case (nodeId, c) => c.subComponents.map(sub => (nodeId, sub))}.groupBy((_._2.componentName))
-              ByRuleGroupComponentCompliance(
+              ByRuleBlockCompliance(
                 name
                 , ComplianceLevel.sum(groupsComponents.map(_._2.compliance))
                 , bidule.flatMap(c => components(c._1, c._2)).toList
@@ -299,7 +299,7 @@ class ComplianceAPIService(
           if (uniqueComponents.isEmpty)
             Nil
           else
-            ByRuleUniqueComponentCompliance(
+            ByRuleValueCompliance(
               name
               , ComplianceLevel.sum(uniqueComponents.map(_._2.compliance))
               , //here, we finally group by nodes for each components !

@@ -97,13 +97,13 @@ trait ByRuleComponentCompliance {
   def compliance : ComplianceLevel
 }
 
-final case class ByRuleGroupComponentCompliance(
+final case class ByRuleBlockCompliance(
   name      : String
   , compliance: ComplianceLevel
   , subComponents     : Seq[ByRuleComponentCompliance]
 ) extends ByRuleComponentCompliance
 
-final case class ByRuleUniqueComponentCompliance(
+final case class ByRuleValueCompliance(
   name      : String
   , compliance: ComplianceLevel
   , nodes     : Seq[ByRuleNodeCompliance]
@@ -232,9 +232,9 @@ object JsonCompliance {
           ~ ("compliance" -> component.compliance.complianceWithoutPending)
           ~ ("complianceDetails" -> percents(component.compliance))
           ~ (component match {
-              case component : ByRuleGroupComponentCompliance =>
+              case component : ByRuleBlockCompliance =>
                 ("components" ->   components(component.subComponents, level))
-              case component: ByRuleUniqueComponentCompliance =>
+              case component: ByRuleValueCompliance =>
                 ("nodes" -> nodes(component.nodes, level))
             })
         )
@@ -324,10 +324,10 @@ object JsonCompliance {
           ~ ("compliance" -> component.compliance.complianceWithoutPending)
           ~ ("complianceDetails" -> percents(component.compliance))
           ~ (component match {
-              case component : GroupComponentStatusReport =>
+              case component : BlockStatusReport =>
                 val sub = component.subComponents.map(c => (c.componentName, c)).toMap
                 ("components" -> components(sub, level))
-              case component: UniqueComponentStatusReport => ("values" -> values(component.componentValues, level))
+              case component: ValueStatusReport => ("values" -> values(component.componentValues, level))
             })
         )
       })

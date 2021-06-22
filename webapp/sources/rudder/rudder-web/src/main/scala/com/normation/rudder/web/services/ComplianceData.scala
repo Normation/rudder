@@ -425,7 +425,7 @@ sealed trait ComponentComplianceLine extends JsTableLine {
 }
 
 
-final case class GroupComponentComplianceLine (
+final case class BlockComplianceLine (
     component   : String
   , compliance  : ComplianceLevel
   , details     : JsTableData[ComponentComplianceLine]
@@ -444,10 +444,10 @@ final case class GroupComponentComplianceLine (
   }
 }
 
-final case class UniqueComponentComplianceLine (
+final case class ValueComplianceLine (
     component   : String
   , compliance  : ComplianceLevel
-  , details     : JsTableData[ValueComplianceLine]
+  , details     : JsTableData[ComponentValueComplianceLine]
   , noExpand    : Boolean
 ) extends ComponentComplianceLine {
 
@@ -475,7 +475,7 @@ final case class UniqueComponentComplianceLine (
  *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
-final case class ValueComplianceLine (
+final case class ComponentValueComplianceLine (
     value       : String
   , messages    : List[(String, String)]
   , compliance  : ComplianceLevel
@@ -684,14 +684,14 @@ object ComplianceData extends Loggable {
     , includeMessage: Boolean
   ) : JsTableData[ComponentComplianceLine] = {
     val componentsComplianceData = components.map {
-      case component : GroupComponentStatusReport =>
-        GroupComponentComplianceLine(
+      case component : BlockStatusReport =>
+        BlockComplianceLine(
           component.componentName
           , component.compliance
           , getComponentsComplianceDetails(component.subComponents.toSet, includeMessage)
           , component.reportingLogic
         )
-      case component : UniqueComponentStatusReport =>
+      case component : ValueStatusReport =>
 
       val (noExpand, values) = if(!includeMessage) {
         (true, getValuesComplianceDetails(component.componentValues.values.toSet))
@@ -701,7 +701,7 @@ object ComplianceData extends Loggable {
         (noExpand, getValuesComplianceDetails(component.componentValues.values.toSet))
       }
 
-      UniqueComponentComplianceLine(
+      ValueComplianceLine(
           component.componentName
         , component.compliance
         , values
@@ -717,7 +717,7 @@ object ComplianceData extends Loggable {
   // From Node Point of view
   private[this] def getValuesComplianceDetails (
       values  : Set[ComponentValueStatusReport]
-  ) : JsTableData[ValueComplianceLine] = {
+  ) : JsTableData[ComponentValueComplianceLine] = {
     val valuesComplianceData = for {
       value <- values
     } yield {
@@ -726,7 +726,7 @@ object ComplianceData extends Loggable {
       val key = value.unexpandedComponentValue
       val messages = value.messages.map(x => (x.reportType.severity, x.message.getOrElse("")))
 
-      ValueComplianceLine(
+      ComponentValueComplianceLine(
           key
         , messages
         , value.compliance

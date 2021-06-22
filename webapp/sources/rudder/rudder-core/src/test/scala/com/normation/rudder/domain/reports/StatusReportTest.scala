@@ -337,7 +337,7 @@ class StatusReportTest extends Specification {
         case n :: r :: _ :: d :: c :: v :: uv :: t :: m :: Nil =>
           Some(RuleNodeStatusReport(n, r, None, None, Map(DirectiveId(d) ->
             DirectiveStatusReport(d, Map(c ->
-              UniqueComponentStatusReport(c, Map(uv ->
+              ValueStatusReport(c, Map(uv ->
                 ComponentValueStatusReport(v, uv, List(
                     MessageStatusReport(toRT(t), ?(m))
                 ))

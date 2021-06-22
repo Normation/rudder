@@ -822,12 +822,12 @@ final case class ContextForNoAnswer(
 
   private[reports] def componentExpectedReportToStatusReport (reportType: ReportType, c : ComponentExpectedReport) : ComponentStatusReport = {
     c match {
-      case c : UniqueComponentExpectedReport =>
-        UniqueComponentStatusReport(c.componentName, c.groupedComponentValues.map { case(v,u) => (u ->
+      case c : ValueExpectedReport =>
+        ValueStatusReport(c.componentName, c.groupedComponentValues.map { case(v,u) => (u ->
           ComponentValueStatusReport(v, u, MessageStatusReport(reportType, None) :: Nil)
           )}.toMap)
-      case c : GroupComponentExpectedReport =>
-        GroupComponentStatusReport(c.componentName, c.reportingLogic, c.subComponents.map(componentExpectedReportToStatusReport(reportType, _)))
+      case c : BlockExpectedReport =>
+        BlockStatusReport(c.componentName, c.reportingLogic, c.subComponents.map(componentExpectedReportToStatusReport(reportType, _)))
     }
 
   }
@@ -870,8 +870,8 @@ final case class ContextForNoAnswer(
 
     def getExpectedComponents(component : ComponentExpectedReport) : List[String] = {
       component match {
-        case c : UniqueComponentExpectedReport => c.componentName :: Nil
-        case c : GroupComponentExpectedReport => c.subComponents.flatMap(getExpectedComponents)
+        case c : ValueExpectedReport => c.componentName :: Nil
+        case c : BlockExpectedReport => c.subComponents.flatMap(getExpectedComponents)
       }
     }
 
@@ -1075,7 +1075,7 @@ final case class ContextForNoAnswer(
         , mergeInfo.configId
         , seq.groupBy(_.directiveId).map{ case (directiveId, reportsByDirectives) =>
           (directiveId, DirectiveStatusReport(directiveId, reportsByDirectives.groupBy(_.component).map { case (component, reportsByComponents) =>
-            (component, UniqueComponentStatusReport(component, reportsByComponents.groupBy(_.keyValue).map { case (keyValue, reportsByComponent) =>
+            (component, ValueStatusReport(component, reportsByComponents.groupBy(_.keyValue).map { case (keyValue, reportsByComponent) =>
               (keyValue, ComponentValueStatusReport(keyValue, keyValue, reportsByComponent.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList))
               }.toMap)
             )}.toMap)
@@ -1090,7 +1090,7 @@ final case class ContextForNoAnswer(
   private[this] def buildUnexpectedDirectives(reports: Seq[Reports]): Seq[DirectiveStatusReport] = {
     reports.map { r =>
       DirectiveStatusReport(r.directiveId, Map(r.component ->
-        UniqueComponentStatusReport(r.component, Map(r.keyValue ->
+        ValueStatusReport(r.component, Map(r.keyValue ->
           ComponentValueStatusReport(r.keyValue, r.keyValue, MessageStatusReport(ReportType.Unexpected, r.message) :: Nil)
         )))
       )
@@ -1155,11 +1155,11 @@ final case class ContextForNoAnswer(
   ) : ComponentStatusReport = {
 
     expectedComponent match {
-      case g: GroupComponentExpectedReport =>
-        GroupComponentStatusReport(g.componentName, g.reportingLogic, g.subComponents.map{case e : UniqueComponentExpectedReport =>
+      case g: BlockExpectedReport =>
+        BlockStatusReport(g.componentName, g.reportingLogic, g.subComponents.map{case e : ValueExpectedReport =>
           checkExpectedComponentWithReports(e,filteredReports.filter(_.component == e.componentName), noAnswerType, policyMode, unexpectedInterpretation)
         case e => checkExpectedComponentWithReports(e,filteredReports, noAnswerType, policyMode, unexpectedInterpretation)})
-      case expectedComponent: UniqueComponentExpectedReport =>
+      case expectedComponent: ValueExpectedReport =>
         // an utility class that store an expected value and the list of mathing reports for it
         final case class Value(
           value: String
@@ -1340,7 +1340,7 @@ final case class ContextForNoAnswer(
         /*
      * And now, merge all values into a component.
      */
-        UniqueComponentStatusReport(
+        ValueStatusReport(
           expectedComponent.componentName
           , ComponentValueStatusReport.merge(unexpectedReportStatus ::: pairedReportStatus).view.mapValues { status =>
             // here we want to ensure that if a message is unexpected, all other are

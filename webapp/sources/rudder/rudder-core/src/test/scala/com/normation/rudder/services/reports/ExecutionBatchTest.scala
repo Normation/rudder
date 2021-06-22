@@ -98,7 +98,7 @@ class ExecutionBatchTest extends Specification {
         RuleExpectedReports(ruleId,
           directives.map { case (directiveId, components) =>
             DirectiveExpectedReports(directiveId, None, false,
-              components.map(componentName => UniqueComponentExpectedReport(componentName, componentName :: Nil, componentName :: Nil)).toList
+              components.map(componentName => ValueExpectedReport(componentName, componentName :: Nil, componentName :: Nil)).toList
             )
           }.toList
         )
@@ -107,7 +107,7 @@ class ExecutionBatchTest extends Specification {
 
     val executionReports = expectedReports.flatMap { case RuleExpectedReports(ruleId, directives) =>
       directives.flatMap { case DirectiveExpectedReports(directiveId, _, _, components) =>
-        components.flatMap { case UniqueComponentExpectedReport(componentName, componentsValues, _) =>
+        components.flatMap { case ValueExpectedReport(componentName, componentsValues, _) =>
           componentsValues.map { case value =>
             ResultSuccessReport(now, ruleId, directiveId, nodeId, 0, componentName, value, now, "empty text")
           }
@@ -238,7 +238,7 @@ class ExecutionBatchTest extends Specification {
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
     )
 
-    val expectedComponent = new UniqueComponentExpectedReport(
+    val expectedComponent = new ValueExpectedReport(
         "component"
       , List("foo", "bar")
       , List("foo", "bar")
@@ -284,7 +284,7 @@ class ExecutionBatchTest extends Specification {
     )
     val noAnswer = Seq[ResultReports]()
 
-    val expectedComponent = new UniqueComponentExpectedReport(
+    val expectedComponent = new ValueExpectedReport(
         "component"
       , List("some key", "other key")
       , List("some key", "other key")
@@ -313,7 +313,7 @@ class ExecutionBatchTest extends Specification {
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message")
     )
 
-    val expectedComponent = new UniqueComponentExpectedReport(
+    val expectedComponent = new ValueExpectedReport(
         "component"
       , List("None", "None")
       , List("None", "None")
@@ -357,7 +357,7 @@ class ExecutionBatchTest extends Specification {
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")
     )
 
-    val expectedComponent = new UniqueComponentExpectedReport("component"
+    val expectedComponent = new ValueExpectedReport("component"
       , List("${sys.bla}", "${sys.foo}")
       , List("${sys.bla}", "${sys.foo}")
     )
@@ -398,7 +398,7 @@ class ExecutionBatchTest extends Specification {
      * Here, we must be able to decide between node1 and node2 value for the repair, because we know at generation time
      * what is expected.
      */
-    val expectedComponent = new UniqueComponentExpectedReport("component"
+    val expectedComponent = new ValueExpectedReport("component"
       , List("node1", "node2", "bar")
       , List("${rudder.node.hostname}", "${rudder.node.hostname}", "bar")
     )
@@ -445,7 +445,7 @@ class ExecutionBatchTest extends Specification {
 
   "Shall we speak about unexpected" should {
     // we asked for a value "foo" and a variable ${param}
-    val expectedComponent = new UniqueComponentExpectedReport("component"
+    val expectedComponent = new ValueExpectedReport("component"
       , List("foo", "${param}")
       , List("foo", "${param}")
     )
@@ -522,7 +522,7 @@ class ExecutionBatchTest extends Specification {
       // expected components are the list of key for patterns
       val expectedComponent = {
         val values = patterns.map( _._1 )
-        new UniqueComponentExpectedReport("component", values.toList, values.toList)
+        new ValueExpectedReport("component", values.toList, values.toList)
       }
 
       val resultReports : Seq[ResultReports] = reports.map( x => x match {
@@ -735,7 +735,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new UniqueComponentExpectedReport("component", List("value"), List() )) //here, we automatically must have "value" infered as unexpanded var
+                , List(new ValueExpectedReport("component", List("value"), List() )) //here, we automatically must have "value" infered as unexpanded var
               )
             )
         )
@@ -769,7 +769,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new UniqueComponentExpectedReport("component", List("value"), List() ))
+                , List(new ValueExpectedReport("component", List("value"), List() ))
               )
             )
         )
@@ -797,7 +797,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new UniqueComponentExpectedReport("component", List("value"), List() ))
+                , List(new ValueExpectedReport("component", List("value"), List() ))
               )
             )
          )
@@ -827,7 +827,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new UniqueComponentExpectedReport("component", List("value"), List() ))
+                , List(new ValueExpectedReport("component", List("value"), List() ))
               )
             )
         )
@@ -852,7 +852,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false
-                , List(new UniqueComponentExpectedReport("component", List("value"), List() ))
+                , List(new ValueExpectedReport("component", List("value"), List() ))
               )
             )
          )
@@ -879,12 +879,12 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                     new UniqueComponentExpectedReport("component" , List("value"), List() )
-                   , new UniqueComponentExpectedReport("component2", List("value"), List() )
+                     new ValueExpectedReport("component" , List("value"), List() )
+                   , new ValueExpectedReport("component2", List("value"), List() )
                  ))
                , DirectiveExpectedReports("policy2", None, false, List(
-                     new UniqueComponentExpectedReport("component" , List("value"), List() )
-                   , new UniqueComponentExpectedReport("component2", List("value"), List() )
+                     new ValueExpectedReport("component" , List("value"), List() )
+                   , new ValueExpectedReport("component2", List("value"), List() )
                  ))
             )
         )
@@ -920,12 +920,12 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                     new UniqueComponentExpectedReport("component" , List("value"), List() )
-                   , new UniqueComponentExpectedReport("component2", List("value"), List() )
+                     new ValueExpectedReport("component" , List("value"), List() )
+                   , new ValueExpectedReport("component2", List("value"), List() )
                  ))
                , DirectiveExpectedReports("policy2", None, false, List(
-                     new UniqueComponentExpectedReport("component" , List("value"), List() )
-                   , new UniqueComponentExpectedReport("component2", List("value"), List() )
+                     new ValueExpectedReport("component" , List("value"), List() )
+                   , new ValueExpectedReport("component2", List("value"), List() )
                  ))
              )
         )
@@ -972,7 +972,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                   new UniqueComponentExpectedReport("component", List("value", "value2", "value3"), List() )
+                   new ValueExpectedReport("component", List("value", "value2", "value3"), List() )
                ))
              )
         )
@@ -1017,7 +1017,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                  UniqueComponentExpectedReport("component", List("""some\"text"""), List("""some\text""") )
+                  ValueExpectedReport("component", List("""some\"text"""), List("""some\text""") )
               ))
             )
         )
@@ -1045,7 +1045,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                UniqueComponentExpectedReport("component", List("""${sys.workdir}/inputs/\"test"""), List() )
+                ValueExpectedReport("component", List("""${sys.workdir}/inputs/\"test"""), List() )
               ))
             )
         )
@@ -1072,7 +1072,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , List(DirectiveExpectedReports("policy", None, false, List(
-                UniqueComponentExpectedReport("component", List("""${sys.workdir}/inputs/"test"""), List("""${sys.workdir}/inputs/"test""") )
+                ValueExpectedReport("component", List("""${sys.workdir}/inputs/"test"""), List("""${sys.workdir}/inputs/"test""") )
               ))
             )
         )
@@ -1098,7 +1098,7 @@ class ExecutionBatchTest extends Specification {
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
               )
 
-    val expectedComponent = UniqueComponentExpectedReport(
+    val expectedComponent = ValueExpectedReport(
         "component"
       , List("/var/cfengine", "bar")
       , List("/var/cfengine", "bar")

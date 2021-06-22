@@ -103,7 +103,7 @@ final case class SectionSpec(
   , displayPriority : DisplayPriority = HighDisplayPriority
   , description     : String = ""
   , children        : Seq[SectionChildSpec] = Seq()
-  , reportingLogic: Option[ReportingLogic ] = None
+  , reportingLogic  : Option[ReportingLogic ] = None
 ) extends SectionChildSpec {
 
   lazy val getDirectVariables : Seq[VariableSpec] = {

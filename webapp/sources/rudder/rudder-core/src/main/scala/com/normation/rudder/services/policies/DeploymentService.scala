@@ -104,8 +104,8 @@ import cats.implicits._
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.cfclerk.domain.SectionSpec
-import com.normation.rudder.domain.reports.GroupComponentExpectedReport
-import com.normation.rudder.domain.reports.UniqueComponentExpectedReport
+import com.normation.rudder.domain.reports.BlockExpectedReport
+import com.normation.rudder.domain.reports.ValueExpectedReport
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -1436,7 +1436,7 @@ object RuleExpectedReportBuilder extends Loggable {
             section.componentKey match {
               case None =>
                 //a section that is a component without componentKey variable: card=1, value="None"
-                UniqueComponentExpectedReport(section.name, List(DEFAULT_COMPONENT_KEY), List(DEFAULT_COMPONENT_KEY)) :: Nil
+                ValueExpectedReport(section.name, List(DEFAULT_COMPONENT_KEY), List(DEFAULT_COMPONENT_KEY)) :: Nil
               case Some(varName) =>
                 //a section with a componentKey variable: card=variable card
                 val values = vars.expandedVars.get(varName).map(_.values.toList).getOrElse(Nil)
@@ -1445,10 +1445,10 @@ object RuleExpectedReportBuilder extends Loggable {
                   PolicyGenerationLogger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
                     section.componentKey, directiveId.value, values, unexpandedValues))
 
-                UniqueComponentExpectedReport(section.name, values, unexpandedValues) :: childExpectedReports
+                ValueExpectedReport(section.name, values, unexpandedValues) :: childExpectedReports
             }
           case Some(rule) =>
-            GroupComponentExpectedReport(section.name, rule, section.children.toList.flatMap{
+            BlockExpectedReport(section.name, rule, section.children.toList.flatMap{
               case s : SectionSpec => sectionToExpectedReports(s)
               case _ => Nil
             }) :: Nil
@@ -1469,7 +1469,7 @@ object RuleExpectedReportBuilder extends Loggable {
         technique.id, directiveId))
 
       val trackingVarCard = getTrackingVariableCardinality
-      List(UniqueComponentExpectedReport(technique.id.name.value, trackingVarCard._1.toList, trackingVarCard._2.toList))
+      List(ValueExpectedReport(technique.id.name.value, trackingVarCard._1.toList, trackingVarCard._2.toList))
     } else {
       allComponents
     }

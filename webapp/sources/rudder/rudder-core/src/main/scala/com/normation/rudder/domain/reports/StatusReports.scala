@@ -285,14 +285,14 @@ sealed trait ComponentStatusReport extends  StatusReport {
   def status : ReportType
 }
 
-final case class GroupComponentStatusReport (
+final case class BlockStatusReport (
     componentName : String
   , reportingLogic: ReportingLogic
   , subComponents : List[ComponentStatusReport]
 ) extends  ComponentStatusReport {
   def findChildren(componentName : String): List[ComponentStatusReport] = {
     subComponents.find(_.componentName == componentName).toList :::
-    subComponents.collect{case g :GroupComponentStatusReport => g}.flatMap(_.findChildren(componentName))
+    subComponents.collect{case g :BlockStatusReport => g}.flatMap(_.findChildren(componentName))
   }
   def compliance: ComplianceLevel = {
     val sum = ComplianceLevel.sum(subComponents.map(_.compliance))
@@ -318,7 +318,7 @@ final case class GroupComponentStatusReport (
   }
 
 }
-final case class UniqueComponentStatusReport  (
+final case class ValueStatusReport  (
     componentName      : String
     //only one ComponentValueStatusReport by value
   , componentValues    : Map[String, ComponentValueStatusReport]
@@ -350,13 +350,13 @@ object ComponentStatusReport extends Loggable {
   def merge(components: Iterable[ComponentStatusReport]): Map[String, ComponentStatusReport] = {
     components.groupBy( _.componentName).flatMap { case (cptName, reports) =>
 
-      val valueComponents = reports.collect{ case c : UniqueComponentStatusReport => c }.toList match {
+      val valueComponents = reports.collect{ case c : ValueStatusReport => c }.toList match {
         case Nil => None
         case r =>
           val newValues = ComponentValueStatusReport.merge(r.flatMap( _.componentValues.values))
-          Some(UniqueComponentStatusReport(cptName, newValues))
+          Some(ValueStatusReport(cptName, newValues))
       }
-      val groupComponent= reports.collect{ case c : GroupComponentStatusReport => c }.toList match {
+      val groupComponent= reports.collect{ case c : BlockStatusReport => c }.toList match {
         case Nil => None
         case r =>
           import ReportingLogic._
@@ -369,7 +369,7 @@ object ComponentStatusReport extends Loggable {
                        case(FocusReport(a), _) => FocusReport(a)
             }
           )
-          Some(GroupComponentStatusReport(cptName, reportingLogic, ComponentStatusReport.merge(r.flatMap(_.subComponents)).values.toList))
+          Some(BlockStatusReport(cptName, reportingLogic, ComponentStatusReport.merge(r.flatMap(_.subComponents)).values.toList))
       }
 
       (valueComponents,groupComponent) match {
@@ -545,7 +545,7 @@ object NodeStatusReportSerialization {
 
     def componentValueToJson(c : ComponentStatusReport) : JValue =
       c match {
-        case c : UniqueComponentStatusReport =>
+        case c : ValueStatusReport =>
           ( ("componentName" -> c.componentName)
           ~ ("compliance"    -> c.compliance.pc.toJson)
           ~ ("numberReports" -> c.compliance.total)
@@ -562,7 +562,7 @@ object NodeStatusReportSerialization {
               )
             })
           )
-        case c : GroupComponentStatusReport =>
+        case c : BlockStatusReport =>
           ( ("componentName" -> c.componentName)
             ~ ("compliance"    -> c.compliance.pc.toJson)
             ~ ("numberReports" -> c.compliance.total)

@@ -135,13 +135,13 @@ trait ComponentExpectedReport {
   def componentName : String
 }
 
-final case class GroupComponentExpectedReport (
+final case class BlockExpectedReport (
   componentName   : String
 , reportingLogic : ReportingLogic
 , subComponents : List[ComponentExpectedReport]
 ) extends  ComponentExpectedReport
 
-final case class UniqueComponentExpectedReport(
+final case class ValueExpectedReport(
     componentName             : String
 
   //TODO: change that to have a Seq[(String, String).
@@ -260,12 +260,12 @@ object ExpectedReportsSerialisation {
   def jsonComponentExpectedReport(c : ComponentExpectedReport): JValue = {
 
     c match {
-      case c: UniqueComponentExpectedReport =>
+      case c: ValueExpectedReport =>
         (("componentName" -> c.componentName)
           ~ ("values" -> c.componentsValues)
           ~ ("unexpanded" -> c.unexpandedComponentsValues)
           )
-      case c: GroupComponentExpectedReport =>
+      case c: BlockExpectedReport =>
         import ReportingLogic._
         (("componentName" -> c.componentName)
           ~ ("composition" -> (c.reportingLogic match {
@@ -451,13 +451,13 @@ object ExpectedReportsSerialisation {
         , (json \ "reportingRule").extractOpt[String]
      ) match {
         case (JString(name), Some(values), Some(unexpanded), None, None ) =>
-          Full(UniqueComponentExpectedReport(name, values, unexpanded))
+          Full(ValueExpectedReport(name, values, unexpanded))
         case (JString(name), _, _, Some(Full(sub)), Some(composition) )=>
           import com.normation.box.EitherToBox
           for {
             reportingLogic <-  ReportingLogic(composition).toBox
           } yield {
-            GroupComponentExpectedReport(name, reportingLogic, sub.toList)
+            BlockExpectedReport(name, reportingLogic, sub.toList)
           }
         case _ =>
           Failure(s"Error when parsing component expected reports from json: '${compactRender(json)}'")
