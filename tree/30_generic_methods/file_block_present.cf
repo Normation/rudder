@@ -21,7 +21,7 @@
 # @documentation Ensure that a text block is present in the target file.
 # If the block is not found, it will be added at the end of the file.
 #
-# # Examples:
+# #### Examples:
 #
 # Given a file with the following content:
 # ```
