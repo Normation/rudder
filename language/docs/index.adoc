@@ -1,0 +1,112 @@
+// TODO put images on a rudder server and put documentation images dir url here
+:imagesdir: images/
+:toc: left
+
+= Rudder language
+
+== Preface
+
+=== Language Presentation
+
+This language is not:
+
+* a general purpose language
+* a Turing-complete language
+* an imperative language
+
+It has no:
+
+* recursion
+* generator / generic iterator
+* way of looping except on finite list
+
+This language is an _Open Source_  _DSL_ (_domain-specific language_) targeted at *state definition*.
+Everything that is not a state definition is a convenience for easier definition of a state.
+The compiler is very pedantic to avoid defining invalid states as much as possible.
+
+File extension is `rd`.
+
+Example:
+
+.ntp.rd
+[source,language]
+----
+include::examples/ntp.rd[]
+----
+
+Once compiled to _CFEngine_ code:
+
+.ntp.rd.cf
+[source,cfengine]
+----
+include::examples/documentation_ntp.rd.cf[]
+----
+
+.ntp.rd.ps1
+[source,powershell]
+----
+include::examples/documentation_ntp.rd.ps1[]
+----
+// TODO: comparison with CFEngine, Puppet (mgmt ?)
+
+==== Short-term future abilities
+
+* Error feedback directly in the _Technique Editor_
+* Enhanced (or refactored):
+** Variable handling (for example in conditions)
+
+==== Long-term future abilities
+
+* New keywords including the _action_, _measure_, _function_ keywords
+* Fully rewrite the ncf library into a self-sufficient _language_ library
+* Plain integration and usage of _language_ into _Rudder_ whether as code or into the _Technique Editor_
+* Various improvements and some reworks
+
+// == Concepts
+include::concepts.adoc[leveloffset=+1]
+
+// == Lexical structure
+include::lexical-structure.adoc[leveloffset=+1]
+
+// == Types
+include::types.adoc[leveloffset=+1]
+
+// == Items
+include::items.adoc[leveloffset=+1]
+
+// === Enums                                                                                           
+include::enums.adoc[leveloffset=+2]
+
+== Statements and Expressions
+
+include::statements-and-expressions.adoc[leveloffset=+2]
+
+== Appendices
+
+include::stdlib.adoc[leveloffset=+2]
+
+include::operating-systems.adoc[leveloffset=+2]
+
+== Rudder-lang usage
+
+include::usage.adoc[leveloffset=+1]
+
+== Integration to Rudder
+
+include::integration.adoc[leveloffset=+1]
+
+
+== Standard library
+
+By default, resource and state parameters:
+
+* cannot be empty
+* cannot contain only white-spaces
+* have a max size of 16384 chars
+
+Exceptions are explicitly specified in the doc.
+
+States marked as actions represent actions that will be executed
+at every run. You should generally add a condition when using them.
+
+include::../target/docs/std/lib.adoc[leveloffset=+1]

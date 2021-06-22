@@ -1,0 +1,114 @@
+Design decision and their reason
+================================
+
+* "as outvar" for status variables
+
+The important thing in the language is the state definition.
+State definition is done by calling a specific state on a specific resource.
+Everything else (such as variable definition) is unimportant.
+We want to de-emphasise the variable definition aspect of state definition by removing the '='
+at the beginning of the statement. The '=' sign is very visible and signifies an affectation.
+We are not doing an affectation we are defining a state which sometimes has the side effect of defining a variable.
+
+* sub resources and alias
+
+A sub resource is a part of resources. It means that changing a subresource implies changing the parent resource.
+However changing the resource does not necessarily means changing the sub resource.
+For robustness of the state checker, different states of the same resource are incompatible.
+This means that a resource must be split into sub resource to make different sub states compatible.
+(ex: FileContent and FilePermission are sub resources of file and are compatible).
+This means that thing that may be perceived as states are in fact sub resources.
+
+That's why to make life easier for the user we want to also define aliases. Alases don't have the same constraint.
+There can be as many aliases as wanted for a single resource, an alias of a subresource can be interpreted by the user
+as a supplementary state of the parent resource.
+
+TODO since the compatibility is not the same for aliases and state, shouldn't we indicate the difference somehow.
+
+* log
+We use log token because we don't want a log() function that would conflict with the function concept in rudder language.
+We split this token in 3 tokens (log_debug, log_info, log_warn) to make it easy to specify log level without
+having a function call syntax.
+
+* let keyword
+At first, not having a keyword at all seamed simpler, but parsing global variables became complex so we added
+one for global variables. Then we added one for magic variables.
+Now we only have one keyword "let" that is the same everywhere you want to declare a variable.
+This is easier to learn.
+
+* metadata
+We want to be able to extend the language and the generation process without changing the language.
+Moreover we want to give the user the ability to store structured data with resources.
+Hence metadata that can be anything available in the language
+
+* toml metadata
+TOML is a well known format, and has battle tester parsers.
+Let's support it instead of creating our own format.
+
+* lifetime 'src
+Most of the data structures contain a reference to parsed code.
+So there is a lifetime everywhere that is in fact the same.
+That's why we chose to name it 'src to make it easy to catch and separate from other lifetimes.
+
+* default value for parameters
+They are useful for resources and states because be define configurations.
+So users expect to provide minimal information and have meaningful defaults.
+Implementation is that rudder language explicitly put the default value on the caller side when there the user did not provide one.
+This is because it is easier to detect null value at compile time than at execution time (think cfengine).
+
+* json read method
+
+* iterators
+
+* subtyping
+
+* log/return/fail
+
+* ordre local, ordre global
+Les données locales (variables) doivent être définies avant d'etre utilisée car c'est une bonne pratique
+qui permet de détcter des erreurs logiques.
+Les données globales n'ont pas a etre définies dans l'ordre car il peut être difficile de maitriser
+l'ordre de chargement des fichier et les définition globales car elles peuvent être écrites ar plusieurs personnes.
+
+* incompatibilité entre states d'une meme resource
+
+* comment = medatata
+Pour permettre une interaction simple avec le format json de technique, on ne crée pas de cas spécifique pour les commentaire.
+
+* utf8
+parce que nous avons des utilisateurs finaux et pas nécessairement des développeurs
+
+* minimum de checks pendant le parsing et l'indexation
+Une erreur de parsing est fatale et arrete le parseur complètement.
+Retarder le détection d'erreur permet de lui donner un meilleur contexte et d'en retourner plusieurs en même temps si possible.
+
+* interpolation
+En gestion de configuration on génère souvent des chaines à partir de données.
+ceci se fait très fréquemment sous forme de template.
+L'interpolation permet de le faire sous un forme simple sans appeler de fonction et en posant les variables au bon endroit.
+C'est donc le cas par défaut.
+
+* pas de récursivité
+evitons les imprevus et la possibilité de tourner indéfiniment
+
+* noms uniques à travers les types : enums, variables, resource, states
+evitons les confusions, on pourra toujours en réautoriser a posteriori
+
+* @format=x
+Avoir une ligne strictement parsée présente en début de fichier permet de détecter de l'extérieur la version actuelle du format du code.
+A l'avenir cela permettra de détecter si on dispose du bon compilateur ou si une conversion est nécessaire.
+Pratique pour les upgrade de rudder.
+
+* =~ pour les enums
+On compare des variables avec des enums de type différent car il y a un mécanisme d'héritage d'enum.
+On évite donc le = a connotation plus stricte
+
+
+TODO : 
+- let var = case {}
+- localisation des techniques, ex servicename: aix -> blah, debian -> blah ...
+- deepmerge vs shallow merge
+- ## = @comment -> @description && remove toml parsing
+- uuid alias of variable names / outcomes
+- variables de ressource
+- use criterion to detect performance regression

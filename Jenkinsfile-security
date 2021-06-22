@@ -60,7 +60,7 @@ pipeline {
                 PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
             }
             steps {
-                dir('rudder-lang') {
+                dir('language') {
                     sh script: 'mkdir -p target', label: 'create target directory'
                     sh script: 'cargo deny check', label: 'check language dependencies'
                     sh script: 'cargo deny list > target/language-dependencies.txt', label: 'list language dependencies'
@@ -68,7 +68,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'rudder-lang/target/language-dependencies.txt'
+                    archiveArtifacts artifacts: 'language/target/language-dependencies.txt'
                     script {
                         new SlackNotifier().notifyResult("rust-team")
                     }
