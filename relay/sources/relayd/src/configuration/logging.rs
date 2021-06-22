@@ -8,6 +8,7 @@ use tracing::debug;
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct LogConfig {
+    #[serde(default)]
     pub general: LoggerConfig,
 }
 
@@ -46,6 +47,12 @@ pub enum LogLevel {
     Trace,
 }
 
+impl Default for LogLevel {
+    fn default() -> Self {
+        Self::Info
+    }
+}
+
 impl fmt::Display for LogLevel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -63,10 +70,11 @@ impl fmt::Display for LogLevel {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Default)]
 pub struct LoggerConfig {
     #[serde(with = "LogLevel")]
     pub level: LogLevel,
+    #[serde(default)]
     pub filter: String,
 }
 
@@ -104,6 +112,19 @@ mod tests {
             &log_reference.to_string(),
             "info,[database{node=root}]=trace"
         );
+    }
+
+    #[test]
+    fn it_parses_empty_configuration() {
+        let empty = "";
+        let default = LogConfig {
+            general: LoggerConfig {
+                level: LogLevel::Info,
+                filter: "".to_string(),
+            },
+        };
+        let config = empty.parse::<LogConfig>().unwrap();
+        assert_eq!(config, default);
     }
 
     #[test]
