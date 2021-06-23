@@ -99,17 +99,24 @@ async fn list_files(
             }
         };
 
-        while let Some(entry) = files.next_entry().await? {
-            let metadata = entry.metadata().await?;
-            let since = sys_time
-                .duration_since(metadata.modified().unwrap_or(sys_time))
-                // An error indicates a file in the future, let's approximate it to now
-                .unwrap_or_else(|_| Duration::new(0, 0));
+        // Max number of files to handle at each tick
+        let mut limit = cfg.limit;
+        while limit > 0 {
+            limit -= 1;
+            if let Some(entry) = files.next_entry().await? {
+                let metadata = entry.metadata().await?;
+                let since = sys_time
+                    .duration_since(metadata.modified().unwrap_or(sys_time))
+                    // An error indicates a file in the future, let's approximate it to now
+                    .unwrap_or_else(|_| Duration::new(0, 0));
 
-            if since > Duration::from_secs(30) {
-                let path = entry.path();
-                debug!("list: {:?}", path);
-                tx.clone().send(path).await?;
+                if since > Duration::from_secs(30) {
+                    let path = entry.path();
+                    debug!("list: {:?}", path);
+                    tx.clone().send(path).await?;
+                }
+            } else {
+                break;
             }
         }
     }
