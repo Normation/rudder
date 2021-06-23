@@ -359,10 +359,12 @@ def package_check(metadata, version):
 
 def check_plugin_compatibility(metadata, version):
     # check that the given version is compatible with Rudder one
-    match = re.match(r'((\d+\.\d+)(\.\d+(~(beta|rc)\d+)?)?)-(\d+)\.(\d+)', metadata['version'])
+    match = re.match(
+        r'((\d+\.\d+)(\.\d+(~(alpha|beta|rc)\d*)?)?)-(\d+)\.(\d+)', metadata['version']
+    )
     if not match:
         fail('Invalid package version ' + metadata['version'])
-    rudder_version = match.group(1).replace('~beta', 'a').replace('~rc', 'b')
+    rudder_version = match.group(1).replace('~alpha', 'a').replace('~beta', 'b').replace('~rc', 'c')
     rudder_major = match.group(2)
     major_version = match.group(6)
     minor_version = match.group(7)
@@ -638,23 +640,34 @@ def list_plugin_name():
 
 CONFIG_PATH = '/opt/rudder/etc/rudder-pkg/rudder-pkg.conf'
 FOLDER_PATH = '/var/rudder/tmp/plugins'
+VERSIONS_PATH = '/opt/rudder/share/versions/rudder-webapp-version'
 INDEX_PATH = FOLDER_PATH + '/rpkg.index'
 GPG_HOME = '/opt/rudder/etc/rudder-pkg'
 GPG_RUDDER_KEY = '/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub'
 GPG_RUDDER_KEY_FINGERPRINT = '7C16 9817 7904 212D D58C  B4D1 9322 C330 474A 19E8'
 
 try:
-    p = run(['rudder', 'agent', 'version'], capture_output=True)
-    m = re.match(
-        r'Rudder agent (((\d+\.\d+)\.\d+)(\.((beta|rc)\d+))?)(\.|~).*?', p[1].decode('utf-8')
-    )
-    RUDDER_MAJOR = m.group(3)
-    RUDDER_VERSION = m.group(2)
-    if m.group(4) is not None:
-        RUDDER_VERSION = RUDDER_VERSION + m.group(5).replace('beta', 'a').replace('rc', 'b')
+    with open(VERSIONS_PATH) as version_file:
+        for line in version_file:
+            m = re.match(r'release_step *= *(\w+)(\d*)', line)
+            if m:
+                if m.group(1) == 'release':
+                    step = ''
+                elif m.group(1) == 'alpha':
+                    step = 'a'
+                elif m.group(1) == 'beta':
+                    step = 'b'
+                elif m.group(1) == 'rc':
+                    step = 'c'
+                step += m.group(2)
+            m = re.match(r'main_version=7.0.0 *= *((\d+\.\d+)\.\d+)', line)
+            if m:
+                RUDDER_MAJOR = m.group(2)
+                rudder_version = m.group(1)
+        RUDDER_VERSION = rudder_version + step
 except:
     print(
-        'Warning, cannot retrieve major Rudder version ! Verify that rudder is well installed on the system'
+        'Warning, cannot retrieve the Rudder version! Verify that rudder is correctly installed on this system'
     )
 
 # Local install specific variables

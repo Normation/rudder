@@ -125,9 +125,7 @@ def package_list_name():
     latestRelease = []
     description = []
     for p in pluginDict.keys():
-        if utils.check_download(
-            utils.URL + '/' + utils.RUDDER_VERSION + '/' + str(pluginDict[p][0])
-        ):
+        if utils.check_download(utils.URL + '/' + utils.RUDDER_MAJOR + '/' + str(pluginDict[p][0])):
             pluginName.append(str(p))
             shortName.append(str(pluginDict[p][0]))
             description.append(str(pluginDict[p][1]))
