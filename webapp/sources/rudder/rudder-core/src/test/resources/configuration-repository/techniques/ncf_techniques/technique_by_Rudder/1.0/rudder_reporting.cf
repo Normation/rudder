@@ -8,9 +8,9 @@ bundle agent technique_by_Rudder_rudder_reporting(technique_parameter)
 
   methods:
     "id2" usebundle => _method_reporting_context("Command execution", "Write-Host \"testing special characters ` è &é 'à é \""),
-             unless => concat("windows");
+             unless => concat("debian.windows");
     "id2" usebundle => log_na_rudder("Skipping method 'Command execution' with key parameter 'Write-Host \"testing special characters ` è &é 'à é \"' since condition 'windows' is not reached", "Write-Host \"testing special characters ` è &é 'à é \"", "${class_prefix}_command_execution_Write-Host \"testing special characters ` è &é 'à é \"", @{args}),
-             unless => concat("windows");
+             unless => concat("debian.windows");
     "id3" usebundle => _method_reporting_context("Customized component", "${node.properties[apache_package_name]}"),
              unless => concat("package_install_version_",canonify("${node.properties[apache_package_name]}"),"_repaired");
     "id3" usebundle => log_na_rudder("Skipping method 'Service start' with key parameter '${node.properties[apache_package_name]}' since condition 'package_install_version_${node.properties[apache_package_name]}_repaired' is not reached", "${node.properties[apache_package_name]}", "${class_prefix}_service_start_${node.properties[apache_package_name]}", @{args}),
