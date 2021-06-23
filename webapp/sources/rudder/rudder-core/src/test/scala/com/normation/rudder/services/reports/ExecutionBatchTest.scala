@@ -784,6 +784,7 @@ class ExecutionBatchTest extends Specification {
     }
 
     "have a pending node when we create it with one wrong success report right now" in {
+      println(nodeStatus.values.flatMap(_.reports).toSet)
       (nodeStatus.keySet.head === one) and
       AggregatedStatusReport(nodeStatus.values.flatMap(_.reports).toSet).compliance === ComplianceLevel(missing = 1)
     }

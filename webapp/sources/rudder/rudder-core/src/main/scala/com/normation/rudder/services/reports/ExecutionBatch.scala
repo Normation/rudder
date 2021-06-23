@@ -879,7 +879,7 @@ final case class ContextForNoAnswer(
     val reportsPerRule = executionReports.groupBy(_.ruleId)
     val complianceForRun: Map[RuleId, RuleNodeStatusReport] = (for {
       RuleExpectedReports(ruleId, directives) <- lastRunNodeConfig.ruleExpectedReports
-      (missing, unexpected, expected) =  {
+      (unexpected, expected) =  {
                                    val t1 = System.nanoTime
                                    //here, we had at least one report, even if it not a ResultReports (i.e: run start/end is meaningful
 
@@ -909,7 +909,6 @@ final case class ContextForNoAnswer(
                                    }).toMap
                                    val t2 = System.nanoTime
                                    u1 += t2-t1
-
                                    /*
                                     * now we have three cases:
                                     * - expected component without reports => missing (modulo changes only interpretation)
@@ -920,39 +919,11 @@ final case class ContextForNoAnswer(
                                    val expectedKeys = expectedComponents.keySet.flatMap(c => c._2.map(d => (c._1, d)))
                                    val okKeys = reportKeys.intersect(expectedKeys)
 
-
-                                   // If okKeys.size == reportKeys.size, there is no unexpected reports
-                                   // If okKeys.size == expectedKeys.size, there is no missing reports
-                                   val missing = (if (okKeys.size != expectedKeys.size) {
-                                     expectedComponents.filter(k => !reportKeys.exists(r => r._1 == k._1._1 && k._1._2.contains(r._2))).map { case ((d, _), (pm, mrs, c)) =>
-
-                                       DirectiveStatusReport(d, Map(c.componentName ->
-                                         /*
-                                            * Here, we group by unexpanded component value, not expanded one. We want in the end:
-                                            * -- edit file  ## component name
-                                            * --- /tmp/${rudder.node.ip} ## component value
-                                            * ----- /tmp/ip1 ## report 1
-                                            * ----- /tmp/ip2 ## report 2
-                                            * Not:
-                                            * -- edit file
-                                            * --- /tmp/ip1
-                                            * ----- /tmp/ip1
-                                            * --- /tmp/ip2
-                                            * ----- /tmp/ip2
-                                            */
-                                         componentExpectedReportToStatusReport(mrs, c)))
-                                     }
-
-
-                                     } else {
-                                       Nil
-                                     })
                                    val t3 = System.nanoTime
                                    u2 += t3-t2
 
                                    //unexpected contains the one with unexpected key and all non matching serial/version
                                    val unexpected = (if (okKeys.size != reportKeys.size) {
-                                     logger.info("unexpected :(")
                                      buildUnexpectedDirectives(
                                        reports.filter(k => !expectedKeys.contains(k._1)).values.flatten.toSeq
                                      )
@@ -974,26 +945,19 @@ final case class ContextForNoAnswer(
                                              (component.componentName, checkExpectedComponentWithReports(component, filteredReports, missingReportStatus, policyMode, unexpectedInterpretation))
                                          })
                                      }
-        /* okKeys.groupBy(_._1).map { case (directiveId, cptName) =>
-                                      DirectiveStatusReport(directiveId, cptName.toSeq.map { case (_, cpt) =>
-                                        val k = (directiveId, cpt)
-                                        val (policyMode, missingReportStatus, component) = expectedComponents.find(r => k._1 == r._1._1 && r._1._2.contains(k._2)).get._2
 
-                                        (cpt, checkExpectedComponentWithReports(component, reports(k), missingReportStatus, policyMode, unexpectedInterpretation))
-                                      }.toMap)
-                                    }*/
 
                                    val t5 = System.nanoTime
                                    u4 += t5-t4
 
 
-                                   (missing, unexpected, expected)
+                                   ( unexpected, expected)
                                 }
     } yield {
       // if there is no missing nor unexpected, then data is alreay correct, otherwise we need to merge it
       val directiveStatusReports = {
-        if (missing.nonEmpty || unexpected.nonEmpty) {
-          DirectiveStatusReport.merge(expected ++ missing ++ unexpected)
+        if (unexpected.nonEmpty) {
+          DirectiveStatusReport.merge(expected ++ unexpected)
         } else {
           expected.map( dir => (dir.directiveId, dir)).toMap
         }
