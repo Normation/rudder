@@ -495,14 +495,15 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
             s"""    "${promiser}" usebundle => ${reportingContext(call, classParameterValue)},
                |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
                |    "${promiser}" usebundle => ${call.methodId.value}(${args}),
-               |     ${promiser.map(_ => ' ')}         if => concat("${condition}");""".stripMargin('|')
+               |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
+               |""".stripMargin('|')
 
           }).toList
         case block : MethodBlock =>
           block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
       }
     }
-    val methodCalls = technique.methodCalls.flatMap(bundleMethodCall(Nil)).mkString("\n")
+    val methodCalls = technique.methodCalls.flatMap(bundleMethodCall(Nil)).mkString("")
 
     val content = {
       import net.liftweb.json._
@@ -583,7 +584,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
             block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
         }
       }
-      val methodsReporting = technique.methodCalls.map(bundleMethodCall(Nil)).mkString("\n")
+      val methodsReporting = technique.methodCalls.flatMap(bundleMethodCall(Nil)).mkString("\n")
       val content =
         s"""bundle agent ${technique.bundleName.value}_rudder_reporting${bundleParams}
            |{
@@ -594,7 +595,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
            |    "class_prefix"      string => string_head("$${full_class_prefix}", "1000");
            |
            |  methods:
-           |${methodsReporting.mkString("\n")}
+           |${methodsReporting}
            |}"""
 
       val reportingFile = File(basePath) / "techniques"/ technique.category / technique.bundleName.value / technique.version.value / "rudder_reporting.cf"
@@ -761,7 +762,7 @@ class DSCTechniqueWriter(
 
     for {
 
-      calls <- technique.methodCalls.toList.traverse(toDscFormat(Nil)).toIO
+      calls <- technique.methodCalls.toList.flatTraverse(toDscFormat(Nil)).toIO
 
       content =
         s"""|function ${technique.bundleName.validDscName} {
