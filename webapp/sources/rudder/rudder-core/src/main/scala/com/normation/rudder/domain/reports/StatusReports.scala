@@ -311,7 +311,7 @@ final case class BlockStatusReport (
     subComponents.flatMap(_.getValues(predicate))
   }
 
-  def componentValues    : Map[String, ComponentValueStatusReport] = getValues(_ => true).toMap
+  def componentValues    : Map[String, ComponentValueStatusReport] = ComponentValueStatusReport.merge(getValues(_ => true).map(_._2))
   def withFilteredElement(predicate: ComponentValueStatusReport => Boolean): Option[ComponentStatusReport]  = {
     subComponents.flatMap(_.withFilteredElement(predicate)) match {
       case Nil => None
@@ -331,7 +331,7 @@ final case class BlockStatusReport (
 }
 final case class ValueStatusReport  (
     componentName      : String
-    //only one ComponentValueStatusReport by value
+    //only one ComponentValueStatusReport by valuex.
   , componentValues    : Map[String, ComponentValueStatusReport]
 ) extends  ComponentStatusReport {
 
@@ -342,7 +342,7 @@ final case class ValueStatusReport  (
    * Get all values matching the predicate
    */
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(String, ComponentValueStatusReport)] = {
-      componentValues.values.filter(predicate(_)).toSeq.map(x => (componentName, x))
+      componentValues.filter(v => predicate(v._2)).toSeq
   }
 
   def status : ReportType = ReportType.getWorseType(getValues(_ => true).map(_._2.status))

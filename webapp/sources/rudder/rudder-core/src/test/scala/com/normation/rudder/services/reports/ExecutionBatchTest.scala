@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.reports
 
+import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -341,6 +342,179 @@ class ExecutionBatchTest extends Specification {
     "with bad reports return a component with None key unexpected " in {
       withBad.componentValues("None").messages.size === 3 and
       withBad.componentValues("None").messages.forall(x => x.reportType === Unexpected)
+    }
+  }
+
+
+  "A block, in worst case report" should {
+    val reports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val badReports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val expectedComponent = BlockExpectedReport(
+      "block"
+    , ReportingLogic.WorstReport
+    , new ValueExpectedReport(
+      "component"
+      , List("foo", "bar")
+      , List("foo", "bar")
+    ) :: Nil
+    )
+
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+
+    "return a component globally repaired " in {
+      withGood.compliance === ComplianceLevel( repaired = 1)
+    }
+    "return a component with two key values " in {
+      withGood.componentValues.size === 2
+    }
+    "return a component with the key values foo which is repaired " in {
+      withGood.componentValues("foo").messages.size === 1 and
+        withGood.componentValues("foo").messages.head.reportType ===  EnforceRepaired
+    }
+    "return a component with the key values bar which is a success " in {
+      withGood.componentValues("bar").messages.size === 1 and
+        withGood.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+
+    "only one reports in plus, mark the whole block unexpected" in {
+      withBad.compliance === ComplianceLevel(unexpected = 1)
+    }
+    "with bad reports return a component with two key values " in {
+      withBad.componentValues.size === 2
+    }
+    "with bad reports return a component with the key values foo which is unexpected " in {
+      withBad.componentValues("foo").messages.size === 2 and
+        withBad.componentValues("foo").messages.head.reportType ===  Unexpected
+    }
+    "with bad reports return a component with the key values bar which is a success " in {
+      withBad.componentValues("bar").messages.size === 1 and
+        withBad.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+  }
+
+  "A block, with reporting focus " should {
+    val reports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component1", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val badReports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component1", "foo", executionTimestamp, "message"),
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val expectedComponent = BlockExpectedReport(
+      "block"
+      , ReportingLogic.FocusReport("component")
+      , new ValueExpectedReport(
+        "component"
+        , List( "bar")
+        , List( "bar")
+      )  :: new ValueExpectedReport(
+        "component1"
+        , List("foo")
+        , List("foo")
+      )  :: Nil
+    )
+
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+
+    "return a success block " in {
+      withGood.compliance === ComplianceLevel(success = 1)
+    }
+    "return a component with two key values " in {
+      withGood.componentValues.size === 2
+    }
+    "return a component with the key values foo which is repaired " in {
+      withGood.componentValues("foo").messages.size === 1 and
+        withGood.componentValues("foo").messages.head.reportType ===  EnforceRepaired
+    }
+    "return a component with the key values bar which is a success " in {
+      withGood.componentValues("bar").messages.size === 1 and
+        withGood.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+
+    "only one reports in plus, mark the whole key unexpected" in {
+      withBad.compliance === ComplianceLevel(success = 1,  unexpected = 1)
+    }
+    "with bad reports return a component with two key values " in {
+      withBad.componentValues.size === 2
+    }
+    "with bad reports return a component with the key values foo with one unexpected and one repaired " in {
+      withBad.componentValues("foo").messages.size === 2 and
+        withBad.componentValues("foo").messages.map(_.reportType) ===  Unexpected :: EnforceRepaired ::Nil
+    }
+    "with bad reports return a component with the key values bar which is a success " in {
+      withBad.componentValues("bar").messages.size === 1 and
+        withBad.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+  }
+
+  "A block, with Sum reporting logic" should {
+    val reports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val badReports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val expectedComponent = BlockExpectedReport(
+      "block"
+      , ReportingLogic.SumReport
+      , new ValueExpectedReport(
+        "component"
+        , List("foo", "bar")
+        , List("foo", "bar")
+      ) :: Nil
+    )
+
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+
+    "return a component globally repaired " in {
+      withGood.compliance === ComplianceLevel(success = 1, repaired = 1)
+    }
+    "return a component with two key values " in {
+      withGood.componentValues.size === 2
+    }
+    "return a component with the key values foo which is repaired " in {
+      withGood.componentValues("foo").messages.size === 1 and
+        withGood.componentValues("foo").messages.head.reportType ===  EnforceRepaired
+    }
+    "return a component with the key values bar which is a success " in {
+      withGood.componentValues("bar").messages.size === 1 and
+        withGood.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+
+    "only one reports in plus, mark the whole key unexpected" in {
+      withBad.compliance === ComplianceLevel(success = 1,  unexpected = 2)
+    }
+    "with bad reports return a component with two key values " in {
+      withBad.componentValues.size === 2
+    }
+    "with bad reports return a component with the key values foo which is unknwon " in {
+      withBad.componentValues("foo").messages.size === 2 and
+        withBad.componentValues("foo").messages.head.reportType ===  Unexpected
+    }
+    "with bad reports return a component with the key values bar which is a success " in {
+      withBad.componentValues("bar").messages.size === 1 and
+        withBad.componentValues("bar").messages.head.reportType ===  EnforceSuccess
     }
   }
 
@@ -784,7 +958,6 @@ class ExecutionBatchTest extends Specification {
     }
 
     "have a pending node when we create it with one wrong success report right now" in {
-      println(nodeStatus.values.flatMap(_.reports).toSet)
       (nodeStatus.keySet.head === one) and
       AggregatedStatusReport(nodeStatus.values.flatMap(_.reports).toSet).compliance === ComplianceLevel(missing = 1)
     }

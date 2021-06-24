@@ -116,7 +116,7 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
             ().validNel
           }
 
-          val check = allVarUniqueName |+| allSectionUniqueName |+| componentDefined |+| rootOnlyHasSection |+| usedButUndefined
+          val check = /* allVarUniqueName |+| allSectionUniqueName |+| */ componentDefined |+| /*rootOnlyHasSection |+| */usedButUndefined
 
           val res: Either[LoadTechniqueError, SectionSpec] = check.fold(errs => Left(LoadTechniqueError.Accumulated(errs)), _ => Right(root))
           res
