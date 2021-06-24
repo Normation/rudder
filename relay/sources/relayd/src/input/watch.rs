@@ -138,7 +138,7 @@ fn watch_stream<P: AsRef<Path>>(path: P) -> inotify::EventStream<Vec<u8>> {
         .expect("Could not watch with inotify");
     inotify
         .event_stream(Vec::from(&[0; 2048][..]))
-        .expect("Could no create inotify event stream")
+        .expect("Could not create inotify event stream")
 }
 
 async fn watch_files<P: AsRef<Path>>(path: P, tx: mpsc::Sender<ReceivedFile>) -> Result<(), Error> {
@@ -163,19 +163,51 @@ async fn watch_files<P: AsRef<Path>>(path: P, tx: mpsc::Sender<ReceivedFile>) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{fs::File, path::PathBuf, str::FromStr};
+    use std::{
+        fs::{rename, File},
+        path::PathBuf,
+        str::FromStr,
+    };
     use tempfile::tempdir;
 
     #[tokio::test]
     async fn it_watches_files() {
         let dir = tempdir().unwrap();
 
+        // Mimic real webdav behavior
         let mut watch = watch_stream(dir.path());
-        File::create(dir.path().join("2019-01-24T15:55:01+00:00@root.log")).unwrap();
+        File::create(dir.path().join(".davfs.tmp2760b1")).unwrap();
         let event = watch.next().await.unwrap().unwrap();
         assert_eq!(
             event.name.map(PathBuf::from).unwrap(),
-            PathBuf::from_str("2019-01-24T15:55:01+00:00@root.log").unwrap()
+            PathBuf::from_str(".davfs.tmp2760b1").unwrap()
+        );
+        rename(
+            dir.path().join(".davfs.tmp2760b1"),
+            dir.path().join("2021-06-24T10:10:51+00:00@root.log.gz"),
+        )
+        .unwrap();
+        let event = watch.next().await.unwrap().unwrap();
+        assert_eq!(
+            event.name.map(PathBuf::from).unwrap(),
+            PathBuf::from_str("2021-06-24T10:10:51+00:00@root.log.gz").unwrap()
+        );
+
+        File::create(dir.path().join(".davfs.tmp27ede1")).unwrap();
+        let event = watch.next().await.unwrap().unwrap();
+        assert_eq!(
+            event.name.map(PathBuf::from).unwrap(),
+            PathBuf::from_str(".davfs.tmp27ede1").unwrap()
+        );
+        rename(
+            dir.path().join(".davfs.tmp27ede1"),
+            dir.path().join("2022-01-24T15:55:01+00:00@root.log"),
+        )
+        .unwrap();
+        let event = watch.next().await.unwrap().unwrap();
+        assert_eq!(
+            event.name.map(PathBuf::from).unwrap(),
+            PathBuf::from_str("2022-01-24T15:55:01+00:00@root.log").unwrap()
         );
     }
 }

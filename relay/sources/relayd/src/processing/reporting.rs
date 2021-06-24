@@ -63,7 +63,7 @@ async fn serve(job_config: Arc<JobConfig>, mut rx: mpsc::Receiver<ReceivedFile>)
                 "skipping {:#?} as it does not have a known report extension",
                 file
             );
-            return Ok(());
+            continue;
         }
 
         let queue_id = format!(
