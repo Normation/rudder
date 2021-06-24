@@ -45,20 +45,12 @@ Each level uses items from lower levels (lower numbers) or, in some cases, from 
 
 Quick tests are run using the avocado framework, which can be installed using:
 
-'''
-pip3 install --user avocado-framework
-'''
+    pip3 install --user avocado-framework
 
 To add a test, simply add an executable file to the `tests/quick` folder. A lib folder is available in `tests/testlib` but is not
 automatically imported, you will to import it manually in your new test if needed.
 
 To run the tests:
 
-'''
-avocado run tests/quick
-avocado run tests/quick/test_ncf_api.py
-'''
-
-
-
-
+    avocado run tests/quick
+    avocado run tests/quick/test_ncf_api.py
