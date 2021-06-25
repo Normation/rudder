@@ -156,9 +156,13 @@ def list_installed():
         if PY3:
             line = line.decode("utf-8")
         line = line.rstrip("\n")
-        # The space before "installed" is important, because it can be "not-installed".
-        if line.startswith("Status=") and line.split("=", 1)[1].find(" installed") >= 0:
-            installed_package = True
+        # 'Status=install ok <state>' or 'Status=hold ok <state>'
+        if line.startswith("Status=install") or line.startswith("Status=hold"):
+            state = line.split()[2]
+            if state in [ "installed", "half-configured", "half-installed" ]:
+                installed_package = True
+            else:
+                installed_package = False
         elif line.startswith("Status="):
             installed_package = False
         elif installed_package:

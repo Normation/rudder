@@ -1,0 +1,110 @@
+#!/bin/sh -e
+get_package_data() {
+  file="${INPUT_File?File must be given to get-package-data}"
+  set +e
+  apk verify $file 2>/dev/null >/dev/null
+  rc=$?
+  set -e
+  if [ 0 = $rc ]; then
+    echo "PackageType=file"
+    name=$(basename $file)
+    echo $name | sed -e 's/-/ /' -e 's/.apk/ apk/' | awk '
+{
+  printf("Name=%s\n",$1)
+  printf("Version=%s\n",$2)
+}'
+  else
+    echo PackageType=repo
+    echo Name=$file
+  fi
+}
+
+list_installed() {
+  # Example `apk list --installed` output:
+  # busybox-1.32.0-r3 x86_64 {busybox} (GPL-2.0-only) [installed]
+  #
+  # After rewrite:
+  # Name=busybox
+  # Version=1.32.0-r3
+  # Architecture=x86_64
+  apk list --installed | sed 's/-\([0-9]\)/ \1/' | awk '
+{
+    printf("Name=%s\n",$1)
+    printf("Version=%s\n",$2)
+    printf("Architecture=%s\n",$3)
+}'
+}
+
+repo_install() {
+  name="${INPUT_Name?Name must be given to repo-install}"
+  version="${INPUT_Version}"
+  if [ ! -z "${INPUT_Version}" ]; then
+    apk add "$name=$version" 2>/dev/null >/dev/null
+  else
+    apk add --upgrade "$name" 2>/dev/null >/dev/null
+  fi
+}
+
+file_install() {
+  file="${INPUT_File?File must be given to file-install}"
+  apk add $file 2>/dev/null >/dev/null
+}
+
+list_updates() {
+# for some odd reason --upgradable does not work where -u does
+  apk list -u | sed 's/-\([0-9]\)/ \1/' | awk '
+{
+    printf("Name=%s\n",$1)
+    printf("Version=%s\n",$2)
+    printf("Architecture=%s\n",$3)
+}'
+}
+
+remove() {
+  name="${INPUT_Name?Name must be given to remove}"
+  apk del "$name" 2>/dev/null >/dev/null
+}
+
+main() {
+  command=$1
+
+  # Output maybe contain backslashes, and we don't want those to end up escaping
+  # something so we use use -r with read.
+  while read -r line; do
+    # Note that line is a variable assignment, e.g.
+    # INPUT_File=syncthing
+    export INPUT_$line
+  done
+
+
+  case $command in
+    supports-api-version)
+      echo 1
+      ;;
+    get-package-data)
+      get_package_data
+      ;;
+    list-installed)
+      list_installed
+      ;;
+    repo-install)
+      repo_install
+      ;;
+    file-install)
+      file_install
+      ;;
+    list-updates)
+      list_updates
+      ;;
+    list-updates-local)
+      list_updates
+      ;;
+    remove)
+      remove
+      ;;
+    *)
+      echo "ErrorMessage=Invalid operation"
+  esac
+}
+
+main $1
