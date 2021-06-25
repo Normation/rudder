@@ -508,7 +508,8 @@ def extract_archive_from_rpkg(rpkgPath, dst, archive):
 
 def extract_scripts(metadata, package_file):
     package_dir = DB_DIRECTORY + '/' + metadata['name']
-    return extract_archive_from_rpkg(package_file, package_dir, 'scripts.txz')
+    extract_archive_from_rpkg(package_file, package_dir, 'scripts.txz')
+    return package_dir
 
 
 def run_script(name, script_dir, exist, exit_on_error=True):
