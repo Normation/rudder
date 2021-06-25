@@ -1,54 +1,7 @@
-############################################################################
-#  Copyright 2017 Northern.tech AS
-#
-#  This program is free software; you can redistribute it and/or modify it
-#  under the terms of the GNU Lesser General Public License LGPL as published by the
-#  Free Software Foundation; version 3.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  To the extent this program is licensed as part of the Enterprise
-#  versions of CFEngine, the applicable Commercial Open Source License
-#  (COSL) may apply to this file if you as a licensee so wish it. See
-#  included file COSL.txt.
-###########################################################################
-#
-# CFEngine Community Open Promise-Body Library
-#
-# This initiative started by CFEngine promotes a
-# standardized set of names and promise specifications
-# for template functionality within CFEngine 3.
-#
-# The aim is to promote an industry standard for
-# naming of configuration patterns, leading to a
-# de facto middleware of standardized syntax.
-#
-# Names should be intuitive and parameters should be
-# minimal to assist readability and comprehensibility.
-
-# Contributions to this file are voluntarily given to
-# the cfengine community, and are moderated by CFEngine.
-# No liability or warranty for misuse is implied.
-#
-# If you add to this file, please try to make the
-# contributions "self-documenting". Comments made
-# after the bundle/body statement are retained in
-# the online docs
-#
-
-# For CFEngine Core: 3.7.0 to 3.7.x
 # Bundles
 
-###################################################
-# If you find CFEngine useful, please consider    #
-# purchasing a commercial version of the software.#
-###################################################
-
 bundle common bundles_common
-# @ignore
+# @brief Enumerate policy files used by this policy file for inclusion to inputs
 {
   vars:
       "inputs" slist => { "$(this.promise_dirname)/paths.cf",
@@ -57,7 +10,7 @@ bundle common bundles_common
 }
 
 body file control
-# @ignore
+# @brief Include policy files used by this policy file as part of inputs
 {
       inputs => { @(bundles_common.inputs) };
 }
@@ -382,9 +335,9 @@ bundle agent url_ping(host, method, port, uri)
   reports:
     verbose_mode::
       "$(this.bundle): $(method) $(host):$(port)/$(uri) got 200 OK"
-      ifvarclass => "url_ok_$(chost)";
+      if => "url_ok_$(chost)";
       "$(this.bundle): $(method) $(host):$(port)/$(uri) did *not* get 200 OK"
-      ifvarclass => "url_not_ok_$(chost)";
+      if => "url_not_ok_$(chost)";
 }
 
 bundle agent cmerge(name, varlist)
@@ -538,8 +491,8 @@ bundle agent run_ifdefined(namespace, mybundle)
 
   methods:
       "any"
-      usebundle  => $(bundlesfound),
-      ifvarclass => strcmp(1, $(count));
+      usebundle => $(bundlesfound),
+      if        => strcmp(1, $(count));
 
   reports:
     verbose_mode::

@@ -1,54 +1,7 @@
-############################################################################
-#  Copyright 2017 Northern.tech AS
-#
-#  This program is free software; you can redistribute it and/or modify it
-#  under the terms of the GNU Lesser General Public License LGPL as published by the
-#  Free Software Foundation; version 3.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  To the extent this program is licensed as part of the Enterprise
-#  versions of CFEngine, the applicable Commercial Open Source License
-#  (COSL) may apply to this file if you as a licensee so wish it. See
-#  included file COSL.txt.
-###########################################################################
-#
-# CFEngine Community Open Promise-Body Library
-#
-# This initiative started by CFEngine promotes a
-# standardized set of names and promise specifications
-# for template functionality within CFEngine 3.
-#
-# The aim is to promote an industry standard for
-# naming of configuration patterns, leading to a
-# de facto middleware of standardized syntax.
-#
-# Names should be intuitive and parameters should be
-# minimal to assist readability and comprehensibility.
-
-# Contributions to this file are voluntarily given to
-# the cfengine community, and are moderated by CFEngine.
-# No liability or warranty for misuse is implied.
-#
-# If you add to this file, please try to make the
-# contributions "self-documenting". Comments made
-# after the bundle/body statement are retained in
-# the online docs
-#
-
-# For CFEngine Core: 3.7.0 to 3.7.x
 # VCS Bundles
 
-###################################################
-# If you find CFEngine useful, please consider    #
-# purchasing a commercial version of the software.#
-###################################################
-
 bundle common vcs_common
-# @ignore
+# @brief Enumerate policy files used by this policy file for inclusion to inputs
 {
   vars:
       "inputs" slist => { "$(this.promise_dirname)/common.cf",
@@ -57,7 +10,7 @@ bundle common vcs_common
 }
 
 body file control
-# @ignore
+# @brief Include policy files used by this policy file as part of inputs
 {
       inputs => { @(vcs_common.inputs) };
 }
@@ -203,7 +156,7 @@ bundle agent git_clean(repo_path)
 }
 
 bundle agent git_stash(repo_path, stash_name)
-# @brief Stash any changes (including untracked files) in repo_path
+# @brief Stash any changes (including untracked files if git is capable) in repo_path
 # @param repo_path Path to the clone
 # @param stash_name Stash name
 #
@@ -216,14 +169,31 @@ bundle agent git_stash(repo_path, stash_name)
 #      comment => "Stash any changes, including untracked files";
 # ```
 {
+  classes:
+    _stdlib_path_exists_git::
+      "_git_stash_supports_including_untracked_files" -> { "CFE-3383" }
+        expression => regcmp( ".*--include-untracked.*",
+                              execresult( "$(paths.git) stash --help", noshell ) );
+
+  vars:
+      "_stash_options"
+        string => concat( "save ",
+                          "--quiet ",
+                          ifelse( "_git_stash_supports_including_untracked_files",
+                                  "--include-untracked", ""),
+                          "$(stash_name)");
+
   methods:
-      "" usebundle => git($(repo_path), "stash", 'save --quiet --include-untracked "$(stash_name)"'),
+      "" usebundle => git($(repo_path), "stash", $(_stash_options)),
       comment => "So that we don't lose any trail of what happened and so that
                     we don't accidentally delete something important we stash any
                     changes.
   Note:
                       1. This promise will fail if user.email is not set
                       2. We are respecting ignored files.";
+
+    !_stdlib_path_exists_git::
+      "Warning: bundle '$(this.bundle)' actuated, but git not found";
 }
 
 bundle agent git_stash_and_clean(repo_path)
@@ -339,7 +309,7 @@ bundle agent git(repo_path, subcmd, args)
       # not be able to commit as a normal user.
       "need_to_drop"
         not => strcmp($(this.promiser_uid), $(repo_uid)),
-        ifvarclass => isvariable( repo_uid );
+        if => isvariable( repo_uid );
 
     am_root.need_to_drop::
       # This regular expression could be tightened up
@@ -349,7 +319,7 @@ bundle agent git(repo_path, subcmd, args)
         expression => regextract( ".*:.*:\d+:\d+:.*:(.*):.*",
                                   $(repo_uid_passwd_ent),
                                   "repo_uid_passwd" ),
-        ifvarclass => isvariable("repo_uid_passwd_ent");
+        if => isvariable("repo_uid_passwd_ent");
 
   commands:
     am_root.need_to_drop::
@@ -372,7 +342,7 @@ bundle agent git(repo_path, subcmd, args)
   reports:
     "DEBUG|DEBUG_$(this.bundle).am_root.need_to_drop"::
       "DEBUG $(this.bundle): with dropped privileges to uid '$(repo_uid)' and gid '$(repo_gid)', in directory '$(repo_path)', running Git command '$(paths.env) HOME=\"$(repo_uid_passwd[1])\" $(oneliner) $(subcmd) $(args)'"
-        ifvarclass => isvariable("repo_uid_passwd[1]");
+        if => isvariable("repo_uid_passwd[1]");
 
     "DEBUG|DEBUG_$(this.bundle).(!am_root|!need_to_drop)"::
       "DEBUG $(this.bundle): with current privileges, in directory '$(repo_path)', running Git command '$(oneliner) $(subcmd) $(args)'";

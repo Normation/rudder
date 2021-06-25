@@ -35,16 +35,16 @@ bundle agent feature
   reports:
     "DEBUG|DEBUG_$(this.bundle)"::
       "DEBUG $(this.bundle): $(on) => SET class '$(extract_$(on)[2]) for '$(extract_$(on)[1])'"
-      ifvarclass => "parsed_$(on)";
+      if => "parsed_$(on)";
 
       "DEBUG $(this.bundle): $(off) => UNSET class '$(extract_$(off)[1])'"
-      ifvarclass => "parsed_$(off)";
+      if => "parsed_$(off)";
 
-      "DEBUG $(this.bundle): have $(extract_$(on)[2])" ifvarclass => "$(extract_$(on)[2])";
-      "DEBUG $(this.bundle): have no $(extract_$(on)[2])" ifvarclass => "!$(extract_$(on)[2])";
+      "DEBUG $(this.bundle): have $(extract_$(on)[2])" if => "$(extract_$(on)[2])";
+      "DEBUG $(this.bundle): have no $(extract_$(on)[2])" if => "!$(extract_$(on)[2])";
 
-      "DEBUG $(this.bundle): have $(extract_$(off)[1])" ifvarclass => "$(extract_$(off)[1])";
-      "DEBUG $(this.bundle): have no $(extract_$(off)[1])" ifvarclass => "!$(extract_$(off)[1])";
+      "DEBUG $(this.bundle): have $(extract_$(off)[1])" if => "$(extract_$(off)[1])";
+      "DEBUG $(this.bundle): have no $(extract_$(off)[1])" if => "!$(extract_$(off)[1])";
 }
 
 bundle agent feature_test
@@ -71,15 +71,15 @@ bundle agent feature_test
       "off" slist => classesmatching("feature_unset_.*");
 
   reports:
-      "$(this.bundle): have $(extract_$(on)[2])" ifvarclass => "$(extract_$(on)[2])";
-      "$(this.bundle): have no $(extract_$(on)[2])" ifvarclass => "!$(extract_$(on)[2])";
+      "$(this.bundle): have $(extract_$(on)[2])" if => "$(extract_$(on)[2])";
+      "$(this.bundle): have no $(extract_$(on)[2])" if => "!$(extract_$(on)[2])";
 
-      "$(this.bundle): have $(extract_$(off)[1])" ifvarclass => "$(extract_$(off)[1])";
-      "$(this.bundle): have no $(extract_$(off)[1])" ifvarclass => "!$(extract_$(off)[1])";
+      "$(this.bundle): have $(extract_$(off)[1])" if => "$(extract_$(off)[1])";
+      "$(this.bundle): have no $(extract_$(off)[1])" if => "!$(extract_$(off)[1])";
 }
 
 body classes feature_cancel(x)
-# @ignore
+# @brief Undefine class `x` when promise is kept or repaired
 # Used internally by bundle `feature`
 {
       cancel_kept => { "$(x)" };

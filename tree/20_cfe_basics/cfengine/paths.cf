@@ -1,55 +1,8 @@
-############################################################################
-#  Copyright 2017 Northern.tech AS
-#
-#  This program is free software; you can redistribute it and/or modify it
-#  under the terms of the GNU Lesser General Public License LGPL as published by the
-#  Free Software Foundation; version 3.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  To the extent this program is licensed as part of the Enterprise
-#  versions of CFEngine, the applicable Commercial Open Source License
-#  (COSL) may apply to this file if you as a licensee so wish it. See
-#  included file COSL.txt.
-###########################################################################
-#
-# CFEngine Community Open Promise-Body Library
-#
-# This initiative started by CFEngine promotes a
-# standardized set of names and promise specifications
-# for template functionality within CFEngine 3.
-#
-# The aim is to promote an industry standard for
-# naming of configuration patterns, leading to a
-# de facto middleware of standardized syntax.
-#
-# Names should be intuitive and parameters should be
-# minimal to assist readability and comprehensibility.
-
-# Contributions to this file are voluntarily given to
-# the cfengine community, and are moderated by CFEngine.
-# No liability or warranty for misuse is implied.
-#
-# If you add to this file, please try to make the
-# contributions "self-documenting". Comments made
-# after the bundle/body statement are retained in
-# the online docs
-#
-
-# For CFEngine Core: 3.7.0 to 3.7.x
 # Paths bundle (used by other bodies)
 
-###################################################
-# If you find CFEngine useful, please consider    #
-# purchasing a commercial version of the software.#
-###################################################
-
 bundle common paths
-# @brief Defines an array `path` with common paths to standard binaries,
-# and classes for defined and existing paths.
+# @brief Defines an array `path` with common paths to standard binaries and
+# directories as well as classes for defined and existing paths.
 #
 # If the current platform knows that binary XYZ should be present,
 # `_stdlib_has_path_XYZ` is defined. Furthermore, if XYZ is actually present
@@ -72,6 +25,68 @@ bundle common paths
 #        comment => "Alternate array reference style";
 # }
 # ```
+#
+# The paths bundle can be extended with custom paths by tagging *classic array* variables with `paths.cf`.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent extended_paths_example
+# {
+#   meta:
+#       "tags" slist => { "autorun" };
+#
+#   vars:
+#       # NOTE: the key will be canonified when it's pulled in to the paths bundle.
+#       "path[orange]" string => "/bin/true", meta => { "paths.cf" };
+#       "path[true-blue]" string => "/bin/true", meta => { "paths.cf" };
+#       "foo[bar]" string => "/bin/true", meta => { "paths.cf" };
+#
+#     this_context_isnt_defined_so_no_path::
+#       "path[red]" string => "/bin/true", meta => { "paths.cf" };
+#
+#   reports:
+#     _stdlib_path_exists_orange::
+#       "path paths.orange == $(paths.orange)";
+#       "path paths.path[orange] == $(paths.path[orange])";
+#
+#     _stdlib_path_exists_bar::
+#       "path paths.bar == $(paths.bar)";
+#       "path paths.path[bar] == $(paths.path[bar])";
+#
+#     _stdlib_path_exists_true_blue::
+#       "path paths.true_blue == $(paths.true_blue)";
+#       "path paths.path[true_blue] == $(paths.path[true_blue])";
+#
+#     _stdlib_path_exists_red::
+#       "path paths.red == $(paths.red)";
+#       "path paths.path[red] == $(paths.path[red])";
+#
+#     !_stdlib_path_exists_red::
+#       "path paths.red was not found";
+#       "path paths.path[red] was not found";
+# }
+# ```
+#
+# Additionally several path entries are present to aid in policy sharing between
+# unix systems and Android Termux environments.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent track_sshd_config
+# {
+#   files:
+#     "$(paths.etc_path)/sshd/sshd_config"
+#       changes => detect_all_change;
+# }
+# ```
+#
+# In case of termux, `paths.etc_path` will be `/data/data/com.termux/files/usr/etc`.
+#
+# **History:**
+#
+# - Ability to extend paths by tagging classic array variables added 3.17.0 (works with binary version 3.11.0 and greater)
 {
   vars:
 
@@ -156,6 +171,7 @@ bundle common paths
       "path[sed]"      string => "/usr/bin/sed";
       "path[sort]"     string => "/usr/bin/sort";
       "path[tr]"       string => "/usr/bin/tr";
+      "path[yum]"      string => "/usr/bin/yum";
 
     archlinux::
 
@@ -617,7 +633,43 @@ bundle common paths
 
       "path[shadow]"       string => "/etc/security/passwd";
 
+    termux::
+      "path[tar]"           string => "/usr/bin/tar";
+      "path[true]"          string => "/usr/bin/true";
+      "path[false]"         string => "/usr/bin/false";
+      "path[cat]"           string => "/usr/bin/cat";
+      "path[sysctl]"        string => "/usr/bin/sysctl";
+      "path[env]"           string => "/usr/bin/env";
+
+      # now, mangle the values by prepending the TERMUX_PREFIX
+      "files_path" string => "/data/data/com.termux/files";
+      "etc_path" string => "$(files_path)/usr/etc";
+      "tmp_path" string => "$(files_path)/usr/tmp";
+      "bin_path" string => "$(files_path)/usr/bin";
+      "var_path" string => "$(files_path)/usr/var";
+      "tmp_paths" slist => getindices("path");
+      "tmp_path[$(tmp_paths)]" string => "$(files_path)$(path[$(tmp_paths)])";
+      "path[$(tmp_paths)]" string => "$(tmp_path[$(tmp_paths)])";
+
+    !(termux|windows)::
+      # reasonable defaults for unix systems to allow for writing
+      # more portable paths between termux and other systems
+      "etc_path" string => "/etc";
+      "tmp_path" string => "/tmp";
+      "bin_path" string => "/bin";
+      "var_path" string => "/var";
+
     any::
+@if minimum_version(3.11.0)
+      # Pull in variables tagged with `paths.cf`
+      "_extended_path_data" -> { "CFE-3426" }
+        data => variablesmatching_as_data( ".*", "paths.cf" );
+      "_i" -> { "CFE-3426" }
+        slist => getindices( _extended_path_data );
+      "path[$(with)]" -> { "CFE-3426" }
+        string => "$(_extended_path_data[$(_i)])",
+        with => canonify( regex_replace( $(_i), ".*\[(.*)\]", "$1", "") );
+@endif
 
       "all_paths"     slist => getindices("path");
       "$(all_paths)" string => "$(path[$(all_paths)])";

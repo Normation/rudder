@@ -1,51 +1,4 @@
-############################################################################
-#  Copyright 2017 Northern.tech AS
-#
-#  This program is free software; you can redistribute it and/or modify it
-#  under the terms of the GNU Lesser General Public License LGPL as published by the
-#  Free Software Foundation; version 3.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  To the extent this program is licensed as part of the Enterprise
-#  versions of CFEngine, the applicable Commercial Open Source License
-#  (COSL) may apply to this file if you as a licensee so wish it. See
-#  included file COSL.txt.
-###########################################################################
-#
-# CFEngine Community Open Promise-Body Library
-#
-# This initiative started by CFEngine promotes a
-# standardized set of names and promise specifications
-# for template functionality within CFEngine 3.
-#
-# The aim is to promote an industry standard for
-# naming of configuration patterns, leading to a
-# de facto middleware of standardized syntax.
-#
-# Names should be intuitive and parameters should be
-# minimal to assist readability and comprehensibility.
-
-# Contributions to this file are voluntarily given to
-# the cfengine community, and are moderated by CFEngine.
-# No liability or warranty for misuse is implied.
-#
-# If you add to this file, please try to make the
-# contributions "self-documenting". Comments made
-# after the bundle/body statement are retained in
-# the online docs
-#
-
-# For CFEngine Core: 3.7.0 to 3.7.x
 # Packages bodies
-
-###################################################
-# If you find CFEngine useful, please consider    #
-# purchasing a commercial version of the software.#
-###################################################
 
 bundle common package_module_knowledge
 # @brief common package_module_knowledge bundle
@@ -54,6 +7,11 @@ bundle common package_module_knowledge
 # platforms.
 {
   vars:
+
+      # Package inventory refresh
+      "query_installed_ifelapsed" string => "$(ncf_def.package_module_query_installed_ifelapsed)";
+      "query_updates_ifelapsed"   string => "$(ncf_def.package_module_query_updates_ifelapsed)";
+
     debian::
       "platform_default" string => "apt_get";
 
@@ -82,19 +40,31 @@ bundle common package_module_knowledge
     windows::
       "platform_default" string => "msiexec";
 @endif
+
+    alpinelinux::
+      "platform_default" string => "apk";
+
+    termux::
+      "platform_default" string => "apt_get";
+}
+
+body package_module apk
+{
+  query_installed_ifelapsed => "$(package_module_knowledge.query_installed_ifelapsed)";
+  query_updates_ifelapsed => "$(package_module_knowledge.query_updates_ifelapsed)";
 }
 
 body package_module apt_get
 {
-    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
-    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
+    query_installed_ifelapsed => "$(package_module_knowledge.query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(package_module_knowledge.query_updates_ifelapsed)";
     #default_options =>  {};
 }
 
 body package_module zypper
 {
-      query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
-      query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
+      query_installed_ifelapsed => "$(package_module_knowledge.query_installed_ifelapsed)";
+      query_updates_ifelapsed => "$(package_module_knowledge.query_updates_ifelapsed)";
       #default_options =>  {};
 }
 
@@ -115,8 +85,8 @@ body package_module nimclient
 # }
 # ```
 {
-    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
-    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
+    query_installed_ifelapsed => "$(package_module_knowledge.query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(package_module_knowledge.query_updates_ifelapsed)";
     # This would likey be customized based on your infrastructure specifics
     # you may for example want to default the lpp_source based on something
     # like `oslevel -s` output.
@@ -137,39 +107,39 @@ body package_module pkgsrc
 # }
 # ```
 {
-    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
-    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
+    query_installed_ifelapsed => "$(package_module_knowledge.query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(package_module_knowledge.query_updates_ifelapsed)";
 }
 
 body package_module yum
 # @brief Define details used when interfacing with yum
 {
-    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
-    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
+    query_installed_ifelapsed => "$(package_module_knowledge.query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(package_module_knowledge.query_updates_ifelapsed)";
     #default_options => {};
 }
 
 body package_module slackpkg
 # @brief Define details used when interfacing with slackpkg
 {
-      query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
-      query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
+      query_installed_ifelapsed => "$(package_module_knowledge.query_installed_ifelapsed)";
+      query_updates_ifelapsed => "$(package_module_knowledge.query_updates_ifelapsed)";
       #default_options =>  {};
 }
 
 body package_module pkg
 # @brief Define details used when interfacing with pkg
 {
-    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
-    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
+    query_installed_ifelapsed => "$(package_module_knowledge.query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(package_module_knowledge.query_updates_ifelapsed)";
     #default_options => {};
 }
 
 body package_module snap
 # @brief Define details used when interfacing with snapcraft
 {
-    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
-    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
+    query_installed_ifelapsed => "$(package_module_knowledge.query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(package_module_knowledge.query_updates_ifelapsed)";
     #default_options => {};
 }
 
@@ -193,8 +163,8 @@ body package_module freebsd_ports
 # }
 # ```
 {
-    query_installed_ifelapsed => "$(ncf_def.package_module_query_installed_ifelapsed)";
-    query_updates_ifelapsed => "$(ncf_def.package_module_query_updates_ifelapsed)";
+    query_installed_ifelapsed => "$(package_module_knowledge.query_installed_ifelapsed)";
+    query_updates_ifelapsed => "$(package_module_knowledge.query_updates_ifelapsed)";
 }
 
 bundle common packages_common

@@ -1,61 +1,14 @@
-############################################################################
-#  Copyright 2017 Northern.tech AS
-#
-#  This program is free software; you can redistribute it and/or modify it
-#  under the terms of the GNU Lesser General Public License LGPL as published by the
-#  Free Software Foundation; version 3.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  To the extent this program is licensed as part of the Enterprise
-#  versions of CFEngine, the applicable Commercial Open Source License
-#  (COSL) may apply to this file if you as a licensee so wish it. See
-#  included file COSL.txt.
-###########################################################################
-#
-# CFEngine Community Open Promise-Body Library
-#
-# This initiative started by CFEngine promotes a
-# standardized set of names and promise specifications
-# for template functionality within CFEngine 3.
-#
-# The aim is to promote an industry standard for
-# naming of configuration patterns, leading to a
-# de facto middleware of standardized syntax.
-#
-# Names should be intuitive and parameters should be
-# minimal to assist readability and comprehensibility.
-
-# Contributions to this file are voluntarily given to
-# the cfengine community, and are moderated by CFEngine.
-# No liability or warranty for misuse is implied.
-#
-# If you add to this file, please try to make the
-# contributions "self-documenting". Comments made
-# after the bundle/body statement are retained in
-# the online docs
-#
-
-# For CFEngine Core: 3.7.0 to 3.7.x
 # Files bodies
 
-###################################################
-# If you find CFEngine useful, please consider    #
-# purchasing a commercial version of the software.#
-###################################################
-
 bundle common files_common
-# @ignore
+# @brief Enumerate policy files used by this policy file for inclusion to inputs
 {
   vars:
       "inputs" slist => { "$(this.promise_dirname)/common.cf" };
 }
 
 body file control
-# @ignore
+# @brief Include policy files used by this policy file as part of inputs
 {
       inputs => { @(files_common.inputs) };
 }
@@ -292,6 +245,41 @@ bundle edit_line replace_line_end(start,end)
       edit_field => line("(^|\s)$(start)\s*", "2", "$(end)","set");
 }
 
+bundle edit_line replace_uncommented_substrings( _comment, _find, _replace )
+# @brief Replace all occurrences of `_find` with `_replace` on lines that do not follow a `_comment`
+# @param _comment Sequence of characters, each indicating the start of a comment.
+# @param _find String matching substring to replace
+# @param _replace String to substitute `_find` with
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example_replace_uncommented_substrings
+# {
+#   files:
+#     "/tmp/file.txt"
+#       edit_line => replace_uncommented_substrings( "#", "ME", "YOU");
+# }
+# ```
+#
+# **Notes:**
+#
+# * Only single character comments are supported as `_comment` is used in the PCRE character group (`[^...]`).
+# * `-` in `_comment` is interpreted as a range unless it's used as the first or last character. For example, setting `_comment` to `0-9` means any digit starts a comment.
+#
+# **History:**
+#
+# * Introduced 3.17.0, 3.15.3
+{
+  vars:
+      "_reg_match_uncommented_lines_containing_find"
+        string => "^([^$(_comment)]*)\Q$(_find)\E(.*$)";
+
+  replace_patterns:
+    "$(_reg_match_uncommented_lines_containing_find)"
+      replace_with => text_between_match1_and_match2( $(_replace) );
+}
+
 ##
 
 bundle edit_line append_to_line_end(start,end)
@@ -521,7 +509,7 @@ bundle edit_line insert_ini_section(name, config)
 # ```
 # # given an array "barray"
 # files:
-#     "myfile.ini" edit_line => insert_innit_section("foo", "barray");
+#     "myfile.ini" edit_line => insert_ini_section("foo", "barray");
 # ```
 #
 # Inserts a section in an INI file with the given configuration
@@ -532,8 +520,8 @@ bundle edit_line insert_ini_section(name, config)
 {
   vars:
       # TODO: refactor once 3.7.x is EOL
-      "indeces" slist => getindices($(config));
-      "k" slist => sort("indeces", lex);
+      "indices" slist => getindices($(config));
+      "k" slist => sort("indices", lex);
 
   insert_lines:
       "[$(name)]"
@@ -600,7 +588,7 @@ bundle edit_line set_quoted_values(v)
   insert_lines:
       '$(index)="$($(v)[$(index)])"'
       comment    => "Insert a variable definition",
-        ifvarclass => "!($(cindex[$(index)])_in_file_kept|$(cindex[$(index)])_in_file_repaired)";
+        if => "!($(cindex[$(index)])_in_file_kept|$(cindex[$(index)])_in_file_repaired)";
 }
 
 ##
@@ -664,7 +652,7 @@ bundle edit_line set_variable_values(v)
       "$(index)=$($(v)[$(index)])"
 
       comment => "Insert a variable definition",
-        ifvarclass => "!($(cv)_$(cindex[$(index)])_in_file_kept|$(cv)_$(cindex[$(index)])_in_file_repaired)";
+        if => "!($(cv)_$(cindex[$(index)])_in_file_kept|$(cv)_$(cindex[$(index)])_in_file_repaired)";
 }
 
 bundle edit_line set_config_values(v)
@@ -725,7 +713,7 @@ bundle edit_line set_config_values(v)
                     commented occurrence of $(index).",
         handle => "set_config_values_replace_commented_line",
         replace_with => value("$(index) $($(v)[$(index)])"),
-          ifvarclass => "!line_exists_$(cindex[$(index)]).!replace_attempted_$(cindex[$(index)])_reached.!multiple_comments_$(cindex[$(index)])",
+                  if => "!line_exists_$(cindex[$(index)]).!replace_attempted_$(cindex[$(index)])_reached.!multiple_comments_$(cindex[$(index)])",
              classes => results("bundle", "uncommented_$(cindex[$(index)])");
 
       # If the line is there with the wrong value, replace with
@@ -742,13 +730,13 @@ bundle edit_line set_config_values(v)
       "$(index) $($(v)[$(index)])"
          comment => "Insert the value, marker exists $(index)",
         location => after("^\s*#\s*($(index)\s+.*|$(index))$"),
-      ifvarclass => "replace_attempted_$(cindex[$(index)])_reached.multiple_comments_$(cindex[$(index)])";
+              if => "replace_attempted_$(cindex[$(index)])_reached.multiple_comments_$(cindex[$(index)])";
 
       # If the line doesn't exist and there are no occurrences
       # of the LHS commented out, insert a new line at the eof
       "$(index) $($(v)[$(index)])"
          comment => "Insert the value, marker doesn't exist $(index)",
-      ifvarclass => "replace_attempted_$(cindex[$(index)])_reached.!multiple_comments_$(cindex[$(index)])";
+              if => "replace_attempted_$(cindex[$(index)])_reached.!multiple_comments_$(cindex[$(index)])";
 
 }
 
@@ -834,7 +822,7 @@ bundle edit_line set_line_based(v, sep, bp, kp, cp)
       "^$(cp)($(i)$(bp).*|$(i))$"
              comment => "Uncommented the value '$(i)'",
         replace_with => value("$(i)$(sep)$($(v)[$(i)])"),
-          ifvarclass => "!exists_$(ci[$(i)]).!replace_attempted_$(ci[$(i)])_reached.!multiple_comments_$(ci[$(i)])",
+                  if => "!exists_$(ci[$(i)]).!replace_attempted_$(ci[$(i)])_reached.!multiple_comments_$(ci[$(i)])",
              classes => results("bundle", "uncommented_$(ci[$(i)])");
 
       # If the line is there with the wrong value, replace with
@@ -851,18 +839,18 @@ bundle edit_line set_line_based(v, sep, bp, kp, cp)
       "$(i)$(sep)$($(v)[$(i)])"
          comment => "Insert the value, marker '$(i)' exists",
         location => after("^$(cp)($(i)$(bp).*|$(i))$"),
-      ifvarclass => "replace_attempted_$(ci[$(i)])_reached.multiple_comments_$(ci[$(i)])";
+              if => "replace_attempted_$(ci[$(i)])_reached.multiple_comments_$(ci[$(i)])";
 
       # If the line doesn't exist and there are no occurrences
       # of the LHS commented out, insert a new line at the eof
       "$(i)$(sep)$($(v)[$(i)])"
          comment => "Insert the value, marker '$(i)' doesn't exist",
-      ifvarclass => "replace_attempted_$(ci[$(i)])_reached.!multiple_comments_$(ci[$(i)]).!exists_$(ci[$(i)])";
+              if => "replace_attempted_$(ci[$(i)])_reached.!multiple_comments_$(ci[$(i)]).!exists_$(ci[$(i)])";
 
   reports:
     verbose_mode|EXTRA::
-      "$(this.bundle): Line for '$(i)' exists" ifvarclass => "exists_$(ci[$(i)])";
-      "$(this.bundle): Line for '$(i)' does not exist" ifvarclass => "!exists_$(ci[$(i)])";
+      "$(this.bundle): Line for '$(i)' exists" if => "exists_$(ci[$(i)])";
+      "$(this.bundle): Line for '$(i)' does not exist" if => "!exists_$(ci[$(i)])";
 }
 
 bundle edit_line set_config_values_matching(v,pat)
@@ -904,14 +892,13 @@ bundle edit_line set_config_values_matching(v,pat)
 
   insert_lines:
       "$(index) $($(v)[$(index)])"
-      ifvarclass => "replace_attempted_$(cindex[$(index)])_reached";
+      if => "replace_attempted_$(cindex[$(index)])_reached";
 
 }
 
 ##
 
 bundle edit_line maintain_key_values(v,sep)
-# @ignore
 # @brief Sets the RHS of configuration items with an giving separator
 #
 # Contributed by David Lee
@@ -950,7 +937,7 @@ bundle edit_line maintain_key_values(v,sep)
   insert_lines:
       "$(index)$(sep)$($(v)[$(index)])"
       comment => "Insert definition of $(index)",
-      ifvarclass => "!$(cindex[$(index)])_key_in_file";
+      if => "!$(cindex[$(index)])_key_in_file";
 }
 
 ##
@@ -976,7 +963,7 @@ bundle edit_line append_users_starting(v)
       "$($(v)[$(index)])"
 
       comment => "Append users into a password file format",
-      ifvarclass => "add_$(index)";
+      if => "add_$(index)";
 }
 
 ##
@@ -1002,7 +989,7 @@ bundle edit_line append_groups_starting(v)
       "$($(v)[$(index)])"
 
       comment => "Append users into a group file format",
-      ifvarclass => "add_$(index)";
+      if => "add_$(index)";
 
 }
 
@@ -1105,7 +1092,7 @@ bundle edit_line replace_or_add(pattern,line)
 
   insert_lines:
       "$(line)"
-      ifvarclass => "replace_$(cline)_reached";
+      if => "replace_$(cline)_reached";
 }
 
 bundle edit_line converge(marker, lines)
@@ -1116,15 +1103,72 @@ bundle edit_line converge(marker, lines)
 #
 # @param marker The marker (not a regular expression; will be escaped)
 # @param lines The lines to insert; all must contain `marker`
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent pam_d_su_include
+# #@brief Ensure /etc/pam.d/su has includes configured properly
+# {
+#   files:
+#     ubuntu::
+#       "/etc/pam.d/su"
+#         edit_line => converge( "@include", "@include common-auth
+# @include common-account
+# @include common-session");
+# }
+# ```
+#
+# **History:**
+#
+# * Introduced in 3.6.0
 {
   vars:
       "regex" string => escape($(marker));
 
   delete_lines:
-      "$(regex)" comment => "Delete lines matching the marker";
+      ".*$(regex).*" comment => "Delete lines matching the marker";
   insert_lines:
       "$(lines)" comment => "Insert the given lines";
 }
+
+bundle edit_line converge_prepend(marker, lines)
+# @brief Converge `lines` marked with `marker` to start of content
+#
+# Any content marked with `marker` is removed, then `lines` are
+# inserted at *start* of content.  Every `line` should contain `marker`.
+#
+# @param marker The marker (not a regular expression; will be escaped)
+# @param lines The lines to insert; all must contain `marker`
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent pam_d_su_session
+# #@brief Ensure /etc/pam.d/su has session configured properly
+# {
+#   files:
+#     ubuntu::
+#       "/etc/pam.d/su"
+#         edit_line => converge_prepend( "session", "session       required   pam_env.so readenv=1 envfile=/etc/default/locale
+# session    optional   pam_mail.so nopen
+# session    required   pam_limits.so" );
+# }
+# ```
+#
+# **History:**
+#
+# * Introduced in 3.17.0, 3.15.3, 3.12.6
+{
+  vars:
+      "regex" string => escape($(marker));
+
+  delete_lines:
+      ".*$(regex).*" comment => "Delete lines matching the marker";
+  insert_lines:
+      "$(lines)" location => start, comment => "Insert the given lines";
+}
+
 
 bundle edit_line fstab_option_editor(method, mount, option)
 # @brief Add or remove `/etc/fstab` options for a mount
@@ -1230,6 +1274,14 @@ body edit_field line(split,col,newval,method)
 }
 
 ##
+
+body replace_with text_between_match1_and_match2( _text )
+# @brief Replace matched line with substituted string
+# @param _text String to substitute between first and second match
+{
+        replace_value => "$(match.1)$(_text)$(match.2)";
+        occurrences => "all";
+}
 
 body replace_with value(x)
 # @brief Replace matching lines
@@ -1755,7 +1807,7 @@ body acl strict
 
 body depth_search recurse(d)
 # @brief Search files and direcories recursively, up to the specified depth
-# Directories on different devices are included.
+# Directories on different devices are excluded.
 #
 # @param d The maximum search depth
 {
@@ -1787,7 +1839,7 @@ body depth_search include_base
 
 body depth_search recurse_with_base(d)
 # @brief Search files and directories recursively up to the specified
-# depth, starting from the base directory and including directories on
+# depth, starting from the base directory excluding directories on
 # other devices.
 #
 # @param d The maximum search depth
@@ -2248,10 +2300,10 @@ bundle agent file_make(file, str)
   reports:
     "DEBUG|DEBUG_$(this.bundle)"::
       "DEBUG $(this.bundle): creating $(file) with contents '$(str)'"
-      ifvarclass => "!summarize";
+      if => "!summarize";
 
       "DEBUG $(this.bundle): creating $(file) with contents '$(summary)'"
-      ifvarclass => "summarize";
+      if => "summarize";
 }
 
 bundle agent file_make_mog(file, str, mode, owner, group)
@@ -2289,10 +2341,10 @@ bundle agent file_make_mog(file, str, mode, owner, group)
   reports:
     "DEBUG|DEBUG_$(this.bundle)"::
       "DEBUG $(this.bundle): creating $(file) with contents '$(str)', mode '$(mode)', owner '$(owner)' and group '$(group)'"
-      ifvarclass => "!summarize";
+      if => "!summarize";
 
       "DEBUG $(this.bundle): creating $(file) with contents '$(summary)', mode '$(mode)', owner '$(owner)' and group '$(group)'"
-      ifvarclass => "summarize";
+      if => "summarize";
 }
 
 bundle agent file_make_mustache(file, template, data)

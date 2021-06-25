@@ -1,44 +1,3 @@
-############################################################################
-#  Copyright 2017 Northern.tech AS
-#
-#  This program is free software; you can redistribute it and/or modify it
-#  under the terms of the GNU Lesser General Public License LGPL as published by the
-#  Free Software Foundation; version 3.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  To the extent this program is licensed as part of the Enterprise
-#  versions of CFEngine, the applicable Commercial Open Source License
-#  (COSL) may apply to this file if you as a licensee so wish it. See
-#  included file COSL.txt.
-###########################################################################
-#
-# CFEngine Community Open Promise-Body Library
-#
-# This initiative started by CFEngine promotes a
-# standardized set of names and promise specifications
-# for template functionality within CFEngine 3.
-#
-# The aim is to promote an industry standard for
-# naming of configuration patterns, leading to a
-# de facto middleware of standardized syntax.
-#
-# Names should be intuitive and parameters should be
-# minimal to assist readability and comprehensibility.
-
-# Contributions to this file are voluntarily given to
-# the cfengine community, and are moderated by CFEngine.
-# No liability or warranty for misuse is implied.
-#
-# If you add to this file, please try to make the
-# contributions "self-documenting". Comments made
-# after the bundle/body statement are retained in
-# the online docs
-#
-
 body printfile cat(file)
 # @brief Report the contents of a file
 # @param file The full path of the file to report
@@ -52,15 +11,37 @@ body printfile head(file)
 # @param file The full path of the file to report
 {
         file_to_print => "$(file)";
-      # GNU head defaults to 10, but we start counting from 0
+      # GNU head defaults to 10
         number_of_lines => "10";
 }
 
 body printfile head_n(file, n)
-# @brief Report the first 10 lines of a file
+# @brief Report the first `n` lines of a file
 # @param file The full path of the file to report
 # @param n The number of lines to report
 {
         file_to_print => "$(file)";
         number_of_lines => "$(n)";
 }
+
+@if minimum_version(3.18)
+body printfile tail(file)
+# @brief Report the last 10 lines of a file
+# @param file The full path of the file to report
+{
+        file_to_print => "$(file)";
+      # GNU tail defaults to 10
+        number_of_lines => "-10";
+}
+@endif
+
+@if minimum_version(3.18)
+body printfile tail_n(file, n)
+# @brief Report the last `n` lines of a file
+# @param file The full path of the file to report
+# @param n The number of lines to report
+{
+        file_to_print => "$(file)";
+        number_of_lines => "-$(n)";
+}
+@endif
