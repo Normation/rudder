@@ -115,6 +115,9 @@
   margin: 0;
   font-size: 26px;
 }
+.rudder-template .header-buttons {
+  white-space: nowrap;
+}
 .rudder-template .header-buttons .btn {
   margin-left: 10px;
 }
