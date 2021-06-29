@@ -390,7 +390,7 @@ object ComponentStatusReport extends Loggable {
         case (Some(value), Some(group)) => (cptName, group.copy(subComponents = value :: group.subComponents)) :: Nil
       }
 
-    }.toMap
+    }
   }
 }
 

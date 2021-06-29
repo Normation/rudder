@@ -136,7 +136,7 @@ pub struct TechniqueData {
     category: String,
     description: String,
     name: String,
-    method_calls: Vec<MethodCall>,
+    method_calls: Vec<MethodElem>,
     #[serde(rename = "parameter")]
     interpolated_parameters: Vec<InterpolatedParameter>,
     // does not appear in labs. maybe skip only if empty?
@@ -163,7 +163,12 @@ impl TechniqueData {
         let calls = self
             .method_calls
             .iter()
-            .map(|c| c.to_rudderlang(lib))
+            .map(|c|
+                match c {
+                    MethodElem::MethodCall { callData } => callData.to_rudderlang(&Vec::new(),lib),
+                    MethodElem::MethodBlock { blockData } => blockData.to_rudderlang(&Vec::new(),lib),
+                }
+            )
             .collect::<Result<Vec<String>>>()?;
         let calls_fmt = match calls.is_empty() {
             true => "".to_owned(),
@@ -214,6 +219,36 @@ impl InterpolatedParameter {
 }
 
 #[derive(Serialize, Deserialize)]
+enum MethodElem {
+    MethodCall { callData : MethodCall} ,
+    MethodBlock{ blockData : MethodBlock} ,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MethodBlock {
+    component: String,
+    condition: String,
+    childs: Vec<MethodElem>,
+    id: String,
+}
+impl MethodBlock {
+    fn to_rudderlang(&self,context:&Vec<MethodBlock>, lib: &RudderlangLib) -> Result<String> {
+
+        &context.push(*self);
+        return self
+            .childs
+            .iter()
+            .map(|c|
+                match c {
+                    MethodElem::MethodCall { callData } => callData.to_rudderlang(context,lib),
+                    MethodElem::MethodBlock { blockData } => blockData.to_rudderlang(context,lib),
+                }
+            ).collect::<Result<Vec<String>>>()
+            .map(|c| c.join("\n"));
+
+    }
+}
+#[derive(Serialize, Deserialize)]
 pub struct MethodCall {
     method_name: String,
     #[serde(rename = "class_context")]
@@ -228,7 +263,7 @@ fn generate_id() -> String {
     Uuid::new_v4().to_string()
 }
 impl MethodCall {
-    fn to_rudderlang(&self, lib: &LanguageLib) -> Result<String> {
+    fn to_rudderlang(&self,context:&Vec<MethodBlock>, lib: &LanguageLib) -> Result<String> {
         let lib_method: LibMethod = lib.method_from_str(&self.method_name)?;
 
         let (mut params, template_vars) = self.format_parameters(&lib_method)?;
@@ -261,7 +296,7 @@ impl MethodCall {
             state_params.join(", ")
         );
         if self.condition != "any" {
-            call = format!("if {} => {}", self.format_condition(&lib)?, call);
+            call = format!("if {} => {}", self.format_condition(&context,&lib)?, call);
         }
 
         // only get original name, other aliases do not matter here
@@ -356,7 +391,7 @@ impl MethodCall {
     }
 
     // TODO parse content so interpolated variables are handled properly
-    fn format_condition(&self, lib: &LanguageLib) -> Result<String> {
+    fn format_condition(&self,context:&Vec<MethodBlock> , lib: &LanguageLib) -> Result<String> {
         lazy_static! {
             static ref CONDITION_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
             static ref ANY_RE: Regex = Regex::new(r"(any\.)").unwrap();

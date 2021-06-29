@@ -815,6 +815,8 @@ fn pparameter(i: PInput) -> PResult<(PParameter, Option<PValue>)> {
     )(i)
 }
 
+
+
 /// A resource definition defines how a resource is uniquely identified.
 #[derive(Debug, PartialEq)]
 pub struct PResourceDef<'src> {
@@ -1040,6 +1042,23 @@ fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
     )(i)
 }
 
+/// A State Declaration is a given required state on a given resource
+#[derive(Debug, PartialEq)]
+pub struct PBlockDeclaration<'src> {
+    pub metadata: Vec<PMetadata<'src>>,
+    pub childs: Vec<PStatement<'src>>,
+}
+fn pblock_declaration(i: PInput) -> PResult<PBlockDeclaration> {
+    wsequence!(
+        {
+            childs: delimited_parser("{", |j| many0(pstatement)(j), "}");
+        } => PBlockDeclaration {
+                metadata: Vec::new(),
+                childs
+        }
+    )(i)
+}
+
 /// A statement is the atomic element of a state definition.
 #[derive(Debug, PartialEq)]
 #[allow(clippy::large_enum_variant)]
@@ -1048,10 +1067,11 @@ pub enum PStatement<'src> {
     VariableExtension(PVariableExt<'src>),
     ConditionVariableDefinition(PCondVariableDef<'src>),
     StateDeclaration(PStateDeclaration<'src>),
+    BlockDeclaration(PBlockDeclaration<'src>),
     //   case keyword, list (condition   ,       then)
     Case(
         Token<'src>,
-        Vec<(PEnumExpression<'src>, Vec<PStatement<'src>>)>,
+        Vec<(PEnumExpression<'src>, PStatement<'src>)>,
     ), // keep the pinput since it will be reparsed later
     // Stop engine with a final message
     Fail(PValue<'src>),
@@ -1065,7 +1085,7 @@ pub enum PStatement<'src> {
     Noop,
 }
 /// A single case in a case switch
-fn pcase(i: PInput) -> PResult<(PEnumExpression, Vec<PStatement>)> {
+fn pcase(i: PInput) -> PResult<(PEnumExpression, PStatement)> {
     alt((
         map(etag("nodefault"), |t| {
             (
@@ -1073,17 +1093,14 @@ fn pcase(i: PInput) -> PResult<(PEnumExpression, Vec<PStatement>)> {
                     source: Token::from(t),
                     expression: PEnumExpressionPart::NoDefault(Token::from(t)),
                 },
-                vec![PStatement::Noop],
+                PStatement::Noop,
             )
         }),
         wsequence!(
             {
                 expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
                 _x: ftag("=>");
-                stmt: or_fail(alt((
-                    map(pstatement, |x| vec![x]),
-                    delimited_parser("{", |j| many0(pstatement)(j), "}"),
-                )), || PErrorKind::ExpectedToken("case statement"));
+                stmt: or_fail(pstatement,|| PErrorKind::ExpectedToken("case statement"));
             } => (expr,stmt)
         ),
     ))(i)
@@ -1098,6 +1115,8 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
     let possible_stmt = alt((
         // One state
         map(pstate_declaration, PStatement::StateDeclaration),
+        // Block
+        map(pblock_declaration, PStatement::BlockDeclaration),
         // Condition variable definition
         map(
             pcondition_from_variable_definition,
@@ -1121,7 +1140,7 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
                 case: estag("if");
                 expr: or_fail(penum_expression, || PErrorKind::ExpectedKeyword("enum expression"));
                 _x: ftag("=>");
-                stmt: or_fail(pstatement, || PErrorKind::ExpectedKeyword("statement"));
+                stmt: or_fail(pstatement, || PErrorKind::ExpectedKeyword("if statement"));
             } => {
                 // Propagate metadata to the single statement ;;; TODO propagate again if required
                 // will require changes  (FnOnce vs Fn)
@@ -1133,7 +1152,7 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
                 //     x => x,
                 // };
                 PStatement::Case(case.into(), vec![
-                    ( expr, vec![stmt] ),
+                    ( expr, stmt ),
                     ( PEnumExpression { source:"default".into(), expression: PEnumExpressionPart::Default("default".into()) },
                       vec![PStatement::Noop])
                 ] )

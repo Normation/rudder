@@ -49,7 +49,7 @@ impl<'src> Technique {
         let (name, description, version, category, interpolated_parameters) =
             get_metadatas(meta, resource.name)?;
 
-        let method_calls: Vec<MethodCall> = resource
+        let method_calls: Vec<MethodElem> = resource
             .states
             .iter()
             .filter(|(tk, sd)| !sd.is_dependency) // do not print dependencies
@@ -60,9 +60,9 @@ impl<'src> Technique {
                     .flat_map(|stmt| {
                         statement_to_method_call(ir, resource, state, stmt, "any".to_owned())
                     })
-                    .collect::<Vec<MethodCall>>()
+                    .collect::<Vec<MethodElem>>()
             })
-            .collect::<Vec<MethodCall>>();
+            .collect::<Vec<MethodElem>>();
 
         // TODO unit tests
         Ok(Technique {
@@ -272,7 +272,7 @@ fn statement_to_method_call(
     state_def: &StateDef,
     stmt: &Statement,
     condition: String,
-) -> Vec<MethodCall> {
+) -> Vec<MethodElem> {
     // get variables to try to get the proper parameter value
     let mut variables: HashMap<&Token, &VariableDef> = HashMap::new();
     for st_from_list in &state_def.statements {
@@ -308,8 +308,7 @@ fn statement_to_method_call(
                 Some(TomlValue::String(s)) => s.to_owned(),
                 _ => method_name.to_owned(),
             };
-
-            vec![MethodCall {
+            let callData = MethodCall {
                 parameters,
                 condition,
                 method_name,
@@ -323,7 +322,9 @@ fn statement_to_method_call(
                     })
                     .unwrap_or(Uuid::new_v4().to_string()),
                 component,
-            }]
+            };
+
+            vec![MethodElem::MethodCall{callData}]
         }
         Statement::StateDeclaration(s) => {
             let inner_state_def = ir.get_state_def(&s.resource, &s.state).expect("BUG: a state declaration should always have valid references to a state and resource");
@@ -364,8 +365,7 @@ fn statement_to_method_call(
                 Some(TomlValue::String(s)) => s.to_owned(),
                 _ => method_name.to_owned(),
             };
-
-            vec![MethodCall {
+            let callData = MethodCall {
                 parameters,
                 condition,
                 method_name,
@@ -379,14 +379,13 @@ fn statement_to_method_call(
                     })
                     .unwrap_or(Uuid::new_v4().to_string()),
                 component,
-            }]
+            };
+
+            vec![MethodElem::MethodCall{callData}]
         }
         Statement::Case(_, enum_expressions) => enum_expressions
             .iter()
-            .flat_map(|(enum_expr, stmts)| {
-                stmts
-                    .iter()
-                    .flat_map(|stmt| {
+            .flat_map(|(enum_expr, stmt)| {
                         statement_to_method_call(
                             ir,
                             res_def,
@@ -394,10 +393,8 @@ fn statement_to_method_call(
                             stmt,
                             format_expr(ir, &enum_expr.expression),
                         )
-                    })
-                    .collect::<Vec<MethodCall>>()
             })
-            .collect::<Vec<MethodCall>>(),
+            .collect::<Vec<MethodElem>>(),
         _ => Vec::new(),
     }
 }
