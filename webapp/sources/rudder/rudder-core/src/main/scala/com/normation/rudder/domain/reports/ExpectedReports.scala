@@ -57,7 +57,7 @@ import com.normation.rudder.reports.ResolvedAgentRunInterval
 import org.joda.time.Duration
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.services.policies.PolicyId
 import net.liftweb.common.EmptyBox
 import com.normation.box._
@@ -122,7 +122,7 @@ final case class RuleExpectedReports(
  * A Directive may have several components
  */
 final case class DirectiveExpectedReports (
-    directiveId: DirectiveRId
+    directiveId: DirectiveId
   , policyMode : Option[PolicyMode]
   , isSystem   : Boolean
   , components : List[ComponentExpectedReport]
@@ -240,8 +240,8 @@ object ExpectedReportsSerialisation {
      ~  ("rules" -> jsonRuleExpectedReports(n.ruleExpectedReports))
      ~  ("overrides" -> (n.overrides.map { o =>
           (
-            ("policy"      -> ( ("ruleId" -> o.policy.ruleId.value     ) ~ ("directiveId" -> o.policy.directiveRId.serialize) ))
-          ~ ("overridenBy" -> ( ("ruleId" -> o.overridenBy.ruleId.value) ~ ("directiveId" -> o.overridenBy.directiveRId.serialize) ))
+            ("policy"      -> ( ("ruleId" -> o.policy.ruleId.value     ) ~ ("directiveId" -> o.policy.directiveId.serialize) ))
+          ~ ("overridenBy" -> ( ("ruleId" -> o.overridenBy.ruleId.value) ~ ("directiveId" -> o.overridenBy.directiveId.serialize) ))
           )
         }))
     )
@@ -363,8 +363,8 @@ object ExpectedReportsSerialisation {
           (for {
             tv1 <- TechniqueVersion.parse(v1)
             tv2 <- TechniqueVersion.parse(v2)
-            dd  <- DirectiveRId.parse(ddid)
-            od  <- DirectiveRId.parse(odid)
+            dd  <- DirectiveId.parse(ddid)
+            od  <- DirectiveId.parse(odid)
           } yield {
             OverridenPolicy(PolicyId(RuleId(drid), dd, tv1), PolicyId(RuleId(orid), od, tv2))
           }).toBox ?~! s"Error when parsing rule expected reports from json: '${compactRender(json)}'"
@@ -401,7 +401,7 @@ object ExpectedReportsSerialisation {
      ) match {
         case (JString(id), jsonMode, jsonComponents ) =>
           for {
-            rid        <- DirectiveRId.parse(id).toBox
+            rid        <- DirectiveId.parse(id).toBox
             components <- jsonComponents match {
                             case JArray(components) => sequence(components)(component)
                             case x                  => Failure(s"Error when parsing the list of components from expected directive report: '${compactRender(x)}'")

@@ -49,8 +49,8 @@ import com.normation.cfclerk.domain.RunHook
 import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.DirectiveRId
 import com.normation.templates.FillTemplatesService
 
 @RunWith(classOf[JUnitRunner])
@@ -66,7 +66,7 @@ class PrepareTemplateVariableTest extends Specification {
     , ("""Nodes only/Name resolution version "3.0" and counting"""                        , "directive3", Bundle(None, BundleName("check_dns_configuration"), Nil))
     , (raw"""Nodes only/Package \"management\" for Debian"""                              , "directive4", Bundle(None, BundleName("check_apt_package_installation"), Nil))
     , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , "directive5", Bundle(None, BundleName("check_apt_package_installation2"), Nil))
-  ).map { case(x,directiveId,y) => TechniqueBundles(Promiser(x), DirectiveRId(DirectiveId(directiveId)), TID("not-used-here"), Nil, y::Nil, Nil, false, PolicyMode.Enforce, false) }
+  ).map { case(x,directiveId,y) => TechniqueBundles(Promiser(x), DirectiveId(DirectiveUid(directiveId)), TID("not-used-here"), Nil, y :: Nil, Nil, false, PolicyMode.Enforce, false) }
 
 val fillTemplate = new FillTemplatesService()
 
@@ -139,15 +139,15 @@ bundle agent run_directive5
         NodeRunHook(
             "package-install"
           , RunHook.Kind.Pre
-          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveRId(DirectiveId("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) ::
-            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveRId(DirectiveId("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) :: Nil
+          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId(DirectiveUid("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) ::
+            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId(DirectiveUid("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) :: Nil
           , RunHook.Parameter("package", "vim") :: RunHook.Parameter("action", "update-only") :: Nil
         ) ::
         NodeRunHook(
             "service-restart"
           , RunHook.Kind.Post
-          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveRId(DirectiveId("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) ::
-            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveRId(DirectiveId("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) :: Nil
+          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId(DirectiveUid("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) ::
+            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId(DirectiveUid("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) :: Nil
           , RunHook.Parameter("service", "syslog") :: Nil
         ) :: Nil
 

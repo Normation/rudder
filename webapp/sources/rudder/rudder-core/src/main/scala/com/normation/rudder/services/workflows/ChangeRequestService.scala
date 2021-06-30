@@ -47,7 +47,7 @@ import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.policies.ChangeRequestDirectiveDiff
 import com.normation.rudder.domain.policies.ChangeRequestRuleDiff
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.ModifyToRuleDiff
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.workflows.ChangeRequestInfo
@@ -68,7 +68,7 @@ object ChangeRequestService {
     , changeRequestDesc: String
     , techniqueName    : TechniqueName
     , rootSection      : SectionSpec
-    , directiveId      : DirectiveId
+    , directiveId      : DirectiveUid
     , originalDirective: Option[Directive]
     , diff             : ChangeRequestDirectiveDiff
     , actor            : EventActor
@@ -121,7 +121,7 @@ object ChangeRequestService {
     , changeRequestDesc: String
     , techniqueName    : TechniqueName
     , rootSection      : SectionSpec
-    , directiveId      : DirectiveId
+    , directiveId      : DirectiveUid
     , originalDirective: Option[Directive]
     , diff             : ChangeRequestDirectiveDiff
     , actor            : EventActor

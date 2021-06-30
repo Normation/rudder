@@ -37,23 +37,24 @@
 
 package com.normation.rudder.domain.policies
 
-import com.normation.GitVersion.RevId
+import com.normation.GitVersion
+import com.normation.GitVersion.Revision
 
 import scala.xml._
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.SectionSpec
 
 /*
- * Two way of modeling the couple (directiveId, revId) :
- * - either we do DirectiveId(uuid: String, revId: RevId).
+ * Two way of modeling the couple (directiveId, rev) :
+ * - either we do DirectiveId(uuid: String, rev: Rev).
  *   We tell that the revision is part of the directive identifier, and that an identifier
  *   always has a revision.
  *   It is likely the solution that will make simpler to never forget the migration from
  *   id = uuid to id = (uuid, rev). But:
  *   - it may complexify some automatic derivation, for ex for JSON (ie either we change json format for
  *     "directive": { "id": {"uuid":"xxxxx", "rev": "xxxxx" }, ... }
- *     which is breaking change for no good reason, especially if we want to make "rev" (or "revId") optionnal
- * - or we just add a "revId" (or "rev") field in directive. It doesn't break any existing serialisation API, it
+ *     which is breaking change for no good reason, especially if we want to make "rev" (or "rev") optionnal
+ * - or we just add a "rev" (or "rev") field in directive. It doesn't break any existing serialisation API, it
  *   allows to continue to speak about "the directive ID" as just the uuid part, and have rev in addition.
  *   But it means that we will need to be extra-careful to not forget a place that for now use "id" and that will
  *   need to be duplicated or augmented with an optionnal "rev" parameter.
@@ -68,10 +69,10 @@ import com.normation.cfclerk.domain.SectionSpec
  * ==== some more evolution
  *
  * - forcing rev everywhere, when we want it to be almost always `defaultRev`, is not efficient. We should use
- *   Option[RevId]
+ *   Option[Rev]
  *   BUT it means that special attention need to be used on unserialisation: defaultValue (if serialised)
  *   must be unserialized to `None`.
- * - the code is crying for a DirectiveRId(id: DirectiveId, revId: Option[RevId] = None)
+ * - the code is crying for a DirectiveRId(id: DirectiveId, rev: Option[Rev] = None)
  *
  * ==== case of techniques
  *
@@ -83,27 +84,36 @@ import com.normation.cfclerk.domain.SectionSpec
  *
  */
 
+/*
+ * directive unique identifier. Must be unique, so it's likely an UUID, but it could be
+ * an ULID for ex https://wvlet.org/airframe/docs/airframe-ulid if we want to know about
+ * time stamp & be a bit more space efficient.
+ */
+final case class DirectiveUid(value: String) extends AnyVal
 
-final case class DirectiveId(value : String) extends AnyVal
-
-// there is a lot of place that need that as the real identifier of a directive
-final case class DirectiveRId(id: DirectiveId, revId: Option[RevId] = None) {
+/*
+ * A directive identifier is composed of the directive unique identifier and the directive revision.
+ * For backward compatibility, the UID field is named "id" in most serialized format. We will keep
+ * "uid" in code to avoid code looking like `directive.id.id`.
+ */
+final case class DirectiveId(uid: DirectiveUid, rev: Revision = GitVersion.defaultRev) {
   def debugString: String = serialize
 
-  def serialize: String = revId match {
-    case None    => id.value
-    case Some(r) => s"${id.value}+${r.value}"
+  def serialize: String = rev match {
+    case GitVersion.defaultRev => uid.value
+    case rev                   => s"${uid.value}+${rev.value}"
   }
 }
 
-object DirectiveRId {
+object DirectiveId {
 
   // parse a directiveId which was serialize by "id.serialize"
-  def parse(s: String) : Either[String, DirectiveRId] = {
+  def parse(s: String) : Either[String, DirectiveId] = {
     s.split("\\+").toList match {
-      case id :: Nil          => Right(DirectiveRId(DirectiveId(id), None))
-      case id :: revId :: Nil => Right(DirectiveRId(DirectiveId(id), Some(RevId(revId))))
-      case _                  => Left(s"Error when parsing '${s}' as a directive id. At most one '+' is authorized.")
+      case id :: Nil        => Right(DirectiveId(DirectiveUid(id), GitVersion.defaultRev))
+      case id :: "" :: Nil  => Right(DirectiveId(DirectiveUid(id), GitVersion.defaultRev))
+      case id :: rev :: Nil => Right(DirectiveId(DirectiveUid(id), Revision(rev)))
+      case _                => Left(s"Error when parsing '${s}' as a directive id. At most one '+' is authorized.")
     }
   }
 }
@@ -132,7 +142,6 @@ final case class Directive(
   // see rationnal in comment above
 
     id   : DirectiveId
-  , revId: Option[RevId]
 
     /**
      * They reference one and only one Technique version
@@ -191,7 +200,6 @@ final case class Directive(
 ) {
   //system object must ALWAYS be ENABLED.
   def isEnabled = _isEnabled || isSystem
-  def rid = DirectiveRId(id, revId)
 }
 
 final case class SectionVal(

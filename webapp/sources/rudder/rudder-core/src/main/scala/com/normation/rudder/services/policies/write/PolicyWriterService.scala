@@ -848,7 +848,7 @@ class PolicyWriterServiceImpl(
       // use the same order than for rudder-directive.cf
       policy <- PolicyOrdering.sort(policies)
     } yield {
-      (policy.id.directiveRId.serialize ::
+      (policy.id.directiveId.serialize ::
        policy.policyMode.getOrElse(policyMode.mode).name ::
        policy.technique.generationMode.name ::
        policy.technique.agentConfig.runHooks.nonEmpty ::

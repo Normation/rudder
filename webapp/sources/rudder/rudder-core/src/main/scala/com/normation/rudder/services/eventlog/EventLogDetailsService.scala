@@ -310,10 +310,10 @@ class EventLogDetailsServiceImpl(
                            { s => tryo { s.text.toBoolean } } )
     isSystem          <- getFromTo[Boolean]((rule \ "isSystem").headOption,
                            { s => tryo { s.text.toBoolean } } )
-    directiveIds      <- getFromTo[Set[DirectiveRId]]((rule \ "directiveIds").headOption,
+    directiveIds      <- getFromTo[Set[DirectiveId]]((rule \ "directiveIds").headOption,
                            { x:NodeSeq =>
                              Full((x \ "id").toSet.map {  (y: NodeSeq) =>
-                               DirectiveRId(DirectiveId( y.text ), ParseRev((y \ "@revisionId").text) )
+                               DirectiveId(DirectiveUid( y.text ), ParseRev((y \ "@revision").text) )
                              })
                          } )
   } yield {
@@ -407,7 +407,7 @@ class EventLogDetailsServiceImpl(
     } yield {
       ModifyDirectiveDiff(
           techniqueName = TechniqueName(ptName)
-        , DirectiveId(id)
+        , DirectiveUid(id)
         , displayName
         , name
         , techniqueVersion

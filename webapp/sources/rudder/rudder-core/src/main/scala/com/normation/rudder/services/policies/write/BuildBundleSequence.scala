@@ -55,7 +55,7 @@ import zio._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 
 import scala.collection.immutable.ListMap
 
@@ -169,7 +169,7 @@ object BuildBundleSequence {
   final case class TechniqueBundles(
       // Human readable name of the "Rule name / Directive name" for that list of bundle
       promiser               : Promiser
-    , directiveRId           : DirectiveRId
+    , directiveId           : DirectiveId
       // identifier of the technique from which that list of bundle derive (that's the one without spaces and only ascii chars)
     , techniqueId            : TechniqueId
     , pre                    : List[Bundle]
@@ -183,7 +183,7 @@ object BuildBundleSequence {
     , enableMethodReporting  : Boolean
   ) {
     val contextBundle : List[Bundle]  = main.map(_.id).distinct.collect{ case Some(id) =>
-      Bundle(None, BundleName("rudder_reporting_context"), List((id.directiveRId.serialize,"directiveId"), (id.ruleId.value, "ruleId"), (techniqueId.name.value,"techniqueName")).map( (BundleParam.DoubleQuote.apply _).tupled ) )
+      Bundle(None, BundleName("rudder_reporting_context"), List((id.directiveId.serialize,"directiveId"), (id.ruleId.value, "ruleId"), (techniqueId.name.value,"techniqueName")).map( (BundleParam.DoubleQuote.apply _).tupled ) )
     }
 
     val methodReportingState : List[Bundle]  = {
@@ -193,7 +193,7 @@ object BuildBundleSequence {
     }
 
     val runBundle : Bundle = {
-      Bundle(None,BundleName(s"run_${directiveRId.serialize.replace("-","_")}"), Nil)
+      Bundle(None,BundleName(s"run_${directiveId.serialize.replace("-","_")}"), Nil)
     }
 
     def runBundles : List[Bundle] = Bundle.modeBundle(policyMode, isSystem) :: runBundle :: Nil
@@ -353,7 +353,7 @@ class BuildBundleSequence(
         case _ =>
           techniqueBundles
       }
-      TechniqueBundles(name, policy.id.directiveRId, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policyMode, policy.technique.useMethodReporting)
+      TechniqueBundles(name, policy.id.directiveId, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policyMode, policy.technique.useMethodReporting)
     }
   }
 }

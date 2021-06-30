@@ -35,7 +35,8 @@ package com.normation
 final object GitVersion {
 
   /**
-   * A git name that can be resolve to somewhere in repository:
+   * The revision of the considered object. A revision is a git name that can be resolved
+   * to somewhere in repository:
    * - a SHA commit id,
    * - a branch or tag name,
    * - a relative reference (HEAD~3 etc)
@@ -43,47 +44,29 @@ final object GitVersion {
    * Note that "master" actually means "last commit on master" and so is not fixed in time,
    * while "9f35b60b93f01123c13a02db06ccab0a6aa87110" (a specific sha1) is fixed in time.
    *
-   * Naming idea:
-   * - ObjectId:
-   *   Git.ObjectId makes sense, but ObjectId is quite generic and non-informative. In the context of
-   *   Rudder, it can even be misleading: object id is likely understood as directive/rule uuid
-   *
-   * - GitId:
-   *   make it clear that we talk about a Git thing. It loose the idea that for rudder, it's about
-   *   versioning/revision. And it can be misleading as our "git id" are not exactly what Git call
-   *   an id (ie not only a SHA)
-   *
-   * - CommitId:
-   *   Has the notion of revision and is tigly bound to "git" (or source control) in developer mind -
-   *   but perhaps confusing because it's not always a real commit id (for ex: "master").
-   *
-   * - RevisionId:
-   *   it allows to not explicitly talk about git in the context of rudder objects, which
-   *   is perhaps good (avoid talking about implementation and more about what the thing is in the
-   *   context of Rudder: Rule(uuid, revId). But perhaps that just add a layer for nothing, bluring
-   *   concepts. And RevisionId is quite long.
-   *
-   *   I will go for "RevId" for now, perhaps need to change latter on.
+   * By convention, an empty `value` means `defaultRev`.
    */
-  final case class RevId(value: String) extends AnyVal
+  final case class Revision(value: String) extends AnyVal
 
 
   /**
-   * The default name for "last commit on default branch"
+   * The default name for "last commit on default branch".
+   * This is not HEAD, it's actually the last commit on master/main branch.
+   *
+   * Without more configuration, it's "master"
    */
-  val defaultRev = RevId("head")
+  val defaultRev = Revision("default")
 
   // an empty string is considered as missing version, so defaultRev.
   object ParseRev {
-    def apply(revId: String): Option[RevId] = revId match {
-      case null | "" | defaultRev.value => None
-      case r                            => Some(RevId(r))
+    def apply(rev: String): Revision = rev match {
+      case null | "" | defaultRev.value => defaultRev
+      case r                            => Revision(r)
     }
 
-    def apply(revId: Option[String]): Option[RevId] = revId match {
-      case null | None                       => None
-      case Some("") | Some(defaultRev.value) => None
-      case Some(r)                           => Some(RevId(r))
+    def apply(rev: Option[String]): Revision = rev match {
+      case null | None | Some(defaultRev.value) => defaultRev
+      case Some(r)                              => Revision(r)
     }
   }
 

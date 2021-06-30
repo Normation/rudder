@@ -70,7 +70,7 @@ class SaveDirectivesOnTechniqueCallback(
   , woDirectiveRepo       : WoDirectiveRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(gitRevId: String, techniqueIds: Map[TechniqueName, TechniquesLibraryUpdateType], updatedCategories: Set[TechniqueCategoryModType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
+  override def updatedTechniques(gitRRev: String, techniqueIds: Map[TechniqueName, TechniquesLibraryUpdateType], updatedCategories: Set[TechniqueCategoryModType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
 
     for {
       techLib  <- roDirectiveRepo.getFullDirectiveLibrary().toBox
@@ -78,7 +78,7 @@ class SaveDirectivesOnTechniqueCallback(
                     techniqueIds.get(inActiveTechnique.techniqueName) match {
                       case Some(mods) =>
                         for {
-                          paramEditor  <- directiveEditorService.get(TechniqueId(inActiveTechnique.techniqueName, directive.techniqueVersion), directive.id, directive.parameters)
+                          paramEditor  <- directiveEditorService.get(TechniqueId(inActiveTechnique.techniqueName, directive.techniqueVersion), directive.id.uid, directive.parameters)
                           newDirective =  directive.copy(parameters = paramEditor.mapValueSeq)
                           saved        <- if(directive.isSystem) {
                                             woDirectiveRepo.saveSystemDirective(inActiveTechnique.id, newDirective, modId, actor, reason).toBox
@@ -86,7 +86,7 @@ class SaveDirectivesOnTechniqueCallback(
                                             woDirectiveRepo.saveDirective(inActiveTechnique.id, newDirective, modId, actor, reason).toBox
                                           }
                         } yield {
-                          logger.debug(s"Technique ${inActiveTechnique.techniqueName.value} changed => saving directive '${directive.name}' [${directive.id.value}]")
+                          logger.debug(s"Technique ${inActiveTechnique.techniqueName.value} changed => saving directive '${directive.name}' [${directive.id.uid.value}]")
                         }
                       case None =>
                         Full("Nothing to do")

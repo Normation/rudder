@@ -37,6 +37,7 @@
 
 package com.normation.rudder
 
+import com.normation.GitVersion
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.impl._
@@ -251,8 +252,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
        ).map(v => (v.spec.name, v)).toMap
     }
     val commonDirective = Directive(
-        DirectiveId("common-root")
-      , None
+        DirectiveId(DirectiveUid("common-root"), GitVersion.defaultRev)
       , TV("1.0")
       , Map(
           ("ALLOWEDNETWORK", Seq("192.168.0.0/16"))
@@ -268,8 +268,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     val rolesTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("server-roles"), TV("1.0")))
     val rolesDirective = Directive(
-        DirectiveId("Server Roles")
-      , None
+        DirectiveId(DirectiveUid("Server Roles"), GitVersion.defaultRev)
       , TV("1.0")
       , Map(
           ("ALLOWEDNETWORK", Seq("192.168.0.0/16"))
@@ -280,8 +279,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     val distributeTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("distributePolicy"), TV("1.0")))
     val distributeDirective = Directive(
-        DirectiveId("Distribute Policy")
-      , None
+        DirectiveId(DirectiveUid("Distribute Policy"), GitVersion.defaultRev)
       , TV("1.0")
       , Map(
           ("ALLOWEDNETWORK", Seq("192.168.0.0/16"))
@@ -292,8 +290,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     val inventoryTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("inventory"), TV("1.0")))
     val inventoryDirective = Directive(
-        DirectiveId("inventory-all")
-      , None
+        DirectiveId(DirectiveUid("inventory-all"), GitVersion.defaultRev)
       , TV("1.0")
       , Map(
          ("ALLOWEDNETWORK", Seq("192.168.0.0/16"))
@@ -307,8 +304,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
     //
     val clockTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("clockConfiguration"), TV("3.0")))
     val clockDirective = Directive(
-        DirectiveId("directive1")
-      , None
+        DirectiveId(DirectiveUid("directive1"), GitVersion.defaultRev)
       , TV("3.0")
       , Map(
            ("CLOCK_FQDNNTP"      , Seq("true"))
@@ -329,8 +325,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
      */
     val rpmTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("rpmPackageInstallation"), TV("7.0")))
     val rpmDirective = Directive(
-        DirectiveId("directive2")
-      , None
+        DirectiveId(DirectiveUid("directive2"), GitVersion.defaultRev)
       , TV("7.0")
       , Map(
             ("RPM_PACKAGE_CHECK_INTERVAL", Seq("5"))
@@ -348,8 +343,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
     // a directive with two iterations
     val pkgTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("packageManagement"), TV("1.0")))
     val pkgDirective = Directive(
-        DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f")
-      , None
+        DirectiveId(DirectiveUid("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f"), GitVersion.defaultRev)
       , TV("1.0")
       , Map(
             ("PACKAGE_LIST", Seq("htop", "jq"))
@@ -367,8 +361,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     val fileTemplateTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("fileTemplate"), TV("1.0")))
     val fileTemplateDirecive1 = Directive(
-        DirectiveId("e9a1a909-2490-4fc9-95c3-9d0aa01717c9")
-      , None
+        DirectiveId(DirectiveUid("e9a1a909-2490-4fc9-95c3-9d0aa01717c9"), GitVersion.defaultRev)
       , TV("1.0")
       , Map(
            ("FILE_TEMPLATE_RAW_OR_NOT", Seq("Raw"))
@@ -385,8 +378,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
       , "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9", "", None, ""
     )
     val fileTemplateVariables2 = Directive(
-        DirectiveId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f")
-      , None
+        DirectiveId(DirectiveUid("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), GitVersion.defaultRev)
       , TV("1.0")
       , Map(
            ("FILE_TEMPLATE_RAW_OR_NOT", Seq("Raw"))
@@ -405,8 +397,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     val ncf1Technique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("Create_file"), TV("1.0")))
     val ncf1Directive = Directive(
-        DirectiveId("16d86a56-93ef-49aa-86b7-0d10102e4ea9")
-      , None
+        DirectiveId(DirectiveUid("16d86a56-93ef-49aa-86b7-0d10102e4ea9"), GitVersion.defaultRev)
       , TV("1.0")
       , Map(
            ("expectedReportKey Directory create", Seq("directory_create_/tmp/foo"))
@@ -422,8 +413,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
     val DIRECTIVE_NAME_COPY_GIT_FILE="directive-copyGitFile"
     val copyGitFileTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("copyGitFile"), TV("2.3")))
     val copyGitFileDirective = Directive(
-        DirectiveId("directive-copyGitFile")
-      , None
+        DirectiveId(DirectiveUid("directive-copyGitFile"), GitVersion.defaultRev)
       , TV("2.3")
       , Map(
             ("COPYFILE_NAME", Seq("file_name_0.json"))
@@ -463,8 +453,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
      */
     val gvdTechnique  = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("genericVariableDefinition"), TV("2.0")))
     val gvdDirective1 = Directive(
-        DirectiveId("gvd-directive1")
-      , None
+        DirectiveId(DirectiveUid("gvd-directive1"), GitVersion.defaultRev)
       , TV("2.0")
       , Map(
            ("GENERIC_VARIABLE_NAME", Seq("var1"))
@@ -473,8 +462,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
       , "99. Generic Variable Def #1", "", None, "", 0
     )
     val gvdDirective2 = Directive(
-        DirectiveId("gvd-directive2")
-      , None
+        DirectiveId(DirectiveUid("gvd-directive2"), GitVersion.defaultRev)
       , TV("2.0")
       , Map(
            ("GENERIC_VARIABLE_NAME", Seq("var2"))
@@ -516,7 +504,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
     val indent2 = indent+"  "
 
     def displayTech(t: FullActiveTechnique, indent3: String): String = {
-      s"""${indent3}+ ${t.id.value}${t.directives.map(d => s"\n${indent3}  * ${d.id.value}").mkString("")}""".stripMargin
+      s"""${indent3}+ ${t.id.value}${t.directives.map(d => s"\n${indent3}  * ${d.id.uid.value}").mkString("")}""".stripMargin
     }
 
     s"""${indent}- ${fatc.id.value}
@@ -526,24 +514,24 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
   object directiveRepo extends RoDirectiveRepository with WoDirectiveRepository with ConfigurationRepository {
     // TODO
-    override def getDirective(id: DirectiveRId): IOResult[Option[ActiveDirective]] = ???
+    override def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]] = ???
     override def getTechnique(id: TechniqueId): IOResult[Option[Technique]] = ???
-    override def getDirectiveLibrary(ids: Set[DirectiveRId]): IOResult[FullActiveTechniqueCategory] = ???
+    override def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory] = ???
 
     override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = rootActiveTechniqueCategory.get
 
-    override def getDirective(directiveId: DirectiveId): IOResult[Option[Directive]] = {
-      rootActiveTechniqueCategory.get.map(_.allDirectives.get(DirectiveRId(directiveId)).map(_._2))
+    override def getDirective(directiveId: DirectiveUid): IOResult[Option[Directive]] = {
+      rootActiveTechniqueCategory.get.map(_.allDirectives.get(DirectiveId(directiveId)).map(_._2))
     }
 
-    override def getDirectiveWithContext(directiveId: DirectiveId): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = {
-      rootActiveTechniqueCategory.get.map(_.allDirectives.get(DirectiveRId(directiveId)).map { case (fat, d) =>
+    override def getDirectiveWithContext(directiveId: DirectiveUid): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = {
+      rootActiveTechniqueCategory.get.map(_.allDirectives.get(DirectiveId(directiveId)).map { case (fat, d) =>
         (fat.techniques(d.techniqueVersion), fat.toActiveTechnique(), d)
       })
     }
 
-    override def getActiveTechniqueAndDirective(id: DirectiveRId): IOResult[Option[(ActiveTechnique, Directive)]] = {
-      getDirectiveWithContext(id.id).map(_.map { case (t, at, d) => (at, d) })
+    override def getActiveTechniqueAndDirective(id: DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = {
+      getDirectiveWithContext(id.uid).map(_.map { case (t, at, d) => (at, d) })
     }
 
     override def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean): IOResult[Seq[Directive]] = {
@@ -618,7 +606,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
         case (Some(t), c2) if(t._3 == c2) => None
         case (Some((spec, tn, c1)), c2)   =>
           val diff = Diff(c1, c2)
-          Some(ModifyDirectiveDiff(tn, c2.id, c2.name
+          Some(ModifyDirectiveDiff(tn, c2.id.uid, c2.name
             , diff(_.name)
             , diff(_.techniqueVersion)
             , diff(d => SectionVal.directiveValToSectionVal(spec, d.parameters))
@@ -636,7 +624,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
       rootActiveTechniqueCategory.modify(r =>
         r.saveDirective(inActiveTechniqueId, directive).toIO.map(c =>
           // TODO: this is false, we should get root section spec for each directive/technique version
-          (r.allDirectives.get(DirectiveRId(directive.id, None)).map(p => (p._1.techniques.head._2.rootSection,  p._1.techniqueName,  p._2)), c)
+          (r.allDirectives.get(DirectiveId(directive.id.uid, GitVersion.defaultRev)).map(p => (p._1.techniques.head._2.rootSection,  p._1.techniqueName,  p._2)), c)
         )
       ).map(buildDirectiveDiff(_, directive))
     }
@@ -650,17 +638,17 @@ class MockDirectives(mockTechniques: MockTechniques) {
       else saveGen(inActiveTechniqueId, directive)
     }
 
-    def deleteGen(id: DirectiveId) = {
+    def deleteGen(id: DirectiveUid) = {
       // TODO: we should check if directive is system
       rootActiveTechniqueCategory.modify(r =>
-        (r.allDirectives.get(DirectiveRId(id, None)), r.deleteDirective(id)).succeed
+        (r.allDirectives.get(DirectiveId(id, GitVersion.defaultRev)), r.deleteDirective(id)).succeed
       ).map(_.map(p => DeleteDirectiveDiff(p._1.techniqueName, p._2)))
     }
-    override def delete(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = {
+    override def delete(id: DirectiveUid, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = {
       deleteGen(id)
     }
 
-    override def deleteSystemDirective(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = {
+    override def deleteSystemDirective(id: DirectiveUid, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = {
       deleteGen(id)
     }
 
@@ -825,7 +813,7 @@ class MockRules() {
       , "Rudder system policy: basic setup (common)"
       , rootRuleCategory.id
       , Set(AllTarget)
-      , Set(DirectiveRId(DirectiveId("common-root")))
+      , Set(DirectiveId(DirectiveUid("common-root")))
       , "common-root rule"
       , "", true, true, NoTags() //long desc / enabled / system / tags
     )
@@ -836,7 +824,7 @@ class MockRules() {
       , "Rudder system policy: Server roles"
       , rootRuleCategory.id
       , Set(AllTarget)
-      , Set(DirectiveRId(DirectiveId("Server Roles")))
+      , Set(DirectiveId(DirectiveUid("Server Roles")))
       , "Server Roles rule"
       , "", true, true, NoTags() //long desc / enabled / system / tags
     )
@@ -848,7 +836,7 @@ class MockRules() {
       , "distributePolicy"
       , rootRuleCategory.id
       , Set(AllTarget)
-      , Set(DirectiveRId(DirectiveId("Distribute Policy")))
+      , Set(DirectiveId(DirectiveUid("Distribute Policy")))
       , "Distribute Policy rule"
       , "", true, true, NoTags() //long desc / enabled / system / tags
     )
@@ -859,7 +847,7 @@ class MockRules() {
       , "Rudder system policy: daily inventory"
       , rootRuleCategory.id
       , Set(AllTarget)
-      , Set(DirectiveRId(DirectiveId("inventory-all")))
+      , Set(DirectiveId(DirectiveUid("inventory-all")))
       , "Inventory all rule"
       , "", true, true, NoTags() //long desc / enabled / system / tags
     )
@@ -870,7 +858,7 @@ class MockRules() {
       , "10. Global configuration for all nodes"
       , rootRuleCategory.id
       , Set(AllTarget)
-      , Set(DirectiveRId(DirectiveId("directive1")))
+      , Set(DirectiveId(DirectiveUid("directive1")))
       , "global config for all nodes"
       , "", true, false, NoTags() //long desc / enabled / system / tags
     )
@@ -882,7 +870,7 @@ class MockRules() {
       , "50. Deploy PLOP STACK"
       , rootRuleCategory.id
       , Set(AllTarget)
-      , Set(DirectiveRId(DirectiveId("directive2")))
+      , Set(DirectiveId(DirectiveUid("directive2")))
       , "global config for all nodes"
       , "", true, false, NoTags() //long desc / enabled / system / tags
     )
@@ -894,9 +882,9 @@ class MockRules() {
       , rootRuleCategory.id
       , Set(AllTarget)
       , Set(
-          DirectiveRId(DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f")) // pkg
-        , DirectiveRId(DirectiveId("e9a1a909-2490-4fc9-95c3-9d0aa01717c9")) // fileTemplate1
-        , DirectiveRId(DirectiveId("99f4ef91-537b-4e03-97bc-e65b447514cc")) // fileTemplate2
+          DirectiveId(DirectiveUid("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f")) // pkg
+        , DirectiveId(DirectiveUid("e9a1a909-2490-4fc9-95c3-9d0aa01717c9")) // fileTemplate1
+        , DirectiveId(DirectiveUid("99f4ef91-537b-4e03-97bc-e65b447514cc")) // fileTemplate2
       )
       , "default rule"
       , "", true, false, NoTags() //long desc / enabled / system / tags
@@ -909,7 +897,7 @@ class MockRules() {
       , rootRuleCategory.id
       , Set(AllTarget)
       , Set(
-          DirectiveRId(DirectiveId("99f4ef91-537b-4e03-97bc-e65b447514cc")) // fileTemplate2
+          DirectiveId(DirectiveUid("99f4ef91-537b-4e03-97bc-e65b447514cc")) // fileTemplate2
       )
       , "updated copy of default rule"
       , "", true, false, NoTags() //long desc / enabled / system / tags
@@ -921,7 +909,7 @@ class MockRules() {
       , "50-rule-technique-ncf"
       , rootRuleCategory.id
       , Set(TargetExclusion(TargetUnion(Set(AllTarget)), TargetUnion(Set(PolicyServerTarget(NodeId("root"))))))
-      , Set(DirectiveRId(DirectiveId("16d86a56-93ef-49aa-86b7-0d10102e4ea9")))
+      , Set(DirectiveId(DirectiveUid("16d86a56-93ef-49aa-86b7-0d10102e4ea9")))
       , "ncf technique rule"
       , "", true, false  //long desc / enabled / system
       , MkTags(("datacenter","Paris"),("serverType","webserver"))
@@ -933,7 +921,7 @@ class MockRules() {
       , "90-copy-git-file"
       , rootRuleCategory.id
       , Set(AllTarget)
-      , Set(DirectiveRId(DirectiveId("directive-copyGitFile")))
+      , Set(DirectiveId(DirectiveUid("directive-copyGitFile")))
       , "ncf technique rule"
       , "", true, false, NoTags() //long desc / enabled / system / tags
     )
@@ -944,7 +932,7 @@ class MockRules() {
       , "10. Test gvd ordering"
       , rootRuleCategory.id
       , Set(AllTarget)
-      , Set(DirectiveRId(DirectiveId("gvd-directive1")), DirectiveRId(DirectiveId("gvd-directive2")))
+      , Set(DirectiveId(DirectiveUid("gvd-directive1")), DirectiveId(DirectiveUid("gvd-directive2")))
       , "test gvd ordering rule"
       , "", true, false, NoTags() //long desc / enabled / system / tags
     )
@@ -1073,11 +1061,11 @@ class MockGlobalParam() {
     InheritMode(ObjectMode.Override, ArrayMode.Prepend, StringMode.Append)
   }
 
-  val stringParam = GlobalParameter("stringParam", None, "some string".toConfigValue, None, "a simple string param", None)
+  val stringParam = GlobalParameter("stringParam", GitVersion.defaultRev, "some string".toConfigValue, None, "a simple string param", None)
   // json: the key will be sorted alpha-num by Config lib; array value order is kept.
-  val jsonParam = GlobalParameter.parse("jsonParam", None, """{ "string":"a string", "array": [1, 3, 2], "json": { "var2":"val2", "var1":"val1"} }""", None, "a simple string param", None).getOrElse(throw new RuntimeException("error in mock jsonParam"))
-  val modeParam = GlobalParameter("modeParam", None, "some string".toConfigValue, Some(mode), "a simple string param", None)
-  val systemParam = GlobalParameter("systemParam", None, "some string".toConfigValue, None, "a simple string param", Some(PropertyProvider.systemPropertyProvider))
+  val jsonParam = GlobalParameter.parse("jsonParam", GitVersion.defaultRev, """{ "string":"a string", "array": [1, 3, 2], "json": { "var2":"val2", "var1":"val1"} }""", None, "a simple string param", None).getOrElse(throw new RuntimeException("error in mock jsonParam"))
+  val modeParam = GlobalParameter("modeParam", GitVersion.defaultRev, "some string".toConfigValue, Some(mode), "a simple string param", None)
+  val systemParam = GlobalParameter("systemParam", GitVersion.defaultRev, "some string".toConfigValue, None, "a simple string param", Some(PropertyProvider.systemPropertyProvider))
   val all = List(stringParam, jsonParam, modeParam, systemParam).map(p => (p.name, p)).toMap
 
   val paramsRepo = new RoParameterRepository with WoParameterRepository {
@@ -1669,14 +1657,14 @@ class MockNodeGroups(nodesRepo: MockNodes) {
   val g0props = List(
     GroupProperty(
         "stringParam"  // inherited from global param
-      , None
+      , GitVersion.defaultRev
       , "string".toConfigValue
       , Some(InheritMode.parseString("map").getOrElse(null))
       , Some(PropertyProvider("datasources"))
     )
   , GroupProperty.parse(
         "jsonParam"
-      , None
+      , GitVersion.defaultRev
       , """{ "group":"string", "array": [5,6], "json": { "g1":"g1"} }"""
       , None
       , None

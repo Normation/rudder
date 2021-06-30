@@ -48,7 +48,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.errors._
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 
 trait RuleValService {
   def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[RuleVal]
@@ -111,7 +111,7 @@ class RuleValServiceImpl(
   }
 
 
-  def getParsedPolicyDraft(id: DirectiveRId, ruleId: RuleId, ruleOrder: BundleOrder, ruleName: String, directiveLib: FullActiveTechniqueCategory) : Box[Option[ParsedPolicyDraft]]= {
+  def getParsedPolicyDraft(id: DirectiveId, ruleId: RuleId, ruleOrder: BundleOrder, ruleName: String, directiveLib: FullActiveTechniqueCategory) : Box[Option[ParsedPolicyDraft]]= {
     directiveLib.allDirectives.get(id) match {
       case None => Failure(s"Cannot find directive with id '${id.debugString}' when building rule '${ruleOrder.value}' (${ruleId.value})")
       case Some((_, directive) ) if !(directive.isEnabled) =>
@@ -122,7 +122,7 @@ class RuleValServiceImpl(
         Full(None)
       case Some((fullActiveTechnique, directive)) =>
         for {
-          technique <- Box(fullActiveTechnique.techniques.get(directive.techniqueVersion)) ?~! s"Version '${directive.techniqueVersion.debugString}' of technique '${fullActiveTechnique.techniqueName.value}' is not available for directive '${directive.name}' [${directive.id.value}]"
+          technique <- Box(fullActiveTechnique.techniques.get(directive.techniqueVersion)) ?~! s"Version '${directive.techniqueVersion.debugString}' of technique '${fullActiveTechnique.techniqueName.value}' is not available for directive '${directive.name}' [${directive.id.uid.value}]"
           varSpecs = technique.rootSection.getAllVariables ++ technique.systemVariableSpecs :+ technique.trackerVariableSpec
           vared <- buildVariables(varSpecs, directive.parameters)
           exists <- {

@@ -482,7 +482,7 @@ class GitDirectiveArchiverImpl(
   override def  getCategoryName(categoryId:ActiveTechniqueCategoryId) = categoryId.value
 
   private[this] def newPiFile(
-      directiveId   : DirectiveId
+      directiveId   : DirectiveUid
     , ptName : TechniqueName
     , parents: List[ActiveTechniqueCategoryId]
   ) = {
@@ -502,7 +502,7 @@ class GitDirectiveArchiverImpl(
   ) : IOResult[GitPath] = {
 
     for {
-      piFile  <- newPiFile(directive.id, ptName, catIds)
+      piFile  <- newPiFile(directive.id.uid, ptName, catIds)
       gitPath =  toGitPath(piFile)
       archive <- writeXml(
                      piFile
@@ -510,7 +510,7 @@ class GitDirectiveArchiverImpl(
                    , "Archived directive: " + piFile.getPath
                  )
       commit  <- gitCommit match {
-                   case Some((modId, commiter, reason)) => commitAddFile(modId, commiter, gitPath, "Archive directive with ID '%s'%s".format(directive.id.value,GET(reason)))
+                   case Some((modId, commiter, reason)) => commitAddFile(modId, commiter, gitPath, "Archive directive with ID '%s'%s".format(directive.id.uid.value,GET(reason)))
                    case None => UIO.unit
                  }
     } yield {
@@ -524,7 +524,7 @@ class GitDirectiveArchiverImpl(
    * saved in git. Else, no modification in git are saved.
    */
   override def deleteDirective(
-      directiveId:DirectiveId
+      directiveId:DirectiveUid
     , ptName   : TechniqueName
     , catIds   : List[ActiveTechniqueCategoryId]
     , gitCommit: Option[(ModificationId, PersonIdent, Option[String])]

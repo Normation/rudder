@@ -47,7 +47,7 @@ import com.normation.rudder.domain.workflows.ChangeRequest
 import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.AuthorizationType
 
@@ -114,7 +114,7 @@ object PendingChangeRequestDisplayer extends Loggable{
     checkChangeRequest(xml,groupId,workflowLevel.getByNodeGroup)
   }
 
-  def checkByDirective(xml:NodeSeq,directiveId:DirectiveId): NodeSeq = {
+  def checkByDirective(xml:NodeSeq,directiveId:DirectiveUid): NodeSeq = {
     checkChangeRequest(xml,directiveId,workflowLevel.getByDirective)
   }
 }

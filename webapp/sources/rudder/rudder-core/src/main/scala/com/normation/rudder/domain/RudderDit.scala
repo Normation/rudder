@@ -43,6 +43,7 @@ import com.unboundid.ldap.sdk._
 import com.normation.ldap.sdk._
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
+import com.normation.GitVersion
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.RudderLDAPConstants._
 import net.liftweb.common._
@@ -86,20 +87,20 @@ object RudderDit {
    * Create a RDN from an uuid, its attribute name, and a revision id.
    * If the revision id is the default one, RDN won't have it, and if it's
    * not the default one, the RDN will be multivalued:
-   * attributeName=uuid, revisionId=revId
+   * attributeName=uuid, revision=rev
    */
-  def buildRDN(attributeName: String, uuid: String, revId: Option[RevId]): RDN = {
-      revId match {
-        case None    => new RDN(attributeName, uuid)
-        case Some(r) => new RDN(Array(attributeName, A_REV_ID), Array(uuid, r.value))
+  def buildRDN(attributeName: String, uuid: String, rev: Revision): RDN = {
+      rev match {
+        case GitVersion.defaultRev => new RDN(attributeName, uuid)
+        case r                     => new RDN(Array(attributeName, A_REV_ID), Array(uuid, r.value))
       }
   }
 
   /*
-   * Build a DN from a parent DN, an attributeName, an UUID and a revId.
+   * Build a DN from a parent DN, an attributeName, an UUID and a rev.
    */
-  def buildDN(parentDn: DN, attributeName: String, uuid: String, revId: Option[RevId]): DN = {
-    new DN(buildRDN(attributeName, uuid, revId), parentDn)
+  def buildDN(parentDn: DN, attributeName: String, uuid: String, rev: Revision): DN = {
+    new DN(buildRDN(attributeName, uuid, rev), parentDn)
   }
 
 }
@@ -248,8 +249,8 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     def buildRDN(rdn: String): RDN = new RDN(A_ACTIVE_TECHNIQUE_UUID, rdn)
     def buildCategoryRDN(rdn: String): RDN = new RDN(A_TECHNIQUE_CATEGORY_UUID, rdn)
 
-    def directiveModel(uuid: DirectiveId, revId: Option[RevId], techniqueVersion:TechniqueVersion, parentDN:DN) : LDAPEntry = {
-      val mod = LDAPEntry(RudderDit.buildDN(parentDN, A_DIRECTIVE_UUID, uuid.value, revId))
+    def directiveModel(uuid: DirectiveUid, rev: Revision, techniqueVersion:TechniqueVersion, parentDN:DN) : LDAPEntry = {
+      val mod = LDAPEntry(RudderDit.buildDN(parentDN, A_DIRECTIVE_UUID, uuid.value, rev))
       mod.resetValuesTo(A_TECHNIQUE_VERSION, techniqueVersion.serialize)
       mod.resetValuesTo(A_OC, OC.objectClassNames(OC_DIRECTIVE).toSeq:_*)
       mod
@@ -262,10 +263,10 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
 
     def getRuleId(dn:DN) : Box[String] = singleRdnValue(dn,A_RULE_UUID)
 
-    def configRuleDN(uuid: RuleId, revId: Option[RevId]) = RudderDit.buildDN(rules.dn, A_RULE_UUID, uuid.value, revId)
+    def configRuleDN(uuid: RuleId, rev: Revision) = RudderDit.buildDN(rules.dn, A_RULE_UUID, uuid.value, rev)
 
-    def ruleModel(uuid: RuleId, revId: Option[RevId],name: String, isEnabled: Boolean,isSystem: Boolean,category: String) : LDAPEntry = {
-      val mod = LDAPEntry(configRuleDN(uuid, revId))
+    def ruleModel(uuid: RuleId, rev: Revision, name: String, isEnabled: Boolean,isSystem: Boolean,category: String) : LDAPEntry = {
+      val mod = LDAPEntry(configRuleDN(uuid, rev))
       mod.resetValuesTo(A_OC,OC.objectClassNames(OC_RULE).toSeq:_*)
       mod.resetValuesTo(A_NAME, name)
       mod.resetValuesTo(A_IS_ENABLED, isEnabled.toLDAPString)

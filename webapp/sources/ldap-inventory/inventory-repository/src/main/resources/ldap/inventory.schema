@@ -69,7 +69,7 @@ attributetype ( InventoryAttributes:1.5
 # Revision identifier is not used in these objects, but they will be at
 # some point, so definition is here
 attributetype ( InventoryAttributes:1.6
-  NAME 'revisionId'
+  NAME 'revision'
   DESC '(git) revision identifier of the object'
   SUP uuid )
 

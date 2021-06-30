@@ -483,7 +483,7 @@ class TechniqueEditForm(
   }
 
   private[this] def showParameters(technique: Technique) : NodeSeq = {
-    directiveEditorService.get(technique.id, DirectiveId("just-for-read-only")) match {
+    directiveEditorService.get(technique.id, DirectiveUid("just-for-read-only")) match {
       case Full(pe) => pe.toHtmlNodeSeq
       case e:EmptyBox =>
         val msg = "Error when fetching parameter of Technique."

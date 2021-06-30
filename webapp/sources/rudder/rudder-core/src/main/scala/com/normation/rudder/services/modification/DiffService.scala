@@ -96,7 +96,7 @@ class DiffServiceImpl extends DiffService {
     val diffPolicyMode       = toDirectiveDiff( _.policyMode)
     ModifyDirectiveDiff(
         techniqueName
-      , reference.id
+      , reference.id.uid
       , reference.name
       , diffName
       , diffTechniqueVersion

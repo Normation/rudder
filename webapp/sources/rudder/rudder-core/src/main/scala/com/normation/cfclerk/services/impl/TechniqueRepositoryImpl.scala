@@ -183,7 +183,7 @@ class TechniqueRepositoryImpl(
 
         val res = Control.bestEffort(callbacks) { callback =>
           try {
-            callback.updatedTechniques(techniqueInfosCache.gitRevId, modifiedPackages, updatedCategories, modId, actor, reason)
+            callback.updatedTechniques(techniqueInfosCache.gitRev, modifiedPackages, updatedCategories, modId, actor, reason)
           } catch {
             case e: Exception =>
               Failure(s"Error when executing callback '${callback.name}' for updated techniques: '${modifiedPackages.mkString(", ")}'", Full(e), Empty)

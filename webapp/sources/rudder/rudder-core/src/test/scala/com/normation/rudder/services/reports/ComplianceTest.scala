@@ -47,8 +47,8 @@ import net.liftweb.common.Full
 import com.normation.rudder.domain.reports.Reports
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.DirectiveRId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
 import com.normation.rudder.domain.reports.NodeConfigId
@@ -165,7 +165,7 @@ class ComplianceTest extends Specification {
         Reports(
             dateParser.parseDateTime(l(1))
           , RuleId(l(4))
-          , DirectiveRId(DirectiveId(l(3)))
+          , DirectiveId(DirectiveUid(l(3)))
           , NodeId(l(2))
           , l(5).toInt
           , l(6)

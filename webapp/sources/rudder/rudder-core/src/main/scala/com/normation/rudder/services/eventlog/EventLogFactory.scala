@@ -37,6 +37,8 @@
 
 package com.normation.rudder.services.eventlog
 
+import com.normation.GitVersion
+
 import scala.xml._
 import scala.xml.Text
 import org.joda.time.DateTime
@@ -373,10 +375,10 @@ class EventLogFactoryImpl(
               }
             ) ++
             modifyDiff.modDirectiveIds.map(x =>
-              SimpleDiff.toXml[Set[DirectiveRId]](<directiveIds/>, x){ ids =>
-                ids.toSeq.map { case DirectiveRId(id, rev) => rev match {
-                  case None    => <id>{id.value}</id>
-                  case Some(r) => <id revisionId={r.value}>{id.value}</id>
+              SimpleDiff.toXml[Set[DirectiveId]](<directiveIds/>, x){ ids =>
+                ids.toSeq.map { case DirectiveId(uid, rev) => rev match {
+                  case GitVersion.defaultRev => <id>{uid.value}</id>
+                  case r                     => <id revision={r.value}>{uid.value}</id>
                 }}
               }
             ) ++

@@ -416,7 +416,7 @@ trait PromiseGenerationService {
   // get full active technique category, checking that:
   // - all ids in parameter are in it,
   // - filtering out other directives (and pruning relevant branches).
-  def getDirectiveLibrary(ids: Set[DirectiveRId]): Box[FullActiveTechniqueCategory]
+  def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory]
   def getGroupLibrary(): Box[FullNodeGroupCategory]
   def getAllGlobalParameters: Box[Seq[GlobalParameter]]
   def getAllInventories(): Box[Map[NodeId, NodeInventory]]
@@ -731,7 +731,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
 
   override def findDependantRules() : Box[Seq[Rule]] = roRuleRepo.getAll(true).toBox
   override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = nodeInfoService.getAll()
-  override def getDirectiveLibrary(ids: Set[DirectiveRId]): Box[FullActiveTechniqueCategory] = {
+  override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = {
     configurationRepository.getDirectiveLibrary(ids).toBox
   }
   override def getGroupLibrary(): Box[FullNodeGroupCategory] = roNodeGroupRepository.getFullGroupLibrary().toBox
@@ -1376,10 +1376,10 @@ object RuleExpectedReportBuilder extends Loggable {
         // As we flattened previously, we only need/want "head"
         val pvar = policy.policyVars.head
         DirectiveExpectedReports(
-            pvar.policyId.directiveRId
+            pvar.policyId.directiveId
           , pvar.policyMode
           , policy.technique.isSystem
-          , componentsFromVariables(policy.technique, policy.id.directiveRId, pvar)
+          , componentsFromVariables(policy.technique, policy.id.directiveId, pvar)
         )
       }
 
@@ -1387,7 +1387,7 @@ object RuleExpectedReportBuilder extends Loggable {
     }.toList
   }
 
-  def componentsFromVariables(technique: PolicyTechnique, directiveRId: DirectiveRId, vars: PolicyVars) : List[ComponentExpectedReport] = {
+  def componentsFromVariables(technique: PolicyTechnique, directiveId: DirectiveId, vars: PolicyVars) : List[ComponentExpectedReport] = {
 
     // Computes the components values, and the unexpanded component values
     val getTrackingVariableCardinality : (Seq[String], Seq[String]) = {
@@ -1396,19 +1396,19 @@ object RuleExpectedReportBuilder extends Loggable {
       (vars.expandedVars.get(boundingVar), vars.originalVars.get(boundingVar)) match {
         case (None, None) =>
           PolicyGenerationLogger.debug("Could not find the bounded variable %s for %s in ParsedPolicyDraft %s".format(
-              boundingVar, vars.trackerVariable.spec.name, directiveRId.serialize))
+              boundingVar, vars.trackerVariable.spec.name, directiveId.serialize))
           (Seq(DEFAULT_COMPONENT_KEY),Seq()) // this is an autobounding policy
         case (Some(variable), Some(originalVariables)) if (variable.values.size==originalVariables.values.size) =>
           (variable.values, originalVariables.values)
         case (Some(variable), Some(originalVariables)) =>
           PolicyGenerationLogger.warn("Expanded and unexpanded values for bounded variable %s for %s in ParsedPolicyDraft %s have not the same size : %s and %s".format(
-              boundingVar, vars.trackerVariable.spec.name, directiveRId.serialize,variable.values, originalVariables.values ))
+              boundingVar, vars.trackerVariable.spec.name, directiveId.serialize,variable.values, originalVariables.values ))
           (variable.values, originalVariables.values)
         case (None, Some(originalVariables)) =>
           (Seq(DEFAULT_COMPONENT_KEY),originalVariables.values) // this is an autobounding policy
         case (Some(variable), None) =>
           PolicyGenerationLogger.warn("Somewhere in the expansion of variables, the bounded variable %s for %s in ParsedPolicyDraft %s appeared, but was not originally there".format(
-              boundingVar, vars.trackerVariable.spec.name, directiveRId.serialize))
+              boundingVar, vars.trackerVariable.spec.name, directiveId.serialize))
           (variable.values,Seq()) // this is an autobounding policy
 
       }
@@ -1430,7 +1430,7 @@ object RuleExpectedReportBuilder extends Loggable {
             val unexpandedValues = vars.originalVars.get(varName).map( _.values.toList).getOrElse(Nil)
             if (values.size != unexpandedValues.size)
               PolicyGenerationLogger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
-                  section.componentKey, directiveRId.serialize, values, unexpandedValues ))
+                  section.componentKey, directiveId.serialize, values, unexpandedValues ))
             Some(ComponentExpectedReport(section.name, values, unexpandedValues))
         }
       } else {
@@ -1442,7 +1442,7 @@ object RuleExpectedReportBuilder extends Loggable {
       //that log is outputed one time for each directive for each node using a technique, it's far too
       //verbose on debug.
       PolicyGenerationLogger.trace(s"Technique '${technique.id.debugString}' does not define any components, assigning default component with " +
-                                   s"expected report = 1 for directive ${directiveRId.debugString}")
+                                   s"expected report = 1 for directive ${directiveId.debugString}")
 
       val trackingVarCard = getTrackingVariableCardinality
       List(ComponentExpectedReport(technique.id.name.value, trackingVarCard._1.toList, trackingVarCard._2.toList))

@@ -68,7 +68,7 @@ import com.normation.rudder.services.policies.Policy
 import java.nio.charset.StandardCharsets
 
 import com.github.ghik.silencer.silent
-import com.normation.GitVersion.RevId
+import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.TechniqueResourceIdByName
 import com.normation.cfclerk.domain.TechniqueResourceIdByPath
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
@@ -626,16 +626,16 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest{
       promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc),  Map(root.id -> rnc.nodeInfo), Map(root.id -> NodeConfigId("root-cfg-id")), globalPolicyMode, DateTime.now, parallelism)
     }
 
-    def changeRevId(draft: BoundPolicyDraft, revId: RevId): BoundPolicyDraft = {
+    def changeRev(draft: BoundPolicyDraft, rev: Revision): BoundPolicyDraft = {
       // need to change in technique and policyId and all resources - usually, both depend from one other each other.
       draft
-        .modify(_.id.techniqueVersion.revId).setTo(Some(revId))
-        .modify(_.technique.id.version.revId).setTo(Some(revId))
+        .modify(_.id.techniqueVersion.rev).setTo(rev)
+        .modify(_.technique.id.version.rev).setTo(rev)
         .modify(_.technique.agentConfigs.each.templates.each.id).using {
           case TechniqueResourceIdByName(id, name)         =>
-            TechniqueResourceIdByName(id.modify(_.version.revId).setTo(Some(revId)), name)
+            TechniqueResourceIdByName(id.modify(_.version.rev).setTo(rev), name)
           case TechniqueResourceIdByPath(parents, _, name) =>
-            TechniqueResourceIdByPath(parents, Some(revId), name)
+            TechniqueResourceIdByPath(parents, rev, name)
         }
     }
 
@@ -645,7 +645,7 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest{
       updateTemplate(abstractRoot)
       val head = getCurrentCommitId.getName
       // specify technique revision to use in policy
-      val revisedClock = changeRevId(clock, RevId(initCommit))
+      val revisedClock = changeRev(clock, Revision(initCommit))
       (initCommit must be_!==(head)) and
       (writeNodeConfigWithUserDirectives(writter, revisedClock) mustFull) and
       compareWith(rootPath, "technique-and-revisions",

@@ -38,35 +38,34 @@
 package com.normation.cfclerk.domain
 
 
-import com.normation.GitVersion.RevId
+import com.normation.GitVersion
+import com.normation.GitVersion.Revision
 import com.normation.utils._
 
 
-final case class TechniqueVersion(version: Version, revId: Option[RevId] = None) extends Ordered[TechniqueVersion] {
+final case class TechniqueVersion protected (version: Version, rev: Revision) extends Ordered[TechniqueVersion] {
   def compare(v: TechniqueVersion): Int = (version compare v.version) match {
     case 0 =>
-      // we can't compare two revId, so just use alpha-num order
-      // A revId is always before none (which means "HEAD")
-      (revId, v.revId) match {
-        case (None   , None   ) =>  0
-        case (None   , _      ) =>  1
-        case (_      , None   ) => -1
-        case (Some(x), Some(y)) =>  String.CASE_INSENSITIVE_ORDER.compare(x.value, y.value)
+      // we can't compare two rev, so just use alpha-num order
+      // A rev is always before none (which means "HEAD")
+      (rev, v.rev) match {
+        case (GitVersion.defaultRev , GitVersion.defaultRev ) =>  0
+        case (GitVersion.defaultRev , _                     ) =>  1
+        case (_                     , GitVersion.defaultRev ) => -1
+        case (x                     , y                     ) =>  String.CASE_INSENSITIVE_ORDER.compare(x.value, y.value)
       }
     case i => i
   }
 
-  def withDefaultRevId = this.copy(revId = None)
+  def withDefaultRev = this.copy(rev = GitVersion.defaultRev)
 
   // intended for debug
   def debugString = serialize
   // for serialisation on path
-  def serialize = revId.fold(
-    version.toVersionString
-  )(
-    r => version.toVersionString + "+" + r.value
-  )
-
+  def serialize = rev match {
+    case GitVersion.defaultRev => version.toVersionString
+    case r                     => version.toVersionString + "+" + r.value
+  }
 }
 
 object TechniqueVersion {
@@ -78,27 +77,27 @@ object TechniqueVersion {
    * NOTE: it seems that in existing env, sometimes epoch was written when it should
    * not have. So we must accept also leading number+":".
    */
-  protected def apply(v: Version): Either[String, TechniqueVersion] = {
-    if((v.head :: v.parts).exists {
-      case PartType.Chars(_) => true
-      case _                 => false
+  def apply(v: Version, rev: Revision = GitVersion.defaultRev): Either[String, TechniqueVersion] = {
+    if(v.head.isInstanceOf[PartType.Numeric] && v.parts.forall {
+      case VersionPart.After(Separator.Dot, PartType.Numeric(_)) => true
+      case x                                                     => false
     }) {
-      Left("Technique version must be composed of digits")
+      Right(new TechniqueVersion(v, GitVersion.defaultRev))
     } else {
-      Right(new TechniqueVersion(v, None))
+      Left("Technique version must be composed of digits")
     }
   }
 
   def parse(value: String): Either[String, TechniqueVersion] = {
-    val (v, revId) = {
+    val (v, rev) = {
       val parts = value.split("\\+")
       if(parts.size == 1) {
-        (value, None)
+        (value, GitVersion.defaultRev)
       } else {
-        (parts.take(parts.size-1).mkString("+"), Some(RevId(parts(parts.size-1).trim)))
+        (parts.take(parts.size-1).mkString("+"), Revision(parts(parts.size - 1).trim))
       }
     }
-    ParseVersion.parse(v).map(TechniqueVersion(_,revId))
+    ParseVersion.parse(v).flatMap(TechniqueVersion(_, rev))
   }
 }
 

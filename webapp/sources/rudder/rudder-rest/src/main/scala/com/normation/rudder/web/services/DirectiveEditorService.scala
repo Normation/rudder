@@ -37,7 +37,7 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.rudder.web.model.{ DirectiveEditor }
@@ -55,7 +55,7 @@ trait DirectiveEditorService {
    */
   def get(
     techniqueId: TechniqueId,
-    directiveId: DirectiveId,
+    directiveId: DirectiveUid,
     //withExecutionPlanning:Option[TemporalVariableVal] = None,
     withVars: Map[String, Seq[String]] = Map()): Box[DirectiveEditor]
 
@@ -94,7 +94,7 @@ class DirectiveEditorServiceImpl(
 
   override def get(
     techniqueId: TechniqueId,
-    directiveId: DirectiveId,
+    directiveId: DirectiveUid,
     withVarValues: Map[String, Seq[String]] = Map()): Box[DirectiveEditor] = {
 
     for {

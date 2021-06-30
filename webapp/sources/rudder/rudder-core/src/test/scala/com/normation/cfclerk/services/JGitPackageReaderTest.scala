@@ -37,8 +37,9 @@
 
 package com.normation.cfclerk.services
 
-import java.io.File
+import com.normation.GitVersion
 
+import java.io.File
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
 import com.normation.cfclerk.services.impl.GitTechniqueReader
@@ -47,7 +48,6 @@ import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
-
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.eclipse.jgit.api.Git
@@ -55,11 +55,10 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
-
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
-import java.nio.charset.StandardCharsets
 
+import java.nio.charset.StandardCharsets
 import com.normation.zio._
 import zio.syntax._
 
@@ -119,19 +118,19 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
    *      --- template2.st
    */
   val template = new File(gitRoot, "template.st")
-  val templateId = TechniqueResourceIdByPath(Nil, None, "template")
+  val templateId = TechniqueResourceIdByPath(Nil, GitVersion.defaultRev, "template")
   val templateContent = "this is some template content"
   template.getParentFile.mkdirs
   FileUtils.writeStringToFile(template, templateContent, StandardCharsets.UTF_8)
   val template2 = new File(new File(gitRoot, "libdir"), "template2.st")
-  val template2Id = TechniqueResourceIdByPath(List("libdir"), None, "template2")
+  val template2Id = TechniqueResourceIdByPath(List("libdir"), GitVersion.defaultRev, "template2")
   val template2Content = "this is template2 content"
   template2.getParentFile.mkdirs
   FileUtils.writeStringToFile(template2, template2Content, StandardCharsets.UTF_8)
 
   val f1 = new File(new File(gitRoot, "libdir"), "file1.txt")
   val f1Content = "this is the content of file 1"
-  val file1 = TechniqueResourceIdByPath(List("libdir"), None, f1.getName)
+  val file1 = TechniqueResourceIdByPath(List("libdir"), GitVersion.defaultRev, f1.getName)
   FileUtils.writeStringToFile(f1, f1Content, StandardCharsets.UTF_8)
 
   val file2 = TechniqueResourceIdByName(TechniqueId(TechniqueName("p1_1"), TechniqueVersionHelper("1.0")), "file2.txt")

@@ -64,9 +64,9 @@ object ReloadTechniqueLibrary extends EventLogFilter {
 
   override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2)
 
-  def buildDetails(gitRevId: String, techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType]) : Elem = EventLog.withContent {
+  def buildDetails(gitRev: String, techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType]) : Elem = EventLog.withContent {
     <reloadTechniqueLibrary fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
-      <commitId>{gitRevId}</commitId>{
+      <commitId>{gitRev}</commitId>{
       techniqueMods.flatMap {
         case (_, TechniqueUpdated(name, mods)) => mods.map( x => (x._2 , name, x._1))
         case (_, TechniqueDeleted(name, vers)) => vers.map( x => (VersionDeleted, name, x ))

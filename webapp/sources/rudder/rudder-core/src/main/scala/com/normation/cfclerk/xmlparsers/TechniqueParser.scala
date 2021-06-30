@@ -295,7 +295,7 @@ class TechniqueParser(
               val path = new java.io.File(n.substring(RUDDER_CONFIGURATION_REPOSITORY.length + 1))
               val name = path.getName
               //here, getName can't be empty since n does not end by "/"
-              Right(TechniqueResourceIdByPath(fileToList(path.getParentFile), techniqueId.version.revId, name))
+              Right(TechniqueResourceIdByPath(fileToList(path.getParentFile), techniqueId.version.rev, name))
             } else {
               if(n.startsWith(RUDDER_CONFIGURATION_REPOSITORY)) { //most likely an user error, issue a warning
                 logEffect.warn(s"Resource named '${n}' for technique '${techniqueId.debugString}' starts with ${RUDDER_CONFIGURATION_REPOSITORY} which is not followed by a '/'. " +

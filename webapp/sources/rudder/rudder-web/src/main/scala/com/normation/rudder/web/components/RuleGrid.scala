@@ -330,7 +330,7 @@ class RuleGrid(
             }
           } catch {
             case e:Exception =>
-              val msg = s"Error while trying to apply directive ${directiveApp.directive.id.value} on visible Rules"
+              val msg = s"Error while trying to apply directive ${directiveApp.directive.id.uid.value} on visible Rules"
               logger.error(s"$msg, cause is: ${e.getMessage()}")
               logger.debug(s"Error details:", e)
               Alert(msg)

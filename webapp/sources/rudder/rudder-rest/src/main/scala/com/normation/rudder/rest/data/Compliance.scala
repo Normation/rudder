@@ -43,7 +43,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 
@@ -86,7 +86,7 @@ final case class ByRuleRuleCompliance(
 )
 
 final case class ByRuleDirectiveCompliance(
-    id        : DirectiveRId
+    id        : DirectiveId
   , name      : String
   , compliance: ComplianceLevel
   , components: Seq[ByRuleComponentCompliance]
@@ -139,7 +139,7 @@ final case class ByNodeRuleCompliance(
 )
 
 final case class ByNodeDirectiveCompliance(
-    id        : DirectiveRId
+    id        : DirectiveId
   , name      : String
   , compliance: ComplianceLevel
   , components: Map[String, ComponentStatusReport]
@@ -148,7 +148,7 @@ final case class ByNodeDirectiveCompliance(
 object ByNodeDirectiveCompliance {
 
   def apply(d: DirectiveStatusReport, directiveName : String): ByNodeDirectiveCompliance = {
-    new ByNodeDirectiveCompliance(d.directiveRId, directiveName, d.compliance, d.components)
+    new ByNodeDirectiveCompliance(d.directiveId, directiveName, d.compliance, d.components)
   }
 }
 

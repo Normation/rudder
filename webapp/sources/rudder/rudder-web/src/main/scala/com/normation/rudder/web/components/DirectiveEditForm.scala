@@ -110,7 +110,7 @@ class DirectiveEditForm(
 
   private[this] val htmlId_save = htmlId_policyConf + "Save"
   private[this] val parameterEditor = {
-    directiveEditorService.get(technique.id, directive.id, directive.parameters) match {
+    directiveEditorService.get(technique.id, directive.id.uid, directive.parameters) match {
       case Full(pe) => pe
       case Empty => {
         val errMsg = "Can not initialize the parameter editor for Directive %s " +
@@ -221,7 +221,7 @@ class DirectiveEditForm(
       "#editForm" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
       "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
-          PendingChangeRequestDisplayer.checkByDirective(xml, directive.id)
+          PendingChangeRequestDisplayer.checkByDirective(xml, directive.id.uid)
         } &
       "#existingPrivateDrafts" #> displayPrivateDrafts &
       "#existingChangeRequests" #> displayChangeRequests &
@@ -267,7 +267,7 @@ class DirectiveEditForm(
       } &
       "#nameField" #> {directiveName.toForm_!} &
       "#tagField *" #> tagsEditForm.tagsForm("directiveTags", "directiveEditTagsApp", updateTag, false) &
-      "#directiveID *" #> {directive.id.value} &
+      "#directiveID *" #> {directive.id.uid.value} &
       "#shortDescriptionField" #> directiveShortDescription.toForm_! &
       "#longDescriptionField" #> directiveLongDescription.toForm_! &
       "#priority" #> directivePriority.toForm_! &
@@ -438,11 +438,11 @@ class DirectiveEditForm(
     boxTag match {
       case Full(tags) => newTags = tags
       case eb : EmptyBox =>
-        val failure = eb ?~! s"Error when updating directive ${directive.id.value} tag"
+        val failure = eb ?~! s"Error when updating directive ${directive.id.uid.value} tag"
         formTracker.addFormError(error(failure.messageChain))
     }
   }
-  def tagsEditForm = new TagsEditForm(directive.tags, directive.id.value)
+  def tagsEditForm = new TagsEditForm(directive.tags, directive.id.uid.value)
 
   def showDeprecatedVersion (version : TechniqueVersion) = {
     val deprecationInfo = techniques(version).deprecrationInfo match {
@@ -569,8 +569,8 @@ class DirectiveEditForm(
       val (addRules,removeRules)= directiveApp.checkRulesToUpdate
       val baseRules = (addRules ++ removeRules).sortBy(_.id.value)
 
-      val finalAdd = addRules.map(r => r.copy(directiveIds =  r.directiveIds + directive.rid ))
-      val finalRem = removeRules.map(r => r.copy(directiveIds =  r.directiveIds - directive.rid ))
+      val finalAdd = addRules.map(r => r.copy(directiveIds =  r.directiveIds + directive.id ))
+      val finalRem = removeRules.map(r => r.copy(directiveIds =  r.directiveIds - directive.id ))
       val updatedRules = (finalAdd ++ finalRem).sortBy(_.id.value)
 
       val newPolicyMode = policyModes.get match {

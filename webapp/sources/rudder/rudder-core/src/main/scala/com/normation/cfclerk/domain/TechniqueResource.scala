@@ -37,7 +37,7 @@
 
 package com.normation.cfclerk.domain
 
-import com.normation.GitVersion.RevId
+import com.normation.GitVersion.Revision
 
 
 /**
@@ -74,7 +74,7 @@ final case class TechniqueResourceIdByName(techniqueId: TechniqueId, name: Strin
  * For example, an empty list means that the template is in configuration-repository directory.
  * Name is an unix compliant file name, without the ".st" extension.
  */
-final case class TechniqueResourceIdByPath(parentDirectories: List[String], revId: Option[RevId], name: String) extends TechniqueResourceId {
+final case class TechniqueResourceIdByPath(parentDirectories: List[String], rev: Revision, name: String) extends TechniqueResourceId {
   def displayPath: String = parentDirectories.mkString("", "/", "/") + name
 }
 

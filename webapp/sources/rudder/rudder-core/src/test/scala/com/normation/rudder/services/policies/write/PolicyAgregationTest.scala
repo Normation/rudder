@@ -41,7 +41,7 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import org.specs2.mutable.Specification
 import com.normation.cfclerk.domain._
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
@@ -53,13 +53,13 @@ import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.BoundPolicyDraft
 import org.joda.time.DateTime
 import com.normation.inventory.domain.AgentType
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 
 
 @RunWith(classOf[JUnitRunner])
 class PolicyAgregationTest extends Specification {
   implicit def str2pId(id: String) = TechniqueId(TechniqueName(id), TechniqueVersionHelper("1.0"))
-  implicit def str2PolicyId(id: String) = PolicyId(RuleId("r_"+id), DirectiveRId(DirectiveId("d_"+id)), TechniqueVersionHelper("1.0"))
+  implicit def str2PolicyId(id: String) = PolicyId(RuleId("r_"+id), DirectiveId(DirectiveUid("d_" + id)), TechniqueVersionHelper("1.0"))
 
 
   // we are testing error cases, so we don't want to output error log for them
@@ -138,7 +138,7 @@ class PolicyAgregationTest extends Specification {
       , false
       , None
       , BundleOrder(id.ruleId.value)
-      , BundleOrder(id.directiveRId.serialize)
+      , BundleOrder(id.directiveId.serialize)
       , Set()
     )
   }

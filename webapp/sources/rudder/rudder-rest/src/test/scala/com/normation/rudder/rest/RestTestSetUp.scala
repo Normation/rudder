@@ -60,7 +60,7 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.GlobalParameter
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.Audit
 import com.normation.rudder.domain.policies.PolicyModeOverrides
@@ -152,7 +152,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
 import com.normation.box._
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 
 
 /*
@@ -240,7 +240,7 @@ object RestTestSetUp {
   val policyGeneration = new PromiseGenerationService {
     override def deploy(): Box[Set[NodeId]] = Full(Set())
     override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
-    override def getDirectiveLibrary(ids: Set[DirectiveRId]): Box[FullActiveTechniqueCategory] = ???
+    override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = ???
     override def getGroupLibrary(): Box[FullNodeGroupCategory] = ???
     override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = ???
     override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = ???
@@ -279,7 +279,7 @@ object RestTestSetUp {
   val asyncDeploymentAgent = new AsyncDeploymentActor(policyGeneration, eventLogger, deploymentStatusSerialisation, () => Duration("0s").succeed, () => AllGeneration.succeed)
 
   val findDependencies  = new FindDependencies { //never find any dependencies
-    override def findRulesForDirective(id: DirectiveId): IOResult[Seq[Rule]] = Nil.succeed
+    override def findRulesForDirective(id: DirectiveUid): IOResult[Seq[Rule]] = Nil.succeed
     override def findRulesForTarget(target: RuleTarget): IOResult[Seq[Rule]] = Nil.succeed
   }
   val dependencyService = new DependencyAndDeletionServiceImpl(findDependencies, mockDirectives.directiveRepo, mockDirectives.directiveRepo, mockRules.ruleRepo, mockNodeGroups.groupsRepo)

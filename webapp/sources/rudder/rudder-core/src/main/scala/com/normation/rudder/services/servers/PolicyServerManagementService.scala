@@ -61,7 +61,7 @@ import zio.syntax._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.zio._
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 
 /**
  * This service allows to manage properties linked to the root policy server,
@@ -215,7 +215,7 @@ class PolicyServerManagementServiceImpl(
     inLock(policyServerId) {
       for {
         _       <- ApplicationLoggerPure.debug(s"Update allowed networks for policy server '${policyServerId.value}', replace all: ${replace}; add: ${add.mkString(", ")}; delete: ${delete.mkString(", ")}")
-        res     <- roDirectiveRepository.getActiveTechniqueAndDirective(DirectiveRId(directiveId)).notOptional(
+        res     <- roDirectiveRepository.getActiveTechniqueAndDirective(DirectiveId(directiveId)).notOptional(
                      s"Error when retrieving system directive with ID ${directiveId.value}' which is mandatory for allowed networks configuration."
                    )
         (activeTechnique, directive) = res

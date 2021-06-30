@@ -58,7 +58,7 @@ import com.normation.rudder.web.ChooseTemplate
 import com.normation.box._
 import com.normation.utils.DateFormaterService
 import com.normation.rudder.configuration.ConfigurationRepository
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 
 /**
  * Show the reports from cfengine (raw data)
@@ -146,13 +146,13 @@ class LogDisplayer(
    * find all reports for node passed as parameter and transform them into table data
    */
   def getReportsLineForNode (nodeId : NodeId, reports: Seq[Reports]) = {
-    val directiveMap = mutable.Map[DirectiveRId, String]()
+    val directiveMap = mutable.Map[DirectiveId, String]()
     val ruleMap = mutable.Map[RuleId, String]()
 
-    def getDirectiveName(directiveRId: DirectiveRId) : String = {
-      directiveMap.getOrElse(directiveRId, {
-        val result = configRepository.getDirective(directiveRId).map(_.map(_.directive.name).getOrElse(directiveRId.serialize) ).toBox.openOr(directiveRId.serialize)
-        directiveMap += ( directiveRId -> result)
+    def getDirectiveName(directiveId: DirectiveId) : String = {
+      directiveMap.getOrElse(directiveId, {
+        val result = configRepository.getDirective(directiveId).map(_.map(_.directive.name).getOrElse(directiveId.serialize) ).toBox.openOr(directiveId.serialize)
+        directiveMap += ( directiveId -> result)
         result
       })
     }
@@ -168,7 +168,7 @@ class LogDisplayer(
 
         val ruleName = getRuleName(report.ruleId)
 
-        val directiveName = getDirectiveName(report.directiveRId)
+        val directiveName = getDirectiveName(report.directiveId)
 
         val value = if (DEFAULT_COMPONENT_KEY == report.keyValue) "-" else report.keyValue
 

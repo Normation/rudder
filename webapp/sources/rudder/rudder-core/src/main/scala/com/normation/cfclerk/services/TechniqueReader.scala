@@ -48,7 +48,7 @@ import scala.collection.mutable.{Map => MutMap}
 
 final case class TechniquesInfo(
     rootCategory          : RootTechniqueCategory
-  , gitRevId              : String
+  , gitRev                : String
     //the TechniqueCategoryId is a path from the point of view of a tree
   , techniquesCategory    : Map[TechniqueId, TechniqueCategoryId]
   , techniques            : Map[TechniqueName, SortedMap[TechniqueVersion, Technique]]

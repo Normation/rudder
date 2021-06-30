@@ -59,7 +59,7 @@ import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.rudder.domain.parameters.GlobalParameter
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.queries.QueryTrait
@@ -281,7 +281,7 @@ final case class RestRule(
     , category         : Option[RuleCategoryId]    = None
     , shortDescription : Option[String]            = None
     , longDescription  : Option[String]            = None
-    , directives       : Option[Set[DirectiveRId]] = None
+    , directives       : Option[Set[DirectiveId]] = None
     , targets          : Option[Set[RuleTarget]]   = None
     , enabled          : Option[Boolean]           = None
     , tags             : Option[Tags]              = None

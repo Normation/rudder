@@ -97,12 +97,12 @@ final case class Modified[T](
 
 class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
 
-  private[this] implicit def displayDirective(directiveId: DirectiveRId) = {
-    <span> Directive {linkUtil.createDirectiveLink(directiveId.id)}</span>
+  private[this] implicit def displayDirective(directiveId: DirectiveId) = {
+    <span> Directive {linkUtil.createDirectiveLink(directiveId.uid)}</span>
   }
   def displayDirectiveChangeList (
-      oldDirectives: Seq[DirectiveRId]
-    , newDirectives: Seq[DirectiveRId]
+      oldDirectives: Seq[DirectiveId]
+    , newDirectives: Seq[DirectiveId]
   ) : NodeSeq = {
 
     // First, find unchanged and deleted (have find no clean way to make a 3 way partition)
@@ -113,7 +113,7 @@ class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
     val unchangedMap = unchanged.map(Unchanged(_))
 
     // Finally mix all maps together in one and display it
-    val changeMap:Seq[DiffItem[DirectiveRId]] = deletedMap ++ unchangedMap ++ added
+    val changeMap:Seq[DiffItem[DirectiveId]] = deletedMap ++ unchangedMap ++ added
     <ul style="padding-left:10px">
       { for {
       change <- changeMap

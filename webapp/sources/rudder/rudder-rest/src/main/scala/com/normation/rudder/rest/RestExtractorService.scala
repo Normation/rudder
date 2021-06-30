@@ -37,6 +37,8 @@
 
 package com.normation.rudder.rest
 
+import com.normation.GitVersion
+
 import java.io.StringReader
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
@@ -346,10 +348,10 @@ final case class RestExtractorService (
   /*
    * Convert List Functions
    */
-  private[this] def convertListToDirectiveId (values : Seq[String]) : Box[Set[DirectiveRId]] = {
-    def toDirectiveId (value:String) : Box[DirectiveRId] = {
+  private[this] def convertListToDirectiveId (values : Seq[String]) : Box[Set[DirectiveId]] = {
+    def toDirectiveId (value:String) : Box[DirectiveId] = {
       // TODO: parse value correctly
-      readDirective.getDirective(DirectiveId(value)).notOptional(s"Directive '$value' not found").map(x => DirectiveRId(x.id)).toBox
+      readDirective.getDirective(DirectiveUid(value)).notOptional(s"Directive '$value' not found").map(_.id).toBox
     }
     sequence(values){ toDirectiveId }.map(_.toSet)
   }
@@ -622,7 +624,7 @@ final case class RestExtractorService (
   def extractGroupProperties (params : Map[String, List[String]]) : Box[Option[List[GroupProperty]]] = {
     // properties coming from the API are always provider=rudder / mode=read-write
     // TODO: parse revision correctly
-    extractProperties(params, (k,v) => GroupProperty.parse(k, None, v, None, None))
+    extractProperties(params, (k,v) => GroupProperty.parse(k, GitVersion.defaultRev, v, None, None))
   }
 
   def extractProperties[A](params : Map[String, List[String]], make:(String, String) => PureResult[A]): Box[Option[List[A]]] = {

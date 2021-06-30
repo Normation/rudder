@@ -39,17 +39,16 @@ package com.normation.cfclerk.services.impl
 
 import scala.xml._
 import com.normation.cfclerk.domain._
+
 import java.io.FileNotFoundException
-
 import org.xml.sax.SAXParseException
-import java.io.File
 
+import java.io.File
 import net.liftweb.common._
 
 import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters._
 import java.io.InputStream
-
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.lib.ObjectId
 
@@ -59,13 +58,14 @@ import com.normation.cfclerk.services._
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
-import java.io.IOException
 
+import java.io.IOException
 import com.normation.errors._
 import com.normation.zio._
 import zio._
 import zio.syntax._
 import GitTechniqueReader._
+import com.normation.GitVersion
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
 import com.normation.rudder.repository.xml.GitFindUtils
 import org.eclipse.jgit.lib.Repository
@@ -363,16 +363,16 @@ class GitTechniqueReader(
 
   override def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(useIt : Option[InputStream] => IOResult[T]) : IOResult[T] = {
     //build a treewalk with the path, given by TechniqueTemplateId
-    //here, we don't use revId in path, it will be used (if necessary) during walk
-    val (revId, filenameFilter) = {
+    //here, we don't use rev in path, it will be used (if necessary) during walk
+    val (rev, filenameFilter) = {
       val name = techniqueResourceId.name + postfixName.getOrElse("")
       techniqueResourceId match {
         case TechniqueResourceIdByName(tid, _) =>
-          (tid.version.revId, new FileTreeFilter(canonizedRelativePath, s"${tid.withDefaultRevId.serialize}/${name}"))
-        case TechniqueResourceIdByPath(Nil, revId, _) =>
-          (revId, new FileTreeFilter(None, name))
-        case TechniqueResourceIdByPath(parents, revId, _) =>
-          (revId, new FileTreeFilter(Some(parents.mkString("/")), name))
+          (tid.version.rev, new FileTreeFilter(canonizedRelativePath, s"${tid.withDefaultRev.serialize}/${name}"))
+        case TechniqueResourceIdByPath(Nil, rev, _) =>
+          (rev, new FileTreeFilter(None, name))
+        case TechniqueResourceIdByPath(parents, rev, _) =>
+          (rev, new FileTreeFilter(Some(parents.mkString("/")), name))
       }
     }
 
@@ -381,9 +381,9 @@ class GitTechniqueReader(
 
     val managed = Managed.make(
       for {
-        currentId <- revId match {
-                       case None    => revisionProvider.currentRevTreeId
-                       case Some(r) => GitFindUtils.findRevTreeFromRevString(repo.db, r.value)
+        currentId <- rev match {
+                       case GitVersion.defaultRev => revisionProvider.currentRevTreeId
+                       case r                     => GitFindUtils.findRevTreeFromRevString(repo.db, r.value)
                      }
         optStream <- IOResult.effect {
                        try {
@@ -496,7 +496,7 @@ class GitTechniqueReader(
       //ok, return the result in its immutable format
       TechniquesInfo(
           rootCategory       = techniqueInfos.rootCategory.get
-        , gitRevId           = id.name()
+        , gitRev           = id.name()
         , techniquesCategory = techniqueInfos.techniquesCategory.toMap
         , techniques         = techniqueInfos.techniques.map { case(k,v) => (k, SortedMap.empty[TechniqueVersion,Technique] ++ v)}.toMap
         , subCategories      = Map[SubTechniqueCategoryId, SubTechniqueCategory]() ++ techniqueInfos.subCategories

@@ -105,7 +105,7 @@ class EventLogDetailsGenerator(
       val name = (x.details \ "directive" \ "displayName").text
       Text("Directive ") ++ {
         if(id.size < 1) Text(name)
-        else <a href={directiveLink(DirectiveId(id))} onclick="noBubble(event);">{name}</a> ++ actionName
+        else <a href={directiveLink(DirectiveUid(id))} onclick="noBubble(event);">{name}</a> ++ actionName
       }
     }
 
@@ -1075,7 +1075,7 @@ class EventLogDetailsGenerator(
   }
 
   private[this] def directiveDetails(xml:NodeSeq, ptName: TechniqueName, directive:Directive, sectionVal:SectionVal) = (
-    "#directiveID" #> directive.id.value &
+    "#directiveID" #> directive.id.uid.value &
       "#directiveName" #> directive.name &
       "#ptVersion" #> directive.techniqueVersion.toString &
       "#ptName" #> ptName.value &
@@ -1144,7 +1144,7 @@ class EventLogDetailsGenerator(
 
   private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]]) = mapSimpleDiffT(opt, (x:T) => x.toString)
 
-  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]], id: DirectiveId) = opt.map { diff =>
+  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]], id: DirectiveUid) = opt.map { diff =>
     ".diffOldValue *" #> diff.oldValue.toString &
       ".diffNewValue *" #> diff.newValue.toString &
       "#directiveID" #> id.value

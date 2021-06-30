@@ -37,9 +37,10 @@
 
 package com.normation.rudder.repository.xml
 
-import java.nio.file.Paths
+import com.normation.GitVersion
 
-import com.normation.GitVersion.RevId
+import java.nio.file.Paths
+import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
@@ -47,11 +48,10 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.errors.IOResult
-import com.normation.errors._
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTargetInfo
@@ -72,9 +72,10 @@ import org.eclipse.jgit.lib.Repository
 import zio._
 import zio.syntax._
 import com.normation.rudder.domain.logger.ConfigurationLoggerPure
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.utils.Version
 import com.softwaremill.quicklens._
+import com.normation.errors._
 
 final case class GitRootCategory(
     root: String
@@ -346,16 +347,17 @@ class GitParseTechniqueLibrary(
 ) {
 
   /**
-   * Get a technique for the specific given revisionId;
+   * Get a technique for the specific given revision;
    */
-  def getTechnique(name: TechniqueName, version: Version, revId: RevId): IOResult[Option[Technique]] = {
+  def getTechnique(name: TechniqueName, version: Version, rev: Revision): IOResult[Option[Technique]] = {
     val root = GitRootCategory.getGitDirectoryPath(libRootDirectory).root
-    val id   = TechniqueId(name, TechniqueVersion(version, Some(revId)))
     (for {
+      v      <- TechniqueVersion(version, rev).left.map(Inconsistency(_)).toIO
+      id     =  TechniqueId(name, v)
       _      <- ConfigurationLoggerPure.revision.debug(s"Looking for technique: ${id.debugString}")
-      treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, revId.value)
-      _      <- ConfigurationLoggerPure.revision.trace(s"Git tree corresponding to revisionId: ${revId.value}: ${treeId.toString}")
-      paths  <- GitFindUtils.listFiles(repo.db, treeId, List(root), List(s"${id.withDefaultRevId.serialize}/${techniqueMetadata}"))
+      treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, rev.value)
+      _      <- ConfigurationLoggerPure.revision.trace(s"Git tree corresponding to revision: ${rev.value}: ${treeId.toString}")
+      paths  <- GitFindUtils.listFiles(repo.db, treeId, List(root), List(s"${id.withDefaultRev.serialize}/${techniqueMetadata}"))
       _      <- ConfigurationLoggerPure.revision.trace(s"Found candidate paths: ${paths}")
       tech   <- paths.size match {
                   case 0 =>
@@ -368,8 +370,8 @@ class GitParseTechniqueLibrary(
                       t <- loadTechnique(repo.db, treeId, path, id)
                     } yield {
                       // we need to correct techniqueId revision to the one we just looked-up.
-                      // (it's normal to not have it serialized)
-                      Some(t.modify(_.id.version.revId).setTo(Some(revId)))
+                      // (it's normal to not have it serialized, since it's given by git, it's not intrinsic)
+                      Some(t.modify(_.id.version.rev).setTo(rev))
                     }).tapError(err =>
                       ConfigurationLoggerPure.revision.debug(s"Impossible to find technique with id/revision: '${id.debugString}': ${err.fullMsg}.")
                     )
@@ -406,19 +408,19 @@ class GitParseActiveTechniqueLibrary(
 ) extends ParseActiveTechniqueLibrary with GitParseCommon[ActiveTechniqueCategoryContent] {
 
   /**
-   * Get a directive for the specific given revisionId;
+   * Get a directive for the specific given revision;
    */
-  def getDirective(id: DirectiveId, revId: RevId): IOResult[Option[(ActiveTechnique, Directive)]] = {
+  def getDirective(uid: DirectiveUid, rev: Revision): IOResult[Option[(ActiveTechnique, Directive)]] = {
     val root = getGitDirectoryPath(libRootDirectory).root
     (for {
-      _      <- ConfigurationLoggerPure.revision.debug(s"Looking for directive: ${DirectiveRId(id, Some(revId)).debugString}")
-      treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, revId.value)
-      _      <- ConfigurationLoggerPure.revision.trace(s"Git tree corresponding to revisionId: ${revId.value}: ${treeId.toString}")
-      paths  <- GitFindUtils.listFiles(repo.db, treeId, List(root), List(s"${id.value}.xml"))
+      _      <- ConfigurationLoggerPure.revision.debug(s"Looking for directive: ${DirectiveId(uid, rev).debugString}")
+      treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, rev.value)
+      _      <- ConfigurationLoggerPure.revision.trace(s"Git tree corresponding to revision: ${rev.value}: ${treeId.toString}")
+      paths  <- GitFindUtils.listFiles(repo.db, treeId, List(root), List(s"${uid.value}.xml"))
       _      <- ConfigurationLoggerPure.revision.trace(s"Found candidate paths: ${paths}")
       pair   <- paths.size match {
                   case 0 =>
-                    ConfigurationLoggerPure.debug(s"Directive ${DirectiveRId(id, Some(revId)).debugString} not found") *>
+                    ConfigurationLoggerPure.debug(s"Directive ${DirectiveId(uid, rev).debugString} not found") *>
                     None.succeed
                   case 1 =>
                     val path = paths.head
@@ -429,18 +431,18 @@ class GitParseActiveTechniqueLibrary(
                       at <- loadActiveTechnique(repo.db, treeId, atPath.toString)
                     } yield {
                       // for directive, we need to set directiveId and techniqueId revision to the one we just looked-up.
-                      // (it's normal to not have it serialized. We could perhaps make load
+                      // (it's normal to not have it serialized, since it's externally provided by git)
                       val rd = (d
-                        .modify(_.revId).setTo(Some(revId))
+                        .modify(_.id.rev).setTo(rev)
                         // we need to check if the technique version wasn't already frozen
-                        .modify(_.techniqueVersion).using(v => if(v.revId.isEmpty) v.copy(revId = Some(revId)) else v)
+                        .modify(_.techniqueVersion).using(v => if(v.rev == GitVersion.defaultRev) v.copy(rev = rev) else v)
                       )
                       Some((at, rd))
                     }).tapError(err =>
-                      ConfigurationLoggerPure.revision.debug(s"Impossible to find directive with id/revision: '${DirectiveRId(id, Some(revId)).debugString}': ${err.fullMsg}.")
+                      ConfigurationLoggerPure.revision.debug(s"Impossible to find directive with id/revision: '${DirectiveId(uid, rev).debugString}': ${err.fullMsg}.")
                     )
                   case _ =>
-                    Unexpected(s"There is more than one directive with ID '${id}' in git: ${paths.mkString(",")}").fail
+                    Unexpected(s"There is more than one directive with ID '${uid}' in git: ${paths.mkString(",")}").fail
                  }
     } yield {
       pair
@@ -546,7 +548,7 @@ class GitParseActiveTechniqueLibrary(
           } yield {
             val pisSet = directives.toSet
             Left(ActiveTechniqueContent(
-                activeTechnique.copy(directives = pisSet.map(_.id).toList)
+                activeTechnique.copy(directives = pisSet.map(_.id.uid).toList)
               , pisSet
             ))
           }

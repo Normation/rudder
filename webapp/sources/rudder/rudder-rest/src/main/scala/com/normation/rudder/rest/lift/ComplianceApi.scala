@@ -272,7 +272,7 @@ class ComplianceAPIService(
       val nonEmptyRules = reportsByRule.map { case (ruleId, reports) =>
 
         //aggregate by directives
-        val byDirectives = reports.flatMap { r => r.directives.values.map(d => (r.nodeId, d)).toSeq }.groupBy( _._2.directiveRId)
+        val byDirectives = reports.flatMap { r => r.directives.values.map(d => (r.nodeId, d)).toSeq }.groupBy( _._2.directiveId)
 
         (
           ruleId,
@@ -403,7 +403,7 @@ class ComplianceAPIService(
                     r.ruleId
                   , ruleMap.get(r.ruleId).map(_.name).getOrElse("Unknown rule")
                   , r.compliance
-                  , r.directives.toSeq.map { case (_, directiveReport) => ByNodeDirectiveCompliance(directiveReport,directiveLib.get(directiveReport.directiveRId).map(_._2.name).getOrElse("Unknown Directive")) }
+                  , r.directives.toSeq.map { case (_, directiveReport) => ByNodeDirectiveCompliance(directiveReport,directiveLib.get(directiveReport.directiveId).map(_._2.name).getOrElse("Unknown Directive")) }
                 )
               )
           )

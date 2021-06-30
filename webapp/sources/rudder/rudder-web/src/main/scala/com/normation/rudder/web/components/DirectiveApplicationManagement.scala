@@ -99,7 +99,7 @@ final case class DirectiveApplicationManagement (
   // Rules
 
   // Applying Rules At the beginning
-  private[this] val applyingRules = rules.filter(_.directiveIds.contains(directive.rid))
+  private[this] val applyingRules = rules.filter(_.directiveIds.contains(directive.id))
 
   // Applying Rules Id
   private[this] val applyingRulesId = applyingRules.map(_.id)

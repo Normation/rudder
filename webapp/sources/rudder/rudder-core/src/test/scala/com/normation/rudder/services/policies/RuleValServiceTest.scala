@@ -36,6 +36,7 @@
 */
 package com.normation.rudder.services.policies
 
+import com.normation.GitVersion
 import org.junit.runner._
 import org.specs2.runner._
 import org.specs2.mutable._
@@ -48,14 +49,14 @@ import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import scala.collection.SortedMap
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.inventory.domain.AgentType
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 
 /**
  * Test how RuleVal and ParsedPolicyDraft are constructed, and if they
@@ -76,7 +77,7 @@ class RuleValServiceTest extends Specification {
         TechniqueName("techniqueName")
       , TechniqueVersionHelper("1.0")
     )
-  val directiveId = DirectiveId("dirId")
+  val directiveId = DirectiveUid("dirId")
   val ruleId = RuleId("ruleId")
 
   /* create representation of meta techniques */
@@ -129,8 +130,7 @@ class RuleValServiceTest extends Specification {
     val technique = makeMetaTechnique(techniqueId)
 
     val directive = Directive(
-        directiveId
-      , None
+        DirectiveId(directiveId, GitVersion.defaultRev)
       , techniqueId.version
       , Map()
       , "MyDirective"
@@ -148,7 +148,7 @@ class RuleValServiceTest extends Specification {
         , "Rule Name"
         , RuleCategoryId("cat1")
         , Set(GroupTarget(NodeGroupId("nodeGroupId")))
-        , Set(DirectiveRId(directiveId))
+        , Set(DirectiveId(directiveId))
         , ""
         , ""
         , true
@@ -225,7 +225,7 @@ class RuleValServiceTest extends Specification {
       val vars = PolicyVars(draft.id, draft.policyMode, draft.originalVariables, draft.originalVariables, draft.trackerVariable)
 
       val pt = PolicyTechnique.forAgent(draft.technique, AgentType.CfeCommunity).getOrElse(throw new RuntimeException("Test must not throws"))
-      val components = RuleExpectedReportBuilder.componentsFromVariables(pt, draft.id.directiveRId, vars)
+      val components = RuleExpectedReportBuilder.componentsFromVariables(pt, draft.id.directiveId, vars)
 
       "return a seq of two components" in {
         components.size === 2

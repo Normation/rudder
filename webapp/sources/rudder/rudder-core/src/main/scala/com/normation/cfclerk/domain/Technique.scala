@@ -61,7 +61,7 @@ final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) ext
   def debugString = serialize
   // a technique
   def serialize = name.value + "/" + version.serialize
-  def withDefaultRevId = TechniqueId(name, version.withDefaultRevId)
+  def withDefaultRev = TechniqueId(name, version.withDefaultRev)
 
   override def compare(that: TechniqueId): Int = {
     val c = this.name.compare(that.name)

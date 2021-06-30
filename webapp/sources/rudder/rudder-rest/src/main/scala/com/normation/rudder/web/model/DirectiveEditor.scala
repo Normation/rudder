@@ -39,7 +39,7 @@ package com.normation.rudder.web.model
 
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.VariableSpec
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import net.liftweb.common.Box
 import net.liftweb.util.BaseField
 import net.liftweb.common._
@@ -560,7 +560,7 @@ final case class MultivaluedSectionField(
 final case class DirectiveEditor(
   //       techniqueId / directiveId here.
     val techniqueId            : TechniqueId
-  , val directiveId            : DirectiveId
+  , val directiveId            : DirectiveUid
   , val name                   : String
   , val description            : String
   , val sectionField           : SectionField

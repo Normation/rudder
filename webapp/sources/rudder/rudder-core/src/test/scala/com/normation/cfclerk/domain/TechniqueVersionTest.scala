@@ -54,6 +54,8 @@ class TechniqueVersionTest extends Specification {
     TechniqueVersion.parse("1.0~1") must beLeft()
     TechniqueVersion.parse("1.a") must beLeft()
     TechniqueVersion.parse("1:a") must beLeft()
+    TechniqueVersion.parse("1.0") must beRight()
+    TechniqueVersion.parse("4.8.1.5") must beRight()
   }
 
 }

@@ -38,7 +38,7 @@
 package com.normation.rudder.domain
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.nodes.NodeGroupId
 
 
@@ -55,7 +55,7 @@ object Constants {
    * "distributePolicy" instance ?
    */
   def buildCommonDirectiveId(policyServerId:NodeId) =
-    DirectiveId("common-" + policyServerId.value)
+    DirectiveUid("common-" + policyServerId.value)
 
   /////////// Policy Node: DistributePolicy directive variable //////////
   val V_ALLOWED_NETWORK = "ALLOWEDNETWORK"

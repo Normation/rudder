@@ -38,7 +38,8 @@
 package com.normation.rudder.rest
 
 import com.github.ghik.silencer.silent
-import com.normation.GitVersion.RevId
+import com.normation.GitVersion
+import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
@@ -322,6 +323,7 @@ object JsonResponseObjects {
   final case class JRDirective(
       changeRequestId  : Option[String]
     , id               : String
+    , revision         : Option[String]
     , displayName      : String
     , shortDescription : String
     , longDescription  : String
@@ -336,13 +338,14 @@ object JsonResponseObjects {
   )
 
   object JRDirective {
-    def empty(id: String) = JRDirective(None, id, "", "", "", "", "", Map(), 5, false, false, "", List())
+    def empty(id: String) = JRDirective(None, id, None, "", "", "", "", "", Map(), 5, false, false, "", List())
 
     def fromDirective(technique: Technique, directive: Directive, crId: Option[ChangeRequestId]): JRDirective = {
       directive.into[JRDirective]
         .enableBeanGetters
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
-        .withFieldComputed(_.id, _.id.value)
+        .withFieldComputed(_.id, _.id.uid.value)
+        .withFieldComputed(_.revision, _.id.rev match { case GitVersion.defaultRev => None ; case rev => Some(rev.value) })
         .withFieldRenamed(_.name, _.displayName)
         .withFieldConst(_.techniqueName, technique.id.name.value)
         .withFieldComputed(_.techniqueVersion, _.techniqueVersion.toString)
@@ -379,7 +382,7 @@ object JsonResponseObjects {
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
         .withFieldRenamed(_.name, _.displayName)
         .withFieldComputed(_.categoryId, _.categoryId.value)
-        .withFieldComputed(_.directives, _.directiveIds.map(_.id.value).toList.sorted)
+        .withFieldComputed(_.directives, _.directiveIds.map(_.uid.value).toList.sorted)
         .withFieldComputed(_.targets, _.targets.toList.sortBy(_.target).map(t => JRRuleTarget(t)))
         .withFieldRenamed(_.isEnabledStatus, _.enabled)
         .withFieldComputed(_.tags, x => JRTags.fromTags(rule.tags))
@@ -732,10 +735,10 @@ trait RudderJsonEncoders {
  * For disambiguation, objects are prefixed by JQ.
  *
  * Note about id/revision: it does not make sense to try to change a
- * revision, it's immutable. Only head can be changed, so revId is never
+ * revision, it's immutable. Only head can be changed, so rev is never
  * specified in JQ object.
  * It can make sense to clone a specific revision, so sourceId can have a
- * sourceRevId too.
+ * sourceRevision too.
  */
 object JsonQueryObjects {
   import JsonResponseObjects.JRRuleTarget
@@ -802,7 +805,7 @@ object JsonQueryObjects {
     , tags             : Option[Tags]                             = None
       //for clone
     , source           : Option[String]                           = None
-    , sourceRevId      : Option[String]                           = None
+    , sourceRevision      : Option[String]                           = None
   ) {
     val onlyName = displayName.isDefined    &&
                    shortDescription.isEmpty &&
@@ -819,7 +822,7 @@ object JsonQueryObjects {
 
     def updateDirective(directive: Directive) = {
       directive.patchUsing(PatchDirective(
-          id.map(DirectiveId)
+          id.map(x => DirectiveId(DirectiveUid(x), GitVersion.defaultRev))
         , techniqueVersion
         , parameters.flatMap(_.get("section").map(s => SectionVal.toMapVariables(s.toSectionVal._2)))
         , displayName
@@ -834,7 +837,7 @@ object JsonQueryObjects {
 
     def getSourceId = source match {
       case None    => None
-      case Some(x) => Some(DirectiveRId(DirectiveId(x), sourceRevId.map(RevId)))
+      case Some(x) => Some(DirectiveId(DirectiveUid(x), sourceRevision.map(Revision).getOrElse(GitVersion.defaultRev)))
     }
   }
 
@@ -844,13 +847,13 @@ object JsonQueryObjects {
     , category         : Option[String]              = None
     , shortDescription : Option[String]              = None
     , longDescription  : Option[String]              = None
-    , directives       : Option[Set[DirectiveId]]    = None
+    , directives       : Option[Set[DirectiveUid]]    = None
     , targets          : Option[Set[JRRuleTarget]]   = None
     , enabled          : Option[Boolean]             = None
     , tags             : Option[Tags]                = None
       //for clone
     , source           : Option[String]              = None
-    , sourceRevId      : Option[String]              = None
+    , sourceRevision   : Option[String]              = None
   ) {
 
     val onlyName = displayName.isDefined    &&
@@ -867,7 +870,7 @@ object JsonQueryObjects {
       val updateCategory   = category.map(RuleCategoryId).getOrElse(rule.categoryId)
       val updateShort      = shortDescription.getOrElse(rule.shortDescription)
       val updateLong       = longDescription.getOrElse(rule.longDescription)
-      val updateDirectives = directives.map(_.map(DirectiveRId(_))).getOrElse(rule.directiveIds)
+      val updateDirectives = directives.map(_.map(DirectiveId(_))).getOrElse(rule.directiveIds)
       val updateTargets    = targets.map(t => Set[RuleTarget](RuleTarget.merge(t.map(_.toRuleTarget)))).getOrElse(rule.targets)
       val updateEnabled    = enabled.getOrElse(rule.isEnabledStatus)
       val updateTags       = tags.getOrElse(rule.tags)
@@ -899,11 +902,11 @@ object JsonQueryObjects {
 
   final case class JQGroupProperty(
       name       : String
-    , revId      : Option[String]
+    , rev      : Option[String]
     , value      : ConfigValue
     , inheritMode: Option[InheritMode]
   ) {
-    def toGroupProperty = GroupProperty(name, revId.map(RevId), value, inheritMode, Some(PropertyProvider.defaultPropertyProvider))
+    def toGroupProperty = GroupProperty(name, rev.map(Revision).getOrElse(GitVersion.defaultRev), value, inheritMode, Some(PropertyProvider.defaultPropertyProvider))
   }
 
   final case class JQStringQuery(
@@ -935,7 +938,7 @@ object JsonQueryObjects {
     , enabled     : Option[Boolean]             = None
     , category    : Option[NodeGroupCategoryId] = None
     , source      : Option[String]              = None
-    , sourceRevId : Option[String]              = None
+    , sourceRevision : Option[String]              = None
   ) {
 
     val onlyName = displayName.isDefined &&
@@ -1019,8 +1022,8 @@ trait RudderJsonDecoders {
   // technique name/version
   implicit val techniqueNameDecoder: JsonDecoder[TechniqueName] = JsonDecoder[String].map(TechniqueName)
   implicit val techniqueVersionDecoder: JsonDecoder[TechniqueVersion] = JsonDecoder[String].mapOrFail(TechniqueVersion.parse(_))
-  implicit lazy val ruleCategoryIdDecoder: JsonDecoder[RuleCategoryId] = JsonDecoder[String].map(RuleCategoryId)
-  implicit lazy val directiveIdsDecoder: JsonDecoder[Set[DirectiveId]] = JsonDecoder[List[String]].map(_.map(DirectiveId).toSet)
+  implicit lazy val ruleCategoryIdDecoder: JsonDecoder[RuleCategoryId]  = JsonDecoder[String].map(RuleCategoryId)
+  implicit lazy val directiveIdsDecoder: JsonDecoder[Set[DirectiveUid]] = JsonDecoder[List[String]].map(_.map(DirectiveUid).toSet)
 
   // RestRule
   implicit lazy val ruleDecoder: JsonDecoder[JQRule] = DeriveJsonDecoder.gen
@@ -1146,7 +1149,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
   def extractRuleFromParams(params: Map[String,List[String]]) : PureResult[JQRule] = {
     for {
       enabled          <- params.parse("enabled"   , JsonDecoder[Boolean])
-      directives       <- params.parse("directives", JsonDecoder[Set[DirectiveId]])
+      directives       <- params.parse("directives", JsonDecoder[Set[DirectiveUid]])
       target           <- params.parse("targets"   , JsonDecoder[Set[JRRuleTarget]])
       tags             <- params.parse("tags"      , JsonDecoder[Tags])
     } yield {
@@ -1198,7 +1201,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         , policyMode
         , tags
         , params.optGet("source")
-        , params.optGet("sourceRevId")
+        , params.optGet("sourceRevision")
       )
     }
   }

@@ -38,14 +38,14 @@
 package com.normation.rudder.configuration
 
 import com.normation.GitVersion
-import com.normation.GitVersion.RevId
+import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.GitParseActiveTechniqueLibrary
@@ -73,10 +73,10 @@ trait RoConfigurationRepository {
   /*
    * Get a directive and its matching active technique for the given (id, version)
    */
-  def getDirective(id: DirectiveRId): IOResult[Option[ActiveDirective]]
+  def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]]
   def getTechnique(id: TechniqueId): IOResult[Option[Technique]]
 
-  def getDirectiveLibrary(ids: Set[DirectiveRId]): IOResult[FullActiveTechniqueCategory]
+  def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory]
 }
 
 trait WoConfigurationRepository {
@@ -92,35 +92,35 @@ class ConfigurationRepositoryImpl(
   , parseTechniques            : GitParseTechniqueLibrary
 ) extends ConfigurationRepository {
 
-  override def getDirective(id: DirectiveRId): IOResult[Option[ActiveDirective]] = {
-    (id.revId match {
-      case None | Some(GitVersion.defaultRev) =>
+  override def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]] = {
+    (id.rev match {
+      case GitVersion.defaultRev =>
         roDirectiveRepository.getActiveTechniqueAndDirective(id)
-      case Some(r)                            =>
-        parseActiveTechniqueLibrary.getDirective(id.id, r)
+      case r                     =>
+        parseActiveTechniqueLibrary.getDirective(id.uid, r)
     }).map( _.map{ case (at, d) => ActiveDirective(at, d)} )
   }
 
   override def getTechnique(id: TechniqueId): IOResult[Option[Technique]] = {
-    id.version.revId match {
-      case None | Some(GitVersion.defaultRev) =>
+    id.version.rev match {
+      case GitVersion.defaultRev =>
         techniqueRepository.get(id).succeed
-      case Some(r)                            =>
+      case r                     =>
         parseTechniques.getTechnique(id.name, id.version.version, r)
     }
   }
 
 
-  def getDirectiveLibrary(ids: Set[DirectiveRId]): IOResult[FullActiveTechniqueCategory] = {
-    def nonDefaultRev(revId: Option[RevId]): Boolean = revId.isDefined && revId != Some(GitVersion.defaultRev)
-    val versionedDirectives = ids.filter(x => nonDefaultRev(x.revId))
+  def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory] = {
+    def nonDefaultRev(rev: Revision): Boolean = rev != GitVersion.defaultRev
+    val versionedDirectives = ids.filter(x => nonDefaultRev(x.rev))
     for {
       optDirs   <- ZIO.foreach(versionedDirectives.toList)(getDirective) // TODO: find a way to do that without N git treewalks
       vDirs     =  optDirs.collect { case Some(ad) => (ad.activeTechnique.techniqueName, ad.directive) }
       others    <- roDirectiveRepository.getFullDirectiveLibrary()
       lib       =  others.addAndFilterDirectives(vDirs, ids)
       // now that we have all (and only) relevant techniques, find the one with version and retrieve them
-      vTechIds  =  lib.allDirectives.collect { case (_, (fat, d)) if(nonDefaultRev(d.techniqueVersion.revId)) => TechniqueId(fat.techniqueName, d.techniqueVersion)}
+      vTechIds  =  lib.allDirectives.collect { case (_, (fat, d)) if(nonDefaultRev(d.techniqueVersion.rev)) => TechniqueId(fat.techniqueName, d.techniqueVersion)}
       optTechs  <- ZIO.foreach(vTechIds)(getTechnique) // TODO: find a way to do that without N git treewalks
       fullLib   =  lib.addTechniques(optTechs.flatten.toList)
     } yield {

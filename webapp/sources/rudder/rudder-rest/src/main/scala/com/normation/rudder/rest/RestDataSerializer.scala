@@ -172,7 +172,7 @@ final case class RestDataSerializerImpl (
      ~ ( "categoryId"       -> rule.categoryId.value)
      ~ ( "shortDescription" -> rule.shortDescription )
      ~ ( "longDescription"  -> rule.longDescription )
-     ~ ( "directives"       -> rule.directiveIds.toList.sortBy(_.serialize).map(x => JsonDirectiveId.fromRId(x).json) )
+     ~ ( "directives"       -> rule.directiveIds.toList.sortBy(_.serialize).map(x => JsonDirectiveId.fromId(x).json))
      ~ ( "targets"          -> rule.targets.map(_.toJson) )
      ~ ( "enabled"          -> rule.isEnabledStatus )
      ~ ( "system"           -> rule.isSystem )
@@ -279,7 +279,7 @@ final case class RestDataSerializerImpl (
   def serializeDirective(technique:Technique, directive : Directive, crId: Option[ChangeRequestId]): JValue = {
     val sectionVal = serializeSectionVal(SectionVal.directiveValToSectionVal(technique.rootSection, directive.parameters))
     ( ( "changeRequestId"  -> crId.map(_.value.toString))
-    ~ ( "id"               -> directive.id.value)
+    ~ ( "id"               -> directive.id.uid.value)
     ~ ( "displayName"      -> directive.name)
     ~ ( "shortDescription" -> directive.shortDescription)
     ~ ( "longDescription"  -> directive.longDescription)
@@ -307,14 +307,14 @@ final case class RestDataSerializerImpl (
   def serializeRuleChange(change : RuleChange): Box[JValue] = {
 
     def serializeRuleDiff(diff:ModifyRuleDiff,initialState:Rule) : JValue= {
-      def convertDirectives(dl : Set[DirectiveRId]) : JValue = dl.map(x => JsonDirectiveId.fromRId(x).json).toList
+      def convertDirectives(dl : Set[DirectiveId]) : JValue = dl.map(x => JsonDirectiveId.fromId(x).json).toList
       def convertTargets(t : Set[RuleTarget]) : JValue = t.map(_.target).toList
 
       val name :JValue             = diff.modName.map(displaySimpleDiff(_) ).getOrElse(initialState.name)
       val shortDescription :JValue = diff.modShortDescription.map(displaySimpleDiff(_)).getOrElse(initialState.shortDescription)
       val longDescription  :JValue = diff.modLongDescription.map(displaySimpleDiff(_)).getOrElse(initialState.longDescription)
       val targets :JValue          = diff.modTarget.map(displaySimpleDiff(_)(convertTargets)).getOrElse(initialState.targets.map(_.target).toList)
-      val directives :JValue       = diff.modDirectiveIds.map(displaySimpleDiff(_)(convertDirectives)).getOrElse(initialState.directiveIds.map(x => JsonDirectiveId.fromRId(x).json).toList)
+      val directives :JValue       = diff.modDirectiveIds.map(displaySimpleDiff(_)(convertDirectives)).getOrElse(initialState.directiveIds.map(x => JsonDirectiveId.fromId(x).json).toList)
       val enabled :JValue          = diff.modIsActivatedStatus.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
 
       (   ( "id"               -> initialState.id.value)
@@ -478,7 +478,7 @@ final case class RestDataSerializerImpl (
         val enabled :JValue          = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
         val initialParams :JValue    = serializeSectionVal(SectionVal.directiveValToSectionVal(initialRootSection, initialState.parameters))
         val parameters :JValue       = diff.modParameters.map(displaySimpleDiff(_)(convertParameters)).getOrElse(initialParams)
-        Full ( ("id"               -> initialState.id.value)
+        Full ( ("id"               -> initialState.id.uid.value)
         ~ ("displayName"      -> name )
         ~ ("shortDescription" -> shortDescription)
         ~ ("longDescription"  -> longDescription)

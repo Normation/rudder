@@ -70,7 +70,7 @@ import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.zio._
 
 import java.nio.charset.StandardCharsets
-import com.normation.rudder.domain.policies.DirectiveRId
+import com.normation.rudder.domain.policies.DirectiveId
 
 final case class PolicyHash(
     draftId   : PolicyId
@@ -161,7 +161,7 @@ object NodeConfigurationHash {
   def toJvalue(hash: NodeConfigurationHash): JValue = {
     (
       ("i" -> JArray(List(hash.id.value, hash.writtenDate.toString(ISODateTimeFormat.dateTime()), hash.nodeInfoHash, hash.parameterHash, hash.nodeContextHash)))
-    ~ ("p" -> JArray(hash.policyHash.toList.map(p => JArray(List(p.draftId.ruleId.value, p.draftId.directiveRId.serialize, p.draftId.techniqueVersion.serialize, p.cacheValue)))))
+    ~ ("p" -> JArray(hash.policyHash.toList.map(p => JArray(List(p.draftId.ruleId.value, p.draftId.directiveId.serialize, p.draftId.techniqueVersion.serialize, p.cacheValue)))))
     )
   }
   def toJson(hash: NodeConfigurationHash): String = {
@@ -178,10 +178,10 @@ object NodeConfigurationHash {
 
     def readPolicy(p: JValue) = {
       p match {
-        case JArray(List(JString(ruleId), JString(directiveRId), JString(techniqueVerion), JInt(policyHash))) =>
+        case JArray(List(JString(ruleId), JString(directiveId), JString(techniqueVerion), JInt(policyHash))) =>
           for {
             version <- TechniqueVersion.parse(techniqueVerion).leftMap(err => (err, p))
-            rid     <- DirectiveRId.parse(directiveRId).leftMap(err => (err, p))
+            rid     <- DirectiveId.parse(directiveId).leftMap(err => (err, p))
           } yield PolicyHash(PolicyId(RuleId(ruleId), rid, version), policyHash.toInt)
       }
     }
