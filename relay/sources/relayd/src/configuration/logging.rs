@@ -73,6 +73,7 @@ impl fmt::Display for LogLevel {
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone, Default)]
 pub struct LoggerConfig {
     #[serde(with = "LogLevel")]
+    #[serde(default)]
     pub level: LogLevel,
     #[serde(default)]
     pub filter: String,
@@ -112,6 +113,19 @@ mod tests {
             &log_reference.to_string(),
             "info,[database{node=root}]=trace"
         );
+    }
+
+    #[test]
+    fn it_parses_empty_section() {
+        let empty = "[general]\n";
+        let default = LogConfig {
+            general: LoggerConfig {
+                level: LogLevel::Info,
+                filter: "".to_string(),
+            },
+        };
+        let config = empty.parse::<LogConfig>().unwrap();
+        assert_eq!(config, default);
     }
 
     #[test]
