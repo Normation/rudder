@@ -459,7 +459,7 @@ impl<'src> Statement<'src> {
                 childs
             }) => {
                 let (mut _errors, metadata) = create_metadata(metadata);
-                (match map_vec_results( childs.iter(), |x| { Statement::from_pstatement(context, children, *x, parameter_defaults,enum_list)}) {
+                (match map_vec_results( childs.into_iter(), |x| { Statement::from_pstatement(context, children, x, parameter_defaults,enum_list)}) {
                     Ok(childs) => {
                         Ok(Statement::BlockDeclaration(BlockDeclaration{metadata,childs}))
                     }

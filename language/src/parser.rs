@@ -1154,7 +1154,7 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
                 PStatement::Case(case.into(), vec![
                     ( expr, stmt ),
                     ( PEnumExpression { source:"default".into(), expression: PEnumExpressionPart::Default("default".into()) },
-                      vec![PStatement::Noop])
+                      PStatement::Noop)
                 ] )
             }
         ),

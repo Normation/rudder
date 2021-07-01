@@ -61,19 +61,19 @@ impl CFEngine {
         self.return_condition = None;
     }
 
-    fn format_class(&mut self, class: Condition) -> Result<Condition> {
+    fn format_class(&mut self, class: Condition) -> Condition {
         self.current_cases.push(class.clone());
-        Ok(match &self.return_condition {
+        match &self.return_condition {
             None => class,
             Some(c) => format!("({}).({})", c, class),
-        })
+        }
     }
 
-    fn format_case_expr(&mut self, gc: &IR2, case: &EnumExpressionPart) -> Result<Condition> {
-        Ok(match case {
+    fn format_case_expr(&mut self, gc: &IR2, case: &EnumExpressionPart, parentCondition : Option<Condition>) -> Result<Condition> {
+        let expr = match case {
             EnumExpressionPart::And(e1, e2) => {
-                let mut lexpr = self.format_case_expr(gc, e1)?;
-                let mut rexpr = self.format_case_expr(gc, e2)?;
+                let mut lexpr = self.format_case_expr(gc, e1, None)?;
+                let mut rexpr = self.format_case_expr(gc, e2, None)?;
                 if lexpr.contains('|') {
                     lexpr = format!("({})", lexpr);
                 }
@@ -84,12 +84,12 @@ impl CFEngine {
             }
             EnumExpressionPart::Or(e1, e2) => format!(
                 "{}|{}",
-                self.format_case_expr(gc, e1)?,
-                self.format_case_expr(gc, e2)?
+                self.format_case_expr(gc, e1, None)?,
+                self.format_case_expr(gc, e2, None)?
             ),
             // TODO what about classes that have not yet been set? can it happen?
             EnumExpressionPart::Not(e1) => {
-                let mut expr = self.format_case_expr(gc, e1)?;
+                let mut expr = self.format_case_expr(gc, e1, None)?;
                 if expr.contains('|') || expr.contains('&') {
                     expr = format!("({})", expr);
                 }
@@ -125,7 +125,13 @@ impl CFEngine {
                 }
             }
             EnumExpressionPart::NoDefault(_) => "".to_string(),
-        })
+        };
+
+        let res : String = match parentCondition {
+            None => expr,
+            Some(parent) => format!("({}).({})", parent, expr),
+        };
+        return Ok(res);
     }
 
     // TODO simplify expression and remove useless conditions for more readable cfengine
@@ -140,7 +146,7 @@ impl CFEngine {
         res_def: &ResourceDef,
         state_def: &StateDef,
         st: &Statement,
-        in_class: String,
+        condition: Option<Condition>,
     ) -> Result<Vec<Promise>> {
         // get variables to try to get the proper parameter value
         let mut variables: HashMap<&Token, &VariableDef> = HashMap::new();
@@ -195,7 +201,7 @@ impl CFEngine {
                     .supported(is_cf_supported)
                     .report_parameter(class_param)
                     .report_component(component)
-                    .condition(self.format_class(in_class)?)
+                    .condition(condition.map_or_else(|| String::from("any"),|x| self.format_class(x)))
                     .build())
             }
             Statement::StateDeclaration(sd) => {
@@ -249,7 +255,7 @@ impl CFEngine {
                     .report_parameter(class_param)
                     .report_component(component)
                     .supported(is_cf_supported)
-                    .condition(self.format_class(in_class)?)
+                    .condition(condition.map_or_else(|| String::from("any"),|x| self.format_class(x) ))
                     .source(sd.source.fragment())
                     .build())
             }
@@ -257,17 +263,17 @@ impl CFEngine {
                 self.reset_cases();
                 let mut res = vec![];
 
-                for (case, vst) in vec {
-                    let case_exp = self.format_case_expr(gc, &case.expression)?;
-                    for st in vst {
-                        res.append(&mut self.format_statement(
-                            gc,
-                            res_def,
-                            state_def,
-                            st,
-                            case_exp.clone(),
-                        )?);
-                    }
+                for (case, st) in vec {
+                    let case_exp = self.format_case_expr(gc, &case.expression, condition.clone())?;
+
+                    res.append(&mut self.format_statement(
+                        gc,
+                        res_def,
+                        state_def,
+                        st,
+                        Some(case_exp.clone()),
+                    )?);
+
                 }
                 Ok(res)
             }
@@ -328,7 +334,24 @@ impl CFEngine {
             }
             Statement::Noop => Ok(vec![]),
             // TODO Statement::VariableDefinition()
-            _ => Ok(vec![]),
+            Statement::VariableDefinition(_) => Ok(vec![]),
+            Statement::BlockDeclaration(def) => {
+
+                let mut res = vec![];
+
+                for st in &def.childs {
+                    res.append(&mut self.format_statement(
+                        gc,
+                        res_def,
+                        state_def,
+                        &st,
+                        condition.clone(),
+                    )?);
+                }
+
+                Ok(res)
+            },
+
         }
     }
 
@@ -458,7 +481,7 @@ impl Generator for CFEngine {
                     ]);
 
                 for res in state.statements.iter().map(|statement| {
-                    self.format_statement(gc, resource, state, statement, "any".to_string())
+                    self.format_statement(gc, resource, state, statement, None)
                 }) {
                     match res {
                         Ok(methods) => bundle.add_promise_group(methods),

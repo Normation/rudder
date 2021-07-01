@@ -83,11 +83,11 @@ impl DSC {
         self.return_condition = None;
     }
 
-    fn format_case_expr(&mut self, gc: &IR2, case: &EnumExpressionPart) -> Result<String> {
-        Ok(match case {
+    fn format_case_expr(&mut self, gc: &IR2, case: &EnumExpressionPart, parentCondition : Option<String>) -> Result<String> {
+        let expr = match case {
             EnumExpressionPart::And(e1, e2) => {
-                let mut lexpr = self.format_case_expr(gc, e1)?;
-                let mut rexpr = self.format_case_expr(gc, e2)?;
+                let mut lexpr = self.format_case_expr(gc, e1, None)?;
+                let mut rexpr = self.format_case_expr(gc, e2, None)?;
                 if lexpr.contains(" -or ") {
                     lexpr = format!("({})", lexpr);
                 }
@@ -98,12 +98,12 @@ impl DSC {
             }
             EnumExpressionPart::Or(e1, e2) => format!(
                 "{} -or {}",
-                self.format_case_expr(gc, e1)?,
-                self.format_case_expr(gc, e2)?
+                self.format_case_expr(gc, e1, None)?,
+                self.format_case_expr(gc, e2, None)?
             ),
             // TODO what about classes that have not yet been set ? can it happen ?
             EnumExpressionPart::Not(e1) => {
-                let mut expr = self.format_case_expr(gc, e1)?;
+                let mut expr = self.format_case_expr(gc, e1, None)?;
                 if expr.contains("-or") || expr.contains(" -and ") {
                     expr = format!("({})", expr);
                 }
@@ -141,7 +141,13 @@ impl DSC {
                 }
             }
             EnumExpressionPart::NoDefault(_) => "".to_string(),
-        })
+        };
+
+        let res : String = match parentCondition {
+            None => expr,
+            Some(parent) => format!("({}) -and ({})", parent, expr),
+        };
+        return Ok(res);
     }
 
     // TODO simplify expression and remove uselesmap_strings_results conditions for more readable cfengine
@@ -156,7 +162,7 @@ impl DSC {
         res_def: &ResourceDef,
         state_def: &StateDef,
         st: &Statement,
-        condition_content: String,
+        condition: Option<String>,
     ) -> Result<Vec<Call>> {
         // get variables to try to get the proper parameter value
         let mut variables: HashMap<&Token, &VariableDef> = HashMap::new();
@@ -228,7 +234,7 @@ impl DSC {
                     .class_parameter(class_param.clone())
                     .component(component)
                     .supported(is_dsc_supported)
-                    .condition(self.format_condition(condition_content)?) // TODO
+                    .condition(condition.map_or_else(|| String::from("any"),|x| self.format_condition(x))) // TODO
                     .build())
             }
             Statement::StateDeclaration(sd) => {
@@ -296,7 +302,7 @@ impl DSC {
                     .class_parameter(class_param.clone())
                     .component(component)
                     .supported(is_dsc_supported)
-                    .condition(self.format_condition(condition_content)?) // TODO
+                    .condition(condition.map_or_else(|| String::from("any"),|x| self.format_condition(x))) // TODO
                     .source(sd.source.fragment())
                     .build())
             }
@@ -304,17 +310,16 @@ impl DSC {
                 self.reset_cases();
                 let mut res = vec![];
 
-                for (case, vst) in vec {
-                    let case_exp = self.format_case_expr(gc, &case.expression)?;
-                    for st in vst {
-                        res.append(&mut self.format_statement(
-                            gc,
-                            res_def,
-                            state_def,
-                            st,
-                            case_exp.clone(),
-                        )?);
-                    }
+                for (case, st) in vec {
+                    let case_exp = self.format_case_expr(gc, &case.expression, condition.clone())?;
+                    res.append(&mut self.format_statement(
+                        gc,
+                        res_def,
+                        state_def,
+                        st,
+                        Some(case_exp),
+                    )?);
+
                 }
                 Ok(res)
             }
@@ -362,7 +367,23 @@ impl DSC {
             }
             Statement::Noop => Ok(Vec::new()),
             // TODO Statement::VariableDefinition()
-            _ => Ok(Vec::new()),
+            Statement::VariableDefinition(_) => Ok(Vec::new()),
+            Statement::BlockDeclaration(def) => {
+
+                let mut res = vec![];
+
+                for st in &def.childs {
+                    res.append(&mut self.format_statement(
+                        gc,
+                        res_def,
+                        state_def,
+                        &st,
+                        condition.clone(),
+                    )?);
+                }
+
+                Ok(res)
+            },
         }
     }
 
@@ -437,12 +458,12 @@ impl DSC {
         })
     }
 
-    fn format_condition(&mut self, condition: String) -> Result<Condition> {
+    fn format_condition(&mut self, condition: String) -> Condition {
         self.current_cases.push(condition.clone());
-        Ok(match &self.return_condition {
+        match &self.return_condition {
             None => condition,
             Some(c) => format!("({}) -and ({})", c, condition),
-        })
+        }
     }
 
     pub fn format_param_type(&self, type_: &Type) -> String {
@@ -516,7 +537,7 @@ impl Generator for DSC {
                     ]);
 
                 for methods in state.statements.iter().flat_map(|statement| {
-                    self.format_statement(gc, resource, state, statement, "any".to_string())
+                    self.format_statement(gc, resource, state, statement, None)
                 }) {
                     function.push_scope(methods);
                 }
