@@ -230,7 +230,7 @@ pub struct MethodBlock {
     id: String,
 }
 impl MethodBlock {
-    fn to_rudderlang(&self, context: &Vec<&MethodBlock>, lib: &RudderlangLib) -> Result<String> {
+    fn to_rudderlang(&self, context: &Vec<&MethodBlock>, lib: &LanguageLib) -> Result<String> {
         let mut newContext = context.clone();
         newContext.push(self);
         return self
