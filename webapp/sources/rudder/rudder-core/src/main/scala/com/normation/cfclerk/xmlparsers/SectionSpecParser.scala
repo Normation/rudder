@@ -37,7 +37,6 @@
 
 package com.normation.cfclerk.xmlparsers
 
-import cats.data._
 import cats.implicits._
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
@@ -68,16 +67,6 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
            * check that all section names and all variable names are unique
            */
           val variableNames = root.getAllVariables.map( _.name )
-
-          /*
-           * check that all variable and section names are unique
-           */
-          val allVarUniqueName = checkUniqueness(variableNames) {
-            "At least two variables have the same name (case unsensitive), what is forbiden: "
-          }
-          val allSectionUniqueName = checkUniqueness(root.getAllSections.map(_.name)) {
-            "At least two sections have the same name (case unsensitive), what is forbiden: "
-          }
 
           /*
            * Check that all section with defined component key reference existing
@@ -116,27 +105,13 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
             ().validNel
           }
 
-          val check = /* allVarUniqueName |+| allSectionUniqueName |+| */ componentDefined |+| /*rootOnlyHasSection |+| */usedButUndefined
+          val check = rootOnlyHasSection |+| componentDefined |+| usedButUndefined
 
           val res: Either[LoadTechniqueError, SectionSpec] = check.fold(errs => Left(LoadTechniqueError.Accumulated(errs)), _ => Right(root))
           res
         }
       }
     }
-  }
-
-  // utility method that check duplicate elements in a string sequence case-unsensitive
-  private[this] def checkUniqueness(seq:Seq[String])(errorMsg:String) : ValidatedNel[LoadTechniqueError, Unit] = {
-    val duplicates = seq.groupBy( _.toLowerCase ).collect {
-      case(k, x) if x.lengthCompare(1) > 0 => x.mkString("(",",",")")
-    }
-
-    if(duplicates.nonEmpty) {
-      LoadTechniqueError.Parsing(errorMsg + duplicates.mkString("[", "," , "]") ).invalidNel
-    } else {
-      ().validNel
-    }
-
   }
 
   //method that actually parse a <SECTIONS> or <SECTION> tag
