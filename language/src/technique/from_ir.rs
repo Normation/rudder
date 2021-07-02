@@ -324,7 +324,7 @@ fn statement_to_method_call(
                 component,
             };
 
-            vec![MethodElem::MethodCall{callData}]
+            vec![MethodElem::MethodCall { callData }]
         }
         Statement::StateDeclaration(s) => {
             let inner_state_def = ir.get_state_def(&s.resource, &s.state).expect("BUG: a state declaration should always have valid references to a state and resource");
@@ -381,18 +381,18 @@ fn statement_to_method_call(
                 component,
             };
 
-            vec![MethodElem::MethodCall{callData}]
+            vec![MethodElem::MethodCall { callData }]
         }
         Statement::Case(_, enum_expressions) => enum_expressions
             .iter()
             .flat_map(|(enum_expr, stmt)| {
-                        statement_to_method_call(
-                            ir,
-                            res_def,
-                            state_def,
-                            stmt,
-                            format_expr(ir, &enum_expr.expression),
-                        )
+                statement_to_method_call(
+                    ir,
+                    res_def,
+                    state_def,
+                    stmt,
+                    format_expr(ir, &enum_expr.expression),
+                )
             })
             .collect::<Vec<MethodElem>>(),
         _ => Vec::new(),

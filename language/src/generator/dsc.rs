@@ -83,7 +83,12 @@ impl DSC {
         self.return_condition = None;
     }
 
-    fn format_case_expr(&mut self, gc: &IR2, case: &EnumExpressionPart, parentCondition : Option<String>) -> Result<String> {
+    fn format_case_expr(
+        &mut self,
+        gc: &IR2,
+        case: &EnumExpressionPart,
+        parentCondition: Option<String>,
+    ) -> Result<String> {
         let expr = match case {
             EnumExpressionPart::And(e1, e2) => {
                 let mut lexpr = self.format_case_expr(gc, e1, None)?;
@@ -143,7 +148,7 @@ impl DSC {
             EnumExpressionPart::NoDefault(_) => "".to_string(),
         };
 
-        let res : String = match parentCondition {
+        let res: String = match parentCondition {
             None => expr,
             Some(parent) => format!("({}) -and ({})", parent, expr),
         };
@@ -234,7 +239,9 @@ impl DSC {
                     .class_parameter(class_param.clone())
                     .component(component)
                     .supported(is_dsc_supported)
-                    .condition(condition.map_or_else(|| String::from("any"),|x| self.format_condition(x))) // TODO
+                    .condition(
+                        condition.map_or_else(|| String::from("any"), |x| self.format_condition(x)),
+                    ) // TODO
                     .build())
             }
             Statement::StateDeclaration(sd) => {
@@ -302,7 +309,9 @@ impl DSC {
                     .class_parameter(class_param.clone())
                     .component(component)
                     .supported(is_dsc_supported)
-                    .condition(condition.map_or_else(|| String::from("any"),|x| self.format_condition(x))) // TODO
+                    .condition(
+                        condition.map_or_else(|| String::from("any"), |x| self.format_condition(x)),
+                    ) // TODO
                     .source(sd.source.fragment())
                     .build())
             }
@@ -311,7 +320,8 @@ impl DSC {
                 let mut res = vec![];
 
                 for (case, st) in vec {
-                    let case_exp = self.format_case_expr(gc, &case.expression, condition.clone())?;
+                    let case_exp =
+                        self.format_case_expr(gc, &case.expression, condition.clone())?;
                     res.append(&mut self.format_statement(
                         gc,
                         res_def,
@@ -319,7 +329,6 @@ impl DSC {
                         st,
                         Some(case_exp),
                     )?);
-
                 }
                 Ok(res)
             }
@@ -369,7 +378,6 @@ impl DSC {
             // TODO Statement::VariableDefinition()
             Statement::VariableDefinition(_) => Ok(Vec::new()),
             Statement::BlockDeclaration(def) => {
-
                 let mut res = vec![];
 
                 for st in &def.childs {
@@ -383,7 +391,7 @@ impl DSC {
                 }
 
                 Ok(res)
-            },
+            }
         }
     }
 

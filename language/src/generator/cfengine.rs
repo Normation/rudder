@@ -69,7 +69,12 @@ impl CFEngine {
         }
     }
 
-    fn format_case_expr(&mut self, gc: &IR2, case: &EnumExpressionPart, parentCondition : Option<Condition>) -> Result<Condition> {
+    fn format_case_expr(
+        &mut self,
+        gc: &IR2,
+        case: &EnumExpressionPart,
+        parentCondition: Option<Condition>,
+    ) -> Result<Condition> {
         let expr = match case {
             EnumExpressionPart::And(e1, e2) => {
                 let mut lexpr = self.format_case_expr(gc, e1, None)?;
@@ -127,7 +132,7 @@ impl CFEngine {
             EnumExpressionPart::NoDefault(_) => "".to_string(),
         };
 
-        let res : String = match parentCondition {
+        let res: String = match parentCondition {
             None => expr,
             Some(parent) => format!("({}).({})", parent, expr),
         };
@@ -201,7 +206,9 @@ impl CFEngine {
                     .supported(is_cf_supported)
                     .report_parameter(class_param)
                     .report_component(component)
-                    .condition(condition.map_or_else(|| String::from("any"),|x| self.format_class(x)))
+                    .condition(
+                        condition.map_or_else(|| String::from("any"), |x| self.format_class(x)),
+                    )
                     .build())
             }
             Statement::StateDeclaration(sd) => {
@@ -255,7 +262,9 @@ impl CFEngine {
                     .report_parameter(class_param)
                     .report_component(component)
                     .supported(is_cf_supported)
-                    .condition(condition.map_or_else(|| String::from("any"),|x| self.format_class(x) ))
+                    .condition(
+                        condition.map_or_else(|| String::from("any"), |x| self.format_class(x)),
+                    )
                     .source(sd.source.fragment())
                     .build())
             }
@@ -264,7 +273,8 @@ impl CFEngine {
                 let mut res = vec![];
 
                 for (case, st) in vec {
-                    let case_exp = self.format_case_expr(gc, &case.expression, condition.clone())?;
+                    let case_exp =
+                        self.format_case_expr(gc, &case.expression, condition.clone())?;
 
                     res.append(&mut self.format_statement(
                         gc,
@@ -273,7 +283,6 @@ impl CFEngine {
                         st,
                         Some(case_exp.clone()),
                     )?);
-
                 }
                 Ok(res)
             }
@@ -336,7 +345,6 @@ impl CFEngine {
             // TODO Statement::VariableDefinition()
             Statement::VariableDefinition(_) => Ok(vec![]),
             Statement::BlockDeclaration(def) => {
-
                 let mut res = vec![];
 
                 for st in &def.childs {
@@ -350,8 +358,7 @@ impl CFEngine {
                 }
 
                 Ok(res)
-            },
-
+            }
         }
     }
 
@@ -480,9 +487,11 @@ impl Generator for CFEngine {
                         ),
                     ]);
 
-                for res in state.statements.iter().map(|statement| {
-                    self.format_statement(gc, resource, state, statement, None)
-                }) {
+                for res in state
+                    .statements
+                    .iter()
+                    .map(|statement| self.format_statement(gc, resource, state, statement, None))
+                {
                     match res {
                         Ok(methods) => bundle.add_promise_group(methods),
                         Err(e) => return Err(e),

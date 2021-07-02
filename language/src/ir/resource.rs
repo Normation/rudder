@@ -364,7 +364,6 @@ pub struct StateDeclaration<'src> {
     pub outcome: Option<Token<'src>>,
 }
 
-
 /// A Block Declaration is a given required state on a given resource
 #[derive(Debug, PartialEq)]
 pub struct BlockDeclaration<'src> {
@@ -386,10 +385,7 @@ pub enum Statement<'src> {
     // one state
     BlockDeclaration(BlockDeclaration<'src>),
     //   keyword    list of condition          then
-    Case(
-        Token<'src>,
-        Vec<(EnumExpression<'src>, Statement<'src>)>,
-    ),
+    Case(Token<'src>, Vec<(EnumExpression<'src>, Statement<'src>)>),
     // Stop engine
     Fail(Value<'src>),
     // Inform the user of something
@@ -454,18 +450,16 @@ impl<'src> Statement<'src> {
                 let var = VariableDef::from_pvariable_definition(def, context, enum_list)?;
                 Statement::VariableDefinition(var)
             }
-            PStatement::BlockDeclaration(PBlockDeclaration{
-                metadata,
-                childs
-            }) => {
+            PStatement::BlockDeclaration(PBlockDeclaration { metadata, childs }) => {
                 let (mut _errors, metadata) = create_metadata(metadata);
-                (match map_vec_results( childs.into_iter(), |x| { Statement::from_pstatement(context, children, x, parameter_defaults,enum_list)}) {
-                    Ok(childs) => {
-                        Ok(Statement::BlockDeclaration(BlockDeclaration{metadata,childs}))
-                    }
-                    Err(err) => {
-                        Err(err)
-                    }
+                (match map_vec_results(childs.into_iter(), |x| {
+                    Statement::from_pstatement(context, children, x, parameter_defaults, enum_list)
+                }) {
+                    Ok(childs) => Ok(Statement::BlockDeclaration(BlockDeclaration {
+                        metadata,
+                        childs,
+                    })),
+                    Err(err) => Err(err),
                 })?
             }
             PStatement::VariableExtension(ext) => {
@@ -565,7 +559,7 @@ impl<'src> Statement<'src> {
             PStatement::Noop => Statement::Noop,
             PStatement::Case(case, v) => Statement::Case(
                 case,
-                map_vec_results (v.into_iter(), |(exp, st)| {
+                map_vec_results(v.into_iter(), |(exp, st)| {
                     let expr = enum_list.canonify_expression(context, exp)?;
                     Ok((
                         expr,

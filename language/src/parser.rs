@@ -815,8 +815,6 @@ fn pparameter(i: PInput) -> PResult<(PParameter, Option<PValue>)> {
     )(i)
 }
 
-
-
 /// A resource definition defines how a resource is uniquely identified.
 #[derive(Debug, PartialEq)]
 pub struct PResourceDef<'src> {
@@ -1069,10 +1067,7 @@ pub enum PStatement<'src> {
     StateDeclaration(PStateDeclaration<'src>),
     BlockDeclaration(PBlockDeclaration<'src>),
     //   case keyword, list (condition   ,       then)
-    Case(
-        Token<'src>,
-        Vec<(PEnumExpression<'src>, PStatement<'src>)>,
-    ), // keep the pinput since it will be reparsed later
+    Case(Token<'src>, Vec<(PEnumExpression<'src>, PStatement<'src>)>), // keep the pinput since it will be reparsed later
     // Stop engine with a final message
     Fail(PValue<'src>),
     // Inform the user of something
