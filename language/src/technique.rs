@@ -232,9 +232,10 @@ pub struct MethodBlock {
     id: String,
 }
 impl MethodBlock {
-    fn to_rudderlang(&self,context:&Vec<MethodBlock>, lib: &RudderlangLib) -> Result<String> {
+    fn to_rudderlang(&self, context:&Vec<&MethodBlock>, lib: &RudderlangLib) -> Result<String> {
 
-        &context.push(*self);
+        let mut newContext = context.clone();
+        newContext.push(self);
         return self
             .childs
             .iter()
@@ -263,7 +264,7 @@ fn generate_id() -> String {
     Uuid::new_v4().to_string()
 }
 impl MethodCall {
-    fn to_rudderlang(&self,context:&Vec<MethodBlock>, lib: &LanguageLib) -> Result<String> {
+    fn to_rudderlang(&self,context:&Vec<&MethodBlock>, lib: &LanguageLib) -> Result<String> {
         let lib_method: LibMethod = lib.method_from_str(&self.method_name)?;
 
         let (mut params, template_vars) = self.format_parameters(&lib_method)?;
@@ -296,7 +297,7 @@ impl MethodCall {
             state_params.join(", ")
         );
         if self.condition != "any" {
-            call = format!("if {} => {}", self.format_condition(&context,&lib)?, call);
+            call = format!("if {} => {}", self.format_condition(context,&lib)?, call);
         }
 
         // only get original name, other aliases do not matter here
@@ -391,7 +392,7 @@ impl MethodCall {
     }
 
     // TODO parse content so interpolated variables are handled properly
-    fn format_condition(&self,context:&Vec<MethodBlock> , lib: &LanguageLib) -> Result<String> {
+    fn format_condition(&self,context:&Vec<&MethodBlock> , lib: &LanguageLib) -> Result<String> {
         lazy_static! {
             static ref CONDITION_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
             static ref ANY_RE: Regex = Regex::new(r"(any\.)").unwrap();

@@ -1386,11 +1386,11 @@ fn test_pstatement() {
                 vec![
                     (
                         map_res(penum_expression, "ubuntu ").unwrap().1,
-                        vec![map_res(pstatement, "f().g()").unwrap().1]
+                        map_res(pstatement, "f().g()").unwrap().1
                     ),
                     (
                         map_res(penum_expression, "debian ").unwrap().1,
-                        vec![map_res(pstatement, "a().b() ").unwrap().1]
+                        map_res(pstatement, "a().b() ").unwrap().1
                     ),
                 ]
             )
