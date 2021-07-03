@@ -16,8 +16,13 @@ get:
             required:
               - result
               - action
+              - id
               - data
             properties:
+              id:
+                type: string
+                description: Target policy server ID
+                example: root
               result:
                 type: string
                 description: Result of the request
@@ -35,10 +40,15 @@ get:
                 required:
                   - settings
                 properties:
-                  allowed_networks:
-                    type: array
-                    example: ["162.168.1.0/24", "162.168.2.0/24"]
-                    description: Array of allowed networks
+                  settings:
+                    type: object
+                    required:
+                      - allowed_networks
+                    properties:
+                      allowed_networks:
+                        type: array
+                        example: ["162.168.1.0/24", "162.168.2.0/24"]
+                        description: Array of allowed networks
   tags:
     - Settings
   x-code-samples:
