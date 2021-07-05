@@ -1047,6 +1047,7 @@ pub struct PBlockDeclaration<'src> {
     pub childs: Vec<PStatement<'src>>,
 }
 fn pblock_declaration(i: PInput) -> PResult<PBlockDeclaration> {
+
     wsequence!(
         {
             childs: delimited_parser("{", |j| many0(pstatement)(j), "}");
@@ -1175,6 +1176,7 @@ fn pstatement(i: PInput) -> PResult<PStatement> {
                 PStatement::StateDeclaration(ref mut stmt) => stmt.metadata = metadata,
                 PStatement::ConditionVariableDefinition(ref mut stmt) => stmt.metadata = metadata,
                 PStatement::VariableDefinition(ref mut var) => var.metadata = metadata,
+                PStatement::BlockDeclaration(ref mut var) => var.metadata = metadata,
                 // TODO check if other pstatement have metadata
                 // TODO return an error if declaration does not support metadatas
                 _ => (), // do nothing if declaration does not handle metadatas, so that comments are still supported

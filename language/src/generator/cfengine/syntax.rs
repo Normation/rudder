@@ -106,6 +106,7 @@ pub struct Promise {
     comments: Vec<String>,
     /// Resource/state the promise calls
     component: Option<String>,
+    id: Option<String>,
     /// Type of the promise
     promise_type: PromiseType,
     /// Target of the promise
@@ -125,11 +126,13 @@ impl Promise {
     pub fn new<T: Into<String>>(
         promise_type: PromiseType,
         component: Option<String>,
+        id: Option<String>,
         promiser: T,
     ) -> Self {
         Self {
             promise_type,
             component,
+            id,
             promiser: promiser.into(),
             attributes: HashMap::new(),
             comments: vec![],
@@ -152,12 +155,12 @@ impl Promise {
 
     /// Shortcut for building a string variable with a raw value
     pub fn string_raw<T: Into<String>, S: AsRef<str>>(name: T, value: S) -> Self {
-        Promise::new(PromiseType::Vars, None, name).attribute(AttributeType::String, value.as_ref())
+        Promise::new(PromiseType::Vars, None, None, name).attribute(AttributeType::String, value.as_ref())
     }
 
     /// Shortcut for building an slist variable with a list of values to be quoted
     pub fn slist<T: Into<String>, S: AsRef<str>>(name: T, values: Vec<S>) -> Self {
-        Promise::new(PromiseType::Vars, None, name).attribute(
+        Promise::new(PromiseType::Vars, None, None, name).attribute(
             AttributeType::Slist,
             format!(
                 "{{{}}}",
@@ -174,11 +177,13 @@ impl Promise {
     pub fn usebundle<T: AsRef<str>>(
         bundle: T,
         component: Option<&str>,
+        id: Option<String>,
         parameters: Vec<String>,
     ) -> Self {
         Promise::new(
             PromiseType::Methods,
             component.map(String::from),
+            id,
             "method_call",
         )
         .attribute(
@@ -301,6 +306,7 @@ pub struct Method {
     report_component: String,
     report_parameter: String,
     condition: String,
+    id : String,
     // Generated from
     source: String,
     is_supported: bool,
@@ -393,6 +399,7 @@ impl Method {
         let reporting_context = Promise::usebundle(
             "_method_reporting_context",
             Some(&self.report_component),
+            Some(self.id),
             vec![
                 quoted(&self.report_component),
                 quoted(&self.report_parameter),
@@ -403,15 +410,15 @@ impl Method {
         .comment(format!("  {}", self.source))
         .comment("");
 
-        let formatted_bundle = if let Some(method_alias) = self.method_alias {
-            method_alias
-        } else {
-            format!("{}_{}", self.resource, self.state)
+        let formatted_bundle = match self.method_alias {
+            Some(alias) => alias,
+            None => format!("{}_{}", self.resource, self.state),
         };
         // Actual method call
         let method = Promise::usebundle(
             formatted_bundle,
             Some(&self.report_component),
+            Some(self.id),
             self.parameters,
         );
         let na_condition = format!(
@@ -424,8 +431,8 @@ impl Method {
                 reporting_context.if_condition(self.condition.clone()),
                 method.if_condition(self.condition.clone()),
                 // NA report
-                Promise::usebundle("_classes_noop", Some(&self.report_component), vec![na_condition.clone()]).unless_condition(&self.condition),
-                Promise::usebundle("log_rudder", Some(&self.report_component), vec![
+                Promise::usebundle("_classes_noop", Some(&self.report_component), Some(self.id), vec![na_condition.clone()]).unless_condition(&self.condition),
+                Promise::usebundle("log_rudder", Some(&self.report_component),  Some(self.id), vec![
                     quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &self.report_component, &self.report_parameter, self.condition)),
                     quoted(&self.report_parameter),
                     na_condition.clone(),
@@ -438,7 +445,7 @@ impl Method {
                 reporting_context,
                 Promise::usebundle(
                     "log_na_rudder",
-                    Some(&self.report_component),
+                    Some(&self.report_component), Some(self.id),
                     vec![
                         quoted(&format!(
                             "'{}' method is not available on classic Rudder agent, skip",
@@ -641,12 +648,12 @@ mod tests {
     #[test]
     fn format_promise() {
         assert_eq!(
-            Promise::new(PromiseType::Vars, None, "test")
+            Promise::new(PromiseType::Vars, None, None, "test")
                 .format(0, LONGUEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
             "\"test\";"
         );
         assert_eq!(
-            Promise::new(PromiseType::Vars, None, "test")
+            Promise::new(PromiseType::Vars, None, None, "test")
                 .comment("test".to_string())
                 .format(0, LONGUEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
             "    # test\n\"test\";"
@@ -685,7 +692,7 @@ mod tests {
         assert_eq!(
             Bundle::agent("test")
             .parameters(vec!["file".to_string(), "lines".to_string()])
-            .promise_group(vec![Promise::usebundle("test", None, vec![])])
+            .promise_group(vec![Promise::usebundle("test", None, None, vec![])])
             .to_string(),
             "bundle agent test(file, lines) {\n\n  methods:\n    \"${report_data.directive_id}_0\"   usebundle => test();\n\n}"
         );

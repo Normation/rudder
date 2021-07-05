@@ -233,8 +233,10 @@ pub struct MethodBlock {
 impl MethodBlock {
     fn to_rudderlang(&self, context: &Vec<&MethodBlock>, lib: &LanguageLib) -> Result<String> {
         let mut newContext = context.clone();
+        let formatted_id = format!("@id = \"{}\"", self.id);
+        let formatted_component = format!("@component = \"{}\"", self.component);
         newContext.push(self);
-        return self
+        let childs = self
             .childs
             .iter()
             .map(|c| match c {
@@ -242,7 +244,16 @@ impl MethodBlock {
                 MethodElem::MethodBlock(blockData) => blockData.to_rudderlang(context, lib),
             })
             .collect::<Result<Vec<String>>>()
-            .map(|c| c.join("\n"));
+            .map(|c| format!("{}\n{}\n{{\n  {}\n  }}", formatted_component, formatted_id, c.join("\n  ")));
+
+        let withCondition = if (self.condition == "" || self.condition == "any") {
+            childs
+        } else {
+            let condition = format_condition(&self.condition, &lib)?;
+            childs.map(|c| format!("if {} =>\n  {}", condition , c))
+        };
+
+        return withCondition
     }
 }
 #[derive(Serialize, Deserialize)]
@@ -259,6 +270,69 @@ pub struct MethodCall {
 fn generate_id() -> String {
     Uuid::new_v4().to_string()
 }
+
+// TODO parse content so interpolated variables are handled properly
+fn format_condition(condition: &String, lib: &LanguageLib) -> Result<String> {
+    lazy_static! {
+        static ref CONDITION_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
+        static ref ANY_RE: Regex = Regex::new(r"(any\.)").unwrap();
+        static ref CONDITION_FROM_RE: Regex =
+            Regex::new(r"any\.\((\w*)_\$\{report_data\.canonified_directive_id\}_(true|false)")
+                .unwrap();
+    }
+    // remove `any.` from condition
+    // if opened / closed brackets count is balanced, then it is not an interpolated dot (`.`) but a logcial AND
+    let mut bracket_balance: i8 = 0;
+    let updated_condition = ANY_RE
+        .replace_all(condition, "")
+        .chars()
+        .map(|c| {
+            match c {
+                '{' => bracket_balance += 1,
+                '}' => bracket_balance -= 1,
+                _ => (),
+            };
+            if c == '.' && bracket_balance == 0 {
+                return '&';
+            }
+            c
+        })
+        .collect::<String>();
+    let mut errs = Vec::new();
+    // replace all matching words as classes
+    let result =
+        CONDITION_RE.replace_all(&updated_condition, |caps: &Captures| {
+            match format_method(lib, &caps[1]) {
+                Ok(s) => s,
+                Err(e) => {
+                    errs.push(e);
+                    "".into()
+                }
+            }
+        });
+    if errs.is_empty() {
+        Ok(result.into())
+    } else {
+        Err(Error::from_vec(errs))
+    }
+}
+
+fn format_method(lib: &LanguageLib, cond: &str) -> Result<String> {
+    // return known system class (formatted as cfengine system)
+    if let Some(system) = lib.cf_system(cond) {
+        return system;
+    }
+    // return method if outcome
+    if let Some(outcome) = lib.cf_outcome(cond) {
+        return Ok(outcome);
+    }
+    // else
+    Err(Error::new(format!(
+        "Don't know how to handle class '{}'",
+        cond
+    )))
+}
+
 impl MethodCall {
     fn to_rudderlang(&self, context: &Vec<&MethodBlock>, lib: &LanguageLib) -> Result<String> {
         let lib_method: LibMethod = lib.method_from_str(&self.method_name)?;
@@ -293,7 +367,11 @@ impl MethodCall {
             state_params.join(", ")
         );
         if self.condition != "any" {
-            call = format!("if {} => {}", self.format_condition(context, &lib)?, call);
+            call = format!(
+                "if {} =>\n  {}",
+                format_condition(&self.condition, &lib)?,
+                call
+            );
         }
 
         // only get original name, other aliases do not matter here
@@ -303,12 +381,15 @@ impl MethodCall {
 
         let formatted_component = format!("@component = \"{}\"", self.component);
 
+        let formatted_id = format!("@id = \"{}\"", self.id);
+
         // make an exception for condition_from_* method & condition generation
         if (lib_method.resource.name == "condition" && lib_method.state.name.starts_with("from_")) {
             return Ok(format!(
-                "{}{}\n{}  let {} = {}_{}({})",
+                "{}{}\n{}\n{}  let {} = {}_{}({})",
                 template_vars.join("\n  "),
                 formatted_component,
+                formatted_id,
                 formatted_alias_metadata.unwrap_or(String::new()),
                 match class_parameter.strip_suffix("_${report_data.canonified_directive_id}") {
                     Some(variable) => variable,
@@ -385,67 +466,6 @@ impl MethodCall {
                 lib_method.resource.name, lib_method.state.name, name
             );
         })
-    }
-
-    // TODO parse content so interpolated variables are handled properly
-    fn format_condition(&self, context: &Vec<&MethodBlock>, lib: &LanguageLib) -> Result<String> {
-        lazy_static! {
-            static ref CONDITION_RE: Regex = Regex::new(r"([\w${}.]+)").unwrap();
-            static ref ANY_RE: Regex = Regex::new(r"(any\.)").unwrap();
-            static ref CONDITION_FROM_RE: Regex =
-                Regex::new(r"any\.\((\w*)_\$\{report_data\.canonified_directive_id\}_(true|false)")
-                    .unwrap();
-        }
-        // remove `any.` from condition
-        // if opened / closed brackets count is balanced, then it is not an interpolated dot (`.`) but a logcial AND
-        let mut bracket_balance: i8 = 0;
-        let updated_condition = ANY_RE
-            .replace_all(&self.condition, "")
-            .chars()
-            .map(|c| {
-                match c {
-                    '{' => bracket_balance += 1,
-                    '}' => bracket_balance -= 1,
-                    _ => (),
-                };
-                if c == '.' && bracket_balance == 0 {
-                    return '&';
-                }
-                c
-            })
-            .collect::<String>();
-        let mut errs = Vec::new();
-        // replace all matching words as classes
-        let result = CONDITION_RE.replace_all(&updated_condition, |caps: &Captures| {
-            match self.format_method(lib, &caps[1]) {
-                Ok(s) => s,
-                Err(e) => {
-                    errs.push(e);
-                    "".into()
-                }
-            }
-        });
-        if errs.is_empty() {
-            Ok(result.into())
-        } else {
-            Err(Error::from_vec(errs))
-        }
-    }
-
-    fn format_method(&self, lib: &LanguageLib, cond: &str) -> Result<String> {
-        // return known system class (formatted as cfengine system)
-        if let Some(system) = lib.cf_system(cond) {
-            return system;
-        }
-        // return method if outcome
-        if let Some(outcome) = lib.cf_outcome(cond) {
-            return Ok(outcome);
-        }
-        // else
-        Err(Error::new(format!(
-            "Don't know how to handle class '{}'",
-            cond
-        )))
     }
 }
 
