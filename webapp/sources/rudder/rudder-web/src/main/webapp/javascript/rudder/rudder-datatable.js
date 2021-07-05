@@ -1095,7 +1095,8 @@ function propertyFunction(value, inherited) { return function (nTd, sData, oData
       provider = $('<span class="rudder-label label-provider label-sm" data-toggle="tooltip" data-placement="right" data-html="true" data-container="body" >inherited</span>')
       provider.attr('title', "This property is inherited from these group(s) or global parameter: <div>"+ property.hierarchy + "</div>.")
     }
-    $(nTd).prepend( "<pre onclick='$(this).toggleClass(\"toggle\")' class='json-beautify show-more'>"+text+"</pre>").prepend(provider)
+    var pre = $("<pre onclick='$(this).toggleClass(\"toggle\")' class='json-beautify show-more'></pre>").text(text);
+    $(nTd).prepend( pre ).prepend(provider)
   }
 } }
 
