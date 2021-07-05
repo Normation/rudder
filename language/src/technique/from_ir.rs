@@ -324,7 +324,7 @@ fn statement_to_method_call(
                 component,
             };
 
-            vec![MethodElem::MethodCall { callData }]
+            vec![MethodElem::MethodCall(callData)]
         }
         Statement::StateDeclaration(s) => {
             let inner_state_def = ir.get_state_def(&s.resource, &s.state).expect("BUG: a state declaration should always have valid references to a state and resource");
@@ -381,7 +381,7 @@ fn statement_to_method_call(
                 component,
             };
 
-            vec![MethodElem::MethodCall { callData }]
+            vec![MethodElem::MethodCall(callData)]
         }
         Statement::Case(_, enum_expressions) => enum_expressions
             .iter()
@@ -395,6 +395,44 @@ fn statement_to_method_call(
                 )
             })
             .collect::<Vec<MethodElem>>(),
-        _ => Vec::new(),
+        Statement::BlockDeclaration(block) => {
+            let optComponent = block.metadata.get("component");
+            let component = match optComponent {
+                Some(TomlValue::String(componentName)) => componentName.to_owned(),
+                _ => String::from(""),
+            };
+            let id = block
+                .metadata
+                .get("id")
+                .map(|c| {
+                    c.as_str()
+                        .expect("Expected type string for 'id' metadata")
+                        .to_owned()
+                })
+                .unwrap_or(Uuid::new_v4().to_string());
+            let childs = block
+                .childs
+                .iter()
+                .flat_map(|child| {
+                    statement_to_method_call(ir, res_def, state_def, child, String::from(""))
+                })
+                .collect::<Vec<MethodElem>>();
+
+            let block = MethodBlock {
+                component,
+                condition,
+                childs,
+                id,
+            };
+
+            vec![MethodElem::MethodBlock(block)]
+        }
+        Statement::VariableDefinition(_) => Vec::new(),
+        Statement::Fail(_) => Vec::new(),
+        Statement::LogDebug(_) => Vec::new(),
+        Statement::LogInfo(_) => Vec::new(),
+        Statement::LogWarn(_) => Vec::new(),
+        Statement::Return(_) => Vec::new(),
+        Statement::Noop => Vec::new(),
     }
 }

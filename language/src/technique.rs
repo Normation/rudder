@@ -164,8 +164,8 @@ impl TechniqueData {
             .method_calls
             .iter()
             .map(|c| match c {
-                MethodElem::MethodCall { callData } => callData.to_rudderlang(&Vec::new(), lib),
-                MethodElem::MethodBlock { blockData } => blockData.to_rudderlang(&Vec::new(), lib),
+                MethodElem::MethodCall(callData) => callData.to_rudderlang(&Vec::new(), lib),
+                MethodElem::MethodBlock(blockData) => blockData.to_rudderlang(&Vec::new(), lib),
             })
             .collect::<Result<Vec<String>>>()?;
         let calls_fmt = match calls.is_empty() {
@@ -219,8 +219,8 @@ impl InterpolatedParameter {
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
 enum MethodElem {
-    MethodCall { callData: MethodCall },
-    MethodBlock { blockData: MethodBlock },
+    MethodCall(MethodCall),
+    MethodBlock(MethodBlock),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -238,8 +238,8 @@ impl MethodBlock {
             .childs
             .iter()
             .map(|c| match c {
-                MethodElem::MethodCall { callData } => callData.to_rudderlang(context, lib),
-                MethodElem::MethodBlock { blockData } => blockData.to_rudderlang(context, lib),
+                MethodElem::MethodCall(callData) => callData.to_rudderlang(context, lib),
+                MethodElem::MethodBlock(blockData) => blockData.to_rudderlang(context, lib),
             })
             .collect::<Result<Vec<String>>>()
             .map(|c| c.join("\n"));
