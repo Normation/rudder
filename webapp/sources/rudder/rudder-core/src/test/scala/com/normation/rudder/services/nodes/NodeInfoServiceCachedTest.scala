@@ -328,7 +328,7 @@ class NodeInfoServiceCachedTest extends Specification {
       val nodeInv = new FullInventory(
         NodeConfigData.nodeInventory1.modify(_.main.status).setTo(PendingInventory)
                                      .modify(_.main.id.value).setTo("testCacheNode")
-                                     .modify(_.machineId).setTo(Some(MachineUuid("testCacheMachine"), PendingInventory))
+                                     .modify(_.machineId).setTo(Some((MachineUuid("testCacheMachine"), PendingInventory)))
         , Some(NodeConfigData.machine2Pending.modify(_.id.value).setTo("testCacheMachine")
                                              .modify(_.name).setTo(Some("testCacheMachine"))
         )
@@ -351,12 +351,12 @@ class NodeInfoServiceCachedTest extends Specification {
 
       // *************** step1 ****************
       // cache does not know about node1 yet
-      val step1 = acceptNodeAndMachineInNodeOu.acceptOne(nodeInv, modid, actor).forceGet
+      acceptNodeAndMachineInNodeOu.acceptOne(nodeInv, modid, actor).forceGet
       val step1res = nodeInfoService.getNodeInfo(nodeId).forceGet
 
       // *************** step2 ****************
       // second new node step: cache converge
-      val step2 = acceptInventory.acceptOne(nodeInv, modid, actor).forceGet
+      acceptInventory.acceptOne(nodeInv, modid, actor).forceGet
       val step2res = nodeInfoService.getNodeInfo(nodeId).forceGet
 
       (step1res === None) and
@@ -370,13 +370,11 @@ class NodeInfoServiceCachedTest extends Specification {
       val nodeInv = new FullInventory(
         NodeConfigData.nodeInventory1.modify(_.main.status).setTo(PendingInventory)
           .modify(_.main.id.value).setTo("testCacheNode2")
-          .modify(_.machineId).setTo(Some(MachineUuid("testCacheMachine2"), AcceptedInventory))
+          .modify(_.machineId).setTo(Some((MachineUuid("testCacheMachine2"), AcceptedInventory)))
         , Some(NodeConfigData.machine1Accepted.modify(_.id.value).setTo("testCacheMachine2")
           .modify(_.name).setTo(Some("testCacheMachine2"))
         )
       )
-      val modid = ModificationId("test")
-      val actor = EventActor("test")
       val nodeId = nodeInv.node.main.id
 
       /** Create the node here, to "cheat" to simulate acceptation */
