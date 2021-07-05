@@ -312,18 +312,18 @@ final case class RuleComplianceLine (
 ) extends JsTableLine {
   val json = {
     JsObj (
-        ( "rule"       -> escapeHTML(rule.name)       )
-      , ( "compliance" -> jsCompliance(compliance)    )
-      , ( "compliancePercent" -> compliance.compliance)
-      , ( "id"         -> rule.id.value               )
-      , ( "details"    -> details.json                )
+        ( "rule"              -> escapeHTML(rule.name)       )
+      , ( "compliance"        -> jsCompliance(compliance)    )
+      , ( "compliancePercent" -> compliance.compliance       )
+      , ( "id"                -> escapeHTML(rule.id.value)   )
+      , ( "details"           -> details.json                )
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page
-      , ( "jsid"       -> nextFuncName                )
-      , ( "isSystem"   -> rule.isSystem               )
-      , ( "policyMode" -> policyMode                  )
-      , ( "explanation"-> modeExplanation             )
-      , ( "tags"      -> tags                         )
+      , ( "jsid"              -> nextFuncName                )
+      , ( "isSystem"          -> rule.isSystem               )
+      , ( "policyMode"        -> policyMode                  )
+      , ( "explanation"       -> modeExplanation             )
+      , ( "tags"              -> tags                        )
     )
   }
 }
@@ -356,7 +356,7 @@ final case class DirectiveComplianceLine (
   val json =  {
     JsObj (
         ( "directive"        -> escapeHTML(directive.name)            )
-      , ( "id"               -> directive.id.value                    )
+      , ( "id"               -> escapeHTML(directive.id.value)        )
       , ( "techniqueName"    -> escapeHTML(techniqueName)             )
       , ( "techniqueVersion" -> escapeHTML(techniqueVersion.toString) )
       , ( "compliance"       -> jsCompliance(compliance)              )
@@ -392,16 +392,16 @@ final case class NodeComplianceLine (
 ) extends JsTableLine {
   val json = {
     JsObj (
-        ( "node"       -> escapeHTML(nodeInfo.hostname) )
-      , ( "compliance" -> jsCompliance(compliance))
-      , ( "compliancePercent"       -> compliance.compliance)
-      , ( "id"         -> nodeInfo.id.value )
-      , ( "details"    -> details.json )
+        ( "node"              -> escapeHTML(nodeInfo.hostname) )
+      , ( "compliance"        -> jsCompliance(compliance)      )
+      , ( "compliancePercent" -> compliance.compliance         )
+      , ( "id"                -> escapeHTML(nodeInfo.id.value) )
+      , ( "details"           -> details.json                  )
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page
-      , ( "jsid"       -> nextFuncName )
-      , ( "policyMode" -> policyMode )
-      , ( "explanation"-> modeExplanation )
+      , ( "jsid"              -> nextFuncName                  )
+      , ( "policyMode"        -> policyMode                    )
+      , ( "explanation"       -> modeExplanation               )
     )
   }
 }
@@ -426,12 +426,12 @@ final case class ComponentComplianceLine (
 
   val json = {
     JsObj (
-        ( "component"   -> escapeHTML(component) )
-      , ( "compliance"  -> jsCompliance(compliance))
-      , ( "compliancePercent"       -> compliance.compliance)
-      , ( "details"     -> details.json )
-      , ( "noExpand"    -> noExpand )
-      , ( "jsid"        -> nextFuncName )
+        ( "component"         -> escapeHTML(component)    )
+      , ( "compliance"        -> jsCompliance(compliance) )
+      , ( "compliancePercent" -> compliance.compliance    )
+      , ( "details"           -> details.json             )
+      , ( "noExpand"          -> noExpand                 )
+      , ( "jsid"              -> nextFuncName             )
     )
   }
 
@@ -458,15 +458,15 @@ final case class ValueComplianceLine (
 
   val json = {
     JsObj (
-        ( "value"       -> escapeHTML(value) )
-      , ( "status"      -> status )
-      , ( "statusClass" -> statusClass )
-      , ( "messages"    -> JsArray(messages.map{ case(s, m) => JsObj(("status" -> s), ("value" -> escapeHTML(m)))}))
-      , ( "compliance"  -> jsCompliance(compliance))
-      , ( "compliancePercent"       -> compliance.compliance)
+        ( "value"             -> escapeHTML(value) )
+      , ( "status"            -> status )
+      , ( "statusClass"       -> statusClass )
+      , ( "messages"          -> JsArray(messages.map{ case(s, m) => JsObj(("status" -> s), ("value" -> escapeHTML(m)))}))
+      , ( "compliance"        -> jsCompliance(compliance))
+      , ( "compliancePercent" -> compliance.compliance)
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page
-      , ( "jsid"        -> nextFuncName )
+      , ( "jsid"              -> nextFuncName )
     )
   }
 

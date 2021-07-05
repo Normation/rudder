@@ -255,20 +255,20 @@ final case class NodeLine (
 
   val baseFields = {
    JsObj(
-       ( "name" -> hostname )
-     , ( "state" -> node.state.name )
-     , ( "id" -> node.id.value )
+       ( "name"  -> escapeHTML(hostname ) )
+     , ( "state" -> escapeHTML(node.state.name ) )
+     , ( "id"    -> escapeHTML(node.id.value ) )
      , ( "machineType" ->
          (node.machine.map { _.machineType match {
            case _: VirtualMachineType => "Virtual"
            case PhysicalMachineType   => "Physical"
          } }.getOrElse("No Machine Inventory" ):String )
        )
-     , ( "os" -> (S.?(s"os.name.${node.osDetails.os.name}") ++ " " ++ node.osDetails.version.value ++ " " ++ (node.osDetails.servicePack.getOrElse(""): String)))
+     , ( "os" -> escapeHTML(S.?(s"os.name.${node.osDetails.os.name}") ++ " " ++ node.osDetails.version.value ++ " " ++ (node.osDetails.servicePack.getOrElse(""): String)))
 
-     , ( "agentPolicyMode" -> policyMode.toString)
-     , ( "explanation" -> explanation.toString)
-     , ( "lastReport" ->  lastReportValue )
+     , ( "agentPolicyMode" -> policyMode.toString  )
+     , ( "explanation"     -> explanation.toString )
+     , ( "lastReport"      -> lastReportValue      )
      )
   }
 
