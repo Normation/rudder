@@ -116,6 +116,7 @@ import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.utils.DateFormaterService
 import net.liftweb.http.JsonResponse
+import net.liftweb.http.js.JsExp
 import net.liftweb.json.JsonAST.JDouble
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JInt
@@ -586,6 +587,9 @@ class NodeApiService13 (
     , compliance            : Option[NodeStatusReport]
     , sysCompliance         : Option[NodeStatusReport]
   ): JObject = {
+
+    def escapeHTML(s: String): String = JsExp.strToJsExp(xml.Utility.escape(s)).str
+
     import net.liftweb.json.JsonDSL._
     def toComplianceArray(comp : ComplianceLevel) : JArray =
       JArray (
@@ -617,24 +621,24 @@ class NodeApiService13 (
       }
 
     import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
-    (  ("name" -> nodeInfo.hostname)
-      ~  ("policyServerId" -> nodeInfo.policyServerId.value)
-      ~  ("policyMode" -> policyMode.name)
-      ~  ("globalModeOverride" -> explanation)
-      ~  ("kernel" -> nodeInfo.osDetails.kernelVersion.value)
-      ~  ("agentVersion" -> nodeInfo.agentsName.headOption.flatMap(_.version.map(_.value)))
-      ~  ("id" -> nodeInfo.id.value)
-      ~  ("ram" -> nodeInfo.ram.map(_.toStringMo))
-      ~  ("machineType" -> nodeInfo.machine.map(_.machineType.toString))
-      ~  ("os" -> nodeInfo.osDetails.fullName)
-      ~  ("state" -> nodeInfo.state.name)
-      ~  ("compliance" -> userCompliance )
-      ~  ("systemError" -> sysCompliance.map(_.compliance.compliance < 100 ).getOrElse(true) )
-      ~  ("ipAddresses" -> nodeInfo.ips.filter(ip => ip != "127.0.0.1" && ip != "0:0:0:0:0:0:0:1"))
-      ~  ("lastRun" -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
-      ~  ("lastInventory" ->  DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))
-      ~  ("software" -> JObject(softs.map(s => JField(s.name.getOrElse(""), JString(s.version.map(_.value).getOrElse("N/A"))))))
-      ~  ("properties" -> JObject(properties.map(s => JField(s.name, s.toJson))))
+    (    ("name"                -> escapeHTML(nodeInfo.hostname))
+      ~  ("policyServerId"      -> escapeHTML(nodeInfo.policyServerId.value))
+      ~  ("policyMode"          -> escapeHTML(policyMode.name))
+      ~  ("globalModeOverride"  -> explanation)
+      ~  ("kernel"              -> escapeHTML(nodeInfo.osDetails.kernelVersion.value))
+      ~  ("agentVersion"        -> nodeInfo.agentsName.headOption.flatMap(_.version.map(_.value)))
+      ~  ("id"                  -> escapeHTML(nodeInfo.id.value))
+      ~  ("ram"                 -> nodeInfo.ram.map(_.toStringMo))
+      ~  ("machineType"         -> nodeInfo.machine.map(_.machineType.toString))
+      ~  ("os"                  -> nodeInfo.osDetails.fullName)
+      ~  ("state"               -> nodeInfo.state.name)
+      ~  ("compliance"          -> userCompliance )
+      ~  ("systemError"         -> sysCompliance.map(_.compliance.compliance < 100 ).getOrElse(true) )
+      ~  ("ipAddresses"         -> nodeInfo.ips.filter(ip => ip != "127.0.0.1" && ip != "0:0:0:0:0:0:0:1").map(escapeHTML(_)))
+      ~  ("lastRun"             -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
+      ~  ("lastInventory"       -> DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))
+      ~  ("software"            -> JObject(softs.map(s => JField(escapeHTML(s.name.getOrElse("")), JString(escapeHTML(s.version.map(_.value).getOrElse("N/A")))))))
+      ~  ("properties"          -> JObject(properties.map(s => JField(s.name, s.toJson ))))
       ~  ("inheritedProperties" -> JObject(inheritedProperties.map(s => JField(s.prop.name, s.toApiJson))))
       )
   }
@@ -1246,7 +1250,7 @@ class NodeApiService8 (
               s"Node with id '${node.id.value}' has an agent type (${node.agentsName.map(_.agentType.displayName).mkString(",")}) which doesn't support remote run"
             }
           }
-           ( ( "id" -> node.id.value)
+           ( ( "id"       -> node.id.value)
            ~ ( "hostname" -> node.hostname)
            ~ ( "result"   -> commandResult)
            )

@@ -821,7 +821,7 @@ object JsonPropertySerialisation {
 
     def toApiJsonRenderParents = {
       buildHierarchy(list => list.reverse.map(p =>
-        s"<p>from <b>${p.displayName}</b>:<pre>${p.value.render(ConfigRenderOptions.defaults().setOriginComments(false))}</pre></p>"
+        s"<p>from <b>${p.displayName}</b>:<pre>${xml.Utility.escape(p.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>"
       ).mkString(""))
     }
 
