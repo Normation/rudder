@@ -217,6 +217,7 @@ impl InterpolatedParameter {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(untagged)]
 enum MethodElem {
     MethodCall { callData: MethodCall },
     MethodBlock { blockData: MethodBlock },
