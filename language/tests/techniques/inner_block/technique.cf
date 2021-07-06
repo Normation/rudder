@@ -13,29 +13,53 @@ bundle agent simple_block_technique {
     "class_prefix"         string => string_head("${full_class_prefix}", "1000");
 
   methods:
-    # tmp:
-    # 
+    # File absent:
+    #
     #   file("""tmp""").absent() as file_absent_tmp
-    # 
-    "d58aec44-675b-48fd-985e-499ec4c5e525" usebundle => _method_reporting_context("tmp", "File absent"),
-                                             if => concat("debian");
-    "d58aec44-675b-48fd-985e-499ec4c5e525" usebundle => file_absent("tmp"),
-                                             if => concat("debian");
-    "d58aec44-675b-48fd-985e-499ec4c5e525" usebundle => _classes_noop(canonify("${class_prefix}_file_absent_File absent")),
-                                         unless => concat("debian");
-    "d58aec44-675b-48fd-985e-499ec4c5e525" usebundle => log_rudder("Skipping method 'tmp' with key parameter 'File absent' since condition 'debian' is not reached", "File absent", canonify("${class_prefix}_file_absent_File absent"), canonify("${class_prefix}_file_absent_File absent"), @{args}),
-                                         unless => concat("debian");
-    # tmp:
-    # 
+    #
+    "cb2881a0-11c8-4040-8ac0-3751d10146b7" usebundle => _method_reporting_context("File absent", "tmp"),
+                                             if => concat("(debian).(centos)");
+    "cb2881a0-11c8-4040-8ac0-3751d10146b7" usebundle => file_absent("tmp"),
+                                             if => concat("(debian).(centos)");
+    "cb2881a0-11c8-4040-8ac0-3751d10146b7" usebundle => _classes_noop(canonify("${class_prefix}_file_absent_tmp")),
+                                         unless => concat("(debian).(centos)");
+    "cb2881a0-11c8-4040-8ac0-3751d10146b7" usebundle => log_rudder("Skipping method 'File absent' with key parameter 'tmp' since condition '(debian).(centos)' is not reached", "tmp", canonify("${class_prefix}_file_absent_tmp"), canonify("${class_prefix}_file_absent_tmp"), @{args}),
+                                         unless => concat("(debian).(centos)");
+    # File absent:
+    #
     #   file("""tmp""").present() as file_present_tmp
-    # 
-    "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => _method_reporting_context("tmp", "File absent"),
-                                             if => concat("debian");
-    "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => file_present("tmp"),
-                                             if => concat("debian");
-    "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => _classes_noop(canonify("${class_prefix}_file_present_File absent")),
-                                         unless => concat("debian");
-    "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => log_rudder("Skipping method 'tmp' with key parameter 'File absent' since condition 'debian' is not reached", "File absent", canonify("${class_prefix}_file_present_File absent"), canonify("${class_prefix}_file_present_File absent"), @{args}),
-                                         unless => concat("debian");
+    #
+    "df319f6f-3573-4b7e-95e5-f10dcd3f7a3f" usebundle => _method_reporting_context("File absent", "tmp"),
+                                             if => concat("(debian).(centos)");
+    "df319f6f-3573-4b7e-95e5-f10dcd3f7a3f" usebundle => file_present("tmp"),
+                                             if => concat("(debian).(centos)");
+    "df319f6f-3573-4b7e-95e5-f10dcd3f7a3f" usebundle => _classes_noop(canonify("${class_prefix}_file_present_tmp")),
+                                         unless => concat("(debian).(centos)");
+    "df319f6f-3573-4b7e-95e5-f10dcd3f7a3f" usebundle => log_rudder("Skipping method 'File absent' with key parameter 'tmp' since condition '(debian).(centos)' is not reached", "tmp", canonify("${class_prefix}_file_present_tmp"), canonify("${class_prefix}_file_present_tmp"), @{args}),
+                                         unless => concat("(debian).(centos)");
+    # File absent:
+    #
+    #   file("""tmp2""").absent() as file_absent_tmp2
+    #
+    "File absent_${report_data.directive_id}_0" usebundle => _method_reporting_context("File absent", "tmp2"),
+                                             if => concat("((debian).(debian_10)).(linux)");
+    "File absent_${report_data.directive_id}_0" usebundle => file_absent("tmp2"),
+                                             if => concat("((debian).(debian_10)).(linux)");
+    "File absent_${report_data.directive_id}_0" usebundle => _classes_noop(canonify("${class_prefix}_file_absent_tmp2")),
+                                         unless => concat("((debian).(debian_10)).(linux)");
+    "File absent_${report_data.directive_id}_0" usebundle => log_rudder("Skipping method 'File absent' with key parameter 'tmp2' since condition '((debian).(debian_10)).(linux)' is not reached", "tmp2", canonify("${class_prefix}_file_absent_tmp2"), canonify("${class_prefix}_file_absent_tmp2"), @{args}),
+                                         unless => concat("((debian).(debian_10)).(linux)");
+    # File absent:
+    #
+    #   file("""tmp2""").present() as file_present_tmp2
+    #
+    "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => _method_reporting_context("File absent", "tmp2"),
+                                             if => concat("(debian).(debian_10)");
+    "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => file_present("tmp2"),
+                                             if => concat("(debian).(debian_10)");
+    "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => _classes_noop(canonify("${class_prefix}_file_present_tmp2")),
+                                         unless => concat("(debian).(debian_10)");
+    "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => log_rudder("Skipping method 'File absent' with key parameter 'tmp2' since condition '(debian).(debian_10)' is not reached", "tmp2", canonify("${class_prefix}_file_present_tmp2"), canonify("${class_prefix}_file_present_tmp2"), @{args}),
+                                         unless => concat("(debian).(debian_10)");
 
 }

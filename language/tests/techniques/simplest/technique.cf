@@ -17,7 +17,7 @@ bundle agent simplest_technique {
     # 
     #   file("""tmp""").absent() as file_absent_tmp
     # 
-    "File absent_${report_data.directive_id}_0" usebundle => _method_reporting_context("File absent", "tmp");
-    "File absent_${report_data.directive_id}_0" usebundle => file_absent("tmp");
+    "9a3ee7fb-ae60-4b85-8688-b473a7659dd0" usebundle => _method_reporting_context("File absent", "tmp");
+    "9a3ee7fb-ae60-4b85-8688-b473a7659dd0" usebundle => file_absent("tmp");
 
 }

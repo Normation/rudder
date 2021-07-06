@@ -2,9 +2,9 @@
   "type": "ncf_technique",
   "version": 2,
   "data": {
-    "bundle_name": "simple_block",
-    "description": "rudderlang simple block",
-    "name": "Simple block",
+    "bundle_name": "inner_block",
+    "description": "rudderlang inner block",
+    "name": "Inner block",
     "version": "1.0",
     "parameter": [],
     "category": "ncf_techniques",
