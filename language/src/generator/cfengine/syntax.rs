@@ -177,13 +177,13 @@ impl Promise {
     pub fn usebundle<T: AsRef<str>>(
         bundle: T,
         component: Option<&str>,
-        id: Option<String>,
+        id: Option<&str>,
         parameters: Vec<String>,
     ) -> Self {
         Promise::new(
             PromiseType::Methods,
             component.map(String::from),
-            id,
+            id.map(String::from),
             "method_call",
         )
         .attribute(
@@ -237,15 +237,20 @@ impl Promise {
     //
     // padding for arrows is promiser len + max attribute name
     fn format(&self, index: usize, padding: usize) -> String {
-        let promiser = if self.promise_type == PromiseType::Methods {
-            // Methods need to be unique
-            match self.component.clone() {
-                Some(method) => format!("{}_{}_{}", method, UNIQUE_ID, index),
-                None => format!("{}_{}", UNIQUE_ID, index),
-            }
-        } else {
-            self.promiser.clone()
-        };
+        let promiser =
+            match self.id.clone() {
+                Some(id) if !id.is_empty() => id,
+                _ =>
+                    if self.promise_type == PromiseType::Methods {
+                        // Methods need to be unique
+                        match self.component.clone() {
+                            Some(method) => format!("{}_{}_{}", method, UNIQUE_ID, index),
+                            None => format!("{}_{}", UNIQUE_ID, index),
+                        }
+                    } else {
+                        self.promiser.clone()
+                    },
+            };
 
         let mut first = true;
 
@@ -328,6 +333,10 @@ impl Method {
         Self { state, ..self }
     }
 
+    pub fn id(self, id: String) -> Self {
+        Self { id, ..self }
+    }
+
     pub fn alias(self, method_alias: Option<String>) -> Self {
         Self {
             method_alias,
@@ -396,10 +405,12 @@ impl Method {
         let has_condition = !TRUE_CLASSES.iter().any(|c| c == &self.condition);
 
         // Reporting context
+
+        let id = self.id.as_str();
         let reporting_context = Promise::usebundle(
             "_method_reporting_context",
             Some(&self.report_component),
-            Some(self.id),
+            Some(id),
             vec![
                 quoted(&self.report_component),
                 quoted(&self.report_parameter),
@@ -418,7 +429,7 @@ impl Method {
         let method = Promise::usebundle(
             formatted_bundle,
             Some(&self.report_component),
-            Some(self.id),
+            Some(id),
             self.parameters,
         );
         let na_condition = format!(
@@ -431,8 +442,8 @@ impl Method {
                 reporting_context.if_condition(self.condition.clone()),
                 method.if_condition(self.condition.clone()),
                 // NA report
-                Promise::usebundle("_classes_noop", Some(&self.report_component), Some(self.id), vec![na_condition.clone()]).unless_condition(&self.condition),
-                Promise::usebundle("log_rudder", Some(&self.report_component),  Some(self.id), vec![
+                Promise::usebundle("_classes_noop", Some(&self.report_component), Some(id), vec![na_condition.clone()]).unless_condition(&self.condition),
+                Promise::usebundle("log_rudder", Some(&self.report_component),  Some(id), vec![
                     quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &self.report_component, &self.report_parameter, self.condition)),
                     quoted(&self.report_parameter),
                     na_condition.clone(),
@@ -445,7 +456,7 @@ impl Method {
                 reporting_context,
                 Promise::usebundle(
                     "log_na_rudder",
-                    Some(&self.report_component), Some(self.id),
+                    Some(&self.report_component), Some(id),
                     vec![
                         quoted(&format!(
                             "'{}' method is not available on classic Rudder agent, skip",
@@ -670,15 +681,15 @@ mod tests {
     fn format_method() {
         assert_eq!(
             Bundle::agent("test").promise_group(
-            Method::new()
+                Method::new()
                     .resource("package".to_string())
                     .state("present".to_string())
                     .parameters(vec!["vim".to_string()])
                     .report_parameter("parameter".to_string())
                     .report_component("component".to_string())
                     .condition("debian".to_string())
-                    .build()).to_string()
-            ,
+                    .build()
+            ).to_string(),
             "bundle agent test {\n\n  methods:\n    # component:\n    # \n    #   \n    # \n    \"component_${report_data.directive_id}_0\" usebundle => _method_reporting_context(\"component\", \"parameter\");\n    \"component_${report_data.directive_id}_0\" usebundle => log_na_rudder(\"\'component\' method is not available on classic Rudder agent, skip\", \"parameter\", \"${class_prefix}_package_present_parameter\", @{args});\n\n}"
         );
     }

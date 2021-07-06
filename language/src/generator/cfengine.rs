@@ -198,18 +198,19 @@ impl CFEngine {
                     .get(class_param_index)
                     .and_then(|p| self.value_to_string(&p, &variables, false).ok())
                     .unwrap_or_else(|| "".to_string());
+                let id = var.metadata.get("id").and_then(|v| v.as_str()).map(String::from);
 
-                Ok(Method::new()
+
+                let method = Method::new()
                     .resource(var.resource.fragment().to_string())
                     .state(var.state.fragment().to_string())
                     .parameters(parameters)
-                    .supported(is_cf_supported)
-                    .report_parameter(class_param)
                     .report_component(component)
-                    .condition(
-                        condition.map_or_else(|| String::from("any"), |x| self.format_class(x)),
-                    )
-                    .build())
+                    .report_parameter(class_param)
+                    .condition(condition.map_or_else(|| String::from("any"), |x| self.format_class(x)))
+                    .id(id.unwrap_or(String::new()))
+                    .supported(is_cf_supported);
+                Ok(method.build())
             }
             Statement::StateDeclaration(sd) => {
                 let inner_state_def = gc.get_state_def(&sd.resource, &sd.state)?;
@@ -249,24 +250,24 @@ impl CFEngine {
                     None => return Err(Error::new("Expected a component metadata".to_owned())),
                 };
 
-                Ok(Method::new()
-                    .resource(sd.resource.fragment().to_string())
-                    .state(sd.state.fragment().to_string())
-                    .alias(
-                        sd.metadata
-                            .get("method_alias")
-                            .and_then(|v| v.as_str())
-                            .map(String::from),
-                    )
-                    .parameters(parameters)
-                    .report_parameter(class_param)
-                    .report_component(component)
-                    .supported(is_cf_supported)
-                    .condition(
-                        condition.map_or_else(|| String::from("any"), |x| self.format_class(x)),
-                    )
-                    .source(sd.source.fragment())
-                    .build())
+                let alias = sd.metadata.get("method_alias").and_then(|v| v.as_str()).map(String::from);
+                let id = sd.metadata.get("id").and_then(|v| v.as_str()).map(String::from).unwrap_or("".to_string());
+
+                let method =
+                    Method::new()
+                        .resource(sd.resource.fragment().to_string())
+                        .state(sd.state.fragment().to_string())
+                        .alias(alias)
+                        .parameters(parameters)
+                        .report_parameter(class_param)
+                        .report_component(component)
+                        .supported(is_cf_supported)
+                        .condition(condition.map_or_else(|| String::from("any"), |x| self.format_class(x)))
+                        .source(sd.source.fragment())
+                        .id(id);
+
+
+                Ok(method.build())
             }
             Statement::Case(_case, vec) => {
                 self.reset_cases();
@@ -289,6 +290,7 @@ impl CFEngine {
             Statement::Fail(msg) => Ok(vec![Promise::usebundle(
                 "_abort",
                 None,
+                None,
                 vec![
                     quoted("policy_fail"),
                     self.value_to_string(msg, &variables, true)?,
@@ -296,6 +298,7 @@ impl CFEngine {
             )]),
             Statement::LogDebug(msg) => Ok(vec![Promise::usebundle(
                 "log_rudder_mode",
+                None,
                 None,
                 vec![
                     quoted("log_debug"),
@@ -308,6 +311,7 @@ impl CFEngine {
             Statement::LogInfo(msg) => Ok(vec![Promise::usebundle(
                 "log_rudder_mode",
                 None,
+                None,
                 vec![
                     quoted("log_info"),
                     self.value_to_string(msg, &variables, true)?,
@@ -318,6 +322,7 @@ impl CFEngine {
             )]),
             Statement::LogWarn(msg) => Ok(vec![Promise::usebundle(
                 "log_rudder_mode",
+                None,
                 None,
                 vec![
                     quoted("log_warn"),
@@ -334,11 +339,11 @@ impl CFEngine {
                     Some(c) => format!("!({})", c),
                 });
                 Ok(vec![if *outcome == Token::new("", "kept") {
-                    Promise::usebundle("success", None, vec![])
+                    Promise::usebundle("success", None, None, vec![])
                 } else if *outcome == Token::new("", "repaired") {
-                    Promise::usebundle("repaired", None, vec![])
+                    Promise::usebundle("repaired", None, None, vec![])
                 } else {
-                    Promise::usebundle("error", None, vec![])
+                    Promise::usebundle("error", None, None, vec![])
                 }])
             }
             Statement::Noop => Ok(vec![]),

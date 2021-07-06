@@ -406,9 +406,10 @@ impl MethodCall {
         }
 
         Ok(format!(
-            "{}{}\n{}  {}{}",
+            "{}{}\n{}\n{}  {}{}",
             template_vars.join("\n  "),
             formatted_component,
+            formatted_id,
             formatted_alias_metadata.unwrap_or(String::new()),
             call,
             outcome
