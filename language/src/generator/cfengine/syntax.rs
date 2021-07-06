@@ -155,7 +155,8 @@ impl Promise {
 
     /// Shortcut for building a string variable with a raw value
     pub fn string_raw<T: Into<String>, S: AsRef<str>>(name: T, value: S) -> Self {
-        Promise::new(PromiseType::Vars, None, None, name).attribute(AttributeType::String, value.as_ref())
+        Promise::new(PromiseType::Vars, None, None, name)
+            .attribute(AttributeType::String, value.as_ref())
     }
 
     /// Shortcut for building an slist variable with a list of values to be quoted
@@ -237,20 +238,20 @@ impl Promise {
     //
     // padding for arrows is promiser len + max attribute name
     fn format(&self, index: usize, padding: usize) -> String {
-        let promiser =
-            match self.id.clone() {
-                Some(id) if !id.is_empty() => id,
-                _ =>
-                    if self.promise_type == PromiseType::Methods {
-                        // Methods need to be unique
-                        match self.component.clone() {
-                            Some(method) => format!("{}_{}_{}", method, UNIQUE_ID, index),
-                            None => format!("{}_{}", UNIQUE_ID, index),
-                        }
-                    } else {
-                        self.promiser.clone()
-                    },
-            };
+        let promiser = match self.id.clone() {
+            Some(id) if !id.is_empty() => id,
+            _ => {
+                if self.promise_type == PromiseType::Methods {
+                    // Methods need to be unique
+                    match self.component.clone() {
+                        Some(method) => format!("{}_{}_{}", method, UNIQUE_ID, index),
+                        None => format!("{}_{}", UNIQUE_ID, index),
+                    }
+                } else {
+                    self.promiser.clone()
+                }
+            }
+        };
 
         let mut first = true;
 
@@ -311,7 +312,7 @@ pub struct Method {
     report_component: String,
     report_parameter: String,
     condition: String,
-    id : String,
+    id: String,
     // Generated from
     source: String,
     is_supported: bool,

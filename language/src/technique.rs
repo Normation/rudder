@@ -244,16 +244,23 @@ impl MethodBlock {
                 MethodElem::MethodBlock(blockData) => blockData.to_rudderlang(context, lib),
             })
             .collect::<Result<Vec<String>>>()
-            .map(|c| format!("{}\n{}\n{{\n  {}\n  }}", formatted_component, formatted_id, c.join("\n  ")));
+            .map(|c| {
+                format!(
+                    "{}\n{}\n{{\n  {}\n  }}",
+                    formatted_component,
+                    formatted_id,
+                    c.join("\n  ")
+                )
+            });
 
         let withCondition = if (self.condition == "" || self.condition == "any") {
             childs
         } else {
             let condition = format_condition(&self.condition, &lib)?;
-            childs.map(|c| format!("if {} =>\n  {}", condition , c))
+            childs.map(|c| format!("if {} =>\n  {}", condition, c))
         };
 
-        return withCondition
+        return withCondition;
     }
 }
 #[derive(Serialize, Deserialize)]

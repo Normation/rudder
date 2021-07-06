@@ -1047,7 +1047,6 @@ pub struct PBlockDeclaration<'src> {
     pub childs: Vec<PStatement<'src>>,
 }
 fn pblock_declaration(i: PInput) -> PResult<PBlockDeclaration> {
-
     wsequence!(
         {
             childs: delimited_parser("{", |j| many0(pstatement)(j), "}");

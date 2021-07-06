@@ -198,8 +198,11 @@ impl CFEngine {
                     .get(class_param_index)
                     .and_then(|p| self.value_to_string(&p, &variables, false).ok())
                     .unwrap_or_else(|| "".to_string());
-                let id = var.metadata.get("id").and_then(|v| v.as_str()).map(String::from);
-
+                let id = var
+                    .metadata
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
 
                 let method = Method::new()
                     .resource(var.resource.fragment().to_string())
@@ -207,7 +210,9 @@ impl CFEngine {
                     .parameters(parameters)
                     .report_component(component)
                     .report_parameter(class_param)
-                    .condition(condition.map_or_else(|| String::from("any"), |x| self.format_class(x)))
+                    .condition(
+                        condition.map_or_else(|| String::from("any"), |x| self.format_class(x)),
+                    )
                     .id(id.unwrap_or(String::new()))
                     .supported(is_cf_supported);
                 Ok(method.build())
@@ -250,22 +255,31 @@ impl CFEngine {
                     None => return Err(Error::new("Expected a component metadata".to_owned())),
                 };
 
-                let alias = sd.metadata.get("method_alias").and_then(|v| v.as_str()).map(String::from);
-                let id = sd.metadata.get("id").and_then(|v| v.as_str()).map(String::from).unwrap_or("".to_string());
+                let alias = sd
+                    .metadata
+                    .get("method_alias")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
+                let id = sd
+                    .metadata
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+                    .unwrap_or("".to_string());
 
-                let method =
-                    Method::new()
-                        .resource(sd.resource.fragment().to_string())
-                        .state(sd.state.fragment().to_string())
-                        .alias(alias)
-                        .parameters(parameters)
-                        .report_parameter(class_param)
-                        .report_component(component)
-                        .supported(is_cf_supported)
-                        .condition(condition.map_or_else(|| String::from("any"), |x| self.format_class(x)))
-                        .source(sd.source.fragment())
-                        .id(id);
-
+                let method = Method::new()
+                    .resource(sd.resource.fragment().to_string())
+                    .state(sd.state.fragment().to_string())
+                    .alias(alias)
+                    .parameters(parameters)
+                    .report_parameter(class_param)
+                    .report_component(component)
+                    .supported(is_cf_supported)
+                    .condition(
+                        condition.map_or_else(|| String::from("any"), |x| self.format_class(x)),
+                    )
+                    .source(sd.source.fragment())
+                    .id(id);
 
                 Ok(method.build())
             }
