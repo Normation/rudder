@@ -128,7 +128,7 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
     currentNodeId = nodeId
     $scope.objectName = objectName;
     $scope.urlAPI = contextPath + '/secure/api/'+ objectName +'s/' + nodeId;
-    var getUrlAPI = contextPath + '/secure/api/'+ objectName +'s/' + nodeId + '/inheritedProperties';
+    var getUrlAPI = contextPath + '/secure/api/'+ objectName +'s/' + nodeId + '/displayInheritedProperties';
     $scope.fetchProperties = function() {
       return $http.get(getUrlAPI).success( function (result) {
         $scope.properties = result.data[0].properties

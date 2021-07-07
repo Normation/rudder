@@ -595,18 +595,48 @@ object JsonPropertySerialisation {
         case ParentProperty.Global(value) =>
           (
             ( "kind"  -> "global")
-          ~ ("value" -> GenericProperty.serializeToJson(value))
+          ~ ( "value" -> GenericProperty.toJsonValue(value))
           )
         case ParentProperty.Group(name, id, value) =>
           (
             ( "kind"  -> "group" )
           ~ ( "name"  -> name    )
           ~ ( "id"    -> id.value)
-          ~ ("value" -> GenericProperty.serializeToJson(value))
+          ~ ( "value" -> GenericProperty.toJsonValue(value))
           )
         case _ => JNothing
       }
     }
+  }
+
+  implicit class JsonNodePropertyHierarchy(val prop: NodePropertyHierarchy) extends AnyVal {
+    implicit def formats = DefaultFormats
+
+
+    private def buildHierarchy(displayParents: List[ParentProperty] => JValue): JObject = {
+      val (parents, origval) = prop.hierarchy match {
+        case Nil  => (None, None)
+        case list =>
+          (
+            Some(displayParents(list))
+          , prop.hierarchy.headOption.map(v => GenericProperty.toJsonValue(v.value))
+          )
+      }
+
+      prop.prop.toJson ~ ("hierarchy" -> parents) ~ ("origval" -> origval)
+
+    }
+
+    def toApiJson: JObject = {
+      buildHierarchy(list => list.reverse.map(_.toJson))
+    }
+
+    def toApiJsonRenderParents = {
+      buildHierarchy(list => list.reverse.map(p =>
+        s"<p>from <b>${p.displayName}</b>:<pre>${p.value.render(ConfigRenderOptions.defaults().setOriginComments(false))}</pre></p>"
+      ).mkString(""))
+    }
+
   }
 
   implicit class JsonNodePropertiesHierarchy(val props: List[NodePropertyHierarchy]) extends AnyVal {
@@ -627,7 +657,7 @@ object JsonPropertySerialisation {
           case Nil => (None, None)
           case _   =>
             (
-              Some(p.hierarchy.reverse.map(p => s"<p>from <b>${p.displayName}</b>:<pre>${p.value.render(ConfigRenderOptions.defaults().setOriginComments(false))}</pre></p>").mkString(""))
+              Some(p.hierarchy.reverse.map(p => s"<p>from <b>${p.displayName}</b>:<pre>${xml.Utility.escape(p.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>").mkString(""))
             , p.hierarchy.headOption.map(v => GenericProperty.toJsonValue(v.value))
             )
         }

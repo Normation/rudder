@@ -255,7 +255,7 @@ class ShowNodeDetailsFromNode(
                 bindNode(node, sm, withinPopup, globalMode) ++ Script(
                   DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
                   JsRaw(s"""
-                    $$('.portlet-header.page-title').html("${sm.node.main.hostname}");
+                    $$('.portlet-header.page-title').html("${xml.Utility.escape(sm.node.main.hostname)}");
                     $$( "#${detailsId}" ).tabs({ active : ${tab} } );
                     $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a').on('click',function(){
                       var tab = $$(this).attr('href');

@@ -333,20 +333,20 @@ class TestMergeGroupProperties extends Specification {
         ~ ( "provider" -> "overridden" )
         ~ ("hierarchy" ->
             """<p>from <b>Global Parameter</b>:<pre>{
-             |    "global" : "global value",
-             |    "override" : "global"
+             |    &quot;global&quot; : &quot;global value&quot;,
+             |    &quot;override&quot; : &quot;global&quot;
              |}
              |</pre></p><p>from <b>parent1 (parent1)</b>:<pre>{
-             |    "override" : "parent",
-             |    "parent" : "parent value"
+             |    &quot;override&quot; : &quot;parent&quot;,
+             |    &quot;parent&quot; : &quot;parent value&quot;
              |}
              |</pre></p><p>from <b>child (child)</b>:<pre>{
-             |    "child" : "child value",
-             |    "override" : "child"
+             |    &quot;child&quot; : &quot;child value&quot;,
+             |    &quot;override&quot; : &quot;child&quot;
              |}
              |</pre></p><p>from <b>this node (node1)</b>:<pre>{
-             |    "node" : "node value",
-             |    "override" : "node"
+             |    &quot;node&quot; : &quot;node value&quot;,
+             |    &quot;override&quot; : &quot;node&quot;
              |}
              |</pre></p>""".stripMargin
           )

@@ -89,57 +89,61 @@ object ComplianceApi extends ApiModuleProvider[ComplianceApi] {
   def endpoints = ca.mrvisser.sealerate.values[ComplianceApi].toList.sortBy( _.z )
 }
 
-sealed trait GroupApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait GroupApi extends EndpointSchema with SortIndex
 object GroupApi extends ApiModuleProvider[GroupApi] {
   // API v2
-  final case object ListGroups extends GroupApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object ListGroups extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "List all groups with their information"
     val (action, path)  = GET / "groups"
   }
-  final case object CreateGroup extends GroupApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object CreateGroup extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Create a new group"
     val (action, path)  = PUT / "groups"
   }
-  final case object GetGroupTree extends GroupApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
+  final case object GetGroupTree extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "List all group categories and group in a tree format"
     val (action, path)  = GET / "groups" / "tree"
   }
-  final case object GroupDetails extends GroupApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object GroupDetails extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about the given group"
     val (action, path)  = GET / "groups" / "{id}"
   }
-  final case object DeleteGroup extends GroupApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object DeleteGroup extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Delete given group"
     val (action, path)  = DELETE / "groups" / "{id}"
   }
-  final case object UpdateGroup extends GroupApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object UpdateGroup extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Update given group"
     val (action, path)  = POST / "groups" / "{id}"
   }
-  final case object ReloadGroup extends GroupApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object ReloadGroup extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Update given dynamic group node list"
     val (action, path)  = GET / "groups" / "{id}" / "reload"
   }
-  final case object GroupInheritedProperties extends GroupApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+  final case object GroupInheritedProperties extends GroupApi with GeneralApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description = "Get all proporeties for that group, included inherited ones"
     val (action, path)  = GET / "groups" / "{id}" / "inheritedProperties"
   }
   // API v5 updates 'Create' methods but no new endpoints
   // API v6
 
-  final case object GetGroupCategoryDetails extends GroupApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
+  final case object GroupDisplayInheritedProperties extends GroupApi with InternalApi with OneParam with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all proporeties for that group, included inherited ones, for displaying in group property tab (internal)"
+    val (action, path)  = GET / "groups" / "{id}" / "displayInheritedProperties"
+  }
+  final case object GetGroupCategoryDetails extends GroupApi with GeneralApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about the given group category"
     val (action, path)  = GET / "groups" / "categories" / "{id}"
   }
-  final case object DeleteGroupCategory extends GroupApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
+  final case object DeleteGroupCategory extends GroupApi with GeneralApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Delete given group category"
     val (action, path)  = DELETE / "groups" / "categories" / "{id}"
   }
-  final case object UpdateGroupCategory extends GroupApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
+  final case object UpdateGroupCategory extends GroupApi with GeneralApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Update information for given group category"
     val (action, path)  = POST / "groups" / "categories" / "{id}"
   }
-  final case object CreateGroupCategory extends GroupApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
+  final case object CreateGroupCategory extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "Create a new group category"
     val (action, path)  = PUT / "groups" / "categories"
   }
@@ -231,51 +235,60 @@ object NcfApi extends ApiModuleProvider[NcfApi] {
   def endpoints = ca.mrvisser.sealerate.values[NcfApi].toList.sortBy( _.z )
 }
 
-sealed trait NodeApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait NodeApi extends EndpointSchema with SortIndex
+
 object NodeApi extends ApiModuleProvider[NodeApi] {
 
-  final case object ListAcceptedNodes extends NodeApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object ListAcceptedNodes extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "List all accepted nodes with configurable details level"
     val (action, path)  = GET / "nodes"
   }
-  final case object ListPendingNodes extends NodeApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object ListPendingNodes extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "List all pending nodes with configurable details level"
     val (action, path)  = GET / "nodes" / "pending"
   }
-  final case object PendingNodeDetails extends NodeApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object PendingNodeDetails extends NodeApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about the given pending node"
     val (action, path)  = GET / "nodes" / "pending" / "{id}"
   }
-  final case object NodeDetails extends NodeApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object NodeDetails extends NodeApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about the given accepted node"
     val (action, path)  = GET / "nodes" / "{id}"
   }
-  final case object NodeInheritedProperties extends NodeApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
+  final case object NodeInheritedProperties extends NodeApi with GeneralApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
     val description = "Get all proporeties for that node, included inherited ones"
     val (action, path)  = GET / "nodes" / "{id}" / "inheritedProperties"
   }
-  final case object ApplyPolicyAllNodes extends NodeApi with ZeroParam with StartsAtVersion8 with SortIndex { val z = implicitly[Line].value
+  final case object ApplyPolicyAllNodes extends NodeApi with GeneralApi  with ZeroParam with StartsAtVersion8 with SortIndex { val z = implicitly[Line].value
     val description = "Ask all nodes to start a run with the given policy"
     val (action, path)  = POST / "nodes" / "applyPolicy"
   }
-  final case object ChangePendingNodeStatus extends NodeApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object ChangePendingNodeStatus extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Accept or refuse pending nodes"
     val (action, path)  = POST / "nodes" / "pending"
   }
-  final case object UpdateNode extends NodeApi with OneParam with StartsAtVersion5 with SortIndex { val z = implicitly[Line].value
+
+  // WARNING: read_only user can access this endpoint
+  //    No modifications are performed here
+  //    POST over GET is required here because we can provide too many information to be passed as URL parameters
+  final case object NodeDisplayInheritedProperties extends NodeApi with InternalApi with OneParam with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all proporeties for that node, included inherited ones, for displaying in node property tab (internal)"
+    val (action, path)  = GET / "nodes" / "{id}" / "displayInheritedProperties"
+  }
+  final case object UpdateNode extends NodeApi with GeneralApi with OneParam with StartsAtVersion5 with SortIndex { val z = implicitly[Line].value
     val description = "Update given node information (node properties, policy mode...)"
     val (action, path)  = POST / "nodes" / "{id}"
   }
-  final case object DeleteNode extends NodeApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object DeleteNode extends NodeApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Delete given node"
     val (action, path)  = DELETE / "nodes" / "{id}"
   }
-  final case object ChangePendingNodeStatus2 extends NodeApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
+  final case object ChangePendingNodeStatus2 extends NodeApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     override val name = "ChangePendingNodeStatus"
     val description = "Accept or refuse given pending node"
     val (action, path)  = POST / "nodes" / "pending" / "{id}"
   }
-  final case object ApplyPolicy extends NodeApi with OneParam with StartsAtVersion8 with SortIndex { val z = implicitly[Line].value
+  final case object ApplyPolicy extends NodeApi with GeneralApi with OneParam with StartsAtVersion8 with SortIndex { val z = implicitly[Line].value
     val description = "Ask given node to start a run with the given policy"
     val (action, path)  = POST / "nodes" / "{id}" / "applyPolicy"
   }

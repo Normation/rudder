@@ -84,18 +84,19 @@ class GroupsApi(
    */
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
-        case API.ListGroups               => List
-        case API.GetGroupTree             => GetTree
-        case API.GroupDetails             => Get
-        case API.GroupInheritedProperties => GroupInheritedProperties
-        case API.DeleteGroup              => Delete
-        case API.CreateGroup              => Create
-        case API.UpdateGroup              => Update
-        case API.DeleteGroupCategory      => DeleteCategory
-        case API.CreateGroupCategory      => CreateCategory
-        case API.GetGroupCategoryDetails  => GetCategory
-        case API.UpdateGroupCategory      => UpdateCategory
-        case API.ReloadGroup              => Reload
+        case API.ListGroups                      => List
+        case API.GetGroupTree                    => GetTree
+        case API.GroupDetails                    => Get
+        case API.GroupInheritedProperties        => GroupInheritedProperties
+        case API.GroupDisplayInheritedProperties => GroupDisplayInheritedProperties
+        case API.DeleteGroup                     => Delete
+        case API.CreateGroup                     => Create
+        case API.UpdateGroup                     => Update
+        case API.DeleteGroupCategory             => DeleteCategory
+        case API.CreateGroupCategory             => CreateCategory
+        case API.GetGroupCategoryDetails         => GetCategory
+        case API.UpdateGroupCategory             => UpdateCategory
+        case API.ReloadGroup                     => Reload
     }).toList
   }
 
@@ -117,7 +118,20 @@ class GroupsApi(
     val schema = API.GroupInheritedProperties
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      inheritedProperties.getNodePropertiesTree(NodeGroupId(id)).either.runNow match {
+      inheritedProperties.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.JSON).either.runNow match {
+        case Right(value) =>
+          toJsonResponse(None, value)("groupInheritedProperties", restExtractor.extractPrettify(req.params))
+        case Left(err)    =>
+          toJsonError(None, err.fullMsg)("groupInheritedProperties", restExtractor.extractPrettify(req.params))
+      }
+    }
+  }
+
+  object GroupDisplayInheritedProperties extends LiftApiModule {
+    val schema = API.GroupDisplayInheritedProperties
+    val restExtractor = restExtractorService
+    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      inheritedProperties.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.HTML).either.runNow match {
         case Right(value) =>
           toJsonResponse(None, value)("groupInheritedProperties", restExtractor.extractPrettify(req.params))
         case Left(err)    =>
@@ -298,7 +312,7 @@ class GroupApiInheritedProperties(
    * the returned format is a list of properties:
    *
    */
-  def getNodePropertiesTree(groupId: NodeGroupId): IOResult[JArray] = {
+  def getNodePropertiesTree(groupId: NodeGroupId, renderInHtml: RenderInheritedProperties): IOResult[JArray] = {
 
     for {
       allGroups  <- groupRepo.getFullGroupLibrary().map(_.allGroups)
@@ -306,9 +320,13 @@ class GroupApiInheritedProperties(
       properties <- MergeNodeProperties.forGroup(groupId, allGroups, params.map(p => (p.name, p.value)).toMap).toIO
     } yield {
       import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
+      val rendered = renderInHtml match {
+        case RenderInheritedProperties.HTML => properties.toApiJsonRenderParents
+        case RenderInheritedProperties.JSON => properties.toApiJson
+      }
       JArray((
         ("groupId"    -> groupId.value)
-      ~ ("properties" -> properties.toApiJsonRenderParents)
+      ~ ("properties" -> rendered     )
       ) :: Nil)
     }
   }
