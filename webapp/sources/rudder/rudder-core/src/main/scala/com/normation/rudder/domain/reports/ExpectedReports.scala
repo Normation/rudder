@@ -268,11 +268,7 @@ object ExpectedReportsSerialisation {
       case c: BlockExpectedReport =>
         import ReportingLogic._
         (("componentName" -> c.componentName)
-          ~ ("composition" -> (c.reportingLogic match {
-          case WorstReport => "worst"
-          case SumReport => "sum"
-          case FocusReport(component) => s"focus:${component}"
-        }))
+          ~ ("composition" -> (c.reportingLogic.value))
           ~ ("subComponents" -> c.subComponents.map(jsonComponentExpectedReport))
           )
     }

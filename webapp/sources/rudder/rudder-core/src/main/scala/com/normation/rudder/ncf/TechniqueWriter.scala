@@ -222,11 +222,7 @@ class TechniqueWriter (
           } yield {
 
             import com.normation.cfclerk.domain.ReportingLogic._
-            val reportingLogic = block.reportingLogic match {
-              case WorstReport => "worst"
-              case SumReport => "sum"
-              case FocusReport(component) => s"focus:${component}"
-            }
+            val reportingLogic = block.reportingLogic.value
             <SECTION component="true" multivalued="true" name={component} reporting={reportingLogic}>
                 {childs}
             </SECTION>

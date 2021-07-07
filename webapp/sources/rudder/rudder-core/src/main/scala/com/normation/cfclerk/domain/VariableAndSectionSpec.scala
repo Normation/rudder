@@ -437,18 +437,29 @@ object DisplayPriority {
   }
 }
 
-sealed  trait ReportingLogic
+sealed  trait ReportingLogic {
+  def value : String
+}
 
 object ReportingLogic {
 
-  final case object WorstReport extends ReportingLogic
-  final case object SumReport extends ReportingLogic
-  final case class FocusReport(component : String) extends ReportingLogic
+  final case object WorstReport extends ReportingLogic {
+    val value = "worst"
+  }
+  final case object SumReport extends ReportingLogic {
+    val value = "sum"
+  }
+  final case class FocusReport(component : String) extends ReportingLogic {
+    val value = s"${FocusReport.key}:${component}"
+  }
+  object FocusReport {
+    val key = "focus"
+  }
   def apply(value : String) : PureResult[ReportingLogic] = {
     value match {
-      case "worst" => Right(WorstReport)
-      case "sum" => Right(SumReport)
-      case s"focus:${a}" => Right(FocusReport(a))
+      case WorstReport.value => Right(WorstReport)
+      case SumReport.value => Right(SumReport)
+      case s"${FocusReport.key}:${a}" => Right(FocusReport(a))
       case _ => Left(Unexpected(s"Value '${value}' is not a valid reporting composition rule."))
     }
   }

@@ -121,8 +121,8 @@ class CachedReportsExecutionRepository(
   override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore.withPermit(IOResult.effect {
     val n1 = System.currentTimeMillis
 
-    TimingDebugLogger.info(s"cache last run ; ${cache}")
-    TimingDebugLogger.info(s"node id diff last run ; ${nodeIds.diff(cache.keySet)}")
+    TimingDebugLogger.debug(s"cache last run ; ${cache}")
+    TimingDebugLogger.debug(s"node id diff last run ; ${nodeIds.diff(cache.keySet)}")
     (for {
       runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
     } yield {

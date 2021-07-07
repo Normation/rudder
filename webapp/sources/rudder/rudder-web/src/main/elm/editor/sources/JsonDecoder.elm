@@ -50,11 +50,11 @@ decodeCompositionRule =
     innerDecoder =
       \v ->
         case v of
-          "worst"    -> succeed WorstReport
-          "sum"      -> succeed SumReport
-          "component"-> succeed FocusReport
-                          |> required "value" string
-          _          -> fail (v ++ " is not a valid composition Rule")
+          "worst" -> succeed WorstReport
+          "sum"   -> succeed SumReport
+          "focus" -> succeed FocusReport
+                       |> required "value" string
+          _       -> fail (v ++ " is not a valid composition Rule")
   in succeed innerDecoder
     |> required "type" string
     |> resolve

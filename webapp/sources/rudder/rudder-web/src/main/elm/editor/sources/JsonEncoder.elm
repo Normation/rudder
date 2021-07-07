@@ -63,7 +63,7 @@ encodeCompositionRule composition =
     SumReport ->
       object [ ("type", string "sum")]
     FocusReport value ->
-      object [ ("type", string "component"), ("value", string value)]
+      object [ ("type", string "focus"), ("value", string value)]
 
 encodeMethodBlock: MethodBlock -> Value
 encodeMethodBlock call =

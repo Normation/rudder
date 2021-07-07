@@ -1429,8 +1429,6 @@ object RuleExpectedReportBuilder extends Loggable {
     def sectionToExpectedReports (section : SectionSpec): List[ComponentExpectedReport] = {
       def childExpectedReports = section.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports).toList
       if(section.isComponent) {
-        logger.info("section")
-        logger.info(section)
         section.reportingLogic match {
           case None =>
             section.componentKey match {

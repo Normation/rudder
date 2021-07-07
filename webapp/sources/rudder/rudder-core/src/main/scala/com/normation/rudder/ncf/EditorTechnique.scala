@@ -342,10 +342,10 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
     def serializeCompositionRule(reportingLogic: ReportingLogic) :JValue = {
       import ReportingLogic._
+
       reportingLogic match {
-        case WorstReport =>  ("type"-> "worst")
-        case SumReport =>  ("type"-> "sum")
-        case FocusReport(component)  => ("type"  -> "focus") ~ ("value" -> component)
+        case WorstReport | SumReport=>  ("type"-> reportingLogic.value)
+        case FocusReport(component)  => ("type"  -> FocusReport.key) ~ ("value" -> component)
       }
     }
     def serializeMethodBlock(block: MethodBlock): JValue = {

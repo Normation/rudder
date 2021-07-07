@@ -1267,9 +1267,9 @@ final case class RestExtractorService (
       optValue  <- OptionnalJson.extractJsonString(json, "value")
       result <-
         type_ match {
-          case  "worst" => Full(WorstReport)
-          case "sum" => Full(SumReport)
-          case "component" => Full(FocusReport(optValue.getOrElse("")))
+          case WorstReport.value => Full(WorstReport)
+          case SumReport.value => Full(SumReport)
+          case FocusReport.key => Full(FocusReport(optValue.getOrElse("")))
           case _ => Failure("")
         }
     } yield {
