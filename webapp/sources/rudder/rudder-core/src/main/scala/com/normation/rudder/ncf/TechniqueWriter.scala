@@ -220,8 +220,6 @@ class TechniqueWriter (
           for {
             childs <- reportingSections(block.calls)
           } yield {
-
-            import com.normation.cfclerk.domain.ReportingLogic._
             val reportingLogic = block.reportingLogic.value
             <SECTION component="true" multivalued="true" name={component} reporting={reportingLogic}>
                 {childs}
@@ -431,14 +429,21 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
 
   // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true
   def truthyCondition(condition : String) = condition.isEmpty || condition == "any" || condition == "cfengine-community"
-  def methodNeedReporting(methods : Map[BundleName, GenericMethod])(call : MethodElem) : Boolean = {
-    call match {
-      case c : MethodCall => methods.get(c.methodId).map(m =>  ! m.agentSupport.contains(AgentType.CfeCommunity) || ! truthyCondition((c.condition))).getOrElse(true)
-      case b : MethodBlock => ! truthyCondition(b.condition) || b.calls.exists(methodNeedReporting(methods))
+  def methodCallNeedReporting(methods : Map[BundleName, GenericMethod], parentBlock : List[MethodBlock])(call : MethodCall) : Boolean = {
+    val condition = (call.condition :: parentBlock.map(_.condition)).filterNot(truthyCondition).mkString("(", ").(", ")")
+    methods.get(call.methodId).map(m =>  ! m.agentSupport.contains(AgentType.CfeCommunity) || ! truthyCondition(condition)).getOrElse(true)
+  }
+
+
+  def elemNeedReportingBundle(methods : Map[BundleName, GenericMethod], parentBlock : List[MethodBlock])(elem : MethodElem): Boolean = {
+    elem match {
+      case c: MethodCall => methodCallNeedReporting(methods, parentBlock)(c)
+      case b: MethodBlock => !truthyCondition(b.condition) || b.calls.exists(elemNeedReportingBundle(methods, b :: parentBlock))
     }
   }
 
-  def needReportingBundle(technique : EditorTechnique, methods : Map[BundleName, GenericMethod]) = technique.methodCalls.exists(methodNeedReporting(methods))
+
+  def needReportingBundle(technique : EditorTechnique, methods : Map[BundleName, GenericMethod]) = technique.methodCalls.exists(elemNeedReportingBundle(methods, Nil))
 
   def canonifyCondition(methodCall: MethodCall, parentBlock : List[MethodBlock]) = {
 
@@ -567,7 +572,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
                 Some((condition,message))
               } else {
                 // ... or if the condition needs rudder_reporting
-                if (methodNeedReporting(methods)(call)) {
+                if (methodCallNeedReporting(methods, parentBlocks)(call)) {
                   val message = s"""Skipping method '${method_info.name}' with key parameter '${escapedClassParameterValue}' since condition '${call.condition}' is not reached"""
                   val condition = s"""concat("${canonifyCondition(call, parentBlocks)}")"""
                   Some((condition, message))
