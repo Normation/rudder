@@ -66,8 +66,20 @@ def run(
             logger.error(error)
             fail(output, retcode)
         return (retcode, output, error)
-    except:
-        fail('Could not execute %s' % cmd, 1)
+    except subprocess.CalledProcessError as e:
+        stdout = ''
+        stderr = ''
+        if e.stdout is not None and len(e.stdout) > 0:
+            stdout = '\n stdout is: %s' % e.stdout
+        if e.stderr is not None and len(e.stderr) > 0:
+            stderr = '\n stderr is: %s' % e.stderr
+        fail(
+            "Command '%s' returned a non-zero return code, %d.%s%s"
+            % (' '.join(e.cmd), e.returncode, stdout, stderr),
+            1,
+        )
+    except Exception as e:
+        fail("Could not execute command '%s',\nException details: %s" % (' '.join(cmd), e), 1)
 
 
 ''' Get Terminal width '''
@@ -339,7 +351,7 @@ def getRudderKey():
             'quit',
         ]
         logger.debug('executing %s' % (trustKeyCommand))
-        run(trustKeyCommand, input=b'5\ny\nn', check=True)
+        run(trustKeyCommand, input=b'5\ny\nn', check=True, capture_output=True)
     logger.debug('=> OK!')
 
 
