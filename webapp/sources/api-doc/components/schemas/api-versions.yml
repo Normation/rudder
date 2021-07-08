@@ -3,7 +3,7 @@
 type: object
 properties:
   latest:
-    type: int
+    type: integer
     description: Lastest API version available
     example: 12
   all:
