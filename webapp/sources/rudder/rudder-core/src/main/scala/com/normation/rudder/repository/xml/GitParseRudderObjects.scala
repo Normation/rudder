@@ -41,11 +41,13 @@ import com.normation.GitVersion
 
 import java.nio.file.Paths
 import com.normation.GitVersion.Revision
+import com.normation.GitVersion.RevisionInfo
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.GitRepositoryProvider
+import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.parameters.GlobalParameter
@@ -401,6 +403,7 @@ class GitParseActiveTechniqueLibrary(
   , uptUnserialiser     : ActiveTechniqueUnserialisation
   , piUnserialiser      : DirectiveUnserialisation
   , val repo            : GitRepositoryProvider
+  , revisionProvider    : GitRevisionProvider
   , xmlMigration        : XmlEntityMigration
   , libRootDirectory    : String //relative name to git root file
   , uptcFileName        : String = "category.xml"
@@ -447,6 +450,27 @@ class GitParseActiveTechniqueLibrary(
     } yield {
       pair
     }).tapError(err => ConfigurationLoggerPure.error(err.fullMsg)).tap(_ => ConfigurationLoggerPure.debug(s" -> found it!"))
+  }
+
+  /*
+   * get revision for given directive
+   */
+  def getRevisions(uid: DirectiveUid): IOResult[List[RevisionInfo]] = {
+    val root = getGitDirectoryPath(libRootDirectory).root
+    for {
+      _       <- ConfigurationLoggerPure.revision.debug(s"Looking for revisions of directive: ${uid.debugString}")
+      current <- revisionProvider.currentRevTreeId
+      // find the file name, then look for revision for that path
+      optPath <- GitFindUtils.listFiles(repo.db, current, List(root), List(uid.serialize + ".xml")) // not sur about the version here
+      path    <- optPath.toList match {
+                   case Nil => Inconsistency(s"Directive with UID '${uid.value}' not found f").fail
+                   case p :: Nil => p.succeed
+                   case x => Inconsistency(s"Error, more than one directive found in `configuration-repository` with uid '${uid.value}': ${x.mkString(",")}").fail
+                 }
+      revs   <- GitFindUtils.findRevFromPath(repo.git, path)
+    } yield {
+      revs.toList
+    }
   }
 
 

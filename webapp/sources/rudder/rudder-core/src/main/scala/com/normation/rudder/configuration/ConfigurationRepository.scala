@@ -39,6 +39,7 @@ package com.normation.rudder.configuration
 
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
+import com.normation.GitVersion.RevisionInfo
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.TechniqueRepository
@@ -46,6 +47,7 @@ import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.GitParseActiveTechniqueLibrary
@@ -77,6 +79,8 @@ trait RoConfigurationRepository {
   def getTechnique(id: TechniqueId): IOResult[Option[Technique]]
 
   def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory]
+
+  def getDirectiveRevision(uid: DirectiveUid): IOResult[List[RevisionInfo]]
 }
 
 trait WoConfigurationRepository {
@@ -110,6 +114,10 @@ class ConfigurationRepositoryImpl(
     }
   }
 
+
+  override def getDirectiveRevision(uid: DirectiveUid): IOResult[List[RevisionInfo]] = {
+    parseActiveTechniqueLibrary.getRevisions(uid)
+  }
 
   def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory] = {
     def nonDefaultRev(rev: Revision): Boolean = rev != GitVersion.defaultRev

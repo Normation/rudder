@@ -712,7 +712,7 @@ object RudderConfig extends Loggable {
   lazy val dependencyAndDeletionService: DependencyAndDeletionService =  dependencyAndDeletionServiceImpl
   val itemArchiveManager: ItemArchiveManager = itemArchiveManagerImpl
   val personIdentService: PersonIdentService = personIdentServiceImpl
-  val gitRevisionProvider: GitRevisionProvider = gitRevisionProviderImpl
+  lazy val gitRevisionProvider: GitRevisionProvider = gitRevisionProviderImpl
   val logDisplayer: LogDisplayer  = logDisplayerImpl
   val fullInventoryRepository: LDAPFullInventoryRepository = ldapFullInventoryRepository
   val acceptedNodeQueryProcessor: QueryProcessor = queryProcessor
@@ -2090,6 +2090,7 @@ object RudderConfig extends Loggable {
     , activeTechniqueUnserialisation
     , directiveUnserialisation
     , gitRepo
+    , gitRevisionProvider
     , entityMigration
     , userLibraryDirectoryName
   )

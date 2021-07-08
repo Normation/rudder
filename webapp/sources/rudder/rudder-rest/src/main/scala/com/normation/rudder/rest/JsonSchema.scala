@@ -40,6 +40,7 @@ package com.normation.rudder.rest
 import com.github.ghik.silencer.silent
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
+import com.normation.GitVersion.RevisionInfo
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
@@ -87,6 +88,7 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
+import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens._
 import io.scalaland.chimney.dsl._
 
@@ -320,6 +322,18 @@ object JsonResponseObjects {
       )
     }
   }
+  final case class JRRevisionInfo(
+      revision: String
+    , date    : String
+    , author  : String
+    , message : String
+  )
+  object JRRevisionInfo {
+    def fromRevisionInfo(r: RevisionInfo) = {
+      JRRevisionInfo(r.rev.value, DateFormaterService.serialize(r.date), r.author, r.message)
+    }
+  }
+
   final case class JRDirective(
       changeRequestId  : Option[String]
     , id               : String
@@ -348,7 +362,7 @@ object JsonResponseObjects {
         .withFieldComputed(_.revision, _.id.rev match { case GitVersion.defaultRev => None ; case rev => Some(rev.value) })
         .withFieldRenamed(_.name, _.displayName)
         .withFieldConst(_.techniqueName, technique.id.name.value)
-        .withFieldComputed(_.techniqueVersion, _.techniqueVersion.toString)
+        .withFieldComputed(_.techniqueVersion, _.techniqueVersion.serialize)
         .withFieldConst(_.parameters, Map("section" -> JRDirectiveSection.fromSectionVal(SectionVal.ROOT_SECTION_NAME, SectionVal.directiveValToSectionVal(technique.rootSection, directive.parameters))))
         .withFieldComputed(_.policyMode, _.policyMode.map(_.name).getOrElse("default"))
         .withFieldComputed(_.tags, x => JRTags.fromTags(x.tags))
@@ -724,6 +738,8 @@ trait RudderJsonEncoders {
   implicit val queryEncoder: JsonEncoder[JRQuery] = DeriveJsonEncoder.gen
   implicit val groupEncoder: JsonEncoder[JRGroup] = DeriveJsonEncoder.gen
   implicit val objectInheritedObjectProperties: JsonEncoder[JRGroupInheritedProperties] = DeriveJsonEncoder.gen
+
+  implicit val revisionInfoEncoder: JsonEncoder[JRRevisionInfo] = DeriveJsonEncoder.gen
 }
 
 

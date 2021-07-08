@@ -39,6 +39,7 @@ package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
+import com.normation.GitVersion.RevisionInfo
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.TechniqueRepository
@@ -121,12 +122,13 @@ class DirectiveApi (
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
-        case API.ListDirectives   => ChooseApi0(ListDirective    , ListDirectiveV14   )
-        case API.DirectiveDetails => ChooseApiN(DirectiveDetails , DirectiveDetailsV14)
-        case API.CreateDirective  => ChooseApi0(CreateDirective  , CreateDirectiveV14 )
-        case API.UpdateDirective  => ChooseApiN(UpdateDirective  , UpdateDirectiveV14 )
-        case API.DeleteDirective  => ChooseApiN(DeleteDirective  , DeleteDirectiveV14 )
-        case API.CheckDirective   => ChooseApiN(CheckDirective   , CheckDirectiveV14  )
+        case API.ListDirectives     => ChooseApi0(ListDirective    , ListDirectiveV14   )
+        case API.DirectiveDetails   => ChooseApiN(DirectiveDetails , DirectiveDetailsV14)
+        case API.DirectiveRevisions => DirectiveRevisionsV14
+        case API.CreateDirective    => ChooseApi0(CreateDirective  , CreateDirectiveV14 )
+        case API.UpdateDirective    => ChooseApiN(UpdateDirective  , UpdateDirectiveV14 )
+        case API.DeleteDirective    => ChooseApiN(DeleteDirective  , DeleteDirectiveV14 )
+        case API.CheckDirective     => ChooseApiN(CheckDirective   , CheckDirectiveV14  )
     }).toList
   }
 
@@ -230,6 +232,14 @@ class DirectiveApi (
       serviceV14.directiveDetails(DirectiveId(DirectiveUid(id), rev)).toLiftResponseOne(params, schema, _.id)
     }
   }
+
+  object DirectiveRevisionsV14 extends LiftApiModuleString {
+    val schema = API.DirectiveRevisions
+    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      serviceV14.directiveRevisions(DirectiveUid(id)).toLiftResponseList(params, schema)
+    }
+  }
+
 
   object CreateDirectiveV14 extends LiftApiModule0 {
     val schema = API.CreateDirective
@@ -660,11 +670,19 @@ class DirectiveApiService14 (
 
   def directiveDetails(id: DirectiveId): IOResult[JRDirective] = {
     for {
-          // TODO: manage rev
-      triple <- readDirective.getDirectiveWithContext(id.uid).notOptional(s"Could not find Directive ${id.debugString}")
+      at <- readRevDirective.getDirective(id).notOptional(s"Directive with id '${id.debugString}' was not found")
+      tid = TechniqueId(at.activeTechnique.techniqueName, at.directive.techniqueVersion)
+      t  <- readRevDirective.getTechnique(tid).notOptional(s"Technique with id '${tid.debugString}' was not found")
     } yield {
-      JRDirective.fromDirective(triple._1, triple._3, None)
+      JRDirective.fromDirective(t, at.directive, None)
     }
+  }
+
+  /*
+   * List available revision for given directive
+   */
+  def directiveRevisions(uid: DirectiveUid): IOResult[List[JRRevisionInfo]] = {
+    readRevDirective.getDirectiveRevision(uid).map(_.map(JRRevisionInfo.fromRevisionInfo))
   }
 
   // A function to check if Variables passed as parameter are correct

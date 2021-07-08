@@ -31,6 +31,8 @@
 
 package com.normation
 
+import org.joda.time.DateTime
+
 
 final object GitVersion {
 
@@ -47,6 +49,20 @@ final object GitVersion {
    * By convention, an empty `value` means `defaultRev`.
    */
   final case class Revision(value: String) extends AnyVal
+
+
+  /**
+   * Meta information are associated with a revision:
+   * - date
+   * - author
+   * - message
+   */
+  final case class RevisionInfo(
+      rev    : Revision
+    , date   : DateTime
+    , author : String
+    , message: String
+  )
 
 
   /**

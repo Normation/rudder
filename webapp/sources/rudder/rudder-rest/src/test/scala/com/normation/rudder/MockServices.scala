@@ -520,6 +520,9 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = rootActiveTechniqueCategory.get
 
+
+    override def getDirectiveRevision(uid: DirectiveUid): IOResult[List[GitVersion.RevisionInfo]] = ???
+
     override def getDirective(directiveId: DirectiveUid): IOResult[Option[Directive]] = {
       rootActiveTechniqueCategory.get.map(_.allDirectives.get(DirectiveId(directiveId)).map(_._2))
     }

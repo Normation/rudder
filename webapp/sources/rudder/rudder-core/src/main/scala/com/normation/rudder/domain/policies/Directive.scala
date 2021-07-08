@@ -89,7 +89,10 @@ import com.normation.cfclerk.domain.SectionSpec
  * an ULID for ex https://wvlet.org/airframe/docs/airframe-ulid if we want to know about
  * time stamp & be a bit more space efficient.
  */
-final case class DirectiveUid(value: String) extends AnyVal
+final case class DirectiveUid(value: String) extends AnyVal {
+  def debugString: String = value
+  def serialize: String = value
+}
 
 /*
  * A directive identifier is composed of the directive unique identifier and the directive revision.
