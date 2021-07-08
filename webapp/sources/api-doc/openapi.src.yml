@@ -143,11 +143,11 @@ paths:
     $ref: paths/system/info.yml
   "/system/reload":
     $ref: paths/system/reload.yml
-  "/reload/techniques":
+  "/system/reload/techniques":
     $ref: paths/system/reload-techniques.yml
-  "/reload/groups":
+  "/system/reload/groups":
     $ref: paths/system/reload-groups.yml
-  "/regenerate/policies":
+  "/system/regenerate/policies":
     $ref: paths/system/regenerate-policies.yml
   "/system/update/policies":
     $ref: paths/system/update-policies.yml

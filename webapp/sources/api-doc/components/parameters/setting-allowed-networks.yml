@@ -3,7 +3,7 @@
 name: "nodeId"
 in: path
 required: true
-description: Policy server ID for which you want to manage allowed networks.  
+description: Policy server ID for which you want to manage allowed networks.
 schema:
   type: string
   format: uuid (or "root")
