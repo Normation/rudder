@@ -144,7 +144,7 @@ update msg model =
     GetTechniques (Ok  techniques) ->
       ({ model | techniques = techniques},  get () )
     GetTechniques (Err e) ->
-      ( model , errorNotification (Debug.toString e  ) )
+      ( model , errorNotification  "Error when getting techniques"  )
 
     OpenTechniques ->
       ( { model | genericMethodsOpen = False } , Cmd.none )

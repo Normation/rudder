@@ -54,7 +54,7 @@ decodeCompositionRule =
           "sum"   -> succeed SumReport
           "focus" -> succeed FocusReport
                        |> required "value" string
-          _       -> fail (v ++ " is not a valid composition Rule")
+          _       -> fail (v ++ " is not a valid reporting logic")
   in succeed innerDecoder
     |> required "type" string
     |> resolve

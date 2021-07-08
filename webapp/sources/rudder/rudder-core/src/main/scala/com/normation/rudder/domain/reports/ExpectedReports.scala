@@ -268,7 +268,7 @@ object ExpectedReportsSerialisation {
       case c: BlockExpectedReport =>
         import ReportingLogic._
         (("componentName" -> c.componentName)
-          ~ ("composition" -> (c.reportingLogic.value))
+          ~ ("reportingLogic" -> (c.reportingLogic.value))
           ~ ("subComponents" -> c.subComponents.map(jsonComponentExpectedReport))
           )
     }
@@ -436,7 +436,6 @@ object ExpectedReportsSerialisation {
     def component(json: JValue): Box[ComponentExpectedReport] = {
       (
           (json \ "componentName" )
-        // , (json \ "cardinality") // #10625: ignore cardinality
         , (json \ "values").extractOpt[List[String]]
         , (json \ "unexpanded").extractOpt[List[String]]
         , (json \ "subComponents") match {
@@ -444,7 +443,7 @@ object ExpectedReportsSerialisation {
         case _=> None
       }
 
-        , (json \ "reportingRule").extractOpt[String]
+        , (json \ "reportingLogic").extractOpt[String]
      ) match {
         case (JString(name), Some(values), Some(unexpanded), None, None ) =>
           Full(ValueExpectedReport(name, values, unexpanded))
