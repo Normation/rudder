@@ -334,7 +334,7 @@ def getRudderKey():
             '--command-fd',
             '0',
             '--edit-key',
-            '"Rudder Project"',
+            'Rudder Project',
             'trust',
             'quit',
         ]
