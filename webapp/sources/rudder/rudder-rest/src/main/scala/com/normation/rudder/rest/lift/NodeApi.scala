@@ -639,7 +639,7 @@ class NodeApiService13 (
       ~  ("lastInventory"       -> DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))
       ~  ("software"            -> JObject(softs.map(s => JField(escapeHTML(s.name.getOrElse("")), JString(escapeHTML(s.version.map(_.value).getOrElse("N/A")))))))
       ~  ("properties"          -> JObject(properties.map(s => JField(s.name, s.toJson ))))
-      ~  ("inheritedProperties" -> JObject(inheritedProperties.map(s => JField(s.prop.name, s.toApiJson))))
+      ~  ("inheritedProperties" -> JObject(inheritedProperties.map(s => JField(s.prop.name, s.toApiJsonRenderParents))))
       )
   }
 
