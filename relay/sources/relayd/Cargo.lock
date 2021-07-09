@@ -1444,6 +1444,7 @@ name = "relayd"
 version = "0.0.0-dev"
 dependencies = [
  "anyhow",
+ "base64",
  "bytes",
  "chrono",
  "criterion",

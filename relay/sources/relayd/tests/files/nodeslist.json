@@ -20,7 +20,7 @@
     },
     "e745a140-40bc-4b86-b6dc-084488fc906b": {
         "hostname": "node1.rudder.local",
-        "key-hash": "sha256:23cbad1561a3f8ea6aa5b880219fecf2a442e1f417c50f084558c57b45f52ee8",
+        "key-hash": "sha256//I8utFWGj+OpqpbiAIZ/s8qRC4fQXxQ8IRVjFe0X1Lug=",
         "policy-server": "root"
     },
     "root": {
