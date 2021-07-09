@@ -30,8 +30,29 @@ impl Hash {
 impl FromStr for Hash {
     type Err = Error;
 
+    // hash_type:hash for 6.x servers
+    // hash_type//base64(hash) for 7.x servers
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts = s.split(':').collect::<Vec<&str>>();
+        // "//"" separator means base64 encoded hash
+        let parts = s.splitn(2, "//").collect::<Vec<&str>>();
+        if parts.len() == 2 {
+            let hash_type = parts[0].parse::<HashType>()?;
+            let decoded =
+                base64::decode(parts[1]).map_err(|_| Error::InvalidHash(s.to_string()))?;
+            let hash = hex::encode(decoded);
+
+            return if hash_type.is_valid_hash(&hash) {
+                Ok(Hash {
+                    hash_type,
+                    value: hash,
+                })
+            } else {
+                Err(Error::InvalidHash(s.to_string()))
+            };
+        }
+
+        // ":" separator means raw hash
+        let parts = s.splitn(2, ':').collect::<Vec<&str>>();
         if parts.len() == 2 {
             let hash_type = parts[0].parse::<HashType>()?;
 
@@ -162,6 +183,14 @@ mod tests {
             }
         );
         assert_eq!(
+            Hash::from_str("sha256//ZE9q37dB6Nq+ZJz1cdrfdt+qPL+Xk8sKkLDMTp4QemY=").unwrap(),
+            Hash {
+                hash_type: HashType::Sha256,
+                value: "644f6adfb741e8dabe649cf571dadf76dfaa3cbf9793cb0a90b0cc4e9e107a66"
+                    .to_string()
+            }
+        );
+        assert_eq!(
             Hash::from_str(
                 "sha512:d301df08cfc11928ee30b4624fbbb6aba068f06faa1c4d5e7516cf7f7b7cb36e8a38d9095ecaadef97882f093921096e9340d452b0c47e9854414e7c05e0c6c4"
             )
@@ -174,6 +203,9 @@ mod tests {
         );
         assert!(Hash::from_str("").is_err());
         assert!(Hash::from_str("sha256:").is_err());
+        assert!(Hash::from_str("sha256//").is_err());
+        assert!(Hash::from_str("sha256//#$%^&*").is_err());
+        assert!(Hash::from_str("sha256//abc").is_err());
         assert!(Hash::from_str("sha256:test").is_err());
     }
 

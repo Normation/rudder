@@ -18,6 +18,7 @@ harness = false
 name = "benches"
 
 [dependencies]
+base64 = "0.13"
 bytes = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 diesel = { version = "1", default-features = false, features = ["postgres", "chrono", "r2d2"] }
