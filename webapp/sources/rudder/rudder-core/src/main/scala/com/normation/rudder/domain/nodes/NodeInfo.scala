@@ -396,17 +396,10 @@ object NodeKeyHash {
   }
 
   /**
-   * Base64 encoding compatible with openssl
-   */
-  protected def base64Encoding(source: Array[Byte]): String = {
-    Base64.encodeBase64String(source)
-  }
-
-  /**
    * Get Base64 encoding compatible with openssl of the sha256 of the public key
    */
   def getB64Sha256Digest(key: PublicKey): IOResult[String] = {
-    getSha256Digest(key).map(base64Encoding)
+    getSha256Digest(key).map(Base64.encodeBase64String)
   }
   /**
    * Base64 encoding of the SHA-256 hash of the DER format of the public key.
@@ -415,7 +408,7 @@ object NodeKeyHash {
    * openssl x509 -in my-certificate.pem -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
    */
   def getB64Sha256Digest(cert: Certificate): IOResult[String] = {
-    getSha256Digest(cert).map(base64Encoding)
+    getSha256Digest(cert).map(Base64.encodeBase64String)
   }
 
 }
