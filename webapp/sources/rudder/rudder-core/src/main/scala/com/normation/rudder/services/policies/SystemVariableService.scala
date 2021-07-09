@@ -490,7 +490,7 @@ class SystemVariableServiceImpl(
     // cfengine version
     val varPolicyServerKeyHashCfengine = systemVariableSpecService.get("POLICY_SERVER_KEY" ).toVariable(Seq(allNodeInfos(nodeInfo.policyServerId).keyHashCfengine))
     // base64(sha256(der encoded pub key))) version
-    val varPolicyServerKeyHashB64Sha256 = systemVariableSpecService.get("POLICY_SERVER_KEY_HASH" ).toVariable(Seq(allNodeInfos(nodeInfo.policyServerId).keyHashBase64Sha256))
+    val varPolicyServerKeyHashB64Sha256 = systemVariableSpecService.get("POLICY_SERVER_KEY_HASH" ).toVariable(Seq("sha256//"+allNodeInfos(nodeInfo.policyServerId).keyHashBase64Sha256))
 
     logger.trace("System variables for node %s done".format(nodeInfo.id.value))
 
