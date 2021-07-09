@@ -55,7 +55,7 @@ import net.liftweb.common.EmptyBox
  * the password "secret"):
  * - salted md5     : {smd5}tyiOfoE4$r5HleyKHVdL3dg9ouzcZ80
  * - salted sha1    : {ssha1}12$tyiOfoE4WXucUfh/$1olYn48enIIKGOOs0ve/GE.k.sF
- * - salted ssha256: {ssha256}12$tyiOfoE4WXucUfh/$YDkcqbY5oKk4lwQ4pVKPy8o4MqcfVpp1ZxxvSfP0.wS
+ * - salted ssha256// {ssha256}12$tyiOfoE4WXucUfh/$YDkcqbY5oKk4lwQ4pVKPy8o4MqcfVpp1ZxxvSfP0.wS
  * - salted ssha512: {ssha512}10$tyiOfoE4WXucUfh/$qaLbOhKx3fwIu93Hkh4Z89Vr.otLYEhRGN3b3SAZFD3mtxhqWZmY2iJKf0KB/5fuwlERv14pIN9h4XRAZtWH..
  *
  * Appart for md5, which is the standard unix implementation and differs only for the
