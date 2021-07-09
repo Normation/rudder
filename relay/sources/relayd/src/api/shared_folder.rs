@@ -56,19 +56,18 @@ pub mod handlers {
 pub struct SharedFolderParams {
     #[serde(default)]
     hash: String,
-    #[serde(default = "default_hash")]
+    #[serde(default)]
     hash_type: String,
-}
-fn default_hash() -> String {
-    "sha256".to_string()
 }
 
 impl SharedFolderParams {
     fn hash(self) -> Result<Option<Hash>, Error> {
         if self.hash.is_empty() {
             Ok(None)
+        } else if self.hash_type.is_empty() {
+            Hash::new("sha256", &self.hash).map(Some)
         } else {
-            Hash::new(self.hash_type, self.hash).map(Some)
+            Hash::new(&self.hash_type, &self.hash).map(Some)
         }
     }
 }

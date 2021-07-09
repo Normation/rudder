@@ -7,24 +7,35 @@ use openssl::hash::MessageDigest;
 use sha2::{Digest, Sha256, Sha512};
 use std::{fmt, str, str::FromStr};
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-
+#[derive(Clone, PartialEq, Eq, Default)]
 pub struct Hash {
     pub hash_type: HashType,
-    pub value: String,
+    value: Vec<u8>,
+}
+
+impl fmt::Debug for Hash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Hash")
+            .field("hash_type", &self.hash_type)
+            .field("value", &self.hex())
+            .finish()
+    }
 }
 
 impl Hash {
-    pub fn new(hash_type: String, value: String) -> Result<Hash, Error> {
-        HashType::from_str(&hash_type).and_then(|t| Hash::new_with_type(t, value))
-    }
+    pub fn new(hash_type: &str, hex_value: &str) -> Result<Hash, Error> {
+        let hash_type = HashType::from_str(hash_type)?;
+        let value = hex::decode(&hex_value)?;
 
-    pub fn new_with_type(hash_type: HashType, value: String) -> Result<Hash, Error> {
         if hash_type.is_valid_hash(&value) {
             Ok(Hash { hash_type, value })
         } else {
-            Err(RudderError::InvalidHash(value).into())
+            Err(RudderError::InvalidHash(hex_value.to_string()).into())
         }
+    }
+
+    pub fn hex(&self) -> String {
+        hex::encode(&self.value)
     }
 }
 
@@ -38,8 +49,7 @@ impl FromStr for Hash {
         let parts = s.splitn(2, "//").collect::<Vec<&str>>();
         if parts.len() == 2 {
             let hash_type = parts[0].parse::<HashType>()?;
-            let decoded = base64::decode(parts[1])?;
-            let hash = hex::encode(decoded);
+            let hash = base64::decode(parts[1])?;
 
             return if hash_type.is_valid_hash(&hash) {
                 Ok(Hash {
@@ -47,7 +57,7 @@ impl FromStr for Hash {
                     value: hash,
                 })
             } else {
-                Err(anyhow!("Invalid {} hash: {}", hash_type, hash))
+                Err(anyhow!("Invalid {} hash: {}", hash_type, parts[1]))
             };
         }
 
@@ -55,15 +65,15 @@ impl FromStr for Hash {
         let parts = s.splitn(2, ':').collect::<Vec<&str>>();
         if parts.len() == 2 {
             let hash_type = parts[0].parse::<HashType>()?;
-            let hash = parts[1];
+            let hash = hex::decode(parts[1])?;
 
-            if hash_type.is_valid_hash(hash) {
+            if hash_type.is_valid_hash(&hash) {
                 Ok(Hash {
                     hash_type,
-                    value: hash.to_string(),
+                    value: hash,
                 })
             } else {
-                Err(anyhow!("Invalid {} hash: {}", hash_type, hash))
+                Err(anyhow!("Invalid {} hash: {}", hash_type, parts[1]))
             }
         } else {
             Err(anyhow!("Invalid hash: {}", s))
@@ -73,7 +83,7 @@ impl FromStr for Hash {
 
 impl fmt::Display for Hash {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}:{}", self.hash_type, self.value,)
+        write!(f, "{}//{}", self.hash_type, base64::encode(&self.value))
     }
 }
 
@@ -124,12 +134,12 @@ impl HashType {
             HashType::Sha256 => {
                 let mut hasher = Sha256::new();
                 hasher.update(bytes);
-                format!("{:x}", hasher.finalize())
+                hasher.finalize()[..].to_owned()
             }
             HashType::Sha512 => {
                 let mut hasher = Sha512::new();
                 hasher.update(bytes);
-                format!("{:x}", hasher.finalize())
+                hasher.finalize()[..].to_owned()
             }
         };
         Hash {
@@ -153,21 +163,19 @@ impl HashType {
     }
 
     /// Check is an hexadecimal string represents a valid hash for the given type
-    pub fn is_valid_hash(self, hash: &str) -> bool {
-        hex::decode(hash)
-            .map(|hash| hash.len() == self.size_bytes())
-            .unwrap_or(false)
+    pub fn is_valid_hash(self, hash: &[u8]) -> bool {
+        hash.len() == self.size_bytes()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{HashType::*, *};
 
     #[test]
     fn it_parses_hash_types() {
-        assert_eq!(HashType::from_str("sha256").unwrap(), HashType::Sha256);
-        assert_eq!(HashType::from_str("sha512").unwrap(), HashType::Sha512);
+        assert_eq!(HashType::from_str("sha256").unwrap(), Sha256);
+        assert_eq!(HashType::from_str("sha512").unwrap(), Sha512);
         assert!(HashType::from_str("").is_err());
     }
 
@@ -179,17 +187,21 @@ mod tests {
             )
             .unwrap(),
             Hash {
-                hash_type: HashType::Sha256,
-                value: "c22a3fb1e9de4bfa697ba258f60f14339b72c3faeb043cb75379b9ebcb2717c3"
-                    .to_string()
+                hash_type: Sha256,
+                value: hex::decode(
+                    "c22a3fb1e9de4bfa697ba258f60f14339b72c3faeb043cb75379b9ebcb2717c3"
+                )
+                .unwrap()
             }
         );
         assert_eq!(
             Hash::from_str("sha256//ZE9q37dB6Nq+ZJz1cdrfdt+qPL+Xk8sKkLDMTp4QemY=").unwrap(),
             Hash {
-                hash_type: HashType::Sha256,
-                value: "644f6adfb741e8dabe649cf571dadf76dfaa3cbf9793cb0a90b0cc4e9e107a66"
-                    .to_string()
+                hash_type: Sha256,
+                value: hex::decode(
+                    "644f6adfb741e8dabe649cf571dadf76dfaa3cbf9793cb0a90b0cc4e9e107a66"
+                )
+                .unwrap()
             }
         );
         assert_eq!(
@@ -198,9 +210,9 @@ mod tests {
             )
             .unwrap(),
             Hash {
-                hash_type: HashType::Sha512,
-                value: "d301df08cfc11928ee30b4624fbbb6aba068f06faa1c4d5e7516cf7f7b7cb36e8a38d9095ecaadef97882f093921096e9340d452b0c47e9854414e7c05e0c6c4"
-                    .to_string()
+                hash_type: Sha512,
+                value: hex::decode("d301df08cfc11928ee30b4624fbbb6aba068f06faa1c4d5e7516cf7f7b7cb36e8a38d9095ecaadef97882f093921096e9340d452b0c47e9854414e7c05e0c6c4"
+                    ).unwrap()
             }
         );
         assert!(Hash::from_str("").is_err());
@@ -213,29 +225,22 @@ mod tests {
 
     #[test]
     fn it_computes_hashes() {
-        let sha256 = HashType::Sha256;
         assert_eq!(
-            sha256.hash(b"test").value,
+            Sha256.hash(b"test").hex(),
             "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
         );
 
-        let sha512 = HashType::Sha512;
-        assert_eq!(sha512.hash(b"test").value, "ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff");
+        assert_eq!(Sha512.hash(b"test").hex(), "ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff");
     }
 
     #[test]
     fn it_validates_hashes() {
-        let sha256 = HashType::Sha256;
-        assert!(sha256
-            .is_valid_hash("c22a3fb1e9de4bfa697ba258f60f14339b72c3faeb043cb75379b9ebcb2717c3"));
-        assert!(!sha256
-            .is_valid_hash("é22a3fb1e9de4bfa697ba258f60f14339b72c3faeb043cb75379b9ebcb2717c3"));
-        assert!(!sha256.is_valid_hash("c22a3f"));
-        let sha512 = HashType::Sha512;
-        assert!(sha512
-            .is_valid_hash("d301df08cfc11928ee30b4624fbbb6aba068f06faa1c4d5e7516cf7f7b7cb36e8a38d9095ecaadef97882f093921096e9340d452b0c47e9854414e7c05e0c6c4"));
-        assert!(!sha512
-            .is_valid_hash("{301df08cfc11928ee30b4624fbbb6aba068f06faa1c4d5e7516cf7f7b7cb36e8a38d9095ecaadef97882f093921096e9340d452b0c47e9854414e7c05e0c6c4"));
-        assert!(!sha512.is_valid_hash("test"));
+        assert!(Sha256.is_valid_hash(
+            &hex::decode("c22a3fb1e9de4bfa697ba258f60f14339b72c3faeb043cb75379b9ebcb2717c3")
+                .unwrap()
+        ));
+        assert!(!Sha256.is_valid_hash(&hex::decode("c22a3f").unwrap()));
+        assert!(Sha512
+            .is_valid_hash(&hex::decode("d301df08cfc11928ee30b4624fbbb6aba068f06faa1c4d5e7516cf7f7b7cb36e8a38d9095ecaadef97882f093921096e9340d452b0c47e9854414e7c05e0c6c4").unwrap()));
     }
 }

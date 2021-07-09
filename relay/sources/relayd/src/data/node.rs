@@ -371,8 +371,8 @@ mod tests {
                 .clone()
                 .unwrap(),
             Hash::new(
-                "sha256".to_string(),
-                "23cbad1561a3f8ea6aa5b880219fecf2a442e1f417c50f084558c57b45f52ee8".to_string()
+                "sha256",
+                "23cbad1561a3f8ea6aa5b880219fecf2a442e1f417c50f084558c57b45f52ee8"
             )
             .unwrap()
         );

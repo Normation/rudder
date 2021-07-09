@@ -335,19 +335,20 @@ pub async fn head_local(
     }
 
     let metadata = Metadata::from_str(&fs::read_to_string(&file_path).await?)?;
+    let metadata_hash = metadata.hash.hex();
 
-    Ok(if metadata.hash.value == params.hash {
+    Ok(if metadata_hash == params.hash {
         debug!(
             "file {} has given hash '{}'",
             file_path.display(),
-            metadata.hash.value
+            metadata_hash
         );
         StatusCode::OK
     } else {
         debug!(
             "file {} has '{}' hash but given hash is '{}'",
             file_path.display(),
-            metadata.hash.value,
+            metadata_hash,
             params.hash,
         );
         StatusCode::NOT_FOUND

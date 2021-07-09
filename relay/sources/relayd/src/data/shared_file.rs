@@ -122,7 +122,7 @@ impl fmt::Display for Metadata {
         writeln!(f, "header={}", &self.format)?;
         writeln!(f, "algorithm={}", &self.hash.hash_type)?;
         writeln!(f, "digest={}", &self.digest)?;
-        writeln!(f, "hash_value={}", &self.hash.value)?;
+        writeln!(f, "hash_value={}", &self.hash.hex())?;
         writeln!(f, "short_pubkey={}", &self.short_pubkey)?;
         writeln!(f, "hostname={}", &self.hostname)?;
         writeln!(f, "keydate={}", &self.key_date)?;
@@ -159,10 +159,10 @@ impl FromStr for Metadata {
         }
 
         let format = extract(&parsed, "header")?.parse::<SignatureFormat>()?;
-
-        let hash_type = extract(&parsed, "algorithm")?;
-        let hash_value = extract(&parsed, "hash_value")?;
-        let hash = Hash::new(hash_type.to_string(), hash_value.to_string())?;
+        let hash = Hash::new(
+            extract(&parsed, "algorithm")?,
+            extract(&parsed, "hash_value")?,
+        )?;
 
         let digest = extract(&parsed, "digest")?.to_string();
         // Validate hexadecimal string
@@ -263,9 +263,9 @@ mod tests {
     fn it_writes_and_parses_the_metadata() {
         let metadata = Metadata {
             format: SignatureFormat::RudderV1,
-            hash: Hash::new_with_type(
-                HashType::Sha256,
-                "a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f".to_string(),
+            hash: Hash::new(
+                "sha256",
+                "a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f",
             )
             .unwrap(),
             digest: "8ca9efc5752e133e2e80e2661c176fa50f".to_string(),
@@ -285,9 +285,9 @@ mod tests {
     fn it_writes_and_parses_the_metadata_with_expired() {
         let metadata = Metadata {
             format: SignatureFormat::RudderV1,
-            hash: Hash::new_with_type(
-                HashType::Sha256,
-                "a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f".to_string(),
+            hash: Hash::new(
+                "sha256",
+                "a75fda39a7af33eb93ab1c74874dcf66d5761ad30977368cf0c4788cf5bfd34f",
             )
             .unwrap(),
             digest: "8ca9efc5752e133e2e80e2661c176fa50f".to_string(),
