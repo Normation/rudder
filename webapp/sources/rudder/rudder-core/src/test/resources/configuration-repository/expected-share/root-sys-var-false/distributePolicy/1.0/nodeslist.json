@@ -1,13 +1,13 @@
 {
       "c8813416-316f-4307-9b6a-ca9c109a9fb0": {
         "hostname": "node1.localhost",
-        "key-hash": "sha256:cf621af57886d614617b2c8187d1db9d18c93ee0674c9985fb06fa17705ed4f0",
+        "key-hash": "sha256//z2Ia9XiG1hRheyyBh9HbnRjJPuBnTJmF+wb6F3Be1PA=",
         "policy-server": "root"
       }
     ,
       "root": {
         "hostname": "server.rudder.local",
-        "key-hash": "sha256:41d8180612444dc6c280ac9189b8c95594029ba9a0697cd72b1af388b4b94844",
+        "key-hash": "sha256//QdgYBhJETcbCgKyRibjJVZQCm6mgaXzXKxrziLS5SEQ=",
         "policy-server": "root"
       }
     

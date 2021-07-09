@@ -18,6 +18,7 @@
   "MODIFIED_FILES_TTL":"30",
   "NODEROLE":"# This node doesn't have any specific role",
   "POLICY_SERVER_KEY":"MD5=eec3a3c2cf41b2736b7a0a9dece02142",
+  "POLICY_SERVER_KEY_HASH":"sha256//QdgYBhJETcbCgKyRibjJVZQCm6mgaXzXKxrziLS5SEQ=",
   "RELAY_SYNC_METHOD":"classic",
   "RELAY_SYNC_PROMISES":"false",
   "RELAY_SYNC_SHAREDFILES":"false",

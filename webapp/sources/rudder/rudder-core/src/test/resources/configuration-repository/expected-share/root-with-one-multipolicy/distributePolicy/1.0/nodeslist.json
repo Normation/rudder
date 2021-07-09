@@ -1,7 +1,7 @@
 {
       "root": {
         "hostname": "server.rudder.local",
-        "key-hash": "sha256:41d8180612444dc6c280ac9189b8c95594029ba9a0697cd72b1af388b4b94844",
+        "key-hash": "sha256//QdgYBhJETcbCgKyRibjJVZQCm6mgaXzXKxrziLS5SEQ=",
         "policy-server": "root"
       }
     

@@ -266,7 +266,6 @@ object ExpectedReportsSerialisation {
           ~ ("unexpanded" -> c.unexpandedComponentsValues)
           )
       case c: BlockExpectedReport =>
-        import ReportingLogic._
         (("componentName" -> c.componentName)
           ~ ("reportingLogic" -> (c.reportingLogic.value))
           ~ ("subComponents" -> c.subComponents.map(jsonComponentExpectedReport))
