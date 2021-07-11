@@ -49,7 +49,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 
@@ -151,7 +151,7 @@ trait WorkflowLevelService {
    * These method allow to get change request impacting a rule/directive/etc.
    * Used to display information on them on corresponding update screens.
    */
-  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
+  def getByDirective(id: DirectiveUid, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
   def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
   def getByRule(id : RuleId, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
 }
@@ -186,7 +186,7 @@ class DefaultWorkflowLevel(val defaultWorkflowService: WorkflowService) extends 
     this.level.map( _.getForGlobalParam(actor, change)).getOrElse(Full(defaultWorkflowService))
   }
 
-  override def getByDirective(id: DirectiveId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = this.level.map( _.getByDirective(id, onlyPending)).getOrElse(Full(Vector()))
+  override def getByDirective(id: DirectiveUid, onlyPending: Boolean): Box[Vector[ChangeRequest]] = this.level.map( _.getByDirective(id, onlyPending)).getOrElse(Full(Vector()))
 
   override def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = this.level.map( _.getByNodeGroup(id, onlyPending)).getOrElse(Full(Vector()))
 

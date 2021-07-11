@@ -128,7 +128,7 @@ class LDAPSchema {
   def demux(names : String*) : S = {
     require(null != names)
     val ns : Seq[String] = names.map( _.toLowerCase).distinct;
-    require(ns.forall(x => ocs.isDefinedAt(x)), "One of the given names is not registered: " + names)
+    require(ns.forall(x => ocs.isDefinedAt(x)), "One of the given names is not registered: " + names.mkString)
     val lists:List[List[String]] = ns.map(x => x :: this.parents(x)).toList
 
     //list have to be ordered from shortest to longest

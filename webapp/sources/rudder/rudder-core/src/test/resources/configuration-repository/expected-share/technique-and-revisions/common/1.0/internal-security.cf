@@ -1,0 +1,61 @@
+#####################################################################################
+# Copyright 2011 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+bundle agent internal_security
+{
+  vars:
+
+      "mode"  string => "600";
+      "user"  string => "root";
+      "group" string => "0"; # This is "root" on most UNIX-like systems, but "system" on AIX
+
+  files:
+
+      "${g.rudder_var}/modified-files"
+        perms   => mog("${mode}", "${user}", "${group}"),
+        classes => kept_if_else("security_sanitization_ok", "security_sanitization_repaired", "security_sanitization_failed");
+
+      "${sys.workdir}/inputs"
+        depth_search => recurse("inf"),
+        perms        => mog("${mode}", "${user}", "${group}"),
+        classes      => kept_if_else("security_sanitization_ok", "security_sanitization_repaired", "security_sanitization_failed");
+
+      "${sys.workdir}/inputs"
+        perms   => mog("${mode}", "${user}", "${group}"),
+        classes => kept_if_else("security_sanitization_ok", "security_sanitization_repaired", "security_sanitization_failed");
+
+      "${sys.workdir}/ppkeys"
+        depth_search => recurse("inf"),
+        perms        => mog("${mode}", "${user}", "${group}"),
+        classes      => kept_if_else("security_sanitization_ok", "security_sanitization_repaired", "security_sanitization_failed");
+
+      "${sys.workdir}/ppkeys"
+        perms   => mog("${mode}", "${user}", "${group}"),
+        classes => kept_if_else("security_sanitization_ok", "security_sanitization_repaired", "security_sanitization_failed");
+
+  methods:
+
+    security_sanitization_ok.!security_sanitization_repaired::
+      "any" usebundle => rudder_common_report("Common", "result_success", "${system_common.directiveId}", "Security parameters", "None", "The internal environment security is acceptable");
+
+    security_sanitization_repaired::
+      "any" usebundle => rudder_common_report("Common", "result_repaired", "${system_common.directiveId}", "Security parameters", "None", "Some internal security parameters were adjusted");
+
+    security_sanitization_failed::
+      "any" usebundle => rudder_common_report("Common", "result_error", "${system_common.directiveId}", "Security parameters", "None", "The internal environment security is NOT acceptable!");
+}

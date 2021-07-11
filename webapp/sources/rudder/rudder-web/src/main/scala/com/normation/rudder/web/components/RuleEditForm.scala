@@ -52,6 +52,8 @@ import com.normation.rudder.web.model.WBTextField
 import com.normation.rudder.web.services.DisplayDirectiveTree
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import bootstrap.liftweb.RudderConfig
+import com.normation.GitVersion
+import com.normation.GitVersion.Revision
 import com.normation.rudder.domain.nodes.NodeGroupId
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
@@ -237,7 +239,7 @@ class RuleEditForm(
   private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, globalMode : GlobalPolicyMode) : NodeSeq = {
 
     val usedDirectiveIds = roRuleRepository.getAll().toBox.getOrElse(Seq()).flatMap { case r =>
-      r.directiveIds.map( id => (id -> r.id))
+      r.directiveIds.map( id => (id.uid -> r.id))
     }.groupMapReduce( _._1 )(_ => 1)(_+_).toSeq
 
     //is't there an other way to do that? We already have the target/name
@@ -276,20 +278,20 @@ class RuleEditForm(
         val details = directiveLib.allDirectives.get(id) match {
           case Some((t,d)) =>
             JsDirective(
-                d.id.value
-              , linkUtil.directiveLink(d.id)
+                d.id.uid.value
+              , linkUtil.directiveLink(d.id.uid)
               , d.name
               , d.shortDescription
               , t.newestAvailableTechnique.get.name
-              , d.techniqueVersion.toString
+              , d.techniqueVersion.serialize
               , d.policyMode.map(_.name).getOrElse(globalMode.mode.name)
               , JsonTagSerialisation.serializeTags(d.tags)
             )
           case None => //the rule reference a non-existing directive. It will break generation. We need to make it appears
             JsDirective(
-                id.value
-              , linkUtil.directiveLink(id)
-              , s"Unknown directive with id: '${id.value}'"
+                id.uid.value
+              , linkUtil.directiveLink(id.uid)
+              , s"Unknown directive with id: '${id.debugString}'"
               , s"This directive is not known by Rudder. You should likely delete it from that rule."
               , "Technique unknown"
               , "Technique version unknown"
@@ -297,7 +299,7 @@ class RuleEditForm(
               , JArray(Nil)
             )
         }
-        (id.value, details)
+        (id.uid.value, details)
       }.toMap
       write(map)
     }
@@ -329,7 +331,7 @@ class RuleEditForm(
               , None
               , addEditLink      = true
               , addActionBtns    = true
-              , included         = selectedDirectiveIds
+              , included         = selectedDirectiveIds.map(_.uid)
                 //filter techniques without directives, and categories without technique
               , keepCategory     = category => category.allDirectives.nonEmpty
               , keepTechnique    = technique => technique.directives.nonEmpty
@@ -395,7 +397,10 @@ class RuleEditForm(
    */
   private[this] def serializedirectiveIds(ids:Seq[DirectiveId]) : String = {
     implicit val formats = Serialization.formats(NoTypeHints)
-    Serialization.write(ids.map( "jsTree-" + _.value ))
+    Serialization.write(ids.map(x => x.rev match {
+      case GitVersion.defaultRev => "jsTree-" + x.uid.value
+      case Revision(r)           => "jsTree-" + x.uid.value + "_" + r
+    }))
   }
 
   /*
@@ -405,7 +410,10 @@ class RuleEditForm(
    */
   private[this] def unserializedirectiveIds(ids:String) : Seq[DirectiveId] = {
     implicit val formats = DefaultFormats
-    parse(ids).extract[List[String]].map( x => DirectiveId(x.replace("jsTree-","")) )
+    parse(ids).extract[List[String]].map { x =>
+      val parts = x.replace("jsTree-","").split("_")
+      DirectiveId(DirectiveUid(parts(0)), if(parts.length == 2) Revision(parts(1)) else GitVersion.defaultRev)
+    }
   }
 
   private[this] def unserializeTarget(target:String)  = {
@@ -460,12 +468,12 @@ class RuleEditForm(
   }
 
   private[this] def directiveClick(t:FullActiveTechnique , d: Directive, gm:String) : JsCmd = {
-    val dirId          = d.id.value
-    val dirLink        = linkUtil.directiveLink(d.id).encJs
+    val dirId          = d.id.uid.value
+    val dirLink        = linkUtil.directiveLink(d.id.uid).encJs
     val dirName        = d.name.encJs
     val dirDescription = d.shortDescription.encJs
     val dirTechName    = t.newestAvailableTechnique.get.name.encJs
-    val dirTechVersion = d.techniqueVersion.toString.encJs
+    val dirTechVersion = d.techniqueVersion.serialize.encJs
     val dirMode        = d.policyMode.map(_.name).getOrElse(gm).encJs
     val dirTags        = net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(d.tags))
     JsRaw(s"""onClickDirective("${dirId}", ${dirName}, ${dirLink}, ${dirDescription}, ${dirTechName}, ${dirTechVersion}, ${dirMode}, ${dirTags})""")

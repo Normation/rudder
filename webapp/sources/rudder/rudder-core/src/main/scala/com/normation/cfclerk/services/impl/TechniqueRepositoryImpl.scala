@@ -109,8 +109,8 @@ class TechniqueRepositoryImpl(
           if (modifiedPackages.isEmpty) "no modified techniques found"
           else {
             val details = modifiedPackages.values.map {
-              case TechniqueDeleted(name, versions) => s"['${name}': deleted (${versions.mkString(", ")})]"
-              case TechniqueUpdated(name, mods)     => s"['${name}': updated (${mods.map(x => s"${x._1}: ${x._2}").mkString(", ")})]"
+              case TechniqueDeleted(name, versions) => s"['${name.value}': deleted (${versions.mkString(", ")})]"
+              case TechniqueUpdated(name, mods)     => s"['${name.value}': updated (${mods.map(x => s"${x._1.debugString}: ${x._2.name}").mkString(", ")})]"
             }
 
             "found modified technique(s): " + details.mkString(", ")
@@ -183,7 +183,7 @@ class TechniqueRepositoryImpl(
 
         val res = Control.bestEffort(callbacks) { callback =>
           try {
-            callback.updatedTechniques(techniqueInfosCache.gitRevId, modifiedPackages, updatedCategories, modId, actor, reason)
+            callback.updatedTechniques(techniqueInfosCache.gitRev, modifiedPackages, updatedCategories, modId, actor, reason)
           } catch {
             case e: Exception =>
               Failure(s"Error when executing callback '${callback.name}' for updated techniques: '${modifiedPackages.mkString(", ")}'", Full(e), Empty)
@@ -282,7 +282,7 @@ class TechniqueRepositoryImpl(
   override def getTechniqueCategory(id: TechniqueCategoryId): IOResult[TechniqueCategory] = {
     id match {
       case RootTechniqueCategoryId     => this.techniqueInfosCache.rootCategory.succeed
-      case sid: SubTechniqueCategoryId => this.techniqueInfosCache.subCategories.get(sid).notOptional(s"The category with id '${id.name}' was not found.")
+      case sid: SubTechniqueCategoryId => this.techniqueInfosCache.subCategories.get(sid).notOptional(s"The category with id '${id.name.value}' was not found.")
     }
   }
 
@@ -296,5 +296,5 @@ class TechniqueRepositoryImpl(
     } yield {
       cat
     }
-  }.notOptional(s"The parent category for '${id.toString}' was not found.")
+  }.notOptional(s"The parent category for '${id.debugString}' was not found.")
 }

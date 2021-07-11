@@ -285,8 +285,8 @@ object CFEngineKey {
       keyFactory <- pubkeyInfo.getAlgorithm.getAlgorithm match {
                       case PKCSObjectIdentifiers.rsaEncryption =>
                         Full(KeyFactory.getInstance("RSA"))
-                      case algo => //not supported
-                        Failure(s"The CFEngine public key used an unsupported algorithm '${algo}'. Only RSA is supported")
+                      case unknownAlgo => //not supported
+                        Failure(s"The CFEngine public key used an unsupported algorithm '${unknownAlgo.toString}'. Only RSA is supported")
                     }
                     // actually decode the key...
       keyspec    <- tryo { new X509EncodedKeySpec(pubkeyInfo.getEncoded) }

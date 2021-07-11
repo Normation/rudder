@@ -46,10 +46,8 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.NodeRunHook
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
@@ -57,6 +55,7 @@ import zio._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
+import com.normation.rudder.domain.policies.DirectiveId
 
 import scala.collection.immutable.ListMap
 
@@ -170,7 +169,7 @@ object BuildBundleSequence {
   final case class TechniqueBundles(
       // Human readable name of the "Rule name / Directive name" for that list of bundle
       promiser               : Promiser
-    , directiveId            : DirectiveId
+    , directiveId           : DirectiveId
       // identifier of the technique from which that list of bundle derive (that's the one without spaces and only ascii chars)
     , techniqueId            : TechniqueId
     , pre                    : List[Bundle]
@@ -184,7 +183,7 @@ object BuildBundleSequence {
     , enableMethodReporting  : Boolean
   ) {
     val contextBundle : List[Bundle]  = main.map(_.id).distinct.collect{ case Some(id) =>
-      Bundle(None, BundleName("rudder_reporting_context"), List((id.directiveId.value,"directiveId"), (id.ruleId.value, "ruleId"), (techniqueId.name.value,"techniqueName")).map( (BundleParam.DoubleQuote.apply _).tupled ) )
+      Bundle(None, BundleName("rudder_reporting_context"), List((id.directiveId.serialize,"directiveId"), (id.ruleId.value, "ruleId"), (techniqueId.name.value,"techniqueName")).map( (BundleParam.DoubleQuote.apply _).tupled ) )
     }
 
     val methodReportingState : List[Bundle]  = {
@@ -194,7 +193,7 @@ object BuildBundleSequence {
     }
 
     val runBundle : Bundle = {
-      Bundle(None,BundleName(s"run_${directiveId.value.replace("-","_")}"), Nil)
+      Bundle(None,BundleName(s"run_${directiveId.serialize.replace("-","_")}"), Nil)
     }
 
     def runBundles : List[Bundle] = Bundle.modeBundle(policyMode, isSystem) :: runBundle :: Nil
@@ -208,7 +207,7 @@ object BuildBundleSequence {
    * We don't want to include these technique in the bundle sequence,
    * obviously
    */
-  implicit final class NoBundleTechnique(val bundles: List[TechniqueBundles]) extends AnyVal {
+  implicit final class NoBundleTechnique(private val bundles: List[TechniqueBundles]) extends AnyVal {
     def removeEmptyBundle: List[TechniqueBundles] = bundles.filterNot(_.main.isEmpty)
   }
 }
@@ -238,7 +237,7 @@ class BuildBundleSequence(
 
     // Fetch the policies configured and sort them according to (rules, directives)
 
-    val sortedPolicies = sortPolicies(policies)
+    val sortedPolicies = PolicyOrdering.sort(policies)
 
     // Then builds bundles and inputs:
     // - build list of inputs file to include: all the outPath of templates that should be "included".
@@ -357,30 +356,6 @@ class BuildBundleSequence(
       TechniqueBundles(name, policy.id.directiveId, policy.technique.id, Nil, bundles, Nil, policy.technique.isSystem, policyMode, policy.technique.useMethodReporting)
     }
   }
-
-  /*
-   * Sort the techniques according to the order of the associated BundleOrder of Policy.
-   * Sort at best: sort rule then directives, and take techniques on that order, only one time.
-   *
-   * CAREFUL: this method only take care of sorting based on "BundleOrder", other sorting (like
-   * "system must go first") are not taken into account here !
-   */
-  def sortPolicies(
-      policies: List[Policy]
-  ): List[Policy] = {
-    def compareBundleOrder(a: Policy, b: Policy): Boolean = {
-      BundleOrder.compareList(List(a.ruleOrder, a.directiveOrder), List(b.ruleOrder, b.directiveOrder)) <= 0
-    }
-    val sorted = policies.sortWith(compareBundleOrder)
-
-    //some debug info to understand what order was used for each node:
-    // it's *extremelly* versbose, perhaps it should have it's own logger.
-    if(PolicyGenerationLogger.isTraceEnabled) {
-      val logSorted = sorted.map(p => s"${p.technique.id}: [${p.ruleOrder.value} | ${p.directiveOrder.value}]").mkString("[","][", "]")
-      PolicyGenerationLogger.trace(s"Sorted Technique (and their Rules and Directives used to sort): ${logSorted}")
-    }
-    sorted
-  }
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -391,12 +366,12 @@ object CfengineBundleVariables {
   import BuildBundleSequence._
 
   def getBundleVariables(
-      escape      : String => String
-    , systemInputs: List[InputFile]
+      escape       : String => String
+    , systemInputs : List[InputFile]
     , systemBundles: List[TechniqueBundles]
-    , userInputs  : List[InputFile]
-    , userBundles : List[TechniqueBundles]
-    , runHooks    : List[NodeRunHook]
+    , userInputs   : List[InputFile]
+    , userBundles  : List[TechniqueBundles]
+    , runHooks     : List[NodeRunHook]
   ) : BundleSequenceVariables = {
 
     BundleSequenceVariables(
@@ -571,7 +546,7 @@ final case class JsonRunHook(
 )
 
 object JsonRunHookSer {
-  implicit class ToJson(val h: NodeRunHook) extends AnyVal {
+  implicit class ToJson(private val h: NodeRunHook) extends AnyVal {
     import net.liftweb.json._
     def jsonParam: String = {
       val jh = JsonRunHook(

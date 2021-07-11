@@ -58,7 +58,6 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
-
 import com.normation.box._
 
 class ComplianceApi(
@@ -382,7 +381,7 @@ class ComplianceAPIService(
                     rule.id
                   , rule.name
                   , ComplianceLevel(noAnswer = rule.directiveIds.size)
-                  , rule.directiveIds.map { id => ByNodeDirectiveCompliance(id, directiveLib.get(id).map(_._2.name).getOrElse("Unknown Directive"), ComplianceLevel(noAnswer = 1), Map())}.toSeq
+                  , rule.directiveIds.map { rid => ByNodeDirectiveCompliance(rid, directiveLib.get(rid).map(_._2.name).getOrElse("Unknown Directive"), ComplianceLevel(noAnswer = 1), Map())}.toSeq
                 )
               }).toSeq
           ))

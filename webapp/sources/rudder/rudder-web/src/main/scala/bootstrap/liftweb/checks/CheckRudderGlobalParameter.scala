@@ -43,6 +43,7 @@ import zio._
 import zio.syntax._
 import better.files._
 import bootstrap.liftweb.BootstrapLogger
+import com.normation.GitVersion
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.eventlog.ModificationId
@@ -122,8 +123,9 @@ class CheckRudderGlobalParameter(
 }
 
 // lift json need that to be topevel
+// TODO: add Option[String] revision in API
 private[checks] final case class JsonParam(name: String, description: String, value: JValue, inheritMode: Option[String], provider: Option[String]) {
   def toGlobalParam = {
-    GlobalParameter(name, GenericProperty.fromJsonValue(value), inheritMode.flatMap(InheritMode.parseString(_).toOption), description, provider.map(PropertyProvider.apply))
+    GlobalParameter(name, GitVersion.defaultRev, GenericProperty.fromJsonValue(value), inheritMode.flatMap(InheritMode.parseString(_).toOption), description, provider.map(PropertyProvider.apply))
   }
 }

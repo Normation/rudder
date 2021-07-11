@@ -36,6 +36,7 @@
 */
 package com.normation.rudder.services.policies
 
+import com.normation.GitVersion
 import org.junit.runner._
 import org.specs2.runner._
 import org.specs2.mutable._
@@ -44,16 +45,18 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+
 import scala.collection.SortedMap
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.policies.DirectiveId
 
 /**
  * Test how RuleVal and ParsedPolicyDraft are constructed, and if they
@@ -72,9 +75,9 @@ class RuleValServiceTest extends Specification {
    */
     val techniqueId = TechniqueId(
         TechniqueName("techniqueName")
-      , TechniqueVersion("1.0")
+      , TechniqueVersionHelper("1.0")
     )
-  val directiveId = DirectiveId("dirId")
+  val directiveId = DirectiveUid("dirId")
   val ruleId = RuleId("ruleId")
 
   /* create representation of meta techniques */
@@ -127,7 +130,7 @@ class RuleValServiceTest extends Specification {
     val technique = makeMetaTechnique(techniqueId)
 
     val directive = Directive(
-        directiveId
+        DirectiveId(directiveId, GitVersion.defaultRev)
       , techniqueId.version
       , Map()
       , "MyDirective"
@@ -141,10 +144,11 @@ class RuleValServiceTest extends Specification {
 
     val rule = Rule(
           ruleId
+        , None
         , "Rule Name"
         , RuleCategoryId("cat1")
         , Set(GroupTarget(NodeGroupId("nodeGroupId")))
-        , Set(directiveId)
+        , Set(DirectiveId(directiveId))
         , ""
         , ""
         , true

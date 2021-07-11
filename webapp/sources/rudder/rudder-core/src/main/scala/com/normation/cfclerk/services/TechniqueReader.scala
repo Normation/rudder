@@ -48,7 +48,7 @@ import scala.collection.mutable.{Map => MutMap}
 
 final case class TechniquesInfo(
     rootCategory          : RootTechniqueCategory
-  , gitRevId              : String
+  , gitRev                : String
     //the TechniqueCategoryId is a path from the point of view of a tree
   , techniquesCategory    : Map[TechniqueId, TechniqueCategoryId]
   , techniques            : Map[TechniqueName, SortedMap[TechniqueVersion, Technique]]
@@ -102,6 +102,8 @@ trait TechniqueReader {
   /**
    * Read the content of a resource, if the resources is known by that
    * TechniqueReader.
+   * You can provide a revision id. It's the only one that will be used, even in
+   * the case of a technique resource.
    *
    * Optionnaly, give an extension to happen to the resource name
    * (used for example for template)
@@ -112,7 +114,7 @@ trait TechniqueReader {
    * The implementation must take care of correct closing of the input
    * stream and any I/O exception.
    */
-  def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(useIt : Option[InputStream] => IOResult[T]) : IOResult[T]
+  def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String]) (useIt : Option[InputStream] => IOResult[T]) : IOResult[T]
 
   /**
    * An indicator that the underlying policy template library changed and that the content

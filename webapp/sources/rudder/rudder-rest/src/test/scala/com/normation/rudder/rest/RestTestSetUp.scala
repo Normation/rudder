@@ -152,6 +152,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
 import com.normation.box._
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.policies.DirectiveUid
 
 
 /*
@@ -239,7 +240,7 @@ object RestTestSetUp {
   val policyGeneration = new PromiseGenerationService {
     override def deploy(): Box[Set[NodeId]] = Full(Set())
     override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
-    override def getDirectiveLibrary(): Box[FullActiveTechniqueCategory] = ???
+    override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = ???
     override def getGroupLibrary(): Box[FullNodeGroupCategory] = ???
     override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = ???
     override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = ???
@@ -278,7 +279,7 @@ object RestTestSetUp {
   val asyncDeploymentAgent = new AsyncDeploymentActor(policyGeneration, eventLogger, deploymentStatusSerialisation, () => Duration("0s").succeed, () => AllGeneration.succeed)
 
   val findDependencies  = new FindDependencies { //never find any dependencies
-    override def findRulesForDirective(id: DirectiveId): IOResult[Seq[Rule]] = Nil.succeed
+    override def findRulesForDirective(id: DirectiveUid): IOResult[Seq[Rule]] = Nil.succeed
     override def findRulesForTarget(target: RuleTarget): IOResult[Seq[Rule]] = Nil.succeed
   }
   val dependencyService = new DependencyAndDeletionServiceImpl(findDependencies, mockDirectives.directiveRepo, mockDirectives.directiveRepo, mockRules.ruleRepo, mockNodeGroups.groupsRepo)
@@ -504,6 +505,7 @@ object RestTestSetUp {
   val directiveApiService14 =
     new DirectiveApiService14 (
         mockDirectives.directiveRepo
+      , mockDirectives.directiveRepo
       , mockDirectives.directiveRepo
       , uuidGen
       , asyncDeploymentAgent

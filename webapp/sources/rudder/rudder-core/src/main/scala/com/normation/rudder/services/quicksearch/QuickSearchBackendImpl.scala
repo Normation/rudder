@@ -140,7 +140,7 @@ object QSDirectiveBackend extends Loggable {
        * A set of value to check against / value to return to the user
        */
       a match {
-        case QSDirectiveId     => Some(Set((dir.id.value,dir.id.value)))
+        case QSDirectiveId     => Some(Set((dir.id.uid.value,dir.id.uid.value)))
         case DirectiveVarName  => Some(dir.parameters.flatMap(param => param._2.map(value => (param._1, param._1+":"+ value))).toSet)
         case DirectiveVarValue => Some(dir.parameters.flatMap(param => param._2.map(value => (value, param._1+":"+ value))).toSet)
         case TechniqueName     => Some(at.techniques.map { case (_,t) => (t.name, t.name) }.toSet)
@@ -183,7 +183,7 @@ object QSDirectiveBackend extends Loggable {
       toMatch(at,dir).flatMap { set => set.collectFirst {
         case (s,value) if QSPattern(token).matcher(s).matches =>
           QuickSearchResult(
-              QRDirectiveId(dir.id.value)
+              QRDirectiveId(dir.id.uid.value)
             , dir.name
             , Some(a)
             , value

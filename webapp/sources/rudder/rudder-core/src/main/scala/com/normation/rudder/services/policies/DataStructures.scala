@@ -41,7 +41,9 @@ import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies.{DirectiveId, GlobalPolicyMode, PolicyMode, RuleId}
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.RuleId
 
 import scala.collection.immutable.TreeMap
 import org.joda.time.DateTime
@@ -62,6 +64,7 @@ import com.normation.cfclerk.domain.AgentConfig
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors._
+import com.normation.rudder.domain.policies.DirectiveId
 import com.typesafe.config.ConfigValue
 
 /*
@@ -275,7 +278,7 @@ final case class NodeConfiguration(
  */
 final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVersion: TechniqueVersion) {
 
-  val value = s"${ruleId.value}@@${directiveId.value}"
+  val value = s"${ruleId.value}@@${directiveId.serialize}"
 
   /**
    * Create the value of the Rudder Id from the Id of the Policy and
@@ -283,7 +286,7 @@ final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVer
    */
   def getReportId = value + "@@0" // as of Rudder 4.3, serial is always 0
 
-  lazy val getRudderUniqueId = (techniqueVersion.toString + "_" + directiveId.value).replaceAll("""\W""","_")
+  lazy val getRudderUniqueId = (techniqueVersion.serialize + "_" + directiveId.serialize).replaceAll("""\W""","_")
 }
 
 /*
@@ -322,7 +325,7 @@ final case class PolicyTechnique(
 final object PolicyTechnique {
   def forAgent(technique: Technique, agentType: AgentType): Either[String, PolicyTechnique] = {
     technique.agentConfigs.find( _.agentType == agentType) match {
-      case None    => Left(s"Error: Technique '${technique.name}' (${technique.id.toString()}) does not support agent type '${agentType.displayName}'")
+      case None    => Left(s"Error: Technique '${technique.name}' (${technique.id.debugString}) does not support agent type '${agentType.displayName}'")
       case Some(x) => Right(PolicyTechnique(
           id                     = technique.id
         , agentConfig            = x
@@ -401,7 +404,7 @@ final object Policy {
    * path containing the given directive id
    */
   def makeUniqueDest(path: String, p: Policy): String = {
-    val subPath = s"${p.technique.id.name.value}/${p.technique.id.version.toString}"
+    val subPath = p.technique.id.serialize
     path.replaceFirst(subPath, s"${p.technique.id.name.value}/${p.id.getRudderUniqueId}")
   }
 
@@ -525,7 +528,7 @@ final case class BoundPolicyDraft(
         case Some(value) =>
           originalVars.get(value) match {
             //should not happen, techniques consistency are checked
-            case None => throw new NotFoundException("No valid bounding found for trackerVariable " + trackerVariable.spec.name + " found in directive " + id.directiveId.value)
+            case None => throw new NotFoundException("No valid bounding found for trackerVariable " + trackerVariable.spec.name + " found in directive " + id.directiveId.debugString)
             case Some(variable) => (trackerVariable, variable)
           }
       }
@@ -542,7 +545,7 @@ final case class BoundPolicyDraft(
     PolicyTechnique.forAgent(technique, agent).flatMap { pt =>
       expandedVars.collectFirst { case (_, v) if(!v.spec.constraint.mayBeEmpty && v.values.exists(_ == "")) => v } match {
         case Some(v) =>
-          Left(s"Error for policy for directive '${directiveName}' [${id.directiveId.value}] in rule '${ruleName}' [${id.ruleId.value}]: " +
+          Left(s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.value}]: " +
                s"a non optional value is missing for parameter '${v.spec.description}' [param ID: ${v.spec.name}]")
         case None =>
           Right(Policy(

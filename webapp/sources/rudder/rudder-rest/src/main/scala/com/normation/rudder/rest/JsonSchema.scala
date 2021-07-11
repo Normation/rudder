@@ -38,6 +38,9 @@
 package com.normation.rudder.rest
 
 import com.github.ghik.silencer.silent
+import com.normation.GitVersion
+import com.normation.GitVersion.Revision
+import com.normation.GitVersion.RevisionInfo
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
@@ -85,6 +88,7 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
+import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens._
 import io.scalaland.chimney.dsl._
 
@@ -318,9 +322,22 @@ object JsonResponseObjects {
       )
     }
   }
+  final case class JRRevisionInfo(
+      revision: String
+    , date    : String
+    , author  : String
+    , message : String
+  )
+  object JRRevisionInfo {
+    def fromRevisionInfo(r: RevisionInfo) = {
+      JRRevisionInfo(r.rev.value, DateFormaterService.serialize(r.date), r.author, r.message)
+    }
+  }
+
   final case class JRDirective(
       changeRequestId  : Option[String]
     , id               : String
+    , revision         : Option[String]
     , displayName      : String
     , shortDescription : String
     , longDescription  : String
@@ -335,16 +352,17 @@ object JsonResponseObjects {
   )
 
   object JRDirective {
-    def empty(id: String) = JRDirective(None, id, "", "", "", "", "", Map(), 5, false, false, "", List())
+    def empty(id: String) = JRDirective(None, id, None, "", "", "", "", "", Map(), 5, false, false, "", List())
 
     def fromDirective(technique: Technique, directive: Directive, crId: Option[ChangeRequestId]): JRDirective = {
       directive.into[JRDirective]
         .enableBeanGetters
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
-        .withFieldComputed(_.id, _.id.value)
+        .withFieldComputed(_.id, _.id.uid.value)
+        .withFieldComputed(_.revision, _.id.rev match { case GitVersion.defaultRev => None ; case rev => Some(rev.value) })
         .withFieldRenamed(_.name, _.displayName)
         .withFieldConst(_.techniqueName, technique.id.name.value)
-        .withFieldComputed(_.techniqueVersion, _.techniqueVersion.toString)
+        .withFieldComputed(_.techniqueVersion, _.techniqueVersion.serialize)
         .withFieldConst(_.parameters, Map("section" -> JRDirectiveSection.fromSectionVal(SectionVal.ROOT_SECTION_NAME, SectionVal.directiveValToSectionVal(technique.rootSection, directive.parameters))))
         .withFieldComputed(_.policyMode, _.policyMode.map(_.name).getOrElse("default"))
         .withFieldComputed(_.tags, x => JRTags.fromTags(x.tags))
@@ -378,7 +396,7 @@ object JsonResponseObjects {
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
         .withFieldRenamed(_.name, _.displayName)
         .withFieldComputed(_.categoryId, _.categoryId.value)
-        .withFieldComputed(_.directives, _.directiveIds.map(_.value).toList.sorted)
+        .withFieldComputed(_.directives, _.directiveIds.map(_.uid.value).toList.sorted)
         .withFieldComputed(_.targets, _.targets.toList.sortBy(_.target).map(t => JRRuleTarget(t)))
         .withFieldRenamed(_.isEnabledStatus, _.enabled)
         .withFieldComputed(_.tags, x => JRTags.fromTags(rule.tags))
@@ -720,6 +738,8 @@ trait RudderJsonEncoders {
   implicit val queryEncoder: JsonEncoder[JRQuery] = DeriveJsonEncoder.gen
   implicit val groupEncoder: JsonEncoder[JRGroup] = DeriveJsonEncoder.gen
   implicit val objectInheritedObjectProperties: JsonEncoder[JRGroupInheritedProperties] = DeriveJsonEncoder.gen
+
+  implicit val revisionInfoEncoder: JsonEncoder[JRRevisionInfo] = DeriveJsonEncoder.gen
 }
 
 
@@ -728,7 +748,13 @@ trait RudderJsonEncoders {
 
 /*
  * Object used in JSON query POST/PUT request.
- * For disambiguation, objects are prefixed by JQ
+ * For disambiguation, objects are prefixed by JQ.
+ *
+ * Note about id/revision: it does not make sense to try to change a
+ * revision, it's immutable. Only head can be changed, so rev is never
+ * specified in JQ object.
+ * It can make sense to clone a specific revision, so sourceId can have a
+ * sourceRevision too.
  */
 object JsonQueryObjects {
   import JsonResponseObjects.JRRuleTarget
@@ -795,6 +821,7 @@ object JsonQueryObjects {
     , tags             : Option[Tags]                             = None
       //for clone
     , source           : Option[String]                           = None
+    , sourceRevision      : Option[String]                           = None
   ) {
     val onlyName = displayName.isDefined    &&
                    shortDescription.isEmpty &&
@@ -811,7 +838,7 @@ object JsonQueryObjects {
 
     def updateDirective(directive: Directive) = {
       directive.patchUsing(PatchDirective(
-          id.map(DirectiveId)
+          id.map(x => DirectiveId(DirectiveUid(x), GitVersion.defaultRev))
         , techniqueVersion
         , parameters.flatMap(_.get("section").map(s => SectionVal.toMapVariables(s.toSectionVal._2)))
         , displayName
@@ -823,6 +850,11 @@ object JsonQueryObjects {
         , tags
       ))
     }
+
+    def getSourceId = source match {
+      case None    => None
+      case Some(x) => Some(DirectiveId(DirectiveUid(x), sourceRevision.map(Revision).getOrElse(GitVersion.defaultRev)))
+    }
   }
 
   final case class JQRule(
@@ -831,12 +863,13 @@ object JsonQueryObjects {
     , category         : Option[String]              = None
     , shortDescription : Option[String]              = None
     , longDescription  : Option[String]              = None
-    , directives       : Option[Set[DirectiveId]]    = None
+    , directives       : Option[Set[DirectiveUid]]    = None
     , targets          : Option[Set[JRRuleTarget]]   = None
     , enabled          : Option[Boolean]             = None
     , tags             : Option[Tags]                = None
       //for clone
     , source           : Option[String]              = None
+    , sourceRevision   : Option[String]              = None
   ) {
 
     val onlyName = displayName.isDefined    &&
@@ -853,7 +886,7 @@ object JsonQueryObjects {
       val updateCategory   = category.map(RuleCategoryId).getOrElse(rule.categoryId)
       val updateShort      = shortDescription.getOrElse(rule.shortDescription)
       val updateLong       = longDescription.getOrElse(rule.longDescription)
-      val updateDirectives = directives.getOrElse(rule.directiveIds)
+      val updateDirectives = directives.map(_.map(DirectiveId(_))).getOrElse(rule.directiveIds)
       val updateTargets    = targets.map(t => Set[RuleTarget](RuleTarget.merge(t.map(_.toRuleTarget)))).getOrElse(rule.targets)
       val updateEnabled    = enabled.getOrElse(rule.isEnabledStatus)
       val updateTags       = tags.getOrElse(rule.tags)
@@ -885,10 +918,11 @@ object JsonQueryObjects {
 
   final case class JQGroupProperty(
       name       : String
+    , rev      : Option[String]
     , value      : ConfigValue
     , inheritMode: Option[InheritMode]
   ) {
-    def toGroupProperty = GroupProperty(name, value, inheritMode, Some(PropertyProvider.defaultPropertyProvider))
+    def toGroupProperty = GroupProperty(name, rev.map(Revision).getOrElse(GitVersion.defaultRev), value, inheritMode, Some(PropertyProvider.defaultPropertyProvider))
   }
 
   final case class JQStringQuery(
@@ -911,15 +945,16 @@ object JsonQueryObjects {
   )
 
   final case class JQGroup(
-      id          : Option[String] = None
-    , displayName : Option[String] = None
-    , description : Option[String] = None
-    , properties  : Option[List[GroupProperty]]
-    , query       : Option[StringQuery] = None
-    , dynamic     : Option[Boolean] = None
-    , enabled     : Option[Boolean] = None
+      id          : Option[String]              = None
+    , displayName : Option[String]              = None
+    , description : Option[String]              = None
+    , properties  : Option[List[GroupProperty]] = None
+    , query       : Option[StringQuery]         = None
+    , dynamic     : Option[Boolean]             = None
+    , enabled     : Option[Boolean]             = None
     , category    : Option[NodeGroupCategoryId] = None
-    , source      : Option[String] = None
+    , source      : Option[String]              = None
+    , sourceRevision : Option[String]              = None
   ) {
 
     val onlyName = displayName.isDefined &&
@@ -1003,8 +1038,8 @@ trait RudderJsonDecoders {
   // technique name/version
   implicit val techniqueNameDecoder: JsonDecoder[TechniqueName] = JsonDecoder[String].map(TechniqueName)
   implicit val techniqueVersionDecoder: JsonDecoder[TechniqueVersion] = JsonDecoder[String].mapOrFail(TechniqueVersion.parse(_))
-  implicit lazy val ruleCategoryIdDecoder: JsonDecoder[RuleCategoryId] = JsonDecoder[String].map(RuleCategoryId)
-  implicit lazy val directiveIdsDecoder: JsonDecoder[Set[DirectiveId]] = JsonDecoder[List[String]].map(_.map(DirectiveId).toSet)
+  implicit lazy val ruleCategoryIdDecoder: JsonDecoder[RuleCategoryId]  = JsonDecoder[String].map(RuleCategoryId)
+  implicit lazy val directiveIdsDecoder: JsonDecoder[Set[DirectiveUid]] = JsonDecoder[List[String]].map(_.map(DirectiveUid).toSet)
 
   // RestRule
   implicit lazy val ruleDecoder: JsonDecoder[JQRule] = DeriveJsonDecoder.gen
@@ -1130,7 +1165,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
   def extractRuleFromParams(params: Map[String,List[String]]) : PureResult[JQRule] = {
     for {
       enabled          <- params.parse("enabled"   , JsonDecoder[Boolean])
-      directives       <- params.parse("directives", JsonDecoder[Set[DirectiveId]])
+      directives       <- params.parse("directives", JsonDecoder[Set[DirectiveUid]])
       target           <- params.parse("targets"   , JsonDecoder[Set[JRRuleTarget]])
       tags             <- params.parse("tags"      , JsonDecoder[Tags])
     } yield {
@@ -1162,11 +1197,12 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
   def extractDirectiveFromParams(params: Map[String,List[String]]) : PureResult[JQDirective] = {
 
     for {
-      enabled    <- params.parse("enabled"    , JsonDecoder[Boolean])
-      priority   <- params.parse("priority"   , JsonDecoder[Int])
-      parameters <- params.parse("parameters" , JsonDecoder[Map[String, JQDirectiveSection]])
-      policyMode <- params.parse2("policyMode", PolicyMode.parseDefault(_))
-      tags       <- params.parse("tags"       , JsonDecoder[Tags])
+      enabled    <- params.parse("enabled"          , JsonDecoder[Boolean])
+      priority   <- params.parse("priority"         , JsonDecoder[Int])
+      parameters <- params.parse("parameters"       , JsonDecoder[Map[String, JQDirectiveSection]])
+      policyMode <- params.parse2("policyMode"      , PolicyMode.parseDefault(_))
+      tags       <- params.parse("tags"             , JsonDecoder[Tags])
+      tv         <- params.parse2("techniqueVersion", TechniqueVersion.parse(_).left.map(Inconsistency(_)))
     } yield {
       JQDirective(
           params.optGet("id")
@@ -1177,10 +1213,11 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         , parameters
         , priority
         , params.optGet("techniqueName").map(TechniqueName)
-        , params.optGet("techniqueVersion").map(TechniqueVersion(_))
+        , tv
         , policyMode
         , tags
         , params.optGet("source")
+        , params.optGet("sourceRevision")
       )
     }
   }

@@ -175,8 +175,12 @@ object DirectiveApi extends ApiModuleProvider[DirectiveApi] {
     val description = "Get information about given directive"
     val (action, path)  = GET / "directives" / "{id}"
   }
+  final case object DirectiveRevisions extends DirectiveApi with OneParam with StartsAtVersion14 with SortIndex {val z = implicitly[Line].value
+    val description    = "Get revisions for given directive"
+    val (action, path) = GET / "directives" / "{id}" / "revisions"
+  }
   final case object CreateDirective extends DirectiveApi with ZeroParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
-    val description = "Create a new directive"
+    val description = "Create a new directive or clone an existing one"
     val (action, path)  = PUT / "directives"
   }
   final case object DeleteDirective extends DirectiveApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value

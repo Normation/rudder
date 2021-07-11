@@ -45,6 +45,7 @@ import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.web.services._
 import com.normation.utils.DateFormaterService
+import com.normation.utils.Utils.DateToIsoString
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
@@ -53,6 +54,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Helpers.tryo
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+
 
 class EventLogAPI (
     repos: EventLogRepository
@@ -156,10 +158,10 @@ class EventLogAPI (
 
         dateCriteria = (optStartDate,optEndDate)  match {
             case (None,None)         => None
-            case (Some(start), None) => Some(s" creationDate >= '${start}'")
-            case (None, Some(end))   => Some(s" creationDate <= '${end}'")
-            case (Some(start), Some(end)) if end.isBefore(start) => Some(s" creationDate >= '${end}' and creationDate <= '${start}'")
-            case (Some(start), Some(end))                        => Some(s" creationDate >= '${start}' and creationDate <= '${end}'")
+            case (Some(start), None) => Some(s" creationDate >= '${start.toIsoStringNoMillis}'")
+            case (None, Some(end))   => Some(s" creationDate <= '${end.toIsoStringNoMillis}'")
+            case (Some(start), Some(end)) if end.isBefore(start) => Some(s" creationDate >= '${end.toIsoStringNoMillis}' and creationDate <= '${start.toIsoStringNoMillis}'")
+            case (Some(start), Some(end))                        => Some(s" creationDate >= '${start.toIsoStringNoMillis}' and creationDate <= '${end.toIsoStringNoMillis}'")
           }
 
         (criteria, from) = (filter,dateCriteria) match {

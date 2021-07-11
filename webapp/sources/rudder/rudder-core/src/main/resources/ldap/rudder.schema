@@ -444,7 +444,7 @@ objectclass ( RudderObjectClasses:11
   STRUCTURAL
   MUST ( nodeGroupId $
    cn $ isDynamic )
-  MAY ( nodeId $ description $ jsonNodeGroupQuery $
+  MAY ( nodeId $ description $ jsonNodeGroupQuery $ revision $
         isEnabled $ isSystem $ serializedProperty ) )
 
 objectclass ( RudderObjectClasses:12
@@ -486,7 +486,7 @@ objectclass ( RudderObjectClasses:23
   SUP top
   STRUCTURAL
   MUST ( directiveId $ techniqueVersion )
-  MAY ( cn $ description $ longDescription $ isEnabled $ isSystem $
+  MAY ( cn $ description $ longDescription $ isEnabled $ isSystem $ revision $
         directivePriority $ directiveVariable $ policyMode $ serializedTags) )
 
 ### rules ###
@@ -498,7 +498,7 @@ objectclass ( RudderObjectClasses:30
   STRUCTURAL
   MUST ( ruleId )
   MAY ( cn $ description $ longDescription $
-        isEnabled $ isSystem $
+        isEnabled $ isSystem $ revision $
         ruleTarget $ serial $
         directiveId $ tag $ serializedTags ) )
 
@@ -548,7 +548,7 @@ objectclass ( RudderObjectClasses:120
   STRUCTURAL
   MUST ( parameterName )
   MAY ( parameterValue $ description $ propertyProvider $
-        overridable $ inheritMode ) )
+        overridable $ inheritMode $ revision ) )
 
 #
 # Application properties

@@ -1,0 +1,65 @@
+#####################################################################################
+# Copyright 2019 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# TODO purge too old reports
+
+bundle agent send_rudder_report(path) {
+  vars:
+      "endpoint" string => "https://${server_info.policy_server}/reports/";
+      "command"  string => "${g.rudder_curl} --tlsv1.2 --location --insecure --fail --silent --proxy '' --user ${g.davuser}:${g.davpw} --upload-file";
+
+  files:
+      "${path}" 
+        delete  => tidy,
+        if      => "send_report_${path}_ok",
+        classes => classes_generic("tidy_report_${path}");
+
+  methods:
+      "any" usebundle => rudder_common_report("Common", "log_warn", "${system_common.directiveId}", "Log system for reports", "None", "Could not send report ${path}"),
+                   if => "send_report_${path}_error";
+      # May be a another done by another agent run
+      "any" usebundle => rudder_common_report("Common", "log_warn", "${system_common.directiveId}", "Log system for reports", "None", "Could not remove report ${path}"),
+                   if => "tidy_report_${path}_error";
+
+  commands:
+      "${command} ${path} ${endpoint}"
+        classes => classes_generic_two("send_report_${path}", "send_rudder_reports");
+}
+
+bundle agent send_rudder_reports
+{
+  vars:
+      "raw_reports" slist => lsdir("${g.rudder_reports}/ready/", ".*\.log.gz", "false");
+      # Max 50 reports by run to avoid blocking the agent too long after a long
+      # disconnection
+      "reports"     slist => sublist("reports", "head", 50);
+      "nb_reports"  int   => length("reports");
+
+  classes:
+      "has_reports" not => strcmp("${nb_reports}", "0");
+
+  methods:
+    has_reports::
+      "send"    usebundle => send_rudder_report("${reports}");
+      "cleanup" usebundle => _classes_sanitize("send_rudder_reports");
+    !has_reports::
+      "cleanup" usebundle => _classes_success("send_rudder_reports");
+    any::
+      "report"  usebundle => rudder_common_reports_generic("Common", "send_rudder_reports", "${system_common.directiveId}", "Log system for reports", "None", "Reports forwarding to policy server");
+}
+

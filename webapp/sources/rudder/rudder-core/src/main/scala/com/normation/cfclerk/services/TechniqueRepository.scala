@@ -126,7 +126,7 @@ trait TechniqueRepository {
     for {
       cat  <- getParentTechniqueCategory_forTechnique(id)
       path <- zio.ZIO.foreach(cat.id.getIdPathFromRoot) { currentCatId =>
-        getTechniqueCategory(currentCatId).chainError(s"'${currentCatId.toString}' category was not found but should be a parent of '${cat.id.name}'. This is likely an error, please report it.")
+        getTechniqueCategory(currentCatId).chainError(s"'${currentCatId.toString}' category was not found but should be a parent of '${cat.id.name.value}'. This is likely an error, please report it.")
       }
     } yield {
       path

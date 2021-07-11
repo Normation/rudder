@@ -54,7 +54,7 @@ import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 
@@ -94,7 +94,7 @@ final case class ActiveTechniqueNotArchived(
 )
 
 final case class DirectiveNotArchived(
-    directiveId: DirectiveId
+    directiveId: DirectiveUid
   , cause      : RudderError
 )
 
@@ -360,7 +360,7 @@ trait GitDirectiveArchiver {
    * saved in git. Else, no modification in git are saved.
    */
   def deleteDirective(
-      directiveId: DirectiveId
+      directiveId: DirectiveUid
     , ptName     : TechniqueName
     , catIds     : List[ActiveTechniqueCategoryId]
     , gitCommit  : Option[(ModificationId, PersonIdent,Option[String])]

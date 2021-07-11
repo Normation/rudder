@@ -129,7 +129,7 @@ final class RoLDAPApiAccountRepository(
       //map to ApiAccount in a "as much as possible" way
       val accounts = entries.flatMap ( e => mapper.entry2ApiAccount(e) match {
           case Left(err) =>
-            ApplicationLogger.debug(s"Ignoring API Account with dn ${e.dn} due to mapping error: ${err.fullMsg}")
+            ApplicationLogger.debug(s"Ignoring API Account with dn ${e.dn.toString()} due to mapping error: ${err.fullMsg}")
             None
           case Right(p) => p.kind match {
             case _: ApiAccountKind.PublicApi => Some(p)

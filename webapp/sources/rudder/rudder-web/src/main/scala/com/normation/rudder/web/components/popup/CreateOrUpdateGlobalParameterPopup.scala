@@ -37,6 +37,7 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
+import com.normation.GitVersion
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.util.Helpers._
@@ -49,8 +50,8 @@ import net.liftweb.http.js.JE._
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.model._
-import java.util.regex.Pattern
 
+import java.util.regex.Pattern
 import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.services.workflows.ChangeRequestService
@@ -138,7 +139,7 @@ class CreateOrUpdateGlobalParameterPopup(
       val savedChangeRequest = {
         for {
           value <- parseValue(parameterValue.get, jsonCheck).toBox
-          param =  GlobalParameter(parameterName.get, value, InheritMode.parseString(parameterInheritMode.get).toOption, parameterDescription.get, None)
+          param =  GlobalParameter(parameterName.get, GitVersion.defaultRev, value, InheritMode.parseString(parameterInheritMode.get).toOption, parameterDescription.get, None)
           diff  <- globalParamDiffFromAction(param)
           cr    =  ChangeRequestService.createChangeRequestFromGlobalParameter(
                       changeRequestName.get

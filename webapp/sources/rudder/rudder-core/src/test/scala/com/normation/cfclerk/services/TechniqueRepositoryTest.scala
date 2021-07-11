@@ -55,7 +55,7 @@ import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
@@ -66,8 +66,10 @@ import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.utils.StringUuidGeneratorImpl
 import org.joda.time.DateTime
 import com.normation.errors._
+import com.normation.rudder.domain.policies.DirectiveId
 import zio._
 import zio.syntax._
+
 import scala.collection.SortedMap
 import net.liftweb.common._
 
@@ -126,8 +128,8 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     }
     // ALL the following methods are useless for our test
     override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = FullActiveTechniqueCategory(ActiveTechniqueCategoryId("Active Techniques"), "", "", Nil, Nil, true).succeed
-    override def getDirective(directiveId: DirectiveId): IOResult[Option[Directive]] = ???
-    override def getDirectiveWithContext(directiveId: DirectiveId): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
+    override def getDirective(directiveId: DirectiveUid): IOResult[Option[Directive]] = ???
+    override def getDirectiveWithContext(directiveId: DirectiveUid): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
     override def getActiveTechniqueAndDirective(id: DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
     override def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean): IOResult[Seq[Directive]] = ???
     override def getActiveTechniqueByCategory(includeSystem: Boolean): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
@@ -144,8 +146,8 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     override def saveActiveTechniqueCategory(category: ActiveTechniqueCategory, modificationId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueCategory] = ???
     override def saveDirective(inActiveTechniqueId: ActiveTechniqueId, directive: Directive, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DirectiveSaveDiff]] = ???
     override def saveSystemDirective(inActiveTechniqueId: ActiveTechniqueId, directive: Directive, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DirectiveSaveDiff]] = ???
-    override def delete(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = ???
-    override def deleteSystemDirective(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = ???
+    override def delete(id: DirectiveUid, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = ???
+    override def deleteSystemDirective(id: DirectiveUid, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = ???
     override def move(id: ActiveTechniqueId, newCategoryId: ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueId] = ???
     override def changeStatus(id: ActiveTechniqueId, status: Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueId] = ???
     override def setAcceptationDatetimes(id: ActiveTechniqueId, datetimes: Map[TechniqueVersion, DateTime], modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueId] = ???
@@ -178,7 +180,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
    */
   override def afterAll() = {
     if(System.getProperty("tests.clean.tmp") != "false") {
-      logger.info("Deleting directory " + setupRepos.abstractRoot.getAbsoluteFile)
+      logger.info("Deleting directory " + setupRepos.abstractRoot.getAbsolutePath)
       FileUtils.deleteDirectory(setupRepos.abstractRoot)
     }
   }

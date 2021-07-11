@@ -48,7 +48,7 @@ import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.repository.ActiveTechniqueCategoryContent
 import com.normation.rudder.repository.ActiveTechniqueContent
 import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
@@ -176,7 +176,7 @@ class ImportTechniqueLibraryImpl(
     def checkUserLibConsistance(userLib:ActiveTechniqueCategoryContent) : IOResult[ActiveTechniqueCategoryContent] = {
       import scala.collection.mutable.Map
       import scala.collection.mutable.Set
-      val directiveIds = Set[DirectiveId]()
+      val directiveUids = Set[DirectiveUid]()
       val ptNames = Map[TechniqueName,ActiveTechniqueId]()
       val uactiveTechniqueIds = Set[ActiveTechniqueId]()
       val categoryIds = Set[ActiveTechniqueCategoryId]()
@@ -198,17 +198,17 @@ class ImportTechniqueLibraryImpl(
           case None => //OK, proccess PIs !
             val sanitizedPis = uptContent.directives.flatMap { directive =>
               if(directive.isSystem && includeSystem == false) None
-              else if(directiveIds.contains(directive.id)) {
+              else if(directiveUids.contains(directive.id.uid)) {
                 logEffect.error("Ignoring following PI because an other PI with the same ID was already processed: " + directive)
                 None
               } else {
-                directiveIds += directive.id
+                directiveUids += directive.id.uid
                 Some(directive)
               }
             }
 
             Some(uptContent.copy(
-                activeTechnique = activeTechnique.copy(directives = sanitizedPis.toList.map( _.id ))
+                activeTechnique = activeTechnique.copy(directives = sanitizedPis.toList.map( _.id.uid ))
               , directives = sanitizedPis
             ))
         }

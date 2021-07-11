@@ -37,7 +37,7 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.rudder.domain.policies.{DirectiveId, _}
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.{RuleCategory, RuleCategoryId, RuleCategoryService}
 import com.normation.rudder.web.model.LinkUtil
@@ -98,11 +98,11 @@ final case class Modified[T](
 class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
 
   private[this] implicit def displayDirective(directiveId: DirectiveId) = {
-    <span> Directive {linkUtil.createDirectiveLink(directiveId)}</span>
+    <span> Directive {linkUtil.createDirectiveLink(directiveId.uid)}</span>
   }
   def displayDirectiveChangeList (
-    oldDirectives:Seq[DirectiveId]
-    , newDirectives:Seq[DirectiveId]
+      oldDirectives: Seq[DirectiveId]
+    , newDirectives: Seq[DirectiveId]
   ) : NodeSeq = {
 
     // First, find unchanged and deleted (have find no clean way to make a 3 way partition)

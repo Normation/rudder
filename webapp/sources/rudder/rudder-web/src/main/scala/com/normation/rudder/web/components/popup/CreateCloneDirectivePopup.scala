@@ -38,6 +38,7 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
+import com.normation.GitVersion
 import com.normation.box._
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.eventlog.ModificationId
@@ -187,7 +188,7 @@ class CreateCloneDirectivePopup(
     } else {
       val cloneDirective =
         new Directive(
-            id = DirectiveId(uuidGen.newUuid)
+            id = DirectiveId(DirectiveUid(uuidGen.newUuid), GitVersion.defaultRev)
           , techniqueVersion = directive.techniqueVersion
           , parameters = directive.parameters
           , name = directiveName.get
@@ -195,7 +196,7 @@ class CreateCloneDirectivePopup(
           , _isEnabled = directive.isEnabled
           , policyMode = directive.policyMode
         )
-      roDirectiveRepository.getActiveTechniqueAndDirective(directive.id).notOptional(s"Error: active technique for directive '${directive.id}' was not found").toBox match {
+      roDirectiveRepository.getActiveTechniqueAndDirective(directive.id).notOptional(s"Error: active technique for directive '${directive.id.debugString}' was not found").toBox match {
         case Full((activeTechnique, _)) =>
           woDirectiveRepository.saveDirective(activeTechnique.id, cloneDirective, ModificationId(uuidGen.newUuid), CurrentUser.actor, reasons.map(_.get)).toBox match {
             case Full(directive) => {

@@ -37,6 +37,8 @@
 
 package com.normation.rudder.services.eventlog
 
+import com.normation.GitVersion.ParseRev
+
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.common.Box._
@@ -276,59 +278,58 @@ class EventLogDetailsServiceImpl(
      <longDescription><from>...</from><to>...</to></longDescription>
      </rule>
    */
-  override def getRuleModifyDetails(xml:NodeSeq) : Box[ModifyRuleDiff] = {
-    for {
-      entry             <- getEntryContent(xml)
-      rule              <- (entry \ "rule").headOption ?~! ("Entry type is not rule : " + entry)
-      changeTypeAddOk   <- {
-                             if(rule.attribute("changeType").map( _.text ) == Some("modify"))
-                               Full("OK")
-                             else
-                               Failure("Rule attribute does not have changeType=modify: " + entry)
-                           }
-      fileFormatOk      <- TestFileFormat(rule)
-      id                <- (rule \ "id").headOption.map( _.text ) ?~!
-                           ("Missing attribute 'id' in entry type rule : " + entry)
-      displayName       <- (rule \ "displayName").headOption.map( _.text ) ?~!
-                           ("Missing attribute 'displayName' in entry type rule : " + entry)
-      name              <- getFromToString((rule \ "name").headOption)
-      category          <- getFromTo[RuleCategoryId](
-                               (rule \ "category").headOption
-                             , { s => Full(RuleCategoryId(s.text)) }
-                           )
-      serial            <- getFromTo[Int]((rule \ "serial").headOption,
-                             { x => tryo(x.text.toInt) } )
-      targets           <- getFromTo[Set[RuleTarget]]((rule \ "targets").headOption,
-                            { x:NodeSeq =>
-                                Full((x \ "target").toSet.flatMap{ y: NodeSeq  =>
-                                  RuleTarget.unser(y.text )})
-                           })
-      shortDescription  <- getFromToString((rule \ "shortDescription").headOption)
-      longDescription   <- getFromToString((rule \ "longDescription").headOption)
-      isEnabled         <- getFromTo[Boolean]((rule \ "isEnabled").headOption,
-                             { s => tryo { s.text.toBoolean } } )
-      isSystem          <- getFromTo[Boolean]((rule \ "isSystem").headOption,
-                             { s => tryo { s.text.toBoolean } } )
-      directiveIds      <- getFromTo[Set[DirectiveId]]((rule \ "directiveIds").headOption,
-                             { x:NodeSeq =>
-                               Full((x \ "id").toSet.map( (y:NodeSeq) =>
-                                 DirectiveId( y.text )))
-                           } )
-    } yield {
-      ModifyRuleDiff(
-          id = RuleId(id)
-        , name = displayName
-        , modName = name
-        , modSerial = serial
-        , modTarget = targets
-        , modDirectiveIds = directiveIds
-        , modShortDescription = shortDescription
-        , modLongDescription = longDescription
-        , modIsActivatedStatus = isEnabled
-        , modIsSystem = isSystem
-        , modCategory = category
-      )
-    }
+  override def getRuleModifyDetails(xml:NodeSeq) : Box[ModifyRuleDiff] = for {
+    entry             <- getEntryContent(xml)
+    rule              <- (entry \ "rule").headOption ?~! ("Entry type is not rule : " + entry.toString())
+    changeTypeAddOk   <- {
+                           if(rule.attribute("changeType").map( _.text ) == Some("modify"))
+                             Full("OK")
+                           else
+                             Failure("Rule attribute does not have changeType=modify: " + entry.toString())
+                         }
+    fileFormatOk      <- TestFileFormat(rule)
+    id                <- (rule \ "id").headOption.map( _.text ) ?~!
+                         ("Missing attribute 'id' in entry type rule : " + entry.toString())
+    displayName       <- (rule \ "displayName").headOption.map( _.text ) ?~!
+                         ("Missing attribute 'displayName' in entry type rule : " + entry.toString())
+    name              <- getFromToString((rule \ "name").headOption)
+    category          <- getFromTo[RuleCategoryId](
+                             (rule \ "category").headOption
+                           , { s => Full(RuleCategoryId(s.text)) }
+                         )
+    serial            <- getFromTo[Int]((rule \ "serial").headOption,
+                           { x => tryo(x.text.toInt) } )
+    targets           <- getFromTo[Set[RuleTarget]]((rule \ "targets").headOption,
+                          { x:NodeSeq =>
+                              Full((x \ "target").toSet.flatMap{ y: NodeSeq  =>
+                                RuleTarget.unser(y.text )})
+                         })
+    shortDescription  <- getFromToString((rule \ "shortDescription").headOption)
+    longDescription   <- getFromToString((rule \ "longDescription").headOption)
+    isEnabled         <- getFromTo[Boolean]((rule \ "isEnabled").headOption,
+                           { s => tryo { s.text.toBoolean } } )
+    isSystem          <- getFromTo[Boolean]((rule \ "isSystem").headOption,
+                           { s => tryo { s.text.toBoolean } } )
+    directiveIds      <- getFromTo[Set[DirectiveId]]((rule \ "directiveIds").headOption,
+                           { x:NodeSeq =>
+                             Full((x \ "id").toSet.map {  (y: NodeSeq) =>
+                               DirectiveId(DirectiveUid( y.text ), ParseRev((y \ "@revision").text) )
+                             })
+                         } )
+  } yield {
+    ModifyRuleDiff(
+        id = RuleId(id)
+      , name = displayName
+      , modName = name
+      , modSerial = serial
+      , modTarget = targets
+      , modDirectiveIds = directiveIds
+      , modShortDescription = shortDescription
+      , modLongDescription = longDescription
+      , modIsActivatedStatus = isEnabled
+      , modIsSystem = isSystem
+      , modCategory = category
+    )
   }
 
 
@@ -338,7 +339,7 @@ class EventLogDetailsServiceImpl(
   private[this] def getRuleFromXML(xml:NodeSeq, changeType:String) : Box[Rule] = {
     for {
       entry           <- getEntryContent(xml)
-      crXml           <- (entry \ "rule").headOption ?~! ("Entry type is not a rule: " + entry)
+      crXml           <- (entry \ "rule").headOption ?~! ("Entry type is not a rule: " + entry.toString())
       changeTypeAddOk <- {
                            if(crXml.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
                            else Failure("Rule attribute does not have changeType=%s: ".format(changeType) + entry)
@@ -357,7 +358,7 @@ class EventLogDetailsServiceImpl(
   private[this] def getDirectiveFromXML(xml:NodeSeq, changeType:String) : Box[(TechniqueName, Directive, SectionVal)] = {
     for {
       entry           <- getEntryContent(xml)
-      directiveXml    <- (entry \ "directive").headOption ?~! ("Entry type is not a directive: " + entry)
+      directiveXml    <- (entry \ "directive").headOption ?~! ("Entry type is not a directive: " + entry.toString())
       changeTypeAddOk <- {
                            if(directiveXml.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
                            else Failure("Directive attribute does not have changeType=%s: ".format(changeType) + entry)
@@ -383,19 +384,17 @@ class EventLogDetailsServiceImpl(
   def getDirectiveModifyDetails(xml:NodeSeq) : Box[ModifyDirectiveDiff] = {
     for {
       entry <- getEntryContent(xml)
-      directive                    <- (entry \ "directive").headOption ?~! ("Entry type is not directive : " + entry)
+      directive                    <- (entry \ "directive").headOption ?~! ("Entry type is not directive : " + entry.toString())
       changeTypeAddOk       <- {
                                  if(directive.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
-                                 else Failure("Directive attribute does not have changeType=modify: " + entry)
+                                 else Failure("Directive attribute does not have changeType=modify: " + entry.toString())
                                }
       fileFormatOk          <- TestFileFormat(directive)
-      id                    <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + entry)
-      ptName                <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + entry)
-      displayName           <- (directive \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type directive : " + entry)
+      id                    <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + entry.toString())
+      ptName                <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + entry.toString())
+      displayName           <- (directive \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type directive : " + entry.toString())
       name                  <- getFromToString((directive \ "name").headOption)
-      techniqueVersion <- getFromTo[TechniqueVersion]((directive \ "techniqueVersion").headOption, {v =>
-                                  tryo(TechniqueVersion(v.text))
-                                } )
+      techniqueVersion      <- getFromTo[TechniqueVersion]((directive \ "techniqueVersion").headOption, {v => TechniqueVersion.parse(v.text).toBox } )
       parameters            <- getFromTo[SectionVal]((directive \ "parameters").headOption, {parameter =>
                                 piUnserialiser.parseSectionVal(parameter)
                               })
@@ -408,7 +407,7 @@ class EventLogDetailsServiceImpl(
     } yield {
       ModifyDirectiveDiff(
           techniqueName = TechniqueName(ptName)
-        , DirectiveId(id)
+        , DirectiveUid(id)
         , displayName
         , name
         , techniqueVersion
@@ -440,14 +439,14 @@ class EventLogDetailsServiceImpl(
   override def getNodeGroupModifyDetails(xml:NodeSeq) : Box[ModifyNodeGroupDiff] = {
     for {
       entry           <- getEntryContent(xml)
-      group           <- (entry \ "nodeGroup").headOption ?~! ("Entry type is not nodeGroup : " + entry)
+      group           <- (entry \ "nodeGroup").headOption ?~! ("Entry type is not nodeGroup : " + entry.toString())
       changeTypeAddOk <- {
                             if(group.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
-                            else Failure("NodeGroup attribute does not have changeType=modify: " + entry)
+                            else Failure("NodeGroup attribute does not have changeType=modify: " + entry.toString())
                           }
       fileFormatOk    <- TestFileFormat(group)
-      id              <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry)
-      displayName     <- (group \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry)
+      id              <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry.toString())
+      displayName     <- (group \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry.toString())
       name            <- getFromToString((group \ "name").headOption)
       description     <- getFromToString((group \ "description").headOption)
       query           <- getFromTo[Option[QueryTrait]]((group \ "query").headOption, {s =>
@@ -482,7 +481,7 @@ class EventLogDetailsServiceImpl(
   private[this] def getNodeGroupFromXML(xml:NodeSeq, changeType:String) : Box[NodeGroup] = {
     for {
       entry           <- getEntryContent(xml)
-      groupXml        <- (entry \ "nodeGroup").headOption ?~! ("Entry type is not a nodeGroup: " + entry)
+      groupXml        <- (entry \ "nodeGroup").headOption ?~! ("Entry type is not a nodeGroup: " + entry.toString())
       changeTypeAddOk <- {
                             if(groupXml.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
                             else Failure("nodeGroup attribute does not have changeType=%s: ".format(changeType) + entry)
@@ -507,17 +506,17 @@ class EventLogDetailsServiceImpl(
   private[this] def getInventoryLogDetails(xml:NodeSeq, action:String) : Box[InventoryLogDetails] = {
     for {
       entry        <- getEntryContent(xml)
-      details      <- (entry \ "node").headOption ?~! ("Entry type is not a node: " + entry)
+      details      <- (entry \ "node").headOption ?~! ("Entry type is not a node: " + entry.toString())
       actionOk     <- {
                         if(details.attribute("action").map( _.text ) == Some(action)) Full("OK")
                         else Failure("node attribute does not have action=%s: ".format(action) + entry)
                       }
       fileFormatOk <- TestFileFormat(details)
-      nodeId       <- (details \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type node: " + entry)
-      version      <- (details \ "inventoryVersion").headOption.map( _.text ) ?~! ("Missing attribute 'inventoryVersion' in entry type node : " + entry)
-      hostname     <- (details \ "hostname").headOption.map( _.text ) ?~! ("Missing attribute 'hostname' in entry type node : " + entry)
-      os           <- (details \ "fullOsName").headOption.map( _.text ) ?~! ("Missing attribute 'fullOsName' in entry type node : " + entry)
-      actorIp      <- (details \ "actorIp").headOption.map( _.text ) ?~! ("Missing attribute 'actorIp' in entry type node : " + entry)
+      nodeId       <- (details \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type node: " + entry.toString())
+      version      <- (details \ "inventoryVersion").headOption.map( _.text ) ?~! ("Missing attribute 'inventoryVersion' in entry type node : " + entry.toString())
+      hostname     <- (details \ "hostname").headOption.map( _.text ) ?~! ("Missing attribute 'hostname' in entry type node : " + entry.toString())
+      os           <- (details \ "fullOsName").headOption.map( _.text ) ?~! ("Missing attribute 'fullOsName' in entry type node : " + entry.toString())
+      actorIp      <- (details \ "actorIp").headOption.map( _.text ) ?~! ("Missing attribute 'actorIp' in entry type node : " + entry.toString())
     } yield {
       InventoryLogDetails(
           nodeId           = NodeId(nodeId)
@@ -536,7 +535,7 @@ class EventLogDetailsServiceImpl(
   def getDeploymentStatusDetails(xml:NodeSeq) : Box[CurrentDeploymentStatus] = {
     for {
       entry        <- getEntryContent(xml)
-      details      <- (entry \ "deploymentStatus").headOption ?~! ("Entry type is not a deploymentStatus: " + entry)
+      details      <- (entry \ "deploymentStatus").headOption ?~! ("Entry type is not a deploymentStatus: " + entry.toString())
       deploymentStatus <- deploymentStatusUnserialisation.unserialise(details)
     } yield {
         deploymentStatus
@@ -559,10 +558,10 @@ class EventLogDetailsServiceImpl(
   def getUpdatePolicyServerDetails(xml:NodeSeq) : Box[AuthorizedNetworkModification] = {
     for {
       entry        <- getEntryContent(xml)
-      details      <- (entry \ "changeAuthorizedNetworks").headOption ?~! ("Entry type is not a changeAuthorizedNetworks: " + entry)
+      details      <- (entry \ "changeAuthorizedNetworks").headOption ?~! ("Entry type is not a changeAuthorizedNetworks: " + entry.toString())
       fileFormatOk <- TestFileFormat(details)
-      oldsXml      <- (entry \\ "oldAuthorizedNetworks").headOption ?~! ("Missing attribute 'oldAuthorizedNetworks' in entry: " + entry)
-      newsXml      <- (entry \\ "newAuthorizedNetworks").headOption ?~! ("Missing attribute 'newAuthorizedNetworks' in entry: " + entry)
+      oldsXml      <- (entry \\ "oldAuthorizedNetworks").headOption ?~! ("Missing attribute 'oldAuthorizedNetworks' in entry: " + entry.toString())
+      newsXml      <- (entry \\ "newAuthorizedNetworks").headOption ?~! ("Missing attribute 'newAuthorizedNetworks' in entry: " + entry.toString())
     } yield {
       AuthorizedNetworkModification(
           oldNetworks = (oldsXml \ "net").map( _.text )
@@ -587,13 +586,13 @@ class EventLogDetailsServiceImpl(
   def getTechniqueLibraryReloadDetails(xml:NodeSeq) : Box[Seq[TechniqueId]] = {
     for {
       entry              <- getEntryContent(xml)
-      details            <- (entry \ "reloadTechniqueLibrary").headOption ?~! ("Entry type is not a techniqueReloaded: " + entry)
+      details            <- (entry \ "reloadTechniqueLibrary").headOption ?~! ("Entry type is not a techniqueReloaded: " + entry.toString())
       fileFormatOk       <- TestFileFormat(details)
       activeTechniqueIds <- sequence((details \ "modifiedTechnique")) { technique =>
                               for {
-                                name    <- (technique \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type techniqueReloaded : " + entry)
-                                version <- (technique \ "version").headOption.map( _.text ) ?~! ("Missing attribute 'version' in entry type techniqueReloaded : " + entry)
-                                v       <- tryo { TechniqueVersion(version) }
+                                name    <- (technique \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type techniqueReloaded : " + entry.toString())
+                                version <- (technique \ "version").headOption.map( _.text ) ?~! ("Missing attribute 'version' in entry type techniqueReloaded : " + entry.toString())
+                                v       <- TechniqueVersion.parse(version).toBox
                               } yield {
                                 TechniqueId(TechniqueName(name),v)
                               }
@@ -607,11 +606,11 @@ class EventLogDetailsServiceImpl(
     for {
       entry              <- getEntryContent(xml)
       technique            <- (entry \ "activeTechnique").headOption ?~!
-                            ("Entry type is not a technique: " + entry)
+                            ("Entry type is not a technique: " + entry.toString())
       id                <- (technique \ "id").headOption.map( _.text ) ?~!
-                           ("Missing attribute 'id' in entry type technique : " + entry)
+                           ("Missing attribute 'id' in entry type technique : " + entry.toString())
       displayName       <- (technique \ "techniqueName").headOption.map( _.text ) ?~!
-                           ("Missing attribute 'displayName' in entry type rule : " + entry)
+                           ("Missing attribute 'displayName' in entry type rule : " + entry.toString())
       isEnabled         <- getFromTo[Boolean]((technique \ "isEnabled").headOption,
                              { s => tryo { s.text.toBoolean } } )
       fileFormatOk       <- TestFileFormat(technique)
@@ -636,7 +635,7 @@ class EventLogDetailsServiceImpl(
   private[this] def getTechniqueFromXML(xml:NodeSeq, changeType:String) : Box[ActiveTechnique] = {
     for {
       entry           <- getEntryContent(xml)
-      techniqueXml    <- (entry \ "activeTechnique").headOption ?~! ("Entry type is not a technique: " + entry)
+      techniqueXml    <- (entry \ "activeTechnique").headOption ?~! ("Entry type is not a technique: " + entry.toString())
       changeTypeAddOk <- if(techniqueXml.attribute("changeType").map( _.text ) == Some(changeType))
                            Full("OK")
                          else
@@ -843,7 +842,7 @@ class EventLogDetailsServiceImpl(
       entry              <- getEntryContent(xml)
       apiAccount         <- (entry \ XML_TAG_API_ACCOUNT).headOption ?~!
                               (s"Entry type is not a Api Account: ${entry}")
-      id                 <- (apiAccount \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type API Account : " + entry)
+      id                 <- (apiAccount \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type API Account : " + entry.toString())
       modName            <- getFromToString((apiAccount \ "name").headOption)
       modToken           <- getFromToString((apiAccount \ "token").headOption)
       modDescription     <- getFromToString((apiAccount \ "description").headOption)
@@ -958,14 +957,14 @@ class EventLogDetailsServiceImpl(
   def getPromotedNodeToRelayDetails(xml:NodeSeq) : Box[(NodeId, String)] = {
     for {
       entry        <- getEntryContent(xml)
-      node         <- (entry \ "node").headOption ?~! ("Entry type is not node : " + entry)
+      node         <- (entry \ "node").headOption ?~! ("Entry type is not node : " + entry.toString())
       fileFormatOk <- TestFileFormat(node)
       changeTypeOk <- {
         if(node.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
         else Failure(s"'Node promotion' entry does not have attribute 'changeType' with value 'modify', entry is: ${entry}")
       }
-      id           <- (node \ "id").headOption.map( x => NodeId(x.text) ) ?~! ("Missing element 'id' in entry type Node: " + entry)
-      name         <- (node \ "hostname").headOption.map( x => x.text ) ?~! ("Missing element 'hostname' in entry type Node: " + entry)
+      id           <- (node \ "id").headOption.map( x => NodeId(x.text) ) ?~! ("Missing element 'id' in entry type Node: " + entry.toString())
+      name         <- (node \ "hostname").headOption.map( x => x.text ) ?~! ("Missing element 'hostname' in entry type Node: " + entry.toString())
     } yield {
       (id,name)
     }
@@ -974,13 +973,13 @@ class EventLogDetailsServiceImpl(
   def getModifyNodeDetails(xml:NodeSeq) : Box[ModifyNodeDiff] = {
     for {
       entry        <- getEntryContent(xml)
-      node         <- (entry \ "node").headOption ?~! ("Entry type is not node : " + entry)
+      node         <- (entry \ "node").headOption ?~! ("Entry type is not node : " + entry.toString())
       fileFormatOk <- TestFileFormat(node)
       changeTypeOk <- {
                         if(node.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
                         else Failure(s"'Node modification' entry does not have attribute 'changeType' with value 'modify', entry is: ${entry}")
                       }
-      id           <- (node \ "id").headOption.map( x => NodeId(x.text) ) ?~! ("Missing element 'id' in entry type Node: " + entry)
+      id           <- (node \ "id").headOption.map( x => NodeId(x.text) ) ?~! ("Missing element 'id' in entry type Node: " + entry.toString())
       policyMode   <- getFromTo[Option[PolicyMode]]((node \ "policyMode" ).headOption ,{ x => PolicyMode.parseDefault(x.text).toBox })
       agentRun     <- getFromTo[Option[AgentRunInterval]](  (node \ "agentRun").headOption ,{ x => extractAgentRun(xml)(x) })
       heartbeat    <- getFromTo[Option[HeartbeatConfiguration]]((node \ "heartbeat").headOption ,{ x => extractHeartbeatConfiguration(xml)(x) })

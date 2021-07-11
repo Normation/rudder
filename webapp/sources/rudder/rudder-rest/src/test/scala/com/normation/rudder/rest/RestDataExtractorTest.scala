@@ -133,7 +133,7 @@ class RestDataExtractorTest extends Specification {
           , Some("38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca")
           , Some("Baseline applying CIS guidelines")
           , Some("This rules should be applied to all Linux nodes required basic hardening")
-          , Some(Set(DirectiveId("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f")))
+          , Some(Set(DirectiveUid("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f")))
           , Some(Set(JRRuleTargetString(AllTarget)))
           , Some(true)
           , Some(Tags(Set(Tag(TagName("customer"), TagValue("MyCompany")))))

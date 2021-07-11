@@ -37,11 +37,89 @@
 
 package com.normation.rudder.domain.policies
 
+import com.normation.GitVersion
+import com.normation.GitVersion.Revision
+
 import scala.xml._
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.SectionSpec
 
-final case class DirectiveId(value : String) extends AnyVal
+/*
+ * Two way of modeling the couple (directiveId, rev) :
+ * - either we do DirectiveId(uuid: String, rev: Rev).
+ *   We tell that the revision is part of the directive identifier, and that an identifier
+ *   always has a revision.
+ *   It is likely the solution that will make simpler to never forget the migration from
+ *   id = uuid to id = (uuid, rev). But:
+ *   - it may complexify some automatic derivation, for ex for JSON (ie either we change json format for
+ *     "directive": { "id": {"uuid":"xxxxx", "rev": "xxxxx" }, ... }
+ *     which is breaking change for no good reason, especially if we want to make "rev" (or "rev") optionnal
+ * - or we just add a "rev" (or "rev") field in directive. It doesn't break any existing serialisation API, it
+ *   allows to continue to speak about "the directive ID" as just the uuid part, and have rev in addition.
+ *   But it means that we will need to be extra-careful to not forget a place that for now use "id" and that will
+ *   need to be duplicated or augmented with an optionnal "rev" parameter.
+ *
+ * I *think* we should change as little serialisation format as possible, especially in API, because they are the worst
+ * breaking changes possible, and from an external observer, not providing rev should let everything work as before.
+ * So we should make a hard constraint that JSON API will remain the same (with possibly an added "rev" field).
+ *
+ * Given that, we should (at least in the begining) try to minize distance between API serialisation format and internal
+ * format. So go for the second option, and be careful when evolving methods.
+ *
+ * ==== some more evolution
+ *
+ * - forcing rev everywhere, when we want it to be almost always `defaultRev`, is not efficient. We should use
+ *   Option[Rev]
+ *   BUT it means that special attention need to be used on unserialisation: defaultValue (if serialised)
+ *   must be unserialized to `None`.
+ * - the code is crying for a DirectiveRId(id: DirectiveId, rev: Option[Rev] = None)
+ *
+ * ==== case of techniques
+ *
+ * Techniques already have a version as part of their ID. That version is different from our revision, as it is not strict.
+ * But it seems that our revision is more a complement than a totally other concept:
+ * - two techniques with a difference here must have different directories for files/etc
+ * - directives with different version can't be merged/etc
+ *
+ *
+ */
+
+/*
+ * directive unique identifier. Must be unique, so it's likely an UUID, but it could be
+ * an ULID for ex https://wvlet.org/airframe/docs/airframe-ulid if we want to know about
+ * time stamp & be a bit more space efficient.
+ */
+final case class DirectiveUid(value: String) extends AnyVal {
+  def debugString: String = value
+  def serialize: String = value
+}
+
+/*
+ * A directive identifier is composed of the directive unique identifier and the directive revision.
+ * For backward compatibility, the UID field is named "id" in most serialized format. We will keep
+ * "uid" in code to avoid code looking like `directive.id.id`.
+ */
+final case class DirectiveId(uid: DirectiveUid, rev: Revision = GitVersion.defaultRev) {
+  def debugString: String = serialize
+
+  def serialize: String = rev match {
+    case GitVersion.defaultRev => uid.value
+    case rev                   => s"${uid.value}+${rev.value}"
+  }
+}
+
+object DirectiveId {
+
+  // parse a directiveId which was serialize by "id.serialize"
+  def parse(s: String) : Either[String, DirectiveId] = {
+    s.split("\\+").toList match {
+      case id :: Nil        => Right(DirectiveId(DirectiveUid(id), GitVersion.defaultRev))
+      case id :: "" :: Nil  => Right(DirectiveId(DirectiveUid(id), GitVersion.defaultRev))
+      case id :: rev :: Nil => Right(DirectiveId(DirectiveUid(id), Revision(rev)))
+      case _                => Left(s"Error when parsing '${s}' as a directive id. At most one '+' is authorized.")
+    }
+  }
+}
 
 /**
  * Define a directive.
@@ -63,7 +141,11 @@ final case class DirectiveId(value : String) extends AnyVal
  //TODO: why not keeping techniqueName here ? data duplication ?
 
 final case class Directive(
-    id : DirectiveId
+  // As of 7.0, an identifier is a couple of (object uuid, revision id).
+  // see rationnal in comment above
+
+    id   : DirectiveId
+
     /**
      * They reference one and only one Technique version
      */

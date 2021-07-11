@@ -62,7 +62,7 @@ final case class ActiveTechnique(
   , techniqueName       : TechniqueName
   , acceptationDatetimes: Map[TechniqueVersion, DateTime]
     //TODO: remove directives ids, they DON'T have to be here.
-  , directives          : List[DirectiveId] = Nil
+  , directives          : List[DirectiveUid] = Nil
   , _isEnabled          : Boolean = true
   , isSystem            : Boolean = false
 ) {

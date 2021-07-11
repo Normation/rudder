@@ -85,6 +85,7 @@ import com.normation.plugins.SnippetExtensionRegisterImpl
 import com.normation.rudder.UserService
 import com.normation.rudder.api._
 import com.normation.rudder.batch._
+import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._
 import com.normation.rudder.domain.logger.ApplicationLogger
@@ -112,6 +113,7 @@ import com.normation.rudder.reports.execution._
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.jdbc._
 import com.normation.rudder.repository.ldap._
+import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.repository.xml._
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest._
@@ -710,7 +712,7 @@ object RudderConfig extends Loggable {
   lazy val dependencyAndDeletionService: DependencyAndDeletionService =  dependencyAndDeletionServiceImpl
   val itemArchiveManager: ItemArchiveManager = itemArchiveManagerImpl
   val personIdentService: PersonIdentService = personIdentServiceImpl
-  val gitRevisionProvider: GitRevisionProvider = gitRevisionProviderImpl
+  lazy val gitRevisionProvider: GitRevisionProvider = gitRevisionProviderImpl
   val logDisplayer: LogDisplayer  = logDisplayerImpl
   val fullInventoryRepository: LDAPFullInventoryRepository = ldapFullInventoryRepository
   val acceptedNodeQueryProcessor: QueryProcessor = queryProcessor
@@ -922,6 +924,7 @@ object RudderConfig extends Loggable {
   val directiveApiService14 =
     new DirectiveApiService14 (
         roDirectiveRepository
+      , configurationRepository
       , woDirectiveRepository
       , uuidGen
       , asyncDeploymentAgent
@@ -1331,6 +1334,18 @@ object RudderConfig extends Loggable {
   // They are private to that object, and they can refer to other
   // private implementation as long as they conform to interface.
   //
+
+  lazy val configurationRepository = new ConfigurationRepositoryImpl(
+      roLdapDirectiveRepository
+    , techniqueRepository
+    , parseActiveTechniqueLibrary
+    , new GitParseTechniqueLibrary(
+        techniqueParser
+      , gitRepo
+      , "techniques"
+      , "metadata.xml"
+    )
+  )
 
   private[this] lazy val roLDAPApiAccountRepository = new RoLDAPApiAccountRepository(
       rudderDitImpl
@@ -1845,7 +1860,7 @@ object RudderConfig extends Loggable {
     , gitNodeGroupArchiver
     , gitParameterArchiver
     , parseRules
-    , ParseActiveTechniqueLibrary
+    , parseActiveTechniqueLibrary
     , parseGlobalParameter
     , parseRuleCategories
     , importTechniqueLibrary
@@ -1955,7 +1970,7 @@ object RudderConfig extends Loggable {
       , updateExpectedRepo
       , historizationService
       , roNodeGroupRepository
-      , roDirectiveRepository
+      , configurationRepository
       , ruleApplicationStatusImpl
       , roParameterServiceImpl
       , interpolationCompiler
@@ -2070,11 +2085,12 @@ object RudderConfig extends Loggable {
     , entityMigration
     , rulesDirectoryName
   )
-  private[this] lazy val ParseActiveTechniqueLibrary : ParseActiveTechniqueLibrary = new GitParseActiveTechniqueLibrary(
+  lazy val parseActiveTechniqueLibrary : GitParseActiveTechniqueLibrary = new GitParseActiveTechniqueLibrary(
       activeTechniqueCategoryUnserialisation
     , activeTechniqueUnserialisation
     , directiveUnserialisation
     , gitRepo
+    , gitRevisionProvider
     , entityMigration
     , userLibraryDirectoryName
   )
@@ -2134,7 +2150,7 @@ object RudderConfig extends Loggable {
       , woLdapNodeGroupRepository
   )
 
-  private[this] lazy val logDisplayerImpl: LogDisplayer = new LogDisplayer(reportsRepositoryImpl, roLdapDirectiveRepository, roLdapRuleRepository)
+  private[this] lazy val logDisplayerImpl: LogDisplayer = new LogDisplayer(reportsRepositoryImpl, configurationRepository, roLdapRuleRepository)
   private[this] lazy val categoryHierarchyDisplayerImpl: CategoryHierarchyDisplayer = new CategoryHierarchyDisplayer()
   private[this] lazy val dyngroupUpdaterBatch: UpdateDynamicGroups = new UpdateDynamicGroups(
       dynGroupServiceImpl

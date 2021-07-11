@@ -109,7 +109,7 @@ class CheckSystemGroups(
 
   def extractDataFromEntry(entry: LDAPEntry) : IOResult[(NodeGroup,String)]= {
     for {
-      group <-  mapper.entry2NodeGroup(entry).toIO.chainError(s"Error when mapping server group entry to its entity. Entry: ${entry}")
+      group <-  mapper.entry2NodeGroup(entry).toIO.chainError(s"Error when mapping server group entry to its entity. Entry: ${entry.toLDIFString()}")
       policyServerId <- extractPolicyServerId(group.id)
     } yield {
       (group,policyServerId)

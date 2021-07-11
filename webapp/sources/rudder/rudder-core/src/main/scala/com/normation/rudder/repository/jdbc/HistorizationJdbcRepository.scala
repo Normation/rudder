@@ -48,6 +48,7 @@ import doobie.implicits._
 import cats._
 import cats.data._
 import cats.implicits._
+import com.normation.GitVersion
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.domain.policies.ActiveTechnique
@@ -173,7 +174,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
       directives : Seq[(Directive, ActiveTechnique, Technique)]
     , closable : Seq[String]
   ): Unit = {
-    updateQuery(directives.map(_._1.id.value).toList ++ closable, "directives", "directiveid") match {
+    updateQuery(directives.map(_._1.id.uid.value).toList ++ closable, "directives", "directiveid") match {
       case None              =>  //nothing to do
       case Some(updateQuery) =>
         transactRunEither(xa => (for {
@@ -244,7 +245,8 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
         _  <- Update[DB.SerializedRuleDirectives]("""
                  insert into rulesdirectivesjoin (rulepkeyid, directiveid)
                  values (?, ?)
-               """).updateMany(r.directiveIds.toList.map(d => DB.SerializedRuleDirectives(pk, d.value)))
+               """).updateMany(r.directiveIds.filter(_.rev == GitVersion.defaultRev).toList.map(d => DB.SerializedRuleDirectives(pk, d.uid.value)))
+                // TODO: above, we need to filter directive with non empty rev to avoid ducplicate insert. Not sure it's what we want.
         _  <- Update[DB.SerializedRuleGroups]("""
                  insert into rulesgroupjoin (rulepkeyid, targetserialisation)
                  values (?, ?)

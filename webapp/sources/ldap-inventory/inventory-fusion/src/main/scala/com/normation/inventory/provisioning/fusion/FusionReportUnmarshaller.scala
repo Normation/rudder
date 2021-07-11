@@ -178,7 +178,7 @@ class FusionReportUnmarshaller(
               case None => // can update the manufacturer
                 report = report.copy(machine = report.machine.copy(manufacturer = Some(x)))
               case Some(existingManufacturer) => //cannot update it
-                InventoryProcessingLogger.logEffect.warn(s"Duplicate Machine Manufacturer definition in the inventory: s{existingManufacturer} is the current value, skipping the other value ${x}")
+                InventoryProcessingLogger.logEffect.warn(s"Duplicate Machine Manufacturer definition in the inventory: s{existingManufacturer} is the current value, skipping the other value ${x.name}")
             }
           }
           systemSerialNumber.foreach{ x =>

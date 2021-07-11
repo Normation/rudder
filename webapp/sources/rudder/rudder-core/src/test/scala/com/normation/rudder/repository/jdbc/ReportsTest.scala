@@ -38,22 +38,21 @@
 package com.normation.rudder.repository.jdbc
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
-
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-
 import doobie.implicits._
 import cats.implicits._
-
 import com.normation.rudder.db.DB
+import com.normation.rudder.domain.policies.DirectiveId
+import net.liftweb.common._
 import zio.interop.catz._
 
 
@@ -64,6 +63,14 @@ import zio.interop.catz._
  */
 @RunWith(classOf[JUnitRunner])
 class ReportsTest extends DBCommon {
+
+  implicit class ForceOpen[A](box: Box[A]) {
+    def open = box match {
+      case Full(x)      => x
+      case eb: EmptyBox => throw new IllegalArgumentException(s"Test failed, open an empty box: ${eb}")
+    }
+  }
+
 
   //clean data base
   def cleanTables() = {
@@ -76,7 +83,7 @@ class ReportsTest extends DBCommon {
 
   implicit def toReport(t:(DateTime,String, String, String, Int, String, String, DateTime, String, String)) = {
     implicit def toRuleId(s:String) = RuleId(s)
-    implicit def toDirectiveId(s: String) = DirectiveId(s)
+    implicit def toDirectiveId(s: String) = DirectiveId(DirectiveUid(s))
     implicit def toNodeId(s: String) = NodeId(s)
 
     Reports(t._1, t._2, t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10)
@@ -122,19 +129,19 @@ class ReportsTest extends DBCommon {
     }
 
     "find the last reports for node0" in {
-      val result = repostsRepo.getExecutionReports(Set(AgentRunId(NodeId("n0"), run1)), Set()).openOrThrowException("Test failed with exception")
+      val result = repostsRepo.getExecutionReports(Set(AgentRunId(NodeId("n0"), run1)), Set()).open
       result.values.flatten.toSeq must contain(exactly(reports("n0")(0)))
     }
 
     "find reports for node 0,1,2" in {
       val runs = Set(("n0", run1), ("n1", run1), ("n2", run1) )
-      val result = repostsRepo.getExecutionReports(runs, Set() ).openOrThrowException("Test failed with exception")
+      val result = repostsRepo.getExecutionReports(runs, Set() ).open
       result.values.flatten.toSeq must contain(exactly(reports("n0")++reports("n1").reverse.tail++reports("n2"):_*))
     }
 
     "not find report for none existing agent run id" in {
       val runs = Set( ("n2", run2), ("n3", run1))
-      val result = repostsRepo.getExecutionReports(runs, Set() ).openOrThrowException("Test failed with exception")
+      val result = repostsRepo.getExecutionReports(runs, Set() ).open
       result must beEmpty
     }
   }
@@ -181,12 +188,12 @@ class ReportsTest extends DBCommon {
      * - test case where there is no StartRun/EndRun
      */
     "get reports" in {
-      val res = repostsRepo.getReportsfromId(0, DateTime.now().plusDays(1)).openOrThrowException("Test failed")
+      val res = repostsRepo.getReportsfromId(0, DateTime.now().plusDays(1)).open
       val expected = Seq(
-          AgentRun(AgentRunId(NodeId("n0"),run1),None, 109)
-        , AgentRun(AgentRunId(NodeId("n1"),run1),Some(NodeConfigId("n1_run1")), 115)
-        , AgentRun(AgentRunId(NodeId("n1"),run2),Some(NodeConfigId("n1_run2")), 118)
-        , AgentRun(AgentRunId(NodeId("n2"),run1),Some(NodeConfigId("n2_run1")), 120)
+          AgentRun(AgentRunId(NodeId("n0"),run1),None,109)
+        , AgentRun(AgentRunId(NodeId("n1"),run1),Some(NodeConfigId("n1_run1")),115)
+        , AgentRun(AgentRunId(NodeId("n1"),run2),Some(NodeConfigId("n1_run2")),118)
+        , AgentRun(AgentRunId(NodeId("n2"),run1),Some(NodeConfigId("n2_run1")),120)
       )
 
       val checkInsert = transacRun(xa => sql"""select id from ruddersysevents""".query[Long].to[Vector].transact(xa)).size

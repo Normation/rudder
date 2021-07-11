@@ -133,7 +133,7 @@ class LDAPDiffMapper(
                                 }
                             }
                           case A_DIRECTIVE_UUID =>
-                            diff.map( _.copy(modDirectiveIds = Some(SimpleDiff(oldCr.directiveIds, mod.getValues.map( DirectiveId(_) ).toSet))))
+                            diff.map( _.copy(modDirectiveIds = Some(SimpleDiff(oldCr.directiveIds, mod.getValues.map(x => JsonDirectiveId.ruleParse(x).toDirectiveRId ).toSet))))
                           case A_NAME =>
                             diff.map( _.copy(modName = Some(SimpleDiff(oldCr.name, mod.getOptValueDefault("")))))
                           case A_DESCRIPTION =>
@@ -240,11 +240,18 @@ class LDAPDiffMapper(
         case (modify:LDIFModifyChangeRecord, Some(beforeChangeEntry)) =>
           for {
             oldPi <- mapper.entry2Directive(beforeChangeEntry)
-            diff  <- modify.getModifications().foldLeft(ModifyDirectiveDiff(ptName, oldPi.id, oldPi.name).asRight[RudderError]) { (diff, mod) =>
+            diff  <- modify.getModifications().foldLeft(ModifyDirectiveDiff(ptName, oldPi.id.uid, oldPi.name).asRight[RudderError]) { (diff, mod) =>
                         mod.getAttributeName() match {
                           case A_TECHNIQUE_VERSION =>
-                            nonNull(diff, mod.getOptValueDefault("")) { (d, value) =>
-                              d.copy(modTechniqueVersion = Some(SimpleDiff(oldPi.techniqueVersion, TechniqueVersion(value))))
+                            mod.getAttribute().getValue match {
+                              case null    => diff
+                              case version =>
+                                for {
+                                  d <- diff
+                                  v <- TechniqueVersion.parse(version).leftMap(Unexpected)
+                                } yield {
+                                  d.copy(modTechniqueVersion = Some(SimpleDiff(oldPi.techniqueVersion, v)))
+                                }
                             }
                           case A_DIRECTIVE_VARIABLES =>
                             val beforeRootSection = oldVariableRootSection.getOrElse(variableRootSection)

@@ -41,7 +41,7 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import org.specs2.mutable.Specification
 import com.normation.cfclerk.domain._
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
@@ -53,12 +53,13 @@ import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.BoundPolicyDraft
 import org.joda.time.DateTime
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.policies.DirectiveId
 
 
 @RunWith(classOf[JUnitRunner])
 class PolicyAgregationTest extends Specification {
-  implicit def str2pId(id: String) = TechniqueId(TechniqueName(id), TechniqueVersion("1.0"))
-  implicit def str2PolicyId(id: String) = PolicyId(RuleId("r_"+id), DirectiveId("d_"+id), TechniqueVersion("1.0"))
+  implicit def str2pId(id: String) = TechniqueId(TechniqueName(id), TechniqueVersionHelper("1.0"))
+  implicit def str2PolicyId(id: String) = PolicyId(RuleId("r_"+id), DirectiveId(DirectiveUid("d_" + id)), TechniqueVersionHelper("1.0"))
 
 
   // we are testing error cases, so we don't want to output error log for them
@@ -82,7 +83,7 @@ class PolicyAgregationTest extends Specification {
 
   //  a simple mutli-instance technique
   val technique1_1 = Technique(
-      TechniqueId(TechniqueName("tech_1"), TechniqueVersion("1.0"))
+      TechniqueId(TechniqueName("tech_1"), TechniqueVersionHelper("1.0"))
     , "tech_1"
     , "DESCRIPTION"
     , cfe :: Nil
@@ -94,32 +95,32 @@ class PolicyAgregationTest extends Specification {
 
   //  a simple mutli-instance technique
   val technique2_1 = technique1_1.copy(
-      id = TechniqueId(TechniqueName("tech_2"), TechniqueVersion("1.0"))
+      id = TechniqueId(TechniqueName("tech_2"), TechniqueVersionHelper("1.0"))
     , name = "tech_2"
   )
 
   // the same in an other version
   val technique2_2 = technique1_1.copy(
-      id = TechniqueId(TechniqueName("tech_2"), TechniqueVersion("2.0"))
+      id = TechniqueId(TechniqueName("tech_2"), TechniqueVersionHelper("2.0"))
     , name = "tech_2"
   )
 
   // the same in an other version, multi-policy
   val technique2_3 = technique1_1.copy(
-      id = TechniqueId(TechniqueName("tech_2"), TechniqueVersion("3.0"))
+      id = TechniqueId(TechniqueName("tech_2"), TechniqueVersionHelper("3.0"))
     , name = "tech_2"
     , generationMode = TechniqueGenerationMode.MultipleDirectives
   )
 
   // that one is not multi-instance, not multi-policy
   val technique3_1 = technique1_1.copy(
-      id = TechniqueId(TechniqueName("tech_3"), TechniqueVersion("1.0"))
+      id = TechniqueId(TechniqueName("tech_3"), TechniqueVersionHelper("1.0"))
     , name = "tech_3"
     , isMultiInstance = false
   )
 
   // an other version still not multi-policy
-  val technique3_2 = technique3_1.copy(id = TechniqueId(TechniqueName("tech_3"), TechniqueVersion("2.0")))
+  val technique3_2 = technique3_1.copy(id = TechniqueId(TechniqueName("tech_3"), TechniqueVersionHelper("2.0")))
 
 
   def newPolicy(technique: Technique, id: String, varName: String, values: Seq[String]) = {
@@ -137,7 +138,7 @@ class PolicyAgregationTest extends Specification {
       , false
       , None
       , BundleOrder(id.ruleId.value)
-      , BundleOrder(id.directiveId.value)
+      , BundleOrder(id.directiveId.serialize)
       , Set()
     )
   }

@@ -66,6 +66,13 @@ attributetype ( InventoryAttributes:1.5
   DESC 'Unique identifier for the policy server of a node'
   SUP uuid )
 
+# Revision identifier is not used in these objects, but they will be at
+# some point, so definition is here
+attributetype ( InventoryAttributes:1.6
+  NAME 'revision'
+  DESC '(git) revision identifier of the object'
+  SUP uuid )
+
 #######################################################################
 
 #

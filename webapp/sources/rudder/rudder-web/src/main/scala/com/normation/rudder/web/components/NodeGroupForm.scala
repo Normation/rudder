@@ -397,7 +397,7 @@ class NodeGroupForm(
           case Right(g)  => g._1
           case Left(err) =>
             formTracker.addFormError(Text("Error when saving group"))
-            logger.error(s"Error when looking for group with id '${ng.id.value}': ${err}")
+            logger.error(s"Error when looking for group with id '${ng.id.value}': ${err.fullMsg}")
             ng
         }
         if(ng.copy(properties = savedGroup.properties, serverList = savedGroup.serverList) != savedGroup) {
