@@ -926,7 +926,6 @@ object RudderConfig extends Loggable {
       , uuidGen
       , asyncDeploymentAgent
       , workflowLevelService
-      , restExtractorService
       , directiveEditorService
       , restDataSerializer
       , techniqueRepositoryImpl

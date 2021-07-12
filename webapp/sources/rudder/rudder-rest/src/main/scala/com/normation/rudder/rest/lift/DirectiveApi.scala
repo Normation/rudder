@@ -74,11 +74,11 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST.JValue
-
 import com.normation.box._
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors._
+import com.normation.rudder.repository.FullActiveTechniqueCategory
 import zio._
 import zio.syntax._
 import com.normation.rudder.rest._
@@ -117,6 +117,7 @@ class DirectiveApi (
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
+        case API.DirectiveTree    => DirectiveTree
         case API.ListDirectives   => ChooseApi0(ListDirective    , ListDirectiveV14   )
         case API.DirectiveDetails => ChooseApiN(DirectiveDetails , DirectiveDetailsV14)
         case API.CreateDirective  => ChooseApi0(CreateDirective  , CreateDirectiveV14 )
@@ -216,6 +217,17 @@ class DirectiveApi (
     val schema = API.ListDirectives
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV14.listDirectives().toLiftResponseList(params, schema)
+    }
+  }
+  object DirectiveTree extends LiftApiModule0 {
+    val schema = API.DirectiveTree
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        includeSystem <- restExtractorService.extractBoolean("includeSystem")(req)(identity).toIO
+        res <- serviceV14.directiveTree(includeSystem.getOrElse(false))
+      } yield {
+        res
+      }).toLiftResponseOne(params, schema, (_ => "tree"))
     }
   }
 
@@ -529,7 +541,6 @@ class DirectiveApiService14 (
   , uuidGen              : StringUuidGenerator
   , asyncDeploymentAgent : AsyncDeploymentActor
   , workflowLevelService : WorkflowLevelService
-  , restExtractor        : RestExtractorService
   , editorService        : DirectiveEditorService
   , restDataSerializer   : RestDataSerializer
   , techniqueRepository  : TechniqueRepository
@@ -537,6 +548,19 @@ class DirectiveApiService14 (
 
   def serialize = restDataSerializer.serializeDirective _
 
+  def directiveTree(includeSystem : Boolean) : IOResult[JRDirectiveTreeCategory] = {
+    def filterSystem(cat : FullActiveTechniqueCategory) : FullActiveTechniqueCategory = {
+      cat.copy(
+          subCategories    = cat.subCategories.filter(c => includeSystem || !c.isSystem).map(filterSystem).sortBy(_.name)
+        , activeTechniques = cat.activeTechniques.filter(c => includeSystem || !c.isSystem).map(t => t.copy(directives = t.directives.filterNot(_.isSystem).sortBy(_.name))).sortBy(_.techniqueName.value)
+      )
+    }
+    for {
+      root <- readDirective.getFullDirectiveLibrary()
+    } yield {
+      JRDirectiveTreeCategory.fromActiveTechniqueCategory(filterSystem(root))
+    }
+  }
   def listDirectives(): IOResult[List[JRDirective]] = {
     for {
       fullLibrary <- readDirective.getFullDirectiveLibrary().chainError("Could not fetch Directives")

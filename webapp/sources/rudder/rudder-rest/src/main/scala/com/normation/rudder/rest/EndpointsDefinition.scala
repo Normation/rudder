@@ -171,6 +171,10 @@ object DirectiveApi extends ApiModuleProvider[DirectiveApi] {
     val description = "List all directives"
     val (action, path)  = GET / "directives"
   }
+  final case object DirectiveTree extends DirectiveApi with ZeroParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Get Directive tree"
+    val (action, path)  = GET / "directives" / "tree"
+  }
   final case object DirectiveDetails extends DirectiveApi with OneParam with StartsAtVersion2 with SortIndex { val z = implicitly[Line].value
     val description = "Get information about given directive"
     val (action, path)  = GET / "directives" / "{id}"
