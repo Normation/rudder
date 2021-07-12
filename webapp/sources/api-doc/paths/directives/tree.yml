@@ -2,6 +2,17 @@ get:
   summary: Get directive tree
   description: Get all information about all directives in a tree like structure (with categories and techniques)
   operationId: directivesTree
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            includeSystem:
+              type: boolean
+              example: false
+              description: Should we include or not system techniques and categories in the tree.
   responses:
     '200':
       description: Directives tree

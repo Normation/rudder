@@ -79,7 +79,6 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors._
 import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import zio._
 import zio.syntax._
 import com.normation.rudder.rest._
