@@ -551,8 +551,8 @@ class DirectiveApiService14 (
   def directiveTree(includeSystem : Boolean) : IOResult[JRDirectiveTreeCategory] = {
     def filterSystem(cat : FullActiveTechniqueCategory) : FullActiveTechniqueCategory = {
       cat.copy(
-          subCategories    = cat.subCategories.filter(c => includeSystem || c.isSystem).map(filterSystem)
-        , activeTechniques = cat.activeTechniques.filterNot(c => includeSystem || c.isSystem).map(t => t.copy(directives = t.directives.filterNot(_.isSystem)))
+          subCategories    = cat.subCategories.filter(c => includeSystem || !c.isSystem).map(filterSystem)
+        , activeTechniques = cat.activeTechniques.filter(c => includeSystem || !c.isSystem).map(t => t.copy(directives = t.directives.filterNot(_.isSystem)))
       )
     }
     for {
