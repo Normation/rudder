@@ -1047,14 +1047,13 @@ pub struct PBlockDeclaration<'src> {
     pub childs: Vec<PStatement<'src>>,
 }
 fn pblock_declaration(i: PInput) -> PResult<PBlockDeclaration> {
-    wsequence!(
-        {
-            childs: delimited_parser("{", |j| many0(pstatement)(j), "}");
-        } => PBlockDeclaration {
-                metadata: Vec::new(),
-                childs
-        }
-    )(i)
+    return map(
+        delimited_parser("{", |j| many0(pstatement)(j), "}"),
+        |childs| PBlockDeclaration {
+            metadata: Vec::new(),
+            childs,
+        },
+    )(i);
 }
 
 /// A statement is the atomic element of a state definition.
