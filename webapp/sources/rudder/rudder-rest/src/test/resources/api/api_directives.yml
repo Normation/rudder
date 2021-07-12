@@ -1513,298 +1513,10 @@ response:
                 ]
               },
               {
-                "name": "System Techniques",
-                "description": "\n This category contains internal Techniques (system).\n These Techniques should not be used directly.\n ",
-                "subCategories": [],
-                "techniques": [
-                  {
-                    "name": "server-roles",
-                    "directives": []
-                  },
-                  {
-                    "name": "inventory",
-                    "directives": []
-                  },
-                  {
-                    "name": "common",
-                    "directives": []
-                  },
-                  {
-                    "name": "distributePolicy",
-                    "directives": []
-                  }
-                ]
-              },
-              {
                 "name": "Distributing files",
                 "description": "\n Manage node files.\n ",
                 "subCategories": [],
                 "techniques": [
-                  {
-                    "name": "fileTemplate",
-                    "directives": [
-                      {
-                        "id": "ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
-                        "displayName": "directive ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
-                        "shortDescription": "",
-                        "longDescription": "",
-                        "techniqueName": "fileTemplate",
-                        "techniqueVersion": "1.0",
-                        "parameters": {
-                          "section": {
-                            "name": "sections",
-                            "sections": [
-                              {
-                                "section": {
-                                  "name": "Apply template",
-                                  "sections": [
-                                    {
-                                      "section": {
-                                        "name": "Load Template from a file or text input",
-                                        "vars": [
-                                          {
-                                            "var": {
-                                              "name": "FILE_TEMPLATE_AGENT_DESTINATION_PATH",
-                                              "value": "/tmp/other-destination.txt"
-                                            }
-                                          },
-                                          {
-                                            "var": {
-                                              "name": "FILE_TEMPLATE_RAW_OR_NOT",
-                                              "value": "Raw"
-                                            }
-                                          },
-                                          {
-                                            "var": {
-                                              "name": "FILE_TEMPLATE_RAW_TEMPLATE",
-                                              "value": "some content"
-                                            }
-                                          },
-                                          {
-                                            "var": {
-                                              "name": "FILE_TEMPLATE_TEMPLATE",
-                                              "value": ""
-                                            }
-                                          }
-                                        ],
-                                        "sections": [
-                                          {
-                                            "section": {
-                                              "name": "Expand template"
-                                            }
-                                          },
-                                          {
-                                            "section": {
-                                              "name": "Posthook",
-                                              "vars": [
-                                                {
-                                                  "var": {
-                                                    "name": "FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND",
-                                                    "value": "/bin/true"
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          },
-                                          {
-                                            "section": {
-                                              "name": "Put permissions"
-                                            }
-                                          },
-                                          {
-                                            "section": {
-                                              "name": "Templates directory permissions"
-                                            }
-                                          },
-                                          {
-                                            "section": {
-                                              "name": "Templates location"
-                                            }
-                                          },
-                                          {
-                                            "section": {
-                                              "name": "UNIX specific options",
-                                              "vars": [
-                                                {
-                                                  "var": {
-                                                    "name": "FILE_TEMPLATE_GROUP_OWNER",
-                                                    "value": "root"
-                                                  }
-                                                },
-                                                {
-                                                  "var": {
-                                                    "name": "FILE_TEMPLATE_OWNER",
-                                                    "value": "root"
-                                                  }
-                                                },
-                                                {
-                                                  "var": {
-                                                    "name": "FILE_TEMPLATE_PERMISSIONS",
-                                                    "value": "777"
-                                                  }
-                                                },
-                                                {
-                                                  "var": {
-                                                    "name": "FILE_TEMPLATE_PERSISTENT_POST_HOOK",
-                                                    "value": "true"
-                                                  }
-                                                },
-                                                {
-                                                  "var": {
-                                                    "name": "FILE_TEMPLATE_TEMPLATE_TYPE",
-                                                    "value": "mustache"
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  ]
-                                }
-                              }
-                            ]
-                          }
-                        },
-                        "priority": 5,
-                        "enabled": false,
-                        "system": false,
-                        "policyMode": "default",
-                        "tags": []
-                      },
-                      {
-                        "id": "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "displayName": "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "shortDescription": "",
-                        "longDescription": "",
-                        "techniqueName": "fileTemplate",
-                        "techniqueVersion": "1.0",
-                        "parameters": {
-                          "section": {
-                            "name": "sections",
-                            "sections": [
-                              {
-                                "section": {
-                                  "name": "Apply template",
-                                  "sections": [
-                                    {
-                                      "section": {
-                                        "name": "Load Template from a file or text input",
-                                        "vars": [
-                                          {
-                                            "var": {
-                                              "name": "FILE_TEMPLATE_AGENT_DESTINATION_PATH",
-                                              "value": "/tmp/destination.txt"
-                                            }
-                                          },
-                                          {
-                                            "var": {
-                                              "name": "FILE_TEMPLATE_RAW_OR_NOT",
-                                              "value": "Raw"
-                                            }
-                                          },
-                                          {
-                                            "var": {
-                                              "name": "FILE_TEMPLATE_RAW_TEMPLATE",
-                                              "value": "some content"
-                                            }
-                                          },
-                                          {
-                                            "var": {
-                                              "name": "FILE_TEMPLATE_TEMPLATE",
-                                              "value": ""
-                                            }
-                                          }
-                                        ],
-                                        "sections": [
-                                          {
-                                            "section": {
-                                              "name": "Expand template"
-                                            }
-                                          },
-                                          {
-                                            "section": {
-                                              "name": "Posthook",
-                                              "vars": [
-                                                {
-                                                  "var": {
-                                                    "name": "FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND",
-                                                    "value": ""
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          },
-                                          {
-                                            "section": {
-                                              "name": "Put permissions"
-                                            }
-                                          },
-                                          {
-                                            "section": {
-                                              "name": "Templates directory permissions"
-                                            }
-                                          },
-                                          {
-                                            "section": {
-                                              "name": "Templates location"
-                                            }
-                                          },
-                                          {
-                                            "section": {
-                                              "name": "UNIX specific options",
-                                              "vars": [
-                                                {
-                                                  "var": {
-                                                    "name": "FILE_TEMPLATE_GROUP_OWNER",
-                                                    "value": "root"
-                                                  }
-                                                },
-                                                {
-                                                  "var": {
-                                                    "name": "FILE_TEMPLATE_OWNER",
-                                                    "value": "root"
-                                                  }
-                                                },
-                                                {
-                                                  "var": {
-                                                    "name": "FILE_TEMPLATE_PERMISSIONS",
-                                                    "value": "700"
-                                                  }
-                                                },
-                                                {
-                                                  "var": {
-                                                    "name": "FILE_TEMPLATE_PERSISTENT_POST_HOOK",
-                                                    "value": "false"
-                                                  }
-                                                },
-                                                {
-                                                  "var": {
-                                                    "name": "FILE_TEMPLATE_TEMPLATE_TYPE",
-                                                    "value": "mustache"
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  ]
-                                }
-                              }
-                            ]
-                          }
-                        },
-                        "priority": 5,
-                        "enabled": false,
-                        "system": false,
-                        "policyMode": "default",
-                        "tags": []
-                      }
-                    ]
-                  },
                   {
                     "name": "copyGitFile",
                     "directives": [
@@ -1956,6 +1668,373 @@ response:
                         "tags": []
                       }
                     ]
+                  },
+                  {
+                    "name": "fileTemplate",
+                    "directives": [
+                      {
+                        "id": "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "displayName": "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "shortDescription": "",
+                        "longDescription": "",
+                        "techniqueName": "fileTemplate",
+                        "techniqueVersion": "1.0",
+                        "parameters": {
+                          "section": {
+                            "name": "sections",
+                            "sections": [
+                              {
+                                "section": {
+                                  "name": "Apply template",
+                                  "sections": [
+                                    {
+                                      "section": {
+                                        "name": "Load Template from a file or text input",
+                                        "vars": [
+                                          {
+                                            "var": {
+                                              "name": "FILE_TEMPLATE_AGENT_DESTINATION_PATH",
+                                              "value": "/tmp/destination.txt"
+                                            }
+                                          },
+                                          {
+                                            "var": {
+                                              "name": "FILE_TEMPLATE_RAW_OR_NOT",
+                                              "value": "Raw"
+                                            }
+                                          },
+                                          {
+                                            "var": {
+                                              "name": "FILE_TEMPLATE_RAW_TEMPLATE",
+                                              "value": "some content"
+                                            }
+                                          },
+                                          {
+                                            "var": {
+                                              "name": "FILE_TEMPLATE_TEMPLATE",
+                                              "value": ""
+                                            }
+                                          }
+                                        ],
+                                        "sections": [
+                                          {
+                                            "section": {
+                                              "name": "Expand template"
+                                            }
+                                          },
+                                          {
+                                            "section": {
+                                              "name": "Posthook",
+                                              "vars": [
+                                                {
+                                                  "var": {
+                                                    "name": "FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND",
+                                                    "value": ""
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          {
+                                            "section": {
+                                              "name": "Put permissions"
+                                            }
+                                          },
+                                          {
+                                            "section": {
+                                              "name": "Templates directory permissions"
+                                            }
+                                          },
+                                          {
+                                            "section": {
+                                              "name": "Templates location"
+                                            }
+                                          },
+                                          {
+                                            "section": {
+                                              "name": "UNIX specific options",
+                                              "vars": [
+                                                {
+                                                  "var": {
+                                                    "name": "FILE_TEMPLATE_GROUP_OWNER",
+                                                    "value": "root"
+                                                  }
+                                                },
+                                                {
+                                                  "var": {
+                                                    "name": "FILE_TEMPLATE_OWNER",
+                                                    "value": "root"
+                                                  }
+                                                },
+                                                {
+                                                  "var": {
+                                                    "name": "FILE_TEMPLATE_PERMISSIONS",
+                                                    "value": "700"
+                                                  }
+                                                },
+                                                {
+                                                  "var": {
+                                                    "name": "FILE_TEMPLATE_PERSISTENT_POST_HOOK",
+                                                    "value": "false"
+                                                  }
+                                                },
+                                                {
+                                                  "var": {
+                                                    "name": "FILE_TEMPLATE_TEMPLATE_TYPE",
+                                                    "value": "mustache"
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "priority": 5,
+                        "enabled": false,
+                        "system": false,
+                        "policyMode": "default",
+                        "tags": []
+                      },
+                      {
+                        "id": "ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
+                        "displayName": "directive ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
+                        "shortDescription": "",
+                        "longDescription": "",
+                        "techniqueName": "fileTemplate",
+                        "techniqueVersion": "1.0",
+                        "parameters": {
+                          "section": {
+                            "name": "sections",
+                            "sections": [
+                              {
+                                "section": {
+                                  "name": "Apply template",
+                                  "sections": [
+                                    {
+                                      "section": {
+                                        "name": "Load Template from a file or text input",
+                                        "vars": [
+                                          {
+                                            "var": {
+                                              "name": "FILE_TEMPLATE_AGENT_DESTINATION_PATH",
+                                              "value": "/tmp/other-destination.txt"
+                                            }
+                                          },
+                                          {
+                                            "var": {
+                                              "name": "FILE_TEMPLATE_RAW_OR_NOT",
+                                              "value": "Raw"
+                                            }
+                                          },
+                                          {
+                                            "var": {
+                                              "name": "FILE_TEMPLATE_RAW_TEMPLATE",
+                                              "value": "some content"
+                                            }
+                                          },
+                                          {
+                                            "var": {
+                                              "name": "FILE_TEMPLATE_TEMPLATE",
+                                              "value": ""
+                                            }
+                                          }
+                                        ],
+                                        "sections": [
+                                          {
+                                            "section": {
+                                              "name": "Expand template"
+                                            }
+                                          },
+                                          {
+                                            "section": {
+                                              "name": "Posthook",
+                                              "vars": [
+                                                {
+                                                  "var": {
+                                                    "name": "FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND",
+                                                    "value": "/bin/true"
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          {
+                                            "section": {
+                                              "name": "Put permissions"
+                                            }
+                                          },
+                                          {
+                                            "section": {
+                                              "name": "Templates directory permissions"
+                                            }
+                                          },
+                                          {
+                                            "section": {
+                                              "name": "Templates location"
+                                            }
+                                          },
+                                          {
+                                            "section": {
+                                              "name": "UNIX specific options",
+                                              "vars": [
+                                                {
+                                                  "var": {
+                                                    "name": "FILE_TEMPLATE_GROUP_OWNER",
+                                                    "value": "root"
+                                                  }
+                                                },
+                                                {
+                                                  "var": {
+                                                    "name": "FILE_TEMPLATE_OWNER",
+                                                    "value": "root"
+                                                  }
+                                                },
+                                                {
+                                                  "var": {
+                                                    "name": "FILE_TEMPLATE_PERMISSIONS",
+                                                    "value": "777"
+                                                  }
+                                                },
+                                                {
+                                                  "var": {
+                                                    "name": "FILE_TEMPLATE_PERSISTENT_POST_HOOK",
+                                                    "value": "true"
+                                                  }
+                                                },
+                                                {
+                                                  "var": {
+                                                    "name": "FILE_TEMPLATE_TEMPLATE_TYPE",
+                                                    "value": "mustache"
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "priority": 5,
+                        "enabled": false,
+                        "system": false,
+                        "policyMode": "default",
+                        "tags": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "Meta Techniques",
+                "description": "\n Meta Techniques created using the ncf framework.\n ",
+                "subCategories": [],
+                "techniques": [
+                  {
+                    "name": "Create_file",
+                    "directives": [
+                      {
+                        "id": "16d86a56-93ef-49aa-86b7-0d10102e4ea9",
+                        "displayName": "directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9",
+                        "shortDescription": "",
+                        "longDescription": "",
+                        "techniqueName": "Create_file",
+                        "techniqueVersion": "1.0",
+                        "parameters": {
+                          "section": {
+                            "name": "sections",
+                            "sections": [
+                              {
+                                "section": {
+                                  "name": "Directory create",
+                                  "vars": [
+                                    {
+                                      "var": {
+                                        "name": "expectedReportKey Directory create",
+                                        "value": "directory_create_/tmp/foo"
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "section": {
+                                  "name": "File create",
+                                  "vars": [
+                                    {
+                                      "var": {
+                                        "name": "expectedReportKey File create",
+                                        "value": "file_create_/tmp/foo/bar"
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "section": {
+                                  "name": "Technique parameters",
+                                  "vars": [
+                                    {
+                                      "var": {
+                                        "name": "1AAACD71-C2D5-482C-BCFF-5EEE6F8DA9C2",
+                                        "value": "\"foo"
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "priority": 5,
+                        "enabled": false,
+                        "system": false,
+                        "policyMode": "default",
+                        "tags": []
+                      }
+                    ]
+                  },
+                  {
+                    "name": "technique_any",
+                    "directives": []
+                  },
+                  {
+                    "name": "technique_by_Rudder",
+                    "directives": []
+                  }
+                ]
+              },
+              {
+                "name": "System Techniques",
+                "description": "\n This category contains internal Techniques (system).\n These Techniques should not be used directly.\n ",
+                "subCategories": [],
+                "techniques": [
+                  {
+                    "name": "common",
+                    "directives": []
+                  },
+                  {
+                    "name": "distributePolicy",
+                    "directives": []
+                  },
+                  {
+                    "name": "inventory",
+                    "directives": []
+                  },
+                  {
+                    "name": "server-roles",
+                    "directives": []
                   }
                 ]
               },
@@ -2140,85 +2219,6 @@ response:
                   }
                 ],
                 "techniques": []
-              },
-              {
-                "name": "Meta Techniques",
-                "description": "\n Meta Techniques created using the ncf framework.\n ",
-                "subCategories": [],
-                "techniques": [
-                  {
-                    "name": "Create_file",
-                    "directives": [
-                      {
-                        "id": "16d86a56-93ef-49aa-86b7-0d10102e4ea9",
-                        "displayName": "directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9",
-                        "shortDescription": "",
-                        "longDescription": "",
-                        "techniqueName": "Create_file",
-                        "techniqueVersion": "1.0",
-                        "parameters": {
-                          "section": {
-                            "name": "sections",
-                            "sections": [
-                              {
-                                "section": {
-                                  "name": "Directory create",
-                                  "vars": [
-                                    {
-                                      "var": {
-                                        "name": "expectedReportKey Directory create",
-                                        "value": "directory_create_/tmp/foo"
-                                      }
-                                    }
-                                  ]
-                                }
-                              },
-                              {
-                                "section": {
-                                  "name": "File create",
-                                  "vars": [
-                                    {
-                                      "var": {
-                                        "name": "expectedReportKey File create",
-                                        "value": "file_create_/tmp/foo/bar"
-                                      }
-                                    }
-                                  ]
-                                }
-                              },
-                              {
-                                "section": {
-                                  "name": "Technique parameters",
-                                  "vars": [
-                                    {
-                                      "var": {
-                                        "name": "1AAACD71-C2D5-482C-BCFF-5EEE6F8DA9C2",
-                                        "value": "\"foo"
-                                      }
-                                    }
-                                  ]
-                                }
-                              }
-                            ]
-                          }
-                        },
-                        "priority": 5,
-                        "enabled": false,
-                        "system": false,
-                        "policyMode": "default",
-                        "tags": []
-                      }
-                    ]
-                  },
-                  {
-                    "name": "technique_any",
-                    "directives": []
-                  },
-                  {
-                    "name": "technique_by_Rudder",
-                    "directives": []
-                  }
-                ]
               }
             ],
             "techniques": []
@@ -2226,4 +2226,3 @@ response:
         ]
       }
     }
-
