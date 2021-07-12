@@ -430,7 +430,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
   // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true
   def truthyCondition(condition : String) = condition.isEmpty || condition == "any" || condition == "cfengine-community"
   def methodCallNeedReporting(methods : Map[BundleName, GenericMethod], parentBlock : List[MethodBlock])(call : MethodCall) : Boolean = {
-    val condition = (call.condition :: parentBlock.map(_.condition)).filterNot(truthyCondition).mkString("(", ").(", ")")
+    val condition =formatCondition(call, parentBlock)
     methods.get(call.methodId).map(m =>  ! m.agentSupport.contains(AgentType.CfeCommunity) || ! truthyCondition(condition)).getOrElse(true)
   }
 
@@ -442,18 +442,19 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
     }
   }
 
+  def formatCondition(methodCall: MethodCall, parentBlock : List[MethodBlock]) =  {
+    (parentBlock.map(_.condition).filterNot(truthyCondition), truthyCondition(methodCall.condition)) match {
+      case (Nil, true) => "any"
+      case (list, true) => list.mkString("(",").(",")")
+      case (Nil, false) => methodCall.condition
+      case (list, false) => list.mkString("(", ").(", s".${methodCall.condition})")
+    }
+  }
 
   def needReportingBundle(technique : EditorTechnique, methods : Map[BundleName, GenericMethod]) = technique.methodCalls.exists(elemNeedReportingBundle(methods, Nil))
 
   def canonifyCondition(methodCall: MethodCall, parentBlock : List[MethodBlock]) = {
-
-    val condition = (parentBlock.map(_.condition).filterNot(truthyCondition), truthyCondition(methodCall.condition)) match {
-      case (Nil, true) => "any"
-      case (list, true) => list.mkString(".")
-      case (Nil, false) => methodCall.condition
-      case (list, false) => list.mkString("", ".", s".${methodCall.condition}")
-    }
-    condition.replaceAll("""(\$\{[^\}]*})""","""",canonify("$1"),"""")
+    formatCondition(methodCall,parentBlock).replaceAll("""(\$\{[^\}]*})""","""",canonify("$1"),"""")
   }
 
   // regex to match double quote characters not preceded by a backslash, and backslash not preceded by backslash or not followed by a backslash or a quote (simple or double)
