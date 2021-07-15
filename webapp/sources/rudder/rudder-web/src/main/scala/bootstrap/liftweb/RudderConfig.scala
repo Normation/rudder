@@ -1275,7 +1275,7 @@ object RudderConfig extends Loggable {
 
   lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
   lazy val configService: ReadConfigService with UpdateConfigService = {
-    new LDAPBasedConfigService(
+    new GenericConfigService(
         config
       , new LdapConfigRepository(rudderDit, rwLdap, ldapEntityMapper, eventLogRepository, stringUuidGenerator)
       , asyncWorkflowInfo
@@ -1936,10 +1936,9 @@ object RudderConfig extends Loggable {
   private[this] lazy val ruleValService: RuleValService = new RuleValServiceImpl(interpolationCompiler)
 
   private[this] lazy val psMngtService: PolicyServerManagementService = new PolicyServerManagementServiceImpl(
-      roLdapDirectiveRepository
-    , woLdapDirectiveRepository
-    , rwLdap
+      rwLdap
     , rudderDit
+    , eventLogRepository
   )
   private[this] lazy val historizationService = new HistorizationServiceImpl(historizationJdbcRepository)
 

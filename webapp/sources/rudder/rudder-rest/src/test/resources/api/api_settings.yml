@@ -1,0 +1,139 @@
+---
+description: Get all settings
+method: GET
+url: /api/latest/settings
+response:
+  code: 200
+  content: >-
+    {
+      "action":"getAllSettings",
+      "result":"success",
+      "data":{
+        "settings":{
+          "allowed_networks":[
+            {
+              "id":"root",
+              "allowed_networks":[
+                "192.168.2.0/32"
+              ]
+            },
+            {
+              "id":"node-dsc",
+              "allowed_networks":[
+
+              ]
+            }
+          ],
+          "change_message_prompt":"Please enter a reason explaining this change.",
+          "display_recent_changes_graphs":true,
+          "enable_change_message":true,
+          "enable_change_request":false,
+          "enable_javascript_directives":"enabled",
+          "enable_self_deployment":true,
+          "enable_self_validation":false,
+          "first_run_hour":0,
+          "first_run_minute":0,
+          "global_policy_mode":"enforce",
+          "global_policy_mode_overridable":true,
+          "heartbeat_frequency":1,
+          "log_all_reports":true,
+          "mandatory_change_message":false,
+          "modified_file_ttl":30,
+          "node_accept_duplicated_hostname":false,
+          "node_onaccept_default_policyMode":"default",
+          "node_onaccept_default_state":"enabled",
+          "output_file_ttl":7,
+          "relay_server_synchronization_method":"classic",
+          "relay_server_synchronize_policies":true,
+          "relay_server_synchronize_shared_files":true,
+          "reporting_mode":"full-compliance",
+          "require_time_synchronization":true,
+          "rsyslog_reporting_protocol":"UDP",
+          "rudder_compute_changes":true,
+          "rudder_compute_dyngroups_max_parallelism":"1",
+          "rudder_generation_compute_dyngroups":true,
+          "rudder_generation_continue_on_error":false,
+          "rudder_generation_delay":"0 days",
+          "rudder_generation_js_timeout":30,
+          "rudder_generation_max_parallelism":"x0.5",
+          "rudder_generation_policy":"all",
+          "rudder_report_protocol_default":"SYSLOG",
+          "rudder_save_db_compliance_details":false,
+          "rudder_save_db_compliance_levels":true,
+          "run_frequency":5,
+          "send_metrics":"not defined",
+          "splay_time":4,
+          "syslog_protocol_disabled":false,
+          "unexpected_allows_duplicate":true,
+          "unexpected_unbound_var_values":true
+        }
+      }
+    }
+---
+description: Get allowed networks for root
+method: GET
+url: /api/latest/settings/allowed_networks/root
+response:
+  code: 200
+  content: >-
+    {
+      "action":"getAllowedNetworks",
+      "id":"root",
+      "result":"success",
+      "data":{
+        "settings":{"allowed_networks":["192.168.2.0/32"]}
+      }
+    }
+---
+description: Set allowed networks for root
+method: POST
+url: /api/latest/settings/allowed_networks/root
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "allowed_networks": [
+      "192.168.1.0/24",
+      "192.168.2.0/32"
+    ]
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"modifyAllowedNetworks",
+      "id":"root",
+      "result":"success",
+      "data":{
+        "settings":["192.168.1.0/24","192.168.2.0/32"]
+      }
+    }
+---
+description: Modify allowed networks for root
+method: POST
+url: /api/latest/settings/allowed_networks/root/diff
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "allowed_networks": {
+      "add": [
+        "192.168.2.0/24",
+        "192.168.0.0/16"
+      ],
+      "delete": [
+        "192.168.1.0/24"
+      ]
+    }
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"modifyDiffAllowedNetworks",
+      "id":"root",
+      "result":"success",
+      "data":{
+        "settings":["192.168.0.0/16","192.168.2.0/24","192.168.2.0/32"]
+      }
+    }

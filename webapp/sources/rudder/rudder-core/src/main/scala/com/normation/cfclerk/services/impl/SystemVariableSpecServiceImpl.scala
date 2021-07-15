@@ -222,7 +222,7 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
-                     "AUTHORIZED_NETWORKS" , "Networks authorized to connect to the policy server"
+                     "ALLOWED_NETWORKS" , "Networks authorized to connect to the policy server"
                                            , multivalued = true
                                            , constraint = Constraint(mayBeEmpty=true)
                         )

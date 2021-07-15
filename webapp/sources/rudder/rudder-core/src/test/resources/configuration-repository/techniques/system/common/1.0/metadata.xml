@@ -96,7 +96,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   </FILES>
 
   <SYSTEMVARS>
-    <NAME>AUTHORIZED_NETWORKS</NAME>
+    <NAME>ALLOWED_NETWORKS</NAME>
     <NAME>INPUTLIST</NAME>
     <NAME>BUNDLELIST</NAME>
     <NAME>RUDDER_DIRECTIVES_SEQUENCE</NAME>
@@ -114,7 +114,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <NAME>MANAGED_NODES_NAME</NAME>
     <NAME>MANAGED_NODES_ID</NAME>
     <NAME>MANAGED_NODES_KEY</NAME>
-    <NAME>MANAGED_NODES_ADMIN</NAME> 
+    <NAME>MANAGED_NODES_ADMIN</NAME>
     <NAME>DENYBADCLOCKS</NAME>
     <NAME>AGENT_RUN_INTERVAL</NAME>
     <NAME>AGENT_RUN_SPLAYTIME</NAME>
@@ -165,15 +165,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <NAME>POLICYSERVER_ID</NAME>
         <DESCRIPTION>UUID of the policy server</DESCRIPTION>
       </INPUT>
-      <SECTION name="authorizedNetworkSection" multivalued="true">
-      <INPUT>
-        <NAME>ALLOWEDNETWORK</NAME>
-        <DESCRIPTION>The network(s) allowed to connect to the server (can use the / parameter)</DESCRIPTION>
-        <CONSTRAINT>
-          <MAYBEEMPTY>true</MAYBEEMPTY>
-        </CONSTRAINT>
-      </INPUT>
-      </SECTION>
     </SECTION>
   </SECTIONS>
 

@@ -120,12 +120,12 @@ bundle common def
 
    # List here the IP masks that we grant access to on the server
 
-&if(AUTHORIZED_NETWORKS)&
+&if(ALLOWED_NETWORKS)&
     policy_server::
       "acl" slist => {
       "127.0.0.0/8" , "::1",
       host2ip("${def.policy_server}"), # the policy server can connect to a relay
-      &AUTHORIZED_NETWORKS:{net|"&net&",}&
+      &ALLOWED_NETWORKS:{net|"&net&",}&
     };
 &endif&
 

@@ -675,6 +675,7 @@ object JsonResponseObjects {
     }
   }
 
+
 }
 //////////////////////////// zio-json encoders ////////////////////////////
 
@@ -755,6 +756,7 @@ trait RudderJsonEncoders {
   implicit val queryEncoder: JsonEncoder[JRQuery] = DeriveJsonEncoder.gen
   implicit val groupEncoder: JsonEncoder[JRGroup] = DeriveJsonEncoder.gen
   implicit val objectInheritedObjectProperties: JsonEncoder[JRGroupInheritedProperties] = DeriveJsonEncoder.gen
+
 }
 
 
@@ -985,6 +987,8 @@ object JsonQueryObjects {
       }
     }
   }
+
+  // policy servers are serialized in their output format
 }
 
 trait RudderJsonDecoders {
@@ -1067,6 +1071,8 @@ trait RudderJsonDecoders {
   implicit val groupPropertyDecoder: JsonDecoder[JQGroupProperty] = DeriveJsonDecoder.gen
   implicit val groupPropertyDecoder2: JsonDecoder[GroupProperty] = JsonDecoder[JQGroupProperty].map(_.toGroupProperty)
   implicit val groupDecoder: JsonDecoder[JQGroup] = DeriveJsonDecoder.gen
+
+
 }
 
 object implicits extends RudderJsonDecoders with RudderJsonEncoders with RudderJsonResponse.implicits

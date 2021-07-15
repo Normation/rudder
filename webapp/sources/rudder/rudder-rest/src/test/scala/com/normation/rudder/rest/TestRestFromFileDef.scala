@@ -95,10 +95,10 @@ class TestRestFromFileDef extends Specification with Loggable {
   // file to test, by default all under "src/main/resources/api", you can comment that line
   // an uncoment the following one to test only one file.
   val files = IOUtils.readLines(src_test_resources_api_(""), StandardCharsets.UTF_8).asScala.toList
-//  val files = List("api_parameters.yml")
+//  val files = List("api_settings.yml")
 
 
-  // try to not make everyone loose hours on java NPE 
+  // try to not make everyone loose hours on java NPE
   implicit class SafeGet(data: scala.collection.mutable.Map[String, Any]) {
     def safe[A](key: String, default: Option[A], map: Any => A): A = {
       data.get(key) match {
@@ -164,7 +164,7 @@ class TestRestFromFileDef extends Specification with Loggable {
 
   ///// tests ////
 
-  def cleanBreakline(text: String) = text.replaceAll("(\\W)\\s+", "$1").replaceAll("\\s+$", "")
+  def cleanBreakline(text: String) = text.replaceAll("(\\w)\\s+", "$1").replaceAll("(\\W)\\s+", "$1").replaceAll("\\s+$", "")
   def cleanResponse(r: LiftResponse): (Int, String) = {
     val response = r.toResponse.asInstanceOf[InMemoryResponse]
     val resp = cleanBreakline(new String(response.data, "UTF-8"))
