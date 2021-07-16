@@ -1,5 +1,5 @@
 {
-    "SYSLOGPORT": "4242"
+    "SYSLOGPORT": "514"
   , "RUDDER_REPORT_MODE": "changes-only"
   , "NOVA": true
   , "UUID": "695031f3-4123-4c2a-bded-0c6b56d7cf0f"

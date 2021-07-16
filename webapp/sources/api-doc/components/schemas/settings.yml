@@ -81,17 +81,6 @@ settings:
         - SYSLOG
       example: "HTTPS"
       description: Default reporting protocol used
-    syslog_protocol_disabled:
-      type: boolean
-      description: Completely disable syslog protocol
-      example: true
-    rsyslog_reporting_protocol:
-      type: string
-      enum:
-        - "TCP"
-        - "UDP"
-      example: "UDP"
-      description: Protocol used for syslog communication between node and server
     reporting_mode:
       type: string
       enum:

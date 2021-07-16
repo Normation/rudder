@@ -3,7 +3,7 @@ body common control
     android::
         # if native syslog is not available, use cfengine implementation (eg: android)
         syslog_host => "${server_info.cfserved}";
-        syslog_port => "&SYSLOGPORT&";
+        syslog_port => "514";
 }
 
 

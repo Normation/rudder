@@ -371,7 +371,6 @@ object RudderConfig extends Loggable {
   val RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH = "refs/heads/master"
   // THIS ONE IS STILL USED FOR USERS USING GIT REPLICATION
   val RUDDER_AUTOARCHIVEITEMS = config.getBoolean("rudder.autoArchiveItems") //true
-  val RUDDER_SYSLOG_PORT = config.getInt("rudder.syslog.port") //514
   val RUDDER_REPORTS_EXECUTION_MAX_DAYS = config.getInt("rudder.batch.storeAgentRunTimes.maxDays") // In days : 0
   val RUDDER_REPORTS_EXECUTION_MAX_MINUTES = { // Tis is handled at the object creation, days and minutes = 0 => 30 minutes
     try {
@@ -1883,7 +1882,6 @@ object RudderConfig extends Loggable {
     , RUDDER_WEBDAV_PASSWORD
     , RUDDER_JDBC_URL
     , RUDDER_JDBC_USERNAME
-    , RUDDER_SYSLOG_PORT
     , RUDDER_DIR_GITROOT
     , RUDDER_SERVER_ROLES
     , rudderFullVersion
@@ -1895,8 +1893,6 @@ object RudderConfig extends Loggable {
     , () => configService.cfengine_outputs_ttl().toBox
     , () => configService.rudder_store_all_centralized_logs_in_file().toBox
     , () => configService.send_server_metrics().toBox
-    , () => configService.rudder_syslog_protocol().toBox
-    , () => configService.rudder_syslog_protocol_disabled().toBox
     , () => configService.rudder_report_protocol_default().toBox
     , () => configService.rudder_verify_certificates().toBox
   )
