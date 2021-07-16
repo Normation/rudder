@@ -122,7 +122,6 @@ class SystemVariableServiceImpl(
   , webdavPassword           : String
   , reportsDbUri             : String
   , reportsDbUser            : String
-  , syslogPort               : Int
   , configurationRepository  : String
   , serverRoles              : Seq[RudderServerRole]
   , serverVersion            : String
@@ -137,8 +136,6 @@ class SystemVariableServiceImpl(
   , getCfengineOutputsTtl           : () => Box[Int]
   , getStoreAllCentralizedLogsInFile: () => Box[Boolean]
   , getSendMetrics                  : () => Box[Option[SendMetrics]]
-  , getSyslogProtocol               : () => Box[SyslogProtocol]
-  , getSyslogProtocolDisabled       : () => Box[Boolean]
   , getReportProtocolDefault        : () => Box[AgentReportingProtocol]
   , getRudderVerifyCertificates     : () => Box[Boolean]
 ) extends SystemVariableService with Loggable {
@@ -159,7 +156,6 @@ class SystemVariableServiceImpl(
   val varSharedFilesFolder          = systemVariableSpecService.get("SHARED_FILES_FOLDER"            ).toVariable(Seq(sharedFilesFolder))
   val varPolicyDistribCfenginePort  = systemVariableSpecService.get("COMMUNITYPORT"                  ).toVariable(Seq(policyDistribCfenginePort.toString))
   val varPolicyDistribHttpsPort     = systemVariableSpecService.get("HTTPS_POLICY_DISTRIBUTION_PORT" ).toVariable(Seq(policyDistribHttpsPort.toString))
-  val syslogPortConfig              = systemVariableSpecService.get("SYSLOGPORT"                     ).toVariable(Seq(syslogPort.toString))
   val configurationRepositoryFolder = systemVariableSpecService.get("CONFIGURATION_REPOSITORY_FOLDER").toVariable(Seq(configurationRepository))
 
   // Compute the values for rudderServerRoleLdap, rudderServerRoleDb and rudderServerRoleRelayTop
@@ -185,13 +181,10 @@ class SystemVariableServiceImpl(
 
     val modifiedFilesTtl     = getProp("MODIFIED_FILES_TTL"    , getModifiedFilesTtl)
     val cfengineOutputsTtl   = getProp("CFENGINE_OUTPUTS_TTL"  , getCfengineOutputsTtl)
-    val reportProtocol       = getProp("RUDDER_SYSLOG_PROTOCOL", () => getSyslogProtocol().map(_.value))
 
     val relaySyncMethod      = getProp("RELAY_SYNC_METHOD"     , () => getSyncMethod().map(_.value))
     val relaySyncPromises    = getProp("RELAY_SYNC_PROMISES"   , getSyncPromises)
     val relaySyncSharedFiles = getProp("RELAY_SYNC_SHAREDFILES", getSyncSharedFiles)
-
-    val syslogProtocolDisabled = getProp("SYSLOG_PROTOCOL_DISABLED", getSyslogProtocolDisabled)
 
     val rudderVerifyCertificates = getProp("RUDDER_VERIFY_CERTIFICATES", getRudderVerifyCertificates)
 
@@ -217,7 +210,6 @@ class SystemVariableServiceImpl(
       varPolicyDistribHttpsPort ::
       varWebdavUser ::
       varWebdavPassword ::
-      syslogPortConfig ::
       configurationRepositoryFolder ::
       denyBadClocks ::
       skipIdentify ::
@@ -228,8 +220,6 @@ class SystemVariableServiceImpl(
       cfengineOutputsTtl ::
       storeAllCentralizedLogsInFile ::
       varSendMetrics ::
-      syslogProtocolDisabled ::
-      reportProtocol ::
       rudderVerifyCertificates ::
       varServerVersion ::
       Nil
@@ -585,16 +575,14 @@ class SystemVariableServiceImpl(
       //   - agent is DSC < 6.1
       val onlySyslogSupported = nodeInfo.agentsName.find { agent => versionHasSyslogOnly(agent.version, agent.agentType) }
 
-      getSyslogProtocolDisabled().flatMap { syslogDisabled => (syslogDisabled, onlySyslogSupported) match {
-        case (true , Some(agentInfo) ) =>
+      (onlySyslogSupported match {
+        case Some(agentInfo)  =>
           // If HTTPS is used on a node that does support it, we fails.
           // Also, special case root, because not having root cause strange things.
-          if(nodeInfo.id == Constants.ROOT_POLICY_SERVER_ID) getReportProtocolDefault()
+          if(nodeInfo.id == Constants.ROOT_POLICY_SERVER_ID) Full(AgentReportingHTTPS)
           else failure(nodeInfo, agentInfo)
-        case (true , None   )          => Full(AgentReportingHTTPS)
-        case (false, Some(x))          => Full(AgentReportingSyslog)
-        case (false, None   )          => getReportProtocolDefault()
-      } }.map { reportingProtocol =>
+        case None             => Full(AgentReportingHTTPS)
+      }).map { reportingProtocol =>
         val v = systemVariableSpecService.get("REPORTING_PROTOCOL").toVariable(Seq(reportingProtocol.value))
         (v.spec.name, v)
       }

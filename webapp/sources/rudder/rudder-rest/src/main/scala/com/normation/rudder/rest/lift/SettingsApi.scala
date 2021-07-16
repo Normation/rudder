@@ -102,7 +102,6 @@ class SettingsApi(
       RestRelaySyncMethod ::
       RestRelaySynchronizePolicies ::
       RestRelaySynchronizeSharedFiles ::
-      RestReportingProtocol ::
       RestReportingMode ::
       RestHeartbeat ::
       RestLogAllReports ::
@@ -132,7 +131,7 @@ class SettingsApi(
       RestComputeDynGroupMaxParallelism ::
       Nil
 
-  val allSettings_v12 =   RestReportProtocolDefault :: RestSyslogProtocolDisabled :: allSettings_v10
+  val allSettings_v12 =   RestReportProtocolDefault :: allSettings_v10
 
   def allSettings(version: ApiVersion) = {
     if (version.value <= 10) {
@@ -543,32 +542,6 @@ final case object RestRelaySynchronizeSharedFiles extends RestBooleanSetting {
     def get = configService.relay_server_syncsharedfiles()
     def set = (value : Boolean, _, _) => configService.set_relay_server_syncsharedfiles(value)
   }
-final case object RestReportingProtocol extends RestSetting[SyslogProtocol] {
-    val key = "rsyslog_reporting_protocol"
-    val startPolicyGeneration = true
-    def get = configService.rudder_syslog_protocol()
-    def set = configService.set_rudder_syslog_protocol _
-    def toJson(value : SyslogProtocol) : JValue = value.value
-    def parseJson(json: JValue) = {
-      json match {
-        case JString(value) => parseParam(value.toUpperCase())
-        case x => Failure("Invalid value "+x)
-      }
-    }
-    def parseParam(param : String) = {
-      param.toUpperCase() match {
-          case SyslogTCP.value => Full(SyslogTCP)
-          case SyslogUDP.value => Full(SyslogUDP)
-          case _ => Failure(s"Invalid value '${param}' for syslog protocol")
-        }
-    }
-  }
-final case object RestSyslogProtocolDisabled extends RestBooleanSetting {
-  val key = "syslog_protocol_disabled"
-  val startPolicyGeneration = true
-  def get = configService.rudder_syslog_protocol_disabled()
-  def set = (value : Boolean, actor : EventActor, reason : Option[String])  => configService.set_rudder_syslog_protocol_disabled(value, actor, reason)
-}
 
 final case object RestReportProtocolDefault extends RestSetting[AgentReportingProtocol] {
   var key = "rudder_report_protocol_default"
@@ -585,7 +558,6 @@ final case object RestReportProtocolDefault extends RestSetting[AgentReportingPr
   def parseParam(param : String) = {
     param.toUpperCase() match {
       case AgentReportingHTTPS.value  => Full(AgentReportingHTTPS)
-      case AgentReportingSyslog.value => Full(AgentReportingSyslog)
       case _ => Failure(s"Invalid value '${param}' for default reporting method")
     }
   }

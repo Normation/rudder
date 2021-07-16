@@ -36,7 +36,6 @@ bundle common rudder_roles
       "changes_only"           expression => "changes_only_mode.!force_full_compliance";
       "reports_disabled"       expression => "reports_disabled_mode.!force_full_compliance";
       "rudder_reporting_https" expression => strcmp("&REPORTING_PROTOCOL&", "HTTPS");
-      "rsyslog_disabled"       expression => strcmp("&SYSLOG_PROTOCOL_DISABLED&", "true");
 
       "rudder_global_audit_mode"      not => strcmp("&RUDDER_COMPLIANCE_MODE&", "enforce");
 
@@ -322,8 +321,6 @@ bundle agent check_log_system
       "syslog_ng_conf_proto"  string => "${syslogng_rule_prefix}";
       "syslog_ng_conf_start"  string => "(\"";
       "syslog_ng_conf_port"   string => "\" port (";
-      "syslog_ng_conf_portno" string => "&SYSLOGPORT&";
-      "syslog_ng_conf_suffix" string => "));};log {source(${syslog_ng_source});filter(f_local_rudder);destination(rudder_loghost);";
       "syslog_ng_conf_final"  string => "flags(final);};";
 
       "syslog_ng_conf"        string => concat("${syslog_conf_comment}", "${syslog_ng_conf_prefix}", "${syslog_ng_conf_proto}", "${syslog_ng_conf_start}", "${server_info.policy_server}", "${syslog_ng_conf_port}", "${syslog_ng_conf_portno}", "${syslog_ng_conf_suffix}", "${syslog_ng_conf_final}");
@@ -342,9 +339,6 @@ bundle agent check_log_system
       "syslogng_conffile_present" expression => fileexists("${syslogng_conffile}"), scope => "namespace";
       "syslogd_conffile_present"  expression => fileexists("${syslog_conffile}"), scope => "namespace";
 
-      "use_udp" expression => strcmp("&RUDDER_SYSLOG_PROTOCOL&", "UDP");
-      "use_tcp" expression => strcmp("&RUDDER_SYSLOG_PROTOCOL&", "TCP");
-
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
@@ -362,7 +356,7 @@ bundle agent check_log_system
 
     (rsyslog_version_5_6_4_ok|rsyslog_version_5_6_4_not_ok).rsyslogd_conffile_present.!policy_server::
       "${rsyslog_rudder_conffile}"
-        edit_line => append_if_no_lines("#Rudder log system${const.n}${rsyslogd_message_reduction}${const.n}if $syslogfacility-text == 'local6' and $programname startswith 'rudder' then ${rsyslog_rule_prefix}${server_info.policy_server}:&SYSLOGPORT&${const.n}if $syslogfacility-text == 'local6' and $programname startswith 'rudder' then ~${const.n}if $syslogfacility-text == 'local6' and $programname startswith 'cf-agent' then ${rsyslog_rule_prefix}${server_info.policy_server}:&SYSLOGPORT&${const.n}if $syslogfacility-text == 'local6' and $programname startswith 'cf-agent' then ~"),
+        edit_line => append_if_no_lines("#Rudder log system${const.n}${rsyslogd_message_reduction}${const.n}if $syslogfacility-text == 'local6' and $programname startswith 'rudder' then ${rsyslog_rule_prefix}${server_info.policy_server}:514${const.n}if $syslogfacility-text == 'local6' and $programname startswith 'rudder' then ~${const.n}if $syslogfacility-text == 'local6' and $programname startswith 'cf-agent' then ${rsyslog_rule_prefix}${server_info.policy_server}:514${const.n}if $syslogfacility-text == 'local6' and $programname startswith 'cf-agent' then ~"),
         create => "true",
         edit_defaults => empty_backup,
         classes       => classes_generic("rsyslog");

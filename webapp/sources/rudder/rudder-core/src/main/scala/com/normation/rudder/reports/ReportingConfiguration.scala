@@ -158,41 +158,6 @@ class AgentRunIntervalServiceImpl (
 
 import ca.mrvisser.sealerate.values
 
-sealed trait SyslogProtocol {
-  def value : String
-}
-
-object SyslogProtocol {
-  def apply(value: String): Box[SyslogProtocol] = {
-    value match {
-      case SyslogTCP.value => Full(SyslogTCP)
-      case SyslogUDP.value => Full(SyslogUDP)
-      case _ => Failure(s"Invalid syslog protocol: *{value}")
-    }
-  }
-
-  def allProtocols: Set[SyslogProtocol] = values[SyslogProtocol]
-
-  def parse(value: String): Either[RudderError, SyslogProtocol] = {
-    allProtocols.find {
-      _.value == value.toUpperCase()
-    } match {
-      case None =>
-        Left(Unexpected(s"Unable to parse syslog protocol mame '${value}'. was expecting ${allProtocols.map(_.value).mkString("'", "' or '", "'")}."))
-      case Some(protocol) =>
-        Right(protocol)
-    }
-  }
-
-}
-
-final case object SyslogTCP extends SyslogProtocol {
-  val value = "TCP"
-}
-
-final case object SyslogUDP extends SyslogProtocol {
-  val value = "UDP"
-}
 
 sealed trait AgentReportingProtocol {
   def value : String
@@ -202,15 +167,11 @@ final case object AgentReportingHTTPS extends AgentReportingProtocol {
   val value = "HTTPS"
 }
 
-final case  object AgentReportingSyslog extends AgentReportingProtocol {
-  val value = "SYSLOG"
-}
 
 object AgentReportingProtocol {
   def apply(value: String): Box[AgentReportingProtocol] = {
     value match {
       case AgentReportingHTTPS.value  => Full(AgentReportingHTTPS)
-      case AgentReportingSyslog.value => Full(AgentReportingSyslog)
       case _                          => Failure(s"Invalid reporting protocol: *{value}")
     }
   }

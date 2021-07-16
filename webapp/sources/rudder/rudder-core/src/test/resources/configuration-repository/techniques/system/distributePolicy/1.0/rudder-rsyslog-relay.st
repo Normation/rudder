@@ -23,11 +23,11 @@ $RepeatedMsgReduction off
 
 # Provides TCP syslog reception
 $ModLoad imtcp
-$InputTCPServerRun &SYSLOGPORT&
+$InputTCPServerRun 514
 
 # Provide udp for snare and compatibility with older syslog
 $ModLoad imudp
-$UDPServerRun &SYSLOGPORT&
+$UDPServerRun 514
 
 # for Snare client
 $EscapeControlCharactersOnReceive off
@@ -58,7 +58,7 @@ if $fromhost-ip == "127.0.0.1" then {
 #
 
 # 1 - Send every matching report to the root server
-:msg, ereregex, "(R: )?@@[ a-zA-Z0-9_\-]+?@@[a-zA-Z0-9_\-]{1,64}?@@[a-zA-Z0-9\-]+@@[a-zA-Z0-9\-]+?@@[0-9]+?@@.*?@@.*?@@[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{1,2}:[0-9]{2}##[a-zA-Z0-9\-]+?@#.*" {{vars.check_log_system.rsyslog_rule_prefix}}{{vars.server_info.policy_server}}:&SYSLOGPORT&
+:msg, ereregex, "(R: )?@@[ a-zA-Z0-9_\-]+?@@[a-zA-Z0-9_\-]{1,64}?@@[a-zA-Z0-9\-]+@@[a-zA-Z0-9\-]+?@@[0-9]+?@@.*?@@.*?@@[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{1,2}:[0-9]{2}##[a-zA-Z0-9\-]+?@#.*" {{vars.check_log_system.rsyslog_rule_prefix}}{{vars.server_info.policy_server}}:514
 
 # 2 - Drop the remaining rudder logs to prevent local storage cluttering
 

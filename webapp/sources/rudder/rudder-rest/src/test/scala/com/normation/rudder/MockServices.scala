@@ -210,7 +210,6 @@ class MockTechniques(configurationRepositoryRoot: File, gitRepo: GitRepositoryPr
     , webdavPassword                  = "rudder"
     , reportsDbUri                    = "rudder"
     , reportsDbUser                   = "rudder"
-    , syslogPort                      = 514
     , configurationRepository         = configurationRepositoryRoot.getAbsolutePath
     , serverRoles                     = Seq(
                                             RudderServerRole("rudder-ldap"                   , "rudder.server-roles.ldap")
@@ -232,9 +231,7 @@ class MockTechniques(configurationRepositoryRoot: File, gitRepo: GitRepositoryPr
     , getCfengineOutputsTtl           = () => Full(7)
     , getStoreAllCentralizedLogsInFile= () => Full(true)
     , getSendMetrics                  = () => Full(None)
-    , getSyslogProtocol               = () => Full(SyslogUDP)
-    , getSyslogProtocolDisabled       = () => Full(false)
-    , getReportProtocolDefault        = () => Full(AgentReportingSyslog)
+    , getReportProtocolDefault        = () => Full(AgentReportingHTTPS)
     , getRudderVerifyCertificates     = () => Full(false)
   )
 

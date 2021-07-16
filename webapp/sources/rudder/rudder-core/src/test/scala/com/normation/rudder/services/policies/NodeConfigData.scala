@@ -265,7 +265,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     , List("192.168.0.10")
     , DateTime.now
     , UndefinedKey
-    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("4.0.0")), PublicKey(PUBKEY), Set()))
+    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("6.0.0")), PublicKey(PUBKEY), Set()))
     , rootId
     , admin1
     , Set()
@@ -331,7 +331,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     , List("192.168.0.5")
     , DateTime.now
     , UndefinedKey
-    , Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("5.0.0")), Certificate("windows-node-dsc-certificate"), Set()))
+    , Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("7.0.0")), Certificate("windows-node-dsc-certificate"), Set()))
     , rootId
     , admin1
     , Set()
@@ -611,7 +611,6 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
     , webdavPassword                  = "rudder"
     , reportsDbUri                    = "rudder"
     , reportsDbUser                   = "rudder"
-    , syslogPort                      = 514
     , configurationRepository         = configurationRepositoryRoot.getAbsolutePath
     , serverRoles                     = Seq(
                                             RudderServerRole("rudder-ldap"                   , "rudder.server-roles.ldap")
@@ -633,9 +632,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
     , getCfengineOutputsTtl           = () => Full(7)
     , getStoreAllCentralizedLogsInFile= () => Full(true)
     , getSendMetrics                  = () => Full(None)
-    , getSyslogProtocol               = () => Full(SyslogUDP)
-    , getSyslogProtocolDisabled       = () => Full(false)
-    , getReportProtocolDefault        = () => Full(AgentReportingSyslog)
+    , getReportProtocolDefault        = () => Full(AgentReportingHTTPS)
     , getRudderVerifyCertificates     = () => Full(false)
   )
 

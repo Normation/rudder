@@ -116,11 +116,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
-                              "SYSLOGPORT" , "Port to use for rsyslog (used by reports)"
-                                           , multivalued = false
-                                           , constraint = Constraint(typeName = IntegerVType())
-                        )
-    , SystemVariableSpec(
          "CONFIGURATION_REPOSITORY_FOLDER" , "The path to the configuration repository folder"
                                            , multivalued = false
                                            , constraint = Constraint(mayBeEmpty=true)
@@ -351,15 +346,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
     , SystemVariableSpec(
                       "REPORTING_PROTOCOL" , "Protocol used by agent to send reports (HTTPS or SYSLOG)"
                                            , multivalued = false
-    )
-    , SystemVariableSpec(
-                  "RUDDER_SYSLOG_PROTOCOL" , "Protocol ued by syslog (TCP or UDP)"
-                                           , multivalued = false
-    )
-    , SystemVariableSpec(
-                "SYSLOG_PROTOCOL_DISABLED" , "Syslog protocol totally disabled"
-                                           , multivalued = false
-                                           , constraint = Constraint(typeName = BooleanVType, default=Some("false"))
     )
     , SystemVariableSpec(
                           "SERVER_VERSION" , "Version of rudder server webapp, as displayed in the UI (not the package version)"

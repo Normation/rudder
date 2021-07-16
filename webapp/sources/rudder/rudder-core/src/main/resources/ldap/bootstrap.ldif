@@ -336,13 +336,6 @@ objectClass: organizationalUnit
 objectClass: top
 ou: Application Properties
 
-dn: propertyName=rudder_syslog_protocol,ou=Application Properties,cn=rudder-
- configuration
-objectClass: property
-objectClass: top
-propertyName: rudder_syslog_protocol
-propertyValue: UDP
-
 dn: propertyName=api_compatibility_mode,ou=Application Properties,cn=rudder-configuration
 objectClass: property
 objectClass: top
@@ -373,10 +366,4 @@ objectClass: top
 propertyName: rudder_report_protocol_default
 propertyValue: HTTPS
 
-dn: propertyName=rudder_syslog_protocol_disabled,ou=Application Properties,c
- n=rudder-configuration
-objectClass: property
-objectClass: top
-propertyName: rudder_syslog_protocol_disabled
-propertyValue: true
 

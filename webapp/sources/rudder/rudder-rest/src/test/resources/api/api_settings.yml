@@ -48,7 +48,6 @@ response:
           "relay_server_synchronize_shared_files":true,
           "reporting_mode":"full-compliance",
           "require_time_synchronization":true,
-          "rsyslog_reporting_protocol":"UDP",
           "rudder_compute_changes":true,
           "rudder_compute_dyngroups_max_parallelism":"1",
           "rudder_generation_compute_dyngroups":true,
@@ -57,13 +56,12 @@ response:
           "rudder_generation_js_timeout":30,
           "rudder_generation_max_parallelism":"x0.5",
           "rudder_generation_policy":"all",
-          "rudder_report_protocol_default":"SYSLOG",
+          "rudder_report_protocol_default":"HTTPS",
           "rudder_save_db_compliance_details":false,
           "rudder_save_db_compliance_levels":true,
           "run_frequency":5,
           "send_metrics":"not defined",
           "splay_time":4,
-          "syslog_protocol_disabled":false,
           "unexpected_allows_duplicate":true,
           "unexpected_unbound_var_values":true
         }

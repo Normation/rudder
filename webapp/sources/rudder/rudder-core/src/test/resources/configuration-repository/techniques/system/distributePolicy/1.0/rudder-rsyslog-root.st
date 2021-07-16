@@ -23,11 +23,11 @@ $RepeatedMsgReduction off
 
 # Provides TCP syslog reception
 $ModLoad imtcp
-$InputTCPServerRun &SYSLOGPORT&
+$InputTCPServerRun 514
 
 # Provide udp for snare and compatibility with older syslog
 $ModLoad imudp
-$UDPServerRun &SYSLOGPORT&
+$UDPServerRun 514
 
 # Load postgres module
 $ModLoad ompgsql

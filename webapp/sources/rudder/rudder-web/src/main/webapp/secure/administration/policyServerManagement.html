@@ -229,34 +229,6 @@
               </div>
             </div>
 
-            <div class="inner-portlet">
-              <h3 class="page-title">Reporting protocol</h3>
-              <div class="col-lg-12 callout-fade callout-info">
-                <div class="marker">
-                  <span class="glyphicon glyphicon-info-sign"></span>
-                </div>
-                Choose reporting protocol used by nodes to send compliance back to Rudder server:
-                <ul>
-                  <li><b>HTTPS (default):</b> Secure, fast and optimised reporting protocol, you should switch as soon as possible to it</li>
-                  <li><b>Syslog:</b> Rudder legacy reporting protocol (deprecated). It will be removed in a future version (7.0), it is set on upgrade from 5.0 to keep your reporting working as before
-                    <ul>
-                      <li><b>UDP (default):</b> the syslog never stalls an a non responsive connection, which could also stale other services on the node which use the same syslog, but packets could be lost.</li>
-                      <li><b>TCP:</b> Reports and the resulting compliance errors wil be never lost.</li>
-                    </ul>
-                  </li>
-                </ul>
-              </div>
-              <div class="lift:administration.PropertiesManagement.reportProtocolSection" id="reportProtocolForm">
-                <form class="lift:form.ajax">
-                  <div id="reportProtocol"></div>
-                  <div id="syslogProtocol"></div>
-                  <lift:authz role="administration_write">
-                    <input type="submit" value="[save]" id="reportProtocolSubmit"/>
-                  </lift:authz>
-                </form>
-              </div>
-            </div>
-
             <div id="complianceMode" class="lift:administration.PropertiesManagement.complianceMode"></div>
 
             <div class="inner-portlet">

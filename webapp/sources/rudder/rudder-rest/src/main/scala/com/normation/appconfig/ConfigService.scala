@@ -70,7 +70,6 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.errors._
-import com.normation.rudder.domain.eventlog.ModifyRudderSyslogProtocolEventType
 import com.normation.rudder.domain.eventlog.ModifyRudderVerifyCertificates
 import com.normation.rudder.services.policies.SendMetrics
 import zio._
@@ -172,16 +171,6 @@ trait ReadConfigService {
    * Send Metrics
    */
   def send_server_metrics(): IOResult[Option[SendMetrics]]
-
-  /**
-   * Report protocol
-   */
-  def rudder_syslog_protocol(): IOResult[SyslogProtocol]
-
-  /**
-    * Report protocol
-    */
-  def rudder_syslog_protocol_disabled(): IOResult[Boolean]
 
   /**
     * default reporting protocol
@@ -318,10 +307,6 @@ trait UpdateConfigService {
   /**
    * Report protocol
    */
-  def set_rudder_syslog_protocol(value : SyslogProtocol, actor : EventActor, reason: Option[String]): IOResult[Unit]
-
-  def set_rudder_syslog_protocol_disabled(value : Boolean, actor : EventActor, reason: Option[String]): IOResult[Unit]
-
   def set_rudder_report_protocol_default(value : AgentReportingProtocol): IOResult[Unit]
 
   /**
@@ -495,16 +480,8 @@ class GenericConfigService(
   }
   private[this] implicit def serBoolean(x: Boolean): String = if(x) "true" else "false"
 
-
-  private[this] implicit def toSyslogProtocol(p: RudderWebProperty): SyslogProtocol = p.value match {
-    case SyslogTCP.value => // value is TCP
-      SyslogTCP
-    case _ => SyslogUDP
-  }
-
   // default is HTTPS, in particular for ""
   private[this] implicit def toReportProtocol(p: RudderWebProperty): AgentReportingProtocol = p.value match {
-    case AgentReportingSyslog.value => AgentReportingSyslog
     case _                          => AgentReportingHTTPS
   }
 
@@ -704,21 +681,6 @@ class GenericConfigService(
   def set_send_server_metrics(value : Option[SendMetrics], actor : EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifySendServerMetricsEventType,actor,reason)
     save("send_server_metrics",value,Some(info))
-  }
-
-  /**
-   * Report protocol
-   */
-  def rudder_syslog_protocol(): IOResult[SyslogProtocol] = get("rudder_syslog_protocol_transport")
-  def set_rudder_syslog_protocol(protocol : SyslogProtocol, actor : EventActor, reason: Option[String]): IOResult[Unit] =  {
-    val info = ModifyGlobalPropertyInfo(ModifyRudderSyslogProtocolEventType,actor,reason)
-    save("rudder_syslog_protocol_transport", protocol.value, Some(info))
-  }
-
-  def rudder_syslog_protocol_disabled(): IOResult[Boolean] = get("rudder_syslog_protocol_disabled")
-  def set_rudder_syslog_protocol_disabled(disabled : Boolean, actor : EventActor, reason: Option[String]): IOResult[Unit] =  {
-    val info = ModifyGlobalPropertyInfo(ModifyRudderSyslogProtocolEventType,actor,reason)
-    save("rudder_syslog_protocol_disabled", disabled, Some(info))
   }
 
   def rudder_report_protocol_default() : IOResult[AgentReportingProtocol] = get("rudder_report_protocol_default")
