@@ -588,7 +588,7 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
    * key hash to use in a hook.
    */
   def deleteCfengineKey(nodeInfo: NodeInfo): UIO[Unit] = {
-    nodeInfo.securityTokenHash match {
+    nodeInfo.keyHashCfengine match {
       case null | "" => // no key or not a cfengine agent
         UIO.unit
       case key =>

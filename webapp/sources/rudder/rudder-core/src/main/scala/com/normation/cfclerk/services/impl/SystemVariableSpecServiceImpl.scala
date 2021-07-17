@@ -174,6 +174,11 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                            , multivalued = false
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
+    , SystemVariableSpec(
+                       "POLICY_SERVER_KEY_HASH" , "Base64 encoding of SHA-256 DER encoding of KEY of the policy server prefixed with sha256//"
+                                           , multivalued = false
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
       // end
       //
       // The following variables contains information about all the nodes managed by

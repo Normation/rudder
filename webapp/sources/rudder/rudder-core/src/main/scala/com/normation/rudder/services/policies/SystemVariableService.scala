@@ -391,7 +391,7 @@ class SystemVariableServiceImpl(
 
       val varManagedNodes      = systemVariableSpecService.get("MANAGED_NODES_NAME" ).toVariable(nodesWithCFEKey.map(_.hostname))
       val varManagedNodesId    = systemVariableSpecService.get("MANAGED_NODES_ID"   ).toVariable(nodesWithCFEKey.map(_.id.value))
-      val varManagedNodesKey   = systemVariableSpecService.get("MANAGED_NODES_KEY"  ).toVariable(nodesWithCFEKey.map(_.securityTokenHash))
+      val varManagedNodesKey   = systemVariableSpecService.get("MANAGED_NODES_KEY"  ).toVariable(nodesWithCFEKey.map(_.keyHashCfengine))
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable(nodesWithCFEKey.map(_.localAdministratorAccountName).distinct.sorted)
 
@@ -426,7 +426,7 @@ class SystemVariableServiceImpl(
       val varSubNodesName    = systemVariableSpecService.get("SUB_NODES_NAME"   ).toVariable(subNodesList.map(_._2.hostname))
       val varSubNodesId      = systemVariableSpecService.get("SUB_NODES_ID"     ).toVariable(subNodesList.map(_._2.id.value))
       val varSubNodesServer  = systemVariableSpecService.get("SUB_NODES_SERVER" ).toVariable(subNodesList.map(_._2.policyServerId.value))
-      val varSubNodesKeyhash = systemVariableSpecService.get("SUB_NODES_KEYHASH").toVariable(subNodesList.map(n => s"sha256:${n._2.sha256KeyHash}"))
+      val varSubNodesKeyhash = systemVariableSpecService.get("SUB_NODES_KEYHASH").toVariable(subNodesList.map(n => s"sha256//${n._2.keyHashBase64Sha256}"))
 
 
       // Construct the system variables for nodes with certificates
@@ -487,7 +487,10 @@ class SystemVariableServiceImpl(
      * We are pretty certin to find a policy server, as it is checked earlier
      * and there is by construct a securityToken
      */
-    val varPolicyServerKey = systemVariableSpecService.get("POLICY_SERVER_KEY" ).toVariable(Seq(allNodeInfos(nodeInfo.policyServerId).securityTokenHash))
+    // cfengine version
+    val varPolicyServerKeyHashCfengine = systemVariableSpecService.get("POLICY_SERVER_KEY" ).toVariable(Seq(allNodeInfos(nodeInfo.policyServerId).keyHashCfengine))
+    // base64(sha256(der encoded pub key))) version
+    val varPolicyServerKeyHashB64Sha256 = systemVariableSpecService.get("POLICY_SERVER_KEY_HASH" ).toVariable(Seq("sha256//"+allNodeInfos(nodeInfo.policyServerId).keyHashBase64Sha256))
 
     logger.trace("System variables for node %s done".format(nodeInfo.id.value))
 
@@ -626,7 +629,8 @@ class SystemVariableServiceImpl(
         , varNodeGroups
         , varNodeGroupsClasses
         , varRudderInventoryVariables
-        , varPolicyServerKey
+        , varPolicyServerKeyHashCfengine
+        , varPolicyServerKeyHashB64Sha256
       ) map (x => (x.spec.name, x))
     }
 

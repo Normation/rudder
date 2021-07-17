@@ -467,7 +467,7 @@ object DisplayNode extends Loggable {
               val nodeId      = sm.node.main.id
               val publicKeyId = s"publicKey-${nodeId.value}"
               val cfKeyHash   = nodeInfoService.getNodeInfo(nodeId) match {
-                case Full(Some(nodeInfo)) if(nodeInfo.securityTokenHash.nonEmpty) => <div><label>Key hash:</label> <samp>{nodeInfo.securityTokenHash}</samp></div>
+                case Full(Some(nodeInfo)) if(nodeInfo.keyHashCfengine.nonEmpty) => <div><label>Key hash:</label> <samp>{nodeInfo.keyHashCfengine}</samp></div>
                 case _                                                            => NodeSeq.Empty
               }
 
