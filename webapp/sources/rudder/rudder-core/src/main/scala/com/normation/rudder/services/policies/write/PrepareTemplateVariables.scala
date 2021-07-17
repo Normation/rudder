@@ -53,6 +53,8 @@ import com.normation.rudder.services.policies.Policy
 import zio._
 import zio.syntax._
 import com.normation.errors._
+import com.normation.inventory.domain.Certificate
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.zio._
 
@@ -150,6 +152,33 @@ class PrepareTemplateVariablesImpl(
       , agentNodeConfig.config.nodeInfo.isPolicyServer
       , agentNodeConfig.config.nodeInfo.serverRoles
     )
+
+    /*
+     * Policy server certificates for the node.
+     * We don't fail policy generation when a certificate is missing, but we trace
+     * the problem in log. 
+     */
+    val policyServerCertificates = {
+      def getCertificate(nodeId: NodeId): IOResult[String] = {
+        allNodeConfigs.get(nodeId) match {
+          case None    =>
+            "".succeed.tap(_ => PolicyGenerationLoggerPure.error(s"Policy server '${nodeId.value}' was not found during generation: can not provide its certificate"))
+          case Some(n) => n.nodeInfo.agentsName.headOption.map(_.securityToken) match {
+            case Some(cert:Certificate) =>
+              cert.key.succeed
+            case _ => "".succeed.tap(_ => PolicyGenerationLoggerPure.error(s"Policy server '${nodeId.value}' does not have a stored certificate: can not use it in policy generation"))
+          }
+        }
+      }
+
+      val root = getCertificate(Constants.ROOT_POLICY_SERVER_ID)
+      val policyServer = agentNodeConfig.config.nodeInfo.policyServerId match {
+        case Constants.ROOT_POLICY_SERVER_ID => None
+        case id                              => Some(getCertificate(id))
+      }
+      PolicyServerCertificates(root, policyServer)
+    }
+
     for {
       res <- for {
         t0               <- currentTimeMillis
@@ -186,13 +215,13 @@ class PrepareTemplateVariablesImpl(
       t3                <- currentTimeMillis
       _                 <- timer.prepareTemplate.update(_ + t3 - t2)
     } yield {
-
       AgentNodeWritableConfiguration(
           agentNodeProps
         , agentNodeConfig.paths
         , preparedTemplate
         , allSystemVars
         , allNodeConfigs.get(nodeId).map(_.policies).getOrElse(Nil)
+        , policyServerCertificates
       )
     }
   }

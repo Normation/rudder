@@ -65,6 +65,7 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.Policy
+
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.StandardCopyOption
@@ -88,6 +89,9 @@ import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.templates.FillTemplateThreadUnsafe
 import com.normation.templates.FillTemplateTimer
 import org.apache.commons.io.FileUtils
+
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -145,6 +149,14 @@ object PolicyWriterServiceImpl {
     }
     optGroupOwner.foreach(dest.setGroup(_))
   }
+
+  //some file path to write in destination agent input directory:
+  object filepaths {
+    val SYSTEM_VARIABLE_JSON = "rudder.json"
+    val DIRECTIVE_RUN_CSV    = "rudder-directives.csv"
+    val POLICY_SERVER_CERT   = "certs/policy-server.pem"
+    val ROOT_SERVER_CERT     = "certs/root.pem"
+  }
 }
 
 /*
@@ -157,6 +169,7 @@ case class WriteTimer(
   , agentSpecific: Ref[Long]
   , writeCSV     : Ref[Long]
   , writeJSON    : Ref[Long]
+  , writePEM     : Ref[Long]
 )
 
 object WriteTimer {
@@ -167,7 +180,8 @@ object WriteTimer {
     d <- Ref.make(0L)
     e <- Ref.make(0L)
     f <- Ref.make(0L)
-  } yield WriteTimer(a, b, c, d, e, f)
+    g <- Ref.make(0L)
+  } yield WriteTimer(a, b, c, d, e, f, g)
 }
 
 class PolicyWriterServiceImpl(
@@ -672,10 +686,16 @@ class PolicyWriterServiceImpl(
         t1 <- currentTimeNanos
         _  <- writeTimer.writeJSON.update(_ + t1 - t0)
       } yield ()
+      val writePEM = for {
+        t0 <- currentTimeNanos
+        _  <- writePolicyServerPem(prepared.paths, prepared.policyServerCerts)
+        t1 <- currentTimeNanos
+        _  <- writeTimer.writePEM.update(_ + t1 - t0)
+      } yield ()
 
       // this allows to do some IO (JSON, CSV) while waiting for semaphores in
       // writePromise (for template filling)
-      ZIO.collectAllPar(writeResources :: writeAgent :: writeCSV :: writeJSON :: Nil).
+      ZIO.collectAllPar(writeResources :: writeAgent :: writeCSV :: writeJSON :: writePEM :: Nil).
         chainError(s"Error when writing configuration for node '${prepared.paths.nodeId.value}'")
     }.unit
   }
@@ -812,7 +832,7 @@ class PolicyWriterServiceImpl(
 
 
   private[this] def writeDirectiveCsv(paths: NodePoliciesPaths, policies: Seq[Policy], policyMode: GlobalPolicyMode): IOResult[List[AgentSpecificFile]] =  {
-    val path = File(paths.newFolder, "rudder-directives.csv")
+    val path = File(paths.newFolder, filepaths.DIRECTIVE_RUN_CSV)
 
     val csvContent = for {
       policy <- policies.sortBy(_.directiveOrder.value)
@@ -840,7 +860,7 @@ class PolicyWriterServiceImpl(
   }
 
   private[this] def writeSystemVarJson(paths: NodePoliciesPaths, variables: Map[String, Variable]): IOResult[List[AgentSpecificFile]] =  {
-    val path = File(paths.newFolder, "rudder.json")
+    val path = File(paths.newFolder, filepaths.SYSTEM_VARIABLE_JSON)
     val isRootServer = paths.nodeId == Constants.ROOT_POLICY_SERVER_ID
     for {
         _ <- path.createParentsAndWrite(systemVariableToJson(variables) + "\n", isRootServer).chainError(
@@ -848,6 +868,43 @@ class PolicyWriterServiceImpl(
              )
     } yield {
       AgentSpecificFile(path.pathAsString) :: Nil
+    }
+  }
+
+  /*
+   * Write in inputs/certs root.pem (root server certificate) and policy-server.pem (relay certificate, or a
+   * symbolic link toward root.pem if it's the same)
+   * https://issues.rudder.io/issues/19529
+   */
+  private[this] def writePolicyServerPem(paths: NodePoliciesPaths, policyServerCertificates: PolicyServerCertificates): IOResult[List[AgentSpecificFile]] =  {
+    val isRootServer = paths.nodeId == Constants.ROOT_POLICY_SERVER_ID
+    def writeCert(name: String, content: IOResult[String]): IOResult[File] = {
+      val path = File(paths.newFolder, name)
+      for {
+        pem <- content
+        _   <- path.createParentsAndWrite(pem, isRootServer)
+      } yield {
+        path
+      }
+    }
+    for {
+      rootPem  <- writeCert(filepaths.ROOT_SERVER_CERT, policyServerCertificates.root)
+      relayPem <- policyServerCertificates.relay match {
+                    case Some(relayPem) =>
+                      writeCert(filepaths.POLICY_SERVER_CERT, relayPem)
+                    case None => // create a symlink from root to policy-server.pem
+                      IOResult.effect {
+                        // we want to have a symlink with a relative path, not full path
+                        val source = Path.of(rootPem.name)
+                        val dest = File(paths.newFolder, filepaths.POLICY_SERVER_CERT)
+                        // we can't overwrite a file with a symlink, so erase existing one
+                        if(dest.exists) { dest.delete() }
+                        Files.createSymbolicLink(dest.path, source,  File.Attributes.default:_*)
+                        dest
+                      }
+                  }
+    } yield {
+      AgentSpecificFile(rootPem.pathAsString) :: AgentSpecificFile(relayPem.pathAsString) :: Nil
     }
   }
 

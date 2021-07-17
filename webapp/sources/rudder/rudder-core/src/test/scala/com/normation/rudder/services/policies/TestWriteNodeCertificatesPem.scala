@@ -39,12 +39,12 @@ package com.normation.rudder.services.policies
 
 import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
-
 import better.files.File
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.OutputStreamAppender
 import com.normation.inventory.domain.Certificate
+import com.normation.inventory.domain.PublicKey
 import com.normation.zio.ZioRuntime
 import org.junit.runner.RunWith
 import org.slf4j.LoggerFactory
@@ -126,10 +126,11 @@ class TestWriteNodeCertificatesPem extends Specification {
               |TZEW7+Ri43DsMyRwYiCafuVThL+J
               |-----END CERTIFICATE-----""".stripMargin
 
+  val root = NodeConfigData.root.modify(_.agentsName.each.securityToken).setTo(PublicKey(NodeConfigData.PUBKEY))
   val node1 = NodeConfigData.node1.modify(_.agentsName.each.securityToken).setTo(Certificate(cert1))
   val node2 = NodeConfigData.node2.modify(_.agentsName.each.securityToken).setTo(Certificate(cert2))
 
-  val nodes = (NodeConfigData.root :: node1 :: node2 :: Nil).map(x => (x.id, x)).toMap
+  val nodes = (root :: node1 :: node2 :: Nil).map(x => (x.id, x)).toMap
 
   val dest = File("/tmp/rudder-test-allnodescerts.pem")
 

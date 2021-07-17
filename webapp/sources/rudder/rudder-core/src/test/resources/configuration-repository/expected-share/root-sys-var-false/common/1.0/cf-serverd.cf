@@ -77,11 +77,11 @@ bundle server access_rules
 
               "/var/rudder/share/root/"
             maproot => {  @{def.acl}  },
-            admit_keys => { "MD5=081cf3aac62624ebbc83be7e23cb104d" };
+            admit_keys => { "MD5=eec3a3c2cf41b2736b7a0a9dece02142" };
 
           "/var/rudder/shared-files/root/"
             maproot => {  @{def.acl}  },
-            admit_keys => { "MD5=081cf3aac62624ebbc83be7e23cb104d" };
+            admit_keys => { "MD5=eec3a3c2cf41b2736b7a0a9dece02142" };
 
         
 
