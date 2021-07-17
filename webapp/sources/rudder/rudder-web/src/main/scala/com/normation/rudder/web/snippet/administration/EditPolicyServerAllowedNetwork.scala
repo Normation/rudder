@@ -44,11 +44,11 @@ import util.Helpers._
 import js._
 import JsCmds._
 import JE._
+
 import scala.xml.NodeSeq
 import collection.mutable.Buffer
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.eventlog.EventLogDetails
 import com.normation.rudder.batch.AutomaticStartDeployment
@@ -56,8 +56,8 @@ import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.NodeId
-
 import com.normation.box._
+import com.normation.rudder.services.servers.AllowedNetwork
 
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
@@ -132,9 +132,9 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         <span class="error">Unknown hostname</span>
     }
 
-    val currentNets = psService.getAuthorizedNetworks(policyServerId)
+    val currentNets = psService.getAllowedNetworks(policyServerId).toBox
     val allowedNetworks = allowedNetworksMap.getOrElseUpdate(policyServerId,
-        Buffer() ++ currentNets.getOrElse(Nil).map(n => VH(net = n)))
+        Buffer() ++ currentNets.getOrElse(Nil).map(n => VH(net = n.inet)))
 
     // our process method returns a
     // JsCmd which will be sent back to the browser
@@ -147,7 +147,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       allowedNetworks.foreach { case v@VH(i,net) =>
         val netWithoutSpaces = net.replaceAll("""\s""", "")
         if(netWithoutSpaces.length != 0) {
-          if(!PolicyServerManagementService.isValidNetwork(netWithoutSpaces)) {
+          if(!AllowedNetwork.isValid(netWithoutSpaces)) {
             S.error("errornetwork_"+ i, "Bad format for given network")
           } else {
             goodNets += netWithoutSpaces
@@ -155,15 +155,16 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         }
       }
 
-      val gootNetsSeq = goodNets.toSeq
+      // for now, allowed networks have the same name as inet
+      val gootNetsSeq = goodNets.toSeq.map(s => AllowedNetwork(s, s))
 
       //if no errors, actually save
       if(S.errors.isEmpty) {
         val modId = ModificationId(uuidGen.newUuid)
         (for {
-          currentNetworks <- psService.getAuthorizedNetworks(policyServerId) ?~! s"Error when getting the list of current authorized networks for policy server ${policyServerId.value}"
-          changeNetwork   <- psService.setAuthorizedNetworks(policyServerId, gootNetsSeq, modId, CurrentUser.actor) ?~! s"Error when saving new allowed networks for policy server ${policyServerId.value}"
-          modifications   =  UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(currentNetworks, gootNetsSeq))
+          currentNetworks <- psService.getAllowedNetworks(policyServerId).toBox ?~! s"Error when getting the list of current authorized networks for policy server ${policyServerId.value}"
+          changeNetwork   <- psService.setAllowedNetworks(policyServerId, gootNetsSeq, modId, CurrentUser.actor).toBox ?~! s"Error when saving new allowed networks for policy server ${policyServerId.value}"
+          modifications   =  UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(currentNetworks.map(_.inet), gootNetsSeq.map(_.inet)))
           eventSaved      <- eventLogService.saveEventLog(modId,
                                UpdatePolicyServer(EventLogDetails(
                                  modificationId = None

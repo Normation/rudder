@@ -292,14 +292,17 @@ class SystemVariableServiceImpl(
 
     val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable(Seq(varNodeRoleValue))
 
-    val authorizedNetworks = policyServerManagementService.getAuthorizedNetworks(nodeInfo.id) match {
-      case eb:EmptyBox =>
-        //log ?
-        Seq()
-      case Full(nets) => nets
-    }
+      val allowedNetworks = policyServerManagementService.getAllowedNetworks(nodeInfo.id).toBox match {
+        case eb:EmptyBox =>
+          if(nodeInfo.isPolicyServer) {
+            logger.warn(s"No allowed networks found for policy server '${nodeInfo.id.value}'; Nodes won't be able to connect to it to get their policies.")
+          } // in other case, it's a simple node and it's expected that allowed networks are emtpy. We used to add it in all cases, not sure it's useful.
+          Seq()
+        case Full(nets) =>
+          nets.map(_.inet)
+      }
 
-    val varAllowedNetworks = systemVariableSpecService.get("AUTHORIZED_NETWORKS").toVariable(authorizedNetworks)
+      val varAllowedNetworks = systemVariableSpecService.get("ALLOWED_NETWORKS").toVariable(allowedNetworks)
 
     val agentRunParams = {
       if (nodeInfo.isPolicyServer) {

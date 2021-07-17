@@ -57,9 +57,6 @@ object Constants {
   def buildCommonDirectiveId(policyServerId:NodeId) =
     DirectiveId("common-" + policyServerId.value)
 
-  /////////// Policy Node: DistributePolicy directive variable //////////
-  val V_ALLOWED_NETWORK = "ALLOWEDNETWORK"
-
   /////////// PATH for generated promises ///////////////
 
   /**

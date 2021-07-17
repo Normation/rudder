@@ -37,15 +37,11 @@
 
 package com.normation.rudder.services.servers
 
-import net.liftweb.common.Box
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.domain.Constants
 import net.liftweb.common.Loggable
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import sun.net.util.IPAddressUtil
 import ca.mrvisser.sealerate
 import cats.data.NonEmptyList
 import com.normation.ldap.sdk.LDAPConnectionProvider
@@ -55,12 +51,22 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.unboundid.ldap.sdk.DN
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import com.normation.box._
 import zio._
 import zio.syntax._
 import com.normation.errors._
+import com.normation.eventlog.EventLogDetails
+import com.normation.rudder.domain.RudderLDAPConstants
+import com.normation.rudder.domain.appconfig.RudderWebPropertyName
+import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.normation.rudder.repository.EventLogRepository
 import com.normation.zio._
+import zio.json._
+import com.normation.rudder.services.servers.json._
+import com.softwaremill.quicklens._
+import net.liftweb.common.Box
 
 /**
  * This service allows to manage properties linked to the root policy server,
@@ -70,166 +76,288 @@ import com.normation.zio._
  */
 trait PolicyServerManagementService {
 
-  /**
-   * Get the list of authorized networks, i.e the list of networks such that
-   * a node with an IP in it can ask for updated policies.
-   */
-  def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]]
 
   /**
-   * Update the list of authorized networks with the given list
+   * Get policy servers
    */
-  def setAuthorizedNetworks(policyServerId: NodeId, networks: Seq[String], modId: ModificationId, actor: EventActor) : Box[Seq[String]]
+  def getPolicyServers(): IOResult[PolicyServers]
 
   /**
-   * Update the list of authorized networks with the given list
+   * Get the list of allowed networks, i.e the list of networks such that
+   * a node with an IP in it can ask for updated policies..
+   *
+   * If the node is not present in the list of policy server, and empty list is returned,
+   * not an error.
+   *
+   * As of rudder 7.0, the list of authorized network is stored in a settings entry in json,
+   * no more in relay's directives
    */
-  def updateAuthorizedNetworks(policyServerId: NodeId, addNetworks: Seq[String], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor) : Box[Seq[String]]
+  def getAllowedNetworks(policyServerId: NodeId) : IOResult[List[AllowedNetwork]] = {
+    getAllAllowedNetworks().map(_.getOrElse(policyServerId, Nil))
+  }
+
+  /**
+   * Get the list of allowed network for all nodes.
+   */
+  def getAllAllowedNetworks() : IOResult[Map[NodeId, List[AllowedNetwork]]] = {
+    for {
+      servers <- getPolicyServers()
+    } yield {
+      (servers.root :: servers.relays).map { s =>
+        (s.id, s.allowedNetworks)
+      }.toMap
+    }
+  }
+
+  /**
+   * Update the list of policy server with the given add, delete or update command.
+   * The list of all commands is executed atomically, so several updates will
+   */
+  def updatePolicyServers(commands: List[PolicyServersUpdateCommand], modId: ModificationId, actor: EventActor): IOResult[PolicyServers]
+
+  /**
+   * Update the list of authorized networks with the given list.
+   * Return the new list of authorized network for the node.
+   */
+  def setAllowedNetworks(policyServerId: NodeId, networks: Seq[AllowedNetwork], modId: ModificationId, actor: EventActor): IOResult[List[AllowedNetwork]] = {
+    val command = PolicyServersUpdateCommand.Update( (s: PolicyServer) =>
+      if(s.id == policyServerId) {
+        PolicyServerUpdateAction.SetNetworks(networks.toList) :: Nil
+      } else {
+        Nil
+      }
+    )
+    updatePolicyServers(command :: Nil, modId, actor).map(zoomAllowedNetworks(policyServerId))
+  }
+
+  /**
+   * Update the list of authorized networks with the given diff.
+   * Return the new list of authorized network for the node.
+   */
+  def updateAllowedNetworks(policyServerId   : NodeId, addNetworks: Seq[AllowedNetwork], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor): IOResult[List[AllowedNetwork]] = {
+    val command = PolicyServersUpdateCommand.Update( (s:PolicyServer) =>
+      if(s.id == policyServerId) {
+        (addNetworks.map(PolicyServerUpdateAction.AddNetwork(_)) ++ deleteNetwork.map(PolicyServerUpdateAction.DeleteNetwork(_))).toList
+      } else {
+        Nil
+      }
+    )
+    updatePolicyServers(command :: Nil, modId, actor).map(zoomAllowedNetworks(policyServerId))
+  }
 
   /**
    * Delete things related to a relay (groups, rules, directives)
    */
-  def deleteRelaySystemObjectsPure(policyServerId: NodeId): IOResult[Unit]
-  def deleteRelaySystemObjects(policyServerId: NodeId): Box[Unit] = {
-    deleteRelaySystemObjectsPure(policyServerId).toBox
+  def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit]
+
+
+
+  // utility to "zoom" on the allowed network of one node
+  protected[servers] def zoomAllowedNetworks(policyServerId: NodeId)(policyServers: PolicyServers): List[AllowedNetwork] = {
+    if(policyServerId == Constants.ROOT_POLICY_SERVER_ID) policyServers.root.allowedNetworks
+    else policyServers.relays.collectFirst { case s if s.id == policyServerId => s.allowedNetworks }.getOrElse(Nil)
   }
 
 }
 
 object PolicyServerManagementService {
-  /**
-   * Check if the given string is a network address,
-   * i.e if it on the form IP(v4 or v6)/mask.
-   * A single IP address will be accepted by the test.
-   */
-  def isValidNetwork(net:String) = {
 
-    val parts = net.split("/")
-    if(parts.size == 1) {
-       IPAddressUtil.isIPv6LiteralAddress(parts(0)) ||
-       IPAddressUtil.isIPv4LiteralAddress(parts(0))
-    } else if(parts.size == 2) {
-      (
-       IPAddressUtil.isIPv6LiteralAddress(parts(0)) ||
-       IPAddressUtil.isIPv4LiteralAddress(parts(0))
-      ) && (
-        try {
-          val n = parts(1).toInt
-          if(n >= 0 && n < 255) true else false
-        } catch {
-          case _:NumberFormatException => false
-        }
-      )
-    } else false
+  /*
+   * Apply all commands to policy servers. Return an updated structure.
+   */
+  def applyCommands(servers: PolicyServers, commands: List[PolicyServersUpdateCommand]): IOResult[PolicyServers] = {
+    ZIO.foldLeft(commands)(servers) { case (old, command) =>
+      applyOneCommand(old, command)
+    }
   }
+
+  // apply the given command to the list of server and return the new list of server
+  def applyOneCommand(servers: PolicyServers, command: PolicyServersUpdateCommand): IOResult[PolicyServers] = {
+    command match {
+      case PolicyServersUpdateCommand.Delete(policyServerId) =>
+        if(policyServerId == Constants.ROOT_POLICY_SERVER_ID) {
+          Inconsistency(s"Root policy server can not be deleted").fail
+        } else {
+          servers.modify(_.relays).using(_.filterNot(_.id == policyServerId).toList).succeed
+        }
+      case PolicyServersUpdateCommand.Add(policyServer)      =>
+        if(policyServer.id == Constants.ROOT_POLICY_SERVER_ID) {
+          Inconsistency(s"Root policy server can not be added again").fail
+        } else {
+          servers.modify(_.relays).using(s => (policyServer :: s).sortBy(_.id.value) ).succeed
+        }
+      case PolicyServersUpdateCommand.Update(actions)         =>
+        for {
+          root   <- applyAllActions(actions, servers.root)
+          relays <- ZIO.foreach(servers.relays)(applyAllActions(actions, _))
+        } yield {
+          PolicyServers(root, relays)
+        }
+    }
+  }
+
+  def debugStringActions(actions: List[PolicyServerUpdateAction]): String = {
+    val setTo = actions.collect { case PolicyServerUpdateAction.SetNetworks(inets) => inets.map(_.inet) } match {
+      case Nil => ""
+      case l   => s"set allowed networks to: ${l.mkString(", ")}"
+    }
+    val adds = actions.collect { case PolicyServerUpdateAction.AddNetwork(inet) => inet.inet } match {
+      case Nil => ""
+      case l   => s"add allowed network(s): ${l.mkString(", ")}"
+    }
+    val deletes = actions.collect { case PolicyServerUpdateAction.DeleteNetwork(inet) => inet } match {
+      case Nil => ""
+      case l   => s"delete allowed network(s): ${l.mkString(", ")}"
+    }
+    val updates = actions.collect { case PolicyServerUpdateAction.UpdateNetworks(mod) => "" } match {
+      case Nil => ""
+      case l   => s"free modification(s) on allowed networks: ${l.size}"
+    }
+    val mods = setTo :: adds :: deletes :: updates :: Nil
+    s"[${mods.mkString("][")}]"
+  }
+
+  // we want to try all action for each server so that if there is multiple error, they are all
+  // reported, but still have a "foldLeft" semantic, ie the policy server have all change in turn.
+  def applyAllActions(actions: PolicyServer => List[PolicyServerUpdateAction], s: PolicyServer): IOResult[PolicyServer] = {
+    val a = actions(s)
+    if(a.isEmpty) {
+      s.succeed
+    } else {
+      ApplicationLoggerPure.debug(s"Update action for policy server '${s.id.value}': ${debugStringActions(a)}")
+      ZIO.foldLeft(a)((List.empty[RudderError], s)) { case ((err, s), a) =>
+        applyOneAction(s, a).either.map {
+          case Left(e)        => (e::err, s)
+          case Right(updated) => (err, updated)
+        }
+      }.flatMap {
+        case (Nil , s) => s.succeed
+        case (h::e, _) => Accumulated(NonEmptyList(h, e)).fail
+      }
+    }
+  }
+
+  // try to apply one action. Can fail.
+  def applyOneAction(server: PolicyServer, action: PolicyServerUpdateAction): IOResult[PolicyServer] = {
+    //filter out bad networks
+    def validNets(networks: List[AllowedNetwork]): IOResult[Unit] = {
+      networks.accumulate(net =>
+        if(AllowedNetwork.isValid(net.inet)) UIO.unit
+        else Inconsistency(s"Allowed network '${net}' is not a valid network syntax").fail
+      ).unit
+    }
+
+    action match {
+      case PolicyServerUpdateAction.SetNetworks(allowedNetworks) =>
+        ApplicationLoggerPure.trace(s"Update allowed networks for policy server '${server.id.value}', set to: ${allowedNetworks.map(_.inet).mkString(", ")}") *>
+        validNets(allowedNetworks) *>
+        server.modify(_.allowedNetworks).setTo(allowedNetworks).succeed
+      case PolicyServerUpdateAction.DeleteNetwork(inet) =>
+        ApplicationLoggerPure.trace(s"Update allowed networks for policy server '${server.id.value}', delete: ${inet}") *>
+        server.modify(_.allowedNetworks).using(_.filterNot(_.inet == inet)).succeed
+      case PolicyServerUpdateAction.AddNetwork(allowedNetwork) =>
+        ApplicationLoggerPure.trace(s"Update allowed networks for policy server '${server.id.value}', add: ${allowedNetwork.inet}") *>
+        validNets(allowedNetwork :: Nil) *> server.modify(_.allowedNetworks).using(allowedNetwork :: _).succeed
+      case PolicyServerUpdateAction.UpdateNetworks(update) =>
+        val updated = server.allowedNetworks.map(update)
+        ApplicationLoggerPure.trace(s"Update allowed networks for policy server '${server.id.value}' with a free modification") *>
+        validNets(updated) *> server.modify(_.allowedNetworks).setTo(updated).succeed
+    }
+  }
+
 }
 
+/*
+ * Implementation of policy server management backed in LDAP.
+ * We store the json serialisation of policy server in a settings,
+ * but we can't use config service since it's not in rudder-core.
+ * Setting name: rudder_policy_servers
+ */
 class PolicyServerManagementServiceImpl(
-    roDirectiveRepository: RoDirectiveRepository
-  , woDirectiveRepository: WoDirectiveRepository
-  , ldap                 : LDAPConnectionProvider[RwLDAPConnection]
+    ldap                 : LDAPConnectionProvider[RwLDAPConnection]
   , dit                  : RudderDit
+  , eventLogRepo         : EventLogRepository
 ) extends PolicyServerManagementService with Loggable {
+  val PROP_NAME = "rudder_policy_servers"
 
   /*
    * we ensure that write operation on relays are under a lock.
+   * The lock is global to all policy server, so avoid changing
+   * their allowed networks in parallel.
    */
+  val lock = Semaphore.make(1).runNow
 
-  val locks = Ref.make(Map.empty[NodeId, Semaphore]).runNow
-  val lockLock = Semaphore.make(1).runNow
-
-  def inLock[A](nodeId: NodeId)(block: IOResult[A]): IOResult[A] = {
-    def getSemaphore(nodeId: NodeId): IOResult[Semaphore] = {
-      lockLock.withPermit {
-        for {
-          map <- locks.get
-          s   <- map.get(nodeId) match {
-                   case None    => Semaphore.make(1)
-                   case Some(s) => s.succeed
-                 }
-          _   <- locks.set(map+(nodeId -> s))
-        } yield s
-      }
-    }
+  private def getLdap(con: RwLDAPConnection) = {
     for {
-      s   <- getSemaphore(nodeId)
-      res <- s.withPermit(block)
-    } yield res
-  }
-
-  /**
-   * The list of authorized network is not directly stored in an
-   * entry. We have to look for the DistributePolicy directive for
-   * that server and the rudderPolicyVariables: ALLOWEDNETWORK
-   */
-  override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = {
-    for {
-      directive <- roDirectiveRepository.getDirective(Constants.buildCommonDirectiveId(policyServerId))
+      entry   <- con.get(dit.APPCONFIG.propertyDN(RudderWebPropertyName(PROP_NAME))).notOptional(s"LDAP setting entry ${PROP_NAME} was not found. It may be a bug, please report it.")
+      json    <- entry(RudderLDAPConstants.A_PROPERTY_VALUE).notOptional(s"Value for policy servers is empty, while we should always have root server defined. It may be a bug, please report it.")
+      servers <- json.fromJson[JPolicyServers].toIO
     } yield {
-      val allowedNetworks = directive.toList.flatMap(_.parameters.getOrElse(Constants.V_ALLOWED_NETWORK, List()))
-      allowedNetworks.toList
+      (entry, servers.toPolicyServers())
     }
-  }.toBox
-
-  override def setAuthorizedNetworks(policyServerId: NodeId, networks: Seq[String], modId: ModificationId, actor: EventActor) : Box[Seq[String]] = {
-    updateOrReplaceAuthorizedNetworksPure(policyServerId, true, networks, Nil, modId, actor).toBox
   }
 
-  def updateAuthorizedNetworks(policyServerId: NodeId, addNetworks: Seq[String], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor) : Box[Seq[String]] = {
-    updateAuthorizedNetworksPure(policyServerId, addNetworks, deleteNetwork, modId, actor).toBox
-  }
-
-  def updateAuthorizedNetworksPure(policyServerId: NodeId, addNetworks: Seq[String], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor) : IOResult[Seq[String]] = {
-    updateOrReplaceAuthorizedNetworksPure(policyServerId, false, addNetworks, deleteNetwork, modId, actor)
+  override def getPolicyServers(): IOResult[PolicyServers] = {
+    for {
+      con     <- ldap
+      servers <- getLdap(con)
+    } yield {
+      servers._2
+    }
   }
 
 
-  def updateOrReplaceAuthorizedNetworksPure(policyServerId: NodeId, replace: Boolean, add: Seq[String], delete: Seq[String], modId: ModificationId, actor:EventActor) : IOResult[Seq[String]] = {
-    val directiveId = Constants.buildCommonDirectiveId(policyServerId)
+  /*
+   * All update commads must be in the atomic bound, so the general logic is
+   * - we enter lock,
+   * - get the whole of servers,
+   * - apply commands,
+   * - store result if successful,
+   * - out of lock.
+   *
+   * Command can fail, for ex user may want to update an network with an incorrect value. We accumulate these error for the
+   * whole list of command.
+   */
+  def updatePolicyServers(commands: List[PolicyServersUpdateCommand], modId: ModificationId, actor: EventActor): IOResult[PolicyServers] = {
 
-    //filter out bad networks
-    def validNets(networks: Seq[String]) = {
-      val nets = networks.foldLeft((List.empty[Inconsistency], List.empty[String])) { case ((err, nets), net)  =>
-        if(PolicyServerManagementService.isValidNetwork(net)) (err, net::nets)
-        else (Inconsistency(s"Allowed network '${net}' is not a valid network syntax") :: err, nets)
+
+    // Save modified network. Only inet is taken into account
+    def saveAllowedNetworkEventLog(orig: PolicyServers, updated: PolicyServers, modId: ModificationId, actor: EventActor): IOResult[Unit] = {
+      val origNet = (orig.root :: orig.relays).map(s => (s.id, s.allowedNetworks.map(_.inet))).toMap
+      val updatedNet = (updated.root :: updated.relays).map(s => (s.id, s.allowedNetworks.map(_.inet))).toMap
+
+      val toLog = (origNet.keySet ++ updatedNet.keySet).toList.flatMap { id =>
+        val old = origNet.getOrElse(id, Nil)
+        val current = updatedNet.getOrElse(id, Nil)
+        if(old == current) {
+          None
+        } else {
+          Some(UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(old, current)))
+        }
       }
-      nets match {
-        case (Nil, l)  => l.succeed
-        case (h::t, _) => Accumulated(NonEmptyList.of(h, t:_*)).fail
-      }
-    }
-
-    /*
-     * Modify old list of networks by adding what is on "add" and removing what is on
-     * "remove". Match must be exact, i.e "remove:192.168.2.1/24" won't remove "192.168.2.0/24"
-     * even if they describe the same networks.
-     * Also, if a network is in both "add" and "deleted", the net WILL BE on the resulting list,
-     * ie: start by removing then add.
-     */
-    def modify(old: Seq[String], add: Seq[String], delete: Seq[String]): Seq[String] = {
-      old.filterNot(delete.contains).appendedAll(add).distinct
+      ZIO.foreach(toLog){ log => eventLogRepo.saveEventLog(modId, UpdatePolicyServer(EventLogDetails(
+          modificationId = Some(modId)
+        , principal = actor
+        , details = log
+        , reason = None
+      )))}.unit
     }
 
 
-    inLock(policyServerId) {
-      for {
-        _       <- ApplicationLoggerPure.debug(s"Update allowed networks for policy server '${policyServerId.value}', replace all: ${replace}; add: ${add.mkString(", ")}; delete: ${delete.mkString(", ")}")
-        res     <- roDirectiveRepository.getActiveTechniqueAndDirective(directiveId).notOptional(
-                     s"Error when retrieving system directive with ID ${directiveId.value}' which is mandatory for allowed networks configuration."
-                   )
-        (activeTechnique, directive) = res
-        nets    =  directive.parameters.getOrElse(Constants.V_ALLOWED_NETWORK, Nil)
-        add     <- validNets(add)
-        updated =  if(replace) add else modify(nets, add, delete)
-        _       <- ApplicationLoggerPure.debug(s" - new allowed networks for ${policyServerId.value}: ${updated.mkString(", ")}")
-        newPi   =  directive.copy(parameters = directive.parameters + (Constants.V_ALLOWED_NETWORK -> updated))
-        msg     =  Some("Automatic update of system directive due to modification of accepted networks ")
-        saved   <- woDirectiveRepository.saveSystemDirective(activeTechnique.id, newPi, modId, actor, msg).chainError(
-                     s"Can not save directive for Active Technique '${activeTechnique.id.value}"
-                   )
-      } yield updated
-    }
+    lock.withPermit(for {
+      con       <- ldap
+      pair      <- getLdap(con)
+      (e, orig) =  pair
+      updated   <- PolicyServerManagementService.applyCommands(orig, commands)
+      value     =  JPolicyServers.from(updated).toJson
+      _         =  e.resetValuesTo(RudderLDAPConstants.A_PROPERTY_VALUE, value)
+      saved     <- con.save(e)
+      logged    <- saveAllowedNetworkEventLog(orig, updated, modId, actor)
+    } yield {
+      updated
+    })
   }
+
 
 
   /**
@@ -240,9 +368,10 @@ class PolicyServerManagementServiceImpl(
    * - directive: directiveId=common-${RELAY_UUID},activeTechniqueId=common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuratio
    * - rule: ruleId=${RELAY_UUID}-DP,ou=Rules,ou=Rudder,cn=rudder-configuration
    * - rule: ruleId=hasPolicyServer-${RELAY_UUID},ou=Rules,ou=Rudder,cn=rudder-configuration
+   * - allowed networks
    */
-  override def deleteRelaySystemObjectsPure(policyServerId: NodeId): IOResult[Unit] = {
-    inLock(policyServerId) {
+  override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit] = {
+    lock.withPermit {
       if(policyServerId == Constants.ROOT_POLICY_SERVER_ID) {
         Inconsistency("Root server configuration elements can't be deleted").fail
       } else { // we don't have specific validation to do: if the node is not a policy server, nothing will be done
@@ -260,7 +389,7 @@ class PolicyServerManagementServiceImpl(
           _   =  ApplicationLogger.info(s"System configuration object (rules, directives, groups) related to relay '${id}' were successfully deleted.")
         } yield ()
       }
-    }
+    } *> updatePolicyServers(PolicyServersUpdateCommand.Delete(policyServerId) :: Nil, ModificationId(s"clean-${policyServerId.value}"), RudderEventActor).unit
   }
 }
 

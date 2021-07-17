@@ -221,6 +221,14 @@ object errors {
     @inline
     def toIO: IOResult[A] = ZIO.fromEither(res)
   }
+  /*
+   * A mapper from Either[String, A] to IOResult. In that case, we assume the
+   * left String is an error message.
+   */
+  implicit class EitherToIoResult[A](val res: Either[String, A]) extends AnyVal {
+    @inline
+    def toIO: IOResult[A] = ZIO.fromEither(res.left.map(Inconsistency(_)))
+  }
 
   // not optional - mandatory presence of an object
   implicit class OptionToPureResult[A](val res: Option[A]) extends AnyVal {

@@ -37,6 +37,9 @@
 
 package com.normation.rudder
 
+import com.normation.appconfig.ConfigRepository
+import com.normation.appconfig.GenericConfigService
+import com.normation.appconfig.ModifyGlobalPropertyInfo
 import com.normation.cfclerk.domain.{Version => _, _}
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.impl._
@@ -86,7 +89,11 @@ import scala.collection.SortedMap
 import com.normation.box._
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
+import com.normation.rudder.batch.AsyncWorkflowInfo
+import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.archives.ParameterArchiveId
+import com.normation.rudder.domain.eventlog
 import com.normation.rudder.domain.nodes.GenericProperty.StringToConfigValue
 import com.normation.rudder.domain.parameters.AddGlobalParameterDiff
 import com.normation.rudder.domain.parameters.DeleteGlobalParameterDiff
@@ -94,6 +101,12 @@ import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.parameters.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.services.queries._
+import com.normation.rudder.services.servers.AllowedNetwork
+import com.normation.rudder.services.servers.PolicyServer
+import com.normation.rudder.services.servers.PolicyServers
+import com.normation.rudder.services.servers.PolicyServersUpdateCommand
+import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.typesafe.config.ConfigFactory
 import com.unboundid.ldif.LDIFChangeRecord
 
 import scala.collection.immutable
@@ -177,10 +190,13 @@ class MockTechniques(configurationRepositoryRoot: File, gitRepo: GitRepositoryPr
 
 
   val policyServerManagementService = new PolicyServerManagementService() {
-    override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) = ???
-    override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = Full(List("192.168.49.0/24"))
-    override def deleteRelaySystemObjectsPure(policyServerId: NodeId): IOResult[Unit] = ???
-    override def updateAuthorizedNetworks(policyServerId: NodeId, addNetworks: Seq[String], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor): Box[Seq[String]] = ???
+    override def getAllowedNetworks(policyServerId: NodeId): IOResult[List[AllowedNetwork]] = List(AllowedNetwork("192.168.49.0/24", "name")).succeed
+    override def getPolicyServers(): IOResult[PolicyServers] = ???
+    override def getAllAllowedNetworks(): IOResult[Map[NodeId, List[AllowedNetwork]]] = ???
+    override def updatePolicyServers(commands: List[PolicyServersUpdateCommand], modId: ModificationId, actor: EventActor): IOResult[PolicyServers] = ???
+    override def setAllowedNetworks(policyServerId   : NodeId, networks: Seq[AllowedNetwork], modId: ModificationId, actor: EventActor): IOResult[List[AllowedNetwork]] = ???
+    override def updateAllowedNetworks(policyServerId   : NodeId, addNetworks: Seq[AllowedNetwork], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor): IOResult[List[AllowedNetwork]] = ???
+    override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit] = ???
   }
 
   val systemVariableService = new SystemVariableServiceImpl(
@@ -236,8 +252,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
     def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = {
        val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
        Seq(
-         spec("ALLOWEDNETWORK").toVariable(Seq("192.168.0.0/16"))
-       , spec("OWNER").toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName))
+         spec("OWNER").toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName))
        , spec("UUID").toVariable(Seq(nodeId.value))
        , spec("POLICYSERVER_ID").toVariable(Seq(allNodeInfos(nodeId).policyServerId.value))
        , spec("POLICYSERVER").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).hostname))
@@ -248,8 +263,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
         DirectiveId("common-root")
       , TechniqueVersion("1.0")
       , Map(
-          ("ALLOWEDNETWORK", Seq("192.168.0.0/16"))
-        , ("OWNER", Seq("${rudder.node.admin}"))
+          ("OWNER", Seq("${rudder.node.admin}"))
         , ("UUID", Seq("${rudder.node.id}"))
         , ("POLICYSERVER_ID", Seq("${rudder.node.policyserver.id}"))
         , ("POLICYSERVER", Seq("${rudder.node.policyserver.hostname}"))
@@ -263,9 +277,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
     val rolesDirective = Directive(
         DirectiveId("Server Roles")
       , TechniqueVersion("1.0")
-      , Map(
-          ("ALLOWEDNETWORK", Seq("192.168.0.0/16"))
-        )
+      , Map()
       , "Server Roles"
       , "", None, "", 5, true, true // short desc / policyMode / long desc / prio / enabled / system
     )
@@ -274,9 +286,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
     val distributeDirective = Directive(
         DirectiveId("Distribute Policy")
       , TechniqueVersion("1.0")
-      , Map(
-          ("ALLOWEDNETWORK", Seq("192.168.0.0/16"))
-        )
+      , Map()
       , "Distribute Policy"
       , "", None, "", 5, true, true // short desc / policyMode / long desc / prio / enabled / system
     )
@@ -285,9 +295,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
     val inventoryDirective = Directive(
         DirectiveId("inventory-all")
       , TechniqueVersion("1.0")
-      , Map(
-         ("ALLOWEDNETWORK", Seq("192.168.0.0/16"))
-       )
+      , Map()
       , "Inventory"
       , "", None, "", 5, true, true // short desc / policyMode / long desc / prio / enabled / system
     )
@@ -1164,7 +1172,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , "root"
     , ""
     , NodeState.Enabled
-    , false
+    , true
     , true
     , DateTime.parse("2021-01-30T01:20+01:00")
     , emptyNodeReportingConfiguration
@@ -1314,8 +1322,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , "node-dsc"
     , ""
     , NodeState.Enabled
-    , false
-    , true //is draft server
+    , true
+    , true //is relay server
     , DateTime.parse("2021-01-30T01:20+01:00")
     , emptyNodeReportingConfiguration
     , Nil
@@ -1988,6 +1996,49 @@ class MockNodeGroups(nodesRepo: MockNodes) {
   }
 }
 
+class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) {
+
+  val defaultPolicyServer = PolicyServers(
+      PolicyServer(Constants.ROOT_POLICY_SERVER_ID, AllowedNetwork("192.168.2.0/32", "root") :: Nil)
+    , Nil
+  )
+
+  object policyServerManagementService extends PolicyServerManagementService {
+    val repo = Ref.make(defaultPolicyServer).runNow
+
+
+    override def getPolicyServers(): IOResult[PolicyServers] = repo.get
+
+    override def updatePolicyServers(commands: List[PolicyServersUpdateCommand], modId: ModificationId, actor: EventActor): IOResult[PolicyServers] = {
+      for {
+        servers <- repo.get
+        updated <- PolicyServerManagementService.applyCommands(servers, commands)
+        saved   <- repo.set(updated)
+      } yield updated
+    }
+
+    override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit] = {
+      updatePolicyServers(PolicyServersUpdateCommand.Delete(policyServerId) :: Nil, ModificationId(s"clean-${policyServerId.value}"), eventlog.RudderEventActor).unit
+    }
+  }
+
+  // a mock service that keep information in memory only
+  val configService = {
+
+    object configRepo extends ConfigRepository {
+      val configs = Ref.make(Map[String, RudderWebProperty]()).runNow
+      override def getConfigParameters(): IOResult[Seq[RudderWebProperty]] = {
+        configs.get.map(_.values.toList)
+      }
+      override def saveConfigParameter(parameter: RudderWebProperty, modifyGlobalPropertyInfo: Option[ModifyGlobalPropertyInfo]): IOResult[RudderWebProperty] = {
+        configs.update(_.updated(parameter.name.value, parameter)).map(_ => parameter)
+      }
+    }
+
+    new GenericConfigService(ConfigFactory.empty(), configRepo, asyncWF, wfservice)
+  }
+
+}
 
 object TEST {
   import com.normation.zio._

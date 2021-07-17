@@ -83,8 +83,6 @@ bundle common def
     policy_server::
       "acl" slist => {
         "127.0.0.0/8" , "::1", @{sys.ip_addresses},
-        host2ip("${server_info.policy_server}"), # the policy server can connect to a relay
-        "192.168.12.0/24","192.168.49.0/24","127.0.0.1/24",
     };
 
     !policy_server::

@@ -47,7 +47,7 @@ get:
                     properties:
                       allowed_networks:
                         type: array
-                        example: ["162.168.1.0/24", "162.168.2.0/24"]
+                        example: ["162.168.1.0/24", "192.168.2.0/24"]
                         description: Array of allowed networks
   tags:
     - Settings
@@ -106,7 +106,7 @@ post:
                 properties:
                   allowed_networks:
                     type: array
-                    example: ["162.168.1.0/24", "162.168.2.0/24"]
+                    example: ["162.168.1.0/24", "192.168.2.0/24"]
                     description: Array of allowed networks
   tags:
     - Settings

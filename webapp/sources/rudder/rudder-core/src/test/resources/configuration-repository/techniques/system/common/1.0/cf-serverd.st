@@ -116,9 +116,9 @@ bundle common def
     policy_server::
       "acl" slist => {
         "127.0.0.0/8" , "::1", @{sys.ip_addresses},
-&if(AUTHORIZED_NETWORKS)&
+&if(ALLOWED_NETWORKS)&
         host2ip("${server_info.policy_server}"), # the policy server can connect to a relay
-        &AUTHORIZED_NETWORKS:{net|"&net&",}&
+        &ALLOWED_NETWORKS:{net|"&net&",}&
 &endif&
 
     };

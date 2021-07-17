@@ -547,7 +547,7 @@ class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementS
         UIO.unit
       case _           =>
         NodeLoggerPure.Delete.debug(s"  - delete relay related policies in LDAP'${nodeId.value}'") *>
-        policyServerManagement.deleteRelaySystemObjectsPure(nodeId).catchAll(err =>
+        policyServerManagement.deleteRelaySystemObjects(nodeId).catchAll(err =>
           NodeLoggerPure.Delete.error(s"Error when deleting system objects (groups, directives, rules) related to relay server for node ${(nodeId, info).name}: ${err.fullMsg}")
         )
     }
