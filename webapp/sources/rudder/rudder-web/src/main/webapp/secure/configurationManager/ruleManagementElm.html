@@ -1,0 +1,21 @@
+<lift:surround with="common-layout" at="content">
+
+  <head>
+    <title>Rudder - Rules Management</title>
+    <link media="screen" data-lift="with-cached-resource" href="/style/rudder/rudder-rules.css" rel="stylesheet" type="text/css">
+    <link media="screen" data-lift="with-cached-resource" href="/style/rudder/rudder-tags.css" rel="stylesheet" type="text/css">
+  </head>
+
+  <div id="rules-app" ></div>
+
+  <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-rules.js"></script>
+  <script>
+    var main = document.getElementById("rules-app")
+    var initValues = {
+      contextPath : contextPath
+    };
+    var app  = Elm.RulesManagement.init({node: main, flags: initValues});
+  </script>
+
+</lift:surround>
+
