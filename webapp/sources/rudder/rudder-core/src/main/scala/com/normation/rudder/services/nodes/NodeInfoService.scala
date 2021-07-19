@@ -56,10 +56,8 @@ import com.normation.rudder.repository.CachedRepository
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.queries.NodeInfoMatcher
-import com.normation.rudder.domain.queries.Or
 import com.normation.ldap.sdk.LDAPIOResult._
 import zio._
 import zio.syntax._
@@ -69,9 +67,11 @@ import com.normation.zio._
 import com.normation.ldap.sdk.syntax._
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.domain.queries.And
 import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
 import com.normation.rudder.services.nodes.NodeInfoServiceCached.UpdatedNodeEntries
 import com.normation.rudder.services.nodes.NodeInfoServiceCached.buildInfoMaps
+import com.normation.rudder.services.queries.PostFilterNodeFromInfoService
 
 import scala.concurrent.duration.FiniteDuration
 import scala.collection.mutable.{Map => MutMap}
@@ -872,33 +872,13 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
   }.toBox
 
   override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): Box[Set[LDAPNodeInfo]] = {
-    def comp(a: Boolean, b: Boolean) = composition match {
-        case And => a && b
-        case Or  => a || b
-    }
-    // utliity to combine predicates according to comp
-    def combine(a: NodeInfoMatcher, b: NodeInfoMatcher) = new NodeInfoMatcher {
-      override def matches(node: NodeInfo): Boolean = comp(a.matches(node), b.matches(node))
-    }
-
-    // if there is no predicates (ie no specific filter on NodeInfo), we should just keep nodes from our list
-    def predicate(nodeInfo : NodeInfo) = {
-      val contains = nodeIds.contains(nodeInfo.id)
-      if (predicates.isEmpty) {
-        contains
-      } else {
-        val validPredicates = predicates.reduceLeft(combine).matches(nodeInfo)
-        comp(contains,validPredicates)
-      }
-    }
-
-    // if nodeIds is empty, return an empty set
-    if (!nodeIds.isEmpty) {
-      withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
-        cache.values.collect { case (x, y) if predicate(y) => x }.toSet.succeed
-      }
-    } else {
+    // if nodeIds is empty and composition is and, return an empty set; with or, we need to run it in all cases
+    if (nodeIds.isEmpty && composition == And) {
       Set[LDAPNodeInfo]().succeed
+    } else {
+      withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
+        PostFilterNodeFromInfoService.getLDAPNodeInfo(nodeIds, predicates, composition, cache).succeed
+      }
     }
   }.toBox
 

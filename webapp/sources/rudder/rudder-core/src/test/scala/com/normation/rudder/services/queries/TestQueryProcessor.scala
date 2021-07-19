@@ -56,6 +56,8 @@ import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 import zio.syntax._
 
+import com.softwaremill.quicklens._
+
 /*
  * Test query parsing.
  *
@@ -890,8 +892,12 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
 
-    testQueries(q1 :: q2 :: q3 :: q4 :: q5 ::  q6 :: q7 :: q8 :: Nil, true)
+    val andQueries = q1 :: q2 :: q3 :: q4 :: q5 ::  q6 :: q7 :: q8 :: Nil
+    // And and Or must yield same results when there is only one criteria for node prop, see: #19538
+    val orQueries = andQueries.map(_.modify(_.query.composition).setTo(Or))
+    testQueries(andQueries ::: orQueries, false)
   }
+
 
   /*
    * When using JsonPath on node properties to know if the node should be return or not, what we are
