@@ -53,8 +53,8 @@ import com.normation.rudder.services.policies.NodeConfigData.root
 import com.normation.rudder.services.policies.NodeConfigData.rootNodeConfig
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.templates.FillTemplatesService
-import java.io.File
 
+import java.io.File
 import net.liftweb.common.Loggable
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
@@ -65,8 +65,8 @@ import org.specs2.specification.AfterAll
 import org.specs2.text.LinesContent
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
-import java.nio.charset.StandardCharsets
 
+import java.nio.charset.StandardCharsets
 import com.github.ghik.silencer.silent
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
@@ -75,6 +75,7 @@ import com.normation.rudder.services.policies.BoundPolicyDraft
 import org.apache.commons.io.FileUtils
 import zio.syntax._
 import com.normation.zio._
+import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths
 
 /**
  * Details of tests executed in each instances of
@@ -193,10 +194,12 @@ final case class RegexFileContent(regex: List[String]) extends LinesContent[File
 
 
   // A global list of files to ignore because variable content (like timestamp)
+  // We must also ignore symlink, because they are copied as plain file by FileUtils, and that make unwanted errors
   def filterGeneratedFile(f: File): Boolean = {
     f.getName match {
-        case "rudder_promises_generated" | "rudder-promises-generated" => false
-        case _                                                         => true
+      case "rudder_promises_generated" | "rudder-promises-generated" => false
+      case "policy-server.pem"                                       => false
+      case _                                                         => true
     }
   }
 
@@ -296,7 +299,9 @@ class WriteSystemTechniquesTest extends TechniquesTest{
 
       @silent("local val .* in method addCrap is never used")
       def addCrap(path: String): Unit = {
-        better.files.File(path).append("some text that should be overwritten during generation").append(
+        val f = better.files.File(path)
+        f.parent.createDirectories()
+        f.append("some text that should be overwritten during generation").append(
           //this need to be longer than at least one file, else it's overwritten enterly without exposing the pb
           """
             |"common-root","audit","merged","false","common","1.0","true","Common"
@@ -314,7 +319,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       val newPolicies = new File(rootPath.getParentFile, "root.new")
       newPolicies.mkdirs()
 
-      List("promises.cf", "rudder.json", "rudder-directives.csv").foreach(s =>
+      List("promises.cf", filepaths.SYSTEM_VARIABLE_JSON, filepaths.DIRECTIVE_RUN_CSV, filepaths.ROOT_SERVER_CERT, filepaths.POLICY_SERVER_CERT).foreach(s =>
         addCrap(newPolicies.getAbsolutePath +"/" + s)
       )
 

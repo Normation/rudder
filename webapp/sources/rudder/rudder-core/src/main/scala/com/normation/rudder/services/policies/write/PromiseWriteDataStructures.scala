@@ -44,6 +44,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.templates.STVariable
 import com.normation.cfclerk.domain.Variable
+import com.normation.errors.IOResult
 import com.normation.inventory.domain.OsDetails
 import com.normation.inventory.domain.ServerRole
 import com.normation.rudder.services.policies.Policy
@@ -83,6 +84,25 @@ final case class AgentNodeProperties(
 )
 
 /**
+ * Node's policy server's certificate.
+ * We need to give a node the root server certificate so that it will be
+ * able to authenticate it (for communication, signature, etc) and
+ * if the node is behind a relay, we also need that relay certificate
+ * (communication will be with that relay).
+ * Certificate are not parsed here, they are just string in pem format, ie:
+ * -----BEGIN CERTIFICATE-----
+ * ....
+ * -----END CERTIFICATE-----
+ *
+ * We are not storing the actual string, b/c it would lead to a lot of ducplication,
+ * but just the an effectful function to access it when we need it.
+ */
+final case class PolicyServerCertificates(
+    root : IOResult[String]
+  , relay: Option[IOResult[String]]
+)
+
+/**
  * Data structure that hold all the information to actually write
  * configuration for a node/agent in a CFEngine compatible way:
  * - the path where to write things,
@@ -96,6 +116,7 @@ final case class AgentNodeWritableConfiguration(
   , preparedTechniques: Seq[PreparedTechnique]
   , systemVariables   : Map[String, Variable]
   , policies          : List[Policy]
+  , policyServerCerts : PolicyServerCertificates
 )
 
 /**
