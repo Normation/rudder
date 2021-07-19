@@ -172,13 +172,15 @@ sealed trait CriterionType extends ComparatorList {
 // a case class that allows to precompute some parts of the NodeInfo matcher which are indep from the
 // the node.
 trait NodeInfoMatcher {
+  def debugString: String
   def matches(node: NodeInfo): Boolean
 }
 
 object NodeInfoMatcher {
   // default builder: it will evaluated each time, sufficiant if all parts of the matcher uses NodeInfo
-  def apply(f: NodeInfo => Boolean): NodeInfoMatcher = {
+  def apply(s: String, f: NodeInfo => Boolean): NodeInfoMatcher = {
     new NodeInfoMatcher {
+      override val debugString: String = s
       override def matches(node: NodeInfo): Boolean = f(node)
     }
   }
@@ -206,8 +208,8 @@ final case object NodeStateComparator extends NodeCriterionType {
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
     comparator match {
-      case Equals => NodeInfoMatcher( (node: NodeInfo) => node.state.name == value )
-      case _      => NodeInfoMatcher( (node: NodeInfo) => node.state.name != value )
+      case Equals => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => node.state.name == value )
+      case _      => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => node.state.name != value )
     }
   }
 
@@ -287,6 +289,7 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
                               } catch { //malformed patterned should not be saved, but never let an exception be silent
                                 case ex: PatternSyntaxException => false
                               }
+                            override val debugString = s"Prop matches '${value}'"
                             override def matches(node: NodeInfo): Boolean = node.properties.exists(predicat)
                           }
 
@@ -297,22 +300,24 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
       // equals mean: the key is equals to kv._1 and the value is defined and the value is equals to kv._2.get
       case Equals         => {
                                val kv = splitInput(value, "=")
-                               NodeInfoMatcher((node: NodeInfo) => node.properties.find(p => p.name == kv.key && p.valueAsString == kv.value).isDefined)
+                               NodeInfoMatcher(s"Prop name=value equals'${value}'", (node: NodeInfo) => node.properties.find(p => p.name == kv.key && p.valueAsString == kv.value).isDefined)
       }
       // not equals mean: the key is not equals to kv._1 or the value is not defined or the value is defined but equals to kv._2.get
-      case NotEquals      => NodeInfoMatcher((node: NodeInfo) => !matches(Equals, value).matches(node))
-      case Exists         => NodeInfoMatcher((node: NodeInfo) => node.properties.nonEmpty)
-      case NotExists      => NodeInfoMatcher((node: NodeInfo) => node.properties.isEmpty)
+      case NotEquals      => NodeInfoMatcher(s"Prop name=value not equals'${value}'", (node: NodeInfo) => !matches(Equals, value).matches(node))
+      case Exists         => NodeInfoMatcher(s"Prop name=value exists (at least one property)", (node: NodeInfo) => node.properties.nonEmpty)
+      case NotExists      => NodeInfoMatcher(s"Prop name=value not exists (empty properties)", (node: NodeInfo) => node.properties.isEmpty)
       case Regex          => regexMatcher(value)
       case NotRegex       => new NodeInfoMatcher {
                                val regex = regexMatcher(value)
+                               override val debugString = s"Prop matches regex '${value}'"
                                override def matches(node: NodeInfo): Boolean = !regex.matches(node)
                              }
-      case KVC.HasKey     => NodeInfoMatcher((node: NodeInfo) => node.properties.exists(_.name == value))
+      case KVC.HasKey     => NodeInfoMatcher(s"Prop has key '${value}'", (node: NodeInfo) => node.properties.exists(_.name == value))
       case KVC.JsonSelect => new NodeInfoMatcher {
                                val kv = splitInput(value, ":")
                                val path = JsonSelect.compilePath(kv.value).toPureResult
                                val matcher = matchJsonPath(kv.key, path) _
+                               override val debugString = s"Prop json select '${value}'"
                                override def matches(node: NodeInfo): Boolean = node.properties.exists(matcher)
                              }
       case _              => matches(Equals, value)
