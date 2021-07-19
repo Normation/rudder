@@ -175,10 +175,10 @@ class AcceptedNodesLDAPQueryProcessor(
     for {
       res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId).toBox
       timeres        =  (System.currentTimeMillis - timePreCompute)
-      _              =  logger.debug(s"Result obtained in ${timeres}ms for query ${query.toString}")
+      _              =  logger.debug(s"LDAP result: ${res.entries.size} entries obtained in ${timeres}ms for query ${query.toString}")
       ldapEntries    <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition)
       ldapEntryTime  =  (System.currentTimeMillis - timePreCompute - timeres)
-      _              =  logger.trace(s"Result of query converted in LDAP Entry in ${ldapEntryTime} ms")
+      _              =  logger.debug(s"[post-filter:rudderNode] Found ${ldapEntries.size} nodes when filtering for info service existence and properties (${ldapEntryTime} ms)")
 
     } yield {
 
@@ -188,7 +188,7 @@ class AcceptedNodesLDAPQueryProcessor(
 
       if(logger.isDebugEnabled) {
         val filtered = res.entries.map( _(A_NODE_UUID).get ).toSet -- inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }.toSet
-        if(!filtered.isEmpty) {
+        if(filtered.nonEmpty) {
             logger.debug(s"[${debugId}] [post-filter:rudderNode] ${inNodes.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered.mkString(", ")}")
         }
       }
@@ -240,6 +240,53 @@ class AcceptedNodesLDAPQueryProcessor(
   }
 
 }
+
+/**
+ * This is the last step of query, where we are looking for high level properties check - most importantly,
+ * the json path and check on node properties.
+ * See NodeInfoService#getLDAPNodeInfo
+ */
+object PostFilterNodeFromInfoService {
+  val logger = LoggerFactory.getLogger("com.normation.rudder.services.queries")
+  def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, nodes: Map[NodeId, (LDAPNodeInfo, NodeInfo)]): Set[LDAPNodeInfo] = {
+    def comp(a: Boolean, b: Boolean) = composition match {
+        case And => a && b
+        case Or  => a || b
+    }
+    // utliity to combine predicates according to comp
+    def combine(a: NodeInfoMatcher, b: NodeInfoMatcher) = new NodeInfoMatcher {
+      override val debugString = {
+        val c = composition match {
+          case And => "&&"
+          case Or => "||"
+        }
+        s"(${a.debugString}) ${c} (${b.debugString})"
+      }
+      override def matches(node: NodeInfo): Boolean = comp(a.matches(node), b.matches(node))
+    }
+
+    // if there is no predicates (ie no specific filter on NodeInfo), we should just keep nodes from our list
+    def predicate(nodeInfo : NodeInfo, pred: Seq[NodeInfoMatcher]) = {
+      val contains = nodeIds.contains(nodeInfo.id)
+      if (pred.isEmpty) {
+        // in that case, whatever the query composition, we can only return what was already found.
+        contains
+      } else {
+        val combined = pred.reduceLeft(combine)
+        val validPredicates =  combined.matches(nodeInfo)
+        val res = comp(contains, validPredicates)
+        if(logger.isTraceEnabled()) {
+          logger.trace(s"${nodeInfo.id.value}: ${if(res) "OK" else "NOK"} for [${combined.debugString}]")
+        }
+        res
+      }
+    }
+
+    nodes.collect { case (_, (x, y)) if predicate(y, predicates) => x }.toSet
+  }
+}
+
+
 
 /**
  * Processor that translates Queries into LDAP search operations
@@ -386,7 +433,8 @@ class InternalLDAPQueryProcessor(
       }.map { case (ldapFilters, specialFilters) =>
         val finalLdapFilter = normalizedQuery.composition match {
           case Or  =>
-            Some(OR( (filterSeqSet.foldLeft(ldapFilters)( _ union _ )).toSeq:_*))
+            if( filterSeqSet.size+ldapFilters.size <= 0) Some(NOT(HAS(A_OC))) // means that we don't have any ldap filter, only extended one, so select no nodes, see #19538
+            else Some(OR( (filterSeqSet.foldLeft(ldapFilters)( _ union _ )).toSeq:_*))
           case And => //if returnFilter is None, just and other filter, else add it. TODO : may it be empty ?
             val seqFilter = ldapFilters.toSeq ++ filterSeqSet.flatMap(s => s.size match {
                   case n if n < 1 => None
@@ -433,7 +481,8 @@ class InternalLDAPQueryProcessor(
           rt      = nodeObjectTypes.copy(filter = finalLdapFilter)
           _       <- logPure.debug(s"[${debugId}] |- (final query) ${rt}")
           entries <- (for {
-            results <- executeQuery(rt.baseDn, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, nq.composition, debugId)
+          results <- executeQuery(rt.baseDn, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, nq.composition, debugId)
+          _       <- logPure.debug(s"[${debugId}] |- post filter-results (nodes and server or only nodes, valid nodes only")
           } yield {
             postFilterNode(results.distinctBy(_.dn), query.returnType, limitToNodeIds)
           }).foldM(
@@ -623,7 +672,9 @@ class InternalLDAPQueryProcessor(
                  //now, each filter individually
         _        <- logPure.debug("[%s] |--- or (base filter): %s".format(debugId, entries.size))
         _        <- logPure.trace("[%s] |--- or (base filter): %s".format(debugId, entries.map( _.dn.getRDN  ).mkString(", ")))
-        specials <- ZIO.foreach(sf){ case (k, filters) => baseQuery(con, filters) }
+        specials <- ZIO.foreach(sf){ case (k, specialFilters) =>
+                      logPure.trace("[%s] |--- or (special filter '%s': %s".format(debugId, k, specialFilters)) *>
+                      baseQuery(con, specialFilters) }
         sFlat    =  specials.flatten
         _        <- logPure.debug("[%s] |--- or (special filter): %s".format(debugId, sFlat.size))
         _        <- logPure.trace("[%s] |--- or (special filter): %s".format(debugId, sFlat.map( _.dn.getRDN  ).mkString(", ")))
