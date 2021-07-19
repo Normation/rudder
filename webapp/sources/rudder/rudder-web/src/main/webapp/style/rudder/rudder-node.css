@@ -251,6 +251,9 @@
 .id-card .card-img.debian{
   background-image: url(../../images/os/debian-logo.svg);
 }
+.id-card .card-img.kali{
+  background-image: url(../../images/os/kali-logo.svg);
+}
 .id-card .card-img.ubuntu{
   background-image: url(../../images/os/ubuntu-logo.svg);
 }

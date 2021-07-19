@@ -722,6 +722,7 @@ class FusionReportUnmarshaller(
         case ("linux"  , x ) =>
           if     (x contains "debian"      ) Debian
           else if(x contains "ubuntu"      ) Ubuntu
+          else if(x contains "kali"        ) Kali
           else if(x contains "redhat"      ) Redhat
           else if(x contains "centos"      ) Centos
           else if(x contains "fedora"      ) Fedora
