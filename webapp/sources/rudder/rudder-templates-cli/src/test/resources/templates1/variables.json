@@ -12,7 +12,7 @@
     , "cccccccc-3ad9-4347-866c-56a692ca8d39"
     ]
   , "MANAGED_NODES_ADMIN": [ "root", "root", "root" ]
-  , "AUTHORIZED_NETWORKS": [ "192.168.1.0/24", "192.168.2.0/24", "192.168.3.0/24" ]
+  , "ALLOWED_NETWORKS": [ "192.168.1.0/24", "192.168.2.0/24", "192.168.3.0/24" ]
   , "DENYBADCLOCKS": true
   , "COMMUNITYPORT": "424242"
   , "POLICYSERVER_ADMIN": [ "root" ]

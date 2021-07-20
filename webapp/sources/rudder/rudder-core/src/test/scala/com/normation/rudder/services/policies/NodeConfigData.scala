@@ -115,16 +115,21 @@ import com.normation.rudder.domain.policies.AllTargetExceptPolicyServers
 import com.normation.rudder.domain.policies.AllTarget
 import com.normation.eventlog.EventActor
 import net.liftweb.common.Full
-import net.liftweb.common.Box
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.MachineInventory
 import com.normation.inventory.domain.PendingInventory
 import com.normation.inventory.domain.VMWare
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.services.servers.AllowedNetwork
+import com.normation.rudder.services.servers.PolicyServer
+import com.normation.rudder.services.servers.PolicyServers
+import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import org.apache.commons.io.FileUtils
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.zio._
+import zio.syntax._
 
 /*
  * This file is a container for testing data that are a little boring to
@@ -582,18 +587,22 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
   val t6 = System.currentTimeMillis()
   NodeConfigData.logger.trace(s"Technique repository    : ${t6-t5} ms")
 
-  val draftServerManagement = new PolicyServerManagementService() {
-    override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) = ???
-    override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = Full(List("192.168.12.0/24", "192.168.49.0/24", "127.0.0.1/24"))
-    override def deleteRelaySystemObjectsPure(policyServerId: NodeId): IOResult[Unit] = ???
-    override def updateAuthorizedNetworks(policyServerId: NodeId, addNetworks: Seq[String], deleteNetwork: Seq[String], modId: ModificationId, actor: EventActor): Box[Seq[String]] = ???
+  val policyServerManagement = new PolicyServerManagementService() {
+    override def getPolicyServers(): IOResult[PolicyServers] = {
+      PolicyServers(
+        PolicyServer(Constants.ROOT_POLICY_SERVER_ID, List("192.168.12.0/24", "192.168.49.0/24", "127.0.0.1/24").map(s => AllowedNetwork(s, s"name for " + s)))
+        , Nil
+      ).succeed
+    }
+    override def updatePolicyServers(commands: List[PolicyServersUpdateCommand], modId: ModificationId, actor: EventActor): IOResult[PolicyServers] = ???
+    override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit] = ???
   }
   val t7 = System.currentTimeMillis()
   NodeConfigData.logger.trace(s"Policy Server Management: ${t7-t6} ms")
 
   val systemVariableService = new SystemVariableServiceImpl(
       systemVariableServiceSpec
-    , draftServerManagement
+    , policyServerManagement
     , toolsFolder                     = "tools_folder"
     , policyDistribCfenginePort       = 5309
     , policyDistribHttpsPort          = 443
@@ -715,8 +724,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
   def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = {
      val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
-       spec("ALLOWEDNETWORK").toVariable(Seq("192.168.0.0/16"))
-     , spec("OWNER").toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName))
+       spec("OWNER").toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName))
      , spec("UUID").toVariable(Seq(nodeId.value))
      , spec("POLICYSERVER_ID").toVariable(Seq(allNodeInfos(nodeId).policyServerId.value))
      , spec("POLICYSERVER").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).hostname))
@@ -758,8 +766,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
       DirectiveId("common-root")
     , TechniqueVersion("1.0")
     , Map(
-        ("ALLOWEDNETWORK", Seq("192.168.0.0/16"))
-      , ("OWNER", Seq("${rudder.node.admin}"))
+        ("OWNER", Seq("${rudder.node.admin}"))
       , ("UUID", Seq("${rudder.node.id}"))
       , ("POLICYSERVER_ID", Seq("${rudder.node.policyserver.id}"))
       , ("POLICYSERVER", Seq("${rudder.node.policyserver.hostname}"))
@@ -785,10 +792,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
 
   val rolesTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("server-roles"), TechniqueVersion("1.0")))
   val rolesVariables = {
-     val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-     Seq(
-       spec("ALLOWEDNETWORK").toVariable(Seq("192.168.0.0/16"))
-     ).map(v => (v.spec.name, v)).toMap
+     Map[String, Variable]()
   }
 
   val serverRole = {
@@ -807,10 +811,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
 
   val distributeTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("distributePolicy"), TechniqueVersion("1.0")))
   val distributeVariables = {
-     val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-     Seq(
-       spec("ALLOWEDNETWORK").toVariable(Seq("192.168.0.0/16"))
-     ).map(v => (v.spec.name, v)).toMap
+     Map[String, Variable]()
   }
 
   val distributePolicy = {
@@ -829,10 +830,7 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
 
   val inventoryTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("inventory"), TechniqueVersion("1.0")))
   val inventoryVariables = {
-     val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-     Seq(
-       spec("ALLOWEDNETWORK").toVariable(Seq("192.168.0.0/16"))
-     ).map(v => (v.spec.name, v)).toMap
+     Map[String, Variable]()
   }
   val inventoryAll = {
     val id = PolicyId(RuleId("inventory-all"), DirectiveId("inventory-all"), TechniqueVersion("1.0"))

@@ -239,6 +239,7 @@ trait ReadConfigService {
   def rudder_compute_dyngroups_max_parallelism(): IOResult[String]
 
   def rudder_generation_continue_on_error(): IOResult[Boolean]
+
 }
 
 /**
@@ -388,7 +389,13 @@ trait UpdateConfigService {
   def set_rudder_generation_continue_on_error(value: Boolean): IOResult[Unit]
 }
 
-class LDAPBasedConfigService(
+/*
+ * A generic config service that handle all the typing of values but rely on a
+ * a backend ConfigRepository to actually save things.
+ * Initial values can be provided with a Config file (plus there is some
+ * hard coded default values)
+ */
+class GenericConfigService(
     configFile    : Config
   , repos         : ConfigRepository
   , workflowUpdate: AsyncWorkflowInfo
@@ -423,9 +430,9 @@ class LDAPBasedConfigService(
        send.server.metrics=none
        rudder.compliance.mode=${FullCompliance.name}
        rudder.compliance.heartbeatPeriod=1
-       rudder.syslog.protocol=UDP
        rudder.syslog.protocol.disabled=false
        rudder.report.protocol.default=SYSLOG
+       rudder.syslog.protocol.transport=UDP
        display.changes.graph=true
        rudder.ui.display.ruleComplianceColumns=false
        rudder.policy.mode.name=${Enforce.name}
@@ -580,6 +587,7 @@ class LDAPBasedConfigService(
       FeatureSwitch.Disabled
   }
 
+
   def rudder_ui_changeMessage_enabled() = get("rudder_ui_changeMessage_enabled")
   def rudder_ui_changeMessage_mandatory() = get("rudder_ui_changeMessage_mandatory")
   def rudder_ui_changeMessage_explanation() = get("rudder_ui_changeMessage_explanation")
@@ -701,10 +709,10 @@ class LDAPBasedConfigService(
   /**
    * Report protocol
    */
-  def rudder_syslog_protocol(): IOResult[SyslogProtocol] = get("rudder_syslog_protocol")
+  def rudder_syslog_protocol(): IOResult[SyslogProtocol] = get("rudder_syslog_protocol_transport")
   def set_rudder_syslog_protocol(protocol : SyslogProtocol, actor : EventActor, reason: Option[String]): IOResult[Unit] =  {
     val info = ModifyGlobalPropertyInfo(ModifyRudderSyslogProtocolEventType,actor,reason)
-    save("rudder_syslog_protocol", protocol.value, Some(info))
+    save("rudder_syslog_protocol_transport", protocol.value, Some(info))
   }
 
   def rudder_syslog_protocol_disabled(): IOResult[Boolean] = get("rudder_syslog_protocol_disabled")

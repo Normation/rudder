@@ -64,7 +64,6 @@ import com.normation.utils.Control.bestEffort
 import com.normation.utils.Control.sequence
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
-import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
@@ -75,6 +74,7 @@ import net.liftweb.json.JsonDSL._
 import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.services.policies.SendMetrics
+import com.normation.rudder.services.servers.AllowedNetwork
 
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
@@ -160,6 +160,7 @@ class SettingsApi(
     })
   }
 
+
   object GetAllSettings extends LiftApiModule0 {
     val schema = API.GetAllSettings
     val restExtractor = restExtractorService
@@ -176,17 +177,7 @@ class SettingsApi(
         JField(setting.key, result)
       }
       val data = if (version.value >= 11) {
-        val networks =
-          ( for {
-              servers         <- nodeInfoService.getAllSystemNodeIds()
-              allowedNetworks <- sequence(servers)(nodeId => policyServerManagementService.getAuthorizedNetworks(nodeId).map((nodeId, _)))
-            } yield {
-            import net.liftweb.json.JsonDSL._
-            JArray(allowedNetworks.toList.map {
-              case (nodeid, networks) =>
-                ("id" -> nodeid.value) ~ ("allowed_networks" -> networks.toList)
-            })
-          }) match {
+        val networks = GetAllAllowedNetworks.getAllowedNetworks() match {
             case Full(nets) =>
               nets
             case eb : EmptyBox =>
@@ -826,33 +817,30 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
   // if the directive is missing for policy server, it may be because it misses dedicated allowed networks.
   // We don't want to fail on that, so we need to special case Empty
   def getAllowedNetworksForServer(nodeId: NodeId): Box[Seq[String]] = {
-    policyServerManagementService.getAuthorizedNetworks(nodeId) match {
-      case Empty => Full(Nil)
-      case x     => x
-    }
+    policyServerManagementService.getAllowedNetworks(nodeId).map(_.map(_.inet)).toBox
   }
 
   object GetAllAllowedNetworks extends LiftApiModule0 {
+
+    def getAllowedNetworks() = {
+      for {
+        servers         <- nodeInfoService.getAllSystemNodeIds()
+        allowedNetworks <- policyServerManagementService.getAllAllowedNetworks().toBox
+      } yield {
+        val toKeep = servers.map(id => (id.value, allowedNetworks.getOrElse(id, Nil).map(_.inet)))
+        import net.liftweb.json.JsonDSL._
+        JArray(toKeep.toList.map {
+          case (nodeid, networks) =>
+            ("id" -> nodeid) ~ ("allowed_networks" -> networks.toList.sorted)
+        })
+      }
+    }
+
     override val schema = API.GetAllAllowedNetworks
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = "getAllAllowedNetworks"
-      import com.normation.utils.Control.sequence
-      val result = for {
-        servers         <- nodeInfoService.getAllSystemNodeIds()
-        allowedNetworks <- sequence(servers) { nodeId =>
-                             // if the directive is missing for policy server, it may be because it misses dedicated allowed networks.
-                             // We don't want to fail on that, so we need to special case Empty
-                             getAllowedNetworksForServer(nodeId).map((nodeId, _))
-                           }
-      } yield {
-        import net.liftweb.json.JsonDSL._
-        JArray(allowedNetworks.toList.map {
-          case (nodeid, networks) =>
-            ("id" -> nodeid.value) ~ ("allowed_networks" -> networks.toList)
-        })
-      }
-      RestUtils.response(restExtractorService, "settings", None)(result, req, s"Could not get allowed networks")
+      RestUtils.response(restExtractorService, "settings", None)(getAllowedNetworks(), req, s"Could not get allowed networks")
     }
   }
 
@@ -875,7 +863,7 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
         }
         networks <- getAllowedNetworksForServer(NodeId(id))
       } yield {
-        JObject(JField("allowed_networks", JArray(networks.toList.map(JString))))
+        JObject(JField("allowed_networks", JArray(networks.toList.sorted.map(JString))))
       }
       RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Could not get allowed networks for policy server '${id}'")
     }
@@ -891,7 +879,7 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
       def checkAllowedNetwork (v : String ) = {
           val netWithoutSpaces = v.replaceAll("""\s""", "")
           if(netWithoutSpaces.length != 0) {
-            if (PolicyServerManagementService.isValidNetwork(netWithoutSpaces)) {
+            if (AllowedNetwork.isValid(netWithoutSpaces)) {
               Full(netWithoutSpaces)
             } else {
               Failure(s"${netWithoutSpaces} is not a valid allowed network")
@@ -929,7 +917,9 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
                         case Some(list) => bestEffort(list)(checkAllowedNetwork(_))
                       }
                     }
-        set      <- policyServerManagementService.setAuthorizedNetworks(nodeId, networks, modificationId, actor)
+        // For now, we set name identical to inet
+        nets     =  networks.map(inet => AllowedNetwork(inet, inet))
+        set      <- policyServerManagementService.setAllowedNetworks(nodeId, nets, modificationId, actor).toBox
       } yield {
         JArray(networks.map(JString).toList)
       }
@@ -956,7 +946,7 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
       def checkAllowedNetwork (v : String ) = {
           val netWithoutSpaces = v.replaceAll("""\s""", "")
           if(netWithoutSpaces.length != 0) {
-            if (PolicyServerManagementService.isValidNetwork(netWithoutSpaces)) {
+            if (AllowedNetwork.isValid(netWithoutSpaces)) {
               Full(netWithoutSpaces)
             } else {
               Failure(s"${netWithoutSpaces} is not a valid allowed network")
@@ -994,9 +984,11 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
         _        <- if(json == JNothing) Failure(msg) else Full(())
         diff     <- try { Full(json.extract[AllowedNetDiff]) } catch { case NonFatal(ex) => Failure(msg) }
         _        <- sequence(diff.add)(checkAllowedNetwork)
-        res      <- policyServerManagementService.updateAuthorizedNetworks(nodeId, diff.add, diff.delete, modificationId, actor)
+        // for now, we use inet as the name, too
+        nets     =  diff.add.map(inet => AllowedNetwork(inet, inet))
+        res      <- policyServerManagementService.updateAllowedNetworks(nodeId, nets, diff.delete, modificationId, actor).toBox
       } yield {
-        JArray(res.map(JString).toList)
+        JArray(res.map(n => JString(n.inet)).toList)
       }
       RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Error when trying to modify allowed networks for policy server '${id}'")
     }

@@ -567,6 +567,7 @@ object RestTestSetUp {
   val groupService14 = new GroupApiService14(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockParameters.paramsRepo, uuidGen, asyncDeploymentAgent, workflowLevelService, restExtractorService, queryParser, mockNodes.queryProcessor, restDataSerializer)
   val groupApiInheritedProperties = new GroupApiInheritedProperties(mockNodeGroups.groupsRepo, mockParameters.paramsRepo)
 
+  val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
   val rudderApi = {
     //append to list all new format api to test it
     val modules = List(
@@ -577,6 +578,7 @@ object RestTestSetUp {
       , new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService14, uuidGen)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12,  nodeApiService13, null, DeleteMode.Erase)
       , new GroupsApi(mockNodeGroups.groupsRepo, restExtractorService, zioJsonExtractor, uuidGen, groupService2, groupService6, groupService14, groupApiInheritedProperties)
+      , new SettingsApi(restExtractorService, settingsService.configService, asyncDeploymentAgent, uuidGen, settingsService.policyServerManagementService, nodeInfo)
     )
     val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled), None)
     modules.foreach { module =>
