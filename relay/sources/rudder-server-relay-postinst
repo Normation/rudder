@@ -83,8 +83,10 @@ fi
 if [ -f /opt/rudder/etc/ssl/rudder.key ]; then
   mv /opt/rudder/etc/ssl/rudder.key "${BACKUP_DIR}/rudder-`date +%Y%m%d`.key"
 fi
-sed -i '/SSLCertificateFile.*\/opt\/rudder\/etc\/ssl\/rudder.crt/d' /etc/httpd/conf.d/rudder.conf 
-sed -i '/SSLCertificateKeyFile.*\/opt\/rudder\/etc\/ssl\/rudder.key/d' /etc/httpd/conf.d/rudder.conf 
+
+# Update the certificate locations if needed
+sed -i '/SSLCertificateFile.*\/opt\/rudder\/etc\/ssl\/rudder.crt/d' /etc/${APACHE_VHOSTDIR}/rudder.conf
+sed -i '/SSLCertificateKeyFile.*\/opt\/rudder\/etc\/ssl\/rudder.key/d' /etc/${APACHE_VHOSTDIR}/rudder.conf
 
 # we now use agent.cert and localhost.priv for HTTPS too
 
