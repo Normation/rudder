@@ -235,14 +235,26 @@ class TechniqueParser(
 
   /*
    * Parse the list of system vars used by that policy package.
-   *
+   * We don't fail on a missing system variable: it's likely that we are in a migration
+   * and that the variable was not changed yet (either new rudder with old techniques or the
+   * opposite).
    */
   private[this] def parseSysvarSpecs(xml: Node, id:TechniqueId) : Either[LoadTechniqueError, Set[SystemVariableSpec]] = {
-    (xml \ SYSTEMVARS_ROOT \ SYSTEMVAR_NAME).toList.traverse { x =>
-      systemVariableSpecService.get(x.text).leftMap(_ =>
-        LoadTechniqueError.Parsing(s"The system variable ${x.text} is not defined: perhaps the metadata.xml for technique '${id.toString}' is not up to date")
-      ).toValidatedNel
-    }.fold(errs => Left(LoadTechniqueError.Accumulated(errs)), x => Right(x.toSet))
+    val res = (xml \ SYSTEMVARS_ROOT \ SYSTEMVAR_NAME).toList.map { x =>
+      systemVariableSpecService.get(x.text) match {
+        case Left(_) =>
+          logEffect.warn(LoadTechniqueError.Parsing(s"The system variable ${x.text} is not defined: perhaps the metadata.xml for technique '${id.toString}' is not up to date").fullMsg)
+          // create a placeholder variable with a mandatory non empty value, and an explicit name
+          SystemVariableSpec(s"MISSING SYSTEM VARIABLE DEFINITION (check logs): ${x.text}" , s"System variable ${x.text} is defined in metadata but not in rudder app. Perhaps you are in the middle of migration. " +
+                                                                    s"If not, check that your technique lib and rudder version are the same."
+                                            , multivalued = false
+                                            , constraint = Constraint(mayBeEmpty=false)
+                                          )
+
+        case Right(v) => v
+      }
+    }
+    Right(res.toSet)
   }
 
   /**
