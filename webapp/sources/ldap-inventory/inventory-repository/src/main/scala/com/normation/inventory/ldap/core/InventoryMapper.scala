@@ -724,6 +724,7 @@ class InventoryMapper(
         val linux = dit.NODES.NODE.linuxModel(server.main.id)
         os match {
           case Debian      => linux.addValues(A_OS_NAME, A_OS_DEBIAN)
+          case Kali        => linux.addValues(A_OS_NAME, A_OS_KALI)
           case Ubuntu      => linux.addValues(A_OS_NAME, A_OS_UBUNTU)
           case Redhat      => linux.addValues(A_OS_NAME, A_OS_REDHAT)
           case Centos      => linux.addValues(A_OS_NAME, A_OS_CENTOS)
@@ -894,6 +895,7 @@ class InventoryMapper(
                         } else if(entry.isA(OC_LINUX_NODE)) {
                           val os = osName match {
                             case A_OS_DEBIAN        => Debian
+                            case A_OS_KALI          => Kali
                             case A_OS_UBUNTU        => Ubuntu
                             case A_OS_REDHAT        => Redhat
                             case A_OS_CENTOS        => Centos
