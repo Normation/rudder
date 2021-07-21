@@ -186,6 +186,7 @@ object LinuxType {
   val allKnownTypes = (
        Debian
     :: Ubuntu
+    :: Kali
     :: Redhat
     :: Centos
     :: Fedora
@@ -203,6 +204,7 @@ object LinuxType {
 
 final case object UnknownLinuxType extends LinuxType { val name = "UnknownLinux" }
 final case object Debian           extends LinuxType { val name = "Debian"       }
+final case object Kali             extends LinuxType { val name = "Kali"         }
 final case object Ubuntu           extends LinuxType { val name = "Ubuntu"       }
 final case object Redhat           extends LinuxType { val name = "Redhat"       }
 final case object Centos           extends LinuxType { val name = "Centos"       }

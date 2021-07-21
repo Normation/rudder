@@ -22,6 +22,7 @@ properties:
     description: For Linux, a distribution, for Windows, the commercial name
     enum:
       - debian
+      - kali
       - ubuntu
       - redhat
       - centos
