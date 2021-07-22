@@ -138,14 +138,13 @@ type alias ComplianceDetails =
   , badPolicyMode              : Maybe Float
   }
 
+type alias EditRuleDetails = { rule : Rule, tab :  TabMenu, editDirectives: Bool, editGroups : Bool, newTag : Tag }
 
+type Mode = Loading | RuleTable | EditRule EditRuleDetails
 
 type alias Model =
   { contextPath     : String
-  , tab             : TabMenu
-  , editDirectives  : Bool
-  , editGroups      : Bool
-  , selectedRule    : Maybe Rule
+  , mode            : Mode
   , policyMode      : String
   , rulesTree       : Category Rule
   , techniques      : List Technique
@@ -153,7 +152,6 @@ type alias Model =
   , groupsTree      : Category Group
   , techniquesTree  : Category Technique
   , rulesCompliance : List RuleCompliance
-  --, ruleUI          : RuleUI
   }
 
 type Msg
@@ -164,14 +162,8 @@ type Msg
   | OpenRuleDetails RuleId
   | CloseRuleDetails
   | SelectGroup RuleTarget Bool
-  | UpdateRuleName String
-  | UpdateRuleCategory String
-  | UpdateRuleShortDesc String
-  | UpdateRuleLongDesc  String
-  | UpdateTagKey String
-  | UpdateTagVal String
-  | AddTag
---| RemoveTag String
+  | UpdateRule Rule
+  | UpdateNewTag Tag
   | CallApi                  (Model -> Cmd Msg)
   | GetDirectivesResult      (Result Error (List Directive))
   | GetTechniquesResult     (Result Error (List Technique))
@@ -181,4 +173,3 @@ type Msg
   | GetRulesResult          (Result Error (Category Rule))
   | GetGroupsTreeResult     (Result Error (Category Group))
   | GetTechniquesTreeResult (Result Error (Category Technique))
-  | SelectDirective DirectiveId
