@@ -1,11 +1,9 @@
 module ApiCalls exposing (..)
 
 import DataTypes exposing (..)
-import Dict
 import Http exposing (..)
 import JsonDecoder exposing (..)
-import JsonEncoder exposing (..)
-import Json.Decode
+--import JsonEncoder exposing (..)
 
 getUrl: DataTypes.Model -> String -> String
 getUrl m url =
@@ -107,14 +105,14 @@ getTechniquesTree model =
   in
     send GetTechniquesTreeResult req
 
-getRuleDetails : Model -> String -> Cmd Msg
+getRuleDetails : Model -> RuleId -> Cmd Msg
 getRuleDetails model ruleId =
   let
     req =
       request
         { method          = "GET"
         , headers         = []
-        , url             = getUrl model ("/rules/" ++ ruleId)
+        , url             = getUrl model ("/rules/" ++ ruleId.value)
         , body            = emptyBody
         , expect          = expectJson decodeGetRuleDetails
         , timeout         = Nothing
@@ -139,18 +137,18 @@ getRulesCompliance model =
   in
     send GetRulesComplianceResult req
 
-saveRuleDetails : RuleDetails -> Bool -> Model ->  Cmd Msg
-saveRuleDetails ruleDetails creation model =
+saveRuleDetails : Rule -> Bool -> Model ->  Cmd Msg
+saveRuleDetails ruleDetails creation model = Cmd.none {-
   let
     req =
       request
         { method  = if creation then "PUT" else "POST"
         , headers = []
-        , url     = getUrl model ("/rules/"++ruleDetails.id)
+        , url     = getUrl model ("/rules/"++ruleDetails.id.value)
         , body    = encodeRuleDetails ruleDetails |> jsonBody
         , expect  = expectJson decodeGetRuleDetails
         , timeout = Nothing
         , withCredentials = False
         }
   in
-    send SaveRuleDetails req
+    send SaveRuleDetails req -}

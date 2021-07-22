@@ -12,42 +12,34 @@ decodeGetPolicyMode : Decoder String
 decodeGetPolicyMode =
   D.at ["data", "settings", "global_policy_mode" ] D.string
 
-decodeCategory : Decoder RulesTreeItem
-decodeCategory =
-  D.succeed Category
+decodeCategory : Decoder a -> Decoder (Category a)
+decodeCategory elemDecoder =
+  succeed Category
     |> required "id"          D.string
     |> required "name"        D.string
-    |> required "categories" (D.list (D.lazy (\_ -> decodeCategory)))
-    |> required "rules"      (D.list decodeRule)
+    |> required "categories" (D.map SubCategories  (D.list (D.lazy (\_ -> (decodeCategory elemDecoder)))))
+    |> required "rules"      (D.list elemDecoder)
 
-decodeRule : Decoder RulesTreeItem
+
+decodeGetRulesTree =
+  D.at [ "data" , "ruleCategories" ] (decodeCategory decodeRule)
+
+decodeGetRuleDetails : Decoder Rule
+decodeGetRuleDetails =
+  D.at [ "data" , "rules" ] (index 0 decodeRule)
+
+decodeRule : Decoder Rule
 decodeRule =
   D.succeed Rule
-    |> required "id"          D.string
-    |> required "displayName" D.string
-    |> required "categoryId"  D.string
-    |> required "enabled"     D.bool
-
-decodeGetRulesTree : Decoder RulesTreeItem
-decodeGetRulesTree =
-  D.at [ "data" , "ruleCategories" ] decodeCategory
-
-decodeGetRuleDetails : Decoder RuleDetails
-decodeGetRuleDetails =
-  D.at [ "data" , "rules" ] (index 0 decodeRuleDetails)
-
-decodeRuleDetails : Decoder RuleDetails
-decodeRuleDetails =
-  D.succeed RuleDetails
-    |> required "id"               D.string
+    |> required "id"          (D.map RuleId D.string)
     |> required "displayName"      D.string
     |> required "categoryId"       D.string
     |> required "shortDescription" D.string
     |> required "longDescription"  D.string
     |> required "enabled"          D.bool
     |> required "system"           D.bool
-    |> required "directives"      (D.list D.string)
-    |> required "targets"         (index 0 decodeTargets)
+    |> required "directives"      (D.list (D.map DirectiveId D.string))
+    |> required "targets"         (D.list decodeTargets)
     |> required "tags"            (D.list (D.keyValuePairs D.string) |> andThen toTags)
 
 toTags : List (List ( String, String )) -> Decoder (List Tag)
@@ -65,10 +57,41 @@ decodeGetRulesCompliance =
 decodeRuleCompliance : Decoder RuleCompliance
 decodeRuleCompliance =
   succeed RuleCompliance
-    |> required "id"         D.string
+    |> required "id"         (D.map RuleId D.string)
     |> required "mode"       D.string
     |> required "compliance" D.float
     |> required "complianceDetails" decodeComplianceDetails
+    |> required "directives" (D.list decodeDirectiveCompliance)
+decodeDirectiveCompliance : Decoder DirectiveCompliance
+decodeDirectiveCompliance =
+  succeed DirectiveCompliance
+    |> required "id"         (D.map DirectiveId D.string)
+    |> required "compliance" D.float
+    |> required "complianceDetails" decodeComplianceDetails
+    |> required "components" (D.list decodeComponentCompliance)
+decodeComponentCompliance : Decoder ComponentCompliance
+decodeComponentCompliance =
+  succeed ComponentCompliance
+    |> required "name"       D.string
+    |> required "compliance" D.float
+    |> required "complianceDetails" decodeComplianceDetails
+    |> required "nodes" (D.list decodeNodeCompliance)
+decodeValueCompliance : Decoder ValueCompliance
+decodeValueCompliance =
+  succeed ValueCompliance
+    |> required "value"      D.string
+    |> required "reports" (D.list decodeReport)
+decodeReport : Decoder Report
+decodeReport =
+  succeed Report
+    |> required "status"      D.string
+    |> optional "message"    (D.maybe  D.string) Nothing
+
+decodeNodeCompliance : Decoder NodeCompliance
+decodeNodeCompliance =
+  succeed NodeCompliance
+    |> required "id"         (D.map NodeId D.string)
+    |> required "values" (D.list decodeValueCompliance)
 
 decodeComplianceDetails : Decoder ComplianceDetails
 decodeComplianceDetails =
@@ -89,15 +112,11 @@ decodeComplianceDetails =
     |> optional "badPolicyMode"              (map Just D.float) Nothing
 
 -- DIRECTIVES TAB
-decodeGetTechniques : Decoder (List Techniquex)
+decodeGetTechniques : Decoder (List Technique)
 decodeGetTechniques =
-  D.at ["data", "techniques" ] (D.list decodeTechniquex)
+  D.at ["data", "techniques" ] (D.list decodeTechnique)
 
-decodeTechniquex : Decoder Techniquex
-decodeTechniquex =
-  succeed Techniquex
-    |> required "name"      D.string
-    |> required "versions" (D.list D.string)
+
 
 decodeGetDirectives : Decoder (List Directive)
 decodeGetDirectives =
@@ -106,7 +125,7 @@ decodeGetDirectives =
 decodeDirective : Decoder Directive
 decodeDirective =
   succeed Directive
-    |> required "id"               D.string
+    |> required "id"               (D.map DirectiveId D.string)
     |> required "displayName"      D.string
     |> required "longDescription"  D.string
     |> required "techniqueName"    D.string
@@ -115,39 +134,23 @@ decodeDirective =
     |> required "system"           D.bool
     |> required "policyMode"       D.string
 
-decodeGetTechniquesTree : Decoder TechniquesTreeItem
+decodeGetTechniquesTree : Decoder (Category Technique)
 decodeGetTechniquesTree =
-  D.at ["data", "directives"] (index 0 decodeTechniqueCat)
+  D.at ["data", "directives"] (index 0 (decodeCategory decodeTechnique))
 
-decodeTechniqueCat : Decoder TechniquesTreeItem
-decodeTechniqueCat =
-  succeed TechniqueCat
-    |> required "name"           D.string
-    |> required "description"    D.string
-    |> required "subCategories" (D.list (D.lazy (\_ -> decodeTechniqueCat)))
-    |> required "techniques"    (D.list decodeTechnique)
-
-decodeTechnique : Decoder TechniquesTreeItem
+decodeTechnique : Decoder Technique
 decodeTechnique =
   succeed Technique
     |> required "name"          D.string
+    |> hardcoded []
 
 -- GROUPS TAB
-decodeGetGroupsTree : Decoder GroupsTreeItem
+decodeGetGroupsTree : Decoder (Category Group)
 decodeGetGroupsTree =
-  D.at ["data", "groupCategories"] decodeGroupCat
+  D.at ["data", "groupCategories"] (decodeCategory decodeGroup)
 
-decodeGroupCat : Decoder GroupsTreeItem
-decodeGroupCat =
-  succeed GroupCat
-    |> required "id"          D.string
-    |> required "name"        D.string
-    |> required "parent"      D.string
-    |> required "description" D.string
-    |> required "categories" (D.list (D.lazy (\_ -> decodeGroupCat)))
-    |> required "groups"     (D.list decodeGroup)
 
-decodeGroup : Decoder GroupsTreeItem
+decodeGroup : Decoder Group
 decodeGroup =
   succeed Group
     |> required "id"          D.string
@@ -157,8 +160,9 @@ decodeGroup =
     |> required "dynamic"     D.bool
     |> required "enabled"     D.bool
 
-decodeTargets : Decoder Targets
+decodeTargets : Decoder RuleTarget
 decodeTargets =
-  D.map2 Targets
-    (D.at ["include","or"] (D.list D.string))
-    (D.at ["exclude","or"] (D.list D.string))
+
+  D.oneOf [
+    map Special string
+  ]

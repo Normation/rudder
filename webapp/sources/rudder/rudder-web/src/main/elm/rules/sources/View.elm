@@ -4,43 +4,24 @@ import DataTypes exposing (..)
 import Html exposing (Html, button, div, i, span, text, h1, h4, ul, li, input, a, p, form, label, textarea, select, option, table, thead, tbody, tr, th, td, small)
 import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected)
 import Html.Events exposing (onClick, onInput)
-import List exposing (any, intersperse, map, sortWith)
-import List.Extra exposing (minimumWith, find)
-import String exposing (lines, fromFloat)
-import ApiCalls exposing (getRuleDetails)
-import NaturalOrdering exposing (compare, compareOn)
+import List.Extra
+import List
+import String exposing ( fromFloat)
+import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
 
 view : Model -> Html Msg
 view model =
   let
-    ruleUI = model.ruleUI
-    getListRules : RulesTreeItem -> List (RulesTreeItem)
-    getListRules r = 
-      case r of
-        Rule _ _ _ _-> [ r ]
-        Category _ _ lCat lRules ->
-          let
-            rulesChild = List.concat (List.map getListRules lRules)
-            categChild = List.concat (List.map getListRules lCat  )
-            finalList  = List.append rulesChild categChild
-          in
-            List.sortWith compareRulesTreeItem finalList
 
-    getListCategories : RulesTreeItem -> List (RulesTreeItem)
-    getListCategories r = 
-      case r of
-        Rule _ _ _ _-> []
-        Category _ _ lCat _ ->
-          let
-            current    = [ r ]
-            categChild = List.concat (List.map getListCategories lCat  )
-            finalList  = List.append current categChild
-          in
-            List.sortWith compareRulesTreeItem finalList
+    getListRules : Category Rule -> List (Rule)
+    getListRules r = getAllElems r
+
+    getListCategories : Category Rule  -> List (Category Rule)
+    getListCategories r = getAllCats r
 
     rulesList      = getListRules model.rulesTree
-    categoriesList = getListRules model.rulesTree
+    categoriesList = getListCategories model.rulesTree
 
     buildRulesTable : List(Html Msg)
     buildRulesTable =
@@ -48,22 +29,17 @@ view model =
         getCategoryName : String -> String
         getCategoryName id =
           let
-            cat = List.Extra.find (\c -> case c of 
-                Rule _ _ _ _ -> False
-                Category cid _ _ _ -> cid == id
-              ) categoriesList
+            cat = List.Extra.find (.id >> (==) id  ) categoriesList
           in
             case cat of
-              Just (Category _ cname _ _) -> cname
-              Just (Rule _ _ _ _) -> id 
+              Just c -> c.name
               Nothing -> id
 
-        rowTable : RulesTreeItem -> Html Msg
+        rowTable : Rule -> Html Msg
         rowTable r =
           let
-            compliance = case r of
-              Rule id _ _ _ ->
-                case find (\c -> c.ruleId == id) model.rulesCompliance of
+            compliance =
+                case List.Extra.find (\c -> c.ruleId == r.id) model.rulesCompliance of
                   Just co ->
                     let
                       complianceDetails = co.complianceDetails
@@ -107,13 +83,6 @@ view model =
                       reportsDisabled = valReportsDisabled
                       noreport        = valNoReport
 
-                      okStatusBar        = buildComplianceBar okStatus        "success"
-                      nonCompliantBar    = buildComplianceBar nonCompliant    "audit-noncompliant"
-                      errorBar           = buildComplianceBar error           "error"
-                      unexpectedBar      = buildComplianceBar unexpected      "unknown"
-                      pendingBar         = buildComplianceBar pending         "pending"
-                      reportsDisabledBar = buildComplianceBar reportsDisabled "reportsdisabled"
-                      noreportBar        = buildComplianceBar noreport        "no-report"
 
                     in
                       if ( okStatus + nonCompliant + error + unexpected + pending + reportsDisabled + noreport == 0 ) then
@@ -130,18 +99,14 @@ view model =
                         ]
 
                   Nothing -> text "No report"
-              _ -> text "No report"
           in
-            case r of
-              Rule id name parent enabled->
-                tr[onClick (OpenRuleDetails id)]
-                [ td[][ text name ]
-                , td[][ text (getCategoryName parent) ]
-                , td[][ text (if enabled == True then "Enabled" else "Disabled") ]
+                tr[onClick (OpenRuleDetails r.id)]
+                [ td[][ text r.name ]
+                , td[][ text (getCategoryName r.categoryId) ]
+                , td[][ text (if r.enabled == True then "Enabled" else "Disabled") ]
                 , td[][ compliance ]
                 , td[][ text ""   ]
                 ]
-              Category _ _ _ _ -> text ""
       in
         List.map rowTable rulesList
 
@@ -152,34 +117,20 @@ view model =
       in
         span [class ("rudder-label label-sm label-" ++ policyMode)][]
 
-    compareRulesTreeItem: RulesTreeItem -> RulesTreeItem -> Order
-    compareRulesTreeItem a b =
+    buildListCategories : String -> (Category Rule) -> List(Html Msg)
+    buildListCategories sep c =
       let
-        ca = case a of
-          Category rid rname llCat llRules  -> rname
-          Rule rid rname rparent renabled   -> rname
-        cb = case b of
-          Category rid rname llCat llRules  -> rname
-          Rule rid rname rparent renabled   -> rname
-      in
-        if ca > cb then GT else if ca < cb then LT else EQ 
-
-    buildListCategories : RuleDetails -> String -> RulesTreeItem -> List(Html Msg)
-    buildListCategories rule sep c =
-      let
-        newList = case c of
-          Rule _ _ _ _ -> []
-          Category id name lCat _ ->
+        newList =
             let
-              currentOption  = [option [value id, selected (id == rule.categoryId)][text (sep ++ name)]]
+              currentOption  = [option [value c.id][text (sep ++ c.name)]]
               separator      = sep ++ "└─ "
-              listCategories = List.concat (List.map (buildListCategories rule separator) (List.sortWith compareRulesTreeItem (lCat)))
+              listCategories = List.concatMap (buildListCategories separator) (getSubElems c)
             in
               List.append currentOption listCategories
       in
         newList
 
-    buildTagsContainer : RuleDetails -> Html Msg
+    buildTagsContainer : Rule -> Html Msg
     buildTagsContainer rule =
       let
         tagsList = List.map (\t ->
@@ -197,28 +148,28 @@ view model =
         div [class "tags-container form-group"](tagsList)
 
 
-    buildRulesTree : RulesTreeItem -> Html Msg
-    buildRulesTree item =
-      case item of
-        Rule id name parent enabled ->
+    ruleTreeElem : Rule -> Html Msg
+    ruleTreeElem item =
           li [class "jstree-node jstree-leaf"]
           [ i[class "jstree-icon jstree-ocl"][] 
-          , a[href "#", class "jstree-anchor", onClick (OpenRuleDetails id)]
+          , a[href "#", class "jstree-anchor", onClick (OpenRuleDetails item.id)]
             [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
-            , span [class "treeGroupName tooltipable"][text name]
+            , span [class "treeGroupName tooltipable"][text item.name]
             ]
           ]
 
-        Category id name lCat lRules ->
+    ruleTreeCategory : (Category Rule) -> Html Msg
+    ruleTreeCategory item =
           let
-            childsItem  = List.sortWith compareRulesTreeItem (List.append lRules lCat)
-            childsList  = ul[class "jstree-children"](List.map buildRulesTree childsItem)
+            categories = List.map ruleTreeCategory (getSubElems item)
+            rules = List.map ruleTreeElem item.elems
+            childsList  = ul[class "jstree-children"](categories ++ rules)
           in
             li[class "jstree-node jstree-open"]
             [ i[class "jstree-icon jstree-ocl"][]
             , a[href "#", class "jstree-anchor"]
               [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-              , span [class "treeGroupCategoryName tooltipable"][text name]
+              , span [class "treeGroupCategoryName tooltipable"][text item.name]
               ]
             , childsList
             ]
@@ -246,7 +197,7 @@ view model =
         div [class "main-container"]
           [ div [class "main-header "]
             [ div [class "header-title"]
-              [ h1[][text rule.displayName]
+              [ h1[][text rule.name]
               , div[class "header-buttons"]
                 [ button [class "btn btn-default", type_ "button"][text "Actions"]
                 , button [class "btn btn-default", type_ "button", onClick CloseRuleDetails][text "Close"  ]
@@ -271,7 +222,7 @@ view model =
               , li[class ("ui-tabs-tab" ++ (if model.tab == Groups        then " ui-tabs-active" else ""))]
                 [ a[onClick (ChangeTabFocus Groups       )]
                   [ text "Groups"
-                  , span[class "badge"][text (String.fromInt(List.length rule.targets.include))]
+                  , span[class "badge"][text (String.fromInt(List.length rule.targets))]
                   ]
                 ]
               , li[class ("ui-tabs-tab" ++ (if model.tab == TechnicalLogs then " ui-tabs-active" else ""))]
@@ -294,22 +245,22 @@ view model =
                 [ div [class "form-group"]
                   [ label[for "rule-name"][text "Name"]
                   , div[]
-                    [ input[ id "rule-name", type_ "text", value rule.displayName, class "form-control", onInput UpdateRuleName ][] ]
+                    [ input[ id "rule-name", type_ "text", value rule.name, class "form-control", onInput UpdateRuleName ][] ]
                   ]
                 , div [class "form-group"]
                   [ label[for "rule-category"][text "Category"]
                   , div[]
                     [ select[ id "rule-category", class "form-control", onInput UpdateRuleCategory ]
-                      ((buildListCategories rule "") model.rulesTree)
+                      (buildListCategories  "" model.rulesTree)
                     ]
                   ]
                 , div [class "tags-container"]
                   [ label[for "rule-tags-key"][text "Tags"]
                   , div[class "form-group"]
                     [ div[class "input-group"]
-                      [ input[ id "rule-tags-key", type_ "text", placeholder "key", class "form-control", onInput UpdateTagKey, value ruleUI.newTag.key][]
+                      [ input[ id "rule-tags-key", type_ "text", placeholder "key", class "form-control", onInput UpdateTagKey, value ""][]
                       , span [ class "input-group-addon addon-json"][ text "=" ] 
-                      , input[ type_ "text", placeholder "value", class "form-control", onInput UpdateTagVal, value ruleUI.newTag.value][]
+                      , input[ type_ "text", placeholder "value", class "form-control", onInput UpdateTagVal, value ""][]
                       , span [ class "input-group-btn"][ button [ class "btn btn-success", type_ "button", onClick AddTag][ span[class "fa fa-plus"][]] ]
                       ]
                     ]
@@ -329,12 +280,12 @@ view model =
               ]
           Directives    ->
             let
-              buildTableRow : String -> Html Msg
+              buildTableRow : DirectiveId -> Html Msg
               buildTableRow id =
                 let
-                  directive = find (\dir -> dir.id == id) model.directives
+                  directive = List.Extra.find (.id >> (==) id) model.directives
                   rowDirective = case directive of
-                    Nothing -> [td[][text ("Cannot find details of Directive " ++ id)]]
+                    Nothing -> [td[][text ("Cannot find details of Directive " ++ id.value)]]
                     Just d  ->
                       [ td[]
                         [ badgePolicyMode d
@@ -345,7 +296,7 @@ view model =
                 in
                   tr[](rowDirective)
 
-              buildListRow : List String -> List (Html Msg)
+              buildListRow : List DirectiveId -> List (Html Msg)
               buildListRow ids =
                 let
                   --Get more information about directives, to correctly sort them by displayName
@@ -356,7 +307,7 @@ view model =
                   rowDirective  : Directive -> Html Msg
                   rowDirective directive =
                     li[]
-                    [ a[href ("/rudder/secure/configurationManager/directiveManagement#" ++ directive.id)]
+                    [ a[href ("/rudder/secure/configurationManager/directiveManagement#" ++ directive.id.value)]
                       [ badgePolicyMode directive
                       , span [class "target-name"][text directive.displayName, text "-  ", text (String.fromInt (List.length directives))]
                       ]
@@ -400,15 +351,12 @@ view model =
               
               else
                 let
-                  buildDirectivesTree : TechniquesTreeItem -> Html Msg
-                  buildDirectivesTree item =
-                    case item of
-                      Technique id ->
+                  directiveTreeElem : Technique -> Html Msg
+                  directiveTreeElem item =
                         let
-                          directivesList = model.directives
-                            |> List.filter (\d -> d.techniqueName == id)
-                            |> List.sortWith (compareOn .displayName)
-                            |> List.map    (\d ->
+                          directivesList = item.versions
+
+                            |> List.concatMap  (\(_,dirs) -> List.map  (\d ->
                               let
                                 selectedClass = if (List.member d.id rule.directives) then " item-selected" else ""
                               in
@@ -421,68 +369,40 @@ view model =
                                     [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (SelectDirective d.id)][]]
                                     ]
                                   ]
-                                ])
+                                ]) dirs)
                         in
                           if List.length directivesList > 0 then
                             li [class "jstree-node jstree-open"]
                             [ i[class "jstree-icon jstree-ocl"][]
                             , a[href "#", class "jstree-anchor"]
                               [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
-                              , span [class "treeGroupName tooltipable"][text id]
+                              , span [class "treeGroupName tooltipable"][text item.name]
                               ]
                             , ul[class "jstree-children"](directivesList)
                             ]
                           else
                             text ""
 
-                      TechniqueCat name description lCat lTec ->
+                  directiveTreeCategory : Category Technique -> List  (Html Msg)
+                  directiveTreeCategory item =
                         let
-                          checkNbDirectives : TechniquesTreeItem -> Int
-                          checkNbDirectives itm =
-                            case itm of
-                              Technique tid ->
-                                let
-                                  nbDirectives = model.directives
-                                    |> List.filter (\d -> d.techniqueName == tid)
-                                    |> List.length
-                                in
-                                  nbDirectives
+                          categories = List.concatMap directiveTreeCategory (getSubElems item)
+                          techniques = List.map directiveTreeElem (List.filter (\t -> not (List.isEmpty (List.concatMap Tuple.second t.versions)) ) item.elems)
+                          children = techniques ++ categories
 
-                              TechniqueCat _ _ tlCat tlTec ->
-                                let
-                                  groupList    = (List.append tlCat tlTec)
-                                  nbDirectives = List.sum (List.map checkNbDirectives groupList)
-                                in
-                                  nbDirectives
-
-                          compareTechniquesTreeItem: TechniquesTreeItem -> TechniquesTreeItem -> Order
-                          compareTechniquesTreeItem a b =
-                            let
-                              ca = case a of
-                                TechniqueCat gname _ _ _-> gname
-                                Technique gname         -> gname
-                              cb = case b of
-                                TechniqueCat gname _ _ _-> gname
-                                Technique gname         -> gname
-                            in
-                              if ca > cb then GT else if ca < cb then LT else EQ
-
-
-                          childsItem   = List.sortWith compareTechniquesTreeItem (List.append lCat lTec)
-                          childsList   = ul[class "jstree-children"](List.map buildDirectivesTree childsItem)
 
                         in
-                          if(checkNbDirectives item > 0) then
-                            li[class "jstree-node jstree-open"]
+                          if(not (List.isEmpty children) ) then
+                            [ li[class "jstree-node jstree-open"]
                             [ i[class "jstree-icon jstree-ocl"][]
                             , a[href "#", class "jstree-anchor"]
                               [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-                              , span [class "treeGroupCategoryName tooltipable"][text name]
+                              , span [class "treeGroupCategoryName tooltipable"][text item.name]
                               ]
-                            , childsList
-                            ]
+                            , ul[class "jstree-children"] children
+                            ] ]
                           else
-                            text ""
+                            []
 
                 in
                   div[class "row flex-container"]
@@ -517,7 +437,7 @@ view model =
                         , i [class "fa fa-bars"][]
                         ]
                         , div [class "jstree jstree-default"]
-                          [ ul[class "jstree-container-ul jstree-children"][(buildDirectivesTree model.techniquesTree)]
+                          [ ul[class "jstree-container-ul jstree-children"](directiveTreeCategory model.techniquesTree)
                           ]
                       ]
                     ]
@@ -531,16 +451,25 @@ view model =
                 in
                   span [class ("rudder-label label-sm label-" ++ policyMode)][]
 
-              buildIncludeList : Bool -> String -> Html Msg
-              buildIncludeList includeBool id =
+              buildIncludeList : RuleTarget -> Html Msg
+              buildIncludeList ruleTarget =
                 let
+                  id = case ruleTarget of
+                    NodeGroupId groupId -> groupId
+                    Composition _ _ -> "compo"
+                    Special spe -> spe
+                    Node node -> node
+                    Or _ -> "or"
+                    And _ -> "and"
+
+
                   rowIncludeGroup = li[]
                     [ span[class "fa fa-file-text"][]
                     , a[href ("/rudder/secure/configurationManager/#" ++ "")]
                       [ badgePolicyModeGroup "default"
                       , span [class "target-name"][text id]
                       ]
-                    , span [class "target-remove", onClick (SelectGroup id includeBool)][ i [class "fa fa-times"][] ]
+                    , span [class "target-remove", onClick (SelectGroup (NodeGroupId id) True)][ i [class "fa fa-times"][] ]
                     , span [class "border"][]
                     ]
                 in
@@ -573,45 +502,32 @@ view model =
               
               else
                 let
-                  buildGroupsTree : GroupsTreeItem -> Html Msg
-                  buildGroupsTree item =
-                    case item of
-                      Group id name description nodeIds dynamic enabled  ->
+                  groupTreeElem : Group -> Html Msg
+                  groupTreeElem item =
                         li [class "jstree-node jstree-leaf"]
                         [ i[class "jstree-icon jstree-ocl"][] 
                         , a[href "#", class "jstree-anchor"]
                           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
-                          , span [class "treeGroupName tooltipable"][text name, (if dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
+                          , span [class "treeGroupName tooltipable"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
                           , div [class "treeActions-container"]
-                            [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (SelectGroup id True)][]]
-                            , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onClick (SelectGroup id False)][]]
+                            [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (SelectGroup (NodeGroupId item.id) True)][]]
+                            , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onClick (SelectGroup (NodeGroupId item.id) False)][]]
                             ]
                           ]
                         ]
 
-                      GroupCat id name parent description lCat lGrp ->
+                  groupTreeCat : Category Group -> Html Msg
+                  groupTreeCat item =
                         let
-                          compareGroupsTreeItem: GroupsTreeItem -> GroupsTreeItem -> Order
-                          compareGroupsTreeItem a b =
-                            let
-                              ca = case a of
-                                GroupCat gid gname gparent gdescription llCat llGrp  -> gname
-                                Group gid gname gdescription nodeIds dynamic enabled -> gname
-                              cb = case b of
-                                GroupCat gid gname gparent gdescription llCat llGrp  -> gname
-                                Group gid gname gdescription nodeIds dynamic enabled -> gname
-                            in
-                              if ca > cb then GT else if ca < cb then LT else EQ 
-                          
-
-                          childsItem  = List.sortWith compareGroupsTreeItem (List.append lGrp lCat)
-                          childsList  = ul[class "jstree-children"](List.map buildGroupsTree childsItem)
+                          categories = List.map groupTreeCat (getSubElems item)
+                          groups = List.map groupTreeElem item.elems
+                          childsList  = ul[class "jstree-children"](categories ++ groups)
                         in
                           li[class "jstree-node jstree-open"]
                           [ i[class "jstree-icon jstree-ocl"][]
                           , a[href "#", class "jstree-anchor"]
                             [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-                            , span [class "treeGroupCategoryName tooltipable"][text name]
+                            , span [class "treeGroupCategoryName tooltipable"][text item.name]
                             ]
                           , childsList
                           ]
@@ -630,14 +546,14 @@ view model =
                           ]
                         ]
                       , ul[class "groups applied-list"]
-                        ( if(List.length ruleTargets.include > 0) then
-                           (List.map (buildIncludeList True) ruleTargets.include)
-                          else
+                        ( if(List.isEmpty ruleTargets ) then
                            [ li [class "empty"]
                              [ span [] [text "There is no group included."]
                              , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
                              ]
                            ]
+                           else
+                             List.map (buildIncludeList) ruleTargets
                         )
                       ]
                     , div[class "list-container"]
@@ -645,14 +561,16 @@ view model =
                         [ h4[][text "Except to Nodes in any of these Groups"]
                         ]
                       , ul[class "groups applied-list"]
-                        ( if(List.length ruleTargets.exclude > 0) then
-                           (List.map (buildIncludeList False) ruleTargets.exclude)
-                          else
+                        ( if(List.isEmpty ruleTargets) then
+
                            [ li [class "empty"]
                              [ span [] [text "There is no group excluded."]
                              , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
                              ]
                            ]
+                          else
+                            List.map (buildIncludeList) ruleTargets
+
                         )
                       ]
                     ]
@@ -666,7 +584,7 @@ view model =
                         , i [class "fa fa-bars"][]
                         ]
                       , div [class "jstree jstree-default"]
-                        [ ul[class "jstree-container-ul jstree-children"][(buildGroupsTree model.groupsTree)]
+                        [ ul[class "jstree-container-ul jstree-children"][(groupTreeCat model.groupsTree)]
                         ]
                       ]
                     ]
@@ -702,7 +620,7 @@ view model =
       , div [class "sidebar-body"]
         [ div [class "sidebar-list"]
           [ div [class "jstree jstree-default"]
-            [ ul[class "jstree-container-ul jstree-children"][(buildRulesTree model.rulesTree) ]
+            [ ul[class "jstree-container-ul jstree-children"][(ruleTreeCategory model.rulesTree) ]
             ]
           ]
         ]

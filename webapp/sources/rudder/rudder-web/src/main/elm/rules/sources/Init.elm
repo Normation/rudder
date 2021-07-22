@@ -12,11 +12,8 @@ init : { contextPath : String } -> ( Model, Cmd Msg )
 init flags =
   let
 
-    initRulesTree      = Category "" "" [] []
-    initGroupsTree     = GroupCat "" "" "" "" [] []
-    initTecnhiquesTree = TechniqueCat "" "" [] []
-    initRuleUI         = RuleUI (Tag "" "")
-    initModel = Model flags.contextPath Information False False Nothing "" initRulesTree [] [] initGroupsTree initTecnhiquesTree [] initRuleUI
+    initCategory      = Category "" "" (SubCategories []) []
+    initModel = Model flags.contextPath Information False False Nothing "" initCategory [] [] initCategory initCategory []
 
     listInitActions =
       [ getPolicyMode      initModel

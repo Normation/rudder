@@ -24,7 +24,7 @@ update msg model =
       (model, call model)
 
     GetRulesResult res ->
-      case res of
+      case  res of
         Ok r ->
             ( { model |
                   rulesTree = r
@@ -141,19 +141,20 @@ update msg model =
           Nothing -> model
           Just r  ->
             let
-              ruleTargets  = r.targets
+              (include, exclude) = case r.targets of
+                [Composition (Or i) (Or e)] -> (i,e)
+                targets -> (targets,[])
+              isIncluded = List.member groupId include
+              isExcluded = List.member groupId exclude
+              (newInclude, newExclude)  = case (includeBool, isIncluded, isExcluded) of
+                (True, True, _)  -> (remove groupId include,exclude)
+                (True, _, True)  -> (groupId :: include, remove groupId exclude)
+                (False, True, _) -> (remove groupId include, groupId :: exclude)
+                (False, _, True) -> (include,  remove groupId exclude)
+                (True, False, False)  -> ( groupId :: include, exclude)
+                (False, False, False) -> (include, groupId :: exclude)
 
-              isIncluded = List.member groupId ruleTargets.include
-              isExcluded = List.member groupId ruleTargets.exclude
-              newRuleTargets  = case (includeBool, isIncluded, isExcluded) of
-                (True, True, _)  -> {ruleTargets | include = remove groupId ruleTargets.include}
-                (True, _, True)  -> {ruleTargets | include = groupId :: ruleTargets.include, exclude = remove groupId ruleTargets.exclude}
-                (False, True, _) -> {ruleTargets | include = remove groupId ruleTargets.include, exclude = groupId :: ruleTargets.exclude}
-                (False, _, True) -> {ruleTargets | exclude = remove groupId ruleTargets.exclude}
-                (True, False, False)  -> {ruleTargets | include = groupId :: ruleTargets.include}
-                (False, False, False) -> {ruleTargets | exclude = groupId :: ruleTargets.exclude}
-
-              newSelectedRule = {r | targets = newRuleTargets}
+              newSelectedRule = {r | targets = [Composition (Or newInclude) (Or newExclude)]}
             in
               {model | selectedRule = Just newSelectedRule}
       in
@@ -166,7 +167,7 @@ update msg model =
           Nothing -> model
           Just r  ->
             let
-              newSelectedRule = {r | displayName = name}
+              newSelectedRule = {r | name = name}
             in
               {model | selectedRule = Just newSelectedRule}
       in
@@ -214,49 +215,51 @@ update msg model =
     UpdateTagKey val ->
       let
         selectedRule = model.selectedRule
-        ruleUI       = model.ruleUI
-        tag          = ruleUI.newTag
+        --ruleUI       = model.ruleUI
+        --tag          = ruleUI.newTag
         newModel     = case selectedRule of
           Nothing -> model
           Just r  ->
-            let
-              newTag    = {tag    | key    = val   }
-              newRuleUI = {ruleUI | newTag = newTag}
-            in
-              {model | ruleUI = newRuleUI}
+            --let
+              --newTag    = {tag    | key    = val   }
+              --newRuleUI = {ruleUI | newTag = newTag}
+            --in
+              model
       in
         ( newModel , Cmd.none )
 
     UpdateTagVal val ->
       let
         selectedRule = model.selectedRule
-        ruleUI       = model.ruleUI
-        tag          = ruleUI.newTag
+        --ruleUI       = model.ruleUI
+        --tag          = ruleUI.newTag
         newModel     = case selectedRule of
           Nothing -> model
           Just r  ->
-            let
-              newTag    = {tag    | value  = val   }
-              newRuleUI = {ruleUI | newTag = newTag}
-            in
-              {model | ruleUI = newRuleUI}
+          --  let
+          --    newTag    = {tag    | value  = val   }
+          --    newRuleUI = {ruleUI | newTag = newTag}
+          --  in
+            model
+              --{model | ruleUI = newRuleUI}
       in
         ( newModel , Cmd.none )
 
     AddTag ->
       let
         selectedRule = model.selectedRule
-        ruleUI       = model.ruleUI
-        tag          = ruleUI.newTag
+        --ruleUI       = model.ruleUI
+        --tag          = ruleUI.newTag
         newModel     = case selectedRule of
           Nothing -> model
           Just r  ->
-            let
+          {-  let
               newRule = {r | tags = tag :: r.tags}
               newTag      = {tag    | key  = "", value = ""}
               newRuleUI   = {ruleUI | newTag = newTag}
             in
-              {model | ruleUI = newRuleUI, selectedRule = Just newRule}
+              {model | ruleUI = newRuleUI, selectedRule = Just newRule}-}
+              model
       in
         ( newModel , Cmd.none )
 
