@@ -6,6 +6,6 @@ ELM_DIR="$( cd "$( dirname "$0" )" && pwd )"
 PROJECTS=("notifications" "healthcheck" "editor" "onboarding" "rules")
 for PROJECT in ${PROJECTS[*]}; do
   cd ${ELM_DIR}/${PROJECT}
-  elm make --optimize sources/rudder-${PROJECT}.elm --output=generated/rudder-${PROJECT}.js
+  elm make  sources/rudder-${PROJECT}.elm --output=generated/rudder-${PROJECT}.js
   cp generated/rudder-${PROJECT}.js ${ELM_DIR}/../webapp/javascript/rudder/elm/
 done

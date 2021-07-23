@@ -539,7 +539,11 @@ view model =
                           , childsList
                           ]
 
-                  ruleTargets = rule.targets
+
+                  (includedTargets, excludedTargets) =
+                    case Debug.log "hihi" rule.targets of
+                      [Composition (Or include) (Or exclude)] -> (include, exclude)
+                      _ -> (rule.targets, [])
 
                 in
                   div[class "row flex-container"]
@@ -553,14 +557,14 @@ view model =
                           ]
                         ]
                       , ul[class "groups applied-list"]
-                        ( if(List.isEmpty ruleTargets ) then
+                        ( if(List.isEmpty includedTargets ) then
                            [ li [class "empty"]
                              [ span [] [text "There is no group included."]
                              , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
                              ]
                            ]
                            else
-                             List.map (buildIncludeList) ruleTargets
+                             List.map (buildIncludeList) includedTargets
                         )
                       ]
                     , div[class "list-container"]
@@ -568,7 +572,7 @@ view model =
                         [ h4[][text "Except to Nodes in any of these Groups"]
                         ]
                       , ul[class "groups applied-list"]
-                        ( if(List.isEmpty ruleTargets) then
+                        ( if(List.isEmpty excludedTargets) then
 
                            [ li [class "empty"]
                              [ span [] [text "There is no group excluded."]
@@ -576,7 +580,7 @@ view model =
                              ]
                            ]
                           else
-                            List.map (buildIncludeList) ruleTargets
+                            List.map (buildIncludeList) excludedTargets
 
                         )
                       ]

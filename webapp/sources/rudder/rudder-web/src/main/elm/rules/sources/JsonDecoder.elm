@@ -173,7 +173,7 @@ decodeAnd =
 
 decodeOr: Decoder RuleTarget
 decodeOr =
-  succeed And
+  succeed Or
     |> required "or" (D.list (D.lazy (\_ -> decodeTargets)))
 
 decodeTargets : Decoder RuleTarget
