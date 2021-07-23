@@ -48,8 +48,7 @@ type alias Directive =
 
 type alias Technique =
   { name     : String
-  , versions : List (String, List Directive)
-
+  , directives : List Directive
   }
 
 type alias Category a =
@@ -147,11 +146,10 @@ type alias Model =
   , mode            : Mode
   , policyMode      : String
   , rulesTree       : Category Rule
-  , techniques      : List Technique
-  , directives      : List Directive
   , groupsTree      : Category Group
   , techniquesTree  : Category Technique
   , rulesCompliance : List RuleCompliance
+  , directives      : List Directive
   }
 
 type Msg
@@ -165,11 +163,9 @@ type Msg
   | UpdateRule Rule
   | UpdateNewTag Tag
   | CallApi                  (Model -> Cmd Msg)
-  | GetDirectivesResult      (Result Error (List Directive))
-  | GetTechniquesResult     (Result Error (List Technique))
   | GetPolicyModeResult      (Result Error String)
   | GetRulesComplianceResult (Result Error (List RuleCompliance))
   | SaveRuleDetails          (Result Error Rule)
   | GetRulesResult          (Result Error (Category Rule))
   | GetGroupsTreeResult     (Result Error (Category Group))
-  | GetTechniquesTreeResult (Result Error (Category Technique))
+  | GetTechniquesTreeResult (Result Error ((Category Technique, List Technique)))

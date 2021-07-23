@@ -1,6 +1,6 @@
 module Init exposing (..)
 
-import ApiCalls exposing (getRulesTree, getTechniques, getDirectives, getPolicyMode, getGroupsTree, getTechniquesTree, getRulesCompliance)
+import ApiCalls exposing (..)
 import DataTypes exposing (..)
 
 
@@ -13,13 +13,11 @@ init flags =
   let
 
     initCategory      = Category "" "" (SubCategories []) []
-    initModel = Model flags.contextPath Loading "" initCategory [] [] initCategory initCategory []
+    initModel = Model flags.contextPath Loading "" initCategory initCategory initCategory [] []
 
     listInitActions =
       [ getPolicyMode      initModel
       , getRulesTree       initModel
-      , getTechniques      initModel
-      , getDirectives      initModel
       , getGroupsTree      initModel
       , getTechniquesTree  initModel
       , getRulesCompliance initModel

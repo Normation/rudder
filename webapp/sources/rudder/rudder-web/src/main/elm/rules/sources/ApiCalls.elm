@@ -25,37 +25,6 @@ getRulesTree model =
   in
     send GetRulesResult req
 
-getTechniques : Model -> Cmd Msg
-getTechniques model =
-  let
-    req =
-      request
-        { method          = "GET"
-        , headers         = []
-        , url             = getUrl model "/techniques"
-        , body            = emptyBody
-        , expect          = expectJson decodeGetTechniques
-        , timeout         = Nothing
-        , withCredentials = False
-        }
-  in
-    send GetTechniquesResult req
-
-getDirectives : Model -> Cmd Msg
-getDirectives model =
-  let
-    req =
-      request
-        { method          = "GET"
-        , headers         = []
-        , url             = getUrl model "/directives"
-        , body            = emptyBody
-        , expect          = expectJson decodeGetDirectives
-        , timeout         = Nothing
-        , withCredentials = False
-        }
-  in
-    send GetDirectivesResult req
 
 getPolicyMode : Model -> Cmd Msg
 getPolicyMode model =

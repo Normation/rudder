@@ -308,8 +308,8 @@ view model =
                 let
                   --Get more information about directives, to correctly sort them by displayName
                   directives = model.directives
-                    |> List.sortWith (compareOn .displayName)
                     |> List.filter (\d -> List.member d.id ids)
+                    |> List.sortWith (compareOn .displayName)
 
                   rowDirective  : Directive -> Html Msg
                   rowDirective directive =
@@ -361,9 +361,8 @@ view model =
                   directiveTreeElem : Technique -> Html Msg
                   directiveTreeElem item =
                         let
-                          directivesList = item.versions
-
-                            |> List.concatMap  (\(_,dirs) -> List.map  (\d ->
+                          directivesList =
+                            List.map  (\d ->
                               let
                                 selectedClass = if (List.member d.id rule.directives) then " item-selected" else ""
                               in
@@ -376,7 +375,7 @@ view model =
                                     [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (UpdateRule {rule | directives = d.id :: rule.directives})][]]
                                     ]
                                   ]
-                                ]) dirs)
+                                ]) item.directives
                         in
                           if List.length directivesList > 0 then
                             li [class "jstree-node jstree-open"]
@@ -394,7 +393,7 @@ view model =
                   directiveTreeCategory item =
                         let
                           categories = List.concatMap directiveTreeCategory (getSubElems item)
-                          techniques = List.map directiveTreeElem (List.filter (\t -> not (List.isEmpty (List.concatMap Tuple.second t.versions)) ) item.elems)
+                          techniques = List.map directiveTreeElem (List.filter (\t -> not (List.isEmpty t.directives) ) item.elems)
                           children = techniques ++ categories
 
 
@@ -541,7 +540,7 @@ view model =
 
 
                   (includedTargets, excludedTargets) =
-                    case Debug.log "hihi" rule.targets of
+                    case rule.targets of
                       [Composition (Or include) (Or exclude)] -> (include, exclude)
                       _ -> (rule.targets, [])
 

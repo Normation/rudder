@@ -11,7 +11,6 @@ import List.Extra exposing (remove)
 
 port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
-port infoNotification    : String -> Cmd msg
 
 main =
   Browser.element
@@ -39,25 +38,6 @@ update msg model =
              )
         Err err ->
           processApiError "Getting Rules tree" err model
-
-    GetTechniquesResult res ->
-      case res of
-        Ok t ->
-            ( { model | techniques  = t }
-              , Cmd.none
-            )
-        Err err ->
-          processApiError "Getting Techniques" err model
-
-    GetDirectivesResult res ->
-      case res of
-        Ok d ->
-            ( { model | directives = d }
-              , Cmd.none
-            )
-        Err err ->
-          processApiError "Getting Directives Details" err model
-
     GetPolicyModeResult res ->
       case res of
         Ok p ->
@@ -78,8 +58,8 @@ update msg model =
 
     GetTechniquesTreeResult res ->
       case res of
-        Ok t ->
-          ( { model | techniquesTree = t }
+        Ok (t,d) ->
+          ( { model | techniquesTree = t, directives = List.concatMap .directives d }
             , Cmd.none
           )
         Err err ->
@@ -167,9 +147,6 @@ update msg model =
     SaveRuleDetails (Err err) ->
       processApiError "Saving Rule" err model
 
-infoNotif : String -> Cmd Msg
-infoNotif message =
-  infoNotification message
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =

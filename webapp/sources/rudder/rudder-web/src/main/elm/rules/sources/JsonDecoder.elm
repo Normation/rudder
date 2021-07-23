@@ -1,7 +1,7 @@
 module JsonDecoder exposing (..)
 
 import DataTypes exposing (..)
-import Json.Decode as D exposing (Decoder, andThen, string, succeed, index, bool, oneOf, map, map2, float)
+import Json.Decode as D exposing (Decoder, andThen, bool, field, float, index, map, map2, map4, oneOf, string, succeed)
 import Json.Decode.Pipeline exposing (..)
 import Tuple
 
@@ -10,10 +10,21 @@ decodeGetPolicyMode : Decoder String
 decodeGetPolicyMode =
   D.at ["data", "settings", "global_policy_mode" ] D.string
 
+
+decodeCategoryWithLeaves : String -> String -> String -> Decoder a -> Decoder ((Category a), List a)
+decodeCategoryWithLeaves idIdentifier categoryIdentifier elemIdentifier elemDecoder =
+  map4 (\id name subCats elems -> (Category id name (SubCategories (List.map Tuple.first subCats)) elems, List.concat [ elems, List.concatMap Tuple.second subCats ] ))
+     (field idIdentifier  D.string)
+     (field "name"        D.string)
+     (field categoryIdentifier   (D.list (D.lazy (\_ -> (decodeCategoryWithLeaves idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
+     (field elemIdentifier      (D.list elemDecoder))
+
+
+
 decodeCategory : String -> String -> String -> Decoder a -> Decoder (Category a)
 decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder =
   succeed Category
-    |> required idIdentifier          D.string
+    |> required idIdentifier  D.string
     |> required "name"        D.string
     |> required categoryIdentifier (D.map SubCategories  (D.list (D.lazy (\_ -> (decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
     |> required elemIdentifier      (D.list elemDecoder)
@@ -132,15 +143,15 @@ decodeDirective =
     |> required "system"           D.bool
     |> required "policyMode"       D.string
 
-decodeGetTechniquesTree : Decoder (Category Technique)
+decodeGetTechniquesTree : Decoder (Category Technique, List Technique)
 decodeGetTechniquesTree =
-  D.at ["data", "directives"] (index 0 (decodeCategory "name" "subCategories" "techniques" decodeTechnique))
+  D.at ["data", "directives"] (index 0 (decodeCategoryWithLeaves "name" "subCategories" "techniques" decodeTechnique))
 
 decodeTechnique : Decoder Technique
 decodeTechnique =
   succeed Technique
     |> required "name"          D.string
-    |> hardcoded []
+    |> required "directives" (D.list decodeDirective)
 
 -- GROUPS TAB
 decodeGetGroupsTree : Decoder (Category Group)
