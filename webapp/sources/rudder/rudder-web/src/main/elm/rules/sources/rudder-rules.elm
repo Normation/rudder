@@ -28,6 +28,7 @@ update msg model =
         Ok r ->
             ( { model |
                   rulesTree = r
+                , mode = if (model.mode == Loading) then RuleTable else model.mode
               }
               , Cmd.none
              )
