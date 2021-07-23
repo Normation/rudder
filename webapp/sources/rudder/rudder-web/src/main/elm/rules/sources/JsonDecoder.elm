@@ -1,10 +1,8 @@
 module JsonDecoder exposing (..)
 
 import DataTypes exposing (..)
-import Json.Decode as D exposing (Decoder, andThen, fail, string, succeed, index, bool, oneOf, map, map2, float)
+import Json.Decode as D exposing (Decoder, andThen, string, succeed, index, bool, oneOf, map, map2, float)
 import Json.Decode.Pipeline exposing (..)
-import String exposing (toLower)
-import Dict exposing (Dict)
 import Tuple
 
 -- GENERAL
@@ -12,17 +10,17 @@ decodeGetPolicyMode : Decoder String
 decodeGetPolicyMode =
   D.at ["data", "settings", "global_policy_mode" ] D.string
 
-decodeCategory : Decoder a -> Decoder (Category a)
-decodeCategory elemDecoder =
+decodeCategory : String -> String -> String -> Decoder a -> Decoder (Category a)
+decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder =
   succeed Category
-    |> required "id"          D.string
+    |> required idIdentifier          D.string
     |> required "name"        D.string
-    |> required "categories" (D.map SubCategories  (D.list (D.lazy (\_ -> (decodeCategory elemDecoder)))))
-    |> required "rules"      (D.list elemDecoder)
+    |> required categoryIdentifier (D.map SubCategories  (D.list (D.lazy (\_ -> (decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
+    |> required elemIdentifier      (D.list elemDecoder)
 
 
 decodeGetRulesTree =
-  D.at [ "data" , "ruleCategories" ] (decodeCategory decodeRule)
+  D.at [ "data" , "ruleCategories" ] (decodeCategory "id" "categories" "rules" decodeRule)
 
 decodeGetRuleDetails : Decoder Rule
 decodeGetRuleDetails =
@@ -136,7 +134,7 @@ decodeDirective =
 
 decodeGetTechniquesTree : Decoder (Category Technique)
 decodeGetTechniquesTree =
-  D.at ["data", "directives"] (index 0 (decodeCategory decodeTechnique))
+  D.at ["data", "directives"] (index 0 (decodeCategory "name" "subCategories" "techniques" decodeTechnique))
 
 decodeTechnique : Decoder Technique
 decodeTechnique =
@@ -147,7 +145,7 @@ decodeTechnique =
 -- GROUPS TAB
 decodeGetGroupsTree : Decoder (Category Group)
 decodeGetGroupsTree =
-  D.at ["data", "groupCategories"] (decodeCategory decodeGroup)
+  D.at ["data", "groupCategories"] (decodeCategory "id" "categories" "groups" decodeGroup)
 
 
 decodeGroup : Decoder Group
@@ -160,9 +158,39 @@ decodeGroup =
     |> required "dynamic"     D.bool
     |> required "enabled"     D.bool
 
+
+
+decodeComposition : Decoder RuleTarget
+decodeComposition =
+  succeed Composition
+    |> required "include" (D.lazy (\_ -> decodeTargets))
+    |> required "exclude" (D.lazy (\_ -> decodeTargets))
+
+decodeAnd: Decoder RuleTarget
+decodeAnd =
+  succeed And
+    |> required "and" (D.list (D.lazy (\_ -> decodeTargets)))
+
+decodeOr: Decoder RuleTarget
+decodeOr =
+  succeed And
+    |> required "or" (D.list (D.lazy (\_ -> decodeTargets)))
+
 decodeTargets : Decoder RuleTarget
 decodeTargets =
 
   D.oneOf [
-    map Special string
+     D.lazy (\_ -> decodeComposition)
+   , D.lazy (\_ -> decodeAnd)
+   , D.lazy (\_ -> decodeOr)
+   , map (\s ->
+           if String.startsWith "group:" s then
+             NodeGroupId s
+           else if String.startsWith "node:" s then
+                             Node s
+           else Special s
+         )
+
+    string
+
   ]

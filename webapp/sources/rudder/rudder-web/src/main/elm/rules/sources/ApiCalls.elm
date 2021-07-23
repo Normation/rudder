@@ -3,7 +3,7 @@ module ApiCalls exposing (..)
 import DataTypes exposing (..)
 import Http exposing (..)
 import JsonDecoder exposing (..)
---import JsonEncoder exposing (..)
+import JsonEncoder exposing (..)
 
 getUrl: DataTypes.Model -> String -> String
 getUrl m url =
@@ -138,7 +138,7 @@ getRulesCompliance model =
     send GetRulesComplianceResult req
 
 saveRuleDetails : Rule -> Bool -> Model ->  Cmd Msg
-saveRuleDetails ruleDetails creation model = Cmd.none {-
+saveRuleDetails ruleDetails creation model =
   let
     req =
       request
@@ -151,4 +151,4 @@ saveRuleDetails ruleDetails creation model = Cmd.none {-
         , withCredentials = False
         }
   in
-    send SaveRuleDetails req -}
+    send SaveRuleDetails req

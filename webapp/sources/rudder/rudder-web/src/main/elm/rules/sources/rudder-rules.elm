@@ -1,13 +1,17 @@
-module RulesManagement exposing (update)
+port module RulesManagement exposing (..)
 
 import Browser
 import DataTypes exposing (..)
-import Http exposing (Error)
+import Http exposing (..)
 import Init exposing (init, subscriptions)
 import View exposing (view)
 import Result
 import ApiCalls exposing (getRuleDetails, getRulesTree)
 import List.Extra exposing (remove)
+
+port successNotification : String -> Cmd msg
+port errorNotification   : String -> Cmd msg
+port infoNotification    : String -> Cmd msg
 
 main =
   Browser.element
@@ -16,6 +20,7 @@ main =
     , update = update
     , subscriptions = subscriptions
     }
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -33,7 +38,7 @@ update msg model =
               , Cmd.none
              )
         Err err ->
-          processApiError err model
+          processApiError "Getting Rules tree" err model
 
     GetTechniquesResult res ->
       case res of
@@ -42,7 +47,7 @@ update msg model =
               , Cmd.none
             )
         Err err ->
-          processApiError err model
+          processApiError "Getting Techniques" err model
 
     GetDirectivesResult res ->
       case res of
@@ -51,7 +56,7 @@ update msg model =
               , Cmd.none
             )
         Err err ->
-          processApiError err model
+          processApiError "Getting Directives Details" err model
 
     GetPolicyModeResult res ->
       case res of
@@ -60,7 +65,7 @@ update msg model =
               , Cmd.none
             )
         Err err ->
-          processApiError err model
+          processApiError "Getting Policy Mode" err model
 
     GetGroupsTreeResult res ->
       case res of
@@ -69,7 +74,7 @@ update msg model =
             , Cmd.none
           )
         Err err ->
-          processApiError err model
+          processApiError "Getting Groups tree" err model
 
     GetTechniquesTreeResult res ->
       case res of
@@ -78,7 +83,7 @@ update msg model =
             , Cmd.none
           )
         Err err ->
-          processApiError err model
+          processApiError "Getting Directives tree" err model
 
     ChangeTabFocus newTab ->
       case model.mode of
@@ -158,10 +163,25 @@ update msg model =
       -- TODO // Update Rules Tree
       -- TODO // Display success notifications
           ({model | mode = EditRule {details | rule = ruleDetails}}, Cmd.none)
-        _   -> (model, Cmd.none)
+        _   -> (model, successNotification ("Rule '"++ ruleDetails.name ++"' successfully saved"))
     SaveRuleDetails (Err err) ->
-      processApiError err model
+      processApiError "Saving Rule" err model
 
-processApiError : Error -> Model -> ( Model, Cmd Msg )
-processApiError err model =
-  (model, Cmd.none)
+infoNotif : String -> Cmd Msg
+infoNotif message =
+  infoNotification message
+
+processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
+processApiError apiName err model =
+  let
+    message =
+      case err of
+        BadUrl url -> "Wrong url "++ url
+        Timeout -> "Request timeout"
+        NetworkError -> "Network error"
+        BadStatus response -> "Error status: " ++ (String.fromInt response.status.code) ++ " " ++ response.status.message ++
+                              "\nError details: " ++ response.body
+        BadPayload error response -> "Invalid response: " ++ error ++ "\nResponse Body: " ++ response.body
+
+  in
+    ({model | mode = if model.mode == Loading then RuleTable else model.mode}, errorNotification ("Error when "++apiName ++",details: \n" ++ message ) )

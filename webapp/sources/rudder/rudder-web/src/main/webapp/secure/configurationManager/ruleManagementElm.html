@@ -10,11 +10,20 @@
 
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-rules.js"></script>
   <script>
+$(document).ready(function(){
     var main = document.getElementById("rules-app")
     var initValues = {
       contextPath : contextPath
     };
-    var app  = Elm.RulesManagement.init({node: main, flags: initValues});
+    var app = Elm.RulesManagement.init({node: main, flags: initValues});
+
+  app.ports.successNotification.subscribe(function(str) {
+    createSuccessNotification(str)
+  });
+  app.ports.errorNotification.subscribe(function(str) {
+    createErrorNotification(str)
+  });
+    });
   </script>
 
 </lift:surround>
