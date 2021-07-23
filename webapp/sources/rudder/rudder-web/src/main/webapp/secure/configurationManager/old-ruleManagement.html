@@ -1,0 +1,29 @@
+<lift:surround with="common-layout" at="content">
+
+  <head>
+    <title>Rudder - Rules Management</title>
+    <link media="screen" data-lift="with-cached-resource" href="/style/rudder/rudder-rules.css" rel="stylesheet" type="text/css">
+    <link media="screen" data-lift="with-cached-resource" href="/style/rudder/rudder-tags.css" rel="stylesheet" type="text/css">
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/filters.js"></script>
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/tags.js"></script>
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/tree-tag-plugin.js"></script>
+  </head>
+
+  <div data-lift="configuration.RuleManagement.head" ></div>
+
+    <div id="viewAllRulesZone">
+      <div data-lift="configuration.RuleManagement.viewRules" ></div>
+      <div id="editRuleZonePortlet" class="nodisplay row">
+        <div data-lift="configuration.RuleManagement.editRule" ></div>
+      </div>
+    </div>
+    <div id="createRulePopup" class="modal fade" data-keyboard="true" tabindex="-1">
+      <lift:ignore>
+        This div gets the content of the createRule injected within
+      </lift:ignore>
+      <div id="createRuleContainer"></div>
+    </div>
+    <div id="createRuleCategoryPopup" class="modal fade" data-keyboard="true" tabindex="-1"></div>
+  
+</lift:surround>
+

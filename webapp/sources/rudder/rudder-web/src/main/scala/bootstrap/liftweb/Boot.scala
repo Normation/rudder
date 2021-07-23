@@ -390,15 +390,10 @@ class Boot extends Loggable {
         "secure" / (name+"Manager") / "index" >> TestAccess ( ()
             => userIsAllowed("/secure/index",AuthorizationType.Configuration.Read) )).submenus (
 
-          Menu(name+"RuleManagement", <span>Rules (old)</span>) /
+          Menu(name+"RuleManagement", <span>Rules</span>) /
             "secure" / (name+"Manager") / "ruleManagement"
             >> LocGroup(name+"Group")
             >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Rule.Read ) )
-
-        , Menu(name+"RuleManagementElm", <span>Rules</span>) /
-          "secure" / (name+"Manager") / "ruleManagementElm"
-          >> LocGroup(name+"Group")
-          >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Rule.Read ) )
 
         ,Menu(name+"DirectiveManagement", <span>Directives</span>) /
             "secure" / (name+"Manager") / "directiveManagement"
