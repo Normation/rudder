@@ -91,7 +91,7 @@ import com.normation.templates.FillTemplateTimer
 import org.apache.commons.io.FileUtils
 
 import java.nio.file.Files
-import java.nio.file.Path
+import java.nio.file.Paths
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -895,7 +895,7 @@ class PolicyWriterServiceImpl(
                     case None => // create a symlink from root to policy-server.pem
                       IOResult.effect {
                         // we want to have a symlink with a relative path, not full path
-                        val source = Path.of(rootPem.name)
+                        val source = Paths.get(rootPem.name)
                         val dest = File(paths.newFolder, filepaths.POLICY_SERVER_CERT)
                         // we can't overwrite a file with a symlink, so erase existing one
                         if(dest.exists) { dest.delete() }
