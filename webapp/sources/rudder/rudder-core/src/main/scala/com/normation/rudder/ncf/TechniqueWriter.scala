@@ -262,7 +262,7 @@ class TechniqueWriter (
     def reportingSections(sections : List[MethodElem]) = {
       val expectedReportingMethodsWithValues =
         for {
-          (component, methodCalls) <- sections.collect{case m : MethodCall => m }.filterNot(_.methodId.value.startsWith("_")).groupBy(_.component).toList.sortBy(_._1)
+          (component, methodCalls) <- sections.collect{case m : MethodCall => m }.filterNot(m => m.disabledReporting || m.methodId.value.startsWith("_")).groupBy(_.component).toList.sortBy(_._1)
         } yield {
           (component, methodCalls)
         }
@@ -493,12 +493,25 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
             val promiser = call.id
             // Check constraint and missing value
             val args = params.mkString(", ")
-
+            val bundleCall =
             s"""    "${promiser}" usebundle => ${reportingContext(call, classParameterValue)},
                |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
                |    "${promiser}" usebundle => ${call.methodId.value}(${args}),
                |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
                |""".stripMargin('|')
+
+            if (call.disabledReporting) {
+              s"""    "${promiser}" usebundle => disable_reporting,
+                 |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
+                 |""" ++
+                 bundleCall ++
+              s"""    "${promiser}" usebundle => enable_reporting,
+                 |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
+                 |""".stripMargin('|')
+            } else {
+              bundleCall
+            }
+
 
           }).toList
         case block : MethodBlock =>
@@ -559,10 +572,21 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
             }  yield {
               val promiser = call.id
               def naReport(condition : String, message : String) = {
+                val bundleCall =
                 s"""    "${promiser}" usebundle => ${reportingContext(call, classParameterValue)},
                    |     ${promiser.map(_ => ' ')}     unless => ${condition};
                    |    "${promiser}" usebundle => log_na_rudder("${message}", "${escapedClassParameterValue}", "${classPrefix}", @{args}),
                    |     ${promiser.map(_ => ' ')}     unless => ${condition};""".stripMargin('|')
+
+                if (call.disabledReporting) {
+                  s"""    "${promiser}" usebundle => disable_reporting,
+                     |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
+                     |${bundleCall}
+                     |    "${promiser}" usebundle => enable_reporting,
+                     |     ${promiser.map(_ => ' ')}         if => concat("${condition}");""".stripMargin('|')
+                } else {
+                  bundleCall
+                }
               }
 
 

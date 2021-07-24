@@ -95,7 +95,8 @@ subscriptions model =
         ]
 
 
-defaultMethodUiInfo = MethodCallUiInfo Closed CallParameters Dict.empty True
+defaultMethodUiInfo  =
+    MethodCallUiInfo Closed Nothing Dict.empty True
 
 selectTechnique: Model -> Technique -> (Model, Cmd Msg)
 selectTechnique model technique =
@@ -143,7 +144,7 @@ update msg model =
 
     GetTechniques (Ok  techniques) ->
       ({ model | techniques = techniques},  get () )
-    GetTechniques (Err e) ->
+    GetTechniques (Err _) ->
       ( model , errorNotification  "Error when getting techniques"  )
 
     OpenTechniques ->
@@ -206,7 +207,7 @@ update msg model =
           case model.mode of
             TechniqueDetails t o ui ->
               let
-                newUi = { ui | callsUI = Dict.update callId.value (Maybe.map (\mui -> {mui | tab = newTab })) ui.callsUI  }
+                newUi = { ui | callsUI = Dict.update callId.value (Maybe.map (\mui -> {mui | tab = Just newTab })) ui.callsUI  }
               in
                 TechniqueDetails t o newUi
             m -> m
@@ -342,7 +343,7 @@ update msg model =
                         updateCallUi = \optCui ->
                           let
                             b = case optCui of
-                              Nothing -> MethodCallUiInfo Closed CallParameters Dict.empty True
+                              Nothing -> MethodCallUiInfo Closed Nothing Dict.empty True
                               Just cui -> cui
 
 
@@ -512,13 +513,14 @@ update msg model =
     AddMethod method newId ->
       if model.hasWriteRights then
       let
-        newCall = MethodCall newId method.id (List.map (\p -> CallParameter p.name "") method.parameters) (Condition Nothing "") ""
+        disableReporting = String.contains "variable" method.name || String.contains "condition" method.name
+        newCall = MethodCall newId method.id (List.map (\p -> CallParameter p.name "") method.parameters) (Condition Nothing "") "" disableReporting
         newModel =
           case model.mode of
             TechniqueDetails t o ui ->
               let
                 technique =  { t | elems = t.elems ++ [Call Nothing newCall] }
-                newUi = { ui | callsUI = Dict.update newId.value (always (Just defaultMethodUiInfo) ) ui.callsUI }
+                newUi = { ui | callsUI = Dict.update newId.value (always (Just (defaultMethodUiInfo ))) ui.callsUI }
               in
               { model | mode = TechniqueDetails technique o newUi }
             _ -> model
@@ -536,7 +538,7 @@ update msg model =
             TechniqueDetails t o ui ->
               let
                 technique =  { t | elems =  t.elems ++ [Block Nothing newCall]  }
-                newUi = { ui | callsUI = Dict.update newId.value (always (Just defaultMethodUiInfo) ) ui.callsUI }
+                newUi = { ui | callsUI = Dict.update newId.value (always (Just (defaultMethodUiInfo)) ) ui.callsUI }
               in
               { model | mode = TechniqueDetails technique o newUi }
             _ -> model
@@ -637,7 +639,7 @@ update msg model =
                 updateCallUi = \optCui ->
                   let
                     base = case optCui of
-                            Nothing -> MethodCallUiInfo Closed CallParameters Dict.empty True
+                            Nothing -> MethodCallUiInfo Closed Nothing Dict.empty True
                             Just cui -> cui
                     newValidation =  Dict.update paramId.value (always (Just (accumulateErrorConstraint  (CallParameter paramId newValue) constraints )))  base.validation
                   in
@@ -688,7 +690,11 @@ update msg model =
                                   ) t.elems
                                , b)
                 NewBlock -> (t.elems, Block Nothing (MethodBlock (CallId "") "" (Condition Nothing "") SumReport []))
-                NewMethod method -> (t.elems, Call Nothing (MethodCall (CallId "") method.id (List.map (\p -> CallParameter p.name "") method.parameters) (Condition Nothing "") ""))
+                NewMethod method ->
+                 let
+                   disableReporting = String.contains "variable" method.name || String.contains "condition" method.name
+                 in
+                   (t.elems, Call Nothing (MethodCall (CallId "") method.id (List.map (\p -> CallParameter p.name "") method.parameters) (Condition Nothing "") "" disableReporting))
             updatedCalls =
               case dropTarget of
                 StartList ->

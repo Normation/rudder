@@ -273,11 +273,15 @@ pub struct MethodCall {
     parameters: Vec<Parameter>,
     #[serde(default = "generate_id")] // >=7.0
     id: String,
+    #[serde(default = "default_disable_reporting", rename = "reportingDisabled")] // >=7.0
+    reporting_disabled: bool,
 }
 fn generate_id() -> String {
     Uuid::new_v4().to_string()
 }
-
+fn default_disable_reporting() -> bool {
+    false
+}
 // TODO parse content so interpolated variables are handled properly
 fn format_condition(condition: &String, lib: &LanguageLib) -> Result<String> {
     lazy_static! {
@@ -389,14 +393,17 @@ impl MethodCall {
         let formatted_component = format!("@component = \"{}\"", self.component);
 
         let formatted_id = format!("@id = \"{}\"", self.id);
+        let formatted_disable_reporting =
+            format!("@disable_reporting = {}", self.reporting_disabled);
 
         // make an exception for condition_from_* method & condition generation
         if (lib_method.resource.name == "condition" && lib_method.state.name.starts_with("from_")) {
             return Ok(format!(
-                "{}{}\n{}\n{}  let {} = {}_{}({})",
+                "{}{}\n{}\n{}\n{}  let {} = {}_{}({})",
                 template_vars.join("\n  "),
                 formatted_component,
                 formatted_id,
+                formatted_disable_reporting,
                 formatted_alias_metadata.unwrap_or(String::new()),
                 match class_parameter.strip_suffix("_${report_data.canonified_directive_id}") {
                     Some(variable) => variable,
@@ -413,10 +420,11 @@ impl MethodCall {
         }
 
         Ok(format!(
-            "{}{}\n{}\n{}  {}{}",
+            "{}{}\n{}\n{}\n{}  {}{}",
             template_vars.join("\n  "),
             formatted_component,
             formatted_id,
+            formatted_disable_reporting,
             formatted_alias_metadata.unwrap_or(String::new()),
             call,
             outcome

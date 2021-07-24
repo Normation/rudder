@@ -29,11 +29,6 @@
   </AGENT>
   <SECTIONS>
     <SECTION component="true" multivalued="true" name="block component" reporting="worst">
-      <SECTION component="true" multivalued="true" name="Command execution">
-        <REPORTKEYS>
-          <VALUE>Write-Host &quot;testing special characters ` è &amp;é 'à é &quot;</VALUE>
-        </REPORTKEYS>
-      </SECTION>
       <SECTION component="true" multivalued="true" name="Customized component">
         <REPORTKEYS>
           <VALUE>${node.properties[apache_package_name]}</VALUE>

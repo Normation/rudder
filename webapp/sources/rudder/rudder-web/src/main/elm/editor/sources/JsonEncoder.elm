@@ -53,6 +53,7 @@ encodeMethodCall call =
   , ("method_name"  , string call.methodName.value)
   , ("class_context",  string <| conditionStr call.condition)
   , ("parameters"   , list encodeCallParameters call.parameters)
+  , ("disableReporting"   , bool call.disableReporting)
   ] )
 
 encodeCompositionRule: ReportingLogic -> Value

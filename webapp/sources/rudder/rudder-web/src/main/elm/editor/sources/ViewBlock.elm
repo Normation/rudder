@@ -12,6 +12,12 @@ import Dom exposing (..)
 import ViewMethod exposing (showMethodCall)
 import MethodElemUtils exposing (..)
 
+appendNodeConditional : Html msg -> Bool -> Element msg -> Element msg
+appendNodeConditional e test =
+  case test of
+    True -> appendNode e
+    False -> (\x -> x)
+
 showMethodBlock: Model -> TechniqueUiInfo ->  MethodCallUiInfo -> Maybe CallId -> MethodBlock -> Element Msg
 showMethodBlock model techniqueUi ui parentId block =
 
@@ -28,143 +34,29 @@ showMethodBlock model techniqueUi ui parentId block =
 blockDetail: MethodBlock -> Maybe CallId -> MethodCallUiInfo -> Model -> Element Msg
 blockDetail block parentId ui model =
   let
-    activeClass = (\c -> if c == ui.tab then "active" else "" )
-    compositionText  = (\reportingLogic ->
-                         case reportingLogic of
-                           WorstReport -> "Worst report"
-                           SumReport -> "Sum of reports"
-                           FocusReport "" -> "Focus on one child method report"
-                           FocusReport x -> "Focus on one child method"
-                       )
-    liCompositionRule =  \rule -> element "li"
-                                     |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = rule }))
-                                     |> appendChild (element "a" |> addAttribute (href "#") |> appendText (compositionText rule))
-    availableComposition = List.map liCompositionRule [ WorstReport, SumReport, FocusReport "" ]
-
-    focusText  = (\reportingLogic ->
-                   case reportingLogic of
-                     FocusReport x -> Maybe.withDefault x (Maybe.map getComponent (List.Extra.find (getId >> .value >> (==) x) block.calls))
-                     _ -> ""
-                 )
-    liFocus =  \child -> element "li"
-                           |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = FocusReport (getId child).value }))
-                           |> appendChild (element "a" |> addAttribute (href "#") |> appendText (getComponent child))
-    availableFocus = List.map liFocus block.calls
+    activeClass = (\c -> if c == (Maybe.withDefault Reporting ui.tab) then "active" else "" )
 
     tabsList =
       element "ul"
       |> addClass "tabs-list"
-      |> appendChild
-          ( element "li"
+      |> appendChildList
+          [ element "li"
             |> addClass (activeClass Conditions)
             |> addActionStopAndPrevent ("click", SwitchTabMethod block.id Conditions)
             |> appendText "Conditions"
-          )
+          , element "li"
+            |> addClass (activeClass Reporting)
+            |> addActionStopAndPrevent ("click", SwitchTabMethod block.id Reporting)
+            |> appendText "Reporting"
+
+          ]
 
   in
   element "div"
     |> addClass "method-details"
     |> appendChildList
-       [ element "div"
-         |> addClass "form-group"
-         |> appendChildList
-            [ element "label"
-              |> addAttribute (for "component")
-              |> appendText "Report component:"
-            , element "input"
-              |> addAttributeList [ readonly (not model.hasWriteRights), type_ "text", name "component", class "form-control", value block.component,  placeholder "Enter a component name" ]
-              |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
-            ]
-       , element "div"
-         |> addClass "form-group"
-         |> appendChildList
-            [ element "label"
-              |> addAttribute (for "reporting-rule")
-              |> appendText "Reporting based on:"
-            , element "div"
-              |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
-              |> addClass "btn-group"
-              |> appendChildList
-                 [ element "button"
-                   |> addClass "btn btn-default dropdown-toggle"
-                   |> Dom.setId  "reporting-rule"
-                   |> addAttributeList
-                        [ attribute  "data-toggle" "dropdown"
-                        , attribute  "aria-haspopup" "true"
-                        , attribute "aria-expanded" "true"
-                        ]
-                   |> appendText ((compositionText block.reportingLogic) ++ " ")
-                   |> appendChild (element "span" |> addClass "caret")
-                 , element "ul"
-                   |> addClass "dropdown-menu"
-                   |> addAttribute  (attribute "aria-labelledby" "reporting-rule")
-                   |> addStyle ("margin-left", "0px")
-                   |> appendChildList availableComposition
-                  ]
-           ]
-       , element "div"
-         |> addClass "form-group"
-         |> appendChildList
-            [ element "label"
-              |> addAttribute (for "reporting-rule")
-              |> appendText "Reporting based on:"
-            , element "div"
-              |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
-              |> addClass "btn-group"
-              |> appendChildList
-                 [ element "button"
-                   |> addClass "btn btn-default dropdown-toggle"
-                   |> Dom.setId  "reporting-rule"
-                   |> addAttributeList
-                        [ attribute  "data-toggle" "dropdown"
-                        , attribute  "aria-haspopup" "true"
-                        , attribute "aria-expanded" "true"
-                        ]
-                   |> appendText ((focusText block.reportingLogic) ++ " ")
-                   |> appendChild (element "span" |> addClass "caret")
-                 , element "ul"
-                   |> addClass "dropdown-menu"
-                   |> addAttribute  (attribute "aria-labelledby" "reporting-rule")
-                   |> addStyle ("margin-left", "0px")
-                   |> appendChildList availableComposition
-                  ]
-           ]
-       ]
-    |> appendChildConditional
-         ( element "div"
-         |> addClass "form-group"
-         |> appendChildList
-            [ element "label"
-              |> addAttribute (for "reporting-rule")
-              |> appendText "Reporting based on:"
-            , element "div"
-              |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
-              |> addClass "btn-group"
-              |> appendChildList
-                 [ element "button"
-                   |> addClass "btn btn-default dropdown-toggle"
-                   |> Dom.setId  "reporting-rule"
-                   |> addAttributeList
-                        [ attribute  "data-toggle" "dropdown"
-                        , attribute  "aria-haspopup" "true"
-                        , attribute "aria-expanded" "true"
-                        ]
-                   |> appendText ((compositionText block.reportingLogic) ++ " ")
-                   |> appendChild (element "span" |> addClass "caret")
-                 , element "ul"
-                   |> addClass "dropdown-menu"
-                   |> addAttribute  (attribute "aria-labelledby" "reporting-rule")
-                   |> addStyle ("margin-left", "0px")
-                   |> appendChildList availableFocus
-                  ]
-           ] )
-           ( case block.reportingLogic of
-                 FocusReport _ -> True
-                 _ -> False
-           )
-    |> appendChildList
        [ tabsList
-       , element "div" |> addClass "tabs" |> appendNode (showBlockTab model parentId block ui)
+       , element "div" |> addClass "tabs" |> appendChild (showBlockTab model parentId block ui)
        , element "div"
          |> addClass "method-details-footer"
          |> appendChild
@@ -177,63 +69,226 @@ blockDetail block parentId ui model =
 
 
 
-showBlockTab: Model -> Maybe CallId ->  MethodBlock -> MethodCallUiInfo -> Html Msg
-showBlockTab model parentId call uiInfo=
-  case uiInfo.tab of
-    CallParameters -> text ""
+showBlockTab: Model -> Maybe CallId ->  MethodBlock -> MethodCallUiInfo -> Element Msg
+showBlockTab model parentId block uiInfo=
+  case (Maybe.withDefault Reporting uiInfo.tab) of
     Conditions ->
       let
-        condition = call.condition
-        updateConditonVersion = \f s ->
+        osLi = List.map (\os ->
+                 let
+                   updatedCondition = {condition | os = os }
+                 in
+                   li [ onClick (MethodCallModified (Block parentId {block | condition = updatedCondition })), class (osClass os) ] [ a [href "#" ] [ text (osName os) ] ]
+                 )
+               osList
+        condition = block.condition
+        updateConditionVersion = \f s ->
                       let
-                        updatedCall = Block parentId { call | condition = {condition | os =  f  (String.toInt s) condition.os } }
+                        updatedCall = Block parentId { block | condition = {condition | os =  f  (String.toInt s) condition.os } }
                       in
                         MethodCallModified updatedCall
-      in
-      div [ class "tab-conditions"] [
-        div [class "form-group condition-form", id "os-form"] [
-          div [ class "form-inline" ] [ -- form
-            div [ class "form-group" ] [
-              label [ style "display" "inline-block",  class "", for "OsCondition"] [ text "Operating system: " ]
-            , div [ style "display" "inline-block", style "width" "auto", style "margin-left" "5px",class "btn-group"] [
-                button [ class "btn btn-default dropdown-toggle", id "OsCondition", attribute  "data-toggle" "dropdown", attribute  "aria-haspopup" "true", attribute "aria-expanded" "true" ] [
-                  text ((osName condition.os) ++ " ")
-                , span [ class "caret" ] []
-                ]
-              , ul [ class "dropdown-menu", attribute "aria-labelledby" "OsCondition", style "margin-left" "0px" ]
-                 ( List.map (\os ->
-                     let
-                       updatedCondition = {condition | os = os }
-                     in
-                       li [ onClick (MethodCallModified (Block parentId {call | condition = updatedCondition })), class (osClass os) ] [ a [href "#" ] [ text (osName os) ] ] ) osList )
-              ]
-            , if (hasMajorMinorVersion condition.os ) then input [readonly (not model.hasWriteRights),value (Maybe.withDefault "" (Maybe.map String.fromInt (getMajorVersion condition.os) )), onInput (updateConditonVersion updateMajorVersion),type_ "number", style "display" "inline-block", style "width" "auto", style "margin-left" "5px",  class "form-control", placeholder "Major version"] [] else text ""
-            , if (hasMajorMinorVersion condition.os ) then input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getMinorVersion condition.os) )), onInput (updateConditonVersion updateMinorVersion), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Minor version"] []  else text ""
-            , if (hasVersion condition.os ) then input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getVersion condition.os) )), onInput  (updateConditonVersion updateVersion), type_ "number",style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Version"] []  else text ""
-            , if (hasSP condition.os ) then input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getSP condition.os) )), onInput (updateConditonVersion updateSP), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Service pack"] []  else text ""
+        osConditions = element "div"
+                       |> addClass "form-group condition-form"
+                       |> addAttribute (id "os-form")
+                       |> appendChild
+                          ( element "div"
+                            |> addClass "form-inline"
+                            |> appendChild
+                               ( element "div"
+                                 |> addClass "form-group"
+                                 |> appendChildList
+                                    [ element "label"
+                                      |> addStyle ("display", "inline-block")
+                                      |> addAttribute (for "OsCondition")
+                                      |> appendText "Operating system: "
+                                    , element "div"
+                                      |> addStyleList [ ("display", "inline-block"), ("width", "auto"), ("margin-left", "5px") ]
+                                      |> addClass "btn-group"
+                                      |> appendChildList
+                                         [ element "button"
+                                           |> addClass "btn btn-default dropdown-toggle"
+                                           |> addAttributeList
+                                              [ id "OsCondition" , attribute  "data-toggle" "dropdown"
+                                              , attribute  "aria-haspopup" "true", attribute "aria-expanded" "true"
+                                              ]
+                                           |> appendText  ((osName condition.os) ++ " ")
+                                           |> appendChild  (element "span" |> addClass"caret")
+                                         , element "ul"
+                                           |> addClass "dropdown-menu"
+                                           |> addAttribute (attribute "aria-labelledby" "OsCondition")
+                                           |> addStyle ("margin-left", "0px")
+                                           |> appendNodeList osLi
+                                         ]
+                                   ]
+                                 |> appendNodeConditional
+                                    ( input [readonly (not model.hasWriteRights),value (Maybe.withDefault "" (Maybe.map String.fromInt (getMajorVersion condition.os) )), onInput (updateConditionVersion updateMajorVersion),type_ "number", style "display" "inline-block", style "width" "auto", style "margin-left" "5px",  class "form-control", placeholder "Major version"] [] )
+                                    ( hasMajorMinorVersion condition.os)
+                                 |> appendNodeConditional
+                                    ( input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getMinorVersion condition.os) )), onInput (updateConditionVersion updateMinorVersion), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Minor version"] [] )
+                                    ( hasMajorMinorVersion condition.os )
+                                 |> appendNodeConditional
+                                    ( input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getVersion condition.os) )), onInput  (updateConditionVersion updateVersion), type_ "number",style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Version"] [] )
+                                    ( hasVersion condition.os )
+                                 |> appendNodeConditional
+                                    ( input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getSP condition.os) )), onInput (updateConditionVersion updateSP), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Service pack"] [] )
+                                    ( hasSP condition.os )
+                               )
+                            )
+        advanced = div [ class "form-group condition-form" ] [
+                             label [ for "advanced"] [ text "Other conditions:" ]
+                           , textarea [  readonly (not model.hasWriteRights), name "advanced", class "form-control", rows 1, id "advanced", value condition.advanced, onInput (\s ->
+                                        let
+                                          updatedCondition = {condition | advanced = s }
+                                          updatedCall = Block parentId {block | condition = updatedCondition }
+                                        in MethodCallModified updatedCall)  ] [] --ng-pattern="/^[a-zA-Z0-9_!.|${}\[\]()@:]+$/" ng-model="method_call.advanced_class" ng-change="updateClassContext(method_call)"></textarea>
 
-            ]
+                          ]
+        result =
+          div [ class "form-group condition-form" ] [
+            label [ for "class_context" ] [ text "Applied condition expression:" ]
+          , textarea [ readonly (not model.hasWriteRights),  name "class_context",  class "form-control",  rows 1, id "advanced", value (conditionStr condition), readonly True ] []
+          , if String.length (conditionStr condition) > 2048 then
+              span [ class "text-danger" ] [text "Classes over 2048 characters are currently not supported." ]
+            else
+              text ""
           ]
-        ]
-      , div [ class "form-group condition-form" ] [
-          label [ for "advanced"] [ text "Other conditions:" ]
-        , textarea [  readonly (not model.hasWriteRights), name "advanced", class "form-control", rows 1, id "advanced", value condition.advanced, onInput (\s ->
-                     let
-                       updatedCondition = {condition | advanced = s }
-                       updatedCall = Block parentId {call | condition = updatedCondition }
-                     in MethodCallModified updatedCall)  ] [] --ng-pattern="/^[a-zA-Z0-9_!.|${}\[\]()@:]+$/" ng-model="method_call.advanced_class" ng-change="updateClassContext(method_call)"></textarea>
 
-       ]
-      , div [ class "form-group condition-form" ] [
-          label [ for "class_context" ] [ text "Applied condition expression:" ]
-        , textarea [ readonly (not model.hasWriteRights),  name "class_context",  class "form-control",  rows 1, id "advanced", value (conditionStr condition), readonly True ] []
-        , if String.length (conditionStr condition) > 2048 then
-            span [ class "text-danger" ] [text "Classes over 2048 characters are currently not supported." ]
-          else
-            text ""
-        ]
-      ]
-    Result     -> text ""
+      in
+        element "div"
+          |> addClass "tab-conditions"
+          |> appendChildList
+             [ osConditions
+             ]
+          |> appendNodeList [
+               advanced
+             , result
+             ]
+    Result     -> element "span"
+    CallParameters     -> element "span"
+    Reporting ->
+      let
+        compositionText  = (\reportingLogic ->
+                               case reportingLogic of
+                                 WorstReport -> "Worst report"
+                                 SumReport -> "Sum of reports"
+                                 FocusReport "" -> "Focus on one child method report"
+                                 FocusReport x -> "Focus on one child method"
+                             )
+        liCompositionRule =  \rule -> element "li"
+                                           |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = rule }))
+                                           |> appendChild (element "a" |> addAttribute (href "#") |> appendText (compositionText rule))
+        availableComposition = List.map liCompositionRule [ WorstReport, SumReport, FocusReport "" ]
+
+        focusText  = (\reportingLogic ->
+                         case reportingLogic of
+                           FocusReport x -> Maybe.withDefault x (Maybe.map getComponent (List.Extra.find (getId >> .value >> (==) x) block.calls))
+                           _ -> ""
+                       )
+        liFocus =  \child -> element "li"
+                               |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = FocusReport (getId child).value }))
+                               |> appendChild (element "a" |> addAttribute (href "#") |> appendText (getComponent child))
+        availableFocus = List.map liFocus block.calls
+
+      in
+         element "div"
+           |> appendChildList
+                        [ element "div"
+                          |> addClass "form-group"
+                          |> appendChildList
+                             [ element "label"
+                               |> addAttribute (for "component")
+                               |> appendText "Report component:"
+                             , element "input"
+                               |> addAttributeList [ readonly (not model.hasWriteRights), type_ "text", name "component", class "form-control", value block.component,  placeholder "Enter a component name" ]
+                               |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
+                             ]
+                        , element "div"
+                          |> addClass "form-group"
+                          |> appendChildList
+                             [ element "label"
+                               |> addAttribute (for "reporting-rule")
+                               |> appendText "Reporting based on:"
+                             , element "div"
+                               |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
+                               |> addClass "btn-group"
+                               |> appendChildList
+                                  [ element "button"
+                                    |> addClass "btn btn-default dropdown-toggle"
+                                    |> Dom.setId  "reporting-rule"
+                                    |> addAttributeList
+                                         [ attribute  "data-toggle" "dropdown"
+                                         , attribute  "aria-haspopup" "true"
+                                         , attribute "aria-expanded" "true"
+                                         ]
+                                    |> appendText ((compositionText block.reportingLogic) ++ " ")
+                                    |> appendChild (element "span" |> addClass "caret")
+                                  , element "ul"
+                                    |> addClass "dropdown-menu"
+                                    |> addAttribute  (attribute "aria-labelledby" "reporting-rule")
+                                    |> addStyle ("margin-left", "0px")
+                                    |> appendChildList availableComposition
+                                   ]
+                            ]
+                        , element "div"
+                          |> addClass "form-group"
+                          |> appendChildList
+                             [ element "label"
+                               |> addAttribute (for "reporting-rule")
+                               |> appendText "Reporting based on:"
+                             , element "div"
+                               |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
+                               |> addClass "btn-group"
+                               |> appendChildList
+                                  [ element "button"
+                                    |> addClass "btn btn-default dropdown-toggle"
+                                    |> Dom.setId  "reporting-rule"
+                                    |> addAttributeList
+                                         [ attribute  "data-toggle" "dropdown"
+                                         , attribute  "aria-haspopup" "true"
+                                         , attribute "aria-expanded" "true"
+                                         ]
+                                    |> appendText ((focusText block.reportingLogic) ++ " ")
+                                    |> appendChild (element "span" |> addClass "caret")
+                                  , element "ul"
+                                    |> addClass "dropdown-menu"
+                                    |> addAttribute  (attribute "aria-labelledby" "reporting-rule")
+                                    |> addStyle ("margin-left", "0px")
+                                    |> appendChildList availableComposition
+                                   ]
+                            ]
+                        ]
+                     |> appendChildConditional
+                          ( element "div"
+                          |> addClass "form-group"
+                          |> appendChildList
+                             [ element "label"
+                               |> addAttribute (for "reporting-rule")
+                               |> appendText "Reporting based on:"
+                             , element "div"
+                               |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
+                               |> addClass "btn-group"
+                               |> appendChildList
+                                  [ element "button"
+                                    |> addClass "btn btn-default dropdown-toggle"
+                                    |> Dom.setId  "reporting-rule"
+                                    |> addAttributeList
+                                         [ attribute  "data-toggle" "dropdown"
+                                         , attribute  "aria-haspopup" "true"
+                                         , attribute "aria-expanded" "true"
+                                         ]
+                                    |> appendText ((compositionText block.reportingLogic) ++ " ")
+                                    |> appendChild (element "span" |> addClass "caret")
+                                  , element "ul"
+                                    |> addClass "dropdown-menu"
+                                    |> addAttribute  (attribute "aria-labelledby" "reporting-rule")
+                                    |> addStyle ("margin-left", "0px")
+                                    |> appendChildList availableFocus
+                                   ]
+                            ] )
+                            ( case block.reportingLogic of
+                                  FocusReport _ -> True
+                                  _ -> False
+                            )
 
 
 blockBody : Model -> Maybe CallId -> MethodBlock -> MethodCallUiInfo -> TechniqueUiInfo -> Element Msg
@@ -377,7 +432,7 @@ blockBody model parentId block ui techniqueUi =
                                            case call of
                                              Call _ c ->
                                                let
-                                                 methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Dict.empty True) (Dict.get c.id.value techniqueUi.callsUI)
+                                                 methodUi = Maybe.withDefault (MethodCallUiInfo Closed Nothing Dict.empty True) (Dict.get c.id.value techniqueUi.callsUI)
 
 
                                                  currentDragChild = case DragDrop.currentlyDraggedObject model.dnd of
@@ -401,7 +456,7 @@ blockBody model parentId block ui techniqueUi =
                                                   List.reverse (dropTarget :: base)
                                              Block _ b ->
                                                let
-                                                 methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Dict.empty True) (Dict.get b.id.value techniqueUi.callsUI)
+                                                 methodUi = Maybe.withDefault (MethodCallUiInfo Closed Nothing Dict.empty True) (Dict.get b.id.value techniqueUi.callsUI)
                                                in
                                                  [ showMethodBlock model techniqueUi methodUi parentId b ]
                              ) block.calls ) ) )

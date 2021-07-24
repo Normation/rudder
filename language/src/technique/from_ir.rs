@@ -308,6 +308,14 @@ fn statement_to_method_call(
                 Some(TomlValue::String(s)) => s.to_owned(),
                 _ => method_name.to_owned(),
             };
+            let reporting_disabled = s
+                .metadata
+                .get("disable_reporting")
+                .map(|c| {
+                    c.as_bool()
+                        .expect("Expected type bool for 'disable_reporting' metadata")
+                })
+                .unwrap_or(false);
             let callData = MethodCall {
                 parameters,
                 condition,
@@ -322,6 +330,7 @@ fn statement_to_method_call(
                     })
                     .unwrap_or(Uuid::new_v4().to_string()),
                 component,
+                reporting_disabled,
             };
 
             vec![MethodElem::MethodCall(callData)]
@@ -365,6 +374,14 @@ fn statement_to_method_call(
                 Some(TomlValue::String(s)) => s.to_owned(),
                 _ => method_name.to_owned(),
             };
+            let reporting_disabled = s
+                .metadata
+                .get("disable_reporting")
+                .map(|c| {
+                    c.as_bool()
+                        .expect("Expected type bool for 'disable_reporting' metadata")
+                })
+                .unwrap_or(false);
             let callData = MethodCall {
                 parameters,
                 condition,
@@ -379,6 +396,7 @@ fn statement_to_method_call(
                     })
                     .unwrap_or(Uuid::new_v4().to_string()),
                 component,
+                reporting_disabled,
             };
 
             vec![MethodElem::MethodCall(callData)]

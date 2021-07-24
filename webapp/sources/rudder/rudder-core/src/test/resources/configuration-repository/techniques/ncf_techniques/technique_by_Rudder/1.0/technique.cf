@@ -13,9 +13,13 @@ bundle agent technique_by_Rudder(technique_parameter)
                  if => concat("(debian)");
     "id1" usebundle => package_install_version("${node.properties[apache_package_name]}", "2.2.11"),
                  if => concat("(debian)");
+    "id2" usebundle => disable_reporting,
+                 if => concat("(debian.windows)");
     "id2" usebundle => _method_reporting_context("Command execution", "Write-Host \"testing special characters ` è &é 'à é \""),
                  if => concat("(debian.windows)");
     "id2" usebundle => command_execution("Write-Host \"testing special characters ` è &é 'à é \""),
+                 if => concat("(debian.windows)");
+    "id2" usebundle => enable_reporting,
                  if => concat("(debian.windows)");
     "id3" usebundle => _method_reporting_context("Customized component", "${node.properties[apache_package_name]}"),
                  if => concat("package_install_version_",canonify("${node.properties[apache_package_name]}"),"_repaired");

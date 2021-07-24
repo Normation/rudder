@@ -87,6 +87,7 @@ type alias MethodCall =
   , parameters : List CallParameter
   , condition  : Condition
   , component  : String
+  , disableReporting : Bool
   }
 
 type alias CallParameter =
@@ -155,7 +156,7 @@ type MethodCallParamError = ConstraintError (List String)
 
 type alias MethodCallUiInfo =
   { mode       : MethodCallMode
-  , tab        : MethodCallTab
+  , tab        : Maybe MethodCallTab
   , validation : Dict String  ( ValidationState MethodCallParamError )
   , showChildDetails : Bool
   }
@@ -169,7 +170,7 @@ type alias TechniqueUiInfo =
   , idState          : ValidationState TechniqueIdError
   }
 
-type MethodCallTab = CallParameters | Conditions | Result
+type MethodCallTab = CallParameters | Conditions | Result | Reporting
 type MethodCallMode = Opened | Closed
 type Tab = General |  Parameters | Resources | None
 type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUiInfo

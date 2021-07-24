@@ -324,6 +324,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
               , List((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
               , "any"
               , "Customized component"
+              , false
             ) ::
             MethodCall(
                 BundleName("command_execution")
@@ -331,6 +332,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
               , List((ParameterId("command"),"Write-Host \"testing special characters ` è &é 'à é \""))
               , "windows"
               , "Command execution"
+              , true
             ) :: Nil
         ) ::
         MethodCall(
@@ -339,6 +341,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           , List((ParameterId("service_name"),"${node.properties[apache_package_name]}"))
           , "package_install_version_${node.properties[apache_package_name]}_repaired"
           , "Customized component"
+          , false
         ) ::
         MethodCall(
             BundleName("package_install")
@@ -346,6 +349,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           , List((ParameterId("package_name"),"openssh-server"))
           , "redhat"
           , "Package install"
+          , false
         ) ::
         MethodCall(
             BundleName("command_execution")
@@ -353,6 +357,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           , List((ParameterId("command"),"/bin/echo \"testing special characters ` è &é 'à é \"\\"))
           , "cfengine-community"
           , "Command execution"
+          , false
         ) ::
         MethodCall(
             BundleName("_logger")
@@ -360,6 +365,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           , List((ParameterId("message"),"NA"),(ParameterId("old_class_prefix"),"NA"))
           , "any"
           , "Not sure we should test it ..."
+          , false
         ) :: Nil
       , new Version("1.0")
       , "This Technique exists only to see if Rudder creates Technique correctly."
@@ -423,6 +429,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           , List((ParameterId("package_name"),"${node.properties[apache_package_name]}"),(ParameterId("package_version"),"2.2.11"))
           , "any"
           , "Test component$&é)à\\'\""
+          , false
         ) :: Nil
       , new Version("1.0")
       , "This Technique exists only to see if Rudder creates Technique correctly."

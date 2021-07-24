@@ -124,6 +124,7 @@ final case class MethodCall(
   , parameters : List[(ParameterId,String)]
   , condition  : String
   , component  : String
+  , disabledReporting  : Boolean
 ) extends  MethodElem
 
 final case class GenericMethod(

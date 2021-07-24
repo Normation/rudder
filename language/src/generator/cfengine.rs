@@ -203,6 +203,11 @@ impl CFEngine {
                     .get("id")
                     .and_then(|v| v.as_str())
                     .map(String::from);
+                let disable_reporting = var
+                    .metadata
+                    .get("disable_reporting")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
 
                 let method = Method::new()
                     .resource(var.resource.fragment().to_string())
@@ -210,6 +215,7 @@ impl CFEngine {
                     .parameters(parameters)
                     .report_component(component)
                     .report_parameter(class_param)
+                    .disable_reporting(disable_reporting)
                     .condition(
                         condition.map_or_else(|| String::from("any"), |x| self.format_class(x)),
                     )
@@ -267,12 +273,19 @@ impl CFEngine {
                     .map(String::from)
                     .unwrap_or("".to_string());
 
+                let disable_reporting = sd
+                    .metadata
+                    .get("disable_reporting")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
+
                 let method = Method::new()
                     .resource(sd.resource.fragment().to_string())
                     .state(sd.state.fragment().to_string())
                     .alias(alias)
                     .parameters(parameters)
                     .report_parameter(class_param)
+                    .disable_reporting(disable_reporting)
                     .report_component(component)
                     .supported(is_cf_supported)
                     .condition(

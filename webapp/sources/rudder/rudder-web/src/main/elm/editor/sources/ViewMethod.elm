@@ -109,7 +109,18 @@ checkConstraint call constraint =
 
 showMethodTab: Model -> Method -> Maybe CallId ->  MethodCall -> MethodCallUiInfo -> Html Msg
 showMethodTab model method parentId call uiInfo=
-  case uiInfo.tab of
+  case (Maybe.withDefault CallParameters uiInfo.tab) of
+    Reporting ->
+      div [ class "tab-parameters"] [
+        div [ class "form-group"] [
+          label [ for "component"] [ text "Report component:"]
+        , input [ readonly (not model.hasWriteRights), type_ "text", name "component", class "form-control", value call.component,  placeholder method.name,  onInput  (\s -> MethodCallModified (Call parentId {call  | component = s }))] []
+        ]
+      , div [ class "form-group"] [
+          label [ for "disable_reporting"] [ text "Disable reporting:"]
+        , input [ readonly (not model.hasWriteRights), type_ "checkbox", name "disable_reporting", class "form-control", checked call.disableReporting,  onClick  (MethodCallModified (Call parentId {call  | disableReporting = not call.disableReporting }))] []
+        ]
+      ]
     CallParameters ->
       div [ class "tab-parameters"] (List.map2 (\m c -> showParam model call (Maybe.withDefault Untouched (Dict.get c.id.value uiInfo.validation)) m c )  method.parameters call.parameters)
     Conditions ->
@@ -266,18 +277,15 @@ showMethodTab model method parentId call uiInfo=
 methodDetail: Method -> MethodCall -> Maybe CallId -> MethodCallUiInfo -> Model -> Html Msg
 methodDetail method call parentId ui model =
   let
-    activeClass = (\c -> if c == ui.tab then "active" else "" )
+    activeClass = (\c -> if c == (Maybe.withDefault CallParameters ui.tab) then "active" else "" )
   in
   div [ class "method-details" ] [
     div [] [
-      div [ class "form-group"] [
-        label [ for "component"] [ text "Report component:"]
-      , input [ readonly (not model.hasWriteRights), type_ "text", name "component", class "form-control", value call.component,  placeholder method.name,  onInput  (\s -> MethodCallModified (Call parentId {call  | component = s }))] []
-      ]
-    , ul [ class "tabs-list"] [
+      ul [ class "tabs-list"] [
         li [ class (activeClass CallParameters), onClick (SwitchTabMethod call.id CallParameters) ] [text "Parameters"] -- click select param tabs, class active if selected
       , li [ class (activeClass Conditions), onClick (SwitchTabMethod call.id Conditions) ] [text "Conditions"]
       , li [class (activeClass Result), onClick (SwitchTabMethod call.id Result) ] [text "Result conditions"]
+      , li [class (activeClass Reporting), onClick (SwitchTabMethod call.id Reporting) ] [text "Reporting"]
       ]
     , div [ class "tabs" ] [ (showMethodTab model method parentId call ui) ]
     , div [ class "method-details-footer"] [

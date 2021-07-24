@@ -313,6 +313,7 @@ pub struct Method {
     report_parameter: String,
     condition: String,
     id: String,
+    disable_reporting: bool,
     // Generated from
     source: String,
     is_supported: bool,
@@ -336,6 +337,12 @@ impl Method {
 
     pub fn id(self, id: String) -> Self {
         Self { id, ..self }
+    }
+    pub fn disable_reporting(self, disable_reporting: bool) -> Self {
+        Self {
+            disable_reporting,
+            ..self
+        }
     }
 
     pub fn alias(self, method_alias: Option<String>) -> Self {
@@ -408,6 +415,18 @@ impl Method {
         // Reporting context
 
         let id = self.id.as_str();
+        let enable_report = Promise::usebundle(
+            "enable_reporting",
+            Some(&self.report_component),
+            Some(id),
+            vec![],
+        );
+        let disable_report = Promise::usebundle(
+            "disable_reporting",
+            Some(&self.report_component),
+            Some(id),
+            vec![],
+        );
         let reporting_context = Promise::usebundle(
             "_method_reporting_context",
             Some(&self.report_component),
@@ -438,7 +457,7 @@ impl Method {
             self.resource, self.state, self.report_parameter
         );
 
-        match (has_condition, self.is_supported) {
+        let mut bundles = match (has_condition, self.is_supported) {
             (true, true) => vec![
                 reporting_context.if_condition(self.condition.clone()),
                 method.if_condition(self.condition.clone()),
@@ -472,7 +491,18 @@ impl Method {
                     ],
                 )
             ],
-        }
+        };
+
+        let x = if self.disable_reporting {
+            bundles.push(enable_report);
+            let mut res = vec![disable_report];
+            res.append(&mut bundles);
+            res
+        } else {
+            bundles
+        };
+
+        x
     }
 }
 
