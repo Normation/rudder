@@ -126,16 +126,82 @@ isSystem: TRUE
 ## Directives
 #######################################################################################################################
 
-dn: directiveId=root-distributePolicy,activeTechniqueId=distributePolicy,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+dn: directiveId=root-rudderRelay,activeTechniqueId=rudderRelay,techniqueCate
+ goryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=r
+ udder-configuration
 objectClass: directive
 objectClass: top
-directiveId: root-distributePolicy
-cn: Distribute Policy
-description: Distribute policy - Technical
-techniqueVersion: 0:1.0
+directiveId: root-rudderRelay
+techniqueVersion: 1.0
+cn: Rudder Relay
+directivePriority: 5
 isEnabled: TRUE
 isSystem: TRUE
-directivePriority: 0
+serializedTags: []
+
+dn: directiveId=root-rudderSlapd,activeTechniqueId=rudderSlapd,techniqueCate
+ goryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=r
+ udder-configuration
+objectClass: directive
+objectClass: top
+directiveId: root-rudderSlapd
+techniqueVersion: 1.0
+cn: Rudder Slapd
+directivePriority: 5
+isEnabled: TRUE
+isSystem: TRUE
+serializedTags: []
+
+dn: directiveId=root-rudderApache,activeTechniqueId=rudderApache,techniqueCa
+ tegoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn
+ =rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: root-rudderApache
+techniqueVersion: 1.0
+cn: Rudder Apache
+directivePriority: 5
+isEnabled: TRUE
+isSystem: TRUE
+serializedTags: []
+
+dn: directiveId=root-rudderWebapp,activeTechniqueId=rudderWebapp,techniqueCa
+ tegoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn
+ =rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: root-rudderWebapp
+techniqueVersion: 0:1.0
+cn: Rudder Webapp
+directivePriority: 5
+isEnabled: TRUE
+isSystem: TRUE
+
+dn: directiveId=root-serverCommon,activeTechniqueId=serverCommon,techniqueCa
+ tegoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn
+ =rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: root-serverCommon
+techniqueVersion: 1.0
+cn: Server Common
+directivePriority: 5
+isEnabled: TRUE
+isSystem: TRUE
+serializedTags: []
+
+dn: directiveId=root-rudderPostgresql,activeTechniqueId=rudderPostgresql,tec
+ hniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=R
+ udder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: root-rudderPostgresql
+techniqueVersion: 1.0
+cn: Rudder Postgresql
+directivePriority: 5
+isEnabled: TRUE
+isSystem: TRUE
+serializedTags: []
 
 # common (has policy server)
 
@@ -166,12 +232,17 @@ objectClass: rule
 objectClass: top
 ruleId: root-DP
 ruleTarget: policyServer:root
-directiveId: root-distributePolicy
-cn: Rudder system policy: Distribute Policy
-description: Distribute Policy - Technical
+directiveId: root-rudderApache
+directiveId: root-rudderPostgresql
+directiveId: root-rudderRelay
+directiveId: root-rudderSlapd
+directiveId: root-rudderWebapp
+directiveId: root-serverCommon
+cn: Rudder system policy: Server components
+description: Server components configuration - Technical
 isEnabled: TRUE
 isSystem: TRUE
-longDescription: This rule allows to distribute policies to nodes
+longDescription: This rule allows to configure the rudder root server
 serial: 0
 
 dn: ruleId=hasPolicyServer-root,ou=Rules,ou=Rudder,cn=rudder-configuration

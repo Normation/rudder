@@ -4,7 +4,6 @@
 # This file contains the basic structure and minimal entries that MUST be
 # present in the LDAP backend for Rudder to function correctly.
 ###############################################################################
-
 # Base structure
 dn: cn=rudder-configuration
 objectclass: configurationRoot
@@ -23,13 +22,11 @@ ou: Rudder
 description: Branch that stores all Rudder specific data
 
 ## Inventories related branches
-
 dn: ou=Inventories,cn=rudder-configuration
 objectclass: top
 objectclass: organizationalUnit
 ou: Inventories
 description: Inventory information
-
 
 dn: ou=Software,ou=Inventories,cn=rudder-configuration
 objectClass: top
@@ -98,7 +95,6 @@ ou: Servers
 description: Logical servers, an OS installation. May be on a virtual machine or a physical machine, from ou=Machines.
 
 # System groups
-
 dn: groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: groupCategory
 objectClass: top
@@ -184,27 +180,77 @@ description: This category contains "system" active techniques, used to configur
 techniqueCategoryId: Rudder Internal
 isSystem: TRUE
 
-# Distribute policy (root policy server)
-dn: activeTechniqueId=distributePolicy,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+# relay management
+dn: activeTechniqueId=rudderRelay,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: activeTechnique
 objectClass: top
-techniqueId: distributePolicy
-activeTechniqueId: distributePolicy
-acceptationTimestamp: {"1.0":"20110715124328.999Z"}
+techniqueId: rudderRelay
+activeTechniqueId: rudderRelay
+acceptationTimestamp: {"1.0":"20210723184528.999Z"}
 isEnabled: TRUE
 isSystem: TRUE
 
-# common (has policy server)
+# openldap management
+dn: activeTechniqueId=rudderSlapd,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: rudderSlapd
+activeTechniqueId: rudderSlapd
+acceptationTimestamp: {"1.0":"20210723184528.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+# apache management
+dn: activeTechniqueId=rudderApache,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: rudderApache
+activeTechniqueId: rudderApache
+acceptationTimestamp: {"1.0":"20210723184528.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+# webapp management
+dn: activeTechniqueId=rudderWebapp,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: rudderWebapp
+activeTechniqueId: rudderWebapp
+acceptationTimestamp: {"1.0":"20210723184528.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+# postgres management
+dn: activeTechniqueId=rudderPostgresql,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: rudderPostgresql
+activeTechniqueId: rudderPostgresql
+acceptationTimestamp: {"1.0":"20210723184528.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+# server common
+dn: activeTechniqueId=serverCommon,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: serverCommon
+activeTechniqueId: serverCommon
+acceptationTimestamp: {"1.0":"20210723184528.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+# common
 dn: activeTechniqueId=common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: activeTechnique
 objectClass: top
 techniqueId: common
 activeTechniqueId: common
-acceptationTimestamp: {"1.0":"20110715124328.999Z"}
+acceptationTimestamp: {"1.0":"20210723184528.999Z"}
 isEnabled: TRUE
 isSystem: TRUE
 
-# inventory
+# inventory-all
 dn: activeTechniqueId=inventory,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: activeTechnique
 objectClass: top
@@ -225,30 +271,10 @@ isEnabled: TRUE
 isSystem: TRUE
 directivePriority: 0
 
-# server_roles
-dn: activeTechniqueId=server-roles,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
-objectClass: activeTechnique
-objectClass: top
-techniqueId: server-roles
-activeTechniqueId: server_roles
-acceptationTimestamp: {"1.0":"20140603124328.999Z"}
-isEnabled: TRUE
-isSystem: TRUE
-
-dn: directiveId=server-roles-directive,activeTechniqueId=server-roles,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
-objectClass: directive
-objectClass: top
-directiveId: server-roles-directive
-techniqueVersion: 0:1.0
-cn: Server Roles
-description: Server Roles - Technical
-isEnabled: TRUE
-isSystem: TRUE
-directivePriority: 0
-
 #######################################################################################################################
 ## Rules
 #######################################################################################################################
+
 dn: ou=Rules,ou=Rudder,cn=rudder-configuration
 objectClass: organizationalUnit
 objectClass: top
@@ -265,19 +291,6 @@ description: System Inventory
 isEnabled: TRUE
 isSystem: TRUE
 longDescription: This rule makes all nodes do daily self inventories
-serial: 0
-
-dn: ruleId=server-roles,ou=Rules,ou=Rudder,cn=rudder-configuration
-objectClass: rule
-objectClass: top
-ruleId: server-roles
-ruleTarget: special:all_servers_with_role
-directiveId: server-roles-directive
-cn: Rudder system policy: Server roles
-description: Server roles
-isEnabled: TRUE
-isSystem: TRUE
-longDescription: This rule configures the nodes that have Server Roles defined
 serial: 0
 
 # A demonstration rule: group "all nodes", no directive
@@ -297,8 +310,6 @@ isSystem: FALSE
 tag: rootRuleCategory
 serial: 0
 
-
-
 #######################################################################################################################
 ## Archives
 #######################################################################################################################
@@ -306,17 +317,16 @@ dn: ou=Archives,ou=Rudder,cn=rudder-configuration
 objectClass: organizationalUnit
 objectClass: top
 ou: Archives
-
 #######################################################################################################################
 ## API Accounts
 #######################################################################################################################
+
 dn: ou=API Accounts,ou=Rudder,cn=rudder-configuration
 objectClass: organizationalUnit
 objectClass: top
 ou: API Accounts
 
 ## Rudder Parameters configuration branch
-
 dn: ou=Parameters,ou=Rudder,cn=rudder-configuration
 objectClass: organizationalUnit
 objectClass: top
@@ -330,7 +340,6 @@ description: Default inform message put in header of managed files by Rudder
 parameterValue: "### Managed by Rudder, edit with care ###"
 
 ## Application properties
-
 dn: ou=Application Properties,cn=rudder-configuration
 objectClass: organizationalUnit
 objectClass: top
@@ -365,5 +374,4 @@ objectClass: property
 objectClass: top
 propertyName: rudder_report_protocol_default
 propertyValue: HTTPS
-
 
