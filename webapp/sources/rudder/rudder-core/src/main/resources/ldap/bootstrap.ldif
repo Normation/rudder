@@ -375,4 +375,4 @@ objectClass: top
 propertyName: rudder_report_protocol_default
 propertyValue: HTTPS
 
-# propertyName=rudder_policy_servers is init in ini-policy-server.ldif because it needs root network info
+# propertyName=rudder_policy_servers is init in init-policy-server.ldif because it needs root network info
