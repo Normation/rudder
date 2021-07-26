@@ -109,11 +109,12 @@ getRulesCompliance model =
 saveRuleDetails : Rule -> Bool -> Model ->  Cmd Msg
 saveRuleDetails ruleDetails creation model =
   let
+    (method, url) = if creation then ("PUT","/rules") else ("POST", ("/rules/"++ruleDetails.id.value))
     req =
       request
-        { method  = if creation then "PUT" else "POST"
+        { method  = method
         , headers = []
-        , url     = getUrl model ("/rules/"++ruleDetails.id.value)
+        , url     = getUrl model url
         , body    = encodeRuleDetails ruleDetails |> jsonBody
         , expect  = expectJson decodeGetRuleDetails
         , timeout = Nothing

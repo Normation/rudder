@@ -8,6 +8,8 @@ import View exposing (view)
 import Result
 import ApiCalls exposing (getRuleDetails, getRulesTree)
 import List.Extra exposing (remove)
+import Random
+import UUID
 
 port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
@@ -20,10 +22,20 @@ main =
     , subscriptions = subscriptions
     }
 
+generator : Random.Generator String
+generator = Random.map (UUID.toString) UUID.generator
 
+--
+-- update loop --
+--
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
+-- utility methods
+    -- generate random id
+    GenerateId nextMsg ->
+      (model, Random.generate nextMsg generator)
+
     CallApi call ->
       (model, call model)
 
@@ -68,19 +80,25 @@ update msg model =
     ChangeTabFocus newTab ->
       case model.mode of
         EditRule details ->
-          ({model | mode = EditRule {details | tab = newTab}}, Cmd.none)
+          ({model | mode = EditRule   {details | tab = newTab}}, Cmd.none)
+        CreateRule details ->
+          ({model | mode = CreateRule {details | tab = newTab}}, Cmd.none)
         _   -> (model, Cmd.none)
 
     EditDirectives flag ->
       case model.mode of
         EditRule details ->
-          ({model | mode = EditRule {details | editDirectives = flag}}, Cmd.none)
+          ({model | mode = EditRule   {details | editDirectives = flag}}, Cmd.none)
+        CreateRule details ->
+          ({model | mode = CreateRule {details | editDirectives = flag}}, Cmd.none)
         _   -> (model, Cmd.none)
 
     EditGroups flag ->
       case model.mode of
         EditRule details ->
-          ({model | mode = EditRule {details | editGroups = flag}}, Cmd.none)
+          ({model | mode = EditRule   {details | editGroups = flag}}, Cmd.none)
+        CreateRule details ->
+          ({model | mode = CreateRule {details | editGroups = flag}}, Cmd.none)
         _   -> (model, Cmd.none)
 
     GetRuleDetailsResult res ->
@@ -104,10 +122,10 @@ update msg model =
           (model, Cmd.none)
 
     SelectGroup groupId includeBool->
-      case model.mode of
-        EditRule details ->
+      let
+        updateTargets : Rule -> Rule
+        updateTargets r =
           let
-            r = details.rule
             (include, exclude) = case r.targets of
                 [Composition (Or i) (Or e)] -> (i,e)
                 targets -> (targets,[])
@@ -120,30 +138,48 @@ update msg model =
                 (False, _, True) -> (include,  remove groupId exclude)
                 (True, False, False)  -> ( groupId :: include, exclude)
                 (False, False, False) -> (include, groupId :: exclude)
-
-            newSelectedRule = {r | targets = [Composition (Or newInclude) (Or newExclude)]}
           in
-            ({model | mode = EditRule {details | rule = newSelectedRule}}, Cmd.none)
-        _   -> (model, Cmd.none)
+            {r | targets = [Composition (Or newInclude) (Or newExclude)]}
+      in
+        case model.mode of
+          EditRule details ->
+            ({model | mode = EditRule   {details | rule = (updateTargets details.rule)}}, Cmd.none)
+          CreateRule details ->
+            ({model | mode = CreateRule {details | rule = (updateTargets details.rule)}}, Cmd.none)
+          _   -> (model, Cmd.none)
 
     UpdateRule rule ->
       case model.mode of
         EditRule details ->
-          ({model | mode = EditRule {details | rule = rule}}, Cmd.none)
+          ({model | mode = EditRule   {details | rule = rule}}, Cmd.none)
+        CreateRule details ->
+          ({model | mode = CreateRule {details | rule = rule}}, Cmd.none)
         _   -> (model, Cmd.none)
+
+    NewRule id ->
+      let
+        rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] []
+        ruleDetails = EditRuleDetails rule Information False False (Tag "" "")
+      in
+        ({model | mode = CreateRule ruleDetails}, Cmd.none)
+
     UpdateNewTag tag ->
       case model.mode of
         EditRule details ->
-          ({model | mode = EditRule {details | newTag = tag}}, Cmd.none)
+          ({model | mode = EditRule   {details | newTag = tag}}, Cmd.none)
+        CreateRule details ->
+          ({model | mode = CreateRule {details | newTag = tag}}, Cmd.none)
         _   -> (model, Cmd.none)
+
     SaveRuleDetails (Ok ruleDetails) ->
+      -- TODO // Update Rules Tree
       case model.mode of
         EditRule details ->
+          ({model | mode = EditRule {details | rule = ruleDetails}}, successNotification ("Rule '"++ ruleDetails.name ++"' successfully saved"))
+        CreateRule details ->
+          ({model | mode = EditRule {details | rule = ruleDetails}}, successNotification ("Rule '"++ ruleDetails.name ++"' successfully created"))
+        _   -> (model, Cmd.none)
 
-      -- TODO // Update Rules Tree
-      -- TODO // Display success notifications
-          ({model | mode = EditRule {details | rule = ruleDetails}}, Cmd.none)
-        _   -> (model, successNotification ("Rule '"++ ruleDetails.name ++"' successfully saved"))
     SaveRuleDetails (Err err) ->
       processApiError "Saving Rule" err model
 

@@ -174,6 +174,57 @@ view model =
             , childsList
             ]
 
+    editionTemplate : EditRuleDetails -> Bool -> Html Msg
+    editionTemplate details isNewRule =
+      let
+        ruleTitle = if (String.isEmpty rule.name && isNewRule) then
+            span[style "opacity" "0.4"][text "New rule"]
+          else
+             text rule.name
+
+        rule = details.rule
+      in
+        div [class "main-container"]
+        [ div [class "main-header "]
+          [ div [class "header-title"]
+            [ h1[][ruleTitle]
+            , div[class "header-buttons"]
+              [ button [class "btn btn-default", type_ "button"][text "Actions"]
+              , button [class "btn btn-default", type_ "button", onClick CloseRuleDetails][text "Close"  ]
+              , button [class "btn btn-success", type_ "button", onClick (CallApi (saveRuleDetails rule isNewRule))][text "Save"   ]
+              ]
+            ]
+          , div [class "header-description"]
+            [ p[][text rule.shortDescription] ]
+          ]
+        , div [class "main-navbar" ]
+          [ ul[class "ui-tabs-nav "]
+            [ li[class ("ui-tabs-tab" ++ (if details.tab == Information   then " ui-tabs-active" else ""))]
+              [ a[onClick (ChangeTabFocus Information  )]
+                [ text "Information" ]
+              ]
+            , li[class ("ui-tabs-tab" ++ (if details.tab == Directives    then " ui-tabs-active" else ""))]
+              [ a[onClick (ChangeTabFocus Directives   )]
+                [ text "Directives"
+                , span[class "badge"][text (String.fromInt(List.length rule.directives))]
+                ]
+              ]
+            , li[class ("ui-tabs-tab" ++ (if details.tab == Groups        then " ui-tabs-active" else ""))]
+              [ a[onClick (ChangeTabFocus Groups       )]
+                [ text "Groups"
+                , span[class "badge"][text (String.fromInt(List.length rule.targets))]
+                ]
+              ]
+            , li[class ("ui-tabs-tab" ++ (if details.tab == TechnicalLogs then " ui-tabs-active" else ""))]
+              [ a[onClick (ChangeTabFocus TechnicalLogs)]
+                [ text "Technical logs"]
+              ]
+            ]
+          ]
+        , div [class "main-details"]
+          [ tabContent details isNewRule ]
+        ]
+
     templateMain = case model.mode of
       Loading -> text "loading"
       RuleTable   ->
@@ -195,54 +246,15 @@ view model =
         ]
 
       EditRule details ->
-        let
-          rule = details.rule
-        in
-        div [class "main-container"]
-          [ div [class "main-header "]
-            [ div [class "header-title"]
-              [ h1[][text rule.name]
-              , div[class "header-buttons"]
-                [ button [class "btn btn-default", type_ "button"][text "Actions"]
-                , button [class "btn btn-default", type_ "button", onClick CloseRuleDetails][text "Close"  ]
-                , button [class "btn btn-success", type_ "button", onClick (CallApi (saveRuleDetails rule False))][text "Save"   ]
-                ]
-              ]
-            , div [class "header-description"]
-              [ p[][text rule.shortDescription] ]
-            ]
-          , div [class "main-navbar" ]
-            [ ul[class "ui-tabs-nav "]
-              [ li[class ("ui-tabs-tab" ++ (if details.tab == Information   then " ui-tabs-active" else ""))]
-                [ a[onClick (ChangeTabFocus Information  )]
-                  [ text "Information" ]
-                ]
-              , li[class ("ui-tabs-tab" ++ (if details.tab == Directives    then " ui-tabs-active" else ""))]
-                [ a[onClick (ChangeTabFocus Directives   )]
-                  [ text "Directives"
-                  , span[class "badge"][text (String.fromInt(List.length rule.directives))]
-                  ]
-                ]
-              , li[class ("ui-tabs-tab" ++ (if details.tab == Groups        then " ui-tabs-active" else ""))]
-                [ a[onClick (ChangeTabFocus Groups       )]
-                  [ text "Groups"
-                  , span[class "badge"][text (String.fromInt(List.length rule.targets))]
-                  ]
-                ]
-              , li[class ("ui-tabs-tab" ++ (if details.tab == TechnicalLogs then " ui-tabs-active" else ""))]
-                [ a[onClick (ChangeTabFocus TechnicalLogs)]
-                  [ text "Technical logs"]
-                ]
-              ]
-            ]
-          , div [class "main-details"]
-            [ tabContent details ]
-          ]
-    tabContent details =
+        (editionTemplate details False)
+
+      CreateRule details ->
+        (editionTemplate details True)
+
+    tabContent details isNewRule=
       let
           rule = details.rule
           newTag = details.newTag
-
       in
 
         case details.tab of
@@ -418,7 +430,7 @@ view model =
                         [ h4[][text "Apply these directives"]
                         , div [class "btn-actions"]
                           [ button[class "btn btn-sm btn-default", onClick (EditDirectives False)][text "Cancel"]
-                          , button[class "btn btn-sm btn-success", onClick (CallApi (saveRuleDetails rule False))][text "Save"]
+                          , button[class "btn btn-sm btn-success", onClick (CallApi (saveRuleDetails rule isNewRule))][text "Save"]
                           ]
                         ]
                       , ul[class "directives applied-list"]
@@ -552,7 +564,7 @@ view model =
                         [ h4[][text "Apply to Nodes in any of these Groups"]
                         , div [class "btn-actions"]
                           [ button[class "btn btn-sm btn-default", onClick (EditGroups False)][text "Cancel"]
-                          , button[class "btn btn-sm btn-success", onClick (CallApi (saveRuleDetails rule False))][text "Save"]
+                          , button[class "btn btn-sm btn-success", onClick (CallApi (saveRuleDetails rule isNewRule))][text "Save"]
                           ]
                         ]
                       , ul[class "groups applied-list"]
@@ -612,7 +624,7 @@ view model =
             ]
           , div [class "header-buttons"]
             [ button [class "btn btn-default", type_ "button"][text "Add Category"]
-            , button [class "btn btn-success", type_ "button"][text "Create"]
+            , button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s) ))][text "Create"]
             ]
           ]
         , div [class "header-filter"]
