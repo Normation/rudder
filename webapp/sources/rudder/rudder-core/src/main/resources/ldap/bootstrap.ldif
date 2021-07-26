@@ -180,62 +180,62 @@ description: This category contains "system" active techniques, used to configur
 techniqueCategoryId: Rudder Internal
 isSystem: TRUE
 
-# relay management
-dn: activeTechniqueId=rudderRelay,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
-objectClass: activeTechnique
-objectClass: top
-techniqueId: rudderRelay
-activeTechniqueId: rudderRelay
-acceptationTimestamp: {"1.0":"20210723184528.999Z"}
-isEnabled: TRUE
-isSystem: TRUE
-
-# openldap management
-dn: activeTechniqueId=rudderSlapd,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
-objectClass: activeTechnique
-objectClass: top
-techniqueId: rudderSlapd
-activeTechniqueId: rudderSlapd
-acceptationTimestamp: {"1.0":"20210723184528.999Z"}
-isEnabled: TRUE
-isSystem: TRUE
-
 # apache management
-dn: activeTechniqueId=rudderApache,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+dn: activeTechniqueId=rudder-service-apache,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: activeTechnique
 objectClass: top
-techniqueId: rudderApache
-activeTechniqueId: rudderApache
-acceptationTimestamp: {"1.0":"20210723184528.999Z"}
-isEnabled: TRUE
-isSystem: TRUE
-
-# webapp management
-dn: activeTechniqueId=rudderWebapp,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
-objectClass: activeTechnique
-objectClass: top
-techniqueId: rudderWebapp
-activeTechniqueId: rudderWebapp
+techniqueId: rudder-service-apache
+activeTechniqueId: rudder-service-apache
 acceptationTimestamp: {"1.0":"20210723184528.999Z"}
 isEnabled: TRUE
 isSystem: TRUE
 
 # postgres management
-dn: activeTechniqueId=rudderPostgresql,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+dn: activeTechniqueId=rudder-service-postgresql,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: activeTechnique
 objectClass: top
-techniqueId: rudderPostgresql
-activeTechniqueId: rudderPostgresql
+techniqueId: rudder-service-postgresql
+activeTechniqueId: rudder-service-postgresql
+acceptationTimestamp: {"1.0":"20210723184528.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+# relay management
+dn: activeTechniqueId=rudder-service-relayd,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: rudder-service-relayd
+activeTechniqueId: rudder-service-relayd
+acceptationTimestamp: {"1.0":"20210723184528.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+# openldap management
+dn: activeTechniqueId=rudder-service-slapd,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: rudder-service-slapd
+activeTechniqueId: rudder-service-slapd
+acceptationTimestamp: {"1.0":"20210723184528.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+# webapp management
+dn: activeTechniqueId=rudder-service-webapp,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: rudder-service-webapp
+activeTechniqueId: rudder-service-webapp
 acceptationTimestamp: {"1.0":"20210723184528.999Z"}
 isEnabled: TRUE
 isSystem: TRUE
 
 # server common
-dn: activeTechniqueId=serverCommon,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+dn: activeTechniqueId=server-common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: activeTechnique
 objectClass: top
-techniqueId: serverCommon
-activeTechniqueId: serverCommon
+techniqueId: server-common
+activeTechniqueId: server-common
 acceptationTimestamp: {"1.0":"20210723184528.999Z"}
 isEnabled: TRUE
 isSystem: TRUE
@@ -264,7 +264,7 @@ dn: directiveId=inventory-all,activeTechniqueId=inventory,techniqueCategoryId=Ru
 objectClass: directive
 objectClass: top
 directiveId: inventory-all
-techniqueVersion: 0:1.0
+techniqueVersion: 1.0
 cn: System inventory
 description: inventory - Technical
 isEnabled: TRUE

@@ -566,8 +566,8 @@ class SystemVariableServiceImpl(
                     case AgentType.Dsc => s"Rudder agent on Windows only support HTTPS reporting for version >= 6.1"
                     case _             => s"Rudder agent only support HTTPS reporting for version >= 6.0"
                   }
-                }. You need to either disable that node (in node details > settings > Node State) or use HTTPS + syslog (in " +
-                s"Settings > General > Reporting protocol)")
+                }. You need to either disable that node (in node details > settings > Node State) or update agent version " +
+                s"on that node.")
       }
       // as we don't have capalities and version is not reliable, we only fail when we are sure:
       // - version provided and

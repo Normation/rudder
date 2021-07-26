@@ -512,7 +512,7 @@ class LDAPEntityMapper(
 
   def serializeAcceptations(dates:Map[TechniqueVersion,DateTime]) : JObject = {
     dates.foldLeft(JObject(List())) { case (js, (version, date)) =>
-      js ~ (version.toString -> GeneralizedTime(date).toString)
+      js ~ (version.serialize -> GeneralizedTime(date).toString)
     }
   }
 

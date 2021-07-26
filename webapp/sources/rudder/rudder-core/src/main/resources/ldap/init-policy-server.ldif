@@ -125,39 +125,15 @@ isSystem: TRUE
 #######################################################################################################################
 ## Directives
 #######################################################################################################################
+#
+# Rudder services on root
+#
 
-dn: directiveId=root-rudderRelay,activeTechniqueId=rudderRelay,techniqueCate
- goryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=r
- udder-configuration
+dn: directiveId=rudder-service-apache-root,activeTechniqueId=rudder-service-apache,
+ techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: directive
 objectClass: top
-directiveId: root-rudderRelay
-techniqueVersion: 1.0
-cn: Rudder Relay
-directivePriority: 5
-isEnabled: TRUE
-isSystem: TRUE
-serializedTags: []
-
-dn: directiveId=root-rudderSlapd,activeTechniqueId=rudderSlapd,techniqueCate
- goryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=r
- udder-configuration
-objectClass: directive
-objectClass: top
-directiveId: root-rudderSlapd
-techniqueVersion: 1.0
-cn: Rudder Slapd
-directivePriority: 5
-isEnabled: TRUE
-isSystem: TRUE
-serializedTags: []
-
-dn: directiveId=root-rudderApache,activeTechniqueId=rudderApache,techniqueCa
- tegoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn
- =rudder-configuration
-objectClass: directive
-objectClass: top
-directiveId: root-rudderApache
+directiveId: rudder-service-apache-root
 techniqueVersion: 1.0
 cn: Rudder Apache
 directivePriority: 5
@@ -165,37 +141,11 @@ isEnabled: TRUE
 isSystem: TRUE
 serializedTags: []
 
-dn: directiveId=root-rudderWebapp,activeTechniqueId=rudderWebapp,techniqueCa
- tegoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn
- =rudder-configuration
+dn: directiveId=rudder-service-postgresql-root,activeTechniqueId=rudder-service-postgresql,
+ techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: directive
 objectClass: top
-directiveId: root-rudderWebapp
-techniqueVersion: 0:1.0
-cn: Rudder Webapp
-directivePriority: 5
-isEnabled: TRUE
-isSystem: TRUE
-
-dn: directiveId=root-serverCommon,activeTechniqueId=serverCommon,techniqueCa
- tegoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn
- =rudder-configuration
-objectClass: directive
-objectClass: top
-directiveId: root-serverCommon
-techniqueVersion: 1.0
-cn: Server Common
-directivePriority: 5
-isEnabled: TRUE
-isSystem: TRUE
-serializedTags: []
-
-dn: directiveId=root-rudderPostgresql,activeTechniqueId=rudderPostgresql,tec
- hniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=R
- udder,cn=rudder-configuration
-objectClass: directive
-objectClass: top
-directiveId: root-rudderPostgresql
+directiveId: rudder-service-postgresql-root
 techniqueVersion: 1.0
 cn: Rudder Postgresql
 directivePriority: 5
@@ -203,15 +153,68 @@ isEnabled: TRUE
 isSystem: TRUE
 serializedTags: []
 
-# common (has policy server)
-
-dn: directiveId=common-root,activeTechniqueId=common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+dn: directiveId=rudder-service-slapd-root,activeTechniqueId=rudder-service-slapd,
+ techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: directive
 objectClass: top
-directiveId: common-root
+directiveId: rudder-service-slapd-root
+techniqueVersion: 1.0
+cn: Rudder Slapd
+directivePriority: 5
+isEnabled: TRUE
+isSystem: TRUE
+serializedTags: []
+
+dn: directiveId=rudder-service-relayd-root,activeTechniqueId=rudder-service-relayd,
+ techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: rudder-service-relayd-root
+techniqueVersion: 1.0
+cn: Rudder Relay
+directivePriority: 5
+isEnabled: TRUE
+isSystem: TRUE
+serializedTags: []
+
+dn: directiveId=rudder-service-webapp-root,activeTechniqueId=rudder-service-webapp,
+ techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: rudder-service-webapp-root
+techniqueVersion: 1.0
+cn: Rudder Webapp
+directivePriority: 5
+isEnabled: TRUE
+isSystem: TRUE
+
+#
+# Common config for policy servers
+#
+dn: directiveId=server-common-root,activeTechniqueId=server-common,
+ techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: server-common-root
+techniqueVersion: 1.0
+cn: Server Common
+directivePriority: 5
+isEnabled: TRUE
+isSystem: TRUE
+serializedTags: []
+
+
+#
+# All nodes with root for policy server
+#
+dn: directiveId=common-hasPolicyServer-root,activeTechniqueId=common,
+ techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: common-hasPolicyServer-root
 cn: Common
 description: Common - Technical
-techniqueVersion: 0:1.0
+techniqueVersion: 1.0
 isEnabled: TRUE
 isSystem: TRUE
 directivePriority: 0
@@ -235,17 +238,17 @@ propertyValue: [{"id":"root","allowed-networks":[%%POLICY_SERVER_ALLOWED_NETWORK
 ## Rules
 #######################################################################################################################
 
-dn: ruleId=root-DP,ou=Rules,ou=Rudder,cn=rudder-configuration
+dn: ruleId=policy-server-root,ou=Rules,ou=Rudder,cn=rudder-configuration
 objectClass: rule
 objectClass: top
-ruleId: root-DP
+ruleId: policy-server-root
 ruleTarget: policyServer:root
-directiveId: root-rudderApache
-directiveId: root-rudderPostgresql
-directiveId: root-rudderRelay
-directiveId: root-rudderSlapd
-directiveId: root-rudderWebapp
-directiveId: root-serverCommon
+directiveId: rudder-service-apache-root
+directiveId: rudder-service-postgresql-root
+directiveId: rudder-service-relayd-root
+directiveId: rudder-service-slapd-root
+directiveId: rudder-service-webapp-root
+directiveId: server-common-root
 cn: Rudder system policy: Server components
 description: Server components configuration - Technical
 isEnabled: TRUE
@@ -258,7 +261,7 @@ objectClass: rule
 objectClass: top
 ruleId: hasPolicyServer-root
 ruleTarget: group:hasPolicyServer-root
-directiveId: common-root
+directiveId: common-hasPolicyServer-root
 cn: Rudder system policy: basic setup (common)
 description: Common - Technical
 isEnabled: TRUE

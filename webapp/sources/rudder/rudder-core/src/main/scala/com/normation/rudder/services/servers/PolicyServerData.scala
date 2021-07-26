@@ -142,8 +142,7 @@ object json {
 
   final case class JPolicyServer(
       id: String
-      @jsonField("allowed-networks")
-    , allowedNetworks: List[JAllowedNetwork]
+    , @jsonField("allowed-networks") allowedNetworks: List[JAllowedNetwork]
   ) {
     def toPolicyServer: PolicyServer =
       this.into[PolicyServer]
