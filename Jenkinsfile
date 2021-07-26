@@ -214,7 +214,10 @@ pipeline {
                                 // System dependencies: libpq-dev postgresql
                                 dir('relay/sources/relayd') {
                                     sh script: 'typos --exclude "*.pem"', label: 'check typos'
-                                    sh script: 'make check', label: 'relayd tests'
+                                    // lock the database to avoid race conditions between parallel tests
+                                    lock('test-relayd-postgresql') {
+                                        sh script: 'make check', label: 'relayd tests'
+                                    }
                                     sh script: 'make clean', label: 'relayd clean'
                                 }
                             }
