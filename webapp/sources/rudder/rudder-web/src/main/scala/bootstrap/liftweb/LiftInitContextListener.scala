@@ -47,6 +47,7 @@ import java.io.File
 import bootstrap.liftweb.RudderProperties.config
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.typesafe.config.ConfigException
+import com.normation.zio._
 
 /**
  * A context loader listener for initializing Spring webapp context
@@ -104,7 +105,7 @@ class LiftInitContextListener extends ContextLoaderListener {
 
     /*
      *
-     * If any excpetion reach that point in init, we want to stop
+     * If any exception reaches that point in init, we want to stop
      * the application server.
      * The "normal" way to handle that would have been to raise an
      * UnavailableException, and so the web server would have then
@@ -123,14 +124,13 @@ class LiftInitContextListener extends ContextLoaderListener {
      *
      */
 
-    try {
-      RudderConfig.init()
-    } catch {
-      case ex: Throwable =>
+    RudderConfig.init().either.runNow match {
+      case Left(err) =>
         System.err.println(s"[${org.joda.time.format.ISODateTimeFormat.dateTime().print(System.currentTimeMillis())}] " +
-                           s"ERROR FATAL An error happen during Rudder boot. Rudder will stop now.")
-        ex.printStackTrace()
+                           s"ERROR FATAL An error happen during Rudder boot. Rudder will stop now. Error: ${err.fullMsg}")
+        err.cause.printStackTrace()
         System.exit(1)
+      case Right(_) => //ok continue
     }
 
     //init Spring
