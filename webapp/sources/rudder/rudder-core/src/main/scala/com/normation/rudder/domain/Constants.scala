@@ -38,24 +38,11 @@
 package com.normation.rudder.domain
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.nodes.NodeGroupId
 
 
 object Constants {
 
-  //non random Directive Id
-  def buildHasPolicyServerGroupId(policyServerId:NodeId) =
-    NodeGroupId("hasPolicyServer-" + policyServerId.value )
-
   val ROOT_POLICY_SERVER_ID = NodeId("root")
-
-  /**
-   * For the given policy server, what is the ID of its
-   * "distributePolicy" instance ?
-   */
-  def buildCommonDirectiveId(policyServerId:NodeId) =
-    DirectiveId("common-" + policyServerId.value)
 
   /////////// PATH for generated promises ///////////////
 
