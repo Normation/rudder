@@ -220,8 +220,16 @@ directiveVariable: UUID[0]:${rudder.node.id}
 directiveVariable: POLICYSERVER[0]:%%POLICY_SERVER_HOSTNAME%%
 directiveVariable: POLICYSERVER_ID[0]:root
 directiveVariable: POLICYSERVER_ADMIN[0]:root
-directiveVariable: ALLOWEDNETWORK[0]:%%POLICY_SERVER_ALLOWED_NETWORKS%%
 
+#######################################################################################################################
+## Allowed networks for root server: init corresponding setting in ou=Application Properties
+#######################################################################################################################
+dn: propertyName=rudder_policy_servers,ou=Application Properties,cn=rudder-configuration
+objectClass: property
+objectClass: top
+propertyName: rudder_policy_servers
+propertyValue: [{"id":"root","allowed-networks":[%%POLICY_SERVER_ALLOWED_NETWORKS%%
+ ]}]
 
 #######################################################################################################################
 ## Rules
