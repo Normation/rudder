@@ -51,7 +51,7 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
     val sections = policy \\ SECTIONS_ROOT
 
     (if (sections.size > 1) {
-      val err = s"In ${id.toString()} -> ${policyName} : Only one <sections> marker is allowed in the entire file"
+      val err = s"In ${id.debugString} -> ${policyName} : Only one <sections> marker is allowed in the entire file"
       logger.error(err)
       Left(LoadTechniqueError.Parsing(err).asInstanceOf[LoadTechniqueError])
     } else {
@@ -190,13 +190,13 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
 
     def parseOneVariable(sectionName: String, node: Node): Either[LoadTechniqueError, (SectionChildSpec, List[SectionChildSpec])] = {
       variableParser.parseSectionVariableSpec(sectionName, node).leftMap(err =>
-        LoadTechniqueError.Chained(s"In ${id.toString()} -> ${policyName}, couldn't parse variable ${node}", err)
+        LoadTechniqueError.Chained(s"In ${id.debugString} -> ${policyName}, couldn't parse variable ${node}", err)
       )
     }
 
     def parseOneSection(node: Node, id: TechniqueId, policyName: String) : Either[LoadTechniqueError, SectionSpec] = {
       parseSection(node, id, policyName).leftMap(err =>
-        LoadTechniqueError.Chained(s"Couldn't parse Section in ${id.toString()} -> ${policyName} for XML: ${node}", err)
+        LoadTechniqueError.Chained(s"Couldn't parse Section in ${id.debugString} -> ${policyName} for XML: ${node}", err)
       )
     }
 
@@ -204,7 +204,7 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
       child.label match {
         case v if SectionVariableSpec.isVariable(v) => parseOneVariable(sectionName, child).map { case (a,b) => a :: b }
         case s if SectionSpec.isSection(s)          => parseOneSection(child,id,policyName).map(s => s :: Nil)
-        case x => Left(LoadTechniqueError.Parsing(s"Unexpected <${SECTIONS_ROOT}> child element in policy package ${id}: ${x}"))
+        case x => Left(LoadTechniqueError.Parsing(s"Unexpected <${SECTIONS_ROOT}> child element in technique ${id.debugString}: ${x}"))
       }
     }).map( _.flatten)
   }

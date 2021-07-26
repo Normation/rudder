@@ -63,7 +63,7 @@ import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
@@ -85,6 +85,7 @@ import org.junit.runner.RunWith
 
 import java.io.File
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.repository.WoDirectiveRepository
 import org.specs2.matcher.ContentMatchers
@@ -130,9 +131,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
     def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = ???
 
-    def getDirective(directiveId: DirectiveId): IOResult[Option[Directive]] = ???
+    def getDirective(directiveId: DirectiveUid): IOResult[Option[Directive]] = ???
 
-    def getDirectiveWithContext(directiveId: DirectiveId): IOResult[Option[(domain.Technique, ActiveTechnique, Directive)]] = ???
+    def getDirectiveWithContext(directiveId: DirectiveUid): IOResult[Option[(domain.Technique, ActiveTechnique, Directive)]] = ???
 
     def getActiveTechniqueAndDirective(id: DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
 
@@ -164,7 +165,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   def writeDirectives : WoDirectiveRepository = new WoDirectiveRepository {
     def saveDirective(inActiveTechniqueId: ActiveTechniqueId, directive: Directive, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DirectiveSaveDiff]]  = ???
     def saveSystemDirective(inActiveTechniqueId: ActiveTechniqueId, directive: Directive, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DirectiveSaveDiff]] = ???
-    def delete(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = ???
+    def delete(id: DirectiveUid, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = ???
     def addTechniqueInUserLibrary(categoryId: ActiveTechniqueCategoryId, techniqueName: TechniqueName, versions: Seq[TechniqueVersion], modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechnique] = ???
     def move(id: ActiveTechniqueId, newCategoryId: ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueId] = ???
     def changeStatus(id: ActiveTechniqueId, status: Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueId] = ???
@@ -174,7 +175,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     def saveActiveTechniqueCategory(category: ActiveTechniqueCategory, modificationId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueCategory] = ???
     def deleteCategory(id: ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty: Boolean): IOResult[ActiveTechniqueCategoryId] = ???
     def move(categoryId: ActiveTechniqueCategoryId, intoParent: ActiveTechniqueCategoryId, optionNewName: Option[ActiveTechniqueCategoryId], modificationId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechniqueCategoryId] = ???
-    override def deleteSystemDirective(id: DirectiveId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = ???
+    override def deleteSystemDirective(id: DirectiveUid, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[DeleteDirectiveDiff]] = ???
   }
 
   def workflowLevelService: WorkflowLevelService = new WorkflowLevelService {
@@ -194,7 +195,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
     def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): Box[WorkflowService] = ???
 
-    def getByDirective(id: DirectiveId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
+    def getByDirective(id: DirectiveUid, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
 
     def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
 

@@ -37,8 +37,9 @@
 
 package com.normation.cfclerk.services
 
-import java.io.File
+import com.normation.GitVersion
 
+import java.io.File
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
 import com.normation.cfclerk.services.impl.GitTechniqueReader
@@ -47,7 +48,6 @@ import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
-
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.eclipse.jgit.api.Git
@@ -55,11 +55,10 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
-
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
-import java.nio.charset.StandardCharsets
 
+import java.nio.charset.StandardCharsets
 import com.normation.zio._
 import zio.syntax._
 
@@ -84,7 +83,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
    */
   override def afterAll() = {
     if(System.getProperty("tests.clean.tmp") != "false") {
-      logger.info("Deleting directory " + gitRoot.getAbsoluteFile)
+      logger.info("Deleting directory " + gitRoot.getAbsolutePath)
       FileUtils.deleteDirectory(gitRoot)
     }
   }
@@ -119,22 +118,22 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
    *      --- template2.st
    */
   val template = new File(gitRoot, "template.st")
-  val templateId = TechniqueResourceIdByPath(Nil, "template")
+  val templateId = TechniqueResourceIdByPath(Nil, GitVersion.defaultRev, "template")
   val templateContent = "this is some template content"
   template.getParentFile.mkdirs
   FileUtils.writeStringToFile(template, templateContent, StandardCharsets.UTF_8)
   val template2 = new File(new File(gitRoot, "libdir"), "template2.st")
-  val template2Id = TechniqueResourceIdByPath(List("libdir"), "template2")
+  val template2Id = TechniqueResourceIdByPath(List("libdir"), GitVersion.defaultRev, "template2")
   val template2Content = "this is template2 content"
   template2.getParentFile.mkdirs
   FileUtils.writeStringToFile(template2, template2Content, StandardCharsets.UTF_8)
 
   val f1 = new File(new File(gitRoot, "libdir"), "file1.txt")
   val f1Content = "this is the content of file 1"
-  val file1 = TechniqueResourceIdByPath(List("libdir"), f1.getName)
+  val file1 = TechniqueResourceIdByPath(List("libdir"), GitVersion.defaultRev, f1.getName)
   FileUtils.writeStringToFile(f1, f1Content, StandardCharsets.UTF_8)
 
-  val file2 = TechniqueResourceIdByName(TechniqueId(TechniqueName("p1_1"), TechniqueVersion("1.0")), "file2.txt")
+  val file2 = TechniqueResourceIdByName(TechniqueId(TechniqueName("p1_1"), TechniqueVersionHelper("1.0")), "file2.txt")
 
   val repo = GitRepositoryProviderImpl.make(gitRoot.getAbsolutePath).runNow
 
@@ -158,7 +157,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
   def assertResourceContent(id: TechniqueResourceId, isTemplate: Boolean, expectedContent: String) = {
     val ext = if(isTemplate) Some(TechniqueTemplate.templateExtension) else None
     reader.getResourceContent(id, ext) {
-        case None => ko("Can not open an InputStream for " + id.toString).succeed
+        case None => ko("Can not open an InputStream for " + id.displayPath).succeed
         case Some(is) => (IOUtils.toString(is, StandardCharsets.UTF_8) === expectedContent).succeed
       }.runNow
   }
@@ -173,7 +172,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
     "has no description" in rootCat.description === ""
     "has one policy technique..." in rootCat.techniqueIds.size === 1
     "...with name p_root_1" in rootCat.techniqueIds.head.name.value === "p_root_1"
-    "...with version 1.0" in rootCat.techniqueIds.head.version.toString === "1.0"
+    "...with version 1.0" in rootCat.techniqueIds.head.version.debugString === "1.0"
     "has 1 valid subcategory (because cat2 has no category.xml descriptor)" in rootCat.subCategoryIds.size === 1
     "...with name cat1" in rootCat.subCategoryIds.head === rootCat.id / "cat1"
   }
@@ -186,8 +185,8 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
     "has no description" in cat1.description === ""
     "has two techniques..." in cat1.techniqueIds.size === 2
     "...with the same name p1_1" in cat1.techniqueIds.forall(id => "p1_1" === id.name.value)
-    "...and version 1.0" in techniques(0).version === TechniqueVersion("1.0")
-    "...and version 2.0" in techniques(1).version === TechniqueVersion("2.0")
+    "...and version 1.0" in techniques(0).version === TechniqueVersionHelper("1.0")
+    "...and version 2.0" in techniques(1).version === TechniqueVersionHelper("2.0")
     "...with 3 templates" in {
       infos.techniques(techniques(0).name)(techniques(0).version).agentConfigs(0).templates.toSet === Set(
         TechniqueTemplate(tmlId, s"p1_1/1.0/${tmlId.name}.cf", true)
@@ -234,7 +233,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
       Seq("p1_1_1_1", "p1_1_1_2").forall(name => cat1_1_1.techniqueIds.exists(id => id.name.value == name)) === true
     }
     "...and the same version 1.0" in {
-      cat1_1_1.techniqueIds.forall(id => id.version === TechniqueVersion("1.0"))
+      cat1_1_1.techniqueIds.forall(id => id.version === TechniqueVersionHelper("1.0"))
     }
   }
 
@@ -249,7 +248,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
       git.commit.setMessage("Modify PT: cat1/p1_1/2.0").call
 
       val n = TechniqueName("p1_1")
-      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersion("2.0") -> VersionAdded)))
+      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersionHelper("2.0") -> VersionAdded)))
     }
 
     "and after a read, no more modification" in {
@@ -270,7 +269,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
       git.add.addFilepattern(name).call
       git.commit.setMessage("Modify file /libdir/file1.txt in technique: cat1/p1_1/1.0").call
       val n = TechniqueName("p1_1")
-      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersion("1.0") -> VersionUpdated)))
+      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersionHelper("1.0") -> VersionUpdated)))
     }
   }
 

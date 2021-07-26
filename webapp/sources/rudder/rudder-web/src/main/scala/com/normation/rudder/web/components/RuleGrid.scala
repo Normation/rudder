@@ -330,7 +330,7 @@ class RuleGrid(
             }
           } catch {
             case e:Exception =>
-              val msg = s"Error while trying to apply directive ${directiveApp.directive.id.value} on visible Rules"
+              val msg = s"Error while trying to apply directive ${directiveApp.directive.id.uid.value} on visible Rules"
               logger.error(s"$msg, cause is: ${e.getMessage()}")
               logger.debug(s"Error details:", e)
               Alert(msg)
@@ -465,12 +465,12 @@ class RuleGrid(
             case Some((activeTechnique, directive)) =>
               techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
                 case None =>
-                  Failure(s"Can not find Technique for activeTechnique with name ${activeTechnique.techniqueName} referenced in Rule with ID ${rule.id.value}")
+                  Failure(s"Can not find Technique for activeTechnique with name ${activeTechnique.techniqueName.value} referenced in Rule with ID ${rule.id.value}")
                 case Some(technique) =>
                   Full((directive, activeTechnique.toActiveTechnique(), technique))
               }
             case None => //it's an error if the directive ID is defined and found but it is not attached to an activeTechnique
-              val error = Failure(s"Can not find Directive with ID '${id.value}' referenced in Rule with ID '${rule.id.value}'")
+              val error = Failure(s"Can not find Directive with ID '${id.debugString}' referenced in Rule with ID '${rule.id.value}'")
               logger.debug(error.messageChain, error)
               error
           }
@@ -486,7 +486,7 @@ class RuleGrid(
             case Some(t) =>
               Full(t.toTargetInfo)
             case None =>
-              Failure(s"Can not find full information for target '${target}' referenced in Rule with ID '${rule.id.value}'")
+              Failure(s"Can not find full information for target '${target.target}' referenced in Rule with ID '${rule.id.value}'")
           }
        }.map(x => x.toSet)
 

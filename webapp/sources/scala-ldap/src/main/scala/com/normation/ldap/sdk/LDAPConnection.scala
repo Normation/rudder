@@ -363,7 +363,7 @@ sealed class RoLDAPConnection(
     } catchAll {
       //a no such object error simply means that the required LDAP tree is not in the directory
       case e:LDAPSearchException if(NO_SUCH_OBJECT == e.getResultCode) => None.succeed
-      case e:LDAPException => LDAPRudderError.BackendException(s"Can not get tree '${dn}': ${e.getDiagnosticMessage}", e).fail
+      case e:LDAPException => LDAPRudderError.BackendException(s"Can not get tree '${dn.toString}': ${e.getDiagnosticMessage}", e).fail
     }
   }
 }
@@ -683,7 +683,7 @@ class RwLDAPConnection(
     }
 
     for {
-      _   <- blocking(ldifFileLogger.tree(tree)) mapError (e => LDAPRudderError.BackendException(s"Error when loggin operation on LDAP tree: '${tree.parentDn}'", e))
+      _   <- blocking(ldifFileLogger.tree(tree)) mapError (e => LDAPRudderError.BackendException(s"Error when loggin operation on LDAP tree: '${tree.parentDn.toString}'", e))
              //process mofications
       now <- getTree(tree.root.dn)
       res <- (now match {

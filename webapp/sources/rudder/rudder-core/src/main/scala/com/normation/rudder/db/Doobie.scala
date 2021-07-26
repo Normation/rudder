@@ -46,14 +46,13 @@ import java.sql.SQLXML
 import scala.xml.Elem
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import com.normation.rudder.services.reports.RunAndConfigInfo
 import org.slf4j.LoggerFactory
 import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
-import doobie.postgres.implicits._ // it is necessary whatever intellij/scalac tells
+import doobie.postgres.implicits._  // it is necessary whatever intellij/scalac tells
 import doobie.implicits.javasql._
 import cats.data._
 import cats.effect.{IO => _, _}
@@ -63,6 +62,7 @@ import zio.interop.catz._
 import com.normation.errors._
 import com.normation.zio._
 import com.normation.box._
+import com.normation.rudder.domain.policies.DirectiveId
 import zio.blocking.Blocking
 
 /**
@@ -172,9 +172,14 @@ object Doobie {
   )
 
   implicit val ReportRead: Read[Reports] = {
-    type R = (DateTime, RuleId, DirectiveId, NodeId, Int, String, String, DateTime, String, String)
+    type R = (DateTime, RuleId, String, NodeId, Int, String, String, DateTime, String, String)
     Read[R].map(
-        (t: R      ) => Reports.factory(t._1,t._2,t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10))
+        (t: R      ) => {
+          DirectiveId.parse(t._3) match {
+            case Right(drid) => Reports.factory(t._1,t._2,drid,t._4,t._5,t._6,t._7,t._8,t._9,t._10)
+            case Left(err)   => throw new IllegalArgumentException(s"Error when unserializing a report from ruddersysevents base: can not parse directive ID: ${t._3}: ${err}")
+          }
+        })
   }
   implicit val ReportWrite: Write[Reports] = {
     type R = (DateTime, RuleId, DirectiveId, NodeId, Int, String, String, DateTime, String, String)

@@ -45,6 +45,11 @@ limitations under the License.
       <groupId>net.liftweb</groupId>
       <artifactId>lift-common_${scala-binary-version}</artifactId>
     </dependency>
+    <dependency>
+        <groupId>com.lihaoyi</groupId>
+        <artifactId>fastparse_${scala-binary-version}</artifactId>
+        <version>${fastparse-version}</version>
+    </dependency>
   </dependencies>
 
 </project>

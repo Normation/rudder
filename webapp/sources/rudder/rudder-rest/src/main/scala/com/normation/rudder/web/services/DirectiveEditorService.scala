@@ -37,15 +37,15 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.VariableSpec
-import com.normation.rudder.web.model.{ DirectiveEditor }
-import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.rudder.web.model.DirectiveEditor
 import net.liftweb.common._
-import Box._
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
+import com.normation.rudder.configuration.ConfigurationRepository
+import com.normation.box._
 
 trait DirectiveEditorService {
 
@@ -55,14 +55,14 @@ trait DirectiveEditorService {
    */
   def get(
     techniqueId: TechniqueId,
-    directiveId: DirectiveId,
+    directiveId: DirectiveUid,
     //withExecutionPlanning:Option[TemporalVariableVal] = None,
     withVars: Map[String, Seq[String]] = Map()): Box[DirectiveEditor]
 
 }
 
 class DirectiveEditorServiceImpl(
-  techniqueRepository: TechniqueRepository,
+  techniqueRepository: ConfigurationRepository,
   section2FieldService: Section2FieldService) extends DirectiveEditorService {
 
   /**
@@ -94,12 +94,12 @@ class DirectiveEditorServiceImpl(
 
   override def get(
     techniqueId: TechniqueId,
-    directiveId: DirectiveId,
+    directiveId: DirectiveUid,
     withVarValues: Map[String, Seq[String]] = Map()): Box[DirectiveEditor] = {
 
     for {
       //start by checking Directive existence
-      pol <- techniqueRepository.get(techniqueId) ?~! s"Error when looking for technique with ID '${techniqueId}'. Check technique name and version"
+      pol <- techniqueRepository.getTechnique(techniqueId).notOptional(s"Error when looking for technique with ID '${techniqueId.debugString}'. Check technique name and version").toBox
       allVars = pol.rootSection.copyWithoutSystemVars.getAllVariables
       vars = getVars(allVars, withVarValues)
       pe <- section2FieldService.initDirectiveEditor(pol, directiveId, vars)

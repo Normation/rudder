@@ -49,7 +49,7 @@ import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import net.liftweb.common.Box
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.policies.RuleId
@@ -403,5 +403,5 @@ trait ChangeRequestChangesUnserialisation {
         </globalParameters>
       </changeRequest>
    */
-  def unserialise(xml:XNode): Box[(Box[Map[DirectiveId,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges],Map[String,GlobalParameterChanges])]
+  def unserialise(xml:XNode): Box[(Box[Map[DirectiveUid,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges],Map[String,GlobalParameterChanges])]
 }

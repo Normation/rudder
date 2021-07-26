@@ -785,9 +785,9 @@ final case class ContextForNoAnswer(
           RunComplianceInfo.PolicyModeError.AgentAbortMessage(r.keyValue, r.message)
       }.toSet
       val mixed = ruleNodeStatusReports.collect { case r => r.directives.collect { case (_, d) if (d.compliance.badPolicyMode > 0) =>
-        RunComplianceInfo.PolicyModeError.TechniqueMixedMode(s"Error for node '${nodeId.value}' in directive '${d.directiveId.value}': either that directive is"+
-            " not sending the correct Policy Mode reports (for example Enforce reports in place of Audit one - does the directive's Technique is up-to-date?)"+
-            " or at least one other directive on that node based on the same Technique sends reports for a different Policy Mode")
+        RunComplianceInfo.PolicyModeError.TechniqueMixedMode(s"Error for node '${nodeId.value}' in directive '${d.directiveId.debugString}': either that directive is" +
+                                                             " not sending the correct Policy Mode reports (for example Enforce reports in place of Audit one - does the directive's Technique is up-to-date?)" +
+                                                             " or at least one other directive on that node based on the same Technique sends reports for a different Policy Mode")
       }.toSet }.flatten
 
       (abort ++ mixed).toList match {

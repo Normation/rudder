@@ -171,7 +171,7 @@ class HistorizationServiceImpl(
     val directives = directiveLib.allDirectives.flatMap { case (did, (fullActiveTechnique, directive)) =>
       fullActiveTechnique.techniques.get(directive.techniqueVersion) match {
         case None =>
-          HistorizationLogger.error(s"Could not find version ${directive.techniqueVersion} for Technique with name ${fullActiveTechnique.techniqueName} for Directive ${directive.id.value}")
+          HistorizationLogger.error(s"Could not find version '${directive.techniqueVersion.debugString}' for Technique with name ${fullActiveTechnique.techniqueName.value} for Directive ${directive.id.uid.value}")
           None
         case Some(t) => Some((did, (t, fullActiveTechnique, directive)))
       }
@@ -181,7 +181,7 @@ class HistorizationServiceImpl(
       val registered = historizationRepository.getAllOpenedDirectives().map(x => x.directiveId -> x).toMap
 
       val changed = directives.values.filter { case (technique, fullActiveTechnique, directive) =>
-        registered.get(directive.id.value) match {
+        registered.get(directive.id.uid.value) match {
           case None => true
           case Some(entry) =>
             (
@@ -196,7 +196,7 @@ class HistorizationServiceImpl(
          }
       }.toSeq.map { case (t,fat,d) => (d, fat.toActiveTechnique(), t) }
 
-      val stringDirectiveIds = directives.keySet.map( _.value)
+      val stringDirectiveIds = directives.keySet.map( _.uid.value)
 
       val closable = registered.keySet.filter(x => !stringDirectiveIds.contains(x))
 

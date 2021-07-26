@@ -161,7 +161,7 @@ final class AggregatedStatusReport private(
     //by rule or node and we don't want to loose the weight
     DirectiveStatusReport.merge(reports.toSeq.flatMap( _.directives.values))
   }
-  lazy val compliance = ComplianceLevel.sum(directives.map(_._2.compliance))
+  lazy val compliance                                          = ComplianceLevel.sum(directives.map(_._2.compliance))
 }
 
 object AggregatedStatusReport {
@@ -202,7 +202,7 @@ final case class RuleNodeStatusReport(
 
   override def toString() = s"""[[${nodeId.value}: ${ruleId.value}; run: ${agentRunTime.getOrElse("no time")};${configId.map(_.value).getOrElse("no config id")}->${expirationDate}]
   |  compliance:${compliance}
-  |  ${directives.values.toSeq.sortBy( _.directiveId.value ).map { x => s"${x}" }.mkString("\n  ")}]
+  |  ${directives.values.toSeq.sortBy( _.directiveId.serialize ).map { x => s"${x}" }.mkString("\n  ")}]
   |""".stripMargin('|')
 
 
@@ -247,7 +247,7 @@ final case class DirectiveStatusReport(
       components.values.flatMap( _.getValues(predicate) ).toSeq.map { case(s,v) => (directiveId,s,v) }
   }
 
-  override def toString() = s"""[${directiveId.value} =>
+  override def toString() = s"""[${directiveId.serialize} =>
                                |    ${components.values.toSeq.sortBy(_.componentName).mkString("\n    ")}
                                |]"""
 
@@ -595,7 +595,7 @@ object NodeStatusReportSerialization {
         ~ ("compliance"    -> r.compliance.pc.toJson)
         ~ ("numberReports" -> r.compliance.total)
         ~ ("directives"    -> r.directives.values.map { d =>
-            ( ("directiveId"   -> d.directiveId.value)
+            ( ("directiveId"   -> d.directiveId.serialize)
             ~ ("compliance"    -> d.compliance.pc.toJson)
             ~ ("numberReports" -> d.compliance.total)
             ~ ("components"    -> d.components.values.map(componentValueToJson))

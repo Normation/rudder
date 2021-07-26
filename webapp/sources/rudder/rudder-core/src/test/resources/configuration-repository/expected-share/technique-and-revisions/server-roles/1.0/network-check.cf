@@ -1,0 +1,96 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+bundle agent root_networks_check
+{
+  vars:
+      "policy_server_ip" string => host2ip("${server_info.policy_server}");
+    server_ip_found::
+      "policy_server_acl" slist => { "127.0.0.0/8", "::1",  "${policy_server_ip}" };
+    !server_ip_found::
+      "policy_server_acl" slist => { "127.0.0.0/8", "::1" };
+
+    any::
+      "defacl" slist => filter("0.0.0.0/0", "def.acl", "false", "true", "99999");
+
+      "nodes_acl_24" slist => maplist("Require ip ${this}", "defacl");
+
+      "nodes_generate_24"  string => join("${const.n}","nodes_acl_24");
+
+      "network_file[nodes_24]" string => "${g.rudder_base}/etc/rudder-networks-24.conf";
+
+      "network_file[policy_server_24]" string => "${g.rudder_base}/etc/rudder-networks-policy-server-24.conf";
+      "index"             slist => getindices("network_file");
+
+    server_ip_found::
+      "network_acl[policy_server_24]"  string => "Require local${const.n}Require ip ${policy_server_ip}";
+    !server_ip_found::
+      "network_acl[policy_server_24]"  string => "Require local";
+
+
+    has_all_granted::
+      "network_acl[nodes_24]"  string => "Require all granted";
+
+    !has_all_granted::
+      "network_acl[nodes_24]"  string => "${nodes_generate_24}";
+
+    redhat::
+      "apache_service" string => "httpd";
+
+    !redhat::
+      "apache_service" string => "apache2";
+
+    any::
+      "service_class_prefix" string => canonify("service_reload_${apache_service}");
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+      "has_all_granted" expression => some("0.0.0.0/0", "def.acl");
+      "server_ip_found" expression => regcmp("^[0-9.]+$|^[0-9a-fA-F:]+:[0-9a-fA-F:]+$", "${policy_server_ip}");
+    
+  files:
+      "${network_file[${index}]}"
+        create        => "true",
+        perms         => mog("600", "root", "0"),
+        edit_defaults => empty_backup,
+        edit_line     => insert_lines("${network_acl[${index}]}"),
+        classes       => kept_if_else("rudder_networks_ok", "rudder_networks_repaired","rudder_networks_failed"),
+        comment       => "Writing rudder apache configuration";
+
+  methods:
+    rudder_networks_repaired::
+      "any" usebundle => service_reload("${apache_service}");
+
+    pass3.rudder_networks_ok.!rudder_networks_repaired.!rudder_networks_failed::
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "${server_roles_common.directiveId}", "Check allowed networks configuration", "None", "Allowed networks configuration is correct");
+
+    pass3.rudder_networks_repaired.!rudder_networks_failed::
+      "any" usebundle => rudder_common_report("server-roles", "result_repaired", "${server_roles_common.directiveId}", "Check allowed networks configuration", "None", "Allowed networks configuration has been repaired");
+
+    pass3.rudder_networks_failed::
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "${server_roles_common.directiveId}", "Check allowed networks configuration", "None", "Allowed networks configuration could not be edited");
+
+    pass3::
+      "any" usebundle => rudder_common_report("server-roles", "log_repaired", "${server_roles_common.directiveId}", "Check allowed networks configuration", "None", "Apache has been reloaded successfully"),
+                   if => "${service_class_prefix}_repaired.!${service_class_prefix}_error";
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "${server_roles_common.directiveId}", "Check allowed networks configuration", "None", "Apache failed to reload"),
+                   if => "${service_class_prefix}_error";
+}

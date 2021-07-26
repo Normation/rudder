@@ -45,10 +45,12 @@ import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ChangesOnly
 import java.util.concurrent.TimeUnit
+
 import com.normation.rudder.domain.reports.NodeConfigIdInfo
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.github.benmanes.caffeine.cache.CacheLoader
+import com.normation.utils.Utils.DateToIsoString
 
 /**
  * Log information about compliance.
@@ -75,10 +77,10 @@ object ComplianceDebugLogger extends Logger {
   def node(id: NodeId) : Logger = nodeCache.get(id.value)
 
   implicit class NodeConfigIdInfoToLog(val n: NodeConfigIdInfo) extends AnyVal {
-    def toLog: String = s"${n.configId.value}/[${n.creation}-${n.endOfLife.fold("now")(_.toString)}]"
+    def toLog: String = s"${n.configId.value}/[${n.creation.toIsoStringNoMillis}-${n.endOfLife.fold("now")(_.toIsoStringNoMillis)}]"
   }
   implicit class NodeExpectedConfigToLog(val n: NodeExpectedReports) extends AnyVal {
-    def toLog: String = s"${n.nodeConfigId.value}/[${n.beginDate}-${n.endDate.fold("now")(_.toString)}]"
+    def toLog: String = s"${n.nodeConfigId.value}/[${n.beginDate.toIsoStringNoMillis}-${n.endDate.fold("now")(_.toIsoStringNoMillis)}]"
   }
 
   implicit class RunAndConfigInfoToLog(val c: RunAndConfigInfo) extends AnyVal {
@@ -89,7 +91,7 @@ object ComplianceDebugLogger extends Logger {
 
       case NoExpectedReport(lastRunDateTime, lastRunConfigId) =>
          s"expected NodeConfigId: not found |"+
-         s" last run: nodeConfigId: ${lastRunConfigId.fold("none")(_.value)} received at ${lastRunDateTime}"
+         s" last run: nodeConfigId: ${lastRunConfigId.fold("none")(_.value)} received at ${lastRunDateTime.toIsoStringNoMillis}"
 
       case NoReportInInterval(expectedConfigId, _) =>
          s"expected NodeConfigId: ${expectedConfigId.toLog}|"+
@@ -100,33 +102,33 @@ object ComplianceDebugLogger extends Logger {
          s" last run: none available (compliance mode is reports-disabled)]"
 
       case Pending(expectedConfigId, optLastRun, expirationDateTime) =>
-        s"until ${expirationDateTime} expected NodeConfigId: ${expectedConfigId.toLog} |"+
-        s" last run: ${optLastRun.fold("none (or too old)")(x => s"nodeConfigId: ${x._2.toLog} received at ${x._1}")}"
+        s"until ${expirationDateTime.toIsoStringNoMillis} expected NodeConfigId: ${expectedConfigId.toLog} |"+
+        s" last run: ${optLastRun.fold("none (or too old)")(x => s"nodeConfigId: ${x._2.toLog} received at ${x._1.toIsoStringNoMillis}")}"
 
       case UnexpectedVersion(lastRunDateTime, Some(lastRunConfigInfo), lastRunExpiration, expectedConfigId, _, _) =>
         s"expected NodeConfigId: ${expectedConfigId.toLog} |"+
-        s" last run: nodeConfigInfo: ${lastRunConfigInfo.toLog} received at ${lastRunDateTime} |"+
-        s" expired at ${lastRunExpiration}"
+        s" last run: nodeConfigInfo: ${lastRunConfigInfo.toLog} received at ${lastRunDateTime.toIsoStringNoMillis} |"+
+        s" expired at ${lastRunExpiration.toIsoStringNoMillis}"
 
       case UnexpectedUnknowVersion(lastRunDateTime, lastRunConfigId, expectedConfig, expectedExpiration, _) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |"+
-          s" last run: nodeConfigId: ${lastRunConfigId.value} received at ${lastRunDateTime} |"+
-          s" expired at ${expectedExpiration}"
+          s" last run: nodeConfigId: ${lastRunConfigId.value} received at ${lastRunDateTime.toIsoStringNoMillis} |"+
+          s" expired at ${expectedExpiration.toIsoStringNoMillis}"
 
-      case NoUserRulesDefined(lastRunDateTime, expectedConfig,lastRunConfigId, expectedExpiration, _) =>
+      case NoUserRulesDefined(lastRunDateTime, expectedConfig,lastRunConfigId, lastRunConfigInfo, _) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |"+
-          s" last run: nodeConfigId: ${lastRunConfigId.value} received at ${lastRunDateTime} |"+
-          s" expired at ${expectedExpiration}"
+          s" last run: nodeConfigId: ${lastRunConfigId.value} received at ${lastRunDateTime.toIsoStringNoMillis} |"+
+          s" last run config: ${lastRunConfigInfo.fold("none")(_.toLog)}"
 
       case UnexpectedNoVersion(lastRunDateTime, _, lastRunExpiration, expectedConfig, _, _) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |"+
-        s" last run: no configId, received at ${lastRunDateTime} |"+
-        s" expired at ${lastRunExpiration}"
+        s" last run: no configId, received at ${lastRunDateTime.toIsoStringNoMillis} |"+
+        s" expired at ${lastRunExpiration.toIsoStringNoMillis}"
 
       case x@ComputeCompliance(lastRunDateTime, expectedConfig, expirationDateTime) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |"+
-        s" last run: nodeConfigId: ${x.lastRunConfigId.value} received at ${lastRunDateTime} |"+
-        s" expired at ${expirationDateTime}"
+        s" last run: nodeConfigId: ${x.lastRunConfigId.value} received at ${lastRunDateTime.toIsoStringNoMillis} |"+
+        s" expired at ${expirationDateTime.toIsoStringNoMillis}"
 
     }
 

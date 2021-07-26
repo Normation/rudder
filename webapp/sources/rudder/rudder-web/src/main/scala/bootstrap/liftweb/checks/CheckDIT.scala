@@ -114,9 +114,9 @@ class CheckDIT(
       con <- ldap
       e   <- ditEntries.accumulate { e =>
                con.exists(e.dn).flatMap {
-                 case true  =>  BootstrapLogger.logPure.debug(s"DIT entry '${e.dn}' already in LDAP directory, nothing to do")
+                 case true  =>  BootstrapLogger.logPure.debug(s"DIT entry '${e.dn.toString()}' already in LDAP directory, nothing to do")
                  case false =>
-                   BootstrapLogger.logPure.info(s"Missing DIT entry '${e.dn}', trying to add it") *> con.save(e)
+                   BootstrapLogger.logPure.info(s"Missing DIT entry '${e.dn.toString}', trying to add it") *> con.save(e)
                }
              }
     } yield {
@@ -149,7 +149,7 @@ class CheckDIT(
       ok  <- ZIO.foreach(dns) { dn =>
                for {
                  exists <- con.exists(dn)
-                 res    <- ZIO.when(!exists) { Inconsistency(s"Missing required entry '${dn}'. This is most likelly because Rudder was not initialized. Please run /opt/rudder/bin/rudder-init to set it up.").fail }
+                 res    <- ZIO.when(!exists) { Inconsistency(s"Missing required entry '${dn.toString}'. This is most likelly because Rudder was not initialized. Please run /opt/rudder/bin/rudder-init to set it up.").fail }
                } yield {
                  res
                }

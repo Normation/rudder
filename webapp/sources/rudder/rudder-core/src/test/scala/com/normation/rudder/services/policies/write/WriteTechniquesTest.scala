@@ -68,6 +68,9 @@ import com.normation.rudder.services.policies.Policy
 
 import java.nio.charset.StandardCharsets
 import com.github.ghik.silencer.silent
+import com.normation.GitVersion.Revision
+import com.normation.cfclerk.domain.TechniqueResourceIdByName
+import com.normation.cfclerk.domain.TechniqueResourceIdByPath
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.services.policies.MergePolicyService
@@ -83,7 +86,7 @@ import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.file
  * To see values for gitRoot, ptLib, etc, see at the end
  * of that file.
  */
-object TestSystemData {
+class TestSystemData {
   //make tests more similar than default rudder install
   val hookIgnore = """.swp, ~, .bak,
  .cfnew   , .cfsaved  , .cfedited, .cfdisabled, .cfmoved,
@@ -147,7 +150,7 @@ object TestSystemData {
 
   //an utility class for filtering file lines given a regex,
   //used in the file content matcher
-final case class RegexFileContent(regex: List[String]) extends LinesContent[File] {
+  final case class RegexFileContent(regex: List[String]) extends LinesContent[File] {
     val patterns = regex.map(_.r.pattern)
 
     override def lines(f: File): Seq[String] = {
@@ -209,7 +212,8 @@ final case class RegexFileContent(regex: List[String]) extends LinesContent[File
 
 trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll {
 
-  import TestSystemData._
+  val testSystemData = new TestSystemData()
+  import testSystemData._
   import data._
 
    /*
@@ -233,7 +237,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
   def assertResourceContent(id: TechniqueResourceId, isTemplate: Boolean, expectedContent: String) = {
     val ext = if(isTemplate) Some(TechniqueTemplate.templateExtension) else None
     reader.getResourceContent(id, ext) {
-        case None     => ko("Can not open an InputStream for " + id.toString).succeed
+        case None     => ko("Can not open an InputStream for " + id.displayPath).succeed
         case Some(is) => (IOUtils.toString(is, StandardCharsets.UTF_8) === expectedContent).succeed
       }.runNow
   }
@@ -257,7 +261,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
 
 @RunWith(classOf[JUnitRunner])
 class WriteSystemTechniquesTest extends TechniquesTest{
-  import TestSystemData._
+  import testSystemData._
   import data._
 
   val parallelism = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors()/2)
@@ -470,6 +474,22 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       compareWith(rootPath.getParentFile/cfeNode.id.value, "node-gen-var-def-override", Nil)
     }
   }
+}
+
+@RunWith(classOf[JUnitRunner])
+class WriteSystemTechniques500Test extends TechniquesTest{
+  import testSystemData._
+  import data._
+
+  val parallelism = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors()/2)
+
+  // uncomment to have timing information
+//  org.slf4j.LoggerFactory.getLogger("policy.generation").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.DEBUG)
+//  org.slf4j.LoggerFactory.getLogger("policy.generation.timing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+
+  PolicyGenerationLogger.debug(s"Max parallelism: ${parallelism}")
+
+  sequential
 
   "We must ensure that boolean system value is correctly interpreted as a boolean" should {
 
@@ -539,13 +559,108 @@ class WriteSystemTechniquesTest extends TechniquesTest{
         , Set(root.id, cfeNode.id)
         , Map(root.id -> rnc, cfeNode.id -> cfeNC)
         , Map(root.id -> rnc.nodeInfo, cfeNode.id -> cfeNC.nodeInfo)
-        , Map(root.id -> NodeConfigId("root-cfg-id-500"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500"))
+        , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500"))
         , globalPolicyMode, DateTime.now, parallelism
       )
 
       (writen mustFull) and
         compareWith(rootPath.getParentFile/cfeNode.id.value, "node-cfe-with-500-directives", Nil)
     }
+  }
+
+}
+
+
+@RunWith(classOf[JUnitRunner])
+class WriteSystemTechniqueWithRevisionTest extends TechniquesTest{
+  import testSystemData._
+  import data._
+
+  val parallelism = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors()/2)
+    val rnc = rootNodeConfig.copy(
+        policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode), serverRole, distributePolicy, inventoryAll))
+      , nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
+      , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+    )
+
+    val cfeNC = cfeNodeConfig.copy(
+        nodeInfo    = cfeNode
+      , policies    = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, gvd1, gvd2))
+      , nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
+    )
+
+  // uncomment to have timing information
+//  org.slf4j.LoggerFactory.getLogger("policy.generation").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+//  org.slf4j.LoggerFactory.getLogger("policy.generation.timing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+
+  PolicyGenerationLogger.debug(s"Max parallelism: ${parallelism}")
+
+  sequential
+
+
+  /*
+   * this test modify some things in techinques stored in config-repo and check that we do have a different output
+   * with different revision (ie that we don't have the modified thing in template, but the original one).
+   * It can't check for directive revision since we don't store them here.
+   */
+  "Check that revision work for techniques" should {
+    import com.softwaremill.quicklens._
+    val APPENED_TEXT = "# the file is modified on HEAD\n"
+
+    import scala.jdk.CollectionConverters._
+    def getCurrentCommitId = (repo.git.log().setMaxCount(1).call()
+      .asScala.headOption.getOrElse(throw new RuntimeException("Error in test assumption: can not get current commit"))
+      .getId
+    )
+    // change content of configuration-repository/techniques/systemSettings/misc/clockConfiguration/3.0/clockConfiguration.st
+    // and commit it
+    def updateTemplate(rootPath: File): Unit = {
+      val clockTemplate = new File(rootPath, "configuration-repository/techniques/systemSettings/misc/clockConfiguration/3.0/clockConfiguration.st")
+      better.files.File(clockTemplate.getAbsolutePath).append(APPENED_TEXT)(StandardCharsets.UTF_8)
+      // commit
+      repo.git.commit().setAll(true).setMessage("Update template file").call()
+    }
+
+    def writeNodeConfigWithUserDirectives(promiseWritter: PolicyWriterService, userDrafts: BoundPolicyDraft*) = {
+      val rnc = baseRootNodeConfig.copy(
+          policies = policies(baseRootNodeConfig.nodeInfo, baseRootDrafts ++ userDrafts)
+          //testing escape of "
+        , parameters = baseRootNodeConfig.parameters + ParameterForConfiguration("ntpserver", """pool."ntp".org""")
+     )
+
+      // Actually write the promise files for the root node
+      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc),  Map(root.id -> rnc.nodeInfo), Map(root.id -> NodeConfigId("root-cfg-id")), globalPolicyMode, DateTime.now, parallelism)
+    }
+
+    def changeRev(draft: BoundPolicyDraft, rev: Revision): BoundPolicyDraft = {
+      // need to change in technique and policyId and all resources - usually, both depend from one other each other.
+      draft
+        .modify(_.id.techniqueVersion.rev).setTo(rev)
+        .modify(_.technique.id.version.rev).setTo(rev)
+        .modify(_.technique.agentConfigs.each.templates.each.id).using {
+          case TechniqueResourceIdByName(id, name)         =>
+            TechniqueResourceIdByName(id.modify(_.version.rev).setTo(rev), name)
+          case TechniqueResourceIdByPath(parents, _, name) =>
+            TechniqueResourceIdByPath(parents, rev, name)
+        }
+    }
+
+    "for a directive with a revision specified for technique" in {
+      val (rootPath, writter) = getPromiseWritter("technique-and-revisions")
+      val initCommit = getCurrentCommitId.getName
+      updateTemplate(abstractRoot)
+      val head = getCurrentCommitId.getName
+      // specify technique revision to use in policy
+      val revisedClock = changeRev(clock, Revision(initCommit))
+      (initCommit must be_!==(head)) and
+      (writeNodeConfigWithUserDirectives(writter, revisedClock) mustFull) and
+      compareWith(rootPath, "technique-and-revisions",
+           """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
+        :: s""".*directive1.*enforce.*merged.*3.0.*Clock Configuration.*""" // in rudder-directives.csv
+        :: Nil
+      )
+    }
+
   }
 
 }

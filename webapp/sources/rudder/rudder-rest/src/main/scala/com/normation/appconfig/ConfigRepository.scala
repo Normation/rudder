@@ -81,7 +81,7 @@ class LdapConfigRepository(
       con        <- ldap
       entries    <- con.searchSub(rudderDit.APPCONFIG.dn, IS(OC_PROPERTY))
       properties <- ZIO.foreach(entries) { entry =>
-                      mapper.entry2RudderConfig(entry).toIO.chainError(s"Error when transforming LDAP entry into an application parameter. Entry: ${entry}")
+                      mapper.entry2RudderConfig(entry).toIO.chainError(s"Error when transforming LDAP entry into an application parameter. Entry: ${entry.toLDIFString()}")
                     }
     } yield {
       properties
@@ -107,7 +107,7 @@ class LdapConfigRepository(
           for {
             con       <- ldap
             propEntry =  mapper.rudderConfig2Entry(property)
-            result    <- con.save(propEntry).chainError(s"Error when saving parameter entry in repository: ${propEntry}")
+            result    <- con.save(propEntry).chainError(s"Error when saving parameter entry in repository: ${propEntry.toLDIFString()}")
             eventLog  <-
               modifyGlobalPropertyInfo match {
                 case Some(info) =>

@@ -1,0 +1,216 @@
+---
+description: Clone a directive clone with a revision
+method: PUT
+url: /api/latest/directives
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "source": "16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
+    "techniqueRevision": "VALID-REV",
+    "id": "00000000-0000-4e4a-87b6-d0bcdfb4019f",
+    "displayName":"clone from api of new package management with revision",
+    "enabled": true
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"cloneDirective",
+      "id":"00000000-0000-4e4a-87b6-d0bcdfb4019f",
+      "result":"success",
+      "data":{
+        "directives":[
+          {
+            "id":"00000000-0000-4e4a-87b6-d0bcdfb4019f",
+            "displayName":"clone from api of new package management with revision",
+            "shortDescription":"",
+            "longDescription":"",
+            "techniqueName":"packageManagement",
+            "techniqueVersion":"1.0+VALID-REV",
+            "parameters":{
+              "section":{
+              "name":"sections",
+                "sections":[
+                  {
+                    "section":{
+                      "name":"Package",
+                      "vars":[
+                        {
+                          "var":{
+                            "name":"PACKAGE_LIST",
+                            "value":"htop"
+                          }
+                        },
+                        {
+                          "var":{
+                            "name":"PACKAGE_STATE",
+                            "value":"present"
+                          }
+                        }
+                      ],
+                      "sections":[
+                        {
+                          "section":{
+                            "name":"AN OTHER REVISION OF TECHNIQUE PACKAGE MANAGEMENT",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_VERSION",
+                                  "value":"latest"
+                                }
+                              },
+                              {
+                                "var":{
+                                  "name":"PACKAGE_VERSION_SPECIFIC",
+                                  "value":""
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section":{
+                            "name":"Package architecture",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_ARCHITECTURE",
+                                  "value":"default"
+                                }
+                              },
+                              {
+                                "var":{
+                                  "name":"PACKAGE_ARCHITECTURE_SPECIFIC",
+                                  "value":""
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section":{
+                            "name":"Package manager",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_MANAGER",
+                                  "value":"default"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section":{
+                            "name":"Post-modification script",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_POST_HOOK_COMMAND",
+                                  "value":""
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section":{
+                      "name":"Package",
+                      "vars":[
+                        {
+                          "var":{
+                            "name":"PACKAGE_LIST",
+                            "value":"jq"
+                          }
+                        },
+                        {
+                          "var":{
+                            "name":"PACKAGE_STATE",
+                            "value":"present"
+                          }
+                        }
+                      ],
+                      "sections":[
+                        {
+                          "section":{
+                            "name":"AN OTHER REVISION OF TECHNIQUE PACKAGE MANAGEMENT",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_VERSION",
+                                  "value":"latest"
+                                }
+                              },
+                              {
+                                "var":{
+                                  "name":"PACKAGE_VERSION_SPECIFIC",
+                                  "value":""
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section":{
+                            "name":"Package architecture",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_ARCHITECTURE",
+                                  "value":"default"
+                                }
+                              },
+                              {
+                                "var":{
+                                  "name":"PACKAGE_ARCHITECTURE_SPECIFIC",
+                                  "value":""
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section":{
+                            "name":"Package manager",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_MANAGER",
+                                  "value":"default"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section":{
+                            "name":"Post-modification script",
+                            "vars":[
+                              {
+                                "var":{
+                                  "name":"PACKAGE_POST_HOOK_COMMAND",
+                                  "value":""
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "priority":5,
+            "enabled":false,
+            "system":false,
+            "policyMode":"default",
+            "tags":[]
+          }
+        ]
+      }
+    }

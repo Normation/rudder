@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2016 Normation SAS
+* Copyright 2011 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -34,27 +34,15 @@
 *
 *************************************************************************************
 */
+package com.normation.cfclerk.domain
 
-package com.normation.rudder.rest
+object TechniqueVersionHelper {
 
-import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner.JUnitRunner
-
-import net.liftweb.common.Full
-import net.liftweb.http.PlainTextResponse
-import com.normation.rudder.rest.v1.RestStatus
-
-@RunWith(classOf[JUnitRunner])
-class RestStatusTest extends Specification {
-
-  "testing status REST API" should {
-    "be correct" in {
-      RestTestSetUp.testGET("/api/status") { req =>
-       RestStatus(req)() must beEqualTo(Full(PlainTextResponse(
-         """OK
-           |""".stripMargin)))
-      }
+  def apply(value: String): TechniqueVersion = {
+    TechniqueVersion.parse(value) match {
+      case Right(v)  => v
+      case Left(err) => throw new Exception(s"Error when parsing technique value in test: ${err}")
     }
   }
+
 }

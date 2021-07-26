@@ -601,7 +601,7 @@ final case class ReportAndNodeMapping(
   , val nodeJoinKey         : Long
   , val ruleId              : RuleId
   , val serial              : Int
-  , val directiveId         : DirectiveId
+  , val directiveId         : DirectiveUid
   , val component           : String
   , val cardinality         : Int
   , val componentsValues    : Seq[String]
@@ -617,7 +617,7 @@ final case class ReportMapping(
   , val nodeJoinKey         : Int
   , val ruleId              : RuleId
   , val serial              : Int
-  , val directiveId         : DirectiveId
+  , val directiveId         : DirectiveUid
   , val component           : String
   , val cardinality         : Int
   , val componentsValues    : Seq[String]

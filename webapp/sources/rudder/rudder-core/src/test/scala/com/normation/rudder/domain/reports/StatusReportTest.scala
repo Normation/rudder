@@ -38,9 +38,11 @@
 package com.normation.rudder.domain.reports
 
 import com.github.ghik.silencer.silent
+import com.normation.GitVersion
 
 import scala.io.Source
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import org.junit.runner.RunWith
@@ -60,7 +62,7 @@ import com.normation.rudder.services.policies.NodeConfigData
 class StatusReportTest extends Specification {
   private[this] implicit def s2n(s: String): NodeId = NodeId(s)
   private[this] implicit def r2n(s: String): RuleId = RuleId(s)
-  private[this] implicit def d2n(s: String): DirectiveId = DirectiveId(s)
+  private[this] implicit def d2n(s: String): DirectiveId = DirectiveId(DirectiveUid(s), GitVersion.defaultRev)
 
   sequential
 
@@ -335,7 +337,7 @@ class StatusReportTest extends Specification {
       val parsed = l.split(",").map( _.trim).toList
       parsed match {
         case n :: r :: _ :: d :: c :: v :: uv :: t :: m :: Nil =>
-          Some(RuleNodeStatusReport(n, r, None, None, Map(DirectiveId(d) ->
+          Some(RuleNodeStatusReport(n, r, None, None, Map(DirectiveId(DirectiveUid(d)) ->
             DirectiveStatusReport(d, Map(c ->
               ValueStatusReport(c, Map(uv ->
                 ComponentValueStatusReport(v, uv, List(

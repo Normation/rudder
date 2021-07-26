@@ -1,0 +1,49 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# This file is the main entry points for the bundle sequence for 
+# Rudder user directives. It is actually a list of method calls, and not
+# a bundle sequence, which allows to add the technique or directives 
+# names as promiser. 
+
+body file control {
+
+  inputs => {
+    "clockConfiguration/3.0/clockConfiguration.cf",
+  };
+
+}
+
+
+bundle agent rudder_directives {
+  # The directive sequence will be correctly indented by the generated variable so we can support multiline variable
+  methods:
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => set_dry_run_mode("false");
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => run_directive1;
+      "clean_mode"                                                     usebundle => set_dry_run_mode("false");
+}
+bundle agent run_directive1
+{
+  methods:
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => rudder_reporting_context("directive1","rule1","clockConfiguration");
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => disable_reporting;
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => check_clock_configuration;
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => clean_reporting_context;
+
+}
+

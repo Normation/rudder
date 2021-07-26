@@ -245,7 +245,7 @@ class ModificationValidationPopup(
       case _ =>
         item match {
           case Left(directiveChange) =>
-            dependencyService.directiveDependencies(directiveChange.newDirective.id, groupLib.toBox).map(_.rules ++ directiveChange.baseRules)
+            dependencyService.directiveDependencies(directiveChange.newDirective.id.uid, groupLib.toBox).map(_.rules ++ directiveChange.baseRules)
 
           case Right(nodeGroupChange) =>
             dependencyService.targetDependencies(GroupTarget(nodeGroupChange.newGroup.id)).map( _.rules)
@@ -442,7 +442,7 @@ class ModificationValidationPopup(
   ) : Box[Option[ChangeRequestDirectiveDiff]] = {
 
     techniqueRepo.get(TechniqueId(techniqueName,directive.techniqueVersion)).map(_.rootSection) match {
-      case None => Failure(s"Could not get root section for technique ${techniqueName.value} version ${directive.techniqueVersion}")
+      case None => Failure(s"Could not get root section for technique ${techniqueName.value} version ${directive.techniqueVersion.debugString}")
       case Some(rootSection) =>
         initialState match {
           case None =>
@@ -512,7 +512,7 @@ class ModificationValidationPopup(
               , crReasons.map( _.get ).getOrElse("")
               , techniqueName
               , oldRootSection
-              , directive.id
+              , directive.id.uid
               , optOriginal
               , diff
               , CurrentUser.actor

@@ -247,7 +247,7 @@ class RuleCompliance (
         reports      <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
         allRules     <- roRuleRepository.getAll().toBox
         groups       <- getGroups().toBox
-        updatedRule  <- allRules.find(_.id == rule.id).notOptional(s"The rule '${rule.id}' is missing").toBox
+        updatedRule  <- allRules.find(_.id == rule.id).notOptional(s"The rule '${rule.id.value}' is missing").toBox
         directiveLib <- getFullDirectiveLib().toBox
         allNodeInfos <- getAllNodeInfos()
         globalMode   <- configService.rudder_global_policy_mode().toBox

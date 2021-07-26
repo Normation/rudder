@@ -73,7 +73,7 @@ class ReportDisplayer(
   , directiveRepository : RoDirectiveRepository
   , techniqueRepository : TechniqueRepository
   , configService       : ReadConfigService
-  , logDisplayer: LogDisplayer
+  , logDisplayer        : LogDisplayer
 ) extends Loggable {
 
   private[this] val getAllNodeInfos = RudderConfig.nodeInfoService.getAll _
@@ -594,8 +594,8 @@ class ReportDisplayer(
       (_, directive) <- DirectiveStatusReport.merge(nodeStatusReports.reports.toIterable.flatMap(_.directives.values))
       value          <- directive.getValues(v => v.status == status)
     } yield {
-      val (techName, techVersion) = directiveLib.allDirectives.get(value._1).map { case(tech,dir) =>
-        (tech.techniqueName.value, dir.techniqueVersion.toString)
+      val (techName, techVersion) = directiveLib.allDirectives.get(value._1).map { case(tech, dir) =>
+        (tech.techniqueName.value, dir.techniqueVersion.serialize)
       }.getOrElse(("Unknown technique", "N/A"))
 
       ((value._2, value._3.componentValue, value._3.messages.flatMap(_.message)), techName, techVersion)

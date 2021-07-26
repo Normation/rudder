@@ -1,0 +1,6 @@
+{
+  "parameters":{
+    "ntpserver":"pool.\"ntp\".org",
+    "rudder_file_edit_header":"### Managed by Rudder, edit with care ###"
+  }
+}

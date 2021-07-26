@@ -39,17 +39,16 @@ package com.normation.cfclerk.services.impl
 
 import scala.xml._
 import com.normation.cfclerk.domain._
+
 import java.io.FileNotFoundException
-
 import org.xml.sax.SAXParseException
-import java.io.File
 
+import java.io.File
 import net.liftweb.common._
 
 import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters._
 import java.io.InputStream
-
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.lib.ObjectId
 
@@ -59,14 +58,16 @@ import com.normation.cfclerk.services._
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
-import java.io.IOException
 
+import java.io.IOException
 import com.normation.errors._
 import com.normation.zio._
 import zio._
 import zio.syntax._
 import GitTechniqueReader._
+import com.normation.GitVersion
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
+import com.normation.rudder.repository.xml.GitFindUtils
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.lib.ObjectStream
 
@@ -131,13 +132,13 @@ object GitTechniqueReader {
 }
 
 class GitTechniqueReader(
-  techniqueParser            : TechniqueParser,
-  revisionProvider           : GitRevisionProvider,
-  repo                       : GitRepositoryProvider,
-  val techniqueDescriptorName: String, //full (with extension) conventional name for policy descriptor
-  val categoryDescriptorName : String, //full (with extension) name of the descriptor for categories
-  val relativePathToGitRepos : Option[String],
-  val directiveDefaultName   : String //full (with extension) name of the file containing default name for directive (default-directive-names.conf)
+    techniqueParser            : TechniqueParser
+  , revisionProvider           : GitRevisionProvider
+  , repo                       : GitRepositoryProvider
+  , val techniqueDescriptorName: String //full (with extension) conventional name for policy descriptor
+  , val categoryDescriptorName : String //full (with extension) name of the descriptor for categories
+  , val relativePathToGitRepos : Option[String]
+  , val directiveDefaultName   : String //full (with extension) name of the file containing default name for directive (default-directive-names.conf)
 ) extends TechniqueReader with Loggable {
 
   // semaphore to have consistent read
@@ -180,7 +181,7 @@ class GitTechniqueReader(
       res            <- processRevTreeId(repo.db, currentRevTree).catchAll {
                           case err @ SystemError(m, NoRootCategory(msg)) =>
                             for {
-                              _            <- TechniqueReaderLoggerPure.error(s"The stored Git revision '${currentRevTree}' does not provide a root category.xml, which is mandatory. Error message was: ${err.fullMsg}")
+                              _            <- TechniqueReaderLoggerPure.error(s"The stored Git revision '${currentRevTree.toString}' does not provide a root category.xml, which is mandatory. Error message was: ${err.fullMsg}")
                               newRevTreeId <- revisionProvider.getAvailableRevTreeId
                               res <- if(newRevTreeId != currentRevTree) {
                                         TechniqueReaderLoggerPure.error(s"Trying to load last available revision of the technique library to unstuck the situation.") *>
@@ -321,7 +322,7 @@ class GitTechniqueReader(
 
   override def getMetadataContent[T](techniqueId: TechniqueId)(useIt : Option[InputStream] => IOResult[T]) : IOResult[T] = {
     //build a treewalk with the path, given by metadata.xml
-    val path = techniqueId.toString + "/" + techniqueDescriptorName
+    val path = techniqueId.serialize + "/" + techniqueDescriptorName
     //has package id are unique among the whole tree, we are able to find a
     //template only base on the packageId + name.
 
@@ -340,12 +341,12 @@ class GitTechniqueReader(
                          }
                          ids match {
                            case Nil =>
-                             logger.error("Metadata file %s was not found for technique with id %s.".format(techniqueDescriptorName, techniqueId))
+                             logger.error(s"Metadata file ${techniqueDescriptorName} was not found for technique with id ${techniqueId.debugString}.")
                              Option.empty[ObjectStream]
                            case h :: Nil =>
                              Some(repo.db.open(h).openStream)
                            case _ =>
-                             logger.error(s"There is more than one Technique with ID '${techniqueId}', what is forbidden. Please check if several categories have that Technique, and rename or delete the clones.")
+                             logger.error(s"There is more than one Technique with ID '${techniqueId.debugString}', what is forbidden. Please check if several categories have that Technique, and rename or delete the clones.")
                              Option.empty[ObjectStream]
                          }
                        } catch {
@@ -362,15 +363,16 @@ class GitTechniqueReader(
 
   override def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(useIt : Option[InputStream] => IOResult[T]) : IOResult[T] = {
     //build a treewalk with the path, given by TechniqueTemplateId
-    val filenameFilter = {
+    //here, we don't use rev in path, it will be used (if necessary) during walk
+    val (rev, filenameFilter) = {
       val name = techniqueResourceId.name + postfixName.getOrElse("")
       techniqueResourceId match {
         case TechniqueResourceIdByName(tid, _) =>
-          new FileTreeFilter(canonizedRelativePath, s"${tid.name}/${tid.version.toString}/${name}")
-        case TechniqueResourceIdByPath(Nil, _) =>
-          new FileTreeFilter(None, name)
-        case TechniqueResourceIdByPath(parents, _) =>
-          new FileTreeFilter(Some(parents.mkString("/")), name)
+          (tid.version.rev, new FileTreeFilter(canonizedRelativePath, s"${tid.withDefaultRev.serialize}/${name}"))
+        case TechniqueResourceIdByPath(Nil, rev, _) =>
+          (rev, new FileTreeFilter(None, name))
+        case TechniqueResourceIdByPath(parents, rev, _) =>
+          (rev, new FileTreeFilter(Some(parents.mkString("/")), name))
       }
     }
 
@@ -379,7 +381,10 @@ class GitTechniqueReader(
 
     val managed = Managed.make(
       for {
-        currentId <- revisionProvider.currentRevTreeId
+        currentId <- rev match {
+                       case GitVersion.defaultRev => revisionProvider.currentRevTreeId
+                       case r                     => GitFindUtils.findRevTreeFromRevString(repo.db, r.value)
+                     }
         optStream <- IOResult.effect {
                        try {
                          //now, the treeWalk
@@ -393,7 +398,7 @@ class GitTechniqueReader(
                          }
                          ids match {
                            case Nil =>
-                             logger.error(s"Template with id ${techniqueResourceId.toString} was not found")
+                             logger.error(s"Template with id ${techniqueResourceId.displayPath} was not found")
                              Option.empty[ObjectStream]
                            case h :: Nil =>
                              Some(repo.db.open(h).openStream)
@@ -403,7 +408,7 @@ class GitTechniqueReader(
                          }
                        } catch {
                          case ex:FileNotFoundException =>
-                           logger.debug( () => s"Technique Template ${techniqueResourceId.toString} does not exist", ex)
+                           logger.debug( () => s"Technique Template ${techniqueResourceId.displayPath} does not exist", ex)
                            Option.empty[ObjectStream]
                        }
                     }
@@ -491,7 +496,7 @@ class GitTechniqueReader(
       //ok, return the result in its immutable format
       TechniquesInfo(
           rootCategory       = techniqueInfos.rootCategory.get
-        , gitRevId           = id.name()
+        , gitRev           = id.name()
         , techniquesCategory = techniqueInfos.techniquesCategory.toMap
         , techniques         = techniqueInfos.techniques.map { case(k,v) => (k, SortedMap.empty[TechniqueVersion,Technique] ++ v)}.toMap
         , subCategories      = Map[SubTechniqueCategoryId, SubTechniqueCategory]() ++ techniqueInfos.subCategories
@@ -637,7 +642,7 @@ class GitTechniqueReader(
                           case Some(sub:SubTechniqueCategory) =>
                             TechniqueReaderLoggerPure.error("Bad type for root category in the Technique Library. Please check the hierarchy of categories") *>
                             SystemError("Error when processing techniques in configuration repository",
-                              NoRootCategory(s"Bad type for root category in the Technique Library, found: '${sub}'. Please check the hierarchy of categories")).fail
+                              NoRootCategory(s"Bad type for root category in the Technique Library, found: '${sub.name}' [id:${sub.id.toString}]. Please check the hierarchy of categories")).fail
                           case Some(r: RootTechniqueCategory) => r.succeed
                         }
       updateRoot     =  recBuildRoot(root, techniqueInfos, techniqueInfos.subCategories.keySet.toList)
@@ -671,7 +676,7 @@ class GitTechniqueReader(
   }
 
   private[this] val dummyTechnique = Technique(
-      TechniqueId(TechniqueName("dummy"),TechniqueVersion("1.0"))
+      TechniqueId(TechniqueName("dummy"), TechniqueVersion.parse("1.0").getOrElse(throw new RuntimeException("Version of dummy technique is not parsable")))
     , "dummy", "dummy", Nil, TrackerVariableSpec()
     , SectionSpec("ROOT"), None
  )
@@ -687,7 +692,7 @@ class GitTechniqueReader(
       catId match {
         case RootTechniqueCategoryId =>
           val cat = info.rootCategory.getOrElse(
-              throw new RuntimeException(s"Can not find the parent (root) category '${descriptorFile.getParent}' for package '${techniqueId.toString()}'")
+              throw new RuntimeException(s"Can not find the parent (root) category '${descriptorFile.getParent}' for technique '${techniqueId.debugString}'")
           )
           info.rootCategory = Some(cat.copy(techniqueIds = cat.techniqueIds.union(Set(techniqueId) )))
           true
@@ -698,19 +703,19 @@ class GitTechniqueReader(
               info.subCategories(sid) = cat.copy(techniqueIds = cat.techniqueIds.union(Set(techniqueId) ))
               true
             case None =>
-              logger.error(s"Can not find the parent (root) category '${descriptorFile.getParent}' for package '${techniqueId.toString()}'")
+              logger.error(s"Can not find the parent (root) category '${descriptorFile.getParent}' for technique '${techniqueId.debugString}'")
               false
           }
       }
     }
 
     val descriptorFile = new File(filePath)
-    val policyVersion = TechniqueVersion(descriptorFile.getParentFile.getName)
     val policyName = TechniqueName(descriptorFile.getParentFile.getParentFile.getName)
     val parentCategoryId = TechniqueCategoryId.buildId(descriptorFile.getParentFile.getParentFile.getParent )
-    val techniqueId = TechniqueId(policyName,policyVersion)
 
     for {
+      policyVersion <- ZIO.fromEither(TechniqueVersion.parse(descriptorFile.getParentFile.getName)).mapError(s => Unexpected(s))
+      techniqueId   = TechniqueId(policyName,policyVersion)
       pack <- if(parseDescriptor) loadDescriptorFile(is, filePath).flatMap(d => ZIO.fromEither(techniqueParser.parseXml(d, techniqueId)))
               else dummyTechnique.succeed
       info <- techniquesInfo.get
@@ -736,7 +741,6 @@ class GitTechniqueReader(
                     }
                 }
               }.fold ( err => err match {
-                case e : TechniqueVersionFormatException => s"Ignoring technique '${filePath}}' because the version format is incorrect. Error message was: ${e.getMessage}}".fail
                 case e : ConstraintException => s"Ignoring technique '${filePath}}' because the descriptor file is malformed. Error message was: ${e.getMessage}}".fail
                 case e : Exception => s"Error when processing technique '${filePath}}': ${e.getMessage}}".fail
               }
@@ -835,17 +839,17 @@ class GitTechniqueReader(
   private[this] def getTechniquePath(techniqueInfos: TechniquesInfo) : Set[(TechniquePath, TechniqueId)] = {
     val set = scala.collection.mutable.Set[(TechniquePath, TechniqueId)]()
     techniqueInfos.rootCategory.techniqueIds.foreach { id =>
-      set += ((TechniquePath( "/" + id.toString), id))
+      set += ((TechniquePath( "/" + id.serialize), id))
     }
     techniqueInfos.subCategories.foreach { case (id,cat) =>
       val path = id.toString
-      cat.techniqueIds.foreach { t => set += ((TechniquePath(path + "/" + t.toString), t)) }
+      cat.techniqueIds.foreach { t => set += ((TechniquePath(path + "/" + t.serialize), t)) }
     }
     //also add template "by path"
     val techniques = techniqueInfos.techniques.flatMap { case(_, set) => set.map { case(_, t) => t } }
     techniques.foreach { t =>
-      val byPath = t.agentConfigs.flatMap(cfg => cfg.templates.collect { case TechniqueTemplate(id@TechniqueResourceIdByPath(_,_),_,_) => id }) ++
-                   t.agentConfigs.flatMap(cfg => cfg.files.collect { case TechniqueFile(id@TechniqueResourceIdByPath(_,_),_,_) => id })
+      val byPath = t.agentConfigs.flatMap(cfg => cfg.templates.collect { case TechniqueTemplate(id@TechniqueResourceIdByPath(_,_,_),_,_) => id }) ++
+                   t.agentConfigs.flatMap(cfg => cfg.files.collect { case TechniqueFile(id@TechniqueResourceIdByPath(_,_,_),_,_) => id })
       byPath.foreach { resource =>
         //here, "/" is needed at the begining because diffEntry have one, so if we don't
         //add it, we won't find is back in modifiedTechnique and diffPathEntries

@@ -48,7 +48,8 @@ import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ScheduledJobLogger
-import org.joda.time.format.ISODateTimeFormat
+import com.normation.utils.Utils.DateToIsoString
+
 import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.utils.ParseMaxParallelism
@@ -169,7 +170,7 @@ class UpdateDynamicGroups(
         }
       } else {
         avoidedUpdate = avoidedUpdate + 1
-        logger.debug(s"No changes that can lead to a dynamic group update happened since ${lastUpdateTime.toString(ISODateTimeFormat.dateTime())} (total ${avoidedUpdate} times avoided)")
+        logger.debug(s"No changes that can lead to a dynamic group update happened since ${lastUpdateTime.toIsoStringNoMillis} (total ${avoidedUpdate} times avoided)")
       }
     }
 
@@ -226,8 +227,7 @@ class UpdateDynamicGroups(
         }
 
         //log some information
-        val format = ISODateTimeFormat.dateTimeNoMillis()
-        logger.debug(s"Dynamic group update in ${new Duration(end.getMillis - start.getMillis).toPeriod().toString} (started at ${start.toString(format)}, ended at ${end.toString(format)})")
+        logger.debug(s"Dynamic group update in ${new Duration(end.getMillis - start.getMillis).toPeriod().toString} (started at ${start.toIsoStringNoMillis}, ended at ${end.toIsoStringNoMillis})")
 
         for {
           result <- results

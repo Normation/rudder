@@ -36,6 +36,7 @@
 */
 package com.normation.rudder.domain.parameters
 
+import com.normation.GitVersion.Revision
 import com.normation.errors.PureResult
 import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.nodes.InheritMode
@@ -60,11 +61,11 @@ object GlobalParameter {
    * a JString *but* a string representing an actual JSON should be
    * used as json.
    */
-  def parse(name: String, value: String, mode: Option[InheritMode], description: String, provider: Option[PropertyProvider]): PureResult[GlobalParameter] = {
-    GenericProperty.parseConfig(name, value, mode, provider, Some(description)).map(c => new GlobalParameter(c))
+  def parse(name: String, rev: Revision, value: String, mode: Option[InheritMode], description: String, provider: Option[PropertyProvider]): PureResult[GlobalParameter] = {
+    GenericProperty.parseConfig(name, rev, value, mode, provider, Some(description)).map(c => new GlobalParameter(c))
   }
-  def apply(name: String, value: ConfigValue, mode: Option[InheritMode], description: String, provider: Option[PropertyProvider]): GlobalParameter = {
-    new GlobalParameter(GenericProperty.toConfig(name, value, mode, provider, Some(description)))
+  def apply(name: String, rev: Revision, value: ConfigValue, mode: Option[InheritMode], description: String, provider: Option[PropertyProvider]): GlobalParameter = {
+    new GlobalParameter(GenericProperty.toConfig(name, rev, value, mode, provider, Some(description)))
   }
 
 }

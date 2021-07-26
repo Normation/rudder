@@ -20,7 +20,8 @@
 
 package com.normation.utils
 
-import net.liftweb.common._
+import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
 
 /**
  * This is an utility object that
@@ -29,8 +30,12 @@ import net.liftweb.common._
  * Most methods deals with null dereferencing and
  * null/empty Strings management.
  */
-object Utils extends Loggable {
+object Utils {
 
+  implicit class DateToIsoString(private val dateTime: DateTime) {
+    def toIsoString = dateTime.toString(ISODateTimeFormat.basicDateTime())
+    def toIsoStringNoMillis = dateTime.toString(ISODateTimeFormat.basicDateTimeNoMillis())
+  }
 
   /**
    * Compare two lists of string as if they were two

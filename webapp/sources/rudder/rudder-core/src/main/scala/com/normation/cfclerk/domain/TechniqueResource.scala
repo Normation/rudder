@@ -37,6 +37,8 @@
 
 package com.normation.cfclerk.domain
 
+import com.normation.GitVersion.Revision
+
 
 /**
  * Representation of a technique resource id.
@@ -62,7 +64,7 @@ sealed trait TechniqueResourceId {
  * The name must not contain the extension.
  */
 final case class TechniqueResourceIdByName(techniqueId: TechniqueId, name: String) extends TechniqueResourceId {
-    def displayPath: String = techniqueId.toString() + "/" + name
+    def displayPath: String = techniqueId.serialize + "/" + name
 }
 
 /**
@@ -72,7 +74,7 @@ final case class TechniqueResourceIdByName(techniqueId: TechniqueId, name: Strin
  * For example, an empty list means that the template is in configuration-repository directory.
  * Name is an unix compliant file name, without the ".st" extension.
  */
-final case class TechniqueResourceIdByPath(parentDirectories: List[String], name: String) extends TechniqueResourceId {
+final case class TechniqueResourceIdByPath(parentDirectories: List[String], rev: Revision, name: String) extends TechniqueResourceId {
   def displayPath: String = parentDirectories.mkString("", "/", "/") + name
 }
 

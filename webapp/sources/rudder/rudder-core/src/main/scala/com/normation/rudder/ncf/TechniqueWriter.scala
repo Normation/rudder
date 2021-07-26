@@ -85,6 +85,8 @@ import com.normation.rudder.hooks.RunNuCommand
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.repository.WoDirectiveRepository
+
+import com.normation.box._
 import org.joda.time.DateTime
 
 trait NcfError extends RudderError {
@@ -150,16 +152,15 @@ class TechniqueWriter (
   private[this] val agentSpecific = new ClassicTechniqueWriter(basePath, parameterTypeService) :: new DSCTechniqueWriter(basePath, translater, parameterTypeService) :: Nil
 
   def deleteTechnique(techniqueName : String, techniqueVersion : String, deleteDirective : Boolean, modId : ModificationId, committer : EventActor) : IOResult[Unit] ={
-    val techniqueId = TechniqueId(TechniqueName(techniqueName), TechniqueVersion(techniqueVersion))
 
     def createCr(directive : Directive, rootSection : SectionSpec ) ={
-        val diff = DeleteDirectiveDiff(techniqueId.name, directive)
+        val diff = DeleteDirectiveDiff(TechniqueName(techniqueName), directive)
         ChangeRequestService.createChangeRequestFromDirective(
           s"Deleting technique ${techniqueName}/${techniqueVersion}"
           , ""
-          , techniqueId.name
+          , TechniqueName(techniqueName)
           , rootSection
-          , directive.id
+          , directive.id.uid
           , Some(directive)
           , diff
           , committer
@@ -172,6 +173,8 @@ class TechniqueWriter (
     }
 
     for {
+      techVers   <- ZIO.fromEither(TechniqueVersion.parse(techniqueVersion)).mapError(Unexpected)
+      techniqueId = TechniqueId(TechniqueName(techniqueName), techVers)
       directives <- readDirectives.getFullDirectiveLibrary().map(_.allActiveTechniques.values.filter(_.techniqueName.value == techniqueId.name.value).flatMap(_.directives).filter(_.techniqueVersion == techniqueId.version))
 
       technique  <- techniqueRepository.get(techniqueId).notOptional(s"No Technique with ID '${techniqueId.toString()}' found in reference library.")
@@ -480,7 +483,6 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
 
             params <- Control.sequence(method_info.parameters) {
               p =>
-                import  com.normation.box.EitherToBox
                 for {
                   (_,value) <- Box(call.parameters.find(_._1 == p.id))
                   escaped   <- parameterTypeService.translate(value, p.parameterType, AgentType.CfeCommunity).toBox

@@ -465,7 +465,7 @@ class RuleApiService2 (
         case None =>
           // create from scratch - base rule is the same with default values
           val category = restRule.category.getOrElse(RuleCategoryId("rootRuleCategory"))
-          val baseRule = Rule(ruleId, name, category)
+          val baseRule = Rule(ruleId, None, name, category)
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restRule.enabled.getOrElse(true)
 
@@ -712,7 +712,7 @@ class RuleApiService14 (
         case None =>
           // create from scratch - base rule is the same with default values
           val category = restRule.category.getOrElse("rootRuleCategory")
-          val baseRule = Rule(ruleId, name, RuleCategoryId(category))
+          val baseRule = Rule(ruleId, None, name, RuleCategoryId(category))
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restRule.enabled.getOrElse(true)
 

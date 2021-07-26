@@ -318,7 +318,7 @@ object LogFailedLogin {
     val headers = List("X-Forwarded-For", "Proxy-Client-IP", "WL-Proxy-Client-IP", "HTTP_CLIENT_IP", "HTTP_X_FORWARDED_FOR")
 
     //utility to display correctly the pair header:value
-    def show(t2: Tuple2[String, String]) = t2._1+":"+t2._2
+    def serialize(t2: Tuple2[String, String]) = t2._1+":"+t2._2
 
     // always returns the ip addr as seen from the server, and the list of other perhaps interesting info
     (
@@ -327,7 +327,7 @@ object LogFailedLogin {
           case null | "" => None
           case x => if(x.toLowerCase != "unknown") Some((header, x)) else None
         }
-      }.groupBy(_._2).map(x => show(x._2.head)).toList
+      }.groupBy(_._2).map(x => serialize(x._2.head)).toList
     ).mkString("|")
   }
 }
@@ -576,7 +576,7 @@ class RestAuthenticationFilter(
                   if(principal.isEnabled) {
                     principal.kind match {
                       case ApiAccountKind.System => // we don't want to allow system account kind from DB
-                        failsAuthentication(httpRequest, httpResponse, Inconsistency(s"A saved API account can not have the kind 'System': '${principal.name}'"))
+                        failsAuthentication(httpRequest, httpResponse, Inconsistency(s"A saved API account can not have the kind 'System': '${principal.name.value}'"))
                       case ApiAccountKind.PublicApi(authz, expirationDate) =>
                         expirationDate match {
                           case Some(date) if(DateTime.now().isAfter(date)) =>

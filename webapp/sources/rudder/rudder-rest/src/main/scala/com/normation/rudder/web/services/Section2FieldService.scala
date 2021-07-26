@@ -37,7 +37,7 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.web.model._
 import com.normation.cfclerk.domain._
 import net.liftweb.common._
@@ -58,7 +58,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
    */
   def initDirectiveEditor(
       policy          : Technique
-    , directiveId     : DirectiveId
+    , directiveId     : DirectiveUid
     , vars            : Seq[Variable]
   ): Box[DirectiveEditor] = {
 

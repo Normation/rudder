@@ -145,7 +145,7 @@ final case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:
             } else {
               Left(MalformedDN("Unexpected RDN for a software ID"))
             }
-          } else Left(MalformedDN(s"DN ${dn} does not belong to software inventories DN ${software.dn}"))
+          } else Left(MalformedDN(s"DN ${dn.toString} does not belong to software inventories DN ${software.dn.toString}"))
         }
     }
   }
@@ -200,7 +200,7 @@ final case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:
             } else {
               Left(InventoryMappingRudderError.MalformedDN("Unexpected RDN for a node ID"))
             }
-          } else Left(InventoryMappingRudderError.MalformedDN(s"DN '${dn}' does not belong to server inventories DN '${servers.dn}'"))
+          } else Left(InventoryMappingRudderError.MalformedDN(s"DN '${dn.toString}' does not belong to server inventories DN '${servers.dn.toString}'"))
       }
     }
 
@@ -220,7 +220,7 @@ final case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:
             } else {
               Left(InventoryMappingRudderError.MalformedDN("Unexpected RDN for a machine ID"))
             }
-          } else Left(InventoryMappingRudderError.MalformedDN(s"DN '${dn}' does not belong to machine inventories DN '${machines.dn}'"))
+          } else Left(InventoryMappingRudderError.MalformedDN(s"DN '${dn.toString}' does not belong to machine inventories DN '${machines.dn.toString}'"))
         }
     }
 

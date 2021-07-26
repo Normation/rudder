@@ -58,6 +58,7 @@ object LDAPConstants {
   val A_PKEYS = "publicKey"
   val A_AGENTS_NAME = "agentName"
   val A_DESCRIPTION = "description"
+  val A_REV_ID = "revision"
   val A_MODEL = "model"
   val A_FIRMWARE = "firmware"
   val A_SERIAL_NUMBER = "componentSerialNumber"

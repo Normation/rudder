@@ -214,7 +214,7 @@ response:
     {
       "action":"directiveDetails",
       "result":"error",
-      "errorDetails":"Inconsistency:Could not find Directive xxxxxxxx-2675-43b9-ab57-bfbab84346aa"
+      "errorDetails":"Inconsistency:Directive with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found"
     }
 ---
 description: List directives
@@ -228,38 +228,6 @@ response:
       "result":"success",
       "data":{
         "directives":[
-          {
-            "id":"gvd-directive2",
-            "displayName":"00.Generic Variable Def #2",
-            "shortDescription":"",
-            "longDescription":"",
-            "techniqueName":"genericVariableDefinition",
-            "techniqueVersion":"2.0",
-            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Variable definition","vars":[{"var":{"name":"GENERIC_VARIABLE_CONTENT","value":"value from gvd #2 should be second"}},{"var":{"name":"GENERIC_VARIABLE_NAME","value":"var2"}}]}}]}},
-            "priority":10,
-            "enabled":false,
-            "system":false,
-            "policyMode":"default",
-            "tags":[
-
-            ]
-          },
-          {
-            "id":"directive-copyGitFile",
-            "displayName":"directive-copyGitFile",
-            "shortDescription":"",
-            "longDescription":"",
-            "techniqueName":"copyGitFile",
-            "techniqueVersion":"2.3",
-            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Copy file and PostHook","sections":[{"section":{"name":"Copy file","vars":[{"var":{"name":"COPYFILE_COMPARE_METHOD","value":"mtime"}},{"var":{"name":"COPYFILE_DESTINATION","value":"/tmp/destination_0.json"}},{"var":{"name":"COPYFILE_NAME","value":"file_name_0.json"}},{"var":{"name":"COPYFILE_PURGE","value":"false"}},{"var":{"name":"COPYFILE_RECURSION","value":"0"}}],"sections":[{"section":{"name":"Exclusion/Inclusion","vars":[{"var":{"name":"COPYFILE_EXCLUDE_INCLUDE","value":""}},{"var":{"name":"COPYFILE_EXCLUDE_INCLUDE_OPTION","value":"none"}}]}},{"section":{"name":"Linux Options","vars":[{"var":{"name":"COPYFILE_GROUP","value":"root"}},{"var":{"name":"COPYFILE_OWNER","value":"root"}},{"var":{"name":"COPYFILE_PERM","value":"644"}},{"var":{"name":"COPYFILE_SGID","value":"false"}},{"var":{"name":"COPYFILE_STICKY_FOLDER","value":"false"}},{"var":{"name":"COPYFILE_SUID","value":"false"}}]}}]}},{"section":{"name":"Post-modification hook","vars":[{"var":{"name":"COPYFILE_POST_HOOK_COMMAND","value":"/bin/echo Value_0.json"}},{"var":{"name":"COPYFILE_POST_HOOK_RUN","value":"true"}}]}}]}}]}},
-            "priority":5,
-            "enabled":false,
-            "system":false,
-            "policyMode":"default",
-            "tags":[
-
-            ]
-          },
           {
             "id":"16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
             "displayName":"directive 16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
@@ -293,13 +261,13 @@ response:
             ]
           },
           {
-            "id":"ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
-            "displayName":"directive ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
+            "id":"directive-copyGitFile",
+            "displayName":"directive-copyGitFile",
             "shortDescription":"",
             "longDescription":"",
-            "techniqueName":"fileTemplate",
-            "techniqueVersion":"1.0",
-            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Apply template","sections":[{"section":{"name":"Load Template from a file or text input","vars":[{"var":{"name":"FILE_TEMPLATE_AGENT_DESTINATION_PATH","value":"/tmp/other-destination.txt"}},{"var":{"name":"FILE_TEMPLATE_RAW_OR_NOT","value":"Raw"}},{"var":{"name":"FILE_TEMPLATE_RAW_TEMPLATE","value":"some content"}},{"var":{"name":"FILE_TEMPLATE_TEMPLATE","value":""}}],"sections":[{"section":{"name":"Expand template"}},{"section":{"name":"Posthook","vars":[{"var":{"name":"FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND","value":"/bin/true"}}]}},{"section":{"name":"Put permissions"}},{"section":{"name":"Templates directory permissions"}},{"section":{"name":"Templates location"}},{"section":{"name":"UNIX specific options","vars":[{"var":{"name":"FILE_TEMPLATE_GROUP_OWNER","value":"root"}},{"var":{"name":"FILE_TEMPLATE_OWNER","value":"root"}},{"var":{"name":"FILE_TEMPLATE_PERMISSIONS","value":"777"}},{"var":{"name":"FILE_TEMPLATE_PERSISTENT_POST_HOOK","value":"true"}},{"var":{"name":"FILE_TEMPLATE_TEMPLATE_TYPE","value":"mustache"}}]}}]}}]}}]}},
+            "techniqueName":"copyGitFile",
+            "techniqueVersion":"2.3",
+            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Copy file and PostHook","sections":[{"section":{"name":"Copy file","vars":[{"var":{"name":"COPYFILE_COMPARE_METHOD","value":"mtime"}},{"var":{"name":"COPYFILE_DESTINATION","value":"/tmp/destination_0.json"}},{"var":{"name":"COPYFILE_NAME","value":"file_name_0.json"}},{"var":{"name":"COPYFILE_PURGE","value":"false"}},{"var":{"name":"COPYFILE_RECURSION","value":"0"}}],"sections":[{"section":{"name":"Exclusion/Inclusion","vars":[{"var":{"name":"COPYFILE_EXCLUDE_INCLUDE","value":""}},{"var":{"name":"COPYFILE_EXCLUDE_INCLUDE_OPTION","value":"none"}}]}},{"section":{"name":"Linux Options","vars":[{"var":{"name":"COPYFILE_GROUP","value":"root"}},{"var":{"name":"COPYFILE_OWNER","value":"root"}},{"var":{"name":"COPYFILE_PERM","value":"644"}},{"var":{"name":"COPYFILE_SGID","value":"false"}},{"var":{"name":"COPYFILE_STICKY_FOLDER","value":"false"}},{"var":{"name":"COPYFILE_SUID","value":"false"}}]}}]}},{"section":{"name":"Post-modification hook","vars":[{"var":{"name":"COPYFILE_POST_HOOK_COMMAND","value":"/bin/echo Value_0.json"}},{"var":{"name":"COPYFILE_POST_HOOK_RUN","value":"true"}}]}}]}}]}},
             "priority":5,
             "enabled":false,
             "system":false,
@@ -309,6 +277,20 @@ response:
             ]
           },
           {
+            "id":"directive1",
+            "displayName":"10.Clock Configuration",
+            "shortDescription":"",
+            "longDescription":"",
+            "techniqueName":"clockConfiguration",
+            "techniqueVersion":"3.0",
+            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Hardware clock (RTC)","vars":[{"var":{"name":"CLOCK_HWSYNC_ENABLE","value":"true"}},{"var":{"name":"CLOCK_SYNCSCHED","value":"240"}}]}},{"section":{"name":"Time synchronization (NTP)","vars":[{"var":{"name":"CLOCK_FQDNNTP","value":"true"}}],"sections":[{"section":{"name":"clock ntpservers","vars":[{"var":{"name":"CLOCK_NTPSERVERS","value":"${rudder.param.ntpserver}"}}]}}]}},{"section":{"name":"Time zone","vars":[{"var":{"name":"CLOCK_TIMEZONE","value":"dontchange"}}]}}]}},
+            "priority":5,
+            "enabled":true,
+            "system":false,
+            "policyMode":"default",
+            "tags":[]
+          },
+          {
             "id":"directive2",
             "displayName":"directive2",
             "shortDescription":"",
@@ -316,6 +298,38 @@ response:
             "techniqueName":"rpmPackageInstallation",
             "techniqueVersion":"7.0",
             "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Check interval","vars":[{"var":{"name":"RPM_PACKAGE_CHECK_INTERVAL","value":"5"}}]}},{"section":{"name":"RHEL/CentOS/SuSE packages","vars":[{"var":{"name":"RPM_PACKAGE_REDACTION","value":"add"}},{"var":{"name":"RPM_PACKAGE_REDLIST","value":"vim"}}],"sections":[{"section":{"name":"Package version","vars":[{"var":{"name":"RPM_PACKAGE_VERSION","value":""}},{"var":{"name":"RPM_PACKAGE_VERSION_CRITERION","value":"=="}},{"var":{"name":"RPM_PACKAGE_VERSION_DEFINITION","value":"default"}}]}},{"section":{"name":"Post-modification hook","vars":[{"var":{"name":"RPM_PACKAGE_POST_HOOK_COMMAND","value":""}},{"var":{"name":"RPM_PACKAGE_POST_HOOK_RUN","value":"false"}}]}}]}},{"section":{"name":"ZMD process"}}]}},
+            "priority":5,
+            "enabled":false,
+            "system":false,
+            "policyMode":"default",
+            "tags":[
+
+            ]
+          },
+          {
+            "id":"e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+            "displayName":"directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+            "shortDescription":"",
+            "longDescription":"",
+            "techniqueName":"fileTemplate",
+            "techniqueVersion":"1.0",
+            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Apply template","sections":[{"section":{"name":"Load Template from a file or text input","vars":[{"var":{"name":"FILE_TEMPLATE_AGENT_DESTINATION_PATH","value":"/tmp/destination.txt"}},{"var":{"name":"FILE_TEMPLATE_RAW_OR_NOT","value":"Raw"}},{"var":{"name":"FILE_TEMPLATE_RAW_TEMPLATE","value":"some content"}},{"var":{"name":"FILE_TEMPLATE_TEMPLATE","value":""}}],"sections":[{"section":{"name":"Expand template"}},{"section":{"name":"Posthook","vars":[{"var":{"name":"FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND","value":""}}]}},{"section":{"name":"Put permissions"}},{"section":{"name":"Templates directory permissions"}},{"section":{"name":"Templates location"}},{"section":{"name":"UNIX specific options","vars":[{"var":{"name":"FILE_TEMPLATE_GROUP_OWNER","value":"root"}},{"var":{"name":"FILE_TEMPLATE_OWNER","value":"root"}},{"var":{"name":"FILE_TEMPLATE_PERMISSIONS","value":"700"}},{"var":{"name":"FILE_TEMPLATE_PERSISTENT_POST_HOOK","value":"false"}},{"var":{"name":"FILE_TEMPLATE_TEMPLATE_TYPE","value":"mustache"}}]}}]}}]}}]}},
+            "priority":5,
+            "enabled":false,
+            "system":false,
+            "policyMode":"default",
+            "tags":[
+
+            ]
+          },
+          {
+            "id":"ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
+            "displayName":"directive ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
+            "shortDescription":"",
+            "longDescription":"",
+            "techniqueName":"fileTemplate",
+            "techniqueVersion":"1.0",
+            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Apply template","sections":[{"section":{"name":"Load Template from a file or text input","vars":[{"var":{"name":"FILE_TEMPLATE_AGENT_DESTINATION_PATH","value":"/tmp/other-destination.txt"}},{"var":{"name":"FILE_TEMPLATE_RAW_OR_NOT","value":"Raw"}},{"var":{"name":"FILE_TEMPLATE_RAW_TEMPLATE","value":"some content"}},{"var":{"name":"FILE_TEMPLATE_TEMPLATE","value":""}}],"sections":[{"section":{"name":"Expand template"}},{"section":{"name":"Posthook","vars":[{"var":{"name":"FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND","value":"/bin/true"}}]}},{"section":{"name":"Put permissions"}},{"section":{"name":"Templates directory permissions"}},{"section":{"name":"Templates location"}},{"section":{"name":"UNIX specific options","vars":[{"var":{"name":"FILE_TEMPLATE_GROUP_OWNER","value":"root"}},{"var":{"name":"FILE_TEMPLATE_OWNER","value":"root"}},{"var":{"name":"FILE_TEMPLATE_PERMISSIONS","value":"777"}},{"var":{"name":"FILE_TEMPLATE_PERSISTENT_POST_HOOK","value":"true"}},{"var":{"name":"FILE_TEMPLATE_TEMPLATE_TYPE","value":"mustache"}}]}}]}}]}}]}},
             "priority":5,
             "enabled":false,
             "system":false,
@@ -341,34 +355,20 @@ response:
             ]
           },
           {
-            "id":"e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-            "displayName":"directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+            "id":"gvd-directive2",
+            "displayName":"00.Generic Variable Def #2",
             "shortDescription":"",
             "longDescription":"",
-            "techniqueName":"fileTemplate",
-            "techniqueVersion":"1.0",
-            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Apply template","sections":[{"section":{"name":"Load Template from a file or text input","vars":[{"var":{"name":"FILE_TEMPLATE_AGENT_DESTINATION_PATH","value":"/tmp/destination.txt"}},{"var":{"name":"FILE_TEMPLATE_RAW_OR_NOT","value":"Raw"}},{"var":{"name":"FILE_TEMPLATE_RAW_TEMPLATE","value":"some content"}},{"var":{"name":"FILE_TEMPLATE_TEMPLATE","value":""}}],"sections":[{"section":{"name":"Expand template"}},{"section":{"name":"Posthook","vars":[{"var":{"name":"FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND","value":""}}]}},{"section":{"name":"Put permissions"}},{"section":{"name":"Templates directory permissions"}},{"section":{"name":"Templates location"}},{"section":{"name":"UNIX specific options","vars":[{"var":{"name":"FILE_TEMPLATE_GROUP_OWNER","value":"root"}},{"var":{"name":"FILE_TEMPLATE_OWNER","value":"root"}},{"var":{"name":"FILE_TEMPLATE_PERMISSIONS","value":"700"}},{"var":{"name":"FILE_TEMPLATE_PERSISTENT_POST_HOOK","value":"false"}},{"var":{"name":"FILE_TEMPLATE_TEMPLATE_TYPE","value":"mustache"}}]}}]}}]}}]}},
-            "priority":5,
+            "techniqueName":"genericVariableDefinition",
+            "techniqueVersion":"2.0",
+            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Variable definition","vars":[{"var":{"name":"GENERIC_VARIABLE_CONTENT","value":"value from gvd #2 should be second"}},{"var":{"name":"GENERIC_VARIABLE_NAME","value":"var2"}}]}}]}},
+            "priority":10,
             "enabled":false,
             "system":false,
             "policyMode":"default",
             "tags":[
 
             ]
-          },
-          {
-            "id":"directive1",
-            "displayName":"10.Clock Configuration",
-            "shortDescription":"",
-            "longDescription":"",
-            "techniqueName":"clockConfiguration",
-            "techniqueVersion":"3.0",
-            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Hardware clock (RTC)","vars":[{"var":{"name":"CLOCK_HWSYNC_ENABLE","value":"true"}},{"var":{"name":"CLOCK_SYNCSCHED","value":"240"}}]}},{"section":{"name":"Time synchronization (NTP)","vars":[{"var":{"name":"CLOCK_FQDNNTP","value":"true"}}],"sections":[{"section":{"name":"clock ntpservers","vars":[{"var":{"name":"CLOCK_NTPSERVERS","value":"${rudder.param.ntpserver}"}}]}}]}},{"section":{"name":"Time zone","vars":[{"var":{"name":"CLOCK_TIMEZONE","value":"dontchange"}}]}}]}},
-            "priority":5,
-            "enabled":true,
-            "system":false,
-            "policyMode":"default",
-            "tags":[]
           }
         ]
       }
@@ -1183,7 +1183,7 @@ response:
     {
       "action":"directiveDetails",
       "result":"error",
-      "errorDetails":"Inconsistency:Could not find Directive 1bc636c0-61b0-410c-0000-66bcfc95804d"
+      "errorDetails":"Inconsistency:Directive with id '1bc636c0-61b0-410c-0000-66bcfc95804d'was not found"
     }
 ---
 description: Get Directive tree

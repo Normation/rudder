@@ -102,7 +102,6 @@ import com.normation.rudder.services.policies.NodeConfigurations
 import com.normation.rudder.services.policies.NodesContextResult
 import com.normation.rudder.services.policies.PromiseGenerationService
 import com.normation.rudder.services.policies.RuleVal
-import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.queries.DynGroupService
 import com.normation.rudder.services.queries.CmdbQueryParser
@@ -152,14 +151,29 @@ import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
 import com.normation.box._
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.policies.DirectiveUid
+import org.apache.commons.io.FileUtils
+
+import java.nio.charset.StandardCharsets
 
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
  *
  * Also responsible for setting up data and mock services.
+ *
+ * There is two main objects:
+ * - RestTestSetUp which is responsible for initialization of all services,
+ * - RestTest which provides methods to actually test things (ie, it does the  binding between mocked
+ *   services and lift test framework)
  */
-object RestTestSetUp {
+
+
+/*
+ * Mock everything needed to test rest API, ie almost a whole rudder.
+ */
+class RestTestSetUp {
+
 
   implicit val userService = new UserService {
     val user = new User{
@@ -239,7 +253,7 @@ object RestTestSetUp {
   val policyGeneration = new PromiseGenerationService {
     override def deploy(): Box[Set[NodeId]] = Full(Set())
     override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
-    override def getDirectiveLibrary(): Box[FullActiveTechniqueCategory] = ???
+    override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = ???
     override def getGroupLibrary(): Box[FullNodeGroupCategory] = ???
     override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = ???
     override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = ???
@@ -278,7 +292,7 @@ object RestTestSetUp {
   val asyncDeploymentAgent = new AsyncDeploymentActor(policyGeneration, eventLogger, deploymentStatusSerialisation, () => Duration("0s").succeed, () => AllGeneration.succeed)
 
   val findDependencies  = new FindDependencies { //never find any dependencies
-    override def findRulesForDirective(id: DirectiveId): IOResult[Seq[Rule]] = Nil.succeed
+    override def findRulesForDirective(id: DirectiveUid): IOResult[Seq[Rule]] = Nil.succeed
     override def findRulesForTarget(target: RuleTarget): IOResult[Seq[Rule]] = Nil.succeed
   }
   val dependencyService = new DependencyAndDeletionServiceImpl(findDependencies, mockDirectives.directiveRepo, mockDirectives.directiveRepo, mockRules.ruleRepo, mockNodeGroups.groupsRepo)
@@ -382,8 +396,6 @@ object RestTestSetUp {
   }
   val apiAuthorizationLevelService = new DefaultApiAuthorizationLevel(LiftApiProcessingLogger)
   val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
-  val testNodeConfiguration = new TestNodeConfiguration()
-  val fakeRepo = testNodeConfiguration.repo
   val fakeScriptLauncher = new DebugInfoService {
     override def launch() = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
   }
@@ -417,7 +429,7 @@ object RestTestSetUp {
       , fakeUpdateDynamicGroups
       , fakeItemArchiveManager
       , fakePersonIndentService
-      , fakeRepo
+      , mockGitRepo.gitRepo
   )
   val fakeHealthcheckService = new HealthcheckService(
     List(
@@ -487,7 +499,7 @@ object RestTestSetUp {
       def toForm = Full(SHtml.textarea("", {s =>  parseClient(s)}))
     }
   }
-  val directiveEditorService = new DirectiveEditorServiceImpl(mockTechniques.techniqueRepo, new Section2FieldService(fieldFactory, Translator.defaultTranslators))
+  val directiveEditorService = new DirectiveEditorServiceImpl(mockDirectives.configurationRepository, new Section2FieldService(fieldFactory, Translator.defaultTranslators))
   val directiveApiService2 =
     new DirectiveApiService2 (
         mockDirectives.directiveRepo
@@ -504,6 +516,7 @@ object RestTestSetUp {
   val directiveApiService14 =
     new DirectiveApiService14 (
         mockDirectives.directiveRepo
+      , mockDirectives.configurationRepository
       , mockDirectives.directiveRepo
       , uuidGen
       , asyncDeploymentAgent
@@ -522,6 +535,7 @@ object RestTestSetUp {
   val techniqueAPIService14 = new TechniqueAPIService14(
       mockDirectives.directiveRepo
     , mockTechniques.techniqueRepo
+    , mockTechniques.techniqueRevisionRepo
   )
 
   val systemApi = new SystemApi(restExtractorService, apiService11, apiService13, "5.0", "5.0.0", "some time")
@@ -595,12 +609,59 @@ object RestTestSetUp {
     l
   }
 
+
+
+  val baseTempDirectory = mockGitRepo.abstractRoot
+
+
+  /*
+   * We will commit some revisions for packageManagement technique:
+   * - init commit: what is on repos
+   * - commit 1: change metadata section (impact on directive details, but not on variables)
+   * - commit 2: revert to initial state
+   */
+  def updatePackageManagementRevision(): Unit = {
+    val metadata = mockGitRepo.configurationRepositoryRoot / "techniques/applications/packageManagement/1.0/metadata.xml"
+
+    val orig = metadata.contentAsString(StandardCharsets.UTF_8)
+    val mod = orig.replaceAll("""name="Package version" """, """name="AN OTHER REVISION OF TECHNIQUE PACKAGE MANAGEMENT" """)
+
+    metadata.write(mod)
+    mockGitRepo.gitRepo.git.add().setUpdate(true).addFilepattern(".").call()
+    mockGitRepo.gitRepo.git.commit().setMessage("new revision of packageManagement/1.0 technique").call()
+    metadata.write(orig)
+    mockGitRepo.gitRepo.git.add().setUpdate(true).addFilepattern(".").call()
+    mockGitRepo.gitRepo.git.commit().setMessage("revert to original content for packageManagement/1.0 technique").call()
+  }
+
+
+  // a cleanup method that delete all test files
+  def cleanup(): Unit = {
+
+    FileUtils.deleteDirectory(mockGitRepo.abstractRoot.toJava)
+
+  }
+
+}
+
+
+object RestTestSetUp {
+  def newEnv = {
+    new RestTestSetUp()
+  }
+}
+
+/*
+ * Provides methods to mock & test REST requests programmatically using all our services.
+ */
+class RestTest(restTestSetUp: RestTestSetUp) {
+
   /*
    * Correctly build and scope mutable things to use the request in a safe
    * way in the context of LiftRules.
    */
   def doReq[T](mockReq: MockHttpServletRequest)(tests: Req => MatchResult[T]) = {
-    LiftRulesMocker.devTestLiftRulesInstance.doWith(liftRules) {
+    LiftRulesMocker.devTestLiftRulesInstance.doWith(restTestSetUp.liftRules) {
       MockWeb.useLiftRules.doWith(true) {
         MockWeb.testReq(mockReq)(tests)
       }

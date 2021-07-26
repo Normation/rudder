@@ -1,0 +1,134 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+bundle agent root_component_check
+{
+  vars:
+    !redhat::
+      "apache_dist_specific_name"                      string => "apache2";
+    redhat::
+      "apache_dist_specific_name"                      string => "httpd";
+
+    any::
+      "postgresql_service_name" string => execresult("${paths.systemctl} --no-ask-password list-unit-files --type service | ${paths.awk} -F'.' '{print $1}' | ${paths.grep} -E \"^postgresql-?[0-9]*$\" | tail -n 1", "useshell");
+
+      "technique_name"                                 string => "server-roles";
+
+      # Reporting
+      "root_integrity_check"                           slist => { "Check configuration-repository folder",  "Check configuration-repository GIT lock" };
+      "root_password_check_ldap"                       slist => { "Check LDAP in rudder-webapp.properties", "Check LDAP credentials" };
+      "root_password_check_psql"                       slist => { "Check SQL in rudder-webapp.properties",  "Check SQL credentials" };
+
+  methods:
+
+      # Make sure every required logrotate entry is present
+      "any" usebundle => root_logrotate_check;
+
+    policy_server::
+      "any" usebundle => rudder_generic_service("relayd", "rudder-relayd");
+      "any" usebundle => rudder_relayd_configuration;
+
+    !policy_server::
+      "any" usebundle => rudder_generic_service_na("relayd");
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${server_roles_common.directiveId}",
+          "Relayd service configuration", "None", "Checking relayd configuration is unnecessary on this machine, skipping."
+        );
+
+    # Check that Postgresql is up and running before checking its password
+    role_rudder_reports::
+      "any" usebundle => root_postgres_check;
+      "any" usebundle => rudder_generic_service("postgresql", "${postgresql_service_name}");
+
+    !role_rudder_reports::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${server_roles_common.directiveId}",
+          "Check PostgreSQL configuration", "None", "Checking PostgreSQL configuration is unnecessary on this machine, skipping."
+        );
+      "any" usebundle => rudder_generic_service_na("postgresql");
+
+
+    # This is to be done only if the package rudder-server-root is present
+    role_rudder_server_root::
+      # Password management is expected to be done manually in case of a splitted/relayed installation for now.
+      "any" usebundle => root_password_check_ldap;
+      "any" usebundle => root_password_check_file;
+      "any" usebundle => root_password_check_psql;
+      "any" usebundle => root_password_security;
+      "any" usebundle => root_password_restart_jetty;
+
+    !role_rudder_server_root::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${server_roles_common.directiveId}",
+          "${root_password_check_ldap}", "None", "Checking LDAP passwords is unnecessary on this machine, skipping."
+        );
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${server_roles_common.directiveId}",
+          "${root_password_check_psql}", "None", "Checking SQL passwords is unnecessary on this machine, skipping."
+        );
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${server_roles_common.directiveId}",
+          "Check rudder-passwords.conf and pgpass files", "None", "Checking the password files is unnecessary on this machine, skipping..."
+        );
+
+    # Do this if this is the root_server or a relay server
+    root_server|(policy_server.!role_rudder_relay_promises_only)::
+      "any" usebundle => root_networks_check;
+      "any" usebundle => root_password_check_dav;
+      "any" usebundle => rudder_generic_service("apache", "${apache_dist_specific_name}");
+
+    !(root_server|policy_server)|role_rudder_relay_promises_only::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${server_roles_common.directiveId}",
+          "Check allowed networks configuration", "None", "Checking the allowed networks configuration is unnecessary on this machine, skipping."
+        );
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${server_roles_common.directiveId}",
+          "Check WebDAV credentials", "None", "Checking WebDAV credentials is unnecessary on this machine, skipping."
+        );
+      "any" usebundle => rudder_generic_service_na("apache");
+
+    role_rudder_jetty::
+      "any" usebundle => rudder_generic_service("jetty", "rudder-jetty");
+      "any" usebundle => compress_webapp_log;
+
+    !role_rudder_jetty::
+      "any" usebundle => rudder_generic_service_na("jetty");
+
+    role_rudder_webapp::
+      "any" usebundle => root_integrity_check;
+      "any" usebundle => root_technique_reload;
+      "any" usebundle => generic_alive_check("rudder");
+
+    !role_rudder_webapp::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${server_roles_common.directiveId}",
+          "${root_integrity_check}", "None", "Checking configuration-repository is unnecessary on this machine, skipping."
+        );
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${server_roles_common.directiveId}",
+          "Check rudder status", "None", "Checking rudder web interface status is unnecessary on this machine, skipping."
+        );
+
+    role_rudder_inventory_endpoint::
+      "any" usebundle => generic_alive_check("endpoint");
+
+    !role_rudder_inventory_endpoint::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${server_roles_common.directiveId}",
+          "Check endpoint status", "None", "Checking rudder inventory endpoint status is unnecessary on this machine, skipping."
+        );
+
+    role_rudder_inventory_ldap::
+      "any" usebundle => rudder_generic_service("slapd", "rudder-slapd");
+      "any" usebundle => compress_ldap_backups;
+
+    !role_rudder_inventory_ldap::
+      "any" usebundle => rudder_generic_service_na("slapd");
+
+}

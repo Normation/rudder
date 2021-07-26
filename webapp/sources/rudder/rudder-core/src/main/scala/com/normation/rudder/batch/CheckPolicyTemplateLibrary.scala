@@ -47,6 +47,7 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import net.liftweb.actor.SpecializedLiftActor
+import org.joda.time.format.ISODateTimeFormat
 
 final case class StartLibUpdate(actor: EventActor)
 
@@ -108,7 +109,7 @@ class CheckTechniqueLibrary(
         } // don't need an else part : we have to do nothing and the else return Unit
 
         logger.trace("***** Start a new update")
-        policyPackageUpdater.update(ModificationId(uuidGen.newUuid), actor, Some(s"Automatic batch update at ${DateTime.now}"))
+        policyPackageUpdater.update(ModificationId(uuidGen.newUuid), actor, Some(s"Automatic batch update at ${DateTime.now.toString(ISODateTimeFormat.basicDateTime())}"))
 
     }
   }

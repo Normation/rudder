@@ -299,8 +299,8 @@ object NodeKeyHash {
       keyFactory <- IOResult.effectM(pubkeyInfo.getAlgorithm.getAlgorithm match {
                       case PKCSObjectIdentifiers.rsaEncryption =>
                         KeyFactory.getInstance("RSA").succeed
-                      case algo => //not supported
-                        Inconsistency(s"The CFEngine public key used an unsupported algorithm '${algo}'. Only RSA is supported").fail
+                      case unknownAlgo => //not supported
+                        Inconsistency(s"The CFEngine public key used an unsupported algorithm '${unknownAlgo.toString}'. Only RSA is supported").fail
                     })
                     // actually decode the key...
       keyspec    <- IOResult.effect( new X509EncodedKeySpec(pubkeyInfo.getEncoded) )
