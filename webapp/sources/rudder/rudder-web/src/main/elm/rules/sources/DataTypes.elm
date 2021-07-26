@@ -86,6 +86,7 @@ getAllCats category =
     subElems = case category.subElems of SubCategories l -> l
   in
     category :: (List.concatMap getAllCats subElems)
+
 type alias RuleCompliance =
   { ruleId            : RuleId
   , mode              : String
@@ -139,7 +140,7 @@ type alias ComplianceDetails =
 
 type alias EditRuleDetails = { rule : Rule, tab :  TabMenu, editDirectives: Bool, editGroups : Bool, newTag : Tag }
 
-type Mode = Loading | RuleTable | EditRule EditRuleDetails
+type Mode = Loading | RuleTable | EditRule EditRuleDetails | CreateRule EditRuleDetails
 
 type alias Model =
   { contextPath     : String
@@ -153,7 +154,8 @@ type alias Model =
   }
 
 type Msg
-  =  ChangeTabFocus TabMenu
+  = ChangeTabFocus TabMenu
+  | GenerateId (String -> Msg)
   | EditDirectives Bool
   | EditGroups Bool
   | GetRuleDetailsResult     (Result Error Rule)
@@ -161,6 +163,7 @@ type Msg
   | CloseRuleDetails
   | SelectGroup RuleTarget Bool
   | UpdateRule Rule
+  | NewRule RuleId
   | UpdateNewTag Tag
   | CallApi                  (Model -> Cmd Msg)
   | GetPolicyModeResult      (Result Error String)
