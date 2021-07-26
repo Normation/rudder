@@ -50,6 +50,7 @@ import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
 import com.normation.errors.IOResult
+import com.normation.errors.SystemError
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.ldap.provisioning.AddIpValues
@@ -164,6 +165,7 @@ import net.liftweb.common._
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
+import zio.IO
 import zio.syntax._
 import zio.duration._
 
@@ -1226,10 +1228,9 @@ object RudderConfig extends Loggable {
    * lazy and will only be initialised on the first call to one
    * of its (public) methods.
    */
-  def init() : Unit = {
+  def init() : IO[SystemError, Unit] = {
 
-    // this one must be in a fork thread pool
-    ZioRuntime.internal.unsafeRunAsync(IOResult.effect {
+    IOResult.effect {
       import scala.jdk.CollectionConverters._
       val config = RudderProperties.config
       if(ApplicationLogger.isInfoEnabled) {
@@ -1251,7 +1252,7 @@ object RudderConfig extends Loggable {
       // is encapsulated in a try/catch ( see net.liftweb.http.provider.HTTPProvider.bootLift )
       val checks = RudderConfig.allBootstrapChecks
       checks.checks()
-    })(exit => exit.fold(cause => throw cause.squashWith(err => new Error(err.fullMsg)), a => a))
+    }
   }
 
   //
