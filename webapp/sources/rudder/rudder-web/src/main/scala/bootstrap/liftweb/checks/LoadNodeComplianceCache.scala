@@ -42,12 +42,13 @@ import bootstrap.liftweb.BootstrapLogger
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import javax.servlet.UnavailableException
-import com.normation.box._
-import com.normation.rudder.services.reports.CacheComplianceQueueAction.InsertNodeInCache
+import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
+import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
 import net.liftweb.common.EmptyBox
+import com.normation.box._
 
 /**
- * At stratup, we preload node compliance cache
+ * At startup, we preload node compliance cache
  */
 class LoadNodeComplianceCache(nodeInfoService: NodeInfoService, reportingService: CachedFindRuleNodeStatusReports) extends BootstrapChecks {
 
@@ -56,13 +57,14 @@ class LoadNodeComplianceCache(nodeInfoService: NodeInfoService, reportingService
   @throws(classOf[ UnavailableException ])
   override def checks() : Unit = {
     (for {
-      nodeIds <- nodeInfoService.getAll().map(_.keySet)
-      _       <- reportingService.invalidateWithAction(nodeIds.toSeq.map(x => (x, InsertNodeInCache(x)))).toBox
-    } yield ()) match {
+      nodeIds <- nodeInfoService.getAllNodesIds()
+      _       <- reportingService.invalidateWithAction(nodeIds.toSeq.map(x => (x, ExpectedReportAction(InsertNodeInCache(x)))))
+    } yield ()).toBox match {
       case eb: EmptyBox =>
         val err = eb ?~! s"Error when loading node compliance cache:"
         BootstrapLogger.warn(err.messageChain)
-      case _ => // ok
+      case _ =>
+      // ok
     }
   }
 }

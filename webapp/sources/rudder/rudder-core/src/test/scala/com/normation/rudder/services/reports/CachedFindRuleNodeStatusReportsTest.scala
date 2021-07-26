@@ -62,6 +62,7 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
+import zio.syntax._
 
 /*
  * Test the cache behaviour
@@ -131,19 +132,19 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   )
 
   object testNodeInfoService extends NodeInfoService {
-    def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : Box[Set[LDAPNodeInfo]] = ???
-    def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]] = ???
-    def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
+    def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : IOResult[Set[LDAPNodeInfo]] = ???
+    def getNodeInfo(nodeId: NodeId) : IOResult[Option[NodeInfo]] = ???
     def getNode(nodeId: NodeId): Box[Node] = ???
-    def getAllNodes() : Box[Map[NodeId, Node]] = ???
-    def getAllSystemNodeIds() : Box[Seq[NodeId]] = ???
-    def getPendingNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
-    def getPendingNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
-    def getDeletedNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
-    def getDeletedNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
+    def getAllNodes() : IOResult[Map[NodeId, Node]] = ???
+    def getAllNodesIds(): IOResult[Set[NodeId]] = ???
+    def getAllSystemNodeIds() : IOResult[Seq[NodeId]] = ???
+    def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = ???
+    def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
+    def getDeletedNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = ???
+    def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
     def getNumberOfManagedNodes: Int = ???
-    val getAll : Box[Map[NodeId, NodeInfo]] = {
-      Full(nodes.map { case (n, _, _) => (n.id, n) }.toMap)
+    val getAll : IOResult[Map[NodeId, NodeInfo]] = {
+      nodes.map { case (n, _, _) => (n.id, n) }.toMap.succeed
     }
   }
 
@@ -160,7 +161,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
       override def agentRunRepository: RoReportsExecutionRepository = ???
       override def getGlobalComplianceMode: () => Box[GlobalComplianceMode] = ???
       override def getUnexpectedInterpretation: () => Box[UnexpectedReportInterpretation] = ???
-      override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[Map[NodeId, NodeStatusReport]] = ???
+      override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): IOResult[Map[NodeId, NodeStatusReport]] = ???
       override def getUserNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]] = ???
       override def getUserAndSystemNodeStatusReports(optNodeIds: Option[Set[NodeId]]): Box[(Map[NodeId, NodeStatusReport], Map[NodeId, NodeStatusReport])] = ???
       override def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
@@ -168,7 +169,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
       override def findNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
       override def findUserNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
       override def findSystemNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
-
+      override def nodeConfigService: NodeConfigurationService = ???
       override def jdbcMaxBatchSize: Int = batchSize
       override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]): Box[Map[NodeId, NodeStatusReport]] = {
         updated = (updated ++ nodeIds)
@@ -176,7 +177,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
       }
     }
     override def nodeInfoService: NodeInfoService = testNodeInfoService
-    override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[Map[NodeId, NodeStatusReport]] = ???
+
+    override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): IOResult[Map[NodeId, NodeStatusReport]] = ???
     override def findNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
     override def findUncomputedNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = ???
     override def getUserNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]] = ???

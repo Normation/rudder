@@ -55,6 +55,7 @@ import com.normation.rudder.web.ChooseTemplate
 import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.services.reports.ReportingServiceUtils
+import com.normation.zio._
 
 object RuleCompliance {
   private def details: NodeSeq = ChooseTemplate(
@@ -217,7 +218,7 @@ class RuleCompliance (
       // here, we don't use the cache because we need to have the details for each change, the cache only provides aggregation
       changesOnRule   <- recentChangesService.getChangesForInterval(rule.id, currentInterval, Some(10000))
       directiveLib    <- getFullDirectiveLib().toBox
-      allNodeInfos    <- getAllNodeInfos()
+      allNodeInfos    <- getAllNodeInfos().toBox
     } yield {
       val changesLine = ChangeLine.jsonByInterval(Map((currentInterval, changesOnRule)), Some(rule.name), directiveLib, allNodeInfos)
       val changesArray = changesLine.in.toList.flatMap{case a:JsArray => a.in.toList; case _ => Nil}
@@ -245,12 +246,12 @@ class RuleCompliance (
   def refreshCompliance() : JsCmd = {
     ( for {
         reports      <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
-        allRules     <- roRuleRepository.getAll().toBox
-        groups       <- getGroups().toBox
-        updatedRule  <- allRules.find(_.id == rule.id).notOptional(s"The rule '${rule.id.value}' is missing").toBox
-        directiveLib <- getFullDirectiveLib().toBox
+        allRules     <- roRuleRepository.getAll()
+        groups       <- getGroups()
+        updatedRule  <- allRules.find(_.id == rule.id).notOptional(s"The rule '${rule.id}' is missing")
+        directiveLib <- getFullDirectiveLib()
         allNodeInfos <- getAllNodeInfos()
-        globalMode   <- configService.rudder_global_policy_mode().toBox
+        globalMode   <- configService.rudder_global_policy_mode()
       } yield {
 
         val ruleReport = ReportingServiceUtils.buildRuleStatusReport(rule.id, reports)
@@ -262,11 +263,11 @@ class RuleCompliance (
           createTooltip();
         """)
       }
-    ) match {
-        case Full(cmd) => cmd
-        case eb : EmptyBox =>
-          val fail = eb ?~! s"Error while computing Rule ${rule.name} (${rule.id.value})"
-          logger.error(fail.messageChain)
+    ).either.runNow match {
+        case Right(cmd) => cmd
+        case Left(err) =>
+          val fail = s"Error while computing Rule ${rule.name} (${rule.id.value}): ${err.fullMsg}"
+          logger.error(fail)
           Noop
       }
   }

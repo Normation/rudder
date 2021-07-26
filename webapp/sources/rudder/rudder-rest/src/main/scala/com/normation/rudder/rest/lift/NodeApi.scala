@@ -122,9 +122,9 @@ import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JInt
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
-import zio.ZIO
 import zio.duration._
-
+import zio._
+import zio.syntax._
 
 // how to render parent properties in the returned json
 sealed trait RenderInheritedProperties
@@ -260,7 +260,7 @@ class NodeApi (
                       restExtractor.extractNode(req.params)
                     }
         reason   <- restExtractor.extractReason(req)
-        result   <- apiV8service.updateRestNode(NodeId(id), restNode, authzToken.actor, reason)
+        result   <- apiV8service.updateRestNode(NodeId(id), restNode, authzToken.actor, reason).toBox
       } yield {
         toJsonResponse(Some(id), serializer.serializeNode(result))
       }) match {
@@ -380,7 +380,7 @@ class NodeApi (
       implicit val prettify = params.prettify
       (for {
         classes <- restExtractorService.extractList("classes")(req)(json => Full(json))
-        optNode <- apiV2.nodeInfoService.getNodeInfo(NodeId(id))
+        optNode <- apiV2.nodeInfoService.getNodeInfo(NodeId(id)).toBox
       } yield {
         optNode match {
           case Some(node) if(node.agentsName.exists(a => a.agentType == AgentType.CfeCommunity || a.agentType == AgentType.CfeEnterprise)) =>
@@ -412,9 +412,9 @@ class NodeApi (
       def errorMsg(ids: List[String]) = s"Error when trying to get status for nodes with IDs '${ids.mkString(",")}''"
       (for {
         ids      <- (restExtractorService.extractString("ids")(req)(ids => Full(ids.split(",").map(_.trim)))).map(_.map(_.toList).getOrElse(Nil)) ?~! "Error: 'ids' parameter not found"
-        accepted <- apiV2.nodeInfoService.getAll().map(_.keySet.map(_.value)) ?~! errorMsg(ids)
-        pending  <- apiV2.nodeInfoService.getPendingNodeInfos().map(_.keySet.map(_.value)) ?~! errorMsg(ids)
-        deleted  <- apiV2.nodeInfoService.getDeletedNodeInfos().map(_.keySet.map(_.value)) ?~! errorMsg(ids)
+        accepted <- apiV2.nodeInfoService.getAllNodesIds().map(_.map(_.value)).toBox ?~! errorMsg(ids)
+        pending  <- apiV2.nodeInfoService.getPendingNodeInfos().map(_.keySet.map(_.value)).toBox ?~! errorMsg(ids)
+        deleted  <- apiV2.nodeInfoService.getDeletedNodeInfos().map(_.keySet.map(_.value)).toBox ?~! errorMsg(ids)
       } yield {
         val array = ids.map { id =>
           val status = {
@@ -497,7 +497,7 @@ class NodeApiInheritedProperties(
    */
   def getNodePropertiesTree(nodeId: NodeId, renderInHtml: RenderInheritedProperties): IOResult[JValue] = {
     for {
-      nodeInfo     <- infoService.getNodeInfoPure(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
+      nodeInfo     <- infoService.getNodeInfo(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
       groups       <- groupRepo.getFullGroupLibrary()
       nodeTargets  =  groups.getTarget(nodeInfo).map(_._2).toList
       params       <- paramRepo.getAllGlobalParameters()
@@ -662,15 +662,15 @@ class NodeApiService13 (
       optNodeIds      <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "nodeIds",( values => Full(values.map(NodeId(_))))))
       nodes           <- optNodeIds match {
                            case None =>
-                             nodeInfoService.getAll()
+                             nodeInfoService.getAll().toBox
                            case Some(nodeIds) =>
                              com.normation.utils.Control.sequence(nodeIds)(
-                               nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))
+                               nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n))).toBox
                              ).map(_.flatten.toMap)
                          }
       n2              =  System.currentTimeMillis
       _               =  TimingDebugLoggerPure.logEffect.trace(s"Getting node infos: ${n2 - n1}ms")
-      runs            <- reportsExecutionRepository.getNodesLastRun(nodes.keySet)
+      runs            <- reportsExecutionRepository.getNodesLastRun(nodes.keySet).toBox
       n3              =  System.currentTimeMillis
       _               =  TimingDebugLoggerPure.logEffect.trace(s"Getting run infos: ${n3 - n2}ms")
       (systemCompliances, userCompliances) <- reportingService.getUserAndSystemNodeStatusReports(Some(nodes.keySet))
@@ -720,8 +720,8 @@ class NodeApiService13 (
       optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
 
       nodes <- optNodeIds match {
-        case None => nodeInfoService.getAll()
-        case Some(nodeIds) => com.normation.utils.Control.sequence(nodeIds)(nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
+        case None => nodeInfoService.getAll().toBox
+        case Some(nodeIds) => ZIO.foreach(nodeIds)(nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).toBox.map(_.flatten.toMap)
       }
       softs <- readOnlySoftwareDAO.getNodesbySofwareName(software).toBox.map(_.toMap)
     } yield {
@@ -733,10 +733,10 @@ class NodeApiService13 (
   def property(req : Req, property : String, inheritedValue : Boolean) = {
     for {
       optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
-      nodes      <- optNodeIds match {
+      nodes      <- (optNodeIds match {
                       case None => nodeInfoService.getAll()
-                      case Some(nodeIds) => com.normation.utils.Control.sequence(nodeIds)(nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
-                    }
+                      case Some(nodeIds) => ZIO.foreach(nodeIds)(nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
+                    }).toBox
       propMap = nodes.values.groupMapReduce(_.id)(n =>  n.properties.filter(_.name == property))(_ ::: _)
 
 
@@ -773,7 +773,7 @@ class NodeApiService2 (
   def listAcceptedNodes (req : Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "listAcceptedNodes"
-      nodeInfoService.getAll() match {
+      nodeInfoService.getAll().toBox match {
         case Full(nodes) =>
           val acceptedNodes = nodes.values.map(serializeNodeInfo(_,"accepted"))
           toJsonResponse(None, ( "nodes" -> JArray(acceptedNodes.toList)))
@@ -786,7 +786,7 @@ class NodeApiService2 (
   def acceptedNodeDetails (req : Req, id :NodeId ) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "acceptedNodeDetails"
-    nodeInfoService.getNodeInfo(id) match {
+    nodeInfoService.getNodeInfo(id).toBox match {
       case Full(Some(info)) =>
         val node =  serializeNodeInfo(info,"accepted")
         toJsonResponse(None, ( "nodes" -> JArray(List(node))))
@@ -836,7 +836,7 @@ class NodeApiService2 (
   def modifyStatusFromAction(ids : Seq[NodeId], action : NodeStatusAction,modId : ModificationId, actor:EventActor) : Box[List[JValue]] = {
     def actualNodeDeletion(id : NodeId, modId : ModificationId, actor:EventActor) = {
       for {
-        optInfo <- nodeInfoService.getNodeInfo(id)
+        optInfo <- nodeInfoService.getNodeInfo(id).toBox
         info    <- optInfo match {
                      case None    => Failure(s"Can not removed the node with id '${id.value}' because it was not found")
                      case Some(x) => Full(x)
@@ -905,7 +905,7 @@ class NodeApiService4 (
 
   import restSerializer._
 
-  def getNodeDetails(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus, version : ApiVersion): Box[Option[JValue]] = {
+  def getNodeDetails(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus, version : ApiVersion): IOResult[Option[JValue]] = {
     for {
       optNodeInfo <- state match {
                     case AcceptedInventory => nodeInfoService.getNodeInfo(nodeId)
@@ -913,26 +913,26 @@ class NodeApiService4 (
                     case RemovedInventory  => nodeInfoService.getDeletedNodeInfo(nodeId)
                   }
       nodeInfo    <- optNodeInfo match {
-                       case None    => Full(None)
+                       case None    => None.succeed
                        case Some(x) =>
                          for {
                            runs      <- roAgentRunsRepository.getNodesLastRun(Set(nodeId))
                            inventory <- if(detailLevel.needFullInventory()) {
-                                          inventoryRepository.get(nodeId, state).toBox
+                                          inventoryRepository.get(nodeId, state)
                                         } else {
-                                          Full(None)
+                                          None.succeed
                                         }
                            software  <- if(detailLevel.needSoftware()) {
-                                          (for {
+                                          for {
                                             software <- inventory match {
                                                            case Some(i) => softwareRepository.getSoftware(i.node.softwareIds)
                                                            case None    => softwareRepository.getSoftwareByNode(Set(nodeId), state).map( _.get(nodeId).getOrElse(Seq()))
                                                          }
                                           } yield {
                                             software
-                                          }).toBox
+                                          }
                                         } else {
-                                          Full(Seq())
+                                          Seq().succeed
                                         }
                          } yield {
                            Some((x, runs, inventory, software))
@@ -948,13 +948,13 @@ class NodeApiService4 (
   def nodeDetailsWithStatus(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus, version : ApiVersion, req: Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = s"${state.name}NodeDetails"
-    getNodeDetails(nodeId, detailLevel, state, version) match {
-        case Full(Some(inventory)) =>
+    getNodeDetails(nodeId, detailLevel, state, version).either.runNow match {
+        case Right(Some(inventory)) =>
           toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
-        case Full(None) =>
+        case Right(None) =>
           effectiveResponse (Some(nodeId.value), s"Could not find Node ${nodeId.value} in state '${state.name}'", NotFoundError, action, prettify)
-        case eb: EmptyBox =>
-          val message = (eb ?~ (s"Error when trying to find Node ${nodeId.value} in state '${state.name}'")).msg
+        case Left(err) =>
+          val message = s"Error when trying to find Node ${nodeId.value} in state '${state.name}': ${err.fullMsg}"
           toJsonError(Some(nodeId.value), message)
       }
   }
@@ -965,11 +965,11 @@ class NodeApiService4 (
     (for {
       accepted  <- getNodeDetails(nodeId, detailLevel, AcceptedInventory, version)
       orPending <- accepted match {
-                     case Some(i) => Full(Some(i))
+                     case Some(i) => Some(i).succeed
                      case None    => getNodeDetails(nodeId, detailLevel, PendingInventory, version)
                    }
       orDeleted <- orPending match {
-                     case Some(i) => Full(Some(i))
+                     case Some(i) => Some(i).succeed
                      case None    => getNodeDetails(nodeId, detailLevel, RemovedInventory, version)
                    }
     } yield {
@@ -979,10 +979,10 @@ class NodeApiService4 (
          case None =>
            effectiveResponse (Some(nodeId.value), s"Node with ID '${nodeId.value}' was not found in Rudder", NotFoundError, action, prettify)
        }
-    }) match {
-      case Full(res)   => res
-      case eb:EmptyBox =>
-        val msg = (eb ?~! s"An error was encountered when looking for node with ID '${nodeId.value}'").messageChain
+    }).either.runNow match {
+      case Right(res)   => res
+      case Left(err) =>
+        val msg = s"An error was encountered when looking for node with ID '${nodeId.value}': ${err.fullMsg}"
         toJsonError(Some(nodeId.value), msg)
     }
   }
@@ -1011,14 +1011,14 @@ class NodeApiService6 (
       nodeIds     =  nodeFilter.getOrElse(nodeInfos.keySet).toSet
       runs        <- roAgentRunsRepository.getNodesLastRun(nodeIds)
       inventories <- if(detailLevel.needFullInventory()) {
-                       inventoryRepository.getAllInventories(state).toBox ?~! "Error when looking for node inventories"
+                       inventoryRepository.getAllInventories(state).chainError("Error when looking for node inventories")
                      } else {
-                       Full(Map[NodeId, FullInventory]())
+                       Map[NodeId, FullInventory]().succeed
                      }
       software    <- if(detailLevel.needSoftware()) {
-                       softwareRepository.getSoftwareByNode(nodeInfos.keySet, state).toBox
+                       softwareRepository.getSoftwareByNode(nodeInfos.keySet, state)
                      } else {
-                       Full(Map[NodeId, Seq[Software]]())
+                       Map[NodeId, Seq[Software]]().succeed
                      }
     } yield {
       for {
@@ -1029,12 +1029,12 @@ class NodeApiService6 (
         serializeInventory(nodeInfo, state, runDate, inventories.get(nodeId), software.getOrElse(nodeId, Seq()), detailLevel, version)
       }
     }
-    ) match {
-      case Full(nodes) => {
+    ).either.runNow match {
+      case Right(nodes) => {
         toJsonResponse(None, ( "nodes" -> JArray(nodes.toList)))
       }
-      case eb: EmptyBox => {
-        val message = (eb ?~ (s"Could not fetch ${state.name} Nodes")).messageChain
+      case Left(err) => {
+        val message = s"Could not fetch ${state.name} Nodes: ${err.fullMsg}"
         toJsonError(None, message)
       }
     }
@@ -1069,7 +1069,7 @@ class NodeApiService8 (
   , userService     : UserService
 ) extends Loggable {
 
-  def updateRestNode(nodeId: NodeId, restNode: RestNode, actor : EventActor, reason : Option[String]) : Box[Node] = {
+  def updateRestNode(nodeId: NodeId, restNode: RestNode, actor : EventActor, reason : Option[String]) : IOResult[Node] = {
 
     val modId = ModificationId(uuidGen.newUuid)
 
@@ -1097,16 +1097,16 @@ class NodeApiService8 (
     }
 
     for {
-      node           <- nodeInfoService.getNodeInfo(nodeId).flatMap( _.map( _.node ))
-      newProperties  <- CompareProperties.updateProperties(node.properties, restNode.properties).toBox
+      node           <- nodeInfoService.getNodeInfo(nodeId).map( _.map( _.node )).notOptional(s"node with id '${nodeId.value}' was not found")
+      newProperties  <- CompareProperties.updateProperties(node.properties, restNode.properties).toIO
       updated        =  updateNode(node, restNode, newProperties)
       keyInfo        =  getKeyInfo(restNode)
-      saved          <- if(updated == node) Full(node)
-                        else nodeRepository.updateNode(updated, modId, actor, reason).toBox
+      saved          <- if(updated == node) node.succeed
+                        else nodeRepository.updateNode(updated, modId, actor, reason)
       keyChanged     =  keyInfo._1.isDefined || keyInfo._2.isDefined
       keys           <- if(keyChanged) {
-                           nodeRepository.updateNodeKeyInfo(node.id, keyInfo._1, keyInfo._2, modId, actor, reason).toBox
-                        } else Full(())
+                           nodeRepository.updateNodeKeyInfo(node.id, keyInfo._1, keyInfo._2, modId, actor, reason)
+                        } else UIO.unit
     } yield {
       if(node != updated || keyChanged) {
         asyncRegenerate ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)
@@ -1224,7 +1224,7 @@ class NodeApiService8 (
   def runAllNodes(classes : List[String]) : Box[JValue] = {
 
     for {
-      nodes <- nodeInfoService.getAll() ?~! s"Could not find nodes informations"
+      nodes <- nodeInfoService.getAll().toBox ?~! s"Could not find nodes informations"
 
     } yield {
       val res = {

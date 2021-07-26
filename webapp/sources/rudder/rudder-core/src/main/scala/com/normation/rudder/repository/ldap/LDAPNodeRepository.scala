@@ -193,15 +193,4 @@ class WoLDAPNodeRepository(
       node
     })
   }
-
-  // this method is unused
-  override def deleteNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
-    val entry = mapper.nodeToEntry(node)
-    nodeLibMutex.writeLock(for {
-      con <- ldap
-      _   <- con.delete(entry.dn).chainError(s"Error when trying to delete node '${node.id.value}'")
-    } yield {
-      node
-    })
-  }
 }

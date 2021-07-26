@@ -177,7 +177,7 @@ class AcceptedNodesLDAPQueryProcessor(
       res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId).toBox
       timeres        =  (System.currentTimeMillis - timePreCompute)
       _              =  logger.debug(s"LDAP result: ${res.entries.size} entries obtained in ${timeres}ms for query ${query.toString}")
-      ldapEntries    <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition)
+      ldapEntries    <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition).toBox
       ldapEntryTime  =  (System.currentTimeMillis - timePreCompute - timeres)
       _              =  logger.debug(s"[post-filter:rudderNode] Found ${ldapEntries.size} nodes when filtering for info service existence and properties (${ldapEntryTime} ms)")
 

@@ -49,7 +49,6 @@ import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -57,9 +56,12 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.appconfig.ReadConfigService
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.box._
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.utils.DateFormaterService
+import com.normation.zio._
+import zio._
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -138,26 +140,22 @@ class SrvGrid(
     , callback : Option[(String,Boolean) => JsCmd]
   ) = {
 
-    val now = System.currentTimeMillis
-    val runs = roAgentRunsRepository.getNodesLastRun(nodes.map(_.id).toSet)
-
-    if(TimingDebugLogger.isDebugEnabled) {
-      TimingDebugLogger.debug(s"Get all last run date time: ${System.currentTimeMillis - now} ms")
-    }
-
     val lines = (for {
-      lastReports <- runs
-      globalMode  <- configService.rudder_global_policy_mode().toBox
+      now         <- currentTimeMillis
+      lastReports <- roAgentRunsRepository.getNodesLastRun(nodes.map(_.id).toSet)
+      after       <- currentTimeMillis
+      _           <- ZIO.when(TimingDebugLoggerPure.logEffect.isDebugEnabled()) {
+                       TimingDebugLoggerPure.debug(s"Get all last run date time: ${after - now} ms")
+                     }
+      globalMode  <- configService.rudder_global_policy_mode()
     } yield {
       nodes.map(node => NodeLine(node, lastReports.get(node.id), callback, globalMode))
-    }) match {
-      case eb: EmptyBox =>
-        val msg = "Error when trying to get nodes info"
-        val e = eb ?~! msg
-        logger.error(e.messageChain)
-        e.rootExceptionCause.foreach(ex => logger.error(ex) )
+    }).either.runNow match {
+      case Left(err) =>
+        val msg = s"Error when trying to get nodes info: ${err.fullMsg}"
+        logger.error(msg)
         Nil
-      case Full(lines) => lines.toList
+      case Right(lines) => lines.toList
     }
 
     JsTableData(lines)

@@ -62,7 +62,7 @@ import com.normation.box._
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.web.model.JsNodeId
 import org.joda.time.DateTime
-
+import com.normation.errors._
 
 /**
  * Display the last reports of a server
@@ -466,10 +466,11 @@ class ReportDisplayer(
     """))
   }
 
-  private[this] def getComplianceData(nodeId: NodeId, reportStatus: NodeStatusReport) = {
+  // this method cannot return an IOResult, as it uses S.
+  private[this] def getComplianceData(nodeId: NodeId, reportStatus: NodeStatusReport): Box[JsTableData[RuleComplianceLine]] = {
     for {
       directiveLib <- directiveRepository.getFullDirectiveLibrary().toBox
-      allNodeInfos <- getAllNodeInfos()
+      allNodeInfos <- getAllNodeInfos().toBox
       rules        <- ruleRepository.getAll(true).toBox
       globalMode   <- configService.rudder_global_policy_mode().toBox
     } yield {

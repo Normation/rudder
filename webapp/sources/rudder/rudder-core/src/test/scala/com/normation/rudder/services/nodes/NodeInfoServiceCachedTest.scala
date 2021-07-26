@@ -1,5 +1,6 @@
 package com.normation.rudder.services.nodes
 
+import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AcceptedInventory
@@ -45,7 +46,6 @@ import com.normation.rudder.services.servers.UnitAcceptInventory
 import com.normation.rudder.services.servers.UnitRefuseInventory
 import com.unboundid.ldap.sdk.Filter
 import com.unboundid.ldap.sdk.{DN, RDN}
-import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
@@ -57,6 +57,7 @@ import scala.collection.mutable.{Map => MutMap}
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
 import com.softwaremill.quicklens._
+import net.liftweb.common.Box
 
 /*
  * Test the cache behaviour
@@ -313,10 +314,16 @@ class NodeInfoServiceCachedTest extends Specification {
       }
     }
 
-    implicit class ForceGet[A](b: Box[A]) {
+    implicit class ForceGetBox[A](b: Box[A]) {
       def forceGet = b match {
         case Full(a) => a
         case eb      => throw new IllegalArgumentException(s"Error during test, box is an erro: ${eb}")
+      }
+    }
+    implicit class ForceGetIO[A](b: IOResult[A]) {
+      def forceGet = b.either.runNow match {
+        case Right(a)  => a
+        case Left(err) => throw new IllegalArgumentException(s"Error during test, box is an erro: ${err.fullMsg}")
       }
     }
 

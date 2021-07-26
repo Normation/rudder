@@ -52,7 +52,8 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import net.liftweb.actor._
 import net.liftweb.common._
 import com.normation.rudder.domain.logger.ScheduledJobLogger
-import com.normation.box._
+import com.normation.errors._
+import com.normation.zio._
 
 /**
  * This object will be used as message for the non compliant reports logger
@@ -109,11 +110,11 @@ class AutomaticReportLogger(
           // Report logger was not running before, try to log the last hundred reports and initialize lastId
           case Empty =>
             logger.warn("Automatic report logger has never run, logging latest 100 non compliant reports")
-            val isSuccess = for {
-              hundredReports <- reportsRepository.getLastHundredErrorReports(reportsKind)
+            val isSuccess = (for {
+              hundredReports <- reportsRepository.getLastHundredErrorReports(reportsKind).toIO
               nodes          <- nodeInfoService.getAll()
-              rules          <- ruleRepository.getAll(true).toBox
-              directives     <- directiveRepository.getFullDirectiveLibrary().toBox
+              rules          <- ruleRepository.getAll(true)
+              directives     <- directiveRepository.getFullDirectiveLibrary()
             } yield {
               val id = hundredReports.headOption match {
                 // None means this is a new rudder without any reports, don't log anything, current id is 0
@@ -127,12 +128,12 @@ class AutomaticReportLogger(
                   report._1
               }
               updateLastId(id)
-            }
+            }).either.runNow
 
             isSuccess match {
-              case eb:EmptyBox =>
-                logger.error("report logger could not fetch latest 100 non compliant reports, retry on next run",eb)
-              case Full(x) => //
+              case Left(err) =>
+                logger.error(s"report logger could not fetch latest 100 non compliant reports, retry on next run: ${err.fullMsg}")
+              case Right(x) => //
             }
 
           case Full(lastId) =>
@@ -216,14 +217,14 @@ class AutomaticReportLogger(
       logger.debug(s"Writting non-compliant-report logs beetween ids ${startAt} and ${maxId} (both incuded)")
       (for {
         nodes      <- nodeInfoService.getAll()
-        rules      <- ruleRepository.getAll(true).toBox
-        directives <- directiveRepository.getFullDirectiveLibrary().toBox
+        rules      <- ruleRepository.getAll(true)
+        directives <- directiveRepository.getFullDirectiveLibrary()
       } yield {
         logRec(startAt, maxId, 10000, nodes, rules.map(r => (r.id, r)).toMap, directives)
-      }) match {
-          case eb: EmptyBox =>
-            logger.error("report logger could not fetch latest non compliant reports, try on next run", eb)
-          case Full(id) =>
+      }).either.runNow match {
+          case Left(err) =>
+            logger.error(s"report logger could not fetch latest non compliant reports, try on next run: ${err}")
+          case Right(id) =>
             logger.trace(s"***** done: log report beetween ids ${startAt} and ${maxId}")
       }
     }

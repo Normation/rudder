@@ -60,7 +60,6 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.GlobalParameter
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.Audit
 import com.normation.rudder.domain.policies.PolicyModeOverrides
@@ -108,7 +107,6 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.DefaultStringQueryParser
 import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
 import com.normation.rudder.services.queries.JsonQueryLexer
-import com.normation.rudder.services.reports.CacheComplianceQueueAction
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
@@ -155,6 +153,7 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import org.apache.commons.io.FileUtils
 
 import java.nio.charset.StandardCharsets
+import com.normation.rudder.services.reports.CacheExpectedReportAction
 
 
 /*
@@ -253,7 +252,7 @@ class RestTestSetUp {
   val policyGeneration = new PromiseGenerationService {
     override def deploy(): Box[Set[NodeId]] = Full(Set())
     override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
-    override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = ???
+    override def getDirectiveLibrary(): Box[FullActiveTechniqueCategory] = ???
     override def getGroupLibrary(): Box[FullNodeGroupCategory] = ???
     override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = ???
     override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = ???
@@ -287,7 +286,7 @@ class RestTestSetUp {
     override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
     override def runPostHooks(generationTime: DateTime, endTime: DateTime, idToConfiguration: Map[NodeId, NodeInfo], systemEnv: HookEnvPairs, nodeIdsPath: String): Box[Unit] = ???
     override def runFailureHooks(generationTime: DateTime, endTime: DateTime, systemEnv: HookEnvPairs, errorMessage: String, errorMessagePath: String): Box[Unit] = ???
-    override def invalidateComplianceCache(actions: Seq[(NodeId, CacheComplianceQueueAction)]): Unit = ???
+    override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = ???
   }
   val asyncDeploymentAgent = new AsyncDeploymentActor(policyGeneration, eventLogger, deploymentStatusSerialisation, () => Duration("0s").succeed, () => AllGeneration.succeed)
 
@@ -547,7 +546,7 @@ class RestTestSetUp {
   val nodeInfo = mockNodes.nodeInfoService
   val softDao = mockNodes.softwareDao
   val roReportsExecutionRepository = new RoReportsExecutionRepository {
-    override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = Full(Map())
+    override def getNodesLastRun(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = Map.empty[NodeId, Option[AgentRunWithNodeConfig]].succeed
 
     def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = ???
 

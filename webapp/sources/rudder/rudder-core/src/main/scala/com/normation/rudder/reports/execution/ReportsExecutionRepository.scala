@@ -38,12 +38,12 @@
 package com.normation.rudder.reports.execution
 
 import com.normation.inventory.domain.NodeId
-import net.liftweb.common._
 import com.normation.rudder.repository.CachedRepository
-import com.normation.rudder.domain.logger.{ReportLogger, TimingDebugLogger}
+import com.normation.rudder.domain.logger.ReportLogger
 import zio._
 import com.normation.zio._
 import com.normation.errors._
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 
 
 /**
@@ -60,7 +60,7 @@ trait RoReportsExecutionRepository {
    * So the last run are the last run inserted in the reports database
    * See ticket http://www.rudder-project.org/redmine/issues/6005
    */
-  def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]]
+  def getNodesLastRun(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]]
 
   def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]]
 
@@ -118,20 +118,21 @@ class CachedReportsExecutionRepository(
     cache = Map()
   }).runNow
 
-  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore.withPermit(IOResult.effect {
-    val n1 = System.currentTimeMillis
-
-    TimingDebugLogger.debug(s"cache last run ; ${cache}")
-    TimingDebugLogger.debug(s"node id diff last run ; ${nodeIds.diff(cache.keySet)}")
-    (for {
-      runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
-    } yield {
-      val n2 = System.currentTimeMillis
-      TimingDebugLogger.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
-      cache = cache ++ runs
-      cache.view.filterKeys { x => nodeIds.contains(x) }.toMap
-    }) ?~! s"Error when trying to update the cache of Agent Runs informations"
-  }).runNow
+  override def getNodesLastRun(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
+    semaphore.withPermit(
+      for {
+        n1   <- currentTimeMillis
+        _    <- TimingDebugLoggerPure.debug(s"cache last run ; ${cache}")
+        _    <- TimingDebugLoggerPure.debug(s"node id diff last run ; ${nodeIds.diff(cache.keySet)}")
+        runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
+        n2   <- currentTimeMillis
+        _    <- TimingDebugLoggerPure.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
+      } yield {
+        cache = cache ++ runs
+        cache.view.filterKeys { x => nodeIds.contains(x) }.toMap
+      }
+    ).chainError(s"Error when trying to update the cache of Agent Runs informations")
+  }
 
   def getUnprocessedRuns(): IOResult[Seq[AgentRunWithoutCompliance]] = readBackend.getUnprocessedRuns()
 

@@ -58,6 +58,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.NodeId
 import com.normation.box._
 import com.normation.rudder.services.servers.AllowedNetwork
+import com.normation.zio._
 
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
@@ -81,7 +82,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] val policyServers = nodeInfoService.getAllSystemNodeIds()
+  private[this] val policyServers = nodeInfoService.getAllSystemNodeIds().toBox
 
   // we need to store that out of the form, so that the changes are persisted at redraw
   private[this] val allowedNetworksMap = scala.collection.mutable.Map[NodeId, Buffer[VH]]()
@@ -120,14 +121,14 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
     val allowedNetworksFormId = "allowedNetworksForm" + policyServerId.value
 
-    val policyServerName = nodeInfoService.getNodeInfo(policyServerId) match {
-      case Full(Some(nodeInfo)) =>
+    val policyServerName = nodeInfoService.getNodeInfo(policyServerId).either.runNow match {
+      case Right(Some(nodeInfo)) =>
         <span>{nodeInfo.hostname}</span>
-      case eb: EmptyBox =>
-        val e = eb ?~! s"Could not get details for Policy Server ID ${policyServerId.value}"
-        logger.error(e.messageChain)
+      case Left(err) =>
+        val e = s"Could not get details for Policy Server ID ${policyServerId.value}: ${err.fullMsg}"
+        logger.error(e)
         <span class="error">Unknown hostname</span>
-      case Full(None) =>
+      case Right(None) =>
         logger.error(s"Could not get details for Policy Server ID ${policyServerId.value}, the details were not found for that ID")
         <span class="error">Unknown hostname</span>
     }

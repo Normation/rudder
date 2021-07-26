@@ -65,6 +65,7 @@ import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.web.ChooseTemplate
 import net.liftweb.util.CssSel
 import com.normation.zio._
+import com.normation.box._
 
 object NodeGroupForm {
   val templatePath = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
@@ -127,7 +128,7 @@ class NodeGroupForm(
   private[this] def getNodeList(target: Either[NonGroupRuleTarget, NodeGroup]): Box[Seq[NodeInfo]] = {
 
     for {
-      nodes  <- nodeInfoService.getAll()
+      nodes  <- nodeInfoService.getAll().toBox
       setIds =  target match {
                   case Right(nodeGroup) => nodeGroup.serverList
                   case Left(target) =>

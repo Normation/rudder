@@ -52,7 +52,6 @@ import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.rudder.batch.UpdateDynamicGroups
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.FeatureSwitch
-import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLogger
@@ -75,10 +74,12 @@ import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ComplianceModeService
+import com.normation.rudder.reports.AgentRunIntervalService
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.domain.logger.ComplianceDebugLogger
+import com.normation.rudder.services.reports.CachedNodeConfigurationService
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.repository._
@@ -102,7 +103,6 @@ import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
 import zio._
 import zio.syntax._
-import com.normation.zio._
 import com.softwaremill.quicklens._
 import cats.implicits._
 import com.normation.rudder.configuration.ConfigurationRepository
@@ -111,6 +111,7 @@ import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.domain.reports.BlockExpectedReport
 import com.normation.rudder.domain.reports.ValueExpectedReport
+import com.normation.rudder.services.reports.CacheExpectedReportAction
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -242,7 +243,7 @@ trait PromiseGenerationService {
                                      })  ?~! "Could not get Node Infos" //disabled node don't get new policies
              fetch2Time           =  System.currentTimeMillis
              _                    =  PolicyGenerationLogger.timing.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
-             directiveLib         <- getDirectiveLibrary(allRules.flatMap(_.directiveIds).toSet) ?~! "Could not get the directive library"
+             directiveLib         <- getDirectiveLibrary() ?~! "Could not get the directive library"
              fetch3Time           =  System.currentTimeMillis
              _                    =  PolicyGenerationLogger.timing.trace(s"Fetched directives in ${fetch3Time-fetch2Time} ms")
              groupLib             <- getGroupLibrary() ?~! "Could not get the group library"
@@ -345,6 +346,10 @@ trait PromiseGenerationService {
       timeSaveExpected      =  (System.currentTimeMillis - saveExpectedTime)
       _                     =  PolicyGenerationLogger.timing.debug(s"Node expected reports saved in base in ${timeSaveExpected} ms.")
 
+      //invalidate compliance caches
+      invalidationActions   = expectedReports.map(x => (x.nodeId, CacheExpectedReportAction.UpdateNodeConfiguration(x.nodeId, x)))
+      _                     <- invalidateComplianceCache (invalidationActions).toBox
+
 
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime         =  System.currentTimeMillis
@@ -353,9 +358,6 @@ trait PromiseGenerationService {
       _                     =  PolicyGenerationLogger.timing.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
 
       /// now, if there was failed config or failed write, time to show them
-      //invalidate compliance may be very very long - make it async
-      invalidationActions   = expectedReports.map(x => (x.nodeId, CacheComplianceQueueAction.UpdateNodeConfiguration(x.nodeId, x)))
-      _                     =  ZioRuntime.runNow(IOResult.effect(invalidateComplianceCache (invalidationActions)).run.unit.forkDaemon)
 
       _                     =  {
                                  PolicyGenerationLogger.timing.info("Timing summary:")
@@ -422,10 +424,7 @@ trait PromiseGenerationService {
    * - groups library
    */
   def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]]
-  // get full active technique category, checking that:
-  // - all ids in parameter are in it,
-  // - filtering out other directives (and pruning relevant branches).
-  def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory]
+  def getDirectiveLibrary(): Box[FullActiveTechniqueCategory]
   def getGroupLibrary(): Box[FullNodeGroupCategory]
   def getAllGlobalParameters: Box[Seq[GlobalParameter]]
   def getAllInventories(): Box[Map[NodeId, NodeInventory]]
@@ -597,10 +596,10 @@ trait PromiseGenerationService {
   ) : Box[Seq[NodeExpectedReports]]
 
   /**
-   * After updates of everything, notify compliace cache
-   * that it should forbid what it knows about the updated nodes
+   * After updates of everything, notify expected reports and compliance cache
+   * that it should forget what it knows about the updated nodes
    */
-  def invalidateComplianceCache(actions: Seq[(NodeId, CacheComplianceQueueAction)]): Unit
+  def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit]
 
   /**
    * Store groups and directive in the database
@@ -643,6 +642,7 @@ class PromiseGenerationServiceImpl (
   , override val confExpectedRepo : UpdateExpectedReportsRepository
   , override val historizationService : HistorizationService
   , override val roNodeGroupRepository: RoNodeGroupRepository
+  , override val roDirectiveRepository: RoDirectiveRepository
   , override val configurationRepository: ConfigurationRepository
   , override val ruleApplicationStatusService: RuleApplicationStatusService
   , override val parameterService : RoParameterService
@@ -653,6 +653,7 @@ class PromiseGenerationServiceImpl (
   , override val complianceCache  : CachedFindRuleNodeStatusReports
   , override val promisesFileWriterService: PolicyWriterService
   , override val writeNodeCertificatesPem: WriteNodeCertificatesPem
+  , override val cachedNodeConfigurationService: CachedNodeConfigurationService
   , override val getScriptEngineEnabled      : () => Box[FeatureSwitch]
   , override val getGlobalPolicyMode         : () => Box[GlobalPolicyMode]
   , override val getComputeDynGroups         : () => Box[Boolean]
@@ -726,6 +727,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def roRuleRepo : RoRuleRepository
   def nodeInfoService: NodeInfoService
   def roNodeGroupRepository: RoNodeGroupRepository
+  def roDirectiveRepository: RoDirectiveRepository
   def configurationRepository: ConfigurationRepository
   def parameterService : RoParameterService
   def roInventoryRepository: ReadOnlyFullInventoryRepository
@@ -738,10 +740,8 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def getGlobalPolicyMode: () => Box[GlobalPolicyMode]
 
   override def findDependantRules() : Box[Seq[Rule]] = roRuleRepo.getAll(true).toBox
-  override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = nodeInfoService.getAll()
-  override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = {
-    configurationRepository.getDirectiveLibrary(ids).toBox
-  }
+  override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = nodeInfoService.getAll().toBox
+  override def getDirectiveLibrary(): Box[FullActiveTechniqueCategory] = roDirectiveRepository.getFullDirectiveLibrary().toBox
   override def getGroupLibrary(): Box[FullNodeGroupCategory] = roNodeGroupRepository.getFullGroupLibrary().toBox
   override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = parameterService.getAllGlobalParameters()
   override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = roInventoryRepository.getAllNodeInventories(AcceptedInventory).toBox
@@ -893,7 +893,7 @@ trait PromiseGeneration_BuildNodeContext {
           case Full(x) => res.copy(ok = res.ok + x)
         }
       }
-      PolicyGenerationLogger.timing.debug(s"Merge group properties took ${timeNanoMergeProp/(1000000)} ms for ${nodeIds.size} nodes")
+      PolicyGenerationLogger.timing.debug(s"Merge group properties took ${timeNanoMergeProp/(1_000_000)} ms for ${nodeIds.size} nodes")
       all
     }
   }
@@ -1343,6 +1343,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
   def complianceCache  : CachedFindRuleNodeStatusReports
   def confExpectedRepo : UpdateExpectedReportsRepository
+  def cachedNodeConfigurationService: CachedNodeConfigurationService
 
   override def computeExpectedReports(
       allNodeConfigurations: Map[NodeId, NodeConfiguration]
@@ -1370,8 +1371,9 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
     }.toList
   }
 
-  override def invalidateComplianceCache(actions: Seq[(NodeId, CacheComplianceQueueAction)]): Unit = {
-    complianceCache.invalidateWithAction(actions).runNow
+  override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = {
+    cachedNodeConfigurationService.invalidateWithAction(actions) *>
+    complianceCache.invalidateWithAction(actions.map { case (k,v) => (k,CacheComplianceQueueAction.ExpectedReportAction(v))})
   }
 
   override def saveExpectedReports(

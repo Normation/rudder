@@ -37,12 +37,11 @@
 
 package com.normation.rudder.services.reports
 
-import com.normation.box._
-import com.normation.errors._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.RuleId
@@ -61,6 +60,8 @@ import net.liftweb.common._
 import org.joda.time._
 import zio._
 import zio.syntax._
+import com.normation.box._
+import com.normation.errors._
 
 object ReportingServiceUtils {
 
@@ -91,16 +92,22 @@ object ReportingServiceUtils {
  * * remove a node from the cache (when the node is deleted)
  * * initialize compliance
  * * update compliance with a new run (with the new compliance)
+ * * init node configuration (at application startup for example - if an existing node configuration is stored for this node, this is discared)
  * * update node configuration (after a policy generation, with new nodeconfiguration)
  * * set the node in node answer state (with the new compliance?)
  */
+sealed trait CacheExpectedReportAction { def nodeId:NodeId }
+object CacheExpectedReportAction {
+  final case class InsertNodeInCache      (nodeId: NodeId                                          ) extends CacheExpectedReportAction
+  final case class RemoveNodeInCache      (nodeId: NodeId                                          ) extends CacheExpectedReportAction
+  final case class UpdateNodeConfiguration(nodeId: NodeId, nodeConfiguration: NodeExpectedReports  ) extends CacheExpectedReportAction // convert the nodestatursreport to pending, with info from last run
+}
+
 sealed trait CacheComplianceQueueAction { def nodeId:NodeId }
 object CacheComplianceQueueAction {
-  final case class InsertNodeInCache      (nodeId: NodeId                                          ) extends CacheComplianceQueueAction
-  final case class RemoveNodeInCache      (nodeId: NodeId                                          ) extends CacheComplianceQueueAction
+  final case class ExpectedReportAction   (action: CacheExpectedReportAction                       )  extends CacheComplianceQueueAction { def nodeId = action.nodeId }
   final case class InitializeCompliance   (nodeId: NodeId, nodeCompliance: Option[NodeStatusReport]) extends CacheComplianceQueueAction // do we need this?
   final case class UpdateCompliance       (nodeId: NodeId, nodeCompliance: NodeStatusReport        ) extends CacheComplianceQueueAction
-  final case class UpdateNodeConfiguration(nodeId: NodeId, nodeConfiguration: NodeExpectedReports  ) extends CacheComplianceQueueAction // convert the nodestatursreport to pending, with info from last run
   final case class SetNodeNoAnswer        (nodeId: NodeId, actionDate: DateTime                    ) extends CacheComplianceQueueAction
   final case class ExpiredCompliance      (nodeId: NodeId                                          ) extends CacheComplianceQueueAction
 }
@@ -116,6 +123,7 @@ class ReportingServiceImpl(
   , val nodeInfoService            : NodeInfoService
   , val directivesRepo             : RoDirectiveRepository
   , val rulesRepo                  : RoRuleRepository
+  , val nodeConfigService          : NodeConfigurationService
   , val getGlobalComplianceMode    : () => Box[GlobalComplianceMode]
   , val getGlobalPolicyMode        : () => IOResult[GlobalPolicyMode]
   , val getUnexpectedInterpretation: () => Box[UnexpectedReportInterpretation]
@@ -125,6 +133,7 @@ class ReportingServiceImpl(
 class CachedReportingServiceImpl(
     val defaultFindRuleNodeStatusReports: ReportingServiceImpl
   , val nodeInfoService                 : NodeInfoService
+  , val nodeConfigService               : NodeConfigurationService
   , val batchSize                       : Int
   , val complianceRepository            : ComplianceRepository
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with CachedFindRuleNodeStatusReports {
@@ -144,19 +153,20 @@ class CachedReportingServiceImpl(
 trait RuleOrNodeReportingServiceImpl extends ReportingService {
 
   def confExpectedRepo: FindExpectedReportRepository
+  def nodeConfigService: NodeConfigurationService
   def directivesRepo  : RoDirectiveRepository
   def nodeInfoService : NodeInfoService
   def rulesRepo       : RoRuleRepository
 
-  override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[Map[NodeId, NodeStatusReport]] = {
+  override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): IOResult[Map[NodeId, NodeStatusReport]] = {
     //here, the logic is ONLY to get the node for which that rule applies and then step back
     //on the other method
-    val time_0 = System.currentTimeMillis
     for {
-      nodeIds <- confExpectedRepo.findCurrentNodeIds(ruleId)
-      time_1  =  System.currentTimeMillis
-      _       =  TimingDebugLogger.debug(s"findCurrentNodeIds: Getting node IDs for rule '${ruleId.value}' took ${time_1-time_0}ms")
-      reports <- findRuleNodeStatusReports(nodeIds, Set(ruleId))
+      time_0  <- currentTimeMillis
+      nodeIds <- nodeConfigService.findNodesApplyingRule(ruleId)
+      time_1  <- currentTimeMillis
+      _       <- TimingDebugLoggerPure.debug(s"findCurrentNodeIds: Getting node IDs for rule '${ruleId.value}' took ${time_1 - time_0}ms")
+      reports <- findRuleNodeStatusReports(nodeIds, Set(ruleId)).toIO
     } yield {
       reports
     }
@@ -217,7 +227,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
   def getUserNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = {
     val n1 = System.currentTimeMillis
     for {
-      nodeIds            <- nodeInfoService.getAll().map(_.keySet)
+      nodeIds            <- nodeInfoService.getAllNodesIds().toBox
       userRules          <- rulesRepo.getIds().toBox
       n2                 = System.currentTimeMillis
       _                  = TimingDebugLogger.trace(s"Reporting service - Get nodes and users rules in: ${n2 - n1}ms")
@@ -228,23 +238,23 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
   }
 
   def getUserAndSystemNodeStatusReports(optNodeIds: Option[Set[NodeId]]) : Box[(Map[NodeId, NodeStatusReport], Map[NodeId, NodeStatusReport])] = {
-    val n1 = System.currentTimeMillis
     for {
+      n1      <- currentTimeMillis
       nodeIds <- optNodeIds match {
-        case None => nodeInfoService.getAll().map(_.keySet)
-        case Some(ids) => Full(ids)
-      }
-      userRules <- rulesRepo.getIds().toBox
-      allRules <- rulesRepo.getIds(true).toBox
+                    case None => nodeInfoService.getAll().map(_.keySet)
+                    case Some(ids) => ids.succeed
+                  }
+      userRules <- rulesRepo.getIds()
+      allRules <- rulesRepo.getIds(true)
       systemRules = allRules.diff(userRules)
-      n2 = System.currentTimeMillis
-      _ = TimingDebugLogger.trace(s"Reporting service - Get nodes and rules in: ${n2 - n1}ms")
-      systemReports <- findRuleNodeStatusReports(nodeIds, systemRules)
-      userReports <- findRuleNodeStatusReports(nodeIds, userRules)
+      n2 <- currentTimeMillis
+      _  <- TimingDebugLoggerPure.trace(s"Reporting service - Get nodes and rules in: ${n2 - n1}ms")
+      systemReports <- findRuleNodeStatusReports(nodeIds, systemRules).toIO
+      userReports <- findRuleNodeStatusReports(nodeIds, userRules).toIO
     } yield {
       (systemReports, userReports)
     }
-  }
+  }.toBox
 
   def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] =  {
     // if we don't have any report that is not a system one, the user-rule global compliance is undefined
@@ -308,8 +318,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
 
   /**
    * The queue of invalidation request.
-   * The queue size is 1 and new request need to merge existing
-   * node id with new ones.
+   * The queue size is 1 and new request need to merge with existing request
    * It's a List and not a Set, because we want to keep the precedence in
    * invalidation request.
    */
@@ -333,7 +342,6 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       // * invalidate cache: ???
       // * no report from the node (compliance expires): recompute compliance
 
-      // as a first approach, they could simply findRuleNodeStatusReports
       {
         (for {
           _  <- performAction(actions)
@@ -352,6 +360,8 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    */
   private[this] def performAction(actions: List[CacheComplianceQueueAction]): IOResult[Unit] = {
     import CacheComplianceQueueAction._
+    import CacheExpectedReportAction._
+
     ReportLoggerPure.Cache.debug(s"Performing action ${actions.headOption}") *>
     // get type of action
     (actions.headOption match {
@@ -368,11 +378,11 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
             _       <-  IOResult.effectNonBlocking { cache = cache ++ updates }
           } yield ())
 
-        case delete: RemoveNodeInCache =>
+        case ExpectedReportAction((RemoveNodeInCache(_))) =>
           for {
             deletes <- ZIO.foreach(actions) { case a => a match {
-                         case x: RemoveNodeInCache => x.nodeId.succeed
-                         case x                    => Inconsistency(s"Error: found an action of incorrect type in a 'delete' for cache: ${x}").fail
+                         case ExpectedReportAction((RemoveNodeInCache(nodeId))) => nodeId.succeed
+                         case x                                                 => Inconsistency(s"Error: found an action of incorrect type in a 'delete' for cache: ${x}").fail
                        }}
             _       <-  IOResult.effectNonBlocking { cache = cache.removedAll(deletes) }
           } yield ()
@@ -457,9 +467,9 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * This is handled in higher level of the app and leads to "no data available" in
    * place of compliance bar.
    */
-  private[this] def checkAndGetCache(nodeIdsToCheck: Set[NodeId]) : Box[Map[NodeId, NodeStatusReport]] = {
+  private[this] def checkAndGetCache(nodeIdsToCheck: Set[NodeId]) : IOResult[Map[NodeId, NodeStatusReport]] = {
     if(nodeIdsToCheck.isEmpty) {
-      Full(Map())
+      Map[NodeId, NodeStatusReport]().succeed
     } else {
       val now = DateTime.now
 
@@ -505,7 +515,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         // starting with nodeIds, is all accepted node passed in parameter,
         // we don't miss node ids not yet in cache
         requireUpdate =  nodeIds -- upToDate.keySet
-        _             <- invalidateWithAction(requireUpdate.toSeq.map(x => (x, CacheComplianceQueueAction.SetNodeNoAnswer(x, DateTime.now())))).unit.toBox
+        _             <- invalidateWithAction(requireUpdate.toSeq.map(x => (x, CacheComplianceQueueAction.SetNodeNoAnswer(x, DateTime.now())))).unit
       } yield {
         ReportLogger.Cache.debug(s"Compliance cache to reload (expired, missing):[${requireUpdate.map(_.value).mkString(" , ")}]")
         if (ReportLogger.Cache.isTraceEnabled) {
@@ -525,7 +535,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, NodeStatusReport]] = {
     val n1 = System.currentTimeMillis
     for {
-      reports <- checkAndGetCache(nodeIds)
+      reports <- checkAndGetCache(nodeIds).toBox
       n2      =  System.currentTimeMillis
       _       =  ReportLogger.Cache.debug(s"Get node compliance from cache in: ${n2 - n1}ms")
     } yield {
@@ -547,6 +557,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
 trait DefaultFindRuleNodeStatusReports extends ReportingService {
 
   def confExpectedRepo           : FindExpectedReportRepository
+  def nodeConfigService          : NodeConfigurationService
   def reportsRepository          : ReportsRepository
   def agentRunRepository         : RoReportsExecutionRepository
   def getGlobalComplianceMode    : () => Box[GlobalComplianceMode]
@@ -588,7 +599,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       complianceMode      <- getGlobalComplianceMode()
       unexpectedMode      <- getUnexpectedInterpretation()
       // we want compliance on these nodes
-      runInfos            <- getNodeRunInfos(nodeIds, complianceMode)
+      runInfos            <- getNodeRunInfos(nodeIds, complianceMode).toBox
       t1                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.trace(s"Compliance: get node run infos: ${t1-t0}ms")
 
@@ -620,22 +631,22 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
    * A value is return for ALL nodeIds, so the assertion nodeIds == returnedMap.keySet holds.
    *
    */
-  private[this] def getNodeRunInfos(nodeIds: Set[NodeId], complianceMode: GlobalComplianceMode): Box[Map[NodeId, RunAndConfigInfo]] = {
-    val t0 = System.currentTimeMillis
+  private[this] def getNodeRunInfos(nodeIds: Set[NodeId], complianceMode: GlobalComplianceMode): IOResult[Map[NodeId, RunAndConfigInfo]] = {
     for {
+      t0                <- currentTimeMillis
       runs              <- complianceMode.mode match {
                             //this is an optimisation to avoid querying the db in that case
-                             case ReportsDisabled => Full(nodeIds.map(id => (id, None)).toMap)
+                             case ReportsDisabled => nodeIds.map(id => (id, None)).toMap.succeed
                              case _ => agentRunRepository.getNodesLastRun(nodeIds)
                            }
-      t1                =  System.currentTimeMillis
-      _                 =  TimingDebugLogger.trace(s"Compliance: get nodes last run : ${t1-t0}ms")
-      currentConfigs    <- confExpectedRepo.getCurrentExpectedsReports(nodeIds)
-      t2                =  System.currentTimeMillis
-      _                 =  TimingDebugLogger.trace(s"Compliance: get current expected reports: ${t2-t1}ms")
-      nodeConfigIdInfos <- confExpectedRepo.getNodeConfigIdInfos(nodeIds)
-      t3                =  System.currentTimeMillis
-      _                 =  TimingDebugLogger.trace(s"Compliance: get Node Config Id Infos: ${t3-t2}ms")
+      t1                <- currentTimeMillis
+      _                 <- TimingDebugLoggerPure.trace(s"Compliance: get nodes last run : ${t1-t0}ms")
+      currentConfigs    <- nodeConfigService.getCurrentExpectedReports(nodeIds)
+      t2                <- currentTimeMillis
+      _                 <- TimingDebugLoggerPure.trace(s"Compliance: get current expected reports: ${t2-t1}ms")
+      nodeConfigIdInfos <- confExpectedRepo.getNodeConfigIdInfos(nodeIds).toIO
+      t3                <- currentTimeMillis
+      _                 <- TimingDebugLoggerPure.trace(s"Compliance: get Node Config Id Infos: ${t3-t2}ms")
     } yield {
       ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos)
     }
@@ -697,7 +708,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       t1                =  System.currentTimeMillis
       _                 =  TimingDebugLogger.trace(s"Compliance: get nodes last run : ${t1-t0}ms")
       nodeIds           = runs.keys.toSet
-      currentConfigs    <- confExpectedRepo.getCurrentExpectedsReports(nodeIds)
+      currentConfigs    <- nodeConfigService.getCurrentExpectedReports(nodeIds).toBox
       t2                =  System.currentTimeMillis
       _                 =  TimingDebugLogger.trace(s"Compliance: get current expected reports: ${t2-t1}ms")
       nodeConfigIdInfos <- confExpectedRepo.getNodeConfigIdInfos(nodeIds)

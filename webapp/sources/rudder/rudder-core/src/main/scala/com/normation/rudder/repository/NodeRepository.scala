@@ -56,8 +56,6 @@ trait WoNodeRepository {
   def updateNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Node]
 
   def createNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Node]
-  def deleteNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Node]
-
 
 
   /**

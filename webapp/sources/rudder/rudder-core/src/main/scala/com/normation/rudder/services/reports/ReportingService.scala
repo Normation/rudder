@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.reports
 
+import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.RuleId
@@ -62,7 +63,7 @@ trait ReportingService {
   /**
    * A specialised version of `findRuleNodeStatusReports` to find node status reports for a given rule.
    */
-  def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[Map[NodeId, NodeStatusReport]]
+  def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): IOResult[Map[NodeId, NodeStatusReport]]
 
   /**
     * find node status reports for a given node.

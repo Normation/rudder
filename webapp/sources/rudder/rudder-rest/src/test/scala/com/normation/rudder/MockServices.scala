@@ -1479,21 +1479,21 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     def _info(node: NodeDetails) = Option(node.info)
     def _fullInventory(node: NodeDetails) = Option(FullInventory(node.nInv, node.mInv))
 
-    override def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, AcceptedInventory, _info)
-    override def getNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = getNodeInfoPure(nodeId).toBox
+    override def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, AcceptedInventory, _info)
 
-    override def getAll(): Box[Map[NodeId, NodeInfo]] = getGenericAll(AcceptedInventory, _info).toBox
+    override def getAll(): IOResult[Map[NodeId, NodeInfo]] = getGenericAll(AcceptedInventory, _info)
 
-    override def getAllNodes(): Box[Map[NodeId, Node]] = getAll().map(_.map(kv => (kv._1, kv._2.node)))
-    override def getAllSystemNodeIds(): Box[Seq[NodeId]] = {
-      nodeBase.get.map(_.collect { case (id, n)  if(n.info.isSystem) => id }.toSeq ).toBox
+    override def getAllNodes(): IOResult[Map[NodeId, Node]] = getAll().map(_.map(kv => (kv._1, kv._2.node)))
+    override def getAllNodesIds(): IOResult[Set[NodeId]] = getAllNodes().map(_.keySet)
+    override def getAllSystemNodeIds(): IOResult[Seq[NodeId]] = {
+      nodeBase.get.map(_.collect { case (id, n)  if(n.info.isSystem) => id }.toSeq )
     }
 
-    override def getPendingNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, PendingInventory, _info)
-    override def getPendingNodeInfos(): Box[Map[NodeId, NodeInfo]] = getGenericAll(PendingInventory, _info).toBox
+    override def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, PendingInventory, _info)
+    override def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = getGenericAll(PendingInventory, _info)
 
-    override def getDeletedNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, RemovedInventory, _info)
-    override def getDeletedNodeInfos(): Box[Map[NodeId, NodeInfo]] = getGenericAll(RemovedInventory, _info).toBox
+    override def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, RemovedInventory, _info)
+    override def getDeletedNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = getGenericAll(RemovedInventory, _info)
 
     override def get(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[FullInventory]] = getGenericOne(id, inventoryStatus, _fullInventory)
     override def get(id: NodeId): IOResult[Option[FullInventory]] = {
@@ -1508,7 +1508,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     override def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]] = getGenericAll(inventoryStatus, _fullInventory(_).map(_.node))
 
     // not implemented yet
-    override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): Box[Set[LDAPNodeInfo]] = ???
+    override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): IOResult[Set[LDAPNodeInfo]] = ???
     override def getNumberOfManagedNodes: Int = ???
     override def save(serverAndMachine: FullInventory): IOResult[Seq[LDIFChangeRecord]] = ???
     override def delete(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???

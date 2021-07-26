@@ -65,7 +65,6 @@ import scala.util.control.NonFatal
 import net.liftweb.common.Loggable
 
 import com.normation.box._
-import com.normation.errors._
 
 /**
  * Correctly quote a token
@@ -226,7 +225,7 @@ object QSLdapBackend {
 
     for {
       connection  <- ldap
-      nodeIds     <- nodeInfos.getAll().map(_.keySet.map(_.value)).toIO
+      nodeIds     <- nodeInfos.getAllNodesIds()
       entries     <- connection.search(nodeDit.BASE_DN, Sub, filter, returnedAttributes:_*)
     } yield {
 
@@ -238,7 +237,7 @@ object QSLdapBackend {
         //and we get node always with a hostname
         val (nodes, others) = entries.partition { x => x.isA(OC_NODE) || x.isA(OC_RUDDER_NODE) }
         // merge node attribute for node entries with same node id
-        val merged = nodes.groupBy( _.value_!(A_NODE_UUID)).filter(e => nodeIds.contains(e._1)).map { case (_, samenodes) =>
+        val merged = nodes.groupBy( _.value_!(A_NODE_UUID)).filter(e => nodeIds.map(_.value).contains(e._1)).map { case (_, samenodes) =>
           samenodes.reduce[LDAPEntry] { case (n1, n2) =>
             n2.attributes.foreach( a => n1 mergeAttribute a)
             n1

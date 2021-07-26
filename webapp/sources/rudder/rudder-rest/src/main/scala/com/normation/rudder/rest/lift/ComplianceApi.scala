@@ -62,6 +62,8 @@ import com.normation.box._
 import com.normation.rudder.domain.reports.ComponentStatusReport
 import com.normation.rudder.domain.reports.BlockStatusReport
 import com.normation.rudder.domain.reports.ValueStatusReport
+import com.normation.errors._
+import zio.syntax._
 
 class ComplianceApi(
     restExtractorService: RestExtractorService
@@ -239,16 +241,16 @@ class ComplianceAPIService(
   /**
    * Get the compliance for everything
    */
- private[this] def getByRulesCompliance(rules: Set[Rule]) : Box[Seq[ByRuleRuleCompliance]] = {
+ private[this] def getByRulesCompliance(rules: Set[Rule]) : IOResult[Seq[ByRuleRuleCompliance]] = {
 
     for {
-      groupLib      <- nodeGroupRepo.getFullGroupLibrary().toBox
-      directivelib  <- directiveRepo.getFullDirectiveLibrary().toBox
+      groupLib      <- nodeGroupRepo.getFullGroupLibrary()
+      directivelib  <- directiveRepo.getFullDirectiveLibrary()
       nodeInfos     <- nodeInfoService.getAll()
-      compliance    <- getGlobalComplianceMode()
+      compliance    <- getGlobalComplianceMode().toIO
       reportsByNode <- reportingService.findRuleNodeStatusReports(
                          nodeInfos.keySet, rules.map(_.id).toSet
-                       )
+                       ).toIO
     } yield {
 
       //flatMap of Set is ok, since nodeRuleStatusReport are different for different nodeIds
@@ -352,41 +354,41 @@ class ComplianceAPIService(
 
   def getRuleCompliance(ruleId: RuleId): Box[ByRuleRuleCompliance] = {
     for {
-      rule    <- rulesRepo.get(ruleId).toBox
+      rule    <- rulesRepo.get(ruleId)
       reports <- getByRulesCompliance(Set(rule))
-      report  <- Box(reports.find( _.id == ruleId)) ?~! s"No reports were found for rule with ID '${ruleId.value}'"
+      report  <- reports.find( _.id == ruleId).notOptional(s"No reports were found for rule with ID '${ruleId.value}'")
     } yield {
       report
     }
-  }
+  }.toBox
 
   def getRulesCompliance(): Box[Seq[ByRuleRuleCompliance]] = {
     for {
-      rules   <- rulesRepo.getAll().toBox
+      rules   <- rulesRepo.getAll()
       reports <- getByRulesCompliance(rules.toSet)
     } yield {
       reports
     }
-  }
+  }.toBox
 
   /**
    * Get the compliance for everything
    */
-  private[this] def getByNodesCompliance(onlyNode: Option[NodeId]): Box[Seq[ByNodeNodeCompliance]] = {
+  private[this] def getByNodesCompliance(onlyNode: Option[NodeId]): IOResult[Seq[ByNodeNodeCompliance]] = {
 
     for {
-      rules        <- rulesRepo.getAll().toBox
-      groupLib     <- nodeGroupRepo.getFullGroupLibrary().toBox
-      directiveLib <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives).toBox
+      rules        <- rulesRepo.getAll()
+      groupLib     <- nodeGroupRepo.getFullGroupLibrary()
+      directiveLib <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives)
       allNodeInfos <- nodeInfoService.getAll()
       nodeInfos    <- onlyNode match {
-                        case None => Full(allNodeInfos)
-                        case Some(id) => Box(allNodeInfos.get(id)).map(info => Map(id -> info)) ?~! s"The node with ID '${id.value}' is not known on Rudder"
+                        case None => allNodeInfos.succeed
+                        case Some(id) => allNodeInfos.get(id).map(info => Map(id -> info)).notOptional(s"The node with ID '${id.value}' is not known on Rudder")
                       }
-      compliance   <- getGlobalComplianceMode()
+      compliance   <- getGlobalComplianceMode().toIO
       reports      <- reportingService.findRuleNodeStatusReports(
                         nodeInfos.keySet, rules.map(_.id).toSet
-                      )
+                      ).toIO
     } yield {
 
       //get nodeIds by rules
@@ -449,7 +451,7 @@ class ComplianceAPIService(
 
   def getNodeCompliance(nodeId: NodeId): Box[ByNodeNodeCompliance] = {
     for {
-      reports <- this.getByNodesCompliance(Some(nodeId))
+      reports <- this.getByNodesCompliance(Some(nodeId)).toBox
       report  <- Box(reports.find( _.id == nodeId)) ?~! s"No reports were found for node with ID '${nodeId.value}'"
     } yield {
       report
@@ -458,7 +460,7 @@ class ComplianceAPIService(
   }
 
   def getNodesCompliance(): Box[Seq[ByNodeNodeCompliance]] = {
-    this.getByNodesCompliance(None)
+    this.getByNodesCompliance(None).toBox
   }
 
   def getGlobalCompliance(): Box[Option[(ComplianceLevel, Long)]] = {

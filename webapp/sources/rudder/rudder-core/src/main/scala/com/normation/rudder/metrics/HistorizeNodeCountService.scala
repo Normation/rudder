@@ -155,7 +155,7 @@ class FetchDataServiceImpl(nodeInfoService: NodeInfoService, reportingService: R
     (for {
       accepted   <- nodeInfoService.getAll()
       pending    <- nodeInfoService.getPendingNodeInfos()
-      compliance <- reportingService.getUserNodeStatusReports()
+      compliance <- reportingService.getUserNodeStatusReports().toIO
     } yield {
       val modes = compliance.values.groupMapReduce(r => mode(r.compliance))(_ => 1)(_+_)
       FrequentNodeMetrics(
@@ -165,7 +165,7 @@ class FetchDataServiceImpl(nodeInfoService: NodeInfoService, reportingService: R
         , modes.getOrElse(Mode.Enforce, 0)
         , modes.getOrElse(Mode.Mixed, 0)
       )
-    }).toIO
+    })
   }
 }
 

@@ -1972,6 +1972,7 @@ object RudderConfig extends Loggable {
       , updateExpectedRepo
       , historizationService
       , roNodeGroupRepository
+      , roDirectiveRepository
       , configurationRepository
       , ruleApplicationStatusImpl
       , roParameterServiceImpl
@@ -1982,6 +1983,7 @@ object RudderConfig extends Loggable {
       , reportingServiceImpl
       , rudderCf3PromisesFileWriterService
       , new WriteNodeCertificatesPemImpl(Some(RUDDER_RELAY_RELOAD))
+      , cachedNodeConfigurationService
       , () => configService.rudder_featureSwitch_directiveScriptEngine().toBox
       , () => configService.rudder_global_policy_mode().toBox
       , () => configService.rudder_generation_compute_dyngroups().toBox
@@ -2038,6 +2040,8 @@ object RudderConfig extends Loggable {
       , eventLogRepository
       , dyngroupUpdaterBatch
       , List(nodeInfoServiceImpl)
+      , cachedNodeConfigurationService
+      , reportingServiceImpl
       , nodeInfoServiceImpl
       , HOOKS_D
       , HOOKS_IGNORE_SUFFIXES
@@ -2059,12 +2063,14 @@ object RudderConfig extends Loggable {
         , nodeInfoServiceImpl
         , roDirectiveRepository
         , roRuleRepository
+        , cachedNodeConfigurationService
         , () => globalComplianceModeService.getGlobalComplianceMode
         , configService.rudder_global_policy_mode _
         , () => configService.rudder_compliance_unexpected_report_interpretation().toBox
         , RUDDER_JDBC_BATCH_MAX_SIZE
       )
     , nodeInfoServiceImpl
+    , cachedNodeConfigurationService
     , RUDDER_JDBC_BATCH_MAX_SIZE // use same size as for SQL requests
     , complianceRepositoryImpl
   )
@@ -2214,6 +2220,8 @@ object RudderConfig extends Loggable {
       , nodeReadWriteMutex
       , nodeInfoServiceImpl
       , updateExpectedRepo
+      , cachedNodeConfigurationService
+      , reportingServiceImpl
       , pathComputer
       , newNodeManager
       , HOOKS_D
@@ -2354,11 +2362,17 @@ object RudderConfig extends Loggable {
   ////////////////////// Snippet plugins & extension register //////////////////////
   lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
 
+  private[this] lazy val cachedNodeConfigurationService = {
+    val cached = new CachedNodeConfigurationService(findExpectedRepo, nodeInfoServiceImpl)
+    cached.init().runNow
+    cached
+  }
+
   /*
    * Agent runs: we use a cache for them.
    */
   private[this] lazy val cachedAgentRunRepository = {
-    val roRepo = new RoReportsExecutionRepositoryImpl(doobie, new WoReportsExecutionRepositoryImpl(doobie), findExpectedRepo, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
+    val roRepo = new RoReportsExecutionRepositoryImpl(doobie, new WoReportsExecutionRepositoryImpl(doobie), cachedNodeConfigurationService, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
     new CachedReportsExecutionRepository(
         roRepo
     )

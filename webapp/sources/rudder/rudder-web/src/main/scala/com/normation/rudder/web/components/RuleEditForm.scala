@@ -157,7 +157,7 @@ class RuleEditForm(
   private[this] val boxRootRuleCategory = getRootRuleCategory()
 
   private[this] def showForm(idToScroll  : String = "editRuleZonePortlet") : NodeSeq = {
-    (getFullNodeGroupLib().toBox, getFullDirectiveLib().toBox, getAllNodeInfos(), boxRootRuleCategory.toBox, configService.rudder_global_policy_mode().toBox) match {
+    (getFullNodeGroupLib().toBox, getFullDirectiveLib().toBox, getAllNodeInfos().toBox, boxRootRuleCategory.toBox, configService.rudder_global_policy_mode().toBox) match {
       case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory), Full(globalMode)) =>
 
         val form = {

@@ -97,7 +97,7 @@ class ShowNodeDetailsFromNode(
   private[this] val nodeRepo             = RudderConfig.woNodeRepository
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val configService        = RudderConfig.configService
-  private[this] var boxNodeInfo          = nodeInfoService.getNodeInfo(nodeId)
+  private[this] var boxNodeInfo          = nodeInfoService.getNodeInfo(nodeId).toBox
 
   def complianceModeEditForm(nodeInfo : NodeInfo) = {
     val (globalMode, nodeMode) = {
@@ -155,7 +155,7 @@ class ShowNodeDetailsFromNode(
     val user  =  CurrentUser.actor
 
     for {
-      oldNode <- nodeInfoService.getNodeInfo(nodeId).flatMap( _.map( _.node )) // we can't change the state of a missing node
+      oldNode <- nodeInfoService.getNodeInfo(nodeId).toBox.flatMap( _.map( _.node )) // we can't change the state of a missing node
       newNode =  oldNode.copy(state = nodeState)
       result  <- nodeRepo.updateNode(newNode, modId, user, None).toBox
     } yield {
@@ -191,12 +191,12 @@ class ShowNodeDetailsFromNode(
     val user  =  CurrentUser.actor
     val newNodeInfo = nodeInfo.copy( nodeInfo.node.copy(nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))))
     boxNodeInfo = Full(Some(newNodeInfo))
-    for {
-      oldNode <- nodeInfoService.getNodeInfo(nodeId).flatMap( _.map( _.node ))
-      result  <- nodeRepo.updateNode(newNodeInfo.node, modId, user, None).toBox
+    (for {
+      oldNode <- nodeInfoService.getNodeInfo(nodeId).map( _.map( _.node )).notOptional(s"Node with id '${nodeId.value}' was not found")
+      result  <- nodeRepo.updateNode(newNodeInfo.node, modId, user, None)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
-    }
+    }).toBox
   }
 
   def mainDispatch = Map(

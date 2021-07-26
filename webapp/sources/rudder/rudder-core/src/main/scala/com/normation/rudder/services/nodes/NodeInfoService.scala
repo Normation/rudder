@@ -41,7 +41,6 @@ import com.normation.inventory.domain._
 import org.joda.time.DateTime
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.rudder.domain.NodeDit
-import net.liftweb.common._
 import com.normation.rudder.domain.nodes.{Node, NodeInfo}
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.inventory.ldap.core.LDAPConstants._
@@ -62,7 +61,6 @@ import com.normation.ldap.sdk.LDAPIOResult._
 import zio._
 import zio.syntax._
 import com.normation.errors._
-import com.normation.box._
 import com.normation.zio._
 import com.normation.ldap.sdk.syntax._
 import com.normation.rudder.domain.logger.NodeLoggerPure
@@ -117,17 +115,12 @@ trait NodeInfoService {
    * Retrieve minimal information needed for the node info, used (only) by the
    * LDAP QueryProcessor.
    */
-  def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : Box[Set[LDAPNodeInfo]]
+  def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : IOResult[Set[LDAPNodeInfo]]
 
   /**
    * Return a NodeInfo from a NodeId. First check the ou=Node, then fetch the other data
-   * @param nodeId
-   * @return
    */
-  def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]]
-
-  // Pure version of getNodeInfo
-  def getNodeInfoPure(nodeId: NodeId) : IOResult[Option[NodeInfo]]
+  def getNodeInfo(nodeId: NodeId) : IOResult[Option[NodeInfo]]
 
   /**
    * Return the number of managed (ie non policy server, no rudder role )nodes.
@@ -144,7 +137,13 @@ trait NodeInfoService {
    * missing (but the corresponding nodeInfos won't be present)
    * So it is possible that getAllIds.size > getAll.size
    */
-  def getAll() : Box[Map[NodeId, NodeInfo]]
+  def getAll() : IOResult[Map[NodeId, NodeInfo]]
+
+  /**
+   * Get all nodes id
+   */
+
+  def getAllNodesIds(): IOResult[Set[NodeId]]
 
   /**
    * Get all nodes.
@@ -153,29 +152,22 @@ trait NodeInfoService {
    * missing (but the corresponding nodeInfos won't be present)
    * So it is possible that getAllIds.size > getAll.size
    */
-  def getAllNodes() : Box[Map[NodeId, Node]]
+  def getAllNodes() : IOResult[Map[NodeId, Node]]
 
   /**
    * Get all systen node ids, for example
    * policy server node ids.
    * @return
    */
-  def getAllSystemNodeIds() : Box[Seq[NodeId]]
+  def getAllSystemNodeIds() : IOResult[Seq[NodeId]]
 
   /**
    * Getting something like a nodeinfo for pending / deleted nodes
    */
-  def getPendingNodeInfos(): Box[Map[NodeId, NodeInfo]]
-  def getPendingNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = {
-    getPendingNodeInfoPure(nodeId).toBox
-  }
-  def getPendingNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]]
-
-  def getDeletedNodeInfos(): Box[Map[NodeId, NodeInfo]]
-  def getDeletedNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = {
-    getDeletedNodeInfoPure(nodeId).toBox
-  }
-  def getDeletedNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]]
+  def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]]
+  def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]
+  def getDeletedNodeInfos(): IOResult[Map[NodeId, NodeInfo]]
+  def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]
 }
 
 object NodeInfoService {
@@ -809,10 +801,6 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     }
   }
 
-  override final def getPendingNodeInfos(): Box[Map[NodeId, NodeInfo]] = getNotAcceptedNodeDataFromBackend(PendingInventory).toBox
-
-  override final def getDeletedNodeInfos(): Box[Map[NodeId, NodeInfo]] = getNotAcceptedNodeDataFromBackend(RemovedInventory).toBox
-
   private[this] def getNotAcceptedNodeInfo(nodeId: NodeId, status: InventoryStatus): IOResult[Option[NodeInfo]] = {
     val dit = status match {
       case AcceptedInventory => inventoryDit
@@ -843,8 +831,10 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     }
   }
 
-  override final def getPendingNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = getNotAcceptedNodeInfo(nodeId, PendingInventory)
-  override final def getDeletedNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = getNotAcceptedNodeInfo(nodeId, RemovedInventory)
+  override final def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = getNotAcceptedNodeDataFromBackend(PendingInventory)
+  override final def getDeletedNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = getNotAcceptedNodeDataFromBackend(RemovedInventory)
+  override final def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = getNotAcceptedNodeInfo(nodeId, PendingInventory)
+  override final def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = getNotAcceptedNodeInfo(nodeId, RemovedInventory)
 
   /**
    * Clear cache.
@@ -860,18 +850,21 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     semaphore.withPermit(UIO.effectTotal(this.nodeCache.map(_.lastModTime).getOrElse(new DateTime(0))))
   }
 
-  def getAll(): Box[Map[NodeId, NodeInfo]] = withUpToDateCache("all nodes info") { cache =>
+  def getAll(): IOResult[Map[NodeId, NodeInfo]] = withUpToDateCache("all nodes info") { cache =>
     cache.view.mapValues(_._2).toMap.succeed
-  }.toBox
-  def getAllSystemNodeIds(): Box[Seq[NodeId]] = withUpToDateCache("all system nodes") { cache =>
+  }
+  def getAllNodesIds(): IOResult[Set[NodeId]] = withUpToDateCache("all nodes id") { cache =>
+    cache.keySet.succeed
+  }
+  def getAllSystemNodeIds(): IOResult[Seq[NodeId]] = withUpToDateCache("all system nodes") { cache =>
     cache.collect { case(k, (_,x)) if(x.isPolicyServer) => k }.toSeq.succeed
-  }.toBox
+  }
 
-  def getAllNodes(): Box[Map[NodeId, Node]] = withUpToDateCache("all nodes") { cache =>
+  def getAllNodes(): IOResult[Map[NodeId, Node]] = withUpToDateCache("all nodes") { cache =>
     cache.view.mapValues(_._2.node).toMap.succeed
-  }.toBox
+  }
 
-  override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): Box[Set[LDAPNodeInfo]] = {
+  override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): IOResult[Set[LDAPNodeInfo]] = {
     // if nodeIds is empty and composition is and, return an empty set; with or, we need to run it in all cases
     if (nodeIds.isEmpty && composition == And) {
       Set[LDAPNodeInfo]().succeed
@@ -880,11 +873,9 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
         PostFilterNodeFromInfoService.getLDAPNodeInfo(nodeIds, predicates, composition, cache).succeed
       }
     }
-  }.toBox
+  }
 
-  def getNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = getNodeInfoPure(nodeId).toBox
-
-  def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = withUpToDateCache(s"${nodeId.value} node info") { cache =>
+  def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = withUpToDateCache(s"${nodeId.value} node info") { cache =>
     cache.get(nodeId).map( _._2).succeed
   }
 

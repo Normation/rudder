@@ -42,7 +42,6 @@ import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.function.BiPredicate
 import java.util.function.Consumer
-
 import com.normation.box._
 import com.normation.errors._
 import com.normation.eventlog.EventActor
@@ -86,6 +85,9 @@ import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
 import com.normation.rudder.services.nodes.NodeInfoServiceCached
 import com.normation.rudder.services.policies.write.NodePoliciesPaths
 import com.normation.rudder.services.policies.write.PathComputer
+import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
+import com.normation.rudder.services.reports.CacheExpectedReportAction.RemoveNodeInCache
+import com.normation.rudder.services.reports.{CachedFindRuleNodeStatusReports, CachedNodeConfigurationService}
 import com.normation.rudder.services.servers.DeletionResult._
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
@@ -187,6 +189,8 @@ class RemoveNodeServiceImpl(
     , nodeLibMutex              : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
     , nodeInfoServiceCache      : NodeInfoService with CachedRepository
     , nodeConfigurationsRepo    : UpdateExpectedReportsRepository
+    , nodeConfigurationService  : CachedNodeConfigurationService
+    , reportingService          : CachedFindRuleNodeStatusReports
     , pathComputer              : PathComputer
     , newNodeManager            : NewNodeManager
     , HOOKS_D                   : String
@@ -205,8 +209,9 @@ class RemoveNodeServiceImpl(
    * External services can update it.
    */
   val postNodeDeleteActions = Ref.make(
-       new RemoveFromCache(nodeInfoService)
+       new RemoveNodeInfoFromCache(nodeInfoService)
     :: new CloseNodeConfiguration(nodeConfigurationsRepo)
+    :: new RemoveNodeFromComplianceCache(nodeConfigurationService, reportingService)
     :: new DeletePolicyServerPolicies(policyServerManagement)
     :: new ResetKeyStatus(ldap, deletedDit)
     :: new CleanUpCFKeys()
@@ -244,14 +249,14 @@ class RemoveNodeServiceImpl(
           // always delete in order pending then accepted then deleted
            res1  <- if(status.contains(PendingInventory)) {
                       (for {
-                        i <- nodeInfoService.getPendingNodeInfoPure(nodeId)
+                        i <- nodeInfoService.getPendingNodeInfo(nodeId)
                         r <- deletePendingNode(nodeId, mode, modId, actor)
                         _ <- info.set(i)
                       } yield r).catchAll(err => Error(err).succeed)
                     } else Success.succeed
            res2  <- if(status.contains(AcceptedInventory)) {
                       (for {
-                        i <- nodeInfoService.getNodeInfoPure(nodeId)
+                        i <- nodeInfoService.getNodeInfo(nodeId)
                         r <- i match {
                                case None    => Success.succeed // perhaps deleted or something
                                case Some(x) => info.set(Some(x)) *> deleteAcceptedNode(x, mode, modId, actor)
@@ -260,7 +265,7 @@ class RemoveNodeServiceImpl(
                     } else Success.succeed
            res3  <- if(status.contains(RemovedInventory)) {
                       (for {
-                        i <- nodeInfoService.getDeletedNodeInfoPure(nodeId)
+                        i <- nodeInfoService.getDeletedNodeInfo(nodeId)
                         r <- deleteDeletedNode(nodeId, mode, modId, actor)
                         // only update if nodeInfo is not already set, b/c accepted has more info
                         _ <- info.update(opt => opt.orElse(i))
@@ -398,7 +403,7 @@ class RemoveNodeServiceImpl(
           Map((node.id, node)).succeed
         } else {
           for {
-            opt    <- nodeInfoService.getNodeInfoPure(node.policyServerId)
+            opt    <- nodeInfoService.getNodeInfo(node.policyServerId)
             parent <- opt.notOptional(s"The policy server '${node.policyServerId.value}' for node ${node.hostname} ('${node.id.value}') was not found in Rudder")
             rec    <- recGetParent(parent)
           } yield {
@@ -514,12 +519,28 @@ class RemoveNodeServiceImpl(
 }
 
 
-class RemoveFromCache(nodeInfoService: NodeInfoServiceCached) extends PostNodeDeleteAction {
+class RemoveNodeInfoFromCache(nodeInfoService: NodeInfoServiceCached) extends PostNodeDeleteAction {
   override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
     NodeLoggerPure.Delete.debug(s"  - remove node from NodeInfoService Cache'${nodeId.value}'") *>
     nodeInfoService.removeNodeFromCache(nodeId).catchAll(err =>
       NodeLoggerPure.Delete.error(s"Error when removing node ${(nodeId, info).name} from cache: ${err.fullMsg}")
     )
+  }
+}
+
+class RemoveNodeFromComplianceCache(
+       configurationService: CachedNodeConfigurationService
+     , cachedCompliance    : CachedFindRuleNodeStatusReports) extends PostNodeDeleteAction {
+  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+      for {
+        _            <- NodeLoggerPure.Delete.debug(s"  - remove node ${nodeId.value} from compliance and expected report cache")
+        _            <- configurationService.invalidateWithAction(Seq((nodeId, RemoveNodeInCache(nodeId)))).catchAll(err =>
+                          NodeLoggerPure.Delete.error(s"Error when removing node ${nodeId.value} from node configuration cache: ${err.fullMsg}"))
+        _            <- cachedCompliance.invalidateWithAction(Seq((nodeId, ExpectedReportAction(RemoveNodeInCache(nodeId))))).catchAll(err =>
+                            NodeLoggerPure.Delete.error(s"Error when removing node ${nodeId.value} from compliance cache: ${err.fullMsg}"))
+      } yield {
+        ()
+      }
   }
 }
 /*

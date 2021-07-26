@@ -123,7 +123,7 @@ object HomePage {
   def initNodeInfos(): Box[Map[NodeId, NodeInfo]] = {
     TimingDebugLogger.debug(s"Start timing homepage")
     val n1 = System.currentTimeMillis
-    val n = nodeInfosService.getAll()
+    val n = nodeInfosService.getAll().toBox
     val n2 = System.currentTimeMillis
     TimingDebugLogger.debug(s"Getting node infos: ${n2 - n1}ms")
     n

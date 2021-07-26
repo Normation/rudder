@@ -54,8 +54,8 @@ import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.appconfig.ReadConfigService
 import com.normation.rudder.web.ChooseTemplate
-
 import com.normation.box._
+import zio.syntax._
 
 object NodeGrid {
   val logger = LoggerFactory.getLogger(classOf[NodeGrid])
@@ -248,21 +248,13 @@ final class NodeGrid(
       status : InventoryStatus <- Box(InventoryStatus(arg.status))
       nodeId =  NodeId(arg.id)
       sm     <- getNodeAndMachine.get(nodeId, status).notOptional(s"Error when trying to find inventory for node '${nodeId.value}'").toBox
-      nodeAndGlobalMode <- {
-        nodeInfoService.getNodeInfo(nodeId) match {
-          case Full(Some(node)) =>
-            configService.rudder_global_policy_mode().toBox match {
-              case Full(mode)    => Full(Some((node,mode)))
-              case eb : EmptyBox =>
-                val fail = eb ?~! s" Could not get global policy mode when getting node '${nodeId}' details"
-                fail
-            }
-          case eb : EmptyBox =>
-            val fail = eb ?~! s" Error when getting node '${nodeId}' details"
-            fail
-          case Full(None) => Full(None)
-        }
-      }
+      nodeAndGlobalMode <- (nodeInfoService.getNodeInfo(nodeId).flatMap {
+                              case None => None.succeed
+                              case Some(node) =>
+                                configService.rudder_global_policy_mode().map(mode => Some((node,mode))).chainError(
+                                  s" Could not get global policy mode when getting node '${nodeId}' details"
+                                )
+                            }).chainError(s" Error when getting node '${nodeId}' details").toBox
     } yield (nodeId, sm, arg.jsid, status, nodeAndGlobalMode) ) match {
       case Full((nodeId, sm, jsid, status, nodeAndGlobalMode)) =>
         // Node may not be available, so we look for it outside the for comprehension

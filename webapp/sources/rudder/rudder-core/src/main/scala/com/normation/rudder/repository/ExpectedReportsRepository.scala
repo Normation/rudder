@@ -106,6 +106,13 @@ trait FindExpectedReportRepository {
    */
   def findCurrentNodeIds(rule : RuleId) : Box[Set[NodeId]]
 
+  /**
+   * Return node ids associated to the rule (based on expectedreports (the one still pending)) for this Rule,
+   * only limited on the nodeIds in parameter (used when cache is incomplete)
+   */
+  def findCurrentNodeIdsForRule(ruleId : RuleId, nodeIds: Set[NodeId]) : IOResult[Set[NodeId]]
+
+
   /*
    * Retrieve the expected reports by config version of the nodes.
    *

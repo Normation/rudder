@@ -46,18 +46,19 @@ import com.normation.rudder.db.Doobie._
 import doobie._
 import doobie.implicits._
 import cats.implicits._
-import com.normation.errors.{BoxToIO, IOResult}
+import com.normation.errors.IOResult
 import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.utils.Control.sequence
 import com.normation.rudder.domain.reports.{ExpectedReportsSerialisation, NodeAndConfigId, NodeConfigId, NodeExpectedReports}
-import com.normation.rudder.repository.FindExpectedReportRepository
+import com.normation.rudder.services.reports.NodeConfigurationService
 import org.joda.time.DateTime
 import zio.interop.catz._
+import zio._
+import zio.syntax._
 
 final case class RoReportsExecutionRepositoryImpl (
     db              : Doobie
   , writeBackend    : WoReportsExecutionRepository
-  , findConfigs     : FindExpectedReportRepository
+  , nodeConfigService: NodeConfigurationService
   , pgInClause      : PostgresqlInClause
   , jdbcMaxBatchSize: Int
 ) extends RoReportsExecutionRepository with Loggable {
@@ -86,7 +87,7 @@ final case class RoReportsExecutionRepositoryImpl (
       // by construct, we do have a nodeConfigId
       agentsRuns = lastRunByNode.map(x => (x._1, NodeAndConfigId(x._1, x._2.nodeConfigVersion.get)))
 
-      expectedReports <- findConfigs.getExpectedReports(agentsRuns.values.toSet).toIO
+      expectedReports <- nodeConfigService.findNodeExpectedReports(agentsRuns.values.toSet)
 
       runs = agentsRuns.map { case (nodeId, nodeAndConfigId) =>
         (nodeId,
@@ -132,7 +133,7 @@ final case class RoReportsExecutionRepositoryImpl (
    * If none is known for a node, then returned None, so that the property
    * "nodeIds == returnedMap.keySet" holds.
    */
-  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
+  override def getNodesLastRun(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
     //deserialization of nodeConfig from the outer join: just report the error + None
     def unserNodeConfig(opt1: Option[String], opt2: Option[String], opt3: Option[DateTime], opt4: Option[DateTime], opt5: Option[String]) = {
       (opt1, opt2, opt3, opt4, opt5) match {
@@ -150,10 +151,10 @@ final case class RoReportsExecutionRepositoryImpl (
     }
 
     val batchedNodeConfigIds = nodeIds.grouped(jdbcMaxBatchSize).toSeq
-    sequence(batchedNodeConfigIds) { ids: Set[NodeId] =>
+    ZIO.foreach(batchedNodeConfigIds) { ids: Set[NodeId] =>
       // map node id to // ('node-id') // to use in values
       ids.map(id => s"('${id.value}')").toList match {
-        case Nil => Full(Map[NodeId, Option[AgentRunWithNodeConfig]]())
+        case Nil => Map[NodeId, Option[AgentRunWithNodeConfig]]().succeed
         case nodes =>
           // we can't use "Fragments.in", because of: https://github.com/tpolecat/doobie/issues/426
           // so we use:
@@ -207,7 +208,7 @@ final case class RoReportsExecutionRepositoryImpl (
 
           }
 
-        transactRunBox(xa => query.transact(xa))
+        transactIOResult(s"Error when trying to fetch node last agent runs information")(xa => query.transact(xa))
       }
     }
   }.map(_.flatten.toMap)

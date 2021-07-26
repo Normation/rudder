@@ -72,6 +72,8 @@ import org.joda.time.Interval
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.xml._
+import com.normation.zio._
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 
 /**
  * An ADT to denote if a column should be display or not,
@@ -180,19 +182,19 @@ class RuleGrid(
       val start = System.currentTimeMillis
 
       ( for {
-          rules           <- roRuleRepository.getAll(false).toBox.map { allRules => onlyRules match {
+          rules           <- roRuleRepository.getAll(false).map { allRules => onlyRules match {
                                case None => allRules
                                case Some(ids) => allRules.filter(rule => ids.contains(rule.id) )
                              } }
-          afterRules      =  System.currentTimeMillis
-          _               =  TimingDebugLogger.debug(s"Rule grid: fetching all Rules took ${afterRules - start}ms" )
+          afterRules      <- currentTimeMillis
+          _               <- TimingDebugLoggerPure.debug(s"Rule grid: fetching all Rules took ${afterRules - start}ms" )
 
                              //we skip request only if the column is not displayed - we need it even to display text info
           futureChanges   =  if(showComplianceAndChangesColumn) ajaxChanges(changesFuture(rules)) else Noop
 
           nodeInfo        <- getAllNodeInfos()
-          afterNodeInfos  =  System.currentTimeMillis
-          _               =  TimingDebugLogger.debug(s"Rule grid: fetching all Nodes informations took ${afterNodeInfos - afterRules}ms" )
+          afterNodeInfos  <- currentTimeMillis
+          _               <- TimingDebugLoggerPure.debug(s"Rule grid: fetching all Nodes informations took ${afterNodeInfos - afterRules}ms" )
 
           // we have all the data we need to start our future
           futureCompliance =  if(showComplianceAndChangesColumn) {
@@ -201,21 +203,20 @@ class RuleGrid(
                                 Noop
                               }
 
-          groupLib        <- getFullNodeGroupLib().toBox
-          afterGroups     =  System.currentTimeMillis
-          _               =  TimingDebugLogger.debug(s"Rule grid: fetching all Groups took ${afterGroups - afterNodeInfos}ms" )
+          groupLib        <- getFullNodeGroupLib()
+          afterGroups     <- currentTimeMillis
+          _               <- TimingDebugLoggerPure.debug(s"Rule grid: fetching all Groups took ${afterGroups - afterNodeInfos}ms" )
 
-          directiveLib    <- getFullDirectiveLib().toBox
-          afterDirectives =  System.currentTimeMillis
-          _               =  TimingDebugLogger.debug(s"Rule grid: fetching all Directives took ${afterDirectives - afterGroups}ms" )
+          directiveLib    <- getFullDirectiveLib()
+          afterDirectives <- currentTimeMillis
+          _               <- TimingDebugLoggerPure.debug(s"Rule grid: fetching all Directives took ${afterDirectives - afterGroups}ms" )
 
-          rootRuleCat     <- getRootRuleCategory().toBox
-          globalMode      <- configService.rudder_global_policy_mode().toBox
+          rootRuleCat     <- getRootRuleCategory()
+          globalMode      <- configService.rudder_global_policy_mode()
           newData         =  getRulesTableData(rules, nodeInfo, groupLib, directiveLib, rootRuleCat, globalMode)
-          afterData       =  System.currentTimeMillis
-          _               =  TimingDebugLogger.debug(s"Rule grid: transforming into data took ${afterData - afterDirectives}ms" )
-
-          _ = TimingDebugLogger.debug(s"Rule grid: computing whole data for rule grid took ${afterData - start}ms" )
+          afterData       <- currentTimeMillis
+          _               <- TimingDebugLoggerPure.debug(s"Rule grid: transforming into data took ${afterData - afterDirectives}ms" )
+          _               <- TimingDebugLoggerPure.debug(s"Rule grid: computing whole data for rule grid took ${afterData - start}ms" )
         } yield {
 
           // Reset rule compliances stored in JS, so we get new ones from the future
@@ -228,13 +229,13 @@ class RuleGrid(
               ${futureChanges.toJsCmd}
           """)
         }
-      ) match {
-        case Full(cmd) =>
+      ).either.runNow match {
+        case Right(cmd) =>
           cmd
-        case eb:EmptyBox =>
-          val fail = eb ?~! ("an error occured during data update")
-          logger.error(s"Could not refresh Rule table data cause is: ${fail.msg}")
-          JsRaw(s"""$$("#ruleTableError").text("Could not refresh Rule table data cause is: ${fail.msg}");""")
+        case Left(err) =>
+          val fail = s"an error occured during data update: ${err.fullMsg}"
+          logger.error(s"Could not refresh Rule table data cause is: ${fail}")
+          JsRaw(s"""$$("#ruleTableError").text("Could not refresh Rule table data cause is: ${fail}");""")
       }
     } ) )
   }
@@ -246,28 +247,25 @@ class RuleGrid(
 
     (for {
       allNodeInfos <- getAllNodeInfos()
-      groupLib     <- getFullNodeGroupLib().toBox
-      directiveLib <- getFullDirectiveLib().toBox
-      ruleCat      <- getRootRuleCategory().toBox
-      globalMode   <- configService.rudder_global_policy_mode().toBox
+      groupLib     <- getFullNodeGroupLib()
+      directiveLib <- getFullDirectiveLib()
+      ruleCat      <- getRootRuleCategory()
+      globalMode   <- configService.rudder_global_policy_mode()
     } yield {
       getRulesTableData(rules.getOrElse(Seq()), allNodeInfos, groupLib, directiveLib, ruleCat, globalMode)
-    }) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to get information about rules"
-        logger.error(e.messageChain)
-        e.rootExceptionCause.foreach { ex =>
-          logger.error("Root exception was:", ex)
-        }
+    }).either.runNow match {
+      case Left(err) =>
+        val e = s"Error when trying to get information about rules: ${err.fullMsg}"
+        logger.error(e)
 
         <div id={htmlId_rulesGridZone}>
           <div id={htmlId_modalReportsPopup} class="nodisplay">
             <div id={htmlId_reportsPopup} ></div>
           </div>
-          <span class="error">{e.messageChain}</span>
+          <span class="error">{e}</span>
         </div>
 
-      case Full(tableData) =>
+      case Right(tableData) =>
 
         val allcheckboxCallback = AnonFunc("checked",SHtml.ajaxCall(JsVar("checked"), (in : String) => selectAllVisibleRules(in.toBoolean)))
         val onLoad =

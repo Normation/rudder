@@ -466,8 +466,8 @@ object DisplayNode extends Loggable {
               }
               val nodeId      = sm.node.main.id
               val publicKeyId = s"publicKey-${nodeId.value}"
-              val cfKeyHash   = nodeInfoService.getNodeInfo(nodeId) match {
-                case Full(Some(nodeInfo)) if(nodeInfo.keyHashCfengine.nonEmpty) => <div><label>Key hash:</label> <samp>{nodeInfo.keyHashCfengine}</samp></div>
+              val cfKeyHash   = nodeInfoService.getNodeInfo(nodeId).either.runNow match {
+                case Right(Some(nodeInfo)) if(nodeInfo.keyHashCfengine.nonEmpty) => <div><label>Key hash:</label> <samp>{nodeInfo.keyHashCfengine}</samp></div>
                 case _                                                            => NodeSeq.Empty
               }
 
@@ -535,9 +535,9 @@ object DisplayNode extends Loggable {
     val nodeId = sm.node.main.id
     inventoryStatus match {
       case AcceptedInventory =>
-        val nodeInfoBox = nodeInfoService.getNodeInfo(nodeId)
+        val nodeInfoBox = nodeInfoService.getNodeInfo(nodeId).either.runNow
         nodeInfoBox match {
-          case Full(Some(nodeInfo)) =>
+          case Right(Some(nodeInfo)) =>
             val kind = {
               if(nodeInfo.isPolicyServer) {
                 if(isRootNode(nodeId) ) {
@@ -555,12 +555,12 @@ object DisplayNode extends Loggable {
             }
 
             <div><label>Role:</label> Rudder {kind}</div>
-          case Full(None) =>
+          case Right(None) =>
             logger.error(s"Could not fetch node details for node with id ${sm.node.main.id}")
             <div class="error"><label>Role:</label> Could not fetch Role for this node</div>
-          case eb:EmptyBox =>
-            val e = eb ?~! s"Could not fetch node details for node with id ${sm.node.main.id}"
-            logger.error(e.messageChain)
+          case Left(err) =>
+            val e = s"Could not fetch node details for node with id ${sm.node.main.id}: ${err.fullMsg}"
+            logger.error(e)
             <div class="error"><label>Role:</label> Could not fetch Role for this node</div>
         }
       case RemovedInventory =>
@@ -571,14 +571,14 @@ object DisplayNode extends Loggable {
   }
 
   private def displayPolicyServerInfos(sm:FullInventory) : NodeSeq = {
-    nodeInfoService.getNodeInfo(sm.node.main.policyServerId) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}')"
-        logger.error(e.messageChain)
+    nodeInfoService.getNodeInfo(sm.node.main.policyServerId).either.runNow match {
+      case Left(err) =>
+        val e = s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}'): ${err.fullMsg}"
+        logger.error(e)
         <div class="error"><label>Policy Server:</label> Could not fetch details about the policy server</div>
-      case Full(Some(policyServerDetails)) =>
+      case Right(Some(policyServerDetails)) =>
         <div><label>Policy Server:</label> <a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick={s"updateNodeIdAndReload('${policyServerDetails.id.value}')"}>{policyServerDetails.hostname}</a></div>
-      case Full(None) =>
+      case Right(None) =>
         logger.error(s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}')")
         <div class="error"><label>Policy Server:</label> Could not fetch details about the policy server</div>
     }

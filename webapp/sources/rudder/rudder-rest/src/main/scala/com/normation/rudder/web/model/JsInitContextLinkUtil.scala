@@ -43,7 +43,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import net.liftweb.http.S
-import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.policies.RuleTarget
 import net.liftweb.http.js.JsCmds.RedirectTo
@@ -162,8 +161,8 @@ class LinkUtil (
   }
 
   def createNodeLink(id: NodeId) = {
-    nodeInfoService.getNodeInfo(id) match {
-      case Full(Some(node)) =>
+    nodeInfoService.getNodeInfo(id).either.runNow match {
+      case Right(Some(node)) =>
         <span>Node <a href={baseNodeLink(id)}>{node.hostname}</a> (Rudder ID: {id.value})</span>
       case _ =>
         <span>Node {id.value}</span>

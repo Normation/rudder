@@ -44,6 +44,7 @@ import org.joda.time.Duration
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.domain.Constants
+import com.normation.box._
 
 /**
  * Class that contains all relevant information about the reporting configuration:
@@ -130,7 +131,7 @@ class AgentRunIntervalServiceImpl (
     for {
       gInterval  <- readGlobalInterval()
       gHeartbeat <- readGlobalHeartbeat()
-      nodeInfos  <- nodeInfoService.getAll()
+      nodeInfos  <- nodeInfoService.getAll().toBox
     } yield {
       nodeIds.map { nodeId =>
 

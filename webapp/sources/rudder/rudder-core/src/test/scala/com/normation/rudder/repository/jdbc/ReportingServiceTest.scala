@@ -64,11 +64,7 @@ import com.normation.rudder.repository.{CategoryWithActiveTechniques, Compliance
 import com.normation.rudder.services.nodes.LDAPNodeInfo
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfigData
-import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
-import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
-import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
-import com.normation.rudder.services.reports.NodeChangesServiceImpl
-import com.normation.rudder.services.reports.ReportingServiceImpl
+import com.normation.rudder.services.reports.{CachedFindRuleNodeStatusReports, CachedNodeChangesServiceImpl, DefaultFindRuleNodeStatusReports, NodeChangesServiceImpl, NodeConfigurationService, NodeConfigurationServiceImpl, ReportingServiceImpl, UnexpectedReportInterpretation}
 import doobie.implicits._
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
@@ -81,8 +77,6 @@ import zio._
 import zio.syntax._
 
 import scala.collection.SortedMap
-import com.normation.rudder.services.reports.UnexpectedReportInterpretation
-
 import scala.concurrent.duration._
 import zio.interop.catz._
 
@@ -101,29 +95,29 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   }
 
   object nodeInfoService extends NodeInfoService {
-    def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : Box[Set[LDAPNodeInfo]] = ???
-    def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]] = ???
-    def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
+    def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : IOResult[Set[LDAPNodeInfo]] = ???
+    def getNodeInfo(nodeId: NodeId) : IOResult[Option[NodeInfo]] = ???
     def getNode(nodeId: NodeId): Box[Node] = ???
-    def getAllNodes() : Box[Map[NodeId, Node]] = ???
-    def getAllSystemNodeIds() : Box[Seq[NodeId]] = ???
-    def getPendingNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
-    def getPendingNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
-    def getDeletedNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
-    def getDeletedNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
+    def getAllNodes() : IOResult[Map[NodeId, Node]] = ???
+    def getAllNodesIds(): IOResult[Set[NodeId]] = ???
+    def getAllSystemNodeIds() : IOResult[Seq[NodeId]] = ???
+    def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = ???
+    def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
+    def getDeletedNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = ???
+    def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
     def getNumberOfManagedNodes: Int = ???
-    val getAll : Box[Map[NodeId, NodeInfo]] = {
+    val getAll : IOResult[Map[NodeId, NodeInfo]] = {
       def build(id: String, mode: Option[PolicyMode]) = {
         val node1 = NodeConfigData.node1.node
         NodeConfigData.node1.copy(node = node1.copy(id = NodeId(id), policyMode = mode))
       }
-      Full(Seq(
+      Seq(
           build("n0", None)
         , build("n1", Some(PolicyMode.Enforce))
         , build("n2", Some(PolicyMode.Audit))
         , build("n3", Some(PolicyMode.Enforce))
         , build("n4", Some(PolicyMode.Audit))
-      ).map(n => (n.id, n)).toMap)
+      ).map(n => (n.id, n)).toMap.succeed
     }
   }
 
@@ -158,7 +152,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   val dummyComplianceCache = new CachedFindRuleNodeStatusReports {
     def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports = null
     def nodeInfoService: NodeInfoService = self.nodeInfoService
-    def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[Map[NodeId, NodeStatusReport]] = null
+    def nodeConfigrationService : NodeConfigurationService = null
+    def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): IOResult[Map[NodeId, NodeStatusReport]] = null
     def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
     def findUserNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
     def findSystemNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
@@ -176,6 +171,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   lazy val pgIn = new PostgresqlInClause(2)
   lazy val reportsRepo = new ReportsJdbcRepository(doobie)
   lazy val findExpected = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
+  lazy val nodeConfigService = new NodeConfigurationServiceImpl(findExpected)
   lazy val updateExpected = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
 
   lazy val agentRunService = new AgentRunIntervalService() {
@@ -189,7 +185,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
 
   lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(doobie)
-  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(doobie, woAgentRun, findExpected, pgIn,200)
+  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(doobie, woAgentRun, nodeConfigService, pgIn,200)
 
   lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo), () => Full(true)) {
     override def update(lowestId: Long, highestId: Long): Box[Unit] = Full(())
@@ -329,6 +325,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     , nodeInfoService
     , directivesRepos
     , rulesRepos
+    , nodeConfigService
     , () => Full(compliance)
     , () => GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always).succeed
     , () => Full(UnexpectedReportInterpretation(Set()))
