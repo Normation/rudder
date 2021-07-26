@@ -230,6 +230,7 @@ class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, ge
       Criterion(A_NETIF_TYPE_MIB, StringComparator)
     )),
     ObjectCriterion(OC_FS, leObjectCriterion.criteria ++ Seq(
+      Criterion(A_NAME, StringComparator),
       Criterion(A_MOUNT_POINT, StringComparator),
       Criterion(A_FILE_COUNT, StringComparator),
       Criterion(A_FREE_SPACE, MemoryComparator),
