@@ -8,7 +8,6 @@ use crate::{
 };
 use bytes::IntoBuf;
 use chrono::Utc;
-use futures::future::Future;
 use hex;
 use humantime::parse_duration;
 use serde::{Deserialize, Serialize};
@@ -85,8 +84,21 @@ fn put_forward(
     job_config: Arc<JobConfig>,
     body: FullBody,
 ) -> Result<StatusCode, Error> {
-    job_config
-        .client
+    // This function should be async but the other branch, the local file handling, is not.
+    // So can't have an async type here either, and use an ad-hoc sync client
+    // created at each call as replacement for the global async client.
+    // This is bad because (besides re-creating the client at every call) an async
+    // thread is blocked by the forward call and local file management each time, but it
+    // prevents previously existing deadlock that indefinitely broke async executor threads.
+    //
+    // >=7.0 versions have correct async implementation for this API.
+    //
+    // If this API is used intensively, it is highly recommended to use a >= 7.0 relay
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(!job_config.cfg.output.upstream.verify_certificates)
+        .build()?;
+
+    client
         .clone()
         .put(&format!(
             "{}/{}/{}",
@@ -97,7 +109,6 @@ fn put_forward(
         .query(&params)
         .body(body.into_buf().collect::<Vec<u8>>())
         .send()
-        .wait()
         .map(|r| r.status())
         .map_err(|e| e.into())
 }
@@ -238,8 +249,12 @@ fn head_forward(
     params: SharedFilesHeadParams,
     job_config: Arc<JobConfig>,
 ) -> Result<StatusCode, Error> {
-    job_config
-        .client
+    // see put_forward
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(!job_config.cfg.output.upstream.verify_certificates)
+        .build()?;
+
+    client
         .clone()
         .head(&format!(
             "{}/{}/{}",
@@ -249,7 +264,6 @@ fn head_forward(
         ))
         .query(&params)
         .send()
-        .wait()
         .map(|r| r.status())
         .map_err(|e| e.into())
 }
