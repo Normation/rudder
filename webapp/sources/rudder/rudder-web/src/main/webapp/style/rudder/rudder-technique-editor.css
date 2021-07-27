@@ -348,48 +348,6 @@ body > .ng-toast {
   font-size: 1.1em;
   margin-bottom: 10px;
 }
-.header-buttons .dropdown-toggle{
-  border: 1px solid #ccc;
-}
-.header-buttons .dropdown-toggle:hover{
-  background-color: #eeeaea;
-}
-.header-buttons .dropdown-menu > li > a{
-  font-size: 14px;
-  padding: 10px 14px;
-  transition-duration: .2s;
-  cursor: pointer;
-}
-.header-buttons .dropdown-menu > li:nth-child(1) > a{
-  color: #9bc832;
-}
-.header-buttons .dropdown-menu > li:nth-child(1) > a:hover{
-  color: #fff;
-  background-color: #9bc832;
-  border-color: #8fb92a;
-}
-.header-buttons .dropdown-menu > li:nth-child(2) > a{
-  color: #337ab7;
-}
-.header-buttons .dropdown-menu > li:nth-child(2) > a:hover{
-  color: #fff;
-  background-color: #337ab7;
-  border-color: #2e6da4;
-}
-.header-buttons .dropdown-menu > li:nth-child(3) > a{
-  color: #d43f3a;
-}
-.header-buttons .dropdown-menu > li:nth-child(3) > a:hover{
-  color: #fff;
-  background-color: #d9534f;
-  border-color: #d43f3a;
-}
-.header-buttons .dropdown-menu > li > a > i{
-  margin-left: 6px;
-}
-.header-buttons .dropdown-menu .divider{
-  margin: 0px;
-}
 
 .content-wrapper textarea.form-control.technique-description{
   max-height: 200px;

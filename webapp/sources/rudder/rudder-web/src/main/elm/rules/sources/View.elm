@@ -2,7 +2,7 @@ module View exposing (..)
 
 import DataTypes exposing (..)
 import Html exposing (Html, button, div, i, span, text, h1, h4, ul, li, input, a, p, form, label, textarea, select, option, table, thead, tbody, tr, th, td, small)
-import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected)
+import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
 import List
@@ -181,17 +181,43 @@ view model =
             span[style "opacity" "0.4"][text "New rule"]
           else
              text rule.name
-
         rule = details.rule
+        topButtons =
+          [ li [] [
+              a [ class "action-success disabled"] [
+                i [ class "fa fa-clone"] []
+              , text "Clone (Not yet implemented)"
+              ]
+            ]
+          , li [] [
+              a [ class "action-primary disabled"] [
+                i [ class "fa fa-ban"] []
+              , text "Disable (Not yet implemented)"
+              ]
+            ]
+          , li [class "divider"][]
+          , li [] [
+              a [ class "action-danger disabled"] [
+                i [ class "fa fa-times-circle"] []
+              , text "Delete (Not yet implemented)"
+              ]
+            ]
+          ]
       in
         div [class "main-container"]
         [ div [class "main-header "]
           [ div [class "header-title"]
             [ h1[][ruleTitle]
             , div[class "header-buttons"]
-              [ button [class "btn btn-default", type_ "button"][text "Actions"]
-              , button [class "btn btn-default", type_ "button", onClick CloseRuleDetails][text "Close"  ]
-              , button [class "btn btn-success", type_ "button", onClick (CallApi (saveRuleDetails rule isNewRule))][text "Save"   ]
+              [ div [ class "btn-group" ]
+                [ button [ class "btn btn-default dropdown-toggle" , attribute "data-toggle" "dropdown" ] [
+                    text "Actions "
+                  , i [ class "caret" ] []
+                  ]
+                , ul [ class "dropdown-menu" ] topButtons
+                ]
+              , button [class "btn btn-default", type_ "button", onClick CloseRuleDetails][text "Close", i [ class "fa fa-times"][]]
+              , button [class "btn btn-success", type_ "button", onClick (CallApi (saveRuleDetails rule isNewRule))][text "Save", i [ class "fa fa-download"] []]
               ]
             ]
           , div [class "header-description"]
