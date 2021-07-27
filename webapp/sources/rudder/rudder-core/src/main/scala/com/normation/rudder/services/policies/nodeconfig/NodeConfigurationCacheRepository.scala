@@ -448,7 +448,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
   val hashesFile = File(path)
 
   def checkFile(file: File) : IOResult[Unit] = {
-    for {
+    (for {
       _ <- ZIO.whenM(IOResult.effect(!hashesFile.parent.exists)) { IOResult.effect(hashesFile.parent.createDirectories()) }
       _ <- ZIO.whenM(IOResult.effect(!(hashesFile.parent.isDirectory && hashesFile.parent.isWritable))) {
              ApplicationLoggerPure.error(s"File at path '${hashesFile.parent.pathAsString}' must be writtable directory")
@@ -457,10 +457,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
       _ <- ZIO.whenM(IOResult.effect(!(hashesFile.isRegularFile && hashesFile.isWritable))) {
              ApplicationLoggerPure.error(s"File at path '${hashesFile.pathAsString}' must be writtable file")
            }
-    } yield ()
-
-    if(file.isWritable && file.isRegularFile) UIO.unit
-    else Inconsistency(s"File to store node configuration hashes is not a regular file with write permission: ${file.pathAsString}").fail
+    } yield ()).chainError(s"File to store node configuration hashes is not a regular file with write permission: ${file.pathAsString}")
   }
 
 
