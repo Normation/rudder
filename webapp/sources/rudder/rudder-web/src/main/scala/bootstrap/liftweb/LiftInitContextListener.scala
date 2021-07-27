@@ -38,13 +38,15 @@
 package bootstrap.liftweb
 
 import net.liftweb.common._
+
 import javax.servlet.ServletContextEvent
 import org.springframework.web.context.ContextLoaderListener
 import org.springframework.web.context.support.WebApplicationContextUtils
 import org.springframework.core.io.{ClassPathResource => CPResource, FileSystemResource => FSResource}
-import java.io.File
 
+import java.io.File
 import bootstrap.liftweb.RudderProperties.config
+import com.normation.errors.SystemError
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.typesafe.config.ConfigException
 import com.normation.zio._
@@ -114,17 +116,28 @@ class LiftInitContextListener extends ContextLoaderListener {
      * wait, loading" page on that case.
      * And in all case, an error in init almost always need a restart of Rudder.
      *
-     * We can't simply "System.exit(1)", because it brokes everything.
-     * We can't simply throws an other exception, because for most of them,
-     * Jetty will mark the service unavailable (and so 503 and infinite "please
-     * wait" screen).
-     * So we need to make the JVM throw an IllegalStateException, which for some
-     * (totally unknown) reason make jetty unload the context and return 404 for
-     * queries on it (which we are correctly handling in Apache).
+     * We need to try/catch everything, because things in RudderConfig can throw random
+     * exception at init, and so it would be out of the ZIO effect manegement (in class
+     * instantiation, before call to init() method).
      *
+     * We simply "System.exit(1)", because we assume rudder is the only webapp on the
+     * jetty server, and stoping jetty on exception generally does not work.
      */
-
-    RudderConfig.init().either.runNow match {
+    (try {
+      for {
+        _ <- RudderConfig.init().either.runNow
+             //init Spring
+        _ <- Right(super.contextInitialized(sce))
+             //initializing webapp context
+        _ <- Right(WebApplicationContextUtils.getWebApplicationContext(sce.getServletContext) match {
+              //it's really an error here !
+              case null => sys.error("Error when getting the application context from the web context. Missing ContextLoaderListener.")
+              case c => LiftSpringApplicationContext.setToNewContext(c)
+            })
+      } yield ()
+    } catch {
+      case ex: Throwable => Left(SystemError("Error during initialization of Rudder", ex))
+    }) match {
       case Left(err) =>
         System.err.println(s"[${org.joda.time.format.ISODateTimeFormat.dateTime().print(System.currentTimeMillis())}] " +
                            s"ERROR FATAL An error happen during Rudder boot. Rudder will stop now. Error: ${err.fullMsg}")
@@ -133,17 +146,6 @@ class LiftInitContextListener extends ContextLoaderListener {
       case Right(_) => //ok continue
     }
 
-    //init Spring
-
-    super.contextInitialized(sce)
-
-    //initializing webapp context
-
-    WebApplicationContextUtils.getWebApplicationContext(sce.getServletContext) match {
-      //it's really an error here !
-      case null => sys.error("Error when getting the application context from the web context. Missing ContextLoaderListener.")
-      case c => LiftSpringApplicationContext.setToNewContext(c)
-    }
   }
 
   override def contextDestroyed(sce:ServletContextEvent) : Unit = {

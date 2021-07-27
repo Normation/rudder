@@ -631,13 +631,14 @@ object RudderConfig extends Loggable {
   val roLDAPConnectionProvider: LDAPConnectionProvider[RoLDAPConnection] = roLdap
   // test connection is up and try to make an human understandable error message.
   ApplicationLogger.debug(s"Test if LDAP connection is active")
+  // it seems that we need to call `ZioRuntime.internal.unsafeRun` in place of `.runNow` to avoir a deadlock (not clear)
   ZioRuntime.internal.unsafeRun((for {
     con    <- roLdap
   } yield {
     con.backed.getConnectionName
-  }).untraced.orDieWith { ex =>
-    InitError("An error occured when testing for LDAP connection: " + ex.fullMsg)
-  })
+  }).flip.option).foreach(err =>
+    throw new InitError("An error occured when testing for LDAP connection, please check it: " + err.fullMsg)
+  )
 
   val pendingNodesDit: InventoryDit = pendingNodesDitImpl
   val acceptedNodesDit: InventoryDit = acceptedNodesDitImpl
