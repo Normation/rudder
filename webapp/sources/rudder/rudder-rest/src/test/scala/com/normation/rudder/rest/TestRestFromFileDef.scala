@@ -70,6 +70,7 @@ import com.normation.zio._
 
 import java.io.InputStream
 import java.nio.file.Path
+import java.nio.file.Paths
 
 /*
  * Utily data structures
@@ -174,7 +175,7 @@ class TestRestFromFileDef extends Specification with Loggable with AfterAll {
       // templates: need copy to tmp file
       templateDir = baseDir+"/templates"
       templates   <- listFilesUnder(templateDir).map(_.filter(only))
-      copied      <- ZIO.foreach(templates) { t => copyTransform(Path.of(templateDir, t), tmpDir) }
+      copied      <- ZIO.foreach(templates) { t => copyTransform(Paths.get(templateDir, t), tmpDir) }
       allYamls    <- ZIO.foreach(baseIs++copied) { case (name, input) => loadYamls(input).map(y => (name, y)) }
     } yield {
       allYamls
