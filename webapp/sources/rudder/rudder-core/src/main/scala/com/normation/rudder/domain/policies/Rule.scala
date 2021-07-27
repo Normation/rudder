@@ -55,7 +55,7 @@ final case class RuleRId(id: RuleId, rev: Option[Revision] = None)
  */
 final case class Rule(
     id              : RuleId
-  , rev           : Option[Revision]
+  , rev             : Option[Revision]
   , name            : String
   , categoryId      : RuleCategoryId
     //is not mandatory, but if not present, rule is disabled

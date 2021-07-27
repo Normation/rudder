@@ -44,6 +44,8 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import ca.mrvisser.sealerate
 import cats.data.NonEmptyList
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
@@ -61,7 +63,27 @@ import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.policies.PolicyServerTarget
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.Tags
+import com.normation.rudder.domain.queries.AgentComparator
+import com.normation.rudder.domain.queries.And
+import com.normation.rudder.domain.queries.Criterion
+import com.normation.rudder.domain.queries.CriterionLine
+import com.normation.rudder.domain.queries.Equals
+import com.normation.rudder.domain.queries.NodeAndPolicyServerReturnType
+import com.normation.rudder.domain.queries.ObjectCriterion
+import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.StringComparator
 import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.zio._
 import zio.json._
 import com.normation.rudder.services.servers.json._
@@ -415,4 +437,141 @@ object RelaySynchronizationMethod {
             }
           }
   }
+}
+
+
+/*
+ * System directives / rules / etc for a policy server.
+ */
+final case class PolicyServerConfigurationObjects(
+    directives: Map[TechniqueName, Directive]
+  , groups    : List[NodeGroup]
+  , targets   : List[PolicyServerTarget]
+  , rules     : List[Rule]
+)
+
+object PolicyServerConfigurationObjects {
+  val v1_0: TechniqueVersion = TechniqueVersion.parse("1.0").getOrElse(throw new RuntimeException(s"Error in default version data, this is likely a bug. Please report it."))
+
+  implicit class ToDirective(id: String) {
+    def toDirective = Directive(
+        DirectiveId(DirectiveUid(id))
+      , v1_0
+      , Map ()
+      , id
+      , s""
+      , None
+      , ""
+      , 0
+      , _isEnabled = true
+      , isSystem = true
+      , Tags(Set.empty)
+    )
+  }
+
+  val relayTechniques = List("server-common", "rudder-service-apache","rudder-service-relayd")
+  val rootTechniques = List("rudder-service-postgresql","rudder-service-slapd","rudder-service-webapp")
+
+  def directiveCommonHasPolicyServer(nodeId: NodeId, hostname: String, policyServerId: NodeId) = {
+    TechniqueName("common") ->
+      s"common-hasPolicyServer-${nodeId.value}".toDirective
+        .modify(_.parameters).setTo(Map(
+             "OWNER"              -> Seq("${rudder.node.admin}")
+           , "UUID"               -> Seq("${rudder.node.id}")
+           , "POLICYSERVER"       -> Seq(hostname)
+           , "POLICYSERVER_ID"    -> Seq(policyServerId.value)
+           , "POLICYSERVER_ADMIN" -> Seq("root")
+         ))
+        .modify(_.name).setTo(s"Common - ${nodeId.value}")
+        .modify(_.shortDescription).setTo(s"Common policy for nodes with '${nodeId.value}' for policy server")
+  }
+
+  def directiveServerCommon(nodeId: NodeId) = {
+    TechniqueName("server-common") ->
+      s"server-common-${nodeId.value}".toDirective
+        .modify(_.name).setTo(s"Server Common - ${nodeId.value}")
+        .modify(_.shortDescription).setTo(s"Common policy for policy server with '${nodeId.value}'")
+  }
+
+  def directiveServices(nodeId: NodeId) = {
+    List("apache", "postgresql", "relayd", "slapd", "webapp").map(name =>
+      TechniqueName(s"rudder-service-${name}") ->
+        s"rudder-service-${name}-${nodeId.value}".toDirective
+          .modify(_.name).setTo(s"Rudder ${name.capitalize}")
+          .modify(_.shortDescription).setTo(s"Manage ${name} rudder service")
+    )
+  }
+
+  def groupHasPolicyServer(nodeId: NodeId) = {
+    val objectType = ObjectCriterion("node", Seq(Criterion("policyServerId", StringComparator, None),Criterion("agentName", AgentComparator, None)))
+    NodeGroup(
+        NodeGroupId(s"hasPolicyServer-${nodeId.value}")
+      , s"All nodes managed by ${nodeId.value} policy server"
+      , s"All nodes known by Rudder directly connected to the ${nodeId.value} server. This group exists only as internal purpose and should not be used to configure Nodes."
+      , Nil
+      , Some(
+          Query(
+              NodeAndPolicyServerReturnType
+            , And
+            , List(
+                CriterionLine(objectType, Criterion("agentName", StringComparator), Equals, "cfengine")
+              , CriterionLine(objectType, Criterion("policyServerId", StringComparator), Equals, nodeId.value)
+            )
+          )
+      )
+      , isDynamic = true
+      , Set()
+      , _isEnabled = true
+      , isSystem = true
+    )
+  }
+
+  def ruleCommonHasPolicyServer(nodeId: NodeId) = {
+    Rule(
+        RuleId(s"hasPolicyServer-${nodeId.value}"), None
+      , s"Rudder system policy: basic setup (common)-${nodeId.value}"
+      , RuleCategoryId("rootRuleCategory")
+      , Set(GroupTarget(NodeGroupId(s"hasPolicyServer-${nodeId.value}")))
+      , Set(DirectiveId(DirectiveUid(s"common-hasPolicyServer-${nodeId.value}")))
+      , "Common - Technical"
+      , "This is the basic system rule which all nodes must have."
+      , isEnabledStatus = true
+      , isSystem = true
+    )
+  }
+
+  def rulePolicyServer(nodeId: NodeId, techniques: List[String]) = {
+    Rule(
+        RuleId(s"policy-server-${nodeId.value}"), None
+      , s"Rule for policy server ${nodeId.value}"
+      , RuleCategoryId("rootRuleCategory")
+      , Set(PolicyServerTarget(nodeId))
+      , techniques.map(t => DirectiveId(DirectiveUid(s"${t}-${nodeId.value}"))).toSet
+      , "Server components configuration - Technical"
+      , s"This rule allows to configure the rudder ${nodeId.value} server"
+      , isEnabledStatus = true
+      , isSystem = true
+    )
+  }
+
+  /*
+   * Get system configuration objects (directives, groups, rules) for policyServerId with given hostname.
+   * parentPolicyServerId is the policyServer'policyServer (and for root, it's itself)
+   */
+  def getConfigurationObject(policyServerId: NodeId, hostname: String, parentPolicyServerId: NodeId): PolicyServerConfigurationObjects = {
+    val techniques = if(policyServerId == Constants.ROOT_POLICY_SERVER_ID) {
+      rootTechniques
+    } else {
+      relayTechniques
+    }
+
+    PolicyServerConfigurationObjects(
+        Map(directiveServerCommon(policyServerId), directiveCommonHasPolicyServer(policyServerId, hostname, parentPolicyServerId))
+          ++ directiveServices(policyServerId).filter { case (t, d) => techniques.contains(t.value) }
+      , groupHasPolicyServer(policyServerId) :: Nil
+      , PolicyServerTarget(policyServerId) :: Nil
+      , ruleCommonHasPolicyServer(policyServerId) :: rulePolicyServer(policyServerId, techniques) :: Nil
+    )
+  }
+
 }
