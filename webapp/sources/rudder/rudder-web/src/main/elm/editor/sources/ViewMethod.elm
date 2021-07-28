@@ -118,7 +118,7 @@ showMethodTab model method parentId call uiInfo=
         ]
       , div [ class "form-group"] [
           label [ for "disable_reporting"] [ text "Disable reporting:"]
-        , input [ readonly (not model.hasWriteRights), type_ "checkbox", name "disable_reporting", class "form-control", checked call.disableReporting,  onClick  (MethodCallModified (Call parentId {call  | disableReporting = not call.disableReporting }))] []
+        , input [ readonly (not model.hasWriteRights), type_ "checkbox", name "disable_reporting", checked call.disableReporting,  onCheck  (\b -> MethodCallModified (Call parentId {call  | disableReporting = b }))] []
         ]
       ]
     CallParameters ->
