@@ -1077,9 +1077,9 @@ class EventLogDetailsGenerator(
   private[this] def directiveDetails(xml:NodeSeq, ptName: TechniqueName, directive:Directive, sectionVal:SectionVal) = (
     "#directiveID" #> directive.id.uid.value &
       "#directiveName" #> directive.name &
-      "#ptVersion" #> directive.techniqueVersion.toString &
+      "#ptVersion" #> directive.techniqueVersion.debugString &
       "#ptName" #> ptName.value &
-      "#ptVersion" #> directive.techniqueVersion.toString &
+      "#ptVersion" #> directive.techniqueVersion.debugString &
       "#ptName" #> ptName.value &
       "#priority" #> directive.priority &
       "#isEnabled" #> directive.isEnabled &

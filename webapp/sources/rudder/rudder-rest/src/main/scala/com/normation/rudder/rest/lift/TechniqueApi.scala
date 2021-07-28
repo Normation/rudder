@@ -272,7 +272,7 @@ class TechniqueAPIService14 (
       ZIO.foreach(directives.filter(filter)) { directive =>
         techniques.get(directive.techniqueVersion) match {
           case None            =>
-            Inconsistency(s"Version ${directive.techniqueVersion} of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.uid.value}'").fail
+            Inconsistency(s"Version ${directive.techniqueVersion.debugString} of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.uid.value}'").fail
           case Some(technique) =>
             JRDirective.fromDirective(technique, directive, None).succeed
         }

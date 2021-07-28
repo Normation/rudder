@@ -327,7 +327,7 @@ class UpdatePiOnActiveTechniqueEvent(
                                   None.succeed
                                 } else {
                                   for {
-                                    technique  <- techniqeRepository.get(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)).notOptional(s"Can not find Technique '${activeTechnique.techniqueName.value}:${directive.techniqueVersion}'")
+                                    technique  <- techniqeRepository.get(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)).notOptional(s"Can not find Technique '${activeTechnique.techniqueName.value}:${directive.techniqueVersion.debugString}'")
                                     archivedPi <- gitDirectiveArchiver.archiveDirective(directive, technique.id.name, parents, technique.rootSection, gitCommit)
                                   } yield {
                                       None

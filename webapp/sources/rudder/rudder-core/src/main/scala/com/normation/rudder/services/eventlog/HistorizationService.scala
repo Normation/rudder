@@ -191,7 +191,7 @@ class HistorizationServiceImpl(
            || entry.techniqueHumanName != technique.name
            || entry.techniqueName != fullActiveTechnique.techniqueName.value
            || entry.techniqueDescription != Some(technique.description)
-           || entry.techniqueVersion != directive.techniqueVersion.toString
+           || entry.techniqueVersion != directive.techniqueVersion.debugString
           )
          }
       }.toSeq.map { case (t,fat,d) => (d, fat.toActiveTechnique(), t) }

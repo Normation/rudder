@@ -361,7 +361,7 @@ object DisplayDirectiveTree extends Loggable {
             case None =>
               val newestVersion = activeTechnique.newestAvailableTechnique.get.id.version
               if(newestVersion != directive.techniqueVersion){
-                val message = <p><b>↳ New version available: </b>This Directive can be updated to version <b>{newestVersion}</b></p>
+                val message = <p><b>↳ New version available: </b>This Directive can be updated to version <b>{newestVersion.debugString}</b></p>
                 (false, message,{<i class="ion ion-arrow-up-a deprecation-icon migration"></i>})
 
               }else{
@@ -401,7 +401,7 @@ object DisplayDirectiveTree extends Loggable {
               <p>${scala.xml.Utility.escape(directive.shortDescription)}</p>
               <div>
                 <b>Technique version:</b>
-                ${directive.techniqueVersion.toString}${deprecatedIcon}
+                ${directive.techniqueVersion.debugString}${deprecatedIcon}
                 ${deprecationInfo}
               </div>
               ${if(isAssignedTo==0){
@@ -421,7 +421,7 @@ object DisplayDirectiveTree extends Loggable {
           <span class="treeDirective bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>
             <span class="techversion">
 
-              {directive.techniqueVersion.toString}
+              {directive.techniqueVersion.debugString}
               {deprecatedIcon}
             </span>
             {directive.name}

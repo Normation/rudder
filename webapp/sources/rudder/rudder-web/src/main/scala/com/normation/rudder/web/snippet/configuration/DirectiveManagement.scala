@@ -581,7 +581,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
               <div style="margin: 40px">
                 <h4 class="text-danger"><u>Important information: directive migration towards version {version} of '{technique.name}'</u></h4>
                 <div class="bs-callout bs-callout-danger text-left">
-                <p>This directive was linked to version '{directive.techniqueVersion}' of the Technique which is not available anymore. It was automatically
+                <p>This directive was linked to version '{directive.techniqueVersion.debugString}' of the Technique which is not available anymore. It was automatically
                 migrated to version '{version}' but the change is not commited yet.</p>
                 <p>You can now delete the directive or save it to confirm migration. If you keep that directive without commiting changes, Rudder will not be
                 able to generate policies for rules which use it.</p>

@@ -155,7 +155,7 @@ trait DirectiveSerialisation {
       <id>{directive.id.value}</id>
       <displayName>{directive.name}</displayName>
       <techniqueName>{technique name on with depend that directive}</techniqueName>
-      <techniqueVersion>{directive.techniqueVersion.toString}</techniqueVersion>
+      <techniqueVersion>{directive.techniqueVersion.debugString}</techniqueVersion>
       <shortDescription>{directive.shortDescription}</shortDescription>
       <longDescription>{directive.longDescription}</longDescription>
       <priority>{directive.priority}</priority>

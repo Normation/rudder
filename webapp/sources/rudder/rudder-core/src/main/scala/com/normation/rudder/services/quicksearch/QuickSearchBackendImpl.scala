@@ -145,7 +145,7 @@ object QSDirectiveBackend extends Loggable {
         case DirectiveVarValue => Some(dir.parameters.flatMap(param => param._2.map(value => (value, param._1+":"+ value))).toSet)
         case TechniqueName     => Some(at.techniques.map { case (_,t) => (t.name, t.name) }.toSet)
         case TechniqueId       => Some(Set((at.techniqueName.toString,at.techniqueName.toString)))
-        case TechniqueVersion  => Some(Set((dir.techniqueVersion.toString,dir.techniqueVersion.toString)))
+        case TechniqueVersion  => Some(Set((dir.techniqueVersion.debugString,dir.techniqueVersion.debugString)))
         case Description       => Some(Set((dir.shortDescription,dir.shortDescription), (dir.longDescription,dir.longDescription)))
         case LongDescription   => Some(Set((dir.longDescription,dir.longDescription)))
         case Name              => Some(Set((dir.name,dir.name)))

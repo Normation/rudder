@@ -376,7 +376,7 @@ class CommitAndDeployChangeRequestServiceImpl(
         }
 
         if ( initialFixed.techniqueVersion != currentFixed.techniqueVersion) {
-          debugLog(s"Directive ID ${initialFixed.id.uid.value} Technique version has changed: original state from CR: ${initialFixed.techniqueVersion}, current value: ${currentFixed.techniqueVersion}")
+          debugLog(s"Directive ID ${initialFixed.id.uid.value} Technique version has changed: original state from CR: ${initialFixed.techniqueVersion.debugString}, current value: ${currentFixed.techniqueVersion.debugString}")
         }
 
         for  {

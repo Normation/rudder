@@ -148,21 +148,6 @@ class TestSystemData {
 
   //////////// end init ////////////
 
-  //an utility class for filtering file lines given a regex,
-  //used in the file content matcher
-  final case class RegexFileContent(regex: List[String]) extends LinesContent[File] {
-    val patterns = regex.map(_.r.pattern)
-
-    override def lines(f: File): Seq[String] = {
-      FileLinesContent.lines(f).filter { line => !patterns.exists { _.matcher(line).matches() } }
-    }
-
-    override def name(f: File) = FileLinesContent.name(f)
-  }
-
-
-  //////////////
-
   // Allows override in policy mode, but default to audit
   val globalPolicyMode = GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always)
 
@@ -209,6 +194,19 @@ class TestSystemData {
   //write a config
 
 }
+
+//an utility class for filtering file lines given a regex,
+//used in the file content matcher
+private final case class RegexFileContent(regex: List[String]) extends LinesContent[File] {
+  val patterns = regex.map(_.r.pattern)
+
+  override def lines(f: File): Seq[String] = {
+    FileLinesContent.lines(f).filter { line => !patterns.exists { _.matcher(line).matches() } }
+  }
+
+  override def name(f: File) = FileLinesContent.name(f)
+}
+
 
 trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll {
 
