@@ -154,11 +154,12 @@ final class CheckFileDescriptorLimit(val nodeInfoService: NodeInfoService) exten
     } yield {
       val numNode = nodeInfoService.getNumberOfManagedNodes
       val minimalLimit = 100 * numNode
+      val docLink = "See /rudder-doc/reference/current/administration/performance.html#_maximum_number_of_file_descriptors"
       limit match {
         case limit if limit <= 10_000 =>
-          Critical(name, s"Current file descriptor limit is ${limit}. It should be > 10 000.")
+          Critical(name, s"Current file descriptor limit is ${limit}. It should be > 10 000.\n${docLink}")
         case limit if limit <= minimalLimit =>
-          Warning(name, s"Current file descriptor limit is ${limit}. It should be > ${minimalLimit} for ${numNode} nodes")
+          Warning(name, s"Current file descriptor limit is ${limit}. It should be > ${minimalLimit} for ${numNode} nodes.\n${docLink}")
         case _ =>
           Ok(name, s"Maximum number of file descriptors is ${limit}")
       }
