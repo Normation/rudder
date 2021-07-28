@@ -172,7 +172,7 @@ showBlockTab model parentId block uiInfo=
                                  WorstReport -> "Worst report"
                                  SumReport -> "Sum of reports"
                                  FocusReport "" -> "Focus on one child method report"
-                                 FocusReport x -> "Focus on one child method"
+                                 FocusReport x -> "Focus on one child method: " ++ (focusText x)
                              )
         liCompositionRule =  \rule -> element "li"
                                            |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = rule }))
@@ -181,8 +181,8 @@ showBlockTab model parentId block uiInfo=
 
         focusText  = (\reportingLogic ->
                          case reportingLogic of
-                           FocusReport x -> Maybe.withDefault x (Maybe.map getComponent (List.Extra.find (getId >> .value >> (==) x) block.calls))
-                           _ -> ""
+                           "" -> ""
+                           x -> Maybe.withDefault x (Maybe.map getComponent (List.Extra.find (getId >> .value >> (==) x) block.calls))
                        )
         liFocus =  \child -> element "li"
                                |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = FocusReport (getId child).value }))
@@ -229,48 +229,21 @@ showBlockTab model parentId block uiInfo=
                                     |> appendChildList availableComposition
                                    ]
                             ]
-                        , element "div"
-                          |> addClass "form-group"
-                          |> appendChildList
-                             [ element "label"
-                               |> addAttribute (for "reporting-rule")
-                               |> appendText "Reporting based on:"
-                             , element "div"
-                               |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
-                               |> addClass "btn-group"
-                               |> appendChildList
-                                  [ element "button"
-                                    |> addClass "btn btn-default dropdown-toggle"
-                                    |> Dom.setId  "reporting-rule"
-                                    |> addAttributeList
-                                         [ attribute  "data-toggle" "dropdown"
-                                         , attribute  "aria-haspopup" "true"
-                                         , attribute "aria-expanded" "true"
-                                         ]
-                                    |> appendText ((focusText block.reportingLogic) ++ " ")
-                                    |> appendChild (element "span" |> addClass "caret")
-                                  , element "ul"
-                                    |> addClass "dropdown-menu"
-                                    |> addAttribute  (attribute "aria-labelledby" "reporting-rule")
-                                    |> addStyle ("margin-left", "0px")
-                                    |> appendChildList availableComposition
-                                   ]
-                            ]
                         ]
                      |> appendChildConditional
                           ( element "div"
                           |> addClass "form-group"
                           |> appendChildList
                              [ element "label"
-                               |> addAttribute (for "reporting-rule")
-                               |> appendText "Reporting based on:"
+                               |> addAttribute (for "reporting-rule-focus")
+                               |> appendText "Focus reporting on method:"
                              , element "div"
                                |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
                                |> addClass "btn-group"
                                |> appendChildList
                                   [ element "button"
                                     |> addClass "btn btn-default dropdown-toggle"
-                                    |> Dom.setId  "reporting-rule"
+                                    |> Dom.setId  "reporting-rule-focus"
                                     |> addAttributeList
                                          [ attribute  "data-toggle" "dropdown"
                                          , attribute  "aria-haspopup" "true"
@@ -280,7 +253,7 @@ showBlockTab model parentId block uiInfo=
                                     |> appendChild (element "span" |> addClass "caret")
                                   , element "ul"
                                     |> addClass "dropdown-menu"
-                                    |> addAttribute  (attribute "aria-labelledby" "reporting-rule")
+                                    |> addAttribute  (attribute "aria-labelledby" "reporting-rule-focus")
                                     |> addStyle ("margin-left", "0px")
                                     |> appendChildList availableFocus
                                    ]
