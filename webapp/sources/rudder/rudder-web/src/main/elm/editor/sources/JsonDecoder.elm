@@ -82,7 +82,7 @@ decodeMethodCall =
     |> required "parameters"  (list decodeCallParameter )
     |> required "class_context"  (map parseCondition string)
     |> required "component"  string
-    |> required "disableReporting" bool
+    |> optional "disableReporting" bool False
 
 decodeTechnique : Decoder Technique
 decodeTechnique =

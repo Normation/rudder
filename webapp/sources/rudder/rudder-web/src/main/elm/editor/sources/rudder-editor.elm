@@ -23,6 +23,7 @@ import ViewMethod exposing ( accumulateErrorConstraint )
 import ViewTechniqueList exposing (allMethodCalls)
 import Maybe.Extra
 import MethodElemUtils exposing (..)
+import Http exposing ( Error )
 
 --
 -- Port for interacting with external JS
@@ -36,8 +37,28 @@ port openManager: String -> Cmd msg
 port updateResources : (() -> msg) -> Sub msg
 port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
-port warnNotification   : String -> Cmd msg
+port warnNotification    : String -> Cmd msg
 port infoNotification    : String -> Cmd msg
+
+
+-- utility to write a understandable debug message from a get response
+debugHttpErr : Http.Error -> String
+debugHttpErr error =
+    case error of
+        Http.BadUrl url ->
+            "The URL " ++ url ++ " was invalid"
+        Http.Timeout ->
+            "Unable to reach the server, try again"
+        Http.NetworkError ->
+            "Unable to reach the server, check your network connection"
+        Http.BadStatus 500 ->
+            "The server had a problem, try again later"
+        Http.BadStatus 400 ->
+            "Verify your information and try again"
+        Http.BadStatus _ ->
+            "Unknown error"
+        Http.BadBody errorMessage ->
+            errorMessage
 
 updateResourcesResponse : Model -> Msg
 updateResourcesResponse model =
@@ -144,8 +165,8 @@ update msg model =
 
     GetTechniques (Ok  techniques) ->
       ({ model | techniques = techniques},  get () )
-    GetTechniques (Err _) ->
-      ( model , errorNotification  "Error when getting techniques"  )
+    GetTechniques (Err err) ->
+      ( model , errorNotification  ("Error when getting techniques: " ++ debugHttpErr err  ) )
 
     OpenTechniques ->
       ( { model | genericMethodsOpen = False } , Cmd.none )
@@ -186,8 +207,8 @@ update msg model =
             (newModel, cmd) = (update (CallApi ( getRessources (Creation t.id) ))  {model | mode = mode })
           in
             ( newModel, Cmd.batch [ cmd, infoNotification ("Technique '"++ t.id.value ++ "' successfully imported, please save to create technique") ] )
-        Err _ ->
-         (model, errorNotification ("Error when importing technique from file " ++ (File.name file) ))
+        Err err ->
+         (model, errorNotification ("Error when importing technique from file " ++ (File.name file) ++ ": " ++ (Json.Decode.errorToString err)))
 
 
 -- Edit a technique: high level action: save/update, clone, export, switch tab
@@ -266,8 +287,8 @@ update msg model =
       in
         ({ model | techniques = techniques, mode = newMode}, successNotification "Technique saved!" )
 
-    SaveTechnique (Err _) ->
-      ( model , errorNotification "Error when saving technique")
+    SaveTechnique (Err err) ->
+      ( model , errorNotification ("Error when saving technique: " ++ debugHttpErr err ) )
 
     StartSaving ->
      case model.mode of
@@ -289,8 +310,8 @@ update msg model =
       in
         ({ model | mode = newMode, techniques = techniques}, infoNotification ("Successfully deleted technique '" ++ techniqueId.value ++  "'"))
 
-    DeleteTechnique (Err _) ->
-      ( model , errorNotification "Error when deleting technique")
+    DeleteTechnique (Err err) ->
+      ( model , errorNotification ("Error when deleting technique: " ++ debugHttpErr err))
 
     OpenDeletionPopup technique ->
       ( { model | modal = Just (DeletionValidation technique)}  , Cmd.none )
@@ -473,8 +494,8 @@ update msg model =
     GetMethods (Ok  methods) ->
       ({ model | methods = methods}, getTechniques model  )
 
-    GetMethods (Err _) ->
-      ( model , errorNotification "Error when getting methods" )
+    GetMethods (Err err) ->
+      ( model , errorNotification ("Error when getting methods: " ++ debugHttpErr err ) )
 
     ToggleFilter ->
       let
