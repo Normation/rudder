@@ -413,7 +413,7 @@ class Boot extends Loggable {
     }
 
     def administrationMenu =
-      (Menu("AdministrationHome", <i class="fa fa-gear"></i> ++ <span>Settings</span>: NodeSeq) /
+      (Menu("AdministrationHome", <i class="fa fa-gear"></i> ++ <span>Administration</span>: NodeSeq) /
         "secure" / "administration" / "index" >> TestAccess ( ()
             => userIsAllowed("/secure/index",AuthorizationType.Administration.Read, AuthorizationType.Technique.Read) )).submenus (
 
@@ -422,7 +422,7 @@ class Boot extends Loggable {
             >> LocGroup("administrationGroup")
             >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Administration.Read ) )
 
-        , Menu("policyServerManagement", <span>General</span>) /
+        , Menu("policyServerManagement", <span>Settings</span>) /
             "secure" / "administration" / "policyServerManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Administration.Read) )
@@ -432,7 +432,7 @@ class Boot extends Loggable {
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",AuthorizationType.Administration.Read) )
 
-        , Menu("TechniqueLibraryManagement", <span>Active tree</span>) /
+        , Menu("TechniqueLibraryManagement", <span>Techniques tree</span>) /
             "secure" / "administration" / "techniqueLibraryManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Technique.Read ) )
