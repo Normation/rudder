@@ -38,15 +38,17 @@
 package com.normation.rudder.domain.nodes
 
 import com.normation.BoxSpecMatcher
-import com.normation.rudder.domain.nodes.GenericProperty._
+import com.normation.rudder.domain.properties.GenericProperty._
 import com.typesafe.config.ConfigValueFactory
 import net.liftweb.common._
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner._
-import java.util.{HashMap => JMap, ArrayList => JList}
 
+import java.util.{ArrayList => JList, HashMap => JMap}
 import com.normation.errors.PureResult
+import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.NodeProperty
 
 @RunWith(classOf[JUnitRunner])
 class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatcher {

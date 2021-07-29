@@ -64,9 +64,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
-
 import better.files._
-
 import com.normation.rudder.services.policies.RudderServerRole
 import zio.{Tag => _, _}
 import zio.syntax._
@@ -98,11 +96,14 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.rudder.domain.eventlog
-import com.normation.rudder.domain.nodes.GenericProperty.StringToConfigValue
-import com.normation.rudder.domain.parameters.AddGlobalParameterDiff
-import com.normation.rudder.domain.parameters.DeleteGlobalParameterDiff
-import com.normation.rudder.domain.parameters.GlobalParameter
-import com.normation.rudder.domain.parameters.ModifyGlobalParameterDiff
+import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
+import com.normation.rudder.domain.properties.AddGlobalParameterDiff
+import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.GroupProperty
+import com.normation.rudder.domain.properties.InheritMode
+import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
+import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.repository.xml.GitFindUtils
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
@@ -1116,10 +1117,10 @@ class MockRules() {
 }
 
 class MockGlobalParam() {
-  import com.normation.rudder.domain.nodes.GenericProperty._
+  import com.normation.rudder.domain.properties.GenericProperty._
 
   val mode = {
-    import InheritMode._
+    import com.normation.rudder.domain.properties.InheritMode._
     InheritMode(ObjectMode.Override, ArrayMode.Prepend, StringMode.Append)
   }
 

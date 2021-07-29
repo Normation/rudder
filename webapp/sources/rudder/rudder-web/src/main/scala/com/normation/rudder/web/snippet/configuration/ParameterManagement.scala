@@ -48,8 +48,8 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.domain.nodes.PropertyProvider
-import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.PropertyProvider
 import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
 import com.normation.rudder.domain.workflows.ChangeRequestId

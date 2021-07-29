@@ -53,8 +53,8 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.rule.category.RuleCategory
 
 

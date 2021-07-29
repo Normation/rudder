@@ -503,7 +503,7 @@ class GroupApiInheritedProperties(
       params     <- paramRepo.getAllGlobalParameters()
       properties <- MergeNodeProperties.forGroup(groupId, allGroups, params.map(p => (p.name, p)).toMap).toIO
     } yield {
-      import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
+      import com.normation.rudder.domain.properties.JsonPropertySerialisation._
       val rendered = renderInHtml match {
         case RenderInheritedProperties.HTML => properties.toApiJsonRenderParents
         case RenderInheritedProperties.JSON => properties.toApiJson

@@ -38,7 +38,6 @@
 package com.normation.rudder.repository
 
 import java.io.File
-
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventActor
@@ -48,7 +47,6 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
@@ -57,11 +55,10 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
-
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-
 import com.normation.errors._
+import com.normation.rudder.domain.properties.GlobalParameter
 
 
 /**

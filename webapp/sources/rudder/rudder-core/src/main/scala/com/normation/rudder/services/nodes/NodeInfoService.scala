@@ -1021,7 +1021,7 @@ class NodeInfoServiceCachedImpl(
                      (Task.effect(con.backed.search(searchRequest).getSearchEntries) catchAll {
                        case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) =>
                          e.getSearchEntries().succeed
-                       case e:LDAPException =>
+                       case e: Throwable =>
                          SystemError("Error when searching node information", e).fail
                      }).foldM(
                        err =>

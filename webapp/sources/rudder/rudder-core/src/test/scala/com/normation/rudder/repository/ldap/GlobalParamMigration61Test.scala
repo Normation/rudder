@@ -46,7 +46,7 @@ import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.DefaultStringQueryParser
 import com.normation.rudder.services.queries.JsonQueryLexer
@@ -55,7 +55,7 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.rudder.domain.nodes.GenericProperty._
+import com.normation.rudder.domain.properties.GenericProperty._
 import com.typesafe.config.ConfigValueType
 
 /**

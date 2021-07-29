@@ -268,7 +268,7 @@ class FusionReportUnmarshaller(
           // OS Section is the fallback
           case Some(osfqdn) if validHostname(osfqdn) =>
             osfqdn.succeed
-          case None =>
+          case _ =>
             InventoryError.Inconsistency("Hostname could not be found in inventory (RUDDER/HOSTNAME and OPERATINGSYSTEM/FQDN are missing)").fail
       }
     }

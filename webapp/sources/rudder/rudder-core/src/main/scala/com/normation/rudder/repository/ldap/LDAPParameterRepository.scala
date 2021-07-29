@@ -46,10 +46,12 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.domain.nodes.GenericProperty
-import com.normation.rudder.domain.nodes.PropertyProvider
-import com.normation.rudder.domain.parameters.GlobalParameter
-import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.properties.AddGlobalParameterDiff
+import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
+import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository._
 import com.normation.rudder.services.user.PersonIdentService

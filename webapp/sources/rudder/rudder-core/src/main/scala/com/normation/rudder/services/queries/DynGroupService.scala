@@ -57,7 +57,6 @@ import com.unboundid.ldap.sdk.SearchRequest
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.ldap.sdk.BuildFilter._
 import com.unboundid.ldap.sdk.Filter
-import com.unboundid.ldap.sdk.LDAPException
 import com.unboundid.ldap.sdk.LDAPSearchException
 import com.unboundid.ldap.sdk.ResultCode
 import org.joda.time.DateTime
@@ -185,7 +184,7 @@ class DynGroupServiceImpl(
                    (Task.effect(con.backed.search(searchRequest).getSearchEntries) catchAll {
                      case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) =>
                        e.getSearchEntries().succeed
-                     case e:LDAPException =>
+                     case e:Throwable =>
                        SystemError("Error when searching dyngroup information", e).fail
                    }).foldM(
                      err =>

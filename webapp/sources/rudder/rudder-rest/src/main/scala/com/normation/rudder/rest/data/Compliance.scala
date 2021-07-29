@@ -92,7 +92,7 @@ final case class ByRuleDirectiveCompliance(
   , components: Seq[ByRuleComponentCompliance]
 )
 
-trait ByRuleComponentCompliance {
+sealed trait ByRuleComponentCompliance {
   def name : String
   def compliance : ComplianceLevel
 }

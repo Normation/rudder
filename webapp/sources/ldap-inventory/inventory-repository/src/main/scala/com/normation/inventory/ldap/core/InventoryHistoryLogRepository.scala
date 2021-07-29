@@ -70,8 +70,9 @@ class FullInventoryFileMarshalling(
         } while(null != e)
         buf
       } mapError {
-        case e : LDIFException => InventoryError.System(e.getMessage)
         case e : FileNotFoundException => InventoryError.System((s"History file '${in.getAbsolutePath}' was not found. It was likelly deleted"))
+        case e : LDIFException => InventoryError.System(e.getMessage)
+        case t : Throwable => SystemError("Error when writing ldif of inventory", t)
       }).flatMap { buf =>
         fromLdapEntries.fromLdapEntries(buf.map(e => new LDAPEntry(e)).toSeq)
       }

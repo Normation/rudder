@@ -35,19 +35,20 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.nodes
+package com.normation.rudder.domain.properties
 
 import com.normation.GitVersion
-
-import java.util.regex.Pattern
 import com.normation.GitVersion.Revision
 import com.normation.errors._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.services.policies.ParameterEntry
 import com.typesafe.config._
-import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
+import net.liftweb.json._
+
+import java.util.regex.Pattern
 
 /*
  * A property provider is the thing responsible for that property.
@@ -163,7 +164,7 @@ final case class PatchProperty(
  * Provider, if not provided will return None
  * This trait provides update methods for generic processing (since we don't have case class compiler support).
  */
-trait GenericProperty[P <: GenericProperty[_]] {
+sealed trait GenericProperty[P <: GenericProperty[_]] {
   import GenericProperty._
 
   def config  : Config
@@ -314,7 +315,9 @@ object GenericProperty {
   def mergeValues(oldValue: ConfigValue, newValue: ConfigValue, mode: InheritMode): ConfigValue = {
     import ConfigValueType._
     import InheritMode._
-    import java.util.{List => juList, Map => juMap}
+
+    import java.util.{List => juList}
+    import java.util.{Map => juMap}
     import scala.jdk.CollectionConverters._
 
     def stringPlus(a: ConfigValue, b: ConfigValue): ConfigValue = {
@@ -479,6 +482,7 @@ object GenericProperty {
   }
   def fromZioJson(value: zio.json.ast.Json): ConfigValue = {
     import zio.json.ast.Json._
+
     import scala.jdk.CollectionConverters._
     value match {
       case Null     => ConfigValueFactory.fromAnyRef("")
@@ -513,6 +517,7 @@ object GenericProperty {
         case d: java.lang.Double   => JDouble(d)
         case i: java.lang.Integer  => JInt(BigInt(i))
         case l: java.lang.Long     => JInt(BigInt(l))
+        case error => throw new IllegalArgumentException(s"Error with config value '${value}': it says it is a NUMBER but it is: ${value.unwrapped()}. Please report the bug.")
       }
       case ConfigValueType.STRING  => JString(value.unwrapped().asInstanceOf[String])
       // the only safe and compatible way for array/object seems to be to render and then parse
@@ -876,3 +881,28 @@ object JsonPropertySerialisation {
 }
 
 
+/**
+ * A Global Parameter is a parameter globally defined, that may be overriden
+ */
+final case class GlobalParameter(config: Config) extends GenericProperty[GlobalParameter] {
+  override def fromConfig(c: Config) = GlobalParameter(c)
+}
+
+object GlobalParameter {
+
+  /**
+   * A builder with the logic to handle the value part.
+   *,
+   * For compatibity reason, we want to be able to process
+   * empty (JNothing) and primitive types, especially string, specificaly as
+   * a JString *but* a string representing an actual JSON should be
+   * used as json.
+   */
+  def parse(name: String, rev: Revision, value: String, mode: Option[InheritMode], description: String, provider: Option[PropertyProvider]): PureResult[GlobalParameter] = {
+    GenericProperty.parseConfig(name, rev, value, mode, provider, Some(description)).map(c => new GlobalParameter(c))
+  }
+  def apply(name: String, rev: Revision, value: ConfigValue, mode: Option[InheritMode], description: String, provider: Option[PropertyProvider]): GlobalParameter = {
+    new GlobalParameter(GenericProperty.toConfig(name, rev, value, mode, provider, Some(description)))
+  }
+
+}

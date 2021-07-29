@@ -43,7 +43,11 @@ import org.specs2.runner._
 import net.liftweb.common._
 import com.normation.BoxSpecMatcher
 import com.normation.errors.PureResult
-import GenericProperty._
+import com.normation.rudder.domain.properties.CompareProperties
+import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.GenericProperty._
+import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.PropertyProvider
 
 @RunWith(classOf[JUnitRunner])
 class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher {

@@ -50,7 +50,7 @@ import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.errors.IOResult
-import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId

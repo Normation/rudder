@@ -108,7 +108,7 @@ final case class EditorTechnique(
   val path = s"techniques/${category}/${bundleName.value}/${version.value}"
 }
 
-trait MethodElem
+sealed trait MethodElem
 
 final case class MethodBlock(
     id : String

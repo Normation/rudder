@@ -34,38 +34,44 @@
 *
 *************************************************************************************
 */
-package com.normation.rudder.domain.parameters
 
-import com.normation.GitVersion.Revision
-import com.normation.errors.PureResult
-import com.normation.rudder.domain.nodes.GenericProperty
-import com.normation.rudder.domain.nodes.InheritMode
-import com.normation.rudder.domain.nodes.PropertyProvider
-import com.typesafe.config.Config
+package com.normation.rudder.domain.properties
+
+import com.normation.rudder.domain.policies.SimpleDiff
+import com.normation.rudder.domain.policies.TriggerDeploymentDiff
 import com.typesafe.config.ConfigValue
 
-/**
- * A Global Parameter is a parameter globally defined, that may be overriden
- */
-final case class GlobalParameter(config: Config) extends GenericProperty[GlobalParameter] {
-  override def fromConfig(c: Config) = GlobalParameter(c)
+sealed trait ParameterDiff extends TriggerDeploymentDiff
+
+//for change request, with add type tag to DirectiveDiff
+sealed trait ChangeRequestGlobalParameterDiff {
+  def parameter:GlobalParameter
 }
 
-object GlobalParameter {
+final case class AddGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff {
+  def needDeployment : Boolean = false
+}
 
-  /**
-   * A builder with the logic to handle the value part.
-   *,
-   * For compatibity reason, we want to be able to process
-   * empty (JNothing) and primitive types, especially string, specificaly as
-   * a JString *but* a string representing an actual JSON should be
-   * used as json.
-   */
-  def parse(name: String, rev: Revision, value: String, mode: Option[InheritMode], description: String, provider: Option[PropertyProvider]): PureResult[GlobalParameter] = {
-    GenericProperty.parseConfig(name, rev, value, mode, provider, Some(description)).map(c => new GlobalParameter(c))
-  }
-  def apply(name: String, rev: Revision, value: ConfigValue, mode: Option[InheritMode], description: String, provider: Option[PropertyProvider]): GlobalParameter = {
-    new GlobalParameter(GenericProperty.toConfig(name, rev, value, mode, provider, Some(description)))
-  }
+final case class DeleteGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff {
+  def needDeployment : Boolean = true
+}
 
+final case class ModifyGlobalParameterDiff(
+    name          : String
+  , modValue      : Option[SimpleDiff[ConfigValue]] = None
+  , modDescription: Option[SimpleDiff[String]] = None
+  , modProvider   : Option[SimpleDiff[Option[PropertyProvider]]] = None
+  , modInheritMode: Option[SimpleDiff[Option[InheritMode]]] = None
+) extends ParameterDiff {
+  def needDeployment : Boolean = {
+    modValue.isDefined
+  }
+}
+
+
+final case class ModifyToGlobalParameterDiff(
+    parameter : GlobalParameter
+) extends ParameterDiff  with ChangeRequestGlobalParameterDiff {
+  // This case is undecidable, so it is always true
+  def needDeployment : Boolean = true
 }

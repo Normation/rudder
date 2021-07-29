@@ -47,15 +47,15 @@ import com.normation.GitVersion
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.parameters._
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.json._
 import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.nodes.GenericProperty
-import com.normation.rudder.domain.nodes.InheritMode
-import com.normation.rudder.domain.nodes.PropertyProvider
+import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.InheritMode
+import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.zio.ZioRuntime
 
 

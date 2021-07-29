@@ -50,7 +50,6 @@ import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.repository._
@@ -63,11 +62,11 @@ import scala.xml._
 import com.normation.rudder.services.marshalling.XmlSerializer
 import com.normation.rudder.services.marshalling.XmlUnserializer
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
+
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
-
 import com.normation.rudder.domain.logger.ChangeRequestLogger
-import com.normation.rudder.domain.nodes.PropertyProvider
+import com.normation.rudder.domain.properties._
 import com.normation.rudder.services.queries.DynGroupUpdaterService
 
 /**

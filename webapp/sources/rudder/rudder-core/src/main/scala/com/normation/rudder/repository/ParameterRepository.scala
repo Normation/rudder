@@ -36,12 +36,15 @@
 */
 
 package com.normation.rudder.repository
-import com.normation.rudder.domain.parameters._
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.errors._
-import com.normation.rudder.domain.nodes.PropertyProvider
+import com.normation.rudder.domain.properties.AddGlobalParameterDiff
+import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
+import com.normation.rudder.domain.properties.PropertyProvider
 
 /**
  * The Parameter Repository (Read Only) to read parameters from LDAP

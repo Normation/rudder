@@ -44,6 +44,7 @@ import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.SimpleDiff
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.ReportingConfiguration

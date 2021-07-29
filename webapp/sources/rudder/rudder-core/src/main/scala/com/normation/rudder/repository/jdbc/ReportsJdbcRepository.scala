@@ -417,6 +417,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
               recDisctinct(a :: t)
             } else (a, b) match {
               //by default, take the one with a configId.
+              case (AgentRun(_, None, _), AgentRun(_, None,  _))      => recDisctinct(a :: t)
               case (AgentRun(_, Some(idA), _), AgentRun(_, None,  _)) => recDisctinct(a :: t)
               case (AgentRun(_, None, _), AgentRun(_, Some(idB),  _)) => recDisctinct(b :: t)
               //this one, with two config id, should never happen, but still...
@@ -429,7 +430,6 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                   } else {
                     recDisctinct(b :: t)
                   }
-
             }
         }
       }

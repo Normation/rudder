@@ -42,12 +42,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.batch.{CurrentDeploymentStatus, ErrorStatus, SuccessStatus}
 import com.normation.rudder.domain.Constants._
-import com.normation.rudder.domain.nodes.AddNodeGroupDiff
-import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
-import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.nodes.NodeGroupCategory
-import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.AddDirectiveDiff
@@ -80,6 +75,10 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.api.{ApiAccount, ApiAccountKind, ApiAuthorization}
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.properties.AddGlobalParameterDiff
+import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
 
 //serialize / deserialize tags
 object TagsXml {

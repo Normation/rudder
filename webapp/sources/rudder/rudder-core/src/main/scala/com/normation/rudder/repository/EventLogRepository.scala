@@ -54,9 +54,6 @@ import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyNodeDiff
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.parameters.AddGlobalParameterDiff
-import com.normation.rudder.domain.parameters.DeleteGlobalParameterDiff
-import com.normation.rudder.domain.parameters.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.policies.AddDirectiveDiff
 import com.normation.rudder.domain.policies.AddRuleDiff
 import com.normation.rudder.domain.policies.AddTechniqueDiff
@@ -66,6 +63,9 @@ import com.normation.rudder.domain.policies.DeleteTechniqueDiff
 import com.normation.rudder.domain.policies.ModifyDirectiveDiff
 import com.normation.rudder.domain.policies.ModifyRuleDiff
 import com.normation.rudder.domain.policies.ModifyTechniqueDiff
+import com.normation.rudder.domain.properties.AddGlobalParameterDiff
+import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.eventlog.EventLogFactory

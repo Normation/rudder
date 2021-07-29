@@ -43,10 +43,9 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.rule.category.RuleCategory
-
 import com.normation.errors._
+import com.normation.rudder.domain.properties.GlobalParameter
 
 /**
  * A category of the technique library.

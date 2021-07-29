@@ -49,7 +49,7 @@ import net.liftweb.http.DispatchSnippet
 
 import scala.xml.NodeSeq
 
-trait NotificationLevel
+sealed trait NotificationLevel
 object NotificationLevel {
   final case object Info extends NotificationLevel
   final case object Warning extends NotificationLevel

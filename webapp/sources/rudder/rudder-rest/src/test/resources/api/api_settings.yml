@@ -52,7 +52,7 @@ response:
           "rudder_compute_dyngroups_max_parallelism":"1",
           "rudder_generation_compute_dyngroups":true,
           "rudder_generation_continue_on_error":false,
-          "rudder_generation_delay":"0 days",
+          "rudder_generation_delay":"0 seconds",
           "rudder_generation_js_timeout":30,
           "rudder_generation_max_parallelism":"x0.5",
           "rudder_generation_policy":"all",

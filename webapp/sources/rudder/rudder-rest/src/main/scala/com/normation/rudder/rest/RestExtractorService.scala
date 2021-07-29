@@ -44,7 +44,6 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.{AclPath, ApiAccountId, ApiAccountName, ApiAclElement, HttpAction, ApiAuthorization => ApiAuthz}
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.queries.NodeReturnType
@@ -66,7 +65,6 @@ import net.liftweb.json.JsonDSL._
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
-import com.normation.rudder.domain.nodes.PropertyProvider
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.services.ReasonBehavior
 import com.normation.rudder.repository.ldap.NodeStateEncoder
@@ -100,9 +98,11 @@ import com.normation.errors._
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.PublicKey
-import com.normation.rudder.domain.nodes.GenericProperty
-import com.normation.rudder.domain.nodes.GroupProperty
-import com.normation.rudder.domain.nodes.InheritMode
+import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.GroupProperty
+import com.normation.rudder.domain.properties.InheritMode
+import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.ncf.MethodBlock
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
@@ -436,7 +436,7 @@ final case class RestExtractorService (
       case Disabled  => Full(None)
       case mode =>
         val reason = extractString("reason")(req)(Full(_))
-        mode match {
+        (mode: @unchecked) match {
           case Mandatory =>
             reason match {
               case Full(None) =>  Failure("Reason field is mandatory and should be at least 5 characters long")

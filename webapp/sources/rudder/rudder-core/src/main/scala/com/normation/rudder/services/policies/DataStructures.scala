@@ -50,7 +50,6 @@ import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.exceptions.NotFoundException
 import com.normation.cfclerk.domain.TechniqueId
-import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import cats.data.NonEmptyList
@@ -65,6 +64,7 @@ import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors._
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.properties.GlobalParameter
 import com.typesafe.config.ConfigValue
 
 /*

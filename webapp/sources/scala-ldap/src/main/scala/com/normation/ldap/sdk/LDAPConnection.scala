@@ -360,11 +360,11 @@ sealed class RoLDAPConnection(
         //build the tree
         LDAPTree(all.getSearchEntries.asScala.map(x => LDAPEntry(x))).map(Some(_))
       } else None.succeed
-    } catchAll {
+    } catchAll { x => (x: @unchecked) match {
       //a no such object error simply means that the required LDAP tree is not in the directory
       case e:LDAPSearchException if(NO_SUCH_OBJECT == e.getResultCode) => None.succeed
       case e:LDAPException => LDAPRudderError.BackendException(s"Can not get tree '${dn.toString}': ${e.getDiagnosticMessage}", e).fail
-    }
+    } }
   }
 }
 
@@ -520,7 +520,7 @@ class RwLDAPConnection(
       } else {
         LDAPRudderError.FailureResult(s"Error when doing action '${modName}' with and LDIF change request: ${res.getDiagnosticMessage}", res).fail
       }
-    } catchAll {
+    } catchAll { x => (x: @unchecked) match {
       case ex:LDAPException =>
         if(onlyReportThat(ex.getResultCode)) {
           logIgnoredException(record.getDN, modName, ex)
@@ -530,7 +530,7 @@ class RwLDAPConnection(
         }
       // catchAll is still a lie, and we want to crash on an other exception
       case ex:Throwable => throw ex
-    }
+    } }
   }
 
 

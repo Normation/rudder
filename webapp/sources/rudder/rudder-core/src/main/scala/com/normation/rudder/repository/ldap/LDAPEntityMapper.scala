@@ -61,7 +61,6 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.reports._
@@ -81,6 +80,12 @@ import net.liftweb.json.JsonAST.JObject
 
 import scala.util.control.NonFatal
 import com.normation.errors._
+import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.GroupProperty
+import com.normation.rudder.domain.properties.InheritMode
+import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.PropertyProvider
 
 final object NodeStateEncoder {
   implicit def enc(state: NodeState): String = state.name
@@ -985,7 +990,7 @@ class LDAPEntityMapper(
    * (and we remove it for 6.1 and above).
    */
   def entry2Parameter(e:LDAPEntry) : InventoryMappingPure[GlobalParameter] = {
-    import com.normation.rudder.domain.nodes.GenericProperty._
+    import com.normation.rudder.domain.properties.GenericProperty._
     if(e.isA(OC_PARAMETER)) {
       //OK, translate
       for {
@@ -1005,7 +1010,7 @@ class LDAPEntityMapper(
   }
 
   def parameter2Entry(parameter: GlobalParameter) : LDAPEntry = {
-    import com.normation.rudder.domain.nodes.GenericProperty._
+    import com.normation.rudder.domain.properties.GenericProperty._
     val entry = rudderDit.PARAMETERS.parameterModel(
         parameter.name
     )

@@ -40,7 +40,7 @@ package com.normation.rudder.rest.lift
 import com.normation.GitVersion
 import com.normation.eventlog.EventActor
 import com.normation.rudder.UserService
-import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.properties._
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
 import com.normation.rudder.rest.ApiPath
@@ -73,7 +73,8 @@ import com.normation.rudder.rest.JsonQueryObjects.JQGlobalParameter
 import com.normation.rudder.rest.JsonResponseObjects.JRGlobalParameter
 import com.normation.box._
 import com.normation.errors._
-import com.normation.rudder.domain.nodes.GenericProperty
+import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
+import com.normation.rudder.domain.properties.GenericProperty
 import zio.syntax._
 import com.normation.rudder.rest._
 import com.normation.rudder.rest.implicits._
@@ -303,7 +304,7 @@ extends Loggable {
 
     restParameter match {
       case Full(restParameter) =>
-        import com.normation.rudder.domain.nodes.GenericProperty._
+        import GenericProperty._
         val parameter = restParameter.updateParameter(GlobalParameter(parameterName, GitVersion.defaultRev,"".toConfigValue,None,"",None))
 
         val diff = AddGlobalParameterDiff(parameter)
@@ -429,7 +430,7 @@ class ParameterApiService14 (
   }
 
   def createParameter(restParameter: JQGlobalParameter, params: DefaultParams, actor: EventActor): IOResult[JRGlobalParameter] = {
-    import com.normation.rudder.domain.nodes.GenericProperty._
+    import GenericProperty._
     val baseParameter = GlobalParameter.apply("", GitVersion.defaultRev, "".toConfigValue, None,"",None)
     val parameter = restParameter.updateParameter(baseParameter)
     val diff = AddGlobalParameterDiff(parameter)

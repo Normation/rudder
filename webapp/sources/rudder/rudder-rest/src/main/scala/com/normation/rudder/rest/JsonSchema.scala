@@ -60,23 +60,23 @@ import zio.json.JsonCodec._
 import zio.json.{EncoderOps => _, _}
 import zio.json.internal.Write
 import com.normation.errors._
-import com.normation.rudder.domain.nodes.InheritMode
-import com.normation.rudder.domain.nodes.PropertyProvider
-import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.zio._
 import com.normation.rudder.rest.lift.DefaultParams
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
-import com.normation.rudder.domain.nodes.CompareProperties
-import com.normation.rudder.domain.nodes.GenericProperty
-import com.normation.rudder.domain.nodes.GroupProperty
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.nodes.NodePropertyHierarchy
-import com.normation.rudder.domain.nodes.ParentProperty
-import com.normation.rudder.domain.nodes.PatchProperty
+import com.normation.rudder.domain.properties.CompareProperties
+import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.GroupProperty
+import com.normation.rudder.domain.properties.InheritMode
+import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.rudder.domain.properties.ParentProperty
+import com.normation.rudder.domain.properties.PatchProperty
+import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.domain.queries.QueryReturnType
@@ -542,7 +542,7 @@ object JsonResponseObjects {
   )
 
   object JRGlobalParameter {
-    import com.normation.rudder.domain.nodes.GenericProperty._
+    import GenericProperty._
     def empty(name: String) = JRGlobalParameter(None, name, "".toConfigValue, "", None, None)
     def fromGlobalParameter(p: GlobalParameter, crId: Option[ChangeRequestId]): JRGlobalParameter = {
       JRGlobalParameter(crId.map(_.value.toString), p.name, p.value, p.description, p.inheritMode, p.provider)

@@ -37,8 +37,7 @@
 
 package com.normation.rudder.services.nodes
 
-import com.normation.rudder.domain.nodes.PropertyProvider
-
+import com.normation.rudder.domain.properties.PropertyProvider
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.json.JsonAST.JValue

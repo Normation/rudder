@@ -41,8 +41,8 @@ package com.normation.rudder.services.policies
 import com.normation.box._
 import com.normation.errors._
 import com.normation.inventory.domain.AgentType
-import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.services.nodes.EngineOption
 import com.normation.rudder.services.nodes.PropertyEngineService
 import com.normation.rudder.services.policies.PropertyParserTokens._
@@ -472,7 +472,7 @@ object PropertyParser {
   import NoWhitespace._
 
   def parse(value: String): PureResult[List[Token]] = {
-    fastparse.parse(value, all(_)) match {
+    (fastparse.parse(value, all(_)): @unchecked) match {
       case Parsed.Success(value, index)    => Right(value)
       case Parsed.Failure(label, i, extra) => Left(Unexpected(
         s"""Error when parsing value (without ''): '${value}'. Error message is: ${extra.trace().aggregateMsg}""".stripMargin))

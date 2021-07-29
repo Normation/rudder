@@ -49,14 +49,14 @@ import net.liftweb.common.Full
 import org.specs2.matcher.Expectable
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
-import com.normation.rudder.domain.nodes.NodeProperty
 
 import scala.util.matching.Regex
 import org.specs2.matcher.Matcher
 import net.liftweb.json._
 import com.normation.errors._
 import cats.implicits._
-import com.normation.rudder.domain.nodes.GenericProperty
+import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.services.nodes.EngineOption
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.normation.rudder.services.nodes.RudderPropertyEngine
@@ -64,6 +64,7 @@ import com.typesafe.config.ConfigValue
 import zio.syntax._
 import zio._
 import com.normation.zio._
+
 
 /**
  * Test how parametrized variables are replaced for

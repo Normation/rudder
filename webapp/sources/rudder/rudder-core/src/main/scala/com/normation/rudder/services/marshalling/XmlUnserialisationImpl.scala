@@ -45,14 +45,12 @@ import net.liftweb.common._
 import net.liftweb.common.Box._
 import com.normation.rudder.services.queries.CmdbQueryParser
 import net.liftweb.common.Failure
-import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.SectionVal
 import com.normation.utils.Control.sequence
 import com.normation.cfclerk.domain.TechniqueVersion
 import net.liftweb.util.Helpers.tryo
-import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
@@ -64,11 +62,8 @@ import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.batch.NoStatus
 import com.normation.rudder.batch.CurrentDeploymentStatus
-import com.normation.rudder.domain.nodes.NodeGroupCategory
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.Constants._
 import com.normation.rudder.domain.workflows._
-import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.workflows.NodeGroupChanges
 import com.normation.rudder.domain.nodes._
 import com.normation.eventlog.EventActor
@@ -84,12 +79,19 @@ import com.normation.cfclerk.domain.TechniqueId
 import scala.util.Try
 import scala.util.Success
 import scala.util.{Failure => Catch}
-import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.box._
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.properties.AddGlobalParameterDiff
+import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.GroupProperty
+import com.normation.rudder.domain.properties.InheritMode
+import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
+import com.normation.rudder.domain.properties.PropertyProvider
 
 final case class XmlUnserializerImpl (
     rule        : RuleUnserialisation

@@ -44,8 +44,9 @@ import com.normation.rudder.api._
 import com.normation.rudder.batch.{ErrorStatus, SuccessStatus}
 import com.normation.rudder.domain.eventlog.{WorkflowStepChanged, _}
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.workflows.{ChangeRequestId, WorkflowStepChange}
 import com.normation.rudder.reports.{AgentRunInterval, HeartbeatConfiguration}

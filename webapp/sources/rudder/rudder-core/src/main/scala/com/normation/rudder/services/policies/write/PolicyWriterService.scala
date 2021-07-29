@@ -45,7 +45,6 @@ import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.hooks.HookEnvPairs
@@ -85,6 +84,7 @@ import com.normation.rudder.domain.logger.NodeConfigurationLogger
 import better.files._
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.templates.FillTemplateThreadUnsafe
 import com.normation.templates.FillTemplateTimer
@@ -292,7 +292,7 @@ class PolicyWriterServiceImpl(
 
   private[this] def writeRudderParameterFile(agentNodeConfig: AgentNodeConfiguration): IOResult[Unit] = {
     def generateParametersJson(parameters : Set[ParameterEntry]): JValue = {
-      import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
+      import com.normation.rudder.domain.properties.JsonPropertySerialisation._
       import net.liftweb.json.JsonDSL._
       ( "parameters" -> parameters.toDataJson)
     }

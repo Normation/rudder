@@ -183,6 +183,7 @@ object NodeConfigurationHash {
             version <- TechniqueVersion.parse(techniqueVerion).leftMap(err => (err, p))
             rid     <- DirectiveId.parse(directiveId).leftMap(err => (err, p))
           } yield PolicyHash(PolicyId(RuleId(ruleId), rid, version), policyHash.toInt)
+        case x => Left((s"Error when parsing policy: a json array", x))
       }
     }
 

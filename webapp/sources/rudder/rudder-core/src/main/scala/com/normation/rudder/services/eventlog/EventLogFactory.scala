@@ -51,8 +51,12 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.properties.AddGlobalParameterDiff
+import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.GroupProperty
+import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.marshalling._

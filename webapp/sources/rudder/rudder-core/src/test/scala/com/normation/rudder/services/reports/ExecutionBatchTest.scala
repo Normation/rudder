@@ -108,12 +108,19 @@ class ExecutionBatchTest extends Specification {
     val now = DateTime.now
 
     val executionReports = expectedReports.flatMap { case RuleExpectedReports(ruleId, directives) =>
-      directives.flatMap { case DirectiveExpectedReports(directiveId, _, _, components) =>
-        components.flatMap { case ValueExpectedReport(componentName, componentsValues, _) =>
-          componentsValues.map { case value =>
-            ResultSuccessReport(now, ruleId, directiveId, nodeId, 0, componentName, value, now, "empty text")
-          }
+      def mapComponent(c: ComponentExpectedReport, directiveId: DirectiveId): List[ResultSuccessReport] = {
+        c match {
+          case ValueExpectedReport(componentName, componentsValues, _) =>
+            componentsValues.map { case value =>
+              ResultSuccessReport(now, ruleId, directiveId, nodeId, 0, componentName, value, now, "empty text")
+            }
+          case BlockExpectedReport(componentName, logic, sub) =>
+            sub.map(mapComponent(_, directiveId)).flatten
         }
+      }
+
+      directives.flatMap { case DirectiveExpectedReports(directiveId, _, _, components) =>
+        components.flatMap(mapComponent(_, directiveId))
       }
     }
 

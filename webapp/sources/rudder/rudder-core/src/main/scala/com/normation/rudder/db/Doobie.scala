@@ -258,7 +258,7 @@ object Doobie {
   }
 
 
-  import doobie.enum.JdbcType.Other
+  import doobie.enumerated.JdbcType.Other
   implicit val XmlMeta: Meta[Elem] =
     Meta.Advanced.many[Elem](
       NonEmptyList.of(Other),

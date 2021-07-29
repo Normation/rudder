@@ -55,7 +55,6 @@ import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.UserService
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.nodes.CompareProperties
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.WoNodeRepository
@@ -89,7 +88,6 @@ import net.liftweb.json.JsonDSL.pair2jvalue
 import net.liftweb.json.JsonDSL.string2jvalue
 import scalaj.http.Http
 import scalaj.http.HttpOptions
-import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.box._
 import com.normation.zio._
 import com.normation.errors._
@@ -97,10 +95,12 @@ import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.nodes.NodePropertyHierarchy
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
+import com.normation.rudder.domain.properties.CompareProperties
+import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeStatusReport
@@ -503,7 +503,7 @@ class NodeApiInheritedProperties(
       params       <- paramRepo.getAllGlobalParameters()
       properties   <- MergeNodeProperties.forNode(nodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap).toIO
     } yield {
-      import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
+      import com.normation.rudder.domain.properties.JsonPropertySerialisation._
       val rendered = renderInHtml match {
         case RenderInheritedProperties.HTML => properties.toApiJsonRenderParents
         case RenderInheritedProperties.JSON => properties.toApiJson
@@ -620,7 +620,7 @@ class NodeApiService13 (
           (globalPolicyMode.mode, "none")
       }
 
-    import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
+    import com.normation.rudder.domain.properties.JsonPropertySerialisation._
     (    ("name"                -> escapeHTML(nodeInfo.hostname))
       ~  ("policyServerId"      -> escapeHTML(nodeInfo.policyServerId.value))
       ~  ("policyMode"          -> escapeHTML(policyMode.name))
@@ -746,7 +746,7 @@ class NodeApiService13 (
                 inheritedProp <- getNodesPropertiesTree(nodes.values, List(property)).toBox
               } yield {
 
-                import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
+                import com.normation.rudder.domain.properties.JsonPropertySerialisation._
                 inheritedProp.map{ case (k,v) => (k,v.map(_.toApiJsonRenderParents)) }
               }
             } else {

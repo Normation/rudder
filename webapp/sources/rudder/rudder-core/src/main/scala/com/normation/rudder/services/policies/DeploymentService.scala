@@ -41,8 +41,6 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 import better.files.File
 import cats.data.NonEmptyList
-import com.normation.box._
-import com.normation.errors._
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.AixOS
 import com.normation.inventory.domain.MemorySize
@@ -53,15 +51,10 @@ import com.normation.rudder.batch.UpdateDynamicGroups
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
-import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.rudder.domain.nodes.CompareProperties
-import com.normation.rudder.domain.nodes.GenericProperty
-import com.normation.rudder.domain.nodes.GenericProperty.StringToConfigValue
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.NodeState
-import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.properties.GenericProperty._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.reports.ComponentExpectedReport
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
@@ -84,7 +77,6 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.repository._
 import com.normation.rudder.services.eventlog.HistorizationService
-import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
@@ -101,6 +93,11 @@ import org.joda.time.DateTime
 import org.joda.time.Period
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
+
+import com.normation.box._
+import com.normation.errors._
+import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
+import com.normation.rudder.services.nodes.MergeNodeProperties
 import zio._
 import zio.syntax._
 import com.softwaremill.quicklens._
@@ -109,6 +106,7 @@ import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.cfclerk.domain.SectionSpec
+import com.normation.rudder.domain.properties._
 import com.normation.rudder.domain.reports.BlockExpectedReport
 import com.normation.rudder.domain.reports.ValueExpectedReport
 import com.normation.rudder.services.reports.CacheExpectedReportAction

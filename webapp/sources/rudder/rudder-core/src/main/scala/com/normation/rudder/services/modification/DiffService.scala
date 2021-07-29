@@ -41,9 +41,9 @@ import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
-import com.normation.rudder.domain.parameters.GlobalParameter
-import com.normation.rudder.domain.parameters.ModifyGlobalParameterDiff
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 
 /**
  * A service that allows to build diff between

@@ -485,6 +485,9 @@ object JsEngine {
       .build()))(x => effectUioUnit(x.close(true)))
   }
   final object SandboxedJsEngine {
+    // we need to set the warning for interpreted mode to off, because, yeah for now, we are doing that only
+    System.setProperty("polyglot.engine.WarnInterpreterOnly","false")
+
     /*
      * The value is purelly arbitrary. We expects that a normal use case ends in tens of ms.
      * But we don't want the user to have a whole generation fails because it scripts took 2 seconds

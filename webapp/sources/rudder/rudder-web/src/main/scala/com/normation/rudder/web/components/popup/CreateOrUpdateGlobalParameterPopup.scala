@@ -47,12 +47,11 @@ import net.liftweb.http._
 import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
-import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.model._
 
 import java.util.regex.Pattern
-import com.normation.rudder.domain.nodes.GenericProperty
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
@@ -61,7 +60,12 @@ import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.box._
 import com.normation.errors.PureResult
 import com.normation.inventory.domain.InventoryError.Inconsistency
-import com.normation.rudder.domain.nodes.InheritMode
+import com.normation.rudder.domain.properties.AddGlobalParameterDiff
+import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
+import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.InheritMode
+import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueType
 
@@ -116,7 +120,7 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   private def parseValue(value: String, jsonRequired: Boolean): PureResult[ConfigValue] = {
-    import com.normation.rudder.domain.nodes.GenericProperty._
+    import GenericProperty._
     for {
            // in case of string, we need to force parse as string
       v <- if(jsonRequired) GenericProperty.parseValue(value) else Right(value.toConfigValue)
@@ -295,7 +299,7 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private[this] val paramReasons = {
     import com.normation.rudder.web.services.ReasonBehavior._
-    userPropertyService.reasonsFieldBehavior match {
+    (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))

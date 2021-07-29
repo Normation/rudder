@@ -52,8 +52,14 @@ import com.typesafe.config.ConfigValueFactory
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import com.normation.rudder.domain.nodes.JsonPropertySerialisation._
-import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.properties.JsonPropertySerialisation._
+import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.GroupProperty
+import com.normation.rudder.domain.properties.InheritMode
+import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.rudder.domain.properties.ParentProperty
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.domain.queries.ResultTransformation._
@@ -88,7 +94,7 @@ class TestMergeGroupProperties extends Specification {
       }
     }
     def toH2(prop: NodeProperty) = {
-      NodePropertyHierarchy(prop, toParents(prop.name))
+      com.normation.rudder.domain.properties.NodePropertyHierarchy(prop, toParents(prop.name))
     }
     def toH3(name: String, globalParam: ConfigValue) = {
       toH1(name).modify(_.hierarchy).using(_ :+ ParentProperty.Global(globalParam))

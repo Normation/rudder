@@ -40,6 +40,7 @@ package com.normation.rudder.domain.nodes
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.policies.TriggerDeploymentDiff
+import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.queries.QueryTrait
 
 /**

@@ -38,6 +38,7 @@
 package com.normation.rudder.domain.nodes
 
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.QueryTrait

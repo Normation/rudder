@@ -50,8 +50,8 @@ import com.normation.rudder.api.ApiAuthorization.RO
 import com.normation.rudder.api.ApiAuthorization.RW
 import com.normation.rudder.api.ApiAuthorization.{None => NoAccess}
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.properties._
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.domain.workflows._

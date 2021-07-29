@@ -256,7 +256,7 @@ class ModificationValidationPopup(
   //must be here because used in val popupWarningMessages
   private[this] val crReasons = {
     import com.normation.rudder.web.services.ReasonBehavior._
-    userPropertyService.reasonsFieldBehavior match {
+    (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))

@@ -59,13 +59,13 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.Audit
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.queries.DitQueryData
 import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.reports.NodeConfigId

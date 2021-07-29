@@ -43,13 +43,14 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.ChangeRequestNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.policies.ChangeRequestDirectiveDiff
 import com.normation.rudder.domain.policies.ChangeRequestRuleDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.ModifyToRuleDiff
 import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
+import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.workflows.ChangeRequestInfo
 import com.normation.rudder.domain.workflows._
 import org.joda.time.DateTime

@@ -62,7 +62,6 @@ import com.normation.box._
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.web.model.JsNodeId
 import org.joda.time.DateTime
-import com.normation.errors._
 
 /**
  * Display the last reports of a server

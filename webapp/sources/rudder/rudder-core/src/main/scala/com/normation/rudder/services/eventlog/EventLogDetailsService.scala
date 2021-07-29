@@ -57,7 +57,6 @@ import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.workflows._
-import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.Constants._
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
@@ -75,6 +74,14 @@ import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
+import com.normation.rudder.domain.properties.AddGlobalParameterDiff
+import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.InheritMode
+import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
+import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.QueryTrait
 import com.typesafe.config.ConfigValue
 
@@ -688,6 +695,7 @@ class EventLogDetailsServiceImpl(
       case x:ImportRulesArchive => getCommitInfo(xml, ImportRulesArchive.tagName)
       case x:ImportParametersArchive => getCommitInfo(xml, ImportParametersArchive.tagName)
       case x:ImportFullArchive => getCommitInfo(xml, ImportFullArchive.tagName)
+      case x: Rollback => getCommitInfo(xml, Rollback.tagName)
     }
   }
 

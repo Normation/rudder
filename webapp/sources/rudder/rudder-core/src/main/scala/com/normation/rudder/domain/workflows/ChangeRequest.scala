@@ -39,7 +39,6 @@ package com.normation.rudder.domain.workflows
 
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.nodes._
 import com.normation.eventlog.EventActor
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -48,7 +47,9 @@ import net.liftweb.common.Failure
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
+import com.normation.rudder.domain.properties.GlobalParameter
 
 
 /*

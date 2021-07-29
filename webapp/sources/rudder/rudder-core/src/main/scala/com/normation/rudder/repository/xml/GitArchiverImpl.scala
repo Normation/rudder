@@ -49,8 +49,8 @@ import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroup
-import java.io.File
 
+import java.io.File
 import com.normation.NamedZioLogger
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
@@ -59,8 +59,8 @@ import net.liftweb.common._
 import scala.collection.mutable.Buffer
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.errors._
+import com.normation.rudder.domain.properties.GlobalParameter
 import zio._
 import zio.syntax._
 

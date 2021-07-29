@@ -39,7 +39,6 @@ package com.normation.rudder.domain.queries
 
 import java.util.Locale
 import java.util.regex.PatternSyntaxException
-
 import cats.implicits._
 import com.jayway.jsonpath.JsonPath
 import com.normation.errors._
@@ -50,8 +49,8 @@ import com.normation.ldap.sdk._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.services.queries._
 import com.normation.zio._
 import com.unboundid.ldap.sdk._

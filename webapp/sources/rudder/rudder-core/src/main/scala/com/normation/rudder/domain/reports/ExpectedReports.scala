@@ -132,7 +132,7 @@ final case class DirectiveExpectedReports (
 /**
  * The Cardinality is per Component
  */
-trait ComponentExpectedReport {
+sealed trait ComponentExpectedReport {
   def componentName : String
 }
 
