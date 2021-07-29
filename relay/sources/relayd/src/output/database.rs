@@ -136,7 +136,7 @@ pub fn insert_runlog(
                 .id;
 
             if new_runlog {
-                let runlog_info = InsertedRunlog::new(&runlog, report_id);
+                let runlog_info = InsertedRunlog::new(runlog, report_id);
                 insert_into(reportsexecution)
                     .values(runlog_info)
                     .execute(connection)?;

@@ -33,11 +33,6 @@ setup:
 	rustup --version || make -f rust.makefile rustup
 	# In case we just installed it
 	. "$(HOME)/.cargo/env"
-	# Our global set of versions, each project has a rust-toolchain file
-	cargo +1.37.0 --version || rustup install "1.37.0"
-	cargo +1.42.0 --version || rustup install "1.42.0"
-	cargo +1.47.0 --version || rustup install "1.47.0"
-	cargo +1.51.0 --version || rustup install "1.51.0"
 	# cargo tools
 	cargo install-update --version || cargo install cargo-update
 	cargo deny --version || cargo install cargo-deny

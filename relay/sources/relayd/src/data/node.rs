@@ -495,7 +495,7 @@ mod tests {
     fn it_gets_next_hops() {
         let list = NodesList::new("root".to_string(), "tests/files/nodeslist.json", None).unwrap();
 
-        assert_eq!(list.next_hop(&"root").unwrap(), None);
+        assert_eq!(list.next_hop("root").unwrap(), None);
         assert_eq!(
             list.next_hop("a745a140-40bc-4b86-b6dc-084488fc906b")
                 .unwrap(),

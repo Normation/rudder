@@ -21,7 +21,7 @@ pub mod handlers {
         use prometheus::Encoder;
         let encoder = prometheus::TextEncoder::new();
         let mut buffer = Vec::new();
-        let mut encode = |metrics: &[MetricFamily]| match encoder.encode(&metrics, &mut buffer) {
+        let mut encode = |metrics: &[MetricFamily]| match encoder.encode(metrics, &mut buffer) {
             Ok(_) => Ok(()),
             Err(e) => Err(reject::custom(RudderReject::new(e))),
         };
