@@ -553,13 +553,8 @@ object DisplayNode extends Loggable {
                 }
               }
             }
-            val roles = if (nodeInfo.serverRoles.isEmpty) {
-              ""
-            } else {
-              nodeInfo.serverRoles.map(_.value).mkString("(",", ",")")
-            }
 
-            <div><label>Role:</label> Rudder {kind} {roles}</div>
+            <div><label>Role:</label> Rudder {kind}</div>
           case Full(None) =>
             logger.error(s"Could not fetch node details for node with id ${sm.node.main.id}")
             <div class="error"><label>Role:</label> Could not fetch Role for this node</div>
