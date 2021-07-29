@@ -355,8 +355,6 @@ object KeyStatus {
   }
 }
 
-final case class ServerRole(value: String) extends AnyVal
-
 final case class AgentCapability(value: String) extends AnyVal
 
 final case class NodeInventory(
@@ -392,7 +390,6 @@ final case class NodeInventory(
      * On the other hand, it is MUCH more simpler for now to just have a Seq of roles.
      * So, let's start little until we know what we want exactly.
      */
-  , serverRoles          : Set[ServerRole]          = Set()
   , timezone             : Option[NodeTimezone]     = None
   , customProperties     : List[CustomProperty]     = Nil
 ) {

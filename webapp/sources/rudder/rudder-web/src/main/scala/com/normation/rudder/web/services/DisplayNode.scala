@@ -60,6 +60,7 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.box._
 import com.normation.cfclerk.domain.HashAlgoConstraint.SHA1
+import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.reports.ComplianceLevelSerialisation
 import com.normation.utils.DateFormaterService
 import com.normation.zio._
@@ -539,18 +540,10 @@ object DisplayNode extends Loggable {
         nodeInfoBox match {
           case Right(Some(nodeInfo)) =>
             val kind = {
-              if(nodeInfo.isPolicyServer) {
-                if(isRootNode(nodeId) ) {
-                  "server"
-                } else {
-                  "relay server"
-                }
-              } else {
-                if (nodeInfo.serverRoles.isEmpty){
-                  "node"
-                } else {
-                  "server component"
-                }
+              nodeInfo.nodeKind match {
+                case NodeKind.Root  => "server"
+                case NodeKind.Relay => "relay server"
+                case NodeKind.Node  => "node"
               }
             }
 

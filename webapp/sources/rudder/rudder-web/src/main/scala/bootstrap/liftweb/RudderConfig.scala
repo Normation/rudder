@@ -334,6 +334,15 @@ object RudderConfig extends Loggable {
       443
   }
 
+  val POSTGRESQL_IS_LOCAL = {
+    try {
+      config.getBoolean("rudder.postgresql.local")
+    } catch {
+      case ex:ConfigException => true
+    }
+  }
+
+
   val RUDDER_JDBC_DRIVER = config.getString("rudder.jdbc.driver")
   val RUDDER_JDBC_URL = config.getString("rudder.jdbc.url")
   val RUDDER_JDBC_USERNAME = config.getString("rudder.jdbc.username")
@@ -469,17 +478,6 @@ object RudderConfig extends Loggable {
     }
   }
 
-  // Roles definitions
-  val RUDDER_SERVER_ROLES = Seq(
-      //each time, it's (role name, key in the config file)
-      RudderServerRole("rudder-ldap", config.getString("rudder.server-roles.ldap"))
-    , RudderServerRole("rudder-inventory-endpoint", config.getString("rudder.server-roles.inventory-endpoint"))
-    , RudderServerRole("rudder-db", config.getString("rudder.server-roles.db"))
-    , RudderServerRole("rudder-relay-top", config.getString("rudder.server-roles.relay-top"))
-    , RudderServerRole("rudder-web", config.getString("rudder.server-roles.web"))
-    , RudderServerRole("rudder-relay-promises-only", config.getString("rudder.server-roles.relay-promises-only"))
-    , RudderServerRole("rudder-cfengine-mission-portal", config.getString("rudder.server-roles.cfengine-mission-portal"))
-  )
   val RUDDER_RELAY_API = config.getString("rudder.server.relay.api")
 
   val RUDDER_RELAY_RELOAD = {
@@ -507,6 +505,7 @@ object RudderConfig extends Loggable {
       case ex:ConfigException => None
     }
   }
+
 
   val HOOKS_IGNORE_SUFFIXES = RudderProperties.splitProperty(config.getString("rudder.hooks.ignore-suffixes"))
 
@@ -1905,8 +1904,8 @@ object RudderConfig extends Loggable {
     , RUDDER_WEBDAV_PASSWORD
     , RUDDER_JDBC_URL
     , RUDDER_JDBC_USERNAME
+    , RUDDER_JDBC_PASSWORD
     , RUDDER_DIR_GITROOT
-    , RUDDER_SERVER_ROLES
     , rudderFullVersion
     , () => configService.cfengine_server_denybadclocks().toBox
     , () => configService.relay_server_sync_method().toBox
@@ -1996,6 +1995,7 @@ object RudderConfig extends Loggable {
       , UPDATED_NODE_IDS_COMPABILITY
       , GENERATION_FAILURE_MSG_PATH
       , allNodeCertificatesPemFile = better.files.File("/var/rudder/lib/ssl/allnodescerts.pem")
+      , POSTGRESQL_IS_LOCAL
   )}
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentActor = {

@@ -39,7 +39,6 @@ package com.normation.rudder.domain.servers
 
 import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.ServerRole
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.rudder.domain.RudderLDAPConstants._
 
@@ -57,7 +56,6 @@ final case class Srv(
   , ips           : List[String]
   , creationDate  : DateTime
   , isPolicyServer: Boolean
-  , serverRoles   : Set[ServerRole]
 )
 
 
@@ -81,6 +79,5 @@ object Srv {
    , A_NAME
    , A_LIST_OF_IP
    , A_OBJECT_CREATION_DATE
-   , A_SERVER_ROLE
   )
 }

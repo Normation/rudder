@@ -83,7 +83,7 @@ class NodeInfoServiceCachedTest extends Specification {
     NodeInfo(
         Node(id, id.value, id.value, Enabled, false, false, new DateTime(), null, null, None)
       , id.value
-      , machineUuid.map(x => MachineInfo(x, null, None, None)), null, List(), new DateTime(0), null, Seq(), NodeId("root"), "root", Set(), None, None, None
+      , machineUuid.map(x => MachineInfo(x, null, None, None)), null, List(), new DateTime(0), null, Seq(), NodeId("root"), "root", None, None, None
     )
   }
 

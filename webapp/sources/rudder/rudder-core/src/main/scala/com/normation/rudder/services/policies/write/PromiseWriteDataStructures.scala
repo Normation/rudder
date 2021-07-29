@@ -46,7 +46,6 @@ import com.normation.templates.STVariable
 import com.normation.cfclerk.domain.Variable
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.OsDetails
-import com.normation.inventory.domain.ServerRole
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
 
@@ -80,7 +79,6 @@ final case class AgentNodeProperties(
   , agentType     : AgentType
   , osDetails     : OsDetails
   , isPolicyServer: Boolean
-  , serverRoles   : Set[ServerRole]
 )
 
 /**

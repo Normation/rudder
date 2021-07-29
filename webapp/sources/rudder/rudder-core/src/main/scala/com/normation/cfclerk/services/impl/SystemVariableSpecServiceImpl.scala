@@ -59,12 +59,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                             , multivalued = true
                                             , constraint = Constraint(mayBeEmpty=true)
                                           )
-      // we need to keep CMDBENDPOINT for rudder version where upgrade from 5.0 is allowed,
-      // so likely remove it on 7.0, not before.
-    , SystemVariableSpec(
-                             "CMDBENDPOINT" , "The cmdb endpoint"
-                                            , multivalued  = false
-                        )
     , SystemVariableSpec(
                             "COMMUNITYPORT" , "The port used for policy distribution by cf-engine"
                                             , multivalued  = false
@@ -72,9 +66,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
     , SystemVariableSpec(
            "HTTPS_POLICY_DISTRIBUTION_PORT" , "The port used for policy distribution on HTTPS"
                                             , multivalued  = false
-                        )
-    , SystemVariableSpec(        "NODEROLE" , "List of nodeConfiguration roles"
-                                            , multivalued = false
                         )
     , SystemVariableSpec(    "TOOLS_FOLDER" , "Tools folder"
                                             , multivalued = false
@@ -87,12 +78,12 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                              "DAVPASSWORD"  , "Password for webdav user"
                                             , multivalued = false
                         )
-     , SystemVariableSpec(
-                   "RUDDER_REPORTS_DB_NAME" , "Name of the Rudder database (rudder by default)"
+    , SystemVariableSpec(
+                   "RUDDER_REPORTS_DB_URL" , "PostgreSQL connection URL (postgresql://rudder@localhost:5432/rudder)"
                                             , multivalued = false
                                           )
     , SystemVariableSpec(
-                   "RUDDER_REPORTS_DB_USER" , "Login of the Rudder database user (rudder by default)"
+                   "RUDDER_REPORTS_DB_PASSWORD" , "Password of the Rudder database user (rudder.jdbc.password property)"
                                             , multivalued = false
                                           )
     , SystemVariableSpec(       "INPUTLIST" , "Input list"
@@ -275,9 +266,8 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                            , constraint = Constraint(typeName = BooleanVType, default=Some("true"))
                         )
     , SystemVariableSpec(
-                     "RUDDER_SERVER_ROLES" , "Mapping of all role <-> hostnames"
+                            "RUDDER_NODE_KIND" , "Node kind: root, relay, or node"
                                            , multivalued = false
-                                           , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
                       "RUDDER_REPORT_MODE" , "Defines if Rudder should send compliance reports or only change (error, repair) one. (default full-compliance)"

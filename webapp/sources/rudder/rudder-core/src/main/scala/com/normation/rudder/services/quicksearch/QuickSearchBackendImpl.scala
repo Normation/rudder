@@ -276,7 +276,6 @@ object QSLdapBackend {
       , Properties        -> A_NODE_PROPERTY
       , CustomProperties  -> A_CUSTOM_PROPERTY
       , NodeState         -> A_STATE
-      , RudderRoles       -> A_SERVER_ROLE
       , GroupId           -> A_NODE_GROUP_UUID
       , IsDynamic         -> A_IS_DYNAMIC
       , DirectiveId       -> ""

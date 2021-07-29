@@ -807,7 +807,6 @@ class InventoryMapper(
       ditService.getDit(status).MACHINES.MACHINE.dn(id).toString
     }.toSeq:_*)
     root.resetValuesTo(A_ACCOUNT           , server.accounts:_*)
-    root.resetValuesTo(A_SERVER_ROLE       , server.serverRoles.toSeq.map(_.value):_*)
     server.timezone.foreach { timezone =>
       root.resetValuesTo(A_TIMEZONE_NAME   , timezone.name)
       root.resetValuesTo(A_TIMEZONE_OFFSET , timezone.offset)
@@ -985,7 +984,6 @@ class InventoryMapper(
       receiveDate        =  entry.getAsGTime(A_RECEIVE_DATE).map { _.dateTime }
       accounts           =  entry.valuesFor(A_ACCOUNT).toSeq
       serverIps          =  entry.valuesFor(A_LIST_OF_IP).toSeq
-      serverRoles        =  entry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
       timezone           =  (entry(A_TIMEZONE_NAME), entry(A_TIMEZONE_OFFSET)) match {
                               case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
                               case _                          => None
@@ -1028,7 +1026,6 @@ class InventoryMapper(
          , accounts
          , ev
          , process
-         , serverRoles = serverRoles
          , timezone = timezone
          , customProperties = customProperties.toList.flatten
        )

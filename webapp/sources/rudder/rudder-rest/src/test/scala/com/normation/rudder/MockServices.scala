@@ -65,7 +65,7 @@ import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import better.files._
-import com.normation.rudder.services.policies.RudderServerRole
+
 import zio.{Tag => _, _}
 import zio.syntax._
 import com.normation.errors._
@@ -257,18 +257,10 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     , sharedFilesFolder               = "/var/rudder/configuration-repository/shared-files"
     , webdavUser                      = "rudder"
     , webdavPassword                  = "rudder"
-    , reportsDbUri                    = "rudder"
+    , reportsDbUri                    = "jdbc:postgresql://localhost:5432/rudder"
     , reportsDbUser                   = "rudder"
+    , reportsDbPassword               = "secret"
     , configurationRepository         = configurationRepositoryRoot.pathAsString
-    , serverRoles                     = Seq(
-                                            RudderServerRole("rudder-ldap"                   , "rudder.server-roles.ldap")
-                                          , RudderServerRole("rudder-inventory-endpoint"     , "rudder.server-roles.inventory-endpoint")
-                                          , RudderServerRole("rudder-db"                     , "rudder.server-roles.db")
-                                          , RudderServerRole("rudder-relay-top"              , "rudder.server-roles.relay-top")
-                                          , RudderServerRole("rudder-web"                    , "rudder.server-roles.web")
-                                          , RudderServerRole("rudder-relay-promises-only"    , "rudder.server-roles.relay-promises-only")
-                                          , RudderServerRole("rudder-cfengine-mission-portal", "rudder.server-roles.cfengine-mission-portal")
-                                        )
     , serverVersion                   = "7.0.0"
     //denybadclocks is runtime properties
     , getDenyBadClocks                = () => Full(true)
@@ -1269,16 +1261,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), PublicKey(PUBKEY), Set()))
     , rootId
     , rootAdmin
-    , Set( //by default server roles for root
-          "rudder-db"
-        , "rudder-inventory-endpoint"
-        , "rudder-inventory-ldap"
-        , "rudder-jetty"
-        , "rudder-ldap"
-        , "rudder-reports"
-        , "rudder-server-root"
-        , "rudder-webapp"
-      ).map(ServerRole(_))
     , None
     , None
     , Some(NodeTimezone("UTC", "+00"))
@@ -1313,7 +1295,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , vms                  = Seq()
     , networks             = Seq()
     , fileSystems          = Seq()
-    , serverRoles          = Set()
   )
 
   val node1Node = Node (
@@ -1340,7 +1321,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("6.2.0")), PublicKey(PUBKEY), Set()))
     , rootId
     , admin1
-    , Set()
     , None
     , Some(MemorySize(1460132))
     , None
@@ -1375,7 +1355,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , vms                  = Seq()
     , networks             = Seq()
     , fileSystems          = Seq()
-    , serverRoles          = Set()
   )
 
   //node1 us a relay
@@ -1420,7 +1399,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("7.0.0")), Certificate("windows-node-dsc-certificate"), Set()))
     , rootId
     , admin1
-    , Set()
     , None
     , Some(MemorySize(1460132))
     , None
@@ -1455,7 +1433,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , vms                  = Seq()
     , networks             = Seq()
     , fileSystems          = Seq()
-    , serverRoles          = Set()
   )
 
 
@@ -1576,7 +1553,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
           , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
           , Nil, DateTime.now
           , UndefinedKey, Seq(AgentInfo(CfeCommunity, None, PublicKey("rsa public key"), Set())), NodeId("root")
-          , "" , Set(), None, None, None
+          , "" , None, None, None
     )
   }).map(n => (n.id, n)).toMap
 
@@ -1646,7 +1623,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
             case A_OS_SERVICE_PACK    => Right((n: NodeDetails) =>      n.info.osDetails.servicePack.toList)
             case A_OS_KERNEL_VERSION  => Right((n: NodeDetails) => List(n.info.osDetails.kernelVersion.value))
             case A_ARCH               => Right((n: NodeDetails) =>      n.info.archDescription.toList)
-            case A_SERVER_ROLE        => Right((n: NodeDetails) =>      n.info.serverRoles.map(_.value).toList)
             case A_STATE              => Right((n: NodeDetails) => List(n.info.state.name))
             case A_OS_RAM             => Right((n: NodeDetails) =>      n.info.ram.map(_.size.toString).toList)
             case A_OS_SWAP            => Right((n: NodeDetails) =>      n.nInv.swap.map(_.size.toString).toList)

@@ -52,6 +52,7 @@ import org.joda.time.DateTime
 import net.liftweb.common._
 import com.normation.box._
 import com.normation.errors._
+import com.normation.rudder.domain.Constants
 import org.apache.commons.codec.binary.Base64
 import zio._
 import zio.syntax._
@@ -63,6 +64,21 @@ final case class MachineInfo(
   , systemSerial: Option[String]
   , manufacturer: Option[Manufacturer]
 )
+
+sealed trait NodeKind { def name: String }
+object NodeKind {
+  final case object Root extends NodeKind { val name = "root" }
+  final case object Relay extends NodeKind { val name = "relay" }
+  final case object Node extends NodeKind { val name = "node" }
+
+  def values = ca.mrvisser.sealerate.values[NodeKind]
+
+  def parse(kind: String): Either[String, NodeKind] = {
+    val lower = kind.toLowerCase()
+    values.find( _.name == lower ).toRight(s"Kind '${kind}' is not recognized as a valid node kind, expecting: '${values.map(_.name).mkString("','")}'")
+  }
+
+}
 
 /**
  * A NodeInfo is a read only object containing the information that will be
@@ -79,11 +95,6 @@ final case class NodeInfo(
   , agentsName     : Seq[AgentInfo]
   , policyServerId : NodeId
   , localAdministratorAccountName: String
-  //for now, isPolicyServer and server role ARE NOT
-  //dependant. So EXPECTS inconsistencies.
-  //TODO: remove isPolicyServer, and pattern match on
-  //      on role everywhere.
-  , serverRoles    : Set[ServerRole]
   , archDescription: Option[String]
   , ram            : Option[MemorySize]
   , timezone       : Option[NodeTimezone]
@@ -180,6 +191,13 @@ final case class NodeInfo(
     }
   }
 
+
+  // kind: root, relay or simple node ?
+  val nodeKind = (id, isPolicyServer) match {
+    case (Constants.ROOT_POLICY_SERVER_ID, _    ) => NodeKind.Root
+    case (_                              , true ) => NodeKind.Relay
+    case (_                              , false) => NodeKind.Node
+  }
 
 }
 

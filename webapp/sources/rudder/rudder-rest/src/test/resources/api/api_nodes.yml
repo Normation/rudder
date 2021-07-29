@@ -56,17 +56,7 @@ response:
               "name":"Rudder",
               "version":"7.0.0",
               "capabilities":[],
-              "nodeKind":"root",
-              "rootComponents":[
-                "rudder-db",
-                "rudder-inventory-endpoint",
-                "rudder-inventory-ldap",
-                "rudder-jetty",
-                "rudder-ldap",
-                "rudder-reports",
-                "rudder-server-root",
-                "rudder-webapp"
-              ]
+              "nodeKind":"root"
             }],
             "properties":[],
             "policyMode":"enforce",

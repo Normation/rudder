@@ -85,7 +85,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   </BUNDLES>
 
   <SYSTEMVARS>
-    <NAME>RUDDER_SERVER_ROLES</NAME>
+    <NAME>RUDDER_NODE_KIND</NAME>
     <NAME>SEND_METRICS</NAME>
   </SYSTEMVARS>
 

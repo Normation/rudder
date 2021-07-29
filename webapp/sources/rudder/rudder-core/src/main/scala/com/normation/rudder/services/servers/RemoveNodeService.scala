@@ -288,7 +288,7 @@ class RemoveNodeServiceImpl(
             case None       =>
               NodeInfo(
                   new Node(nodeId, "", "",  NodeState.Ignored, false, false, new DateTime(0), ReportingConfiguration(None, None, None), Nil, None)
-                , "", None, UnknownOS(), Nil, new DateTime(0), UndefinedKey, Nil, Constants.ROOT_POLICY_SERVER_ID, "", Set(), None, None, None
+                , "", None, UnknownOS(), Nil, new DateTime(0), UndefinedKey, Nil, Constants.ROOT_POLICY_SERVER_ID, "", None, None, None
               )
           }
         }
@@ -436,13 +436,10 @@ class RemoveNodeServiceImpl(
           , ("RUDDER_NODE_HOSTNAME"              , nodeInfo.hostname)
           , ("RUDDER_NODE_POLICY_SERVER_ID"      , nodeInfo.policyServerId.value)
           , ("RUDDER_AGENT_TYPE"                 , nodeInfo.agentsName.headOption.map( _.agentType.id).getOrElse(""))
-          , ("RUDDER_NODE_ROLES"                 , nodeInfo.serverRoles.map(_.value).mkString(","))
+          , ("RUDDER_NODE_KIND"                  , nodeInfo.nodeKind.name)
           , ("RUDDER_POLICIES_DIRECTORY_CURRENT" , optNodePaths.map(_.baseFolder).getOrElse(""))
           , ("RUDDER_POLICIES_DIRECTORY_NEW"     , optNodePaths.map(_.newFolder).getOrElse(""))
           , ("RUDDER_POLICIES_DIRECTORY_ARCHIVE" , optNodePaths.flatMap(_.backupFolder).getOrElse(""))
-            // for compat in 4.1. Remove in 4.2
-          , ("RUDDER_NODEID"                     , nodeInfo.id.value)
-          , ("RUDDER_NODE_POLICY_SERVER"         , nodeInfo.policyServerId.value)
         )
       , HookEnvPairs.build(System.getenv.asScala.toSeq:_*)
       )

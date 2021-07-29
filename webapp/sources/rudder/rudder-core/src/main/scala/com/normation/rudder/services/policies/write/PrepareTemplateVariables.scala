@@ -150,13 +150,12 @@ class PrepareTemplateVariablesImpl(
       , agentNodeConfig.agentType
       , agentNodeConfig.config.nodeInfo.osDetails
       , agentNodeConfig.config.nodeInfo.isPolicyServer
-      , agentNodeConfig.config.nodeInfo.serverRoles
     )
 
     /*
      * Policy server certificates for the node.
      * We don't fail policy generation when a certificate is missing, but we trace
-     * the problem in log. 
+     * the problem in log.
      */
     val policyServerCertificates = {
       def getCertificate(nodeId: NodeId): IOResult[String] = {

@@ -274,7 +274,6 @@ object NodeConfigurationHash {
       , i.policyServerId.hashCode
       , i.properties.hashCode
       , i.isPolicyServer.hashCode
-      , i.serverRoles.hashCode
       , i.agentsName.hashCode
       , nodeConfig.modesConfig.hashCode
       ).hashCode

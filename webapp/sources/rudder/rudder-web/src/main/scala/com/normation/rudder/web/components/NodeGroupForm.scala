@@ -132,7 +132,7 @@ class NodeGroupForm(
       setIds =  target match {
                   case Right(nodeGroup) => nodeGroup.serverList
                   case Left(target) =>
-                    val allNodes = nodes.view.mapValues(n => (n.isPolicyServer, n.serverRoles)).toMap
+                    val allNodes = nodes.view.mapValues(n => n.isPolicyServer).toMap
                     RuleTarget.getNodeIds(Set(target), allNodes, Map())
                 }
     } yield {

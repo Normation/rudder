@@ -40,7 +40,6 @@ package com.normation.rudder.rest.data
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.inventory.domain._
-import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.rest.ApiVersion
 import com.normation.utils.DateFormaterService
@@ -232,21 +231,10 @@ object NodeDetailLevel {
           agent =>
             val capabilities = agent.capabilities.map(_.value).toList.sorted
 
-            // server roles: webapp, etc
-            val roles = info._1.serverRoles.map(_.value).toList.sorted
-            // kind: root, root component, relay or simple node ?
-            val kind = (info._1.id, info._1.isPolicyServer, roles.isEmpty) match {
-              case (Constants.ROOT_POLICY_SERVER_ID, _    , _    ) => "root"
-              case (_                              , true , _    ) => "relay"
-              case (_                              , false, true ) => "node"
-              case (_                              , false, false) => "root-component"
-            }
-
             ( "name"    -> agent.agentType.displayName ) ~
             ( "version" -> agent.version.map(_.value) ) ~
             ( "capabilities" -> JArray(capabilities.map(JString))) ~
-            ( "nodeKind" -> kind) ~
-            ( "rootComponents" -> JArray(roles.map(JString)))
+            ( "nodeKind" -> info._1.nodeKind.name)
 
        }.toList
        JArray(agents)

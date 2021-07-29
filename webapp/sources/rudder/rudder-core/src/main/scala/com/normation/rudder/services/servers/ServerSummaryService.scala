@@ -94,7 +94,6 @@ class NodeSummaryServiceImpl(
         , ips            = node.serverIps.toList
         , creationDate   = dateTime
         , isPolicyServer = e.isA(OC_POLICY_SERVER_NODE)
-        , serverRoles    = node.serverRoles
       )
     }
   }

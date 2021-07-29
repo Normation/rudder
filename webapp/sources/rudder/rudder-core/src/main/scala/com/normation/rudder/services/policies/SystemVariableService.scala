@@ -50,7 +50,6 @@ import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.AgentVersion
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.ServerRole
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -78,11 +77,6 @@ trait SystemVariableService {
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode  ) : Box[Map[String, Variable]]
 }
-
-final case class RudderServerRole(
-    val name       : String
-  , val configValue: String
-)
 
 final case class ResolvedRudderServerRole(
     val name       : String
@@ -122,8 +116,8 @@ class SystemVariableServiceImpl(
   , webdavPassword           : String
   , reportsDbUri             : String
   , reportsDbUser            : String
+  , reportsDbPassword        : String
   , configurationRepository  : String
-  , serverRoles              : Seq[RudderServerRole]
   , serverVersion            : String
   //denybadclocks is runtime property
   , getDenyBadClocks: () => Box[Boolean]
@@ -143,12 +137,7 @@ class SystemVariableServiceImpl(
   import SystemVariableService._
 
   //get the Rudder reports DB (postgres) database name from URI
-  val reportsDbName = {
-    reportsDbUri.split("""/""").toSeq.lastOption.getOrElse(throw new IllegalArgumentException(
-        s"The JDBC URI configure for property 'rudder.jdbc.url' is malformed and should ends by /BASENAME: ${reportsDbUri}")
-    )
-  }
-
+  val reportsDbUrl = reportsDbUri.replace(s"""jdbc:postgresql://""", s"""postgresql://${reportsDbUser}@""")
 
   val varToolsFolder                = systemVariableSpecService.get("TOOLS_FOLDER"                   ).toVariable(Seq(toolsFolder))
   val varWebdavUser                 = systemVariableSpecService.get("DAVUSER"                        ).toVariable(Seq(webdavUser))
@@ -157,18 +146,6 @@ class SystemVariableServiceImpl(
   val varPolicyDistribCfenginePort  = systemVariableSpecService.get("COMMUNITYPORT"                  ).toVariable(Seq(policyDistribCfenginePort.toString))
   val varPolicyDistribHttpsPort     = systemVariableSpecService.get("HTTPS_POLICY_DISTRIBUTION_PORT" ).toVariable(Seq(policyDistribHttpsPort.toString))
   val configurationRepositoryFolder = systemVariableSpecService.get("CONFIGURATION_REPOSITORY_FOLDER").toVariable(Seq(configurationRepository))
-
-  // Compute the values for rudderServerRoleLdap, rudderServerRoleDb and rudderServerRoleRelayTop
-  // if autodetect, then it is not defined, otherwise we parse it
-  val AUTODETECT_KEYWORD="autodetect"
-  def parseRoleContent(value: String) : Option[Iterable[String]] = {
-    value match {
-      case AUTODETECT_KEYWORD => None
-      case _ => Some(value.split(","))
-    }
-  }
-
-  lazy val defaultServerRoles = serverRoles.map( x => ResolvedRudderServerRole(x.name, parseRoleContent(x.configValue)))
 
   // compute all the global system variable (so that need to be computed only once in a deployment)
 
@@ -244,55 +221,19 @@ class SystemVariableServiceImpl(
 
     logger.trace("Preparing the system variables for node %s".format(nodeInfo.id.value))
 
-    // Set the roles of the nodes
-    val nodeConfigurationRoles = collection.mutable.Set[ServerRole]() ++ nodeInfo.serverRoles
+    val varRudderNodeKind = systemVariableSpecService.get("RUDDER_NODE_KIND").toVariable(Seq(nodeInfo.nodeKind.name))
 
-    // Define the mapping of roles/hostnames, only if the node has a role
-    val varRoleMappingValue = if (nodeConfigurationRoles.nonEmpty) {
-      val allNodeInfosSet = allNodeInfos.values.toSet
-
-      val roles = defaultServerRoles.map { case ResolvedRudderServerRole(name, optValue) =>
-        val nodeValue = optValue match {
-          case Some(seq) => seq
-          case None      => getNodesWithRole(allNodeInfosSet, ServerRole(name))
-        }
-        writeNodesWithRole(nodeValue, name)
-      }
-
-      //build the final string
-      roles.foldLeft("") { (x,y) => x + y }
-    } else {
-      ""
+    val allowedNetworks = policyServerManagementService.getAllowedNetworks(nodeInfo.id).toBox match {
+      case eb:EmptyBox =>
+        if(nodeInfo.isPolicyServer) {
+          logger.warn(s"No allowed networks found for policy server '${nodeInfo.id.value}'; Nodes won't be able to connect to it to get their policies.")
+        } // in other case, it's a simple node and it's expected that allowed networks are emtpy. We used to add it in all cases, not sure it's useful.
+        Seq()
+      case Full(nets) =>
+        nets.map(_.inet)
     }
 
-    val varRudderServerRole = systemVariableSpecService.get("RUDDER_SERVER_ROLES").toVariable(Seq(varRoleMappingValue))
-
-    if (nodeInfo.isPolicyServer) {
-      nodeConfigurationRoles.add(ServerRole("policy_server"))
-      if (nodeInfo.id == nodeInfo.policyServerId) {
-        nodeConfigurationRoles.add(ServerRole("root_server"))
-      }
-    }
-
-    val varNodeRoleValue = if (nodeConfigurationRoles.nonEmpty) {
-      "  classes: \n" + nodeConfigurationRoles.map(x => "    \"" + x.value + "\" expression => \"any\";").mkString("\n")
-    } else {
-      "# This node doesn't have any specific role"
-    }
-
-    val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable(Seq(varNodeRoleValue))
-
-      val allowedNetworks = policyServerManagementService.getAllowedNetworks(nodeInfo.id).toBox match {
-        case eb:EmptyBox =>
-          if(nodeInfo.isPolicyServer) {
-            logger.warn(s"No allowed networks found for policy server '${nodeInfo.id.value}'; Nodes won't be able to connect to it to get their policies.")
-          } // in other case, it's a simple node and it's expected that allowed networks are emtpy. We used to add it in all cases, not sure it's useful.
-          Seq()
-        case Full(nets) =>
-          nets.map(_.inet)
-      }
-
-      val varAllowedNetworks = systemVariableSpecService.get("ALLOWED_NETWORKS").toVariable(allowedNetworks)
+    val varAllowedNetworks = systemVariableSpecService.get("ALLOWED_NETWORKS").toVariable(allowedNetworks)
 
     val agentRunParams = {
       if (nodeInfo.isPolicyServer) {
@@ -450,8 +391,8 @@ class SystemVariableServiceImpl(
       val varManagedNodesCertUUID = systemVariableSpecService.get("MANAGED_NODES_CERT_UUID").toVariable(nodesWithCertificate.map(_._1.id.value))
 
       //Reports DB (postgres) DB name and DB user
-      val varReportsDBname = systemVariableSpecService.get("RUDDER_REPORTS_DB_NAME").toVariable(Seq(reportsDbName))
-      val varReportsDBuser = systemVariableSpecService.get("RUDDER_REPORTS_DB_USER").toVariable(Seq(reportsDbUser))
+      val varReportsDBUrl = systemVariableSpecService.get("RUDDER_REPORTS_DB_URL").toVariable(Seq(reportsDbUrl))
+      val varReportsDBPassword = systemVariableSpecService.get("RUDDER_REPORTS_DB_PASSWORD").toVariable(Seq(reportsDbPassword))
 
       // the schedule must be the default one for policy server
 
@@ -461,8 +402,8 @@ class SystemVariableServiceImpl(
         , varManagedNodesAdmin
         , varManagedNodesIp
         , varManagedNodesKey
-        , varReportsDBname
-        , varReportsDBuser
+        , varReportsDBUrl
+        , varReportsDBPassword
         , varSubNodesName
         , varSubNodesId
         , varSubNodesServer
@@ -613,9 +554,8 @@ class SystemVariableServiceImpl(
 
     val baseVariables = {
       Seq(
-          varNodeRole
+          varRudderNodeKind
         , varAllowedNetworks
-        , varRudderServerRole
         , varNodeConfigVersion
         , varNodeGroups
         , varNodeGroupsClasses
@@ -635,25 +575,6 @@ class SystemVariableServiceImpl(
         f2
       case (fail, _) =>
         fail.toBox
-    }
-  }
-
-  // Fetch the Set of node hostnames having specific role
-  private[this] def getNodesWithRole(
-      allNodeInfos  : Set[NodeInfo]
-    , role          : ServerRole
-  ) : Set[String] = {
-    allNodeInfos.filter(x => x.serverRoles.contains(role)).map(_.hostname)
-  }
-
-  // Formating of the roles
-  private[this] def writeNodesWithRole(
-      nodesWithRole: Iterable[String]
-    , roleName     : String
-  ) : String = {
-    nodesWithRole.size match {
-      case 0 => "" // no string, no role
-      case _ => s"${roleName}:${nodesWithRole.mkString(",")}\n"
     }
   }
 

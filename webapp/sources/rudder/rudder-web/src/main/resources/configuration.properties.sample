@@ -83,24 +83,44 @@ ldap.authpw=secret
 ###########################
 
 #
-# For now, only PostGRES is supported, and so the expected
-# JDBC driver is "org.postgresql.Driver"
+# Only PostgreSQL is supported, and so the expected
+# JDBC driver is "org.postgresql.Driver". You should not change that.
 #
 rudder.jdbc.driver=org.postgresql.Driver
-rudder.jdbc.url=jdbc:postgresql://localhost:5432/rudder
-rudder.jdbc.username=rudder
+
 #
-# Password used to connect to the PostgreSQL server.
+# Connection URL to your postgresql server. On a default Rudder installation,
+# the database is located on the root server and Rudder managed it: it will ensure
+# that passwords is well configured, that the service is up and running and restarted
+# when needed, etc. If you want to use that option, don't change URL below.
+# If you want to use a dedicated remote server for PostgreSQL, set its connection
+# URL here, and set parameter `rudder.`
+#
+rudder.jdbc.url=jdbc:postgresql://localhost:5432/rudder
+rudder.postgresql.local=true
+
+#
+# Login and password used to connect to the PostgreSQL server.
 # On a standard Rudder installation, the password is managed in
 # "/opt/rudder/etc/rudder-passwords.conf" and the value below
-# will be overriden.
+# will be overriden. In case of authentication problem, check that
+# the passwords matches.
 #
+rudder.jdbc.username=rudder
 rudder.jdbc.password=Normation
+
+#
+# Connection pool size. Rudder does not do a lot of connection in parallel,
+# so you should not have to change that value.
+#
 rudder.jdbc.maxPoolSize=25
 
 #
 # Batch size for memory or database intensive request.
-# This will split big query in smaller queries
+# This will split big query in smaller queries. You can try to make it bigger
+# to reduce the number of queries and the your PostgreSQL server is up to the task. Check
+# for timeout or other SQL related errors in /var/log/rudder/webapp logs.
+#
 rudder.jdbc.batch.max.size=500
 
 #############################
@@ -497,43 +517,6 @@ rudder.batch.storeAgentRunTimes.updateInterval=5
 # your existing entreprise Active Directory or LDAP directory.
 #
 rudder.auth.provider=file
-
-###########################
-# Rudder roles definition  #############################################################
-###########################
-
-#
-# Allow to define which hosts have the roles ldap, db and relay-top when
-# using a split architecture of Rudder
-# The file containing the roles will be generated in:
-# /var/rudder/configuration-repository/inputs/rudder-server-roles.conf
-#
-# The allowed values, for each parameter are
-# - autodetect (default): the roles are automatically detected based on inventories (based on the presence of files in /opt/rudder/etc/server-roles.d/)
-# - anything else (hostname, ip, or list of hostname or ip, seperated by commas): the
-#   content that will be used inside the role file
-
-# The hosts with the LDAP server role
-rudder.server-roles.ldap=autodetect
-
-# The hosts with the inventory endpoint role
-rudder.server-roles.inventory-endpoint=autodetect
-
-# The hosts with the db role
-rudder.server-roles.db=autodetect
-
-# The hosts with the relay-top role
-rudder.server-roles.relay-top=autodetect
-
-# The hosts with the webapp role
-rudder.server-roles.web=autodetect
-
-# The hosts with the relay promises role
-rudder.server-roles.relay-promises-only=autodetect
-
-# The hosts with the cfengine mission portal role
-rudder.server-roles.cfengine-mission-portal=autodetect
-
 
 ####################
 # Server side Hooks #############################################################

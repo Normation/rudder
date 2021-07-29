@@ -127,16 +127,6 @@ class TestReportParsing extends Specification with Loggable {
 
   }
 
-
-  "A node with Rudder roles" should {
-
-    val report = parseRun("fusion-report/node-with-server-role-attribute.ocs")
-
-    "correctly add roles"in {
-      report.node.serverRoles must contain(exactly(ServerRole("magikal_node")))
-    }
-  }
-
   "A node with a timezone" should {
 
     val report = parseRun("fusion-report/sles-10-64-sp3-2011-08-23-16-06-17.ocs")

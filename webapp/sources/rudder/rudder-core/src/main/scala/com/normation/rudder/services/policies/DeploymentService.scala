@@ -106,6 +106,7 @@ import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.properties._
 import com.normation.rudder.domain.reports.BlockExpectedReport
 import com.normation.rudder.domain.reports.ValueExpectedReport
@@ -303,7 +304,8 @@ trait PromiseGenerationService {
           }
           buildConfigTime       =  System.currentTimeMillis
           /// here, we still have directive by directive info
-          configsAndErrors      <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, maxParallelism, jsTimeout, generationContinueOnError) ?~! "Cannot build target configuration node"
+          filteredTechniques    =  getFilteredTechnique()
+          configsAndErrors      <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, filteredTechniques, scriptEngineEnabled, globalPolicyMode, maxParallelism, jsTimeout, generationContinueOnError) ?~! "Cannot build target configuration node"
           /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
           allNodeConfigurations =  configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
           allErrors             =  configsAndErrors.errors.map(_.fullMsg) ++ errors.values
@@ -526,6 +528,11 @@ trait PromiseGenerationService {
   ): Box[NodesContextResult]
 
   /*
+   * Get a list of filtered out technique by node, for special cases
+   */
+  def getFilteredTechnique(): Map[NodeId, List[TechniqueName]]
+
+  /*
    * From a list of ruleVal, find the list of all impacted nodes
    * with the actual PolicyBean they will have.
    * Replace all ${node.varName} vars.
@@ -535,6 +542,7 @@ trait PromiseGenerationService {
     , ruleVals           : Seq[RuleVal]
     , nodeContexts       : Map[NodeId, InterpolationContext]
     , allNodeModes       : Map[NodeId, NodeModeConfig]
+    , filteredTechniques : Map[NodeId, List[TechniqueName]]
     , scriptEngineEnabled: FeatureSwitch
     , globalPolicyMode   : GlobalPolicyMode
     , maxParallelism     : Int
@@ -664,6 +672,7 @@ class PromiseGenerationServiceImpl (
   , override val postGenerationHookCompabilityMode: Option[Boolean]
   , override val GENERATION_FAILURE_MSG_PATH: String
   , override val allNodeCertificatesPemFile: File
+  , override val isPostgresqlLocal: Boolean
 ) extends PromiseGenerationService with
   PromiseGeneration_performeIO with
   PromiseGeneration_NodeCertificates with
@@ -923,17 +932,29 @@ trait PromiseGeneration_buildRuleVals extends PromiseGenerationService {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService {
+
+  def isPostgresqlLocal: Boolean
+
+  override def getFilteredTechnique(): Map[NodeId, List[TechniqueName]] = {
+    if(isPostgresqlLocal) {
+      Map()
+    } else {
+      Map((Constants.ROOT_POLICY_SERVER_ID -> List(TechniqueName("rudder-service-postgresql"))))
+    }
+  }
+
   override def buildNodeConfigurations(
       activeNodeIds      : Set[NodeId]
     , ruleVals           : Seq[RuleVal]
     , nodeContexts       : Map[NodeId, InterpolationContext]
     , allNodeModes       : Map[NodeId, NodeModeConfig]
+    , filteredTechniques : Map[NodeId, List[TechniqueName]]
     , scriptEngineEnabled: FeatureSwitch
     , globalPolicyMode   : GlobalPolicyMode
     , maxParallelism     : Int
     , jsTimeout          : FiniteDuration
     , generationContinueOnError: Boolean
-  ) : Box[NodeConfigurations] = BuildNodeConfiguration.buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, maxParallelism, jsTimeout, generationContinueOnError)
+  ) : Box[NodeConfigurations] = BuildNodeConfiguration.buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, allNodeModes, filteredTechniques, scriptEngineEnabled, globalPolicyMode, maxParallelism, jsTimeout, generationContinueOnError)
 
 }
 
@@ -1023,6 +1044,7 @@ object BuildNodeConfiguration extends Loggable {
     , ruleVals           : Seq[RuleVal]
     , nodeContexts       : Map[NodeId, InterpolationContext]
     , allNodeModes       : Map[NodeId, NodeModeConfig]
+    , filteredTechniques : Map[NodeId, List[TechniqueName]]
     , scriptEngineEnabled: FeatureSwitch
     , globalPolicyMode   : GlobalPolicyMode
     , maxParallelism     : Int
@@ -1063,11 +1085,14 @@ object BuildNodeConfiguration extends Loggable {
                               (for {
                                 t1_0           <- nanoTime
                                 parsedDrafts   <- policyDraftByNode.get(nodeId).notOptional("Promise generation algorithm error: cannot find back the configuration information for a node")
-
+                                filtered       =  {
+                                                    val toRemove = filteredTechniques.getOrElse(nodeId, Nil)
+                                                    parsedDrafts.filterNot(d => toRemove.contains(d.technique.id.name))
+                                                  }
                                 // if a node is in state "emtpy policies", we only keep system policies + log
                                 filteredDrafts =  if(context.nodeInfo.state == NodeState.EmptyPolicies) {
                                                     PolicyGenerationLogger.info(s"Node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value}) is in '${context.nodeInfo.state.name}' state, keeping only system policies for it")
-                                                    parsedDrafts.flatMap(d =>
+                                                    filtered.flatMap(d =>
                                                       if(d.isSystem) {
                                                         Some(d)
                                                       } else {
@@ -1076,7 +1101,7 @@ object BuildNodeConfiguration extends Loggable {
                                                       }
                                                     )
                                                   } else {
-                                                    parsedDrafts
+                                                    filtered
                                                   }
                                 t1_1           <- nanoTime
                                 _              <- counters.sumTimeFilter.update(_ + t1_1 - t1_0)

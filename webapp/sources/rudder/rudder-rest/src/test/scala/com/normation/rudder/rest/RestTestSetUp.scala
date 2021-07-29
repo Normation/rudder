@@ -148,6 +148,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
 import com.normation.box._
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveUid
 import org.apache.commons.io.FileUtils
@@ -275,7 +276,8 @@ class RestTestSetUp {
     override def findDependantRules(): Box[Seq[Rule]] = ???
     override def buildRuleVals(activesRules: Set[RuleId], rules: Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]): Box[Seq[RuleVal]] = ???
     override def getNodeContexts(nodeIds: Set[NodeId], allNodeInfos: Map[NodeId, NodeInfo], allGroups: FullNodeGroupCategory, globalParameters: List[GlobalParameter], globalAgentRun: AgentRunInterval, globalComplianceMode: ComplianceMode, globalPolicyMode: GlobalPolicyMode): Box[NodesContextResult] = ???
-    override def buildNodeConfigurations(activeNodeIds: Set[NodeId], ruleVals: Seq[RuleVal], nodeContexts: Map[NodeId, InterpolationContext], allNodeModes: Map[NodeId, NodeModeConfig], scriptEngineEnabled: FeatureSwitch, globalPolicyMode: GlobalPolicyMode, maxParallelism: Int, jsTimeout: FiniteDuration, generationContinueOnError: Boolean): Box[NodeConfigurations] = ???
+    override def getFilteredTechnique(): Map[NodeId, List[TechniqueName]] = ???
+    override def buildNodeConfigurations(activeNodeIds: Set[NodeId], ruleVals: Seq[RuleVal], nodeContexts: Map[NodeId, InterpolationContext], allNodeModes: Map[NodeId, NodeModeConfig], filter: Map[NodeId, List[TechniqueName]], scriptEngineEnabled: FeatureSwitch, globalPolicyMode: GlobalPolicyMode, maxParallelism: Int, jsTimeout: FiniteDuration, generationContinueOnError: Boolean): Box[NodeConfigurations] = ???
     override def forgetOtherNodeConfigurationState(keep: Set[NodeId]): Box[Set[NodeId]] = ???
     override def getNodeConfigurationHash(): Box[Map[NodeId, NodeConfigurationHash]] = ???
     override def getNodesConfigVersion(allNodeConfigs: Map[NodeId, NodeConfiguration], hashes: Map[NodeId, NodeConfigurationHash], generationTime: DateTime): Map[NodeId, NodeConfigId] = ???

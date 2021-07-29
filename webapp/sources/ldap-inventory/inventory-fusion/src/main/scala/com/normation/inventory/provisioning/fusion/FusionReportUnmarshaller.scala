@@ -309,11 +309,6 @@ class FusionReportUnmarshaller(
       }
     }
 
-    //parse the sub list of SERVER_ROLES/SERVER_ROLE, ignore other elements
-    def processServerRoles(xml:NodeSeq) : Seq[ServerRole] = {
-      (xml \ "SERVER_ROLES" \ "SERVER_ROLE").flatMap(e => optText(e).map(ServerRole(_)))
-    }
-
     //parse the sub list of AGENT_CAPABILITIES/AGENT_CAPABILITY, ignore other elements
     //note: agent capabilities should per agent to be really useful.
     def processAgentCapabilities(xml:NodeSeq) : Set[AgentCapability] = {
@@ -418,7 +413,6 @@ class FusionReportUnmarshaller(
           uuid           <- optText(xml \ "UUID").notOptional("could not parse uuid (tag UUID) from rudder specific inventory")
           rootUser       <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
           policyServerId <- uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
-          serverRoles    =  processServerRoles(xml).toSet
           // Node Custom properties from agent hooks
           customProperties =  processCustomProperties(xml \ "CUSTOM_PROPERTIES")
           // hostname is a special case processed in `processHostname`
@@ -435,7 +429,6 @@ class FusionReportUnmarshaller(
                 )
               , agents = agents.map(_._1.copy(capabilities = capabilities))
               , customProperties = customProperties
-              , serverRoles = serverRoles
             )
           )
       } ) catchAll { eb =>

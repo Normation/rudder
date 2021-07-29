@@ -38,8 +38,6 @@
 package com.normation.rudder.domain.policies
 
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.ServerRole
-import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.utils.Control.sequence
@@ -86,16 +84,6 @@ final case object AllTarget extends NonGroupRuleTarget {
 final case object AllTargetExceptPolicyServers extends NonGroupRuleTarget {
   override def target = "special:all_exceptPolicyServers"
   def r = "special:all_exceptPolicyServers".r
-}
-
-final case object AllServersWithRole extends NonGroupRuleTarget {
-  override def target = "special:all_servers_with_role"
-  def r = "special:all_servers_with_role".r
-}
-
-final case object AllNodesWithoutRole extends NonGroupRuleTarget {
-  override def target = "special:all_nodes_without_role"
-  def r = target.r
 }
 
 /**
@@ -220,34 +208,14 @@ object RuleTarget extends Loggable {
    */
   def getNodeIds(
       targets : Set[RuleTarget]
-    , allNodes: Map[NodeId, (Boolean /* isPolicyServer */, Set[ServerRole])]
+    , allNodes: Map[NodeId, Boolean /* isPolicyServer */]
     , groups  : Map[NodeGroupId, Set[NodeId]]
   ) : Set[NodeId] = {
 
-    /* A Node with a server role is either:
-     *   * A node with a role (easy)
-     *   * A node that is a policy Server
-     *   * A node with the root id (in fact: Constants.ROOT_POLICY_SERVER_ID), the root policy server
-     */
-    def isANodeWithRole (nodeId : NodeId, isPolicyServer : Boolean ,serverRoles : Set[ServerRole]) : Boolean = {
-      serverRoles.nonEmpty || isPolicyServer || nodeId == Constants.ROOT_POLICY_SERVER_ID
-    }
     targets.foldLeft(Set[NodeId]()) { case (nodes , target) => target match {
       case AllTarget => return allNodes.keySet
-      case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case(k,n) if(!n._1) => k }
+      case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case(k,isPolicyServer) if(!isPolicyServer) => k }
       case PolicyServerTarget(nodeId) => nodes + nodeId
-      case AllServersWithRole =>
-        // All nodes with server roles or policyServer (ie relay)
-        nodes ++ allNodes.collect {
-          case (nodeId,(isPolicyServer, roles)) if isANodeWithRole(nodeId,isPolicyServer,roles) =>
-            nodeId
-         }
-      case AllNodesWithoutRole =>
-        // All nodes with no server roles and not a policy server/relay)
-        nodes ++ allNodes.collect {
-          case (nodeId,(isPolicyServer, roles)) if !(isANodeWithRole(nodeId,isPolicyServer,roles)) =>
-            nodeId
-         }
 
       //here, if we don't find the group, we consider it's an error in the
       //target recording, but don't fail, just log it.
@@ -347,10 +315,6 @@ object RuleTarget extends Loggable {
         Some(AllTarget)
       case AllTargetExceptPolicyServers.r() =>
         Some(AllTargetExceptPolicyServers)
-      case AllServersWithRole.r() =>
-        Some(AllServersWithRole)
-      case AllNodesWithoutRole.r() =>
-        Some(AllNodesWithoutRole)
       case _ =>
         None
     }

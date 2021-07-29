@@ -303,7 +303,6 @@ class LDAPEntityMapper(
                           case _ => Unexpected(s"Too many policy servers for a Node '${node.id.value}'. Entry details: ${inventoryEntry}").fail
                         }
       osDetails     <- inventoryMapper.mapOsDetailsFromEntry(inventoryEntry).toIO
-      serverRoles   =  inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
       timezone      =  (inventoryEntry(A_TIMEZONE_NAME), inventoryEntry(A_TIMEZONE_OFFSET)) match {
                          case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
                          case _                          => None
@@ -348,7 +347,6 @@ class LDAPEntityMapper(
         , agentsInfo._1
         , NodeId(policyServerId)
         , inventoryEntry(A_ROOT_USER).getOrElse("")
-        , serverRoles
         , inventoryEntry(A_ARCH)
         , inventoryEntry(A_OS_RAM).map{ m  => MemorySize(m) }
         , timezone

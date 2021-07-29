@@ -58,19 +58,6 @@ bundle common g
       # We would like to use date's "--rfc-3339=second" option here, but it is not available on older OSes (RHEL 3/4, AIX 5...)
       "execRun"                  string => execresult("/bin/date -u \"+%Y-%m-%d %T+00:00\"", "noshell");
 
-# definition of the node roles
-    classes: 
-      "rudder-ldap" expression => "any";
-      "policy_server" expression => "any";
-      "rudder-inventory-ldap" expression => "any";
-      "rudder-db" expression => "any";
-      "rudder-jetty" expression => "any";
-      "rudder-webapp" expression => "any";
-      "rudder-inventory-endpoint" expression => "any";
-      "root_server" expression => "any";
-      "rudder-reports" expression => "any";
-      "rudder-server-root" expression => "any";
-
   classes:
       # OS classes for compatibility
       "SUSE" expression => "sles";

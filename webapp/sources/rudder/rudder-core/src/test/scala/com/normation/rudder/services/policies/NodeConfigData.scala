@@ -58,7 +58,6 @@ import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.NodeSummary
 import com.normation.inventory.domain.NodeTimezone
 import com.normation.inventory.domain.PublicKey
-import com.normation.inventory.domain.ServerRole
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.VirtualBox
@@ -231,16 +230,6 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), Certificate(CERT), Set()))
     , rootId
     , rootAdmin
-    , Set( //by default server roles for root
-          "rudder-db"
-        , "rudder-inventory-endpoint"
-        , "rudder-inventory-ldap"
-        , "rudder-jetty"
-        , "rudder-ldap"
-        , "rudder-reports"
-        , "rudder-server-root"
-        , "rudder-webapp"
-      ).map(ServerRole(_))
     , None
     , None
     , Some(NodeTimezone("UTC", "+00"))
@@ -270,7 +259,6 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("6.0.0")), PublicKey(PUBKEY), Set()))
     , rootId
     , admin1
-    , Set()
     , None
     , Some(MemorySize(1460132))
     , None
@@ -305,7 +293,6 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     , vms                  = Seq()
     , networks             = Seq()
     , fileSystems          = Seq()
-    , serverRoles          = Set()
   )
 
   //node1 us a relay
@@ -336,7 +323,6 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     , Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("7.0.0")), Certificate("windows-node-dsc-certificate"), Set()))
     , rootId
     , admin1
-    , Set()
     , None
     , Some(MemorySize(1460132))
     , None
@@ -371,7 +357,6 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     , vms                  = Seq()
     , networks             = Seq()
     , fileSystems          = Seq()
-    , serverRoles          = Set()
   )
 
   val allNodesInfo = Map( rootId -> root, node1.id -> node1, node2.id -> node2)
@@ -435,7 +420,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
           , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
           , Nil, DateTime.now
           , UndefinedKey, Seq(AgentInfo(CfeCommunity, None, PublicKey("rsa public key"), Set())), NodeId("root")
-          , "" , Set(), None, None, None
+          , "" , None, None, None
     )
   }).map(n => (n.id, n)).toMap
 
@@ -612,19 +597,11 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
     , sharedFilesFolder               = "/var/rudder/configuration-repository/shared-files"
     , webdavUser                      = "rudder"
     , webdavPassword                  = "rudder"
-    , reportsDbUri                    = "rudder"
+    , reportsDbUri                    = "jdbc:postgresql://localhost:5432/rudder"
     , reportsDbUser                   = "rudder"
+    , reportsDbPassword               = "secret"
     , configurationRepository         = configurationRepositoryRoot.getAbsolutePath
-    , serverRoles                     = Seq(
-                                            RudderServerRole("rudder-ldap"                   , "rudder.server-roles.ldap")
-                                          , RudderServerRole("rudder-inventory-endpoint"     , "rudder.server-roles.inventory-endpoint")
-                                          , RudderServerRole("rudder-db"                     , "rudder.server-roles.db")
-                                          , RudderServerRole("rudder-relay-top"              , "rudder.server-roles.relay-top")
-                                          , RudderServerRole("rudder-web"                    , "rudder.server-roles.web")
-                                          , RudderServerRole("rudder-relay-promises-only"    , "rudder.server-roles.relay-promises-only")
-                                          , RudderServerRole("rudder-cfengine-mission-portal", "rudder.server-roles.cfengine-mission-portal")
-                                        )
-    , serverVersion                   = "5.1.0"
+    , serverVersion                   = "7.0.0"
     //denybadclocks is runtime properties
     , getDenyBadClocks                = () => Full(true)
     , getSyncMethod                   = () => Full(Classic)

@@ -199,7 +199,6 @@ class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, ge
       , Criterion(A_OS_SERVICE_PACK, OrderedStringComparator)
       , Criterion(A_OS_KERNEL_VERSION , OrderedStringComparator)
       , Criterion(A_ARCH, StringComparator)
-      , Criterion(A_SERVER_ROLE, StringComparator)
       , Criterion(A_STATE, NodeStateComparator, Some("rudderNode"))
       , Criterion(A_OS_RAM, MemoryComparator)
       , Criterion(A_OS_SWAP, MemoryComparator)
