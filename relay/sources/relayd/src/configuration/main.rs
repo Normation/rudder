@@ -174,8 +174,8 @@ pub struct GeneralConfig {
     #[serde(default = "GeneralConfig::default_https_port")]
     pub https_port: u16,
     /// Which certificate validation model to use
-    #[serde(default = "GeneralConfig::default_certificate_verification_model")]
-    pub certificate_verification_model: CertificateVerificationModel,
+    #[serde(default = "GeneralConfig::default_peer_authentication")]
+    pub peer_authentication: PeerAuthentication,
 }
 
 impl GeneralConfig {
@@ -200,9 +200,9 @@ impl GeneralConfig {
         443
     }
 
-    fn default_certificate_verification_model() -> CertificateVerificationModel {
+    fn default_peer_authentication() -> PeerAuthentication {
         // For compatibility
-        CertificateVerificationModel::System
+        PeerAuthentication::SystemRootCerts
     }
 }
 
@@ -217,16 +217,16 @@ impl Default for GeneralConfig {
             core_threads: None,
             blocking_threads: None,
             https_port: Self::default_https_port(),
-            certificate_verification_model: Self::default_certificate_verification_model(),
+            peer_authentication: Self::default_peer_authentication(),
         }
     }
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
-pub enum CertificateVerificationModel {
-    Rudder,
-    System,
+pub enum PeerAuthentication {
+    CertPinning,
+    SystemRootCerts,
     DangerousNone,
 }
 
@@ -520,7 +520,7 @@ pub struct UpstreamConfig {
     /// DEPRECATED: use host and global.https_port
     #[serde(default)]
     url: Option<String>,
-    /// When the section is there, url is mandatory
+    /// When the section is there, host is mandatory
     #[serde(default)]
     host: String,
     #[serde(default = "UpstreamConfig::default_user")]
@@ -536,7 +536,7 @@ pub struct UpstreamConfig {
     /// If true, https is required for all connections
     ///
     /// This preserves compatibility with 6.X configs
-    /// DEPRECATED: replaced by certificate_verification_mode = None
+    /// DEPRECATED: replaced by certificate_verification_mode = DangerousNone
     pub verify_certificates: bool,
     /// Allows specifying the root certificate path
     /// Used for our Rudder PKI
@@ -560,7 +560,7 @@ impl UpstreamConfig {
     }
 
     fn default_server_certificate_file() -> PathBuf {
-        PathBuf::from("/var/rudder/cfengine-community/ppkeys/policy_server.cert")
+        PathBuf::from("/var/rudder/lib/ssl/policy_server.pem")
     }
 }
 
@@ -626,7 +626,7 @@ mod tests {
                 core_threads: None,
                 blocking_threads: None,
                 https_port: 443,
-                certificate_verification_model: CertificateVerificationModel::System,
+                peer_authentication: PeerAuthentication::SystemRootCerts,
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {
@@ -663,9 +663,7 @@ mod tests {
                     password: Secret::new("".to_string()),
                     default_password: Secret::new("".to_string()),
                     verify_certificates: true,
-                    server_certificate_file: PathBuf::from(
-                        "/var/rudder/cfengine-community/ppkeys/policy_server.cert",
-                    ),
+                    server_certificate_file: PathBuf::from("/var/rudder/lib/ssl/policy_server.pem"),
                 },
                 database: DatabaseConfig {
                     url: "postgres://rudder@127.0.0.1/rudder".to_string(),
@@ -723,7 +721,7 @@ mod tests {
                 core_threads: None,
                 blocking_threads: Some(512),
                 https_port: 4443,
-                certificate_verification_model: CertificateVerificationModel::Rudder,
+                peer_authentication: PeerAuthentication::CertPinning,
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {

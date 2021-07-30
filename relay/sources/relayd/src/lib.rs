@@ -28,7 +28,7 @@ use crate::{
     processing::{inventory, reporting},
 };
 use anyhow::Error;
-use configuration::main::CertificateVerificationModel;
+use configuration::main::PeerAuthentication;
 use lazy_static::lazy_static;
 use reqwest::{Certificate, Client};
 use std::{
@@ -271,23 +271,23 @@ impl JobConfig {
         // compute actual model
         let model = if !cfg.output.upstream.verify_certificates {
             warn!("output.upstream.verify_certificates parameter is deprecated, use general.certificate_verification_model instead");
-            CertificateVerificationModel::DangerousNone
+            PeerAuthentication::DangerousNone
         } else {
-            cfg.general.certificate_verification_model
+            cfg.general.peer_authentication
         };
 
         let upstream_client = match model {
-            CertificateVerificationModel::Rudder => {
+            PeerAuthentication::CertPinning => {
                 let cert = Certificate::from_pem(&fs::read(
                     &cfg.output.upstream.server_certificate_file,
                 )?)?;
                 Self::new_http_client(vec![cert])?
             }
-            CertificateVerificationModel::System => Client::builder()
+            PeerAuthentication::SystemRootCerts => Client::builder()
                 .user_agent(USER_AGENT.clone())
                 .https_only(true)
                 .build()?,
-            CertificateVerificationModel::DangerousNone => {
+            PeerAuthentication::DangerousNone => {
                 warn!("Certificate verification is disabled, it should not be done in production");
                 Client::builder()
                     .user_agent(USER_AGENT.clone())
@@ -307,7 +307,7 @@ impl JobConfig {
         if cfg.remote_run.enabled {
             for (id, certs) in nodes.my_sub_relays_certs() {
                 let client = match model {
-                    CertificateVerificationModel::Rudder => {
+                    PeerAuthentication::CertPinning => {
                         let certs = match certs {
                             Some(stack) => stack
                                 .into_iter()
@@ -318,11 +318,11 @@ impl JobConfig {
                         };
                         Self::new_http_client(certs)?
                     }
-                    CertificateVerificationModel::System => Client::builder()
+                    PeerAuthentication::SystemRootCerts => Client::builder()
                         .user_agent(USER_AGENT.clone())
                         .https_only(true)
                         .build()?,
-                    CertificateVerificationModel::DangerousNone => {
+                    PeerAuthentication::DangerousNone => {
                         warn!(
                         "Certificate verification is disabled, it should not be done in production"
                         );
