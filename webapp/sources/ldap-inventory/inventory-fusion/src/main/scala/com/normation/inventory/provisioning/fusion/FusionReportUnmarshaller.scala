@@ -249,8 +249,8 @@ class FusionReportUnmarshaller(
 
   // Use RUDDER/HOSTNAME first and if missing OS/FQDN
   def getHostname(xml : NodeSeq): IOResult[String] = {
+    val invalidList = "localhost" :: "127.0.0.1" :: "::1" :: Nil
     def validHostname( hostname : String ) : Boolean = {
-      val invalidList = "localhost" :: "127.0.0.1" :: "::1" :: Nil
 
       /* Invalid cases are:
        * * hostname is null
@@ -263,13 +263,15 @@ class FusionReportUnmarshaller(
     optTextHead(xml \\ "RUDDER" \ "HOSTNAME") match {
       case Some(hostname) if validHostname(hostname) =>
         hostname.succeed
-      case _ =>
+      case x =>
         optTextHead(xml \\ "OPERATINGSYSTEM" \ "FQDN") match {
           // OS Section is the fallback
           case Some(osfqdn) if validHostname(osfqdn) =>
             osfqdn.succeed
-          case None =>
-            InventoryError.Inconsistency("Hostname could not be found in inventory (RUDDER/HOSTNAME and OPERATINGSYSTEM/FQDN are missing)").fail
+          case y =>
+            InventoryError.Inconsistency(s"Hostname could not be found in inventory (RUDDER/HOSTNAME [${x.getOrElse("")}] " +
+                                         s"and OPERATINGSYSTEM/FQDN [${y.getOrElse("")}] are missing or invalid: hostname " +
+                                         s"can't be one of '${invalidList.mkString("','")}'").fail
       }
     }
   }
