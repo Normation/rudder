@@ -228,6 +228,7 @@ body > .ng-toast {
   font-size: 20px;
   transition-duration: .2s;
   transition-property: opacity;
+  font-weight: 900;
 }
 .show-techniques .col-techniques:hover::after,
 .show-methods .col-methods:hover::after{

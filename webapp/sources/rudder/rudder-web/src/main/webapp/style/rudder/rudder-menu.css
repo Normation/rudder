@@ -35,6 +35,11 @@
 *************************************************************************************
 */
 
+/*=== FONT AWESOME 5 MISSING ICONS FIX ===*/
+.main-header .sidebar-toggle:before,
+.fa{
+  font-weight: bold;
+}
 /*ROW SMALL PADDING */
 .content-wrapper .row.col-small-padding{
   padding: 0 8px;
@@ -140,6 +145,7 @@ pre.json-beautify:after,.content-wrapper pre.json-beautify:after{
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
   transition-duration:.2s;
+  font-weight: 900;
 }
 pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
   transform:rotate(90deg);
@@ -904,6 +910,7 @@ ul.graph-legend > li.legend:hover{
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
   content: "\f00d";
+  font-weight: 900;
 }
 /* OK */
 .main-header .navbar .nav li.notifications-menu.bg-success, .main-header .navbar .nav li.notifications-menu.bg-success #generation-status{
@@ -923,6 +930,7 @@ ul.graph-legend > li.legend:hover{
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
   content: "\f00c";
+  font-weight: 900;
 }
 /* DEFAULT */
 .main-header .navbar .nav li.notifications-menu.bg-neutral, .main-header .navbar .nav li.notifications-menu.bg-neutral #generation-status{
@@ -959,6 +967,7 @@ ul.graph-legend > li.legend:hover{
   content: "\f021";
   -webkit-animation: fa-spin 2s infinite linear;
   animation: fa-spin 2s infinite linear;
+  font-weight: 900;
 }
 /* ---- */
 #generation-status.label-success{
@@ -2973,6 +2982,7 @@ h3.box-title {
   position: relative;
   margin-left: 7px;
   top: 1px;
+  font-weight: 900;
 }
 
 /* JUMBOTRON */
@@ -3090,6 +3100,7 @@ table a > i.fa-pencil:hover{
   position: relative;
   margin-left: 7px;
   color: #999;
+  font-weight: 900;
 }
 
 .statusCell > span.tooltipable.tooltip {
@@ -3257,6 +3268,7 @@ table a > i.fa-pencil:hover{
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 12px;
+  font-weight: 900;
   display: inline-block;
   position:relative;
   left: 0;
