@@ -110,6 +110,7 @@
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
   color: #999;
+  font-weight: 900;
 }
 .DataTables_sort_icon.ui-icon-triangle-1-n:before{
     content: "\f0d8";
