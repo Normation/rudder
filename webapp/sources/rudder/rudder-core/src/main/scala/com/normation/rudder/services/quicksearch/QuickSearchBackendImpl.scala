@@ -167,7 +167,6 @@ object QSDirectiveBackend extends Loggable {
         case Properties        => None
         case CustomProperties  => None
         case NodeState         => None
-        case RudderRoles       => None
         case GroupId           => None
         case IsDynamic         => None
         case ParameterName     => None
@@ -388,7 +387,6 @@ object QSLdapBackend {
         case Properties        => sub(a, token)
         case CustomProperties  => sub(a, token)
         case NodeState         => sub(a, token)
-        case RudderRoles       => sub(a, token)
         case GroupId           => sub(a, token)
         case IsEnabled         => bool(MatchEnable, a, token)
         case IsDynamic         => bool(MatchDynamic, a, token)
