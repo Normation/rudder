@@ -416,7 +416,7 @@ limitations under the License.
     <cats-effect-version>2.5.1</cats-effect-version>
     <dev-zio-version>1.0.10</dev-zio-version>
     <zio-cats-version>2.3.1.0</zio-cats-version>
-    <zio-json-version>0.1</zio-json-version>
+    <zio-json-version>0.2.0-M1</zio-json-version>
 
     <!--
       Hack to make scalac jvm parameters like RAM configurable.

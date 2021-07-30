@@ -56,7 +56,6 @@ import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.rudder.services.reports.CacheComplianceQueueAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction
-import com.normation.rudder.services.reports.CachedNodeConfigurationService
 import com.normation.rudder.services.reports.InvalidateCache
 import zio._
 import zio.syntax._

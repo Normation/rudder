@@ -56,8 +56,7 @@ import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import zio.json.DeriveJsonEncoder
-import zio.json.JsonCodec._
-import zio.json.{EncoderOps => _, _}
+import zio.json._
 import zio.json.internal.Write
 import com.normation.errors._
 import com.normation.rudder.domain.properties.GlobalParameter
