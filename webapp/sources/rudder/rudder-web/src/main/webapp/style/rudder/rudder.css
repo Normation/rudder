@@ -331,6 +331,7 @@ div.unfoldedSection div.section-title:before,div.foldedSection div.section-title
   -webkit-font-smoothing: antialiased;
   opacity: .6;
   transition-duration: .2s;
+  font-weight: 900;
 }
 
 .foldableSection .foldableSection > .section-title{

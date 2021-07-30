@@ -650,8 +650,6 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
 
     var params = jQuery.extend(
         {"createdRow": function( row, data, dataIndex ) {
-
-            console.log(row);
             var tt = this.api().row(row)
             if(data.composition === undefined) {
               createInnerTablerow(tt, data, localNodeComponentValueTable());
@@ -916,7 +914,6 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
  *   }
  */
 function createComponentTable(isTopLevel, isNodeView, contextPath) {
-  console.log("nani?")
   if (isTopLevel) {
     var complianceWidth = "26.3%";
   } else {
@@ -928,7 +925,6 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
     , "mDataProp": "component"
     , "sTitle": "Component"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        console.log(oData)
         if(! oData.noExpand || isNodeView || oData.composition !== undefined ) {
           $(nTd).addClass("listopen");
         } else {
@@ -954,8 +950,6 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
     , "bInfo" : false
     , "aaSorting": [[ 0, "asc" ]]
     , "createdRow": function( row, data, dataIndex ) {
-
-        console.log(row);
         var tt = this.api().row(row)
         if(data.composition === undefined) {
         if(isNodeView) {
@@ -967,13 +961,6 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
           createInnerTablerow(tt, data,createComponentTable(isTopLevel, isNodeView, contextPath))
         }
     }
-    /*, "fnDrawCallback" : function( oSettings ) {
-        console.log(oSettings)
-        if(isNodeView) {          createInnerTable(this, createNodeComponentValueTable(contextPath));
-        } else {
-          createInnerTable(this, createRuleComponentValueTable(contextPath));
-        }
-      }*/
   }
 
  return function (gridId,data) {createTable(gridId,data,columns, params, contextPath);}
@@ -2110,8 +2097,6 @@ function changeCursor(clickable){
  * Function to define opening of an inner table
  */
 function createInnerTablerow(row, data,  createFunction, contextPath, kind) {
-
-    console.log(row)
     $(row.node()).unbind();
     $(row.node()).click( function (e) {
       if ($(e.target).hasClass('noExpand')) {
@@ -2142,12 +2127,6 @@ function createInnerTablerow(row, data,  createFunction, contextPath, kind) {
           div.append(table);
           var nDetailsRow = row.child( div, 'details' ).show();
           var res = createFunction(tableId, fnData.details);
-
-          console.log(res)
-          console.log(fnData)
-          console.log(row)
-          console.log(div)
-          console.log(row.child())
           $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
           $('#'+detailsId).slideDown(300);
           anOpen.push( row.node() );

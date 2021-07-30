@@ -459,6 +459,7 @@ td.listclose:after {
   font-size: inherit;
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
+  font-weight: 900;
 }
 #nodePropertiesTab .value-container.show-more.toggle + span.toggle-icon:after {
   transform: rotate(90deg);
