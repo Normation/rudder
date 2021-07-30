@@ -1800,6 +1800,8 @@ object RudderConfig extends Loggable {
     , rwLdap
     , logRepository
     , nodeReadWriteMutex
+    , cachedNodeConfigurationService
+    , reportingServiceImpl
   )
 
   private[this] lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
@@ -2061,7 +2063,7 @@ object RudderConfig extends Loggable {
         , roAgentRunsRepository
         , globalAgentRunService
         , nodeInfoServiceImpl
-        , roDirectiveRepository
+        , roLdapDirectiveRepository
         , roRuleRepository
         , cachedNodeConfigurationService
         , () => globalComplianceModeService.getGlobalComplianceMode

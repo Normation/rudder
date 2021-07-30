@@ -83,7 +83,7 @@ trait NodeConfigurationService {
 class CachedNodeConfigurationService(
     val confExpectedRepo: FindExpectedReportRepository
   , val nodeInfoService : NodeInfoService
-) extends NodeConfigurationService with CachedRepository {
+) extends NodeConfigurationService with CachedRepository with InvalidateCache[CacheExpectedReportAction] {
 
 
   val semaphore = Semaphore.make(1).runNow
@@ -188,7 +188,7 @@ class CachedNodeConfigurationService(
    * invalidate with an action to do something
    * order is important
    */
-  def invalidateWithAction(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = {
+  override def invalidateWithAction(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = {
     ZIO.when(actions.nonEmpty) {
       logger.debug(s"Node Configuration cache: invalidation request for nodes with action: [${actions.map(_._1).map { _.value }.mkString(",")}]") *>
         invalidateMergeUpdateSemaphore.withPermit(for {

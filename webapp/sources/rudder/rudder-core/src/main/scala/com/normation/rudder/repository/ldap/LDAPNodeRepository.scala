@@ -54,6 +54,10 @@ import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.rudder.services.reports.CacheComplianceQueueAction
+import com.normation.rudder.services.reports.CacheExpectedReportAction
+import com.normation.rudder.services.reports.CachedNodeConfigurationService
+import com.normation.rudder.services.reports.InvalidateCache
 import zio._
 import zio.syntax._
 
@@ -64,6 +68,8 @@ class WoLDAPNodeRepository(
   , ldap                : LDAPConnectionProvider[RwLDAPConnection]
   , actionLogger        : EventLogRepository
   , nodeLibMutex        : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
+  , cacheExpectedReports: InvalidateCache[CacheExpectedReportAction]
+  , cacheConfiguration  : InvalidateCache[CacheComplianceQueueAction]
 ) extends WoNodeRepository with NamedZioLogger {
   repo =>
 
@@ -189,6 +195,23 @@ class WoLDAPNodeRepository(
     nodeLibMutex.writeLock(for {
       con <- ldap
       _   <- con.save(entry).chainError(s"Cannot create node with id '${node.id.value}'")
+      a   =  CacheExpectedReportAction.InsertNodeInCache(node.id)
+      _   <- cacheConfiguration.invalidateWithAction(Seq((node.id, CacheComplianceQueueAction.ExpectedReportAction(a))))
+      _   <- cacheExpectedReports.invalidateWithAction(Seq((node.id, a)))
+    } yield {
+      node
+    })
+  }
+
+  // this method is unused
+  override def deleteNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
+    val entry = mapper.nodeToEntry(node)
+    nodeLibMutex.writeLock(for {
+      con <- ldap
+      _   <- con.delete(entry.dn).chainError(s"Error when trying to delete node '${node.id.value}'")
+      a   =  CacheExpectedReportAction.InsertNodeInCache(node.id)
+      _   <- cacheConfiguration.invalidateWithAction(Seq((node.id, CacheComplianceQueueAction.ExpectedReportAction(a))))
+      _   <- cacheExpectedReports.invalidateWithAction(Seq((node.id, a)))
     } yield {
       node
     })

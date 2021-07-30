@@ -283,6 +283,9 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
   }
 }
 
+trait InvalidateCache[T] {
+  def invalidateWithAction(actions: Seq[(NodeId, T)]): IOResult[Unit]
+}
 
 
 /**
@@ -294,7 +297,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
  * - the only path to update the cache is through an async blocking queue of `InvalidateComplianceCacheMsg`
  * - the dequeue actor calculs updated reports for invalidated nodes and update the map accordingly.
  */
-trait CachedFindRuleNodeStatusReports extends ReportingService with CachedRepository {
+trait CachedFindRuleNodeStatusReports extends ReportingService with CachedRepository with InvalidateCache[CacheComplianceQueueAction] {
 
   /**
    * underlying service that will provide the computation logic
@@ -432,7 +435,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * invalidate with an action to do something
    * order is important
    */
-  def invalidateWithAction(actions: Seq[(NodeId, CacheComplianceQueueAction)]): IOResult[Unit] = {
+  override def invalidateWithAction(actions: Seq[(NodeId, CacheComplianceQueueAction)]): IOResult[Unit] = {
     ZIO.when(actions.nonEmpty) {
       ReportLoggerPure.Cache.debug(s"Compliance cache: invalidation request for nodes with action: [${actions.map(_._1).map { _.value }.mkString(",")}]") *>
         invalidateMergeUpdateSemaphore.withPermit(for {
