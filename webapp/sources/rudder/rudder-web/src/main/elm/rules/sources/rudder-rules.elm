@@ -88,23 +88,23 @@ update msg model =
     EditDirectives flag ->
       case model.mode of
         EditRule details ->
-          ({model | mode = EditRule   {details | editDirectives = flag}}, Cmd.none)
+          ({model | mode = EditRule   {details | editDirectives = flag, tab = Directives}}, Cmd.none)
         CreateRule details ->
-          ({model | mode = CreateRule {details | editDirectives = flag}}, Cmd.none)
+          ({model | mode = CreateRule {details | editDirectives = flag, tab = Directives}}, Cmd.none)
         _   -> (model, Cmd.none)
 
     EditGroups flag ->
       case model.mode of
         EditRule details ->
-          ({model | mode = EditRule   {details | editGroups = flag}}, Cmd.none)
+          ({model | mode = EditRule   {details | editGroups = flag, tab = Groups}}, Cmd.none)
         CreateRule details ->
-          ({model | mode = CreateRule {details | editGroups = flag}}, Cmd.none)
+          ({model | mode = CreateRule {details | editGroups = flag, tab = Groups}}, Cmd.none)
         _   -> (model, Cmd.none)
 
     GetRuleDetailsResult res ->
       case res of
         Ok r ->
-          ({model | mode = EditRule (EditRuleDetails r Information False False (Tag "" ""))}, Cmd.none)
+          ({model | mode = EditRule (EditRuleDetails r r Information False False (Tag "" ""))}, Cmd.none)
         Err err ->
           (model, Cmd.none)
 
@@ -159,7 +159,7 @@ update msg model =
     NewRule id ->
       let
         rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] []
-        ruleDetails = EditRuleDetails rule Information False False (Tag "" "")
+        ruleDetails = EditRuleDetails rule rule Information False False (Tag "" "")
       in
         ({model | mode = CreateRule ruleDetails}, Cmd.none)
 
@@ -175,9 +175,9 @@ update msg model =
       -- TODO // Update Rules Tree
       case model.mode of
         EditRule details ->
-          ({model | mode = EditRule {details | rule = ruleDetails}}, successNotification ("Rule '"++ ruleDetails.name ++"' successfully saved"))
+          ({model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}, successNotification ("Rule '"++ ruleDetails.name ++"' successfully saved"))
         CreateRule details ->
-          ({model | mode = EditRule {details | rule = ruleDetails}}, successNotification ("Rule '"++ ruleDetails.name ++"' successfully created"))
+          ({model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}, successNotification ("Rule '"++ ruleDetails.name ++"' successfully created"))
         _   -> (model, Cmd.none)
 
     SaveRuleDetails (Err err) ->

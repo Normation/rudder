@@ -400,36 +400,6 @@ ul.tabs-list > li > .badge.empty{
 .rudder-template .template-main .main-navbar ul > li > a{
   min-height: 23px;
 }
-.badge-parameters,
-.badge-resources{
-  padding: 0 !important;
-  display: inline-flex;
-  border-radius: 4px;
-  overflow: hidden;
-}
-.badge span,
-.badge > span{
-  padding: 5px;
-  min-width: 24px;
-}
-.badge-resources > .nb-resources.new{
-  background-color: #9bc832;
-  color: #fff;
-}
-.badge-resources > .nb-resources.del{
-  background-color: #dd4b39;
-  color: #fff;
-}
-.col-techniques .badge-resources{
-  margin-left: 4px;
-  position: relative;
-  top: -2px;
-}
-.col-techniques .badge-resources > span {
-  font-size: 10px;
-  padding: 4px;
-  min-width: 22px;
-}
 
 #technique-editor .main-details h5{
   border-bottom: 1px solid #e5e5e5;

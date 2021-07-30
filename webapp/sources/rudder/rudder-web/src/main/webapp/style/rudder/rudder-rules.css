@@ -52,7 +52,14 @@
   background: transparent;
 }
 /*================= */
-
+.main-details .row > div > .callout-fade.callout-info:first-child{
+  margin-top: 10px;
+}
+@media (min-width: 768px) {
+.main-details .row > div > .callout-fade.callout-info:first-child{
+  margin-top: 24px;
+}
+}
 #viewAllRulesZone {
   padding: 15px;
 }
