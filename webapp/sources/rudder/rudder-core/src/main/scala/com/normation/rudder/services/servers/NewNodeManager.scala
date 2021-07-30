@@ -84,9 +84,11 @@ import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.queries.QueryProcessor
+import com.normation.rudder.services.reports.CacheComplianceQueueAction
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
+import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
-import com.normation.rudder.services.reports.{CachedFindRuleNodeStatusReports, CachedNodeConfigurationService}
+import com.normation.rudder.services.reports.InvalidateCache
 import com.normation.utils.Control.sequence
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
@@ -211,8 +213,8 @@ class NewNodeManagerImpl(
   ,          val eventLogRepository    : EventLogRepository
   , override val updateDynamicGroups   : UpdateDynamicGroups
   ,          val cacheToClear          : List[CachedRepository]
-  , override val cachedNodeConfigurationService: CachedNodeConfigurationService
-  , override val cachedReportingService: CachedFindRuleNodeStatusReports
+  , override val cachedNodeConfigurationService: InvalidateCache[CacheExpectedReportAction]
+  , override val cachedReportingService: InvalidateCache[CacheComplianceQueueAction]
   ,              nodeInfoService       : NodeInfoService
   ,              HOOKS_D               : String
   ,              HOOKS_IGNORE_SUFFIXES : List[String]
@@ -326,8 +328,8 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
 
   def updateDynamicGroups : UpdateDynamicGroups
 
-  def cachedNodeConfigurationService: CachedNodeConfigurationService
-  def cachedReportingService        : CachedFindRuleNodeStatusReports
+  def cachedNodeConfigurationService: InvalidateCache[CacheExpectedReportAction]
+  def cachedReportingService: InvalidateCache[CacheComplianceQueueAction]
 
   def cacheToClear: List[CachedRepository]
 
