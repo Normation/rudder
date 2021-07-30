@@ -138,7 +138,7 @@ type alias ComplianceDetails =
   , badPolicyMode              : Maybe Float
   }
 
-type alias EditRuleDetails = { rule : Rule, tab :  TabMenu, editDirectives: Bool, editGroups : Bool, newTag : Tag }
+type alias EditRuleDetails = { originRule : Rule, rule : Rule, tab :  TabMenu, editDirectives: Bool, editGroups : Bool, newTag : Tag }
 
 type Mode = Loading | RuleTable | EditRule EditRuleDetails | CreateRule EditRuleDetails
 

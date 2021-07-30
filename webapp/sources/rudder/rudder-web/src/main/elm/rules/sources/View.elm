@@ -177,11 +177,12 @@ view model =
     editionTemplate : EditRuleDetails -> Bool -> Html Msg
     editionTemplate details isNewRule =
       let
-        ruleTitle = if (String.isEmpty rule.name && isNewRule) then
+        originRule = details.originRule
+        rule = details.rule
+        ruleTitle = if (String.isEmpty originRule.name && isNewRule) then
             span[style "opacity" "0.4"][text "New rule"]
           else
-             text rule.name
-        rule = details.rule
+             text originRule.name
         topButtons =
           [ li [] [
               a [ class "action-success disabled"] [
@@ -203,6 +204,37 @@ view model =
               ]
             ]
           ]
+
+        isNotMember : List a -> a -> Bool
+        isNotMember listIds id =
+          List.Extra.notMember id listIds
+
+        getDiffList : List a -> List a -> (Int, Int)
+        getDiffList listA listB =
+          let
+            originLength   = List.length listA
+            selectedLength = List.length listB
+          in
+            if selectedLength == originLength then
+              let
+                diff = List.length (List.Extra.findIndices (isNotMember listB) listA)
+              in
+                (diff, diff)
+            else if selectedLength > originLength then
+              let
+                diff = List.length (List.Extra.findIndices (isNotMember listB) listA)
+                lengthDiff = selectedLength - originLength
+              in
+                (lengthDiff + diff, diff)
+            else
+              let
+                diff = List.length (List.Extra.findIndices (isNotMember listA) listB)
+                lengthDiff = originLength - selectedLength
+              in
+                (diff, lengthDiff + diff)
+
+        (diffDirectivesPos, diffDirectivesNeg) = getDiffList originRule.directives rule.directives
+
       in
         div [class "main-container"]
         [ div [class "main-header "]
@@ -221,7 +253,7 @@ view model =
               ]
             ]
           , div [class "header-description"]
-            [ p[][text rule.shortDescription] ]
+            [ p[][text originRule.shortDescription] ]
           ]
         , div [class "main-navbar" ]
           [ ul[class "ui-tabs-nav "]
@@ -232,13 +264,19 @@ view model =
             , li[class ("ui-tabs-tab" ++ (if details.tab == Directives    then " ui-tabs-active" else ""))]
               [ a[onClick (ChangeTabFocus Directives   )]
                 [ text "Directives"
-                , span[class "badge"][text (String.fromInt(List.length rule.directives))]
+                , span[class "badge badge-secondary badge-resources tooltip-bs"]
+                  [ span [class "nb-resources"] [ text (String.fromInt(List.length rule.directives))]
+                  , ( if diffDirectivesPos /= 0 then span [class "nb-resources new"] [ text (String.fromInt diffDirectivesPos)] else text "")
+                  , ( if diffDirectivesNeg /= 0 then span [class "nb-resources del"] [ text (String.fromInt diffDirectivesNeg)] else text "")
+                  ]
                 ]
               ]
             , li[class ("ui-tabs-tab" ++ (if details.tab == Groups        then " ui-tabs-active" else ""))]
               [ a[onClick (ChangeTabFocus Groups       )]
                 [ text "Groups"
-                , span[class "badge"][text (String.fromInt(List.length rule.targets))]
+                , span[class "badge badge-secondary badge-resources tooltip-bs"]
+                  [ span [class "nb-resources"] [ text (String.fromInt(List.length rule.targets))]
+                  ]
                 ]
               ]
             , li[class ("ui-tabs-tab" ++ (if details.tab == TechnicalLogs then " ui-tabs-active" else ""))]
@@ -279,50 +317,70 @@ view model =
 
     tabContent details isNewRule=
       let
-          rule = details.rule
-          newTag = details.newTag
+          rule       = details.rule
+          originRule = details.originRule
+          newTag     = details.newTag
       in
 
         case details.tab of
           Information   ->
-            div[class "row"][
-              form[class "col-xs-12 col-sm-6 col-lg-7"]
-                [ div [class "form-group"]
-                  [ label[for "rule-name"][text "Name"]
-                  , div[]
-                    [ input[ id "rule-name", type_ "text", value rule.name, class "form-control", onInput (\s -> UpdateRule {rule | name = s} ) ][] ]
-                  ]
-                , div [class "form-group"]
-                  [ label[for "rule-category"][text "Category"]
-                  , div[]
-                    [ select[ id "rule-category", class "form-control", onInput (\s -> UpdateRule {rule | categoryId = s} ) ]
-                      (buildListCategories  "" model.rulesTree)
-                    ]
-                  ]
-                , div [class "tags-container"]
-                  [ label[for "rule-tags-key"][text "Tags"]
-                  , div[class "form-group"]
-                    [ div[class "input-group"]
-                      [ input[ id "rule-tags-key", type_ "text", placeholder "key", class "form-control", onInput (\s -> UpdateNewTag {newTag | key = s} ), value newTag.key][]
-                      , span [ class "input-group-addon addon-json"][ text "=" ] 
-                      , input[ type_ "text", placeholder "value", class "form-control", onInput (\s -> UpdateNewTag {newTag | value = s} ), value newTag.value][]
-                      , span [ class "input-group-btn"][ button [ class "btn btn-success", type_ "button", onClick  (UpdateRule {rule | tags = newTag :: rule.tags }) ][ span[class "fa fa-plus"][]] ]
+            let
+              rightCol = if isNewRule == True then
+                  div [class "col-xs-12 col-sm-6 col-lg-5"]
+                  [ div [class "callout-fade callout-info"]
+                    [ div [class "marker"][span [class "glyphicon glyphicon-info-sign"][]]
+                    , div []
+                      [ p[][text "You are creating a new rule. You may already want to apply directives and groups to it."]
+                      , p[][text "To do so, please go to their corresponding tab, or use the shortcuts below:"]
+                      , div[class "action-btn"]
+                        [ button [class "btn btn-default", onClick (EditDirectives True)][text "Select directives", span[class "fa fa-plus"][]]
+                        , button [class "btn btn-default", onClick (EditGroups True    )][text "Select groups"    , span[class "fa fa-plus"][]]
+                        ]
                       ]
                     ]
-                  , buildTagsContainer rule
                   ]
-                , div [class "form-group"]
-                  [ label[for "rule-short-description"][text "Short description"]
-                  , div[]
-                    [ input[ id "rule-short-description", type_ "text", value rule.shortDescription, placeholder "There is no short description", class "form-control", onInput (\s -> UpdateRule {rule | shortDescription = s} )  ][] ]
+                else
+                  text ""
+            in
+              div[class "row"][
+                form[class "col-xs-12 col-sm-6 col-lg-7"]
+                  [ div [class "form-group"]
+                    [ label[for "rule-name"][text "Name"]
+                    , div[]
+                      [ input[ id "rule-name", type_ "text", value rule.name, class "form-control", onInput (\s -> UpdateRule {rule | name = s} ) ][] ]
+                    ]
+                  , div [class "form-group"]
+                    [ label[for "rule-category"][text "Category"]
+                    , div[]
+                      [ select[ id "rule-category", class "form-control", onInput (\s -> UpdateRule {rule | categoryId = s} ) ]
+                        (buildListCategories  "" model.rulesTree)
+                      ]
+                    ]
+                  , div [class "tags-container"]
+                    [ label[for "rule-tags-key"][text "Tags"]
+                    , div[class "form-group"]
+                      [ div[class "input-group"]
+                        [ input[ id "rule-tags-key", type_ "text", placeholder "key", class "form-control", onInput (\s -> UpdateNewTag {newTag | key = s} ), value newTag.key][]
+                        , span [ class "input-group-addon addon-json"][ text "=" ]
+                        , input[ type_ "text", placeholder "value", class "form-control", onInput (\s -> UpdateNewTag {newTag | value = s} ), value newTag.value][]
+                        , span [ class "input-group-btn"][ button [ class "btn btn-success", type_ "button", onClick  (UpdateRule {rule | tags = newTag :: rule.tags }) ][ span[class "fa fa-plus"][]] ]
+                        ]
+                      ]
+                    , buildTagsContainer rule
+                    ]
+                  , div [class "form-group"]
+                    [ label[for "rule-short-description"][text "Short description"]
+                    , div[]
+                      [ input[ id "rule-short-description", type_ "text", value rule.shortDescription, placeholder "There is no short description", class "form-control", onInput (\s -> UpdateRule {rule | shortDescription = s} )  ][] ]
+                    ]
+                  , div [class "form-group"]
+                    [ label[for "rule-long-description"][text "Long description"]
+                    , div[]
+                      [ textarea[ id "rule-long-description", value rule.longDescription, placeholder "There is no long description", class "form-control", onInput (\s -> UpdateRule {rule | longDescription = s} ) ][] ]
+                    ]
                   ]
-                , div [class "form-group"]
-                  [ label[for "rule-long-description"][text "Long description"]
-                  , div[]
-                    [ textarea[ id "rule-long-description", value rule.longDescription, placeholder "There is no long description", class "form-control", onInput (\s -> UpdateRule {rule | longDescription = s} ) ][] ]
-                  ]
+                , rightCol
                 ]
-              ]
           Directives    ->
             let
               buildTableRow : DirectiveId -> Html Msg
@@ -354,7 +412,7 @@ view model =
                     li[]
                     [ a[href ("/rudder/secure/configurationManager/directiveManagement#" ++ directive.id.value)]
                       [ badgePolicyMode directive
-                      , span [class "target-name"][text directive.displayName, text "-  ", text (String.fromInt (List.length directives))]
+                      , span [class "target-name"][text directive.displayName]
                       ]
                     , span [class "target-remove", onClick (UpdateRule {rule | directives = List.Extra.remove directive.id rule.directives})][ i [class "fa fa-times"][] ]
                     , span [class "border"][]
@@ -396,6 +454,17 @@ view model =
               
               else
                 let
+                  addDirectives : DirectiveId -> Msg
+                  addDirectives id =
+                    let
+                      newDirectives =
+                        if List.Extra.notMember id rule.directives then
+                          id :: rule.directives
+                        else
+                          List.Extra.remove id rule.directives
+                    in
+                      UpdateRule {rule | directives = newDirectives}
+
                   directiveTreeElem : Technique -> Html Msg
                   directiveTreeElem item =
                         let
@@ -410,7 +479,7 @@ view model =
                                   [ badgePolicyMode d
                                   , span [class "treeGroupName tooltipable"][text d.displayName]
                                   , div [class "treeActions-container"]
-                                    [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (UpdateRule {rule | directives = d.id :: rule.directives})][]]
+                                    [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (addDirectives d.id)][]]
                                     ]
                                   ]
                                 ]) item.directives
