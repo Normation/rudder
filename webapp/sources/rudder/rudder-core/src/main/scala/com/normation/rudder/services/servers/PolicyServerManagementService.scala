@@ -497,7 +497,7 @@ object PolicyServerConfigurationObjects {
     List("apache", "postgresql", "relayd", "slapd", "webapp").map(name =>
       TechniqueName(s"rudder-service-${name}") ->
         s"rudder-service-${name}-${nodeId.value}".toDirective
-          .modify(_.name).setTo(s"Rudder ${name.capitalize}")
+          .modify(_.name).setTo(s"Rudder ${name.capitalize} - ${nodeId.value}")
           .modify(_.shortDescription).setTo(s"Manage ${name} rudder service")
     )
   }
@@ -529,7 +529,7 @@ object PolicyServerConfigurationObjects {
   def ruleCommonHasPolicyServer(nodeId: NodeId) = {
     Rule(
         RuleId(s"hasPolicyServer-${nodeId.value}"), None
-      , s"Rudder system policy: basic setup (common)-${nodeId.value}"
+      , s"Rudder system policy: basic setup (common) - ${nodeId.value}"
       , RuleCategoryId("rootRuleCategory")
       , Set(GroupTarget(NodeGroupId(s"hasPolicyServer-${nodeId.value}")))
       , Set(DirectiveId(DirectiveUid(s"common-hasPolicyServer-${nodeId.value}")))

@@ -225,6 +225,7 @@ class EventLogDetailsGenerator(
       case x:ModifyGlobalProperty          => Text(s"Modify '${x.propertyName}' global property")
       case x:ModifyNode                    => nodeDesc(x, Text(" modified"))
       case x:PromoteNode                   => nodeDesc(x, Text(" promoted to relay"))
+      case x:DemoteRelay                   => nodeDesc(x, Text(" demoted to node"))
       case _ => Text("Unknow event type")
     }
   }

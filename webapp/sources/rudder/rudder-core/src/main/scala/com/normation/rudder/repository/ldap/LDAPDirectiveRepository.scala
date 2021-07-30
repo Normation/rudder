@@ -646,7 +646,7 @@ class WoLDAPDirectiveRepository(
                         }
       exists            <- directiveNameExists(con, directive.name, directive.id.uid)
       nameIsAvailable   <- ZIO.when(exists) {
-                             Inconsistency(s"Cannot set directive with name '${directive.name}}' : this name is already in use.").fail
+                             Inconsistency(s"Cannot set directive with name '${directive.name}' : this name is already in use.").fail
                            }
       piEntry           =  mapper.userDirective2Entry(directive, uptEntry.dn)
       result            <- con.save(piEntry, true)

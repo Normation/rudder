@@ -298,7 +298,17 @@ trait EventLogFactory {
   , creationDate   : DateTime = DateTime.now()
   , severity       : Int = 100
   , reason         : Option[String]
- ) : PromoteNode
+ ): PromoteNode
+
+ def getDemoteToNodeFromDiff(
+    id             : Option[Int] = None
+  , modificationId : Option[ModificationId] = None
+  , principal      : EventActor
+  , demotedRelay   : NodeInfo
+  , creationDate   : DateTime = DateTime.now()
+  , severity       : Int = 100
+  , reason         : Option[String]
+ ): DemoteRelay
 }
 
 class EventLogFactoryImpl(
@@ -933,6 +943,35 @@ class EventLogFactoryImpl(
      )
    }
    PromoteNode(EventLogDetails(
+       id = id
+     , modificationId = modificationId
+     , principal = principal
+     , details = details
+     , creationDate = creationDate
+     , reason = reason
+     , severity = severity
+   ) )
+ }
+
+ override def getDemoteToNodeFromDiff(
+      id             : Option[Int] = None
+    , modificationId : Option[ModificationId] = None
+    , principal      : EventActor
+    , promotedNode   : NodeInfo
+    , creationDate   : DateTime = DateTime.now()
+    , severity       : Int = 100
+    , reason         : Option[String]
+ ) : DemoteRelay = {
+
+   val details = EventLog.withContent{
+     scala.xml.Utility.trim(
+       <node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+         <id>{promotedNode.node.id.value}</id>
+         <hostname>{promotedNode.hostname}</hostname>
+       </node>
+     )
+   }
+   DemoteRelay(EventLogDetails(
        id = id
      , modificationId = modificationId
      , principal = principal

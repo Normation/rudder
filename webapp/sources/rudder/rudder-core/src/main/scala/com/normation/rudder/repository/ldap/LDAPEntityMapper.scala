@@ -827,7 +827,7 @@ class LDAPEntityMapper(
   def rule2Entry(rule: Rule): LDAPEntry = {
     val entry = rudderDit.RULES.ruleModel(
         rule.id
-      , rule.rev.get
+      , rule.rev.getOrElse(GitVersion.defaultRev)
       , rule.name
       , rule.isEnabledStatus
       , rule.isSystem

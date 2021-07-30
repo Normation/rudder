@@ -190,7 +190,7 @@ class WoLDAPRuleRepository(
     ruleMutex.writeLock(
       for {
         con             <- ldap
-        ruleExits       <- con.exists(rudderDit.RULES.configRuleDN(rule.id, rule.rev.get))
+        ruleExits       <- con.exists(rudderDit.RULES.configRuleDN(rule.id, rule.rev.getOrElse(GitVersion.defaultRev)))
         idDoesntExist   <- ZIO.when(ruleExits) {
                              s"Cannot create a rule with ID '${rule.id.value}' : there is already a rule with the same id".fail
                            }
@@ -217,7 +217,7 @@ class WoLDAPRuleRepository(
     ruleMutex.writeLock(
       for {
         con           <- ldap
-        existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id, rule.rev.get)).notOptional(s"Cannot update rule with id ${rule.id.value} : there is no rule with that id")
+        existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id, rule.rev.getOrElse(GitVersion.defaultRev))).notOptional(s"Cannot update rule with id ${rule.id.value} : there is no rule with that id")
         oldRule       <- mapper.entry2Rule(existingEntry).toIO.chainError(s"Error when transforming LDAP entry into a Rule for id ${rule.id.value}. Entry: ${existingEntry}")
         systemCheck   <- (oldRule.isSystem, systemCall) match {
                          case (true, false) => s"System rule '${oldRule.name}' (${oldRule.id.value}) can not be modified".fail

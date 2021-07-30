@@ -60,8 +60,18 @@ final case class PromoteNode(
 
 object PromoteNode extends EventLogFilter {
   override val eventType = PromoteNodeToRelayEventType
-
   override def apply(x : (EventLogType, EventLogDetails)) : PromoteNode = PromoteNode(x._2)
+}
+
+final case class DemoteRelay(
+    override val eventDetails : EventLogDetails
+) extends NodeEventLog {
+  override val eventType = DemoteRelay.eventType
+}
+
+object DemoteRelay extends EventLogFilter {
+  override val eventType = DemoteRelayToNodeEventType
+  override def apply(x : (EventLogType, EventLogDetails)) : DemoteRelay = DemoteRelay(x._2)
 }
 
 object NodeEventLogsFilter {

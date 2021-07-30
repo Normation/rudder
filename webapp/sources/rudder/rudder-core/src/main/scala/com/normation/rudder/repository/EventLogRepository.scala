@@ -384,7 +384,21 @@ trait EventLogRepository {
       )
     )
   }
-
+  def saveDemoteToNode(
+    modId        : ModificationId
+  , principal    : EventActor
+  , demotedRelay : NodeInfo
+  , reason       : Option[String]
+  ) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getDemoteToNodeFromDiff (
+          principal  = principal
+        , demotedRelay = demotedRelay
+        , reason = reason
+      )
+    )
+  }
 
   /**
    * Returns eventlog matching criteria

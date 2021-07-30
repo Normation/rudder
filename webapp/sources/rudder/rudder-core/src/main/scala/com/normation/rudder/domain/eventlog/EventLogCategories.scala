@@ -247,6 +247,10 @@ final case object PromoteNodeToRelayEventType extends NoRollbackEventLogType {
   def serialize = "NodePromotedToRelay"
 }
 
+final case object DemoteRelayToNodeEventType extends NoRollbackEventLogType {
+  def serialize = "RelayDemotedToNode"
+}
+
 sealed trait ModifyGlobalPropertyEventType extends NoRollbackEventLogType {
   def propertyName : String
 }
@@ -334,6 +338,7 @@ object ModificationWatchList {
 
     , ModifyNodeEventType
     , PromoteNodeToRelayEventType
+    , DemoteRelayToNodeEventType
 
   ) ++ ModifyGlobalPropertyEventLogsFilter.eventTypes
 
@@ -402,6 +407,7 @@ object EventTypeFactory {
 
     , ModifyNodeEventType
     , PromoteNodeToRelayEventType
+    , DemoteRelayToNodeEventType
 
   ) ::: ModifyGlobalPropertyEventLogsFilter.eventTypes
 
