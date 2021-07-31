@@ -79,6 +79,7 @@ import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
+import com.normation.rudder.domain.secret.Secret
 
 //serialize / deserialize tags
 object TagsXml {
@@ -525,4 +526,13 @@ class GlobalPropertySerialisationImpl(xmlVersion:String) extends GlobalPropertyS
      </globalPropertyUpdate>
   }
 
+}
+
+class SecretSerialisationImpl(xmlVersion:String) extends SecretSerialisation {
+  def serialise(secret:Secret):  Elem = {
+    createTrimedElem(XML_TAG_SECRET, xmlVersion) (
+      <name>{secret.name}</name>
+        <description>{secret.description}</description>
+    )
+  }
 }

@@ -802,6 +802,7 @@ object RudderConfig extends Loggable {
   val woRuleCategoryRepository : WoRuleCategoryRepository = woLDAPRuleCategoryRepository
 
   val changeRequestEventLogService : ChangeRequestEventLogService = new ChangeRequestEventLogServiceImpl(eventLogRepository)
+  val secretEventLogService : SecretEventLogService = new SecretEventLogServiceImpl(eventLogRepository)
 
   lazy val xmlSerializer = XmlSerializerImpl(
       ruleSerialisation
@@ -1419,6 +1420,8 @@ object RudderConfig extends Loggable {
       , techniqueRepositoryImpl
       , rootSectionSerialisation
     )
+  lazy val secretSerialisation: SecretSerialisation =
+    new SecretSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val eventLogFactory = new EventLogFactoryImpl(
       ruleSerialisation
     , directiveSerialisation
@@ -1427,6 +1430,7 @@ object RudderConfig extends Loggable {
     , globalParameterSerialisation
     , apiAccountSerialisation
     , propertySerialization
+    , secretSerialisation
   )
   private[this] lazy val pathComputer = new PathComputerImpl(
       Constants.NODE_PROMISES_PARENT_DIR_BASE
@@ -1476,6 +1480,7 @@ object RudderConfig extends Loggable {
     , new DeploymentStatusUnserialisationImpl
     , new GlobalParameterUnserialisationImpl
     , new ApiAccountUnserialisationImpl
+    , new SecretUnserialisationImpl
   )
 
   //////////////////////////////////////////////////////////

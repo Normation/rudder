@@ -115,4 +115,6 @@ object Constants {
 
   val HOOKS_IGNORE_FILE_NAME = "non-exec-extensions.txt"
 
+  // for secret variable
+  val XML_TAG_SECRET = "secret"
 }

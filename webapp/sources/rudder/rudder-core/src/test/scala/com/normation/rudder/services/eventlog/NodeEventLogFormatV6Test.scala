@@ -65,8 +65,7 @@ import com.normation.rudder.domain.properties.NodeProperty
 class NodeEventLogFormatV6Test extends Specification {
 
   // we only want to unserialize node properties - all these null, a piece of beauty
-  val eventDetails = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null)
-
+  val eventDetails = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
   val event_32_NodeHeartbeatModified = <entry><node changeType="modify" fileFormat="6">
     <id>59e66fe7-7f0e-497d-8055-a103116b4a08</id>
     <heartbeat><from/><to><override>true</override><period>20</period></to></heartbeat>

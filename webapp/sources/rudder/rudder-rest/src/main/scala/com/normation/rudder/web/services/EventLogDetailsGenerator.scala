@@ -48,6 +48,7 @@ import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.{ChangeRequestId, WorkflowStepChange}
 import com.normation.rudder.reports.{AgentRunInterval, HeartbeatConfiguration}
 import com.normation.rudder.repository._
@@ -173,6 +174,11 @@ class EventLogDetailsGenerator(
       Text(s"API Account ${name} ${actionName}")
     }
 
+    def secretDesc(x:EventLog, actionName: NodeSeq) = {
+      val name = (x.details \ "secret" \ "name").text
+      Text(s"Secret ${name} ${actionName}")
+    }
+
     event match {
       case x:ActivateRedButton             => Text("Stop Rudder agents on all nodes")
       case x:ReleaseRedButton              => Text("Start again Rudder agents on all nodes")
@@ -226,6 +232,9 @@ class EventLogDetailsGenerator(
       case x:ModifyNode                    => nodeDesc(x, Text(" modified"))
       case x:PromoteNode                   => nodeDesc(x, Text(" promoted to relay"))
       case x:DemoteRelay                   => nodeDesc(x, Text(" demoted to node"))
+      case x:AddSecret                     => secretDesc(x, Text(" added"))
+      case x:ModifySecret                  => secretDesc(x, Text(" modified"))
+      case x:DeleteSecret                  => secretDesc(x, Text(" deleted"))
       case _ => Text("Unknow event type")
     }
   }
@@ -938,6 +947,64 @@ class EventLogDetailsGenerator(
           }
              }
 
+        // Secret
+        case x:AddSecret =>
+          "*" #> { logDetailsService.getSecretAddDetails(x.details) match {
+            case Full(secretDiff) =>
+              <div class="evloglmargin">
+
+                { secretDetails(secretXML, secretDiff.secret)}
+                { reasonHtml }
+                { xmlParameters(event.id) }
+              </div>
+            case e:EmptyBox => logger.warn(e)
+              errorMessage(e)
+          }
+          }
+
+        case x:DeleteSecret =>
+          "*" #> { logDetailsService.getSecretDeleteDetails(x.details) match {
+            case Full(secretDiff) =>
+              <div class="evloglmargin">
+
+                { secretDetails(secretXML, secretDiff.secret)}
+                { reasonHtml }
+                { xmlParameters(event.id) }
+              </div>
+            case e:EmptyBox => logger.warn(e)
+              errorMessage(e)
+          }
+          }
+
+        case mod:ModifySecret =>
+          "*" #> { logDetailsService.getSecretModifyDetails(mod.details) match {
+            case Full(modDiff) =>
+              val hasChanged = {
+                if(modDiff.modValue)
+                  Some(<div id="value"><br/><b>The value has been changed</b></div><br/>)
+                else
+                  None
+              }
+              <div class="evloglmargin">
+
+                <h4>Secret overview:</h4>
+                <ul class="evlogviewpad">
+                  <li><b>Secret name:</b> { modDiff.name }</li>
+                  <li><b>Secret description:</b> { modDiff.description }</li>
+                </ul>
+                {(
+                "#name"  #> modDiff.name &
+                  "#value" #> hasChanged &
+                  "#description" #> mapSimpleDiff(modDiff.modDescription)
+                )(secretModDetailsXML)
+                }
+                { reasonHtml }
+                { xmlParameters(event.id) }
+              </div>
+            case e:EmptyBox => logger.warn(e)
+              errorMessage(e)
+          }
+          }
         // other case: do not display details at all
         case _ => "*" #> ""
 
@@ -1189,6 +1256,12 @@ class EventLogDetailsGenerator(
       <li><b>Date inventory last received: </b><value id="version"/></li>
     </ul>
   )
+
+  private[this] def secretDetails(xml: NodeSeq, secret: Secret) = (
+    "#name" #> secret.name &
+      "#description" #> secret.description
+    )(xml)
+
   private[this] val crDetailsXML =
     <div>
       <h4>Rule overview:</h4>
@@ -1350,6 +1423,21 @@ class EventLogDetailsGenerator(
       {liModDetailsXML("overridable", "Overridable")}
     </xml:group>
 
+  private[this] val secretXML =
+    <div>
+      <h4>Secret overview:</h4>
+      <ul class="evlogviewpad">
+        <li><b>Name:&nbsp;</b><value id="name"/></li>
+        <li><b>Description:&nbsp;</b><value id="description"/></li>
+      </ul>
+    </div>
+
+  private[this] val secretModDetailsXML =
+    <xml:group>
+      {liModDetailsXML("name", "Name")}
+      {liModDetailsXML("value", "Value")}
+      {liModDetailsXML("description", "Description")}
+    </xml:group>
 
   private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int) = {
     val rollbackedEvents = rollbackInfo.rollbacked

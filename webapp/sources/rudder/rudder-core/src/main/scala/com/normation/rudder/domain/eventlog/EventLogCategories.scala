@@ -51,6 +51,7 @@ final case object NodeGroupLogCategory extends EventLogCategory
 final case object AssetLogCategory extends EventLogCategory
 final case object RedButtonLogCategory extends EventLogCategory
 final case object ChangeRequestLogCategory extends EventLogCategory
+final case object SecretLogCategory extends EventLogCategory
 final case object WorkflowLogCategory extends EventLogCategory
 final case object PolicyServerLogCategory extends EventLogCategory
 final case object ImportExportItemsLogCategory extends EventLogCategory
@@ -111,6 +112,19 @@ final case object DeleteChangeRequestEventType extends NoRollbackEventLogType {
 }
 final case object ModifyChangeRequestEventType extends NoRollbackEventLogType {
   def serialize = "ChangeRequestModified"
+}
+
+// secret related
+final case object AddSecretEventType extends NoRollbackEventLogType {
+  def serialize = "SecretAdded"
+}
+
+final case object ModifySecretEventType extends NoRollbackEventLogType {
+  def serialize = "SecretModified"
+}
+
+final case object DeleteSecretEventType extends NoRollbackEventLogType {
+  def serialize = "SecretDeleted"
 }
 
 // directive related
@@ -408,6 +422,10 @@ object EventTypeFactory {
     , ModifyNodeEventType
     , PromoteNodeToRelayEventType
     , DemoteRelayToNodeEventType
+
+    , AddSecretEventType
+    , ModifySecretEventType
+    , DeleteSecretEventType
 
   ) ::: ModifyGlobalPropertyEventLogsFilter.eventTypes
 

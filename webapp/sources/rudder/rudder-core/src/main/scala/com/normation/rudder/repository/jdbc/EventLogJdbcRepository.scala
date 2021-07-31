@@ -283,7 +283,8 @@ private object EventLogReportsMapper extends NamedZioLogger {
         ChangeRequestLogsFilter.eventList :::
         TechniqueEventLogsFilter.eventList :::
         ParameterEventsLogsFilter.eventList :::
-        ModifyGlobalPropertyEventLogsFilter.eventList
+        ModifyGlobalPropertyEventLogsFilter.eventList :::
+        SecretEventsLogsFilter.eventList
 
 
   def mapEventLog(

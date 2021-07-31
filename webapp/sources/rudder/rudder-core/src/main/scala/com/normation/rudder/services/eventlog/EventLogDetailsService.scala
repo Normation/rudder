@@ -83,6 +83,7 @@ import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.secret.Secret
 import com.typesafe.config.ConfigValue
 
 /**
@@ -176,6 +177,12 @@ trait EventLogDetailsService {
 
   def getPromotedNodeToRelayDetails(xml:NodeSeq) : Box[(NodeId, String)]
 
+  // Secrets variables
+  def getSecretAddDetails(xml:NodeSeq) : Box[AddSecretDiff]
+
+  def getSecretDeleteDetails(xml:NodeSeq) : Box[DeleteSecretDiff]
+
+  def getSecretModifyDetails(xml:NodeSeq) : Box[ModifySecretDiff]
 
 }
 
@@ -191,6 +198,7 @@ class EventLogDetailsServiceImpl(
   , deploymentStatusUnserialisation : DeploymentStatusUnserialisation
   , globalParameterUnserialisation  : GlobalParameterUnserialisation
   , apiAccountUnserialisation       : ApiAccountUnserialisation
+  , secretUnserialisation           : SecretUnserialisation
 ) extends EventLogDetailsService {
 
   /**
@@ -226,6 +234,20 @@ class EventLogDetailsServiceImpl(
       }
     } else {
       Failure("Bad details format. We were expected an unique node <entry/>, and we get: " + xml.toString)
+    }
+  }
+
+  def getSecretFromXML(xml:NodeSeq, changeType:String) : Box[Secret] = {
+    for {
+      entry           <- getEntryContent(xml)
+      s               <- (entry \ "secret").headOption ?~! (s"Entry type is not a secret: ${entry}")
+      changeTypeAddOk <- {
+        if(s.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
+        else Failure(s"Secret attribute does not have changeType=${changeType} in ${entry}")
+      }
+      secret          <- secretUnserialisation.unserialise(s)
+    } yield {
+      secret
     }
   }
 
@@ -1006,6 +1028,43 @@ class EventLogDetailsServiceImpl(
       )
     }
   }
+
+  def getSecretAddDetails(xml:NodeSeq) : Box[AddSecretDiff] = {
+    getSecretFromXML(xml, "add").map { secret =>
+      AddSecretDiff(secret)
+    }
+  }
+
+  def getSecretDeleteDetails(xml:NodeSeq) : Box[DeleteSecretDiff] = {
+    getSecretFromXML(xml, "delete").map { secret =>
+      DeleteSecretDiff(secret)
+    }
+  }
+
+  def getSecretModifyDetails(xml:NodeSeq) : Box[ModifySecretDiff] = {
+    for {
+      entry              <- getEntryContent(xml)
+      secret             <- (entry \ "secret").headOption ?~!
+        (s"Entry type is not a Secret: ${entry}")
+      name               <- (secret \ "name").headOption.map( _.text ) ?~!
+        (s"Missing attribute 'name' in entry type Secret: ${entry}")
+      description        <- (secret \ "description").headOption.map( _.text ) ?~!
+        (s"Missing attribute 'description' in entry type Secret: ${entry}")
+      modValue           <- tryo{(secret \ "valueHasChanged").text.toBoolean}
+      modDescription     <- getFromToString((secret \ "diffDescription").headOption)
+      modName            <- getFromToString((secret \ "diffName").headOption)
+      fileFormatOk       <- TestFileFormat(secret)
+    } yield {
+      ModifySecretDiff(
+          name = name
+        , description = description
+        , modValue = (modValue)
+        , modDescription = (modDescription)
+      )
+    }
+  }
+
+
 }
 
 final case class RollbackInfo(
