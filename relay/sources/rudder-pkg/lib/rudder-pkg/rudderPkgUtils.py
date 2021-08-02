@@ -649,7 +649,7 @@ GPG_RUDDER_KEY_FINGERPRINT = '7C16 9817 7904 212D D58C  B4D1 9322 C330 474A 19E8
 try:
     with open(VERSIONS_PATH) as version_file:
         for line in version_file:
-            m = re.match(r'release_step *= *(\w+)(\d*)', line)
+            m = re.match(r'release_step *= *([a-z]+)(\d*)$', line)
             if m:
                 if m.group(1) == 'release':
                     step = ''
@@ -660,7 +660,7 @@ try:
                 elif m.group(1) == 'rc':
                     step = 'c'
                 step += m.group(2)
-            m = re.match(r'main_version=7.0.0 *= *((\d+\.\d+)\.\d+)', line)
+            m = re.match(r'main_version *= *((\d+\.\d+)\.\d+)', line)
             if m:
                 RUDDER_MAJOR = m.group(2)
                 rudder_version = m.group(1)
