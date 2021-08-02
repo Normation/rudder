@@ -32,13 +32,15 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
 -- utility methods
-    -- generate random id
+    -- Generate random id
     GenerateId nextMsg ->
       (model, Random.generate nextMsg generator)
 
+    -- Do an API call
     CallApi call ->
       (model, call model)
 
+    -- UI high level stuff: list rules and other elements needed (groups, directives...)
     GetRulesResult res ->
       case  res of
         Ok r ->
