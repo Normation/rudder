@@ -1,4 +1,4 @@
-port module RudderNotifications exposing (..)
+port module Notifications exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (  class, style )

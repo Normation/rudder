@@ -42,6 +42,21 @@ pipeline {
                         }
                     }
                 }
+                stage('elm') {
+                    agent { label 'scala' }
+                    steps {
+                        dir('webapp/sources/rudder/rudder-web/src/main/elm') {
+                            sh script: './build-app.sh', label: 'build elm apps'
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                                new SlackNotifier().notifyResult("elm-team")
+                            }
+                        }
+                    }
+                }
                 stage('api-doc') {
                     agent { label 'api-docs' }
 

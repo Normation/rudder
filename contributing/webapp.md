@@ -99,7 +99,13 @@ wget -qO elm.gz https://github.com/elm/compiler/releases/download/0.19.0/binary-
 gzip -d elm.gz
 chmod +x elm
 mv elm /usr/local/bin/
-rm -rf elm.gz
+```
+
+```bash
+wget -qO elm-0.19.1.gz https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz
+gzip -d elm-0.19.1.gz
+chmod +x elm-0.19.1
+mv elm-0.19.1 /usr/local/bin/
 ```
 
 ### Rudder Test framework (RTF) installation

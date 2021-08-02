@@ -1,4 +1,4 @@
-port module RulesManagement exposing (..)
+port module Rules exposing (..)
 
 import Browser
 import DataTypes exposing (..)
