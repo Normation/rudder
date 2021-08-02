@@ -5,6 +5,20 @@ import Http exposing (..)
 import JsonDecoder exposing (..)
 import JsonEncoder exposing (..)
 
+
+--
+-- This files contains all API calls for the Rules UI
+-- Summary:
+-- GET    /rules/tree: get the rules tree
+-- GET    /settings/global_policy_mode : Get the global policy mode settings
+-- GET    /groups/tree: get the groups tree
+-- GET    /directives/tree : get the directives tree
+-- GET    /rules/${id} : get the details of the selected rules
+-- GET    /compliance/rules?level=6 : get the compliance details of all rules
+-- PUT    /rules : Create a new rule (error if existing)
+-- POST   /rules/${id} : Update an existing rule (error if it doesn't exist yet)
+
+
 getUrl: DataTypes.Model -> String -> String
 getUrl m url =
   m.contextPath ++ "/secure/api" ++ url

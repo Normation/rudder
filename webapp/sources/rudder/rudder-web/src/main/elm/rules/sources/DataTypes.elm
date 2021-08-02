@@ -2,6 +2,10 @@ module DataTypes exposing (..)
 
 import Http exposing (Error)
 
+--
+-- All our data types
+--
+
 type TabMenu
   = Information
   | Directives
