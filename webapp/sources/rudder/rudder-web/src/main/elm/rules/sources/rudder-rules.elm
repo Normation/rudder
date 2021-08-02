@@ -35,10 +35,12 @@ update msg model =
     -- Generate random id
     GenerateId nextMsg ->
       (model, Random.generate nextMsg generator)
-
     -- Do an API call
     CallApi call ->
       (model, call model)
+    -- neutral element
+    Ignore ->
+      ( model , Cmd.none)
 
     -- UI high level stuff: list rules and other elements needed (groups, directives...)
     GetRulesResult res ->
@@ -184,6 +186,29 @@ update msg model =
 
     SaveRuleDetails (Err err) ->
       processApiError "Saving Rule" err model
+
+    DeleteRule (Ok (ruleId, ruleName)) ->
+      let
+        -- TODO :: Rafraichir liste des rules
+        newMode = case model.mode of
+          EditRule r -> if r.rule.id == ruleId then RuleTable else model.mode
+          _ -> model.mode
+
+      in
+        ({ model | mode = newMode}, successNotification ("Successfully deleted rule '" ++ ruleName ++  "' (id: "++ ruleId.value ++")"))
+
+    DeleteRule (Err err) ->
+          processApiError "Deleting Rule" err model
+
+
+    OpenDeletionPopup rule ->
+      ( { model | modal = Just (DeletionValidation rule)} , Cmd.none )
+
+    ClosePopup callback ->
+      let
+        (nm,cmd) = update callback { model | modal = Nothing}
+      in
+        (nm , cmd)
 
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )

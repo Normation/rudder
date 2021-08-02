@@ -13,7 +13,7 @@ init flags =
   let
 
     initCategory      = Category "" "" (SubCategories []) []
-    initModel = Model flags.contextPath Loading "" initCategory initCategory initCategory [] []
+    initModel = Model flags.contextPath Loading "" initCategory initCategory initCategory [] [] Nothing
 
     listInitActions =
       [ getPolicyMode      initModel

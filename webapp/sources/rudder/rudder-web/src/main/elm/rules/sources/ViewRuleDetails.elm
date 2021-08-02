@@ -10,6 +10,7 @@ import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
 import ViewTabContent exposing (tabContent)
+
 --
 -- This file contains all methods to display the details of the selected rule.
 --
@@ -39,9 +40,9 @@ editionTemplate model details isNewRule =
         ]
       , li [class "divider"][]
       , li [] [
-          a [ class "action-danger disabled"] [
+          a [ class "action-danger", onClick (OpenDeletionPopup rule)] [
             i [ class "fa fa-times-circle"] []
-          , text "Delete (Not yet implemented)"
+          , text "Delete"
           ]
         ]
       ]
