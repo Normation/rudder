@@ -137,6 +137,11 @@ class SystemVariableServiceImpl(
   import SystemVariableService._
 
   //get the Rudder reports DB (postgres) database name from URI
+  val reportsDbName = {
+    reportsDbUri.split("""/""").toSeq.lastOption.getOrElse(throw new IllegalArgumentException(
+      s"The JDBC URI configure for property 'rudder.jdbc.url' is malformed and should ends by /BASENAME: ${reportsDbUri}")
+    )
+  }
   val reportsDbUrl = reportsDbUri.replace(s"""jdbc:postgresql://""", s"""postgresql://${reportsDbUser}@""")
 
   val varToolsFolder                = systemVariableSpecService.get("TOOLS_FOLDER"                   ).toVariable(Seq(toolsFolder))
@@ -390,7 +395,8 @@ class SystemVariableServiceImpl(
 
       val varManagedNodesCertUUID = systemVariableSpecService.get("MANAGED_NODES_CERT_UUID").toVariable(nodesWithCertificate.map(_._1.id.value))
 
-      //Reports DB (postgres) DB name and DB user
+      //Reports DB name (postgres), URL and DB user
+      val varReportsDBname = systemVariableSpecService.get("RUDDER_REPORTS_DB_NAME").toVariable(Seq(reportsDbName))
       val varReportsDBUrl = systemVariableSpecService.get("RUDDER_REPORTS_DB_URL").toVariable(Seq(reportsDbUrl))
       val varReportsDBPassword = systemVariableSpecService.get("RUDDER_REPORTS_DB_PASSWORD").toVariable(Seq(reportsDbPassword))
 
@@ -402,6 +408,7 @@ class SystemVariableServiceImpl(
         , varManagedNodesAdmin
         , varManagedNodesIp
         , varManagedNodesKey
+        , varReportsDBname
         , varReportsDBUrl
         , varReportsDBPassword
         , varSubNodesName

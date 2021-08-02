@@ -79,6 +79,10 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                             , multivalued = false
                         )
     , SystemVariableSpec(
+                   "RUDDER_REPORTS_DB_NAME" , "Name of the Rudder database (rudder by default)"
+                                            , multivalued = false
+                        )
+    , SystemVariableSpec(
                    "RUDDER_REPORTS_DB_URL" , "PostgreSQL connection URL (postgresql://rudder@localhost:5432/rudder)"
                                             , multivalued = false
                                           )
