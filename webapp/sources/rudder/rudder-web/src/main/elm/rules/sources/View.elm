@@ -1,8 +1,8 @@
 module View exposing (..)
 
 import DataTypes exposing (..)
-import Html exposing (Html, button, div, i, span, text, h1, h4, ul, li, input, a, p, form, label, textarea, select, option, table, thead, tbody, tr, th, td, small)
-import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute)
+import Html exposing (Html, button, div, i, span, text, h1, h3, h4, ul, li, input, a, p, form, label, textarea, select, option, table, thead, tbody, tr, th, td, small)
+import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute, tabindex)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
 import List
@@ -68,6 +68,32 @@ view model =
       CreateRule details ->
         (editionTemplate model details True)
 
+    modal = case model.modal of
+      Nothing -> text ""
+      Just (DeletionValidation rule) ->
+        div [ tabindex -1, class "modal fade ng-isolate-scope in", style "z-index" "1050", style "display"  "block" ]
+        [ div [ class "modal-dialog" ] [
+            div [ class "modal-content" ]  [-- uib-modal-transclude="">
+              div [ class "modal-header ng-scope" ] [
+                h3 [ class "modal-title" ] [ text "Delete Rule"]
+              ]
+            , div [ class "modal-body" ] [
+                text ("Are you sure you want to Delete rule '"++ rule.name ++"'?")
+              ]
+            , div [ class "modal-footer" ] [
+                button [ class "btn btn-primary btn-outline pull-left", onClick (ClosePopup Ignore) ]
+                [ text "Cancel "
+                , i [ class "fa fa-arrow-left" ] []
+                ]
+              , button [ class "btn btn-danger", onClick (ClosePopup (CallApi (deleteRule rule))) ]
+                [ text "Delete "
+                , i [ class "fa fa-times-circle" ] []
+                ]
+              ]
+            ]
+          ]
+        ]
+
   in
     div [class "rudder-template"]
     [ div [class "template-sidebar sidebar-left"]
@@ -103,4 +129,5 @@ view model =
       ]
     , div [class "template-main"]
       [ templateMain ]
+    , modal
     ]

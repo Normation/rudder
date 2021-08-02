@@ -59,6 +59,16 @@ toTags lst =
     D.succeed
       ( List.map (\t -> Tag (Tuple.first t) (Tuple.second t)) concatList )
 
+decodeDeleteRuleResponse : Decoder (RuleId,String)
+decodeDeleteRuleResponse =
+  D.at ["data", "rules" ](index 0
+  ( succeed Tuple.pair
+     |> required "id" (map RuleId string)
+     |> required "displayName" string
+  ))
+
+
+-- COMPLIANCE
 decodeGetRulesCompliance : Decoder (List RuleCompliance)
 decodeGetRulesCompliance =
   D.at [ "data" , "rules" ] (D.list decodeRuleCompliance)
@@ -124,7 +134,6 @@ decodeComplianceDetails =
 decodeGetTechniques : Decoder (List Technique)
 decodeGetTechniques =
   D.at ["data", "techniques" ] (D.list decodeTechnique)
-
 
 
 decodeGetDirectives : Decoder (List Directive)

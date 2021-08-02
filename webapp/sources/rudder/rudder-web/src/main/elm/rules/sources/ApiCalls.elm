@@ -136,3 +136,19 @@ saveRuleDetails ruleDetails creation model =
         }
   in
     send SaveRuleDetails req
+
+deleteRule : Rule -> Model -> Cmd Msg
+deleteRule rule model =
+  let
+    req =
+      request
+        { method  = "DELETE"
+        , headers = []
+        , url     = getUrl model "/rules/" ++ rule.id.value
+        , body    = emptyBody
+        , expect  = expectJson decodeDeleteRuleResponse
+        , timeout = Nothing
+        , withCredentials = False
+        }
+  in
+    send DeleteRule req

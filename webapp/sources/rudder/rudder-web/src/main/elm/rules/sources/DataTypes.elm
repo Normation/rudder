@@ -18,6 +18,7 @@ type alias Tag =
   , value : String
   }
 
+type ModalState = DeletionValidation Rule
 
 type RuleTarget = NodeGroupId String | Composition  RuleTarget RuleTarget | Special String | Node String | And (List RuleTarget) | Or (List RuleTarget)
 
@@ -155,6 +156,7 @@ type alias Model =
   , techniquesTree  : Category Technique
   , rulesCompliance : List RuleCompliance
   , directives      : List Directive
+  , modal           : Maybe ModalState
   }
 
 type Msg
@@ -173,6 +175,10 @@ type Msg
   | GetPolicyModeResult      (Result Error String)
   | GetRulesComplianceResult (Result Error (List RuleCompliance))
   | SaveRuleDetails          (Result Error Rule)
-  | GetRulesResult          (Result Error (Category Rule))
-  | GetGroupsTreeResult     (Result Error (Category Group))
-  | GetTechniquesTreeResult (Result Error ((Category Technique, List Technique)))
+  | GetRulesResult           (Result Error (Category Rule))
+  | GetGroupsTreeResult      (Result Error (Category Group))
+  | GetTechniquesTreeResult  (Result Error ((Category Technique, List Technique)))
+  | DeleteRule               (Result Error (RuleId, String))
+  | OpenDeletionPopup Rule
+  | ClosePopup Msg
+  | Ignore
