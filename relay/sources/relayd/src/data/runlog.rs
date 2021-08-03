@@ -45,7 +45,8 @@ impl InsertedRunlog {
     pub fn new(runlog: &RunLog, insertion_id: i64) -> Self {
         Self {
             node_id: runlog.info.node_id.clone(),
-            date: runlog.info.timestamp,
+            // can't be empty
+            date: runlog.reports[0].start_datetime,
             node_config_id: runlog.config_id.clone(),
             insertion_id,
             // None means default value will be inserted, here current_timestamp

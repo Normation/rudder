@@ -21,6 +21,9 @@ use tracing::debug;
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct RunInfo {
     pub node_id: NodeId,
+    /// This date is the actual start of the run but not the date the webapp expects
+    /// as runlog date. This runlog date from the webapp perspective is the date of the
+    /// startRun report.
     pub timestamp: DateTime<FixedOffset>,
 }
 
