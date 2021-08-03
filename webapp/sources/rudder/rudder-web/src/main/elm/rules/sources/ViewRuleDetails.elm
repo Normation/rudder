@@ -26,26 +26,31 @@ editionTemplate model details isNewRule =
       else
          text originRule.name
     topButtons =
-      [ li [] [
-          a [ class "action-success disabled"] [
-            i [ class "fa fa-clone"] []
-          , text "Clone (Not yet implemented)"
+      let
+        disableWhileCreating = case model.mode of
+          EditRule _ -> ""
+          _ -> " disabled"
+      in
+        [ li [] [
+            a [ class ("action-success"++disableWhileCreating), onClick (GenerateId (\r -> CloneRule originRule (RuleId r)))] [
+              i [ class "fa fa-clone"] []
+            , text "Clone"
+            ]
+          ]
+        , li [] [
+            a [ class ("action-primary disabled"++disableWhileCreating)] [
+              i [ class "fa fa-ban"] []
+            , text "Disable (Not yet implemented)"
+            ]
+          ]
+        , li [class "divider"][]
+        , li [] [
+            a [ class ("action-danger"++disableWhileCreating), onClick (OpenDeletionPopup rule)] [
+              i [ class "fa fa-times-circle"] []
+            , text "Delete"
+            ]
           ]
         ]
-      , li [] [
-          a [ class "action-primary disabled"] [
-            i [ class "fa fa-ban"] []
-          , text "Disable (Not yet implemented)"
-          ]
-        ]
-      , li [class "divider"][]
-      , li [] [
-          a [ class "action-danger", onClick (OpenDeletionPopup rule)] [
-            i [ class "fa fa-times-circle"] []
-          , text "Delete"
-          ]
-        ]
-      ]
 
     isNotMember : List a -> a -> Bool
     isNotMember listIds id =
