@@ -43,10 +43,6 @@
   width: 100%;
   display: inline-block;
 }
-/* ================ */
-.rudder-template .template-sidebar .sidebar-list ul{
-  padding-left: 15px;
-}
 /* === OVERRIDE JSTREE === */
 .jstree-default li:last-child {
   background: transparent;

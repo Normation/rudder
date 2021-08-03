@@ -9,7 +9,7 @@ import List
 import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
-
+import ViewUtilsCompliance exposing (buildComplianceBar)
 --
 -- This file contains all methods to display the Rules table
 --
@@ -44,60 +44,8 @@ buildRulesTable model =
               Just co ->
                 let
                   complianceDetails = co.complianceDetails
-
-                  buildComplianceBar : Float -> String -> Html msg
-                  buildComplianceBar val t =
-                    div[class ("progress-bar progress-bar-" ++ t), style "flex" (fromFloat val)][text ((fromFloat val) ++ "%")]
-
-                  getValueCompliance : Maybe Float -> Float
-                  getValueCompliance f =
-                    case f of
-                      Just v  -> v
-                      Nothing -> 0
-
-                  valSuccessNotApplicable       = getValueCompliance complianceDetails.successNotApplicable       -- 0
-                  valSuccessAlreadyOK           = getValueCompliance complianceDetails.successAlreadyOK           -- 0
-                  valSuccessRepaired            = getValueCompliance complianceDetails.successRepaired            -- 0
-                  valAuditCompliant             = getValueCompliance complianceDetails.auditCompliant             -- 0
-                  valAuditNotApplicable         = getValueCompliance complianceDetails.auditNotApplicable         -- 0
-
-                  valAuditNonCompliant          = getValueCompliance complianceDetails.auditNonCompliant          -- 1
-
-                  valError                      = getValueCompliance complianceDetails.error                      -- 2
-                  valAuditError                 = getValueCompliance complianceDetails.auditError                 -- 2
-
-                  valUnexpectedUnknownComponent = getValueCompliance complianceDetails.unexpectedUnknownComponent -- 3
-                  valUnexpectedMissingComponent = getValueCompliance complianceDetails.unexpectedMissingComponent -- 3
-                  valBadPolicyMode              = getValueCompliance complianceDetails.badPolicyMode              -- 3
-
-                  valApplying                   = getValueCompliance complianceDetails.applying                   -- 4
-
-                  valReportsDisabled            = getValueCompliance complianceDetails.reportsDisabled            -- 5
-
-                  valNoReport                   = getValueCompliance complianceDetails.noReport                   -- 6
-
-                  okStatus        = valSuccessNotApplicable + valSuccessAlreadyOK + valSuccessRepaired + valAuditCompliant + valAuditNotApplicable
-                  nonCompliant    = valAuditNonCompliant
-                  error           = valError + valAuditError
-                  unexpected      = valUnexpectedUnknownComponent + valUnexpectedMissingComponent + valBadPolicyMode
-                  pending         = valApplying
-                  reportsDisabled = valReportsDisabled
-                  noreport        = valNoReport
-
-
                 in
-                  if ( okStatus + nonCompliant + error + unexpected + pending + reportsDisabled + noreport == 0 ) then
-                    div[ class "text-muted"][text "No data available"]
-                  else
-                    div[ class "progress progress-flex"]
-                    [ buildComplianceBar okStatus        "success"
-                    , buildComplianceBar nonCompliant    "audit-noncompliant"
-                    , buildComplianceBar error           "error"
-                    , buildComplianceBar unexpected      "unknown"
-                    , buildComplianceBar pending         "pending"
-                    , buildComplianceBar reportsDisabled "reportsdisabled"
-                    , buildComplianceBar noreport        "no-report"
-                    ]
+                  buildComplianceBar complianceDetails
 
               Nothing -> text "No report"
       in

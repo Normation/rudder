@@ -9,6 +9,7 @@ import List
 import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
+import ViewUtilsCompliance exposing (buildComplianceBar)
 
 --
 -- This file contains all methods to display the details of the selected rule.
@@ -122,14 +123,27 @@ tabContent model details isNewRule=
             let
               directive = List.Extra.find (.id >> (==) id) model.directives
               rowDirective = case directive of
-                Nothing -> [td[][text ("Cannot find details of Directive " ++ id.value)]]
+                Nothing -> [td[colspan 2][text ("Cannot find details of Directive " ++ id.value)]]
                 Just d  ->
-                  [ td[]
-                    [ badgePolicyMode d
-                    , text d.displayName
+                  let
+                    compliance = case List.Extra.find (\c -> c.ruleId == rule.id) model.rulesCompliance of
+                      Nothing -> text "No report"
+                      Just co ->
+                        case List.Extra.find (\dir -> dir.directiveId == d.id) co.directives of
+                          Just com ->
+                            let
+                              complianceDetails = com.complianceDetails
+                            in
+                              buildComplianceBar complianceDetails
+
+                          Nothing  -> text "No report"
+                  in
+                    [ td[]
+                      [ badgePolicyMode d
+                      , text d.displayName
+                      ]
+                    , td[][compliance]
                     ]
-                  , td[][]
-                  ]
             in
               tr[](rowDirective)
 

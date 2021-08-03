@@ -81,7 +81,9 @@ editionTemplate model details isNewRule =
             (diff, lengthDiff + diff)
 
     (diffDirectivesPos, diffDirectivesNeg) = getDiffList originRule.directives rule.directives
-
+    nbInclude = case originRule.targets of
+      [Composition (Or i) (Or e)] -> List.length i
+      targets -> List.length targets
   in
     div [class "main-container"]
     [ div [class "main-header "]
@@ -122,7 +124,7 @@ editionTemplate model details isNewRule =
           [ a[onClick (ChangeTabFocus Groups       )]
             [ text "Groups"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
-              [ span [class "nb-resources"] [ text (String.fromInt(List.length rule.targets))]
+              [ span [class "nb-resources"] [ text (String.fromInt(nbInclude))]
               ]
             ]
           ]
