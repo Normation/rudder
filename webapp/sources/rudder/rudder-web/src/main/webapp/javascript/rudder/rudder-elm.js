@@ -4,7 +4,7 @@ $(document).ready(function(){
   const flags = { contextPath: contextPath};
   // --- NOTIFICATIONS ---
   appNode  = document.querySelector("rudder-notifications");
-  appNotif = Elm.RudderNotifications.init({
+  appNotif = Elm.Notifications.init({
     node  : appNode,
     flags : flags
   });

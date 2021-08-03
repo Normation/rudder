@@ -15,7 +15,7 @@ $(document).ready(function(){
     var initValues = {
       contextPath : contextPath
     };
-    var app = Elm.RulesManagement.init({node: main, flags: initValues});
+    var app = Elm.Rules.init({node: main, flags: initValues});
 
   app.ports.successNotification.subscribe(function(str) {
     createSuccessNotification(str)
