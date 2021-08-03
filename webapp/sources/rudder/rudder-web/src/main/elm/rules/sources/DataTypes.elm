@@ -179,6 +179,7 @@ type Msg
   | GetGroupsTreeResult      (Result Error (Category Group))
   | GetTechniquesTreeResult  (Result Error ((Category Technique, List Technique)))
   | DeleteRule               (Result Error (RuleId, String))
+  | CloneRule Rule RuleId
   | OpenDeletionPopup Rule
   | ClosePopup Msg
   | Ignore

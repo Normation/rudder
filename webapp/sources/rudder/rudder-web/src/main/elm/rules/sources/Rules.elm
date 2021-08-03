@@ -176,7 +176,7 @@ update msg model =
         _   -> (model, Cmd.none)
 
     SaveRuleDetails (Ok ruleDetails) ->
-      -- TODO // Update Rules Tree
+      -- TODO // Update Rules List
       case model.mode of
         EditRule details ->
           ({model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}, successNotification ("Rule '"++ ruleDetails.name ++"' successfully saved"))
@@ -188,21 +188,36 @@ update msg model =
       processApiError "Saving Rule" err model
 
     DeleteRule (Ok (ruleId, ruleName)) ->
-      let
-        -- TODO :: Rafraichir liste des rules
-        newMode = case model.mode of
-          EditRule r -> if r.rule.id == ruleId then RuleTable else model.mode
-          _ -> model.mode
-
-      in
-        ({ model | mode = newMode}, successNotification ("Successfully deleted rule '" ++ ruleName ++  "' (id: "++ ruleId.value ++")"))
+    -- TODO // Update Rules List
+      case model.mode of
+        EditRule r ->
+          let
+            newMode = if r.rule.id == ruleId then RuleTable else model.mode
+          in
+            ({ model | mode = newMode}, successNotification ("Successfully deleted rule '" ++ ruleName ++  "' (id: "++ ruleId.value ++")"))
+        _ -> (model, Cmd.none)
 
     DeleteRule (Err err) ->
-          processApiError "Deleting Rule" err model
+      processApiError "Deleting Rule" err model
 
+    CloneRule rule rulelId ->
+      let
+        newModel = case model.mode of
+          EditRule _ ->
+            let
+              newRule    = {rule | name = ("Clone of "++rule.name), id = rulelId}
+              newRuleDetails = EditRuleDetails newRule newRule Information False False (Tag "" "")
+            in
+              { model | mode = CreateRule newRuleDetails }
+          _ -> model
+      in
+        (newModel, Cmd.none)
 
     OpenDeletionPopup rule ->
-      ( { model | modal = Just (DeletionValidation rule)} , Cmd.none )
+      case model.mode of
+        EditRule _ ->
+            ( { model | modal = Just (DeletionValidation rule)} , Cmd.none )
+        _ -> (model, Cmd.none)
 
     ClosePopup callback ->
       let
