@@ -6,6 +6,7 @@
 /var/rudder/shared-files(/.*)?           gen_context(system_u:object_r:public_content_rw_t,s0)
 /var/rudder/configuration-repository/shared-files(/.*)? gen_context(system_u:object_r:public_content_t,s0)
 /var/rudder/lib/ssl/allnodescerts.pem -- gen_context(system_u:object_r:rudder_relayd_var_lib_t,s0)
+/var/rudder/lib/ssl/nodescerts.pem -- gen_context(system_u:object_r:rudder_relayd_var_lib_t,s0)
 /var/rudder/lib/ssl/root.pem -- gen_context(system_u:object_r:rudder_relayd_var_lib_t,s0)
 /var/rudder/lib/ssl/policy_server.pem -- gen_context(system_u:object_r:rudder_relayd_var_lib_t,s0)
 /var/rudder/cfengine-community/ppkeys/localhost.priv    -- gen_context(system_u:object_r:httpd_sys_content_t,s0)
