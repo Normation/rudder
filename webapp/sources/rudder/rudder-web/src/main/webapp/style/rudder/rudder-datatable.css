@@ -503,3 +503,53 @@ td.greyBackground, th.greyBackground {
 .dataTable td a.text-danger:hover{
   color: #881c1a;
 }
+
+/* === COLUMNS CONFIGURATION === */
+#select-columns{
+  margin-bottom: 4px;
+}
+#select-columns .rudder-label.label-error:before{
+  content: "";
+}
+#select-columns .form-inline-flex{
+  display: flex;
+  margin: 12px 0 8px 0;
+}
+#select-columns .form-inline-flex label.input-group {
+  cursor: pointer;
+  margin-bottom: 0;
+}
+#select-columns .form-inline-flex label.input-group > .input-group-addon{
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  background-color: #f7F7F7;
+}
+#select-columns .form-inline-flex > *:not(:first-child){
+  margin-left : 15px;
+}
+#select-columns .form-inline-flex select,
+#select-columns .form-inline-flex input[type=text]{
+  min-width: 250px;
+}
+#select-columns .btn > .fa:first-child {
+  margin-right : 6px;
+}
+#select-columns .rudder-label:first-of-type{
+  margin-left: 0;
+}
+#select-columns .rudder-label{
+  margin-left: 6px;
+  padding: 4px 4px 4px 12px;
+  min-width: initial;
+  cursor: default;
+}
+#select-columns .rudder-label .fa{
+  opacity: .6;
+  padding: 0 8px;
+  cursor: pointer;
+  transition-duration: .2s;
+  transition-property: opacity, background-color;
+}
+#select-columns .rudder-label:hover .fa{
+  opacity: 1;
+}
