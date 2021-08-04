@@ -162,7 +162,7 @@ view model =
                     [ input[type_ "radio", name "metrics", id "complete-metrics", onClick (UpdateSection 2 (Metrics Completed Complete )), checked (metrics == Complete)][]
                     , label[for "complete-metrics"]
                       [i [class "tech"][]
-                      , span [] [text "Completed"]
+                      , span [] [text "Complete"]
                       ]
                     ]
                   ]
