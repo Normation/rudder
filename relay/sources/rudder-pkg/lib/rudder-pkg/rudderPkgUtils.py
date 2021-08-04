@@ -360,14 +360,14 @@ def package_check(metadata, version):
 def check_plugin_compatibility(metadata, version):
     # check that the given version is compatible with Rudder one
     match = re.match(
-        r'((\d+\.\d+)(\.\d+(~(alpha|beta|rc)\d*)?)?)-(\d+)\.(\d+)', metadata['version']
+        r'((\d+\.\d+)(\.\d+(~(alpha|beta|rc)\d*)?)?)(-SNAPSHOT)?-(\d+)\.(\d+)', metadata['version']
     )
     if not match:
         fail('Invalid package version ' + metadata['version'])
     rudder_version = match.group(1).replace('~alpha', 'a').replace('~beta', 'b').replace('~rc', 'c')
     rudder_major = match.group(2)
-    major_version = match.group(6)
-    minor_version = match.group(7)
+    major_version = match.group(7)
+    minor_version = match.group(8)
     if rudder_major != RUDDER_MAJOR:
         return False
     if StrictVersion(rudder_version) > StrictVersion(RUDDER_VERSION):
