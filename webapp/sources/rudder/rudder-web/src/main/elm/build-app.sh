@@ -11,7 +11,7 @@ then
   echo "$ gzip -d elm-0.19.1.gz"
   echo "$ chmod +x elm-0.19.1"
   echo "# then put it somewhere in your PATH"
-  exit
+  exit 1
 fi
 
 # we want that all elm-stuff stay in src/main/elm
