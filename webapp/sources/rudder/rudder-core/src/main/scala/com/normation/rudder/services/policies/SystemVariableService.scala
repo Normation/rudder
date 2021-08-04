@@ -395,22 +395,36 @@ class SystemVariableServiceImpl(
 
       val varManagedNodesCertUUID = systemVariableSpecService.get("MANAGED_NODES_CERT_UUID").toVariable(nodesWithCertificate.map(_._1.id.value))
 
-      //Reports DB name (postgres), URL and DB user
-      val varReportsDBname = systemVariableSpecService.get("RUDDER_REPORTS_DB_NAME").toVariable(Seq(reportsDbName))
-      val varReportsDBUrl = systemVariableSpecService.get("RUDDER_REPORTS_DB_URL").toVariable(Seq(reportsDbUrl))
-      val varReportsDBPassword = systemVariableSpecService.get("RUDDER_REPORTS_DB_PASSWORD").toVariable(Seq(reportsDbPassword))
+      // Root server specific
+      val rootServerSpecific = if (nodeInfo.id.value == "root") {
+        //Reports DB name (postgres), URL and DB user
+        val varReportsDBname = systemVariableSpecService.get("RUDDER_REPORTS_DB_NAME").toVariable(Seq(reportsDbName))
+        val varReportsDBUrl = systemVariableSpecService.get("RUDDER_REPORTS_DB_URL").toVariable(Seq(reportsDbUrl))
+        val varReportsDBPassword = systemVariableSpecService.get("RUDDER_REPORTS_DB_PASSWORD").toVariable(Seq(reportsDbPassword))
+        Seq(
+            varReportsDBname
+          , varReportsDBUrl
+          , varReportsDBPassword)
+      } else {
+        val onlyForRootMessage = "This variable is only defined on root server"
+        val varReportsDBname = systemVariableSpecService.get("RUDDER_REPORTS_DB_NAME").toVariable(Seq(onlyForRootMessage))
+        val varReportsDBUrl = systemVariableSpecService.get("RUDDER_REPORTS_DB_URL").toVariable(Seq(onlyForRootMessage))
+        val varReportsDBPassword = systemVariableSpecService.get("RUDDER_REPORTS_DB_PASSWORD").toVariable(Seq(onlyForRootMessage))
+        Seq(
+          varReportsDBname
+          , varReportsDBUrl
+          , varReportsDBPassword)
+      }
+
 
       // the schedule must be the default one for policy server
 
-      Seq(
+      (Seq(
           varManagedNodes
         , varManagedNodesId
         , varManagedNodesAdmin
         , varManagedNodesIp
         , varManagedNodesKey
-        , varReportsDBname
-        , varReportsDBUrl
-        , varReportsDBPassword
         , varSubNodesName
         , varSubNodesId
         , varSubNodesServer
@@ -419,7 +433,7 @@ class SystemVariableServiceImpl(
         , varManagedNodesCertDN
         , varManagedNodesCertCN
         , varManagedNodesCertUUID
-      ) map (x => (x.spec.name, x))
+      ) ++ rootServerSpecific ).map(x => (x.spec.name, x))
     } else {
       Map()
     }
