@@ -113,18 +113,18 @@ class RudderCRunner (
           s"An error occurred when translating technique.json file into Rudder language\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
         ).fail
       }
-      r <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: "cf" :: "-i" :: s"""${outputPath}/${technique.path}/technique.rl""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
+      r <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: "cf" :: "-i" :: s"""${outputPath}/${technique.path}/technique.rd""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
       res <- r.await
       _ <- ZIO.when(res.code != 0) {
         Inconsistency(
-          s"An error occurred when compiling technique.rl file into cfengine\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+          s"An error occurred when compiling technique.rd file into cfengine\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
         ).fail
       }
-      r <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: "dsc" :: "-i" :: s"""${outputPath}/${technique.path}/technique.rl""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
+      r <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: "dsc" :: "-i" :: s"""${outputPath}/${technique.path}/technique.rd""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
       res <- r.await
       _ <- ZIO.when(res.code != 0) {
         Inconsistency(
-          s"An error occurred when compiling technique.rl file into dsc\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+          s"An error occurred when compiling technique.rd file into dsc\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
         ).fail
       }
     } yield {
@@ -892,7 +892,7 @@ class TechniqueArchiverImpl (
       "technique.cf" +:
       "technique.ps1" +:
       "technique.json" +:
-      "technique.rl" +:
+      "technique.rd" +:
       technique.ressources.collect {
       case ResourceFile(path, action) if action == ResourceFileState.New | action == ResourceFileState.Modified =>
         s"resources/${path}"
