@@ -1,29 +1,25 @@
 {
-  "type": "ncf_technique",
-  "version": 2,
-  "data": {
-    "bundle_name": "deprecated",
-    "description": "rudderlang compilation from deprecated gms",
-    "name": "deprecated",
-    "version": "1.0",
-    "parameter": [],
-    "category": "ncf_techniques",
-    "method_calls": [
-      {
-        "parameters": [
-          {
-            "name": "path",
-            "value": "tmp",
-            "$errors": []
-          }
-        ],
-        "class_context": "any",
-        "method_name": "directory_create",
-        "component": "Directory create",
-        "id": "3a5c97e5-0b4d-4341-b880-262ccd51f453",
-        "reportingDisabled": false
-      }
-    ],
-    "resources": []
-  }
+  "bundle_name": "deprecated",
+  "description": "rudderlang compilation from deprecated gms",
+  "name": "deprecated",
+  "version": "1.0",
+  "parameter": [],
+  "category": "ncf_techniques",
+  "method_calls": [
+    {
+      "parameters": [
+        {
+          "name": "path",
+          "value": "tmp",
+          "$errors": []
+        }
+      ],
+      "class_context": "any",
+      "method_name": "directory_create",
+      "component": "Directory create",
+      "id": "3a5c97e5-0b4d-4341-b880-262ccd51f453",
+      "reportingDisabled": false
+    }
+  ],
+  "resources": []
 }

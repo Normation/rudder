@@ -1,49 +1,45 @@
 {
-    "type": "ncf_technique",
-    "version": 2,
-    "data": {
-        "bundle_name": "parameters",
-        "description": "technique using parameters",
-        "name": "parameters",
-        "version": "1.0",
-        "parameter": [
-            {
-                "name": "paramtest",
-                "id": "d74a03dd-5b0b-4b06-8dcf-b4e0cb387c60",
-                "description": "parameter test"
-            }
-        ],
-        "category": "ncf_techniques",
-        "method_calls": [
-            {
-                "class_context": "any",
-                "component": "Package absent",
-                "method_name": "package_absent",
-                "parameters": [
-                    {
-                        "name": "name",
-                        "value": "vpn",
-                        "$errors": []
-                    },
-                    {
-                        "name": "version",
-                        "value": "",
-                        "$errors": []
-                    },
-                    {
-                        "name": "architecture",
-                        "value": "",
-                        "$errors": []
-                    },
-                    {
-                        "name": "provider",
-                        "value": "",
-                        "$errors": []
-                    }
-                ],
-                "id": "235915e6-7408-4750-a7ae-38983f12b670",
-                "reportingDisabled": false
-            }
-        ]
+  "bundle_name": "parameters",
+  "description": "technique using parameters",
+  "name": "parameters",
+  "version": "1.0",
+  "parameter": [
+    {
+      "name": "paramtest",
+      "id": "d74a03dd-5b0b-4b06-8dcf-b4e0cb387c60",
+      "description": "parameter test"
     }
+  ],
+  "category": "ncf_techniques",
+  "method_calls": [
+    {
+      "class_context": "any",
+      "component": "Package absent",
+      "method_name": "package_absent",
+      "parameters": [
+        {
+          "name": "name",
+          "value": "vpn",
+          "$errors": []
+        },
+        {
+          "name": "version",
+          "value": "",
+          "$errors": []
+        },
+        {
+          "name": "architecture",
+          "value": "",
+          "$errors": []
+        },
+        {
+          "name": "provider",
+          "value": "",
+          "$errors": []
+        }
+      ],
+      "id": "235915e6-7408-4750-a7ae-38983f12b670",
+      "reportingDisabled": false
+    }
+  ]
 }

@@ -1,29 +1,25 @@
 {
-  "type": "ncf_technique",
-  "version": 2,
-  "data": {
-    "bundle_name": "condition_foreign_variable",
-    "description": "condition foreign variable",
-    "name": "condition_foreign_variable",
-    "version": "1.0",
-    "parameter": [],
-    "category": "ncf_techniques",
-    "method_calls": [
-      {
-        "class_context": "any.(server_machine|group_sbu_cmcs__sles12_)",
-        "component": "Command execution",
-        "method_name": "command_execution",
-        "parameters": [
-          {
-            "name": "command",
-            "value": "chown -R ${owner}:${owner} ${path}",
-            "$errors": []
-          }
-        ],
-        "id": "f2c8e8b2-43d0-4ce2-ace7-fe5ad3ac7a16",
-        "reportingDisabled": false
-      }
-    ],
-    "resources": []
-  }
+  "bundle_name": "condition_foreign_variable",
+  "description": "condition foreign variable",
+  "name": "condition_foreign_variable",
+  "version": "1.0",
+  "parameter": [],
+  "category": "ncf_techniques",
+  "method_calls": [
+    {
+      "class_context": "any.(server_machine|group_sbu_cmcs__sles12_)",
+      "component": "Command execution",
+      "method_name": "command_execution",
+      "parameters": [
+        {
+          "name": "command",
+          "value": "chown -R ${owner}:${owner} ${path}",
+          "$errors": []
+        }
+      ],
+      "id": "f2c8e8b2-43d0-4ce2-ace7-fe5ad3ac7a16",
+      "reportingDisabled": false
+    }
+  ],
+  "resources": []
 }

@@ -1,70 +1,66 @@
 {
-  "type": "ncf_technique",
-  "version": 2,
-  "data": {
-    "bundle_name": "escaped",
-    "description": "rudderlang escaped for a complete loop",
-    "name": "escaped",
-    "version": "1.0",
-    "parameter": [],
-    "category": "ncf_techniques",
-    "method_calls": [
-      {
-        "class_context": "any",
-        "component": "Command execution",
-        "method_name": "command_execution",
-        "parameters": [
-          {
-            "name": "command",
-            "value": "echo \"Hello de Lu\" > /tmp/myfile-${sys.host}.txt"
-          }
-        ],
-        "id": "3316c616-faec-46e7-b7be-bd5463b47142",
-        "reportingDisabled": false
-      },
-      {
-        "class_context": "any.(SLES12)",
-        "component": "Command execution result",
-        "method_name": "command_execution_result",
-        "parameters": [
-          {
-            "name": "command",
-            "value": "rpm -qi gpg-pubkey-\\*|grep -E ^Packager|grep Innoflair"
-          },
-          {
-            "name": "kept_codes",
-            "value": "0"
-          },
-          {
-            "name": "repaired_codes",
-            "value": "1"
-          }
-        ],
-        "id": "018d891b-9a63-4bf7-b90f-dfc123050b85",
-        "reportingDisabled": false
-      },
-      {
-        "method_name": "file_replace_lines",
-        "class_context": "any",
-        "component": "File replace lines",
-        "parameters": [
-          {
-            "name": "path",
-            "value": "/etc/default/grub"
-          },
-          {
-            "name": "line",
-            "value": "^GRUB_TIMEOUT\\s+(0.+|[1-9].*)"
-          },
-          {
-            "name": "replacement",
-            "value": "GRUB_TIMEOUT=0"
-          }
-        ],
-        "id": "00c8bb99-805c-4c43-ab58-f9df8eec99c3",
-        "reportingDisabled": false
-      }
-    ],
-    "resources": []
-  }
+  "bundle_name": "escaped",
+  "description": "rudderlang escaped for a complete loop",
+  "name": "escaped",
+  "version": "1.0",
+  "parameter": [],
+  "category": "ncf_techniques",
+  "method_calls": [
+    {
+      "class_context": "any",
+      "component": "Command execution",
+      "method_name": "command_execution",
+      "parameters": [
+        {
+          "name": "command",
+          "value": "echo \"Hello de Lu\" > /tmp/myfile-${sys.host}.txt"
+        }
+      ],
+      "id": "3316c616-faec-46e7-b7be-bd5463b47142",
+      "reportingDisabled": false
+    },
+    {
+      "class_context": "any.(SLES12)",
+      "component": "Command execution result",
+      "method_name": "command_execution_result",
+      "parameters": [
+        {
+          "name": "command",
+          "value": "rpm -qi gpg-pubkey-\\*|grep -E ^Packager|grep Innoflair"
+        },
+        {
+          "name": "kept_codes",
+          "value": "0"
+        },
+        {
+          "name": "repaired_codes",
+          "value": "1"
+        }
+      ],
+      "id": "018d891b-9a63-4bf7-b90f-dfc123050b85",
+      "reportingDisabled": false
+    },
+    {
+      "method_name": "file_replace_lines",
+      "class_context": "any",
+      "component": "File replace lines",
+      "parameters": [
+        {
+          "name": "path",
+          "value": "/etc/default/grub"
+        },
+        {
+          "name": "line",
+          "value": "^GRUB_TIMEOUT\\s+(0.+|[1-9].*)"
+        },
+        {
+          "name": "replacement",
+          "value": "GRUB_TIMEOUT=0"
+        }
+      ],
+      "id": "00c8bb99-805c-4c43-ab58-f9df8eec99c3",
+      "reportingDisabled": false
+    }
+  ],
+  "resources": []
 }

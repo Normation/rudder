@@ -1,29 +1,25 @@
 {
-  "type": "ncf_technique",
-  "version": 2,
-  "data": {
-    "bundle_name": "cdt",
-    "description": "rudderlang cdt for a complete loop",
-    "name": "cdt",
-    "version": "1.0",
-    "parameter": [],
-    "category": "ncf_techniques",
-    "method_calls": [
-      {
-        "parameters": [
-          {
-            "name": "path",
-            "value": "tmp",
-            "$errors": []
-          }
-        ],
-        "class_context": "any.(debian)",
-        "method_name": "file_absent",
-        "component": "File absent",
-        "id": "ee867477-8629-448f-85d5-c8ef33357c0f",
-        "reportingDisabled": false
-      }
-    ],
-    "resources": []
-  }
+  "bundle_name": "cdt",
+  "description": "rudderlang cdt for a complete loop",
+  "name": "cdt",
+  "version": "1.0",
+  "parameter": [],
+  "category": "ncf_techniques",
+  "method_calls": [
+    {
+      "parameters": [
+        {
+          "name": "path",
+          "value": "tmp",
+          "$errors": []
+        }
+      ],
+      "class_context": "any.(debian)",
+      "method_name": "file_absent",
+      "component": "File absent",
+      "id": "ee867477-8629-448f-85d5-c8ef33357c0f",
+      "reportingDisabled": false
+    }
+  ],
+  "resources": []
 }

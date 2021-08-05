@@ -1,29 +1,25 @@
 {
-  "type": "ncf_technique",
-  "version": 2,
-  "data": {
-    "bundle_name": "simplest",
-    "description": "rudderlang simplest for a complete loop",
-    "name": "simplest",
-    "version": "1.0",
-    "parameter": [],
-    "category": "ncf_techniques",
-    "method_calls": [
-      {
-        "parameters": [
-          {
-            "name": "path",
-            "value": "tmp",
-            "$errors": []
-          }
-        ],
-        "class_context": "any",
-        "method_name": "file_absent",
-        "component": "File absent",
-        "id": "aeca6c93-47af-41ee-ba4a-8772f4ce7dd8",
-        "reportingDisabled": false
-      }
-    ],
-    "resources": []
-  }
+  "bundle_name": "simplest",
+  "description": "rudderlang simplest for a complete loop",
+  "name": "simplest",
+  "version": "1.0",
+  "parameter": [],
+  "category": "ncf_techniques",
+  "method_calls": [
+    {
+      "parameters": [
+        {
+          "name": "path",
+          "value": "tmp",
+          "$errors": []
+        }
+      ],
+      "class_context": "any",
+      "method_name": "file_absent",
+      "component": "File absent",
+      "id": "aeca6c93-47af-41ee-ba4a-8772f4ce7dd8",
+      "reportingDisabled": false
+    }
+  ],
+  "resources": []
 }

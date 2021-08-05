@@ -15,7 +15,7 @@ pub fn save(ctx: &IOContext) -> Result<Vec<CommandResult>> {
     let json_content = sources.alloc(ctx.input_content.clone());
 
     let lib = LanguageLib::new(&ctx.stdlib, &sources)?;
-    let technique = Technique::from_json(json_input, json_content, false)?.to_rudderlang(&lib)?;
+    let technique = Technique::from_json(json_input, json_content)?.to_rudderlang(&lib)?;
 
     Ok(vec![CommandResult::new(
         Format::RudderLang,

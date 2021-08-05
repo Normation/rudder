@@ -1,38 +1,34 @@
 {
-    "type": "ncf_technique",
-    "version": 2,
-    "data": {
-        "bundle_name": "condition_useless_brackets",
-        "description": "dsc useless condition brackets",
-        "name": "condition useless brackets",
-        "version": "1.0",
-        "parameter": [],
-        "category": "ncf_techniques",
-        "method_calls": [
-            {
-                "parameters": [
-                    {
-                        "name": "tag",
-                        "value": "tagname",
-                        "$errors": []
-                    },
-                    {
-                        "name": "resourceName",
-                        "value": "file",
-                        "$errors": []
-                    },
-                    {
-                        "name": "scriptBlock",
-                        "value": "exists",
-                        "$errors": []
-                    }
-                ],
-                "class_context": "any.(((!debian|linux)|ubuntu.windows|(linux|ubuntu)))",
-                "method_name": "dsc_built_in_resource",
-                "component": "DSC built-in resource",
-                "id": "b75bd5d3-8304-4cd6-8689-2ba650c7c42a",
-                "reportingDisabled": false
-            }
-        ]
+  "bundle_name": "condition_useless_brackets",
+  "description": "dsc useless condition brackets",
+  "name": "condition useless brackets",
+  "version": "1.0",
+  "parameter": [],
+  "category": "ncf_techniques",
+  "method_calls": [
+    {
+      "parameters": [
+        {
+          "name": "tag",
+          "value": "tagname",
+          "$errors": []
+        },
+        {
+          "name": "resourceName",
+          "value": "file",
+          "$errors": []
+        },
+        {
+          "name": "scriptBlock",
+          "value": "exists",
+          "$errors": []
+        }
+      ],
+      "class_context": "any.(((!debian|linux)|ubuntu.windows|(linux|ubuntu)))",
+      "method_name": "dsc_built_in_resource",
+      "component": "DSC built-in resource",
+      "id": "b75bd5d3-8304-4cd6-8689-2ba650c7c42a",
+      "reportingDisabled": false
     }
+  ]
 }

@@ -1,90 +1,88 @@
 {
-  "type": "ncf_technique",
-  "version": 2,
-  "data": {
-    "bundle_name": "inner_block",
-    "description": "rudderlang inner block",
-    "name": "Inner block",
-    "version": "1.0",
-    "parameter": [],
-    "category": "ncf_techniques",
-    "method_calls": [
-      { "component" : "Block",
-        "id" : "606b7f69-2b94-4bec-9050-a88196d48c14",
-        "condition" : "debian",
-        "childs" : [
-
-      { "component" : "Block",
-        "id" : "398574d5-c695-4d35-a42c-fed7e3b90c19",
-        "condition" : "centos",
-        "childs" : [
-          {
-            "parameters": [
-              {
-                "name": "path",
-                "value": "tmp",
-                "$errors": []
-              }
-            ],
-            "class_context": "any",
-            "method_name": "file_absent",
-            "component": "File absent",
-            "id" : "cb2881a0-11c8-4040-8ac0-3751d10146b7",
-            "reportingDisabled": false
-          },
-          {
-            "parameters": [
-              {
-                "name": "path",
-                "value": "tmp",
-                "$errors": []
-              }
-            ],
-            "class_context": "any",
-            "method_name": "file_present",
-            "component": "File absent",
-            "id" : "df319f6f-3573-4b7e-95e5-f10dcd3f7a3f",
-            "reportingDisabled": false
-          }
-        ]
-      },
-      { "component" : "Block",
-        "id" : "a49089a1-ba1d-46c4-aec2-4274a270bb3e",
-        "condition" : "debian_10",
-        "childs" : [
-          {
-            "parameters": [
-              {
-                "name": "path",
-                "value": "tmp2",
-                "$errors": []
-              }
-            ],
-            "class_context": "linux",
-            "method_name": "file_absent",
-            "component": "File absent",
-            "id" : "e6ccdd10-642b-494a-9b06-27ce509f579f",
-            "reportingDisabled": false
-          },
-          {
-            "parameters": [
-              {
-                "name": "path",
-                "value": "tmp2",
-                "$errors": []
-              }
-            ],
-            "class_context": "any",
-            "method_name": "file_present",
-            "component": "File absent",
-            "id" : "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9",
-            "reportingDisabled": false
-          }
-        ]
-      }
-        ]
-      }
-    ],
-    "resources": []
-  }
+  "bundle_name": "inner_block",
+  "description": "rudderlang inner block",
+  "name": "Inner block",
+  "version": "1.0",
+  "parameter": [],
+  "category": "ncf_techniques",
+  "method_calls": [
+    {
+      "component": "Block",
+      "id": "606b7f69-2b94-4bec-9050-a88196d48c14",
+      "condition": "debian",
+      "childs": [
+        {
+          "component": "Block",
+          "id": "398574d5-c695-4d35-a42c-fed7e3b90c19",
+          "condition": "centos",
+          "childs": [
+            {
+              "parameters": [
+                {
+                  "name": "path",
+                  "value": "tmp",
+                  "$errors": []
+                }
+              ],
+              "class_context": "any",
+              "method_name": "file_absent",
+              "component": "File absent",
+              "id": "cb2881a0-11c8-4040-8ac0-3751d10146b7",
+              "reportingDisabled": false
+            },
+            {
+              "parameters": [
+                {
+                  "name": "path",
+                  "value": "tmp",
+                  "$errors": []
+                }
+              ],
+              "class_context": "any",
+              "method_name": "file_present",
+              "component": "File absent",
+              "id": "df319f6f-3573-4b7e-95e5-f10dcd3f7a3f",
+              "reportingDisabled": false
+            }
+          ]
+        },
+        {
+          "component": "Block",
+          "id": "a49089a1-ba1d-46c4-aec2-4274a270bb3e",
+          "condition": "debian_10",
+          "childs": [
+            {
+              "parameters": [
+                {
+                  "name": "path",
+                  "value": "tmp2",
+                  "$errors": []
+                }
+              ],
+              "class_context": "linux",
+              "method_name": "file_absent",
+              "component": "File absent",
+              "id": "e6ccdd10-642b-494a-9b06-27ce509f579f",
+              "reportingDisabled": false
+            },
+            {
+              "parameters": [
+                {
+                  "name": "path",
+                  "value": "tmp2",
+                  "$errors": []
+                }
+              ],
+              "class_context": "any",
+              "method_name": "file_present",
+              "component": "File absent",
+              "id": "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9",
+              "reportingDisabled": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "resources": []
 }

@@ -1,41 +1,37 @@
 {
-    "type": "ncf_technique",
-    "version": 2,
-    "data": {
-        "bundle_name": "technique_dsc",
-        "version": "1.0",
-        "category": "ncf_techniques",
-        "description": "",
-        "name": "technique_dsc",
-        "method_calls": [
-            {
-                "method_name": "directory_check_exists",
-                "class_context": "any",
-                "component": "Directory check exists",
-                "parameters": [
-                    {
-                        "name": "path",
-                        "value": "tmp"
-                    }
-                ],
-                "id": "58fc35d7-7277-49d9-a6f5-a3ecb715d694",
-                "reportingDisabled": false
-            },
-            {
-                "method_name": "command_execution",
-                "class_context": "any",
-                "component": "Command execution",
-                "parameters": [
-                    {
-                        "name": "command",
-                        "value": "dsc"
-                    }
-                ],
-                "id": "c00d3129-f612-4087-84ea-c1ae9b98f9d8",
-                "reportingDisabled": false
-            }
-        ],
-        "parameter": [],
-        "resources": []
+  "bundle_name": "technique_dsc",
+  "version": "1.0",
+  "category": "ncf_techniques",
+  "description": "",
+  "name": "technique_dsc",
+  "method_calls": [
+    {
+      "method_name": "directory_check_exists",
+      "class_context": "any",
+      "component": "Directory check exists",
+      "parameters": [
+        {
+          "name": "path",
+          "value": "tmp"
+        }
+      ],
+      "id": "58fc35d7-7277-49d9-a6f5-a3ecb715d694",
+      "reportingDisabled": false
+    },
+    {
+      "method_name": "command_execution",
+      "class_context": "any",
+      "component": "Command execution",
+      "parameters": [
+        {
+          "name": "command",
+          "value": "dsc"
+        }
+      ],
+      "id": "c00d3129-f612-4087-84ea-c1ae9b98f9d8",
+      "reportingDisabled": false
     }
+  ],
+  "parameter": [],
+  "resources": []
 }

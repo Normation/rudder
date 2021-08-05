@@ -2,7 +2,7 @@
 
 """
 Cf and Json / language compatibility tester
-Usage: 
+Usage:
     generated_formats_tester compare-json [--config-file=<local_config_path.conf>] <first.json> <new.json>
     generated_formats_tester compare-cf [--config-file=<local_config_path.conf>] <first.cf> <new.cf>
     generated_formats_tester compare-dsc [--config-file=<local_config_path.conf>] <first.dsc> <new.dsc>
@@ -36,7 +36,7 @@ def load_condition_aliases(oslib_file):
         else:
           alias = re.match(r'\s*enum\s*alias\s*(\w+)\s*=\s*(\w+)\s*', line)
           if alias:
-            aliases.setdefault(alias.groups()[1], []).append(alias.groups()[0]) 
+            aliases.setdefault(alias.groups()[1], []).append(alias.groups()[0])
   except IOError as e:
     print_json("load oslib file", "oslib", str(e), True)
     exit(1)
@@ -83,12 +83,12 @@ def compare_json(first, second):
     exit(1)
   diff = jsondiff.diff(j1, j2, syntax="symmetric", marshal=True)
   # del as this field just does not exist on <Rudder6 versions json
-  deep_del(diff, ['data', 'method_calls', 'parameters', '$insert'], '$$errors', lambda d: True)
-  deep_del(diff, ['data', '$insert'], 'resources', lambda d: len(d['resources']) == 0)
+  deep_del(diff, ['method_calls', 'parameters', '$insert'], '$$errors', lambda d: True)
+  deep_del(diff, ['$insert'], 'resources', lambda d: len(d['resources']) == 0)
   deep_del(diff, ['$delete'], 'resources', lambda d: len(d['resources']) == 0)
-  deep_del(diff, ['data', 'method_calls'], 'class_context', lambda d: filter_class_context(d['class_context']))
+  deep_del(diff, ['method_calls'], 'class_context', lambda d: filter_class_context(d['class_context']))
   # for now generated lib has no method specific resource parameter so it will take default resource parameter
-  deep_del(diff, ['data', 'method_calls', 'parameters'], 'name', lambda d: True)
+  deep_del(diff, ['method_calls', 'parameters'], 'name', lambda d: True)
   empty_dict_cleaner(diff)
   # print if diff
   if len(diff) != 0:
@@ -169,7 +169,7 @@ def load_dsc(filename):
         purged_line += char
       original_line += char
       last_char = char
-    # remove mob special char 
+    # remove mob special char
     purged_line = purged_line.replace(u'\ufeff', "")
     # remove starting/ending whitespaces
     purged_line = purged_line.strip().replace("(", "").replace(")", "")
@@ -189,7 +189,7 @@ def load_dsc(filename):
     last_char = char
   return (original, purged_content)
 
-# casefold make the char is lowercase, spaces, '_' and '-' are removed 
+# casefold make the char is lowercase, spaces, '_' and '-' are removed
 # since powershell rules are not restrictives, these differences does not matter
 def char_cleaner(char):
   return char.casefold().replace('-', '').replace('_', '')
@@ -251,13 +251,13 @@ def remove_wilful_entries_cf(file_name, diff):
     # del superfluous if->true equivalent condition
     is_if_any = lambda d: d['lval'] == 'if' and d['rval']['arguments'][0]['value'] == 'any'
     deep_del(diff, promises_path + ['attributes', '$delete'], '$delete', is_if_any)
-    
+
     # Technique Editor does not handle the na_log if method call condition is for windows
     deep_del(diff, promises_path + ['attributes', 'rval'], 'rval', lambda d: 'log_na_rudder' in d['name'])
     # Note: cannot check that the generated cf technique should indeed be a na_log
     # silence deleted condition error since conditions have no place next to na_logs
     deep_del(diff, promises_path + ['attributes'], '$delete', lambda d: d['lval'] == 'if')
-    
+
     # del priority and 'any.' starting conditions
     deep_del(diff, promises_path + ['attributes', 'rval', 'arguments'], 'value', lambda d: filter_class_context(d['value']))
     # del lines that add log_rudder and _classes_noop
@@ -330,7 +330,7 @@ def deep_del(haystack, deep_list, delfrom, del_condition, index=0):
 # USAGE
   # see deep del, similar behavior but returns the matched value rather than deleting a part of the dict
 # ARGUMENTS
-  # haystack: object to look into 
+  # haystack: object to look into
   # deep_list (array of string): ordered list of keys to search from
   # needle (string): the final key to look for within deep_list matched object
   # values (optional, array of string): match if needle value is contained in this array
@@ -385,7 +385,7 @@ if __name__ == "__main__":
   except Exception as e:
     print_json('(Not defined yet)', '(Not defined yet)', 'An error occurred while importing ncf: {}'.format(str(e)), True)
     exit(1)
-  
+
   if arguments['compare-json']:
     compare_json(arguments['<first.json>'], arguments['<new.json>'])
   elif arguments['compare-cf']:

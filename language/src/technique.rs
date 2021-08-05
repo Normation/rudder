@@ -78,54 +78,8 @@ impl FromStr for Version {
     }
 }
 
-/// Every Technique substructure has only 1 purpose: represent a Technique as json or rudderlang string
 #[derive(Serialize, Deserialize)]
 pub struct Technique {
-    r#type: String,
-    version: u8,
-    data: TechniqueData,
-}
-impl Technique {
-    /// creates a Technique that will be used to generate a string representation of a rudderlang or json technique
-    pub(super) fn from_json(input: &str, content: &str, is_technique_data: bool) -> Result<Self> {
-        info!("|- {} {}", "Parsing".bright_green(), input.bright_yellow());
-
-        if is_technique_data {
-            let data = serde_json::from_str::<TechniqueData>(content)
-                .map_err(|e| Error::new(format!("Technique from JSON technique: {}", e)))?;
-            Ok(Self {
-                r#type: "ncf_technique".to_owned(),
-                version: 2,
-                data,
-            })
-        } else {
-            serde_json::from_str::<Self>(content)
-                .map_err(|e| Error::new(format!("Technique from JSON: {}", e)))
-        }
-    }
-
-    pub(super) fn to_json(&self) -> Result<TechniqueFmt> {
-        info!(
-            "|- {} (translation phase)",
-            "Generating JSON code".bright_green()
-        );
-
-        serde_json::to_string_pretty(self)
-            .map_err(|e| Error::new(format!("Technique to JSON: {}", e)))
-    }
-
-    pub(super) fn to_rudderlang(&self, lib: &LanguageLib) -> Result<TechniqueFmt> {
-        info!(
-            "|- {} (translation phase)",
-            "Generating rudderlang code".bright_green()
-        );
-
-        self.data.to_rudderlang(lib)
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct TechniqueData {
     bundle_name: String,
     #[serde(
         serialize_with = "version_into_string",
@@ -146,8 +100,31 @@ pub struct TechniqueData {
 fn default_category() -> String {
     "ncf_techniques".to_owned()
 }
-impl TechniqueData {
-    fn to_rudderlang(&self, lib: &LanguageLib) -> Result<String> {
+impl Technique {
+    /// creates a Technique that will be used to generate a string representation of a rudderlang or json technique
+    pub(super) fn from_json(input: &str, content: &str) -> Result<Self> {
+        info!("|- {} {}", "Parsing".bright_green(), input.bright_yellow());
+
+        serde_json::from_str::<Self>(content)
+            .map_err(|e| Error::new(format!("Technique from JSON: {}", e)))
+    }
+
+    pub(super) fn to_json(&self) -> Result<TechniqueFmt> {
+        info!(
+            "|- {} (translation phase)",
+            "Generating JSON code".bright_green()
+        );
+
+        serde_json::to_string_pretty(self)
+            .map_err(|e| Error::new(format!("Technique to JSON: {}", e)))
+    }
+
+    pub(super) fn to_rudderlang(&self, lib: &LanguageLib) -> Result<String> {
+        info!(
+            "|- {} (translation phase)",
+            "Generating rudderlang code".bright_green()
+        );
+
         let (parameters_meta, parameter_list): (Vec<String>, Vec<String>) = self
             .interpolated_parameters
             .iter()
@@ -377,7 +354,7 @@ impl MethodCall {
             lib_method.state.name,
             state_params.join(", ")
         );
-        let formatted_condition = if self.condition != "any" {
+        let formatted_condition = if self.condition != "any" && self.condition != "" {
             format!("if {} => \n", format_condition(&self.condition, &lib)?)
         } else {
             "".to_string()

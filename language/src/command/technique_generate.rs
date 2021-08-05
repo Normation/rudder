@@ -17,7 +17,7 @@ pub fn technique_generate(ctx: &IOContext) -> Result<Vec<CommandResult>> {
     let input = sources.alloc(format!("JSON based on {}", ctx.input));
     let content = sources.alloc(ctx.input_content.clone());
     let lib = LanguageLib::new(&ctx.stdlib, &sources)?;
-    let technique_fmt = Technique::from_json(input, &content, false)?.to_rudderlang(&lib)?;
+    let technique_fmt = Technique::from_json(input, &content)?.to_rudderlang(&lib)?;
 
     let mut wrapped_technique = vec![CommandResult::new(
         Format::RudderLang,

@@ -1,54 +1,50 @@
 {
-    "type": "ncf_technique",
-    "version": 2,
-   "data": {
-  "bundle_name":"Add_GSN_users_to_vboxusers_group",
-  "version":"1.0",
-  "category":"ncf_techniques",
-  "description":"",
-  "name":"Add GSN users to vboxusers group",
-  "method_calls":[
+  "bundle_name": "Add_GSN_users_to_vboxusers_group",
+  "version": "1.0",
+  "category": "ncf_techniques",
+  "description": "",
+  "name": "Add GSN users to vboxusers group",
+  "method_calls": [
     {
-      "method_name":"command_execution",
-      "class_context":"any",
-      "component":"Command execution",
-      "parameters":[
+      "method_name": "command_execution",
+      "class_context": "any",
+      "component": "Command execution",
+      "parameters": [
         {
-          "name":"command",
-          "value":"/usr/sbin/usermod -a -G vboxusers nwcyrille"
+          "name": "command",
+          "value": "/usr/sbin/usermod -a -G vboxusers nwcyrille"
         }
       ],
       "id": "cc8efd39-c24d-4074-9cf6-2d53b1c27788",
       "reportingDisabled": false
     },
     {
-      "method_name":"command_execution",
-      "class_context":"any",
-      "component":"Command execution",
-      "parameters":[
+      "method_name": "command_execution",
+      "class_context": "any",
+      "component": "Command execution",
+      "parameters": [
         {
-          "name":"command",
-          "value":"/usr/sbin/usermod -a -G vboxusers nweric"
+          "name": "command",
+          "value": "/usr/sbin/usermod -a -G vboxusers nweric"
         }
       ],
       "id": "4b40dc15-5a5e-4a1e-a91d-0bc53a10b658",
       "reportingDisabled": false
     },
     {
-      "method_name":"command_execution",
-      "class_context":"any",
-      "component":"Command execution",
-      "parameters":[
+      "method_name": "command_execution",
+      "class_context": "any",
+      "component": "Command execution",
+      "parameters": [
         {
-          "name":"command",
-          "value":"/usr/sbin/usermod -a -G vboxusers nwantoine"
+          "name": "command",
+          "value": "/usr/sbin/usermod -a -G vboxusers nwantoine"
         }
       ],
       "id": "f3510d66-e96b-4f0b-91d4-9633ec7eec86",
       "reportingDisabled": false
     }
   ],
-  "parameter":[],
-  "resources":[]
-}
+  "parameter": [],
+  "resources": []
 }

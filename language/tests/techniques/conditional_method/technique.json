@@ -1,43 +1,39 @@
 {
-    "type": "ncf_technique",
-    "version": 2,
-    "data": {
-        "name": "conditional method",
-        "description": "one method with several conditons",
-        "version": "1.0",
-        "bundle_name": "conditional_method",
-        "category": "ncf_techniques",
-        "parameter": [],
-        "method_calls": [
-            {
-                "class_context": "any.(debian)",
-                "component": "HTTP request check status with headers",
-                "method_name": "http_request_check_status_headers",
-                "parameters": [
-                    {
-                        "name": "method",
-                        "value": "GET",
-                        "$errors": []
-                    },
-                    {
-                        "name": "url",
-                        "value": "/myurl",
-                        "$errors": []
-                    },
-                    {
-                        "name": "expected_status",
-                        "value": "200",
-                        "$errors": []
-                    },
-                    {
-                        "name": "headers",
-                        "value": "",
-                        "$errors": []
-                    }
-                ],
-                "id": "48da1b53-5c97-4894-acf7-f4d7a0179050",
-                "reportingDisabled": false
-            }
-        ]
+  "name": "conditional method",
+  "description": "one method with several conditons",
+  "version": "1.0",
+  "bundle_name": "conditional_method",
+  "category": "ncf_techniques",
+  "parameter": [],
+  "method_calls": [
+    {
+      "class_context": "any.(debian)",
+      "component": "HTTP request check status with headers",
+      "method_name": "http_request_check_status_headers",
+      "parameters": [
+        {
+          "name": "method",
+          "value": "GET",
+          "$errors": []
+        },
+        {
+          "name": "url",
+          "value": "/myurl",
+          "$errors": []
+        },
+        {
+          "name": "expected_status",
+          "value": "200",
+          "$errors": []
+        },
+        {
+          "name": "headers",
+          "value": "",
+          "$errors": []
+        }
+      ],
+      "id": "48da1b53-5c97-4894-acf7-f4d7a0179050",
+      "reportingDisabled": false
     }
+  ]
 }

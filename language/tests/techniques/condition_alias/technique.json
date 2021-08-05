@@ -1,42 +1,38 @@
 {
-    "type": "ncf_technique",
-    "version": 2,
-    "data": {
-        "name": "conditional method that includes aliases for condition",
-        "description": "one method with an alias in condition",
-        "version": "1.0",
-        "bundle_name": "condition_alias",
-        "category": "ncf_techniques",
-        "parameter": [],
-        "method_calls": [
-            {
-                "class_context": "any.(SLES12)",
-                "component": "Command execution",
-                "method_name": "command_execution",
-                "parameters": [
-                    {
-                        "name": "command",
-                        "value": "pwd",
-                        "$errors": []
-                    }
-                ],
-                "id": "8b575191-0ab0-4851-b05c-e7cde3726f05",
-                "reportingDisabled": false
-            },
-            {
-                "class_context": "any.(lucid)",
-                "component": "Command execution",
-                "method_name": "command_execution",
-                "parameters": [
-                    {
-                        "name": "command",
-                        "value": "ls",
-                        "$errors": []
-                    }
-                ],
-                "id": "3a8f5707-a86a-4599-8c68-3dbbfd6f70a1",
-                "reportingDisabled": false
-            }
-        ]
+  "name": "conditional method that includes aliases for condition",
+  "description": "one method with an alias in condition",
+  "version": "1.0",
+  "bundle_name": "condition_alias",
+  "category": "ncf_techniques",
+  "parameter": [],
+  "method_calls": [
+    {
+      "class_context": "any.(SLES12)",
+      "component": "Command execution",
+      "method_name": "command_execution",
+      "parameters": [
+        {
+          "name": "command",
+          "value": "pwd",
+          "$errors": []
+        }
+      ],
+      "id": "8b575191-0ab0-4851-b05c-e7cde3726f05",
+      "reportingDisabled": false
+    },
+    {
+      "class_context": "any.(lucid)",
+      "component": "Command execution",
+      "method_name": "command_execution",
+      "parameters": [
+        {
+          "name": "command",
+          "value": "ls",
+          "$errors": []
+        }
+      ],
+      "id": "3a8f5707-a86a-4599-8c68-3dbbfd6f70a1",
+      "reportingDisabled": false
     }
+  ]
 }

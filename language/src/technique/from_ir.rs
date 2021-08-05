@@ -66,19 +66,14 @@ impl<'src> Technique {
 
         // TODO unit tests
         Ok(Technique {
-            // can't determine a particular technique type yet
-            r#type: "ncf_technique".to_owned(),
-            version: 2,
-            data: TechniqueData {
-                bundle_name: resource.name.to_owned(),
-                description,
-                name,
-                version: Version::from_str(&version).unwrap(),
-                category,
-                interpolated_parameters,
-                method_calls,
-                resources: Vec::new(),
-            },
+            bundle_name: resource.name.to_owned(),
+            description,
+            name,
+            version: Version::from_str(&version).unwrap(),
+            category,
+            interpolated_parameters,
+            method_calls,
+            resources: Vec::new(),
         })
     }
 }

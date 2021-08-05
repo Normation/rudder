@@ -1,49 +1,46 @@
 {
-  "type": "ncf_technique",
-  "version": 2,
-  "data": {
-    "bundle_name": "simple_block",
-    "description": "rudderlang simple block",
-    "name": "Simple block",
-    "version": "1.0",
-    "parameter": [],
-    "category": "ncf_techniques",
-    "method_calls": [
-      { "component" : "Block",
-        "id" : "606b7f69-2b94-4bec-9050-a88196d48c14",
-        "condition" : "debian",
-        "childs" : [
-          {
-            "parameters": [
-              {
-                "name": "path",
-                "value": "tmp",
-                "$errors": []
-              }
-            ],
-            "class_context": "any",
-            "method_name": "file_absent",
-            "component": "File absent",
-            "id" : "d58aec44-675b-48fd-985e-499ec4c5e525",
-            "reportingDisabled" : false
-          },
-          {
-            "parameters": [
-              {
-                "name": "path",
-                "value": "tmp",
-                "$errors": []
-              }
-            ],
-            "class_context": "any",
-            "method_name": "file_present",
-            "component": "File absent",
-            "id" : "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9",
-            "reportingDisabled" : true
-          }
-        ]
-      }
-    ],
-    "resources": []
-  }
+  "bundle_name": "simple_block",
+  "description": "rudderlang simple block",
+  "name": "Simple block",
+  "version": "1.0",
+  "parameter": [],
+  "category": "ncf_techniques",
+  "method_calls": [
+    {
+      "component": "Block",
+      "id": "606b7f69-2b94-4bec-9050-a88196d48c14",
+      "condition": "debian",
+      "childs": [
+        {
+          "parameters": [
+            {
+              "name": "path",
+              "value": "tmp",
+              "$errors": []
+            }
+          ],
+          "class_context": "any",
+          "method_name": "file_absent",
+          "component": "File absent",
+          "id": "d58aec44-675b-48fd-985e-499ec4c5e525",
+          "reportingDisabled": false
+        },
+        {
+          "parameters": [
+            {
+              "name": "path",
+              "value": "tmp",
+              "$errors": []
+            }
+          ],
+          "class_context": "any",
+          "method_name": "file_present",
+          "component": "File absent",
+          "id": "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9",
+          "reportingDisabled": true
+        }
+      ]
+    }
+  ],
+  "resources": []
 }
