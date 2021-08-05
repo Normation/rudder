@@ -19,7 +19,9 @@
                         "value": "/tmp",
                         "$errors": []
                     }
-                ]
+                ],
+                "id": "3c1c7ff4-a4a2-4b1b-8c88-4a70b2ae3395",
+                "reportingDisabled": false
             },
             {
                 "class_context": "any",
@@ -31,7 +33,9 @@
                         "value": "/tmp",
                         "$errors": []
                     }
-                ]
+                ],
+                "id": "da4e48c9-f13b-4cf7-9fbe-9130b3a4a7f0",
+                "reportingDisabled": false
             },
             {
                 "class_context": "any",
@@ -43,7 +47,9 @@
                         "value": "/tmp",
                         "$errors": []
                     }
-                ]
+                ],
+                "id": "1c5237ee-67ff-4b4b-9b0c-71c3b5a77f15",
+                "reportingDisabled": false
             },
             {
                 "class_context": "any",
@@ -60,7 +66,9 @@
                         "value": "false",
                         "$errors": []
                     }
-                ]
+                ],
+                "id": "43bc93ec-df5d-4a35-8e1c-a60185c8fc1a",
+                "reportingDisabled": false
             },
             {
                 "class_context": "any",
@@ -72,7 +80,9 @@
                         "value": "/tmp",
                         "$errors": []
                     }
-                ]
+                ],
+                "id": "a453d84c-06d3-4f03-8df8-7142b9316cb7",
+                "reportingDisabled": false
             },
             {
                 "class_context": "any",
@@ -84,7 +94,9 @@
                         "value": "/tmp",
                         "$errors": []
                     }
-                ]
+                ],
+                "id": "bc2b4696-130b-4f87-a65b-a6b0a7c14062",
+                "reportingDisabled": false
             }
         ]
     }

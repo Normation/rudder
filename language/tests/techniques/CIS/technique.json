@@ -21,7 +21,9 @@
                         "name": "variable_name",
                         "value": "node.properties[skip][${report_data.directive_id}]"
                     }
-                ]
+                ],
+                "id": "7c09271d-81cb-4d6a-b7e6-060b3fd4617c",
+                "reportingDisabled": false
             },
             {
                 "method_name": "kernel_module_configuration",
@@ -36,7 +38,9 @@
                         "name": "configuration",
                         "value": "install ${module} /bin/false"
                     }
-                ]
+                ],
+                "id": "70d2759a-b3f8-43ca-a515-f005a9be651a",
+                "reportingDisabled": false
             },
             {
                 "method_name": "kernel_module_not_loaded",
@@ -47,7 +51,9 @@
                         "name": "name",
                         "value": "${module}"
                     }
-                ]
+                ],
+                "id": "449625c9-30a4-4b1a-8e88-f854fe67a108",
+                "reportingDisabled": false
             }
         ],
         "parameter": [

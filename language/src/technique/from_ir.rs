@@ -276,7 +276,7 @@ fn statement_to_method_call(
     // get variables to try to get the proper parameter value
     let mut variables: HashMap<&Token, &VariableDef> = HashMap::new();
     for st_from_list in &state_def.statements {
-        // variables declared after the current statemnt are not defined at this point
+        // variables declared after the current statement are not defined at this point
         if st_from_list == stmt {
             break;
         } else if let Statement::VariableDefinition(v) = st_from_list {

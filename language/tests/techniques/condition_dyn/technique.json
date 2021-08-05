@@ -24,7 +24,9 @@
                 ],
                 "class_context": "any",
                 "method_name": "condition_from_variable_existence",
-                "component": "condition_from_variable_existence"
+                "component": "condition_from_variable_existence",
+                "id": "c46f75a0-a6fd-4334-8a9a-d4bdcae345e8",
+                "reportingDisabled": false
             },
             {
                 "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false)",
@@ -36,7 +38,9 @@
                         "value": "pwd",
                         "$errors": []
                     }
-                ]
+                ],
+                "id": "4faf9c44-88bb-492a-936a-aa9813af6b8d",
+                "reportingDisabled": false
             }
         ]
     }

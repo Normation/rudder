@@ -40,7 +40,9 @@
                         "value": "",
                         "$errors": []
                     }
-                ]
+                ],
+                "id": "235915e6-7408-4750-a7ae-38983f12b670",
+                "reportingDisabled": false
             }
         ]
     }

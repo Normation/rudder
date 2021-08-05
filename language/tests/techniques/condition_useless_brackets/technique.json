@@ -29,7 +29,9 @@
                 ],
                 "class_context": "any.(((!debian|linux)|ubuntu.windows|(linux|ubuntu)))",
                 "method_name": "dsc_built_in_resource",
-                "component": "DSC built-in resource"
+                "component": "DSC built-in resource",
+                "id": "b75bd5d3-8304-4cd6-8689-2ba650c7c42a",
+                "reportingDisabled": false
             }
         ]
     }

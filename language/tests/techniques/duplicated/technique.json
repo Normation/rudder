@@ -17,7 +17,9 @@
           "name":"command",
           "value":"/usr/sbin/usermod -a -G vboxusers nwcyrille"
         }
-      ]
+      ],
+      "id": "cc8efd39-c24d-4074-9cf6-2d53b1c27788",
+      "reportingDisabled": false
     },
     {
       "method_name":"command_execution",
@@ -28,7 +30,9 @@
           "name":"command",
           "value":"/usr/sbin/usermod -a -G vboxusers nweric"
         }
-      ]
+      ],
+      "id": "4b40dc15-5a5e-4a1e-a91d-0bc53a10b658",
+      "reportingDisabled": false
     },
     {
       "method_name":"command_execution",
@@ -39,7 +43,9 @@
           "name":"command",
           "value":"/usr/sbin/usermod -a -G vboxusers nwantoine"
         }
-      ]
+      ],
+      "id": "f3510d66-e96b-4f0b-91d4-9633ec7eec86",
+      "reportingDisabled": false
     }
   ],
   "parameter":[],

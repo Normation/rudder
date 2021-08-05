@@ -370,37 +370,39 @@ impl MethodCall {
         let canonic_parameter = cfstrings::canonify(class_parameter);
         let outcome = format!(" as {}_{}", lib_method.class_prefix(), canonic_parameter);
 
-        let mut call = format!(
+        let call = format!(
             "{}({}).{}({})",
             lib_method.resource.name,
             params.join(", "),
             lib_method.state.name,
             state_params.join(", ")
         );
-        if self.condition != "any" {
-            call = format!(
-                "if {} =>\n  {}",
-                format_condition(&self.condition, &lib)?,
-                call
-            );
-        }
+        let formatted_condition = if self.condition != "any" {
+            format!("if {} => \n", format_condition(&self.condition, &lib)?)
+        } else {
+            "".to_string()
+        };
 
         // only get original name, other aliases do not matter here
         let formatted_alias_metadata: Option<String> = lib_method
             .alias
             .map(|alias| format!("  @method_alias = \"{}\"\n", alias));
 
-        let formatted_component = format!("@component = \"{}\"", self.component);
+        let formatted_component = format!("  @component = \"{}\"\n", self.component);
 
-        let formatted_id = format!("@id = \"{}\"", self.id);
-        let formatted_disable_reporting =
-            format!("@disable_reporting = {}", self.reporting_disabled);
+        let formatted_id = format!("  @id = \"{}\"\n", self.id);
+        let formatted_disable_reporting = if self.reporting_disabled {
+            format!("  @disable_reporting = {}\n", self.reporting_disabled)
+        } else {
+            "".to_string()
+        };
 
         // make an exception for condition_from_* method & condition generation
         if (lib_method.resource.name == "condition" && lib_method.state.name.starts_with("from_")) {
             return Ok(format!(
-                "{}{}\n{}\n{}\n{}  let {} = {}_{}({})",
+                "{}{}{}{}{}{}  let {} = {}_{}({})",
                 template_vars.join("\n  "),
+                formatted_condition,
                 formatted_component,
                 formatted_id,
                 formatted_disable_reporting,
@@ -420,8 +422,9 @@ impl MethodCall {
         }
 
         Ok(format!(
-            "{}{}\n{}\n{}\n{}  {}{}",
+            "{}{}{}{}{}{}  {}{}",
             template_vars.join("\n  "),
+            formatted_condition,
             formatted_component,
             formatted_id,
             formatted_disable_reporting,

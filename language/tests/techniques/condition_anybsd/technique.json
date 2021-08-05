@@ -19,7 +19,9 @@
                         "value": "test",
                         "$errors": []
                     }
-                ]
+                ],
+                "id": "2471a97a-e30f-4000-bbf3-44561098c39b",
+                "reportingDisabled": false
             }
         ]
     }

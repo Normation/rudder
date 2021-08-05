@@ -1,5 +1,5 @@
 # @name condition_errorprone
-# @description 
+# @description
 # @version 1.0
 
 
@@ -8,8 +8,8 @@ bundle agent condition_errorprone
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "Command execution_${report_data.directive_id}_0" usebundle => _method_reporting_context("Command execution", "pwd"),
+    "40be703f-dac9-4809-8ee3-97969afc29c0" usebundle => _method_reporting_context("Command execution", "pwd"),
                                                              if => concat("dragonfly");
-    "Command execution_${report_data.directive_id}_0" usebundle => command_execution("pwd"),
+    "40be703f-dac9-4809-8ee3-97969afc29c0" usebundle => command_execution("pwd"),
                                                              if => concat("dragonfly");
 }

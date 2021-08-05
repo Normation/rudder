@@ -8,8 +8,8 @@ bundle agent parameters(paramtest)
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "Package absent_${report_data.directive_id}_0" usebundle => _method_reporting_context("Package absent", "vpn"),
+    "235915e6-7408-4750-a7ae-38983f12b670" usebundle => _method_reporting_context("Package absent", "vpn"),
                                                           if => concat("any");
-    "Package absent_${report_data.directive_id}_0" usebundle => package_absent("vpn", "", "", ""),
+    "235915e6-7408-4750-a7ae-38983f12b670" usebundle => package_absent("vpn", "", "", ""),
                                                           if => concat("any");
 }

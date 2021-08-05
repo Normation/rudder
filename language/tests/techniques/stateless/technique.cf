@@ -8,32 +8,32 @@ bundle agent stateless
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "Variable string escaped_${report_data.directive_id}_0" usebundle => _method_reporting_context("Variable string escaped", "pref.name"),
+    "2dadd92c-c519-42a8-a871-50fe179bf04c" usebundle => _method_reporting_context("Variable string escaped", "pref.name"),
                                                                    if => concat("any");
-    "Variable string escaped_${report_data.directive_id}_0" usebundle => variable_string_escaped("pref.name"),
+    "2dadd92c-c519-42a8-a871-50fe179bf04c" usebundle => variable_string_escaped("pref.name"),
                                                                    if => concat("any");
-    "Permissions NTFS_${report_data.directive_id}_1" usebundle => _method_reporting_context("Permissions NTFS", "/var/test"),
+    "b9f8a4d5-ea74-461b-9d0d-81575fa78cc6" usebundle => _method_reporting_context("Permissions NTFS", "/var/test"),
                                                             if => concat("any");
-    "Permissions NTFS_${report_data.directive_id}_1" usebundle => permissions_ntfs("/var/test", "admin", "rxw", "Allow", "ThisFolderOnly"),
+    "b9f8a4d5-ea74-461b-9d0d-81575fa78cc6" usebundle => permissions_ntfs("/var/test", "admin", "rxw", "Allow", "ThisFolderOnly"),
                                                             if => concat("any");
-    "Permissions (non recursive)_${report_data.directive_id}_2" usebundle => _method_reporting_context("Permissions (non recursive)", "/file/path"),
+    "6912f9ff-27f8-42fb-9f38-bd330d64162a" usebundle => _method_reporting_context("Permissions (non recursive)", "/file/path"),
                                                                        if => concat("any");
-    "Permissions (non recursive)_${report_data.directive_id}_2" usebundle => permissions("/file/path", "744", "root", "wheel"),
+    "6912f9ff-27f8-42fb-9f38-bd330d64162a" usebundle => permissions("/file/path", "744", "root", "wheel"),
                                                                        if => concat("any");
-    "Audit from osquery_${report_data.directive_id}_3" usebundle => _method_reporting_context("Audit from osquery", "query;"),
+    "9a29b174-d512-4534-b58c-7804a1ad990e" usebundle => _method_reporting_context("Audit from osquery", "query;"),
                                                               if => concat("any");
-    "Audit from osquery_${report_data.directive_id}_3" usebundle => audit_from_osquery("query;", "!=", "val"),
+    "9a29b174-d512-4534-b58c-7804a1ad990e" usebundle => audit_from_osquery("query;", "!=", "val"),
                                                               if => concat("any");
-    "Monitoring template_${report_data.directive_id}_4" usebundle => _method_reporting_context("Monitoring template", "vision"),
+    "43697ece-b31e-4756-ae04-a47c8ab0034d" usebundle => _method_reporting_context("Monitoring template", "vision"),
                                                                if => concat("any");
-    "Monitoring template_${report_data.directive_id}_4" usebundle => monitoring_template("vision"),
+    "43697ece-b31e-4756-ae04-a47c8ab0034d" usebundle => monitoring_template("vision"),
                                                                if => concat("any");
-    "Monitoring parameter_${report_data.directive_id}_5" usebundle => _method_reporting_context("Monitoring parameter", "paramname"),
+    "8594e7f6-2f7b-452c-9dac-9b29515797af" usebundle => _method_reporting_context("Monitoring parameter", "paramname"),
                                                                 if => concat("any");
-    "Monitoring parameter_${report_data.directive_id}_5" usebundle => monitoring_parameter("paramname", "paramval"),
+    "8594e7f6-2f7b-452c-9dac-9b29515797af" usebundle => monitoring_parameter("paramname", "paramval"),
                                                                 if => concat("any");
-    "Variable string escaped_${report_data.directive_id}_6" usebundle => _method_reporting_context("Variable string escaped", "escaped.var"),
+    "7feb6a03-8c42-4a37-b947-8f642a00445d" usebundle => _method_reporting_context("Variable string escaped", "escaped.var"),
                                                                    if => concat("any");
-    "Variable string escaped_${report_data.directive_id}_6" usebundle => variable_string_escaped("escaped.var"),
+    "7feb6a03-8c42-4a37-b947-8f642a00445d" usebundle => variable_string_escaped("escaped.var"),
                                                               if => concat("any");
 }

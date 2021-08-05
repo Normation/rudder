@@ -17,7 +17,9 @@
                         "name": "path",
                         "value": "tmp"
                     }
-                ]
+                ],
+                "id": "58fc35d7-7277-49d9-a6f5-a3ecb715d694",
+                "reportingDisabled": false
             },
             {
                 "method_name": "command_execution",
@@ -28,7 +30,9 @@
                         "name": "command",
                         "value": "dsc"
                     }
-                ]
+                ],
+                "id": "c00d3129-f612-4087-84ea-c1ae9b98f9d8",
+                "reportingDisabled": false
             }
         ],
         "parameter": [],

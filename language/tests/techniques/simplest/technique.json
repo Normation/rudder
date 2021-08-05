@@ -19,7 +19,9 @@
         ],
         "class_context": "any",
         "method_name": "file_absent",
-        "component": "File absent"
+        "component": "File absent",
+        "id": "aeca6c93-47af-41ee-ba4a-8772f4ce7dd8",
+        "reportingDisabled": false
       }
     ],
     "resources": []

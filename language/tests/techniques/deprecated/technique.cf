@@ -14,10 +14,10 @@ bundle agent deprecated_technique {
 
   methods:
     # Directory create:
-    # 
+    #
     #   directory("tmp").create() as directory_create_tmp
-    # 
-    "Directory create_${report_data.directive_id}_0" usebundle => _method_reporting_context("Directory create", "tmp");
-    "Directory create_${report_data.directive_id}_0" usebundle => directory_create("tmp");
+    #
+    "3a5c97e5-0b4d-4341-b880-262ccd51f453" usebundle => _method_reporting_context("Directory create", "tmp");
+    "3a5c97e5-0b4d-4341-b880-262ccd51f453" usebundle => directory_create("tmp");
 
 }
