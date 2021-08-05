@@ -90,13 +90,14 @@ sed -i '/SSLCertificateKeyFile.*\/opt\/rudder\/etc\/ssl\/rudder.key/d' /etc/${AP
 
 # we now use agent.cert and localhost.priv for HTTPS too
 
-# put agent certificate in ca.cert if it doesn't exist (we need at least on certificate there)
-if [ ! -f /opt/rudder/etc/ssl/ca.cert ]; then
-  cp /opt/rudder/etc/ssl/agent.cert /opt/rudder/etc/ssl/ca.cert
+# not used anymore
+if [ -f /opt/rudder/etc/ssl/ca.cert ]; then
+  rm -f /opt/rudder/etc/ssl/ca.cert
 fi
 
 if [ ! -f /var/rudder/lib/ssl/nodescerts.pem ]; then
-  touch /var/rudder/lib/ssl/nodescerts.pem
+  # use agent certificate if file doesn't exist (we need a valid cert for httpd to start)
+  cp /opt/rudder/etc/ssl/agent.cert /var/rudder/lib/ssl/nodescerts.pem
   touch /var/rudder/lib/ssl/allnodescerts.pem
 fi
 
