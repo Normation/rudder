@@ -21,7 +21,7 @@ install: build
 	install -m 755 tools/tester.sh $(DESTDIR)/opt/rudder/share/language/tools/tester.sh
 	install -m 755 tools/generated_formats_tester $(DESTDIR)/opt/rudder/share/language/tools/generated_formats_tester
 	install -m 755 tools/generate_lib $(DESTDIR)/opt/rudder/share/language/tools/generate_lib
-	
+
 	# Copy configuration and library files
 	# required for rudderc execution
 	install -m 640 tools/rudderc-prod.conf $(DESTDIR)/opt/rudder/etc/rudderc.conf
@@ -55,8 +55,7 @@ test: libs
 	# takes a json to create rd + cf + dsc techniques wrapped into JSON
 	cargo run -- technique generate -c tools/rudderc-dev.conf -i tests/techniques/simplest/technique.json
 	# fires a testing loop (--keep can be added)
-	# FIXME enable
-	#./tools/test_all_techniques.sh
+	./tools/test_all_techniques.sh
 
 
 $(DOC_EXAMPLES):

@@ -93,26 +93,26 @@ impl DSC {
             EnumExpressionPart::And(e1, e2) => {
                 let mut lexpr = self.format_case_expr(gc, e1, None)?;
                 let mut rexpr = self.format_case_expr(gc, e2, None)?;
-                if lexpr.contains(" -or ") {
+                if lexpr.contains("|") {
                     lexpr = format!("({})", lexpr);
                 }
-                if rexpr.contains(" -or ") {
+                if rexpr.contains("|") {
                     rexpr = format!("({})", rexpr);
                 }
-                format!("{} -and {}", lexpr, rexpr)
+                format!("{}.{}", lexpr, rexpr)
             }
             EnumExpressionPart::Or(e1, e2) => format!(
-                "{} -or {}",
+                "{}|{}",
                 self.format_case_expr(gc, e1, None)?,
                 self.format_case_expr(gc, e2, None)?
             ),
             // TODO what about classes that have not yet been set ? can it happen ?
             EnumExpressionPart::Not(e1) => {
                 let mut expr = self.format_case_expr(gc, e1, None)?;
-                if expr.contains("-or") || expr.contains(" -and ") {
+                if expr.contains("|") || expr.contains(".") {
                     expr = format!("({})", expr);
                 }
-                format!("-not ({})", expr)
+                format!("!{}", expr)
             }
             EnumExpressionPart::Compare(var, e, item) => {
                 if let Some(true) = gc.enum_list.enum_is_global(*e) {
@@ -150,7 +150,7 @@ impl DSC {
 
         let res: String = match parentCondition {
             None => expr,
-            Some(parent) => format!("({}) -and ({})", parent, expr),
+            Some(parent) => format!("({}).({})", parent, expr),
         };
         return Ok(res);
     }
@@ -470,7 +470,7 @@ impl DSC {
         self.current_cases.push(condition.clone());
         match &self.return_condition {
             None => condition,
-            Some(c) => format!("({}) -and ({})", c, condition),
+            Some(c) => format!("({}).({})", c, condition),
         }
     }
 

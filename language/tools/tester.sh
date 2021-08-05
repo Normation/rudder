@@ -126,7 +126,7 @@ fi
 # 6. Rudderc - Takes the language technique and compiles it into a dsc file
 # 7. Script - Compares original / generated DSC files (if any)
 
-if [ ${env} = "dev" ] 
+if [ ${env} = "dev" ]
 then
   ##########################
   # DEVELOPMENT EVIRONMENT #
@@ -212,7 +212,7 @@ else
   then
     echo -e '[\n]' > "${log_results}"
   fi
-  # in case log root array is not empty: 
+  # in case log root array is not empty:
   perl -0777 -i -ne 's/\}\n]\n$/\},\n/; print $last = $_; END{print $last}' "${log_results}" &> "/dev/null"
   # in case log root array is empty:
   perl -0777 -i -ne 's/\[\n]\n$/[\n/; print $last = $_; END{print $last}' "${log_results}" &> "/dev/null"
@@ -224,7 +224,7 @@ else
     then
       echo -e '[\n]' > "${log}"
     fi
-    # in case log root array is not empty: 
+    # in case log root array is not empty:
     perl -0777 -i -ne 's/\}\n]\n$/\},\n/; print $last = $_; END{print $last}' "${log}" &> "/dev/null"
     # in case log root array is empty:
     perl -0777 -i -ne 's/\[\n]\n$/[\n/; print $last = $_; END{print $last}' "${log}" &> "/dev/null"

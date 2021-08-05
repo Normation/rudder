@@ -12,7 +12,7 @@
             {
                 "parameters": [
                     {
-                        "name": "MOFFile",
+                        "name": "tag",
                         "value": "tagname",
                         "$errors": []
                     },

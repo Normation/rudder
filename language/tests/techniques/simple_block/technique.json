@@ -24,7 +24,8 @@
             "class_context": "any",
             "method_name": "file_absent",
             "component": "File absent",
-            "id" : "d58aec44-675b-48fd-985e-499ec4c5e525"
+            "id" : "d58aec44-675b-48fd-985e-499ec4c5e525",
+            "reportingDisabled" : false
           },
           {
             "parameters": [
