@@ -106,21 +106,21 @@ class RudderCRunner (
 )  {
   def compileTechnique(technique : EditorTechnique) = {
     for {
-      r <- RunNuCommand.run(Cmd(rudderCPath, "save" :: "-j" :: "-i" :: s""""${outputPath}/${technique.path}/technique.json"""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
+      r <- RunNuCommand.run(Cmd(rudderCPath, "save" :: "-j" :: "-i" :: s"""${outputPath}/${technique.path}/technique.json""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
       res <- r.await
       _ <- ZIO.when(res.code != 0) {
         Inconsistency(
           s"An error occurred when translating technique.json file into Rudder language\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
         ).fail
       }
-      r <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: """"cf"""" :: "-i" :: s""""${outputPath}/${technique.path}/technique.rl"""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
+      r <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: "cf" :: "-i" :: s"""${outputPath}/${technique.path}/technique.rl""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
       res <- r.await
       _ <- ZIO.when(res.code != 0) {
         Inconsistency(
           s"An error occurred when compiling technique.rl file into cfengine\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
         ).fail
       }
-      r <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: """"dsc"""" :: "-i" :: s""""${outputPath}/${technique.path}/technique.rl"""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
+      r <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: "dsc" :: "-i" :: s"""${outputPath}/${technique.path}/technique.rl""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
       res <- r.await
       _ <- ZIO.when(res.code != 0) {
         Inconsistency(
