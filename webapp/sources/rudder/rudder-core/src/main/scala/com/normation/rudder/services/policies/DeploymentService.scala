@@ -872,8 +872,8 @@ trait PromiseGeneration_BuildNodeContext {
                             for {
                               x <- parseJValue(p.prop.toJson, contextEngine)
                               // we need to fetch only the value, and nothing else, for the property
-                              value = serializeJson(x.\("value"))
-                              result <- NodeProperty.parse(p.prop.config.getString("name"), value, None, None).toIO
+                              value = GenericProperty.fromJsonValue(x.\("value"))
+                              result = NodeProperty(p.prop.config.getString("name"), value, None, None)
                             } yield {
                               p.copy(prop = result)
                             }
