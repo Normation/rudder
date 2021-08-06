@@ -278,7 +278,7 @@ impl RemoteRun {
             params.insert("nodes", nodes.join(","));
         }
 
-        let client = match job_config.downstream_clients.get(&id) {
+        let client = match job_config.downstream_clients.read().await.get(&id) {
             Some(c) => c.clone(),
             None => {
                 error!("unknown sub-relay '{}'", id);
@@ -287,6 +287,7 @@ impl RemoteRun {
         };
 
         let response = client
+            .inner()
             .post(&format!(
                 "https://{}:{}/rudder/relay-api/remote-run/{}",
                 hostname,

@@ -4,7 +4,7 @@
 mod processing_reporting;
 
 use filetime::{set_file_times, FileTime};
-use relayd::{configuration::main::CleanupConfig, input::watch::cleanup};
+use rudder_relayd::{configuration::main::CleanupConfig, input::watch::cleanup};
 use std::{
     fs::{copy, create_dir_all, remove_dir_all},
     path::{Path, PathBuf},

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use relayd::{
+use rudder_relayd::{
     check_configuration, configuration::cli::CliConfiguration, init_logger, start, ExitStatus,
 };
 use std::{env, process::exit};

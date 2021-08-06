@@ -3,39 +3,13 @@
 
 mod common;
 
-use relayd::{configuration::cli::CliConfiguration, init_logger, start};
+use common::{fake_server_start, fake_server_stop};
+use rudder_relayd::{configuration::cli::CliConfiguration, init_logger, start};
 use std::{
     fs::{read_to_string, remove_file},
     path::Path,
-    process::Command,
     thread, time,
 };
-
-fn fake_server_start(id: String) {
-    thread::spawn(|| {
-        Command::new("tests/server.py")
-            .arg(id)
-            .spawn()
-            .expect("failed to execute process")
-    });
-    thread::sleep(time::Duration::from_millis(400));
-
-    let client = reqwest::blocking::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .unwrap();
-    let response = client.get("https://localhost:4443/uuid").send().unwrap();
-    assert_eq!(response.status(), hyper::StatusCode::OK);
-}
-
-fn fake_server_stop() {
-    let client = reqwest::blocking::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .unwrap();
-    let response = client.get("https://localhost:4443/stop").send().unwrap();
-    assert_eq!(response.status(), hyper::StatusCode::OK);
-}
 
 #[cfg(test)]
 mod tests {

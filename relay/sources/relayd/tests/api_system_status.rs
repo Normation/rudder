@@ -3,7 +3,7 @@
 
 mod common;
 
-use relayd::{configuration::cli::CliConfiguration, init_logger, start};
+use rudder_relayd::{configuration::cli::CliConfiguration, init_logger, start};
 use std::{fs::rename, thread};
 
 #[cfg(test)]

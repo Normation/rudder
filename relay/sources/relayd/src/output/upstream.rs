@@ -48,9 +48,9 @@ async fn forward_file(
 ) -> Result<(), Error> {
     let content = tokio::fs::read(path.clone()).await?;
 
-    let result = job_config
-        .upstream_client
-        .clone()
+    let client = job_config.upstream_client.read().await.inner().clone();
+
+    let result = client
         .put(&format!(
             "{}/{}/{}",
             job_config.cfg.upstream_url(),

@@ -121,6 +121,16 @@ impl Configuration {
         })
     }
 
+    pub fn peer_authentication(&self) -> PeerAuthentication {
+        // compute actual model
+        if !self.output.upstream.verify_certificates {
+            warn!("output.upstream.verify_certificates parameter is deprecated, use general.peer_authentication instead");
+            PeerAuthentication::DangerousNone
+        } else {
+            self.general.peer_authentication
+        }
+    }
+
     /// Gives current url of the upstream relay API
     /// Can be removed once upstream.url is removed
     pub fn upstream_url(&self) -> String {
@@ -175,7 +185,7 @@ pub struct GeneralConfig {
     pub https_port: u16,
     /// Which certificate validation model to use
     #[serde(default = "GeneralConfig::default_peer_authentication")]
-    pub peer_authentication: PeerAuthentication,
+    peer_authentication: PeerAuthentication,
 }
 
 impl GeneralConfig {

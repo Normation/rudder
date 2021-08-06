@@ -3,7 +3,7 @@
 
 use diesel::{self, prelude::*, PgConnection};
 use filetime::{set_file_times, FileTime};
-use relayd::{
+use rudder_relayd::{
     configuration::cli::CliConfiguration,
     data::report::QueryableReport,
     init_logger,

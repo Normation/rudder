@@ -132,6 +132,18 @@ However this only works since openssl 1.1.1h ([with this commit](https://github.
 
 As a workaround we use the vendoring feature of `rust-openssl` to embed the latest openssl in `relayd`.
 
+#### Configuration reload
+
+As policy server and sub relays certificates can change (for example when a relay is added/removed), we want to avoid to restart `relayd`,
+which would close all open connections (like running remote-runs, API calls which would fail, etc.) In order to avoid this, we
+will reload only the modified HTTP clients without restarting the whole service.
+
+This only applies when the "cert_pinning" peer authentication mechanism is used (i.e. with a 7.0 server). In this case,
+when creating the clients, we also store the pinned certificate along with it. Then when a configuration and data files reload
+is triggered, when can read the certificates on the filesystem and compare with what is stored with the clients.
+If it is up-to-date, the client is kept intact. If not, of if it a new relay, a new client will be created, and will
+replace the previous one.
+
 #### Port and proxy change
 
 We add new entries to the configuration file for these parameters, and pass them to the HTTP clients.

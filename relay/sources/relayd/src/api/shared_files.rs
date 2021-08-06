@@ -160,9 +160,8 @@ async fn put_forward(
     job_config: Arc<JobConfig>,
     body: Bytes,
 ) -> Result<StatusCode, Error> {
-    job_config
-        .upstream_client
-        .clone()
+    let client = job_config.upstream_client.read().await.inner().clone();
+    client
         .put(&format!(
             "{}/{}/{}",
             job_config.cfg.upstream_url(),
@@ -299,9 +298,9 @@ async fn head_forward(
     params: SharedFilesHeadParams,
     job_config: Arc<JobConfig>,
 ) -> Result<StatusCode, Error> {
-    job_config
-        .upstream_client
-        .clone()
+    let client = job_config.upstream_client.read().await.inner().clone();
+
+    client
         .head(&format!(
             "{}/{}/{}",
             job_config.cfg.upstream_url(),
