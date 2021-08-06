@@ -1369,7 +1369,9 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val ruleApplicationStatusImpl: RuleApplicationStatusService = new RuleApplicationStatusServiceImpl()
   private[this] lazy val propertyEngineServiceImpl: PropertyEngineService = new PropertyEngineServiceImpl(
-    List.empty
+    List(
+      SecretVariableEngine
+    )
   )
 
   def DN(rdn: String, parent: DN) = new DN(new RDN(rdn),  parent)
