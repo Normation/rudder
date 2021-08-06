@@ -7,7 +7,7 @@ success_count=0
 errors=()
 for technique in ${techniques[*]}
 do
-  ./tools/tester.sh --dev --keep "${technique}/technique"
+  ./tools/tester.sh --dev --keep "${technique}"
   result=$?
   if [ ${result} -eq 0 ]
   then
@@ -15,7 +15,7 @@ do
   else
     errors+=("${result} error(s) found while testing ${technique}")
     if [ "${stop}" = "yes" ]; then
-      echo "Err: ./tools/tester.sh --dev --keep ${technique}/technique"
+      echo "Err: ./tools/tester.sh --dev --keep ${technique}"
       exit 1
     fi
   fi

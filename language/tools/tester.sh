@@ -82,15 +82,17 @@ generated_formats_tester="${self_dir}/generated_formats_tester"
 
 # Detect technique path
 # requires an extension format to be used
-technique_path="/var/rudder/configuration-repository/techniques/${category}/${technique}/1.0/technique"
-if [ ${env} = "dev" ] && [ -f "${technique}.json" ]
+technique_path="/var/rudder/configuration-repository/techniques/${category}/${technique}/1.0"
+if [ ${env} = "dev" ] && [ -f "${technique}/technique.json" ]
 then
-  technique_path="${technique}.json"
-elif [ ! -f "${technique_path}.json" ]
+  technique_path="${technique}"
+elif [ ! -f "${technique_path}/technique.json" ]
 then
   echo "Cannot find either of ${technique_path}.json nor ${technique}.json"
   exit 1
 fi
+technique="${technique}/technique"
+technique_path="${technique_path}/technique"
 
 # Detect rudderc and generated_formats_tester configuration
 config_file="/opt/rudder/etc/rudderc.conf"
@@ -137,7 +139,7 @@ then
   then
     # json -> rl, if success compare json
     status+=("SUCCESS")
-    if (set -x ; ${rudderc} technique read -i "${technique}.rd" -o "${technique}.json" --config-file=${config_file})
+    if (set -x ; ${rudderc} technique read -i "${technique}.rd" -o "${technique}.rd.json" --config-file=${config_file})
     then
       status+=("SUCCESS")
       (set -x ; ${generated_formats_tester} compare-json --config-file="${config_file}" "${technique}.json" "${technique}.rd.json")
@@ -146,7 +148,7 @@ then
       status+=("ERROR")
     fi
     # rl -> cf, if success compare cf
-    if (set -x ; ${rudderc} compile -j -f "cf" -i "${technique}.rd" --config-file=${config_file})
+    if (set -x ; ${rudderc} compile -j -f "cf" -i "${technique}.rd" -o "${technique}.rd.cf" --config-file=${config_file})
     then
       status+=("SUCCESS")
       (set -x ; ${generated_formats_tester} compare-cf --config-file="${config_file}" "${technique}.cf" "${technique}.rd.cf")
@@ -155,7 +157,7 @@ then
       status+=("ERROR")
     fi
     # rl -> dsc, if success compare dsc
-    if (set -x ; ${rudderc} compile -j  -f "dsc" -i "${technique}.rd" --config-file=${config_file})
+    if (set -x ; ${rudderc} compile -j  -f "dsc" -i "${technique}.rd" -o "${technique}.rd.ps1" --config-file=${config_file})
     then
       status+=("SUCCESS")
       (set -x ; ${generated_formats_tester} compare-dsc --config-file="${config_file}" "${technique}.ps1" "${technique}.rd.ps1")

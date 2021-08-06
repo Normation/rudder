@@ -184,7 +184,7 @@ fn get_output(
     }
     // is_stdout OR exception for Generate Technique which is designed to work from stdin: default stdout unless output specified
     if is_stdout || (command == Command::GenerateTechnique && argv_output == &None) {
-        return Ok((None, get_output_format(command, format, &None)?.1));
+        return Ok((None, get_output_format(command, format, &None)?));
     }
 
     let technique = Some(match (&argv_output, config_path, input) {
@@ -209,9 +209,9 @@ fn get_output(
     });
 
     // format is part of output file so it makes sense to return it from this function plus it needs to be defined here to update output if needed
-    let (format_as_str, format) = get_output_format(command, format, &technique)?;
+    let format = get_output_format(command, format, &technique)?;
     Ok((
-        technique.map(|output| output.with_extension(&format_as_str)),
+        technique.map(|output| output.with_extension(&format.to_string())),
         format,
     ))
 }
@@ -221,7 +221,7 @@ fn get_output_format(
     command: Command,
     format: Option<Format>,
     output: &Option<PathBuf>,
-) -> Result<(String, Format)> {
+) -> Result<Format> {
     if command == Command::Compile && format.is_some() {
         info!("Command line format option used");
     }
@@ -231,7 +231,7 @@ fn get_output_format(
         (Command::Compile, Some(fmt))
             if fmt == Format::CFEngine || fmt == Format::DSC || fmt == Format::Markdown =>
         {
-            Ok((format!("{}.{}", "rd", fmt), fmt))
+            Ok(fmt)
         }
         (Command::Compile, _) => {
             info!("Commands: missing or invalid format, deducing it from output file extension");
@@ -242,15 +242,15 @@ fn get_output_format(
             return match ext.and_then(|fmt| fmt.to_str()) {
                 Some(fmt) => {
                     let fmt = Format::from_str(fmt)?;
-                    Ok((format!("{}", fmt), fmt))
+                    Ok(fmt)
                 }
                 None => Err(Error::new(
                     "Commands: missing or invalid format, plus unrecognized or invalid output file extension".to_owned(),
                 ))
             };
         }
-        (Command::ReadTechnique, Some(fmt)) => Ok((format!("{}.{}", "rd", fmt), fmt)),
-        (_, Some(fmt)) => Ok((format!("{}", fmt), fmt)),
+        (Command::ReadTechnique, Some(fmt)) => Ok(fmt),
+        (_, Some(fmt)) => Ok(fmt),
         (_, None) => {
             panic!("Commands: format should have been defined earlier in program execution")
         }

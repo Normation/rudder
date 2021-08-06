@@ -46,6 +46,19 @@ pub struct Options {
     #[structopt(long)]
     pub stdout: bool,
 
+    /// Use json logs instead of human readable output
+    ///
+    /// This option will print a single JSON object that will contain logs, errors and generated data (or the file where it has been generated)
+    ///
+    /// JSON output format is always the same, whichever command is chosen.
+    /// However, some fields (data and destination file) could be set to `null`, make sure to handle `null`s properly.
+    ///
+    /// Note that NO_COLOR specs apply by default for json output.
+    ///
+    /// Also note that setting NO_COLOR manually in your env will also work
+    #[structopt(long, short)]
+    pub json_logs: bool,
+
     /// Generates a backtrace in case an error occurs
     #[structopt(long, short)]
     pub backtrace: bool,

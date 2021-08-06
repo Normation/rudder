@@ -22,43 +22,17 @@ use structopt::StructOpt;
 /// Example:
 /// rudderc technique generate -c confs/my.conf -i techniques/technique.json -f Rudder
 pub enum CLI {
+    // See cli_parser/technique.rs for documentation
     Technique(Technique),
     /// Generates a RudderLang technique from a CFEngine technique
     Save {
         #[structopt(flatten)]
         options: Options,
-
-        /// Use json logs instead of human readable output
-        ///
-        /// This option will print a single JSON object that will contain logs, errors and generated data (or the file where it has been generated)
-        ///
-        /// JSON output format is always the same, whichever command is chosen.
-        /// However, some fields (data and destination file) could be set to `null`, make sure to handle `null`s properly.
-        ///
-        /// Note that NO_COLOR specs apply by default for json output.
-        ///
-        /// Also note that setting NO_COLOR manually in your env will also work
-        #[structopt(long, short)]
-        json_logs: bool,
     },
     /// Generates either a DSC / CFEngine technique (`--format` option) from a technique
     Compile {
         #[structopt(flatten)]
         options: Options,
-
-        /// Use json logs instead of human readable output
-        ///
-        /// This option will print a single JSON object that will contain logs, errors and generated data (or the file where it has been generated)
-        ///
-        /// JSON output format is always the same, whichever command is chosen.
-        /// However, some fields (data and destination file) could be set to `null`, make sure to handle `null`s properly.
-        ///
-        /// Note that NO_COLOR specs apply by default for json output.
-        ///
-        /// Also note that setting NO_COLOR manually in your env will also work
-        #[structopt(long, short)]
-        json_logs: bool,
-
         /// Enforce a compiler output format (overrides configuration format)
         #[structopt(long, short, possible_values = &["cf", "cfengine", "dsc", "md"])]
         format: Option<Format>,
@@ -67,67 +41,34 @@ pub enum CLI {
     Lint {
         #[structopt(flatten)]
         options: Options,
-
-        /// Use json logs instead of human readable output
-        ///
-        /// This option will print a single JSON object that will contain logs, errors and generated data (or the file where it has been generated)
-        ///
-        /// JSON output format is always the same, whichever command is chosen.
-        /// However, some fields (data and destination file) could be set to `null`, make sure to handle `null`s properly.
-        ///
-        /// Note that NO_COLOR specs apply by default for json output.
-        ///
-        /// Also note that setting NO_COLOR manually in your env will also work
-        #[structopt(long, short)]
-        json_logs: bool,
-
         /// Enforce a compiler output format (overrides configuration format)
         #[structopt(long, short, possible_values = &["cf", "cfengine", "dsc", "md"])]
         format: Option<Format>,
     },
 }
 
+// TODO error with stdout must be stderr
 impl CLI {
     pub fn extract_logging_infos(&self) -> (LogOutput, LogLevel, bool) {
-        let (output, level, is_backtraced) = match self {
-            Self::Compile {
-                options, json_logs, ..
-            } => {
-                let output = match (json_logs, options.stdout) {
-                    (_, true) => LogOutput::None,
-                    (true, false) => LogOutput::JSON,
-                    (false, false) => LogOutput::Raw,
-                };
-                (output, options.log_level, options.backtrace)
-            }
-            Self::Lint {
-                options, json_logs, ..
-            } => {
-                let output = match (json_logs, options.stdout) {
-                    (_, true) => LogOutput::None,
-                    (true, false) => LogOutput::JSON,
-                    (false, false) => LogOutput::Raw,
-                };
-                (output, options.log_level, options.backtrace)
-            }
-            Self::Save { options, json_logs } => {
-                let output = match (json_logs, options.stdout) {
-                    (_, true) => LogOutput::None,
-                    (true, false) => LogOutput::JSON,
-                    (false, false) => LogOutput::Raw,
-                };
-                (output, options.log_level, options.backtrace)
-            }
-            Self::Technique(t) => t.extract_logging_infos(),
+        let options = match self {
+            Self::Compile { options, .. } => options,
+            Self::Lint { options, .. } => options,
+            Self::Save { options, .. } => options,
+            Self::Technique(t) => t.get_options(),
+        };
+        let output = match (options.json_logs, options.stdout) {
+            (_, true) => LogOutput::None,
+            (true, false) => LogOutput::JSON,
+            (false, false) => LogOutput::Raw,
         };
         // remove log colors if JSON format to make logs vec readable
         if output == LogOutput::JSON {
             std::env::set_var("NO_COLOR", "1");
         }
-        (output, level, is_backtraced)
+        (output, options.log_level, options.backtrace)
     }
 
-    pub fn extract_parameters(&self) -> Result<IOContext> {
+    pub fn get_io_context(&self) -> Result<IOContext> {
         match self {
             Self::Compile {
                 options, format, ..
@@ -138,7 +79,7 @@ impl CLI {
             Self::Save { options, .. } => {
                 IOContext::new(self.as_command(), options, Some(Format::RudderLang))
             }
-            Self::Technique(t) => t.extract_parameters(),
+            Self::Technique(t) => t.get_io_context(),
         }
     }
 
@@ -149,5 +90,13 @@ impl CLI {
             Self::Compile { .. } => Command::Compile,
             Self::Lint { .. } => Command::Lint,
         }
+    }
+
+    pub fn get_command_line(&self) -> String {
+        let mut cmdline = String::new();
+        for arg in std::env::args_os() {
+            cmdline.push_str(&format!("{:?} ", arg));
+        }
+        cmdline
     }
 }

@@ -24,26 +24,14 @@ pub enum Technique {
 }
 
 impl Technique {
-    pub fn extract_logging_infos(&self) -> (LogOutput, LogLevel, bool) {
+    pub fn get_options(&self) -> &Options {
         match self {
-            Self::Read { options } => {
-                let output = match options.stdout {
-                    true => LogOutput::None,
-                    false => LogOutput::JSON,
-                };
-                (output, options.log_level, options.backtrace)
-            }
-            Self::Generate { options, .. } => {
-                let output = match options.stdout {
-                    true => LogOutput::None,
-                    false => LogOutput::JSON,
-                };
-                (output, options.log_level, options.backtrace)
-            }
+            Self::Read { options } => options,
+            Self::Generate { options } => options,
         }
     }
 
-    pub fn extract_parameters(&self) -> Result<IOContext> {
+    pub fn get_io_context(&self) -> Result<IOContext> {
         match self {
             Self::Read { options } => {
                 // exception: stdin + stdout are set by default

@@ -64,18 +64,15 @@ fn main() {
     let command = cli.as_command();
     // Initialize logger and output
     output.init(command, log_level, is_backtraced);
-    let ctx = cli.extract_parameters().unwrap_or_else(|e| {
-        let mut cmdline = String::new();
-        for arg in std::env::args_os() {
-            cmdline.push_str(&format!("{:?} ", arg));
-        }
+    let ctx = cli.get_io_context().unwrap_or_else(|e| {
         // required before returning in order to have proper logging
         output.print(
             command,
             None,
             Err(Error::new(format!(
                 "Could not parse parameters: {}\nCommand line was : {}",
-                e, cmdline
+                e,
+                cli.get_command_line()
             ))),
         );
         exit(1);
@@ -96,14 +93,13 @@ fn main() {
     let is_command_success = command_result.is_ok();
     output.print(command, Some(ctx.input), command_result);
     if !is_command_success {
-        let mut cmdline = String::new();
-        for arg in std::env::args_os() {
-            cmdline.push_str(&format!("{:?} ", arg));
-        }
         output.print(
             command,
             None,
-            Err(Error::new(format!("Command was {}", cmdline))),
+            Err(Error::new(format!(
+                "Command was {}",
+                cli.get_command_line()
+            ))),
         );
         exit(1)
     }
