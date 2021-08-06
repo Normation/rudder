@@ -93,7 +93,6 @@ import org.joda.time.DateTime
 import org.joda.time.Period
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
-
 import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
@@ -872,8 +871,11 @@ trait PromiseGeneration_BuildNodeContext {
           propsCompiled <- ZIO.foreach(mergedProps) { p =>
                             for {
                               x <- parseJValue(p.prop.toJson, contextEngine)
+                              // we need to fetch only the value, and nothing else, for the property
+                              value = serializeJson(x.\("value"))
+                              result <- NodeProperty.parse(p.prop.config.getString("name"), value, None, None).toIO
                             } yield {
-                              p.copy(prop = NodeProperty(p.prop.config.getString("name"), x.toString.toConfigValue, None, None))
+                              p.copy(prop = result)
                             }
                           }.toBox
           nodeInfo     =  info.modify(_.node.properties).setTo(propsCompiled.map(_.prop))
