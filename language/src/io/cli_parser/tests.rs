@@ -1,8 +1,16 @@
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::command::Command;
     use crate::error::Error;
+    use crate::generator::Format;
+    use crate::io::cli_parser::{Options, Technique, CLI};
+    use crate::io::logs::LogLevel;
+    use crate::io::output::LogOutput;
+    use crate::io::IOContext;
     use pretty_assertions::assert_eq;
+    use std::path::PathBuf;
+    use structopt::StructOpt;
 
     // syntaxic sugar + more accessible error message when useful
     fn opt_new_r(params: &str) -> std::result::Result<CLI, String> {
@@ -29,6 +37,7 @@ mod tests {
                     output: Some(PathBuf::from("tests/techniques/6.1.rc5/technique.ee.cf")),
                     log_level: LogLevel::Warn,
                     backtrace: true,
+                    json_logs: false
                 },
             }))
         );
@@ -43,11 +52,10 @@ mod tests {
                     output: None,
                     log_level: LogLevel::Warn, // default
                     backtrace: false,
+                    json_logs: false
                 },
             }))
         );
-        // technique read has no -j option
-        assert!(opt_new_r("rudderc technique read --json-logs").is_err());
         // technique read has no -f option
         assert_eq!(
             opt_new_r("rudderc technique read --format"),
@@ -76,8 +84,6 @@ mod tests {
         assert!(opt_new_r("rudderc save --json-logs").is_ok());
 
         // GENERATE
-        // generate does not accepts json logs option
-        assert!(opt_new_r("rudderc technique generate --json-logs").is_err());
         // generate does not accepts format option
         assert_eq!(
             opt_new_r("rudderc technique generate --format"),
@@ -116,11 +122,11 @@ mod tests {
     fn logging_infos() {
         assert_eq!(
             opt_new("rudderc technique read -b").extract_logging_infos(),
-            (LogOutput::JSON, LogLevel::Warn, true),
+            (LogOutput::Raw, LogLevel::Warn, true),
         );
         assert_eq!(
             opt_new("rudderc technique read -l info").extract_logging_infos(),
-            (LogOutput::JSON, LogLevel::Info, false),
+            (LogOutput::Raw, LogLevel::Info, false),
         );
         assert_eq!(
             opt_new("rudderc technique read --stdout").extract_logging_infos(),
@@ -163,7 +169,7 @@ mod tests {
     }
 
     fn assert_err_msg(cli: &str, expect: &str) {
-        match opt_new(cli).extract_parameters() {
+        match opt_new(cli).get_io_context() {
             Err(Error::User((msg, _))) => assert_eq!(msg, expect),
             _ => assert!(
                 false,
@@ -172,7 +178,7 @@ mod tests {
         };
     }
     fn assert_ok(cli: &str, ctx: IOContext, test_content: bool) {
-        match opt_new(cli).extract_parameters() {
+        match opt_new(cli).get_io_context() {
             Err(e) => assert!(false, format!("expected ok, got err: '{}'", e)),
             Ok(context) => {
                 assert_eq!(context.stdlib, ctx.stdlib);
@@ -247,7 +253,7 @@ mod tests {
                 stdlib: PathBuf::from("libs/"),
                 input: "technique.rd".to_owned(),
                 input_content: "IGNORED FIELD".to_owned(),
-                output: Some(PathBuf::from("tests/techniques/simplest/try_technique.rd.cf")), // updated extension
+                output: Some(PathBuf::from("tests/techniques/simplest/try_technique.cf")), // updated extension
                 format: Format::CFEngine,
                 command: Command::Compile,
             },
@@ -261,7 +267,7 @@ mod tests {
                 stdlib: PathBuf::from("libs/"),
                 input: "technique.rd".to_owned(),
                 input_content: "IGNORED FIELD".to_owned(),
-                output: Some(PathBuf::from("tests/techniques/simplest/try_technique.rd.cf")), // updated extension
+                output: Some(PathBuf::from("tests/techniques/simplest/try_technique.cf")), // updated extension
                 format: Format::CFEngine,
                 command: Command::Compile,
             },

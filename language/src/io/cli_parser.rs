@@ -4,6 +4,8 @@
 mod options;
 pub use options::Options;
 mod technique;
+mod tests;
+
 pub use technique::Technique;
 
 use super::output::LogOutput;
