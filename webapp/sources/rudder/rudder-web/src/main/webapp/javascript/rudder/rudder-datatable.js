@@ -1438,13 +1438,15 @@ function createNodeTable(gridId, refresh) {
     editOpen ? $("#select-columns").show() : $("#select-columns").hide()
     $("#select-columns").html(select)
     var selectedColumns =""
+    var colsContainer = $("<div class='column-tags-container'></div>")
     for (var key in columns) {
       var elem = $("<span class='rudder-label label-state'>" + columns[key].title + "</span>")
       if (columns.length > 1 ) {
         elem.append($("<i class='fa fa-times'></i>").hover(function() { $(this).parent().toggleClass("label-state label-error")}).click(function(value) { return function() {removeColumn(value)}}(key)))
       }
-      $("#select-columns").append(elem)
+      colsContainer.append(elem)
     }
+    $("#select-columns").append(colsContainer)
     if (dynColumns[0] != "Property" && dynColumns[0] !="Software" ) {
       $("#select-columns input").parent().hide()
       $("#colCheckbox").parent().parent().hide()
