@@ -74,5 +74,6 @@ allow rudder_relayd_t proc_t:file { open read getattr };
 # Allow access to files shared with apache httpd (reports and inventories)
 miscfiles_manage_public_files(rudder_relayd_t)
 
+read_files_pattern(httpd_t, rudder_relayd_var_lib_t, rudder_relayd_var_lib_t)
 read_files_pattern(rudder_relayd_t, rudder_relayd_var_lib_t, rudder_relayd_var_lib_t)
 read_files_pattern(rudder_relayd_t, rudder_relayd_etc_t, rudder_relayd_etc_t)
