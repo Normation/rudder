@@ -19,8 +19,4 @@ multiple-versions = "allow"
 
 [advisories]
 ignore = [
-    # Apache 2.4 parses Content-Length headers with plus sign like hyper
-    "RUSTSEC-2021-0078",
-    # Apache prevents sizes > 64bits since 2015: https://httpd.apache.org/security/vulnerabilities_24.html#CVE-2015-3183
-    "RUSTSEC-2021-0079"
 ]
