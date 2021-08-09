@@ -82,6 +82,41 @@
   cursor: pointer;
   transition-duration: .2s;
 }
+.dataTable tr.head th.sorting,
+.dataTable tr.head th.sorting_asc,
+.dataTable tr.head th.sorting_desc{
+  white-space: pre;
+}
+.dataTable tr.head th.sorting:after{
+  content: "";
+  display: inline-block;
+  min-width: 12px;
+  margin-left: 6px;
+}
+.dataTable tr.head th.sorting_asc:after,
+.dataTable tr.head th.sorting_desc:after{
+  display: inline-block;
+  min-width: 12px;
+  font-family: "Font Awesome 5 Free";
+  -webkit-font-smoothing: antialiased;
+  display: inline-block;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  line-height: 1;
+  font-weight: 900;
+  color: #999;
+  margin-left : 6px;
+  font-size: 18px;
+  position: relative;
+  top: 1px;
+}
+.dataTable tr.head th.sorting_asc:after{
+  content: "\f0d8";
+}
+.dataTable tr.head th.sorting_desc:after{
+  content: "\f0d7";
+}
 .dataTable .dataTable tr.head th {
   padding: 4px 6px;
   font-size: 0.9em;
@@ -505,15 +540,15 @@ td.greyBackground, th.greyBackground {
 }
 
 /* === COLUMNS CONFIGURATION === */
-#select-columns{
-  margin-bottom: 4px;
-}
 #select-columns .rudder-label.label-error:before{
   content: "";
 }
 #select-columns .form-inline-flex{
   display: flex;
   margin: 12px 0 8px 0;
+}
+#select-columns .column-tags-container {
+  margin: 0 0 0 -6px;
 }
 #select-columns .form-inline-flex label.input-group {
   cursor: pointer;
@@ -534,11 +569,9 @@ td.greyBackground, th.greyBackground {
 #select-columns .btn > .fa:first-child {
   margin-right : 6px;
 }
-#select-columns .rudder-label:first-of-type{
-  margin-left: 0;
-}
 #select-columns .rudder-label{
   margin-left: 6px;
+  margin-bottom: 6px;
   padding: 4px 4px 4px 12px;
   min-width: initial;
   cursor: default;
