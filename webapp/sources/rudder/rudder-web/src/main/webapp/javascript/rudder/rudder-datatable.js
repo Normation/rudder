@@ -1429,19 +1429,19 @@ function createNodeTable(gridId, refresh) {
     dynColumns.sort()
     var table = $('#'+gridId).DataTable();
     $("#edit-columns").html($("<button class='btn btn-blue' > <i class='fa fa-pencil'></i> Edit columns</button>").click(function(){$("#select-columns").toggle()}))
-    var select = "<div class='col-xs-12 row form-group'> <div class='col-xs-2' style='margin-left : -15px'  > <select placeholder='Select column to add' class='  form-control'>"
+    var select = "<div class='form-inline-flex'> <div> <select placeholder='Select column to add' class='form-control'>"
     for (var key in dynColumns) {
       value = dynColumns[key]
       select += "<option value='"+value+"'>"+value+"</option>"
     }
-    select += "</select></div><div class='col-xs-2' style='margin-left : -15px'><input class='form-control' id='colValue' type='text'></div> <div class='col-xs-2' style='margin-left : -15px'><label><input id='colCheckbox' type='checkbox'> Show inherited properties</label></div> <button id='add-column' class='btn btn-success'  ><i class='fa fa-plus-circle'/> Add column</button>  <button id='reset-columns' class='btn btn-blue'  ><i class='fa fa-rotate-left' /> Reset columns</button></div>"
+    select += "</select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-addon'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-success'><i class='fa fa-plus-circle'></i>Add column</button><button id='reset-columns' class='btn btn-blue'><i class='fa fa-rotate-left'></i>Reset columns</button></div>"
     editOpen ? $("#select-columns").show() : $("#select-columns").hide()
     $("#select-columns").html(select)
     var selectedColumns =""
     for (var key in columns) {
-      var elem = $("<span class='rudder-label label-state' style='cursor: normal' >" + columns[key].title + "  </span>")
+      var elem = $("<span class='rudder-label label-state'>" + columns[key].title + "</span>")
       if (columns.length > 1 ) {
-        elem.append($("<i class='fa fa-times' style='cursor: pointer'> </i>").hover(function() { $(this).parent().toggleClass("label-state label-error")}).click(function(value) { return function() {removeColumn(value)}}(key)))
+        elem.append($("<i class='fa fa-times'></i>").hover(function() { $(this).parent().toggleClass("label-state label-error")}).click(function(value) { return function() {removeColumn(value)}}(key)))
       }
       $("#select-columns").append(elem)
     }
