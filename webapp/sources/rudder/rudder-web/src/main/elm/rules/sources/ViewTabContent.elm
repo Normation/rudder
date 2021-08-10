@@ -325,7 +325,7 @@ tabContent model details isNewRule=
 
 
               rowIncludeGroup = li[]
-                [ span[class "fa fa-file-text"][]
+                [ span[class "fa fa-sitemap"][]
                 , a[href ("/rudder/secure/configurationManager/#" ++ "")]
                   [ badgePolicyModeGroup "default"
                   , span [class "target-name"][text id]
