@@ -189,10 +189,17 @@ update msg model =
       -- TODO // Update Rules List
       case model.mode of
         EditRule details ->
-          ({model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}, successNotification ("Rule '"++ ruleDetails.name ++"' successfully saved"))
+          let
+            newModel = {model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}
+          in
+            (newModel, Cmd.batch [(successNotification ("Rule '"++ ruleDetails.name ++"' successfully saved"))  , (getRulesTree newModel)])
         CreateRule details ->
-          ({model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}, successNotification ("Rule '"++ ruleDetails.name ++"' successfully created"))
-        _   -> (model, Cmd.none)
+          let
+            newModel = {model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}
+          in
+            (newModel, Cmd.batch [(successNotification ("Rule '"++ ruleDetails.name ++"' successfully created")), (getRulesTree newModel)])
+        _   -> (model, Cmd.none )
+
 
     SaveRuleDetails (Err err) ->
       processApiError "Saving Rule" err model

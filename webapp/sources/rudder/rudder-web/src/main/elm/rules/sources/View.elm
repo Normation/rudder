@@ -90,10 +90,8 @@ view model =
                 text ("Are you sure you want to Delete rule '"++ rule.name ++"'?")
               ]
             , div [ class "modal-footer" ] [
-                button [ class "btn btn-primary btn-outline pull-left", onClick (ClosePopup Ignore) ]
-                [ text "Cancel "
-                , i [ class "fa fa-arrow-left" ] []
-                ]
+                button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
+                [ text "Cancel " ]
               , button [ class "btn btn-danger", onClick (ClosePopup (CallApi (deleteRule rule))) ]
                 [ text "Delete "
                 , i [ class "fa fa-times-circle" ] []
