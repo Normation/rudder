@@ -18,13 +18,22 @@ view model =
   let
     ruleTreeElem : Rule -> Html Msg
     ruleTreeElem item =
-      li [class "jstree-node jstree-leaf"]
-      [ i[class "jstree-icon jstree-ocl"][]
-      , a[href "#", class "jstree-anchor", onClick (OpenRuleDetails item.id)]
-        [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
-        , span [class "treeGroupName tooltipable"][text item.name]
+      let
+        (classDisabled, badgeDisabled) = if item.enabled /= True then
+            (" item-disabled", span[ class "badge-disabled"][])
+          else
+            ("", text "")
+      in
+        li [class "jstree-node jstree-leaf"]
+        [ i[class "jstree-icon jstree-ocl"][]
+        , a[href "#", class ("jstree-anchor"++classDisabled), onClick (OpenRuleDetails item.id)]
+          [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
+          , span [class "treeGroupName tooltipable"]
+            [ text item.name
+            , badgeDisabled
+            ]
+          ]
         ]
-      ]
 
     ruleTreeCategory : (Category Rule) -> Html Msg
     ruleTreeCategory item =
@@ -71,9 +80,9 @@ view model =
     modal = case model.modal of
       Nothing -> text ""
       Just (DeletionValidation rule) ->
-        div [ tabindex -1, class "modal fade ng-isolate-scope in", style "z-index" "1050", style "display"  "block" ]
+        div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
         [ div [ class "modal-dialog" ] [
-            div [ class "modal-content" ]  [-- uib-modal-transclude="">
+            div [ class "modal-content" ] [
               div [ class "modal-header ng-scope" ] [
                 h3 [ class "modal-title" ] [ text "Delete Rule"]
               ]
@@ -93,7 +102,32 @@ view model =
             ]
           ]
         ]
-
+      Just (DeactivationValidation rule) ->
+        let
+          txtDisable = if rule.enabled == True then "Disable" else "Enable"
+        in
+          div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
+          [ div [ class "modal-dialog" ] [
+              div [ class "modal-content" ]  [
+                div [ class "modal-header ng-scope" ] [
+                  h3 [ class "modal-title" ] [ text (txtDisable ++" Rule")]
+                ]
+              , div [ class "modal-body" ] [
+                  text ("Are you sure you want to "++ String.toLower txtDisable ++" rule '"++ rule.name ++"'?")
+                ]
+              , div [ class "modal-footer" ] [
+                  button [ class "btn btn-primary btn-outline pull-left", onClick (ClosePopup Ignore) ]
+                  [ text "Cancel "
+                  , i [ class "fa fa-arrow-left" ] []
+                  ]
+                , button [ class "btn btn-primary", onClick (ClosePopup DisableRule) ]
+                  [ text (txtDisable ++ " ")
+                  , i [ class "fa fa-ban" ] []
+                  ]
+                ]
+              ]
+            ]
+          ]
   in
     div [class "rudder-template"]
     [ div [class "template-sidebar sidebar-left"]

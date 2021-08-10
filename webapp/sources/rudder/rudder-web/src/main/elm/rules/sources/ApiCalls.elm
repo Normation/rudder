@@ -137,6 +137,22 @@ saveRuleDetails ruleDetails creation model =
   in
     send SaveRuleDetails req
 
+saveDisableAction : Rule -> Model ->  Cmd Msg
+saveDisableAction ruleDetails model =
+  let
+    req =
+      request
+        { method  = "POST"
+        , headers = []
+        , url     = getUrl model ("/rules/"++ruleDetails.id.value)
+        , body    = encodeRuleDetails ruleDetails |> jsonBody
+        , expect  = expectJson decodeGetRuleDetails
+        , timeout = Nothing
+        , withCredentials = False
+        }
+  in
+    send SaveDisableAction req
+
 deleteRule : Rule -> Model -> Cmd Msg
 deleteRule rule model =
   let
