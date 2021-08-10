@@ -11,6 +11,7 @@ import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
 import ViewRulesTable exposing (..)
 import ViewRuleDetails exposing (..)
+import ViewCategoryDetails exposing (..)
 
 
 view : Model -> Html Msg
@@ -44,7 +45,7 @@ view model =
       in
         li[class "jstree-node jstree-open"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[href "#", class "jstree-anchor"]
+        , a[href "#", class "jstree-anchor", onClick (OpenCategoryDetails item)]
           [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
           , span [class "treeGroupCategoryName tooltipable"][text item.name]
           ]
@@ -76,6 +77,9 @@ view model =
 
       CreateRule details ->
         (editionTemplate model details True)
+
+      EditCategory details ->
+        (editionTemplateCat model details False)
 
     modal = case model.modal of
       Nothing -> text ""

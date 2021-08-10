@@ -12,7 +12,7 @@ init : { contextPath : String } -> ( Model, Cmd Msg )
 init flags =
   let
 
-    initCategory      = Category "" "" (SubCategories []) []
+    initCategory      = Category "" "" "" (SubCategories []) []
     initModel = Model flags.contextPath Loading "" initCategory initCategory initCategory [] [] Nothing
 
     listInitActions =
