@@ -16,7 +16,7 @@ encodeRuleDetails ruleDetails =
       , ("longDescription"  , string ruleDetails.longDescription  )
       , ("enabled"          , bool   ruleDetails.enabled          )
       , ("system"           , bool   ruleDetails.isSystem         )
-      , ("directves"        , list string (List.map .value ruleDetails.directives)  )
+      , ("directives"        , list string (List.map .value ruleDetails.directives)  )
       , ("targets"          , list encodeTargets ruleDetails.targets   )
       , ("tags"             , list encodeTags ruleDetails.tags    )
       ]
