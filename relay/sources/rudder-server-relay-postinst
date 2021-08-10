@@ -15,7 +15,6 @@ LOG_FILE="/var/log/rudder/install/rudder-server-relay-$(date +%Y%m%d%H%M%S).log"
 echo "$(date) - Starting rudder-server-relay post installation script" >> ${LOG_FILE}
 
 # Create groups ans users before managing the services
-echo -n "INFO: Creating users ..."
 if ! getent group rudder > /dev/null; then
   groupadd --system rudder >> ${LOG_FILE}
 fi
@@ -32,19 +31,15 @@ fi
 if ! getent passwd rudder >/dev/null; then
   useradd --system --shell /bin/false --gid rudder --home-dir /var/rudder --comment "Rudder,,," rudder >> ${LOG_FILE}
 fi
-echo " Done"
 
 # Always reload systemd (in case we changed the unit file)
-echo -n "INFO: Configuring systemd services..."
 systemctl daemon-reload >> ${LOG_FILE}
 if [ "${FIRST_INSTALL}" -eq 1 ]; then
-  systemctl enable rudder-relayd >> ${LOG_FILE}
+  systemctl enable rudder-relayd >> ${LOG_FILE} 2>&1
 fi
 
 systemctl stop "${APACHE}" >> ${LOG_FILE} || true
-
 systemctl stop rudder-relayd >> ${LOG_FILE} || true
-echo " Done"
 
 # share directory with rudder-policy-reader
 chgrp rudder-policy-reader /var/rudder/share
@@ -143,36 +138,7 @@ if [ "${SELINUX}" = "true" ]; then
   fi
 fi
 
-echo -n "INFO: Starting services..."
 systemctl start rudder-relayd >> ${LOG_FILE}
 systemctl start "${APACHE}" >> ${LOG_FILE}
-echo " Done"
-
-echo "INFO: rudder-server-relay setup complete."
-# Only output this notice during initial installation
-if [ "${FIRST_INSTALL}" -eq 1 ]; then
-  uuid_file="/opt/rudder/etc/uuid.hive"
-  if [ -f "${uuid_file}" ]; then
-    uuid=$(cat ${uuid_file})
-    if [ "${uuid}" != "root" ]; then
-      echo ""
-      echo "*****************************************************************************************"
-      echo "INFO: Now run on your root server:                                                             "
-      echo "INFO:   'rudder server node-to-relay ${uuid}"
-      echo "INFO: Please look at the documentation for details (Section 'Relay servers')           "
-      echo "*****************************************************************************************"
-    fi
-  else # if for some reason there is no uuid here (should not happen)
-    echo ""
-    echo "*****************************************************************************************"
-    echo "INFO: * If you are installing a root server, configuration is automatically done         "
-    echo "INFO: * If you are installing a simple relay, run:                                       "
-    echo "INFO:   'rudder server node-to-relay <your uuid>'          "
-    echo "INFO:   on your root server to complete this node transition to a relay server.          "
-    echo "INFO:   Please look at the documentation for details (Section 'Relay servers')           "
-    echo "*****************************************************************************************"
-  fi
-fi
 
 echo "$(date) - Ending rudder-server-relay post installation script" >> ${LOG_FILE}
-
