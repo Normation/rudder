@@ -25,11 +25,16 @@ editionTemplate model details isNewRule =
         span[style "opacity" "0.4"][text "New rule"]
       else
          text originRule.name
+    (classDisabled, badgeDisabled) = if originRule.enabled /= True then
+        ("item-disabled", span[ class "badge-disabled"][])
+      else
+        ("", text "")
     topButtons =
       let
         disableWhileCreating = case model.mode of
           EditRule _ -> ""
           _ -> " disabled"
+        txtDisabled = if rule.enabled == True then "Disable" else "Enable"
       in
         [ li [] [
             a [ class ("action-success"++disableWhileCreating), onClick (GenerateId (\r -> CloneRule originRule (RuleId r)))] [
@@ -38,9 +43,9 @@ editionTemplate model details isNewRule =
             ]
           ]
         , li [] [
-            a [ class ("action-primary disabled"++disableWhileCreating)] [
+            a [ class ("action-primary "++disableWhileCreating), onClick (OpenDeactivationPopup rule)] [
               i [ class "fa fa-ban"] []
-            , text "Disable (Not yet implemented)"
+            , text txtDisabled
             ]
           ]
         , li [class "divider"][]
@@ -88,7 +93,10 @@ editionTemplate model details isNewRule =
     div [class "main-container"]
     [ div [class "main-header "]
       [ div [class "header-title"]
-        [ h1[][ruleTitle]
+        [ h1[class classDisabled]
+          [ ruleTitle
+          , badgeDisabled
+          ]
         , div[class "header-buttons"]
           [ div [ class "btn-group" ]
             [ button [ class "btn btn-default dropdown-toggle" , attribute "data-toggle" "dropdown" ] [

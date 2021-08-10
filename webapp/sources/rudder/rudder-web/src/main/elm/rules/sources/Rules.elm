@@ -6,7 +6,7 @@ import Http exposing (..)
 import Init exposing (init, subscriptions)
 import View exposing (view)
 import Result
-import ApiCalls exposing (getRuleDetails, getRulesTree)
+import ApiCalls exposing (getRuleDetails, getRulesTree, saveDisableAction)
 import List.Extra exposing (remove)
 import Random
 import UUID
@@ -160,6 +160,16 @@ update msg model =
           ({model | mode = CreateRule {details | rule = rule}}, Cmd.none)
         _   -> (model, Cmd.none)
 
+    DisableRule ->
+      case model.mode of
+        EditRule details ->
+          let
+            rule     = details.originRule
+            newRule  = {rule | enabled = not rule.enabled}
+          in
+            (model, saveDisableAction newRule model)
+        _   -> (model, Cmd.none)
+
     NewRule id ->
       let
         rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] []
@@ -186,6 +196,18 @@ update msg model =
 
     SaveRuleDetails (Err err) ->
       processApiError "Saving Rule" err model
+
+    SaveDisableAction (Ok ruleDetails) ->
+      case model.mode of
+        EditRule details ->
+          let
+            txtDisable = if ruleDetails.enabled == True then "enabled" else "disabled"
+          in
+            ({model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}, (Cmd.batch [successNotification ("Rule '"++ ruleDetails.name ++"' successfully "++ txtDisable), (getRulesTree model)]))
+        _   -> (model, Cmd.none)
+
+    SaveDisableAction (Err err) ->
+      processApiError "Changing rule state" err model
 
     DeleteRule (Ok (ruleId, ruleName)) ->
     -- TODO // Update Rules List
@@ -217,6 +239,12 @@ update msg model =
       case model.mode of
         EditRule _ ->
             ( { model | modal = Just (DeletionValidation rule)} , Cmd.none )
+        _ -> (model, Cmd.none)
+
+    OpenDeactivationPopup rule ->
+      case model.mode of
+        EditRule _ ->
+            ( { model | modal = Just (DeactivationValidation rule)} , Cmd.none )
         _ -> (model, Cmd.none)
 
     ClosePopup callback ->

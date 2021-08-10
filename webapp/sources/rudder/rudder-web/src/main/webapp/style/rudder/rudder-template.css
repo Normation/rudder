@@ -131,6 +131,9 @@
   margin: 0;
   font-size: 26px;
 }
+.rudder-template .header-title h1.item-disabled {
+  color: #828894;
+}
 .rudder-template .header-buttons {
   white-space: nowrap;
 }
@@ -219,6 +222,32 @@
   margin: 0px;
 }
 
+.header-title span.badge-disabled {
+  background-color: #04192257;
+  font-size: 0.6em;
+  color: #fff;
+  font-weight: bold;
+  padding: 2px 8px;
+  margin-left: 10px;
+  border-radius: 4px;
+  position: relative;
+  top: -2px;
+}
+.header-title span.badge-disabled:before {
+  content: "DISABLED";
+}
+.header-title span.badge-disabled:after {
+  content: "\f05e";
+  font-family: "Font Awesome 5 Free";
+  -webkit-font-smoothing: antialiased;
+  display: inline-block;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  line-height: 1;
+  font-size: 0.8em;
+  margin-left: 6px;
+}
 /* === BADGES === */
 .badge-parameters,
 .badge-resources{
@@ -705,7 +734,21 @@
 .tab-table-content .table-container{
   margin: 0 -15px;
 }
-
+.jstree span.badge-disabled {
+  background-color: #04192257;
+  font-size: 0.7em;
+  color: #fff;
+  font-weight: bold;
+  padding: 2px 8px;
+  margin-left: 6px;
+  border-radius: 4px;
+}
+.jstree span.badge-disabled:before {
+  content: "DISABLED";
+}
+.jstree .item-disabled{
+  color: #828894;
+}
 /* === CALLOUT === */
 .callout-fade .action-btn{
   margin-top: 15px;
