@@ -85,9 +85,10 @@ import com.normation.rudder.hooks.RunNuCommand
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.repository.WoDirectiveRepository
-
 import com.normation.box._
 import org.joda.time.DateTime
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.zio.currentTimeMillis
 
 trait NcfError extends RudderError {
   def message : String
@@ -106,27 +107,36 @@ class RudderCRunner (
 )  {
   def compileTechnique(technique : EditorTechnique) = {
     for {
-      r <- RunNuCommand.run(Cmd(rudderCPath, "save" :: "-j" :: "-i" :: s"""${outputPath}/${technique.path}/technique.json""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
-      res <- r.await
-      _ <- ZIO.when(res.code != 0) {
-        Inconsistency(
-          s"An error occurred when translating technique.json file into Rudder language\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
-        ).fail
-      }
-      r <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: "cf" :: "-i" :: s"""${outputPath}/${technique.path}/technique.rd""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
-      res <- r.await
-      _ <- ZIO.when(res.code != 0) {
-        Inconsistency(
-          s"An error occurred when compiling technique.rd file into cfengine\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
-        ).fail
-      }
-      r <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: "dsc" :: "-i" :: s"""${outputPath}/${technique.path}/technique.rd""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
-      res <- r.await
-      _ <- ZIO.when(res.code != 0) {
-        Inconsistency(
-          s"An error occurred when compiling technique.rd file into dsc\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
-        ).fail
-      }
+      time_0 <- currentTimeMillis
+      r      <- RunNuCommand.run(Cmd(rudderCPath, "save" :: "-j" :: "-i" :: s"""${outputPath}/${technique.path}/technique.json""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
+      res    <- r.await
+      _      <- ZIO.when(res.code != 0) {
+                  Inconsistency(
+                    s"An error occurred when translating technique.json file into Rudder language\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+                  ).fail
+                }
+      time_1 <- currentTimeMillis
+      _      <- TimingDebugLoggerPure.trace(s"compîleTechnique: saving technique '${technique.name}' took ${time_1 - time_0}ms")
+
+      r      <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: "cf" :: "-i" :: s"""${outputPath}/${technique.path}/technique.rd""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
+      res    <- r.await
+      _      <- ZIO.when(res.code != 0) {
+                  Inconsistency(
+                    s"An error occurred when compiling technique.rd file into cfengine\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+                  ).fail
+                }
+      time_2 <- currentTimeMillis
+      _      <- TimingDebugLoggerPure.trace(s"compîleTechnique: compiling technique for cf '${technique.name}' took ${time_2 - time_1}ms")
+
+      r      <- RunNuCommand.run(Cmd(rudderCPath, "compile" :: "-j" :: "-f" :: "dsc" :: "-i" :: s"""${outputPath}/${technique.path}/technique.rd""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
+      res    <- r.await
+      _      <- ZIO.when(res.code != 0) {
+                  Inconsistency(
+                    s"An error occurred when compiling technique.rd file into dsc\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+                  ).fail
+                }
+      time_3 <- currentTimeMillis
+      _      <- TimingDebugLoggerPure.trace(s"compîleTechnique: compiling technique for dsc '${technique.name}' took ${time_3 - time_2}ms")
     } yield {
       ()
     }
@@ -343,11 +353,18 @@ class TechniqueWriter (
   // Write and commit all techniques files
   def writeTechnique(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[EditorTechnique] = {
     for {
+      time_0     <- currentTimeMillis
       metadata   <- writeMetadata(technique, methods, modId, committer)
+      time_1     <- currentTimeMillis
+      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: generating metadata for technique '${technique.name}' took ${time_1 - time_0}ms")
+
       // Before writing down technique, set all resources to Untouched state, and remove Delete resources, was the cause of #17750
       updateResources = technique.ressources.collect{case r if r.state != ResourceFileState.Deleted => r.copy(state = ResourceFileState.Untouched) }
                          techniqueWithResourceUpdated = technique.copy(ressources = updateResources)
       json       <- writeJson(techniqueWithResourceUpdated)
+      time_2     <- currentTimeMillis
+      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing json for technique '${technique.name}' took ${time_2 - time_1}ms")
+
       agentFiles <- compiler.compileTechnique(technique).catchAll { e =>
         val errorPath : File = root / errorLogPath /  "rudderc" / "failures" / s"${DateTime.now()}_${technique.bundleName.value}.log"
         for {
@@ -369,8 +386,14 @@ class TechniqueWriter (
           ()
         }
       }
+      time_3     <- currentTimeMillis
+      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing agent files for technique '${technique.name}' took ${time_3 - time_2}ms")
 
       commit     <- archiver.commitTechnique(technique, modId, committer, s"Committing technique ${technique.name}")
+      time_4     <- currentTimeMillis
+      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: commiting technique '${technique.name}' took ${time_4 - time_3}ms")
+      _          <- TimingDebugLoggerPure.debug(s"writeTechnique: writing technique '${technique.name}' took ${time_4 - time_0}ms")
+
     } yield {
       techniqueWithResourceUpdated
     }
