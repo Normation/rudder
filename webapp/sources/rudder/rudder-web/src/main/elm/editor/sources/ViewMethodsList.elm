@@ -140,7 +140,7 @@ methodsList model =
 
 filterMethod: MethodFilter -> Method -> Bool
 filterMethod filter method =
-  (String.contains filter.name method.name) &&
+  (String.contains (String.toUpper filter.name) (String.toUpper method.name)) &&
     ( case filter.agent of
       Nothing -> True
       Just ag -> List.member ag method.agentSupport
