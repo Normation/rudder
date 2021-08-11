@@ -1,4 +1,4 @@
-function Condition-Foreign-Variable-Technique {
+function Condition-Foreign-Variable {
   [CmdletBinding()]
   param (
     [Parameter(Mandatory=$True)]

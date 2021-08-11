@@ -2,7 +2,7 @@
 # @name stateless
 # @version 1.0
 
-function Stateless-Technique {
+function Stateless {
   [CmdletBinding()]
   param (
     [Parameter(Mandatory=$True)]

@@ -2,7 +2,7 @@
 # @name Configure NTP
 # @version 1.0
 
-bundle agent Configure_NTP_technique {
+bundle agent Configure_NTP {
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
 

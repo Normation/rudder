@@ -495,7 +495,13 @@ impl Generator for CFEngine {
                 self.reset_context();
 
                 // Result bundle
-                let bundle_name = format!("{}_{}", resource_name.fragment(), state_name.fragment());
+                let bundle_name = if state_name.fragment() == "technique" {
+                    // special cases to be compatible with bundles produced by the webapp
+                    // and called in the generated policies
+                    resource_name.fragment().to_owned()
+                } else {
+                    format!("{}_{}", resource_name.fragment(), state_name.fragment())
+                };
                 let parameters = resource
                     .parameters
                     .iter()

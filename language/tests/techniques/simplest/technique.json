@@ -1,12 +1,14 @@
 {
   "bundle_name": "simplest",
+  "version": "1.0",
+  "category": "ncf_techniques",
   "description": "rudderlang simplest for a complete loop",
   "name": "simplest",
-  "version": "1.0",
-  "parameter": [],
-  "category": "ncf_techniques",
   "method_calls": [
     {
+      "method_name": "file_absent",
+      "class_context": "any",
+      "component": "File absent",
       "parameters": [
         {
           "name": "path",
@@ -14,12 +16,10 @@
           "$errors": []
         }
       ],
-      "class_context": "any",
-      "method_name": "file_absent",
-      "component": "File absent",
       "id": "aeca6c93-47af-41ee-ba4a-8772f4ce7dd8",
       "reportingDisabled": false
     }
   ],
+  "parameter": [],
   "resources": []
 }

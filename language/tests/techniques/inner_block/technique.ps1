@@ -2,7 +2,7 @@
 # @name Inner block
 # @version 1.0
 
-function Inner-Block-Technique {
+function Inner-Block {
   [CmdletBinding()]
   param (
     [Parameter(Mandatory=$True)]
@@ -43,4 +43,3 @@ function Inner-Block-Technique {
     _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp2" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
   }
 }
-

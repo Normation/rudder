@@ -2,7 +2,7 @@
 # @name Simple block
 # @version 1.0
 
-function Simple-Block-Technique {
+function Simple-Block {
   [CmdletBinding()]
   param (
     [Parameter(Mandatory=$True)]

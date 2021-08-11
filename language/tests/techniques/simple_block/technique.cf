@@ -3,13 +3,13 @@
 # @version 1.0
 # @description rudderlang simple block
 
-bundle agent simple_block_technique {
+bundle agent simple_block {
 
   vars:
     "resources_dir"        string => "${this.promise_dirname}/resources";
     "args"                  slist => {};
     "report_param"         string => join("_", args);
-    "full_class_prefix"    string => canonify("simple_block_technique_${report_param}");
+    "full_class_prefix"    string => canonify("simple_block_${report_param}");
     "class_prefix"         string => string_head("${full_class_prefix}", "1000");
 
   methods:

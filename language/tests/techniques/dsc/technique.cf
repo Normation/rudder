@@ -4,13 +4,13 @@
 # @version 1.0
 # @description
 
-bundle agent technique_dsc_technique {
+bundle agent technique_dsc {
 
   vars:
     "resources_dir"        string => "${this.promise_dirname}/resources";
     "args"                  slist => {};
     "report_param"         string => join("_", args);
-    "full_class_prefix"    string => canonify("technique_dsc_technique_${report_param}");
+    "full_class_prefix"    string => canonify("technique_dsc_${report_param}");
     "class_prefix"         string => string_head("${full_class_prefix}", "1000");
 
   methods:

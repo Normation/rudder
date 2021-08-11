@@ -107,7 +107,7 @@ def load_cf(filename):
   env = os.environ.copy()
   env['RES_OPTIONS'] = 'attempts:0'
   try:
-    out = check_output([ncf.CFENGINE_PATH, "-pjson", "-f", filename], env=env)
+    out = check_output([ncf.CFENGINE_PATH, "-pjson", "-f", "./" + filename], env=env)
     promises = json.loads(out)
   except Exception as e:
     print_json("compare_cf", filename, 'An error occurred while parsing cf technique: {}'.format(str(e)), True)

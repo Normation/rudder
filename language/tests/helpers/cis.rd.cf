@@ -4,7 +4,7 @@
 # @version 1.0
 # @parameter { "name": "service", "id": "981a5b9d-b062-4011-8dff-df1810cb2fe6", "constraints": "" }
 
-bundle agent CIS_redhat7___Enable_Service_technique(service)
+bundle agent CIS_redhat7___Enable_Service(service)
 {
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";

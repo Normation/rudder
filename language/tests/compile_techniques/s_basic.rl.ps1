@@ -2,7 +2,7 @@
 # @name Configure NTP
 # @version 1.0
 
-function Configure-NTP-Technique {
+function Configure-NTP {
   [CmdletBinding()]
   param (
     [Parameter(Mandatory=$False)] [Switch] $AuditOnly,

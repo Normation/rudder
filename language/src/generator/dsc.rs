@@ -534,7 +534,11 @@ impl Generator for DSC {
                 // Switches should be put last
                 formatted_parameters.push("[Switch]$AuditOnly".to_owned());
 
-                let fn_name = format!("{} {}", resource_name.fragment(), state_name.fragment(),);
+                let fn_name = if state_name.fragment() == "technique" {
+                    resource_name.fragment().to_owned()
+                } else {
+                    format!("{} {}", resource_name.fragment(), state_name.fragment(),)
+                };
 
                 let mut function = Function::agent(fn_name.clone())
                     .parameters(formatted_parameters.clone())

@@ -2,7 +2,7 @@
 # @name condition useless brackets
 # @version 1.0
 
-function Condition-Useless-Brackets-Technique {
+function Condition-Useless-Brackets {
   [CmdletBinding()]
   param (
     [Parameter(Mandatory=$True)]
