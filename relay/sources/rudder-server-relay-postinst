@@ -123,7 +123,6 @@ if [ "${SELINUX}" = "true" ]; then
     restorecon -R /opt/rudder/etc/relayd
     restorecon /opt/rudder/bin/rudder-relayd
     restorecon -R /var/rudder/lib
-    restorecon -R /var/rudder/ssl
     restorecon -R /var/rudder/cfengine-community/ppkeys
     if ! ls -Z /var/rudder/share | head -n1 | grep -q public_content_t; then
       restorecon -R /var/rudder/share
