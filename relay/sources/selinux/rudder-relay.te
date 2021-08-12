@@ -76,4 +76,5 @@ miscfiles_manage_public_files(rudder_relayd_t)
 
 read_files_pattern(httpd_t, rudder_relayd_var_lib_t, rudder_relayd_var_lib_t)
 read_files_pattern(rudder_relayd_t, rudder_relayd_var_lib_t, rudder_relayd_var_lib_t)
+read_lnk_files_pattern(rudder_relayd_t, rudder_relayd_var_lib_t, rudder_relayd_var_lib_t)
 read_files_pattern(rudder_relayd_t, rudder_relayd_etc_t, rudder_relayd_etc_t)
