@@ -240,7 +240,7 @@ showMethodTab model method parentId call uiInfo=
             div [ class "input-group-addon" ] [
               text "Success"
             ]
-          , input [ readonly True, type_ "text", class "form-control",  value (classParameter.name.value ++ "_" ++ (canonify paramValue) ++ "_kept") ] []
+          , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_kept") ] []
           , span [ class "input-group-btn" ] [
               button [ class "btn btn-outline-secondary clipboard", type_ "button", title "Copy to clipboard" ] [ --data-clipboard-text="{{getClassKind(method_call,'kept')}}" title="Copy to clipboard">
                 i [ class "ion ion-clipboard" ] []
@@ -251,7 +251,7 @@ showMethodTab model method parentId call uiInfo=
             div [ class "input-group-addon" ] [
               text "Repaired"
             ]
-          , input [ readonly True, type_ "text", class "form-control",  value (classParameter.name.value ++ "_" ++ (canonify paramValue) ++ "_repaired") ] []
+          , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired") ] []
           , span [ class "input-group-btn" ] [
               button [ class "btn btn-outline-secondary clipboard", type_ "button" , title "Copy to clipboard" ] [ --data-clipboard-text="{{getClassKind(method_call,'kept')}}" title="Copy to clipboard">
                 i [ class "ion ion-clipboard" ] []
@@ -262,7 +262,7 @@ showMethodTab model method parentId call uiInfo=
             div [ class "input-group-addon" ] [
               text "Error"
             ]
-          , input [ readonly True, type_ "text", class "form-control",  value (classParameter.name.value ++ "_" ++ (canonify paramValue) ++ "_error") ] []
+          , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error") ] []
           , span [ class "input-group-btn" ] [
               button [ class "btn btn-outline-secondary clipboard", type_ "button", title "Copy to clipboard" ] [ --data-clipboard-text="{{getClassKind(method_call,'kept')}}" title="Copy to clipboard">
                 i [ class "ion ion-clipboard" ] []
