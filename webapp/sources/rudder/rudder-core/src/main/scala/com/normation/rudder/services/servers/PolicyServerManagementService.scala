@@ -105,6 +105,12 @@ trait PolicyServerManagementService {
   def getPolicyServers(): IOResult[PolicyServers]
 
   /**
+   * Save the policy servers , used by the plugin to create the entry
+   * for the new policy server
+   */
+  def savePolicyServers(policyServers: PolicyServers): IOResult[PolicyServers]
+
+    /**
    * Get the list of allowed networks, i.e the list of networks such that
    * a node with an IP in it can ask for updated policies..
    *
@@ -142,12 +148,13 @@ trait PolicyServerManagementService {
    * Return the new list of authorized network for the node.
    */
   def setAllowedNetworks(policyServerId: NodeId, networks: Seq[AllowedNetwork], modId: ModificationId, actor: EventActor): IOResult[List[AllowedNetwork]] = {
-    val command = PolicyServersUpdateCommand.Update( (s: PolicyServer) =>
-      if(s.id == policyServerId) {
+    val command = PolicyServersUpdateCommand.Update( (s: PolicyServer) => {
+      if (s.id == policyServerId) {
         PolicyServerUpdateAction.SetNetworks(networks.toList) :: Nil
       } else {
         Nil
       }
+    }
     )
     updatePolicyServers(command :: Nil, modId, actor).map(zoomAllowedNetworks(policyServerId))
   }
@@ -326,6 +333,19 @@ class PolicyServerManagementServiceImpl(
     } yield {
       servers._2
     }
+  }
+
+  override def savePolicyServers(policyServers: PolicyServers): IOResult[PolicyServers] = {
+    lock.withPermit(for {
+      con       <- ldap
+      pair      <- getLdap(con)
+      (e, orig) =  pair
+      value     =  JPolicyServers.from(policyServers).toJson
+      _         =  e.resetValuesTo(RudderLDAPConstants.A_PROPERTY_VALUE, value)
+      _         <- con.save(e)
+    } yield {
+      policyServers
+    })
   }
 
 

@@ -241,6 +241,8 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
   val policyServerManagementService = new PolicyServerManagementService() {
     override def getAllowedNetworks(policyServerId: NodeId): IOResult[List[AllowedNetwork]] = List(AllowedNetwork("192.168.49.0/24", "name")).succeed
     override def getPolicyServers(): IOResult[PolicyServers] = ???
+
+    override def savePolicyServers(policyServers: PolicyServers): IOResult[PolicyServers] = ???
     override def getAllAllowedNetworks(): IOResult[Map[NodeId, List[AllowedNetwork]]] = ???
     override def updatePolicyServers(commands: List[PolicyServersUpdateCommand], modId: ModificationId, actor: EventActor): IOResult[PolicyServers] = ???
     override def setAllowedNetworks(policyServerId   : NodeId, networks: Seq[AllowedNetwork], modId: ModificationId, actor: EventActor): IOResult[List[AllowedNetwork]] = ???
@@ -2064,9 +2066,10 @@ class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) 
   object policyServerManagementService extends PolicyServerManagementService {
     val repo = Ref.make(defaultPolicyServer).runNow
 
-
     override def getPolicyServers(): IOResult[PolicyServers] = repo.get
 
+    override def savePolicyServers(policyServers: PolicyServers): IOResult[PolicyServers] = ???
+    
     override def updatePolicyServers(commands: List[PolicyServersUpdateCommand], modId: ModificationId, actor: EventActor): IOResult[PolicyServers] = {
       for {
         servers <- repo.get

@@ -582,6 +582,8 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
         , Nil
       ).succeed
     }
+
+    override def savePolicyServers(policyServers: PolicyServers): IOResult[PolicyServers] = ???
     override def updatePolicyServers(commands: List[PolicyServersUpdateCommand], modId: ModificationId, actor: EventActor): IOResult[PolicyServers] = ???
     override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit] = ???
   }
