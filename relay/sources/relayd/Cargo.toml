@@ -25,6 +25,7 @@ diesel = { version = "1", default-features = false, features = ["postgres", "chr
 # Uses rust implementation by default
 flate2 = "1"
 futures = "0.3"
+gumdrop = "0.8"
 hex = "0.4"
 humantime = "2"
 hyper = { version = "0.14", default-features = false }
@@ -41,7 +42,6 @@ reqwest = { version = "0.11.1", default-features = false, features = ["stream", 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.9"
-structopt = { version = "0.3", default-features = false }
 thiserror = "1"
 tokio = { version = "1", default-features = false, features = [ "rt-multi-thread", "process", "macros", "signal", "fs"] }
 tokio-stream = { version = "0.1", default-features = false, features = ["io-util"] }
