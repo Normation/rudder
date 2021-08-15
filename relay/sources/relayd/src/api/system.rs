@@ -3,7 +3,7 @@
 
 use crate::{
     api::{ApiResponse, ApiResult},
-    check_configuration,
+    configuration::check_configuration,
     output::database::ping,
     Error, JobConfig, CRATE_VERSION,
 };
@@ -113,6 +113,7 @@ impl Status {
                 .map(|p| ping(&p).map_err(|e| e).into()),
             configuration: check_configuration(&job_config.cli_cfg.config)
                 .map_err(|e| e)
+                .map(|_| ())
                 .into(),
         }
     }
