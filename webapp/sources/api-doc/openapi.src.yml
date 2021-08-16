@@ -7,7 +7,7 @@ info:
   # Will be substituted by content of the file at build
   description: "introduction.md"
   x-logo:
-    url: "assets/rudder.png"
+    url: "assets/rudder.svg"
   contact:
     email: dev@rudder.io
     name: Rudder developers
