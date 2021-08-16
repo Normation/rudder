@@ -6,7 +6,7 @@ info:
   version: "1"
   description: introduction.yml
   x-logo:
-    url: "assets/rudder.png"
+    url: "assets/rudder.svg"
   contact:
     email: dev@rudder.io
     name: Rudder developers
