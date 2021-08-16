@@ -74,7 +74,12 @@ period of time to allow migration from previous versions.
         <li>System maintenance job to purge software [that endpoint was back-ported in 6.1]</li>
       </ul></td>
     </tr>
-
+    <tr>
+      <td class="code">14</td>
+      <td class="code">7.0</td>
+      <td><ul>
+      </ul></td>
+    </tr>
   </tbody>
 </table>
 
