@@ -61,8 +61,14 @@ for template in templates:
                         "--output", html_file,
                         # Don't help google track our users
                         "--disableGoogleFont",
-                        # The famous Rudder orange
-                        "--options.theme.colors.primary.main='#f08004'",
+                        # Rudder theme (+CSS hack below)
+                        "--options.theme.logo.gutter='8px'",
+                        "--options.theme.sidebar.backgroundColor='#F8F9FC'",
+                        "--options.theme.colors.primary.main='#13BEB7'",
+                        "--options.theme.colors.text.primary='#36474E'",
+                        "--options.theme.typography.fontFamily='Lato, sans-serif'",
+                        "--options.theme.typography.headings.fontFamily='Lato, sans-serif'",
+                        "--options.theme.typography.headings.fontWeight='700'",
                         # Expand success examples by default
                         "--options.expandResponses='200,'",
                         # More readable in central column
@@ -73,6 +79,10 @@ for template in templates:
                         "--options.hideDownloadButton=1"
                         ]):
         print("Could not build %s" % (html_file))
+        exit(1)
+
+    if subprocess.call(["sed", "-i", "/<style>/ r custom.css", html_file]):
+        print("Could not insert custom CSS rules into %s" % (html_file))
         exit(1)
 
     shutil.copytree("%s/assets" % source, "%s/assets" % target)
