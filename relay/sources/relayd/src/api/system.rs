@@ -5,11 +5,10 @@ use crate::{
     api::{ApiResponse, ApiResult},
     check_configuration,
     output::database::ping,
-    Error, JobConfig,
+    Error, JobConfig, CRATE_VERSION,
 };
 use serde::Serialize;
 use std::sync::Arc;
-use structopt::clap::crate_version;
 use warp::{filters::method, path, Filter, Reply};
 
 pub fn routes_1(
@@ -71,7 +70,7 @@ impl Info {
                 env!("CARGO_PKG_VERSION_MAJOR"),
                 env!("CARGO_PKG_VERSION_MINOR")
             ),
-            full_version: crate_version!().to_string(),
+            full_version: CRATE_VERSION.to_string(),
         }
     }
 }
@@ -112,7 +111,7 @@ impl Status {
                 .pool
                 .clone()
                 .map(|p| ping(&p).map_err(|e| e).into()),
-            configuration: check_configuration(&job_config.cli_cfg.configuration_dir)
+            configuration: check_configuration(&job_config.cli_cfg.config)
                 .map_err(|e| e)
                 .into(),
         }

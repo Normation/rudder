@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use gumdrop::Options;
 use rudder_relayd::{
     check_configuration, configuration::cli::CliConfiguration, init_logger, start, ExitStatus,
+    CRATE_NAME, CRATE_VERSION,
 };
 use std::{env, process::exit};
-use structopt::StructOpt;
 use tracing::error;
 
 /// Everything in a lib to allow extensive testing
@@ -19,9 +20,12 @@ fn main() {
         env::set_var("RUST_BACKTRACE", "1");
     }
 
-    let cli_cfg = CliConfiguration::from_args();
-    if cli_cfg.check_configuration {
-        if let Err(e) = check_configuration(&cli_cfg.configuration_dir) {
+    let cli_cfg = CliConfiguration::parse_args_default_or_exit();
+
+    if cli_cfg.version {
+        println!("{} {}", CRATE_NAME, CRATE_VERSION);
+    } else if cli_cfg.test {
+        if let Err(e) = check_configuration(&cli_cfg.config) {
             println!("{}", e);
             exit(ExitStatus::StartError(e).code());
         }

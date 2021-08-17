@@ -3,8 +3,6 @@
 
 #[macro_use]
 extern crate diesel;
-#[macro_use]
-extern crate structopt;
 
 pub mod api;
 pub mod configuration;
@@ -32,10 +30,9 @@ use crate::{
 use anyhow::Error;
 use configuration::main::PeerAuthentication;
 use std::{
-    collections::HashMap, fs, fs::create_dir_all, path::Path, process::exit, string::ToString,
+    collections::HashMap, env, fs, fs::create_dir_all, path::Path, process::exit, string::ToString,
     sync::Arc,
 };
-use structopt::clap::crate_version;
 use tokio::{
     signal::unix::{signal, SignalKind},
     sync::RwLock,
@@ -49,6 +46,9 @@ use tracing_subscriber::{
     },
     reload::Handle,
 };
+
+pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
+pub const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // There are two main phases in execution:
 //
@@ -110,12 +110,12 @@ pub fn check_configuration(cfg_dir: &Path) -> Result<(), Error> {
 
 pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), Error> {
     // Start by setting log config
-    let log_cfg = LogConfig::new(&cli_cfg.configuration_dir)?;
+    let log_cfg = LogConfig::new(&cli_cfg.config)?;
     reload_handle.reload(log_cfg.to_string())?;
 
-    info!("Starting rudder-relayd {}", crate_version!());
+    info!("Starting {} {}", CRATE_NAME, CRATE_VERSION);
     debug!("Parsed cli configuration:\n{:#?}", &cli_cfg);
-    info!("Read configuration from {:#?}", &cli_cfg.configuration_dir);
+    info!("Read configuration from {:#?}", &cli_cfg.config);
     debug!("Parsed logging configuration:\n{:#?}", &log_cfg);
 
     // Spawn metrics
@@ -123,7 +123,7 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
 
     // ---- Setup data structures ----
 
-    let cfg = Configuration::new(cli_cfg.configuration_dir.clone())?;
+    let cfg = Configuration::new(cli_cfg.config.clone())?;
     cfg.validate()?;
     let job_config = JobConfig::new(cli_cfg, cfg, reload_handle)?;
 
@@ -313,7 +313,7 @@ impl JobConfig {
     }
 
     fn reload_logging(&self) -> Result<(), Error> {
-        LogConfig::new(&self.cli_cfg.configuration_dir).and_then(|log_cfg| {
+        LogConfig::new(&self.cli_cfg.config).and_then(|log_cfg| {
             self.handle
                 .reload(EnvFilter::try_new(log_cfg.to_string())?)
                 .map_err(|e| e.into())

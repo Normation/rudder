@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use crate::{CRATE_NAME, CRATE_VERSION};
 use anyhow::Error;
 use lazy_static::lazy_static;
 use reqwest::{Certificate, Client};
-use structopt::clap::{crate_name, crate_version};
 use tracing::debug;
 
 lazy_static! {
     /// User-Agent used in our HTTP requests
     /// "rudder-relayd/7.0.0"
-    static ref USER_AGENT: String = format!("{}/{}", crate_name!(), crate_version!());
+    static ref USER_AGENT: String = format!("{}/{}", CRATE_NAME, CRATE_VERSION);
 }
 
 type PemCertificate = Vec<u8>;
