@@ -1,5 +1,9 @@
 h1, h2 {
-	color: #36474E !important
+    color: #36474E !important
+}
+
+label[role=menuitem] {
+    font-size: 110%;
 }
 
 /* Use font files from main docs */
@@ -12,7 +16,7 @@ h1, h2 {
     local("Lato Regular"),
     local("Lato-Regular"),
     url(../../../_/font/lato-latin-400.woff2) format("woff2")
-    url(../../../_/fontlato-latin-400.woff) format("woff");
+    url(../../../_/font/lato-latin-400.woff) format("woff");
 }
 
 @font-face {
