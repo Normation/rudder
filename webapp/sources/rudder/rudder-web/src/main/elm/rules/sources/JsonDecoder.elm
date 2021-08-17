@@ -13,22 +13,30 @@ decodeGetPolicyMode =
 
 decodeCategoryWithLeaves : String -> String -> String -> Decoder a -> Decoder ((Category a), List a)
 decodeCategoryWithLeaves idIdentifier categoryIdentifier elemIdentifier elemDecoder =
-  map4 (\id name subCats elems -> (Category id name (SubCategories (List.map Tuple.first subCats)) elems, List.concat [ elems, List.concatMap Tuple.second subCats ] ))
-     (field idIdentifier  D.string)
-     (field "name"        D.string)
-     (field categoryIdentifier   (D.list (D.lazy (\_ -> (decodeCategoryWithLeaves idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
-     (field elemIdentifier      (D.list elemDecoder))
-
-
+  D.map5 (\id name description subCats elems -> (Category id name description (SubCategories (List.map Tuple.first subCats)) elems, List.concat [ elems, List.concatMap Tuple.second subCats ] ))
+    (field idIdentifier  D.string)
+    (field "name"        D.string)
+    (field "description" D.string)
+    (field categoryIdentifier (D.list (D.lazy (\_ -> (decodeCategoryWithLeaves idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
+    (field elemIdentifier (D.list elemDecoder))
 
 decodeCategory : String -> String -> String -> Decoder a -> Decoder (Category a)
 decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder =
   succeed Category
     |> required idIdentifier  D.string
     |> required "name"        D.string
+    |> required "description" D.string
     |> required categoryIdentifier (D.map SubCategories  (D.list (D.lazy (\_ -> (decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
     |> required elemIdentifier      (D.list elemDecoder)
 
+decodeCategoryDetails : Decoder (Category Rule)
+decodeCategoryDetails =
+  succeed Category
+    |> required "id"          D.string
+    |> required "name"        D.string
+    |> required "description" D.string
+    |> hardcoded (SubCategories [])
+    |> hardcoded []
 
 decodeGetRulesTree =
   D.at [ "data" , "ruleCategories" ] (decodeCategory "id" "categories" "rules" decodeRule)
@@ -36,6 +44,10 @@ decodeGetRulesTree =
 decodeGetRuleDetails : Decoder Rule
 decodeGetRuleDetails =
   D.at [ "data" , "rules" ] (index 0 decodeRule)
+
+decodeGetCategoryDetails : Decoder (Category Rule)
+decodeGetCategoryDetails =
+  D.at [ "data" , "ruleCategories" ] decodeCategoryDetails
 
 decodeRule : Decoder Rule
 decodeRule =
@@ -67,6 +79,13 @@ decodeDeleteRuleResponse =
      |> required "displayName" string
   ))
 
+decodeDeleteCategoryResponse : Decoder (String, String)
+decodeDeleteCategoryResponse =
+  D.at ["data", "ruleCategories" ](index 0
+  ( succeed Tuple.pair
+     |> required "id" string
+     |> required "name" string
+  ))
 
 -- COMPLIANCE
 decodeGetRulesCompliance : Decoder (List RuleCompliance)

@@ -11,7 +11,7 @@ import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
 import ViewRulesTable exposing (..)
 import ViewRuleDetails exposing (..)
-
+import ViewCategoryDetails exposing (..)
 
 view : Model -> Html Msg
 view model =
@@ -44,7 +44,7 @@ view model =
       in
         li[class "jstree-node jstree-open"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[href "#", class "jstree-anchor"]
+        , a[href "#", class "jstree-anchor", onClick (OpenCategoryDetails item)]
           [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
           , span [class "treeGroupCategoryName tooltipable"][text item.name]
           ]
@@ -76,6 +76,12 @@ view model =
 
       CreateRule details ->
         (editionTemplate model details True)
+
+      EditCategory details ->
+        (editionTemplateCat model details False)
+
+      CreateCategory details ->
+        (editionTemplateCat model details True)
 
     modal = case model.modal of
       Nothing -> text ""
@@ -126,6 +132,27 @@ view model =
               ]
             ]
           ]
+      Just (DeletionValidationCat category) ->
+        div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
+         [ div [ class "modal-dialog" ] [
+             div [ class "modal-content" ] [
+               div [ class "modal-header ng-scope" ] [
+                 h3 [ class "modal-title" ] [ text "Delete category"]
+               ]
+             , div [ class "modal-body" ] [
+                 text ("Are you sure you want to delete category '"++ category.name ++"'?")
+               ]
+             , div [ class "modal-footer" ] [
+                 button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
+                 [ text "Cancel " ]
+               , button [ class "btn btn-danger", onClick (ClosePopup (CallApi (deleteCategory category))) ]
+                 [ text "Delete "
+                 , i [ class "fa fa-times-circle" ] []
+                 ]
+               ]
+             ]
+           ]
+         ]
   in
     div [class "rudder-template"]
     [ div [class "template-sidebar sidebar-left"]
@@ -135,7 +162,7 @@ view model =
             [ span[][text "Rules"]
             ]
           , div [class "header-buttons"]
-            [ button [class "btn btn-default", type_ "button"][text "Add Category"]
+            [ button [class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s      ))][text "Add Category"]
             , button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s) ))][text "Create"]
             ]
           ]

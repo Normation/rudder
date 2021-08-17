@@ -18,7 +18,7 @@ type alias Tag =
   , value : String
   }
 
-type ModalState = DeletionValidation Rule | DeactivationValidation Rule
+type ModalState = DeletionValidation Rule | DeactivationValidation Rule | DeletionValidationCat (Category Rule)
 
 type RuleTarget = NodeGroupId String | Composition  RuleTarget RuleTarget | Special String | Node String | And (List RuleTarget) | Or (List RuleTarget)
 
@@ -57,11 +57,12 @@ type alias Technique =
   }
 
 type alias Category a =
- { id : String
- , name : String
-  , subElems : SubCategories a
-  , elems : List a
- }
+  { id          : String
+  , name        : String
+  , description : String
+  , subElems    : SubCategories a
+  , elems       : List a
+  }
 
 type SubCategories a = SubCategories (List (Category a))
 type alias Group =
@@ -145,7 +146,15 @@ type alias ComplianceDetails =
 
 type alias EditRuleDetails = { originRule : Rule, rule : Rule, tab :  TabMenu, editDirectives: Bool, editGroups : Bool, newTag : Tag }
 
-type Mode = Loading | RuleTable | EditRule EditRuleDetails | CreateRule EditRuleDetails
+type alias EditCategoryDetails = { originCategory : Category Rule, category : Category Rule, tab :  TabMenu}
+
+type Mode
+  = Loading
+  | RuleTable
+  | EditRule   EditRuleDetails
+  | CreateRule EditRuleDetails
+  | EditCategory   EditCategoryDetails
+  | CreateCategory EditCategoryDetails
 
 type alias Model =
   { contextPath     : String
@@ -166,23 +175,29 @@ type Msg
   | EditGroups Bool
   | GetRuleDetailsResult     (Result Error Rule)
   | OpenRuleDetails RuleId
-  | CloseRuleDetails
+  | OpenCategoryDetails (Category Rule)
+  | CloseDetails
   | SelectGroup RuleTarget Bool
   | UpdateRule Rule
+  | UpdateCategory (Category Rule)
   | NewRule RuleId
+  | NewCategory String
   | UpdateNewTag Tag
   | CallApi                  (Model -> Cmd Msg)
   | GetPolicyModeResult      (Result Error String)
   | GetRulesComplianceResult (Result Error (List RuleCompliance))
   | SaveRuleDetails          (Result Error Rule)
   | SaveDisableAction        (Result Error Rule)
+  | SaveCategoryResult       (Result Error (Category Rule))
   | GetRulesResult           (Result Error (Category Rule))
   | GetGroupsTreeResult      (Result Error (Category Group))
   | GetTechniquesTreeResult  (Result Error ((Category Technique, List Technique)))
   | DeleteRule               (Result Error (RuleId, String))
+  | DeleteCategory           (Result Error (String, String))
   | DisableRule
   | CloneRule Rule RuleId
   | OpenDeletionPopup Rule
+  | OpenDeletionPopupCat (Category Rule)
   | OpenDeactivationPopup Rule
   | ClosePopup Msg
   | Ignore
