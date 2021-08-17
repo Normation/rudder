@@ -120,7 +120,7 @@ getRulesCompliance model =
   in
     send GetRulesComplianceResult req
 
-saveRuleDetails : Rule -> Bool -> Model ->  Cmd Msg
+saveRuleDetails : Rule -> Bool -> Model -> Cmd Msg
 saveRuleDetails ruleDetails creation model =
   let
     (method, url) = if creation then ("PUT","/rules") else ("POST", ("/rules/"++ruleDetails.id.value))
@@ -152,6 +152,23 @@ saveDisableAction ruleDetails model =
         }
   in
     send SaveDisableAction req
+
+saveCategoryDetails : (Category Rule) -> Bool -> Model -> Cmd Msg
+saveCategoryDetails category creation model =
+  let
+    (method, url) = if creation then ("PUT","/rules/categories") else ("POST", ("/rules/categories/"++category.id))
+    req =
+      request
+        { method  = method
+        , headers = []
+        , url     = getUrl model url
+        , body    = encodeCategoryDetails category |> jsonBody
+        , expect  = expectJson decodeGetCategoryDetails
+        , timeout = Nothing
+        , withCredentials = False
+        }
+  in
+    send SaveCategoryResult req
 
 deleteRule : Rule -> Model -> Cmd Msg
 deleteRule rule model =

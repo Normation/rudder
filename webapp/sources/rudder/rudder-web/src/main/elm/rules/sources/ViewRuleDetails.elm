@@ -105,7 +105,7 @@ editionTemplate model details isNewRule =
               ]
             , ul [ class "dropdown-menu" ] topButtons
             ]
-          , button [class "btn btn-default", type_ "button", onClick CloseRuleDetails][text "Close", i [ class "fa fa-times"][]]
+          , button [class "btn btn-default", type_ "button", onClick CloseDetails][text "Close", i [ class "fa fa-times"][]]
           , button [class "btn btn-success", type_ "button", onClick (CallApi (saveRuleDetails rule isNewRule))][text "Save", i [ class "fa fa-download"] []]
           ]
         ]

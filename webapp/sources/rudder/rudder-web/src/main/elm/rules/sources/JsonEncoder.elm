@@ -21,6 +21,13 @@ encodeRuleDetails ruleDetails =
       , ("tags"             , list encodeTags ruleDetails.tags    )
       ]
 
+encodeCategoryDetails: (Category Rule) -> Value
+encodeCategoryDetails category =
+  object [
+    ("name"        , string category.name        )
+  , ("description" , string category.description )
+  ]
+
 encodeDirectives: Directive -> Value
 encodeDirectives directive=
   object [

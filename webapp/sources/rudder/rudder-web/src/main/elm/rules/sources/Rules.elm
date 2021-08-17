@@ -115,7 +115,10 @@ update msg model =
     OpenRuleDetails rId ->
       (model, (getRuleDetails model rId))
 
-    CloseRuleDetails ->
+    OpenCategoryDetails category ->
+      ({model | mode = EditCategory (EditCategoryDetails category category Information )}, Cmd.none)
+
+    CloseDetails ->
       ( { model | mode  = RuleTable } , Cmd.none )
 
     GetRulesComplianceResult res ->
@@ -170,6 +173,14 @@ update msg model =
             (model, saveDisableAction newRule model)
         _   -> (model, Cmd.none)
 
+    UpdateCategory category ->
+      case model.mode of
+        EditCategory details ->
+          ({model | mode = EditCategory {details | category = category}}, Cmd.none)
+        --CreateRule details ->
+          --({model | mode = CreateRule {details | rule = rule}}, Cmd.none)
+        _   -> (model, Cmd.none)
+
     NewRule id ->
       let
         rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] []
@@ -215,6 +226,22 @@ update msg model =
 
     SaveDisableAction (Err err) ->
       processApiError "Changing rule state" err model
+
+    SaveCategoryResult (Ok category) ->
+      -- TODO // Update Rules List
+      case model.mode of
+        EditCategory details ->
+          let
+            oldCategory = details.category
+            newCategory = {category | subElems = oldCategory.subElems, elems = oldCategory.elems}
+          in
+            ({model | mode = EditCategory {details | originCategory = newCategory, category = newCategory}}, successNotification ("Category '"++ category.name ++"' successfully saved"))
+        --CreateRule details ->
+         -- ({model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}, successNotification ("Rule '"++ ruleDetails.name ++"' successfully created"))
+        _   -> (model, Cmd.none)
+
+    SaveCategoryResult (Err err) ->
+      processApiError "Saving Category" err model
 
     DeleteRule (Ok (ruleId, ruleName)) ->
     -- TODO // Update Rules List
