@@ -1,3 +1,49 @@
 h1, h2 {
 	color: #36474E !important
 }
+
+/* Use font files from main docs */
+
+@font-face {
+  font-family: "Lato";
+  font-style: normal;
+  font-weight: 400;
+  src:
+    local("Lato Regular"),
+    local("Lato-Regular"),
+    url(../../../_/font/lato-latin-400.woff2) format("woff2")
+    url(../../../_/fontlato-latin-400.woff) format("woff");
+}
+
+@font-face {
+  font-family: "Lato";
+  font-style: italic;
+  font-weight: 400;
+  src:
+    local("Lato Regular"),
+    local("Lato-Regular"),
+    url(../../../_/font/lato-latin-400italic.woff2) format("woff2")
+    url(../../../_/font/lato-latin-400italic.woff) format("woff");
+}
+
+@font-face {
+  font-family: "Lato";
+  font-style: normal;
+  font-weight: 700;
+  src:
+    local("Lato Bold"),
+    local("Lato-Bold"),
+    url(../../../_/font/lato-latin-700.woff2) format("woff2")
+    url(../../../_/font/lato-latin-700.woff) format("woff");
+}
+
+@font-face {
+  font-family: "Lato";
+  font-style: italic;
+  font-weight: 700;
+  src:
+    local("Lato Bold"),
+    local("Lato-Bold"),
+    url(../../../_/font/lato-latin-700italic.woff2) format("woff2")
+    url(../../../_/font/lato-latin-700italic.woff) format("woff");
+}
