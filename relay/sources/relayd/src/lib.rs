@@ -19,7 +19,10 @@ use crate::{
     configuration::{
         cli::CliConfiguration,
         logging::LogConfig,
-        main::{Configuration, InventoryOutputSelect, OutputSelect, ReportingOutputSelect},
+        main::{
+            Configuration, InventoryOutputSelect, OutputSelect, PeerAuthentication,
+            ReportingOutputSelect,
+        },
     },
     data::node::{NodeId, NodesList},
     http_client::HttpClient,
@@ -28,16 +31,14 @@ use crate::{
     processing::{inventory, reporting},
 };
 use anyhow::Error;
-use configuration::main::PeerAuthentication;
 use std::{
-    collections::HashMap, env, fs, fs::create_dir_all, path::Path, process::exit, string::ToString,
-    sync::Arc,
+    collections::HashMap, fs, fs::create_dir_all, process::exit, string::ToString, sync::Arc,
 };
 use tokio::{
     signal::unix::{signal, SignalKind},
     sync::RwLock,
 };
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 use tracing_subscriber::{
     filter::EnvFilter,
     fmt::{
@@ -102,12 +103,6 @@ pub fn init_logger() -> Result<LogHandle, Error> {
     Ok(reload_handle)
 }
 
-pub fn check_configuration(cfg_dir: &Path) -> Result<(), Error> {
-    Configuration::new(&cfg_dir)?;
-    LogConfig::new(&cfg_dir)?;
-    Ok(())
-}
-
 pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), Error> {
     // Start by setting log config
     let log_cfg = LogConfig::new(&cli_cfg.config)?;
@@ -124,7 +119,6 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
     // ---- Setup data structures ----
 
     let cfg = Configuration::new(cli_cfg.config.clone())?;
-    cfg.validate()?;
     let job_config = JobConfig::new(cli_cfg, cfg, reload_handle)?;
 
     // ---- Start server ----
@@ -260,12 +254,9 @@ impl JobConfig {
             Some(&cfg.general.nodes_certs_file),
         )?;
 
-        // HTTP client
+        // HTTP clients
         //
         let model = cfg.peer_authentication();
-        if model == PeerAuthentication::DangerousNone {
-            warn!("Certificate verification is disabled, it should not be done in production");
-        }
 
         debug!("Creating HTTP client for upstream");
         let upstream_client = match model {

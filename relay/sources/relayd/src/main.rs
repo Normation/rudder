@@ -3,8 +3,8 @@
 
 use gumdrop::Options;
 use rudder_relayd::{
-    check_configuration, configuration::cli::CliConfiguration, init_logger, start, ExitStatus,
-    CRATE_NAME, CRATE_VERSION,
+    configuration::{check_configuration, cli::CliConfiguration},
+    init_logger, start, ExitStatus, CRATE_NAME, CRATE_VERSION,
 };
 use std::{env, process::exit};
 use tracing::error;
@@ -25,11 +25,18 @@ fn main() {
     if cli_cfg.version {
         println!("{} {}", CRATE_NAME, CRATE_VERSION);
     } else if cli_cfg.test {
-        if let Err(e) = check_configuration(&cli_cfg.config) {
-            println!("{}", e);
-            exit(ExitStatus::StartError(e).code());
+        match check_configuration(&cli_cfg.config) {
+            Err(e) => {
+                println!("{}", e);
+                exit(ExitStatus::StartError(e).code());
+            }
+            Ok(warns) => {
+                for w in warns {
+                    println!("warning: {}", w);
+                }
+                println!("Syntax: OK");
+            }
         }
-        println!("Syntax: OK");
     } else {
         let reload_handle = match init_logger() {
             Ok(handle) => handle,

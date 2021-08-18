@@ -76,16 +76,22 @@ pub struct Configuration {
 
 impl Configuration {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        // parse (checks types)
         let res = read_to_string(path.as_ref().join("main.conf"))?.parse::<Self>();
+        // check logic
+        let res = res.and_then(|c| c.validate());
         if let Ok(ref cfg) = res {
             debug!("Parsed main configuration:\n{:#?}", &cfg);
+            for e in cfg.warnings() {
+                // log warnings
+                warn!("{}", e);
+            }
         }
         res
     }
 
     /// Used to validate what is not validated by typing
-    /// Called just after config is parsed.
-    pub fn validate(&self) -> Result<(), Error> {
+    fn validate(self) -> Result<Self, Error> {
         // If not on root we need an upstream server
         if &self.node_id()? != "root"
             && self.output.upstream.host.is_empty()
@@ -100,7 +106,18 @@ impl Configuration {
             return Err(anyhow!("missing upstream server configuration"));
         }
 
-        Ok(())
+        Ok(self)
+    }
+
+    /// Check for valid configs known to present security or stability risks
+    pub fn warnings(&self) -> Vec<Error> {
+        let mut warnings = vec![];
+
+        if self.peer_authentication() == PeerAuthentication::DangerousNone {
+            warnings.push(anyhow!("Certificate verification is disabled"));
+        }
+
+        warnings
     }
 
     /// Read current node_id, and handle override by node_id
@@ -791,11 +808,11 @@ mod tests {
             },
         };
         assert_eq!(config, reference);
-        assert!(config.validate().is_ok());
         assert_eq!(config.node_id().unwrap(), "root".to_string());
         assert_eq!(
             config.upstream_url(),
             "https://rudder.example.com:4443/".to_string()
         );
+        assert!(config.validate().is_ok());
     }
 }

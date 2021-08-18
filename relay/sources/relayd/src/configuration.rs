@@ -5,8 +5,11 @@ pub mod cli;
 pub mod logging;
 pub mod main;
 
+use anyhow::Error;
+use logging::LogConfig;
+use main::Configuration;
 use serde::Deserialize;
-use std::fmt;
+use std::{fmt, path::Path};
 
 /// Allows hiding a value in logs
 #[derive(Deserialize, PartialEq, Eq, Clone, Default)]
@@ -35,4 +38,13 @@ impl fmt::Debug for Secret {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "\"******\"")
     }
+}
+
+type Warnings = Vec<Error>;
+
+pub fn check_configuration(cfg_dir: &Path) -> Result<Warnings, Error> {
+    let cfg = Configuration::new(&cfg_dir)?;
+    let warns = cfg.warnings();
+    LogConfig::new(&cfg_dir)?;
+    Ok(warns)
 }
