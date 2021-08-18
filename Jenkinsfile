@@ -48,6 +48,9 @@ pipeline {
                         dir('webapp/sources/rudder/rudder-web/src/main/elm') {
                             sh script: './build-app.sh', label: 'build elm apps'
                         }
+                        dir('webapp/sources/rudder/rudder-web/src/main/elm/editor') {
+                            sh script: 'elm-test --compiler elm-0.19.1', label: 'run technique editor tests'
+                        }
                     }
                     post {
                         always {
