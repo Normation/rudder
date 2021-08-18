@@ -24,6 +24,7 @@ import ViewTechniqueList exposing (allMethodCalls)
 import Maybe.Extra
 import MethodElemUtils exposing (..)
 import Http exposing ( Error )
+import AgentValueParser exposing (..)
 
 --
 -- Port for interacting with external JS
@@ -134,7 +135,7 @@ generator = Random.map (UUID.toString) UUID.generator
 updateParameter: ParameterId -> String -> MethodElem -> MethodElem
 updateParameter paramId newValue x =
   case x of
-    Call p c -> Call p { c | parameters =  List.Extra.updateIf (.id >> (==) paramId) (\param -> { param | value = newValue } ) c.parameters }
+    Call p c -> Call p { c | parameters =  List.Extra.updateIf (.id >> (==) paramId) (\param -> { param | value = (getAgentValue newValue) } ) c.parameters }
     Block p b -> Block p { b | calls = List.map (updateParameter paramId newValue) b.calls}
 --
 -- update loop --
@@ -535,7 +536,7 @@ update msg model =
       if model.hasWriteRights then
       let
         disableReporting = String.contains "variable" method.name || String.contains "condition" method.name
-        newCall = MethodCall newId method.id (List.map (\p -> CallParameter p.name "") method.parameters) (Condition Nothing "") "" disableReporting
+        newCall = MethodCall newId method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting
         newModel =
           case model.mode of
             TechniqueDetails t o ui ->
@@ -662,7 +663,7 @@ update msg model =
                     base = case optCui of
                             Nothing -> MethodCallUiInfo Closed Nothing Dict.empty True
                             Just cui -> cui
-                    newValidation =  Dict.update paramId.value (always (Just (accumulateErrorConstraint  (CallParameter paramId newValue) constraints )))  base.validation
+                    newValidation =  Dict.update paramId.value (always (Just (accumulateErrorConstraint  (CallParameter paramId (getAgentValue newValue)) constraints )))  base.validation
                   in
                     Just { base | validation = newValidation }
                 callUi  =
@@ -715,7 +716,7 @@ update msg model =
                  let
                    disableReporting = String.contains "variable" method.name || String.contains "condition" method.name
                  in
-                   (t.elems, Call Nothing (MethodCall (CallId "") method.id (List.map (\p -> CallParameter p.name "") method.parameters) (Condition Nothing "") "" disableReporting))
+                   (t.elems, Call Nothing (MethodCall (CallId "") method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting))
             updatedCalls =
               case dropTarget of
                 StartList ->

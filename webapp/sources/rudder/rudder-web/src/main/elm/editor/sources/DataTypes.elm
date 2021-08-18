@@ -5,7 +5,6 @@ import File exposing (File)
 import Http exposing (Error)
 import Json.Decode exposing (Value)
 import MethodConditions exposing (..)
-import Regex
 import Dom.DragDrop as DragDrop
 
 --
@@ -21,9 +20,8 @@ type alias CallId = {value : String}
 type alias ParameterId = {value : String}
 
 
-canonify: String -> String
-canonify value =
-   Regex.replace ((Regex.fromString >> Maybe.withDefault Regex.never) "[^_a-zA-Z\\d]") (always "_") value
+
+type AgentValue = Value String | Variable (List AgentValue)
 
 type Constraint =
     AllowEmpty Bool
@@ -92,7 +90,7 @@ type alias MethodCall =
 
 type alias CallParameter =
   { id    : ParameterId
-  , value : String
+  , value : List AgentValue
   }
 
 type alias TechniqueParameter =
