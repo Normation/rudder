@@ -81,7 +81,7 @@ async fn serve(
                 "skipping {:#?} as it does not have a known inventory extension",
                 file
             );
-            return Ok(());
+            continue;
         }
 
         let queue_id = format!(
