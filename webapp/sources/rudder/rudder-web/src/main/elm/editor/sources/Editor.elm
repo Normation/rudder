@@ -187,7 +187,7 @@ update msg model =
 
     NewTechnique id ->
       let
-        ui = TechniqueUiInfo General Dict.empty [] False Untouched Untouched
+        ui = TechniqueUiInfo General Dict.empty [] False Unchanged Unchanged
         t = Technique (TechniqueId "") "1.0" "" "" "ncf_techniques" [] [] []
         newModel =  { model | mode = TechniqueDetails t (Creation id) ui}
       in
@@ -269,7 +269,7 @@ update msg model =
 
     CloneTechnique technique internalId ->
       let
-        ui = TechniqueUiInfo General (Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap allMethodCalls technique.elems))) [] False Untouched Untouched
+        ui = TechniqueUiInfo General (Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap allMethodCalls technique.elems))) [] False Unchanged Unchanged
       in
         ({ model | mode = TechniqueDetails technique  (Clone technique internalId) ui } )
           |> update OpenMethods
