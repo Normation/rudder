@@ -18,7 +18,7 @@ techniqueResource  resource =
         New -> "new"
         Deleted -> "deleted"
         Modified -> "modified"
-        Unchanged -> "unchanged"
+        Untouched -> "untouched"
   in
     li [ class ("state-"++stateClass) ] [
       span [ class "fa fa-file" ] []

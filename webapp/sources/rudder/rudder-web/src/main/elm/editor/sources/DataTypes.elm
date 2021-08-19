@@ -129,7 +129,7 @@ type alias Model =
   , hasWriteRights     : Bool
   }
 
-type ResourceState = New | Unchanged | Deleted | Modified
+type ResourceState = New | Untouched | Deleted | Modified
 
 type alias Resource =
   { name  : String
@@ -149,7 +149,7 @@ type alias MethodFilter =
   }
 
 type MethodFilterState = FilterOpened | FilterClosed
-type ValidationState error = Untouched | ValidState | InvalidState error
+type ValidationState error = Unchanged | ValidState | InvalidState error
 type TechniqueNameError = EmptyName | AlreadyTakenName
 type TechniqueIdError = TooLongId | AlreadyTakenId | InvalidStartId
 type MethodCallParamError = ConstraintError (List String)

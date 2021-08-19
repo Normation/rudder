@@ -22,7 +22,7 @@ encodeResource resource =
   object [
     ("name" , string resource.name)
   , ("state", string ( case resource.state of
-                         Unchanged -> "unchanged"
+                         Untouched -> "untouched"
                          New       -> "new"
                          Modified  -> "modified"
                          Deleted   -> "deleted"

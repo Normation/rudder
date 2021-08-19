@@ -70,7 +70,7 @@ accumulateErrorConstraint call constraints =
                           (InvalidState err, _) -> InvalidState err
                           (_, InvalidState err) -> InvalidState err
                           _ -> ValidState
-             ) Untouched constraints
+             ) Unchanged constraints
 
 checkConstraint: CallParameter -> Constraint -> ValidationState MethodCallParamError
 checkConstraint call constraint =
@@ -122,7 +122,7 @@ showMethodTab model method parentId call uiInfo=
         ]
       ]
     CallParameters ->
-      div [ class "tab-parameters"] (List.map2 (\m c -> showParam model call (Maybe.withDefault Untouched (Dict.get c.id.value uiInfo.validation)) m c )  method.parameters call.parameters)
+      div [ class "tab-parameters"] (List.map2 (\m c -> showParam model call (Maybe.withDefault Unchanged (Dict.get c.id.value uiInfo.validation)) m c )  method.parameters call.parameters)
     Conditions ->
       let
         condition = call.condition
