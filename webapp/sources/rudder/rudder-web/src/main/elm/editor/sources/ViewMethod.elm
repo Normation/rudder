@@ -14,6 +14,7 @@ import Dom.DragDrop as DragDrop
 import Dom exposing (..)
 import Json.Decode
 import AgentValueParser exposing (..)
+import ViewMethodsList exposing (getTooltipContent)
 --
 -- This file deals with one method container (condition, parameters, etc)
 --
@@ -395,7 +396,7 @@ callBody model ui call pid =
                            |> addAttributeList
                               [ class deprecatedClass
                               , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-container" "body"
-                              , attribute "data-placement" "auto", attribute "data-title" method.name, attribute "data-content" "{{getTooltipContent(method_call)}}"
+                              , attribute "data-placement" "auto", attribute "data-title" method.name, attribute "data-content" (getTooltipContent method)
                               , attribute "data-html" "true"
                               ]
                          )
