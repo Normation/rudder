@@ -27,7 +27,7 @@ techniqueResource  resource =
     , span [ class "border" ] []
     , div [ class "use-with" ] [
         span [] [ text ( "${resources_dir}/"++ resource.name) ]
-      , button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" ] [ -- data-clipboard-text="{{'${resources_dir}/' + resource.name}}" >
+      , button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${resources_dir}/"++ resource.name)) ] [
           i [  class "ion ion-clipboard" ] []
         ]
       ]
