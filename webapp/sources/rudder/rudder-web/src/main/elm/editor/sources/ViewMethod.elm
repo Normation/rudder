@@ -242,7 +242,7 @@ showMethodTab model method parentId call uiInfo=
             ]
           , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_kept") ] []
           , span [ class "input-group-btn" ] [
-              button [ class "btn btn-outline-secondary clipboard", type_ "button", title "Copy to clipboard" ] [ --data-clipboard-text="{{getClassKind(method_call,'kept')}}" title="Copy to clipboard">
+              button [ class "btn btn-outline-secondary clipboard", type_ "button", title "Copy to clipboard", onClick (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_kept")) ] [
                 i [ class "ion ion-clipboard" ] []
               ]
             ]
@@ -253,7 +253,7 @@ showMethodTab model method parentId call uiInfo=
             ]
           , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired") ] []
           , span [ class "input-group-btn" ] [
-              button [ class "btn btn-outline-secondary clipboard", type_ "button" , title "Copy to clipboard" ] [ --data-clipboard-text="{{getClassKind(method_call,'kept')}}" title="Copy to clipboard">
+              button [ class "btn btn-outline-secondary clipboard", type_ "button" , title "Copy to clipboard" , onClick (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired")) ] [
                 i [ class "ion ion-clipboard" ] []
               ]
             ]
@@ -264,7 +264,7 @@ showMethodTab model method parentId call uiInfo=
             ]
           , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error") ] []
           , span [ class "input-group-btn" ] [
-              button [ class "btn btn-outline-secondary clipboard", type_ "button", title "Copy to clipboard" ] [ --data-clipboard-text="{{getClassKind(method_call,'kept')}}" title="Copy to clipboard">
+              button [ class "btn btn-outline-secondary clipboard", type_ "button", title "Copy to clipboard", onClick (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error")) ] [
                 i [ class "ion ion-clipboard" ] []
               ]
             ]
