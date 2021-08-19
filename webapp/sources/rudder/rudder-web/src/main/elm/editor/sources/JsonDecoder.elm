@@ -185,7 +185,7 @@ decodeResource =
     |> required "name" string
     |> required "state" (andThen (\s -> case s of
                                           "new" -> succeed New
-                                          "untouched" -> succeed Unchanged
+                                          "untouched" -> succeed Untouched
                                           "modified" -> succeed Modified
                                           "deleted" -> succeed Deleted
                                           _ -> fail "not a valid state"
