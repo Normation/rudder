@@ -942,6 +942,7 @@ button.btn.clipboard:hover {
   padding: 6px 15px;
   color: #337ab7;
   text-decoration: none !important;
+  cursor: pointer;
 }
 .main-footer{
   display: flex;
@@ -991,7 +992,7 @@ ul.list-unstyled > li{
 #methods .method .method-info .btn-holder .method-action {
   background-color: transparent;
   border: none;
-  cursor: pointer;;
+  cursor: pointer;
   transition-property: opacity;
   transition-duration: .2s;
   opacity: 0;
