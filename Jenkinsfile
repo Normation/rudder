@@ -57,6 +57,21 @@ pipeline {
                         }
                     }
                 }
+                stage('elm-test') {
+                    agent { label 'scala' }
+                    steps {
+                        dir('webapp/sources/rudder/rudder-web/src/main/elm/editor') {
+                            sh script: 'elm-test', label: 'run technique editor tests'
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                                new SlackNotifier().notifyResult("elm-team")
+                            }
+                        }
+                    }
+                }
                 stage('api-doc') {
                     agent { label 'api-docs' }
 
