@@ -5,6 +5,7 @@ import DataTypes exposing (..)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import MethodConditions exposing (..)
+import AgentValueParser exposing (..)
 
 decodeTechniqueParameter : Decoder TechniqueParameter
 decodeTechniqueParameter =
@@ -18,7 +19,7 @@ decodeCallParameter : Decoder CallParameter
 decodeCallParameter =
   succeed CallParameter
     |> required "name" (map ParameterId string)
-    |> required "value" string
+    |> required "value" (map getAgentValue string)
 
 parseCondition : String -> Condition
 parseCondition class_context =

@@ -1,6 +1,7 @@
 module ViewTechniqueTabs exposing (..)
 
 import DataTypes exposing (..)
+import AgentValueParser exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -42,10 +43,10 @@ techniqueParameter model technique param opened =
 
       else
         [ div [ class "use-with" ] [
-            span [] [ text ("${"++(canonify param.name)++"}") ]
+            span [] [ text ("${"++(canonifyHelper (Value param.name))++"}") ]
           ]
         , div [ class "full-name" ] [
-            span [] [ text (technique.id.value ++"." ++ (canonify param.name))]
+            span [] [ text (technique.id.value ++"." ++ (canonifyHelper (Value param.name)))]
           ]
 
         ]
@@ -70,7 +71,7 @@ techniqueParameter model technique param opened =
             ]
           ]
         , div [ class "input-group-btn" ] [
-            button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ (canonify param.name) ++ "}")) ] [
+            button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ (canonifyHelper (Value param.name)) ++ "}")) ] [
               i [ class "ion ion-clipboard" ] []
             ]
           ]
@@ -106,7 +107,7 @@ techniqueTab model technique creation ui =
                            label [ for "techniqueName", class "col-xs-12 control-label" ] [ text "Name" ]
                          , div  [ class "col-sm-8" ] [
                              input [readonly (not model.hasWriteRights), type_ "text" , id "techniqueName",  name "name",  class "form-control" , placeholder "Technique Name", value technique.name
-                              , onInput (\newName -> UpdateTechnique {technique | name = newName, id = TechniqueId(if creation then canonify newName else technique.id.value) })
+                              , onInput (\newName -> UpdateTechnique {technique | name = newName, id = TechniqueId(if creation then canonifyHelper (Value newName) else technique.id.value) })
                               ] []
                            ]
                          , case ui.nameState of

@@ -73,7 +73,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.xml._
 import com.normation.zio._
-import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 
 /**
  * An ADT to denote if a column should be display or not,

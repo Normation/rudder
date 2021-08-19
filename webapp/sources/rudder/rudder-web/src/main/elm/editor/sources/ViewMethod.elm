@@ -13,6 +13,7 @@ import MethodElemUtils exposing (..)
 import Dom.DragDrop as DragDrop
 import Dom exposing (..)
 import Json.Decode
+import AgentValueParser exposing (..)
 --
 -- This file deals with one method container (condition, parameters, etc)
 --
@@ -58,7 +59,7 @@ showParam model call state methodParam param =
       ]
     , small [] [ text methodParam.description ]
     ]
-  , textarea  [  readonly (not model.hasWriteRights),  name "param", class "form-control", rows  1 , value param.value , onInput  (MethodCallParameterModified call param.id)   ] [] --msd-elastic     ng-trim="{{trimParameter(parameterInfo)}}" ng-model="parameter.value"></textarea>
+  , textarea  [  readonly (not model.hasWriteRights),  name "param", class "form-control", rows  1 , value (displayValue param.value) , onInput  (MethodCallParameterModified call param.id)   ] [] --msd-elastic     ng-trim="{{trimParameter(parameterInfo)}}" ng-model="parameter.value"></textarea>
   , ul [ class "list-unstyled" ]
       (List.map (\e -> li [ class "text-danger" ] [ text e ]) errors)
   ]
@@ -76,26 +77,26 @@ checkConstraint: CallParameter -> Constraint -> ValidationState MethodCallParamE
 checkConstraint call constraint =
   case constraint of
     AllowEmpty True -> ValidState
-    AllowEmpty False -> if (String.isEmpty call.value) then InvalidState (ConstraintError ["Parameter '"++call.id.value++"' is empty"]) else ValidState
+    AllowEmpty False -> if (isEmptyValue call.value) then InvalidState (ConstraintError ["Parameter '"++call.id.value++"' is empty"]) else ValidState
     AllowWhiteSpace True -> ValidState
     AllowWhiteSpace False -> case Regex.fromString "(^\\s)|(\\s$)" of
                                Nothing -> ValidState
-                               Just r -> if Regex.contains r call.value then InvalidState (ConstraintError [ "Parameter '"++call.id.value++"' start or end with whitespace characters" ] ) else ValidState
-    MaxLength max -> if String.length call.value >= max then  InvalidState (ConstraintError [ "Parameter '"++call.id.value++"' should be at most " ++ (String.fromInt max) ++ " long"] ) else ValidState
-    MinLength min -> if String.length call.value <= min then  InvalidState (ConstraintError ["Parameter '"++call.id.value++"' should be at least " ++ (String.fromInt min) ++ " long"] ) else ValidState
+                               Just r -> if Regex.contains r (displayValue call.value) then InvalidState (ConstraintError [ "Parameter '"++call.id.value++"' start or end with whitespace characters" ] ) else ValidState
+    MaxLength max -> if lengthValue call.value >= max then  InvalidState (ConstraintError [ "Parameter '"++call.id.value++"' should be at most " ++ (String.fromInt max) ++ " long"] ) else ValidState
+    MinLength min -> if lengthValue call.value <= min then  InvalidState (ConstraintError ["Parameter '"++call.id.value++"' should be at least " ++ (String.fromInt min) ++ " long"] ) else ValidState
     MatchRegex r -> case Regex.fromString r of
                       Nothing ->  ValidState
-                      Just regex -> if Regex.contains regex call.value then
+                      Just regex -> if Regex.contains regex (displayValue call.value) then
                                       ValidState
                                     else
                                        InvalidState (ConstraintError [ "Parameter '" ++ call.id.value ++"' should match the following regexp: " ++ r ] )
     NotMatchRegex r -> case Regex.fromString r of
                       Nothing ->  ValidState
-                      Just regex -> if Regex.contains regex call.value then
+                      Just regex -> if Regex.contains regex (displayValue call.value) then
                                        InvalidState (ConstraintError ["Parameter '" ++ call.id.value ++"' should not match the following regexp: " ++ r]  )
                                     else
                                       ValidState
-    Select list -> if List.any ( (==) call.value ) list then
+    Select list -> if List.any ( (==) (displayValue call.value) ) list then
                      ValidState
                    else
                      InvalidState (ConstraintError [ "Parameter '" ++ call.id.value ++ "'  should be one of the value from the following list: " ++ (String.join ", " list)] )
@@ -229,7 +230,7 @@ showMethodTab model method parentId call uiInfo=
     Result     ->
       let
         classParameter = getClassParameter method
-        paramValue = call.parameters |> List.Extra.find (\c -> c.id == classParameter.name) |> Maybe.map (.value)  |> Maybe.withDefault ""
+        paramValue = call.parameters |> List.Extra.find (\c -> c.id == classParameter.name) |> Maybe.map (.value)  |> Maybe.withDefault [Value ""]
       in
       div [ class "tab-result" ] [
         label [] [
@@ -340,7 +341,7 @@ callBody model ui call pid =
                            Just _ -> " deprecated-icon"
                            Nothing -> ""
     classParameter = getClassParameter method
-    paramValue = call.parameters |> List.Extra.find (\c -> c.id == classParameter.name) |> Maybe.map (.value)  |> Maybe.withDefault ""
+    paramValue = call.parameters |> List.Extra.find (\c -> c.id == classParameter.name) |> Maybe.map (.value)  |> Maybe.withDefault [Value ""]
 
     editAction = case ui.mode of
                    Opened -> UIMethodAction call.id {ui | mode = Closed}
@@ -408,7 +409,7 @@ callBody model ui call pid =
                     |> appendChildList
                        [ element "label" |> appendText ((parameterName classParameter) ++ ":")
                        , element "span"
-                         |> appendText paramValue
+                         |> appendText (displayValue paramValue)
                        ]
 
     warns = element "div"

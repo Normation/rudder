@@ -3,6 +3,7 @@ module  JsonEncoder exposing (..)
 import DataTypes exposing (..)
 import Json.Encode exposing (..)
 import MethodConditions exposing (..)
+import AgentValueParser exposing (..)
 
 encodeTechnique: Technique -> Value
 encodeTechnique technique =
@@ -80,7 +81,7 @@ encodeCallParameters: CallParameter -> Value
 encodeCallParameters param =
   object [
     ("name" , string param.id.value)
-  , ("value", string param.value)
+  , ("value", string (displayValue param.value))
   ]
 
 encodeExportTechnique: Technique -> Value
