@@ -910,6 +910,16 @@ button.btn.clipboard:hover {
 }
 #methods-list-container{
   position: relative;
+  scrollbar-width: thin;
+}
+
+#methods-list-container::-webkit-scrollbar{
+  width: 5px;
+  background-color:#eee;
+}
+
+#methods-list-container::-webkit-scrollbar-thumb {
+    background: #aaa;
 }
 .generic-methods-container > ul,
 .generic-methods-container > div{
@@ -933,6 +943,14 @@ button.btn.clipboard:hover {
   margin: 0;
   padding: 6px 0 0 0;
   list-style: none;
+  scrollbar-width: thin;
+}
+#categories-list::-webkit-scrollbar{
+  width: 5px;
+  background-color:#eee;
+}
+#categories-list::-webkit-scrollbar-thumb {
+    background: #aaa;
 }
 #categories-list > h4{
   padding: 4px 15px;
