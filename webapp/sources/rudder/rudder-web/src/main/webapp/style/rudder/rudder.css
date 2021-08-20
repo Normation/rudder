@@ -361,7 +361,7 @@ div.unfoldedSection div.section-title:before,div.foldedSection div.section-title
   transition: background-color .2s;
 }
 .sectionFieldset.foldableSection.unfoldedSection:hover:before{
-  background-color: #f08004;
+  background-color: #13beb7;
 }
 .sectionFieldset.foldableSection.foldedSection:hover:before{
   background-color: #aaa;
@@ -377,7 +377,7 @@ table.directiveGroupDef{
   transition: border-left-color .2s;
 }
 table.directiveGroupDef:hover{
-  border-left-color: #F08004;
+  border-left-color: #13beb7;
 }
 
 div.unfoldedSection div.section-title:before,

@@ -74,11 +74,11 @@ angular-filemanager .filemanager-window .item-list{
 angular-filemanager .filemanager-window .navbar{
   border-radius: 0;
   border: none;
-  background-color: #f08004;
+  background-color: #041922;
   margin-bottom: 0;
 }
 angular-filemanager .btn.btn-flat>i.glyphicon-remove{
-  color: #944e00;
+  color: #ccd1d2;
   font-size: 14px;
 }
 angular-filemanager .filemanager-window .file-tree-root li{
@@ -130,7 +130,7 @@ angular-filemanager .iconset .thumbnail.selected, .table-files.selected{
 	color:#555;
 }
 .content-wrapper .filemanager-window .table-files .sortorder:after{
-	color: #f08004;
+	color: #738195;
 }
 .table-files .selected, angular-filemanager .iconset .thumbnail.selected{
 	background-color:#ececec;
@@ -236,7 +236,7 @@ angular-filemanager .modal .modal-header .close:hover{
   text-decoration : none;
 }
 .content-wrapper .filemanager-window .nav-sidebar>li.active>div>a {
-  color: #f08004;
+  color: #13beb7;
 }
 
 .content-wrapper .filemanager-window .navbar-inverse .navbar-collapse, .content-wrapper .filemanager-window .navbar-inverse .navbar-form{
