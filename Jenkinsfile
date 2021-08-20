@@ -42,24 +42,6 @@ pipeline {
                         }
                     }
                 }
-                stage('elm') {
-                    agent { label 'scala' }
-                    steps {
-                        dir('webapp/sources/rudder/rudder-web/src/main/elm') {
-                            sh script: './build-app.sh', label: 'build elm apps'
-                        }
-                        dir('webapp/sources/rudder/rudder-web/src/main/elm/editor') {
-                            sh script: 'elm-test --compiler elm-0.19.1', label: 'run technique editor tests'
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                new SlackNotifier().notifyResult("elm-team")
-                            }
-                        }
-                    }
-                }
                 stage('api-doc') {
                     agent { label 'api-docs' }
 
@@ -150,6 +132,23 @@ pipeline {
                     agent { label 'scala' }
 
                     stages {
+                        stage('elm') {
+                            steps {
+                                dir('webapp/sources/rudder/rudder-web/src/main/elm') {
+                                    sh script: './build-app.sh', label: 'build elm apps'
+                                    dir('editor') {
+                                        sh script: 'elm-test --compiler elm-0.19.1', label: 'run technique editor tests'
+                                    }
+                                }
+                            }
+                            post {
+                                always {
+                                    script {
+                                        new SlackNotifier().notifyResult("elm-team")
+                                    }
+                                }
+                            }
+                        }
                         stage('webapp-test') {
                             when { changeRequest() }
                             steps {
