@@ -7,7 +7,7 @@ import Json.Decode
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Markdown.Render
+import MarkdownRenderCustom
 import Markdown.Option exposing (..)
 import Maybe.Extra
 import String.Extra
@@ -42,9 +42,9 @@ methodsList model =
         dscIcon = if filter.agent == Just Dsc then "dsc-icon-white.svg" else "dsc-icon.svg"
 
         block = element "li"
-              |> DragDrop.makeDraggable model.dnd NewBlock dragDropMessages
               |> appendChild
                  ( element "div"
+                   |> DragDrop.makeDraggable model.dnd NewBlock dragDropMessages
                    |> addClass "method"
                    |> appendChildList
                       [ element "div"
@@ -192,9 +192,9 @@ showMethod ui method dnd =
     attributes = class ("method " ++ (if docOpen then "doc-opened" else ""))::  id method.id.value :: []
   in
     element "li"
-    |> DragDrop.makeDraggable dnd (NewMethod method) dragDropMessages
     |> appendChild
        ( element "div"
+       |> DragDrop.makeDraggable dnd (NewMethod method) dragDropMessages
        |> addAttributeList  attributes   --ng-class="{'used':isUsed(method)
        |> appendChildList
           [ element "div"
@@ -236,7 +236,7 @@ showMethod ui method dnd =
          ( appendChild
            ( element "div"
              |> addClass "markdown"
-             |> appendNode ( Html.map (\_ -> Ignore) (Markdown.Render.toHtml Standard (Maybe.withDefault "" method.documentation)))
+             |> appendNode ( Html.map (\_ -> Ignore) (MarkdownRenderCustom.toHtml Standard (Maybe.withDefault "" method.documentation)))
            )
          )
        else
