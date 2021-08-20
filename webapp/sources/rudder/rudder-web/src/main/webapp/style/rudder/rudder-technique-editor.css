@@ -1458,3 +1458,6 @@ ul.list-unstyled > li{
 .expandBlockChild:hover {
   opacity: 1;
 }
+#__RENDERED_TEXT__ * {
+  background-color: transparent !important;
+}

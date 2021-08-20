@@ -42,9 +42,9 @@ methodsList model =
         dscIcon = if filter.agent == Just Dsc then "dsc-icon-white.svg" else "dsc-icon.svg"
 
         block = element "li"
-              |> DragDrop.makeDraggable model.dnd NewBlock dragDropMessages
               |> appendChild
                  ( element "div"
+                   |> DragDrop.makeDraggable model.dnd NewBlock dragDropMessages
                    |> addClass "method"
                    |> appendChildList
                       [ element "div"
@@ -192,9 +192,9 @@ showMethod ui method dnd =
     attributes = class ("method " ++ (if docOpen then "doc-opened" else ""))::  id method.id.value :: []
   in
     element "li"
-    |> DragDrop.makeDraggable dnd (NewMethod method) dragDropMessages
     |> appendChild
        ( element "div"
+       |> DragDrop.makeDraggable dnd (NewMethod method) dragDropMessages
        |> addAttributeList  attributes   --ng-class="{'used':isUsed(method)
        |> appendChildList
           [ element "div"
