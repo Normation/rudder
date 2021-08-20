@@ -82,7 +82,7 @@ class RunNuCommandTest() extends Specification {
       val prog =
         for {
           p <- RunNuCommand.run(Cmd("ls", "-1" :: "/proc/self/fd" :: Nil, Map("PATH" -> PATH)))
-          c <- p.await.timeout(100.millis).notOptional("oups, timed out")
+          c <- p.await.timeout(500.millis).notOptional("oups, timed out")
         } yield {
           (c.code, c.stdout.split("\n").size)
         }
@@ -99,7 +99,7 @@ class RunNuCommandTest() extends Specification {
       val prog =
         for {
           p <- RunNuCommand.run(Cmd("mkdir", "-p" :: file.getPath :: Nil, Map("PATH" -> PATH)))
-          c <- p.await.timeout(100.millis).notOptional("oups, timed out")
+          c <- p.await.timeout(500.millis).notOptional("oups, timed out")
         } yield {
           c.code
         }
