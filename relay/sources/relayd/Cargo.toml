@@ -33,7 +33,7 @@ inotify = "0.9"
 lazy_static = "1"
 log = "0.4"
 md-5 = "0.9"
-nom = "6"
+nom = "7"
 openssl = { version = "0.10", features = ["vendored"] }
 prometheus = { version = "0.12", default-features = false, features = ["process"] }
 regex = "1"
