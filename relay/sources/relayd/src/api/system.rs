@@ -9,11 +9,12 @@ use crate::{
 };
 use serde::Serialize;
 use std::sync::Arc;
-use warp::{filters::method, path, Filter, Reply};
+use warp::{
+    filters::{method, BoxedFilter},
+    path, Filter, Reply,
+};
 
-pub fn routes_1(
-    job_config: Arc<JobConfig>,
-) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
     let base = path!("system" / ..);
 
     let info = method::get().and(base).and(path!("info")).map(|| {
@@ -37,7 +38,7 @@ pub fn routes_1(
         .reply())
     });
 
-    info.or(reload).or(status)
+    info.or(reload).or(status).boxed()
 }
 
 pub mod handlers {

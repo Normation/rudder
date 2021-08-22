@@ -20,11 +20,14 @@ use std::{
 };
 use tokio::fs;
 use tracing::{debug, error, span, warn, Level};
-use warp::{body, filters::method, http::StatusCode, path, query, Filter, Reply};
+use warp::{
+    body,
+    filters::{method, BoxedFilter},
+    http::StatusCode,
+    path, query, Filter, Reply,
+};
 
-pub fn routes_1(
-    job_config: Arc<JobConfig>,
-) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
     let base = path!("shared-files" / String / String / String);
 
     let job_config_head = job_config.clone();
@@ -46,7 +49,7 @@ pub fn routes_1(
             handlers::put(target_id, source_id, file_id, params, buf, j)
         });
 
-    head.or(put)
+    head.or(put).boxed()
 }
 
 pub mod handlers {

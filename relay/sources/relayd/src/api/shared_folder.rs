@@ -7,11 +7,14 @@ use serde::Deserialize;
 use std::{io, path::PathBuf, sync::Arc};
 use tokio::fs::read;
 use tracing::{debug, error, span, trace, Level};
-use warp::{filters::method, fs, http::StatusCode, path, query, Filter, Reply};
+use warp::{
+    filters::{method, BoxedFilter},
+    fs,
+    http::StatusCode,
+    path, query, Filter, Reply,
+};
 
-pub fn routes_1(
-    job_config: Arc<JobConfig>,
-) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
     let base = path!("shared-folder" / ..);
 
     let job_config_head = job_config.clone();
@@ -27,7 +30,7 @@ pub fn routes_1(
         // build-in method to serve static file in dir
         .and(fs::dir(job_config_get.cfg.shared_folder.path.clone()));
 
-    head.or(get)
+    head.or(get).boxed()
 }
 
 pub mod handlers {

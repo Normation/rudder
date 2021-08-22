@@ -2,13 +2,17 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::metrics::REGISTRY;
-use warp::{filters::method, path, Filter, Reply};
+use warp::{
+    filters::{method, BoxedFilter},
+    path, Filter, Reply,
+};
 
 /// Special case for /metrics, standard for prometheus
-pub fn routes() -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+pub fn routes() -> BoxedFilter<(impl Reply,)> {
     method::get()
         .and(path!("metrics"))
         .and_then(handlers::metrics)
+        .boxed()
 }
 
 pub mod handlers {

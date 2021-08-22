@@ -94,19 +94,18 @@ pub async fn run(job_config: Arc<JobConfig>) -> Result<(), ()> {
     let span = span!(Level::TRACE, "api");
     let _enter = span.enter();
 
-    let routes_1 = path!("rudder" / "relay-api" / "1" / ..).and(
-        system::routes_1(job_config.clone())
-            .or(shared_folder::routes_1(job_config.clone()))
-            .or(shared_files::routes_1(job_config.clone()))
-            .or(remote_run::routes_1(job_config.clone())),
-    );
-
-    // special case for /metrics which is the standard URL
-    // with no versioning
-    let routes_special = metrics::routes();
+    let routes_1 = path!("rudder" / "relay-api" / "1" / ..)
+        .and(
+            system::routes_1(job_config.clone())
+                .or(shared_folder::routes_1(job_config.clone()))
+                .or(shared_files::routes_1(job_config.clone()))
+                .or(remote_run::routes_1(job_config.clone())),
+            /* special case for /metrics which is the standard URL
+             * with no versioning */
+        )
+        .or(metrics::routes());
 
     let routes = routes_1
-        .or(routes_special)
         .recover(customize_error)
         .with(warp::log("relayd::api"));
 
