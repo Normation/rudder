@@ -100,7 +100,7 @@ ul.dropdown-menu > li > a{
   left: -250px !important;
 }
 .popover-content b{
-  color: #f08004;
+  color: #13beb7;
 }
 .popover-content .deprecated-message{
   margin: 2px 0 4px 0;
@@ -466,7 +466,7 @@ ul.tabs-list > li > .badge.empty{
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   margin: 0;
-  background-color: #f08004;
+  background-color: #041922;
   padding-left : 0;
   padding-right: 0;
 }
