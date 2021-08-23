@@ -94,6 +94,12 @@ tags:
 
 
       Manage web interface customization.
+  - name: "🧩 Secret Management"
+    description: >-
+      **Requires that the `secret-management` plugin is installed on the server.**
+
+
+      Manage secrets variables.
 paths:
   "/info":
     $ref: paths/info/all.yml
@@ -267,3 +273,7 @@ paths:
     $ref: paths/cve/updateCVEFromFS.yml
   "/cve/update/":
     $ref: paths/cve/updateCVE.yml
+  "/secret/":
+    $ref: paths/secret/all.yml
+  "/secret/{name}":
+    $ref: paths/secret/id.yml
