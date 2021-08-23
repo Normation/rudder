@@ -1,6 +1,6 @@
 = Rudder: Continuous Auditing & Configuration
 
-image::readme-resources/color_logo_horizontal_small.png[Rudder]
+image::logo/rudder-logo-rect-black.svg[Rudder]
 
 image:https://img.shields.io/badge/chat-with the community-brightgreen.svg?style=flat[link="https://docs.rudder.io"]
 image:https://img.shields.io/badge/read-the documentation-green.svg?style=flat[link="https://docs.rudder.io"]
