@@ -5,7 +5,7 @@ html,body{
   padding: 0 !important;
 }
 #login-page{
-	background-color: #222D32;
+	background-color: #041922;
 	background-image: url(../images/login/background.jpg);
 	background-size: cover;
 	background-attachment: fixed;
@@ -28,8 +28,8 @@ html,body{
 	border-top-left-radius: 5px;
 	border-top-right-radius: 5px;
     color: #fff;
-    background-color: #f08004;
-    padding: 20px 50px;
+    background-color: #041922;
+    padding: 40px 50px;
     margin-bottom: 0;
 }
 #login-page #formbox .legend img{
@@ -44,7 +44,7 @@ html,body{
     bottom: 1px;
 }
 #login-page #formbox .welcome{
-	color: #222D32;
+	color: #041922;
 	text-align: center;
 	-webkit-animation: opacity-1 1.4s ease forwards;
 	-moz-animation: opacity-1 1.4s ease forwards;
@@ -53,9 +53,9 @@ html,body{
 	animation: opacity-1 1.4s ease forwards;
 }
 #login-page #formbox .input-group-addon{
-	background-color: #222D32;
+	background-color: #041922;
 	color: #fff;
-    border-color: #222D32;
+    border-color: #041922;
 	border-top-left-radius:5px;
 	border-bottom-left-radius:5px;
 	font-size: 19px;
@@ -113,12 +113,12 @@ html,body{
   height: initial;
 }
 #login-page #formbox .form-control:focus{
-	color: #222D32;
-	border-color: #222D32;
+	color: #041922;
+	border-color: #041922;
 }
 #login-page #formbox .btn.btn-warning-rudder{
 	font-weight: 600;
-    background-color: #f08004;
+    background-color: #13BEB7;
     color: #fff;
     font-size: 20px;
     animation-duration: .1s;
@@ -135,7 +135,7 @@ html,body{
 }
 
 #login-page #formbox .form-footer{
-	background-color: #222D32;
+	background-color: #041922;
 	color: #fff;
 	padding-top: 30px;
 	border-bottom-left-radius:4px;
@@ -148,7 +148,7 @@ html,body{
 	color: #fff;
 	opacity: .5;
 	font-size: 16px;
-	transition-duration:.1s;
+	transition-duration:.2s;
 }
 #login-page #formbox .form-footer div a:focus {
     outline: none;
@@ -164,7 +164,7 @@ html,body{
 	font-size: 20px;
 }
 #login-page #formbox .form-footer div a:hover span{
-	color:#f08004;
+	color:#13beb7;
 }
 
 /* ------------- #formbox --------------- */
@@ -273,12 +273,7 @@ animation: opacity-1 .2s linear forwards;
 /* BUTTON warning */
 .btn-warning-rudder {
     text-transform: uppercase;
-    background-color: #FFF;
-    border: 2px solid #f08004;
-    font-weight: bold;
-    color: #f08004;
     box-shadow: 1px 5px 8px 0px rgba(0, 0, 0, 0.18);
-    outline: none;
     transition-property: background-color;
     transition-duration: .1s;
 }
@@ -286,15 +281,11 @@ animation: opacity-1 .2s linear forwards;
   outline: none;
 }
 .btn-warning-rudder:hover {
-  background-color: #f08004;
+  background-color: #13beb7;
   color:#fff;
 }
 .btn-warning-rudder:disabled:hover {
   background-color: inherit;
-  color:#f08004;
-}
-.btn-warning-rudder:focus {
-  color:#f08004;
 }
 .btn-warning-rudder:focus:hover {
   color:#fff;
@@ -456,42 +447,42 @@ animation: opacity-1 .2s linear forwards;
 
 @-webkit-keyframes text-radio-on {
     0%   {color: #646464;}
-    100% {color: #222D32;}
+    100% {color: #041922;}
 }
 @-moz-keyframes text-radio-on {
     0%   {color: #646464;}
-    100% {color: #222D32;}
+    100% {color: #041922;}
 }
 @-ms-keyframes text-radio-on {
     0%   {color: #646464;}
-    100% {color: #222D32;}
+    100% {color: #041922;}
 }
 @-o-keyframes text-radio-on {
     0%   {color: #646464;}
-    100% {color: #222D32;}
+    100% {color: #041922;}
 }
 @keyframes text-radio-on {
     0%   {color: #646464;}
-    100% {color: #222D32;}
+    100% {color: #041922;}
 }
 
 @-webkit-keyframes text-radio-off {
-    0%   {color: #222D32;}
+    0%   {color: #041922;}
     100% {color: #646464;}
 }
 @-moz-keyframes text-radio-off {
-    0%   {color: #222D32;}
+    0%   {color: #041922;}
     100% {color: #646464;}
 }
 @-ms-keyframes text-radio-off {
-    0%   {color: #222D32;}
+    0%   {color: #041922;}
     100% {color: #646464;}
 }
 @-o-keyframes text-radio-off {
-    0%   {color: #222D32;}
+    0%   {color: #041922;}
     100% {color: #646464;}
 }
 @keyframes text-radio-off {
-    0%   {color: #222D32;}
+    0%   {color: #041922;}
     100% {color: #646464;}
 }

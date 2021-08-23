@@ -114,7 +114,7 @@ body{
 }
 
 .skin-yellow .modal-header {
-  background-color: #f08004;
+  background-color: #041922;
   font-family: sans-serif;
   font-weight: bold;
   color: #fff;
@@ -546,10 +546,10 @@ body{
 }
 
 .skin-yellow .modal h4.audit-title{
-  padding-left: 20px;
+  padding-left: 0px;
   padding-bottom: 8px;
   margin-bottom: 25px;
-  border-bottom: 1px solid #F38D17;
+  border-bottom: 1px solid #d6deef;
   margin-top: 20px;
   font-size: 17.5px;
 }
@@ -667,7 +667,6 @@ body{
 }
 
 .content-wrapper .homePage {
-  background-color: rgb(236, 240, 245);
   padding: 15px;
 }
 
