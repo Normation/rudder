@@ -92,6 +92,7 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.secret.Secret
 
 final case class XmlUnserializerImpl (
     rule        : RuleUnserialisation
@@ -757,6 +758,22 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
         , creationDate
         , tokenGenDate
       )
+    }
+  }
+}
+
+class SecretUnserialisationImpl extends SecretUnserialisation {
+  def unserialise(entry:XNode) : Box[Secret] = {
+    for {
+      secret      <- {
+        if(entry.label ==  XML_TAG_SECRET) Full(entry)
+        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_SECRET, entry))
+      }
+      fileFormatOk     <- TestFileFormat(secret)
+      name             <- (secret \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type secret : " + entry)
+      description      <- (secret \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type secret : " + entry)
+    } yield {
+      Secret(name, "", description)
     }
   }
 }
