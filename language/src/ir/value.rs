@@ -148,18 +148,25 @@ impl<'src> Value<'src> {
             PValue::Float(pos, n) => Ok(Value::Float(pos, n)),
             PValue::Integer(pos, n) => Ok(Value::Integer(pos, n)),
             PValue::Boolean(pos, b) => Ok(Value::Boolean(pos, b)),
-            // PValue::EnumExpression(e) => Ok(Value::EnumExpression(
-            //     enum_list.canonify_expression(context, e)?,
-            // )),
-            PValue::EnumExpression(e) => match enum_list.canonify_expression(context, e.clone()) {
-                Ok(canonified_expr) => Ok(Value::EnumExpression(canonified_expr)),
-                Err(err) => {
-                    if let PEnumExpressionPart::Compare(None, None, value) = e.expression {
-                        return Ok(Value::Variable(value));
+            PValue::EnumExpression(e) => {
+                match enum_list.canonify_expression(context, e.clone(), false) {
+                    Ok(canonified_expr) => {
+                        println!("exp");
+                        Ok(Value::EnumExpression(canonified_expr))
                     }
-                    Err(err)
+                    Err(err) => {
+                        //it could also be a variable
+                        if let PEnumExpressionPart::Compare(None, None, v) = e.expression {
+                            match context.get_type(&v) {
+                                Some(_) => Ok(Value::Variable(v)),
+                                None => fail!(v, "Unknown variable {}", &v),
+                            }
+                        } else {
+                            Err(err)
+                        }
+                    }
                 }
-            },
+            }
             PValue::List(l) => Ok(Value::List(map_vec_results(l.into_iter(), |x| {
                 Value::from_pvalue(enum_list, context, x)
             })?)),
@@ -184,7 +191,7 @@ impl<'src> Value<'src> {
                 PInterpolatedElement::Variable(v) => {
                     if context.get_type(&Token::new("", v)) == None {
                         warn!(
-                            "The interpolated variable '{}' isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated",
+                            "The interpolated variable '{}' isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated (2)",
                             v
                         );
                     }
@@ -205,7 +212,7 @@ impl<'src> Value<'src> {
                 .collect::<Result<()>>(),
             Value::Variable(v) => {
                 if context.get_type(v) == None {
-                    warn!("The variable '{}' isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated", v.fragment());
+                    warn!("The variable '{}' isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated (1)", v.fragment());
                 }
                 Ok(())
             }
@@ -233,7 +240,7 @@ impl<'src> ComplexValue<'src> {
         pvalue: PComplexValue<'src>,
     ) -> Result<Self> {
         let cases = map_vec_results(pvalue.cases.into_iter(), |(case, value)| {
-            let case = enum_list.canonify_expression(context, case)?;
+            let case = enum_list.canonify_expression(context, case, false)?;
             let value = match value {
                 None => None,
                 Some(v) => Some(Value::from_pvalue(enum_list, context, v)?),

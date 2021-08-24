@@ -462,12 +462,9 @@ impl CFEngine {
                         .and_then(|v| self.value_to_string(v, variables, string_delim))
                         .ok()
                 }) {
+                    // here we know the value, we could optimize with putting the variable content here
                     return Ok(var);
                 }
-                warn!(
-                    "The variable {} isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated",
-                    v.fragment()
-                );
                 format!("{}${{{}}}{}", delim, v.fragment(), delim)
             }
         })

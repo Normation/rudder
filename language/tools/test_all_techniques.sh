@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -xe
 [ "$1" = "-s" ] && stop="yes"
 techniques=(./tests/techniques/*)
 

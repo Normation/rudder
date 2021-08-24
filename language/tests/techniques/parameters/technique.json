@@ -19,7 +19,7 @@
       "parameters": [
         {
           "name": "name",
-          "value": "vpn",
+          "value": "${paramtest}",
           "$errors": []
         },
         {

@@ -560,7 +560,7 @@ impl<'src> Statement<'src> {
             PStatement::Case(case, v) => Statement::Case(
                 case,
                 map_vec_results(v.into_iter(), |(exp, st)| {
-                    let expr = enum_list.canonify_expression(context, exp)?;
+                    let expr = enum_list.canonify_expression(context, exp, true)?;
                     Ok((
                         expr,
                         Statement::from_pstatement(
