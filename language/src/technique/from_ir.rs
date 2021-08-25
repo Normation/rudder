@@ -253,7 +253,7 @@ fn value_to_string(
                 return Ok(var);
             }
             warn!(
-                "The variable {} isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated",
+                "The variable {} isn't recognized, so we can't guarantee it will be defined when evaluated",
                 v.fragment()
             );
             format!("{}${{{}}}{}", delim, v.fragment(), delim)
@@ -434,7 +434,7 @@ fn statement_to_method_call(
             let block = MethodBlock {
                 component,
                 condition,
-                childs,
+                calls: childs,
                 id,
             };
 

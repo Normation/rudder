@@ -367,6 +367,7 @@ pub struct StateDeclaration<'src> {
 /// A Block Declaration is a given required state on a given resource
 #[derive(Debug, PartialEq)]
 pub struct BlockDeclaration<'src> {
+    pub source: Token<'src>,
     pub metadata: TomlMap<String, TomlValue>,
     pub childs: Vec<Statement<'src>>,
 }
@@ -450,12 +451,17 @@ impl<'src> Statement<'src> {
                 let var = VariableDef::from_pvariable_definition(def, context, enum_list)?;
                 Statement::VariableDefinition(var)
             }
-            PStatement::BlockDeclaration(PBlockDeclaration { metadata, childs }) => {
+            PStatement::BlockDeclaration(PBlockDeclaration {
+                source,
+                metadata,
+                children: childs,
+            }) => {
                 let (mut _errors, metadata) = create_metadata(metadata);
                 (match map_vec_results(childs.into_iter(), |x| {
                     Statement::from_pstatement(context, children, x, parameter_defaults, enum_list)
                 }) {
                     Ok(childs) => Ok(Statement::BlockDeclaration(BlockDeclaration {
+                        source,
                         metadata,
                         childs,
                     })),

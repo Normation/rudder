@@ -1045,17 +1045,22 @@ fn pstate_declaration(i: PInput) -> PResult<PStateDeclaration> {
 /// A State Declaration is a given required state on a given resource
 #[derive(Debug, PartialEq)]
 pub struct PBlockDeclaration<'src> {
+    pub source: Token<'src>,
     pub metadata: Vec<PMetadata<'src>>,
-    pub childs: Vec<PStatement<'src>>,
+    pub children: Vec<PStatement<'src>>,
 }
 fn pblock_declaration(i: PInput) -> PResult<PBlockDeclaration> {
-    return map(
-        delimited_parser("{", |j| many0(pstatement)(j), "}"),
-        |childs| PBlockDeclaration {
+    wsequence!(
+        {
+            start: etag("{");
+            children: many0(pstatement);
+            _end: etag("}");
+        } => PBlockDeclaration {
+            source: start.into(),
             metadata: Vec::new(),
-            childs,
-        },
-    )(i);
+            children: children,
+        }
+    )(i)
 }
 
 /// A statement is the atomic element of a state definition.
