@@ -1314,6 +1314,25 @@ fn test_variable_declaration() {
 }
 
 #[test]
+fn test_pblock_declaration() {
+    assert_eq!(
+        map_res(pblock_declaration, "{\n  let my_var=\"string\"\n}\n"),
+        Ok((
+            "",
+            PBlockDeclaration {
+                source: "{".into(),
+                metadata: Vec::new(),
+                children: vec![PStatement::VariableDefinition(PVariableDef {
+                    metadata: Vec::new(),
+                    name: "my_var".into(),
+                    value: map_res(pcomplex_value, "\"string\"").unwrap().1,
+                })],
+            }
+        ))
+    );
+}
+
+#[test]
 fn test_pstatement() {
     assert_eq!(
         map_res(pstatement, "resource().state()"),

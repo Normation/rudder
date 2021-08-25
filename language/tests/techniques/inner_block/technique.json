@@ -10,12 +10,12 @@
       "component": "Block",
       "id": "606b7f69-2b94-4bec-9050-a88196d48c14",
       "condition": "debian",
-      "childs": [
+      "calls": [
         {
           "component": "Block",
           "id": "398574d5-c695-4d35-a42c-fed7e3b90c19",
           "condition": "centos",
-          "childs": [
+          "calls": [
             {
               "parameters": [
                 {
@@ -50,7 +50,7 @@
           "component": "Block",
           "id": "a49089a1-ba1d-46c4-aec2-4274a270bb3e",
           "condition": "debian_10",
-          "childs": [
+          "calls": [
             {
               "parameters": [
                 {

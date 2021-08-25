@@ -150,10 +150,7 @@ impl<'src> Value<'src> {
             PValue::Boolean(pos, b) => Ok(Value::Boolean(pos, b)),
             PValue::EnumExpression(e) => {
                 match enum_list.canonify_expression(context, e.clone(), false) {
-                    Ok(canonified_expr) => {
-                        println!("exp");
-                        Ok(Value::EnumExpression(canonified_expr))
-                    }
+                    Ok(canonified_expr) => Ok(Value::EnumExpression(canonified_expr)),
                     Err(err) => {
                         //it could also be a variable
                         if let PEnumExpressionPart::Compare(None, None, v) = e.expression {
@@ -191,7 +188,7 @@ impl<'src> Value<'src> {
                 PInterpolatedElement::Variable(v) => {
                     if context.get_type(&Token::new("", v)) == None {
                         warn!(
-                            "The interpolated variable '{}' isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated (2)",
+                            "The interpolated variable '{}' isn't recognized, so we can't guarantee it will be defined when evaluated (2)",
                             v
                         );
                     }
@@ -212,7 +209,7 @@ impl<'src> Value<'src> {
                 .collect::<Result<()>>(),
             Value::Variable(v) => {
                 if context.get_type(v) == None {
-                    warn!("The variable '{}' isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated (1)", v.fragment());
+                    warn!("The variable '{}' isn't recognized, so we can't guarantee it will be defined when evaluated (1)", v.fragment());
                 }
                 Ok(())
             }

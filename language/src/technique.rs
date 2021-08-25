@@ -204,7 +204,7 @@ enum MethodElem {
 pub struct MethodBlock {
     component: String,
     condition: String,
-    childs: Vec<MethodElem>,
+    calls: Vec<MethodElem>,
     id: String,
 }
 impl MethodBlock {
@@ -214,7 +214,7 @@ impl MethodBlock {
         let formatted_component = format!("@component = \"{}\"", self.component);
         newContext.push(self);
         let childs = self
-            .childs
+            .calls
             .iter()
             .map(|c| match c {
                 MethodElem::MethodCall(callData) => callData.to_rudderlang(context, lib),
