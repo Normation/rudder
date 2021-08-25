@@ -458,7 +458,7 @@ impl DSC {
                     return Ok(var);
                 }
                 warn!(
-                    "The variable {} isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated",
+                    "The variable {} isn't recognized by rudderc, so we can't guarantee it will be defined when evaluated (4)",
                     v.fragment()
                 );
                 format!("{}${{{}}}{}", delim, v.fragment(), delim)

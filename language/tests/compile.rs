@@ -26,6 +26,7 @@ use test_case::test_case;
 #[test_case("f_fuzzy")]
 #[test_case("s_basic")]
 #[test_case("s_state_case")]
+#[test_case("s_parameters")]
 // #[test_case("s_declare")]
 // #[test_case("s_does_not_exist")] // supposed to fail as the file does not exist
 fn real_files(filename: &str) {

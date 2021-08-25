@@ -573,6 +573,8 @@ pub enum PValue<'src> {
     Float(Token<'src>, f64),
     Integer(Token<'src>, i64),
     Boolean(Token<'src>, bool),
+    // be careful the parser can't make the difference between a variable name and a single global enum item
+    // it is up to the IR to do this job from the context
     EnumExpression(PEnumExpression<'src>),
     Struct(HashMap<String, PValue<'src>>),
     List(Vec<PValue<'src>>),
@@ -584,7 +586,7 @@ fn pvalue(i: PInput) -> PResult<PValue> {
         map(pescaped_string, |(x, y)| PValue::String(x, y)),
         map(pinteger, |(x, y)| PValue::Integer(x, y)),
         map(pfloat, |(x, y)| PValue::Float(x, y)),
-        map(penum_expression, PValue::EnumExpression), // or variable
+        map(penum_expression, PValue::EnumExpression),
         map(plist, PValue::List),
         map(pstruct, PValue::Struct),
     ))(i)

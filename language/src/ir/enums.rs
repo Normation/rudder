@@ -288,7 +288,8 @@ impl<'src> EnumList<'src> {
         variable: Option<Token<'src>>,
         tree_name: Option<Token<'src>>,
         value: Token<'src>,
-        my_be_boolean: bool,
+        may_be_boolean: bool,
+        allow_unknown_item: bool,
     ) -> Result<(Token<'src>, Token<'src>, Token<'src>)> {
         match (variable, tree_name) {
             (None, None) => {
@@ -296,7 +297,7 @@ impl<'src> EnumList<'src> {
                     // - value exist and tree is global => var = treename = value global name
                     let val = self.item_in_enum(*tree_name, value)?;
                     Ok((*tree_name, *tree_name, val))
-                } else if my_be_boolean {
+                } else if may_be_boolean {
                     // - value !exist => var = value, treename = boolean, value = true
                     if let Ok(t) = self.get_var_enum(context, value) {
                         if t.fragment() == "boolean" {
@@ -310,8 +311,12 @@ impl<'src> EnumList<'src> {
                         }
                     // then it probably is a variable
                     } else {
-                        warn!("The enum member {} isn't recognized by rudderc, so we can't guarantee it will be defined when evaluate", value);
-                        Ok((value, "boolean".into(), "true".into()))
+                        if !allow_unknown_item {
+                            fail!(value, "The enum member {} is not defined", value);
+                        } else {
+                            // warning, this could also be an unknown item (group class ?)
+                            Ok((value, "boolean".into(), "true".into()))
+                        }
                     }
                 } else {
                     fail!(value, "{} is not a global enum item", value);
@@ -360,9 +365,10 @@ impl<'src> EnumList<'src> {
         &self,
         context: &VarContext<'src>,
         expr: PEnumExpression<'src>,
+        allow_unknown_item: bool,
     ) -> Result<EnumExpression<'src>> {
         let PEnumExpression { source, expression } = expr;
-        self.canonify_expression_part(context, expression)
+        self.canonify_expression_part(context, expression, allow_unknown_item)
             .map(|x| EnumExpression {
                 source,
                 expression: x,
@@ -373,16 +379,17 @@ impl<'src> EnumList<'src> {
         &self,
         context: &VarContext<'src>,
         expr: PEnumExpressionPart<'src>,
+        allow_unknown_item: bool,
     ) -> Result<EnumExpressionPart<'src>> {
         match expr {
             PEnumExpressionPart::Default(t) => Ok(EnumExpressionPart::Default(t)),
             PEnumExpressionPart::NoDefault(t) => Ok(EnumExpressionPart::NoDefault(t)),
             PEnumExpressionPart::Not(e) => Ok(EnumExpressionPart::Not(Box::new(
-                self.canonify_expression_part(context, *e)?,
+                self.canonify_expression_part(context, *e, allow_unknown_item)?,
             ))),
             PEnumExpressionPart::Or(e1, e2) => {
-                let r1 = self.canonify_expression_part(context, *e1);
-                let r2 = self.canonify_expression_part(context, *e2);
+                let r1 = self.canonify_expression_part(context, *e1, allow_unknown_item);
+                let r2 = self.canonify_expression_part(context, *e2, allow_unknown_item);
                 match (r1, r2) {
                     (Err(er), Ok(_)) => Err(er),
                     (Ok(_), Err(er)) => Err(er),
@@ -391,8 +398,8 @@ impl<'src> EnumList<'src> {
                 }
             }
             PEnumExpressionPart::And(e1, e2) => {
-                let r1 = self.canonify_expression_part(context, *e1);
-                let r2 = self.canonify_expression_part(context, *e2);
+                let r1 = self.canonify_expression_part(context, *e1, allow_unknown_item);
+                let r2 = self.canonify_expression_part(context, *e2, allow_unknown_item);
                 match (r1, r2) {
                     (Err(er), Ok(_)) => Err(er),
                     (Ok(_), Err(er)) => Err(er),
@@ -401,8 +408,14 @@ impl<'src> EnumList<'src> {
                 }
             }
             PEnumExpressionPart::Compare(var, tree_name, value) => {
-                let (var_name, tree_name, value) =
-                    self.validate_comparison(context, var, tree_name, value, true)?;
+                let (var_name, tree_name, value) = self.validate_comparison(
+                    context,
+                    var,
+                    tree_name,
+                    value,
+                    true,
+                    allow_unknown_item,
+                )?;
                 Ok(EnumExpressionPart::Compare(var_name, tree_name, value))
             }
             PEnumExpressionPart::RangeCompare(var, tree_name, left, right, position) => {
@@ -414,8 +427,14 @@ impl<'src> EnumList<'src> {
                 } else {
                     fail!(position, "Empty range is forbidden in enum expression")
                 };
-                let (var_name, tree_name, value) =
-                    self.validate_comparison(context, var, tree_name, value, false)?;
+                let (var_name, tree_name, value) = self.validate_comparison(
+                    context,
+                    var,
+                    tree_name,
+                    value,
+                    false,
+                    allow_unknown_item,
+                )?;
                 // check tat left and right are right type
                 let new_left = match left {
                     None => None,
@@ -765,24 +784,24 @@ mod tests {
             .unwrap();
         assert_eq!(
             elist
-                .canonify_expression_part(&context, penum_expression_t("a").expression)
+                .canonify_expression_part(&context, penum_expression_t("a").expression, false)
                 .unwrap(),
             EnumExpressionPart::Compare("T".into(), "T".into(), "a".into())
         );
         assert_eq!(
             elist
-                .canonify_expression_part(&context, penum_expression_t("var=~a").expression)
+                .canonify_expression_part(&context, penum_expression_t("var=~a").expression, false)
                 .unwrap(),
             EnumExpressionPart::Compare("var".into(), "T".into(), "a".into())
         );
         assert_eq!(
             elist
-                .canonify_expression_part(&context, penum_expression_t("var=~d").expression)
+                .canonify_expression_part(&context, penum_expression_t("var=~d").expression, false)
                 .unwrap(),
             EnumExpressionPart::Compare("var".into(), "T".into(), "d".into())
         );
         assert!(elist
-            .canonify_expression_part(&context, penum_expression_t("d|a&!b").expression)
+            .canonify_expression_part(&context, penum_expression_t("d|a&!b").expression, false)
             .is_ok());
     }
 
@@ -810,7 +829,7 @@ mod tests {
             .unwrap();
         let mut h1 = HashMap::new();
         elist
-            .canonify_expression_part(&context, penum_expression_t("a").expression)
+            .canonify_expression_part(&context, penum_expression_t("a").expression, false)
             .unwrap()
             .list_variables_tree(&mut h1);
         assert_eq!(
@@ -820,7 +839,7 @@ mod tests {
 
         let mut h2 = HashMap::new();
         elist
-            .canonify_expression_part(&context, penum_expression_t("d").expression)
+            .canonify_expression_part(&context, penum_expression_t("d").expression, false)
             .unwrap()
             .list_variables_tree(&mut h2);
         assert_eq!(
@@ -830,7 +849,7 @@ mod tests {
 
         let mut h3 = HashMap::new();
         elist
-            .canonify_expression_part(&context, penum_expression_t("var=~a").expression)
+            .canonify_expression_part(&context, penum_expression_t("var=~a").expression, false)
             .unwrap()
             .list_variables_tree(&mut h3);
         assert_eq!(
@@ -840,7 +859,7 @@ mod tests {
 
         let mut h4 = HashMap::new();
         elist
-            .canonify_expression_part(&context, penum_expression_t("d|h").expression)
+            .canonify_expression_part(&context, penum_expression_t("d|h").expression, false)
             .unwrap()
             .list_variables_tree(&mut h4);
         assert_eq!(
@@ -890,22 +909,22 @@ mod tests {
             .add_enum(penum_t("global enum U { A, B, C }"))
             .unwrap();
         let e1 = elist
-            .canonify_expression(&context, penum_expression_t("a"))
+            .canonify_expression(&context, penum_expression_t("a"), false)
             .unwrap();
         let e2 = elist
-            .canonify_expression(&context, penum_expression_t("b"))
+            .canonify_expression(&context, penum_expression_t("b"), false)
             .unwrap();
         let e3 = elist
-            .canonify_expression(&context, penum_expression_t("c"))
+            .canonify_expression(&context, penum_expression_t("c"), false)
             .unwrap();
         let e4 = elist
-            .canonify_expression(&context, penum_expression_t("..g|i.."))
+            .canonify_expression(&context, penum_expression_t("..g|i.."), false)
             .unwrap();
         let e5 = elist
-            .canonify_expression(&context, penum_expression_t("l.."))
+            .canonify_expression(&context, penum_expression_t("l.."), false)
             .unwrap();
         let e6 = elist
-            .canonify_expression(&context, penum_expression_t("..k"))
+            .canonify_expression(&context, penum_expression_t("..k"), false)
             .unwrap();
         let cases1 = [
             (e1.clone(), Vec::new() as Vec<i32>),
