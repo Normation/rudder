@@ -6,7 +6,12 @@ from hypothesis import given, strategies as st
 class TestEncoding(unittest.TestCase):
 
     # any version equals themselves
-    @given(st.from_regex(r'[0-9]+\.[0-9]+\-[0-9]+\.[0-9]+(\-SNAPSHOT)?', fullmatch=True))
+    @given(
+        st.from_regex(
+            r'[0-9]+\.[0-9]+\.[0-9]+(~(alpha|beta|rc)[0-9]+)?\-[0-9]+\.[0-9]+(\-SNAPSHOT)?',
+            fullmatch=True,
+        )
+    )
     def test_equality(self, v):
         self.assertTrue(PluginVersion(v) == PluginVersion(v))
         self.assertFalse(PluginVersion(v) != PluginVersion(v))
@@ -16,7 +21,11 @@ class TestEncoding(unittest.TestCase):
         self.assertLessEqual(PluginVersion(v), PluginVersion(v))
 
     # nightly is inferior to release at equal version
-    @given(st.from_regex(r'[0-9]+\.[0-9]+\-[0-9]+\.[0-9]+', fullmatch=True))
+    @given(
+        st.from_regex(
+            r'[0-9]+\.[0-9]+\.[0-9]+(~(alpha|beta|rc)[0-9]+)?\-[0-9]+\.[0-9]+', fullmatch=True
+        )
+    )
     def test_release_gt_nightly(self, v):
         self.assertGreater(PluginVersion(v), PluginVersion(v + '-SNAPSHOT'))
         self.assertLess(PluginVersion(v + '-SNAPSHOT'), PluginVersion(v))
