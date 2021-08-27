@@ -55,11 +55,13 @@ import org.eclipse.jgit.lib.ObjectId
 import scala.collection.mutable.{Map => MutMap}
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.services._
+
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
 
 import java.io.IOException
+
 import com.normation.errors._
 import com.normation.zio._
 import zio._
@@ -67,7 +69,11 @@ import zio.syntax._
 import GitTechniqueReader._
 import com.normation.GitVersion
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
-import com.normation.rudder.repository.xml.GitFindUtils
+import com.normation.rudder.git.ExactFileTreeFilter
+import com.normation.rudder.git.GitFindUtils
+import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.git.GitRevisionProvider
+
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.lib.ObjectStream
 
@@ -332,7 +338,7 @@ class GitTechniqueReader(
         optStream <- IOResult.effect {
                        try {
                          val tw = new TreeWalk(repo.db)
-                         tw.setFilter(new FileTreeFilter(canonizedRelativePath, path))
+                         tw.setFilter(new ExactFileTreeFilter(canonizedRelativePath, path))
                          tw.setRecursive(true)
                          tw.reset(currentId)
                          var ids = List.empty[ObjectId]
@@ -368,11 +374,11 @@ class GitTechniqueReader(
       val name = techniqueResourceId.name + postfixName.getOrElse("")
       techniqueResourceId match {
         case TechniqueResourceIdByName(tid, _) =>
-          (tid.version.rev, new FileTreeFilter(canonizedRelativePath, s"${tid.withDefaultRev.serialize}/${name}"))
+          (tid.version.rev, new ExactFileTreeFilter(canonizedRelativePath, s"${tid.withDefaultRev.serialize}/${name}"))
         case TechniqueResourceIdByPath(Nil, rev, _) =>
-          (rev, new FileTreeFilter(None, name))
+          (rev, new ExactFileTreeFilter(None, name))
         case TechniqueResourceIdByPath(parents, rev, _) =>
-          (rev, new FileTreeFilter(Some(parents.mkString("/")), name))
+          (rev, new ExactFileTreeFilter(Some(parents.mkString("/")), name))
       }
     }
 
@@ -508,7 +514,7 @@ class GitTechniqueReader(
   private[this] def processDirectiveDefaultName(db: Repository, revTreeId: ObjectId) : Map[String, String] = {
       //a first walk to find categories
       val tw = new TreeWalk(db)
-      tw.setFilter(new FileTreeFilter(canonizedRelativePath, directiveDefaultName))
+      tw.setFilter(new ExactFileTreeFilter(canonizedRelativePath, directiveDefaultName))
       tw.setRecursive(true)
       tw.reset(revTreeId)
 
@@ -545,7 +551,7 @@ class GitTechniqueReader(
       //a first walk to find categories
     val managed = ZManaged.make(IOResult.effect {
       val tw = new TreeWalk(gitRepo)
-      tw.setFilter(new FileTreeFilter(canonizedRelativePath, techniqueDescriptorName))
+      tw.setFilter(new ExactFileTreeFilter(canonizedRelativePath, techniqueDescriptorName))
       tw.setRecursive(true)
       tw.reset(revTreeId)
       tw
@@ -616,7 +622,7 @@ class GitTechniqueReader(
     //a first walk to find categories
     val managed = ZManaged.make(IOResult.effect {
       val tw = new TreeWalk(db)
-      tw.setFilter(new FileTreeFilter(canonizedRelativePath, categoryDescriptorName))
+      tw.setFilter(new ExactFileTreeFilter(canonizedRelativePath, categoryDescriptorName))
       tw.setRecursive(true)
       tw.reset(revTreeId)
       tw

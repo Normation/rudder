@@ -181,3 +181,6 @@ object ReportLoggerPure extends NamedZioLogger {
   }
 }
 
+object GitRepositoryLogger extends NamedZioLogger() {
+  def loggerName = "git-repository"
+}

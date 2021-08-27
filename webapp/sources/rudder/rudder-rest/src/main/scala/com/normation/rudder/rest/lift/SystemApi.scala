@@ -39,8 +39,9 @@
 package com.normation.rudder.rest.lift
 
 
-import com.normation.cfclerk.services.GitRepositoryProvider
+import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -48,18 +49,14 @@ import com.normation.rudder.UserService
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.ManualStartDeployment
 import com.normation.rudder.batch.UpdateDynamicGroups
-import com.normation.rudder.repository.xml.GitFindUtils
-import com.normation.rudder.repository.xml.GitTagDateTimeFormatter
-import com.normation.rudder.repository.GitArchiveId
-import com.normation.rudder.repository.GitCommitId
+import com.normation.rudder.git.GitArchiveId
+import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.rest.RestUtils.getActor
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RestDataSerializer
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.{SystemApi => API}
@@ -70,6 +67,7 @@ import com.normation.rudder.services.healthcheck.HealthcheckService
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.utils.StringUuidGenerator
+
 import net.liftweb.common._
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
@@ -82,12 +80,19 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
+
 import com.normation.zio._
 import com.normation.inventory.ldap.core.SoftwareService
 import com.normation.rudder.rest.EndpointSchema
+
 import net.liftweb.json.JsonAST.JArray
+
 import zio._
 import com.normation.box._
+import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.git.GitFindUtils
+import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.utils.DateFormaterService
 
 class SystemApi(
     restExtractorService : RestExtractorService
@@ -665,10 +670,10 @@ class SystemApiService11(
 
   private[this] def restoreByDatetime(req:Req, list:() => IOResult[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => IOResult[GitCommitId], datetime:String, archiveType:String) : Either[String, JField] = {
     (for {
-      valideDate <- IOResult.effect(s"The given archive id is not a valid archive tag: ${datetime}")(GitTagDateTimeFormatter.parseDateTime(datetime))
+      valideDate <- IOResult.effect(s"The given archive id is not a valid archive tag: ${datetime}")(DateFormaterService.gitTagFormat.parseDateTime(datetime))
       archives   <- list()
       commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
-      tag        <- archives.get(valideDate).notOptional(s"The archive with tag '${datetime}' is not available. Available archives: ${archives.keySet.map( _.toString(GitTagDateTimeFormatter)).mkString(", ")}")
+      tag        <- archives.get(valideDate).notOptional(s"The archive with tag '${datetime}' is not available. Available archives: ${archives.keySet.map( _.toString(DateFormaterService.gitTagFormat)).mkString(", ")}")
       restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore archive for date time %s requested from REST API".format(datetime)),false)
     } yield {
       restored

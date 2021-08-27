@@ -67,6 +67,10 @@ object ApiToken {
   }
 }
 
+case class ApiVersion (
+    value     : Int
+  , deprecated: Boolean
+)
 
 /*
  * HTTP verbs

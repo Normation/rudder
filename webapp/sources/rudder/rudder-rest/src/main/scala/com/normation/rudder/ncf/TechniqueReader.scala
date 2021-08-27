@@ -1,9 +1,8 @@
 package com.normation.rudder.ncf
 
 import java.time.Instant
-
 import better.files._
-import com.normation.cfclerk.services.GitRepositoryProvider
+
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.errors._
@@ -12,33 +11,36 @@ import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.repository.GitModificationRepository
-import com.normation.rudder.repository.xml.GitArchiverUtils
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
+
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.parse
+
 import zio.ZIO
 import zio.ZIO._
 import zio.syntax._
 import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.git.GitConfigItemRepository
+import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.repository.xml.XmlArchiverUtils
 
 class TechniqueReader(
     restExtractor                         : RestExtractorService
   , uuidGen                               : StringUuidGenerator
   , personIdentService                    : PersonIdentService
   , override val gitRepo                  : GitRepositoryProvider
-  , override val gitRootDirectory         : java.io.File
   , override val xmlPrettyPrinter         : RudderPrettyPrinter
   , override val gitModificationRepository: GitModificationRepository
   , override val encoding                 : String
   , override val groupOwner               : String
-) extends GitArchiverUtils {
+) extends GitConfigItemRepository with XmlArchiverUtils {
   import better.files.File.root
   override val relativePath     : String = "ncf"
-  val configuration_repository = gitRootDirectory.toScala
+  val configuration_repository = gitRepo.rootDirectory
   val ncfRootDir = configuration_repository / relativePath
   val methodsFile = ncfRootDir / "generic_methods.json"
 
@@ -127,7 +129,7 @@ class TechniqueReader(
       // commit file
       modId     =  ModificationId(uuidGen.newUuid)
       ident     <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
-      _         <- commitAddFile(modId, ident, toGitPath(methodsFile.toJava), "Saving updated generic methods definition")
+      _         <- commitAddFileWithModId(modId, ident, toGitPath(methodsFile.toJava), "Saving updated generic methods definition")
     } yield {
       res
     }

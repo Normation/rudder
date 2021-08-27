@@ -35,57 +35,41 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository.xml
-
-import java.io.File
-import java.nio.charset.Charset
-import java.nio.file.attribute.PosixFilePermission
+package com.normation.rudder.git
 
 import com.normation.NamedZioLogger
-import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.errors._
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.GitArchiveLogger
 import com.normation.rudder.domain.logger.GitArchiveLoggerPure
 import com.normation.rudder.repository._
+import com.normation.rudder.repository.xml.ArchiveMode
+import com.normation.utils.DateFormaterService
+
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
-import zio._
 
+import java.io.File
 import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
-import scala.xml.Elem
+
+import zio._
+import com.normation.errors._
 
 /**
  * Utility trait that factor out file commits.
  */
-trait GitArchiverUtils {
+trait GitItemRepository {
 
-  object GET {
-    def apply(reason:Option[String]) = reason match {
-      case None => ""
-      case Some(m) => "\n\nReason provided by user:\n" + m
-    }
-  }
-
+  // the underlying git repository where items are saved
   def gitRepo : GitRepositoryProvider
-  def gitRootDirectory : File
+  // relative path from git root directory where items for that implementation
+  // are saved. For example, rules are saved in `/var/rudder/config-repo/rules`,
+  // where `/var/rudder/config-repos` is the root directory provided by gitRepos,
+  // the relativePath is `rules`
   def relativePath : String
-  def xmlPrettyPrinter : RudderPrettyPrinter
-  def encoding : String
-  def gitModificationRepository : GitModificationRepository
 
-  def newDateTimeTagString = (DateTime.now()).toString(ISODateTimeFormat.dateTime)
-
-  /*
-   * Group owner for XML files and directories created in /var/rudder/configuration-repository/
-   */
-  def groupOwner: String
-
-
-  lazy val getRootDirectory : File = {
+  lazy val getItemDirectory: File = {
     /**
      * Create directory given in argument if does not exists, checking
      * that it is writable.
@@ -107,7 +91,7 @@ trait GitArchiverUtils {
       }
     }
 
-    val file = new File(gitRootDirectory, relativePath)
+    val file = new File(gitRepo.rootDirectory.toJava, relativePath)
     createDirectory(file) match {
       case Right(dir) => dir
       case Left(err) =>
@@ -117,11 +101,15 @@ trait GitArchiverUtils {
     }
   }
 
+  // better.files.File.pathAsString is normalized without an ending slash, an Git path are relative to "/"
+  // *without* the leading slash.
+  def toGitPath(fsPath: File) = fsPath.getPath.replace(gitRepo.rootDirectory.pathAsString + "/","")
+
   /**
    * Files in gitPath are added.
    * commitMessage is used for the message of the commit.
    */
-  def commitAddFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
+  def commitAddFile(commiter:PersonIdent, gitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
     gitRepo.semaphore.withPermit(
       for {
         _      <- GitArchiveLoggerPure.debug(s"Add file '${gitPath}' from configuration repository")
@@ -134,18 +122,18 @@ trait GitArchiverUtils {
         rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
         commit <- IOResult.effect(GitCommitId(rev.getName))
         _      <- GitArchiveLoggerPure.debug(s"file '${gitPath}' was added in commit '${commit.value}'")
-        mod    <- gitModificationRepository.addCommit(commit, modId)
       } yield {
         commit
       }
     )
   }
 
+
   /**
    * Files in gitPath are removed.
    * commitMessage is used for the message of the commit.
    */
-  def commitRmFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
+  def commitRmFile(commiter:PersonIdent, gitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
     gitRepo.semaphore.withPermit(
       for {
         _      <- GitArchiveLoggerPure.debug(s"remove file '${gitPath}' from configuration repository")
@@ -157,7 +145,6 @@ trait GitArchiverUtils {
         rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
         commit <- IOResult.effect(GitCommitId(rev.getName))
         _      <- GitArchiveLoggerPure.debug(s"file '${gitPath}' was removed in commit '${commit.value}'")
-        mod    <- gitModificationRepository.addCommit(commit, modId)
       } yield {
         commit
       }
@@ -171,7 +158,7 @@ trait GitArchiverUtils {
    * 'gitRepo.git added' (with and without the 'update' mode).
    * commitMessage is used for the message of the commit.
    */
-  def commitMvDirectory(modId : ModificationId, commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
+  def commitMvDirectory(commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
     gitRepo.semaphore.withPermit(
       for {
         _      <- GitArchiveLoggerPure.debug(s"move file '${oldGitPath}' from configuration repository to '${newGitPath}'")
@@ -187,41 +174,66 @@ trait GitArchiverUtils {
         rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
         commit <- IOResult.effect(GitCommitId(rev.getName))
         _      <- GitArchiveLoggerPure.debug(s"file '${oldGitPath}' was moved to '${newGitPath}' in commit '${commit.value}'")
-        mod    <- gitModificationRepository.addCommit(commit, modId)
       } yield {
         commit
       }
     )
   }
 
-  def toGitPath(fsPath: File) = fsPath.getPath.replace(gitRootDirectory.getPath +"/","")
+}
+
+/*
+ * An extension of simple GitItemRepositoty that in addition knows how to link commitId and modId together.
+ * Used for all configuration objects, but not for facts.
+ */
+trait GitConfigItemRepository extends GitItemRepository {
+
+  def gitModificationRepository : GitModificationRepository
+
+/**
+   * Files in gitPath are added.
+   * commitMessage is used for the message of the commit.
+   */
+  def commitAddFileWithModId(modId: ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
+      for {
+        commit <- commitAddFile(commiter, gitPath, commitMessage)
+        mod    <- gitModificationRepository.addCommit(commit, modId)
+      } yield {
+        commit
+      }
+  }
 
   /**
-   * Write the given Elem (prettified) into given file, log the message.
-   * File are written with the following rights:
-   * - for directories, rwxrwx---
-   * - for files: rw-rw----
-   * - for all, group owner: rudder
-   * Perms are defined in /opt/rudder/bin/rudder-fix-repository-configuration
+   * Files in gitPath are removed.
+   * commitMessage is used for the message of the commit.
    */
-  def writeXml(fileName: File, elem: Elem, logMessage: String) : IOResult[File] = {
-    import java.nio.file.attribute.PosixFilePermission._
-    import java.nio.file.StandardOpenOption._
-    import better.files._
-    val filePerms = Set[PosixFilePermission](OWNER_READ, OWNER_WRITE, /* no exec, */ GROUP_READ, GROUP_WRITE /* no exec, */ )
-    val directoryPerms = Set[PosixFilePermission](OWNER_READ, OWNER_WRITE, OWNER_EXECUTE, GROUP_READ, GROUP_WRITE, GROUP_EXECUTE)
-
-    // an utility that write text in a file and create file parents if needed
-    // open file mode for create or overwrite mode
-    IOResult.effect {
-      val file = fileName.toScala
-      file.parent.createDirectoryIfNotExists(true).setPermissions(directoryPerms).setGroup(groupOwner)
-      file.writeText(xmlPrettyPrinter.format(elem))(Seq(WRITE, TRUNCATE_EXISTING, CREATE), Charset.forName(encoding)).setPermissions(filePerms).setGroup(groupOwner)
-      GitArchiveLogger.debug(logMessage)
-      fileName
-    }
+  def commitRmFileWithModId(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
+      for {
+        commit <- commitRmFile(commiter, gitPath, commitMessage)
+        mod    <- gitModificationRepository.addCommit(commit, modId)
+      } yield {
+        commit
+      }
   }
+
+  /**
+   * Commit files in oldGitPath and newGitPath, trying to commit them so that
+   * gitRepo.git is aware of moved from old files to new ones.
+   * More preciselly, files in oldGitPath are 'gitRepo.git rm', files in newGitPath are
+   * 'gitRepo.git added' (with and without the 'update' mode).
+   * commitMessage is used for the message of the commit.
+   */
+  def commitMvDirectoryWithModId(modId : ModificationId, commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
+      for {
+        commit <- commitMvDirectory(commiter, oldGitPath, newGitPath, commitMessage)
+        mod    <- gitModificationRepository.addCommit(commit, modId)
+      } yield {
+        commit
+      }
+  }
+
 }
+
 
 /**
  * Utility trait that factor global commit and tags.
@@ -245,7 +257,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
       //also add new one
       gitRepo.git.add.addFilepattern(relativePath).call
       val commit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-      val path = GitPath(tagPrefix+DateTime.now.toString(GitTagDateTimeFormatter))
+      val path = GitPath(tagPrefix+DateTime.now.toString(DateFormaterService.gitTagFormat))
       logEffect.info("Create a new archive: " + path.value)
       gitRepo.git.tag.setMessage(commitMessage).
         setName(path.value).
@@ -301,7 +313,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
                      if(name.startsWith(tagPrefix)) {
                        val t = try {
                          Some((
-                             GitTagDateTimeFormatter.parseDateTime(name.substring(tagPrefix.size, name.size))
+                             DateFormaterService.gitTagFormat.parseDateTime(name.substring(tagPrefix.size, name.size))
                            , GitArchiveId(GitPath(name), GitCommitId(revTag.getName), revTag.getTaggerIdent)
                          ))
                        } catch {

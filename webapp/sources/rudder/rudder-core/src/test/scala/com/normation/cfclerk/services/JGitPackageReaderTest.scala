@@ -41,13 +41,14 @@ import com.normation.GitVersion
 
 import java.io.File
 import com.normation.cfclerk.domain._
-import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
 import com.normation.cfclerk.services.impl.GitTechniqueReader
-import com.normation.cfclerk.services.impl.SimpleGitRevisionProvider
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
+import com.normation.rudder.git.GitRepositoryProviderImpl
+import com.normation.rudder.git.SimpleGitRevisionProvider
+
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.eclipse.jgit.api.Git
@@ -59,6 +60,7 @@ import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 
 import java.nio.charset.StandardCharsets
+
 import com.normation.zio._
 import zio.syntax._
 

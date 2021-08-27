@@ -179,7 +179,7 @@ final case object Windows2019   extends WindowsType { val name = "Windows2019" }
 /**
  * Specific Linux subtype (distribution)
  */
-sealed abstract class LinuxType extends OsType {
+sealed abstract class  LinuxType extends OsType {
   override val kernelName = "Linux"
 }
 object LinuxType {

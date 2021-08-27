@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2021 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,34 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository
+package com.normation.rudder.apidata
 
-import org.joda.time.format.DateTimeFormatterBuilder
-import org.joda.time.DateTimeFieldType
+object implicits extends RudderJsonDecoders with RudderJsonEncoders
 
-package object xml {
-
-
-  /**
-   * We can't use ISO8601 valid format for a git tag, as ":" are forbidden.
-   * So we use a:
-   * YYYY-MM-dd_HH_mm_ss.SSS
-   */
-  val GitTagDateTimeFormatter = new DateTimeFormatterBuilder().
-                appendYear(4, 4).
-                appendLiteral('-').
-                appendFixedDecimal(DateTimeFieldType.monthOfYear(), 2).
-                appendLiteral('-').
-                appendFixedDecimal(DateTimeFieldType.dayOfMonth(), 2).
-                appendLiteral('_').
-                appendFixedDecimal(DateTimeFieldType.hourOfDay(), 2).
-                appendLiteral('-').
-                appendFixedDecimal(DateTimeFieldType.minuteOfHour(), 2).
-                appendLiteral('-').
-                appendFixedDecimal(DateTimeFieldType.secondOfMinute(), 2).
-                appendLiteral('.').
-                appendFractionOfSecond(3, 9).
-                toFormatter()
-
-
-}

@@ -38,6 +38,7 @@
 package com.normation.rudder.rest.lift
 
 import better.files.File
+
 import com.normation.errors.Inconsistency
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -50,12 +51,12 @@ import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.TwoParam
 import com.normation.rudder.rest.{NcfApi => API}
 import com.normation.utils.StringUuidGenerator
+
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
@@ -63,15 +64,19 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import com.normation.box._
-import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.TechniqueRepository
+
 import com.normation.errors.IOResult
+import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.ncf.ResourceFile
+
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
+
 import zio.ZIO
 
 class NcfApi(

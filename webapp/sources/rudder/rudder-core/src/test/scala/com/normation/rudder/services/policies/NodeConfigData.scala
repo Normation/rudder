@@ -86,6 +86,7 @@ import com.normation.rudder.reports._
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+
 import org.joda.time.DateTime
 
 import scala.collection.SortedMap
@@ -99,7 +100,6 @@ import com.normation.cfclerk.services.impl.GitTechniqueReader
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.utils.StringUuidGeneratorImpl
-import com.normation.cfclerk.services.impl.SimpleGitRevisionProvider
 import com.normation.cfclerk.services.impl.TechniqueRepositoryImpl
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
@@ -107,13 +107,14 @@ import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import java.io.File
 import java.nio.file.{Files, Paths}
 import com.normation.cfclerk.domain.TechniqueVersionHelper
-import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
+
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.FullOtherTarget
 import com.normation.rudder.domain.policies.PolicyServerTarget
 import com.normation.rudder.domain.policies.AllTargetExceptPolicyServers
 import com.normation.rudder.domain.policies.AllTarget
 import com.normation.eventlog.EventActor
+
 import net.liftweb.common.Full
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.MachineInventory
@@ -121,14 +122,18 @@ import com.normation.inventory.domain.PendingInventory
 import com.normation.inventory.domain.VMWare
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.git.GitRepositoryProviderImpl
+import com.normation.rudder.git.SimpleGitRevisionProvider
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.PolicyServer
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
+
 import org.apache.commons.io.FileUtils
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
+
 import com.normation.zio._
 import zio.syntax._
 

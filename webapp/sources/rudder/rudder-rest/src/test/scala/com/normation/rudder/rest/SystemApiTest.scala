@@ -510,7 +510,7 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
   }
 
   private[this] def contentArchiveDiff(req: Req, matcher: List[File], action: String) = {
-    import com.normation.rudder.repository.xml.ZipUtils
+    import com.normation.rudder.git.ZipUtils
 
     restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() match {
 

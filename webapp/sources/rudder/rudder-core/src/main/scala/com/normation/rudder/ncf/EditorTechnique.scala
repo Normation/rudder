@@ -39,19 +39,22 @@ package com.normation.rudder.ncf
 
 import java.util.regex.Pattern
 import better.files.File
+
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.ReportingLogic
-import com.normation.cfclerk.services.GitRepositoryProvider
+
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.git.GitFindUtils
+import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.Constraint.Constraint
 import com.normation.rudder.ncf.Constraint.CheckResult
-import com.normation.rudder.repository.xml.GitFindUtils
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
+
 import net.liftweb.json.JField
 import net.liftweb.json.JObject
 import net.liftweb.json.JString

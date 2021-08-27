@@ -46,6 +46,7 @@ import com.normation.cfclerk.services.impl._
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
+
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -60,6 +61,7 @@ import com.normation.rudder.services.policies.SystemVariableServiceImpl
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.utils.StringUuidGeneratorImpl
+
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
@@ -70,6 +72,7 @@ import zio.{Tag => _, _}
 import zio.syntax._
 import com.normation.errors._
 import com.normation.inventory.domain.AgentType.CfeCommunity
+
 import com.normation.zio._
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.queries.CriterionComposition
@@ -81,12 +84,12 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
+
 import org.joda.time.format.ISODateTimeFormat
 
 import scala.annotation.tailrec
 import scala.collection.SortedMap
 import com.normation.box._
-import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
@@ -105,7 +108,10 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries._
-import com.normation.rudder.repository.xml.GitFindUtils
+import com.normation.rudder.git.GitFindUtils
+import com.normation.rudder.git.GitRepositoryProviderImpl
+import com.normation.rudder.git.GitRevisionProvider
+import com.normation.rudder.git.SimpleGitRevisionProvider
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.services.queries._
@@ -114,6 +120,7 @@ import com.normation.rudder.services.servers.PolicyServer
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.workflows.WorkflowLevelService
+
 import com.typesafe.config.ConfigFactory
 import com.unboundid.ldif.LDIFChangeRecord
 import org.eclipse.jgit.lib.ObjectId

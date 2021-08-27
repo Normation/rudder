@@ -36,31 +36,40 @@
 */
 package com.normation.rudder.web.services
 
-import com.normation.box._
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventLog
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api._
-import com.normation.rudder.batch.{ErrorStatus, SuccessStatus}
-import com.normation.rudder.domain.eventlog.{WorkflowStepChanged, _}
+import com.normation.rudder.batch.ErrorStatus
+import com.normation.rudder.batch.SuccessStatus
+import com.normation.rudder.domain.eventlog.WorkflowStepChanged
+import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.secret.Secret
-import com.normation.rudder.domain.workflows.{ChangeRequestId, WorkflowStepChange}
-import com.normation.rudder.reports.{AgentRunInterval, HeartbeatConfiguration}
+import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.domain.workflows.WorkflowStepChange
+import com.normation.rudder.git.GitArchiveId
+import com.normation.rudder.git.GitCommitId
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.repository._
-import com.normation.rudder.rule.category.{RoRuleCategoryRepository, RuleCategory}
-import com.normation.rudder.services.eventlog.{EventLogDetailsService, RollbackInfo}
+import com.normation.rudder.rule.category.RoRuleCategoryRepository
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.services.eventlog.EventLogDetailsService
+import com.normation.rudder.services.eventlog.RollbackInfo
 import com.normation.rudder.services.modification.ModificationService
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.web.model.LinkUtil
 import com.normation.utils.DateFormaterService
+
 import net.liftweb.common._
-import net.liftweb.http.{S, SHtml}
+import net.liftweb.http.S
+import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers._
@@ -68,12 +77,13 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 
-import scala.util.{Success, Try, Failure => Catch}
+import scala.util.Success
+import scala.util.Try
+import scala.util.{Failure => Catch}
 import scala.xml._
 
-/**
-  *
- */
+import com.normation.box._
+
 class EventLogDetailsGenerator(
     logDetailsService   : EventLogDetailsService
   , repos               : EventLogRepository

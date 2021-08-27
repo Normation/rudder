@@ -40,8 +40,8 @@ package com.normation.rudder.domain.eventlog
 import scala.xml._
 import com.normation.eventlog._
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.repository.GitArchiveId
-import com.normation.rudder.repository.GitCommitId
+import com.normation.rudder.git.GitArchiveId
+import com.normation.rudder.git.GitCommitId
 sealed trait ImportExportEventLog  extends EventLog { override final val eventLogCategory = ImportExportItemsLogCategory }
 
 sealed trait ImportEventLog  extends ImportExportEventLog

@@ -39,8 +39,8 @@ package com.normation.rudder.rest.lift
 
 import com.normation.plugins.PluginSettings
 import com.normation.plugins.PluginSettingsService
+import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils

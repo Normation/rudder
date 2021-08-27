@@ -38,8 +38,7 @@
 package com.normation.rudder.repository.ldap
 
 import com.normation.NamedZioLogger
-import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.cfclerk.services.GitRevisionProvider
+
 import com.normation.errors._
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
 import com.normation.ldap.sdk.LDAPConnectionProvider
@@ -47,8 +46,12 @@ import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.A_TECHNIQUE_LIB_VERSION
 import com.normation.rudder.domain.RudderLDAPConstants.OC_ACTIVE_TECHNIQUE_LIB_VERSION
-import com.normation.rudder.repository.xml.GitFindUtils
+import com.normation.rudder.git.GitFindUtils
+import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.git.GitRevisionProvider
+
 import org.eclipse.jgit.lib.ObjectId
+
 import zio._
 import zio.syntax._
 

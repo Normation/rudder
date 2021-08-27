@@ -38,6 +38,11 @@
 package com.normation.rudder.rest
 
 import com.normation.GitVersion
+import com.normation.rudder.apidata.CustomDetailLevel
+import com.normation.rudder.apidata.DefaultDetailLevel
+import com.normation.rudder.apidata.FullDetailLevel
+import com.normation.rudder.apidata.MinimalDetailLevel
+import com.normation.rudder.apidata.NodeDetailLevel
 
 import java.io.StringReader
 import com.normation.cfclerk.services.TechniqueRepository

@@ -46,6 +46,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.errors._
 import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.git.GitCommitId
 
 /**
  * A category of the technique library.
@@ -79,7 +80,7 @@ trait ParseActiveTechniqueLibrary {
    * That method parse rules from the
    * file system for an archive with the given ID.
    */
-  def getArchive(archiveId:GitCommitId) : IOResult[ActiveTechniqueCategoryContent]
+  def getArchive(archiveId: GitCommitId) : IOResult[ActiveTechniqueCategoryContent]
 }
 
 /**
@@ -93,7 +94,7 @@ trait ParseRules {
    * That method parse rules from the
    * file system for an archive with the given ID.
    */
-  def getArchive(archiveId:GitCommitId) : IOResult[Seq[Rule]]
+  def getArchive(archiveId: GitCommitId) : IOResult[Seq[Rule]]
 }
 
 
@@ -108,7 +109,7 @@ trait ParseRuleCategories {
    * That method parse Rule category from the
    * file system for an archive with the given ID.
    */
-  def getArchive(archiveId:GitCommitId) : IOResult[RuleCategory]
+  def getArchive(archiveId: GitCommitId) : IOResult[RuleCategory]
 }
 
 
@@ -123,7 +124,7 @@ trait ParseGlobalParameters {
    * That method parse global parameters from the
    * file system for an archive with the given ID.
    */
-  def getArchive(archiveId:GitCommitId) : IOResult[Seq[GlobalParameter]]
+  def getArchive(archiveId: GitCommitId) : IOResult[Seq[GlobalParameter]]
 }
 
 /**
@@ -146,7 +147,7 @@ trait ParseGroupLibrary {
    * That method parse a group library from the
    * file system for an archive with the given ID.
    */
-  def getArchive(archiveId:GitCommitId) : IOResult[NodeGroupCategoryContent]
+  def getArchive(archiveId: GitCommitId) : IOResult[NodeGroupCategoryContent]
 }
 
 

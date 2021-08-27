@@ -1,0 +1,22 @@
+This file contains data structure that are used in API, either REST data exchange format, or configuration & fact repositories.
+
+Be careful, any change here will likely have an impact in third party code, and so should be carefuly versioned.
+
+
+
+Each object is formated with a file format.
+Old file format must be readable so that old versionned information can be
+unserialized to current domain objects.
+
+File format must be incremented in case of breaking changes, which are:
+- adding a mandatory field or transforming an optional one to mandatory. Old serialized objects may not have it.
+- renaming a field (even optionnal): the new name would be looked up in old files, leading to incorrect data if it was present and non empty under the old name.
+- changing the type or the multiplicity of a field
+
+All these changes can be workarouned with adaptators (ex: default value for the new mandatory field, looking-up the old name, etc) and that's why we need a fileformat.
+
+These changes don't need a file format increment:
+- removing a mandatory field or transforming one to optionnal.
+  This is ok since it means that old serialized objects will have it, just that
+  now it is not required anymore.
+- removing or adding optionnal fields

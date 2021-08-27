@@ -38,16 +38,19 @@
 package com.normation.cfclerk.services
 
 import better.files.File
-import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
+
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.errors.effectUioUnit
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
-import com.normation.rudder.repository.GitCommitId
+import com.normation.rudder.git.GitConfigItemRepository
+import com.normation.rudder.git.GitCommitId
+import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.repository.GitModificationRepository
-import com.normation.rudder.repository.xml.GitArchiverUtils
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.repository.xml.XmlArchiverUtils
+
 import org.apache.commons.io.FileUtils
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -55,13 +58,14 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
+
 import com.normation.zio._
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevWalk
+
 import zio.syntax._
 import zio._
-
 import scala.util.Random
 
 /**
@@ -92,9 +96,8 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
   gitRoot.createDirectories()
 
   val repo = GitRepositoryProviderImpl.make(gitRoot.pathAsString).runNow
-  val archive = new GitArchiverUtils {
+  val archive = new GitConfigItemRepository with XmlArchiverUtils {
     override val gitRepo = repo
-    override val gitRootDirectory = gitRoot.toJava
     override def relativePath: String = ""
     override def xmlPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
     override def encoding: String = "UTF-8"
@@ -134,8 +137,10 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
   "The test lib" should {
     "not throw JGitInternalError on concurrent write" in {
 
-      // you can remove `gitRepo.semaphore.withPermit` in `commitAddFile`
-      // to check that you get the JGitInternalException
+      // to assess the usefulness of semaphor, you can remove `gitRepo.semaphore.withPermit`
+      // in `commitAddFile` to check that you get the JGitInternalException.
+      // More advanced tests may be needed to handle more complex cases of concurent access,
+      // see: https://issues.rudder.io/issues/19910
 
       val actor = new PersonIdent("test", "test@test.com")
 
@@ -149,7 +154,7 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
         name <- getName(8).map(s => i.toString + "_" + s)
         file =  gitRoot / name
         f    <- IOResult.effect(file.write("something in " + name))
-        _    <- archive.commitAddFile(ModificationId(name), actor, name, "add " + name)
+        _    <- archive.commitAddFileWithModId(ModificationId(name), actor, name, "add " + name)
       } yield (name))
 
       logger.debug(s"Commiting files in: " + gitRoot.pathAsString)

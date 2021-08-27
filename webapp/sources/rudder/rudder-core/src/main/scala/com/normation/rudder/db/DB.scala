@@ -50,13 +50,13 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.reports.execution.{AgentRunId, AgentRunWithoutCompliance, AgentRun => RudderAgentRun}
-import com.normation.rudder.repository.GitCommitId
 import com.normation.rudder.rule.category.RuleCategoryId
 import org.joda.time.DateTime
 import doobie._
 import com.normation.rudder.db.Doobie._
 import cats.implicits._
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.git.GitCommitId
 
 
 

@@ -35,14 +35,13 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.rest.data
+package com.normation.rudder.apidata
 
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.rest.ApiVersion
 import com.normation.utils.DateFormaterService
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json._
 import org.joda.time.DateTime
 
 sealed trait NodeDetailLevel {
@@ -52,12 +51,12 @@ sealed trait NodeDetailLevel {
    * Build the JSON object, for the given list of fields.
    * The object is always built with the fields on the same order.
    */
-  final def toJson(apiVersion: ApiVersion, nodeInfo: NodeInfo, status: InventoryStatus, optRunDate: Option[DateTime], inventory: Option[FullInventory], software: Seq[Software]): JObject = {
+  final def toJson(nodeInfo: NodeInfo, status: InventoryStatus, optRunDate: Option[DateTime], inventory: Option[FullInventory], software: Seq[Software]): JObject = {
 
     val jsonFields: List[JField] = NodeDetailLevel.allFields.filter(fields.contains).map { field =>
       //map the field to its value with the correct context
       val json =                      NodeDetailLevel.statusInfoFields.   get(field).map( _(status)).
-        orElse(                       NodeDetailLevel.nodeInfoFields.     get(field).map( _((nodeInfo, optRunDate, apiVersion)))).
+        orElse(                       NodeDetailLevel.nodeInfoFields.     get(field).map( _((nodeInfo, optRunDate)))).
         orElse(inventory.flatMap(i => NodeDetailLevel.fullInventoryFields.get(field).map( _(i)))).
         orElse(NodeDetailLevel.softwareFields.get(field).map( _(software))).
         getOrElse(JNothing)
@@ -105,15 +104,17 @@ final case class CustomDetailLevel (
   val fields = base.fields ++ customFields
 }
 
+
+/*
+ *
+ */
+sealed trait NodeFileFormat
+object NodeFileFormat {
+  final case object V1 extends NodeFileFormat
+}
+
+// this is for NodeFileFormat.V1
 object NodeDetailLevel {
-  // prior to rudder v6.0, date were formatted on something strange
-  private[this] def serializeDate(apiVersion: ApiVersion, date: DateTime): String = {
-    if(apiVersion.value < 12) { // v12 == 6.0
-      date.toString("yyyy-MM-dd HH:mm")
-    } else {
-      DateFormaterService.serialize(date)
-    }
-  }
 
   val otherDefaultFields = List(
         "state"
@@ -169,7 +170,7 @@ object NodeDetailLevel {
     )
   }
 
-  type INFO = (NodeInfo, Option[DateTime], ApiVersion)
+  type INFO = (NodeInfo, Option[DateTime])
   private val nodeInfoFields: Map[String, INFO => JValue] = {
 
     val id           : INFO => JValue = (info:INFO) => info._1.id.value
@@ -180,9 +181,9 @@ object NodeDetailLevel {
     val ram          : INFO => JValue = (info:INFO) => info._1.ram.map(MemorySize.sizeMb)
     val arch         : INFO => JValue = (info:INFO) => info._1.archDescription
     // the date is in RFC 3339. Not having timezone for nodes can be very frustrating
-    val runDate      : INFO => JValue = (info:INFO) => info._2.map(d => JString(serializeDate(info._3, d))).getOrElse(JNothing)
+    val runDate      : INFO => JValue = (info:INFO) => info._2.map(d => JString(DateFormaterService.serialize(d))).getOrElse(JNothing)
     // this date should have had a timezone in it
-    val inventoryDate: INFO => JValue = (info:INFO) => serializeDate(info._3, info._1.inventoryDate)
+    val inventoryDate: INFO => JValue = (info:INFO) => DateFormaterService.serialize(info._1.inventoryDate)
     val properties   : INFO => JValue = (info:INFO) => info._1.properties.toApiJson
     val policyMode   : INFO => JValue = (info:INFO) => info._1.policyMode.map(_.name).getOrElse[String]("default")
     val timezone     : INFO => JValue = (info:INFO) => info._1.timezone.map( t => ("name" -> t.name) ~ ("offset" -> t.offset) )

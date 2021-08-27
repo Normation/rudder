@@ -37,10 +37,10 @@
 
 package com.normation.rudder.rest
 
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogFilter
@@ -51,14 +51,19 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.inventory.ldap.core.InventoryDitServiceImpl
 import com.normation.rudder._
+import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
+import com.normation.rudder.apidata.RestDataSerializerImpl
+import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
 import com.normation.rudder.batch._
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.Audit
 import com.normation.rudder.domain.policies.PolicyModeOverrides
@@ -72,6 +77,9 @@ import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.git.GitArchiveId
+import com.normation.rudder.git.GitCommitId
+import com.normation.rudder.git.GitPath
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
@@ -102,11 +110,12 @@ import com.normation.rudder.services.policies.NodesContextResult
 import com.normation.rudder.services.policies.PromiseGenerationService
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
-import com.normation.rudder.services.queries.DynGroupService
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.DefaultStringQueryParser
+import com.normation.rudder.services.queries.DynGroupService
 import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
 import com.normation.rudder.services.queries.JsonQueryLexer
+import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
@@ -122,6 +131,7 @@ import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.StatelessUserPropertyService
 import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
+
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import net.liftweb.common.Box
@@ -137,26 +147,21 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.mockweb.MockWeb
 import net.liftweb.util.NamedPF
+import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
-import zio._
-import zio.syntax._
-import zio.duration._
 
+import java.nio.charset.StandardCharsets
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
+
+import zio._
+import zio.duration._
+import zio.syntax._
 import com.normation.box._
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.policies.DirectiveUid
-import org.apache.commons.io.FileUtils
-
-import java.nio.charset.StandardCharsets
-import com.normation.rudder.services.reports.CacheExpectedReportAction
-
-
+import com.normation.errors.IOResult
 /*
  * This file provides all the necessary plumbing to allow test REST API.
  *

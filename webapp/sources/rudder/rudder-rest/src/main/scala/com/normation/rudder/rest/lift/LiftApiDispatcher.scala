@@ -38,6 +38,7 @@
 package com.normation.rudder.rest.lift
 
 import cats.data._
+import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.rest._
 import net.liftweb.common.EmptyBox
@@ -189,7 +190,7 @@ class LiftHandler(
      * This should not provided on all url. It seems very strange to
      */
     def getVersionFromHeader() = {
-      forceVersion orElse ApiVersion.fromRequest(req)(supportedVersions).toOption
+      forceVersion orElse RestUtils.apiVersionFromRequest(req)(supportedVersions).toOption
     }
 
     for {

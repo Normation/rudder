@@ -37,12 +37,14 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.box._
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors._
+import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
@@ -57,7 +59,8 @@ import zio._
 import zio.syntax._
 import com.normation.rudder.rest.{TechniqueApi => API, _}
 import com.normation.rudder.rest.RestUtils.response
-import com.normation.rudder.rest.JsonResponseObjects._
+import com.normation.rudder.apidata.JsonResponseObjects._
+import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.rest.implicits._
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version

@@ -37,6 +37,9 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.rudder.apidata.NodeDetailLevel
+import com.normation.rudder.apidata.RestDataSerializer
+
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStream
@@ -59,9 +62,7 @@ import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.WoNodeRepository
 import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RestDataSerializer
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
@@ -91,6 +92,8 @@ import scalaj.http.HttpOptions
 import com.normation.box._
 import com.normation.zio._
 import com.normation.errors._
+import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
@@ -125,13 +128,6 @@ import net.liftweb.json.JsonAST.JString
 import zio.duration._
 import zio._
 import zio.syntax._
-
-// how to render parent properties in the returned json
-sealed trait RenderInheritedProperties
-final object RenderInheritedProperties {
-  case object HTML extends RenderInheritedProperties
-  case object JSON extends RenderInheritedProperties
-}
 
 
 /*
@@ -939,7 +935,7 @@ class NodeApiService4 (
      } yield {
       nodeInfo.map { case (node, runs, inventory, software) =>
         val runDate = runs.get(nodeId).flatMap( _.map(_.agentRunId.date))
-        serializeInventory(node, state, runDate, inventory, software, detailLevel, version) }
+        serializeInventory(node, state, runDate, inventory, software, detailLevel) }
     }
   }
 
@@ -1024,7 +1020,7 @@ class NodeApiService6 (
         nodeInfo  <- nodeInfos.get(nodeId)
       } yield {
         val runDate = runs.get(nodeId).flatMap( _.map(_.agentRunId.date))
-        serializeInventory(nodeInfo, state, runDate, inventories.get(nodeId), software.getOrElse(nodeId, Seq()), detailLevel, version)
+        serializeInventory(nodeInfo, state, runDate, inventories.get(nodeId), software.getOrElse(nodeId, Seq()), detailLevel)
       }
     }
     ).either.runNow match {

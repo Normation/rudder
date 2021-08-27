@@ -35,30 +35,30 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository.xml
+package com.normation.rudder.git
 
 import com.normation.GitVersion.Revision
 import com.normation.GitVersion.RevisionInfo
-
-import java.io.InputStream
-import org.eclipse.jgit.lib.{Constants => JConstants}
-import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.revwalk.RevWalk
-import org.eclipse.jgit.treewalk.filter.PathFilter
-import org.eclipse.jgit.treewalk.filter.TreeFilter
-import org.eclipse.jgit.treewalk.TreeWalk
-
-import java.io.File
-import java.io.ByteArrayOutputStream
 import com.normation.NamedZioLogger
-import com.normation.rudder.repository.xml.ZipUtils.Zippable
-import zio._
-import zio.syntax._
 import com.normation.errors._
+import com.normation.rudder.git.ZipUtils.Zippable
+
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.Status
+import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.lib.{Constants => JConstants}
+import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.treewalk.TreeWalk
+import org.eclipse.jgit.treewalk.filter.PathFilter
+import org.eclipse.jgit.treewalk.filter.TreeFilter
 import org.joda.time.DateTime
+
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.InputStream
+import zio._
+import zio.syntax._
 
 /**
  * Utility trait to find/list/get content
@@ -144,7 +144,7 @@ object GitFindUtils extends NamedZioLogger {
 
   /**
    * Retrieve the commit tree from a path name.
-   * The path may be any one of {@code org.eclipse.jgit.lib.Repository#resolve}
+   * The path may be any one of `org.eclipse.jgit.lib.Repository#resolve`
    */
   def findRevTreeFromRevString(db:Repository, revString:String) : IOResult[ObjectId] = {
     IOResult.effectM {
@@ -255,3 +255,36 @@ class FileTreeFilter(rootDirectories:List[String], endPaths: List[String]) exten
     start + ".*/" + end
   }
 }
+
+
+/**
+ * A git filter that choose only file with the exact given name,
+ * even if the file is in a sub-directory (the filter is
+ * recursive).
+ *
+ * If given, the rootDirectory value must NOT start nor end with a
+ * slash ("/").
+ */
+class ExactFileTreeFilter(rootDirectory:Option[String], fileName: String) extends TreeFilter {
+  private[this] val fileRawPath = JConstants.encode("/" + fileName)
+  private[this] val rootFileRawPath = JConstants.encode(fileName)
+
+  private[this] val rawRootPath = {
+    rootDirectory match {
+      case None => JConstants.encode("")
+      case Some(path) => JConstants.encode(path)
+    }
+  }
+
+  override def include(walker:TreeWalk) : Boolean = {
+    //root files does not start with "/"
+    (walker.getPathLength == rootFileRawPath.size && walker.isPathSuffix(rootFileRawPath, rootFileRawPath.size)) ||
+    (rawRootPath.size == 0 || (walker.isPathPrefix(rawRootPath,rawRootPath.size) == 0)) && //same root
+    ( walker.isSubtree || walker.isPathSuffix(fileRawPath, fileRawPath.size) )
+  }
+
+  override val shouldBeRecursive = true
+  override def clone = this
+  override lazy val toString = "[.*/%s]".format(fileName)
+}
+

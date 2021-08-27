@@ -41,11 +41,16 @@ import com.normation.errors._
 import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain._
 import com.normation.inventory.services.provisioning._
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.services.nodes.NodeInfoService
+
 import com.normation.zio.currentTimeMillis
 import com.unboundid.ldif.LDIFChangeRecord
+
+import zio.UIO
 import zio.syntax._
 
 /*
@@ -103,5 +108,38 @@ class PostCommitInventoryHooks(
 
     // hooks are executed in async and don't block the following parts of node acceptation
     hooks.forkDaemon *> records.succeed
+  }
+}
+
+
+class FactRepositoryPostCommit(
+    nodeFactsRepository: NodeFactRepository
+  , nodeInfoService    : NodeInfoService
+) extends PostCommit[Seq[LDIFChangeRecord]] {
+  override def name: String = "commit node in fact-repository"
+  /*
+   * This part is responsible of saving the inventory in the fact repository.
+   * For now, it can't fail: errors are logged but don't stop inventory processing.
+   */
+  override def apply(inventory: Inventory, records: Seq[LDIFChangeRecord]): IOResult[Seq[LDIFChangeRecord]] = {
+    (for {
+      optInfo <- inventory.node.main.status match {
+                    case AcceptedInventory => nodeInfoService.getNodeInfo(inventory.node.main.id)
+                    case PendingInventory  => nodeInfoService.getPendingNodeInfo(inventory.node.main.id)
+                    case RemovedInventory  => None.succeed
+                  }
+      _       <- optInfo match {
+                  case None =>
+                    InventoryProcessingLogger.info(s"Node information relative to new node '${inventory.node.main.id.value}' " +
+                                                   s"are missing, it will not be persisted in fact-repository") *>
+                    UIO.unit // does nothing
+
+                  case Some(nodeInfo) =>
+                    nodeFactsRepository.persist(nodeInfo, FullInventory(inventory.node, Some(inventory.machine)), inventory.applications)
+                }
+    } yield ()).catchAll(err => InventoryProcessingLogger.info(s"Error when trying to persist node '${inventory.node.main.id.value}' " +
+                                                               s"into fact repository, it will be missing in it. Error: ${err.fullMsg}")
+    ).map(_ => records)
+
   }
 }

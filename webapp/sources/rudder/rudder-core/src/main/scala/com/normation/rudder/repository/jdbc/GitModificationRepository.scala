@@ -5,7 +5,7 @@ import com.normation.errors._
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.repository.GitCommitId
+import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository.GitModificationRepository
 import doobie.implicits._
 import zio.interop.catz._

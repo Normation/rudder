@@ -38,25 +38,27 @@
 package com.normation.rudder.repository.xml
 
 import com.normation.GitVersion
-
-import java.nio.file.Paths
 import com.normation.GitVersion.Revision
 import com.normation.GitVersion.RevisionInfo
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.cfclerk.xmlparsers.TechniqueParser
-import com.normation.errors.IOResult
-import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.configuration.DirectiveRevisionRepository
+import com.normation.rudder.domain.logger.ConfigurationLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTargetInfo
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.git.GitCommitId
+import com.normation.rudder.git.GitFindUtils
+import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.migration.XmlEntityMigration
 import com.normation.rudder.repository._
 import com.normation.rudder.rule.category.RuleCategory
@@ -69,16 +71,17 @@ import com.normation.rudder.services.marshalling.NodeGroupUnserialisation
 import com.normation.rudder.services.marshalling.RuleCategoryUnserialisation
 import com.normation.rudder.services.marshalling.RuleUnserialisation
 import com.normation.utils.UuidRegex
+import com.normation.utils.Version
+
+import com.softwaremill.quicklens._
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
+
+import java.nio.file.Paths
+
 import zio._
 import zio.syntax._
-import com.normation.rudder.domain.logger.ConfigurationLoggerPure
-import com.normation.rudder.domain.policies.DirectiveUid
-import com.normation.utils.Version
-import com.softwaremill.quicklens._
 import com.normation.errors._
-import com.normation.rudder.configuration.DirectiveRevisionRepository
 
 final case class GitRootCategory(
     root: String

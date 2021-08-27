@@ -39,6 +39,8 @@ package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
+import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
+import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.TechniqueRepository
@@ -56,9 +58,7 @@ import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RestDataSerializer
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.data._
@@ -80,14 +80,17 @@ import com.normation.box._
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors._
+import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import zio._
 import zio.syntax._
 import com.normation.rudder.rest._
-import com.normation.rudder.rest.JsonQueryObjects._
-import com.normation.rudder.rest.JsonResponseObjects._
+import com.normation.rudder.apidata.JsonQueryObjects._
+import com.normation.rudder.apidata.JsonResponseObjects._
+import com.normation.rudder.apidata.ZioJsonExtractor
+import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.rest.implicits._
 import com.softwaremill.quicklens._
 
@@ -221,7 +224,7 @@ class DirectiveApi (
 
   object ListDirectiveV14 extends LiftApiModule0 {
     val schema = API.ListDirectives
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken) = {
       serviceV14.listDirectives().toLiftResponseList(params, schema)
     }
   }

@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.UserService
@@ -45,7 +46,6 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
-import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.rest.data._
@@ -60,16 +60,22 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import com.normation.box._
 import com.normation.errors._
+import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.apidata.FullDetails
 import com.normation.rudder.repository.CategoryAndNodeGroup
-import com.normation.zio._
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.rest._
-import com.normation.rudder.rest.JsonQueryObjects._
-import com.normation.rudder.rest.JsonResponseObjects._
+import com.normation.rudder.apidata.JsonQueryObjects._
+import com.normation.rudder.apidata.JsonResponseObjects._
+import com.normation.rudder.apidata.MinimalDetails
+import com.normation.rudder.apidata.RenderInheritedProperties
+import com.normation.rudder.apidata.ZioJsonExtractor
+import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.rest.implicits._
 import com.normation.rudder.services.queries.CmdbQueryParser
 import zio.syntax._
+import com.normation.zio._
 
 class GroupsApi(
     readGroup           : RoNodeGroupRepository

@@ -59,31 +59,9 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import com.normation.errors._
 import com.normation.rudder.domain.properties.GlobalParameter
-
-
-/**
- * Container for a Git Path.
- * Notice: a GIT path should be well formed
- * (never starts with a "/", not heading nor trailing
- * empty characters), but this is not enforce by that class.
- */
-final case class GitPath(value: String) extends AnyVal
-
-/**
- * A git commit string character, the SHA-1 hash that can be
- * use in git command line with git checkout, git show, etc.
- */
-final case class GitCommitId(value: String) extends AnyVal
-
-
-/**
- * A Git archive ID is a couple of the path on witch the archive was made,
- * and the commit that reference the tag.
- * Note that the commit ID is stable in time, but the path is just an
- * indication, especially if its 'master' (a branch path is more likely to be
- * a little more stable).
- */
-final case class GitArchiveId(path: GitPath, commit: GitCommitId, commiter: PersonIdent)
+import com.normation.rudder.git.GitArchiveId
+import com.normation.rudder.git.GitCommitId
+import com.normation.rudder.git.GitPath
 
 final case class ActiveTechniqueNotArchived(
     activeTechniqueId: ActiveTechniqueId
@@ -238,7 +216,7 @@ trait GitRuleArchiver {
   /**
    * Get the root directory where rules are saved
    */
-  def getRootDirectory : File
+  def getItemDirectory : File
 }
 
 /**
@@ -280,7 +258,7 @@ trait GitActiveTechniqueCategoryArchiver {
   /**
    * Get the root directory where active technique categories are saved.
    */
-  def getRootDirectory : File
+  def getItemDirectory : File
 
   /**
    * Commit modification done in the Git repository for any
@@ -330,7 +308,7 @@ trait GitActiveTechniqueArchiver {
   /**
    * Get the root directory where active technique categories are saved.
    */
-  def getRootDirectory : File
+  def getItemDirectory : File
 }
 
 /**
@@ -368,7 +346,7 @@ trait GitDirectiveArchiver {
    * A directive won't be directly under that directory, but
    * will be on the sub-directories matching the category on which they are.
    */
-  def getRootDirectory : File
+  def getItemDirectory : File
 }
 
 
@@ -404,7 +382,7 @@ trait GitNodeGroupArchiver {
   /**
    * Get the root directory where node group categories are saved.
    */
-  def getRootDirectory : File
+  def getItemDirectory : File
 
   /**
    * Commit modification done in the Git repository for any
@@ -476,5 +454,5 @@ trait GitParameterArchiver {
   /**
    * Get the root directory where parameter are saved
    */
-  def getRootDirectory : File
+  def getItemDirectory : File
 }
