@@ -515,7 +515,14 @@ def extract_archive_from_rpkg(rpkgPath, dst, archive):
     tar = run(
         ['tar', 'xvJ', '--no-same-owner', '-C', dst], input=ar[1], check=True, capture_output=True
     )
-    return tar[1].decode('utf-8')
+    archive_content = tar[1].decode('utf-8')
+    files_trace = '\n  {dst}'.format(dst=dst).join(archive_content.splitlines())
+    logger.debug(
+        'Extracting {archive}:\n[\n  {dst}{files_trace}\n]'.format(
+            archive=archive, dst=dst, files_trace=files_trace
+        )
+    )
+    return archive_content
 
 
 def extract_scripts(metadata, package_file):
