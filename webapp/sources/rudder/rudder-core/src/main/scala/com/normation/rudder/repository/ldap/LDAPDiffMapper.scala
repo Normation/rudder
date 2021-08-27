@@ -140,7 +140,7 @@ class LDAPDiffMapper(
                               case x => Left(Err.UnexpectedObject(s"Bad change record type for requested action 'update rule': ${mod.toString}"))
                             }
                           case A_DIRECTIVE_UUID =>
-                            diff.map( _.copy(modDirectiveIds = Some(SimpleDiff(oldCr.directiveIds, mod.getValues.map(x => JsonDirectiveId.ruleParse(x).toDirectiveRId ).toSet))))
+                            diff.map( _.copy(modDirectiveIds = Some(SimpleDiff(oldCr.directiveIds, mod.getValues.map(x => DirectiveId.parse(x).getOrElse(DirectiveId(DirectiveUid(""))) ).toSet))))
                           case A_NAME =>
                             diff.map( _.copy(modName = Some(SimpleDiff(oldCr.name, mod.getOptValueDefault("")))))
                           case A_DESCRIPTION =>

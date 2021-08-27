@@ -57,7 +57,6 @@ import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.repository.ldap.JsonDirectiveId
 import com.normation.rudder.rest.data._
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
@@ -172,7 +171,7 @@ final case class RestDataSerializerImpl (
      ~ ( "categoryId"       -> rule.categoryId.value)
      ~ ( "shortDescription" -> rule.shortDescription )
      ~ ( "longDescription"  -> rule.longDescription )
-     ~ ( "directives"       -> rule.directiveIds.toList.sortBy(_.serialize).map(x => JsonDirectiveId.fromId(x).json))
+     ~ ( "directives"       -> rule.directiveIds.toList.map(_.serialize).sorted )
      ~ ( "targets"          -> rule.targets.map(_.toJson) )
      ~ ( "enabled"          -> rule.isEnabledStatus )
      ~ ( "system"           -> rule.isSystem )
@@ -307,14 +306,14 @@ final case class RestDataSerializerImpl (
   def serializeRuleChange(change : RuleChange): Box[JValue] = {
 
     def serializeRuleDiff(diff:ModifyRuleDiff,initialState:Rule) : JValue= {
-      def convertDirectives(dl : Set[DirectiveId]) : JValue = dl.map(x => JsonDirectiveId.fromId(x).json).toList
+      def convertDirectives(dl : Set[DirectiveId]) : JValue = dl.map(d => JString(d.serialize)).toList
       def convertTargets(t : Set[RuleTarget]) : JValue = t.map(_.target).toList
 
       val name :JValue             = diff.modName.map(displaySimpleDiff(_) ).getOrElse(initialState.name)
       val shortDescription :JValue = diff.modShortDescription.map(displaySimpleDiff(_)).getOrElse(initialState.shortDescription)
       val longDescription  :JValue = diff.modLongDescription.map(displaySimpleDiff(_)).getOrElse(initialState.longDescription)
       val targets :JValue          = diff.modTarget.map(displaySimpleDiff(_)(convertTargets)).getOrElse(initialState.targets.map(_.target).toList)
-      val directives :JValue       = diff.modDirectiveIds.map(displaySimpleDiff(_)(convertDirectives)).getOrElse(initialState.directiveIds.map(x => JsonDirectiveId.fromId(x).json).toList)
+      val directives :JValue       = diff.modDirectiveIds.map(displaySimpleDiff(_)(convertDirectives)).getOrElse(initialState.directiveIds.map(x => JString(x.serialize)).toList)
       val enabled :JValue          = diff.modIsActivatedStatus.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
 
       (   ( "id"               -> initialState.id.value)
