@@ -151,9 +151,22 @@ tabContent model details isNewRule=
           buildListRow ids =
             let
               --Get more information about directives, to correctly sort them by displayName
-              directives = model.directives
-                |> List.filter (\d -> List.member d.id ids)
-                |> List.sortWith (compareOn .displayName)
+              directives =
+                let
+                  knownDirectives = model.directives
+                    |> List.filter (\d -> List.member d.id ids)
+                    |> List.sortWith (compareOn .displayName)
+                  in
+                    -- add missing directives
+                    let
+                      knonwIds = List.map .id knownDirectives
+                    in
+                      List.append
+                        knownDirectives
+                        (ids
+                          |> List.filter (\id -> not (List.member id knonwIds) )
+                          |> List.map (\id -> (Directive id ("Missing directive with ID "++id.value) "" "" "" False False ""))
+                        )
 
               rowDirective  : Directive -> Html Msg
               rowDirective directive =
