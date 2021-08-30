@@ -22,24 +22,33 @@
 # @documentation Augeas is a tool that provides an abstraction layer for all the complexities that turn around editing files with regular expressions.
 # It's a tree based hierarchy tool, that handle system configuration files where you can securely modify your files. To do so you have to provide
 # the path to the node label's value.
-# Augeas uses lenses which are sort of modules that are in charge of identifying and converting files into tree and back.
-# This way, you can manipulate at first the tree and then save your changes into the configuration files on the actual system.
 #
-# In this method, we introduce using augtool commands and options in order to get the value of a given node's label in the parameters, this can be done
-# by specifying the path to it. The method has in total 5 parameters: variable prefix, variable name, path, lens and file.
+# This method aims to use `augtool` to extract a specific information from a configuration file into a rudder variable.
+# If Augeas is not installed on the agent, or if it fails to execute, it will produces an error.
 #
-# Actually there are two ways you can use this method, either you simply provide a path to the node's label as a parameter or you specify a file
-# associated with a lens, then you put the regular path. When you only specify the path to the node's label, your request will includes by default
-# Augeas charging all the lenses and files, on the other hand, if you have a specific file, for example, such as a Json file and you want to associate it
-# to the existing Json lens, then in that case, you need to fill in addition the file and the lens parameter, this way Augeas won't load all its files
-# and lenses except the ones you have specified.
-# The generic method will get a node label's value from the agent, otherwise, if Augeas isn't installed on the agent, it will produces an error.
+# * **variable prefix**: target variable prefix
+# * **variable name**: target variable name
+# * **path**: augeas node path, use to describe the location of the target information we want to extract
+# * **lens**: augeas lens to use, optional
+# * **file**: absolute file path to target, optional
+#
+# Actually there are two ways you can use this method:
+#
+# * Either by providing the augeas **path** to the node's label and let **lens** and **file** empty.
+# ** this way augeas will load the common files and lens automatically
+# * Or by using a given **file** path and a specific **lens**.
+# ** better performances since only one lens is loaded
+# ** support custom lens, support custom paths
+#
+# This mechanism is the same as in the `file_augeas_set` method.
 #
 # #### With autoload
 #
-# Let's consider that you want to obtain the value of the ip address of the first line in the `/etc/hosts` file by indicating the path to it.
-# (Note that the `label` and `value` parameters mentioned are naming examples of `variable prefix` and `variable name`, the path `/etc/hosts/1/ipaddr`
-# represents the `ipaddr` node label's value in the first line in the `/etc/hosts`).
+# Let's consider that you want to obtain the value of the ip address of the first line in the `/etc/hosts`:
+#
+# (Note that the `label` and `value` parameters mentioned are naming examples of **variable prefix** and **variable name**, the augeas
+# **path** `/etc/hosts/1/ipaddr`
+# represents the `ipaddr` node label's value (in the augeas mean) in the first line of the file `/etc/hosts`).
 #
 # ```
 # variable_string_from_augeas("label","value","/etc/hosts/1/ipaddr", "", "");
@@ -47,18 +56,26 @@
 #
 # #### Without autoload
 #
-# The second case includes two needs of using it, either you want to prevent Augeas from charging all lenses and files while executing your request or
-# you want to associate the `Hosts` lens with the `/etc/hosts` file then get for example the same node value of the first use case.
+# Here we want the same information as in the first example, but we will force the lens to avoid loading unnecessary files.
 #
 # ```
 # variable_string_from_augeas("label","value","/etc/hosts/1/ipaddr","Hosts","/etc/hosts");
 # ```
 #
+# #### Difference with `file augeas command`
+#
+# This method is very similar to the `file augeas command` one, both execute an `augtool` command an dump its output in a rudder variable.
+# But their goal is really different:
+#
+# * This one will parse the output of the augeas `print` that we want to make it directly usable, but will be less flexible in its input.
+# * The `file augeas command` offers much more possibilities to execute an augeas command to modify a file, but the output will be unparsed and most likely
+#   unusable as a rudder variable, expect to dump an error or configuration somewhere.
+#
 # @parameter variable_prefix The prefix of the variable name
 # @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
-# @parameter path            The path to the file and node label
+# @parameter path            The augeas path to the file and node label
 # @parameter lens            The lens specified by the user in case he wants to load a specified lens associated with its file
-# @parameter file            The file specified by the user in case he wants to load a specified file associated with its lens
+# @parameter file            The absolute path to the file specified by the user in case he wants to load a specified file associated with its lens
 # @parameter_constraint file "allow_empty_string" : true
 # @parameter_constraint lens "allow_empty_string" : true
 # @class_prefix variable_string_from_augeas
