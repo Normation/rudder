@@ -83,7 +83,7 @@ def run(
         fail("Could not execute command '%s',\nException details: %s" % (' '.join(cmd), e), 1)
 
 
-''' Get Terminal width '''
+""" Get Terminal width """
 
 
 def terminal_size():
@@ -113,7 +113,7 @@ def sha512(fname):
     return hash_sha512.hexdigest()
 
 
-'''
+"""
    Print dict list in a fancy manner
    Assume the list is following the format:
    [
@@ -121,7 +121,7 @@ def sha512(fname):
      { "tilte": "strkey2", "value" : [ "str", "str2", ... ] },
      ...
    ]
-'''
+"""
 
 
 def dictToAsciiTable(data):
@@ -215,13 +215,13 @@ def check_url():
         fail('An error occurred while checking access to %s:\n%s' % (URL, e))
 
 
-'''
+"""
    From a complete url, try to download a file. The destination path will be determined by the complete url
    after removing the prefix designing the repo url defined in the conf file.
    Ex: completeUrl = http://download.rudder.io/plugins/./5.0/windows/release/SHA512SUMS
            repoUrl = http://download.rudder.io/plugins
         => fileDst = /tmp/rpkg/./5.0/windows/release/SHA512SUMS
-'''
+"""
 
 
 def download(completeUrl, dst=''):
@@ -256,9 +256,9 @@ def download(completeUrl, dst=''):
         fail('An error happened while downloading from %s:\n%s' % (completeUrl, e))
 
 
-'''
+"""
     Make a HEAD request on the given url, return true if result is 200, false instead
-'''
+"""
 
 
 def check_download(completeUrl):
@@ -275,9 +275,9 @@ def check_download(completeUrl):
     return r.status_code <= 301
 
 
-'''
+"""
    Verify Hash
-'''
+"""
 
 
 def verifyHash(targetPath, shaSumPath):
@@ -298,7 +298,7 @@ def verifyHash(targetPath, shaSumPath):
     fail('hash could not be verified')
 
 
-'''
+"""
    From a complete url, try to download a file. The destination path will be determined by the complete url
    after removing the prefix designing the repo url defined in the conf file.
    Ex: completeUrl = http://download.rudder.io/plugins/./5.0/windows/release/SHA512SUMS
@@ -307,7 +307,7 @@ def verifyHash(targetPath, shaSumPath):
 
    If the verification or the download fails, it will exit with an error, otherwise, return the path
    of the local rpkg path verified and downloaded.
-'''
+"""
 
 
 def download_and_verify(completeUrl, dst=''):
@@ -333,7 +333,7 @@ def download_and_verify(completeUrl, dst=''):
     fail('Hash verification of %s failed' % (targetPath))
 
 
-'''Download the .rpkg file matching the given rpkg Object and verify its authenticity'''
+"""Download the .rpkg file matching the given rpkg Object and verify its authenticity"""
 
 
 def downloadByRpkg(rpkg):
@@ -378,7 +378,7 @@ def check_plugin_compatibility(metadata, version):
     return True
 
 
-'''Add the rudder key to a custom home for trusted gpg keys'''
+"""Add the rudder key to a custom home for trusted gpg keys"""
 
 
 def getRudderKey():
@@ -413,7 +413,7 @@ def getRudderKey():
 
 # Indexing methods
 def db_load():
-    """ Load the index file into a global variable """
+    """Load the index file into a global variable"""
     global DB, COMPATIBILITY_DB
     if os.path.isfile(DB_FILE):
         with open(DB_FILE) as fd:
@@ -424,7 +424,7 @@ def db_load():
 
 
 def db_save():
-    """ Save the index into a file """
+    """Save the index into a file"""
     with open(DB_FILE, 'w') as fd:
         json.dump(DB, fd)
 
@@ -634,7 +634,7 @@ def list_plugin_name():
 
 
 ############# Variables #############
-''' Defining global variables.'''
+""" Defining global variables."""
 
 CONFIG_PATH = '/opt/rudder/etc/rudder-pkg/rudder-pkg.conf'
 FOLDER_PATH = '/var/rudder/tmp/plugins'
