@@ -143,7 +143,7 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
       case Some(x) => ReportingLogic(x) match {
         case Right(x) => Some(x)
         case Left(error) =>
-          logger.error(s"There was an error when parsing reporting logic in technique ${id.name.value}/${id.version.toString}, error is : ${error.msg} for element ${root}")
+          logger.error(s"There was an error when parsing reporting logic in technique ${id.name.value}/${id.version.debugString}, error is : ${error.msg} for element ${root}")
           None
       }
     }

@@ -175,7 +175,7 @@ class ActiveTechniqueSerialisationImpl(xmlVersion:String) extends ActiveTechniqu
   def serialise(activeTechnique:ActiveTechnique):  Elem = {
     createTrimedElem(XML_TAG_ACTIVE_TECHNIQUE, xmlVersion) (
         <id>{activeTechnique.id.value}</id>
-        <techniqueName>{activeTechnique.techniqueName}</techniqueName>
+        <techniqueName>{activeTechnique.techniqueName.value}</techniqueName>
         <isEnabled>{activeTechnique.isEnabled}</isEnabled>
         <isSystem>{activeTechnique.isSystem}</isSystem>
         <versions>{ activeTechnique.acceptationDatetimes.map { case(version,date) =>
@@ -201,7 +201,7 @@ class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisati
           <id>{directive.id.uid.value}</id>
       ::  <displayName>{directive.name}</displayName>
       ::  <techniqueName>{ptName.value}</techniqueName>
-      ::  <techniqueVersion>{directive.techniqueVersion}</techniqueVersion>
+      ::  <techniqueVersion>{directive.techniqueVersion.serialize}</techniqueVersion>
       ::  {SectionVal.toXml(SectionVal.directiveValToSectionVal(variableRootSection, directive.parameters))}
       ::  <shortDescription>{directive.shortDescription}</shortDescription>
       ::  <longDescription>{directive.longDescription}</longDescription>

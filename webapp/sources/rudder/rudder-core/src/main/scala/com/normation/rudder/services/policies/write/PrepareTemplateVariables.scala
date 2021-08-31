@@ -289,7 +289,7 @@ class PrepareTemplateVariablesImpl(
     , techniqueId: TechniqueId
   ) : IOResult[STVariable] = {
     for {
-      values <- v.getValidatedValue(variableEscaping.escape).toIO.chainError(s"Error when preparing variable for node with ID '${nodeId.value}' on Technique '${techniqueId.toString()}: wrong value type for variable '${v.spec.name}'")
+      values <- v.getValidatedValue(variableEscaping.escape).toIO.chainError(s"Error when preparing variable for node with ID '${nodeId.value}' on Technique '${techniqueId.debugString}: wrong value type for variable '${v.spec.name}'")
     } yield {
       STVariable(
           name = v.spec.name

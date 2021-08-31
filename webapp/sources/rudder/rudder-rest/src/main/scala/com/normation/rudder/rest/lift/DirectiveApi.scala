@@ -589,7 +589,7 @@ class DirectiveApiService14 (
       fullLibrary <- readDirective.getFullDirectiveLibrary().chainError("Could not fetch Directives")
       directives  <- ZIO.foreach(fullLibrary.allDirectives.values.filter(!_._2.isSystem).toList.sortBy(_._2.id.debugString)) { case (activeTechnique, directive) =>
                        val activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
-                       techniqueRepository.get(activeTechniqueId).notOptional(s"No Technique with ID '${activeTechniqueId.toString()}' found in reference library.").map(t =>
+                       techniqueRepository.get(activeTechniqueId).notOptional(s"No Technique with ID '${activeTechniqueId.debugString}' found in reference library.").map(t =>
                          JRDirective.fromDirective(t, directive, None)
                        )
                      }
@@ -754,7 +754,7 @@ class DirectiveApiService14 (
       updatedTechnique   <- if (updatedTechniqueId.version == oldTechnique.id.version) {
                               oldTechnique.succeed
                             } else {
-                              techniqueRepository.get(updatedTechniqueId).notOptional(s"Could not find technique ${updatedTechniqueId.name} with version ${updatedTechniqueId.version.toString}.")
+                              techniqueRepository.get(updatedTechniqueId).notOptional(s"Could not find technique ${updatedTechniqueId.name.value} with version ${updatedTechniqueId.version.debugString}.")
                             }
        updatedDirective  = restDirective.updateDirective(oldDirective)
        // Check parameters of the new Directive with the current technique version, It will check that parameters are ok with the new technique

@@ -522,7 +522,7 @@ class EventLogFactoryImpl(
           <displayName>{modifyDiff.name}</displayName>{
             modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
             modifyDiff.modTechniqueVersion.map(x => SimpleDiff.toXml[TechniqueVersion](<techniqueVersion/>, x){ v =>
-              Text(v.toString)
+              Text(v.serialize)
             } ) ++
             modifyDiff.modParameters.map(x => SimpleDiff.toXml[SectionVal](<parameters/>, x){ sv =>
               SectionVal.toXml(sv)
@@ -646,7 +646,7 @@ class EventLogFactoryImpl(
     val details = EventLog.withContent{
       scala.xml.Utility.trim(<activeTechnique changeType="add" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{addDiff.technique.id.value}</id>
-        <techniqueName>{addDiff.technique.techniqueName.toString}</techniqueName>
+        <techniqueName>{addDiff.technique.techniqueName.value}</techniqueName>
       </activeTechnique>)
     }
     AddTechnique(EventLogDetails(
@@ -671,7 +671,7 @@ class EventLogFactoryImpl(
     val details = EventLog.withContent{
       scala.xml.Utility.trim(<activeTechnique changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{modifyDiff.id.value}</id>
-        <techniqueName>{modifyDiff.name}</techniqueName>{
+        <techniqueName>{modifyDiff.name.value}</techniqueName>{
           modifyDiff.modIsEnabled.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x )).toSeq
         }
       </activeTechnique>)
@@ -698,7 +698,7 @@ class EventLogFactoryImpl(
     val details = EventLog.withContent{
       scala.xml.Utility.trim(<activeTechnique changeType="delete" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{deleteDiff.technique.id.value}</id>
-        <techniqueName>{deleteDiff.technique.techniqueName}</techniqueName>
+        <techniqueName>{deleteDiff.technique.techniqueName.value}</techniqueName>
       </activeTechnique>)
     }
     DeleteTechnique(EventLogDetails(

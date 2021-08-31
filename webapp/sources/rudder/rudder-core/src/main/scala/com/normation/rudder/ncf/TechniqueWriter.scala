@@ -187,7 +187,7 @@ class TechniqueWriter (
       techniqueId = TechniqueId(TechniqueName(techniqueName), techVers)
       directives <- readDirectives.getFullDirectiveLibrary().map(_.allActiveTechniques.values.filter(_.techniqueName.value == techniqueId.name.value).flatMap(_.directives).filter(_.techniqueVersion == techniqueId.version))
 
-      technique  <- techniqueRepository.get(techniqueId).notOptional(s"No Technique with ID '${techniqueId.toString()}' found in reference library.")
+      technique  <- techniqueRepository.get(techniqueId).notOptional(s"No Technique with ID '${techniqueId.debugString}' found in reference library.")
       category   <- techniqueRepository.getParentTechniqueCategory_forTechnique(techniqueId)
 
       // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
