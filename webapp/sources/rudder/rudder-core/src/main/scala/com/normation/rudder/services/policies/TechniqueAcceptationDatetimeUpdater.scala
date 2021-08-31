@@ -241,7 +241,7 @@ class TechniqueAcceptationUpdater(
 
                               case (TechniqueDeleted(name, versions), Some(activeTechnique)) =>
                                 //if an active technique still exists for that technique, disable it
-                                ApplicationLoggerPure.warn(s"Technique '${name}' (${versions.map(_.toString).mkString(",")})' is deleted" +
+                                ApplicationLoggerPure.warn(s"Technique '${name}' (${versions.map(_.debugString).mkString(",")})' is deleted" +
                                                            s"but an active technique is still present in tree: disabling it.") *>
                                 rwActiveTechniqueRepo.changeStatus(activeTechnique.id, false, modId, actor, reason)
 
@@ -293,9 +293,9 @@ class TechniqueAcceptationUpdater(
                                             //tail of cats, because if root, we want an empty list to return immediatly in findCategory
                                             val parentCat = findCategory(referenceCats.tail.map(x => CategoryInfo(x.id.name.value, x.name, x.description)), techLib)
 
-                                          logPure.info(s"Automatically adding technique '${name}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library") *>
+                                          logPure.info(s"Automatically adding technique '${name.value}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library") *>
                                           rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, modId, actor, reason).chainError(
-                                              s"Error when automatically activating technique '${name}'"
+                                              s"Error when automatically activating technique '${name.value}'"
                                           ).unit
                                         }
                                     }

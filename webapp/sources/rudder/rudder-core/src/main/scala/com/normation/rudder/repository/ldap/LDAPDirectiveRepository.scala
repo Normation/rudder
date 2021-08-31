@@ -135,7 +135,7 @@ class RoLDAPDirectiveRepository(
       case Some((activeTechnique, directive)) =>
         val activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
         for {
-          technique <- techniqueRepository.get(activeTechniqueId).notOptional(s"No Technique with ID='${activeTechniqueId.toString()}' found in reference library.")
+          technique <- techniqueRepository.get(activeTechniqueId).notOptional(s"No Technique with ID='${activeTechniqueId.debugString}' found in reference library.")
         } yield {
           Some((technique, activeTechnique, directive))
         }
@@ -653,7 +653,7 @@ class WoLDAPDirectiveRepository(
       //for log event - perhaps put that elsewhere ?
       activeTechnique   <- getActiveTechniqueByActiveTechnique(inActiveTechniqueId).notOptional(s"Can not find the User Policy Entry with id '${inActiveTechniqueId.value}' to add directive '${directive.id.uid.value}'")
       activeTechniqueId =  TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)
-      technique         <- techniqueRepository.get(activeTechniqueId).notOptional(s"Can not find the technique with ID '${activeTechniqueId.toString}'")
+      technique         <- techniqueRepository.get(activeTechniqueId).notOptional(s"Can not find the technique with ID '${activeTechniqueId.debugString}'")
       optDiff           <- (diffMapper.modChangeRecords2DirectiveSaveDiff(
                                technique.id.name
                              , technique.rootSection
@@ -944,7 +944,7 @@ class WoLDAPDirectiveRepository(
                                 { name => EQ(A_TECHNIQUE_UUID, name.value) },
                                 "1.1") flatMap {
                                   case None => UIO.unit
-                                  case Some(uptEntry) => s"Can not add a technique with id '${techniqueName.toString}' in user library. active technique '${uptEntry.dn}}' is already defined with such a reference technique.".fail
+                                  case Some(uptEntry) => s"Can not add a technique with id '${techniqueName.value}' in user library. active technique '${uptEntry.dn}}' is already defined with such a reference technique.".fail
                               }
                             }
       categoryEntry      <- getCategoryEntry(con, categoryId, "1.1").notOptional(s"Category entry with ID '${categoryId.value}' was not found")

@@ -131,7 +131,7 @@ final object MergePolicyService {
                                    case name :: Nil => Full(name)
                                    case list        => Failure(s"Policy Generation is trying to merge several directives from different techniques for " +
                                                          s"node ${nodeInfo.hostname} '${nodeInfo.id.value}'. This i likely a bug, please report it. "+
-                                                         s"Techniques: ${drafts.map(_.technique.id.toString).mkString(", ")}"
+                                                         s"Techniques: ${drafts.map(_.technique.id.debugString).mkString(", ")}"
                                                        )
                                  }
             // check that all drafts are system or none are
@@ -140,7 +140,7 @@ final object MergePolicyService {
                                  } else {
                                    Failure(s"Policy Generation is trying to merge several directives with some being systems and other not for " +
                                      s"node ${nodeInfo.hostname} '${nodeInfo.id.value}'. This is likely a bug, please report it. "+
-                                     s"Techniques: ${drafts.map(_.technique.id.toString).mkString(", ")}" //not sure if we want techniques or directives or rules here.
+                                     s"Techniques: ${drafts.map(_.technique.id.debugString).mkString(", ")}" //not sure if we want techniques or directives or rules here.
                                    )
                                  }
             // check that all drafts are bound to

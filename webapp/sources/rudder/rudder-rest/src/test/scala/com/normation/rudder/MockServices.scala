@@ -533,7 +533,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
   val techniqueRepos = mockTechniques.techniqueRepo
   implicit class UnsafeGet(repo: TechniqueRepositoryImpl) {
-    def unsafeGet(id: TechniqueId) = repo.get(id).getOrElse(throw new RuntimeException(s"Bad init for test: technique '${id.toString()}' not found"))
+    def unsafeGet(id: TechniqueId) = repo.get(id).getOrElse(throw new RuntimeException(s"Bad init for test: technique '${id.debugString}' not found"))
   }
 
   val rootActiveTechniqueCategory = RefM.make(FullActiveTechniqueCategory(
@@ -2069,7 +2069,7 @@ class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) 
     override def getPolicyServers(): IOResult[PolicyServers] = repo.get
 
     override def savePolicyServers(policyServers: PolicyServers): IOResult[PolicyServers] = ???
-    
+
     override def updatePolicyServers(commands: List[PolicyServersUpdateCommand], modId: ModificationId, actor: EventActor): IOResult[PolicyServers] = {
       for {
         servers <- repo.get

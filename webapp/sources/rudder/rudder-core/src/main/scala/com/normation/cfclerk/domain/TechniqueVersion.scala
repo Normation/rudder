@@ -38,6 +38,7 @@
 package com.normation.cfclerk.domain
 
 
+import com.github.ghik.silencer.silent
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.utils._
@@ -66,6 +67,11 @@ final case class TechniqueVersion protected (version: Version, rev: Revision) ex
     case GitVersion.defaultRev => version.toVersionString
     case r                     => version.toVersionString + "+" + r.value
   }
+
+  // to avoid compat error
+  @silent("method toString overrides concrete, non-deprecated symbol")
+  @deprecated(s"Please use `debugString` or `serialize` in place of toString()", "7.0")
+  override def toString: String = serialize
 }
 
 object TechniqueVersion {

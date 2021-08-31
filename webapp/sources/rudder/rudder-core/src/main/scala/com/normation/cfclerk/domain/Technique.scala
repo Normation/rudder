@@ -37,6 +37,7 @@
 
 package com.normation.cfclerk.domain
 
+import com.github.ghik.silencer.silent
 import com.normation.utils.Utils._
 import com.normation.inventory.domain.AgentType
 
@@ -49,6 +50,11 @@ import com.normation.inventory.domain.AgentType
  */
 final case class TechniqueName(value: String) extends AnyVal with Ordered[TechniqueName] {
   override def compare(that: TechniqueName) = this.value.compare(that.value)
+
+  // to avoid compat error
+  @silent("method toString overrides concrete, non-deprecated symbol")
+  @deprecated(s"Please call `.value` in place of toString()", "7.0")
+  override def toString: String = value
 }
 
 /**
@@ -68,6 +74,11 @@ final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) ext
     if (c == 0) this.version.compare(that.version)
     else c
   }
+
+  // to avoid compat error
+  @silent("method toString overrides concrete, non-deprecated symbol")
+  @deprecated(s"Please use `debugString` or `serialize` in place of toString()", "7.0")
+  override def toString: String = serialize
 }
 
 object RunHook {
