@@ -1,5 +1,5 @@
 """
-    Contains functions called by the parser and nothing else.
+Contains functions called by the parser and nothing else.
 """
 import sys
 import os
@@ -15,10 +15,10 @@ import traceback
 
 logger = logging.getLogger('rudder-pkg')
 
-'''
+"""
     Expect a list of path as parameter.
     Try to install the given rpkgs.
-'''
+"""
 
 
 def install_file(package_files, version, exit_on_error=True):
@@ -51,9 +51,9 @@ def install_file(package_files, version, exit_on_error=True):
                 utils.jar_status(j, True)
 
 
-'''
+"""
     List installed plugins.
-'''
+"""
 
 
 def package_list_installed():
@@ -113,9 +113,9 @@ def package_list_installed():
     print(utils.dictToAsciiTable(table))
 
 
-'''
+"""
     List available plugin names.
-'''
+"""
 
 
 def package_list_name():
@@ -146,10 +146,10 @@ def package_list_name():
     print(utils.dictToAsciiTable(table))
 
 
-'''
+"""
     Given a name, a version, and a mode, print associated plugin metadata.
     If no version is given it will take the latest version in the given mode.
-'''
+"""
 
 
 def package_show(name, version, mode):
@@ -168,9 +168,9 @@ def package_show(name, version, mode):
         utils.fail('Could not find any package in %s for %s' % (mode, name))
 
 
-'''
+"""
     Given a name, lookf for a the given packages availables for this plugin.
-'''
+"""
 
 
 def package_search(name):
@@ -197,11 +197,11 @@ def package_search(name):
     print(utils.dictToAsciiTable(table))
 
 
-'''
+"""
     Install the package for a given plugin in a specific version.
     It will not check for compatibility and will let it to the installer since
     the user explicitly asked for this version.
-'''
+"""
 
 
 def package_install_specific_version(name, longVersion, mode='release'):
@@ -215,10 +215,10 @@ def package_install_specific_version(name, longVersion, mode='release'):
         utils.fail('Could not find any package for %s in version %s' % (name, longVersion))
 
 
-'''
+"""
     Install the latest available and compatible package for a given plugin.
     If no release mode is given, it will only look in the released rpkg.
-'''
+"""
 
 
 def package_install_latest(name, mode='release', version=None, exit_on_error=True):
@@ -237,7 +237,7 @@ def package_install_latest(name, mode='release', version=None, exit_on_error=Tru
         )
 
 
-'''Remove a given plugin. Expect a list of name as parameter.'''
+"""Remove a given plugin. Expect a list of name as parameter."""
 
 
 def remove(package_names):
@@ -329,11 +329,11 @@ def plugin_enable_all():
     plugin_status(utils.DB['plugins'].keys(), True)
 
 
-'''
+"""
 Update the licences from the Rudder repo
 It first check for the */licenses page and find the subfolders.
 Iterate through them to find all *.license files and *.key files.
-'''
+"""
 
 
 def update_licenses():
@@ -366,7 +366,7 @@ def update_licenses():
 
 
 # TODO validate index sign if any?
-''' Download the index file on the repos and update licenses'''
+""" Download the index file on the repos and update licenses"""
 
 
 def update():
@@ -387,9 +387,9 @@ def update():
     update_licenses()
 
 
-'''
+"""
     Upgrade all plugins install in their latest compatible version
-'''
+"""
 
 
 def upgrade_all(mode, version):
