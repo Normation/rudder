@@ -39,11 +39,10 @@ package com.normation.rudder.reports.execution
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.repository.CachedRepository
-import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.domain.logger.{ComplianceDebugLoggerPure, ReportLogger, TimingDebugLoggerPure}
 import zio._
 import com.normation.zio._
 import com.normation.errors._
-import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 
 
 /**
@@ -122,8 +121,8 @@ class CachedReportsExecutionRepository(
     semaphore.withPermit(
       for {
         n1   <- currentTimeMillis
-        _    <- TimingDebugLoggerPure.debug(s"cache last run ; ${cache}")
-        _    <- TimingDebugLoggerPure.debug(s"node id diff last run ; ${nodeIds.diff(cache.keySet)}")
+        _    <- ComplianceDebugLoggerPure.trace(s"cache last run ; ${cache}")
+        _    <- ComplianceDebugLoggerPure.trace(s"node id diff last run ; ${nodeIds.diff(cache.keySet)}")
         runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
         n2   <- currentTimeMillis
         _    <- TimingDebugLoggerPure.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")

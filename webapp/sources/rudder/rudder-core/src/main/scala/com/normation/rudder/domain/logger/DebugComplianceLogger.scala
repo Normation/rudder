@@ -44,12 +44,13 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ChangesOnly
-import java.util.concurrent.TimeUnit
 
+import java.util.concurrent.TimeUnit
 import com.normation.rudder.domain.reports.NodeConfigIdInfo
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.github.benmanes.caffeine.cache.CacheLoader
+import com.normation.NamedZioLogger
 import com.normation.utils.Utils.DateToIsoString
 
 /**
@@ -58,6 +59,10 @@ import com.normation.utils.Utils.DateToIsoString
  * It allows to get trace explaining why the compliance is what it
  * is.
  */
+object ComplianceDebugLoggerPure extends NamedZioLogger {
+  override def loggerName: String = "explain_compliance"
+}
+
 object ComplianceDebugLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("explain_compliance")
 
