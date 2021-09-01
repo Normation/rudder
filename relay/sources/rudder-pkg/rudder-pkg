@@ -5,9 +5,9 @@ Rudder package manager
 
 Usage:
     rudder package [--debug] install-file <package.rpkg>...
-    rudder package [--debug] install <package> [--version=<version>] [--nightly] [--quiet]
-    rudder package [--debug] upgrade-all [--nightly] [--quiet] [--version=<version>]
-    rudder package [--debug] show <package> [--version=<version>] [--nightly]
+    rudder package [--debug] install <package> [--exact_version][--nightly] [--quiet]
+    rudder package [--debug] upgrade-all [--nightly] [--quiet]
+    rudder package [--debug] show <package> [--exact_version] [--nightly]
     rudder package [--debug] remove <package>...
     rudder package [--debug] search <package>...
     rudder package [--debug] list [--all]
@@ -15,9 +15,9 @@ Usage:
     rudder package [--debug] licenses [--quiet]
     rudder package [--debug] check-connection
     rudder package [--debug] rudder-postupgrade
-    rudder package [--debug] check-compatibility [--version=<version>]
+    rudder package [--debug] check-compatibility [--exact_version]
     rudder package [--debug] plugin save-status
-    rudder package [--debug] plugin restore-status [--version=<version>]
+    rudder package [--debug] plugin restore-status
     rudder package [--debug] plugin enable <plugin>...
     rudder package [--debug] plugin enable-all
     rudder package [--debug] plugin disable <plugin>...
@@ -100,7 +100,10 @@ if __name__ == '__main__':
     utils.readConf()
 
     if args['install-file']:
-        rudderPkg.install_file(args['<package.rpkg>'], None)
+        exact_version = False
+        if args['--exact-version']:
+            exact_version = True
+        rudderPkg.install_file(args['<package.rpkg>'], exact_version)
     if args['show']:
         version = ''
         mode = 'release'
@@ -119,13 +122,10 @@ if __name__ == '__main__':
         rudderPkg.update()
     elif args['upgrade-all']:
         utils.check_url()
-        version = None
-        if args['--version']:
-            version = args['--version']
         if args['--nightly']:
-            rudderPkg.upgrade_all('nightly', version)
+            rudderPkg.upgrade_all('nightly', True)
         else:
-            rudderPkg.upgrade_all('release', version)
+            rudderPkg.upgrade_all('release', True)
 
     elif args['licenses']:
         utils.check_url()
@@ -137,37 +137,27 @@ if __name__ == '__main__':
         rudderPkg.package_search(args['<package>'])
     elif args['install']:
         utils.check_url()
-        if args['--version']:
-            if args['--nightly']:
-                rudderPkg.package_install_specific_version(
-                    args['<package>'], args['--version'], 'nightly'
-                )
-            else:
-                rudderPkg.package_install_specific_version(
-                    args['<package>'], args['--version'], 'release'
-                )
+        exact_version = False
+        if args['--exact-version']:
+            exact_version = True
+        if args['--nightly']:
+            rudderPkg.package_install_latest(args['<package>'], 'nightly', exact_version)
         else:
-            if args['--nightly']:
-                rudderPkg.package_install_latest(args['<package>'], 'nightly', None)
-            else:
-                rudderPkg.package_install_latest(args['<package>'], 'release', None)
+            rudderPkg.package_install_latest(args['<package>'], 'release', exact_version)
     elif args['remove']:
         rudderPkg.remove(args['<package>'])
     elif args['rudder-postupgrade']:
         rudderPkg.rudder_postupgrade()
     elif args['check-compatibility']:
-        version = None
-        if args['--version']:
-            version = args['--version']
-        rudderPkg.check_compatibility(version)
+        exact_version = False
+        if args['--exact-version']:
+            exact_version = True
+        rudderPkg.check_compatibility(exact_version)
     elif args['plugin']:
         if args['save-status']:
             rudderPkg.plugin_save_status()
         elif args['restore-status']:
-            version = None
-            if args['--version']:
-                version = args['--version']
-            rudderPkg.plugin_restore_status(version)
+            rudderPkg.plugin_restore_status()
         elif args['enable']:
             rudderPkg.plugin_status(args['<plugin>'], True)
         elif args['enable-all']:
