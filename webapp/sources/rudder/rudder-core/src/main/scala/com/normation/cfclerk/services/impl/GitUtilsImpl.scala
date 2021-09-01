@@ -63,6 +63,7 @@ import com.normation.zio._
  */
 class GitRepositoryProviderImpl(override val db: Repository) extends GitRepositoryProvider { //we expect to have a .git here
   override val git = new Git(db)
+  override val semaphore = Semaphore.make(1).runNow
 }
 
 object GitRepositoryProviderImpl {
