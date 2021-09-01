@@ -4,11 +4,11 @@ import rpkg
 
 logger = logging.getLogger('rudder-pkg')
 
-'''
+"""
     Define a Plugin object, which is a group of all the rpkgs corresponding to the plugin.
     Since multiple rpkgs can provide the exact same plugin, we are using sets. For each multiple occurrence,
     only the last rpkg file checked will be kept.
-'''
+"""
 
 
 class Plugin:
@@ -20,7 +20,7 @@ class Plugin:
         self.releasePackagesInfo = set()
         self.nightlyPackagesInfo = set()
 
-    '''Parse the index file of the repo and fulfill the sets with rpkgs matching the plugin name.'''
+    """Parse the index file of the repo and fulfill the sets with rpkgs matching the plugin name."""
 
     def getAvailablePackages(self):
         try:
@@ -53,7 +53,7 @@ class Plugin:
         else:
             logger.debug('Found corresponding packages: %s' % (self.packagesInfo))
 
-    '''Return a set of Rpkg objects, matching all the rpkgs found compatible with the current Rudder version.'''
+    """Return a set of Rpkg objects, matching all the rpkgs found compatible with the current Rudder version."""
 
     def getCompatiblePackagesInfo(self):
         compatibles = set()
@@ -62,7 +62,7 @@ class Plugin:
                 compatibles.add(iRpkg)
         return compatibles
 
-    '''Return a set of Rpkg objects, matching all the nightly rpkgs found compatible with the current Rudder version.'''
+    """Return a set of Rpkg objects, matching all the nightly rpkgs found compatible with the current Rudder version."""
 
     def getCompatibleNightly(self):
         compatibles = set()
@@ -71,7 +71,7 @@ class Plugin:
                 compatibles.add(iRpkg)
         return compatibles
 
-    '''Return a set of Rpkg objects, matching all the released rpkgs found compatible with the current Rudder version.'''
+    """Return a set of Rpkg objects, matching all the released rpkgs found compatible with the current Rudder version."""
 
     def getCompatibleRelease(self):
         compatibles = set()
@@ -80,7 +80,7 @@ class Plugin:
                 compatibles.add(iRpkg)
         return compatibles
 
-    '''From a given version and release mode, return the corresponding Rpkg object.'''
+    """From a given version and release mode, return the corresponding Rpkg object."""
 
     def getRpkgByLongVersion(self, longVersion, mode):
         for iRpkg in self.packagesInfo:
@@ -88,7 +88,7 @@ class Plugin:
                 return iRpkg
         return None
 
-    '''Return the latest released Rpkg object found compatible with current Rudder version.'''
+    """Return the latest released Rpkg object found compatible with current Rudder version."""
 
     def getLatestCompatibleRelease(self):
         try:
@@ -96,7 +96,7 @@ class Plugin:
         except:
             return None
 
-    '''Return the latest nightly Rpkg object found compatible with current Rudder version.'''
+    """Return the latest nightly Rpkg object found compatible with current Rudder version."""
 
     def getLatestCompatibleNightly(self):
         try:

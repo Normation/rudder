@@ -36,10 +36,10 @@ class RudderVersion:
         return not self.__lt__(other)
 
 
-'''
+"""
     Versions can contains the words "-SNAPSHOT" at the end, this should not be a problem at the moment since it is only present in nightly.
     Moreover, we should not have to compare a nightly version to a release one.
-'''
+"""
 
 
 class PluginVersion:
@@ -108,9 +108,9 @@ class PluginVersion:
         return not self.__lt__(other)
 
 
-'''
+"""
     Define an object based on a .rpkg file.
-'''
+"""
 
 
 class Rpkg:

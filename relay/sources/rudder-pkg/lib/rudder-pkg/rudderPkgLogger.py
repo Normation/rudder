@@ -3,13 +3,13 @@ import logging.handlers
 
 LOG_PATH = '/var/log/rudder/rudder-pkg/rudder-pkg.log'
 
-'''
+"""
     Start two different loggers:
       -one for the output           => stdoutHandler
       -another one for the log file => fileHandler
     They have the same root, so logging is common to both handler,
     but they will each log what they should based on their log level.
-'''
+"""
 
 
 def startLogger(logLevel):
