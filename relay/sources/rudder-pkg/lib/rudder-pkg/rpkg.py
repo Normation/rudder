@@ -1,16 +1,18 @@
 import os, logging, re, json, textwrap
 from distutils.version import LooseVersion, StrictVersion
-
 import rudderPkgUtils as utils
 
 # Compare versions with the form "w.x-y.z"
 class RudderVersion:
     def __init__(self, version):
         match = re.search(
-            r'(?P<wx>[0-9]+.[0-9]+(.[0-9]+(~(beta|rc)[0-9]+)?)?)-(?P<yz>[0-9]+.[0-9]+)', version
+            r'(?P<wx>[0-9]+.[0-9]+(.[0-9]+(~(alpha|beta|rc)[0-9]+)?)?)-(?P<yz>[0-9]+.[0-9]+)',
+            version,
         )
         self.version = [
-            LooseVersion(match.group('wx').replace('~beta', 'a').replace('~rc', 'b')),
+            LooseVersion(
+                match.group('wx').replace('~alpha', 'a').replace('~beta', 'b').replace('~rc', 'c')
+            ),
             LooseVersion(match.group('yz')),
         ]
 
@@ -50,7 +52,7 @@ class RudderVersion:
 class PluginVersion:
     def __init__(self, pluginLongVersion):
         match = re.search(
-            r'(?P<rudderVersion>(?P<rudderMajor>[0-9]+\.[0-9]+)(\.[0-9]+(~(beta|rc)[0-9]+)?)?)-(?P<pluginShortVersion>[0-9]+\.[0-9]+)(-(?P<mode>[a-zA-Z]+))?',
+            r'(?P<rudderVersion>(?P<rudderMajor>[0-9]+\.[0-9]+)(\.[0-9]+(~(alpha|beta|rc)[0-9]+)?)?)-(?P<pluginShortVersion>[0-9]+\.[0-9]+)(-(?P<mode>[a-zA-Z]+))?',
             pluginLongVersion,
         )
         if match.group('mode') is None:
@@ -65,12 +67,15 @@ class PluginVersion:
 
         if match.group('rudderVersion') is None or match.group('pluginShortVersion') is None:
             utils.fail(
-                'The version %s does not respect the version syntax [0-9]+.[0-9]+-[0-9]+.[0-9]+(-SNAPSHOT)?'
+                'The version %s does not respect the version syntax [0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+(-SNAPSHOT)?'
                 % (pluginLongVersion)
             )
         else:
             self.rudderVersion = (
-                match.group('rudderVersion').replace('~beta', 'a').replace('~rc', 'b')
+                match.group('rudderVersion')
+                .replace('~alpha', 'a')
+                .replace('~beta', 'b')
+                .replace('~rc', 'c')
             )
             self.rudderMajor = match.group('rudderMajor')
             self.pluginShortVersion = match.group('pluginShortVersion')
@@ -139,8 +144,8 @@ class Rpkg:
     def getMode(self):
         return self.version.mode
 
-    def isCompatible(self, version):
-        return utils.check_plugin_compatibility(self.metadata, version)
+    def isCompatible(self, exact_version):
+        return utils.check_plugin_compatibility(self.metadata, exact_version)
 
     def show_metadata(self):
         # Mandatory
@@ -212,9 +217,17 @@ class Rpkg:
         print(json.dumps(self.metadata, indent=4, sort_keys=True))
 
     def toTabulate(self):
+        compatibility = 'No'
+
+        if self.isCompatible(True):
+            compatibility = 'Yes'
+        if self.isCompatible(False):
+            compatibility = (
+                'Not build for exact Rudder version, May be ok, but it can crash, please upgrade'
+            )
         return [
             self.longName,
             self.version.mode,
             self.version.pluginLongVersion,
-            str(self.isCompatible(None)),
+            compatibility,
         ]

@@ -64,10 +64,10 @@ class Plugin:
 
     """Return a set of Rpkg objects, matching all the nightly rpkgs found compatible with the current Rudder version."""
 
-    def getCompatibleNightly(self, version):
+    def getCompatibleNightly(self, exact_version):
         compatibles = set()
         for iRpkg in self.nightlyPackagesInfo:
-            if iRpkg.isCompatible(version):
+            if iRpkg.isCompatible(exact_version):
                 compatibles.add(iRpkg)
         return compatibles
 
@@ -98,8 +98,8 @@ class Plugin:
 
     """Return the latest nightly Rpkg object found compatible with current Rudder version."""
 
-    def getLatestCompatibleNightly(self, version):
+    def getLatestCompatibleNightly(self, exact_version):
         try:
-            return max(self.getCompatibleNightly(version))
+            return max(self.getCompatibleNightly(exact_version))
         except:
             return None

@@ -1,7 +1,6 @@
 import os, logging, sys, re, hashlib, requests, json
 import distutils.spawn
 import requests.auth
-from pprint import pprint
 from pkg_resources import parse_version
 import fcntl, termios, struct, traceback
 from distutils.version import StrictVersion
@@ -226,7 +225,7 @@ def check_url():
 
 def download(completeUrl, dst=''):
     if dst == '':
-        fileDst = FOLDER_PATH + '/' + completeUrl.replace(URL + '/', '')
+        fileDst = FOLDER_PATH + '/' + completeUrl.replace(URL + '/' + RUDDER_MINOR + '/', '')
     else:
         fileDst = dst
     fileDir = os.path.dirname(fileDst)
@@ -340,7 +339,7 @@ def downloadByRpkg(rpkg):
     return download_and_verify(URL + '/' + rpkg.path)
 
 
-def package_check(metadata, version):
+def package_check(metadata, exact_check):
     if 'type' not in metadata or metadata['type'] != 'plugin':
         fail('Package type not supported')
     # sanity checks
@@ -351,33 +350,41 @@ def package_check(metadata, version):
         fail('Package version undefined')
     # incompatibility check
     if metadata['type'] == 'plugin':
-        if not check_plugin_compatibility(metadata, version):
+        if not check_plugin_compatibility(metadata, exact_check):
             fail('Package incompatible with this Rudder version, please try another plugin version')
     # do not compare with exiting version to allow people to reinstall or downgrade
     return name in DB['plugins']
 
 
-def check_plugin_compatibility(metadata, version):
-    # check that the given version is compatible with Rudder one
+def extract_plugin_version(metadata):
     match = re.match(
-        r'((\d+\.\d+)(\.\d+(~(alpha|beta|rc)\d*)?)?)(-SNAPSHOT)?-(\d+)\.(\d+)', metadata['version']
+        r'((\d+\.\d+)(\.\d+(~(alpha|beta|rc)\d*)?)?)-(\d+)\.(\d+)', metadata['version']
     )
     if not match:
         fail('Invalid package version ' + metadata['version'])
-    rudder_version = match.group(1).replace('~alpha', 'a').replace('~beta', 'b').replace('~rc', 'c')
-    rudder_major = match.group(2)
-    major_version = match.group(7)
-    minor_version = match.group(8)
-    if rudder_major != RUDDER_MAJOR:
-        return False
-    if StrictVersion(rudder_version) > StrictVersion(RUDDER_VERSION):
-        return False
+    return match
 
-    # check specific constraints
-    full_name = metadata['name'] + '-' + metadata['version']
-    if full_name in COMPATIBILITY_DB['incompatibles']:
-        return False
-    return True
+
+def check_exact_compatibility(plugin_version):
+    # check that the given version is exactly the same as Rudder one
+    rudder_version = (
+        plugin_version.group(1).replace('~alpha', 'a').replace('~beta', 'b').replace('~rc', 'c')
+    )
+    return rudder_version == RUDDER_VERSION
+
+
+def check_loose_compatibility(plugin_version):
+    # check that the given version is compatible with Rudder minor (X.Y) one
+    rudder_minor = plugin_version.group(2)
+    return rudder_minor == RUDDER_MINOR
+
+
+def check_plugin_compatibility(metadata, exact_version):
+    # check that the given version is compatible with Rudder one (loose or exact)
+    plugin_version = extract_plugin_version(metadata)
+    if exact_version:
+        return check_exact_compatibility(plugin_version)
+    return check_exact_compatibility(plugin_version) or check_loose_compatibility(plugin_version)
 
 
 """Add the rudder key to a custom home for trusted gpg keys"""
@@ -551,7 +558,7 @@ def jar_status(name, enable):
 
     def repl(match):
         enabled = [x for x in match.group(1).split(',') if x != name and x != '']
-        pprint(enabled)
+        print(enabled)
         if enable:
             enabled.append(name)
         plugins = ','.join(enabled)
@@ -667,9 +674,11 @@ try:
                 elif m.group(1) == 'rc':
                     step = 'c'
                 step += m.group(2)
-            m = re.match(r'main_version *= *((\d+\.\d+)\.\d+)', line)
+            m = re.match(r'main_version *= *((\d+\.\d+)\.(\d+))', line)
             if m:
-                RUDDER_MAJOR = m.group(2)
+                # Rudder minor is X.Y in X.Y.Z
+                RUDDER_MINOR = m.group(2)
+                RUDDER_PATCH = m.group(3)
                 rudder_version = m.group(1)
         RUDDER_VERSION = rudder_version + step
 except:

@@ -21,14 +21,14 @@ logger = logging.getLogger('rudder-pkg')
 """
 
 
-def install_file(package_files, version, exit_on_error=True):
+def install_file(package_files, exact_version, exit_on_error=True):
     for package_file in package_files:
         logger.info('Installing ' + package_file)
         # First, check if file exists
         if not os.path.isfile(package_file):
             utils.fail('Error: Package file ' + package_file + ' does not exist')
         metadata = utils.rpkg_metadata(package_file)
-        exist = utils.package_check(metadata, version)
+        exist = utils.package_check(metadata, exact_version)
         # As dependencies are only displayed messages for now,
         # wait until the end to make them visible.
         # This should be moved before actual installation once implemented.
@@ -125,7 +125,7 @@ def package_list_name():
     latestRelease = []
     description = []
     for p in pluginDict.keys():
-        if utils.check_download(utils.URL + '/' + utils.RUDDER_MAJOR + '/' + str(pluginDict[p][0])):
+        if utils.check_download(utils.URL + '/' + utils.RUDDER_MINOR + '/' + str(pluginDict[p][0])):
             pluginName.append(str(p))
             shortName.append(str(pluginDict[p][0]))
             description.append(str(pluginDict[p][1]))
@@ -210,7 +210,7 @@ def package_install_specific_version(name, longVersion, mode='release'):
     rpkg = pkgs.getRpkgByLongVersion(longVersion, mode)
     if rpkg is not None:
         rpkgPath = utils.downloadByRpkg(rpkg)
-        install_file([rpkgPath], None)
+        install_file([rpkgPath], False)
     else:
         utils.fail('Could not find any package for %s in version %s' % (name, longVersion))
 
@@ -221,16 +221,16 @@ def package_install_specific_version(name, longVersion, mode='release'):
 """
 
 
-def package_install_latest(name, mode='release', version=None, exit_on_error=True):
+def package_install_latest(name, mode='release', exact_version=True, exit_on_error=True):
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
     if mode == 'release':
-        rpkg = pkgs.getLatestCompatibleRelease(version)
+        rpkg = pkgs.getLatestCompatibleRelease(exact_version)
     else:
-        rpkg = pkgs.getLatestCompatibleNightly(version)
+        rpkg = pkgs.getLatestCompatibleNightly(exact_version)
     if rpkg is not None:
         rpkgPath = utils.downloadByRpkg(rpkg)
-        install_file([rpkgPath], version, exit_on_error=exit_on_error)
+        install_file([rpkgPath], exact_version, exit_on_error=exit_on_error)
     else:
         utils.fail(
             'Could not find any compatible %s for %s' % (mode, name), exit_on_error=exit_on_error
@@ -264,10 +264,10 @@ def rudder_postupgrade():
         utils.run_script('postinst', script_dir, True)
 
 
-def check_compatibility(version):
+def check_compatibility(exact_version):
     for p in utils.DB['plugins']:
         metadata = utils.DB['plugins'][p]
-        if not utils.check_plugin_compatibility(metadata, version):
+        if not utils.check_plugin_compatibility(metadata, exact_version):
             logger.warning('Plugin ' + p + ' is not compatible with rudder anymore, disabling it.')
             if 'jar-files' in metadata:
                 for j in metadata['jar-files']:
@@ -295,7 +295,7 @@ def plugin_save_status():
                     print('disabled ' + j)
 
 
-def plugin_restore_status(version):
+def plugin_restore_status():
     lines = sys.stdin.readlines()
     for line in lines:
         line = line.strip()
@@ -304,7 +304,7 @@ def plugin_restore_status(version):
             utils.jar_status(line.split(' ')[1], True)
         if line.startswith('disabled '):
             utils.jar_status(line.split(' ')[1], False)
-    check_compatibility(version)
+    check_compatibility(False)
 
 
 def plugin_status(plugins, status):
@@ -377,7 +377,7 @@ def update():
     if os.path.isfile(utils.INDEX_PATH):
         os.rename(utils.INDEX_PATH, utils.INDEX_PATH + '.bkp')
     try:
-        utils.download(utils.URL + '/' + utils.RUDDER_VERSION + '/' + 'rpkg.index')
+        utils.download(utils.URL + '/' + utils.RUDDER_MINOR + '/rpkg.index')
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
         if os.path.isfile(utils.INDEX_PATH + '.bkp'):
@@ -392,14 +392,14 @@ def update():
 """
 
 
-def upgrade_all(mode, version):
+def upgrade_all(mode, exact_version):
     for p in utils.DB['plugins'].keys():
         currentVersion = rpkg.PluginVersion(utils.DB['plugins'][p]['version'])
         latestVersion = currentVersion
         pkgs = plugin.Plugin(p)
         pkgs.getAvailablePackages()
         if mode == 'nightly':
-            latest_packages = pkgs.getLatestCompatibleNightly(version)
+            latest_packages = pkgs.getLatestCompatibleNightly(exact_version)
             if latest_packages is None:
                 logger.debug(
                     'No newer nightly %s compatible versions found for the plugin %s' % (mode, p)
@@ -407,7 +407,7 @@ def upgrade_all(mode, version):
             else:
                 latestVersion = latest_packages.version
         else:
-            latest_packages = pkgs.getLatestCompatibleRelease(version)
+            latest_packages = pkgs.getLatestCompatibleRelease(exact_version)
             if latest_packages is None:
                 logger.debug(
                     'No newer release %s compatible versions found for the plugin %s' % (mode, p)
@@ -419,7 +419,7 @@ def upgrade_all(mode, version):
                 'The plugin %s is installed in version %s. The version %s %s is available, the plugin will be upgraded.'
                 % (p, currentVersion.pluginLongVersion, mode, latestVersion.pluginLongVersion)
             )
-            package_install_latest([p], mode, version, exit_on_error=False)
+            package_install_latest([p], mode, exact_version, exit_on_error=False)
         else:
             logger.info(
                 'No newer %s compatible versions than %s found for the plugin %s.'
