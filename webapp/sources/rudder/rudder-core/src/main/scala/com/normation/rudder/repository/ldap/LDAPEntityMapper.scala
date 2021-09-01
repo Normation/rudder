@@ -793,7 +793,7 @@ class LDAPEntityMapper(
           ruleTarget
         }
         val rev = ParseRev(e(A_REV_ID))
-        val directiveIds = e.valuesFor(A_DIRECTIVE_UUID).map(x => JsonDirectiveId.ruleParse(x).toDirectiveRId)
+        val directiveIds = e.valuesFor(A_DIRECTIVE_UUID).map(x => DirectiveId.parse(x).getOrElse(DirectiveId(DirectiveUid("")))) // the error case handling is for compat
         val name = e(A_NAME).getOrElse(id)
         val shortDescription = e(A_DESCRIPTION).getOrElse("")
         val longDescription = e(A_LONG_DESCRIPTION).getOrElse("")
@@ -835,7 +835,7 @@ class LDAPEntityMapper(
     )
 
     entry.resetValuesTo(A_RULE_TARGET, rule.targets.map( _.target).toSeq :_* )
-    entry.resetValuesTo(A_DIRECTIVE_UUID, rule.directiveIds.map(t => JsonDirectiveId.fromId(t).serialize).toSeq :_* )
+    entry.resetValuesTo(A_DIRECTIVE_UUID, rule.directiveIds.map(_.serialize).toSeq :_* )
     entry.resetValuesTo(A_DESCRIPTION, rule.shortDescription)
     entry.resetValuesTo(A_LONG_DESCRIPTION, rule.longDescription.toString)
     entry.resetValuesTo(A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(rule.tags)))
@@ -1059,36 +1059,3 @@ class LDAPEntityMapper(
 // { "acl": [ {"path":"some/path", "actions":["get","put"]}, {"path":"other/path","actions":["get"]}}
 final case class JsonApiAcl(acl: List[JsonApiAuthz]) extends AnyVal
 final case class JsonApiAuthz(path: String, actions: List[String])
-
-// Used for some cases where we need to serialize (id, rev) and need to have a name for it, for ex for derivation
-// For compatibility reason, in rule we need to be compatible with old format and json, so special parse.
-final case class JsonDirectiveId(id: String, rev: Option[String]) {
-  def toDirectiveRId: DirectiveId = DirectiveId(DirectiveUid(id), ParseRev(rev))
-  def serialize = {
-    implicit val formats = Serialization.formats(NoTypeHints)
-    Serialization.write(this)
-  }
-  def json = ("id" -> id) ~ ("rev" -> rev)
-}
-object JsonDirectiveId {
-  def ruleParse(value: String) = value match {
-    case null | "" => // ??? That should not happen, what we do? (keep previous behavior)
-      JsonDirectiveId("", None)
-    case s if s.head == '{' =>
-      try {
-        implicit val format = net.liftweb.json.DefaultFormats
-        parse(s).extract[JsonDirectiveId]
-      } catch {
-        case NonFatal(e) => /// ??? for compat ?
-          JsonDirectiveId(s, None)
-      }
-    case s => JsonDirectiveId(s, None)
-  }
-  def fromId(id: DirectiveId) = {
-    val rev = id.rev match {
-      case GitVersion.defaultRev => None
-      case x                     => Some(x.value)
-    }
-    JsonDirectiveId(id.uid.value, rev)
-  }
-}

@@ -2115,7 +2115,6 @@ object TEST {
     _         <- repo.update(g1, ModificationId("plop"), EventActor("plop"), None)
     pair2     <- repo.getNodeGroup(NodeGroupId("1111f5d3-8c61-4d20-88a7-bb947705ba8a"))
     res       =  if(pair2._1.serverList == nodes) "ok" else s"oups, list=${pair2._1.serverList}"
-    _         <- effectUioUnit(println(s"**** " + res))
   } yield (res)
 
   def main(args: Array[String]): Unit = prog.runNow
