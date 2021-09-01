@@ -1397,6 +1397,10 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     override def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, AcceptedInventory, _info)
     override def getNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = getNodeInfoPure(nodeId).toBox
 
+    override def getNodeInfos(nodesId: Set[NodeId]): IOResult[Set[NodeInfo]] = ZIO.foreach(nodesId) { nodeId =>
+      getGenericOne(nodeId, AcceptedInventory, _info).map(x => x.get)
+    }
+
     override def getAll(): Box[Map[NodeId, NodeInfo]] = getGenericAll(AcceptedInventory, _info).toBox
 
     override def getAllNodes(): Box[Map[NodeId, Node]] = getAll().map(_.map(kv => (kv._1, kv._2.node)))

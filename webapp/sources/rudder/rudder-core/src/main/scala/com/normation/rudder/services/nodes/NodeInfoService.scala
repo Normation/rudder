@@ -121,13 +121,14 @@ trait NodeInfoService {
 
   /**
    * Return a NodeInfo from a NodeId. First check the ou=Node, then fetch the other data
-   * @param nodeId
-   * @return
    */
   def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]]
 
   // Pure version of getNodeInfo
   def getNodeInfoPure(nodeId: NodeId) : IOResult[Option[NodeInfo]]
+
+  def getNodeInfos(nodeIds: Set[NodeId]): IOResult[Set[NodeInfo]]
+
 
   /**
    * Return the number of managed (ie non policy server, no rudder role )nodes.
@@ -888,6 +889,9 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     cache.get(nodeId).map( _._2).succeed
   }
 
+  def getNodeInfos(nodeIds: Set[NodeId]): IOResult[Set[NodeInfo]] = withUpToDateCache(s"${nodeIds.size} nodes infos") { cache =>
+    cache.filter(x => nodeIds.contains(x._1)).values.map( _._2).toSet.succeed
+  }
 }
 
 /**
