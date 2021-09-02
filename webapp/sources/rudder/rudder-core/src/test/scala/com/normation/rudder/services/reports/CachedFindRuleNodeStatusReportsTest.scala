@@ -134,6 +134,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   object testNodeInfoService extends NodeInfoService {
     def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : IOResult[Set[LDAPNodeInfo]] = ???
     def getNodeInfo(nodeId: NodeId) : IOResult[Option[NodeInfo]] = ???
+    def getNodeInfos(nodesId: Set[NodeId]) : IOResult[Set[NodeInfo]] = ???
     def getNode(nodeId: NodeId): Box[Node] = ???
     def getAllNodes() : IOResult[Map[NodeId, Node]] = ???
     def getAllNodesIds(): IOResult[Set[NodeId]] = ???

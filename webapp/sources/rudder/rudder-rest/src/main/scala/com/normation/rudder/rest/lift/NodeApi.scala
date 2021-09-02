@@ -664,9 +664,7 @@ class NodeApiService13 (
                            case None =>
                              nodeInfoService.getAll().toBox
                            case Some(nodeIds) =>
-                             com.normation.utils.Control.sequence(nodeIds)(
-                               nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n))).toBox
-                             ).map(_.flatten.toMap)
+                             nodeInfoService.getNodeInfos(nodeIds.toSet).map(_.map(n => (n.id, n)).toMap).toBox
                          }
       n2              =  System.currentTimeMillis
       _               =  TimingDebugLoggerPure.logEffect.trace(s"Getting node infos: ${n2 - n1}ms")
@@ -720,8 +718,8 @@ class NodeApiService13 (
       optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
 
       nodes <- optNodeIds match {
-        case None => nodeInfoService.getAll().toBox
-        case Some(nodeIds) => ZIO.foreach(nodeIds)(nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).toBox.map(_.flatten.toMap)
+        case None          => nodeInfoService.getAll().toBox
+        case Some(nodeIds) => nodeInfoService.getNodeInfos(nodeIds.toSet).map(_.map(n => (n.id, n)).toMap).toBox
       }
       softs <- readOnlySoftwareDAO.getNodesbySofwareName(software).toBox.map(_.toMap)
     } yield {
@@ -733,10 +731,10 @@ class NodeApiService13 (
   def property(req : Req, property : String, inheritedValue : Boolean) = {
     for {
       optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
-      nodes      <- (optNodeIds match {
-                      case None => nodeInfoService.getAll()
-                      case Some(nodeIds) => ZIO.foreach(nodeIds)(nodeInfoService.getNodeInfo(_).map(_.map(n => (n.id, n)))).map(_.flatten.toMap)
-                    }).toBox
+      nodes      <- optNodeIds match {
+                      case None          => nodeInfoService.getAll().toBox
+                      case Some(nodeIds) => nodeInfoService.getNodeInfos(nodeIds.toSet).map(_.map(n => (n.id, n)).toMap).toBox
+                    }
       propMap = nodes.values.groupMapReduce(_.id)(n =>  n.properties.filter(_.name == property))(_ ::: _)
 
 
