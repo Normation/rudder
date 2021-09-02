@@ -102,6 +102,8 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
       override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
       override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] = DB.GitCommitJoin(commit, modId).succeed
     }
+
+    override def groupOwner: String = ""
   }
 
   // listing files at a commit is complicated
