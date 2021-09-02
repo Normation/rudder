@@ -57,7 +57,6 @@ import zio._
 import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 import scala.xml.Elem
-import com.normation.zio._
 
 /**
  * Utility trait that factor out file commits.
@@ -70,12 +69,6 @@ trait GitArchiverUtils {
       case Some(m) => "\n\nReason provided by user:\n" + m
     }
   }
-
-  // semaphores to replace `synchronized`
-  val semaphoreAdd    = Semaphore.make(1).runNow
-  val semaphoreMove   = Semaphore.make(1).runNow
-  val semaphoreDelete = Semaphore.make(1).runNow
-
 
   def gitRepo : GitRepositoryProvider
   def gitRootDirectory : File
@@ -129,7 +122,7 @@ trait GitArchiverUtils {
    * commitMessage is used for the message of the commit.
    */
   def commitAddFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
-    semaphoreAdd.withPermit(
+    gitRepo.semaphore.withPermit(
       for {
         _      <- GitArchiveLoggerPure.debug(s"Add file '${gitPath}' from configuration repository")
         add    <- IOResult.effect(gitRepo.git.add.addFilepattern(gitPath).call)
@@ -153,7 +146,7 @@ trait GitArchiverUtils {
    * commitMessage is used for the message of the commit.
    */
   def commitRmFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
-    semaphoreDelete.withPermit(
+    gitRepo.semaphore.withPermit(
       for {
         _      <- GitArchiveLoggerPure.debug(s"remove file '${gitPath}' from configuration repository")
         rm     <- IOResult.effect(gitRepo.git.rm.addFilepattern(gitPath).call)
@@ -179,7 +172,7 @@ trait GitArchiverUtils {
    * commitMessage is used for the message of the commit.
    */
   def commitMvDirectory(modId : ModificationId, commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : IOResult[GitCommitId] = {
-    semaphoreMove.withPermit(
+    gitRepo.semaphore.withPermit(
       for {
         _      <- GitArchiveLoggerPure.debug(s"move file '${oldGitPath}' from configuration repository to '${newGitPath}'")
         update <- IOResult.effect {
