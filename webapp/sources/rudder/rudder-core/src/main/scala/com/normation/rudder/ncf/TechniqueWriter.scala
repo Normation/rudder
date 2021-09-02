@@ -432,7 +432,6 @@ class TechniqueWriter (
 
     val content = techniqueSerializer.serializeTechniqueMetadata(technique)
     for {
-
       _       <- IOResult.effect(s"An error occurred while creating json file for Technique '${technique.name}'") {
         implicit val charSet = StandardCharsets.UTF_8
         val file = File (path).createFileIfNotExists (true)
