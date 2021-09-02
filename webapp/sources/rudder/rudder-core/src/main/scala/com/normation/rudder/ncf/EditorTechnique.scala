@@ -368,6 +368,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
       ( ("method_name" -> call.methodId.value)
       ~ ("class_context" -> call.condition)
+      ~ ("disableReporting" -> call.disabledReporting)
       ~ ("component" -> call.component)
       ~ ("parameters" -> params)
       ~ ("id" -> call.id)
