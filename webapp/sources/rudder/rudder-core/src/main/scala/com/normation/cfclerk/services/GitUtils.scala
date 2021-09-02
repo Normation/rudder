@@ -42,10 +42,13 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.lib.ObjectId
 import com.normation.errors._
+import zio.Semaphore
 
 /**
  * A service that gives access to the Git
  * porcelain API of the repository.
+ *
+ * For reference about how to use JGit: https://github.com/centic9/jgit-cookbook
  */
 trait GitRepositoryProvider {
   /**
@@ -54,6 +57,14 @@ trait GitRepositoryProvider {
   def git: Git
 
   def db: Repository
+
+  /*
+   * Git (and JGit) are not thread safe. When there is two concurrent write operations, we can get a
+   * `JGitInternalException: Exception caught during execution of add command` (which is not very
+   * informative - see https://issues.rudder.io/issues/19398).
+   * So we need to protect at the repository level write operation with a semaphore.
+   */
+  def semaphore: Semaphore
 }
 
 object GitRepositoryLogger extends NamedZioLogger() { def loggerName = "git-repository" }
