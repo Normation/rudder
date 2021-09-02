@@ -80,6 +80,12 @@ bundle edit_line ncf_maintain_keys_values_option(v, sep, option)
       # Matching pattern for line (basically key-and-separator)
       "keypat[${index}]" string => "\s*${ke[${index}]}\s*${separator}\s*";
 
+      # Capture group for the strict mode
+      # Final regex is of the form:
+      # ^(?!<perfect_match>)((space_around_sep)|(space_around_key))
+      "perfect_match" string => "${ke[${index}]}${separator}${ve[${index}]}";
+      "space_around_key" string => "^\s*${ke[${index}]}\s*${separator}.*";
+      "space_around_sep" string => "(\s*${ke[${index}]}\s*${separator}\s*.+)";
 
   classes:
       "strict_spacing" expression => strcmp("${option}", "strict");
@@ -103,9 +109,9 @@ bundle edit_line ncf_maintain_keys_values_option(v, sep, option)
       # For convergence need to use negative lookahead on value:
       # "key sep (?!value).*"
     strict_spacing::
-      "^(\s*${ke[${index}]}\s*${separator}\s*)(?!${ve[${index}]}$)(\S.*|$)"
+      "^(?!${perfect_match})((${space_around_sep})|(${space_around_key}))$"
         comment      => "Strict replace definition of ${index}",
-        replace_with => value("${ke[${index}]}${sep}${${v}[${index}]}");
+        replace_with => value("${index}${sep}${${v}[${index}]}");
 
     # To avoid https://issues.rudder.io/issues/18944, we need after the lookahead to either:
     # Find a non space character
