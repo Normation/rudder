@@ -619,11 +619,11 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
               Files.delete(p)
             } catch {
               case ex: Exception =>
-                NodeLoggerPure.Delete.logEffect.warn(s"Error when trying to remove CFEngine key for node '${nodeInfo.id.value}' at path: '${p.toString}': ${ex.getMessage}")
+                NodeLoggerPure.Delete.logEffect.info(s"Error when trying to clean-up CFEngine key for node '${nodeInfo.id.value}' at path: '${p.toString}': ${ex.getMessage}")
             }
           }
         })).catchAll(err =>
-          NodeLoggerPure.Delete.error(s"Error when deleting cfengine key for node ${nodeInfo.hostname} (${nodeInfo.id.value})")
+          NodeLoggerPure.Delete.info(s"Error when cleaning-up cfengine key for node ${nodeInfo.hostname} (${nodeInfo.id.value}), some files may be remaining.")
         )
     }
   }
@@ -637,7 +637,7 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
   override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
     NodeLoggerPure.Delete.debug(s"  - clean-up node '${nodeId.value}' policy files in /var/rudder/share") *>
     cleanPoliciesRec(nodeId, File(varRudderShare)).runDrain.catchAll(err =>
-      NodeLoggerPure.Delete.error(s"Error when cleaning policy files for node ${(nodeId, info).name}: ${err.fullMsg}")
+      NodeLoggerPure.Delete.info(s"Error when cleaning-up policy files for node ${(nodeId, info).name}, some files may be remaining: ${err.fullMsg}")
     )
   }
 
