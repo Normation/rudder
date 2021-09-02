@@ -483,7 +483,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
   }
 
   // regex to match double quote characters not preceded by a backslash, and backslash not preceded by backslash or not followed by a backslash or a quote (simple or double)
-  def escapeCFEngineString(value : String ) = value.replaceAll("""(?<!\\)"""", """\\"""").replaceAll("""(?<!\\)\\(?!(\\|"|'))""","""\\\\""")
+  def escapeCFEngineString(value : String ) = value.replaceAll("""\\""", """\\\\""").replaceAll(""""""" , """\\"""" )
   def reportingContext(methodCall: MethodCall, classParameterValue: String ) = {
     val component  = escapeCFEngineString(methodCall.component)
     val value = escapeCFEngineString(classParameterValue)

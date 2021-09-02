@@ -188,7 +188,7 @@ object ParameterType {
       (paramType,agentType) match {
         case (Raw,_) => Right(value)
         case (StringParameter | HereString, AgentType.CfeCommunity | AgentType.CfeEnterprise) =>
-          Right(s""""${value.replaceAll("""(?<!\\)"""", """\\"""").replaceAll("""(?<!\\)\\(?!(\\|"|'))""","""\\\\""")}"""")
+          Right(s""""${value.replaceAll("""\\""", """\\\\""").replaceAll(""""""" , """\\"""" )}"""")
         case (HereString, AgentType.Dsc) => Right(
          s"""@'
             |${value}
