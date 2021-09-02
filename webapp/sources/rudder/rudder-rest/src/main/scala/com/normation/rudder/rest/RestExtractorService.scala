@@ -1231,7 +1231,7 @@ final case class RestExtractorService (
     for {
       methodId          <- CompleteJson.extractJsonString(json, "method_name", s => Full(BundleName(s)))
       id                <-  if (supportMissingId) {OptionnalJson.extractJsonString(json,"id").map(_.getOrElse(uuidGenerator.newUuid))} else { CompleteJson.extractJsonString(json, "id") }
-      disabledReporting <-  OptionnalJson.extractJsonBoolean(json,"disabledReporting").map(_.getOrElse(false))
+      disableReporting <-  OptionnalJson.extractJsonBoolean(json,"disableReporting").map(_.getOrElse(false))
       condition         <- CompleteJson.extractJsonString(json, "class_context")
       component         <- OptionnalJson.extractJsonString(json, "component").map(_.getOrElse(methods.get(methodId).map(_.name).getOrElse(methodId.value)))
       // Args was removed in 6.1.0 and replaced by parameters. keept it when we are reading old format techniques, ie when migrating from 6.1
@@ -1251,7 +1251,7 @@ final case class RestExtractorService (
                                    }
                     }
     } yield {
-      MethodCall(methodId, id, parameters, condition, component, disabledReporting)
+      MethodCall(methodId, id, parameters, condition, component, disableReporting)
     }
   }
 
