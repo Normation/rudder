@@ -205,9 +205,9 @@ decodeTargets =
    , D.lazy (\_ -> decodeOr)
    , map (\s ->
            if String.startsWith "group:" s then
-             NodeGroupId s
+             NodeGroupId (String.dropLeft 6 s)
            else if String.startsWith "node:" s then
-                             Node s
+             Node (String.dropLeft 5 s)
            else Special s
          )
 
