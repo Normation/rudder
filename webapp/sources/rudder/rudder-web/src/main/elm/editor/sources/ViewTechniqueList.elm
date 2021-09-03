@@ -27,7 +27,12 @@ techniqueList model techniques =
     div [ class "template-sidebar sidebar-left col-techniques", onClick OpenTechniques ] [
       div [ class "sidebar-header"] [
         div [ class "header-title" ] [
-          h1 [] [ text "Techniques"]
+          h1 [] [
+            text "Techniques"
+          , span [ id "nb-techniques", class "badge badge-secondary badge-resources" ] [
+              span [] [ text (String.fromInt (List.length techniques)) ]
+            ]
+          ]
         , div [ class "header-buttons", hidden (not model.hasWriteRights)] [ -- Need to add technique-write rights
             label [class "btn btn-sm btn-primary", onClick StartImport] [
               text "Import "
