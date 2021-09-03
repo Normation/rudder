@@ -249,6 +249,12 @@
   margin-left: 6px;
 }
 /* === BADGES === */
+#nb-techniques {
+  background-color: #d3d5d9;
+  color: #5d6778;
+  margin-left: 15px;
+  margin-top: 4px;
+}
 .badge-parameters,
 .badge-resources{
   padding: 0 !important;
