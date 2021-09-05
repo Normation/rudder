@@ -207,6 +207,7 @@ pipeline {
 
                     environment {
                         PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
+                        CARGO_INCREMENTAL = 0
                     }
 
                     // sccache server is run via systemd on the builder

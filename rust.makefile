@@ -48,6 +48,8 @@ version:
 	@echo "RUSTC_WRAPPER=$${RUSTC_WRAPPER}"
 	sccache --show-stats || true
 
+# https://matklad.github.io/2021/09/04/fast-rust-builds.html#ci-workflow
+build: CARGO_INCREMENTAL=0
 build: version
 	# strip release binaries, cf. https://github.com/rust-lang/cargo/issues/3483#issuecomment-431209957
 	# should be configurable in Cargo.toml in the future https://github.com/rust-lang/rust/issues/72110

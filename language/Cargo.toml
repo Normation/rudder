@@ -33,3 +33,8 @@ uuid = { version = "0.8", features = ["v4"] }
 [dev-dependencies]
 test-case = "1"
 pretty_assertions = "0.7"
+
+[profile.dev]
+# Disabling debug info speeds up builds a bunch,
+# and we don't rely on it for debugging that much.
+debug = 0
