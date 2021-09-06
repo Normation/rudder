@@ -128,6 +128,14 @@ update msg model =
         Err err ->
           (model, Cmd.none)
 
+    UpdateCategory category ->
+      case model.mode of
+        EditCategory details   ->
+          ({model | mode = EditCategory   {details | category = category}}, Cmd.none)
+        CreateCategory details ->
+          ({model | mode = CreateCategory {details | category = category}}, Cmd.none)
+        _   -> (model, Cmd.none)
+
     SelectGroup groupId includeBool->
       let
         updateTargets : Rule -> Rule
@@ -173,20 +181,19 @@ update msg model =
             (model, saveDisableAction newRule model)
         _   -> (model, Cmd.none)
 
-    UpdateCategory category ->
-      case model.mode of
-        EditCategory details ->
-          ({model | mode = EditCategory {details | category = category}}, Cmd.none)
-        --CreateRule details ->
-          --({model | mode = CreateRule {details | rule = rule}}, Cmd.none)
-        _   -> (model, Cmd.none)
-
     NewRule id ->
       let
         rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] []
         ruleDetails = EditRuleDetails rule rule Information False False (Tag "" "")
       in
         ({model | mode = CreateRule ruleDetails}, Cmd.none)
+
+    NewCategory id ->
+      let
+        category        = Category id "" "" (SubCategories []) []
+        categoryDetails = EditCategoryDetails category category Information
+      in
+        ({model | mode = CreateCategory categoryDetails}, Cmd.none)
 
     UpdateNewTag tag ->
       case model.mode of
@@ -197,7 +204,6 @@ update msg model =
         _   -> (model, Cmd.none)
 
     SaveRuleDetails (Ok ruleDetails) ->
-      -- TODO // Update Rules List
       case model.mode of
         EditRule details ->
           let
@@ -228,33 +234,51 @@ update msg model =
       processApiError "Changing rule state" err model
 
     SaveCategoryResult (Ok category) ->
-      -- TODO // Update Rules List
       case model.mode of
         EditCategory details ->
           let
             oldCategory = details.category
             newCategory = {category | subElems = oldCategory.subElems, elems = oldCategory.elems}
+            newModel    = {model | mode = EditCategory {details | originCategory = newCategory, category = newCategory}}
           in
-            ({model | mode = EditCategory {details | originCategory = newCategory, category = newCategory}}, successNotification ("Category '"++ category.name ++"' successfully saved"))
-        --CreateRule details ->
-         -- ({model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}, successNotification ("Rule '"++ ruleDetails.name ++"' successfully created"))
+            (newModel, Cmd.batch [(successNotification ("Category '"++ category.name ++"' successfully saved")), (getRulesTree newModel)])
+        CreateCategory details ->
+          let
+            oldCategory = details.category
+            newCategory = {category | subElems = oldCategory.subElems, elems = oldCategory.elems}
+            newModel    = {model | mode = EditCategory {details | originCategory = newCategory, category = newCategory}}
+          in
+            (newModel, Cmd.batch [(successNotification ("Category '"++ category.name ++"' successfully created")), (getRulesTree newModel)])
         _   -> (model, Cmd.none)
 
     SaveCategoryResult (Err err) ->
       processApiError "Saving Category" err model
 
     DeleteRule (Ok (ruleId, ruleName)) ->
-    -- TODO // Update Rules List
       case model.mode of
         EditRule r ->
           let
-            newMode = if r.rule.id == ruleId then RuleTable else model.mode
+            newMode  = if r.rule.id == ruleId then RuleTable else model.mode
+            newModel = { model | mode = newMode }
           in
-            ({ model | mode = newMode}, successNotification ("Successfully deleted rule '" ++ ruleName ++  "' (id: "++ ruleId.value ++")"))
+            (newModel, Cmd.batch [(successNotification ("Successfully deleted rule '" ++ ruleName ++  "' (id: "++ ruleId.value ++")")), (getRulesTree newModel)])
         _ -> (model, Cmd.none)
 
     DeleteRule (Err err) ->
       processApiError "Deleting Rule" err model
+
+    DeleteCategory (Ok (categoryId, categoryName)) ->
+      case model.mode of
+        EditCategory c ->
+          let
+            newMode  = if c.category.id == categoryId then RuleTable else model.mode
+            newModel = { model | mode = newMode }
+          in
+            (newModel, Cmd.batch [(successNotification ("Successfully deleted category '" ++ categoryName ++  "' (id: "++ categoryId ++")")), (getRulesTree newModel)])
+        _ -> (model, Cmd.none)
+
+    DeleteCategory (Err err) ->
+      processApiError "Deleting category" err model
 
     CloneRule rule rulelId ->
       let
@@ -273,6 +297,12 @@ update msg model =
       case model.mode of
         EditRule _ ->
             ( { model | modal = Just (DeletionValidation rule)} , Cmd.none )
+        _ -> (model, Cmd.none)
+
+    OpenDeletionPopupCat category ->
+      case model.mode of
+        EditCategory _ ->
+            ( { model | modal = Just (DeletionValidationCat category)} , Cmd.none )
         _ -> (model, Cmd.none)
 
     OpenDeactivationPopup rule ->

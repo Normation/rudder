@@ -25,28 +25,6 @@ editionTemplateCat model details isNewCat =
         span[style "opacity" "0.4"][text "New category"]
       else
          text originCat.name
-
-    topButtons =
-      let
-        disableWhileCreating = case model.mode of
-          EditCategory _ -> ""
-          _ -> " disabled"
-      in
-        [ li [] [
-            a [ class ("action-success"++disableWhileCreating) ] --, onClick (GenerateId (\r -> CloneRule originRule (RuleId r)))]
-            [ i [ class "fa fa-clone"] []
-            , text "Clone"
-            ]
-          ]
-        , li [class "divider"][]
-        , li [] [
-            a [ class ("action-danger"++disableWhileCreating) ] --, onClick (OpenDeletionPopup rule)]
-            [ i [ class "fa fa-times-circle"] []
-            , text "Delete"
-            ]
-          ]
-        ]
-
   in
     div [class "main-container"]
     [ div [class "main-header "]
@@ -57,11 +35,8 @@ editionTemplateCat model details isNewCat =
           ]
         , div[class "header-buttons"]
           [ div [ class "btn-group" ]
-            [ button [ class "btn btn-default dropdown-toggle" , attribute "data-toggle" "dropdown" ] [
-                text "Actions "
-              , i [ class "caret" ] []
-              ]
-            , ul [ class "dropdown-menu" ] topButtons
+            [ button [ class "btn btn-danger" , onClick (OpenDeletionPopupCat category)]
+              [ text "Delete", i [ class "fa fa-times-circle"][]]
             ]
           , button [class "btn btn-default", type_ "button", onClick CloseDetails]
             [ text "Close", i [ class "fa fa-times"][]]

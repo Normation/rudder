@@ -81,6 +81,9 @@ view model =
       EditCategory details ->
         (editionTemplateCat model details False)
 
+      CreateCategory details ->
+        (editionTemplateCat model details True)
+
     modal = case model.modal of
       Nothing -> text ""
       Just (DeletionValidation rule) ->
@@ -130,6 +133,27 @@ view model =
               ]
             ]
           ]
+      Just (DeletionValidationCat category) ->
+        div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
+         [ div [ class "modal-dialog" ] [
+             div [ class "modal-content" ] [
+               div [ class "modal-header ng-scope" ] [
+                 h3 [ class "modal-title" ] [ text "Delete category"]
+               ]
+             , div [ class "modal-body" ] [
+                 text ("Are you sure you want to delete category '"++ category.name ++"'?")
+               ]
+             , div [ class "modal-footer" ] [
+                 button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
+                 [ text "Cancel " ]
+               , button [ class "btn btn-danger", onClick (ClosePopup (CallApi (deleteCategory category))) ]
+                 [ text "Delete "
+                 , i [ class "fa fa-times-circle" ] []
+                 ]
+               ]
+             ]
+           ]
+         ]
   in
     div [class "rudder-template"]
     [ div [class "template-sidebar sidebar-left"]
@@ -139,7 +163,7 @@ view model =
             [ span[][text "Rules"]
             ]
           , div [class "header-buttons"]
-            [ button [class "btn btn-default", type_ "button"][text "Add Category"]
+            [ button [class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s      ))][text "Add Category"]
             , button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s) ))][text "Create"]
             ]
           ]

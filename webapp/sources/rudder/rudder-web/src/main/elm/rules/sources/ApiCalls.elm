@@ -185,3 +185,19 @@ deleteRule rule model =
         }
   in
     send DeleteRule req
+
+deleteCategory : (Category Rule) -> Model -> Cmd Msg
+deleteCategory category model =
+  let
+    req =
+      request
+        { method  = "DELETE"
+        , headers = []
+        , url     = getUrl model "/rules/categories/" ++ category.id
+        , body    = emptyBody
+        , expect  = expectJson decodeDeleteCategoryResponse
+        , timeout = Nothing
+        , withCredentials = False
+        }
+  in
+    send DeleteCategory req
