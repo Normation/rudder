@@ -5,9 +5,9 @@ Rudder package manager
 
 Usage:
     rudder package [--debug] install-file <package.rpkg>...
-    rudder package [--debug] install <package> [--exact_version][--nightly] [--quiet]
+    rudder package [--debug] install <package> [--exact-version][--nightly] [--quiet]
     rudder package [--debug] upgrade-all [--nightly] [--quiet]
-    rudder package [--debug] show <package> [--exact_version] [--nightly]
+    rudder package [--debug] show <package> [--exact-version] [--nightly]
     rudder package [--debug] remove <package>...
     rudder package [--debug] search <package>...
     rudder package [--debug] list [--all]
@@ -15,7 +15,7 @@ Usage:
     rudder package [--debug] licenses [--quiet]
     rudder package [--debug] check-connection
     rudder package [--debug] rudder-postupgrade
-    rudder package [--debug] check-compatibility [--exact_version]
+    rudder package [--debug] check-compatibility [--exact-version]
     rudder package [--debug] plugin save-status
     rudder package [--debug] plugin restore-status
     rudder package [--debug] plugin enable <plugin>...
