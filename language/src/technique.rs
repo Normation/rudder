@@ -12,15 +12,20 @@ use crate::{
 use colored::Colorize;
 use lazy_static::lazy_static;
 use regex::{Captures, Regex};
+use serde::de::{MapAccess, Visitor};
+use serde::ser::SerializeStruct;
 use serde::{
     de::{self, Deserializer},
     Deserialize, Serialize, Serializer,
 };
+use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::{
     convert::TryFrom,
     fmt,
     str::{self, FromStr},
 };
+use toml::Value as TomlValue;
 use uuid::Uuid;
 
 // Techniques are limited subsets of CFEngine in JSON representation
@@ -200,8 +205,100 @@ enum MethodElem {
     MethodBlock(MethodBlock),
 }
 
+enum ReportingLogic {
+    Focus(String),
+    Sum,
+    Worst,
+}
+// Display is used for conversion to metadata format
+impl Display for ReportingLogic {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ReportingLogic::Focus(v) => write!(f, "\"focus:{}\'", v),
+            ReportingLogic::Sum => write!(f, "\"sum\""),
+            ReportingLogic::Worst => write!(f, "\"worst\""),
+        }
+    }
+}
+fn ser<S>(serializer: S, name: &str, value: Option<String>) -> std::result::Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let field_count = if value.is_none() { 1 } else { 2 };
+    let mut state = serializer.serialize_struct("ReportingLogic", field_count)?;
+    state.serialize_field("type", name)?;
+    if let Some(v) = value {
+        state.serialize_field("value", &v)?;
+    }
+    state.end()
+}
+// serialize is used for conversion to/from json technique format
+impl Serialize for ReportingLogic {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            ReportingLogic::Focus(v) => ser(serializer, "focus", Some(v.into())),
+            ReportingLogic::Sum => ser(serializer, "sum", None),
+            ReportingLogic::Worst => ser(serializer, "worst", None),
+        }
+    }
+}
+
+struct ReportingLogicVisitor;
+impl<'de> Visitor<'de> for ReportingLogicVisitor {
+    type Value = ReportingLogic;
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("an object with a type and an optional value")
+    }
+    fn visit_map<A>(self, mut map: A) -> std::result::Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut real_map: HashMap<&str, &str> = HashMap::new();
+        while let Some((k, v)) = map.next_entry()? {
+            real_map.insert(k, v);
+        }
+        if let Some(&ty) = real_map.get("type") {
+            if ty == "sum" {
+                Ok(ReportingLogic::Sum)
+            } else if ty == "worst" {
+                Ok(ReportingLogic::Worst)
+            } else if ty == "focus" {
+                if let Some(&value) = real_map.get("value") {
+                    Ok(ReportingLogic::Focus(value.into()))
+                } else {
+                    Err(serde::de::Error::custom(
+                        "Focus reporting logic needs a value",
+                    ))
+                }
+            } else {
+                Err(serde::de::Error::custom(format!(
+                    "Unknown reporting logic type {}",
+                    ty
+                )))
+            }
+        } else {
+            Err(serde::de::Error::custom("Missing reporting logic type"))
+        }
+    }
+}
+// This is the trait that informs Serde how to deserialize MyMap.
+impl<'de> Deserialize<'de> for ReportingLogic {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Instantiate our Visitor and ask the Deserializer to drive
+        // it over the input data, resulting in an instance of MyMap.
+        deserializer.deserialize_map(ReportingLogicVisitor)
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct MethodBlock {
+    reportingLogic: ReportingLogic,
     component: String,
     condition: String,
     calls: Vec<MethodElem>,
@@ -212,6 +309,7 @@ impl MethodBlock {
         let mut newContext = context.clone();
         let formatted_id = format!("@id = \"{}\"", self.id);
         let formatted_component = format!("@component = \"{}\"", self.component);
+        let formatted_reporting_logic = format!("@reporting_logic = {}", self.reportingLogic);
         newContext.push(self);
         let childs = self
             .calls
@@ -223,9 +321,10 @@ impl MethodBlock {
             .collect::<Result<Vec<String>>>()
             .map(|c| {
                 format!(
-                    "{}\n{}\n{{\n  {}\n  }}",
+                    "{}\n{}\n{}\n{{\n  {}\n  }}",
                     formatted_component,
                     formatted_id,
+                    formatted_reporting_logic,
                     c.join("\n  ")
                 )
             });
