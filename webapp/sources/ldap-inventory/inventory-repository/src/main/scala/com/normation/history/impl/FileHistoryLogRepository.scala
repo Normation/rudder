@@ -69,9 +69,9 @@ trait IdToFilenameConverter[ID] {
  * files
  */
 class FileHistoryLogRepository[ID:ClassTag,T](
-  val rootDir:String,
-  val marshaller:FileMarshalling[T],
-  val converter:IdToFilenameConverter[ID]
+  val rootDir  : String,
+  val parser   : FileMarshalling[T],
+  val converter: IdToFilenameConverter[ID]
 ) extends HistoryLogRepository[ID, DateTime,  T, DefaultHLog[ID,T]] {
 
   type HLog = DefaultHLog[ID,T]
@@ -106,7 +106,7 @@ class FileHistoryLogRepository[ID:ClassTag,T](
 
 
   /**
-   * Save a report and return the ID of the saved report, and
+   * Save an inventory and return the ID of the saved inventory, and
    * its version
    */
   def save(id: ID, data: T, datetime: DateTime = DateTime.now) : IOResult[HLog] = {
@@ -121,7 +121,7 @@ class FileHistoryLogRepository[ID:ClassTag,T](
         for {
           i     <- idDir(hlog.id)
           file  <- UIO(new File(i,vToS(hlog.version)))
-          datas <- marshaller.toFile(file,hlog.data)
+          datas <- parser.toFile(file,hlog.data)
         } yield hlog
     }
   }
@@ -174,7 +174,7 @@ class FileHistoryLogRepository[ID:ClassTag,T](
     for {
       i    <- idDir(id)
       file <- UIO(new File(i,vToS(version)))
-      data <- marshaller.fromFile(file)
+      data <- parser.fromFile(file)
     }yield DefaultHLog(id,version,data)
   }
 

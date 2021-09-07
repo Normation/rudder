@@ -37,7 +37,7 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.Inventory
 import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryMapper
@@ -53,13 +53,13 @@ object CheckOsType extends PreCommit {
 
   override val name = "pre_commit_inventory:check_os_type_is_known"
 
-  override def apply(report:InventoryReport) : IOResult[InventoryReport] = {
+  override def apply(inventory: Inventory) : IOResult[Inventory] = {
 
-    report.node.main.osDetails.os match {
+    inventory.node.main.osDetails.os match {
       case UnknownOSType =>
-        val xml = report.sourceReport\\"OPERATINGSYSTEM"
+        val xml = inventory.sourceFile \\ "OPERATINGSYSTEM"
         InventoryError.Inconsistency(s"Os Type is not suported (OS Type: '${(xml\\"KERNEL_NAME").text}'; OS Name: '${(xml\\"NAME").text}}')").fail
-      case _ => report.succeed
+      case _ => inventory.succeed
     }
 
   }
@@ -83,39 +83,39 @@ object CheckMachineName extends PreCommit {
 
   override val name = "pre_commit_inventory:check_machine_cn"
 
-  override def apply(report:InventoryReport) : IOResult[InventoryReport] = {
+  override def apply(inventory:Inventory) : IOResult[Inventory] = {
     //machine are in FullMachine and VMs
-    report.copy(
-      machine = checkName(report.machine),
-      vms = report.vms.map { m =>   checkName(m) }
+    inventory.copy(
+      machine = checkName(inventory.machine),
+      vms = inventory.vms.map { m =>   checkName(m) }
     ).succeed
   }
 }
 
 
 /**
- * Log the report to save
+ * Log the inventory to save
  */
-class LogReportPreCommit(
+class LogInventoryPreCommit(
   mapper:InventoryMapper,
-  ldifLogger:LDIFReportLogger
+  ldifLogger:LDIFInventoryLogger
 ) extends PreCommit {
-  private[this] def reportToLdif( report:InventoryReport ) = {
-    mapper.treeFromNode( report.node ).toLDIFRecords ++
-    mapper.treeFromMachine( report.machine ).toLDIFRecords ++
-    report.vms.flatMap( vm => mapper.treeFromMachine( vm ).toLDIFRecords ) ++
-    report.applications.map( s => mapper.entryFromSoftware( s ).toLDIFRecord )
+  private[this] def inventoryToLdif( invenotry:Inventory ) = {
+    mapper.treeFromNode( invenotry.node ).toLDIFRecords ++
+    mapper.treeFromMachine( invenotry.machine ).toLDIFRecords ++
+    invenotry.vms.flatMap( vm => mapper.treeFromMachine( vm ).toLDIFRecords ) ++
+    invenotry.applications.map( s => mapper.entryFromSoftware( s ).toLDIFRecord )
   }
 
   override val name = "pre_commit_inventory:log_inventory"
 
-  override def apply(report:InventoryReport) : IOResult[InventoryReport] = {
+  override def apply(inventory:Inventory) : IOResult[Inventory] = {
     ldifLogger.log(
-        report.name,
+        inventory.name,
         Some("LDIF describing the state of inventory to reach after save. What will be actually saved may be modified by pre/post processing"),
         Some("REPORT"),
-        reportToLdif(report))
-    report.succeed
+        inventoryToLdif(inventory))
+    inventory.succeed
   }
 
 }
@@ -129,12 +129,12 @@ class LastInventoryDate() extends PreCommit {
 
   override val name = "pre_commit_inventory:set_last_inventory_date"
 
-  override def apply(report:InventoryReport) : IOResult[InventoryReport] = {
+  override def apply(inventory:Inventory) : IOResult[Inventory] = {
     val now = DateTime.now()
 
-    report.copy (
-      node = report.node.copy( receiveDate = Some(now) ),
-      machine = report.machine.copy( receiveDate = Some(now) )
+    inventory.copy (
+      node = inventory.node.copy( receiveDate = Some(now) ),
+      machine = inventory.machine.copy( receiveDate = Some(now) )
     ).succeed
   }
 }
@@ -147,12 +147,10 @@ object AddIpValues extends PreCommit {
 
   override val name = "pre_commit_inventory:add_ip_values"
 
-  override def apply(report:InventoryReport) : IOResult[InventoryReport] = {
+  override def apply(inventory:Inventory) : IOResult[Inventory] = {
 
-    val ips = report.node.networks.flatMap(x => x.ifAddresses).map(x => x.getHostAddress() )
+    val ips = inventory.node.networks.flatMap(x => x.ifAddresses).map(x => x.getHostAddress() )
 
-    report.copy( node = report.node.copy( serverIps = ips ) ).succeed
-
-
+    inventory.copy( node = inventory.node.copy( serverIps = ips ) ).succeed
   }
 }

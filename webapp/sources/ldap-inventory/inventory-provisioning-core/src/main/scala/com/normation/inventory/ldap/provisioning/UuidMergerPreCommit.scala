@@ -39,7 +39,7 @@ package com.normation.inventory.ldap.provisioning
 
 
 import com.normation.errors.Chained
-import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.Inventory
 import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
@@ -58,7 +58,7 @@ object UuidMergerPreCommit {
  * between UUID of objects on the repository and new
  * coming object from automatic inventories.
  *
- * The service may fail if given an inconsistant report,
+ * The service may fail if given an inconsistant inventories,
  * or if the database is unavailable at time of merge.
  *
  */
@@ -85,20 +85,20 @@ class UuidMergerPreCommit(
    * Moreover, as we are in a automatic mode, all choices about such a situation
    * must be predefined (retry being optimistic ? How many time ? etc)
    *
-   * @return The actually saved InventoryReport, or a failure if one happened
+   * @return The actually saved inventory, or a failure if one happened
    */
-  override def apply(report: InventoryReport) : IOResult[InventoryReport] = {
+  override def apply(inventory: Inventory) : IOResult[Inventory] = {
 
 
     ///////
-    ////// we don't want to add anything about a report if any of the merging part fails /////
+    ////// we don't want to add anything about a inventory if any of the merging part fails /////
     //////
 
 
     for {
       //check some size matching
-       _ <- ZIO.when(report.node.softwareIds.toSet != report.applications.map( _.id ).toSet) {
-              val msg = "Inconsistant report. Server#softwareIds does not match list of application in the report"
+       _ <- ZIO.when(inventory.node.softwareIds.toSet != inventory.applications.map( _.id ).toSet) {
+              val msg = "Inconsistant inventory. Server#softwareIds does not match list of application in the inventory"
               InventoryProcessingLogger.error(msg) *> InventoryError.Inconsistency(msg).fail
             }
       /*
@@ -108,11 +108,11 @@ class UuidMergerPreCommit(
        * from the values in server
        *
        */
-       mergedSoftwares <- softwareIdFinder.tryWith(report.applications.toSet).mapError(e =>
+       mergedSoftwares <- softwareIdFinder.tryWith(inventory.applications.toSet).mapError(e =>
                             Chained("Error when trying to find existing software UUIDs", e)
                           )
     //update node's soft ids
-      node = report.node.copy(
+      node = inventory.node.copy(
                 softwareIds = (mergedSoftwares.alreadySavedSoftware.map( _.id ) ++ mergedSoftwares.newSoftware.map(_.id)).toSeq
               )
 
@@ -121,7 +121,7 @@ class UuidMergerPreCommit(
      * - server's software if one or more softwareId changed ;
      * - server's vms is one or more vms id changed
      */
-    vms <- ZIO.foreach(report.vms)(vm => mergeVm(vm)).catchAll(e =>
+    vms <- ZIO.foreach(inventory.vms)(vm => mergeVm(vm)).catchAll(e =>
              InventoryProcessingLogger.error(s"Error when merging vm. Reported message was: ${e.fullMsg}") *> e.fail
            )
     /*
@@ -143,24 +143,24 @@ class UuidMergerPreCommit(
 
         // now, set the correct machineId and status for machine
         val newMachineId = MachineUuid(IdGenerator.md5Hash(nodeWithStatus.main.id.value))
-        val newMachine   = report.machine.copy(id = newMachineId, status = nodeWithStatus.main.status)
+        val newMachine   = inventory.machine.copy(id = newMachineId, status = nodeWithStatus.main.status)
         val newNode      = nodeWithStatus.copy(machineId = Some((newMachineId, nodeWithStatus.main.status)))
 
         (newNode, newMachine)
       }
     } yield {
 
-      //ok, build the merged report
-      InventoryReport(
-          report.name
-        , report.inventoryAgentDevideId
+      //ok, build the merged inventory
+      Inventory(
+          inventory.name
+        , inventory.inventoryAgentDevideId
         , finalNodeMachine._1
         , finalNodeMachine._2
-        , report.version
+        , inventory.version
         , vms.flatten
         //no need to put again already saved softwares
         , mergedSoftwares.newSoftware.toSeq
-        , report.sourceReport
+        , inventory.sourceFile
       )
     }
   }

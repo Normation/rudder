@@ -38,12 +38,12 @@
 package com.normation.inventory.provisioning.fusion
 
 import scala.xml.Node
-import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.Inventory
 
 /**
  * A parsing extension is a partial function that
- * parse a tag and transform the report from that.
+ * parse a tag and transform the inventory from that.
  */
-abstract class FusionReportParsingExtension extends PartialFunction[(Node,InventoryReport) , InventoryReport] {
+abstract class FusionInventoryParserExtension extends PartialFunction[(Node,Inventory) , Inventory] {
 
 }

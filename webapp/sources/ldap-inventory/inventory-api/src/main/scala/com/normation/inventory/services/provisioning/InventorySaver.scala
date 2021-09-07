@@ -38,7 +38,7 @@
 package com.normation.inventory.services.provisioning
 
 import com.normation.inventory.domain.InventoryProcessingLogger
-import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.Inventory
 import com.normation.errors._
 import net.liftweb.common.Loggable
 import zio._
@@ -46,7 +46,7 @@ import zio._
 /**
  *
  * This service is in charge to persist
- * parsed and merged reports.
+ * parsed and merged inventories.
  *
  * In particular, this service has to deal with
  * consistency problems (no transaction on
@@ -62,50 +62,48 @@ import zio._
  * but it could be the new entity is the store can not provide
  * better information (LDAP can).
  */
-trait ReportSaver[R] {
+trait InventorySaver[R] {
 
-  def save(report:InventoryReport) : IOResult[R]
+  def save(inventory: Inventory) : IOResult[R]
 
 }
 
 
 /**
- * Propose a standard implementation type fory ReportSaver
+ * Propose a standard implementation type fory InventorySaver
  * based on pre- and post- process, and a "save" op in the
  * middle
  */
 
 
 
-trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
+trait PipelinedInventorySaver[R] extends InventorySaver[R] with Loggable {
 
   val preCommitPipeline:Seq[PreCommit]
   val postCommitPipeline:Seq[PostCommit[R]]
 
   /**
    * Here comes the logic to actually save change in the Directory
-   * @param report
-   * @return
    */
-  def commitChange(report:InventoryReport) : IOResult[R]
+  def commitChange(inventory:Inventory) : IOResult[R]
 
-  override def save(report:InventoryReport) : IOResult[R] = {
+  override def save(inventory:Inventory) : IOResult[R] = {
 
     val t0 = System.currentTimeMillis
 
     for {
       /*
        * Firstly, we let the chance to third part contributor to
-       * modify the report to be save, make additional synchro,
+       * modify the inventory to be save, make additional synchro,
        * etc.
        *
-       * An error here leads to the stop of the report saving
+       * An error here leads to the stop of the inventory saving
        * process, so be *really* careful about your error management
        */
-      postPreCommitReport <- ZIO.foldLeft(preCommitPipeline)(report){ (currentReport, preCommit) =>
+      postPreCommitInventory <- ZIO.foldLeft(preCommitPipeline)(inventory){ (currentInventory, preCommit) =>
         (for {
           t0  <- UIO(System.currentTimeMillis)
-          res <- preCommit(currentReport).chainError(s"Error in preCommit pipeline with processor '${preCommit.name}', abort")
+          res <- preCommit(currentInventory).chainError(s"Error in preCommit pipeline with processor '${preCommit.name}', abort")
           t1  <- UIO(System.currentTimeMillis)
           _   <- InventoryProcessingLogger.timing.trace(s"Precommit '${preCommit.name}': ${t1 - t0} ms")
         } yield {
@@ -117,25 +115,25 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
        */
 
       t1 <- UIO(System.currentTimeMillis)
-      _  <- InventoryProcessingLogger.timing.trace(s"Pre commit report: ${t1-t0} ms")
+      _  <- InventoryProcessingLogger.timing.trace(s"Pre commit inventory: ${t1-t0} ms")
 
-      commitedChange <- commitChange(postPreCommitReport).chainError("Exception when commiting inventory, abort.")
+      commitedChange <- commitChange(postPreCommitInventory).chainError("Exception when commiting inventory, abort.")
 
       t2 <- UIO(System.currentTimeMillis)
-      _  <- InventoryProcessingLogger.timing.trace(s"Commit report: ${t2-t1} ms")
+      _  <- InventoryProcessingLogger.timing.trace(s"Commit inventory: ${t2-t1} ms")
 
 
       /*
-       * now, post process report with third-party actions
+       * now, post process inventory with third-party actions
        */
-      postPostCommitReport <- ZIO.foldLeft(postCommitPipeline)(commitedChange) { (currentChanges, postCommit) =>
-        postCommit(postPreCommitReport, currentChanges).chainError(s"Error in postCommit pipeline with processor '${postCommit.name}'. The commit was done, we may be in a inconsistent state.")
+      postPostCommitInventory <- ZIO.foldLeft(postCommitPipeline)(commitedChange) { (currentChanges, postCommit) =>
+        postCommit(postPreCommitInventory, currentChanges).chainError(s"Error in postCommit pipeline with processor '${postCommit.name}'. The commit was done, we may be in a inconsistent state.")
       }
 
       t3 <- UIO(System.currentTimeMillis)
-      _  <- InventoryProcessingLogger.timing.trace(s"Post commit report: ${t3-t2} ms")
+      _  <- InventoryProcessingLogger.timing.trace(s"Post commit inventory: ${t3-t2} ms")
     } yield {
-      postPostCommitReport
+      postPostCommitInventory
     }
   }
 

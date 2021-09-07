@@ -53,7 +53,7 @@ import zio._
  * The file is actually an LDIF file in which each entry is serialized in its
  * LDIFEntry format.
  */
-class FullInventoryFileMarshalling(
+class FullInventoryFileParser(
     fromLdapEntries : FullInventoryFromLdapEntries,
     mapper:InventoryMapper
 ) extends FileMarshalling[FullInventory] {
@@ -100,12 +100,12 @@ object NodeIdConverter extends IdToFilenameConverter[NodeId] {
 }
 
 /**
- * History of Inventory reports (server and machine inventory,
+ * History of inventories (server and machine inventory,
  * not software inventory)
  * They are saved on filesystem in their LDIFRecord representation
  */
 class InventoryHistoryLogRepository(
   override val rootDir:String,
-  override val marshaller:FullInventoryFileMarshalling
-) extends FileHistoryLogRepository[NodeId,FullInventory](rootDir,marshaller,NodeIdConverter)
+  override val parser :FullInventoryFileParser
+) extends FileHistoryLogRepository[NodeId,FullInventory](rootDir,parser,NodeIdConverter)
 

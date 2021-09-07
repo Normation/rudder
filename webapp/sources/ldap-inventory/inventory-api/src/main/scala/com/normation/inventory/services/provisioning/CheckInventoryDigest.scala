@@ -153,7 +153,7 @@ object ParsedSecurityToken {
  */
 trait GetKey {
 
-  def getKey (receivedInventory  : InventoryReport) : IOResult[(SecurityToken, KeyStatus)]
+  def getKey (receivedInventory  : Inventory) : IOResult[(SecurityToken, KeyStatus)]
 
    def parseSecurityToken(token: SecurityToken): IOResult[ParsedSecurityToken] = {
       token match {
@@ -173,7 +173,7 @@ class InventoryDigestServiceV1(
    * either an inventory has already been treated before, it will look into ldap repository
    * or if there was no inventory before, it will look for the key in the received inventory
    */
-  def getKey (receivedInventory  : InventoryReport) : IOResult[(SecurityToken, KeyStatus)] = {
+  def getKey (receivedInventory  : Inventory) : IOResult[(SecurityToken, KeyStatus)] = {
 
     def extractKey (node : NodeInventory) : IOResult[SecurityToken]= {
       for {

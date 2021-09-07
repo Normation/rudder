@@ -37,14 +37,16 @@
 
 package com.normation.inventory.services.provisioning
 
+import scala.xml.NodeSeq
+import com.normation.errors._
+
 /**
- * Our default report unmarshaller is just an
- * implement of the pipelinedReportUnmarshaller
- * that is built with a base reportUnmarshaller
- * and a sequence of post process action.
- *
+ * This traits allows to pre process inventory to manage specific data
  */
-class DefaultReportUnmarshaller(
-    override val reportUnmarshaller: ParsedReportUnmarshaller,
-    override val preUnmarshallPipeline: Seq[PreUnmarshall]
-) extends PipelinedReportUnmarshaller
+trait PreInventoryParser {
+
+  def name : String
+
+  def apply(inventory: NodeSeq) : IOResult[NodeSeq]
+}
+

@@ -58,7 +58,7 @@ sealed trait AgentType {
 
   /*
    * This is the old, short name, which used to be used in LDAP "agentName"
-   * attribute and in (very old) fusion inventory reports (i.e: community, nova).
+   * attribute and in (very old) fusion inventories (i.e: community, nova).
    */
   def oldShortName: String
 
@@ -73,9 +73,9 @@ sealed trait AgentType {
   def toRulesPath: String
 
   /*
-   * This is the list of <AGENTNAME> to look for in fusion inventory report of LDAP
+   * This is the list of <AGENTNAME> to look for in inventory and in LDAP
    * to choose the agent type.
-   * - in inventory report: <AGENTNAME>dsc</AGENTNAME> ("Community" => "cfengine-community", "Nova" => "cfengine-nova")
+   * - in inventory file: <AGENTNAME>dsc</AGENTNAME> ("Community" => "cfengine-community", "Nova" => "cfengine-nova")
    * - in LDAP agentName attribute
    * This is a set, because we want to accept renaming along the way.
    * Everything must be lower case in it.

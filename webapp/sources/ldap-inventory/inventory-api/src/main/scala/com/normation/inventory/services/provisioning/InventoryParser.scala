@@ -37,7 +37,7 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.Inventory
 import java.io.InputStream
 
 import com.normation.inventory.domain.InventoryError
@@ -49,7 +49,7 @@ import scala.xml._
 
 
 /**
- * General interface to process File report
+ * General interface to process inventory files
  * and transform them into system object
  *
  * In the future, it would be great if it was a separate jar
@@ -59,14 +59,14 @@ import scala.xml._
  * before inventing again the wheel. Perhaps should we take a look at
  * http://camel.apache.org/component.html
  */
-trait ReportUnmarshaller {
+trait InventoryParser {
 
   /**
    * Return the computer from the given input stream
    *
    * If the parsing does not succeed, we return Failure.
-   * Else, we return a {@see Report} (more information about the
-   * report structure on the object definition)
+   * Else, we return an {@see Inventory} (more information about the
+   * inventory structure on the object definition)
    *
    * This method is rather lax, in the meaning that almost any value can be empty (even Ids),
    * or not full, or partially false. We let all the sanitization / reconciliation / merging
@@ -75,53 +75,54 @@ trait ReportUnmarshaller {
    * In particular, we DO NOT bind os, vms and container here (what means that os#containers will
    * be empty even if the List<Container<StringId>> is not.
    */
-  def fromXml(reportName:String, s:InputStream) : IOResult[InventoryReport]
+  def fromXml(inventoryName: String, s: InputStream) : IOResult[Inventory]
 
 }
 
 /**
- * A version of the ReportUnmarshaller that take care of the parsing
- * of the input stream into an XML doc.
+ * A version of the InventoryParser that take care of the parsing
+ * of the input stream into an XML doc, and so implementation can
+ * directly deal with the XML document.
  */
-trait ParsedReportUnmarshaller extends ReportUnmarshaller {
+trait XmlInventoryParser extends InventoryParser {
 
-  override def fromXml(reportName:String,is:InputStream) : IOResult[InventoryReport] = {
+  override def fromXml(inventoryName:String,is:InputStream) : IOResult[Inventory] = {
     (Task.effect {
       XML.load(is)
     } mapError { ex =>
-      InventoryError.Deserialisation("Cannot parse uploaded file as an XML Fusion Inventory report", ex)
+      InventoryError.Deserialisation("Cannot parse uploaded file as an XML Fusion Inventory file", ex)
     }).flatMap( doc =>
       if(doc.isEmpty) {
-        InventoryError.Inconsistency("Fusion Inventory report seem's to be empty").fail
+        InventoryError.Inconsistency("Fusion Inventory file seem's to be empty").fail
       } else {
-        this.fromXmlDoc(reportName, doc)
+        this.fromXmlDoc(inventoryName, doc)
       }
     )
   }
 
-  def fromXmlDoc(reportName:String, xml:NodeSeq) : IOResult[InventoryReport]
+  def fromXmlDoc(inventoryName: String, xml:NodeSeq) : IOResult[Inventory]
 }
 
 /**
- * A pipelined default implementation of the ReportUnmarshaller that
+ * A pipelined default implementation of the InventoryParser that
  * allows to add PostMarshall processor to manage non default datas.
  */
-trait PipelinedReportUnmarshaller extends ParsedReportUnmarshaller {
+trait PipelinedInventoryParser extends XmlInventoryParser {
 
-  def preUnmarshallPipeline : Seq[PreUnmarshall]
-  def reportUnmarshaller : ParsedReportUnmarshaller
+  def preParsingPipeline : Seq[PreInventoryParser]
+  def inventoryParser : XmlInventoryParser
 
-  override def fromXmlDoc(reportName:String, xml:NodeSeq) : IOResult[InventoryReport] = {
-    //init pipeline with the data structure initialized by the configured reportUnmarshaller
+  override def fromXmlDoc(inventoryName:String, xml:NodeSeq) : IOResult[Inventory] = {
+    //init pipeline with the data structure initialized by the configured inventoryParser
     for {
        //run each post processor of the pipeline sequentially, stop on the first which
        //return an empty result
-      preProcessingOk <- ZIO.foldLeft(preUnmarshallPipeline)(xml) { (report, preUnmarshall) =>
-        preUnmarshall(report).chainError(s"Error when post processing report with '${preUnmarshall.name}', abort")
+      preProcessingOk <- ZIO.foldLeft(preParsingPipeline)(xml) { (inventory, preParsing) =>
+        preParsing(inventory).chainError(s"Error when post processing inventory with '${preParsing.name}', abort")
       }
-      reportParsed <- reportUnmarshaller.fromXmlDoc(reportName, preProcessingOk).chainError("Can not parse the given report, abort")
+      inventoryParsed <- inventoryParser.fromXmlDoc(inventoryName, preProcessingOk).chainError("Can not parse the given inventory file, abort")
     } yield {
-      reportParsed
+      inventoryParsed
     }
   }
 }
