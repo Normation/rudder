@@ -8,12 +8,12 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
 
-init : { contextPath : String } -> ( Model, Cmd Msg )
+init : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
 init flags =
   let
 
     initCategory      = Category "" "" "" (SubCategories []) []
-    initModel = Model flags.contextPath Loading "" initCategory initCategory initCategory [] [] Nothing
+    initModel = Model flags.contextPath Loading "" initCategory initCategory initCategory [] [] Nothing flags.hasWriteRights
 
     listInitActions =
       [ getPolicyMode      initModel

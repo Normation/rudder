@@ -390,3 +390,8 @@ ul.applied-list > .add-target > .fa{
 .main-table table tbody > tr {
   cursor: pointer;
 }
+
+form.readonly-form .form-group,
+form.readonly-form .tags-container{
+  margin-bottom: 15px;
+}
