@@ -81,7 +81,6 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
 import com.normation.rudder.services.policies.write.PolicyWriterService
-import com.normation.rudder.services.reports.CacheComplianceQueueAction
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.utils.Control._
 import net.liftweb.common._
@@ -1397,9 +1396,8 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
   }
 
   override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = {
-    cachedNodeConfigurationService.invalidateWithAction(actions) *>
-    complianceCache.invalidateWithAction(actions.map { case (k,v) => (k,CacheComplianceQueueAction.ExpectedReportAction(v))})
-  }
+    cachedNodeConfigurationService.invalidateWithAction(actions)
+    }
 
   override def saveExpectedReports(
       expectedReports: List[NodeExpectedReports]
