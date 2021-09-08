@@ -4,10 +4,7 @@ import ApiCalls exposing (..)
 import DataTypes exposing (..)
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
-
+-- PORTS
 init : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
 init flags =
   let
@@ -19,10 +16,10 @@ init flags =
 
     listInitActions =
       [ getPolicyMode      initModel
-      , getRulesTree       initModel
+      , getRulesCompliance initModel
       , getGroupsTree      initModel
       , getTechniquesTree  initModel
-      , getRulesCompliance initModel
+      , getRulesTree       initModel
       ]
   in
     ( initModel

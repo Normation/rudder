@@ -188,8 +188,8 @@ type alias Model =
 
 type Msg
   = GenerateId (String -> Msg)
-  | OpenRuleDetails RuleId
-  | OpenCategoryDetails (Category Rule)
+  | OpenRuleDetails RuleId Bool
+  | OpenCategoryDetails String Bool
   | CloseDetails
   | SelectGroup RuleTarget Bool
   | UpdateRuleForm RuleDetails
@@ -199,6 +199,7 @@ type Msg
   | CallApi                  (Model -> Cmd Msg)
   | GetRuleDetailsResult     (Result Error Rule)
   | GetPolicyModeResult      (Result Error String)
+  | GetCategoryDetailsResult (Result Error (Category Rule))
   | GetRulesComplianceResult (Result Error (List RuleCompliance))
   | SaveRuleDetails          (Result Error Rule)
   | SaveDisableAction        (Result Error Rule)
