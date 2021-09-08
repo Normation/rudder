@@ -32,7 +32,7 @@ class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
           </div>
           <script type="text/javascript">
             // <![CDATA[
-            window.setTimeout('location.reload()', 4000);
+            window.setTimeout('location.reload()', 10000);
             // ]]>
           </script>
         </div>
