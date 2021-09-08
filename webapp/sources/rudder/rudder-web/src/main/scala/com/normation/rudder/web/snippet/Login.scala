@@ -25,19 +25,29 @@ class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
           </div>
           <div class="row" style="margin-top:10px">
             <span class="cmd-server text-center col-xs-8 col-xs-offset-2">
-              <span class="cmd-text">
+              <span id="cmd-user" class="cmd-text">
                 rudder server create-user -u &lt;username&gt;
               </span>
             </span>
+            <button class="btn btn-xs btn-cmd-user btn-clipboard" data-clipboard-text="rudder server create-user -u " data-toggle='tooltip' data-placement='bottom' data-container="html" title="Copy to clipboard">
+              <i class="far fa-clipboard"></i>
+            </button>
           </div>
           <script type="text/javascript">
             // <![CDATA[
-            window.setTimeout('location.reload()', 4000);
+            window.setTimeout('location.reload()', 10000);
+            new ClipboardJS('.btn-clipboard');
+            var btn = document.getElementsByClassName('btn-cmd-user');
+            btn[0].onclick = function(){
+              document.getElementsByClassName("fa-clipboard")[0].setAttribute("class", "fas fa-check") ;
+              var checked = setInterval(function(){
+                document.getElementsByClassName("fa-check")[0].setAttribute("class", "far fa-clipboard") ;
+               },3000);
+            }
             // ]]>
           </script>
         </div>
       } else authForm
     }
   )
-
 }

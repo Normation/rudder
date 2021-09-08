@@ -211,6 +211,13 @@ html,body{
 .cmd-text {
   color: #0366d6;
 }
+.btn-cmd-user {
+  background: white;
+  margin-top:8px;
+}
+.btn-cmd-user:hover {
+  color: #0366d6;
+}
 .rudder-form .form-group.has-error label {
     color: #C50000;
 }
