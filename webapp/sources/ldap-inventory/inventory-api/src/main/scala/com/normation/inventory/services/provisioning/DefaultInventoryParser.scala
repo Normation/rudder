@@ -37,17 +37,14 @@
 
 package com.normation.inventory.services.provisioning
 
-import scala.xml.NodeSeq
-import com.normation.errors._
-
-
 /**
- * This traits allows to pre process report to manage specific data
+ * Our default inventory parser is just an
+ * implement of the pipelinedInventoryParser
+ * that is built with a base inventoryParser
+ * and a sequence of post process action.
+ *
  */
-trait PreUnmarshall {
-
-  def name : String
-
-  def apply(report:NodeSeq) : IOResult[NodeSeq]
-}
-
+class DefaultInventoryParser(
+    override val inventoryParser: XmlInventoryParser,
+    override val preParsingPipeline: Seq[PreInventoryParser]
+) extends PipelinedInventoryParser

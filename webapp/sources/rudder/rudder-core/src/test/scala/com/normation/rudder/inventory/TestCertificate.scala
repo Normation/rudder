@@ -43,7 +43,7 @@ import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
 import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.FullInventory
-import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.MachineUuid
 import com.normation.inventory.domain.NodeId
@@ -59,7 +59,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import com.normation.inventory.provisioning.fusion.FusionReportUnmarshaller
+import com.normation.inventory.provisioning.fusion.FusionInventoryParser
 import com.normation.zio._
 import zio._
 import zio.syntax._
@@ -75,19 +75,19 @@ class TestCertificate extends Specification with Loggable {
 
   // our callback logic to wait for save done
   var saveDone = false
-  val callback = (_:InventoryReport) => effectUioUnit{ saveDone = true }
+  val callback = (_:Inventory) => effectUioUnit{ saveDone = true }
   def waitSaveDone: Unit = {
     while(!saveDone) { Thread.sleep(20)}
   }
   // end callback logic
 
-  val parser = new FusionReportUnmarshaller(new StringUuidGeneratorImpl)
+  val parser = new FusionInventoryParser(new StringUuidGeneratorImpl)
 
 
   // we need a callback after add to avoid flappy tests
-  val reportSaver = new ReportSaver[Seq[LDIFChangeRecord]] {
-    val postCommitCallback: InventoryReport => UIO[Unit] = callback
-    override def save(report: InventoryReport): IOResult[Seq[LDIFChangeRecord]] = IOResult.effect {
+  val reportSaver = new InventorySaver[Seq[LDIFChangeRecord]] {
+    val postCommitCallback: Inventory => UIO[Unit] = callback
+    override def save(report: Inventory): IOResult[Seq[LDIFChangeRecord]] = IOResult.effect {
       Thread.sleep(100) // false delay to be sure we match what is really inserted, not what is previously there
       repository += ((report.node.main.id, FullInventory(report.node, Some(report.machine))))
     }.map(_ => Nil).tap(_ => postCommitCallback(report))

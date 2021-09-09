@@ -40,7 +40,7 @@ import java.io.InputStream
 import java.security.Security
 
 import com.normation.inventory.domain.InventoryError
-import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.Inventory
 import com.normation.errors._
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.SecurityToken
@@ -67,10 +67,10 @@ class TestSignatureService extends Specification with Loggable {
     }.mapError(e => SystemError(s"Error opening '${path}'", e))
   }
 
-  private[this] implicit class TestParser(parser: FusionReportUnmarshaller) {
-    def parse(reportRelativePath: String): IOResult[InventoryReport] = {
-      ZIO.bracket(getInputStream(reportRelativePath))(is => Task.effect(is.close).run) { is =>
-        parser.fromXml("report", is)
+  private[this] implicit class TestParser(parser: FusionInventoryParser) {
+    def parse(inventoryRelativePath: String): IOResult[Inventory] = {
+      ZIO.bracket(getInputStream(inventoryRelativePath))(is => Task.effect(is.close).run) { is =>
+        parser.fromXml("inventory", is)
       }
     }
   }
@@ -82,7 +82,7 @@ class TestSignatureService extends Specification with Loggable {
      * either an inventory has already been treated before, it will look into ldap repository
      * or if there was no inventory before, it will look for the key in the received inventory
      */
-    def getKey (receivedInventory  : InventoryReport) : IOResult[(SecurityToken, KeyStatus)] = {
+    def getKey (receivedInventory: Inventory) : IOResult[(SecurityToken, KeyStatus)] = {
       for {
         cfengineKey <- ZIO.fromOption(receivedInventory.node.agents.headOption).mapError(_ => InventoryError.Inconsistency("There is no public key in inventory"))
         keyStatus = receivedInventory.node.main.keyStatus
@@ -95,13 +95,13 @@ class TestSignatureService extends Specification with Loggable {
 
   val keyNorm = new PrintedKeyNormalizer
 
-  val parser = new FusionReportUnmarshaller(new StringUuidGeneratorImpl)
+  val parser = new FusionInventoryParser(new StringUuidGeneratorImpl)
 
   def parseSignature(path: String): IOResult[InventoryDigest] = {
      IO.bracket(getInputStream(path))(is => effectUioUnit(is.close))(TestInventoryDigestServiceV1.parse)
   }
 
-  val boxedSignature = parseSignature("fusion-report/signed_inventory.ocs.sign")
+  val boxedSignature = parseSignature("fusion-inventories/signed_inventory.ocs.sign")
 
   "Signature file" should {
     "contain use sha512 algorithm" in {
@@ -113,13 +113,13 @@ class TestSignatureService extends Specification with Loggable {
     }
   }
 
-  "a signed report" should {
+  "a signed inventory" should {
     "Be ok if checked with correct signature" in {
       ZioRuntime.unsafeRun(for {
-        signature     <- boxedSignature
-        signed_report <- parser.parse("fusion-report/signed_inventory.ocs")
-        token         <- TestInventoryDigestServiceV1.getKey(signed_report)
-        check         <- ZIO.bracket(getInputStream("fusion-report/signed_inventory.ocs"))(is => Task.effect(is.close).run)(is =>
+        signature  <- boxedSignature
+        signed_inv <- parser.parse("fusion-inventories/signed_inventory.ocs")
+        token      <- TestInventoryDigestServiceV1.getKey(signed_inv)
+        check      <- ZIO.bracket(getInputStream("fusion-inventories/signed_inventory.ocs"))(is => Task.effect(is.close).run)(is =>
           for {
             parsed <- TestInventoryDigestServiceV1.parseSecurityToken(token._1)
             check  <- TestInventoryDigestServiceV1.check(parsed.publicKey, signature, is)
@@ -131,10 +131,10 @@ class TestSignatureService extends Specification with Loggable {
 
     "Be wrong if checked with wrong signature" in {
       ZioRuntime.unsafeRun(for {
-        signature       <- boxedSignature
-        unsigned_report <- parser.parse("fusion-report/node-with-server-role-attribute.ocs")
-        token           <- TestInventoryDigestServiceV1.getKey(unsigned_report)
-        check           <- ZIO.bracket(getInputStream("fusion-report/node-with-server-role-attribute.ocs"))(is => Task.effect(is.close).run)(is =>
+        signature    <- boxedSignature
+        unsigned_inv <- parser.parse("fusion-inventories/node-with-server-role-attribute.ocs")
+        token        <- TestInventoryDigestServiceV1.getKey(unsigned_inv)
+        check        <- ZIO.bracket(getInputStream("fusion-inventories/node-with-server-role-attribute.ocs"))(is => Task.effect(is.close).run)(is =>
           for {
             parsed <- TestInventoryDigestServiceV1.parseSecurityToken(token._1)
             check  <- TestInventoryDigestServiceV1.check(parsed.publicKey, signature, is)

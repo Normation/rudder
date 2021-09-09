@@ -48,10 +48,10 @@ import zio._
  * with given name (a timestamp will be added)
  * File will be stored under a configured directory
  */
-trait LDIFReportLogger extends Any {
+trait LDIFInventoryLogger extends Any {
   /**
    *
-   * @param reportName
+   * @param inventoryName
    *  a name from witch the log id will be derived
    * @param comments
    *  an optional comment to append at the top of the file
@@ -62,14 +62,14 @@ trait LDIFReportLogger extends Any {
    * @return the generated id / path for the log
    */
   def log(
-      reportName : String
-    , comments   : Option[String]
-    , tag        : Option[String]
-    , LDIFRecords: => Seq[LDIFRecord]
+      inventoryName: String
+    , comments     : Option[String]
+    , tag          : Option[String]
+    , LDIFRecords  : => Seq[LDIFRecord]
   ) : Task[String]
 }
 
-object DefaultLDIFReportLogger {
+object DefaultLDIFInventoryLogger {
   val logger = NamedZioLogger("trace.ldif.in.file")
   val defaultLogDir = System.getProperty("java.io.tmpdir") +
     System.getProperty("file.separator") + "LDIFLogReport"
@@ -77,9 +77,9 @@ object DefaultLDIFReportLogger {
 
 import java.io.File
 
-import com.normation.inventory.ldap.provisioning.DefaultLDIFReportLogger.logger
+import com.normation.inventory.ldap.provisioning.DefaultLDIFInventoryLogger.logger
 
-class DefaultLDIFReportLogger(val LDIFLogDir:String = DefaultLDIFReportLogger.defaultLogDir) extends LDIFReportLogger {
+class DefaultLDIFInventoryLogger(val LDIFLogDir:String = DefaultLDIFInventoryLogger.defaultLogDir) extends LDIFInventoryLogger {
 
   def rootDir = {
     val dir = new File(LDIFLogDir)
@@ -99,15 +99,15 @@ class DefaultLDIFReportLogger(val LDIFLogDir:String = DefaultLDIFReportLogger.de
   }
 
   def log(
-      reportName : String
-    , comments   : Option[String]
-    , tag        : Option[String]
-    , LDIFRecords: => Seq[LDIFRecord]
+      inventoryName: String
+    , comments     : Option[String]
+    , tag          : Option[String]
+    , LDIFRecords  : => Seq[LDIFRecord]
   ) : Task[String] = {
-    val LDIFFile = fileFromName(reportName,tag)
+    val LDIFFile = fileFromName(inventoryName,tag)
     ZIO.when(logger.logEffect.isTraceEnabled) {
       IO.bracket(IO.effect(new LDIFWriter(LDIFFile)))(writer =>  IO.effect(writer.close).catchAll(ex =>
-        logger.debug("LDIF log for report processing: " + LDIFFile.getAbsolutePath)
+        logger.debug("LDIF log for inventory processing: " + LDIFFile.getAbsolutePath)
       )) { writer =>
         Task.effect {
           val ldif = LDIFRecords //that's important, else we evaluate again and again LDIFRecords

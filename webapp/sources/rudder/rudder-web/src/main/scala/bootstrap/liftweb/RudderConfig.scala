@@ -56,28 +56,28 @@ import com.normation.inventory.ldap.core._
 import com.normation.inventory.ldap.provisioning.AddIpValues
 import com.normation.inventory.ldap.provisioning.CheckMachineName
 import com.normation.inventory.ldap.provisioning.CheckOsType
-import com.normation.inventory.ldap.provisioning.DefaultLDIFReportLogger
-import com.normation.inventory.ldap.provisioning.DefaultReportSaver
+import com.normation.inventory.ldap.provisioning.DefaultLDIFInventoryLogger
+import com.normation.inventory.ldap.provisioning.DefaultInventorySaver
 import com.normation.inventory.ldap.provisioning.FromMotherBoardUuidIdFinder
 import com.normation.inventory.ldap.provisioning.LastInventoryDate
-import com.normation.inventory.ldap.provisioning.LogReportPreCommit
+import com.normation.inventory.ldap.provisioning.LogInventoryPreCommit
 import com.normation.inventory.ldap.provisioning.NameAndVersionIdFinder
 import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
 import com.normation.inventory.ldap.provisioning.PostCommitLogger
 import com.normation.inventory.ldap.provisioning.UseExistingMachineIdFinder
 import com.normation.inventory.ldap.provisioning.UseExistingNodeIdFinder
 import com.normation.inventory.ldap.provisioning.UuidMergerPreCommit
-import com.normation.inventory.provisioning.fusion.FusionReportUnmarshaller
-import com.normation.inventory.provisioning.fusion.PreUnmarshallCheckConsistency
+import com.normation.inventory.provisioning.fusion.FusionInventoryParser
+import com.normation.inventory.provisioning.fusion.PreInventoryParserCheckConsistency
 import com.normation.inventory.services.core._
-import com.normation.inventory.services.provisioning.DefaultReportUnmarshaller
+import com.normation.inventory.services.provisioning.DefaultInventoryParser
 import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
 import com.normation.inventory.services.provisioning.MachineDNFinderService
 import com.normation.inventory.services.provisioning.NamedMachineDNFinderAction
 import com.normation.inventory.services.provisioning.NamedNodeInventoryDNFinderAction
 import com.normation.inventory.services.provisioning.NodeInventoryDNFinderService
 import com.normation.inventory.services.provisioning.PreCommit
-import com.normation.inventory.services.provisioning.ReportUnmarshaller
+import com.normation.inventory.services.provisioning.InventoryParser
 import com.normation.ldap.sdk._
 import com.normation.plugins.FilePluginSettingsService
 import com.normation.plugins.ReadPluginPackageInfo
@@ -1120,19 +1120,19 @@ object RudderConfig extends Loggable {
     , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
 
-  lazy val pipelinedReportUnmarshaller : ReportUnmarshaller = {
+  lazy val pipelinedInventoryParser: InventoryParser = {
     val fusionReportParser = {
-      new FusionReportUnmarshaller(
+      new FusionInventoryParser(
           uuidGen
         , rootParsingExtensions    = Nil
         , contentParsingExtensions = Nil
       )
     }
 
-    new DefaultReportUnmarshaller(
+    new DefaultInventoryParser(
      fusionReportParser,
      Seq(
-         new PreUnmarshallCheckConsistency
+         new PreInventoryParserCheckConsistency
      )
     )
   }
@@ -1162,8 +1162,8 @@ object RudderConfig extends Loggable {
   )
   )
 
-  lazy val ldifReportLogger = new DefaultLDIFReportLogger(LDIF_TRACELOG_ROOT_DIR)
-  lazy val reportSaver = new DefaultReportSaver(
+  lazy val ldifInventoryLogger = new DefaultLDIFInventoryLogger(LDIF_TRACELOG_ROOT_DIR)
+  lazy val inventorySaver      = new DefaultInventorySaver(
       rwLdap
     , acceptedNodesDit
     , inventoryMapper
@@ -1173,12 +1173,12 @@ object RudderConfig extends Loggable {
       :: CheckMachineName
       :: new LastInventoryDate()
       :: AddIpValues
-      :: new LogReportPreCommit(inventoryMapper,ldifReportLogger)
+      :: new LogInventoryPreCommit(inventoryMapper,ldifInventoryLogger)
       :: Nil
       )
     , (
          new PendingNodeIfNodeWasRemoved(fullInventoryRepository)
-      :: new PostCommitLogger(ldifReportLogger)
+      :: new PostCommitLogger(ldifInventoryLogger)
       :: new PostCommitInventoryHooks(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
       :: Nil
       )
@@ -1211,8 +1211,8 @@ object RudderConfig extends Loggable {
         Math.max(1, Math.ceil(Runtime.getRuntime.availableProcessors().toDouble/2).toLong)
     }
     new InventoryProcessor(
-        pipelinedReportUnmarshaller
-      , reportSaver
+        pipelinedInventoryParser
+      , inventorySaver
       , WAITING_QUEUE_SIZE
       , maxParallel
       , fullInventoryRepository
@@ -1664,7 +1664,7 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val nodeSummaryServiceImpl = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
   private[this] lazy val diffRepos: InventoryHistoryLogRepository =
-    new InventoryHistoryLogRepository(HISTORY_INVENTORIES_ROOTDIR, new FullInventoryFileMarshalling(fullInventoryFromLdapEntries, inventoryMapper))
+    new InventoryHistoryLogRepository(HISTORY_INVENTORIES_ROOTDIR, new FullInventoryFileParser(fullInventoryFromLdapEntries, inventoryMapper))
 
   private[this] lazy val personIdentServiceImpl = new TrivialPersonIdentService
 

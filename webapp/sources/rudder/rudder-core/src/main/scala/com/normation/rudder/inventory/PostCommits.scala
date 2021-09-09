@@ -38,7 +38,7 @@
 package com.normation.rudder.inventory
 
 import com.normation.errors._
-import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain._
 import com.normation.inventory.services.provisioning._
 import com.normation.rudder.hooks.HookEnvPairs
@@ -50,7 +50,7 @@ import zio.syntax._
 
 /*
  * This file contains post commit action to
- * weave in with the report saver.
+ * weave in with the inventory saver.
  */
 
 
@@ -67,8 +67,8 @@ class PostCommitInventoryHooks(
 
   override val name = "post_commit_inventory:run_node-inventory-received_hooks"
 
-  override def apply(report: InventoryReport, records: Seq[LDIFChangeRecord]) : IOResult[Seq[LDIFChangeRecord]] = {
-    val node = report.node.main
+  override def apply(inventory: Inventory, records: Seq[LDIFChangeRecord]) : IOResult[Seq[LDIFChangeRecord]] = {
+    val node = inventory.node.main
     val hooks = (for {
       systemEnv <- IOResult.effect(System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq:_*))
       hooks     <- if(node.status == PendingInventory) {
@@ -90,8 +90,8 @@ class PostCommitInventoryHooks(
                                        , ("RUDDER_NODE_OS_VERSION"      , node.osDetails.version.value)
                                        , ("RUDDER_NODE_OS_SP"           , node.osDetails.servicePack.getOrElse(""))
                                        , ("RUDDER_NODE_OS_STRING"       , node.osDetails.fullName)
-                                       , ("RUDDER_NODE_IPS"             , report.node.serverIps.mkString(" "))
-                                       , ("RUDDER_AGENT_TYPE"           , report.node.agents.headOption.map(_.agentType.id).getOrElse("unknown"))
+                                       , ("RUDDER_NODE_IPS"             , inventory.node.serverIps.mkString(" "))
+                                       , ("RUDDER_AGENT_TYPE"           , inventory.node.agents.headOption.map(_.agentType.id).getOrElse("unknown"))
                                      )
                                      , systemEnv
                                      , 1.minutes // warn if a hook took more than a minute

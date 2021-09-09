@@ -11394,7 +11394,7 @@ Hpeho+TUHb5rkJW+BlfzdGIWXfP9ZNiYIwIDAQAB
       <ARCH>all</ARCH>
       <FILESIZE>177</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>python3-problem-report</NAME>
+      <NAME>python3-problem-inventory</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
       <VERSION>2.14.1-0ubuntu3.27</VERSION>
     </SOFTWARES>

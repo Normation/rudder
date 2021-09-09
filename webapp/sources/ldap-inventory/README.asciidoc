@@ -1,4 +1,4 @@
-# LDAP inventory: store Fusion Inventory report into LDAP directory
+# LDAP inventory: store Fusion Inventories into LDAP directory
 
 This project is part of Rudder - IT infrastructure Automation and Compliance.
 See: http://rudder.io for more information.
@@ -9,23 +9,23 @@ other general information.
 == Synopsis
 
 The main goal of this project is to get Fusion Inventory
-(http://fusioninventory.org) inventory report, parse
+(http://fusioninventory.org) inventory files, parse
 them, transform them in Node/Machine object, and store them in some
 backend, allowing smart merging rules (detecting existing nodes, etc).
 
 This project is composed of several modules:
 
 [horizontal]
-inventory-api:: that module define all domain objects and service interfaces
-         (storing object, parsing report, merging strategy, etc)
-         It is not tied to any backend, nor any inventory report format.
-inventory-fusion:: that module define parsing logic for Fusion Inventory XML report.
-         It allows to add plugable parsing rules for extension in the report, like
+inventory-api:: that module defines all domain objects and service interfaces
+         (storing object, parsing inventory file, merging strategy, etc)
+         It is not tied to any backend, nor any inventory file format.
+inventory-fusion:: that module defines parsing logic for Fusion Inventory XML file.
+         It allows adding plugable parsing rules for extension in the inventory, like
          elements used in Rudder.
 inventory-repository:: that module contains implementation logic for storage
          backends. For now, only an LDAP backend is implemented.
 inventory-provisioning-core:: that module contains implementation for the
-         provisionning logic: from a parsed report, how to save it, perhaps
+         provisionning logic: from a parsed inventory, how to save it, perhaps
          merge with existing information, etc.
 inventory-provisioning-web:: that last module is a web application that expose a
          REST service on which inventory can be post. The implementation is rather

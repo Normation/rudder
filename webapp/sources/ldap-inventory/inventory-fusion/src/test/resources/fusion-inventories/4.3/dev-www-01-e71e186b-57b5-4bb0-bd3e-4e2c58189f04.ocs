@@ -10148,7 +10148,7 @@ C9o5xHCOTDecATXMg0gGQHbjm0x0a1nt+X1gyyjNfHLX13n5as9JXf0CAwEAAQ==
       <ARCH>all</ARCH>
       <FILESIZE>171</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>python3-problem-report</NAME>
+      <NAME>python3-problem-inventory</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
       <VERSION>2.20.9-0ubuntu7.7</VERSION>
     </SOFTWARES>
@@ -10676,7 +10676,7 @@ C9o5xHCOTDecATXMg0gGQHbjm0x0a1nt+X1gyyjNfHLX13n5as9JXf0CAwEAAQ==
       <ARCH>amd64</ARCH>
       <FILESIZE>5798</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>ubuntu-report</NAME>
+      <NAME>ubuntu-inventory</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
       <VERSION>1.2.0~bionic</VERSION>
     </SOFTWARES>

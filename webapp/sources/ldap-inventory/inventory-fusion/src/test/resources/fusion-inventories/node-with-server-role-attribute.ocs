@@ -4165,7 +4165,7 @@
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <COMMENTS>apport crash report handling library</COMMENTS>
+      <COMMENTS>apport crash inventory handling library</COMMENTS>
       <FILESIZE>476</FILESIZE>
       <FROM>deb</FROM>
       <NAME>python-apport</NAME>
@@ -4392,7 +4392,7 @@
       <COMMENTS>Python library to handle problem reports</COMMENTS>
       <FILESIZE>157</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>python-problem-report</NAME>
+      <NAME>python-problem-inventory</NAME>
       <VERSION>2.0.1-0ubuntu17.6</VERSION>
     </SOFTWARES>
     <SOFTWARES>

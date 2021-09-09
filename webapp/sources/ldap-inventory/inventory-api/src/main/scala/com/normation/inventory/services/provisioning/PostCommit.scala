@@ -37,16 +37,16 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.Inventory
 import com.normation.errors._
 
 
 /**
- * Define an action that happens after than the report
- * was committed in the Directory.
+ * Define an action that happens after than the inventory
+ * was persisted..
  * The "records" are a list of modification which actually
  * happened when the commit was done (and so,
- * report "-" records = what was already in the directory).
+ * inventory elementes "-" records = what was already in the directory).
  *
  * By convention, a PostCommit which return:
  * - Full : continue the pipeline processing. AT LEAST input
@@ -66,5 +66,5 @@ trait PostCommit[R] {
 
   def name : String
 
-  def apply(report:InventoryReport,records:R) : IOResult[R]
+  def apply(inventory: Inventory, records: R) : IOResult[R]
 }

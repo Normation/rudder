@@ -45,15 +45,15 @@ import com.normation.errors.IOResult
 import com.normation.errors.SystemError
 import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.InventoryProcessingLogger
-import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.Inventory
 import com.normation.errors._
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
-import com.normation.inventory.services.provisioning.ReportSaver
-import com.normation.inventory.services.provisioning.ReportUnmarshaller
+import com.normation.inventory.services.provisioning.InventorySaver
+import com.normation.inventory.services.provisioning.InventoryParser
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.zio.ZioRuntime
 import com.unboundid.ldif.LDIFChangeRecord
@@ -65,28 +65,28 @@ import com.normation.zio._
 
 
 sealed trait InventoryProcessStatus {
-  def reportName: String
-  def     nodeId: NodeId
+  def inventoryName: String
+  def nodeId       : NodeId
 
 }
 final object InventoryProcessStatus {
-  final case class Accepted        (reportName: String, nodeId: NodeId) extends InventoryProcessStatus
-  final case class QueueFull       (reportName: String, nodeId: NodeId) extends InventoryProcessStatus
-  final case class SignatureInvalid(reportName: String, nodeId: NodeId) extends InventoryProcessStatus
-  final case class MissingSignature(reportName: String, nodeId: NodeId) extends InventoryProcessStatus
+  final case class Accepted        (inventoryName: String, nodeId: NodeId) extends InventoryProcessStatus
+  final case class QueueFull       (inventoryName: String, nodeId: NodeId) extends InventoryProcessStatus
+  final case class SignatureInvalid(inventoryName: String, nodeId: NodeId) extends InventoryProcessStatus
+  final case class MissingSignature(inventoryName: String, nodeId: NodeId) extends InventoryProcessStatus
 }
 
 
 object StatusLog {
   implicit class LogMessage(status: InventoryProcessStatus) {
     def msg: String = status match {
-      case InventoryProcessStatus.MissingSignature(reportName, nodeId) =>
-        s"Rejecting Inventory '${reportName}' for Node '${nodeId.value}' because its signature is missing. " +
+      case InventoryProcessStatus.MissingSignature(inventoryName, nodeId) =>
+        s"Rejecting Inventory '${inventoryName}' for Node '${nodeId.value}' because its signature is missing. " +
         s"You can go back to unsigned state by running the following command on the Rudder Server: " +
         s"'/opt/rudder/bin/rudder-keys reset-status ${nodeId.value}'"
 
-      case InventoryProcessStatus.SignatureInvalid(reportName, nodeId) =>
-        s"Rejecting Inventory '${reportName}' for Node '${nodeId.value}' because the Inventory signature is " +
+      case InventoryProcessStatus.SignatureInvalid(inventoryName, nodeId) =>
+        s"Rejecting Inventory '${inventoryName}' for Node '${nodeId.value}' because the Inventory signature is " +
         s"not valid: the Inventory was not signed with the same agent key as the one saved within Rudder for that Node. If " +
         s"you updated the agent key on this node, you can update the key stored within Rudder with the https://docs.rudder.io/api/#api-Nodes-updateNode" +
         s"api (look for 'agentKey' property). The key path depends of your OS, on linux it's: '/var/rudder/cfengine-community/ppkeys/localhost.pub'. It is " +
@@ -95,11 +95,11 @@ object StatusLog {
         s"If you did not change the key, please ensure that the node sending that inventory is actually the node registered " +
         s"within Rudder"
 
-      case InventoryProcessStatus.QueueFull(reportName, nodeId) =>
-        s"Rejecting Inventory '${reportName}' for Node '${nodeId.value}' because processing queue is full."
+      case InventoryProcessStatus.QueueFull(inventoryName, nodeId) =>
+        s"Rejecting Inventory '${inventoryName}' for Node '${nodeId.value}' because processing queue is full."
 
-      case InventoryProcessStatus.Accepted(reportName, nodeId) =>
-        s"Inventory '${reportName}' for Node '${nodeId.value}' added to processing queue."
+      case InventoryProcessStatus.Accepted(inventoryName, nodeId) =>
+        s"Inventory '${inventoryName}' for Node '${nodeId.value}' added to processing queue."
     }
   }
 }
@@ -107,8 +107,8 @@ object StatusLog {
 
 
 class InventoryProcessor(
-    unmarshaller    : ReportUnmarshaller
-  , reportSaver     : ReportSaver[Seq[LDIFChangeRecord]]
+    unmarshaller    : InventoryParser
+  , inventorySaver  : InventorySaver[Seq[LDIFChangeRecord]]
   , val maxQueueSize: Int
   , val maxParallel : Long
   , repo            : FullInventoryRepository[Seq[LDIFChangeRecord]]
@@ -119,7 +119,7 @@ class InventoryProcessor(
 
   ApplicationLogger.info(s"INFO Configure inventory processing with parallelism of '${maxParallel}' and queue size of '${maxQueueSize}'")
 
-  // we want to limit the number of reports concurrently parsed
+  // we want to limit the number of inventories concurrently parsed
   lazy val xmlParsingSemaphore = ZioRuntime.unsafeRun(Semaphore.make(maxParallel))
 
   /*
@@ -128,12 +128,12 @@ class InventoryProcessor(
    * put in front of it a Sliding or Dropping queue of size one
    * in fron of any "offer" call to make it non blocking.
    */
-  protected lazy val blockingQueue = ZQueue.bounded[InventoryReport](maxQueueSize).runNow
-  def addInventoryToQueue(report: InventoryReport): UIO[Unit] = {
+  protected lazy val blockingQueue = ZQueue.bounded[Inventory](maxQueueSize).runNow
+  def addInventoryToQueue(inventory: Inventory): UIO[Unit] = {
     for {
-      _ <- InventoryProcessingLogger.trace(s"Blocking add '${report.name}' to backend processing queue")
-      _ <- blockingQueue.offer(report)
-      _ <- InventoryProcessingLogger.trace(s"Blocking add '${report.name}' to backend processing queue: done")
+      _ <- InventoryProcessingLogger.trace(s"Blocking add '${inventory.name}' to backend processing queue")
+      _ <- blockingQueue.offer(inventory)
+      _ <- InventoryProcessingLogger.trace(s"Blocking add '${inventory.name}' to backend processing queue: done")
     } yield ()
   }
 
@@ -143,7 +143,7 @@ class InventoryProcessor(
    * - it drops new requests when an other one is already here (which means that
    *   `addInventoryToQueue` from the previous action is still blocked)
    */
-  protected lazy val latch         = ZQueue.dropping[InventoryReport](1).runNow
+  protected lazy val latch         = ZQueue.dropping[Inventory](1).runNow
   //start latch, it just forwards to the blocking queue when there is room
   latch.take.flatMap(addInventoryToQueue(_)).forever.forkDaemon.runNow
 
@@ -159,13 +159,13 @@ class InventoryProcessor(
   }
 
   /*
-   * Saving reports is a loop which consume items from queue
+   * Saving inventorys is a loop which consume items from queue
    */
 
   def loop(): UIO[Nothing] = {
     blockingQueue.take.flatMap(r =>
-      InventoryProcessingLogger.trace(s"Took report '${r.name}' from backend queue and saving it") *>
-      saveReport(r)
+      InventoryProcessingLogger.trace(s"Took inventory '${r.name}' from backend queue and saving it") *>
+      saveInventory(r)
     ).forever
   }
 
@@ -201,9 +201,9 @@ class InventoryProcessor(
    * When non blocking, the return value will tell is the value was accepted.
    */
   def saveInventoryInternal(info: SaveInventoryInfo, blocking: Boolean): IOResult[InventoryProcessStatus] = {
-    def saveWithSignature(report: InventoryReport, publicKey: JavaSecPubKey, newInventoryStream: () => InputStream, newSignature: () => InputStream): IOResult[InventoryProcessStatus] = {
-      ZIO.bracket(Task.effect(newInventoryStream()).mapError(SystemError(s"Error when reading inventory file '${report.name}'", _)))(is => Task.effect(is.close()).run) { inventoryStream =>
-        ZIO.bracket(Task.effect(newSignature()).mapError(SystemError(s"Error when reading signature for inventory file '${report.name}'", _)))(is => Task.effect(is.close()).run) { signatureStream =>
+    def saveWithSignature(inventory: Inventory, publicKey: JavaSecPubKey, newInventoryStream: () => InputStream, newSignature: () => InputStream): IOResult[InventoryProcessStatus] = {
+      ZIO.bracket(Task.effect(newInventoryStream()).mapError(SystemError(s"Error when reading inventory file '${inventory.name}'", _)))(is => Task.effect(is.close()).run) { inventoryStream =>
+        ZIO.bracket(Task.effect(newSignature()).mapError(SystemError(s"Error when reading signature for inventory file '${inventory.name}'", _)))(is => Task.effect(is.close()).run) { signatureStream =>
 
           for {
             digest  <- digestService.parse(signatureStream)
@@ -213,11 +213,11 @@ class InventoryProcessor(
                          // Set the keyStatus to Certified
                          // For now we set the status to certified since we want pending inventories to have their inventory signed
                          // When we will have a 'pending' status for keys we should set that value instead of certified
-                         val certifiedReport = report.copy(node = report.node.copyWithMain(main => main.copy(keyStatus = CertifiedKey)))
-                         checkQueueAndSave(certifiedReport, blocking)
+                         val certified = inventory.copy(node = inventory.node.copyWithMain(main => main.copy(keyStatus = CertifiedKey)))
+                         checkQueueAndSave(certified, blocking)
                        } else {
                          // Signature is not valid, reject inventory
-                         InventoryProcessStatus.SignatureInvalid(report.name, report.node.main.id).succeed
+                         InventoryProcessStatus.SignatureInvalid(inventory.name, inventory.node.main.id).succeed
                        }
            } yield {
              saved
@@ -226,51 +226,51 @@ class InventoryProcessor(
       }
     }
 
-    def parseSafe(newInventoryStream: () => InputStream, inventoryFileName: String): IOResult[InventoryReport] = {
+    def parseSafe(newInventoryStream: () => InputStream, inventoryFileName: String): IOResult[Inventory] = {
       ZIO.bracket(Task.effect(newInventoryStream()).mapError(SystemError(s"Error when trying to read inventory file '${inventoryFileName}'", _)) )(
         is => Task.effect(is.close()).run
       ){ is =>
         for {
           r <- unmarshaller.fromXml(inventoryFileName, is)
         } yield {
-          // use the provided file name as report name, else it's a generic one setted by fusion (like "report")
+          // use the provided file name as inventory name, else it's a generic one setted by fusion (like "inventory")
           r.copy(name = inventoryFileName)
         }
       }
     }
 
-    // actuall report processing logic
+    // actuall inventory processing logic
     val processLogic = (for {
       start        <- currentTimeMillis
       qsize        <- blockingQueue.size
       qsaturated   <- isQueueFull
       _            <- InventoryProcessingLogger.debug(s"Enter pre-processed inventory for ${info.fileName} with blocking='${blocking}' and current backend queue size=${qsize} (saturated=${qsaturated})")
-      report       <- xmlParsingSemaphore.withPermit(
+      inventory    <- xmlParsingSemaphore.withPermit(
                         InventoryProcessingLogger.debug(s"Start parsing inventory '${info.fileName}'") *>
                         parseSafe(info.inventoryStream, info.fileName).chainError("Can't parse the input inventory, aborting") <*
                         InventoryProcessingLogger.trace(s"Parsing done for inventory '${info.fileName}'")
                       )
-      secPair      <- digestService.getKey(report).chainError(s"Error when trying to check inventory key for Node '${report.node.main.id.value}'")
+      secPair      <- digestService.getKey(inventory).chainError(s"Error when trying to check inventory key for Node '${inventory.node.main.id.value}'")
       parsed       <- digestService.parseSecurityToken(secPair._1)
       _            <- parsed.subject match {
                         case None       => UIO.unit
-                        case Some(list) => SecurityToken.checkCertificateSubject(report.node.main.id, list)
+                        case Some(list) => SecurityToken.checkCertificateSubject(inventory.node.main.id, list)
                       }
       afterParsing =  System.currentTimeMillis()
-      reportName   = report.name
-      nodeId       = report.node.main.id
-      _            =  InventoryProcessingLogger.debug(s"Inventory '${report.name}' parsed in ${PeriodFormat.getDefault.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
+      inventoryName= inventory.name
+      nodeId       = inventory.node.main.id
+      _            =  InventoryProcessingLogger.debug(s"Inventory '${inventory.name}' parsed in ${PeriodFormat.getDefault.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
       saved        <- info.optSignatureStream match { // Do we have a signature ?
                         // Signature here, check it
                         case Some(sig) =>
-                          saveWithSignature(report, parsed.publicKey, info.inventoryStream, sig).chainError("Error when trying to check inventory signature")
+                          saveWithSignature(inventory, parsed.publicKey, info.inventoryStream, sig).chainError("Error when trying to check inventory signature")
 
                         // There is no Signature
                         case None =>
-                          Inconsistency(s"Error, inventory '${report.name}' has no signature, which is not supported anymore in Rudder 6.0. " +
+                          Inconsistency(s"Error, inventory '${inventory.name}' has no signature, which is not supported anymore in Rudder 6.0. " +
                                         s"Please check that your node's agent is compatible with that version.").fail
                       }
-      _            <- InventoryProcessingLogger.debug(s"Inventory '${report.name}' for node '${report.node.main.id.value}' pre-processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
+      _            <- InventoryProcessingLogger.debug(s"Inventory '${inventory.name}' for node '${inventory.node.main.id.value}' pre-processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
     } yield {
       saved
     }).foldM(
@@ -304,27 +304,27 @@ class InventoryProcessor(
    * avoid the case where we are telling the use "everything is fine"
    * but just fail after.
    */
-  def checkQueueAndSave(report: InventoryReport, blocking: Boolean): IOResult[InventoryProcessStatus] = {
+  def checkQueueAndSave(inventory: Inventory, blocking: Boolean): IOResult[InventoryProcessStatus] = {
 
     (for {
       _     <- checkAliveLdap()
       res   <- if(blocking) {
                  // that's block. And so inventory is always accepted in the end
-                 addInventoryToQueue(report) *> InventoryProcessStatus.Accepted(report.name, report.node.main.id).succeed
+                 addInventoryToQueue(inventory) *> InventoryProcessStatus.Accepted(inventory.name, inventory.node.main.id).succeed
                } else {
                  for {
-                   canDo <- latch.offer(report)
+                   canDo <- latch.offer(inventory)
                    res   <- if(canDo) {
-                              InventoryProcessStatus.Accepted(report.name, report.node.main.id).succeed
+                              InventoryProcessStatus.Accepted(inventory.name, inventory.node.main.id).succeed
                             } else {
-                              InventoryProcessStatus.QueueFull(report.name, report.node.main.id).succeed
+                              InventoryProcessStatus.QueueFull(inventory.name, inventory.node.main.id).succeed
                             }
                  } yield res
               }
     } yield {
       res
     }).catchAll { err =>
-      val e = Chained(s"There is an error with the LDAP backend preventing acceptation of inventory '${report.name}'", err)
+      val e = Chained(s"There is an error with the LDAP backend preventing acceptation of inventory '${inventory.name}'", err)
       InventoryProcessingLogger.error(err.fullMsg) *> e.fail
     }
   }
@@ -341,18 +341,18 @@ class InventoryProcessor(
    * decrease it when it terminates a processing.
    *
    */
-  def saveReport(report:InventoryReport): UIO[Unit] = {
+  def saveInventory(inventory:Inventory): UIO[Unit] = {
     for {
-      _     <- InventoryProcessingLogger.trace(s"Start post processing of inventory '${report.name}' for node '${report.node.main.id.value}'")
+      _     <- InventoryProcessingLogger.trace(s"Start post processing of inventory '${inventory.name}' for node '${inventory.node.main.id.value}'")
       start <- UIO(System.currentTimeMillis)
-      saved <- reportSaver.save(report).chainError("Can't merge inventory report in LDAP directory, aborting").either
+      saved <- inventorySaver.save(inventory).chainError("Can't merge inventory inventory in LDAP directory, aborting").either
       _     <- saved match {
                  case Left(err) =>
-                   InventoryProcessingLogger.error(s"Error when trying to process report: ${err.fullMsg}")
-                 case Right(report) =>
+                   InventoryProcessingLogger.error(s"Error when trying to process inventory: ${err.fullMsg}")
+                 case Right(inventory) =>
                    InventoryProcessingLogger.debug("Inventory saved.")
                }
-      _      <- InventoryProcessingLogger.info(s"Inventory '${report.name}' for node '${report.node.main.hostname}' [${report.node.main.id.value}] (signature:${report.node.main.keyStatus.value}) "+
+      _      <- InventoryProcessingLogger.info(s"Inventory '${inventory.name}' for node '${inventory.node.main.hostname}' [${inventory.node.main.id.value}] (signature:${inventory.node.main.keyStatus.value}) "+
                 s"processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)}")
     } yield ()
   }

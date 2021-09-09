@@ -40,14 +40,14 @@ package com.normation.inventory.domain
 import scala.xml.NodeSeq
 
 /**
- * Define what an inventory report can contain
- * A report is done for one operating system (the server),
+ * Define what an inventory file can contain
+ * An inventory is done for one operating system (the server),
  * on at most one container (the underlying machine, physical or virtual).
  * These object may be link too some software and other virtual machine
  * (hosted on the server)
  *
  * The first returned value (the String) is the Device_id.
- * It is a sequel of OCSi/Fusion reports, and perhaps should be removed.
+ * It is a sequel of OCSi/Fusion xml file, and perhaps should be removed.
  *
  * The OperatingSystem is an {@code OperatingSystem} object with as much information
  * that we gathered
@@ -59,8 +59,8 @@ import scala.xml.NodeSeq
  * (of course) be empty.
  *
  */
-final case class InventoryReport(
-  val name:String, //an id for that report (ex: name of the file received)
+final case class Inventory(
+  val name:String, //an id for that inventory (ex: name of the file received)
   val inventoryAgentDevideId:String,
   val node:NodeInventory,
   val machine:MachineInventory,
@@ -70,6 +70,6 @@ final case class InventoryReport(
 
   //a list of software
   val applications : Seq[Software],
-  //other not specified managed element
-  val sourceReport : NodeSeq
+  //we keep a copy of the source (parsed) file for other not specified managed element
+  val sourceFile: NodeSeq
 )

@@ -55,17 +55,17 @@ import com.normation.errors._
 
 import scala.xml._
 
-class FusionReportUnmarshaller(
+class FusionInventoryParser(
     uuidGen:StringUuidGenerator
-  , rootParsingExtensions:List[FusionReportParsingExtension] = Nil
-  , contentParsingExtensions:List[FusionReportParsingExtension] = Nil
+  , rootParsingExtensions:List[FusionInventoryParserExtension] = Nil
+  , contentParsingExtensions:List[FusionInventoryParserExtension] = Nil
   , biosDateFormat : String = "MM/dd/yyyy"
   , slotMemoryUnit : String = "Mo"
   , ramUnit        : String = "Mo"
   , swapUnit       : String = "Mo"
   , fsSpaceUnit    : String = "Mo"
   , lastLoggedUserDatetimeFormat : String = "EEE MMM dd HH:mm"
-) extends ParsedReportUnmarshaller {
+) extends XmlInventoryParser {
 
   import OptText.optText
 
@@ -106,7 +106,7 @@ class FusionReportUnmarshaller(
       None
   } }
 
-  override def fromXmlDoc(reportName:String, doc:NodeSeq) : IOResult[InventoryReport] = {
+  override def fromXmlDoc(inventoryName:String, doc:NodeSeq) : IOResult[Inventory] = {
 
     // hostname is a little special and may fail
     (for {
@@ -115,16 +115,16 @@ class FusionReportUnmarshaller(
        * Fusion Inventory gives a device id, but we don't exactly understand
        * how that id is generated and when/if it changes.
        * At least, the presence of that tag is a good indicator
-       * that we have an actual Fusion Inventory report
+       * that we have an actual Fusion Inventory file
        */
-      deviceId <- optText(doc \ "DEVICEID").notOptional("The XML does not seems to be a Fusion Inventory report (no device id found)")
+      deviceId <- optText(doc \ "DEVICEID").notOptional("The XML does not seems to be a Fusion Inventory file (no device id found)")
     } yield {
 
-      var report = {
+      var inventory = {
 
         //init a node inventory
         /*
-         * It is not the role of the report parsing to assign UUID to node
+         * It is not the role of the inventory parsing to assign UUID to node
          * and machine, we have special rules for that:
          * - node id is handled in RudderNodeIdParsing
          * - policy server is handled in RudderPolicyServerParsing
@@ -150,8 +150,8 @@ class FusionReportUnmarshaller(
         val applications =  List[Software]()
         val version = processVersion(doc\\("Request")\("VERSIONCLIENT"))
 
-        InventoryReport(
-          reportName,
+        Inventory(
+          inventoryName,
           deviceId,
           node,
           machine,
@@ -167,24 +167,24 @@ class FusionReportUnmarshaller(
         * If Manufacturer or System Serial Number is already defined, skip them and write
         * a warn log
         */
-        def addBiosInfosIntoReport(
+        def addBiosInfosIntoInventory(
             bios              : Option[Bios]
           , manufacturer      : Option[Manufacturer]
           , systemSerialNumber: Option[String]) : Unit = {
-          bios.foreach {x => report = report.copy( machine = report.machine.copy( bios = x +: report.machine.bios ) ) }
+          bios.foreach {x => inventory = inventory.copy( machine = inventory.machine.copy( bios = x +: inventory.machine.bios ) ) }
 
           manufacturer.foreach{ x =>
-            report.machine.manufacturer match {
+            inventory.machine.manufacturer match {
               case None => // can update the manufacturer
-                report = report.copy(machine = report.machine.copy(manufacturer = Some(x)))
+                inventory = inventory.copy(machine = inventory.machine.copy(manufacturer = Some(x)))
               case Some(existingManufacturer) => //cannot update it
                 InventoryProcessingLogger.logEffect.warn(s"Duplicate Machine Manufacturer definition in the inventory: s{existingManufacturer} is the current value, skipping the other value ${x.name}")
             }
           }
           systemSerialNumber.foreach{ x =>
-            report.machine.systemSerialNumber match {
+            inventory.machine.systemSerialNumber match {
               case None => // can update the System Serial Number
-                report = report.copy(machine = report.machine.copy(systemSerialNumber = Some(x)))
+                inventory = inventory.copy(machine = inventory.machine.copy(systemSerialNumber = Some(x)))
               case Some(existingSystemSerialNumber) => //cannot update it
                 InventoryProcessingLogger.logEffect.warn(s"Duplicate System Serial Number definition in the inventory: s{existingSystemSerialNumber} is the current value, skipping the other value ${x}")
             }
@@ -197,53 +197,53 @@ class FusionReportUnmarshaller(
        */
       for(e <- (doc \\ "REQUEST").head.child) { e.label match {
         case "CONTENT" => for( elt <- e.head.child ) { elt.label match {
-          case "ACCESSLOG"   => processAccessLog(elt).foreach(x => report = report.copy ( node = report.node.copy( inventoryDate = Some(x) ), machine = report.machine.copy ( inventoryDate = Some(x) ) ))
+          case "ACCESSLOG"   => processAccessLog(elt).foreach(x => inventory = inventory.copy ( node = inventory.node.copy( inventoryDate = Some(x) ), machine = inventory.machine.copy ( inventoryDate = Some(x) ) ))
           case "BATTERIES"   => //TODO not sure about that
           case "BIOS"        => val (bios, manufacturer, systemSerialNumber) = processBios(elt)
-                                addBiosInfosIntoReport(bios, manufacturer, systemSerialNumber)
-          case "CONTROLLERS" => processController(elt).foreach { x => report = report.copy( machine = report.machine.copy( controllers = x +: report.machine.controllers ) ) }
-          case "CPUS"        => processCpu(elt).foreach { x => report = report.copy( machine = report.machine.copy( processors = x +: report.machine.processors ) ) }
-          case "DRIVES"      => processFileSystem(elt).foreach { x => report = report.copy( node = report.node.copy( fileSystems = x +: report.node.fileSystems ) ) }
-          case "ENVS"        => processEnvironmentVariable(elt).foreach {x => report = report.copy(node = report.node.copy (environmentVariables = x +: report.node.environmentVariables ) ) }
-          case "HARDWARE"    =>  processHardware(elt, report).foreach(x => report = report.copy(node = x._1, machine = x._2))
+                                addBiosInfosIntoInventory(bios, manufacturer, systemSerialNumber)
+          case "CONTROLLERS" => processController(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( controllers = x +: inventory.machine.controllers ) ) }
+          case "CPUS"        => processCpu(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( processors = x +: inventory.machine.processors ) ) }
+          case "DRIVES"      => processFileSystem(elt).foreach { x => inventory = inventory.copy( node = inventory.node.copy( fileSystems = x +: inventory.node.fileSystems ) ) }
+          case "ENVS"        => processEnvironmentVariable(elt).foreach {x => inventory = inventory.copy(node = inventory.node.copy (environmentVariables = x +: inventory.node.environmentVariables ) ) }
+          case "HARDWARE"    =>  processHardware(elt, inventory).foreach(x => inventory = inventory.copy(node = x._1, machine = x._2))
           case "INPUTS"      => //TODO keyborad, mouse, speakers
-          case "LOCAL_USERS" => processLocalAccount(elt).foreach { x => report = report.copy(node = report.node.copy( accounts = (x +: report.node.accounts).distinct)) }
-          case "MEMORIES"    => processMemory(elt).foreach { x => report = report.copy( machine = report.machine.copy( memories = x +: report.machine.memories ) ) }
-          case "NETWORKS"    => processNetworks(elt).foreach { x => report = report.copy( node = report.node.copy( networks = x +: report.node.networks ) ) }
-          case "OPERATINGSYSTEM" => report = processOsDetails(elt, report, e)
-          case "PORTS"       => processPort(elt).foreach { x => report = report.copy( machine = report.machine.copy( ports = x +: report.machine.ports ) ) }
-          case "PROCESSES"   => processProcesses(elt).foreach { x => report = report.copy( node = report.node.copy ( processes = x +: report.node.processes))}
-          case "SLOTS"       => processSlot(elt).foreach { x => report = report.copy( machine = report.machine.copy( slots = x +: report.machine.slots ) ) }
-          case "SOFTWARES"   => report = report.copy( applications  = processSoftware(elt) +: report.applications )
-          case "SOUNDS"      => processSound(elt).foreach { x => report = report.copy( machine = report.machine.copy( sounds = x +: report.machine.sounds ) ) }
-          case "STORAGES"    => processStorage(elt).foreach { x => report = report.copy( machine = report.machine.copy( storages = x +: report.machine.storages ) ) }
+          case "LOCAL_USERS" => processLocalAccount(elt).foreach { x => inventory = inventory.copy(node = inventory.node.copy( accounts = (x +: inventory.node.accounts).distinct)) }
+          case "MEMORIES"    => processMemory(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( memories = x +: inventory.machine.memories ) ) }
+          case "NETWORKS"    => processNetworks(elt).foreach { x => inventory = inventory.copy( node = inventory.node.copy( networks = x +: inventory.node.networks ) ) }
+          case "OPERATINGSYSTEM" => inventory = processOsDetails(elt, inventory, e)
+          case "PORTS"       => processPort(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( ports = x +: inventory.machine.ports ) ) }
+          case "PROCESSES"   => processProcesses(elt).foreach { x => inventory = inventory.copy( node = inventory.node.copy ( processes = x +: inventory.node.processes))}
+          case "SLOTS"       => processSlot(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( slots = x +: inventory.machine.slots ) ) }
+          case "SOFTWARES"   => inventory = inventory.copy( applications  = processSoftware(elt) +: inventory.applications )
+          case "SOUNDS"      => processSound(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( sounds = x +: inventory.machine.sounds ) ) }
+          case "STORAGES"    => processStorage(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( storages = x +: inventory.machine.storages ) ) }
           case "USBDEVICES"  => //TODO only digits for them, not sure we want to keep that as it is.
-          case "VIDEOS"      => processVideo(elt).foreach { x => report = report.copy( machine = report.machine.copy( videos = x +: report.machine.videos ) ) }
-          case "VIRTUALMACHINES" => processVms(elt).foreach { x =>  report = report.copy(node  = report.node.copy( vms = x +: report.node.vms) ) }
+          case "VIDEOS"      => processVideo(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( videos = x +: inventory.machine.videos ) ) }
+          case "VIRTUALMACHINES" => processVms(elt).foreach { x =>  inventory = inventory.copy(node  = inventory.node.copy( vms = x +: inventory.node.vms) ) }
           case x => contentParsingExtensions.find {
-              pf => pf.isDefinedAt((elt,report))
+              pf => pf.isDefinedAt((elt,inventory))
             }.foreach { pf =>
-              report = pf((elt,report))
+              inventory = pf((elt,inventory))
             }
         } }
         case x => rootParsingExtensions.find {
-            pf => pf.isDefinedAt((e,report))
+            pf => pf.isDefinedAt((e,inventory))
           }.foreach { pf =>
-            report = pf((e,report))
+            inventory = pf((e,inventory))
           }
       } }
 
-      val demuxed = demux(report)
-      val reportWithSoftwareIds = demuxed.copy(
+      val demuxed = demux(inventory)
+      val inventoryWithSoftwareIds = demuxed.copy(
          //add all software ids to node
         node = demuxed.node.copy(
             softwareIds = demuxed.applications.map( _.id )
         )
       )
-      reportWithSoftwareIds
-    }).flatMap(reportWithSoftwareIds =>
+      inventoryWithSoftwareIds
+    }).flatMap(inventoryWithSoftwareIds =>
       // <RUDDER> elements parsing must be done after software processing, because we get agent version from them
-      processRudderElement(doc \\ "RUDDER", reportWithSoftwareIds)
+      processRudderElement(doc \\ "RUDDER", inventoryWithSoftwareIds)
     )
   }
 
@@ -302,7 +302,7 @@ class FusionReportUnmarshaller(
    *
    * Because it is fully supported since Rudder 4.1 (so migration are OK).
    */
-  def processRudderElement(xml: NodeSeq, report: InventoryReport) : IOResult[InventoryReport]  = {
+  def processRudderElement(xml: NodeSeq, inventory: Inventory) : IOResult[Inventory]  = {
 
     // Check that a seq contains only one or identical values, if not fails
     def uniqueValueInSeq[T]( seq: Seq[T], errorMessage : String) : IOResult[T] = {
@@ -382,13 +382,13 @@ class FusionReportUnmarshaller(
 
       } yield {
 
-        val version = findAgent(report.applications, agentType)
+        val version = findAgent(inventory.applications, agentType)
 
         Some((AgentInfo(agentType,version,securityToken,Set()), rootUser, policyServerId))
       }
 
       agent.catchAll { eb =>
-        val e = Chained(s"Error when parsing an <RUDDER><AGENT> entry in '${report.name}', that agent will be ignored.", eb)
+        val e = Chained(s"Error when parsing an <RUDDER><AGENT> entry in '${inventory.name}', that agent will be ignored.", eb)
         InventoryProcessingLogger.error(e.fullMsg) *> None.succeed
       }
     }
@@ -423,9 +423,9 @@ class FusionReportUnmarshaller(
           capabilities   =  processAgentCapabilities(xml)
         } yield {
 
-          report.copy (
-            node = report.node.copy (
-                main = report.node.main.copy (
+          inventory.copy (
+            node = inventory.node.copy (
+                main = inventory.node.main.copy (
                     rootUser = rootUser
                   , policyServerId = NodeId(policyServerId)
                   , id = NodeId(uuid)
@@ -435,8 +435,8 @@ class FusionReportUnmarshaller(
             )
           )
       } ) catchAll { eb =>
-          val fail = Chained(s"Error when parsing <RUDDER> extention node in inventory report with name '${report.name}'. Rudder extension attribute won't be available in report.", eb)
-          InventoryProcessingLogger.error(fail.fullMsg) *> report.succeed
+          val fail = Chained(s"Error when parsing <RUDDER> extention node in inventory inventory with name '${inventory.name}'. Rudder extension attribute won't be available in inventory.", eb)
+          InventoryProcessingLogger.error(fail.fullMsg) *> inventory.succeed
       }
     )
   }
@@ -449,23 +449,23 @@ class FusionReportUnmarshaller(
    * it updates the slotNumber (two memories can not share the same slot), setting position
    * in the list as key. And yes, that may be unstable from one inventory to the next one.
    */
-  private[this] def demux(report:InventoryReport) : InventoryReport = {
+  private[this] def demux(inventory:Inventory) : Inventory = {
     //how can that be better ?
-    var r = report
-    r = r.copy(machine = r.machine.copy( bios = report.machine.bios.
+    var r = inventory
+    r = r.copy(machine = r.machine.copy( bios = inventory.machine.bios.
 
       groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( controllers = report.machine.controllers.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( memories = demuxMemories(report.machine.memories) ) )
-    r = r.copy(machine = r.machine.copy( ports = report.machine.ports.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( processors = report.machine.processors.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( slots = report.machine.slots.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( sounds = report.machine.sounds.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( storages = report.machine.storages.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( videos = report.machine.videos.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    r = r.copy(machine = r.machine.copy( controllers = inventory.machine.controllers.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    r = r.copy(machine = r.machine.copy( memories = demuxMemories(inventory.machine.memories) ) )
+    r = r.copy(machine = r.machine.copy( ports = inventory.machine.ports.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    r = r.copy(machine = r.machine.copy( processors = inventory.machine.processors.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    r = r.copy(machine = r.machine.copy( slots = inventory.machine.slots.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    r = r.copy(machine = r.machine.copy( sounds = inventory.machine.sounds.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    r = r.copy(machine = r.machine.copy( storages = inventory.machine.storages.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    r = r.copy(machine = r.machine.copy( videos = inventory.machine.videos.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     //node part
     r = demuxSameInterfaceDifferentIp(r)
-    r = r.copy(applications = report.applications.groupBy( app => (app.name, app.version)).map { case (x,seq) => seq.head }.toSeq ) //seq.head is ok since its the result of groupBy
+    r = r.copy(applications = inventory.applications.groupBy( app => (app.name, app.version)).map { case (x,seq) => seq.head }.toSeq ) //seq.head is ok since its the result of groupBy
     r
   }
 
@@ -488,8 +488,8 @@ class FusionReportUnmarshaller(
    * One interface can have several IP/mask/gateway/subnets. We have to
    * merge them when it's the case.
    */
-  private[this] def demuxSameInterfaceDifferentIp(report: InventoryReport) : InventoryReport = {
-    val nets = report.node.networks.groupBy( _.name ).map { case (interface, networks) =>
+  private[this] def demuxSameInterfaceDifferentIp(inventory: Inventory) : Inventory = {
+    val nets = inventory.node.networks.groupBy( _.name ).map { case (interface, networks) =>
       val referenceInterface = networks.head //we have at least one due to the groupBy
       val ips = networks.flatMap( _.ifAddresses )
       val masks = networks.flatMap( _.ifMask ).distinct
@@ -502,7 +502,7 @@ class FusionReportUnmarshaller(
       referenceInterface.copy(ifAddresses = uniqIps, ifMask = masks, ifGateway = gateways, ifSubnet = subnets )
     }.toSeq
 
-    report.copy(node = report.node.copy(networks = nets))
+    inventory.copy(node = inventory.node.copy(networks = nets))
   }
 
   /*
@@ -546,7 +546,7 @@ class FusionReportUnmarshaller(
   // parsing implementation details for each tags //
   // ******************************************** //
 
-  def processHardware(xml:NodeSeq, report:InventoryReport) : Option[(NodeInventory,MachineInventory)] = {
+  def processHardware(xml:NodeSeq, inventory:Inventory) : Option[(NodeInventory,MachineInventory)] = {
       /*
        *
        * *** Operating System infos ***
@@ -617,33 +617,33 @@ class FusionReportUnmarshaller(
 
     //update machine VM type
     val newMachine = (optText(xml\\"VMSYSTEM") match {
-      case None => report.machine
+      case None => inventory.machine
       case Some(x) => x.toLowerCase match {
-        case "physical" => report.machine.copy(machineType = PhysicalMachineType)
-        case "xen" => report.machine.copy(machineType = VirtualMachineType(Xen) )
-        case "virtualbox" => report.machine.copy(machineType = VirtualMachineType(VirtualBox) )
-        case "virtual machine" => report.machine.copy(machineType = VirtualMachineType(UnknownVmType) )
-        case "vmware" => report.machine.copy(machineType = VirtualMachineType(VMWare) )
-        case "qemu" => report.machine.copy(machineType = VirtualMachineType(QEmu) )
-        case "solariszone" => report.machine.copy(machineType = VirtualMachineType(SolarisZone) )
-        case "aix_lpar" => report.machine.copy(machineType = VirtualMachineType(AixLPAR) )
-        case "hyper-v" => report.machine.copy(machineType = VirtualMachineType(HyperV) )
-        case "bsdjail" => report.machine.copy(machineType = VirtualMachineType(BSDJail) )
-        case "virtuozzo" => report.machine.copy(machineType = VirtualMachineType(Virtuozzo) )
-        case "openvz" => report.machine.copy(machineType = VirtualMachineType(OpenVZ) )
-        case "lxc" => report.machine.copy(machineType = VirtualMachineType(LXC) )
-        case _ => report.machine.copy(machineType = VirtualMachineType(UnknownVmType) )
+        case "physical" => inventory.machine.copy(machineType = PhysicalMachineType)
+        case "xen" => inventory.machine.copy(machineType = VirtualMachineType(Xen) )
+        case "virtualbox" => inventory.machine.copy(machineType = VirtualMachineType(VirtualBox) )
+        case "virtual machine" => inventory.machine.copy(machineType = VirtualMachineType(UnknownVmType) )
+        case "vmware" => inventory.machine.copy(machineType = VirtualMachineType(VMWare) )
+        case "qemu" => inventory.machine.copy(machineType = VirtualMachineType(QEmu) )
+        case "solariszone" => inventory.machine.copy(machineType = VirtualMachineType(SolarisZone) )
+        case "aix_lpar" => inventory.machine.copy(machineType = VirtualMachineType(AixLPAR) )
+        case "hyper-v" => inventory.machine.copy(machineType = VirtualMachineType(HyperV) )
+        case "bsdjail" => inventory.machine.copy(machineType = VirtualMachineType(BSDJail) )
+        case "virtuozzo" => inventory.machine.copy(machineType = VirtualMachineType(Virtuozzo) )
+        case "openvz" => inventory.machine.copy(machineType = VirtualMachineType(OpenVZ) )
+        case "lxc" => inventory.machine.copy(machineType = VirtualMachineType(LXC) )
+        case _ => inventory.machine.copy(machineType = VirtualMachineType(UnknownVmType) )
       }
-    }).copy(mbUuid = optText(xml \\"UUID").map(MotherBoardUuid.apply(_)).orElse(report.machine.mbUuid))
+    }).copy(mbUuid = optText(xml \\"UUID").map(MotherBoardUuid.apply(_)).orElse(inventory.machine.mbUuid))
 
      //    s.name((h\"NAME") text) // what to do with that ?
-    val newNode = report.node.copy(
+    val newNode = inventory.node.copy(
         description = optText(xml\\"OSCOMMENTS")
       , name = optText(xml\\"NAME")
       , ram = optText(xml\\"MEMORY").map(m => MemorySize(m + ramUnit))
       , swap = optText(xml\\"SWAP").map(m=> MemorySize(m + swapUnit))
         // update arch ONLY if it is not yet defined
-      , archDescription = report.node.archDescription.orElse(optText(xml\\"ARCHNAME").map(normalizeArch(report.node.main.osDetails)))
+      , archDescription = inventory.node.archDescription.orElse(optText(xml\\"ARCHNAME").map(normalizeArch(inventory.node.main.osDetails)))
       , lastLoggedUser = optText(xml\\"LASTLOGGEDUSER")
       , lastLoggedUserTime = try {
           optText(xml\\"DATELASTLOGGEDUSER").map(date => userLoginDateTimeFormat.parseDateTime(date) )
@@ -656,7 +656,7 @@ class FusionReportUnmarshaller(
     Some((newNode, newMachine))
   }
 
-  def processOsDetails(xml:NodeSeq, report:InventoryReport, contentNode:NodeSeq) : InventoryReport = {
+  def processOsDetails(xml:NodeSeq, inventory:Inventory, contentNode:NodeSeq) : Inventory = {
       /*
        * ARCH           : operating system arch (i686, x86_64...)
        *
@@ -784,7 +784,7 @@ class FusionReportUnmarshaller(
         case AixOS =>
 
           // Aix version is stocked in HARDWARE -> OSVERSION,
-          // but we move that value in OPERATING_SYSTEM => KERNEL_VERSION (see checkKernelVersion in PreUnmarshallCheckConsistency.scala )
+          // but we move that value in OPERATING_SYSTEM => KERNEL_VERSION (see checkKernelVersion in PreInventoryParserCheckConsistency.scala )
           // If We are on aix we should use that value instead of the one stored in OPERATING_SYSTEM => VERSION
 
           // aix Version format is decomposed into 3 fields: Major (M), minor(m) and Technology level (T)
@@ -816,9 +816,9 @@ class FusionReportUnmarshaller(
     }
 
     // for arch, we want to keep the value only in the case where OPERATINGSYSTEM/ARCH is missing
-    val arch = optText(xml\\"ARCH").map(normalizeArch(report.node.main.osDetails)).orElse(report.node.archDescription)
+    val arch = optText(xml\\"ARCH").map(normalizeArch(inventory.node.main.osDetails)).orElse(inventory.node.archDescription)
 
-    report.copy( node = report.node.copyWithMain(m => m.copy (osDetails = osDetail) ).copy(timezone = timezone, archDescription = arch ) )
+    inventory.copy( node = inventory.node.copyWithMain(m => m.copy (osDetails = osDetail) ).copy(timezone = timezone, archDescription = arch ) )
 
   }
 
@@ -858,7 +858,7 @@ class FusionReportUnmarshaller(
 
   def processNetworks(n : NodeSeq) : Option[Network] = {
     import com.normation.inventory.domain.InetAddressUtils._
-    //in fusion report, we may have several IP address separated by comma
+    //in fusion inventory, we may have several IP address separated by comma
     def getAddresses(addressString : String) : Seq[InetAddress] = {
       for {
         addr <- addressString.split(",")

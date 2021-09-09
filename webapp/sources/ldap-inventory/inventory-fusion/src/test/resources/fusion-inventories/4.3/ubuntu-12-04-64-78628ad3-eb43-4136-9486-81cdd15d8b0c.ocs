@@ -8,6 +8,8 @@
 <USER>sync</USER>
 <USER>list</USER>
 <USER>whoopsie</USER>
+<USER>nicolas.charles</USER>
+<USER>postgres</USER>
 <USER>mcerda</USER>
 <USER>irc</USER>
 <USER>libuuid</USER>
@@ -28,9 +30,10 @@
 <USER>backup</USER>
 <USER>mail</USER>
 <USER>games</USER>
+<USER>francois.armand</USER>
 </USERSLIST>
     <ACCESSLOG>
-      <LOGDATE>2019-04-03 00:25:13</LOGDATE>
+      <LOGDATE>2019-05-12 05:40:14</LOGDATE>
     </ACCESSLOG>
     <BIOS>
       <ASSETTAG />  <BDATE>01/01/2011</BDATE>
@@ -106,37 +109,15 @@
       <VENDORID>1013</VENDORID>
     </CONTROLLERS>
     <CONTROLLERS>
-      <CAPTION>Virtio memory balloon</CAPTION>
-      <DRIVER>virtio</DRIVER>
-      <MANUFACTURER>Red Hat, Inc</MANUFACTURER>
-      <NAME>Virtio memory balloon</NAME>
-      <PCICLASS>0500</PCICLASS>
-      <PCISLOT>00:03.0</PCISLOT>
-      <PRODUCTID>1002</PRODUCTID>
-      <TYPE>RAM memory</TYPE>
-      <VENDORID>1af4</VENDORID>
-    </CONTROLLERS>
-    <CONTROLLERS>
       <CAPTION>Virtio network device</CAPTION>
       <DRIVER>virtio</DRIVER>
       <MANUFACTURER>Red Hat, Inc</MANUFACTURER>
       <NAME>Virtio network device</NAME>
       <PCICLASS>0200</PCICLASS>
-      <PCISLOT>00:04.0</PCISLOT>
+      <PCISLOT>00:03.0</PCISLOT>
       <PRODUCTID>1000</PRODUCTID>
       <TYPE>Ethernet controller</TYPE>
       <VENDORID>1af4</VENDORID>
-    </CONTROLLERS>
-    <CONTROLLERS>
-      <CAPTION>53c895a</CAPTION>
-      <DRIVER>sym53c8xx</DRIVER>
-      <MANUFACTURER>LSI Logic / Symbios Logic</MANUFACTURER>
-      <NAME>53c895a</NAME>
-      <PCICLASS>0100</PCICLASS>
-      <PCISLOT>00:05.0</PCISLOT>
-      <PRODUCTID>0012</PRODUCTID>
-      <TYPE>SCSI storage controller</TYPE>
-      <VENDORID>1000</VENDORID>
     </CONTROLLERS>
     <CONTROLLERS>
       <CAPTION>Virtio block device</CAPTION>
@@ -144,9 +125,20 @@
       <MANUFACTURER>Red Hat, Inc</MANUFACTURER>
       <NAME>Virtio block device</NAME>
       <PCICLASS>0100</PCICLASS>
-      <PCISLOT>00:06.0</PCISLOT>
+      <PCISLOT>00:04.0</PCISLOT>
       <PRODUCTID>1001</PRODUCTID>
       <TYPE>SCSI storage controller</TYPE>
+      <VENDORID>1af4</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>Virtio memory balloon</CAPTION>
+      <DRIVER>virtio</DRIVER>
+      <MANUFACTURER>Red Hat, Inc</MANUFACTURER>
+      <NAME>Virtio memory balloon</NAME>
+      <PCICLASS>0500</PCICLASS>
+      <PCISLOT>00:05.0</PCISLOT>
+      <PRODUCTID>1002</PRODUCTID>
+      <TYPE>RAM memory</TYPE>
       <VENDORID>1af4</VENDORID>
     </CONTROLLERS>
     <CPUS>
@@ -163,9 +155,9 @@
     </CPUS>
     <DRIVES>
       <FILESYSTEM>ext4</FILESYSTEM>
-      <FREE>2209</FREE>
-      <SERIAL>a8b341b2-fbc7-47c1-9403-b99641314038</SERIAL>
-      <TOTAL>4031</TOTAL>
+      <FREE>1570</FREE>
+      <SERIAL>e6ce49ba-d452-4d8b-8316-1d3b9bd7e4bc</SERIAL>
+      <TOTAL>4077</TOTAL>
       <TYPE>/</TYPE>
       <VOLUMN>/dev/vda1</VOLUMN>
     </DRIVES>
@@ -174,37 +166,37 @@
       <VAL>noninteractive</VAL>
     </ENVS>
     <ENVS>
+      <KEY>MANPATH</KEY>
+      <VAL>/usr/share/man:/usr/local/share/man:/opt/rudder/share/man:/opt/rudder/share/man</VAL>
+    </ENVS>
+    <ENVS>
       <KEY>PWD</KEY>
       <VAL>/var/rudder</VAL>
     </ENVS>
     <ENVS>
       <KEY>TERM</KEY>
-      <VAL>xterm</VAL>
+      <VAL></VAL>
     </ENVS>
     <ENVS>
       <KEY>PATH</KEY>
-      <VAL>/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/var/rudder/cfengine-community/bin:/var/rudder/cfengine-community/bin:/var/rudder/cfengine-community/bin</VAL>
-    </ENVS>
-    <ENVS>
-      <KEY>MANPATH</KEY>
-      <VAL>/usr/local/man:/usr/local/share/man:/usr/share/man:/opt/rudder/share/man:/opt/rudder/share/man</VAL>
+      <VAL>/usr/bin:/bin:/sbin:/usr/sbin:/var/rudder/cfengine-community/bin:/sbin:/usr/sbin:/var/rudder/cfengine-community/bin:/var/rudder/cfengine-community/bin</VAL>
     </ENVS>
     <HARDWARE>
-      <ARCHNAME>x86_64-linux-thread-multi</ARCHNAME>
+      <ARCHNAME>x86_64-linux-gnu-thread-multi</ARCHNAME>
       <CHASSIS_TYPE>Other</CHASSIS_TYPE>
       <CHECKSUM>131071</CHECKSUM>
       <DEFAULTGATEWAY>192.168.180.1</DEFAULTGATEWAY>
       <DNS>192.168.180.1</DNS>
-      <ETIME>1</ETIME>
-      <IPADDR>192.168.180.74</IPADDR>
-      <MEMORY>491</MEMORY>
-      <NAME>ubuntu-12-10-64</NAME>
-      <OSCOMMENTS>#23-Ubuntu SMP Mon Sep 24 20:37:06 UTC 2012</OSCOMMENTS>
-      <OSNAME>Ubuntu 12.10</OSNAME>
-      <OSVERSION>3.5.0-15-generic</OSVERSION>
+      <ETIME>36</ETIME>
+      <IPADDR>192.168.180.67</IPADDR>
+      <MEMORY>239</MEMORY>
+      <NAME>ubuntu-12-04-64</NAME>
+      <OSCOMMENTS>#36-Ubuntu SMP Tue Apr 10 20:39:51 UTC 2012</OSCOMMENTS>
+      <OSNAME>Ubuntu 12.04.5 LTS</OSNAME>
+      <OSVERSION>3.2.0-23-generic</OSVERSION>
       <PROCESSORN>1</PROCESSORN>
       <PROCESSORT>QEMU Virtual CPU version 0.12</PROCESSORT>
-      <UUID>56AF0438-CA4F-072E-5545-6D2527DBA836</UUID>
+      <UUID>D3699845-6F07-431C-8C0E-AB6AD88F00AB</UUID>
       <VMSYSTEM>QEMU</VMSYSTEM>
       <WORKGROUP>priv.normation.com</WORKGROUP>
     </HARDWARE>
@@ -252,6 +244,11 @@
       <ID>112</ID>
       <MEMBER>mcerda</MEMBER>
       <NAME>sambashare</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>113</ID>
+      <MEMBER>postgres</MEMBER>
+      <NAME>ssl-cert</NAME>
     </LOCAL_GROUPS>
     <LOCAL_USERS>
       <HOME>/root</HOME>
@@ -401,25 +398,25 @@
       <SHELL>/bin/false</SHELL>
     </LOCAL_USERS>
     <LOCAL_USERS>
-      <HOME>/nonexistent</HOME>
-      <ID>103</ID>
-      <LOGIN>whoopsie</LOGIN>
-      <NAME></NAME>
-      <SHELL>/bin/false</SHELL>
-    </LOCAL_USERS>
-    <LOCAL_USERS>
       <HOME>/var/lib/landscape</HOME>
-      <ID>104</ID>
+      <ID>103</ID>
       <LOGIN>landscape</LOGIN>
       <NAME></NAME>
       <SHELL>/bin/false</SHELL>
     </LOCAL_USERS>
     <LOCAL_USERS>
       <HOME>/var/run/sshd</HOME>
-      <ID>105</ID>
+      <ID>104</ID>
       <LOGIN>sshd</LOGIN>
       <NAME></NAME>
       <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/nonexistent</HOME>
+      <ID>105</ID>
+      <LOGIN>whoopsie</LOGIN>
+      <NAME></NAME>
+      <SHELL>/bin/false</SHELL>
     </LOCAL_USERS>
     <LOCAL_USERS>
       <HOME>/home/mcerda</HOME>
@@ -428,8 +425,29 @@
       <NAME>Matthieu CERDA,,,</NAME>
       <SHELL>/bin/bash</SHELL>
     </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/home/francois.armand</HOME>
+      <ID>1001</ID>
+      <LOGIN>francois.armand</LOGIN>
+      <NAME>Fran?ois ARMAND</NAME>
+      <SHELL>/bin/bash</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/home/nicolas.charles</HOME>
+      <ID>1002</ID>
+      <LOGIN>nicolas.charles</LOGIN>
+      <NAME>Nicolas CHARLES</NAME>
+      <SHELL>/bin/bash</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/var/lib/postgresql</HOME>
+      <ID>106</ID>
+      <LOGIN>postgres</LOGIN>
+      <NAME>PostgreSQL administrator,,,</NAME>
+      <SHELL>/bin/bash</SHELL>
+    </LOCAL_USERS>
     <MEMORIES>
-      <CAPACITY>512</CAPACITY>
+      <CAPACITY>256</CAPACITY>
       <CAPTION>DIMM 0</CAPTION>
       <DESCRIPTION>DIMM</DESCRIPTION>
       <MEMORYCORRECTION>Multi-bit ECC</MEMORYCORRECTION>
@@ -459,11 +477,11 @@
     <NETWORKS>
       <DESCRIPTION>eth0</DESCRIPTION>
       <DRIVER>virtio_net</DRIVER>
-      <IPADDRESS>192.168.180.74</IPADDRESS>
+      <IPADDRESS>192.168.180.67</IPADDRESS>
       <IPGATEWAY>192.168.180.1</IPGATEWAY>
       <IPMASK>255.255.255.128</IPMASK>
       <IPSUBNET>192.168.180.0</IPSUBNET>
-      <MACADDR>52:54:00:0b:bc:8f</MACADDR>
+      <MACADDR>52:54:00:34:e0:b3</MACADDR>
       <STATUS>Up</STATUS>
       <TYPE>ethernet</TYPE>
       <VIRTUALDEV>0</VIRTUALDEV>
@@ -471,47 +489,46 @@
     <NETWORKS>
       <DESCRIPTION>eth0</DESCRIPTION>
       <DRIVER>virtio_net</DRIVER>
-      <IPADDRESS6>fe80::5054:ff:fe0b:bc8f</IPADDRESS6>
+      <IPADDRESS6>fe80::5054:ff:fe34:e0b3</IPADDRESS6>
       <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
       <IPSUBNET6>fe80::</IPSUBNET6>
-      <MACADDR>52:54:00:0b:bc:8f</MACADDR>
+      <MACADDR>52:54:00:34:e0:b3</MACADDR>
       <STATUS>Up</STATUS>
       <TYPE>ethernet</TYPE>
       <VIRTUALDEV>0</VIRTUALDEV>
     </NETWORKS>
     <OPERATINGSYSTEM>
       <ARCH>x86_64</ARCH>
-      <BOOT_TIME>2018-11-13 15:38:19</BOOT_TIME>
+      <BOOT_TIME>2019-04-04 20:01:38</BOOT_TIME>
       <DNS_DOMAIN>priv.normation.com</DNS_DOMAIN>
-      <FQDN>ubuntu-12-10-64.priv.normation.com</FQDN>
-      <FULL_NAME>Ubuntu 12.10</FULL_NAME>
+      <FQDN>ubuntu-12-04-64.priv.normation.com</FQDN>
+      <FULL_NAME>Ubuntu 12.04.5 LTS</FULL_NAME>
       <HOSTID>007f0101</HOSTID>
       <KERNEL_NAME>linux</KERNEL_NAME>
-      <KERNEL_VERSION>3.5.0-15-generic</KERNEL_VERSION>
+      <KERNEL_VERSION>3.2.0-23-generic</KERNEL_VERSION>
       <NAME>Ubuntu</NAME>
-      <SSH_KEY>ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDO7TvOjRWN4B3IlNtAEbaVCs8pUFE4zweqCMzRBG/rcsPC5UP8Lq9FxiPXT7Um2hGqhZFXRj7VVmQ+Y7K+BRHJ2ADFE47NR3kUstaele0gQwD+MM+KkQhYOgKWCjhGpEiv8UOPAVQgzOV2VEp4ZRLTWRdm4clbsz8CwVW6olQAALf+2epZPqXhZWUcPjZAyvXubqK458staAxsSIE6B3Jcb8gSfFpdryCP/hPzNgwafziUApnA0u1P7nIv8eeOGZhS8F0GM2U2DP0P+DJKE0Ry2Bcz/qiHRfzkSQ+4wBsxtyKdK9oLiIVguR0YeLqIo6paDbWn7/PClfg+l48FO/n1</SSH_KEY>
-      <TIMEZONE>
-        <NAME>CEST</NAME>
+      <SSH_KEY />  <TIMEZONE>
+        <NAME>Europe/Paris</NAME>
         <OFFSET>+0200</OFFSET>
       </TIMEZONE>
-      <VERSION>12.10</VERSION>
+      <VERSION>12.04</VERSION>
     </OPERATINGSYSTEM>
     <PROCESSES>
       <CMD>/sbin/init</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.3</MEM>
+      <MEM>0.5</MEM>
       <PID>1</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>24316</VIRTUALMEMORY>
+      <VIRTUALMEMORY>24328</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>[kthreadd]</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>2</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -521,7 +538,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>3</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -531,7 +548,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>5</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -541,7 +558,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>6</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -551,7 +568,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>7</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -561,7 +578,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>8</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -571,7 +588,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>9</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -581,7 +598,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>10</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -591,7 +608,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>11</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -601,7 +618,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>12</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -611,7 +628,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>13</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -621,7 +638,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>14</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -631,7 +648,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>15</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -641,7 +658,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>16</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -651,7 +668,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>17</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -661,7 +678,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>18</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -671,7 +688,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>20</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -681,7 +698,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>21</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -691,7 +708,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>22</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -701,7 +718,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>23</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -711,7 +728,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>24</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -721,7 +738,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>25</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -731,7 +748,7 @@
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
       <PID>26</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -740,8 +757,8 @@
       <CMD>[kthrotld]</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
-      <PID>35</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <PID>34</PID>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -750,8 +767,8 @@
       <CMD>[scsi_eh_0]</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
-      <PID>36</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <PID>35</PID>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -760,38 +777,8 @@
       <CMD>[scsi_eh_1]</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
-      <PID>37</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
-      <TTY>?</TTY>
-      <USER>root</USER>
-      <VIRTUALMEMORY>0</VIRTUALMEMORY>
-    </PROCESSES>
-    <PROCESSES>
-      <CMD>[binder]</CMD>
-      <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.0</MEM>
-      <PID>39</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
-      <TTY>?</TTY>
-      <USER>root</USER>
-      <VIRTUALMEMORY>0</VIRTUALMEMORY>
-    </PROCESSES>
-    <PROCESSES>
-      <CMD>[deferwq]</CMD>
-      <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.0</MEM>
-      <PID>59</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
-      <TTY>?</TTY>
-      <USER>root</USER>
-      <VIRTUALMEMORY>0</VIRTUALMEMORY>
-    </PROCESSES>
-    <PROCESSES>
-      <CMD>[charger_manager]</CMD>
-      <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.0</MEM>
-      <PID>60</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <PID>36</PID>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -800,18 +787,8 @@
       <CMD>[devfreq_wq]</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
-      <PID>61</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
-      <TTY>?</TTY>
-      <USER>root</USER>
-      <VIRTUALMEMORY>0</VIRTUALMEMORY>
-    </PROCESSES>
-    <PROCESSES>
-      <CMD>[scsi_eh_2]</CMD>
-      <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.0</MEM>
-      <PID>192</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <PID>57</PID>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -820,8 +797,8 @@
       <CMD>[jbd2/vda1-8]</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
-      <PID>205</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <PID>247</PID>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -830,8 +807,8 @@
       <CMD>[ext4-dio-unwrit]</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
-      <PID>206</PID>
-      <STARTED>2018-11-13 15:38</STARTED>
+      <PID>248</PID>
+      <STARTED>2019-04-04 20:01</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -840,58 +817,48 @@
       <CMD>upstart-udev-bridge --daemon</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.1</MEM>
-      <PID>319</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <PID>326</PID>
+      <STARTED>2019-04-04 20:05</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>17232</VIRTUALMEMORY>
+      <VIRTUALMEMORY>17240</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>/sbin/udevd --daemon</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.2</MEM>
-      <PID>321</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <MEM>0.3</MEM>
+      <PID>328</PID>
+      <STARTED>2019-04-04 20:05</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>21580</VIRTUALMEMORY>
+      <VIRTUALMEMORY>21744</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>/sbin/udevd --daemon</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.1</MEM>
-      <PID>388</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <MEM>0.3</MEM>
+      <PID>462</PID>
+      <STARTED>2019-04-04 20:05</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>21576</VIRTUALMEMORY>
+      <VIRTUALMEMORY>21736</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>/sbin/udevd --daemon</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.1</MEM>
-      <PID>389</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <MEM>0.3</MEM>
+      <PID>463</PID>
+      <STARTED>2019-04-04 20:05</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>21576</VIRTUALMEMORY>
-    </PROCESSES>
-    <PROCESSES>
-      <CMD>upstart-socket-bridge --daemon</CMD>
-      <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.0</MEM>
-      <PID>453</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
-      <TTY>?</TTY>
-      <USER>root</USER>
-      <VIRTUALMEMORY>15188</VIRTUALMEMORY>
+      <VIRTUALMEMORY>21736</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>[vballoon]</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
-      <PID>575</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <PID>479</PID>
+      <STARTED>2019-04-04 20:05</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -900,178 +867,158 @@
       <CMD>[kpsmoused]</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
-      <PID>576</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <PID>481</PID>
+      <STARTED>2019-04-04 20:05</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
-      <CMD>dhcpcd eth0</CMD>
+      <CMD>upstart-socket-bridge --daemon</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.1</MEM>
-      <PID>635</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <PID>538</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>8640</VIRTUALMEMORY>
+      <VIRTUALMEMORY>15196</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
-      <CMD>/usr/sbin/sshd -D</CMD>
+      <CMD>dhclient3 -e IF_METRIC=100 -pf /var/run/dhclient.eth0.pid -lf /var/lib/dhcp/dhclient.eth0.leases -1 eth0</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.2</MEM>
-      <PID>818</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <MEM>0.3</MEM>
+      <PID>781</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>49968</VIRTUALMEMORY>
+      <VIRTUALMEMORY>7268</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
-      <CMD>dbus-daemon --system --fork</CMD>
+      <CMD>dbus-daemon --system --fork --activation=upstart</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.1</MEM>
-      <PID>861</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <PID>851</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>?</TTY>
       <USER>102</USER>
-      <VIRTUALMEMORY>23908</VIRTUALMEMORY>
+      <VIRTUALMEMORY>23824</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>rsyslogd -c5</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.2</MEM>
-      <PID>864</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <PID>872</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>?</TTY>
       <USER>syslog</USER>
-      <VIRTUALMEMORY>335656</VIRTUALMEMORY>
+      <VIRTUALMEMORY>413680</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>/sbin/getty -8 38400 tty4</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.1</MEM>
-      <PID>892</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <MEM>0.0</MEM>
+      <PID>953</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>tty4</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>15804</VIRTUALMEMORY>
+      <VIRTUALMEMORY>14512</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>/sbin/getty -8 38400 tty5</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.1</MEM>
-      <PID>899</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <MEM>0.0</MEM>
+      <PID>960</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>tty5</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>15804</VIRTUALMEMORY>
+      <VIRTUALMEMORY>14512</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>/sbin/getty -8 38400 tty2</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.1</MEM>
-      <PID>906</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <MEM>0.0</MEM>
+      <PID>968</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>tty2</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>15804</VIRTUALMEMORY>
+      <VIRTUALMEMORY>14512</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>/sbin/getty -8 38400 tty3</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.1</MEM>
-      <PID>908</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <MEM>0.0</MEM>
+      <PID>970</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>tty3</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>15804</VIRTUALMEMORY>
+      <VIRTUALMEMORY>14512</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>/sbin/getty -8 38400 tty6</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.1</MEM>
-      <PID>913</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <MEM>0.0</MEM>
+      <PID>974</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>tty6</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>15804</VIRTUALMEMORY>
-    </PROCESSES>
-    <PROCESSES>
-      <CMD>acpid -c /etc/acpi/events -s /var/run/acpid.socket</CMD>
-      <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.1</MEM>
-      <PID>925</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
-      <TTY>?</TTY>
-      <USER>root</USER>
-      <VIRTUALMEMORY>4332</VIRTUALMEMORY>
+      <VIRTUALMEMORY>14512</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>whoopsie</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.4</MEM>
-      <PID>928</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <MEM>0.7</MEM>
+      <PID>991</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>?</TTY>
       <USER>whoopsie</USER>
-      <VIRTUALMEMORY>189652</VIRTUALMEMORY>
+      <VIRTUALMEMORY>130772</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>acpid -c /etc/acpi/events -s /var/run/acpid.socket</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>994</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>4336</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>cron</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.1</MEM>
-      <PID>933</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <PID>1031</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>19112</VIRTUALMEMORY>
+      <VIRTUALMEMORY>19116</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>atd</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
-      <PID>934</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
+      <PID>1032</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>?</TTY>
       <USER>daemon</USER>
-      <VIRTUALMEMORY>16908</VIRTUALMEMORY>
+      <VIRTUALMEMORY>16912</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
-      <CMD>/sbin/getty -8 38400 tty1</CMD>
+      <CMD>[flush-253:0]</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.1</MEM>
-      <PID>980</PID>
-      <STARTED>2018-11-13 15:41</STARTED>
-      <TTY>tty1</TTY>
+      <MEM>0.0</MEM>
+      <PID>1093</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
+      <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>15804</VIRTUALMEMORY>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>[kworker/0:0]</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
-      <PID>1028</PID>
-      <STARTED>2019-04-03 00:13</STARTED>
-      <TTY>?</TTY>
-      <USER>root</USER>
-      <VIRTUALMEMORY>0</VIRTUALMEMORY>
-    </PROCESSES>
-    <PROCESSES>
-      <CMD>[kworker/0:2]</CMD>
-      <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.0</MEM>
-      <PID>2082</PID>
-      <STARTED>2019-04-03 00:18</STARTED>
-      <TTY>?</TTY>
-      <USER>root</USER>
-      <VIRTUALMEMORY>0</VIRTUALMEMORY>
-    </PROCESSES>
-    <PROCESSES>
-      <CMD>[kworker/0:1]</CMD>
-      <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.0</MEM>
-      <PID>3142</PID>
-      <STARTED>2019-04-03 00:23</STARTED>
+      <PID>1353</PID>
+      <STARTED>2019-05-12 05:35</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
@@ -1079,123 +1026,163 @@
     <PROCESSES>
       <CMD>sh -c &quot;/var/rudder/cfengine-community/bin/cf-agent&quot; -f failsafe.cf ; &quot;/var/rudder/cfengine-community/bin/cf-agent&quot;</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.1</MEM>
-      <PID>3915</PID>
-      <STARTED>2019-04-03 00:25</STARTED>
+      <MEM>0.2</MEM>
+      <PID>1356</PID>
+      <STARTED>2019-05-12 05:39</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>4396</VIRTUALMEMORY>
+      <VIRTUALMEMORY>4408</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>/var/rudder/cfengine-community/bin/cf-agent</CMD>
-      <CPUUSAGE>59.7</CPUUSAGE>
-      <MEM>3.6</MEM>
-      <PID>3926</PID>
-      <STARTED>2019-04-03 00:25</STARTED>
+      <CPUUSAGE>6.9</CPUUSAGE>
+      <MEM>7.9</MEM>
+      <PID>1368</PID>
+      <STARTED>2019-05-12 05:39</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>56640</VIRTUALMEMORY>
+      <VIRTUALMEMORY>71496</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
-      <CMD>/bin/sh /opt/rudder/bin/run-inventory --local=/var/rudder/tmp/inventory/ubuntu-12-10-64-d2b1d400-be09-47d0-a851-5f50bcf2d09e.ocs</CMD>
+      <CMD>/usr/sbin/apache2 -k start</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.1</MEM>
-      <PID>4133</PID>
-      <STARTED>2019-04-03 00:25</STARTED>
+      <MEM>1.1</MEM>
+      <PID>1466</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>4396</VIRTUALMEMORY>
+      <VIRTUALMEMORY>74316</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
-      <CMD>/opt/rudder/bin/perl -I /opt/rudder/lib/perl5 /opt/rudder/bin/fusioninventory-agent --config=none --no-task=Deploy --local=/var/rudder/tmp/inventory/ubuntu-12-10-64-d2b1d400-be09-47d0-a851-5f50bcf2d09e.ocs</CMD>
-      <CPUUSAGE>45.0</CPUUSAGE>
-      <MEM>8.9</MEM>
-      <PID>4139</PID>
-      <STARTED>2019-04-03 00:25</STARTED>
-      <TTY>?</TTY>
-      <USER>root</USER>
-      <VIRTUALMEMORY>107584</VIRTUALMEMORY>
-    </PROCESSES>
-    <PROCESSES>
-      <CMD>sh -c ps -A -o user,pid,pcpu,pmem,vsz,tty,etime,command 2&gt;/dev/null</CMD>
-      <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.1</MEM>
-      <PID>4148</PID>
-      <STARTED>2019-04-03 00:25</STARTED>
-      <TTY>?</TTY>
-      <USER>root</USER>
-      <VIRTUALMEMORY>4396</VIRTUALMEMORY>
-    </PROCESSES>
-    <PROCESSES>
-      <CMD>ps -A -o user,pid,pcpu,pmem,vsz,tty,etime,command</CMD>
-      <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.2</MEM>
-      <PID>4149</PID>
-      <STARTED>2019-04-03 00:25</STARTED>
-      <TTY>?</TTY>
-      <USER>root</USER>
-      <VIRTUALMEMORY>15528</VIRTUALMEMORY>
-    </PROCESSES>
-    <PROCESSES>
-      <CMD>[flush-253:0]</CMD>
+      <CMD>/sbin/getty -8 38400 tty1</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
       <MEM>0.0</MEM>
-      <PID>29923</PID>
-      <STARTED>2019-03-13 15:08</STARTED>
+      <PID>1551</PID>
+      <STARTED>2019-04-04 20:06</STARTED>
+      <TTY>tty1</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>14512</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/bin/run-inventory --local=/var/rudder/tmp/inventory/ubuntu-12-04-64-78628ad3-eb43-4136-9486-81cdd15d8b0c.ocs</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>2363</PID>
+      <STARTED>2019-05-12 05:40</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>4408</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>perl -I /opt/rudder/lib/perl5 /opt/rudder/bin/fusioninventory-agent --config=none --no-task=Deploy --local=/var/rudder/tmp/inventory/ubuntu-12-04-64-78628ad3-eb43-4136-9486-81cdd15d8b0c.ocs</CMD>
+      <CPUUSAGE>4.0</CPUUSAGE>
+      <MEM>16.1</MEM>
+      <PID>2369</PID>
+      <STARTED>2019-05-12 05:40</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>93804</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:2]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>2370</PID>
+      <STARTED>2019-05-12 05:40</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
       <VIRTUALMEMORY>0</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
-      <CMD>/usr/sbin/console-kit-daemon --no-daemon</CMD>
+      <CMD>sh -c ps -A -o user,pid,pcpu,pmem,vsz,tty,etime,command 2&gt;/dev/null</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.4</MEM>
-      <PID>29927</PID>
-      <STARTED>2019-03-13 15:09</STARTED>
+      <MEM>0.2</MEM>
+      <PID>2379</PID>
+      <STARTED>2019-05-12 05:40</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>584340</VIRTUALMEMORY>
+      <VIRTUALMEMORY>4408</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
-      <CMD>/usr/lib/policykit-1/polkitd --no-debug</CMD>
+      <CMD>ps -A -o user,pid,pcpu,pmem,vsz,tty,etime,command</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.3</MEM>
-      <PID>29994</PID>
-      <STARTED>2019-03-13 15:09</STARTED>
+      <MEM>0.4</MEM>
+      <PID>2380</PID>
+      <STARTED>2019-05-12 05:40</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>186616</VIRTUALMEMORY>
+      <VIRTUALMEMORY>15280</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>/var/rudder/cfengine-community/bin/cf-serverd</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>1.2</MEM>
-      <PID>32038</PID>
-      <STARTED>2019-03-13 15:12</STARTED>
+      <MEM>2.4</MEM>
+      <PID>5346</PID>
+      <STARTED>2019-05-10 12:26</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>43860</VIRTUALMEMORY>
+      <VIRTUALMEMORY>50472</VIRTUALMEMORY>
     </PROCESSES>
     <PROCESSES>
       <CMD>/var/rudder/cfengine-community/bin/cf-execd</CMD>
       <CPUUSAGE>0.0</CPUUSAGE>
-      <MEM>0.8</MEM>
-      <PID>32211</PID>
-      <STARTED>2019-03-13 15:12</STARTED>
+      <MEM>1.8</MEM>
+      <PID>5519</PID>
+      <STARTED>2019-05-10 12:26</STARTED>
       <TTY>?</TTY>
       <USER>root</USER>
-      <VIRTUALMEMORY>108848</VIRTUALMEMORY>
+      <VIRTUALMEMORY>250584</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/apache2 -k start</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.9</MEM>
+      <PID>15237</PID>
+      <STARTED>2019-05-05 07:51</STARTED>
+      <TTY>?</TTY>
+      <USER>www-data</USER>
+      <VIRTUALMEMORY>74332</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/apache2 -k start</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.9</MEM>
+      <PID>15238</PID>
+      <STARTED>2019-05-05 07:51</STARTED>
+      <TTY>?</TTY>
+      <USER>www-data</USER>
+      <VIRTUALMEMORY>363280</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/apache2 -k start</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.9</MEM>
+      <PID>15239</PID>
+      <STARTED>2019-05-05 07:51</STARTED>
+      <TTY>?</TTY>
+      <USER>www-data</USER>
+      <VIRTUALMEMORY>363280</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:1]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>32698</PID>
+      <STARTED>2019-05-12 05:30</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
     </PROCESSES>
     <RUDDER>
       <AGENT>
         <AGENT_NAME>cfengine-community</AGENT_NAME>
         <CFENGINE_KEY>-----BEGIN RSA PUBLIC KEY-----
-MIIBCAKCAQEAtwTJu/AGJcj3+DMwFkvAdC9r9tyBtEKxUQ1Glm/KHj5HqTFp214L
-KeL1praEmyAfKLIrvqrPMko+cX0HgGqV111P+5hRz5VSaqmollfGHkc38T44cnP5
-k/gnoSvyubfnxCy2ZoWrYddmtK8zZSMN/dyEP3mzT+xOmc6LaEPKWjx8gg+9WFiO
-f86GoTBWbSYh8wZr1w3FMH7ZFszNUgqhufyp5OC5Z87drve7IZAXBagdnJt3a+h7
-biFKdejmRIxAXBuZCcZVIBs1WMyBnfQDBb26yTa5+9kZwNBpYvOjGNyqb4t+SfKP
-HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
+MIIBCAKCAQEA2eHrD//V1/S/acgXvu5P5Lc4rhbb66j9sNEeE5k1tblJcb3SG77d
+63LVGGhdXGUn2KtePs3R00hSZwTqvAPSjBhXf9agWR6my3GWZlDHWG3WyD8LHcdr
+kKvZLQPPsCQC6RwLfA+jC0LjmkbwENfS5/tQuMX8vlYHtJ5ci7X7WwerCbJUvFrv
+teyn3yKuQaIAcKLsrDEH79qWeYzH/NgeAlXnRt3pp/RTfYhsSxQ/VnYdwV1T1lkp
+R15eTYdw5JFuD7zfMuoQI6k+aKBUsff0shwiocx7ru1sWFDvcPpAUQ/SufjmqWgO
+ABDXeEZ72tjwyP/Hy0tPr6LCbKz0ZUv+YwIBIw==
 -----END RSA PUBLIC KEY-----
         </CFENGINE_KEY>
         <OWNER>root</OWNER>
@@ -1206,50 +1193,102 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
         <AGENT_CAPABILITY>cfengine</AGENT_CAPABILITY>
         <AGENT_CAPABILITY>dumpdatastate</AGENT_CAPABILITY>
         <AGENT_CAPABILITY>bodydefault</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>yaml</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>xml</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>curl</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>acl</AGENT_CAPABILITY>
       </AGENT_CAPABILITIES>
-      <HOSTNAME>ubuntu-12-10-64.labo.normation.com</HOSTNAME>
+      <HOSTNAME>ubuntu-12-04-64.labo.normation.com</HOSTNAME>
       <SERVER_ROLES></SERVER_ROLES>
-      <UUID>d2b1d400-be09-47d0-a851-5f50bcf2d09e</UUID>
+      <UUID>78628ad3-eb43-4136-9486-81cdd15d8b0c</UUID>
     </RUDDER>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>372</FILESIZE>
+      <FILESIZE>316</FILESIZE>
       <FROM>deb</FROM>
       <NAME>accountsservice</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.6.21-6ubuntu5</VERSION>
+      <VERSION>0.6.15-2ubuntu9.7</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>161</FILESIZE>
+      <FILESIZE>156</FILESIZE>
       <FROM>deb</FROM>
       <NAME>acpid</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:2.0.16-1ubuntu1</VERSION>
+      <VERSION>1:2.0.10-1ubuntu3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>588</FILESIZE>
+      <FILESIZE>568</FILESIZE>
       <FROM>deb</FROM>
       <NAME>adduser</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.113+nmu1ubuntu1</VERSION>
+      <VERSION>3.113ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1094</FILESIZE>
+      <FILESIZE>224</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>anacron</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.3-14ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>29</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apache2</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.2.22-1ubuntu1.11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>55</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apache2-mpm-worker</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.2.22-1ubuntu1.11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>346</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apache2-utils</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.2.22-1ubuntu1.11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>3606</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apache2.2-bin</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.2.22-1ubuntu1.11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>800</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apache2.2-common</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.2.22-1ubuntu1.11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1061</FILESIZE>
       <FROM>deb</FROM>
       <NAME>apparmor</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.8.0-0ubuntu5</VERSION>
+      <VERSION>2.7.102-0ubuntu3.11</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>1076</FILESIZE>
+      <FILESIZE>992</FILESIZE>
       <FROM>deb</FROM>
       <NAME>apport</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.6.1-0ubuntu6</VERSION>
+      <VERSION>2.0.1-0ubuntu17.15</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -1257,71 +1296,71 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>apport-symptoms</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.19</VERSION>
+      <VERSION>0.16.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>3312</FILESIZE>
+      <FILESIZE>3180</FILESIZE>
       <FROM>deb</FROM>
       <NAME>apt</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.9.7.5ubuntu5</VERSION>
+      <VERSION>0.8.16~exp12ubuntu10.27</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>174</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt-transport-https</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.8.16~exp12ubuntu10.27</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>553</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt-utils</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.8.16~exp12ubuntu10.27</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>334</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt-xapian-index</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.44ubuntu5.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>7064</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>aptitude</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.6.6-1ubuntu1.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
       <FILESIZE>177</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>apt-transport-https</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.9.7.5ubuntu5</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>608</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>apt-utils</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.9.7.5ubuntu5</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>335</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>apt-xapian-index</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.44ubuntu7</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>4741</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>aptitude</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.6.8.1-2ubuntu1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>4172</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>aptitude-common</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.6.8.1-2ubuntu1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>184</FILESIZE>
-      <FROM>deb</FROM>
       <NAME>at</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.1.13-2ubuntu1</VERSION>
+      <VERSION>3.1.13-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>676</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>backup-manager</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.7.9-3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>420</FILESIZE>
+      <FILESIZE>419</FILESIZE>
       <FROM>deb</FROM>
       <NAME>base-files</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.5ubuntu12</VERSION>
+      <VERSION>6.5ubuntu6.8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1329,7 +1368,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>base-passwd</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.5.26</VERSION>
+      <VERSION>3.5.24</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1337,63 +1376,55 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>bash</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.2-5ubuntu1</VERSION>
+      <VERSION>4.2-2ubuntu2.6</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>871</FILESIZE>
+      <FILESIZE>640</FILESIZE>
       <FROM>deb</FROM>
       <NAME>bash-completion</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:2.0-1ubuntu2</VERSION>
+      <VERSION>1:1.3-1ubuntu8.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>268</FILESIZE>
+      <FILESIZE>265</FILESIZE>
       <FROM>deb</FROM>
       <NAME>bc</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.06.95-4</VERSION>
+      <VERSION>1.06.95-2ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>171</FILESIZE>
+      <FILESIZE>173</FILESIZE>
       <FROM>deb</FROM>
       <NAME>bind9-host</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:9.8.1.dfsg.P1-4.2ubuntu3</VERSION>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.22</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>7660</FILESIZE>
+      <FILESIZE>8568</FILESIZE>
       <FROM>deb</FROM>
       <NAME>binutils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.22.90.20120924-0ubuntu2</VERSION>
+      <VERSION>2.22-6ubuntu1.4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>98</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>biosdevname</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.4.1-0ubuntu3</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>547</FILESIZE>
+      <FILESIZE>540</FILESIZE>
       <FROM>deb</FROM>
       <NAME>bsdmainutils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>9.0.3ubuntu1</VERSION>
+      <VERSION>8.2.3ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>192</FILESIZE>
+      <FILESIZE>196</FILESIZE>
       <FROM>deb</FROM>
       <NAME>bsdutils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:2.20.1-5.1ubuntu2</VERSION>
+      <VERSION>1:2.20.1-1ubuntu3.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1401,31 +1432,31 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>build-essential</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>11.5ubuntu3</VERSION>
+      <VERSION>11.5ubuntu2.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>365</FILESIZE>
+      <FILESIZE>363</FILESIZE>
       <FROM>deb</FROM>
       <NAME>busybox-initramfs</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:1.19.3-7ubuntu1</VERSION>
+      <VERSION>1:1.18.5-1ubuntu4.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1864</FILESIZE>
+      <FILESIZE>1873</FILESIZE>
       <FROM>deb</FROM>
       <NAME>busybox-static</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:1.19.3-7ubuntu1</VERSION>
+      <VERSION>1:1.18.5-1ubuntu4.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>421</FILESIZE>
+      <FILESIZE>418</FILESIZE>
       <FROM>deb</FROM>
       <NAME>byobu</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.21-0ubuntu1</VERSION>
+      <VERSION>5.17-0ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1433,55 +1464,47 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>bzip2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.0.6-4</VERSION>
+      <VERSION>1.0.6-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>392</FILESIZE>
+      <FILESIZE>420</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ca-certificates</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>20120623</VERSION>
+      <VERSION>20160104ubuntu0.12.04.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>78</FILESIZE>
+      <FILESIZE>85</FILESIZE>
       <FROM>deb</FROM>
       <NAME>command-not-found</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.3ubuntu5</VERSION>
+      <VERSION>0.2.46ubuntu6</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>3424</FILESIZE>
+      <FILESIZE>2911</FILESIZE>
       <FROM>deb</FROM>
       <NAME>command-not-found-data</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.3ubuntu5</VERSION>
+      <VERSION>0.2.46ubuntu6</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>1530</FILESIZE>
+      <FILESIZE>1522</FILESIZE>
       <FROM>deb</FROM>
       <NAME>console-setup</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.70ubuntu6</VERSION>
+      <VERSION>1.70ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>457</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>consolekit</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.4.5-3</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>5492</FILESIZE>
+      <FILESIZE>5496</FILESIZE>
       <FROM>deb</FROM>
       <NAME>coreutils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>8.13-3.2ubuntu2</VERSION>
+      <VERSION>8.13-3ubuntu3.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1489,7 +1512,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>cpio</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.11-8ubuntu3</VERSION>
+      <VERSION>2.11-7ubuntu3.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1497,15 +1520,15 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>cpp</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4:4.7.2-1ubuntu2</VERSION>
+      <VERSION>4:4.6.3-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>12806</FILESIZE>
+      <FILESIZE>11490</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>cpp-4.7</NAME>
+      <NAME>cpp-4.6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.7.2-2ubuntu1</VERSION>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1513,143 +1536,191 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>crda</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.1.2-1ubuntu2</VERSION>
+      <VERSION>1.1.2-1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>302</FILESIZE>
+      <FILESIZE>301</FILESIZE>
       <FROM>deb</FROM>
       <NAME>cron</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.0pl1-121ubuntu1</VERSION>
+      <VERSION>3.0pl1-120ubuntu4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>374</FILESIZE>
+      <FILESIZE>346</FILESIZE>
       <FROM>deb</FROM>
       <NAME>curl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>7.27.0-1ubuntu1</VERSION>
+      <VERSION>7.22.0-3ubuntu4.17</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>213</FILESIZE>
+      <FILESIZE>215</FILESIZE>
       <FROM>deb</FROM>
       <NAME>dash</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.5.7-3ubuntu1</VERSION>
+      <VERSION>0.5.7-2ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>1840</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dbconfig-common</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.8.47</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>941</FILESIZE>
+      <FILESIZE>936</FILESIZE>
       <FROM>deb</FROM>
       <NAME>dbus</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6.4-1ubuntu4</VERSION>
+      <VERSION>1.4.18-1ubuntu1.8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>340</FILESIZE>
+      <FILESIZE>133</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dbus-x11</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.4.18-1ubuntu1.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>292</FILESIZE>
       <FROM>deb</FROM>
       <NAME>dctrl-tools</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.22.2</VERSION>
+      <VERSION>2.18ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>614</FILESIZE>
+      <FILESIZE>609</FILESIZE>
       <FROM>deb</FROM>
       <NAME>debconf</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.5.46ubuntu1</VERSION>
+      <VERSION>1.5.42ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>1100</FILESIZE>
+      <FILESIZE>1075</FILESIZE>
       <FROM>deb</FROM>
       <NAME>debconf-i18n</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.5.46ubuntu1</VERSION>
+      <VERSION>1.5.42ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>243</FILESIZE>
+      <FILESIZE>216</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debfoster</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.7-1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>973</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debhelper</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>9.20120115ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>64</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debian-archive-keyring</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2010.08.28</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>218</FILESIZE>
       <FROM>deb</FROM>
       <NAME>debianutils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.3.4</VERSION>
+      <VERSION>4.2.1ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>226</FILESIZE>
+      <FILESIZE>225</FILESIZE>
       <FROM>deb</FROM>
       <NAME>debootstrap</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.0.42ubuntu0.1</VERSION>
+      <VERSION>1.0.40~ubuntu0.12</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1504</FILESIZE>
+      <FILESIZE>592</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>deborphan</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.7.28.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1502</FILESIZE>
       <FROM>deb</FROM>
       <NAME>devscripts</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.12.4</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>211</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>dhcpcd5</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.5.6-1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>79</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>diffstat</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.55-3</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>408</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>diffutils</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:3.2-6ubuntu1</VERSION>
+      <VERSION>2.11.6ubuntu1.7</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>33</FILESIZE>
+      <FILESIZE>77</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>distro-info-data</NAME>
+      <NAME>dh-apparmor</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.10ubuntu1</VERSION>
+      <VERSION>2.7.102-0ubuntu3.11</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>190</FILESIZE>
+      <FILESIZE>1225</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dialog</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.1-20111020-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>diffstat</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.54-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>444</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>diffutils</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1:3.2-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>153</FILESIZE>
       <FROM>deb</FROM>
       <NAME>dmidecode</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.11+20120326-2</VERSION>
+      <VERSION>2.11-4ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>174</FILESIZE>
+      <FILESIZE>158</FILESIZE>
       <FROM>deb</FROM>
       <NAME>dmsetup</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:1.02.74-4ubuntu1</VERSION>
+      <VERSION>2:1.02.48-4ubuntu7.4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>362</FILESIZE>
+      <FILESIZE>364</FILESIZE>
       <FROM>deb</FROM>
       <NAME>dnsutils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:9.8.1.dfsg.P1-4.2ubuntu3</VERSION>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.22</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1657,63 +1728,71 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>dosfstools</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.0.13-1</VERSION>
+      <VERSION>3.0.12-1ubuntu1.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>5665</FILESIZE>
+      <FILESIZE>5932</FILESIZE>
       <FROM>deb</FROM>
       <NAME>dpkg</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.16.7ubuntu6</VERSION>
+      <VERSION>1.16.1.2ubuntu7.8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>1410</FILESIZE>
+      <FILESIZE>1163</FILESIZE>
       <FROM>deb</FROM>
       <NAME>dpkg-dev</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.16.7ubuntu6</VERSION>
+      <VERSION>1.16.1.2ubuntu7.8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>162</FILESIZE>
+      <FILESIZE>232</FILESIZE>
       <FROM>deb</FROM>
       <NAME>dput</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.9.6.2ubuntu2</VERSION>
+      <VERSION>0.9.6.2ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>381</FILESIZE>
+      <FILESIZE>370</FILESIZE>
       <FROM>deb</FROM>
       <NAME>e2fslibs</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.42.5-1ubuntu2</VERSION>
+      <VERSION>1.42-1ubuntu2.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>2351</FILESIZE>
+      <FILESIZE>2330</FILESIZE>
       <FROM>deb</FROM>
       <NAME>e2fsprogs</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.42.5-1ubuntu2</VERSION>
+      <VERSION>1.42-1ubuntu2.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>121</FILESIZE>
+      <FILESIZE>127</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ed</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6-2</VERSION>
+      <VERSION>1.5-3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>160</FILESIZE>
+      <FILESIZE>152</FILESIZE>
       <FROM>deb</FROM>
       <NAME>eject</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.1.5+deb1+cvs20081104-11</VERSION>
+      <VERSION>2.1.5+deb1+cvs20081104-9ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>320</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>expect</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>5.45-2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1721,31 +1800,31 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>fakeroot</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.18.4-2</VERSION>
+      <VERSION>1.18.2-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>97</FILESIZE>
+      <FILESIZE>109</FILESIZE>
       <FROM>deb</FROM>
       <NAME>file</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.11-2</VERSION>
+      <VERSION>5.09-2ubuntu0.6</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>816</FILESIZE>
+      <FILESIZE>832</FILESIZE>
       <FROM>deb</FROM>
       <NAME>findutils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.4.2-4ubuntu2</VERSION>
+      <VERSION>4.4.2-4ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>59</FILESIZE>
+      <FILESIZE>58</FILESIZE>
       <FROM>deb</FROM>
       <NAME>fonts-ubuntu-font-family-console</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.80-0ubuntu5</VERSION>
+      <VERSION>0.80-0ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -1757,19 +1836,19 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>144</FILESIZE>
+      <FILESIZE>176</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ftp</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.17-27</VERSION>
+      <VERSION>0.17-25</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>143</FILESIZE>
+      <FILESIZE>156</FILESIZE>
       <FROM>deb</FROM>
       <NAME>fuse</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.9.0-1ubuntu2</VERSION>
+      <VERSION>2.8.6-2ubuntu2.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1777,15 +1856,15 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>g++</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4:4.7.2-1ubuntu2</VERSION>
+      <VERSION>4:4.6.3-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>16032</FILESIZE>
+      <FILESIZE>14161</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>g++-4.7</NAME>
+      <NAME>g++-4.6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.7.2-2ubuntu1</VERSION>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1793,95 +1872,119 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>gcc</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4:4.7.2-1ubuntu2</VERSION>
+      <VERSION>4:4.6.3-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>18034</FILESIZE>
+      <FILESIZE>15677</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>gcc-4.7</NAME>
+      <NAME>gcc-4.6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.7.2-2ubuntu1</VERSION>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>196</FILESIZE>
+      <FILESIZE>194</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>gcc-4.7-base</NAME>
+      <NAME>gcc-4.6-base</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.7.2-2ubuntu1</VERSION>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>194</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gcc-4.6-base</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>7361</FILESIZE>
+      <FILESIZE>6881</FILESIZE>
       <FROM>deb</FROM>
       <NAME>geoip-database</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>20120609-1</VERSION>
+      <VERSION>20111220-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>4064</FILESIZE>
+      <FILESIZE>4124</FILESIZE>
       <FROM>deb</FROM>
       <NAME>gettext</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.18.1.1-9ubuntu1</VERSION>
+      <VERSION>0.18.1.1-5ubuntu3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>344</FILESIZE>
+      <FILESIZE>368</FILESIZE>
       <FROM>deb</FROM>
       <NAME>gettext-base</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.18.1.1-9ubuntu1</VERSION>
+      <VERSION>0.18.1.1-5ubuntu3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>589</FILESIZE>
+      <FILESIZE>575</FILESIZE>
       <FROM>deb</FROM>
       <NAME>gir1.2-glib-2.0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.33.14-1</VERSION>
+      <VERSION>1.32.0-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1936</FILESIZE>
+      <FILESIZE>13636</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>git</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1:1.7.9.5-1ubuntu0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>1094</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>git-man</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1:1.7.9.5-1ubuntu0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1940</FILESIZE>
       <FROM>deb</FROM>
       <NAME>gnupg</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.4.11-3ubuntu4</VERSION>
+      <VERSION>1.4.11-3ubuntu2.10</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>436</FILESIZE>
+      <FILESIZE>441</FILESIZE>
       <FROM>deb</FROM>
       <NAME>gpgv</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.4.11-3ubuntu4</VERSION>
+      <VERSION>1.4.11-3ubuntu2.10</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>632</FILESIZE>
+      <FILESIZE>608</FILESIZE>
       <FROM>deb</FROM>
       <NAME>grep</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.12-2</VERSION>
+      <VERSION>2.10-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>2775</FILESIZE>
+      <FILESIZE>2779</FILESIZE>
       <FROM>deb</FROM>
       <NAME>groff-base</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.21-9</VERSION>
+      <VERSION>1.21-7</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>5828</FILESIZE>
+      <FILESIZE>5048</FILESIZE>
       <FROM>deb</FROM>
       <NAME>grub-common</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.00-7ubuntu11</VERSION>
+      <VERSION>1.99-21ubuntu3.20</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1893,43 +1996,35 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>545</FILESIZE>
+      <FILESIZE>464</FILESIZE>
       <FROM>deb</FROM>
       <NAME>grub-pc</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.00-7ubuntu11</VERSION>
+      <VERSION>1.99-21ubuntu3.20</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>2458</FILESIZE>
+      <FILESIZE>1896</FILESIZE>
       <FROM>deb</FROM>
       <NAME>grub-pc-bin</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.00-7ubuntu11</VERSION>
+      <VERSION>1.99-21ubuntu3.20</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>187</FILESIZE>
+      <FILESIZE>140</FILESIZE>
       <FROM>deb</FROM>
       <NAME>grub2-common</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.00-7ubuntu11</VERSION>
+      <VERSION>1.99-21ubuntu3.20</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>234</FILESIZE>
+      <FILESIZE>219</FILESIZE>
       <FROM>deb</FROM>
       <NAME>gzip</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.5-1.1ubuntu1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>70</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>hardening-includes</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.2</VERSION>
+      <VERSION>1.4-1ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1937,23 +2032,31 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>hdparm</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>9.37-0ubuntu4</VERSION>
+      <VERSION>9.37-0ubuntu3.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>86</FILESIZE>
+      <FILESIZE>116</FILESIZE>
       <FROM>deb</FROM>
       <NAME>hostname</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.11ubuntu1</VERSION>
+      <VERSION>3.06ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>206</FILESIZE>
+      <FILESIZE>304</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>html2text</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.3.2a-15</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>186</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ifupdown</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.7.2ubuntu2</VERSION>
+      <VERSION>0.7~beta2ubuntu11.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1961,7 +2064,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>info</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.13a.dfsg.1-10ubuntu2</VERSION>
+      <VERSION>4.13a.dfsg.1-8ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -1969,7 +2072,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>initramfs-tools</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.103ubuntu0.2</VERSION>
+      <VERSION>0.99ubuntu13.5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1977,7 +2080,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>initramfs-tools-bin</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.103ubuntu0.2</VERSION>
+      <VERSION>0.99ubuntu13.5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -1985,15 +2088,15 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>initscripts</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.88dsf-13.10ubuntu13</VERSION>
+      <VERSION>2.88dsf-13.10ubuntu11.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>182</FILESIZE>
+      <FILESIZE>221</FILESIZE>
       <FROM>deb</FROM>
       <NAME>insserv</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.14.0-4ubuntu1</VERSION>
+      <VERSION>1.14.0-2.1ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -2001,7 +2104,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>install-info</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.13a.dfsg.1-10ubuntu2</VERSION>
+      <VERSION>4.13a.dfsg.1-8ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2009,7 +2112,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>installation-report</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.47ubuntu1</VERSION>
+      <VERSION>2.46ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2029,75 +2132,75 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>996</FILESIZE>
+      <FILESIZE>983</FILESIZE>
       <FROM>deb</FROM>
       <NAME>iproute</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>20120521-3ubuntu1</VERSION>
+      <VERSION>20111117-1ubuntu2.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1422</FILESIZE>
+      <FILESIZE>1430</FILESIZE>
       <FROM>deb</FROM>
       <NAME>iptables</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.4.12-2ubuntu2</VERSION>
+      <VERSION>1.4.12-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>141</FILESIZE>
+      <FILESIZE>140</FILESIZE>
       <FROM>deb</FROM>
       <NAME>iputils-ping</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3:20101006-3ubuntu1</VERSION>
+      <VERSION>3:20101006-1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>103</FILESIZE>
+      <FILESIZE>102</FILESIZE>
       <FROM>deb</FROM>
       <NAME>iputils-tracepath</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3:20101006-3ubuntu1</VERSION>
+      <VERSION>3:20101006-1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>105</FILESIZE>
+      <FILESIZE>93</FILESIZE>
       <FROM>deb</FROM>
       <NAME>irqbalance</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.0.3-1ubuntu2</VERSION>
+      <VERSION>0.56-1ubuntu4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1807</FILESIZE>
+      <FILESIZE>734</FILESIZE>
       <FROM>deb</FROM>
       <NAME>isc-dhcp-client</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.2.4-1ubuntu10.1</VERSION>
+      <VERSION>4.1.ESV-R4-0ubuntu5.12</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1754</FILESIZE>
+      <FILESIZE>673</FILESIZE>
       <FROM>deb</FROM>
       <NAME>isc-dhcp-common</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.2.4-1ubuntu10.1</VERSION>
+      <VERSION>4.1.ESV-R4-0ubuntu5.12</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>14537</FILESIZE>
+      <FILESIZE>13099</FILESIZE>
       <FROM>deb</FROM>
       <NAME>iso-codes</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.38-1</VERSION>
+      <VERSION>3.31-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1024</FILESIZE>
+      <FILESIZE>996</FILESIZE>
       <FROM>deb</FROM>
       <NAME>kbd</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.15.3-9ubuntu1</VERSION>
+      <VERSION>1.15.2-3ubuntu4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2105,95 +2208,55 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>keyboard-configuration</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.70ubuntu6</VERSION>
+      <VERSION>1.70ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>388</FILESIZE>
+      <FILESIZE>367</FILESIZE>
       <FROM>deb</FROM>
       <NAME>klibc-utils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.0.1-1ubuntu2</VERSION>
+      <VERSION>1.5.25-1ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>1524</FILESIZE>
+      <FILESIZE>1516</FILESIZE>
       <FROM>deb</FROM>
       <NAME>krb5-locales</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.10.1+dfsg-2</VERSION>
+      <VERSION>1.10+dfsg~beta1-2ubuntu0.7</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1174</FILESIZE>
+      <FILESIZE>1208</FILESIZE>
       <FROM>deb</FROM>
       <NAME>landscape-common</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>12.05-0ubuntu2</VERSION>
+      <VERSION>12.04.3-0ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>30</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>language-pack-en</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:12.10+20121009</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>3811</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>language-pack-en-base</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:12.10+20121009</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>30</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>language-pack-fr</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:12.10+20121009</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>9329</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>language-pack-fr-base</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:12.10+20121009</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>2554</FILESIZE>
+      <FILESIZE>2610</FILESIZE>
       <FROM>deb</FROM>
       <NAME>language-selector-common</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.90</VERSION>
+      <VERSION>0.79.4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>56</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>laptop-detect</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.13.7ubuntu2</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>283</FILESIZE>
+      <FILESIZE>324</FILESIZE>
       <FROM>deb</FROM>
       <NAME>less</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>444-4ubuntu1</VERSION>
+      <VERSION>444-1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>330</FILESIZE>
+      <FILESIZE>106</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libaccountsservice0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.6.21-6ubuntu5</VERSION>
+      <VERSION>0.6.15-2ubuntu9.7</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -2201,7 +2264,15 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libacl1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.2.51-8ubuntu2</VERSION>
+      <VERSION>2.2.51-5ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>75</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libacl1</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.2.51-5ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2217,7 +2288,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libalgorithm-diff-xs-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.04-2build3</VERSION>
+      <VERSION>0.04-2build2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2229,51 +2300,67 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>715</FILESIZE>
+      <FILESIZE>295</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>libapt-inst1.5</NAME>
+      <NAME>libapr1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.9.7.5ubuntu5</VERSION>
+      <VERSION>1.4.6-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>245</FILESIZE>
+      <FILESIZE>217</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libaprutil1</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.3.12+dfsg-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>67</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libaprutil1-dbd-sqlite3</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.3.12+dfsg-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>59</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libaprutil1-ldap</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.3.12+dfsg-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>823</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libapt-inst1.4</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.8.16~exp12ubuntu10.27</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>250</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libapt-pkg-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.1.26</VERSION>
+      <VERSION>0.1.25build2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>2710</FILESIZE>
+      <FILESIZE>2969</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libapt-pkg4.12</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.9.7.5ubuntu5</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>273</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>libarchive-zip-perl</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.30-6</VERSION>
+      <VERSION>0.8.16~exp12ubuntu10.27</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>758</FILESIZE>
+      <FILESIZE>797</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libasn1-8-heimdal</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6~git20120403+dfsg1-2</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>69</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>libasprintf0c2</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.18.1.1-9ubuntu1</VERSION>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -2281,39 +2368,47 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libattr1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:2.4.46-8ubuntu1</VERSION>
+      <VERSION>1:2.4.46-5ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>55</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libattr1</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1:2.4.46-5ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>100</FILESIZE>
+      <FILESIZE>102</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libbind9-80</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:9.8.1.dfsg.P1-4.2ubuntu3</VERSION>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.22</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>246</FILESIZE>
+      <FILESIZE>249</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libblkid1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.20.1-5.1ubuntu2</VERSION>
+      <VERSION>2.20.1-1ubuntu3.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
       <FILESIZE>165</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>libboost-iostreams1.49.0</NAME>
+      <NAME>libboost-iostreams1.46.1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.49.0-3.1ubuntu1</VERSION>
+      <VERSION>1.46.1-7ubuntu3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>141</FILESIZE>
+      <FILESIZE>125</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libbsd0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.4.2-1</VERSION>
+      <VERSION>0.3.0-2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -2321,23 +2416,31 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libbz2-1.0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.0.6-4</VERSION>
+      <VERSION>1.0.6-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>112</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libbz2-1.0</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.0.6-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>3480</FILESIZE>
+      <FILESIZE>3468</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libc-bin</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.15-0ubuntu20</VERSION>
+      <VERSION>2.15-0ubuntu10.18</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>373</FILESIZE>
+      <FILESIZE>375</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libc-dev-bin</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.15-0ubuntu20</VERSION>
+      <VERSION>2.15-0ubuntu10.18</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -2345,31 +2448,39 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libc6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.15-0ubuntu20</VERSION>
+      <VERSION>2.15-0ubuntu10.18</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>9141</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libc6</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.15-0ubuntu10.18</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>11648</FILESIZE>
+      <FILESIZE>11616</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libc6-dev</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.15-0ubuntu20</VERSION>
+      <VERSION>2.15-0ubuntu10.18</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>54</FILESIZE>
+      <FILESIZE>50</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libcap-ng0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.6.6-2ubuntu1</VERSION>
+      <VERSION>0.6.6-1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
       <FILESIZE>56</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>libck-connector0</NAME>
+      <NAME>libcap2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.4.5-3</VERSION>
+      <VERSION>1:2.22-1ubuntu3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2393,87 +2504,103 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libclone-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.31-1build4</VERSION>
+      <VERSION>0.31-1build3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>99</FILESIZE>
+      <FILESIZE>97</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libcomerr2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.42.5-1ubuntu2</VERSION>
+      <VERSION>1.42-1ubuntu2.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>96</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcomerr2</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.42-1ubuntu2.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>71</FILESIZE>
+      <FILESIZE>80</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libcommon-sense-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.6-1</VERSION>
+      <VERSION>3.4-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>335</FILESIZE>
+      <FILESIZE>334</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libcroco3</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.6.6-1</VERSION>
+      <VERSION>0.6.5-1ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>577</FILESIZE>
+      <FILESIZE>548</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libcurl3</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>7.27.0-1ubuntu1</VERSION>
+      <VERSION>7.22.0-3ubuntu4.17</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>557</FILESIZE>
+      <FILESIZE>527</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libcurl3-gnutls</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>7.27.0-1ubuntu1</VERSION>
+      <VERSION>7.22.0-3ubuntu4.17</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1048</FILESIZE>
+      <FILESIZE>1072</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libcwidget3</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.5.16-3.4ubuntu1</VERSION>
+      <VERSION>0.5.16-3.1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1540</FILESIZE>
+      <FILESIZE>1536</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libdb5.1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.1.29-5ubuntu2</VERSION>
+      <VERSION>5.1.25-11build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>1615</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdb5.1</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>5.1.25-11build1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>368</FILESIZE>
+      <FILESIZE>363</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libdbus-1-3</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6.4-1ubuntu4</VERSION>
+      <VERSION>1.4.18-1ubuntu1.8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>230</FILESIZE>
+      <FILESIZE>226</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libdbus-glib-1-2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.100-1</VERSION>
+      <VERSION>0.98-1ubuntu1.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>290</FILESIZE>
+      <FILESIZE>201</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libdevmapper1.02.1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:1.02.74-4ubuntu1</VERSION>
+      <VERSION>2:1.02.48-4ubuntu7.4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2484,60 +2611,84 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <VERSION>1.03+dfsg-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>44</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>libdistro-info-perl</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.10</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1625</FILESIZE>
+      <FILESIZE>1619</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libdns81</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:9.8.1.dfsg.P1-4.2ubuntu3</VERSION>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.22</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>1412</FILESIZE>
+      <FILESIZE>1256</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libdpkg-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.16.7ubuntu6</VERSION>
+      <VERSION>1.16.1.2ubuntu7.8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>185</FILESIZE>
+      <FILESIZE>194</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libdrm-intel1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.4.39-0ubuntu1</VERSION>
+      <VERSION>2.4.52-1~precise2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>193</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdrm-intel1</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.4.52-1~precise2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
+      <FILESIZE>87</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdrm-nouveau1a</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.4.52-1~precise2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
       <FILESIZE>86</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libdrm-nouveau1a</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.4.39-0ubuntu1</VERSION>
+      <VERSION>2.4.52-1~precise2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>103</FILESIZE>
+      <FILESIZE>116</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libdrm-radeon1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.4.39-0ubuntu1</VERSION>
+      <VERSION>2.4.52-1~precise2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>119</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdrm-radeon1</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.4.52-1~precise2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
+      <FILESIZE>102</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdrm2</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.4.52-1~precise2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
       <FILESIZE>105</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libdrm2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.4.39-0ubuntu1</VERSION>
+      <VERSION>2.4.52-1~precise2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -2545,39 +2696,39 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libedit2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.11-20080614-5</VERSION>
+      <VERSION>2.11-20080614-3ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>172</FILESIZE>
+      <FILESIZE>160</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libelf1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.153-1ubuntu1</VERSION>
+      <VERSION>0.152-1ubuntu3.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>79</FILESIZE>
+      <FILESIZE>78</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libemail-valid-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.190-1</VERSION>
+      <VERSION>0.185-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>58</FILESIZE>
+      <FILESIZE>57</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libencode-locale-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.03-1</VERSION>
+      <VERSION>1.02-2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>369</FILESIZE>
+      <FILESIZE>359</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libept1.4.12</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.0.9</VERSION>
+      <VERSION>1.0.6~exp1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2589,19 +2740,19 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>306</FILESIZE>
+      <FILESIZE>313</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libevent-2.0-5</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.0.19-stable-3</VERSION>
+      <VERSION>2.0.16-stable-1ubuntu0.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>386</FILESIZE>
+      <FILESIZE>388</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libexpat1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.1.0-1ubuntu1</VERSION>
+      <VERSION>2.0.1-7.2ubuntu1.4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2613,19 +2764,19 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>70</FILESIZE>
+      <FILESIZE>88</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libffi6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.0.11-2</VERSION>
+      <VERSION>3.0.11~rc1-5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>87</FILESIZE>
+      <ARCH>i386</ARCH>
+      <FILESIZE>80</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>libfile-fcntllock-perl</NAME>
+      <NAME>libffi6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.14-2</VERSION>
+      <VERSION>3.0.11~rc1-5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2633,7 +2784,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libfile-listing-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.04-1</VERSION>
+      <VERSION>6.03-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2645,35 +2796,35 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>824</FILESIZE>
+      <FILESIZE>816</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libfreetype6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.4.10-0ubuntu1</VERSION>
+      <VERSION>2.4.8-1ubuntu2.6</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>129</FILESIZE>
+      <FILESIZE>196</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libfribidi0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.19.2-3</VERSION>
+      <VERSION>0.19.2-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>345</FILESIZE>
+      <FILESIZE>305</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libfuse2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.9.0-1ubuntu2</VERSION>
+      <VERSION>2.8.6-2ubuntu2.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>268</FILESIZE>
+      <FILESIZE>254</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libgc1c2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:7.1-9</VERSION>
+      <VERSION>1:7.1-8ubuntu0.12.04.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -2681,79 +2832,103 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libgcc1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:4.7.2-2ubuntu1</VERSION>
+      <VERSION>1:4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>146</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgcc1</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1:4.6.3-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>586</FILESIZE>
+      <FILESIZE>590</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libgcrypt11</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.5.0-3ubuntu1</VERSION>
+      <VERSION>1.5.0-3ubuntu0.6</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>107</FILESIZE>
+      <FILESIZE>132</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libgdbm3</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.8.3-11</VERSION>
+      <VERSION>1.8.3-10</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>299</FILESIZE>
+      <FILESIZE>303</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libgeoip1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.4.8+dfsg-4</VERSION>
+      <VERSION>1.4.8+dfsg-2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>349</FILESIZE>
+      <FILESIZE>348</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libgettextpo0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.18.1.1-9ubuntu1</VERSION>
+      <VERSION>0.18.1.1-5ubuntu3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>255</FILESIZE>
+      <FILESIZE>252</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libgirepository-1.0-1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.33.14-1</VERSION>
+      <VERSION>1.32.0-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>3984</FILESIZE>
+      <FILESIZE>3751</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libglib2.0-0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.34.0-1ubuntu1</VERSION>
+      <VERSION>2.32.4-0ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>3787</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libglib2.0-0</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.32.4-0ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>868</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libglib2.0-data</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.32.4-0ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>490</FILESIZE>
+      <FILESIZE>486</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libgmp10</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:5.0.2+dfsg-2ubuntu2</VERSION>
+      <VERSION>2:5.0.2+dfsg-2ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1052</FILESIZE>
+      <FILESIZE>1060</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libgnutls26</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.12.14-5ubuntu4</VERSION>
+      <VERSION>2.12.14-5ubuntu3.14</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>92</FILESIZE>
+      <FILESIZE>88</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libgomp1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.7.2-2ubuntu1</VERSION>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -2761,47 +2936,55 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libgpg-error0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.10-3.1ubuntu1</VERSION>
+      <VERSION>1.10-2ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>83</FILESIZE>
+      <FILESIZE>78</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libgpm2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.20.4-6</VERSION>
+      <VERSION>1.20.4-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>78</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgpm2</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.20.4-4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>331</FILESIZE>
+      <FILESIZE>337</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libgssapi-krb5-2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.10.1+dfsg-2</VERSION>
+      <VERSION>1.10+dfsg~beta1-2ubuntu0.7</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>319</FILESIZE>
+      <FILESIZE>323</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libgssapi3-heimdal</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6~git20120403+dfsg1-2</VERSION>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>280</FILESIZE>
+      <FILESIZE>284</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libhcrypto4-heimdal</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6~git20120403+dfsg1-2</VERSION>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>125</FILESIZE>
+      <FILESIZE>130</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libheimbase1-heimdal</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6~git20120403+dfsg1-2</VERSION>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -2809,15 +2992,15 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libheimntlm0-heimdal</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6~git20120403+dfsg1-2</VERSION>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>88</FILESIZE>
+      <FILESIZE>96</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libhtml-form-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.03-1</VERSION>
+      <VERSION>6.00-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2833,7 +3016,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libhtml-parser-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.69-2</VERSION>
+      <VERSION>3.69-1build1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2845,11 +3028,11 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>504</FILESIZE>
+      <FILESIZE>536</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libhtml-tree-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.02-1</VERSION>
+      <VERSION>4.2-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2861,27 +3044,27 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>70</FILESIZE>
+      <FILESIZE>80</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libhttp-daemon-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.01-1</VERSION>
+      <VERSION>6.00-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>56</FILESIZE>
+      <FILESIZE>64</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libhttp-date-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.02-1</VERSION>
+      <VERSION>6.00-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>204</FILESIZE>
+      <FILESIZE>244</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libhttp-message-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.03-1</VERSION>
+      <VERSION>6.01-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2893,19 +3076,19 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>368</FILESIZE>
+      <FILESIZE>373</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libhx509-5-heimdal</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6~git20120403+dfsg1-2</VERSION>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>361</FILESIZE>
+      <FILESIZE>351</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libidn11</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.25-2</VERSION>
+      <VERSION>1.23-2ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -2913,7 +3096,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libio-pty-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:1.08-1build3</VERSION>
+      <VERSION>1:1.08-1build2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2925,11 +3108,11 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>161</FILESIZE>
+      <FILESIZE>153</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libio-socket-ssl-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.76-1ubuntu1</VERSION>
+      <VERSION>1.53-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -2949,51 +3132,51 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>273</FILESIZE>
+      <FILESIZE>328</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libipc-run-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.91-1</VERSION>
+      <VERSION>0.90-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>394</FILESIZE>
+      <FILESIZE>395</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libisc83</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:9.8.1.dfsg.P1-4.2ubuntu3</VERSION>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.22</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>84</FILESIZE>
+      <FILESIZE>82</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libisccc80</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:9.8.1.dfsg.P1-4.2ubuntu3</VERSION>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.22</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>182</FILESIZE>
+      <FILESIZE>180</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libisccfg82</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:9.8.1.dfsg.P1-4.2ubuntu3</VERSION>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.22</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>152</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>libitm1</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.7.2-2ubuntu1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>90</FILESIZE>
+      <FILESIZE>85</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libiw30</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>30~pre9-8ubuntu1</VERSION>
+      <VERSION>30~pre9-5ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>381</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libjs-jquery</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.7.1-1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -3005,19 +3188,19 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>230</FILESIZE>
+      <FILESIZE>226</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libjson-xs-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.320-1build2</VERSION>
+      <VERSION>2.320-1build1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>240</FILESIZE>
+      <FILESIZE>237</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libk5crypto3</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.10.1+dfsg-2</VERSION>
+      <VERSION>1.10+dfsg~beta1-2ubuntu0.7</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3025,47 +3208,39 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libkeyutils1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.5.5-3</VERSION>
+      <VERSION>1.5.2-2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>128</FILESIZE>
+      <FILESIZE>127</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libklibc</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.0.1-1ubuntu2</VERSION>
+      <VERSION>1.5.25-1ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>77</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>libkms1</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.4.39-0ubuntu1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>624</FILESIZE>
+      <FILESIZE>643</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libkrb5-26-heimdal</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6~git20120403+dfsg1-2</VERSION>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>960</FILESIZE>
+      <FILESIZE>961</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libkrb5-3</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.10.1+dfsg-2</VERSION>
+      <VERSION>1.10+dfsg~beta1-2ubuntu0.7</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>110</FILESIZE>
+      <FILESIZE>111</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libkrb5support0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.10.1+dfsg-2</VERSION>
+      <VERSION>1.10+dfsg~beta1-2ubuntu0.7</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3073,7 +3248,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libldap-2.4-2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.4.31-1ubuntu2</VERSION>
+      <VERSION>2.4.28-1.1ubuntu4.6</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3081,7 +3256,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>liblocale-gettext-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.05-7build2</VERSION>
+      <VERSION>1.05-7build1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3089,7 +3264,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>liblockfile-bin</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.09-4</VERSION>
+      <VERSION>1.09-3ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3097,63 +3272,71 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>liblockfile1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.09-4</VERSION>
+      <VERSION>1.09-3ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>92</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblwp-mediatypes-perl</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>6.01-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>64</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblwp-protocol-https-perl</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>6.02-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>122</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblwres80</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.22</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>303</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblzma5</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>5.1.1alpha+20110809-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2388</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmagic1</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>5.09-2ubuntu0.6</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
       <FILESIZE>100</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>liblwp-mediatypes-perl</NAME>
+      <NAME>libmail-sendmail-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.02-1</VERSION>
+      <VERSION>0.79.16-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>52</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>liblwp-protocol-https-perl</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.03-1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>124</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>liblwres80</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:9.8.1.dfsg.P1-4.2ubuntu3</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>304</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>liblzma5</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.1.1alpha+20120614-1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>2428</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>libmagic1</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.11-2</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>229</FILESIZE>
+      <FILESIZE>320</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libmailtools-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.09-1</VERSION>
+      <VERSION>2.08-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>244</FILESIZE>
+      <FILESIZE>248</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libmount1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.20.1-5.1ubuntu2</VERSION>
+      <VERSION>2.20.1-1ubuntu3.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3161,39 +3344,55 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libmpc2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.9-4build1</VERSION>
+      <VERSION>0.9-4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>751</FILESIZE>
+      <FILESIZE>747</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libmpfr4</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.1.0-3ubuntu3</VERSION>
+      <VERSION>3.1.0-3ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>284</FILESIZE>
+      <FILESIZE>471</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libncurses5</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.9-10ubuntu1</VERSION>
+      <VERSION>5.9-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>468</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libncurses5</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>5.9-4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>342</FILESIZE>
+      <FILESIZE>527</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libncursesw5</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.9-10ubuntu1</VERSION>
+      <VERSION>5.9-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>531</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libncursesw5</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>5.9-4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>670</FILESIZE>
+      <FILESIZE>641</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libnet-dns-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.68-1.1</VERSION>
+      <VERSION>0.66-2ubuntu3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -3209,7 +3408,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libnet-http-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.03-2</VERSION>
+      <VERSION>6.02-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -3221,27 +3420,27 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1018</FILESIZE>
+      <FILESIZE>604</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libnet-ssleay-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.48-1</VERSION>
+      <VERSION>1.42-1build1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>180</FILESIZE>
+      <FILESIZE>184</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libnewt0.52</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.52.11-2ubuntu11</VERSION>
+      <VERSION>0.52.11-2ubuntu10</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>56</FILESIZE>
+      <FILESIZE>76</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libnfnetlink0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.0.0-1build1</VERSION>
+      <VERSION>1.0.0-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3249,7 +3448,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libnih-dbus1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.0.3-4ubuntu11</VERSION>
+      <VERSION>1.0.3-4ubuntu9.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3257,63 +3456,47 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libnih1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.0.3-4ubuntu11</VERSION>
+      <VERSION>1.0.3-4ubuntu9.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>150</FILESIZE>
+      <FILESIZE>146</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libnl-3-200</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.2.7-4</VERSION>
+      <VERSION>3.2.3-2ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>63</FILESIZE>
+      <FILESIZE>59</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libnl-genl-3-200</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.2.7-4</VERSION>
+      <VERSION>3.2.3-2ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>87</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>libnuma1</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.0.8~rc4-1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>123</FILESIZE>
+      <FILESIZE>115</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libp11-kit0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.13-1</VERSION>
+      <VERSION>0.12-2ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>68</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>libpam-ck-connector</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.4.5-3</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>793</FILESIZE>
+      <FILESIZE>777</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libpam-modules</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.1.3-7ubuntu3</VERSION>
+      <VERSION>1.1.3-7ubuntu2.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>202</FILESIZE>
+      <FILESIZE>203</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libpam-modules-bin</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.1.3-7ubuntu3</VERSION>
+      <VERSION>1.1.3-7ubuntu2.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -3321,15 +3504,23 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libpam-runtime</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.1.3-7ubuntu3</VERSION>
+      <VERSION>1.1.3-7ubuntu2.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>223</FILESIZE>
+      <FILESIZE>224</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libpam0g</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.1.3-7ubuntu3</VERSION>
+      <VERSION>1.1.3-7ubuntu2.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>213</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam0g</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.1.3-7ubuntu2.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -3353,23 +3544,23 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libparted0debian1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.3-10ubuntu2</VERSION>
+      <VERSION>2.3-8ubuntu5.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>296</FILESIZE>
+      <FILESIZE>283</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libpcap0.8</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.3.0-1</VERSION>
+      <VERSION>1.1.1-10</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>111</FILESIZE>
+      <FILESIZE>110</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libpci3</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:3.1.9-5ubuntu4</VERSION>
+      <VERSION>1:3.1.8-2ubuntu6</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3377,23 +3568,39 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libpciaccess0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.13.1-2</VERSION>
+      <VERSION>0.12.902-1ubuntu0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>79</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpciaccess0</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.12.902-1ubuntu0.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>455</FILESIZE>
+      <FILESIZE>441</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libpcre3</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:8.30-5ubuntu1</VERSION>
+      <VERSION>8.12-4ubuntu0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>432</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpcre3</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>8.12-4ubuntu0.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>89</FILESIZE>
+      <FILESIZE>86</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libpcsclite1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.8.5-1ubuntu1</VERSION>
+      <VERSION>1.7.4-2ubuntu2.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3401,39 +3608,31 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libpipeline1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.2.2-1</VERSION>
+      <VERSION>1.2.1-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>304</FILESIZE>
+      <FILESIZE>279</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libplymouth2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.8.4-0ubuntu3</VERSION>
+      <VERSION>0.8.2-2ubuntu31.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>296</FILESIZE>
+      <FILESIZE>305</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libpng12-0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.2.49-1ubuntu1</VERSION>
+      <VERSION>1.2.46-3ubuntu4.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>81</FILESIZE>
+      <ARCH>i386</ARCH>
+      <FILESIZE>308</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>libpolkit-agent-1-0</NAME>
+      <NAME>libpng12-0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.104-2ubuntu1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>139</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>libpolkit-backend-1-0</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.104-2ubuntu1</VERSION>
+      <VERSION>1.2.46-3ubuntu4.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3441,7 +3640,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libpolkit-gobject-1-0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.104-2ubuntu1</VERSION>
+      <VERSION>0.104-1ubuntu1.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3449,23 +3648,23 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libpopt0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.16-7ubuntu2</VERSION>
+      <VERSION>1.16-3ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>131</FILESIZE>
+      <FILESIZE>272</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>libprocps0</NAME>
+      <NAME>libpq5</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:3.3.3-2ubuntu3</VERSION>
+      <VERSION>9.1.24-0ubuntu0.12.04</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>3069</FILESIZE>
+      <FILESIZE>3063</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libpython2.7</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.7.3-5ubuntu4</VERSION>
+      <VERSION>2.7.3-0ubuntu3.9</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3473,15 +3672,15 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libquadmath0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.7.2-2ubuntu1</VERSION>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>385</FILESIZE>
+      <FILESIZE>384</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libreadline6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.2-9</VERSION>
+      <VERSION>6.2-8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3489,7 +3688,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libroken18-heimdal</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6~git20120403+dfsg1-2</VERSION>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3497,47 +3696,63 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>librtmp0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.4+20111222.git4e06e21-1</VERSION>
+      <VERSION>2.4~20110711.gitc28f1bab-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>196</FILESIZE>
+      <FILESIZE>191</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libsasl2-2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.1.25.dfsg1-5</VERSION>
+      <VERSION>2.1.25.dfsg1-3ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>229</FILESIZE>
+      <FILESIZE>228</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libsasl2-modules</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.1.25.dfsg1-5</VERSION>
+      <VERSION>2.1.25.dfsg1-3ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>190</FILESIZE>
+      <FILESIZE>189</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libselinux1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.1.9-5ubuntu1</VERSION>
+      <VERSION>2.1.0-4.1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>188</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libselinux1</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.1.0-4.1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>84</FILESIZE>
+      <FILESIZE>83</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libsigc++-2.0-0c2a</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.2.10-0.2</VERSION>
+      <VERSION>2.2.10-0ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1466</FILESIZE>
+      <FILESIZE>1530</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libslang2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.2.4-15ubuntu1</VERSION>
+      <VERSION>2.2.4-3ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>1369</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libslang2</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.2.4-3ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3545,47 +3760,47 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libsocket6-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.23-1build3</VERSION>
+      <VERSION>0.23-1build2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>804</FILESIZE>
+      <FILESIZE>770</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libsqlite3-0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.7.13-1</VERSION>
+      <VERSION>3.7.9-2ubuntu1.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>112</FILESIZE>
+      <FILESIZE>109</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libss2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.42.5-1ubuntu2</VERSION>
+      <VERSION>1.42-1ubuntu2.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>2834</FILESIZE>
+      <FILESIZE>2938</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libssl1.0.0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.0.1c-3ubuntu2</VERSION>
+      <VERSION>1.0.1-4ubuntu5.39</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1206</FILESIZE>
+      <FILESIZE>1190</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libstdc++6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.7.2-2ubuntu1</VERSION>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>10888</FILESIZE>
+      <FILESIZE>10601</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>libstdc++6-4.7-dev</NAME>
+      <NAME>libstdc++6-4.6-dev</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.7.2-2ubuntu1</VERSION>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3593,7 +3808,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libsub-name-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.05-1build3</VERSION>
+      <VERSION>0.05-1build2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -3604,12 +3819,20 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <VERSION>2.16-2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>84</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsys-hostname-long-perl</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.4-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>135</FILESIZE>
+      <FILESIZE>142</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libtasn1-3</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.13-2</VERSION>
+      <VERSION>2.10-1ubuntu1.5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3617,7 +3840,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libtext-charwidth-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.04-7build2</VERSION>
+      <VERSION>0.04-7build1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3625,7 +3848,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libtext-iconv-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.7-5build1</VERSION>
+      <VERSION>1.7-5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -3653,19 +3876,19 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>442</FILESIZE>
+      <FILESIZE>436</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libtinfo5</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.9-10ubuntu1</VERSION>
+      <VERSION>5.9-4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>637</FILESIZE>
+      <ARCH>i386</ARCH>
+      <FILESIZE>394</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>libtokyocabinet9</NAME>
+      <NAME>libtinfo5</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.4.47-2</VERSION>
+      <VERSION>5.9-4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3673,15 +3896,15 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libudev0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>175-0ubuntu13</VERSION>
+      <VERSION>175-0ubuntu9.10</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1155</FILESIZE>
+      <FILESIZE>1151</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libunistring0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.9.3-5build1</VERSION>
+      <VERSION>0.9.3-5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -3689,7 +3912,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>liburi-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.60-1</VERSION>
+      <VERSION>1.59-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3697,31 +3920,31 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libusb-0.1-4</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:0.1.12-23</VERSION>
+      <VERSION>2:0.1.12-20</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>116</FILESIZE>
+      <FILESIZE>108</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libusb-1.0-0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:1.0.12-2</VERSION>
+      <VERSION>2:1.0.9~rc3-2ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>107</FILESIZE>
+      <FILESIZE>110</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libuuid1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.20.1-5.1ubuntu2</VERSION>
+      <VERSION>2.20.1-1ubuntu3.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>45</FILESIZE>
+      <ARCH>i386</ARCH>
+      <FILESIZE>109</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>libwhoopsie0</NAME>
+      <NAME>libuuid1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.2.7</VERSION>
+      <VERSION>2.20.1-1ubuntu3.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3729,23 +3952,23 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libwind0-heimdal</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6~git20120403+dfsg1-2</VERSION>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>125</FILESIZE>
+      <FILESIZE>148</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libwrap0</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>7.6.q-23</VERSION>
+      <VERSION>7.6.q-21</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>372</FILESIZE>
+      <FILESIZE>370</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libwww-perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.04-1</VERSION>
+      <VERSION>6.03-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -3757,35 +3980,35 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1505</FILESIZE>
+      <FILESIZE>1480</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libx11-6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:1.5.0-1</VERSION>
+      <VERSION>2:1.4.99.1-0ubuntu2.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>1574</FILESIZE>
+      <FILESIZE>1525</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libx11-data</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:1.5.0-1</VERSION>
+      <VERSION>2:1.4.99.1-0ubuntu2.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>2276</FILESIZE>
+      <FILESIZE>2368</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libxapian22</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.2.12-1</VERSION>
+      <VERSION>1.2.8-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>59</FILESIZE>
+      <FILESIZE>54</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libxau6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:1.0.7-1</VERSION>
+      <VERSION>1:1.0.6-4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3793,135 +4016,135 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>libxcb1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.8.1-1ubuntu1</VERSION>
+      <VERSION>1.8.1-1ubuntu0.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>71</FILESIZE>
+      <FILESIZE>67</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libxdmcp6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:1.1.1-1</VERSION>
+      <VERSION>1:1.1.0-4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>139</FILESIZE>
+      <FILESIZE>133</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libxext6</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:1.3.1-2</VERSION>
+      <VERSION>2:1.3.0-3ubuntu0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxml-treepp-perl</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.39-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1757</FILESIZE>
+      <FILESIZE>1753</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libxml2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.8.0+dfsg1-5ubuntu2</VERSION>
+      <VERSION>2.7.8.dfsg-5.1ubuntu4.17</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>65</FILESIZE>
+      <FILESIZE>61</FILESIZE>
       <FROM>deb</FROM>
       <NAME>libxmuu1</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:1.1.1-1</VERSION>
+      <VERSION>2:1.1.0-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>166</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libyaml-0-2</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.1.4-2ubuntu0.12.04.4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>2236</FILESIZE>
+      <FILESIZE>2071</FILESIZE>
       <FROM>deb</FROM>
       <NAME>lintian</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.5.10.2ubuntu2.1</VERSION>
+      <VERSION>2.5.6ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>35826</FILESIZE>
+      <FILESIZE>49526</FILESIZE>
       <FROM>deb</FROM>
       <NAME>linux-firmware</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.95</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>32</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>linux-generic</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.5.0.18.21</VERSION>
+      <VERSION>1.79.18</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>57317</FILESIZE>
+      <FILESIZE>54825</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>linux-headers-3.5.0-15</NAME>
+      <NAME>linux-headers-3.2.0-23</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.5.0-15.23</VERSION>
+      <VERSION>3.2.0-23.36</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>10928</FILESIZE>
+      <FILESIZE>10858</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>linux-headers-3.5.0-15-generic</NAME>
+      <NAME>linux-headers-3.2.0-23-generic</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.5.0-15.23</VERSION>
+      <VERSION>3.2.0-23.36</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
       <FILESIZE>31</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>linux-headers-generic</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.5.0.15.15</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>32</FILESIZE>
       <FROM>deb</FROM>
       <NAME>linux-headers-server</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.5.0.18.21</VERSION>
+      <VERSION>3.2.0.23.25</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>30576</FILESIZE>
+      <FILESIZE>144966</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>linux-image-3.5.0-15-generic</NAME>
+      <NAME>linux-image-3.2.0-20-generic</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.5.0-15.23</VERSION>
+      <VERSION>3.2.0-20.33</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>117886</FILESIZE>
+      <FILESIZE>145113</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>linux-image-extra-3.5.0-15-generic</NAME>
+      <NAME>linux-image-3.2.0-23-generic</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.5.0-15.23</VERSION>
+      <VERSION>3.2.0-23.36</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
       <FILESIZE>31</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>linux-image-generic</NAME>
+      <NAME>linux-image-server</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.5.0.15.15</VERSION>
+      <VERSION>3.2.0.23.25</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>3114</FILESIZE>
+      <FILESIZE>3143</FILESIZE>
       <FROM>deb</FROM>
       <NAME>linux-libc-dev</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.5.0-18.29</VERSION>
+      <VERSION>3.2.0-126.169</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>32</FILESIZE>
+      <FILESIZE>31</FILESIZE>
       <FROM>deb</FROM>
       <NAME>linux-server</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.5.0.18.21</VERSION>
+      <VERSION>3.2.0.23.25</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -3933,11 +4156,11 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>78</FILESIZE>
+      <FILESIZE>77</FILESIZE>
       <FROM>deb</FROM>
       <NAME>lockfile-progs</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.1.16build1</VERSION>
+      <VERSION>0.1.16</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -3945,55 +4168,55 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>login</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:4.1.4.2+svn3283-3ubuntu7</VERSION>
+      <VERSION>1:4.1.4.2+svn3283-3ubuntu5.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>144</FILESIZE>
+      <FILESIZE>184</FILESIZE>
       <FROM>deb</FROM>
       <NAME>logrotate</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.7.8-6ubuntu6</VERSION>
+      <VERSION>3.7.8-6ubuntu5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>76</FILESIZE>
+      <FILESIZE>75</FILESIZE>
       <FROM>deb</FROM>
       <NAME>lsb-base</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.0-0ubuntu26.1</VERSION>
+      <VERSION>4.0-0ubuntu20.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>111</FILESIZE>
+      <FILESIZE>112</FILESIZE>
       <FROM>deb</FROM>
       <NAME>lsb-release</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.0-0ubuntu26.1</VERSION>
+      <VERSION>4.0-0ubuntu20.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>652</FILESIZE>
+      <FILESIZE>712</FILESIZE>
       <FROM>deb</FROM>
       <NAME>lshw</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>02.16-1</VERSION>
+      <VERSION>02.15-2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>456</FILESIZE>
+      <FILESIZE>452</FILESIZE>
       <FROM>deb</FROM>
       <NAME>lsof</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.86+dfsg-1ubuntu1</VERSION>
+      <VERSION>4.81.dfsg.1-1build1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>228</FILESIZE>
+      <FILESIZE>224</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ltrace</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.5.3-2.1ubuntu3</VERSION>
+      <VERSION>0.5.3-2.1ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -4001,7 +4224,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>make</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.81-8.2ubuntu2</VERSION>
+      <VERSION>3.81-8.1ubuntu1.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4009,31 +4232,31 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>makedev</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.3.1-91ubuntu2</VERSION>
+      <VERSION>2.3.1-89ubuntu3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1744</FILESIZE>
+      <FILESIZE>1748</FILESIZE>
       <FROM>deb</FROM>
       <NAME>man-db</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.6.3-1</VERSION>
+      <VERSION>2.6.1-2ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>831</FILESIZE>
+      <FILESIZE>821</FILESIZE>
       <FROM>deb</FROM>
       <NAME>manpages</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.40-0.1ubuntu3</VERSION>
+      <VERSION>3.35-0.1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>1741</FILESIZE>
+      <FILESIZE>1699</FILESIZE>
       <FROM>deb</FROM>
       <NAME>manpages-dev</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.40-0.1ubuntu3</VERSION>
+      <VERSION>3.35-0.1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -4049,191 +4272,191 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>memtest86+</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.20-1.1ubuntu2</VERSION>
+      <VERSION>4.20-1.1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>133</FILESIZE>
+      <FILESIZE>132</FILESIZE>
       <FROM>deb</FROM>
       <NAME>mime-support</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.52-1ubuntu1</VERSION>
+      <VERSION>3.51-1ubuntu1.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>228</FILESIZE>
+      <FILESIZE>224</FILESIZE>
       <FROM>deb</FROM>
       <NAME>mlocate</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.25-0ubuntu1</VERSION>
+      <VERSION>0.23.1-1ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>333</FILESIZE>
+      <FILESIZE>332</FILESIZE>
       <FROM>deb</FROM>
       <NAME>module-init-tools</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.16-1ubuntu6</VERSION>
+      <VERSION>3.16-1ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>419</FILESIZE>
+      <FILESIZE>422</FILESIZE>
       <FROM>deb</FROM>
       <NAME>mount</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.20.1-5.1ubuntu2</VERSION>
+      <VERSION>2.20.1-1ubuntu3.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>247</FILESIZE>
+      <FILESIZE>241</FILESIZE>
       <FROM>deb</FROM>
       <NAME>mountall</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.42</VERSION>
+      <VERSION>2.36.4ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>114</FILESIZE>
+      <FILESIZE>332</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mtools</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>4.0.12-1ubuntu0.12.04.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>124</FILESIZE>
       <FROM>deb</FROM>
       <NAME>mtr-tiny</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.82-3ubuntu1</VERSION>
+      <VERSION>0.80-1ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>202</FILESIZE>
+      <FILESIZE>204</FILESIZE>
       <FROM>deb</FROM>
       <NAME>multiarch-support</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.15-0ubuntu20</VERSION>
+      <VERSION>2.15-0ubuntu10.18</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>600</FILESIZE>
+      <FILESIZE>604</FILESIZE>
       <FROM>deb</FROM>
       <NAME>nano</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.2.6-1ubuntu1</VERSION>
+      <VERSION>2.2.6-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>346</FILESIZE>
+      <FILESIZE>345</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ncurses-base</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.9-10ubuntu1</VERSION>
+      <VERSION>5.9-4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>497</FILESIZE>
+      <FILESIZE>493</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ncurses-bin</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.9-10ubuntu1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>2117</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>ncurses-term</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.9-10ubuntu1</VERSION>
+      <VERSION>5.9-4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>712</FILESIZE>
+      <FILESIZE>724</FILESIZE>
       <FROM>deb</FROM>
       <NAME>net-tools</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.60-24.1ubuntu3</VERSION>
+      <VERSION>1.60-24.1ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>68</FILESIZE>
+      <FILESIZE>75</FILESIZE>
       <FROM>deb</FROM>
       <NAME>netbase</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.0ubuntu1</VERSION>
+      <VERSION>4.47ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>109</FILESIZE>
+      <FILESIZE>168</FILESIZE>
       <FROM>deb</FROM>
       <NAME>netcat-openbsd</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.105-6ubuntu1</VERSION>
+      <VERSION>1.89-4ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1428</FILESIZE>
+      <FILESIZE>1422</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ntfs-3g</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:2012.1.15AR.5-4ubuntu3</VERSION>
+      <VERSION>1:2012.1.15AR.1-1ubuntu1.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>239</FILESIZE>
+      <FILESIZE>245</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ntpdate</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:4.2.6.p3+dfsg-1ubuntu5</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>147</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>openresolv</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.5.2-1</VERSION>
+      <VERSION>1:4.2.6.p3+dfsg-1ubuntu3.11</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>2303</FILESIZE>
+      <FILESIZE>2279</FILESIZE>
       <FROM>deb</FROM>
       <NAME>openssh-client</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:6.0p1-3ubuntu1</VERSION>
+      <VERSION>1:5.9p1-5ubuntu1.10</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>814</FILESIZE>
+      <FILESIZE>807</FILESIZE>
       <FROM>deb</FROM>
       <NAME>openssh-server</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:6.0p1-3ubuntu1</VERSION>
+      <VERSION>1:5.9p1-5ubuntu1.10</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>902</FILESIZE>
+      <FILESIZE>906</FILESIZE>
       <FROM>deb</FROM>
       <NAME>openssl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.0.1c-3ubuntu2</VERSION>
+      <VERSION>1.0.1-4ubuntu5.39</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>134</FILESIZE>
+      <FILESIZE>1033</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openvpn</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.2.1-8ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>130</FILESIZE>
       <FROM>deb</FROM>
       <NAME>os-prober</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.56ubuntu1</VERSION>
+      <VERSION>1.51ubuntu3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>189</FILESIZE>
+      <FILESIZE>188</FILESIZE>
       <FROM>deb</FROM>
       <NAME>parted</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.3-10ubuntu2</VERSION>
+      <VERSION>2.3-8ubuntu5.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>2085</FILESIZE>
+      <FILESIZE>2084</FILESIZE>
       <FROM>deb</FROM>
       <NAME>passwd</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:4.1.4.2+svn3283-3ubuntu7</VERSION>
+      <VERSION>1:4.1.4.2+svn3283-3ubuntu5.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -4241,15 +4464,15 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>patch</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.6.1-3ubuntu1</VERSION>
+      <VERSION>2.6.1-3ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>227</FILESIZE>
+      <FILESIZE>223</FILESIZE>
       <FROM>deb</FROM>
       <NAME>patchutils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.3.2-1.1build1</VERSION>
+      <VERSION>0.3.2-1.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4261,59 +4484,59 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>957</FILESIZE>
+      <FILESIZE>1042</FILESIZE>
       <FROM>deb</FROM>
       <NAME>pciutils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:3.1.9-5ubuntu4</VERSION>
+      <VERSION>1:3.1.8-2ubuntu6</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>17110</FILESIZE>
+      <FILESIZE>17079</FILESIZE>
       <FROM>deb</FROM>
       <NAME>perl</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.14.2-13</VERSION>
+      <VERSION>5.14.2-6ubuntu2.5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>4738</FILESIZE>
+      <FILESIZE>4775</FILESIZE>
       <FROM>deb</FROM>
       <NAME>perl-base</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.14.2-13</VERSION>
+      <VERSION>5.14.2-6ubuntu2.5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>14081</FILESIZE>
+      <FILESIZE>14087</FILESIZE>
       <FROM>deb</FROM>
       <NAME>perl-modules</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.14.2-13</VERSION>
+      <VERSION>5.14.2-6ubuntu2.5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>475</FILESIZE>
+      <FILESIZE>442</FILESIZE>
       <FROM>deb</FROM>
       <NAME>plymouth</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.8.4-0ubuntu3</VERSION>
+      <VERSION>0.8.2-2ubuntu31.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>78</FILESIZE>
+      <FILESIZE>77</FILESIZE>
       <FROM>deb</FROM>
       <NAME>plymouth-theme-ubuntu-text</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.8.4-0ubuntu3</VERSION>
+      <VERSION>0.8.2-2ubuntu31.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>384</FILESIZE>
+      <ARCH>all</ARCH>
+      <FILESIZE>443</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>policykit-1</NAME>
+      <NAME>po-debconf</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.104-2ubuntu1</VERSION>
+      <VERSION>1.0.16+nmu2ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4324,20 +4547,68 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <VERSION>1.53ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <ARCH>amd64</ARCH>
+      <ARCH>all</ARCH>
       <FILESIZE>63</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>powermgmt-base</NAME>
+      <NAME>postgresql</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.31build1</VERSION>
+      <VERSION>9.1+129ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>898</FILESIZE>
+      <FILESIZE>10884</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>postgresql-9.1</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>9.1.24-0ubuntu0.12.04</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>63</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>postgresql-client</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>9.1+129ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2368</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>postgresql-client-9.1</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>9.1.24-0ubuntu0.12.04</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>151</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>postgresql-client-common</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>129ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>432</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>postgresql-common</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>129ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>96</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>powermgmt-base</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.31</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>894</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ppp</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.4.5-5ubuntu2</VERSION>
+      <VERSION>2.4.5-5ubuntu1.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4357,11 +4628,11 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>623</FILESIZE>
+      <FILESIZE>669</FILESIZE>
       <FROM>deb</FROM>
       <NAME>procps</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:3.3.3-2ubuntu3</VERSION>
+      <VERSION>1:3.2.8-11ubuntu6.4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -4369,7 +4640,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>psmisc</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>22.19-1ubuntu1</VERSION>
+      <VERSION>22.15-2ubuntu1.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -4377,23 +4648,31 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>python</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.7.3-0ubuntu7</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>716</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python-apt</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.8.7ubuntu4</VERSION>
+      <VERSION>2.7.3-0ubuntu2.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>212</FILESIZE>
+      <FILESIZE>479</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-apport</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.0.1-0ubuntu17.15</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>714</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-apt</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.8.3ubuntu7.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>208</FILESIZE>
       <FROM>deb</FROM>
       <NAME>python-apt-common</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.8.7ubuntu4</VERSION>
+      <VERSION>0.8.3ubuntu7.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4404,12 +4683,36 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <VERSION>2.0.1-2build1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1193</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-crypto</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.4.1-1ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>413</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-dbus</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.0.0-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>272</FILESIZE>
+      <FILESIZE>62</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-dbus-dev</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.0.0-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>263</FILESIZE>
       <FROM>deb</FROM>
       <NAME>python-debian</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.1.21+nmu2ubuntu1</VERSION>
+      <VERSION>0.1.21ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -4417,7 +4720,15 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>python-gdbm</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.7.3-1ubuntu2</VERSION>
+      <VERSION>2.7.3-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>861</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-gi</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>3.2.2-1~precise</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4428,52 +4739,108 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <VERSION>0.3.2-9.1ubuntu3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>76</FILESIZE>
+      <ARCH>all</ARCH>
+      <FILESIZE>208</FILESIZE>
       <FROM>deb</FROM>
-      <NAME>python-magic</NAME>
+      <NAME>python-httplib2</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.11-2</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>160</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python-minimal</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.7.3-0ubuntu7</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>145</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python-newt</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.52.11-2ubuntu11</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>434</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python-openssl</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.13-2ubuntu1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>80</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python-pam</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.4.2-13ubuntu2</VERSION>
+      <VERSION>0.7.2-1ubuntu2.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>178</FILESIZE>
+      <FILESIZE>207</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-keyring</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.9.2-0ubuntu0.12.04.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>276</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-launchpadlib</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.9.12-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>246</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-lazr.restfulclient</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.12.0-1ubuntu1.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>125</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-lazr.uri</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.0.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>87</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-magic</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>5.09-2ubuntu0.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>159</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-minimal</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.7.3-0ubuntu2.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>144</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-newt</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.52.11-2ubuntu10</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>91</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-oauth</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.0.1-3build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>416</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-openssl</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.12-1ubuntu2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>79</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-pam</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>0.4.2-12.2ubuntu4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>175</FILESIZE>
       <FROM>deb</FROM>
       <NAME>python-pkg-resources</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.6.28-1ubuntu2</VERSION>
+      <VERSION>0.6.24-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>158</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-problem-inventory</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.0.1-0ubuntu17.15</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4481,39 +4848,47 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>python-serial</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.5-3</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>53</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python-six</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.1.0-2</VERSION>
+      <VERSION>2.5-2.1build1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>127</FILESIZE>
+      <FILESIZE>353</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-simplejson</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>2.3.2-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>144</FILESIZE>
       <FROM>deb</FROM>
       <NAME>python-twisted-bin</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>12.2.0-1</VERSION>
+      <VERSION>11.1.0-1ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>5815</FILESIZE>
+      <FILESIZE>5517</FILESIZE>
       <FROM>deb</FROM>
       <NAME>python-twisted-core</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>12.2.0-1</VERSION>
+      <VERSION>11.1.0-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>167</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-wadllib</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.3.0-2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1317</FILESIZE>
+      <FILESIZE>1341</FILESIZE>
       <FROM>deb</FROM>
       <NAME>python-xapian</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.2.12-2</VERSION>
+      <VERSION>1.2.8-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -4521,119 +4896,23 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>python-zope.interface</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.6.1-3</VERSION>
+      <VERSION>3.6.1-1ubuntu3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>8853</FILESIZE>
+      <FILESIZE>8786</FILESIZE>
       <FROM>deb</FROM>
       <NAME>python2.7</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.7.3-5ubuntu4</VERSION>
+      <VERSION>2.7.3-0ubuntu3.9</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>5176</FILESIZE>
+      <FILESIZE>5489</FILESIZE>
       <FROM>deb</FROM>
       <NAME>python2.7-minimal</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.7.3-5ubuntu4</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>214</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python3</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.2.3-5ubuntu1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>480</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python3-apport</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.6.1-0ubuntu6</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>659</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python3-apt</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.8.7ubuntu4</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>390</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python3-dbus</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.1.1-1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>652</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python3-distupgrade</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:0.190.4</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>97</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python3-gdbm</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.3.0-1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>859</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python3-gi</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.4.0-1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>77</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python3-minimal</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.2.3-5ubuntu1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>162</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python3-problem-report</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.6.1-0ubuntu6</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>221</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python3-update-manager</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:0.174.3</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>8582</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python3.2</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.2.3-6ubuntu3.1</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>5562</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>python3.2-minimal</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.2.3-6ubuntu3.1</VERSION>
+      <VERSION>2.7.3-0ubuntu3.9</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4641,15 +4920,15 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>readline-common</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.2-9</VERSION>
+      <VERSION>6.2-8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>238</FILESIZE>
+      <FILESIZE>237</FILESIZE>
       <FROM>deb</FROM>
       <NAME>resolvconf</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.67ubuntu2</VERSION>
+      <VERSION>1.63ubuntu16</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -4657,55 +4936,71 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>rsync</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.0.9-3ubuntu1</VERSION>
+      <VERSION>3.0.9-1ubuntu1.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1207</FILESIZE>
+      <FILESIZE>1206</FILESIZE>
       <FROM>deb</FROM>
       <NAME>rsyslog</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.8.6-1ubuntu9</VERSION>
+      <VERSION>5.8.6-1ubuntu8.9</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>96956</FILESIZE>
+      <FILESIZE>82</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>rsyslog-pgsql</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>5.8.6-1ubuntu8.9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>45247</FILESIZE>
       <FROM>deb</FROM>
       <NAME>rudder-agent</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.1.20-quantal0</VERSION>
+      <VERSION>4.3.0-precise0</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>896</FILESIZE>
+      <FILESIZE>1052</FILESIZE>
       <FROM>deb</FROM>
       <NAME>screen</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.0.3-14ubuntu9</VERSION>
+      <VERSION>4.0.3-14ubuntu8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>288</FILESIZE>
+      <FILESIZE>296</FILESIZE>
       <FROM>deb</FROM>
       <NAME>sed</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.2.1-10ubuntu1</VERSION>
+      <VERSION>4.2.1-9</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>110</FILESIZE>
+      <FILESIZE>132</FILESIZE>
       <FROM>deb</FROM>
       <NAME>sensible-utils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.0.7ubuntu1</VERSION>
+      <VERSION>0.0.6ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>111</FILESIZE>
+      <FILESIZE>148</FILESIZE>
       <FROM>deb</FROM>
       <NAME>sgml-base</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.26+nmu3ubuntu1</VERSION>
+      <VERSION>1.26+nmu1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2504</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>shared-mime-info</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.0-0ubuntu4.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4713,23 +5008,31 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>ssh-import-id</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.12-0ubuntu1</VERSION>
+      <VERSION>2.10-0ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>89</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ssl-cert</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.0.28ubuntu0.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>374</FILESIZE>
+      <FILESIZE>396</FILESIZE>
       <FROM>deb</FROM>
       <NAME>strace</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.5.20-2.3ubuntu2</VERSION>
+      <VERSION>4.5.20-2.3ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1212</FILESIZE>
+      <FILESIZE>996</FILESIZE>
       <FROM>deb</FROM>
       <NAME>sudo</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.8.5p2-1ubuntu1</VERSION>
+      <VERSION>1.8.3p1-1ubuntu3.7</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4737,23 +5040,23 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>sysv-rc</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.88dsf-13.10ubuntu13</VERSION>
+      <VERSION>2.88dsf-13.10ubuntu11.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>259</FILESIZE>
+      <FILESIZE>260</FILESIZE>
       <FROM>deb</FROM>
       <NAME>sysvinit-utils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.88dsf-13.10ubuntu13</VERSION>
+      <VERSION>2.88dsf-13.10ubuntu11.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>720</FILESIZE>
+      <FILESIZE>708</FILESIZE>
       <FROM>deb</FROM>
       <NAME>tar</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.26-4ubuntu1</VERSION>
+      <VERSION>1.26-4ubuntu1.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4761,7 +5064,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>tasksel</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.88ubuntu12</VERSION>
+      <VERSION>2.88ubuntu9</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4769,39 +5072,47 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>tasksel-data</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.88ubuntu12</VERSION>
+      <VERSION>2.88ubuntu9</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>111</FILESIZE>
+      <FILESIZE>3703</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tcl8.5</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>8.5.11-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>132</FILESIZE>
       <FROM>deb</FROM>
       <NAME>tcpd</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>7.6.q-23</VERSION>
+      <VERSION>7.6.q-21</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1044</FILESIZE>
+      <FILESIZE>1189</FILESIZE>
       <FROM>deb</FROM>
       <NAME>tcpdump</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>4.3.0-1ubuntu1</VERSION>
+      <VERSION>4.9.0-1ubuntu1~ubuntu12.04.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>163</FILESIZE>
+      <FILESIZE>204</FILESIZE>
       <FROM>deb</FROM>
       <NAME>telnet</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.17-36build2</VERSION>
+      <VERSION>0.17-36build1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>119</FILESIZE>
+      <FILESIZE>148</FILESIZE>
       <FROM>deb</FROM>
       <NAME>time</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.7-24</VERSION>
+      <VERSION>1.7-23.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -4809,15 +5120,31 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>tmux</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.6-2</VERSION>
+      <VERSION>1.6-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>158</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>traceroute</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1:2.0.18-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>100</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tree</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1.5.3-2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>1707</FILESIZE>
+      <FILESIZE>1602</FILESIZE>
       <FROM>deb</FROM>
       <NAME>tzdata</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2012e-0ubuntu2</VERSION>
+      <VERSION>2016j-0ubuntu0.12.04</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -4825,71 +5152,55 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>ubuntu-keyring</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2012.05.19</VERSION>
+      <VERSION>2011.11.21.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>316</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>ubuntu-release-upgrader-core</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:0.190.4</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>amd64</ARCH>
-      <FILESIZE>58</FILESIZE>
-      <FROM>deb</FROM>
-      <NAME>ubuntu-standard</NAME>
-      <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.287</VERSION>
-    </SOFTWARES>
-    <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>230</FILESIZE>
+      <FILESIZE>272</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ucf</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>3.0025+nmu3</VERSION>
+      <VERSION>3.0025+nmu2ubuntu1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>996</FILESIZE>
+      <FILESIZE>1000</FILESIZE>
       <FROM>deb</FROM>
       <NAME>udev</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>175-0ubuntu13</VERSION>
+      <VERSION>175-0ubuntu9.10</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>714</FILESIZE>
+      <FILESIZE>678</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ufw</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.33-0ubuntu2</VERSION>
+      <VERSION>0.31.1-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>385</FILESIZE>
+      <FILESIZE>377</FILESIZE>
       <FROM>deb</FROM>
       <NAME>unzip</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>6.0-7ubuntu1</VERSION>
+      <VERSION>6.0-4ubuntu2.5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <ARCH>all</ARCH>
-      <FILESIZE>156</FILESIZE>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1224</FILESIZE>
       <FROM>deb</FROM>
       <NAME>update-manager-core</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:0.174.3</VERSION>
+      <VERSION>1:0.156.14.22</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>1971</FILESIZE>
+      <FILESIZE>1945</FILESIZE>
       <FROM>deb</FROM>
       <NAME>update-notifier-common</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.126</VERSION>
+      <VERSION>0.119ubuntu8.7</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -4897,87 +5208,87 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>upstart</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.5-0ubuntu9</VERSION>
+      <VERSION>1.5-0ubuntu7.3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>120</FILESIZE>
+      <FILESIZE>124</FILESIZE>
       <FROM>deb</FROM>
       <NAME>ureadahead</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.100.0-12build1</VERSION>
+      <VERSION>0.100.0-12</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>701</FILESIZE>
+      <FILESIZE>661</FILESIZE>
       <FROM>deb</FROM>
       <NAME>usbutils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:005-3</VERSION>
+      <VERSION>1:005-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1584</FILESIZE>
+      <FILESIZE>1559</FILESIZE>
       <FROM>deb</FROM>
       <NAME>util-linux</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.20.1-5.1ubuntu2</VERSION>
+      <VERSION>2.20.1-1ubuntu3.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>137</FILESIZE>
+      <FILESIZE>141</FILESIZE>
       <FROM>deb</FROM>
       <NAME>uuid-runtime</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.20.1-5.1ubuntu2</VERSION>
+      <VERSION>2.20.1-1ubuntu3.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>2016</FILESIZE>
+      <FILESIZE>2013</FILESIZE>
       <FROM>deb</FROM>
       <NAME>vim</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:7.3.547-4ubuntu1.1</VERSION>
+      <VERSION>2:7.3.429-2ubuntu2.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>296</FILESIZE>
+      <FILESIZE>295</FILESIZE>
       <FROM>deb</FROM>
       <NAME>vim-common</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:7.3.547-4ubuntu1.1</VERSION>
+      <VERSION>2:7.3.429-2ubuntu2.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>22376</FILESIZE>
+      <FILESIZE>22307</FILESIZE>
       <FROM>deb</FROM>
       <NAME>vim-runtime</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:7.3.547-4ubuntu1.1</VERSION>
+      <VERSION>2:7.3.429-2ubuntu2.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>830</FILESIZE>
+      <FILESIZE>826</FILESIZE>
       <FROM>deb</FROM>
       <NAME>vim-tiny</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2:7.3.547-4ubuntu1.1</VERSION>
+      <VERSION>2:7.3.429-2ubuntu2.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>2264</FILESIZE>
+      <FILESIZE>2096</FILESIZE>
       <FROM>deb</FROM>
       <NAME>w3m</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.5.3-8</VERSION>
+      <VERSION>0.5.3-5ubuntu1.2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>224</FILESIZE>
+      <FILESIZE>264</FILESIZE>
       <FROM>deb</FROM>
       <NAME>wdiff</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.1.2-1</VERSION>
+      <VERSION>0.6.5-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -4985,7 +5296,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>wget</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.13.4-3ubuntu1</VERSION>
+      <VERSION>1.13.4-2ubuntu1.4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
@@ -4993,15 +5304,15 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>whiptail</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.52.11-2ubuntu11</VERSION>
+      <VERSION>0.52.11-2ubuntu10</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>109</FILESIZE>
+      <FILESIZE>105</FILESIZE>
       <FROM>deb</FROM>
       <NAME>whoopsie</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.2.7</VERSION>
+      <VERSION>0.1.34.1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -5013,27 +5324,27 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>328</FILESIZE>
+      <FILESIZE>324</FILESIZE>
       <FROM>deb</FROM>
       <NAME>wireless-tools</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>30~pre9-8ubuntu1</VERSION>
+      <VERSION>30~pre9-5ubuntu2</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>1430</FILESIZE>
+      <FILESIZE>1226</FILESIZE>
       <FROM>deb</FROM>
       <NAME>wpasupplicant</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1.0-2ubuntu5</VERSION>
+      <VERSION>0.7.3-6ubuntu2.4</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>86</FILESIZE>
+      <FILESIZE>96</FILESIZE>
       <FROM>deb</FROM>
       <NAME>xauth</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:1.0.7-1</VERSION>
+      <VERSION>1:1.0.6-1</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
@@ -5041,31 +5352,47 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
       <FROM>deb</FROM>
       <NAME>xkb-data</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>2.5-1ubuntu7</VERSION>
+      <VERSION>2.5-1ubuntu1.5</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>all</ARCH>
-      <FILESIZE>187</FILESIZE>
+      <FILESIZE>260</FILESIZE>
       <FROM>deb</FROM>
       <NAME>xml-core</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>0.13+nmu1</VERSION>
+      <VERSION>0.13</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>163</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xz-lzma</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>5.1.1alpha+20110809-3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>384</FILESIZE>
+      <FILESIZE>388</FILESIZE>
       <FROM>deb</FROM>
       <NAME>xz-utils</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>5.1.1alpha+20120614-1</VERSION>
+      <VERSION>5.1.1alpha+20110809-3</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
-      <FILESIZE>162</FILESIZE>
+      <FILESIZE>156</FILESIZE>
       <FROM>deb</FROM>
       <NAME>zlib1g</NAME>
       <PUBLISHER>Ubuntu</PUBLISHER>
-      <VERSION>1:1.2.7.dfsg-13</VERSION>
+      <VERSION>1:1.2.3.4.dfsg-3ubuntu4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i386</ARCH>
+      <FILESIZE>147</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>zlib1g</NAME>
+      <PUBLISHER>Ubuntu</PUBLISHER>
+      <VERSION>1:1.2.3.4.dfsg-3ubuntu4</VERSION>
     </SOFTWARES>
     <STORAGES>
       <DESCRIPTION>Virtual</DESCRIPTION>
@@ -5077,26 +5404,26 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
     <VERSIONCLIENT>FusionInventory-Agent_v2.3.19</VERSIONCLIENT>
     <VERSIONPROVIDER>
       <NAME>FusionInventory</NAME>
-      <PERL_EXE>/opt/rudder/bin/perl</PERL_EXE>
-      <PERL_VERSION>v5.22.0</PERL_VERSION>
+      <PERL_EXE>/usr/bin/perl</PERL_EXE>
+      <PERL_VERSION>v5.14.2</PERL_VERSION>
       <PROGRAM>/opt/rudder/bin/fusioninventory-agent</PROGRAM>
       <VERSION>2.3.19</VERSION>
     </VERSIONPROVIDER>
   </CONTENT>
-  <DEVICEID>ubuntu-12-10-64-2017-02-02-16-03-02</DEVICEID>
-<UUID>d2b1d400-be09-47d0-a851-5f50bcf2d09e</UUID>
+  <DEVICEID>ubuntu-12-04-64-2015-07-16-10-53-17</DEVICEID>
+<UUID>78628ad3-eb43-4136-9486-81cdd15d8b0c</UUID>
 <USER>root</USER>
 <AGENTSNAME>
 <AGENTNAME>Community</AGENTNAME>
 </AGENTSNAME>
-<MACHINEID>56AF0438-CA4F-072E-5545-6D2527DBA836</MACHINEID>
+<MACHINEID>D3699845-6F07-431C-8C0E-AB6AD88F00AB</MACHINEID>
 <CFKEY>-----BEGIN RSA PUBLIC KEY-----
-MIIBCAKCAQEAtwTJu/AGJcj3+DMwFkvAdC9r9tyBtEKxUQ1Glm/KHj5HqTFp214L
-KeL1praEmyAfKLIrvqrPMko+cX0HgGqV111P+5hRz5VSaqmollfGHkc38T44cnP5
-k/gnoSvyubfnxCy2ZoWrYddmtK8zZSMN/dyEP3mzT+xOmc6LaEPKWjx8gg+9WFiO
-f86GoTBWbSYh8wZr1w3FMH7ZFszNUgqhufyp5OC5Z87drve7IZAXBagdnJt3a+h7
-biFKdejmRIxAXBuZCcZVIBs1WMyBnfQDBb26yTa5+9kZwNBpYvOjGNyqb4t+SfKP
-HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
+MIIBCAKCAQEA2eHrD//V1/S/acgXvu5P5Lc4rhbb66j9sNEeE5k1tblJcb3SG77d
+63LVGGhdXGUn2KtePs3R00hSZwTqvAPSjBhXf9agWR6my3GWZlDHWG3WyD8LHcdr
+kKvZLQPPsCQC6RwLfA+jC0LjmkbwENfS5/tQuMX8vlYHtJ5ci7X7WwerCbJUvFrv
+teyn3yKuQaIAcKLsrDEH79qWeYzH/NgeAlXnRt3pp/RTfYhsSxQ/VnYdwV1T1lkp
+R15eTYdw5JFuD7zfMuoQI6k+aKBUsff0shwiocx7ru1sWFDvcPpAUQ/SufjmqWgO
+ABDXeEZ72tjwyP/Hy0tPr6LCbKz0ZUv+YwIBIw==
 -----END RSA PUBLIC KEY-----</CFKEY>
 <POLICY_SERVER>root</POLICY_SERVER>
 <PROCESSORS>
@@ -5106,7 +5433,7 @@ HKhmnSBOE9XkSrWZWB0Jrc9mjAvxAgTjUQIBIw==
 		<MODEL>2</MODEL>
 		<NAME>QEMU Virtual CPU version 0.12</NAME>
 		<STEPPING>3</STEPPING>
-		<FREQUENCY>1995.191</FREQUENCY>
+		<FREQUENCY>1995.192</FREQUENCY>
 	</PROCESSOR>
 </PROCESSORS>
 <SERVER_ROLES>

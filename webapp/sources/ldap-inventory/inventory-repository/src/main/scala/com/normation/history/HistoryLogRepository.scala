@@ -26,7 +26,7 @@ import org.joda.time.DateTime
 trait WriteOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
 
   /**
-   * Save a report and return the ID of the saved report, and
+   * Save an inventory and return the ID of the saved inventory, and
    * it's version
    * @param historyLog
    * @return

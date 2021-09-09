@@ -38,7 +38,7 @@
 package com.normation.inventory.ldap.provisioning
 
 import com.normation.errors.SystemError
-import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.Inventory
 import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
@@ -50,7 +50,7 @@ import zio.syntax._
 
 /*
  * This file contains post commit action to
- * weave in with the report saver.
+ * weave in with the inventory saver.
  */
 
 
@@ -65,19 +65,19 @@ class AcceptPendingMachineIfServerIsAccepted(
 
   override val name = "post_commit_inventory:accept_pending_machine_for_accepted_server"
 
-  override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : IOResult[Seq[LDIFChangeRecord]] = {
-    (report.node.main.status, report.machine.status ) match {
+  override def apply(inventory:Inventory,records:Seq[LDIFChangeRecord]) : IOResult[Seq[LDIFChangeRecord]] = {
+    (inventory.node.main.status, inventory.machine.status ) match {
       case (AcceptedInventory,  PendingInventory) =>
         // Change the container state, no need to keep the machine
-        val fullInventory = FullInventory(report.node.copy(machineId = Some((report.machine.id,AcceptedInventory))),None)
-        InventoryProcessingLogger.debug(s"Found machine '${report.machine.id.value}' in pending DIT but that machine is the container of the accepted node '${report.node.main.id.value}'. Moving machine to accpeted") *>
+        val fullInventory = FullInventory(inventory.node.copy(machineId = Some((inventory.machine.id,AcceptedInventory))),None)
+        InventoryProcessingLogger.debug(s"Found machine '${inventory.machine.id.value}' in pending DIT but that machine is the container of the accepted node '${inventory.node.main.id.value}'. Moving machine to accpeted") *>
         (for {
-          res       <- fullInventoryRepositoryImpl.move(report.machine.id, AcceptedInventory)
+          res   <- fullInventoryRepositoryImpl.move(inventory.machine.id, AcceptedInventory)
           // Save Inventory to change the container too, no need to have the machine saved again
-          inventory <- fullInventoryRepositoryImpl.save(fullInventory)
-          _         <- InventoryProcessingLogger.debug("Machine '%s' moved to accepted DIT".format(report.machine.id))
+          saved <- fullInventoryRepositoryImpl.save(fullInventory)
+          _     <- InventoryProcessingLogger.debug("Machine '%s' moved to accepted DIT".format(inventory.machine.id))
         } yield {
-          records ++ res ++ inventory
+          records ++ res ++ saved
         })
 
       case _ => //nothing to do, just forward to next post commit
@@ -96,24 +96,24 @@ class PendingNodeIfNodeWasRemoved(
 
   override val name = "post_commit_inventory:pending_node_for_deleted_server"
 
-  override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : IOResult[Seq[LDIFChangeRecord]] = {
+  override def apply(inventory:Inventory,records:Seq[LDIFChangeRecord]) : IOResult[Seq[LDIFChangeRecord]] = {
 
-    (report.node.main.status, report.machine.status ) match {
+    (inventory.node.main.status, inventory.machine.status ) match {
       case (RemovedInventory,  RemovedInventory) =>
 
-        InventoryProcessingLogger.debug("Found node '%s' and machine '%s' in removed DIT but we received an inventory for it, moving them into pending".format(report.node.main.id, report.machine.id)) *>
+        InventoryProcessingLogger.debug("Found node '%s' and machine '%s' in removed DIT but we received an inventory for it, moving them into pending".format(inventory.node.main.id, inventory.machine.id)) *>
         (for {
-          res <- writeOnlyFullInventoryRepository.move(report.node.main.id, RemovedInventory, PendingInventory)
-          _   <- InventoryProcessingLogger.debug("Node and machine '%s' moved to pending DIT".format(report.machine.id))
+          res <- writeOnlyFullInventoryRepository.move(inventory.node.main.id, RemovedInventory, PendingInventory)
+          _   <- InventoryProcessingLogger.debug("Node and machine '%s' moved to pending DIT".format(inventory.machine.id))
         } yield {
           records ++ res
         })
 
       case (RemovedInventory,  _) =>
-        InventoryProcessingLogger.debug("Found node '%s' ain removed DIT but we received an inventory for it, moving it into pending and leaving the container alone".format(report.node.main.id)) *>
+        InventoryProcessingLogger.debug("Found node '%s' ain removed DIT but we received an inventory for it, moving it into pending and leaving the container alone".format(inventory.node.main.id)) *>
         (for {
-          res <- writeOnlyFullInventoryRepository.moveNode(report.node.main.id, RemovedInventory, PendingInventory)
-          _   <- InventoryProcessingLogger.debug("Node '%s' moved to pending DIT".format(report.node.main.id))
+          res <- writeOnlyFullInventoryRepository.moveNode(inventory.node.main.id, RemovedInventory, PendingInventory)
+          _   <- InventoryProcessingLogger.debug("Node '%s' moved to pending DIT".format(inventory.node.main.id))
         } yield {
           records ++ res
         })
@@ -127,14 +127,14 @@ class PendingNodeIfNodeWasRemoved(
  * A post commit which log the list of
  * modification actually done in the directory
  */
-class PostCommitLogger(log:LDIFReportLogger) extends PostCommit[Seq[LDIFChangeRecord]] {
+class PostCommitLogger(log:LDIFInventoryLogger) extends PostCommit[Seq[LDIFChangeRecord]] {
 
   override val name = "post_commit_inventory:log_inventory"
 
-  override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : IOResult[Seq[LDIFChangeRecord]] = {
+  override def apply(inventory:Inventory,records:Seq[LDIFChangeRecord]) : IOResult[Seq[LDIFChangeRecord]] = {
     log.log(
-        report.name
-      , Some("LDIF actually commited to the LDAP directory for given report processing")
+        inventory.name
+      , Some("LDIF actually commited to the LDAP directory for given inventory processing")
       , Some("COMMITED")
       , records
     ).mapError(ex => SystemError("An error happen during LDIF log", ex)) *> records.succeed

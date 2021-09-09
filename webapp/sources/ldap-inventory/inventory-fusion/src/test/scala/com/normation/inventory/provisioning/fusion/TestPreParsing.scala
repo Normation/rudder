@@ -39,7 +39,7 @@ package com.normation.inventory.provisioning.fusion
 import java.io.InputStream
 
 import com.normation.errors._
-import com.normation.inventory.services.provisioning.PreUnmarshall
+import com.normation.inventory.services.provisioning.PreInventoryParser
 import com.normation.zio._
 import org.junit.runner._
 import org.specs2.mutable._
@@ -56,9 +56,9 @@ import scala.xml.XML
  * with OpenLDAP Schema).
  */
 @RunWith(classOf[JUnitRunner])
-class TestPreUnmarshaller extends Specification {
+class TestPreParsing extends Specification {
 
-  private[this] implicit class TestParser(pre: PreUnmarshall) {
+  private[this] implicit class TestParser(pre: PreInventoryParser) {
 
     def fromXml(checkName:String,is:InputStream) : IOResult[NodeSeq] = {
       Task.effect(XML.load(is)).mapError(SystemError("error in test", _))
@@ -78,35 +78,35 @@ class TestPreUnmarshaller extends Specification {
       }).either.runNow
     }
   }
-  val post = new PreUnmarshallCheckConsistency
+  val post = new PreInventoryParserCheckConsistency
 
   "Pre inventory check should be ok" should {
      "With a valid inventory on Linux" in {
-        val linux = post.check("fusion-report/signed_inventory.ocs")
+        val linux = post.check("fusion-inventories/signed_inventory.ocs")
         linux must beRight
      }
 
      "With a valid inventory in Windows" in {
-       val windows = post.check("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs")
+       val windows = post.check("fusion-inventories/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs")
        windows must beRight
      }
   }
 
   "Pre inventory check should fail" should {
      "When there is no fqdn defined" in {
-        val noFQDN = post.check("fusion-report/centos.no_rudder_extension.no_fqdn")
+        val noFQDN = post.check("fusion-inventories/centos.no_rudder_extension.no_fqdn")
         noFQDN must beLeft
      }
 
     "When there is no security token defined" in {
-      val noSecurityToken = post.check("fusion-report/debian-no-security-token.ocs")
+      val noSecurityToken = post.check("fusion-inventories/debian-no-security-token.ocs")
       noSecurityToken.swap.getOrElse(throw new Exception("For test")).fullMsg must beMatching(""".*\QMissing security token attribute (RUDDER/AGENT/CFENGINE_KEY or RUDDER/AGENT/AGENT_CERT)\E.*""".r)
     }
   }
 
-  "A report without OS/NAME but with KERNEL_NAME should work" in {
-    val report = post.check("fusion-report/only-kernel-name-0034fbbe-4b52-4212-9535-1f1a952c6f36.ocs")
-    report must beRight
+  "An inventory without OS/NAME but with KERNEL_NAME should work" in {
+    val inventories = post.check("fusion-inventories/only-kernel-name-0034fbbe-4b52-4212-9535-1f1a952c6f36.ocs")
+    inventories must beRight
   }
 
 }
