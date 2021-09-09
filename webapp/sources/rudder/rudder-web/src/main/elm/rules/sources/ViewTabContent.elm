@@ -18,12 +18,12 @@ buildListCategories : String -> (Category Rule) -> List(Html Msg)
 buildListCategories sep c =
   let
     newList =
-        let
-          currentOption  = [option [value c.id][text (sep ++ c.name)]]
-          separator      = sep ++ "└─ "
-          listCategories = List.concatMap (buildListCategories separator) (getSubElems c)
-        in
-          List.append currentOption listCategories
+      let
+        currentOption  = [option [value c.id][text (sep ++ c.name)]]
+        separator      = sep ++ "└─ "
+        listCategories = List.concatMap (buildListCategories separator) (getSubElems c)
+      in
+        List.append currentOption listCategories
   in
     newList
 
@@ -37,7 +37,6 @@ buildTagsContainer rule =
           , span[class "tag-key"][text t.key]
           , span[class "tag-separator"][text "="]
           , span[class "tag-value"][text t.value]
-          , span[class "fa fa-search-plus"][]
           ]
         ]
       ) rule.tags
@@ -76,9 +75,23 @@ tabContent model details isNewRule=
               ]
             else
               text ""
-        in
-          div[class "row"][
-            form[class "col-xs-12 col-sm-6 col-lg-7"]
+
+          getCategoryName : String -> String
+          getCategoryName cId =
+            let
+              concatCategories : (Category a) -> List (Category a)
+              concatCategories c =
+                c :: (List.concatMap concatCategories (getSubElems c))
+
+              findCategory = List.Extra.find (\c -> c.id == cId) (concatCategories model.rulesTree)
+            in
+              case findCategory of
+                Just c  -> c.name
+                Nothing -> "Category not found"
+
+          ruleForm =
+            ( if model.hasWriteRights == True then
+              form[class "col-xs-12 col-sm-6 col-lg-7"]
               [ div [class "form-group"]
                 [ label[for "rule-name"][text "Name"]
                 , div[]
@@ -114,8 +127,49 @@ tabContent model details isNewRule=
                   [ textarea[ id "rule-long-description", value rule.longDescription, placeholder "There is no long description", class "form-control", onInput (\s -> UpdateRule {rule | longDescription = s} ) ][] ]
                 ]
               ]
-            , rightCol
-            ]
+              else
+              form[class "col-xs-12 col-sm-6 col-lg-7 readonly-form"]
+              [ div [class "form-group"]
+                [ label[for "rule-name"][text "Name"]
+                , div[][text rule.name]
+                ]
+              , div [class "form-group"]
+                [ label[for "rule-category"][text "Category"]
+                , div[][text (getCategoryName rule.categoryId), span[class "half-opacity"][text (" (id: "++ rule.categoryId ++")")]]
+                ]
+              , div [class "tags-container"]
+                [ label[for "rule-tags-key"][text "Tags"]
+                , ( if List.length rule.tags > 0 then
+                    buildTagsContainer rule
+                  else
+                    div[class "half-opacity"][text "There is no tags"]
+                  )
+                ]
+              , div [class "form-group"]
+                [ label[for "rule-short-description"][text "Short description"]
+                , div[]
+                  ( if String.isEmpty rule.shortDescription then
+                    [ span[class "half-opacity"][text "There is no short description"] ]
+                  else
+                    [ text rule.shortDescription ]
+                  )
+                ]
+              , div [class "form-group"]
+                [ label[for "rule-long-description"][text "Long description"]
+                , div[]
+                  ( if String.isEmpty rule.longDescription then
+                    [ span[class "half-opacity"][text "There is no long description"] ]
+                  else
+                    [ text rule.longDescription ]
+                  )
+                ]
+              ]
+            )
+        in
+          div[class "row"]
+          [ ruleForm
+          , rightCol
+          ]
       Directives    ->
         let
           buildTableRow : DirectiveId -> Html Msg
@@ -186,7 +240,11 @@ tabContent model details isNewRule=
             div[class "tab-table-content"]
             [ div [class "table-title"]
               [ h4 [][text "Compliance by Directives"]
-              , button [class "btn btn-default btn-sm", onClick (EditDirectives True)][text "Edit"]
+              , ( if model.hasWriteRights == True then
+                  button [class "btn btn-default btn-sm", onClick (EditDirectives True)][text "Edit"]
+                else
+                  text ""
+                )
               ]
             , div [class "table-header"]
               [ input [type_ "text", placeholder "Filter", class "input-sm form-control"][]
@@ -354,7 +412,11 @@ tabContent model details isNewRule=
             div[class "tab-table-content"]
             [ div [class "table-title"]
               [ h4 [][text "Compliance by Nodes"]
-              , button [class "btn btn-default btn-sm", onClick (EditGroups True)][text "Edit"]
+              , ( if model.hasWriteRights == True then
+                  button [class "btn btn-default btn-sm", onClick (EditGroups True)][text "Edit"]
+                else
+                  text ""
+                )
               ]
             , div [class "table-header"]
               [ input [type_ "text", placeholder "Filter", class "input-sm form-control"][]

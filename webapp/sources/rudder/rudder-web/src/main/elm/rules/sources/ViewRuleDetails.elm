@@ -98,16 +98,22 @@ editionTemplate model details isNewRule =
           , badgeDisabled
           ]
         , div[class "header-buttons"]
-          [ div [ class "btn-group" ]
-            [ button [ class "btn btn-default dropdown-toggle" , attribute "data-toggle" "dropdown" ] [
-                text "Actions "
-              , i [ class "caret" ] []
+          ( button [class "btn btn-default", type_ "button", onClick CloseDetails][text "Close", i [ class "fa fa-times"][]]
+          :: (
+            if model.hasWriteRights == True then
+              [ div [ class "btn-group" ]
+                [ button [ class "btn btn-default dropdown-toggle" , attribute "data-toggle" "dropdown" ] [
+                  text "Actions "
+                  , i [ class "caret" ] []
+                  ]
+                , ul [ class "dropdown-menu" ] topButtons
+                ]
+                , button [class "btn btn-success", type_ "button", onClick (CallApi (saveRuleDetails rule isNewRule))][text "Save", i [ class "fa fa-download"] []]
               ]
-            , ul [ class "dropdown-menu" ] topButtons
-            ]
-          , button [class "btn btn-default", type_ "button", onClick CloseDetails][text "Close", i [ class "fa fa-times"][]]
-          , button [class "btn btn-success", type_ "button", onClick (CallApi (saveRuleDetails rule isNewRule))][text "Save", i [ class "fa fa-download"] []]
-          ]
+            else
+              []
+            )
+          )
         ]
       , div [class "header-description"]
         [ p[][text originRule.shortDescription] ]

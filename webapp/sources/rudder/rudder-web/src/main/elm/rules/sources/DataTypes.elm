@@ -166,6 +166,7 @@ type alias Model =
   , rulesCompliance : List RuleCompliance
   , directives      : List Directive
   , modal           : Maybe ModalState
+  , hasWriteRights  : Bool
   }
 
 type Msg
