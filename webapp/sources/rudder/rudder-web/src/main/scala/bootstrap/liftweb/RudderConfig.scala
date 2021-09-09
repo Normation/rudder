@@ -2061,26 +2061,32 @@ object RudderConfig extends Loggable {
     x
   }
 
-  private[this] lazy val reportingServiceImpl = new CachedReportingServiceImpl(
-      new ReportingServiceImpl(
-          findExpectedRepo
-        , reportsRepositoryImpl
-        , roAgentRunsRepository
-        , globalAgentRunService
-        , nodeInfoServiceImpl
-        , roLdapDirectiveRepository
-        , roRuleRepository
-        , cachedNodeConfigurationService
-        , () => globalComplianceModeService.getGlobalComplianceMode
-        , configService.rudder_global_policy_mode _
-        , () => configService.rudder_compliance_unexpected_report_interpretation().toBox
-        , RUDDER_JDBC_BATCH_MAX_SIZE
-      )
-    , nodeInfoServiceImpl
-    , cachedNodeConfigurationService
-    , RUDDER_JDBC_BATCH_MAX_SIZE // use same size as for SQL requests
-    , complianceRepositoryImpl
-  )
+  private[this] lazy val reportingServiceImpl = {
+    val reportingServiceImpl = new CachedReportingServiceImpl(
+        new ReportingServiceImpl(
+            findExpectedRepo
+          , reportsRepositoryImpl
+          , roAgentRunsRepository
+          , globalAgentRunService
+          , nodeInfoServiceImpl
+          , roLdapDirectiveRepository
+          , roRuleRepository
+          , cachedNodeConfigurationService
+          , () => globalComplianceModeService.getGlobalComplianceMode
+          , configService.rudder_global_policy_mode _
+          , () => configService.rudder_compliance_unexpected_report_interpretation().toBox
+          , RUDDER_JDBC_BATCH_MAX_SIZE
+        )
+      , nodeInfoServiceImpl
+      , RUDDER_JDBC_BATCH_MAX_SIZE // use same size as for SQL requests
+      , complianceRepositoryImpl
+    )
+    // to avoid a StackOverflowError, we set the compliance cache once it'z ready,
+    // and can construct the nodeconfigurationservice without the comlpince cache
+    cachedNodeConfigurationService.addHook(reportingServiceImpl)
+    reportingServiceImpl
+  }
+
 
   private[this] lazy val pgIn = new PostgresqlInClause(70)
   private[this] lazy val findExpectedRepo = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
@@ -2369,7 +2375,7 @@ object RudderConfig extends Loggable {
   ////////////////////// Snippet plugins & extension register //////////////////////
   lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
 
-  private[this] lazy val cachedNodeConfigurationService = {
+  private[this] lazy val cachedNodeConfigurationService: CachedNodeConfigurationService = {
     val cached = new CachedNodeConfigurationService(findExpectedRepo, nodeInfoServiceImpl)
     cached.init().runNow
     cached

@@ -80,6 +80,11 @@ trait NodeConfigurationService {
   def findNodesApplyingRule(ruleId: RuleId): IOResult[Set[NodeId]]
 }
 
+
+trait NewExpectedReportsAvailableHook {
+  def newExpectedReports(action: CacheExpectedReportAction): IOResult[Unit]
+}
+
 class CachedNodeConfigurationService(
     val confExpectedRepo: FindExpectedReportRepository
   , val nodeInfoService : NodeInfoService
@@ -90,7 +95,19 @@ class CachedNodeConfigurationService(
 
   val logger = ReportLoggerPure.Cache
 
+  /**
+   * This part is ugly, but it is necessary
+   * We need to talk to compliance cache to tell it to reset compliance when
+   * configs are changed. However, the compliance cache needs this present class
+   * So it's a stackoverflow
+   * Workaround is to define hooks that will do the dirty works
+   * Introduced in https://issues.rudder.io/issues/19740
+   */
+  var hooks : List[NewExpectedReportsAvailableHook] = Nil
 
+  def addHook(hook: NewExpectedReportsAvailableHook): Unit = {
+    hooks = hook :: hooks
+  }
   /**
    * The cache is managed node by node.
    * A missing nodeId mean that the cache wasn't initialized for
@@ -151,8 +168,8 @@ class CachedNodeConfigurationService(
     ZIO.foreach_(invalidatedIds.map(_._2) : List[CacheExpectedReportAction])(action =>
       performAction(action).catchAll(err =>
         // when there is an error with an action on the cache, it can becomes inconsistant and we need to (try to) reinit it
-        logger.error(s"Error when updating NodeConfiguration cache for node: [${action.nodeId.value}]: ${err.fullMsg}")) *>
-        init().catchAll(err => logger.error(s"NoceConfiguration cache re-init after error failed, please try to restart app"))
+        logger.error(s"Error when updating NodeConfiguration cache for node: [${action.nodeId.value}]: ${err.fullMsg}") *>
+        init().catchAll(err => logger.error(s"NodeConfiguration cache re-init after error failed, please try to restart app")))
     )
   )
 
@@ -176,11 +193,14 @@ class CachedNodeConfigurationService(
     import CacheExpectedReportAction._
     // in a semaphore
     semaphore.withPermit(
-       action match {
-                          case insert: InsertNodeInCache => cache.update( _ + (insert.nodeId -> None))
-                          case delete: RemoveNodeInCache => cache.update( _.removed(delete.nodeId) )
-                          case update: UpdateNodeConfiguration => cache.update( _ + (update.nodeId -> Some(update.nodeConfiguration)))
-                   }
+      (action match {
+                          case insert: InsertNodeInCache => cache.update( data => data + (insert.nodeId -> None))
+                          case delete: RemoveNodeInCache => cache.update( data => data.removed(delete.nodeId) )
+                          case update: UpdateNodeConfiguration =>
+                            cache.update( data => data + (update.nodeId -> Some(update.nodeConfiguration)))
+                   }) *>
+        ZIO.foreach_(hooks) { hook => hook.newExpectedReports(action)}
+     // complianceCache.get.invalidateWithAction(Seq((action.nodeId, CacheComplianceQueueAction.ExpectedReportAction(action))))
     )
   }
 
@@ -190,7 +210,7 @@ class CachedNodeConfigurationService(
    */
   override def invalidateWithAction(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = {
     ZIO.when(actions.nonEmpty) {
-      logger.debug(s"Node Configuration cache: invalidation request for nodes with action: [${actions.map(_._1).map { _.value }.mkString(",")}]") *>
+      logger.debug(s"Node Configuration cache: invalidation request for nodes with action: [${actions.map(_._2).mkString(",")}]") *>
         invalidateMergeUpdateSemaphore.withPermit(for {
           elements     <- invalidateNodeConfigurationRequest.takeAll
           allActions   =  (elements.flatten ++ actions)
@@ -204,7 +224,7 @@ class CachedNodeConfigurationService(
    */
   def getCurrentExpectedReports(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[NodeExpectedReports]]] = {
     // add logging, to ensure that semaphoring the whole is not too blocking
-    logger.logEffect.trace(s"Calling getCurrentExpectedReports - before semaphore")
+    logger.logEffect.trace(s"Calling getCurrentExpectedReports - before semaphore for nodes ${nodeIds.map(_.value).mkString(", ")}")
     val before_semaphoreTime = System.currentTimeMillis
 
     // In a semaphore, nothing should change the cache
@@ -216,6 +236,7 @@ class CachedNodeConfigurationService(
       dataFromCache <- cache.get.map(_.filter{  case (nodeId, _) => nodeIds.contains(nodeId) })
       // now fetch others from database, if necessary
       // if the configuration is none, then cache isn't inited for it
+      _ <- logger.trace(s"data from cache for expected reports is ${dataFromCache.values.mkString(", \n")}")
       dataUninitialized = dataFromCache.filter{ case (nodeId, option) => option.isEmpty}.keySet
       fromDb     <- confExpectedRepo.getCurrentExpectedsReports(dataUninitialized).toIO
       _          <- logger.trace(s"Fetch from DB ${fromDb.size} current expected reports")

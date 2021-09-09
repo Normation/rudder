@@ -133,7 +133,6 @@ class ReportingServiceImpl(
 class CachedReportingServiceImpl(
     val defaultFindRuleNodeStatusReports: ReportingServiceImpl
   , val nodeInfoService                 : NodeInfoService
-  , val nodeConfigService               : NodeConfigurationService
   , val batchSize                       : Int
   , val complianceRepository            : ComplianceRepository
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with CachedFindRuleNodeStatusReports {
@@ -141,6 +140,7 @@ class CachedReportingServiceImpl(
   val directivesRepo   = defaultFindRuleNodeStatusReports.directivesRepo
   val rulesRepo        = defaultFindRuleNodeStatusReports.rulesRepo
 
+  def nodeConfigService = defaultFindRuleNodeStatusReports.nodeConfigService
   def findUncomputedNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = defaultFindRuleNodeStatusReports.findUncomputedNodeStatusReports()
 
 }
@@ -297,7 +297,7 @@ trait InvalidateCache[T] {
  * - the only path to update the cache is through an async blocking queue of `InvalidateComplianceCacheMsg`
  * - the dequeue actor calculs updated reports for invalidated nodes and update the map accordingly.
  */
-trait CachedFindRuleNodeStatusReports extends ReportingService with CachedRepository with InvalidateCache[CacheComplianceQueueAction] {
+trait CachedFindRuleNodeStatusReports extends ReportingService with CachedRepository with InvalidateCache[CacheComplianceQueueAction] with NewExpectedReportsAvailableHook {
 
   /**
    * underlying service that will provide the computation logic
@@ -554,6 +554,12 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     cache = Map()
     ReportLogger.Cache.debug("Compliance cache cleared")
     //reload it for future use
+  }
+
+  override def newExpectedReports(action: CacheExpectedReportAction) = {
+    invalidateWithAction(
+      Seq((action.nodeId, CacheComplianceQueueAction.ExpectedReportAction(action)))
+    )
   }
 }
 
