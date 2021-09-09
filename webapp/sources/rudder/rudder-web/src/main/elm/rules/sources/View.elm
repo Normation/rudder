@@ -162,10 +162,14 @@ view model =
           [ h1[]
             [ span[][text "Rules"]
             ]
-          , div [class "header-buttons"]
-            [ button [class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s      ))][text "Add Category"]
-            , button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s) ))][text "Create"]
-            ]
+          , ( if model.hasWriteRights == True then
+              div [class "header-buttons"]
+              [ button [class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s      ))][text "Add Category"]
+              , button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s) ))][text "Create"]
+              ]
+            else
+              text ""
+            )
           ]
         , div [class "header-filter"]
           [ div [class "input-group"]
