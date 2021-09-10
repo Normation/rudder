@@ -24,7 +24,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 diesel = { version = "1", default-features = false, features = ["postgres", "chrono", "r2d2"] }
 # Uses rust implementation by default
 flate2 = "1"
-futures = "0.3"
+futures = { version = "0.3", default-features = false }
 gumdrop = "0.8"
 hex = "0.4"
 humantime = "2"
@@ -59,3 +59,8 @@ filetime = "0.2"
 proptest = "1"
 tempfile = "3"
 pretty_assertions = "0.7"
+
+[profile.dev]
+# Disabling debug info speeds up builds a bunch,
+# and we don't rely on it for debugging that much.
+debug = 0
