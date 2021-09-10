@@ -48,7 +48,6 @@ import com.normation.rudder.domain.policies.RuleId
 import scala.collection.immutable.TreeMap
 import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.NodeModeConfig
-import com.normation.rudder.exceptions.NotFoundException
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
@@ -528,7 +527,7 @@ final case class BoundPolicyDraft(
         case Some(value) =>
           originalVars.get(value) match {
             //should not happen, techniques consistency are checked
-            case None => throw new NotFoundException("No valid bounding found for trackerVariable " + trackerVariable.spec.name + " found in directive " + id.directiveId.debugString)
+            case None => throw new IllegalArgumentException("No valid bounding found for trackerVariable " + trackerVariable.spec.name + " found in directive " + id.directiveId.debugString)
             case Some(variable) => (trackerVariable, variable)
           }
       }
