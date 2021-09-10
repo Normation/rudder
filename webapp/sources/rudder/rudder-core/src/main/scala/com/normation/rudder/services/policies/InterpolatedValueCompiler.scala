@@ -454,7 +454,7 @@ class InterpolatedValueCompilerImpl(p: PropertyEngineService) extends Interpolat
           case None          => ""
         }
         // should not happen since a non expanded engine property should lead to an error
-        s"[missing value for: $${engine.${e}[${m.mkString("][")}] ${opt}]"
+        s"[missing value for: $${data.${e}[${m.mkString("][")}] ${opt}]"
       case Property(path, opt) => agent match {
         case AgentType.Dsc =>
           s"$$($$node.properties[${path.mkString("][")}])"
@@ -518,17 +518,16 @@ object PropertyParser {
   // after "${rudder." there is no backtracking to an "otherProp" or string possible.
   def rudderVariable[_: P]  : P[Interpolation] = P( IgnoreCase("rudder") ~ space ~ "." ~ space ~/ (rudderNode | parameters | oldParameter) )
 
-  def rudderEngine[_: P]  : P[Interpolation] = P( IgnoreCase("engine") ~ space ~ "." ~ space ~/ (rudderEngineFormat) )
+  def rudderEngine[_: P]  : P[Interpolation] = P( (IgnoreCase("data") | IgnoreCase("rudder-data")) ~ space ~ "." ~ space ~/ (rudderEngineFormat) )
 
   //a node path looks like: ${rudder.node.HERE.PATH}
   def rudderNode[_: P]  : P[Interpolation] = P( IgnoreCase("node") ~/ space ~ "." ~ space ~/ variableId.rep(sep = space ~ "." ~ space) ).map { seq => NodeAccessor(seq.toList) }
 
-  // ${engine.name[val][val2] | option1 = xxx | option2 = xxx}
+  // ${data.name[val][val2] | option1 = xxx | option2 = xxx}
+  // ${rudder-data.name[val][val2] | option1 = xxx | option2 = xxx}
   def rudderEngineFormat[_: P]  : P[Interpolation] = P(propertyId ~/ arrayNames  ~/ engineOption.? ).map{
     case (name, methods, opt) => RudderEngine(name, methods, opt)
   }
-
-//  def rudderEngineArg[_: P]  : P[String] = P( space ~ "(" ~/ space ~/ ("\"" | "\"\"\"") ~/ propertyId ~/ space ~/ ("\"" | "\"\"\"") ~ space ~ ")" ~ space)
 
   //a parameter old syntax looks like: ${rudder.param.PARAM_NAME}
   def oldParameter[_: P]  : P[Interpolation] = P(IgnoreCase("param") ~ space ~ "." ~/ space ~/ variableId).map{ p => Param(p :: Nil) }

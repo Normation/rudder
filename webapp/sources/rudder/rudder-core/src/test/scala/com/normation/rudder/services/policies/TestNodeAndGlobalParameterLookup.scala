@@ -274,74 +274,81 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     }
 
     "parse a valid engine" in {
-      test(
-        all(_)
-        , """${engine.test[foo]}"""
-        , List(RudderEngine("test", List("foo"), None))
-      )
+      val s = """${data.test[foo]}"""
+      val s2 = """${rudder-data.test[foo]}"""
+      val res = RudderEngine("test", List("foo"), None)
+      test(all(_), s, List(res)) and
+      test(all(_), s2, List(res))
     }
 
     "parse a valid engine with methods" in {
-      test(
-        all(_)
-        , """${engine.test[foo][bar]}"""
-        , List(RudderEngine("test", List("foo", "bar"), None))
-      )
+      val s = """${data.test[foo][bar]}"""
+      val s2 = """${rudder-data.test[foo][bar]}"""
+      val res = RudderEngine("test", List("foo", "bar"), None)
+      test(all(_), s, List(res)) and
+      test(all(_), s2, List(res))
     }
 
     "parse a valid engine with options" in {
-      test(
-        all(_)
-        , """${engine.test[foo] | option1 = boo | option2 = baz}"""
-        , List(RudderEngine("test", List("foo"), Some(List(EngineOption("option1", "boo"), EngineOption("option2", "baz")))))
-      )
+      val s = """${data.test[foo] | option1 = boo | option2 = baz}"""
+      val s2 = """${rudder-data.test[foo] | option1 = boo | option2 = baz}"""
+      val res = RudderEngine("test", List("foo"), Some(List(EngineOption("option1", "boo"), EngineOption("option2", "baz"))))
+      test(all(_), s, List(res)) and
+      test(all(_), s2, List(res))
     }
 
     "parse an engine with space" in {
-      test(
-        all(_)
-        , """${engine . test [ foo ] [ bar]    |option1 =  tac |  option2   = toc  }"""
-        , List(RudderEngine("test", List("foo", "bar"), Some(List(EngineOption("option1", "tac"), EngineOption("option2", "toc")))))
-      )
+      val s = """${data . test [ foo ] [ bar]    |option1 =  tac |  option2   = toc  }"""
+      val s2 = """${rudder-data . test [ foo ] [ bar]    |option1 =  tac |  option2   = toc  }"""
+      val res = RudderEngine("test", List("foo", "bar"), Some(List(EngineOption("option1", "tac"), EngineOption("option2", "toc"))))
+      test(all(_), s, List(res)) and
+      test(all(_), s2, List(res))
     }
 
     "parse an engine with multiple method" in {
-      test(
-        all(_)
-        , """${engine.test[foo][bar][baz]}"""
-        , List(RudderEngine("test", List("foo", "bar", "baz"), None))
-      )
+      val s = """${data.test[foo][bar][baz]}"""
+      val s2 = """${rudder-data.test[foo][bar][baz]}"""
+      val res = RudderEngine("test", List("foo", "bar", "baz"), None)
+      test(all(_), s, List(res)) and
+      test(all(_), s2, List(res))
     }
 
     "parse engine with UTF-8" in {
-      val s = """${engine.😈tëst😍[emo😄ji-parameter] | 1optionÃ¶ = emo😄jiOpt1 | 2optionÃ¼ = emo😄jiOpt2}"""
-      test(all(_), s, List(
-        RudderEngine(
-          "😈tëst😍",
-          List("emo😄ji-parameter"),
-          Some(
-            List(
-              EngineOption("1optionÃ¶", "emo😄jiOpt1"),
-              EngineOption("2optionÃ¼", "emo😄jiOpt2")
-            )
+      val s = """${data.😈tëst😍[emo😄ji-parameter] | 1optionÃ¶ = emo😄jiOpt1 | 2optionÃ¼ = emo😄jiOpt2}"""
+      val s2 = """${rudder-data.😈tëst😍[emo😄ji-parameter] | 1optionÃ¶ = emo😄jiOpt1 | 2optionÃ¼ = emo😄jiOpt2}"""
+      val res = RudderEngine(
+        "😈tëst😍",
+        List("emo😄ji-parameter"),
+        Some(
+          List(
+            EngineOption("1optionÃ¶", "emo😄jiOpt1"),
+            EngineOption("2optionÃ¼", "emo😄jiOpt2")
           )
-       )
-      ))
+        )
+      )
+      test(all(_), s, List(res)) and
+      test(all(_), s2, List(res))
     }
 
     "fails when an engine with empty method between" in {
-      val s = """${rudder.engine[foo][][bar]("test")}"""
-      PropertyParser.parse(s) must beLeft
+      val s = """${data.test[foo][][bar]("test")}"""
+      val s2 = """${rudder-data.test[foo][][bar]("test")}"""
+      (PropertyParser.parse(s) must beLeft) and
+      (PropertyParser.parse(s2) must beLeft)
     }
 
     "fails when an engine with empty method at the end" in {
-      val s = """${rudder.engine[foo][bar][]("test")}"""
-      PropertyParser.parse(s) must beLeft
+      val s = """${data.test[foo][bar][]("test")}"""
+      val s2 = """${rudder-data.test[foo][bar][]("test")}"""
+      (PropertyParser.parse(s) must beLeft) and
+      (PropertyParser.parse(s2) must beLeft)
     }
 
     "fails when an engine with empty method at the beginning" in {
-      val s = """${rudder.engine[][foo][bar]("test")}"""
-      PropertyParser.parse(s) must beLeft
+      val s = """${data.test[][foo][bar]("test")}"""
+      val s2 = """${rudder-data.test[][foo][bar]("test")}"""
+      (PropertyParser.parse(s) must beLeft) and
+      (PropertyParser.parse(s2) must beLeft)
     }
 
 
@@ -752,7 +759,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     }
 
 
-    //utility class to help run the IORestul
+    //utility class to help run the IOResult
     def runParseJValue(value: JValue, context: InterpolationContext): JValue = {
       buildContext.parseJValue(value, context).either.runNow match {
         case Left(err) => throw new RuntimeException(s"Error when interpolating '${value}': ${err.fullMsg}")
@@ -761,9 +768,11 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     }
 
     "interpolate engine in JSON" in {
-      val before = """{"login":"admin", "password":"${engine.fakeEncryptorEngineTesting[password_test] | option1 = foo | option2 = bar}"}"""
+      val before = """{"login":"admin", "password":"${data.fakeEncryptorEngineTesting[password_test] | option1 = foo | option2 = bar}"}"""
+      val before2 = """{"login":"admin", "password":"${rudder-data.fakeEncryptorEngineTesting[password_test] | option1 = foo | option2 = bar}"}"""
       val after = """{"login":"admin", "password":"encrypted-string-test"}"""
-      runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))
+      (runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))) and
+      (runParseJValue(JsonParser.parse(before2), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after)))
     }
 
     "interpolate unknown engine in JSON must raise en error" in {
@@ -771,12 +780,20 @@ class TestNodeAndGlobalParameterLookup extends Specification {
         """{
           |  "login" : "admin",
           |  "password" : {
-          |    "value" : "${engine.UNKNOWN[test]}"
+          |    "value" : "${data.UNKNOWN[test]}"
           |  }
           |}
           |""".stripMargin
-
-      buildContext.parseJValue(JsonParser.parse(before), toNodeContext(context, Map())).either.runNow must beLeft
+      val before2 =
+        """{
+          |  "login" : "admin",
+          |  "password" : {
+          |    "value" : "${rudder-data.UNKNOWN[test]}"
+          |  }
+          |}
+          |""".stripMargin
+      (buildContext.parseJValue(JsonParser.parse(before), toNodeContext(context, Map())).either.runNow must beLeft) and
+      (buildContext.parseJValue(JsonParser.parse(before2), toNodeContext(context, Map())).either.runNow must beLeft)
     }
 
     "interpolate engine in nested JSON object" in {
@@ -784,11 +801,18 @@ class TestNodeAndGlobalParameterLookup extends Specification {
         """{
           |  "login" : "admin",
           |  "password" : {
-          |    "value" : "${engine.fakeEncryptorEngineTesting[password]}"
+          |    "value" : "${data.fakeEncryptorEngineTesting[password]}"
           |  }
           |}
           |""".stripMargin
-
+      val before2 =
+        """{
+          |  "login" : "admin",
+          |  "password" : {
+          |    "value" : "${rudder-data.fakeEncryptorEngineTesting[password]}"
+          |  }
+          |}
+          |""".stripMargin
       val after =
         """{
           |  "login" : "admin",
@@ -798,24 +822,31 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |}
           |""".stripMargin
 
-      runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))
+      (runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))) and
+      (runParseJValue(JsonParser.parse(before2), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after)))
     }
 
     "interpolate engine in JSON array" in {
       val before =
         """{
           |  "login" : "admin",
-          |  "data" : ["foo", "${engine.fakeEncryptorEngineTesting[password]}", "bar"]
+          |  "data" : ["foo", "${data.fakeEncryptorEngineTesting[password]}", "bar"]
           |}
           |""".stripMargin
-
+      val before2 =
+        """{
+          |  "login" : "admin",
+          |  "data" : ["foo", "${rudder-data.fakeEncryptorEngineTesting[password]}", "bar"]
+          |}
+          |""".stripMargin
       val after =
         """{
           |  "login" : "admin",
           |  "data" : ["foo", "encrypted-string-test", "bar"]
           |}
           |""".stripMargin
-      runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))
+      (runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))) and
+      (runParseJValue(JsonParser.parse(before2), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after)))
     }
 
     "interpolate engine in nested JSON array" in {
@@ -828,12 +859,25 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |      },
           |      "xzy",
           |      {
-          |        "shouldBeInterpolated" : "${engine.fakeEncryptorEngineTesting[password]}"
+          |        "shouldBeInterpolated" : "${data.fakeEncryptorEngineTesting[password]}"
           |      }
           |  ]
           |}
           |""".stripMargin
-
+      val before2 =
+        """{
+          |  "login" : "admin",
+          |  "data" : [
+          |      {
+          |        "foo" : "bar"
+          |      },
+          |      "xzy",
+          |      {
+          |        "shouldBeInterpolated" : "${rudder-data.fakeEncryptorEngineTesting[password]}"
+          |      }
+          |  ]
+          |}
+          |""".stripMargin
       val after =
         """{
           |  "login" : "admin",
@@ -848,32 +892,53 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |  ]
           |}
           |""".stripMargin
-      runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))
+      (runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))) and
+      (runParseJValue(JsonParser.parse(before2), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after)))
     }
 
     "interpolate engine multiple time" in {
       val before =
         """{
-          |  "login" : "${engine.fakeEncryptorEngineTesting[password]}",
+          |  "login" : "${data.fakeEncryptorEngineTesting[password]}",
           |  "data" : [
           |      {
-          |        "foo" : "${engine.fakeEncryptorEngineTesting[password]}"
+          |        "foo" : "${data.fakeEncryptorEngineTesting[password]}"
           |      },
-          |      "${engine.fakeEncryptorEngineTesting[password]}",
-          |      "${engine.fakeEncryptorEngineTesting[password]}",
+          |      "${data.fakeEncryptorEngineTesting[password]}",
+          |      "${data.fakeEncryptorEngineTesting[password]}",
           |      {
-          |        "shouldBeInterpolated" : "${engine.fakeEncryptorEngineTesting[password]}"
+          |        "shouldBeInterpolated" : "${data.fakeEncryptorEngineTesting[password]}"
           |      }
           |  ]
           |  "moreData" : {
           |    "nestedStruct" : {
-          |       "array" : [{"value":"${engine.fakeEncryptorEngineTesting[password]}"}]
+          |       "array" : [{"value":"${data.fakeEncryptorEngineTesting[password]}"}]
           |    }
           |  }
           |
           |}
           |""".stripMargin
-
+      val before2 =
+        """{
+          |  "login" : "${rudder-data.fakeEncryptorEngineTesting[password]}",
+          |  "data" : [
+          |      {
+          |        "foo" : "${rudder-data.fakeEncryptorEngineTesting[password]}"
+          |      },
+          |      "${rudder-data.fakeEncryptorEngineTesting[password]}",
+          |      "${rudder-data.fakeEncryptorEngineTesting[password]}",
+          |      {
+          |        "shouldBeInterpolated" : "${rudder-data.fakeEncryptorEngineTesting[password]}"
+          |      }
+          |  ]
+          |  "moreData" : {
+          |    "nestedStruct" : {
+          |       "array" : [{"value":"${rudder-data.fakeEncryptorEngineTesting[password]}"}]
+          |    }
+          |  }
+          |
+          |}
+          |""".stripMargin
       val after =
         """{
           |  "login" : "encrypted-string-test",
@@ -895,7 +960,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |}
           |""".stripMargin
 
-      runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))
+      (runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))) and
+      (runParseJValue(JsonParser.parse(before2), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after)))
     }
   }
 
