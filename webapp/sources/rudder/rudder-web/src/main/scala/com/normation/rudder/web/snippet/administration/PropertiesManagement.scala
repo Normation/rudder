@@ -606,10 +606,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def loggingConfiguration = { xml : NodeSeq =>
 
     //  initial values, updated on successfull submit
-    var initStoreAllCentralizedLogsInFile = configService.rudder_store_all_centralized_logs_in_file().toBox
     var initCfengineOutputsTtl = configService.cfengine_outputs_ttl().toBox
     // form values
-    var storeAllCentralizedLogsInFile  = initStoreAllCentralizedLogsInFile.getOrElse(false)
     var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(7).toString
 
     def submit() = {
@@ -621,40 +619,21 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         case ex:NumberFormatException =>
           Noop & JsRaw(s"""createErrorNotification("Invalid value ${ex.getMessage().replaceFirst("F", "f")})""")
       }
-      configService.set_rudder_store_all_centralized_logs_in_file(storeAllCentralizedLogsInFile).toBox.foreach(updateOk => initStoreAllCentralizedLogsInFile = Full(storeAllCentralizedLogsInFile))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
       startNewPolicyGeneration()
-      val notifMessage =  storeAllCentralizedLogsInFile match {
-        case true  => "Logging will be enabled during the next agent run on this server (5 minutes maximum)"
-        case false => "Logging will be disabled during the next agent run on this server (5 minutes maximum)"
-      }
-      check() & JsRaw(s"""createSuccessNotification("${notifMessage}")""")
+      check() & JsRaw(s"""createSuccessNotification("'Agent log files duration' property updated.")""")
     }
 
     def noModif = (
-       initStoreAllCentralizedLogsInFile.map(_ == storeAllCentralizedLogsInFile).getOrElse(false)
-    && initCfengineOutputsTtl.map(_.toString == cfengineOutputsTtl).getOrElse(false)
+       initCfengineOutputsTtl.map(_.toString == cfengineOutputsTtl).getOrElse(false)
     )
 
     def check() = {
       Run(s"""$$("#loggingConfigurationSubmit").attr("disabled",${noModif});""")
     }
 
-    ( "#storeAllLogsOnFile" #> {
-      initStoreAllCentralizedLogsInFile match {
-        case Full(value) =>
-          SHtml.ajaxCheckbox(
-              value
-            , (b : Boolean) => { storeAllCentralizedLogsInFile = b; check() }
-            , ("id","storeAllLogsOnFile")
-          )
-          case eb: EmptyBox =>
-            val fail = eb ?~ "there was an error while fetching value of property: 'Store all centralized logs in file' "
-            <div class="error">{fail.msg}</div>
-        }
-      } &
-       "#cfengineOutputsTtl" #> {
+    ( "#cfengineOutputsTtl" #> {
         initCfengineOutputsTtl match {
           case Full(value) =>
             SHtml.ajaxText(

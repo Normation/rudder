@@ -128,7 +128,6 @@ class SystemVariableServiceImpl(
   // TTLs are runtime properties too
   , getModifiedFilesTtl             : () => Box[Int]
   , getCfengineOutputsTtl           : () => Box[Int]
-  , getStoreAllCentralizedLogsInFile: () => Box[Boolean]
   , getSendMetrics                  : () => Box[Option[SendMetrics]]
   , getReportProtocolDefault        : () => Box[AgentReportingProtocol]
   , getRudderVerifyCertificates     : () => Box[Boolean]
@@ -182,8 +181,6 @@ class SystemVariableServiceImpl(
 
     val varSendMetrics = systemVariableSpecService.get("SEND_METRICS").toVariable(Seq(sendMetricsValue))
 
-    val storeAllCentralizedLogsInFile = getProp("STORE_ALL_CENTRALIZED_LOGS_IN_FILE", getStoreAllCentralizedLogsInFile)
-
     logger.trace("Global system variables done")
     val vars =
       varToolsFolder ::
@@ -200,7 +197,6 @@ class SystemVariableServiceImpl(
       relaySyncSharedFiles ::
       modifiedFilesTtl ::
       cfengineOutputsTtl ::
-      storeAllCentralizedLogsInFile ::
       varSendMetrics ::
       rudderVerifyCertificates ::
       varServerVersion ::
