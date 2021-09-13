@@ -13,7 +13,7 @@
   "CONFIGURATION_REPOSITORY_FOLDER":"/tmp/test-rudder-config-repo-2020-09-15T04:24:30.329+02:00/configuration-repository",
   "DAVPASSWORD":"rudder",
   "DAVUSER":"rudder",
-  "DENYBADCLOCKS":"true",
+  "DENYBADCLOCKS":"false",
   "HTTPS_POLICY_DISTRIBUTION_PORT":"443",
   "MODIFIED_FILES_TTL":"30",
   "POLICY_SERVER_KEY":"MD5=eec3a3c2cf41b2736b7a0a9dece02142",
@@ -43,6 +43,5 @@
   "SERVER_VERSION":"7.0.0",
   "SHARED_FILES_FOLDER":"/var/rudder/configuration-repository/shared-files",
   "SKIPIDENTIFY":"false",
-  "STORE_ALL_CENTRALIZED_LOGS_IN_FILE":"false",
   "TOOLS_FOLDER":"tools_folder"
 }

@@ -107,7 +107,6 @@ class SettingsApi(
       RestRelaySynchronizeSharedFiles ::
       RestReportingMode ::
       RestHeartbeat ::
-      RestLogAllReports ::
       RestChangeMessageEnabled ::
       RestChangeMessageManadatory ::
       RestChangeMessagePrompt ::
@@ -463,12 +462,6 @@ final case object RestHeartbeat extends RestIntSetting {
     val key = "heartbeat_frequency"
     def get = configService.rudder_compliance_heartbeatPeriod()
     def set =  configService.set_rudder_compliance_heartbeatPeriod _
-  }
-final case object RestLogAllReports extends RestBooleanSetting {
-    val key = "log_all_reports"
-    val startPolicyGeneration = true
-    def get = configService.rudder_store_all_centralized_logs_in_file()
-    def set = (value : Boolean, _, _) => configService.set_rudder_store_all_centralized_logs_in_file(value)
   }
 final case object RestChangeMessageEnabled extends RestBooleanSetting {
     val startPolicyGeneration = false

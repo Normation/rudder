@@ -265,11 +265,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                            , constraint = Constraint(typeName = IntegerVType())
                         )
     , SystemVariableSpec(
-      "STORE_ALL_CENTRALIZED_LOGS_IN_FILE" , "Keep all centralized "
-                                           , multivalued = false
-                                           , constraint = Constraint(typeName = BooleanVType, default=Some("true"))
-                        )
-    , SystemVariableSpec(
                             "RUDDER_NODE_KIND" , "Node kind: root, relay, or node"
                                            , multivalued = false
                         )

@@ -492,8 +492,8 @@ class WriteSystemTechniques500Test extends TechniquesTest{
   "We must ensure that boolean system value is correctly interpreted as a boolean" should {
 
     def forceBooleanToFalse(systemVars: Map[String, Variable]) = {
-      systemVars("STORE_ALL_CENTRALIZED_LOGS_IN_FILE").copyWithSavedValue("false") match {
-        case Right(variable) => systemVars + ("STORE_ALL_CENTRALIZED_LOGS_IN_FILE" -> variable)
+      systemVars("DENYBADCLOCKS").copyWithSavedValue("false") match {
+        case Right(variable) => systemVars + ("DENYBADCLOCKS" -> variable)
         case _ => systemVars
       }
     }

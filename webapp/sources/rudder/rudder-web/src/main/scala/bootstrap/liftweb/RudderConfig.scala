@@ -1920,7 +1920,6 @@ object RudderConfig extends Loggable {
     , () => configService.relay_server_syncsharedfiles().toBox
     , () => configService.cfengine_modified_files_ttl().toBox
     , () => configService.cfengine_outputs_ttl().toBox
-    , () => configService.rudder_store_all_centralized_logs_in_file().toBox
     , () => configService.send_server_metrics().toBox
     , () => configService.rudder_report_protocol_default().toBox
     , () => configService.rudder_verify_certificates().toBox

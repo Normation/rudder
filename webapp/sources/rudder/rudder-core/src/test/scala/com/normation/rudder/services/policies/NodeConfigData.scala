@@ -612,7 +612,6 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
     // TTLs are runtime properties too
     , getModifiedFilesTtl             = () => Full(30)
     , getCfengineOutputsTtl           = () => Full(7)
-    , getStoreAllCentralizedLogsInFile= () => Full(true)
     , getSendMetrics                  = () => Full(None)
     , getReportProtocolDefault        = () => Full(AgentReportingHTTPS)
     , getRudderVerifyCertificates     = () => Full(false)

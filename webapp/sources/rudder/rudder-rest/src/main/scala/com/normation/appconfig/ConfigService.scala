@@ -132,11 +132,6 @@ trait ReadConfigService {
   def cfengine_outputs_ttl(): IOResult[Int]
 
   /**
-   * Logging properties
-   */
-  def rudder_store_all_centralized_logs_in_file(): IOResult[Boolean]
-
-  /**
    * Compliance mode: See ComplianceMode class for more details
    */
   def rudder_compliance_mode(): IOResult[GlobalComplianceMode] = {
@@ -273,11 +268,6 @@ trait UpdateConfigService {
    */
   def set_cfengine_modified_files_ttl(value: Int): IOResult[Unit]
   def set_cfengine_outputs_ttl(value: Int): IOResult[Unit]
-
-  /**
-   * Logging properties
-   */
-  def set_rudder_store_all_centralized_logs_in_file(value: Boolean): IOResult[Unit]
 
   /**
    * Send Metrics
@@ -636,12 +626,6 @@ class GenericConfigService(
   def set_cfengine_modified_files_ttl(value: Int): IOResult[Unit] = save("cfengine_modified_files_ttl", value)
   def cfengine_outputs_ttl(): IOResult[Int] = get("cfengine_outputs_ttl")
   def set_cfengine_outputs_ttl(value: Int): IOResult[Unit] = save("cfengine_outputs_ttl", value)
-
-  /**
-   * Logging properties
-   */
-  def rudder_store_all_centralized_logs_in_file(): IOResult[Boolean] = get("rudder_store_all_centralized_logs_in_file")
-  def set_rudder_store_all_centralized_logs_in_file(value: Boolean) = save("rudder_store_all_centralized_logs_in_file", value)
 
   /**
    * Compliance mode

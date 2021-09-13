@@ -166,7 +166,7 @@ body server control
           "root" 
         };
 
-        denybadclocks => "true";
+        denybadclocks => "false";
 
     community_edition.!debug_port::
         port => "5309";
