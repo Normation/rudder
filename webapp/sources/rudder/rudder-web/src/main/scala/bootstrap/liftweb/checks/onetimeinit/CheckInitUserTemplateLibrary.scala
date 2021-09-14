@@ -35,22 +35,24 @@
 *************************************************************************************
 */
 
-package bootstrap.liftweb
-package checks
+package bootstrap.liftweb.checks.onetimeinit
 
-import com.normation.rudder.domain.RudderDit
-import com.normation.ldap.sdk._
-import net.liftweb.common._
 import com.normation.cfclerk.services._
-import com.normation.rudder.repository._
-import com.normation.rudder.domain.RudderLDAPConstants._
-import org.joda.time.DateTime
-import com.normation.inventory.ldap.core.LDAPConstants.A_OC
-import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.ldap.core.LDAPConstants.A_OC
+import com.normation.ldap.sdk._
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.repository._
+import com.normation.utils.StringUuidGenerator
+
+import bootstrap.liftweb.BootstrapChecks
+import bootstrap.liftweb.BootstrapLogger
+import net.liftweb.common._
+import org.joda.time.DateTime
 
 import com.normation.box._
 

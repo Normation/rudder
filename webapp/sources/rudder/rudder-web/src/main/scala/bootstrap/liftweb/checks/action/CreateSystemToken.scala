@@ -35,50 +35,53 @@
 *************************************************************************************
 */
 
-package bootstrap.liftweb
-package checks
+package bootstrap.liftweb.checks.action
 
-import net.liftweb.common._
-import com.normation.ldap.sdk.LDAPConnectionProvider
-import javax.servlet.UnavailableException
-import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
+import com.normation.rudder.api.ApiAccount
 
-import com.normation.box._
+import bootstrap.liftweb.BootstrapChecks
+import bootstrap.liftweb.BootstrapLogger
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
+import net.liftweb.util.ControlHelpers.tryo
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.attribute.PosixFilePermissions
 
 /**
- * This class check that all external connection (LDAP, Postgres)
- * needed for the other bootstrap checks to run are OK.
+ * Create at webapp startup an api token to use for intern use
  */
-class CheckConnections(
-    postgres   : RudderDatasourceProvider
-  , ldap       : LDAPConnectionProvider[RwLDAPConnection]
-) extends BootstrapChecks {
+class CreateSystemToken(systemAccount : ApiAccount) extends BootstrapChecks {
 
-  override val description = "Check LDAP and PostgreSQL connection"
+  override val description = "Create system api token"
 
-  @throws(classOf[ UnavailableException ])
   override def checks() : Unit = {
+    val tokenPath = "/var/rudder/run/api-token"
 
-    def FAIL(msg:String) = {
-      BootstrapLogger.logEffect.error(msg)
-      throw new UnavailableException(msg)
+    ( for {
+      path  <- tryo {
+                      Paths.get(tokenPath)
+                    } ?~! "An error occured while getting system api token path"
+
+      file  <- tryo { Files.deleteIfExists(path)
+                      Files.createFile(path)
+                      Files.write(path, systemAccount.token.value.getBytes(StandardCharsets.UTF_8))
+                    } ?~! "An error occured while creating system api token file"
+
+      perms <- tryo {
+                      Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
+                    } ?~! "An error occured while setting permissions on system api token file"
+    } yield { }
+    ) match {
+      case Full(_) =>
+        BootstrapLogger.logEffect.info(s"System api token file created in ${tokenPath}")
+      case eb : EmptyBox =>
+        val fail = eb ?~! s"An error occured while creating system api token file in ${tokenPath}"
+        BootstrapLogger.logEffect.error(fail.messageChain)
     }
 
-    //check that an LDAP connection is up and running
-    ldap.map(_.backed.isConnected).toBox match {
-      case _:EmptyBox | Full(false) => FAIL("Can not open LDAP connection")
-      case _ => //ok
-    }
-
-    //check that PostgreSQL pool is OK
-    try {
-      postgres.datasource.getConnection
-    } catch {
-      case e: Exception => FAIL("Can not open connection to PostgreSQL database server")
-    }
-
-    BootstrapLogger.logEffect.info("LDAP and PostgreSQL connection are OK")
   }
 
 }

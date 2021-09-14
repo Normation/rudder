@@ -35,58 +35,64 @@
 *************************************************************************************
 */
 
-package bootstrap.liftweb
-package checks
+package bootstrap.liftweb.checks.onetimeinit
 
-import java.io.File
-
-import com.normation.box._
-import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
+
+import bootstrap.liftweb.BootstrapChecks
+import bootstrap.liftweb.BootstrapLogger
 import net.liftweb.common._
+
 import zio._
+import com.normation.box._
 
 /**
  *
- * Check that the rules archive directory in
- * configuration-repository exsits.
+ * When the application is first initialized, we want to set the
+ * content of configuration-repository file to a consistant state,
+ * especially for directives/rules/groups, where we want to have
+ * all system categories and entities saved (else, we are going
+ * to have some surprise on the first import).
+ *
+ * So, if a full export wasn't done until know, just do one.
  *
  */
-class CheckRootRuleCategoryExport(
-    itemArchiveManager : ItemArchiveManager
-  , categoryDirectory  : File
-  , personIdentService : PersonIdentService
-  , uuidGen            : StringUuidGenerator
+class CheckInitXmlExport(
+    itemArchiveManager: ItemArchiveManager
+  , personIdentService: PersonIdentService
+  , uuidGen           : StringUuidGenerator
 ) extends BootstrapChecks {
 
-  override val description = "Check rules archive directory in configuration-repository"
+  override val description = "Check existence of at least one archive of the configuration"
 
   override def checks() : Unit = {
     (for {
-      exists <- IOResult.effect(categoryDirectory.exists).chainError(s"Error when checking '${categoryDirectory.getAbsolutePath}' directory existence")
+      tagMap <- itemArchiveManager.getFullArchiveTags
       ident  <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
-      res    <- if(!exists) {
-                  BootstrapLogger.info(s"Directory '${categoryDirectory.getAbsolutePath()}' is missing, initialize it by exporting Rules") *>
-                  itemArchiveManager.exportRules(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository Rule categories directory"), false)
+      res    <- if(tagMap.isEmpty) {
+                  BootstrapLogger.info("No full archive of configuration-repository items seems to have been done, initialising the system with one") *>
+                  itemArchiveManager.exportAll(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository sub-system"), false)
                 } else {
-                  BootstrapLogger.trace(s"Directory '${categoryDirectory.getAbsolutePath()}' exists") *>
+                  BootstrapLogger.trace("At least a full archive of configuration items done, no need for further initialisation") *>
                   UIO.unit
                 }
+
     } yield {
+      res
     }).toBox match {
       case eb:EmptyBox =>
-        val fail = eb ?~! "Initialising configuration-repository Rule categories directory with a Rule archive"
-        BootstrapLogger.logEffect.error(fail.msg)
+        val fail = eb ?~! "Error when trying to initialise to configuration-repository sub-system with a first full archive"
+        BootstrapLogger.logEffect.error(fail.messageChain)
         fail.rootExceptionCause.foreach { t =>
           BootstrapLogger.logEffect.error("Root exception was:", t)
         }
 
       case Full(_) =>
-        BootstrapLogger.logEffect.info(s"Creating directory '${categoryDirectory.getAbsolutePath()}' exists, done")
+        BootstrapLogger.logEffect.info("First full archive of configuration-repository items done")
     }
   }
 }

@@ -35,16 +35,16 @@
 *************************************************************************************
 */
 
-package bootstrap.liftweb
-package checks
+package bootstrap.liftweb.checks.migration
 
 import com.normation.rudder.domain.logger.MigrationLogger
+import com.normation.rudder.migration._
+
+import bootstrap.liftweb.BootstrapChecks
+import net.liftweb.common._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import com.normation.rudder.migration._
-import net.liftweb.common._
-
 import scala.util.Success
 
 trait CheckMigrationXmlFileFormat extends BootstrapChecks {

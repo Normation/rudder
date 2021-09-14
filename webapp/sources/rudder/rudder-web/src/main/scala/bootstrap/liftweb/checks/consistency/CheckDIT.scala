@@ -35,21 +35,24 @@
 *************************************************************************************
 */
 
-package bootstrap.liftweb
-package checks
+package bootstrap.liftweb.checks.consistency
 
-import net.liftweb.common._
-import com.normation.rudder.domain.RudderDit
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
-import javax.servlet.UnavailableException
 import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.rudder.domain.RudderDit
+
+import bootstrap.liftweb.BootstrapChecks
+import bootstrap.liftweb.BootstrapLogger
 import com.unboundid.ldap.sdk.DN
+import net.liftweb.common._
+
+import javax.servlet.UnavailableException
 
 import zio._
 import zio.syntax._
-import com.normation.errors._
 import com.normation.box._
+import com.normation.errors._
 import com.normation.zio._
 
 /**

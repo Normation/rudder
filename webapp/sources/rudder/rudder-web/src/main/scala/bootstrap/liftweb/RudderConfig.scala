@@ -41,14 +41,15 @@ import java.io.File
 import java.security.Security
 import java.util.concurrent.TimeUnit
 import better.files.File.root
-import bootstrap.liftweb.checks._
 import com.normation.appconfig._
+
 import com.normation.box._
 import com.normation.cfclerk.services._
 import com.normation.cfclerk.services.impl._
 import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
+
 import com.normation.errors.IOResult
 import com.normation.errors.SystemError
 import com.normation.inventory.domain._
@@ -156,6 +157,19 @@ import com.normation.rudder.web.services._
 import com.normation.templates.FillTemplatesService
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
+
+import bootstrap.liftweb.checks.action.CheckNcfTechniqueUpdate
+import bootstrap.liftweb.checks.action.CheckTechniqueLibraryReload
+import bootstrap.liftweb.checks.action.CreateSystemToken
+import bootstrap.liftweb.checks.action.LoadNodeComplianceCache
+import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
+import bootstrap.liftweb.checks.consistency.CheckConnections
+import bootstrap.liftweb.checks.consistency.CheckDIT
+import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
+import bootstrap.liftweb.checks.migration.CheckMigrationXmlFileFormat5_6
+import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
+import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
+
 import com.normation.zio._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
@@ -167,10 +181,10 @@ import net.liftweb.common._
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
+
 import zio.IO
 import zio.syntax._
 import zio.duration._
-
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
 
@@ -2268,8 +2282,6 @@ object RudderConfig extends Loggable {
    * **************************************************
    */
 
-  private[this] lazy val ruleCategoriesDirectory = new File(new File(RUDDER_DIR_GITROOT),ruleCategoriesDirectoryName)
-
   lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       new CheckConnections(dataSourceProvider, rwLdap)
     , new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
@@ -2279,14 +2291,12 @@ object RudderConfig extends Loggable {
     , new CheckRudderGlobalParameter(roLDAPParameterRepository, woLDAPParameterRepository, uuidGen)
     , new CheckMigrationXmlFileFormat5_6(controlXmlFileFormatMigration_5_6)
     , new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen)
-    , new CheckRootRuleCategoryExport (itemArchiveManager, ruleCategoriesDirectory,  personIdentServiceImpl, uuidGen)
     // Check technique library reload needs to be achieved after modification in configuration (like migration of CFEngine variables)
     , new CheckTechniqueLibraryReload(
           techniqueRepositoryImpl
         , asyncDeploymentAgent
         , uuidGen
       )
-    , new CheckCfengineSystemRuleTargets(rwLdap)
     , new CheckNcfTechniqueUpdate(
           restExtractorService
         , ncfTechniqueWriter
@@ -2301,8 +2311,6 @@ object RudderConfig extends Loggable {
         , uuidGen
     )
     , new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount)
-    , new CheckApiTokenAutorizationKind(rudderDit, rwLdap)
-    , new CheckNashornWarning()
     , new LoadNodeComplianceCache(nodeInfoService, reportingServiceImpl)
   )
 
