@@ -39,6 +39,17 @@ updateElemIf predicate updateFun list =
     ) updateLowerLevel
 
 
+removeElem : (MethodElem -> Bool) -> List MethodElem -> List MethodElem
+removeElem predicate list =
+  let
+    updateLowerLevel = List.Extra.filterNot predicate list
+  in
+    List.map (\ x ->
+      case x of
+        Block p b -> Block p {b | calls = removeElem predicate b.calls}
+        Call _ _ -> x
+    ) updateLowerLevel
+
 getComponent : MethodElem -> String
 getComponent x =
   case x of
