@@ -35,23 +35,26 @@
 *************************************************************************************
 */
 
-package bootstrap.liftweb
-package checks
+package bootstrap.liftweb.checks.action
 
-import better.files.File
-import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiAccount
-import com.normation.errors.RudderError
 import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.ResourceFileState.Untouched
 import com.normation.rudder.ncf.TechniqueReader
+import com.normation.rudder.ncf.TechniqueWriter
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.utils.StringUuidGenerator
+
+import better.files.File
+import bootstrap.liftweb.BootstrapChecks
+import bootstrap.liftweb.BootstrapLogger
+
 import zio._
+import com.normation.errors.RudderError
 import com.normation.zio._
 
 sealed trait NcfTechniqueUpgradeError extends RudderError{

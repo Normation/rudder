@@ -35,16 +35,19 @@
 *************************************************************************************
 */
 
-package bootstrap.liftweb.checks
+package bootstrap.liftweb.checks.action
+
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
+import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
+import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
-import javax.servlet.UnavailableException
-import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
-import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
 import net.liftweb.common.EmptyBox
+
+import javax.servlet.UnavailableException
+
 import com.normation.box._
 
 /**

@@ -35,21 +35,24 @@
 *************************************************************************************
 */
 
-package bootstrap.liftweb
-package checks
+package bootstrap.liftweb.checks.action
 
-import net.liftweb.common._
-import java.io.File
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
+import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.utils.StringUuidGenerator
+
+import bootstrap.liftweb.BootstrapChecks
+import bootstrap.liftweb.BootstrapLogger
+import net.liftweb.common._
+
+import java.io.File
 
 /**
  * Check at webapp startup if Rudder Technique library has to be reloaded
  * If flag file is present then reload technique library
- * This needs to be achieved after all tasks that could modify configuration
+ * This needs to be achieved after all tasks that could modify configuration are done
  */
 class CheckTechniqueLibraryReload(
     techniqueLibUpdater  : UpdateTechniqueLibrary

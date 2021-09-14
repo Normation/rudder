@@ -35,15 +35,18 @@
 *************************************************************************************
 */
 
-package bootstrap.liftweb
-package checks
-
-import java.io.File
+package bootstrap.liftweb.checks.action
 
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.batch.{AsyncDeploymentActor, AutomaticStartDeployment}
+import com.normation.rudder.batch.AsyncDeploymentActor
+import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.utils.StringUuidGenerator
+
+import bootstrap.liftweb.BootstrapChecks
+import bootstrap.liftweb.BootstrapLogger
+
+import java.io.File
 
 /**
  * Inconditionaly starts a policy generation at the start of the webapp

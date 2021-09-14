@@ -35,40 +35,34 @@
 *************************************************************************************
 */
 
-package bootstrap.liftweb.checks
+package bootstrap.liftweb.checks.consistency
 
-import bootstrap.liftweb.BootstrapChecks
-import com.normation.box._
-import zio._
-import zio.syntax._
-import better.files._
-import bootstrap.liftweb.BootstrapLogger
 import com.normation.GitVersion
-import com.normation.errors.IOResult
-import com.normation.errors.Inconsistency
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.repository.RoParameterRepository
-import com.normation.rudder.repository.WoParameterRepository
-import com.normation.utils.StringUuidGenerator
-import net.liftweb.json._
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.repository.RoParameterRepository
+import com.normation.rudder.repository.WoParameterRepository
+import com.normation.utils.StringUuidGenerator
+
+import better.files._
+import bootstrap.liftweb.BootstrapChecks
+import bootstrap.liftweb.BootstrapLogger
+import net.liftweb.json._
+
+import zio._
+import zio.syntax._
+import com.normation.box._
+import com.normation.errors.IOResult
+import com.normation.errors.Inconsistency
 import com.normation.zio.ZioRuntime
 
 
 /**
- *
- * When the application is first initialized, we want to set the
- * content of configuration-repository file to a consistant state,
- * especially for directives/rules/groups, where we want to have
- * all system categories and entities saved (else, we are going
- * to have some surprise on the first import).
- *
- * So, if a full export wasn't done until know, just do one.
- *
+ * init or reset content of `rudder` global parameters to their default values.
  */
 class CheckRudderGlobalParameter(
     roParamRepo: RoParameterRepository
