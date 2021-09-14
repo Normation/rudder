@@ -6,6 +6,7 @@ import Html.Attributes exposing (id, class, type_, placeholder, value, for, href
 import Html.Events exposing (onClick, onInput)
 import List.Extra
 import List
+import Maybe.Extra
 import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
@@ -15,23 +16,23 @@ import ViewTabContent exposing (buildListCategories)
 -- This file contains all methods to display the details of the selected category.
 --
 
-editionTemplateCat : Model -> EditCategoryDetails -> Bool -> Html Msg
-editionTemplateCat model details isNewCat =
+editionTemplateCat : Model -> CategoryDetails  -> Html Msg
+editionTemplateCat model details =
   let
     originCat = details.originCategory
     category  = details.category
-    categoryTitle = if (String.isEmpty originCat.name && isNewCat) then
-        span[style "opacity" "0.4"][text "New category"]
-      else
-         text originCat.name
+    categoryTitle =
+      case originCat of
+       Nothing -> span[style "opacity" "0.4"][text "New category"]
+       Just cat -> text cat.name
 
     categoryForm =
-      if model.hasWriteRights == True then
+      if model.ui.hasWriteRights == True then
         form[class "col-xs-12 col-sm-6 col-lg-7"]
         [ div [class "form-group"]
           [ label[for "category-name"][text "Name"]
           , div[]
-            [ input[ id "category-name", type_ "text", value category.name, class "form-control" , onInput (\s -> UpdateCategory {category | name = s} ) ][] ]
+            [ input[ id "category-name", type_ "text", value category.name, class "form-control" , onInput (\s -> UpdateCategoryForm { details | category = { category | name = s}} ) ][] ]
           ]
         , div [class "form-group"]
           [ label[for "category-parent"][text "Parent"]
@@ -43,7 +44,7 @@ editionTemplateCat model details isNewCat =
         , div [class "form-group"]
           [ label[for "category-description"][text "Description"]
           , div[]
-            [ textarea[ id "category-description", value category.description, placeholder "There is no description", class "form-control" , onInput (\s -> UpdateCategory {category | description = s} ) ][] ]
+            [ textarea[ id "category-description", value category.description, placeholder "There is no description", class "form-control" , onInput (\s -> UpdateCategoryForm { details | category = { category | description = s}} ) ][] ]
           ]
         ]
       else
@@ -74,12 +75,12 @@ editionTemplateCat model details isNewCat =
         , div[class "header-buttons"]
           ( button [class "btn btn-default", type_ "button", onClick CloseDetails]
             [ text "Close", i [ class "fa fa-times"][]]
-          :: ( if model.hasWriteRights == True then
+          :: ( if model.ui.hasWriteRights == True then
               [ div [ class "btn-group" ]
                 [ button [ class "btn btn-danger" , onClick (OpenDeletionPopupCat category)]
                   [ text "Delete", i [ class "fa fa-times-circle"][]]
                 ]
-              , button [class "btn btn-success", type_ "button", onClick (CallApi (saveCategoryDetails category isNewCat))]
+              , button [class "btn btn-success", type_ "button", onClick (CallApi (saveCategoryDetails category (Maybe.Extra.isNothing details.originCategory)))]
                 [ text "Save", i [ class "fa fa-download"][]]
               ]
             else

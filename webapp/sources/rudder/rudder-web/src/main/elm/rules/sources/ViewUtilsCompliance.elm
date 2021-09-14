@@ -22,8 +22,8 @@ getValueCompliance f =
     Just v  -> v
     Nothing -> 0
 
-buildComplianceBar : ComplianceDetails -> Html Msg
-buildComplianceBar complianceDetails=
+getAllComplianceValues : ComplianceDetails -> {okStatus : Float, nonCompliant : Float, error : Float, unexpected : Float, pending : Float, reportsDisabled : Float, noReport : Float}
+getAllComplianceValues complianceDetails =
   let
     valSuccessNotApplicable       = getValueCompliance complianceDetails.successNotApplicable       -- 0
     valSuccessAlreadyOK           = getValueCompliance complianceDetails.successAlreadyOK           -- 0
@@ -45,24 +45,30 @@ buildComplianceBar complianceDetails=
     valReportsDisabled            = getValueCompliance complianceDetails.reportsDisabled            -- 5
 
     valNoReport                   = getValueCompliance complianceDetails.noReport                   -- 6
-
-    okStatus        = valSuccessNotApplicable + valSuccessAlreadyOK + valSuccessRepaired + valAuditCompliant + valAuditNotApplicable
-    nonCompliant    = valAuditNonCompliant
-    error           = valError + valAuditError
-    unexpected      = valUnexpectedUnknownComponent + valUnexpectedMissingComponent + valBadPolicyMode
-    pending         = valApplying
-    reportsDisabled = valReportsDisabled
-    noreport        = valNoReport
   in
-    if ( okStatus + nonCompliant + error + unexpected + pending + reportsDisabled + noreport == 0 ) then
+    { okStatus        = valSuccessNotApplicable + valSuccessAlreadyOK + valSuccessRepaired + valAuditCompliant + valAuditNotApplicable
+    , nonCompliant    = valAuditNonCompliant
+    , error           = valError + valAuditError
+    , unexpected      = valUnexpectedUnknownComponent + valUnexpectedMissingComponent + valBadPolicyMode
+    , pending         = valApplying
+    , reportsDisabled = valReportsDisabled
+    , noReport        = valNoReport
+    }
+
+buildComplianceBar : ComplianceDetails -> Html Msg
+buildComplianceBar complianceDetails=
+  let
+    allComplianceValues = getAllComplianceValues complianceDetails
+  in
+    if ( allComplianceValues.okStatus + allComplianceValues.nonCompliant + allComplianceValues.error + allComplianceValues.unexpected + allComplianceValues.pending + allComplianceValues.reportsDisabled + allComplianceValues.noReport == 0 ) then
       div[ class "text-muted"][text "No data available"]
     else
       div[ class "progress progress-flex"]
-      [ getCompliance okStatus        "success"
-      , getCompliance nonCompliant    "audit-noncompliant"
-      , getCompliance error           "error"
-      , getCompliance unexpected      "unknown"
-      , getCompliance pending         "pending"
-      , getCompliance reportsDisabled "reportsdisabled"
-      , getCompliance noreport        "no-report"
+      [ getCompliance allComplianceValues.okStatus        "success"
+      , getCompliance allComplianceValues.nonCompliant    "audit-noncompliant"
+      , getCompliance allComplianceValues.error           "error"
+      , getCompliance allComplianceValues.unexpected      "unknown"
+      , getCompliance allComplianceValues.pending         "pending"
+      , getCompliance allComplianceValues.reportsDisabled "reportsdisabled"
+      , getCompliance allComplianceValues.noReport        "no-report"
       ]

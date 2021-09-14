@@ -38,9 +38,15 @@ view model =
     ruleTreeCategory : (Category Rule) -> Html Msg
     ruleTreeCategory item =
       let
-        categories = List.map ruleTreeCategory (getSubElems item)
-        rules = List.map ruleTreeElem item.elems
-        childsList  = ul[class "jstree-children"](categories ++ rules)
+        categories = getSubElems item
+                       |> List.sortBy .name
+                       |> List.map ruleTreeCategory
+        rules = item.elems
+                |> List.sortBy .name
+                |> List.map ruleTreeElem
+
+        childsList  = ul[class "jstree-children"] (List.concat [ categories, rules] )
+
       in
         li[class "jstree-node jstree-open"]
         [ i[class "jstree-icon jstree-ocl"][]
@@ -54,38 +60,43 @@ view model =
     templateMain = case model.mode of
       Loading -> text "loading"
       RuleTable   ->
-        div [class "main-details"]
-        [ div [class "main-table"]
-          [ table [ class "no-footer dataTable"]
-            [ thead []
-              [ tr [class "head"]
-                [ th [class "sorting_asc", rowspan 1, colspan 1][text "Name"          ]
-                , th [class "sorting"    , rowspan 1, colspan 1][text "Category"      ]
-                , th [class "sorting"    , rowspan 1, colspan 1][text "Status"        ]
-                , th [class "sorting"    , rowspan 1, colspan 1][text "Compliance"    ]
-                , th [class "sorting"    , rowspan 1, colspan 1][text "Recent changes"]
+        let
+          thClass : SortBy -> String
+          thClass sortBy =
+            if sortBy == model.ui.ruleFilters.sortBy then
+              if(model.ui.ruleFilters.sortOrder == True) then
+                "sorting_asc"
+              else
+                "sorting_desc"
+            else
+              "sorting"
+        in
+          div [class "main-details"]
+          [ div [class "main-table"]
+            [ table [ class "no-footer dataTable"]
+              [ thead []
+                [ tr [class "head"]
+                  [ th [class (thClass Name      ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters Name      )][text "Name"          ]
+                  , th [class (thClass Parent    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters Parent    )][text "Category"      ]
+                  , th [class (thClass Status    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters Status    )][text "Status"        ]
+                  , th [class (thClass Compliance) , rowspan 1, colspan 1, onClick (UpdateRuleFilters Compliance)][text "Compliance"    ]
+                  , th [class ""                   , rowspan 1, colspan 1][text "Recent changes"]
+                  ]
                 ]
+              , tbody [] (buildRulesTable model)
               ]
-            , tbody [] (buildRulesTable model)
             ]
           ]
-        ]
 
-      EditRule details ->
-        (editionTemplate model details False)
+      RuleForm details ->
+        (editionTemplate model details)
 
-      CreateRule details ->
-        (editionTemplate model details True)
+      CategoryForm details ->
+        (editionTemplateCat model details)
 
-      EditCategory details ->
-        (editionTemplateCat model details False)
-
-      CreateCategory details ->
-        (editionTemplateCat model details True)
-
-    modal = case model.modal of
-      Nothing -> text ""
-      Just (DeletionValidation rule) ->
+    modal = case model.ui.modal of
+      NoModal -> text ""
+      DeletionValidation rule ->
         div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
         [ div [ class "modal-dialog" ] [
             div [ class "modal-content" ] [
@@ -106,7 +117,7 @@ view model =
             ]
           ]
         ]
-      Just (DeactivationValidation rule) ->
+      DeactivationValidation rule ->
         let
           txtDisable = if rule.enabled == True then "Disable" else "Enable"
         in
@@ -132,7 +143,7 @@ view model =
               ]
             ]
           ]
-      Just (DeletionValidationCat category) ->
+      DeletionValidationCat category ->
         div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
          [ div [ class "modal-dialog" ] [
              div [ class "modal-content" ] [
@@ -161,7 +172,7 @@ view model =
           [ h1[]
             [ span[][text "Rules"]
             ]
-          , ( if model.hasWriteRights == True then
+          , ( if model.ui.hasWriteRights then
               div [class "header-buttons"]
               [ button [class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s      ))][text "Add Category"]
               , button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s) ))][text "Create"]

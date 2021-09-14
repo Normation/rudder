@@ -18,7 +18,7 @@ type alias Tag =
   , value : String
   }
 
-type ModalState = DeletionValidation Rule | DeactivationValidation Rule | DeletionValidationCat (Category Rule)
+type ModalState = NoModal | DeletionValidation Rule | DeactivationValidation Rule | DeletionValidationCat (Category Rule)
 
 type RuleTarget = NodeGroupId String | Composition  RuleTarget RuleTarget | Special String | Node String | And (List RuleTarget) | Or (List RuleTarget)
 
@@ -144,17 +144,35 @@ type alias ComplianceDetails =
   , badPolicyMode              : Maybe Float
   }
 
-type alias EditRuleDetails = { originRule : Rule, rule : Rule, tab :  TabMenu, editDirectives: Bool, editGroups : Bool, newTag : Tag }
+type alias RuleDetailsUI = { editDirectives: Bool, editGroups : Bool, newTag : Tag }
 
-type alias EditCategoryDetails = { originCategory : Category Rule, category : Category Rule, tab :  TabMenu}
+type alias RuleDetails = { originRule : Maybe Rule, rule : Rule, tab :  TabMenu, ui : RuleDetailsUI }
+
+type alias CategoryDetails = { originCategory : Maybe (Category Rule), category : Category Rule, tab :  TabMenu}
 
 type Mode
   = Loading
   | RuleTable
-  | EditRule   EditRuleDetails
-  | CreateRule EditRuleDetails
-  | EditCategory   EditCategoryDetails
-  | CreateCategory EditCategoryDetails
+  | RuleForm RuleDetails
+  | CategoryForm CategoryDetails
+
+type SortBy
+  = Name
+  | Parent
+  | Status
+  | Compliance
+
+type alias RuleFilters =
+  { sortBy    : SortBy
+  , sortOrder : Bool
+  , filter    : String
+  }
+  
+type alias UI =
+  { ruleFilters   : RuleFilters
+  , modal         : ModalState
+  , hasWriteRights: Bool
+  }
 
 type alias Model =
   { contextPath     : String
@@ -165,26 +183,21 @@ type alias Model =
   , techniquesTree  : Category Technique
   , rulesCompliance : List RuleCompliance
   , directives      : List Directive
-  , modal           : Maybe ModalState
-  , hasWriteRights  : Bool
+  , ui              : UI
   }
 
 type Msg
-  = ChangeTabFocus TabMenu
-  | GenerateId (String -> Msg)
-  | EditDirectives Bool
-  | EditGroups Bool
-  | GetRuleDetailsResult     (Result Error Rule)
+  = GenerateId (String -> Msg)
   | OpenRuleDetails RuleId
   | OpenCategoryDetails (Category Rule)
   | CloseDetails
   | SelectGroup RuleTarget Bool
-  | UpdateRule Rule
-  | UpdateCategory (Category Rule)
+  | UpdateRuleForm RuleDetails
+  | UpdateCategoryForm CategoryDetails
   | NewRule RuleId
   | NewCategory String
-  | UpdateNewTag Tag
   | CallApi                  (Model -> Cmd Msg)
+  | GetRuleDetailsResult     (Result Error Rule)
   | GetPolicyModeResult      (Result Error String)
   | GetRulesComplianceResult (Result Error (List RuleCompliance))
   | SaveRuleDetails          (Result Error Rule)
@@ -202,3 +215,4 @@ type Msg
   | OpenDeactivationPopup Rule
   | ClosePopup Msg
   | Ignore
+  | UpdateRuleFilters SortBy

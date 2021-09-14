@@ -551,6 +551,9 @@
   padding: 12px 15px;
   background-color: #fcfcfc;
 }
+.rudder-template .dataTable td .progress.progress-flex {
+  margin: 0;
+}
 /* === JUMBOTRON === */
 .rudder-template .template-main .jumbotron {
   color: #6c7586;

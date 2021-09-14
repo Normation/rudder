@@ -81,40 +81,10 @@ update msg model =
         Err err ->
           processApiError "Getting Directives tree" err model
 
-    ChangeTabFocus newTab ->
-      case model.mode of
-        EditRule details ->
-          ({model | mode = EditRule   {details | tab = newTab}}, Cmd.none)
-        CreateRule details ->
-          ({model | mode = CreateRule {details | tab = newTab}}, Cmd.none)
-        _   -> (model, Cmd.none)
-
-    EditDirectives flag ->
-      if model.hasWriteRights then
-        case model.mode of
-          EditRule details ->
-            ({model | mode = EditRule   {details | editDirectives = flag, tab = Directives}}, Cmd.none)
-          CreateRule details ->
-            ({model | mode = CreateRule {details | editDirectives = flag, tab = Directives}}, Cmd.none)
-          _   -> (model, Cmd.none)
-      else
-        (model, Cmd.none)
-
-    EditGroups flag ->
-      if model.hasWriteRights then
-        case model.mode of
-          EditRule details ->
-            ({model | mode = EditRule   {details | editGroups = flag, tab = Groups}}, Cmd.none)
-          CreateRule details ->
-            ({model | mode = CreateRule {details | editGroups = flag, tab = Groups}}, Cmd.none)
-          _   -> (model, Cmd.none)
-      else
-        (model, Cmd.none)
-
     GetRuleDetailsResult res ->
       case res of
         Ok r ->
-          ({model | mode = EditRule (EditRuleDetails r r Information False False (Tag "" ""))}, Cmd.none)
+          ({model | mode = RuleForm (RuleDetails (Just r) r Information (RuleDetailsUI False False (Tag "" "")))}, Cmd.none)
         Err err ->
           (model, Cmd.none)
 
@@ -122,7 +92,7 @@ update msg model =
       (model, (getRuleDetails model rId))
 
     OpenCategoryDetails category ->
-      ({model | mode = EditCategory (EditCategoryDetails category category Information )}, Cmd.none)
+      ({model | mode = CategoryForm (CategoryDetails (Just category) category Information )}, Cmd.none)
 
     CloseDetails ->
       ( { model | mode  = RuleTable } , Cmd.none )
@@ -134,114 +104,79 @@ update msg model =
         Err err ->
           (model, Cmd.none)
 
-    UpdateCategory category ->
-      if model.hasWriteRights then
-        case model.mode of
-          EditCategory details   ->
-            ({model | mode = EditCategory   {details | category = category}}, Cmd.none)
-          CreateCategory details ->
-            ({model | mode = CreateCategory {details | category = category}}, Cmd.none)
-          _   -> (model, Cmd.none)
-      else
-        (model, Cmd.none)
+    UpdateCategoryForm details ->
+      case model.mode of
+        CategoryForm _   ->
+          ({model | mode = CategoryForm details }, Cmd.none)
+        _   -> (model, Cmd.none)
 
     SelectGroup groupId includeBool->
-      if model.hasWriteRights then
-        let
-          updateTargets : Rule -> Rule
-          updateTargets r =
-            let
-              (include, exclude) = case r.targets of
-                  [Composition (Or i) (Or e)] -> (i,e)
-                  targets -> (targets,[])
-              isIncluded = List.member groupId include
-              isExcluded = List.member groupId exclude
-              (newInclude, newExclude)  = case (includeBool, isIncluded, isExcluded) of
-                (True, True, _)  -> (remove groupId include,exclude)
-                (True, _, True)  -> (groupId :: include, remove groupId exclude)
-                (False, True, _) -> (remove groupId include, groupId :: exclude)
-                (False, _, True) -> (include,  remove groupId exclude)
-                (True, False, False)  -> ( groupId :: include, exclude)
-                (False, False, False) -> (include, groupId :: exclude)
-            in
-              {r | targets = [Composition (Or newInclude) (Or newExclude)]}
-        in
-          case model.mode of
-            EditRule details ->
-              ({model | mode = EditRule   {details | rule = (updateTargets details.rule)}}, Cmd.none)
-            CreateRule details ->
-              ({model | mode = CreateRule {details | rule = (updateTargets details.rule)}}, Cmd.none)
-            _   -> (model, Cmd.none)
-      else
-        (model, Cmd.none)
-
-    UpdateRule rule ->
-      if model.hasWriteRights then
+      let
+        updateTargets : Rule -> Rule
+        updateTargets r =
+          let
+            (include, exclude) = case r.targets of
+                [Composition (Or i) (Or e)] -> (i,e)
+                targets -> (targets,[])
+            isIncluded = List.member groupId include
+            isExcluded = List.member groupId exclude
+            (newInclude, newExclude)  = case (includeBool, isIncluded, isExcluded) of
+              (True, True, _)  -> (remove groupId include,exclude)
+              (True, _, True)  -> (groupId :: include, remove groupId exclude)
+              (False, True, _) -> (remove groupId include, groupId :: exclude)
+              (False, _, True) -> (include,  remove groupId exclude)
+              (True, False, False)  -> ( groupId :: include, exclude)
+              (False, False, False) -> (include, groupId :: exclude)
+          in
+            {r | targets = [Composition (Or newInclude) (Or newExclude)]}
+      in
         case model.mode of
-          EditRule details ->
-            ({model | mode = EditRule   {details | rule = rule}}, Cmd.none)
-          CreateRule details ->
-            ({model | mode = CreateRule {details | rule = rule}}, Cmd.none)
+          RuleForm details ->
+            ({model | mode = RuleForm   {details | rule = (updateTargets details.rule)}}, Cmd.none)
           _   -> (model, Cmd.none)
-      else
-        (model, Cmd.none)
+
+    UpdateRuleForm details ->
+      case model.mode of
+        RuleForm _ ->
+          ({model | mode = RuleForm  details}, Cmd.none)
+        _   -> (model, Cmd.none)
 
     DisableRule ->
-      if model.hasWriteRights then
-        case model.mode of
-          EditRule details ->
-            let
-              rule     = details.originRule
-              newRule  = {rule | enabled = not rule.enabled}
-            in
-              (model, saveDisableAction newRule model)
-          _   -> (model, Cmd.none)
-      else
-        (model, Cmd.none)
+      case model.mode of
+        RuleForm details ->
+          let
+            rule     = details.originRule
+            cmdAction = case rule of
+              Just oR -> saveDisableAction {oR | enabled = not oR.enabled} model
+              Nothing -> Cmd.none
+          in
+            (model, cmdAction)
+        _   -> (model, Cmd.none)
 
     NewRule id ->
-      if model.hasWriteRights then
-        let
-          rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] []
-          ruleDetails = EditRuleDetails rule rule Information False False (Tag "" "")
-        in
-          ({model | mode = CreateRule ruleDetails}, Cmd.none)
-      else
-        (model, Cmd.none)
+      let
+        rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] []
+        ruleDetails = RuleDetails Nothing rule Information (RuleDetailsUI False False (Tag "" ""))
+      in
+        ({model | mode = RuleForm ruleDetails}, Cmd.none)
 
     NewCategory id ->
-      if model.hasWriteRights then
-        let
-          category        = Category id "" "" (SubCategories []) []
-          categoryDetails = EditCategoryDetails category category Information
-        in
-          ({model | mode = CreateCategory categoryDetails}, Cmd.none)
-      else
-        (model, Cmd.none)
-
-    UpdateNewTag tag ->
-      if model.hasWriteRights then
-        case model.mode of
-          EditRule details ->
-            ({model | mode = EditRule   {details | newTag = tag}}, Cmd.none)
-          CreateRule details ->
-            ({model | mode = CreateRule {details | newTag = tag}}, Cmd.none)
-          _   -> (model, Cmd.none)
-      else
-        (model, Cmd.none)
+      let
+        category        = Category id "" "" (SubCategories []) []
+        categoryDetails = CategoryDetails Nothing category Information
+      in
+        ({model | mode = CategoryForm categoryDetails}, Cmd.none)
 
     SaveRuleDetails (Ok ruleDetails) ->
       case model.mode of
-        EditRule details ->
+        RuleForm details ->
           let
-            newModel = {model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}
+            action = case details.originRule of
+              Just oR -> "saved"
+              Nothing -> "created"
+            newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails}}
           in
-            (newModel, Cmd.batch [(successNotification ("Rule '"++ ruleDetails.name ++"' successfully saved"))  , (getRulesTree newModel)])
-        CreateRule details ->
-          let
-            newModel = {model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}
-          in
-            (newModel, Cmd.batch [(successNotification ("Rule '"++ ruleDetails.name ++"' successfully created")), (getRulesTree newModel)])
+            (newModel, Cmd.batch [(successNotification ("Rule '"++ ruleDetails.name ++"' successfully " ++ action))  , (getRulesTree newModel)])
         _   -> (model, Cmd.none )
 
 
@@ -250,11 +185,11 @@ update msg model =
 
     SaveDisableAction (Ok ruleDetails) ->
       case model.mode of
-        EditRule details ->
+        RuleForm details ->
           let
             txtDisable = if ruleDetails.enabled == True then "enabled" else "disabled"
           in
-            ({model | mode = EditRule {details | originRule = ruleDetails, rule = ruleDetails}}, (Cmd.batch [successNotification ("Rule '"++ ruleDetails.name ++"' successfully "++ txtDisable), (getRulesTree model)]))
+            ({model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails}}, (Cmd.batch [successNotification ("Rule '"++ ruleDetails.name ++"' successfully "++ txtDisable), (getRulesTree model)]))
         _   -> (model, Cmd.none)
 
     SaveDisableAction (Err err) ->
@@ -262,20 +197,16 @@ update msg model =
 
     SaveCategoryResult (Ok category) ->
       case model.mode of
-        EditCategory details ->
+        CategoryForm details ->
           let
             oldCategory = details.category
+            action      = case details.originCategory of
+              Just oC -> "saved"
+              Nothing -> "created"
             newCategory = {category | subElems = oldCategory.subElems, elems = oldCategory.elems}
-            newModel    = {model | mode = EditCategory {details | originCategory = newCategory, category = newCategory}}
+            newModel    = {model | mode = CategoryForm {details | originCategory = Just newCategory, category = newCategory}}
           in
-            (newModel, Cmd.batch [(successNotification ("Category '"++ category.name ++"' successfully saved")), (getRulesTree newModel)])
-        CreateCategory details ->
-          let
-            oldCategory = details.category
-            newCategory = {category | subElems = oldCategory.subElems, elems = oldCategory.elems}
-            newModel    = {model | mode = EditCategory {details | originCategory = newCategory, category = newCategory}}
-          in
-            (newModel, Cmd.batch [(successNotification ("Category '"++ category.name ++"' successfully created")), (getRulesTree newModel)])
+            (newModel, Cmd.batch [(successNotification ("Category '"++ category.name ++"' successfully " ++ action)), (getRulesTree newModel)])
         _   -> (model, Cmd.none)
 
     SaveCategoryResult (Err err) ->
@@ -283,7 +214,7 @@ update msg model =
 
     DeleteRule (Ok (ruleId, ruleName)) ->
       case model.mode of
-        EditRule r ->
+        RuleForm r ->
           let
             newMode  = if r.rule.id == ruleId then RuleTable else model.mode
             newModel = { model | mode = newMode }
@@ -296,7 +227,7 @@ update msg model =
 
     DeleteCategory (Ok (categoryId, categoryName)) ->
       case model.mode of
-        EditCategory c ->
+        CategoryForm c ->
           let
             newMode  = if c.category.id == categoryId then RuleTable else model.mode
             newModel = { model | mode = newMode }
@@ -308,54 +239,60 @@ update msg model =
       processApiError "Deleting category" err model
 
     CloneRule rule rulelId ->
-      if model.hasWriteRights then
-        let
-          newModel = case model.mode of
-            EditRule _ ->
-              let
-                newRule    = {rule | name = ("Clone of "++rule.name), id = rulelId}
-                newRuleDetails = EditRuleDetails newRule newRule Information False False (Tag "" "")
-              in
-                { model | mode = CreateRule newRuleDetails }
-            _ -> model
-        in
-          (newModel, Cmd.none)
-      else
-        (model, Cmd.none)
+      let
+        newModel = case model.mode of
+          RuleForm _ ->
+            let
+              newRule    = {rule | name = ("Clone of "++rule.name), id = rulelId}
+              newRuleDetails = RuleDetails Nothing newRule Information (RuleDetailsUI False False (Tag "" ""))
+            in
+              { model | mode = RuleForm newRuleDetails }
+          _ -> model
+      in
+        (newModel, Cmd.none)
 
     OpenDeletionPopup rule ->
-      if model.hasWriteRights then
-        case model.mode of
-          EditRule _ ->
-              ( { model | modal = Just (DeletionValidation rule)} , Cmd.none )
-          _ -> (model, Cmd.none)
-      else
-        (model, Cmd.none)
+      case model.mode of
+        RuleForm _ ->
+          let ui = model.ui
+          in
+            ( { model | ui = {ui | modal = DeletionValidation rule} } , Cmd.none )
+        _ -> (model, Cmd.none)
 
     OpenDeletionPopupCat category ->
-      if model.hasWriteRights then
-        case model.mode of
-          EditCategory _ ->
-              ( { model | modal = Just (DeletionValidationCat category)} , Cmd.none )
-          _ -> (model, Cmd.none)
-      else
-        (model, Cmd.none)
+      case model.mode of
+        CategoryForm _ ->
+          let ui = model.ui
+          in
+            ( { model | ui = {ui | modal = DeletionValidationCat category} } , Cmd.none )
+        _ -> (model, Cmd.none)
 
     OpenDeactivationPopup rule ->
-      if model.hasWriteRights then
-        case model.mode of
-          EditRule _ ->
-              ( { model | modal = Just (DeactivationValidation rule)} , Cmd.none )
-          _ -> (model, Cmd.none)
-      else
-        (model, Cmd.none)
+      case model.mode of
+        RuleForm _ ->
+          let ui = model.ui
+          in
+            ( { model | ui = {ui | modal = DeactivationValidation rule}} , Cmd.none )
+        _ -> (model, Cmd.none)
 
     ClosePopup callback ->
       let
-        (nm,cmd) = update callback { model | modal = Nothing}
+        ui = model.ui
+        (nm,cmd) = update callback { model | ui = { ui | modal = NoModal } }
       in
         (nm , cmd)
 
+    UpdateRuleFilters sortBy ->
+      let
+        ui = model.ui
+        oldFilters = model.ui.ruleFilters
+        filters =
+          if sortBy == oldFilters.sortBy then
+            {oldFilters | sortOrder = not oldFilters.sortOrder}
+          else
+            {oldFilters | sortBy = sortBy, sortOrder = True}
+      in
+        ({model | ui = { ui | ruleFilters = filters}}, Cmd.none)
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
