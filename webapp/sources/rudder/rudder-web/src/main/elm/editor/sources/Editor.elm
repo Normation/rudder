@@ -606,7 +606,7 @@ update msg model =
           case model.mode of
            TechniqueDetails t o ui ->
             let
-              technique = { t |  elems = List.filter (getId >> (/=) callId ) t.elems }
+              technique = { t |  elems = removeElem (getId >> (==) callId) t.elems }
               newUi = {ui | callsUI = Dict.remove callId.value  ui.callsUI }
             in
             TechniqueDetails technique o newUi

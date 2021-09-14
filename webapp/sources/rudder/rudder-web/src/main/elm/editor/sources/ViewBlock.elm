@@ -284,7 +284,7 @@ blockBody model parentId block ui techniqueUi =
                   |> addClass "text-success method-action tooltip-bs"
                   --|> addAction ("click", GenerateId (\s -> CloneMethod block (CallId s)))
                   |> addAttributeList
-                     [ type_ "button", title "Clone this method", attribute "data-toggle" "tooltip"
+                     [ type_ "button", title "Clone this block", attribute "data-toggle" "tooltip"
                      , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
                      , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
@@ -293,7 +293,11 @@ blockBody model parentId block ui techniqueUi =
     removeButton = element "button"
                   |> addClass "text-danger method-action tooltip-bs"
                   |> addAction ("click", RemoveMethod block.id)
-                  |> addAttribute (type_ "button")
+                  |> addAttributeList
+                     [ type_ "button", title "Remove this block", attribute "data-toggle" "tooltip"
+                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
+                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     ]
                   |> appendChild removeIcon
     condition = element "div"
                 |> addClass "method-condition flex-form"

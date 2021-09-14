@@ -368,7 +368,11 @@ callBody model ui call pid =
     removeButton = element "button"
                   |> addClass "text-danger method-action tooltip-bs"
                   |> addAction ("click", RemoveMethod call.id)
-                  |> addAttribute (type_ "button")
+                  |> addAttributeList
+                     [ type_ "button", title "Remove this method", attribute "data-toggle" "tooltip"
+                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
+                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     ]
                   |> appendChild removeIcon
     condition = element "div"
                 |> addClass "method-condition flex-form"
