@@ -339,7 +339,7 @@ def extract_resources(metadata):
     resources["directory"]["parameters"][0]["name"] = "path"
     resources["package"]["parameters"][0]["name"] = "name"
     resources["kernel_module"]["parameters"][0]["name"] = "name"
-    resources["group"]["parameters"][0]["name"] = "name"
+    resources["group"]["parameters"][0]["name"] = "group"
     resources["variable"]["parameters"][0]["name"] = "prefix"
     resources["variable"]["parameters"][1]["name"] = "name"
     resources["variable"]["parameters"][1]["description"] = "The variable to define, the full name will be prefix.name"
