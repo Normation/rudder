@@ -46,7 +46,7 @@ $(document).ready(function(){
   };
   var app  = Elm.Editor.init({node: main, flags: initValues});
   app.ports.copy.subscribe(function(value) {
-     navigator.clipboard.writeText(value).then(function(){  }, function() {})()
+     navigator.clipboard.writeText(value).then(function(){  }, function() {})
   });
 
   angular.bootstrap('#filemanager-editor', ['filemanager-editor']);
