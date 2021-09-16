@@ -284,7 +284,7 @@ def verifyHash(targetPath, shaSumPath):
     (folder, leaf) = os.path.split(targetPath)
     lines = [line.rstrip('\n') for line in open(shaSumPath)]
     pattern = re.compile(r'(?P<hash>[a-zA-Z0-9]+)[\s]+%s' % (leaf))
-    logger.info('verifying file hash')
+    logger.debug('verifying file hash')
     for line in lines:
         match = pattern.search(line)
         if match:
@@ -292,7 +292,7 @@ def verifyHash(targetPath, shaSumPath):
     if len(fileHash) != 1:
         logger.warning('Multiple hash found matching the package, this should not happen')
     if sha512(targetPath) in fileHash:
-        logger.info('=> OK!\n')
+        logger.debug('=> file hash is correct\n')
         return True
     fail('hash could not be verified')
 
@@ -312,20 +312,20 @@ def verifyHash(targetPath, shaSumPath):
 def download_and_verify(completeUrl, dst=''):
     global GPG_HOME
     # download the target file
-    logger.info('downloading rpkg file  %s' % (completeUrl))
+    logger.debug('downloading rpkg file  %s' % (completeUrl))
     targetPath = download(completeUrl, dst)
     # download the attached SHASUM and SHASUM.asc
     (baseUrl, leaf) = os.path.split(completeUrl)
-    logger.info('downloading shasum file  %s' % (baseUrl + '/SHA512SUMS'))
+    logger.debug('downloading shasum file  %s' % (baseUrl + '/SHA512SUMS'))
     shaSumPath = download(baseUrl + '/SHA512SUMS', dst)
-    logger.info('downloading shasum sign file  %s' % (baseUrl + '/SHA512SUMS.asc'))
+    logger.debug('downloading shasum sign file  %s' % (baseUrl + '/SHA512SUMS.asc'))
     signPath = download(baseUrl + '/SHA512SUMS.asc', dst)
     # verify authenticity
     gpgCommand = ['/usr/bin/gpg', '--homedir', GPG_HOME, '--verify', '--', signPath, shaSumPath]
     logger.debug('Executing %s' % (gpgCommand))
-    logger.info('verifying shasum file signature %s' % (gpgCommand))
+    logger.debug('verifying shasum file signature %s' % (gpgCommand))
     run(gpgCommand, check=True)
-    logger.info('=> OK!\n')
+    logger.debug('signature is valid\n')
     # verify hash
     if verifyHash(targetPath, shaSumPath):
         return targetPath
@@ -558,7 +558,6 @@ def jar_status(name, enable):
 
     def repl(match):
         enabled = [x for x in match.group(1).split(',') if x != name and x != '']
-        print(enabled)
         if enable:
             enabled.append(name)
         plugins = ','.join(enabled)
