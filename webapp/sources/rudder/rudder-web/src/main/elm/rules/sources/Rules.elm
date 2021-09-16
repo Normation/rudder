@@ -321,6 +321,14 @@ update msg model =
       in
         ({model | ui = { ui | ruleFilters = filters}}, Cmd.none)
 
+    RulesSearch searchString ->
+      let
+        ui = model.ui
+        oldFilters = model.ui.ruleFilters
+        newFilters = {oldFilters | filter = searchString}
+        newUi = {ui | ruleFilters = newFilters}
+      in
+        ({ model | ui = newUi }, Cmd.none)
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =

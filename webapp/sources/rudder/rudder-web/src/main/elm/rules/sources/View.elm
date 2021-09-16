@@ -12,6 +12,7 @@ import ApiCalls exposing (..)
 import ViewRulesTable exposing (..)
 import ViewRuleDetails exposing (..)
 import ViewCategoryDetails exposing (..)
+import ViewUtilsRules exposing (..)
 
 view : Model -> Html Msg
 view model =
@@ -35,27 +36,33 @@ view model =
           ]
         ]
 
-    ruleTreeCategory : (Category Rule) -> Html Msg
+    ruleTreeCategory : (Category Rule) -> Maybe (Html Msg)
     ruleTreeCategory item =
       let
         categories = getSubElems item
-                       |> List.sortBy .name
-                       |> List.map ruleTreeCategory
+          |> List.sortBy .name
+          |> List.filterMap ruleTreeCategory
+
         rules = item.elems
-                |> List.sortBy .name
-                |> List.map ruleTreeElem
+          |> List.filter (filterRules model)
+          |> List.sortBy .name
+          |> List.map ruleTreeElem
 
         childsList  = ul[class "jstree-children"] (List.concat [ categories, rules] )
-
       in
-        li[class "jstree-node jstree-open"]
-        [ i[class "jstree-icon jstree-ocl"][]
-        , a[class "jstree-anchor", onClick (OpenCategoryDetails item.id True)]
-          [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-          , span [class "treeGroupCategoryName tooltipable"][text item.name]
-          ]
-        , childsList
-        ]
+        if (String.isEmpty model.ui.ruleFilters.filter) || ((List.length rules > 0) || (List.length categories > 0)) then
+          Just (
+            li[class "jstree-node jstree-open"]
+            [ i[class "jstree-icon jstree-ocl"][]
+            , a[href "#", class "jstree-anchor", onClick (OpenCategoryDetails item.id True)]
+              [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
+              , span [class "treeGroupCategoryName tooltipable"][text item.name]
+              ]
+            , childsList
+            ]
+          )
+        else
+          Nothing
 
     templateMain = case model.mode of
       Loading -> text "loading"
@@ -186,9 +193,9 @@ view model =
             [ div [class "input-group-btn"]
               [ button [class "btn btn-default", type_ "button"][span [class "fa fa-folder fa-folder-open"][]]
               ]
-            , input[type_ "text", placeholder "Filter", class "form-control"][]
+            , input[type_ "text", value model.ui.ruleFilters.filter ,placeholder "Filter", class "form-control", onInput (\s -> RulesSearch s)][]
             , div [class "input-group-btn"]
-              [ button [class "btn btn-default", type_ "button"][span [class "fa fa-times"][]]
+              [ button [class "btn btn-default", type_ "button", onClick (RulesSearch "")][span [class "fa fa-times"][]]
               ]
             ]
           ]
@@ -196,7 +203,14 @@ view model =
       , div [class "sidebar-body"]
         [ div [class "sidebar-list"]
           [ div [class "jstree jstree-default"]
-            [ ul[class "jstree-container-ul jstree-children"][(ruleTreeCategory model.rulesTree) ]
+            [ ul[class "jstree-container-ul jstree-children"]
+              [(case ruleTreeCategory model.rulesTree of
+                Just html -> html
+                Nothing   -> div [class "alert alert-warning"]
+                  [ i [class "fa fa-exclamation-triangle"][]
+                  , text  "No rules match your filter."
+                  ]
+              )]
             ]
           ]
         ]

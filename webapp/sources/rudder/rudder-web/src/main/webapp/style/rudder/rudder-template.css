@@ -571,6 +571,14 @@
 .rudder-template .dataTable td .progress.progress-flex {
   margin: 0;
 }
+.rudder-template .dataTable td.empty{
+  padding: 20px 15px;
+  background-color: #fcf8e3;
+  color: #8a6d3b;
+}
+.rudder-template .dataTable td.empty .fa:first-child{
+  margin-right: 6px;
+}
 /* === JUMBOTRON === */
 .rudder-template .template-main .jumbotron {
   color: #6c7586;
@@ -774,6 +782,12 @@
 }
 .jstree .item-disabled{
   color: #828894;
+}
+.sidebar-list .jstree > ul > .alert:first-child{
+  margin: 15px 15px 15px 5px;
+}
+.sidebar-list .jstree .alert .fa:first-child{
+  margin-right: 6px;
 }
 /* === CALLOUT === */
 .callout-fade .action-btn{
