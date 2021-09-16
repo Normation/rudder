@@ -354,7 +354,7 @@ def update_licenses():
         logger.info('No license files found!')
     else:
         # Find the .licence and .key files under each folder
-        logger.info("Updating licences")
+        logger.info('Updating licences')
         for folderUrl in set(licenseFolders):
             r = utils.getRequest(folderUrl, False)
             htmlElements = html.document_fromstring(r.text)
@@ -378,7 +378,7 @@ def update():
     if os.path.isfile(utils.INDEX_PATH):
         os.rename(utils.INDEX_PATH, utils.INDEX_PATH + '.bkp')
     try:
-        utils.download(utils.URL + '/' + utils.RUDDER_MINOR + '/rpkg.index')
+        utils.download(utils.URL + '/' + utils.RUDDER_MINOR + '/rpkg.index', utils.INDEX_PATH)
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
         if os.path.isfile(utils.INDEX_PATH + '.bkp'):

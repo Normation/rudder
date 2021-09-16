@@ -5,6 +5,7 @@ from pkg_resources import parse_version
 import fcntl, termios, struct, traceback
 from distutils.version import StrictVersion
 import subprocess
+import urllib
 
 try:
     import ConfigParser as configparser
@@ -225,7 +226,11 @@ def check_url():
 
 def download(completeUrl, dst=''):
     if dst == '':
-        fileDst = FOLDER_PATH + '/' + completeUrl.replace(URL + '/' + RUDDER_MINOR + '/', '')
+        # only take file name to avoid reaching max file name length
+        fileName = completeUrl.rsplit('/', 1)[-1]
+        # escape but keep tildes
+        fileName = urllib.parse.quote(fileName, '~')
+        fileDst = FOLDER_PATH + '/' + fileName
     else:
         fileDst = dst
     fileDir = os.path.dirname(fileDst)
