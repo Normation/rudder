@@ -21,10 +21,7 @@ pipeline {
             agent { label 'rtf' }
             steps {
                 script {
-                    dir('local_ncf') {
-                        checkout scm
-                    }
-                    def ncf_test = new testLocalNcf("ci/rudder-6.1-nightly", ["debian9"], "${workspace}/ncf-tests")
+                    def ncf_test = new testLocalNcf("ci/rudder-6.1-nightly", ["debian9"], "${workspace}/ncf")
                 }
             }
         }
