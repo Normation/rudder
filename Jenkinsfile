@@ -1,6 +1,6 @@
 @Library('slack-notification')
 import org.gradiant.jenkins.slack.SlackNotifier
-@Library('rudder-ci-libs@fda') _
+//@Library('rudder-ci-libs@fda') _
 
 pipeline {
     agent none
