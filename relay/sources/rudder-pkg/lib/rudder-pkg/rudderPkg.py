@@ -23,7 +23,7 @@ logger = logging.getLogger('rudder-pkg')
 
 def install_file(package_files, exact_version, exit_on_error=True):
     for package_file in package_files:
-        logger.info('Installing ' + package_file)
+        logger.debug('Installing ' + package_file)
         # First, check if file exists
         if not os.path.isfile(package_file):
             utils.fail('Error: Package file ' + package_file + ' does not exist')
@@ -41,7 +41,7 @@ def install_file(package_files, exact_version, exit_on_error=True):
             if short_name.startswith('cis-') or short_name == 'openscap':
                 logger.info('Skipping update, this package cannot be updated')
                 break
-            logger.info('The package is already installed, I will upgrade it.')
+            logger.info('The package is already installed, ugrading')
         script_dir = utils.extract_scripts(metadata, package_file)
         utils.run_script('preinst', script_dir, exist, exit_on_error=exit_on_error)
         utils.install(metadata, package_file, exist)
@@ -354,6 +354,7 @@ def update_licenses():
         logger.info('No license files found!')
     else:
         # Find the .licence and .key files under each folder
+        logger.info("Updating licences")
         for folderUrl in set(licenseFolders):
             r = utils.getRequest(folderUrl, False)
             htmlElements = html.document_fromstring(r.text)
@@ -361,7 +362,7 @@ def update_licenses():
             for link in set([elem[2] for elem in htmlElements.iterlinks()]):
                 match = downloadPattern.search(link)
                 if match is not None:
-                    logger.info('downloading %s' % (link))
+                    logger.debug('downloading %s' % (link))
                     utils.download(link, utils.LICENCES_PATH + '/' + os.path.basename(link))
 
 
@@ -370,7 +371,7 @@ def update_licenses():
 
 
 def update():
-    logger.debug('Updating the index')
+    logger.info('Updating package index')
     utils.getRudderKey()
     # backup the current indexFile if it exists
     logger.debug('backuping %s in %s' % (utils.INDEX_PATH, utils.INDEX_PATH + '.bkp'))
