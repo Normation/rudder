@@ -104,6 +104,22 @@ getRuleDetails model ruleId =
   in
     send GetRuleDetailsResult req
 
+getRulesCategoryDetails : Model -> String -> Cmd Msg
+getRulesCategoryDetails model catId =
+  let
+    req =
+      request
+        { method          = "GET"
+        , headers         = []
+        , url             = getUrl model ("/rules/categories/" ++ catId)
+        , body            = emptyBody
+        , expect          = expectJson decodeGetCategoryDetails
+        , timeout         = Nothing
+        , withCredentials = False
+        }
+  in
+    send GetCategoryDetailsResult req
+
 getRulesCompliance : Model -> Cmd Msg
 getRulesCompliance model =
   let

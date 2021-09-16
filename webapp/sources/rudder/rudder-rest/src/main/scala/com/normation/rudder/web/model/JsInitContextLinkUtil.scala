@@ -87,7 +87,7 @@ class LinkUtil (
     RedirectTo(baseTargetLink(target))
 
   def baseRuleLink(id:RuleId) =
-    s"""/secure/configurationManager/ruleManagement#{"ruleId":"${id.value}"}"""
+    s"""/secure/configurationManager/ruleManagement/rule/${id.value}"""
 
   def ruleLink(id:RuleId) =
     s"""${S.contextPath}${baseRuleLink(id)}"""

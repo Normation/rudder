@@ -26,7 +26,7 @@ view model =
       in
         li [class "jstree-node jstree-leaf"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[href "#", class ("jstree-anchor"++classDisabled), onClick (OpenRuleDetails item.id)]
+        , a[class ("jstree-anchor"++classDisabled), onClick (OpenRuleDetails item.id True)]
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
           , span [class "treeGroupName tooltipable"]
             [ text item.name
@@ -50,7 +50,7 @@ view model =
       in
         li[class "jstree-node jstree-open"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[href "#", class "jstree-anchor", onClick (OpenCategoryDetails item)]
+        , a[class "jstree-anchor", onClick (OpenCategoryDetails item.id True)]
           [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
           , span [class "treeGroupCategoryName tooltipable"][text item.name]
           ]

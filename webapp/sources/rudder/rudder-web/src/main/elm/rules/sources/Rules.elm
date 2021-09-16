@@ -1,18 +1,34 @@
 port module Rules exposing (..)
 
 import Browser
+import Url
 import DataTypes exposing (..)
 import Http exposing (..)
-import Init exposing (init, subscriptions)
+import Init exposing (init)
 import View exposing (view)
 import Result
-import ApiCalls exposing (getRuleDetails, getRulesTree, saveDisableAction)
+import ApiCalls exposing (getRuleDetails, getRulesCategoryDetails, getRulesTree, saveDisableAction)
 import List.Extra exposing (remove)
 import Random
 import UUID
 
+-- PORTS / SUBSCRIPTIONS
 port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
+port pushUrl             : (String,String) -> Cmd msg
+
+port readUrl : ((String, String) -> msg) -> Sub msg
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.batch
+  [ readUrl ( \(kind,id) -> case kind of
+              "rule" -> OpenRuleDetails (RuleId id) False
+              "ruleCategory" -> OpenCategoryDetails id False
+              _ -> Ignore
+            )
+  ]
+
 
 main =
   Browser.element
@@ -88,14 +104,25 @@ update msg model =
         Err err ->
           (model, Cmd.none)
 
-    OpenRuleDetails rId ->
-      (model, (getRuleDetails model rId))
+    GetCategoryDetailsResult res ->
+      case res of
+        Ok c ->
+          ({model | mode = CategoryForm (CategoryDetails (Just c) c Information )}, Cmd.none)
+        Err err ->
+          (model, Cmd.none)
 
-    OpenCategoryDetails category ->
-      ({model | mode = CategoryForm (CategoryDetails (Just category) category Information )}, Cmd.none)
+    OpenRuleDetails rId True ->
+      (model, Cmd.batch [getRuleDetails model rId, pushUrl ("rule", rId.value)])
+    OpenRuleDetails rId False ->
+      (model, getRuleDetails model rId)
+
+    OpenCategoryDetails category True ->
+      (model, Cmd.batch [getRulesCategoryDetails model category, pushUrl ("ruleCategory" , category)])
+    OpenCategoryDetails category False ->
+      (model, getRulesCategoryDetails model category)
 
     CloseDetails ->
-      ( { model | mode  = RuleTable } , Cmd.none )
+      ( { model | mode  = RuleTable } , pushUrl ("","")  )
 
     GetRulesComplianceResult res ->
       case res of
@@ -165,7 +192,7 @@ update msg model =
         category        = Category id "" "" (SubCategories []) []
         categoryDetails = CategoryDetails Nothing category Information
       in
-        ({model | mode = CategoryForm categoryDetails}, Cmd.none)
+        ({model | mode = CategoryForm categoryDetails}, Cmd.none )
 
     SaveRuleDetails (Ok ruleDetails) ->
       case model.mode of
@@ -219,7 +246,7 @@ update msg model =
             newMode  = if r.rule.id == ruleId then RuleTable else model.mode
             newModel = { model | mode = newMode }
           in
-            (newModel, Cmd.batch [(successNotification ("Successfully deleted rule '" ++ ruleName ++  "' (id: "++ ruleId.value ++")")), (getRulesTree newModel)])
+            (newModel, Cmd.batch [successNotification ("Successfully deleted rule '" ++ ruleName ++  "' (id: "++ ruleId.value ++")"), getRulesTree newModel, pushUrl ("", "") ])
         _ -> (model, Cmd.none)
 
     DeleteRule (Err err) ->
@@ -232,7 +259,7 @@ update msg model =
             newMode  = if c.category.id == categoryId then RuleTable else model.mode
             newModel = { model | mode = newMode }
           in
-            (newModel, Cmd.batch [(successNotification ("Successfully deleted category '" ++ categoryName ++  "' (id: "++ categoryId ++")")), (getRulesTree newModel)])
+            (newModel, Cmd.batch [successNotification ("Successfully deleted category '" ++ categoryName ++  "' (id: "++ categoryId ++")"), getRulesTree newModel, pushUrl ("","") ])
         _ -> (model, Cmd.none)
 
     DeleteCategory (Err err) ->
@@ -294,6 +321,7 @@ update msg model =
       in
         ({model | ui = { ui | ruleFilters = filters}}, Cmd.none)
 
+
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
   let
@@ -308,3 +336,6 @@ processApiError apiName err model =
 
   in
     ({model | mode = if model.mode == Loading then RuleTable else model.mode}, errorNotification ("Error when "++apiName ++",details: \n" ++ message ) )
+
+getUrl : Model -> String
+getUrl model = model.contextPath ++ "/secure/configurationManager/ruleManagement"

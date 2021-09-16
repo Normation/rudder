@@ -94,7 +94,7 @@ buildRulesTable model =
 
               Nothing -> text "No report"
       in
-            tr[onClick (OpenRuleDetails r.id)]
+            tr[onClick (OpenRuleDetails r.id True)]
             [ td[][ text r.name ]
             , td[][ text (getCategoryName model r.categoryId) ]
             , td[][ text (if r.enabled == True then "Enabled" else "Disabled") ]

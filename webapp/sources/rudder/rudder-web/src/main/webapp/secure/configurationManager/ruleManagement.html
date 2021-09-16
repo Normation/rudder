@@ -7,7 +7,6 @@
   </head>
 
   <div id="rules-app" ></div>
-
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-rules.js"></script>
   <script>
     var hasWriteRights = false;
@@ -18,6 +17,18 @@
     </script>
   </lift:authz>
   <script>
+    function getRuleRedirection(app){
+      var path = window.location.pathname.split("/")
+      if (path.length > 2) {
+        var id = path[path.length -1];
+        var kind = path[path.length -2];
+        if (id !== "ruleManagement") {
+          app.ports.readUrl.send([kind,id]);
+
+        }
+      }
+
+    }
     $(document).ready(function(){
       var main = document.getElementById("rules-app")
       var initValues = {
@@ -31,7 +42,22 @@
       app.ports.errorNotification.subscribe(function(str) {
         createErrorNotification(str)
       });
+
+      // Change the URL upon request, inform app of the change.
+      app.ports.pushUrl.subscribe(function(url) {
+        var kind = url[0];
+        var id = url[1];
+        var url = "/rudder/secure/configurationManager/ruleManagement"
+        if (kind !== "") {
+          url += "/" + kind + "/" + id
+        }
+        history.pushState({}, '', url);
+      });
+
+      getRuleRedirection(app);
+
     });
+
   </script>
 
 </lift:surround>

@@ -289,7 +289,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         elem.click(function() {oData.callback(action);});
         elem.attr("href","javascript://");
     } else {
-        elem.attr("href",contextPath+'/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'","action":"'+action+'"}');
+        elem.attr("href",contextPath+'/secure/configurationManager/ruleManagement/rule/'+oData.id);
     }
     return elem;
   }
@@ -568,7 +568,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
         var editIcon = $("<i>");
         editIcon.addClass("fa fa-pencil");
         var editLink = $("<a />");
-        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
+        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement/rule/'+oData.id);
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
         editLink.addClass("reportIcon");
@@ -714,7 +714,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
       displayTags(nTd, oData.tags)
       if (! oData.isSystem) {
         var editLink = $("<a />");
-        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
+        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement/rule/'+oData.id);
         var editIcon = $("<i>");
         editIcon.addClass("fa fa-pencil");
         editLink.click(function(e) {e.stopPropagation();});
