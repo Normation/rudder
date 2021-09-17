@@ -1,6 +1,6 @@
 @Library('slack-notification')
 import org.gradiant.jenkins.slack.SlackNotifier
-//@Library('rudder-ci-libs@fda') _
+@Library('rudder-ci-libs@fda') _
 
 pipeline {
     agent none
@@ -19,11 +19,11 @@ pipeline {
         }
         stage('ncf-tests') {
             agent { label 'rtf' }
-            //steps {
-            //    script {
-            //        def ncf_test = new testLocalNcf("ci/rudder-6.1-nightly", ["debian9"], "${workspace}/ncf")
-            //    }
-            //}
+            steps {
+                script {
+                    def ncf_test = new testLocalNcf("ci/rudder-6.1-nightly", ["debian9"], "${workspace}/ncf")
+                }
+            }
         }
     }
 
