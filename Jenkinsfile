@@ -22,7 +22,10 @@ pipeline {
             agent { label 'rtf' }
             steps {
                 deleteDir()
-                checkout scm
+                dir('ncf') {
+                    checkout scm
+                    sh script: 'git log -1 --pretty=%B'
+                }
                 script {
                     String version = "ci/rudder-6.1-nightly"
                     String[] systems = ["debian10"]
