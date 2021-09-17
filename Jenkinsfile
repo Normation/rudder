@@ -21,8 +21,10 @@ pipeline {
             agent { label 'rtf' }
             steps {
                 script {
+                    String version = "ci/rudder-6.1-nightly"
+                    String systems = ["debian9"]
                     String ncf_path = "${workspace}/ncf"
-                    testLocalNcf("ci/rudder-6.1-nightly", ["debian9"], "ncf_path")
+                    testNcfLocal(version, systems, ncf_path)
                 }
             }
         }
