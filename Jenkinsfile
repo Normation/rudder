@@ -20,7 +20,7 @@ pipeline {
         stage('ncf-tests') {
             agent { label 'rtf' }
             steps {
-                cleanWs()
+                deleteDir()
                 checkout scm
                 script {
                     String version = "ci/rudder-6.1-nightly"
