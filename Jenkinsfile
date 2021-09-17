@@ -27,10 +27,14 @@ pipeline {
                     sh script: 'git log -1 --pretty=%B'
                 }
                 script {
-                    String version = "ci/rudder-6.1-nightly"
+                    String[] versions = [
+                        "ci/rudder-6.1-nightly",
+                        "ci/rudder-6.2-nightly",
+                        "ci/rudder-7.0-nightly"
+                    ]
                     String[] systems = ["debian10"]
                     String ncf_path = "${workspace}/ncf"
-                    testNcfLocal(version, systems, ncf_path)
+                    testNcfLocal(versions, systems, ncf_path)
                 }
             }
         }
