@@ -22,7 +22,7 @@ pipeline {
             steps {
                 script {
                     String version = "ci/rudder-6.1-nightly"
-                    String[] systems = ["debian9"]
+                    String[] systems = ["debian10"]
                     String ncf_path = "${workspace}/ncf"
                     testNcfLocal(version, systems, ncf_path)
                 }
