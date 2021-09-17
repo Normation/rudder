@@ -20,6 +20,8 @@ pipeline {
         stage('ncf-tests') {
             agent { label 'rtf' }
             steps {
+                cleanWs()
+                checkout scm
                 script {
                     String version = "ci/rudder-6.1-nightly"
                     String[] systems = ["debian10"]
