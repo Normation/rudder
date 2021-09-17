@@ -47,4 +47,5 @@ type Msg
   | GetMetricsSettings  (Result Error MetricsState   )
   | PostAccountSettings (Result Error AccountSettings)
   | PostMetricsSettings (Result Error MetricsState   )
+  | SetupDone (Result Error Bool   )
   | SaveAction
