@@ -17,6 +17,7 @@ pipeline {
                 sh script: './qa-test --quick', label: 'check typos'
             }
         }
+
         stage('ncf-tests') {
             agent { label 'rtf' }
             steps {
