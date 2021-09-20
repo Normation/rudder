@@ -1,0 +1,212 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+# Fetch the promises from the server to be available for others machines
+# Must not do it on the RootServer though...
+bundle agent propagate_promises(trackingkey, technique_name, relay_sync_method, relay_sync_promises, relay_sync_sharedfiles) {
+
+  vars:
+    any::
+      "server_data" string => "${server_info.policy_files}/share"; #actual directory with data to propagate
+      "client_data" string => "${g.rudder_var}/share/";  #where to put the files on the client when downloaded
+
+  classes:
+       # configure the Relay synchronization method
+       "sync_method_disabled" expression => strcmp("${relay_sync_method}", "disabled");
+       "sync_method_rsync"    expression => strcmp("${relay_sync_method}", "rsync");
+       "sync_promises"        expression => strcmp("${relay_sync_promises}", "true");
+       "sync_sharedfiles"     expression => strcmp("${relay_sync_sharedfiles}", "true");
+
+       "disable_classic_promises"    expression => "sync_method_rsync|sync_method_disabled";
+       "disable_classic_sharedfiles" expression => "sync_method_rsync|sync_method_disabled";
+
+       "rsync_promises"              expression => "sync_promises.sync_method_rsync";
+       "rsync_sharedfiles"           expression => "sync_sharedfiles.sync_method_rsync";
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+    # Detect if relay-server protocols works ok (update is ok), but nothing to update (no node behind the relay)
+    # Class definition for no propagate promises transfer, but correct promises transfer -> folder for promises for relay is empty on the server, or folder inexistent
+    pass3::
+     # If any update of the relay personal policies fails
+     "update_error"                     expression => or(
+                                                        "no_update",
+                                                        "rudder_ncf_hash_update_error",
+                                                        "rudder_ncf_common_update_error",
+                                                        "rudder_ncf_local_update_error",
+                                                        "rudder_promises_generated_tmp_file_error"
+                                                      );
+     # Verify that ncf is up to date
+     "ncf_update_ok"                   expression => or(
+                                                       "rudder_ncf_hash_update_ok",
+                                                       and(
+                                                         "rudder_ncf_hash_update_repaired",
+                                                         "rudder_ncf_common_updated_ok",
+                                                         "rudder_ncf_local_updated_ok"
+                                                       )
+                                                     );
+     # Verify that the relay promises are up to date
+     "promises_update_ok"              expression => or(
+                                                       "rudder_promises_generated_tmp_file_kept",
+                                                       and(
+                                                           "config_ok",
+                                                           "rudder_promises_generated_tmp_file_repaired"
+                                                       )
+                                                     );
+     "update_successful"                expression => and(
+                                                        "ncf_update_ok",
+                                                        "promises_update_ok",
+                                                        not("update_error")
+                                                      );
+
+
+     # Sharedfiles distribution
+     # If shared-files doesn't exist, error class is defined, if it is empty, no class is defined
+     "sharedfiles_not_existent"   expression => "update_successful.!shared_files_propagated";
+
+     "sharedfiles_disabled"       expression => or(
+                                                  "sync_method_disabled",
+                                                  "!sync_sharedfiles.sync_method_rsync"
+                                                );
+     "sharedfiles_classic_ok"     expression => and(
+                                                  not("sharedfiles_disabled"),
+                                                  not("sync_method_rsync"),
+                                                  "update_successful",
+                                                  "files_propagated|sharedfiles_not_existent"
+                                                );
+     "sharedfiles_rsync_ok"       expression => and(
+                                                  not("sharedfiles_disabled"),
+                                                  "sync_method_rsync",
+                                                  "files_propagated"
+                                                );
+
+     # Resources distribution
+     "resources_error"            expression => or(
+                                                  "could_not_propagate_masterfiles",
+                                                  "could_not_propagate_ncf_local_promise",
+                                                  "could_not_propagate_ncf_common_promise",
+                                                  "nodeslist_error"
+                                                );
+
+     "resources_ok"                expression => and(
+                                                   "masterfiles_propagated",
+                                                   "ncf_local_promises_propagated",
+                                                   "ncf_common_promises_propagated",
+                                                   not("any_resources_error")
+                                                 );
+
+      # Reload relayd if needed
+      "rudder_server_system_reload_relayd" expression => "rudder_relayd_nodeslist_repaired",
+                                                scope => "namespace";
+
+  files:
+    !disable_classic_promises::
+      "${client_data}"  #that's a loop on each files in client_inputs
+        copy_from    => remote("${server_info.policy_server}","${server_data}"),
+        depth_search => recurse_visible("inf"),
+        perms => mog("2750", "root", "rudder-policy-reader"),
+        comment => "Fetching the promises to propagate",
+        classes => if_else("promises_propagated", "could_not_propagate_promises");
+
+    !disable_classic_sharedfiles::
+      "${g.shared_files}"
+        copy_from    => remote("${server_info.policy_server}","${g.shared_files}"),
+        depth_search => recurse_visible("inf"),
+        comment => "Fetching the files shared for the promises execution",
+        classes => if_else("files_propagated", "could_not_propagate_files");
+    
+    any::
+      "${g.rudder_var}/shared-files/"
+        copy_from    => remote("${server_info.policy_server}","${g.rudder_var}/shared-files/${g.uuid}/shared-files"),
+        depth_search => recurse_visible("inf"),
+        comment => "Fetching files shared between agents",
+        classes => if_else("shared_files_propagated", "could_not_propagate_shared_files");
+
+      "${g.rudder_ncf_origin_local}"
+        copy_from    => remote("${server_info.policy_server}","${g.rudder_ncf_origin_local}"),
+        depth_search => recurse_visible("inf"),
+        comment      => "Fetching the ncf local to propagate",
+        classes      => if_else("ncf_local_promises_propagated", "could_not_propagate_ncf_local_promise");
+
+      "${g.rudder_ncf_origin_common}"
+        copy_from    => remote("${server_info.policy_server}","${g.rudder_ncf_origin_common}"),
+        depth_search => recurse_visible("inf"),
+        comment      => "Fetching the ncf common to propagate",
+        classes      => if_else("ncf_common_promises_propagated", "could_not_propagate_ncf_common_promise");
+
+      "${sys.workdir}/masterfiles"
+        copy_from    => remote("${server_info.policy_server}","${sys.workdir}/masterfiles"),
+        depth_search => recurse_visible("inf"),
+        comment => "Fetching the bootstrap promises",
+        classes => if_else("masterfiles_propagated", "could_not_propagate_masterfiles");
+
+    # /var/rudder/lib/relay/nodeslist.json is generated by the webapp on root servers
+      "${g.rudder_var}/lib/relay/nodeslist.json"
+        copy_from    => local_dcp("${this.promise_dirname}/nodeslist.json"),
+        perms        => mog("640", "root", "rudder"),
+        comment      => "Copying list of nodes under this policy server",
+        classes      => classes_generic("rudder_relayd_nodeslist");
+
+  methods:
+    # Success if resources are updated or not changed (kept or repaired).
+    # relays have ncf, masterfiles nodelist and shared_files folder to be updated.
+
+    # RESOURCES REPORTING (ncf, masterfile, nodelist and license)
+    pass3.resources_ok::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_success", "${trackingkey}", "Synchronize resources", "None", "All resources have been synchronized");
+
+    pass3.!resources_ok::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_error", "${trackingkey}", "Synchronize resources", "None", "Resources could not be propagated properly");
+
+    pass3.could_not_propagate_masterfiles::
+      "any" usebundle => rudder_common_report("${technique_name}", "log_warn", "${trackingkey}", "Synchronize resources", "None", "Cannot propagate masterfiles");
+
+    pass3.could_not_propagate_ncf_local_promise::
+      "any" usebundle => rudder_common_report("${technique_name}", "log_warn", "${trackingkey}", "Synchronize resources", "None", "Cannot propagate local configuration library");
+
+    pass3.could_not_propagate_ncf_common_promise::
+      "any" usebundle => rudder_common_report("${technique_name}", "log_warn", "${trackingkey}", "Synchronize resources", "None", "Cannot propagate common configuration library");
+
+    pass3.rudder_relayd_nodeslist_error::
+      "any" usebundle => rudder_common_report("${technique_name}", "log_warn", "${trackingkey}", "Synchronize resources", "None", "Cannot copy local nodes list");
+
+
+    # SYNCHRONIZE POLICIES
+    pass3.(sync_method_disabled|(!sync_promises.sync_method_rsync))::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${trackingkey}", "Synchronize policies", "None", "Policies need to be synchronized by an external system");
+
+    pass3.could_not_propagate_promises.((!sync_method_rsync.!update_successful)|sync_method_rsync)::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_error", "${trackingkey}", "Synchronize policies", "None", "Cannot synchronize policies");
+
+    pass3.promises_propagated.sync_method_rsync::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_success", "${trackingkey}", "Synchronize policies", "None", "Policies synchronized using rsync");
+    pass3.(promises_propagated|(could_not_propagate_promises.update_successful)).!sync_method_rsync::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_success", "${trackingkey}", "Synchronize policies", "None", "Policies synchronized using classic method");
+
+    # SYNCHRONIZE  SHARED FILES
+    pass3.sharedfiles_disabled::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${trackingkey}", "Synchronize files", "None", "Shared files need to be synchronized by an external system");
+
+    pass3.!(sharedfiles_rsync_ok|sharedfiles_classic_ok)::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_error", "${trackingkey}", "Synchronize files", "None", "Cannot propagate shared files");
+
+    pass3.sharedfiles_rsync_ok::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_success", "${trackingkey}", "Synchronize files", "None", "Shared files synchronized using rsync");
+    # Cannot directly use success class as it is not defined if there are no files to copy
+    #     |         condition for the matching files promise      |
+    pass3.sharedfiles_classic_ok::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_success", "${trackingkey}", "Synchronize files", "None", "Shared files synchronized using classic method");
+
+  commands:
+    rsync_promises::
+      "/usr/bin/rsync --archive --checksum --compress --sparse --delete ${server_info.policy_server}:${server_data}/ ${client_data}"
+        classes => if_else("promises_propagated", "could_not_propagate_promises");
+    rsync_sharedfiles::
+      "/usr/bin/rsync --archive --checksum --compress --sparse --delete ${server_info.policy_server}:${g.shared_files}/ ${g.shared_files}/"
+        classes => if_else("files_propagated", "could_not_propagate_files");
+
+}
+

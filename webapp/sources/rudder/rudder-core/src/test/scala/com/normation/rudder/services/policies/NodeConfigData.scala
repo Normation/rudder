@@ -123,6 +123,7 @@ import com.normation.inventory.domain.VMWare
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.git.GitRepositoryProviderImpl
+import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -508,15 +509,11 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
  *
  */
 
-class TestNodeConfiguration(prefixTestResources: String = "") {
+class TestTechniqueRepo(prefixTestResources: String = ""
+  // service you want to override with other
+  , optGitRevisionProvider: Option[GitRepositoryProviderImpl => GitRevisionProvider] = None
+) {
 
-  import org.joda.time.DateTime
-
-  import com.normation.rudder.services.policies.NodeConfigData.{root, node1}
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // set up root node configuration
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //just a little sugar to stop hurting my eyes with new File(blablab, plop)
   implicit class PathString(root: String) {
     def /(child: String) = new File(root, child)
   }
@@ -564,9 +561,10 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
   val t4 = System.currentTimeMillis()
   NodeConfigData.logger.trace(s"Technique parser        : ${t4-t3} ms")
 
+  val gitRevisionProvider = optGitRevisionProvider.map(x => x(repo)).getOrElse(new SimpleGitRevisionProvider("refs/heads/master", repo))
   val reader = new GitTechniqueReader(
                 draftParser
-              , new SimpleGitRevisionProvider("refs/heads/master", repo)
+              , gitRevisionProvider
               , repo
               , "metadata.xml"
               , "category.xml"
@@ -578,8 +576,40 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
 
   val techniqueRepository = new TechniqueRepositoryImpl(reader, Seq(), new StringUuidGeneratorImpl())
   val t6 = System.currentTimeMillis()
-  NodeConfigData.logger.trace(s"Technique repository    : ${t6-t5} ms")
+}
 
+class TestNodeConfiguration(prefixTestResources: String = ""
+  // service you want to override with other
+  , gitRevisionProvider: Option[GitRepositoryProviderImpl => GitRevisionProvider] = None
+) {
+  implicit class PathString(root: String) {
+    def /(child: String) = new File(root, child)
+  }
+  implicit class PathString2(root: File) {
+    def /(child: String) = new File(root, child)
+  }
+
+  // technique repository + expose services & vars
+
+  val testTechRepoEnv = new TestTechniqueRepo(prefixTestResources, gitRevisionProvider)
+  val abstractRoot = testTechRepoEnv.abstractRoot
+
+  val configurationRepositoryRoot = testTechRepoEnv.configurationRepositoryRoot
+  val EXPECTED_SHARE = testTechRepoEnv.EXPECTED_SHARE
+  val repo = testTechRepoEnv.repo
+  val variableSpecParser = testTechRepoEnv.variableSpecParser
+  val systemVariableServiceSpec = testTechRepoEnv.systemVariableServiceSpec
+  val draftParser = testTechRepoEnv.draftParser
+  val reader = testTechRepoEnv.reader
+  val techniqueRepository = testTechRepoEnv.techniqueRepository
+
+
+  import com.normation.rudder.services.policies.NodeConfigData.{root, node1}
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // set up root node configuration
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  val t6 = System.currentTimeMillis()
   val policyServerManagement = new PolicyServerManagementService() {
     override def getPolicyServers(): IOResult[PolicyServers] = {
       PolicyServers(
@@ -751,9 +781,9 @@ class TestNodeConfiguration(prefixTestResources: String = "") {
     , Map(
         ("OWNER", Seq("${rudder.node.admin}"))
       , ("UUID", Seq("${rudder.node.id}"))
-      , ("POLICYSERVER_ID", Seq("${rudder.node.policyserver.id}"))
-      , ("POLICYSERVER", Seq("${rudder.node.policyserver.hostname}"))
-      , ("POLICYSERVER_ADMIN", Seq("${rudder.node.policyserver.admin}"))
+      , ("POLICYSERVER_ID", Seq("${rudder.node.id}"))
+      , ("POLICYSERVER", Seq("${rudder.node.hostname}"))
+      , ("POLICYSERVER_ADMIN", Seq("${rudder.node.admin}"))
       )
     , "common-root"
     , "", None, "", 5, true, true

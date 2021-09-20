@@ -622,7 +622,7 @@ class WoLDAPDirectiveRepository(
   private[this] def internalSaveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean) : IOResult[Option[DirectiveSaveDiff]] = {
     userLibMutex.writeLock(for {
       con         <- ldap
-      uptEntry    <- getUPTEntry(con, inActiveTechniqueId, "1.1").notOptional(s"Can not find the User Policy Entry with id '${inActiveTechniqueId.value}' to add directive '${directive.id.uid.value}'")
+      uptEntry    <- getUPTEntry(con, inActiveTechniqueId, "1.1").notOptional(s"Can not find the active technique with id '${inActiveTechniqueId.value}' to add directive '${directive.id.uid.value}'")
       canAdd      <- getDirectiveEntry(con, directive.id).flatMap { //check if the directive already exists elsewhere
                        case None          => None.succeed
                        case Some(otherPi) =>
@@ -651,7 +651,7 @@ class WoLDAPDirectiveRepository(
       piEntry           =  mapper.userDirective2Entry(directive, uptEntry.dn)
       result            <- con.save(piEntry, true)
       //for log event - perhaps put that elsewhere ?
-      activeTechnique   <- getActiveTechniqueByActiveTechnique(inActiveTechniqueId).notOptional(s"Can not find the User Policy Entry with id '${inActiveTechniqueId.value}' to add directive '${directive.id.uid.value}'")
+      activeTechnique   <- getActiveTechniqueByActiveTechnique(inActiveTechniqueId).notOptional(s"Can not find active technique Entry with id '${inActiveTechniqueId.value}' to add directive '${directive.id.uid.value}'")
       activeTechniqueId =  TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)
       technique         <- techniqueRepository.get(activeTechniqueId).notOptional(s"Can not find the technique with ID '${activeTechniqueId.debugString}'")
       optDiff           <- (diffMapper.modChangeRecords2DirectiveSaveDiff(
@@ -948,7 +948,7 @@ class WoLDAPDirectiveRepository(
                               }
                             }
       categoryEntry      <- getCategoryEntry(con, categoryId, "1.1").notOptional(s"Category entry with ID '${categoryId.value}' was not found")
-      newActiveTechnique =  ActiveTechnique(ActiveTechniqueId(uuidGen.newUuid),techniqueName, versions.map(x => x -> DateTime.now()).toMap)
+      newActiveTechnique =  ActiveTechnique(ActiveTechniqueId(techniqueName.value),techniqueName, versions.map(x => x -> DateTime.now()).toMap)
       uptEntry           =  mapper.activeTechnique2Entry(newActiveTechnique,categoryEntry.dn)
       result             <- con.save(uptEntry, true)
       // a new active technique is never system, see constructor call, using defvault value,

@@ -37,8 +37,9 @@
 
 package com.normation.rudder.domain.logger
 
-import org.slf4j.LoggerFactory
+import com.normation.NamedZioLogger
 
+import org.slf4j.LoggerFactory
 import com.normation.rudder.domain.Constants.XML_CURRENT_FILE_FORMAT
 import com.normation.rudder.migration.MigrableEntity
 
@@ -65,4 +66,8 @@ final case class MigrationLogger(
     }
     _logger.debug(s"Successfully migrated ${seq.size} eventlogs to format ${goal}")
   }
+}
+
+object MigrationLoggerPure extends NamedZioLogger {
+  def loggerName = "migration"
 }

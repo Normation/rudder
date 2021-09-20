@@ -1,0 +1,68 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+#######################################################
+#
+# restart_services
+#
+# This bundle restarts all the services in need at the end
+# of the agent execution
+#
+#######################################################
+
+bundle agent restart_services
+{
+
+  vars:
+
+      "report_data.identifier" string => "${system_common.directiveId}";
+      "report_data.technique_name" string => "Common";
+    solaris::
+      "restart_cmd"       string => "${paths.path[svcadm]} refresh svc:/system/system-log:default";
+    aix::
+      "restart_cmd"       string => "/usr/bin/refresh -s syslogd";
+    solaris|aix::
+      "restart_cmd_class" string => canonify("command_execution_${restart_cmd}");
+
+  methods:
+
+      "restart_syslog" usebundle => disable_reporting;
+      "restart_syslog" usebundle => _method_reporting_context("Restarting log system", "None");
+
+    (!SuSE.!aix.!solaris).remove_rudder_syslog_configuration_syslog_repaired::
+      "restart_syslog" usebundle => service_restart("syslog");
+
+    (!SuSE.!aix.!solaris).remove_rudder_syslog_configuration_syslogng_repaired::
+      "restart_syslog_ng" usebundle => service_restart("syslog-ng");
+
+    (!SuSE.!aix.!solaris).remove_rudder_syslog_configuration_rsyslog_repaired::
+      "restart_rsyslog" usebundle => service_restart("rsyslog");
+
+    SuSE.remove_rudder_syslog_configuration_result_repaired::
+      "restart_rsyslog" usebundle => service_restart("syslog");
+
+    (aix|solaris).remove_rudder_syslog_configuration_result_repaired::
+      "restart_syslog" usebundle => command_execution("${restart_cmd}");
+
+    any::
+      "restart_syslog" usebundle => enable_reporting;
+    solaris|aix::
+      # Final report about (sys)log setting enforcement / restart
+      "any"  usebundle => rudder_common_report("Common", "log_repaired", "${system_common.directiveId}", "Log system for reports", "None", "Logging system has been restarted"),
+            ifvarclass => "${restart_cmd_class}_repaired";
+
+      "any"  usebundle => rudder_common_report("Common", "result_error", "${system_common.directiveId}", "Log system for reports", "None", "Could not restart the logging system"),
+            ifvarclass => "${restart_cmd_class}_not_ok";
+    !(solaris|aix)::
+      # Final report about (sys)log setting enforcement / restart
+      "any"  usebundle => rudder_common_report("Common", "log_repaired", "${system_common.directiveId}", "Log system for reports", "None", "Logging system has been restarted"),
+            ifvarclass => "service_restart_rsyslog_repaired|service_restart_syslog_ng_repaired|service_restart_syslog_repaired";
+
+      "any"  usebundle => rudder_common_report("Common", "result_error", "${system_common.directiveId}", "Log system for reports", "None", "Could not restart the logging system"),
+            ifvarclass => "service_restart_rsyslog_not_ok|service_restart_syslog_ng_not_ok|service_restart_syslog_not_ok";
+
+    # If syslog service had been restarted, we need to log it as well
+    service_ensure_running_rsyslog_repaired|service_ensure_running_syslog_repaired|service_ensure_running_syslog_ng_repaired::
+      "any"  usebundle => rudder_common_report("Common", "log_repaired", "${system_common.directiveId}", "Log system for reports", "None", "Started the logging system");
+
+}

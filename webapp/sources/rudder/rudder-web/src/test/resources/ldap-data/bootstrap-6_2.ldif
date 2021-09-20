@@ -1,0 +1,382 @@
+###############################################################################
+# Rudder LDAP directory - Bootstrap file
+###############################################################################
+# This file contains the basic structure and minimal entries that MUST be
+# present in the LDAP backend for Rudder to function correctly.
+###############################################################################
+
+# Base structure
+dn: cn=rudder-configuration
+objectclass: configurationRoot
+cn: rudder-configuration
+
+dn: ou=Nodes,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Nodes
+description: Branch that stores all the Nodes
+
+dn: ou=Rudder,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Rudder
+description: Branch that stores all Rudder specific data
+
+## Inventories related branches
+
+dn: ou=Inventories,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Inventories
+description: Inventory information
+
+
+dn: ou=Software,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Software
+description: Software packages installed on servers from ou=Nodes, including details such as full name, version, architecture, etc.
+
+dn: ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Accepted Inventories
+description: Store accepted inventories
+
+dn: ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Machines
+description: Containers for servers from ou=Nodes, such as physical machines or virtual machines.
+
+dn: ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Nodes
+description: Logical servers, an OS installation. May be on a virtual machine or a physical machine, from ou=Machines.
+
+## Same structure, for pending inventories (before acceptation)
+dn: ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Pending Inventories
+description: Store inventories not yet accepted in Rudder
+
+# Machines, pending @ example.org
+dn: ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Machines
+description: Containers for servers from ou=Nodes, such as physical machines or virtual machines.
+
+# Nodes, pending @ example.org
+dn: ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Nodes
+description: Logical servers, an OS installation. May be on a virtual machine or a physical machine, from ou=Machines.
+
+## Same structure, for removed inventories (after deletion)
+dn: ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Removed Inventories
+description: Store inventories removed from Rudder
+
+# Machines, removed
+dn: ou=Machines,ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Machines
+description: Containers for servers from ou=Nodes, such as physical machines or virtual machines.
+
+# Nodes, removed
+dn: ou=Nodes,ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Servers
+description: Logical servers, an OS installation. May be on a virtual machine or a physical machine, from ou=Machines.
+
+# System groups
+
+dn: groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: groupCategory
+objectClass: top
+cn: Root of the group and group categories
+description: This is the root category for the groups (both dynamic and stat
+ ic) and group categories
+groupCategoryId: GroupRoot
+isSystem: TRUE
+
+dn: groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: groupCategory
+objectClass: top
+cn: System groups
+description: That category holds all the system and special target
+groupCategoryId: SystemGroups
+isSystem: TRUE
+
+dn: ruleTarget=special:all,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialRuleTarget
+objectClass: top
+ruleTarget: special:all
+cn: All nodes
+description: All nodes known by Rudder (including Rudder policy servers)
+isEnabled: TRUE
+isSystem: TRUE
+
+dn: ruleTarget=special:all_exceptPolicyServers,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialRuleTarget
+objectClass: top
+ruleTarget: special:all_exceptPolicyServers
+cn: All managed nodes
+description: All nodes known by Rudder (excluding Rudder policy servers)
+isEnabled: TRUE
+isSystem: TRUE
+
+dn: ruleTarget=special:all_servers_with_role,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialRuleTarget
+objectClass: top
+ruleTarget: special:all_servers_with_role
+cn: All nodes with a Server role
+description: All nodes that have at least one Server role defined
+isEnabled: TRUE
+isSystem: TRUE
+
+dn: ruleTarget=special:all_nodes_without_role,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialRuleTarget
+objectClass: top
+ruleTarget: special:all_nodes_without_role
+cn: All nodes excluding Rudder server roles
+description: All nodes excluding Rudder server components
+isEnabled: TRUE
+isSystem: TRUE
+
+dn: nodeGroupId=all-nodes-with-cfengine-agent,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: nodeGroup
+objectClass: top
+cn: All classic Nodes
+description: All classic Nodes known by Rudder (Using a CFEngine based agent)
+isDynamic: TRUE
+nodeGroupId: all-nodes-with-cfengine-agent
+nodeId: root
+isSystem: TRUE
+isEnabled: TRUE
+jsonNodeGroupQuery: {"select":"nodeAndPolicyServer","composition":"And","where":[
+ {"objectType":"node","attribute":"agentName","comparator":"eq","value":"cfengine"}
+ ]}
+
+# Active technique library
+dn: techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: techniqueCategory
+objectClass: top
+cn: Active Techniques
+description: This is the root category for active techniques. It contains subcategories, actives techniques and directives
+techniqueCategoryId: Active Techniques
+isSystem: TRUE
+
+# System active technique library
+dn: techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: techniqueCategory
+objectClass: top
+cn: Active techniques used by Rudder
+description: This category contains "system" active techniques, used to configure Rudder agents and essential parts of Rudder server.
+techniqueCategoryId: Rudder Internal
+isSystem: TRUE
+
+# Distribute policy (root policy server)
+dn: activeTechniqueId=distributePolicy,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: distributePolicy
+activeTechniqueId: distributePolicy
+acceptationTimestamp: {"1.0":"20110715124328.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+# common (has policy server)
+dn: activeTechniqueId=common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: common
+activeTechniqueId: common
+acceptationTimestamp: {"1.0":"20110715124328.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+# inventory
+dn: activeTechniqueId=inventory,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: inventory
+activeTechniqueId: inventory
+acceptationTimestamp: {"1.0":"20110715124328.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+dn: directiveId=inventory-all,activeTechniqueId=inventory,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: inventory-all
+techniqueVersion: 0:1.0
+cn: System inventory
+description: inventory - Technical
+isEnabled: TRUE
+isSystem: TRUE
+directivePriority: 0
+
+# server_roles
+dn: activeTechniqueId=server-roles,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: server-roles
+activeTechniqueId: server_roles
+acceptationTimestamp: {"1.0":"20140603124328.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+dn: directiveId=server-roles-directive,activeTechniqueId=server-roles,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: server-roles-directive
+techniqueVersion: 0:1.0
+cn: Server Roles
+description: Server Roles - Technical
+isEnabled: TRUE
+isSystem: TRUE
+directivePriority: 0
+
+#######################################################################################################################
+## Rules
+#######################################################################################################################
+dn: ou=Rules,ou=Rudder,cn=rudder-configuration
+objectClass: organizationalUnit
+objectClass: top
+ou: Rules
+
+dn: ruleId=inventory-all,ou=Rules,ou=Rudder,cn=rudder-configuration
+objectClass: rule
+objectClass: top
+ruleId: inventory-all
+ruleTarget: group:all-nodes-with-cfengine-agent
+directiveId: inventory-all
+cn: Rudder system policy: System daily inventory
+description: System Inventory
+isEnabled: TRUE
+isSystem: TRUE
+longDescription: This rule makes all nodes do daily self inventories
+serial: 0
+
+dn: ruleId=server-roles,ou=Rules,ou=Rudder,cn=rudder-configuration
+objectClass: rule
+objectClass: top
+ruleId: server-roles
+ruleTarget: special:all_servers_with_role
+directiveId: server-roles-directive
+cn: Rudder system policy: Server roles
+description: Server roles
+isEnabled: TRUE
+isSystem: TRUE
+longDescription: This rule configures the nodes that have Server Roles defined
+serial: 0
+
+# A demonstration rule: group "all nodes", no directive
+dn: ruleId=32377fd7-02fd-43d0-aab7-28460a91347b,ou=Rules,ou=Rudder,cn=rudder
+ -configuration
+objectClass: top
+objectClass: rule
+ruleId: 32377fd7-02fd-43d0-aab7-28460a91347b
+ruleTarget: special:all
+cn: Global configuration for all nodes
+longDescription: This Rule was created automatically when Rudder was installed.
+  It can be used to target Directives to all nodes (including the Rudder root
+  server itself), or deleted if you would rather create your own set of
+  Rules (it will never be created again).
+isEnabled: TRUE
+isSystem: FALSE
+tag: rootRuleCategory
+serial: 0
+
+
+
+#######################################################################################################################
+## Archives
+#######################################################################################################################
+dn: ou=Archives,ou=Rudder,cn=rudder-configuration
+objectClass: organizationalUnit
+objectClass: top
+ou: Archives
+
+#######################################################################################################################
+## API Accounts
+#######################################################################################################################
+dn: ou=API Accounts,ou=Rudder,cn=rudder-configuration
+objectClass: organizationalUnit
+objectClass: top
+ou: API Accounts
+
+## Rudder Parameters configuration branch
+
+dn: ou=Parameters,ou=Rudder,cn=rudder-configuration
+objectClass: organizationalUnit
+objectClass: top
+ou: Parameters
+
+dn: parameterName=rudder_file_edit_header,ou=Parameters,ou=Rudder,cn=rudder-configuration
+objectClass: parameter
+objectClass: top
+parameterName: rudder_file_edit_header
+description: Default inform message put in header of managed files by Rudder
+parameterValue: "### Managed by Rudder, edit with care ###"
+
+## Application properties
+
+dn: ou=Application Properties,cn=rudder-configuration
+objectClass: organizationalUnit
+objectClass: top
+ou: Application Properties
+
+dn: propertyName=rudder_syslog_protocol,ou=Application Properties,cn=rudder-
+ configuration
+objectClass: property
+objectClass: top
+propertyName: rudder_syslog_protocol
+propertyValue: UDP
+
+dn: propertyName=api_compatibility_mode,ou=Application Properties,cn=rudder-configuration
+objectClass: property
+objectClass: top
+propertyName: api_compatibility_mode
+propertyValue: false
+
+dn: propertyName=rudder_featureSwitch_directiveScriptEngine,ou=Application Properties,cn=rudder-configuration
+objectClass: property
+objectClass: top
+propertyName: rudder_featureSwitch_directiveScriptEngine
+propertyValue: enabled
+
+dn: propertyName=rudder_featureSwitch_directiveNodeProperties,ou=Application Properties,cn=rudder-configuration
+objectClass: property
+objectClass: top
+propertyName: rudder_featureSwitch_directiveNodeProperties
+propertyValue: enabled
+
+dn: propertyName=rudder_featureSwitch_quicksearchEverything,ou=Application Properties,cn=rudder-configuration
+objectClass: property
+objectClass: top
+propertyName: rudder_featureSwitch_quicksearchEverything
+propertyValue: enabled
+
+dn: propertyName=rudder_report_protocol_default,ou=Application Properties,cn=rudder-configuration
+objectClass: property
+objectClass: top
+propertyName: rudder_report_protocol_default
+propertyValue: HTTPS
+
+dn: propertyName=rudder_syslog_protocol_disabled,ou=Application Properties,c
+ n=rudder-configuration
+objectClass: property
+objectClass: top
+propertyName: rudder_syslog_protocol_disabled
+propertyValue: true
+

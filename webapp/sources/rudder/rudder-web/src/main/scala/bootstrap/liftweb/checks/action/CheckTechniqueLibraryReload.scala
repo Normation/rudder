@@ -39,7 +39,6 @@ package bootstrap.liftweb.checks.action
 
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.utils.StringUuidGenerator
 
@@ -55,9 +54,8 @@ import java.io.File
  * This needs to be achieved after all tasks that could modify configuration are done
  */
 class CheckTechniqueLibraryReload(
-    techniqueLibUpdater  : UpdateTechniqueLibrary
-  , asyncDeploymentAgent : AsyncDeploymentActor
-  , uuidGen              : StringUuidGenerator
+    techniqueLibUpdater: UpdateTechniqueLibrary
+  , uuidGen            : StringUuidGenerator
 ) extends BootstrapChecks {
 
   override val description = "Check for force reload of Techniques library"

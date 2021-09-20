@@ -39,9 +39,11 @@ package com.normation.rudder.services.servers
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
+
 import net.liftweb.common.Loggable
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+
 import ca.mrvisser.sealerate
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.TechniqueName
@@ -50,13 +52,16 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.logger.ApplicationLogger
+
 import com.unboundid.ldap.sdk.DN
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
+
 import zio._
 import zio.syntax._
 import com.normation.errors._
 import com.normation.eventlog.EventLogDetails
+import com.normation.ldap.sdk.LDAPEntry
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification
@@ -84,9 +89,11 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.StringComparator
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.rule.category.RuleCategoryId
+
 import com.normation.zio._
 import zio.json._
 import com.normation.rudder.services.servers.json._
+
 import com.softwaremill.quicklens._
 import net.liftweb.common.Box
 
@@ -316,9 +323,20 @@ class PolicyServerManagementServiceImpl(
    */
   val lock = Semaphore.make(1).runNow
 
+
+
+  private def getDefaultSettingEntryIfMissing = {
+    val entry = dit.APPCONFIG.propertyModel(RudderWebPropertyName(PROP_NAME))
+    entry.resetValuesTo(RudderLDAPConstants.A_PROPERTY_VALUE, """[{"id":"root","allowed-networks":[]}]""")
+    entry
+  }
+
   private def getLdap(con: RwLDAPConnection) = {
     for {
-      entry   <- con.get(dit.APPCONFIG.propertyDN(RudderWebPropertyName(PROP_NAME))).notOptional(s"LDAP setting entry ${PROP_NAME} was not found. It may be a bug, please report it.")
+      entry   <- con.get(dit.APPCONFIG.propertyDN(RudderWebPropertyName(PROP_NAME))).map {
+                   case Some(e) => e
+                   case None    => getDefaultSettingEntryIfMissing
+                 }
       json    <- entry(RudderLDAPConstants.A_PROPERTY_VALUE).notOptional(s"Value for policy servers is empty, while we should always have root server defined. It may be a bug, please report it.")
       servers <- json.fromJson[JPolicyServers].toIO
     } yield {
@@ -326,6 +344,10 @@ class PolicyServerManagementServiceImpl(
     }
   }
 
+  /*
+   * Get policy servers. If the setting property is missing (for example in migration), returns just root with
+   * no allowed networks.
+   */
   override def getPolicyServers(): IOResult[PolicyServers] = {
     for {
       con     <- ldap
@@ -490,17 +512,16 @@ object PolicyServerConfigurationObjects {
   }
 
   val relayTechniques = List("server-common", "rudder-service-apache","rudder-service-relayd")
-  val rootTechniques = List("rudder-service-postgresql","rudder-service-slapd","rudder-service-webapp")
+  val rootTechniques = List("rudder-service-postgresql","rudder-service-slapd","rudder-service-webapp") ::: relayTechniques
 
-  def directiveCommonHasPolicyServer(nodeId: NodeId, hostname: String, policyServerId: NodeId) = {
+  def directiveCommonHasPolicyServer(nodeId: NodeId) = {
     TechniqueName("common") ->
       s"common-hasPolicyServer-${nodeId.value}".toDirective
         .modify(_.parameters).setTo(Map(
              "OWNER"              -> Seq("${rudder.node.admin}")
            , "UUID"               -> Seq("${rudder.node.id}")
-           , "POLICYSERVER"       -> Seq(hostname)
-           , "POLICYSERVER_ID"    -> Seq(policyServerId.value)
-           , "POLICYSERVER_ADMIN" -> Seq("root")
+           , "POLICYSERVER_ID"    -> Seq("${rudder.node.policyserver.id}")
+           , "POLICYSERVER_ADMIN" -> Seq("${rudder.node.policyserver.admin}")
          ))
         .modify(_.name).setTo(s"Common - ${nodeId.value}")
         .modify(_.shortDescription).setTo(s"Common policy for nodes with '${nodeId.value}' for policy server")
@@ -526,8 +547,8 @@ object PolicyServerConfigurationObjects {
     val objectType = ObjectCriterion("node", Seq(Criterion("policyServerId", StringComparator, None),Criterion("agentName", AgentComparator, None)))
     NodeGroup(
         NodeGroupId(s"hasPolicyServer-${nodeId.value}")
-      , s"All nodes managed by ${nodeId.value} policy server"
-      , s"All nodes known by Rudder directly connected to the ${nodeId.value} server. This group exists only as internal purpose and should not be used to configure Nodes."
+      , s"All nodes managed by '${nodeId.value}' policy server"
+      , s"All nodes known by Rudder directly connected to the '${nodeId.value}' server. This group exists only as internal purpose and should not be used to configure Nodes."
       , Nil
       , Some(
           Query(
@@ -575,10 +596,9 @@ object PolicyServerConfigurationObjects {
   }
 
   /*
-   * Get system configuration objects (directives, groups, rules) for policyServerId with given hostname.
-   * parentPolicyServerId is the policyServer'policyServer (and for root, it's itself)
+   * Get system configuration objects (directives, groups, rules) for policyServerId
    */
-  def getConfigurationObject(policyServerId: NodeId, hostname: String, parentPolicyServerId: NodeId): PolicyServerConfigurationObjects = {
+  def getConfigurationObject(policyServerId: NodeId): PolicyServerConfigurationObjects = {
     val techniques = if(policyServerId == Constants.ROOT_POLICY_SERVER_ID) {
       rootTechniques
     } else {
@@ -586,7 +606,7 @@ object PolicyServerConfigurationObjects {
     }
 
     PolicyServerConfigurationObjects(
-        Map(directiveServerCommon(policyServerId), directiveCommonHasPolicyServer(policyServerId, hostname, parentPolicyServerId))
+        Map(directiveServerCommon(policyServerId), directiveCommonHasPolicyServer(policyServerId))
           ++ directiveServices(policyServerId).filter { case (t, d) => techniques.contains(t.value) }
       , groupHasPolicyServer(policyServerId) :: Nil
       , PolicyServerTarget(policyServerId) :: Nil

@@ -1,0 +1,160 @@
+#####################################################################################
+# Copyright 2021 Normation SAS
+#####################################################################################
+#
+# This file is part of Rudder.
+#
+# Rudder is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# In accordance with the terms of section 7 (7. Additional Terms.) of
+# the GNU General Public License version 3, the copyright holders add
+# the following Additional permissions:
+# Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+# Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+# Public License version 3, when you create a Related Module, this
+# Related Module is not considered as a part of the work and may be
+# distributed under the license agreement of your choice.
+# A "Related Module" means a set of sources files including their
+# documentation that, without modification of the Source Code, enables
+# supplementary functions or services in addition to those offered by
+# the Software.
+#
+# Rudder is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+#
+#####################################################################################
+
+dn: nodeId=ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,ou=Nodes,cn=rudder-configuration
+objectClass: rudderPolicyServer
+objectClass: rudderNode
+objectClass: top
+cn: ba7e3ca5-a967-40d8-aa97-41a3ff450fd2
+nodeId: ba7e3ca5-a967-40d8-aa97-41a3ff450fd2
+description: relay1
+isSystem: TRUE
+isBroken: FALSE
+
+dn: nodeId=ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: node
+objectClass: unixNode
+objectClass: linuxNode
+nodeId: root
+osKernelVersion: 1.0-dummy-version
+osName: Linux
+osVersion: Linux
+localAccountName: root
+cn: ba7e3ca5-a967-40d8-aa97-41a3ff450fd2
+localAdministratorAccountName: root
+nodeHostname: relay1.rudder.test
+PolicyServerId: root
+inventoryDate: 19700101000000+0200
+receiveDate: 19700101000000+0200
+ipHostNumber: 127.0.0.1
+agentName: {"agentType":"cfengine-community","version":"not-init","securityToken":{"value":"CLEARLY NOT REAL CERTIFICATE DATA","type":"certificate"}}
+rudderServerRole: rudder-reports
+
+#######################################################################################################################
+## Node groups (including special target)
+#######################################################################################################################
+
+dn: nodeGroupId=hasPolicyServer-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: nodeGroup
+objectClass: top
+cn: All classic Nodes managed by ba7e3ca5-a967-40d8-aa97-41a3ff450fd2 policy server
+description: All classic Nodes known by Rudder directly connected to the ba7e3ca5-a967-40d8-aa97-41a3ff450fd2 server. This group exists only as internal purpose and should not be used to configure nodes.
+isDynamic: TRUE
+nodeGroupId: hasPolicyServer-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2
+nodeId: ba7e3ca5-a967-40d8-aa97-41a3ff450fd2
+isSystem: TRUE
+isEnabled: TRUE
+jsonNodeGroupQuery: {"select":"nodeAndPolicyServer","composition":"And","where":[
+ {"objectType":"node","attribute":"policyServerId","comparator":"eq","value":"ba7e3ca5-a967-40d8-aa97-41a3ff450fd2"},
+ {"objectType":"node","attribute":"agentName","comparator":"eq","value":"cfengine"}
+ ]}
+
+dn: ruleTarget=policyServer:ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialRuleTarget
+objectClass: top
+ruleTarget: policyServer:ba7e3ca5-a967-40d8-aa97-41a3ff450fd2
+cn: ba7e3ca5-a967-40d8-aa97-41a3ff450fd2 policy server
+description: Only the ba7e3ca5-a967-40d8-aa97-41a3ff450fd2 policy server
+isEnabled: TRUE
+isSystem: TRUE
+
+
+#######################################################################################################################
+## Directives
+#######################################################################################################################
+
+dn: directiveId=ba7e3ca5-a967-40d8-aa97-41a3ff450fd2-distributePolicy,activeTechniqueId=distributePolicy,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: ba7e3ca5-a967-40d8-aa97-41a3ff450fd2-distributePolicy
+cn: Distribute Policy
+description: Distribute policy - Technical
+techniqueVersion: 0:1.0
+isEnabled: TRUE
+isSystem: TRUE
+directivePriority: 0
+
+# common (has policy server)
+
+dn: directiveId=common-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,activeTechniqueId=common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: common-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2
+cn: Common
+description: Common - Technical
+techniqueVersion: 0:1.0
+isEnabled: TRUE
+isSystem: TRUE
+directivePriority: 0
+directiveVariable: OWNER[0]:${rudder.node.admin}
+directiveVariable: UUID[0]:${rudder.node.id}
+directiveVariable: POLICYSERVER[0]:relay1.rudder.test
+directiveVariable: POLICYSERVER_ID[0]:ba7e3ca5-a967-40d8-aa97-41a3ff450fd2
+directiveVariable: POLICYSERVER_ADMIN[0]:root
+directiveVariable: ALLOWEDNETWORK[0]:192.168.2.0/24
+directiveVariable: ALLOWEDNETWORK[1]:192.168.3.0/24
+
+
+#######################################################################################################################
+## Rules
+#######################################################################################################################
+
+dn: ruleId=ba7e3ca5-a967-40d8-aa97-41a3ff450fd2-DP,ou=Rules,ou=Rudder,cn=rudder-configuration
+objectClass: rule
+objectClass: top
+ruleId: ba7e3ca5-a967-40d8-aa97-41a3ff450fd2-DP
+ruleTarget: policyServer:ba7e3ca5-a967-40d8-aa97-41a3ff450fd2
+directiveId: ba7e3ca5-a967-40d8-aa97-41a3ff450fd2-distributePolicy
+cn: Rudder system policy: Distribute Policy
+description: Distribute Policy - Technical
+isEnabled: TRUE
+isSystem: TRUE
+longDescription: This rule allows to distribute policies to nodes
+serial: 0
+
+dn: ruleId=hasPolicyServer-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,ou=Rules,ou=Rudder,cn=rudder-configuration
+objectClass: rule
+objectClass: top
+ruleId: hasPolicyServer-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2
+ruleTarget: group:hasPolicyServer-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2
+directiveId: common-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2
+cn: Rudder system policy: basic setup (common)
+description: Common - Technical
+isEnabled: TRUE
+isSystem: TRUE
+longDescription: This is the basic system rule which all nodes must have.
+serial: 0
+
