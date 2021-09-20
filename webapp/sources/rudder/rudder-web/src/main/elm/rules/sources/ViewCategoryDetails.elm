@@ -27,7 +27,7 @@ editionTemplateCat model details =
        Just cat -> text cat.name
 
     categoryForm =
-      if model.ui.hasWriteRights == True then
+      if model.ui.hasWriteRights then
         form[class "col-xs-12 col-sm-6 col-lg-7"]
         [ div [class "form-group"]
           [ label[for "category-name"][text "Name"]
@@ -75,7 +75,7 @@ editionTemplateCat model details =
         , div[class "header-buttons"]
           ( button [class "btn btn-default", type_ "button", onClick CloseDetails]
             [ text "Close", i [ class "fa fa-times"][]]
-          :: ( if model.ui.hasWriteRights == True then
+          :: ( if model.ui.hasWriteRights then
               [ div [ class "btn-group" ]
                 [ button [ class "btn btn-danger" , onClick (OpenDeletionPopupCat category)]
                   [ text "Delete", i [ class "fa fa-times-circle"][]]

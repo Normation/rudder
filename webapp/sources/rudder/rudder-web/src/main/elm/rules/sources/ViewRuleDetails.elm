@@ -34,7 +34,7 @@ editionTemplate model details =
       case originRule of
         Just or ->
           let
-            txtDisabled = if rule.enabled == True then "Disable" else "Enable"
+            txtDisabled = if rule.enabled then "Disable" else "Enable"
           in
 
             [ button [ class "btn btn-default dropdown-toggle" , attribute "data-toggle" "dropdown" ] [
