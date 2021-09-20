@@ -22,14 +22,15 @@
 # @documentation See [service_action](#_service_action) for documentation.
 #
 # @parameter name Name of the service
-# @parameter trigger_class class(es) which will trigger the restart of Service "(package_service_installed|service_conf_changed)" by example
+# @parameter expression Condition expression which will trigger the restart of Service "(package_service_installed|service_conf_changed)" by example
 # 
 # @parameter_name name service_name
+# @parameter_name expression restart_condition
 #
 # @class_prefix service_restart
 # @class_parameter name
 
-bundle agent service_restart_if(name, trigger_class)
+bundle agent service_restart_if(name, expression)
 {
   vars:
 
@@ -37,7 +38,7 @@ bundle agent service_restart_if(name, trigger_class)
 
       "old_class_prefix"             string => "service_restart_${canonified_name}";
 
-      "args"                          slist => { "${name}",  "${trigger_class}" };
+      "args"                          slist => { "${name}",  "${expression}" };
 
       "report_param"                 string => join("_", args);
       "full_class_prefix"            string => canonify("service_restart_${report_param}");
@@ -55,24 +56,24 @@ bundle agent service_restart_if(name, trigger_class)
       # Create kept class
       "success_class"              usebundle  => _classes_success("${old_class_prefix}"),
                                    # parenthesis used to negate all the classes
-                                   ifvarclass => "!(${trigger_class})";
+                                   ifvarclass => "!(${expression})";
 
       "success_class"              usebundle  => _classes_success("${class_prefix}"),
                                    # parenthesis used to negate all the classes
-                                   ifvarclass => "!(${trigger_class})";
+                                   ifvarclass => "!(${expression})";
 
       "restart"                    usebundle  => service_action("${name}", "restart"),
-                                   ifvarclass => "${trigger_class}";
+                                   ifvarclass => "${expression}";
 
       "class copy"                 usebundle  => _classes_copy("${inner_class_prefix}", "${old_class_prefix}"),
-                                   ifvarclass => "${trigger_class}";
+                                   ifvarclass => "${expression}";
 
       "class copy"                 usebundle  => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
-                                   ifvarclass => "${trigger_class}";
+                                   ifvarclass => "${expression}";
 
       "reenable_reporting_${class_prefix}"
                                     usebundle => enable_reporting,
                                    ifvarclass => "should_report";
 
-      "report"                     usebundle  => _log_v3("Restart service ${canonified_name} if '${trigger_class}' condition defined", "${name}", "service_restart_${canonified_name}", "${class_prefix}", @{args});
+      "report"                     usebundle  => _log_v3("Restart service ${canonified_name} if '${expression}' condition defined", "${name}", "service_restart_${canonified_name}", "${class_prefix}", @{args});
 }

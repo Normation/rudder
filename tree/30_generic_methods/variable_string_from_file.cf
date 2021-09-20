@@ -30,7 +30,7 @@
 # @class_prefix variable_string_from_file
 # @class_parameter variable_name
 
-bundle agent variable_string_from_file(variable_prefix, variable_name, file_name)
+bundle agent variable_string_from_file(prefix, name, file_name)
 {
   vars:
       "old_class_prefix"  string => canonify("variable_string_from_file_${variable_name}");

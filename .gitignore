@@ -1,5 +1,3 @@
-api/flask
-api/virtualenv.py
 local/*
 tests/acceptance/.succeeded/*
 tests/acceptance/summary.log
@@ -16,12 +14,6 @@ tests/style/workdir/*
 doc/all_generic_methods.txt
 doc/generic_methods.md
 doc/generic_methods.html
-site/content/generic_methods.md
-site/pelican-bootstrap3/templates/includes/generic_methods.html
-site/content/index.md
-site/output/*
-site/cache/*
-site/*.pid
 *.pyc
 *.swp
 .ncf-exclude-cache*

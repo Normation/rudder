@@ -24,34 +24,34 @@
 # Note: there is a limit of 10000 items
 # Note: empty items are ignored
 #
-# To use the generated variable, you must use the form `${variable_prefix.variable_name}` with each name replaced with the parameters of this method.
+# To use the generated variable, you must use the form `${prefix.name}` with each name replaced with the parameters of this method.
 # 
 # Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
 # Please note that only global variables are available within templates.
 #
-# @parameter variable_prefix  The prefix of the variable name
-# @parameter variable_name    The variable to define, the full name will be variable_prefix.variable_name
+# @parameter prefix  The prefix of the variable name
+# @parameter name    The variable to define, the full name will be prefix.name
 # @parameter file_name        The path to the file
 # @parameter separator_regex  Regular expression that is used to split the value into items ( usually: \n )
 # @parameter comments_regex   Regular expression that is used to remove comments ( usually: \s*#.*?(?=\n) )
 # 
 # @class_prefix variable_iterator_from_file
-# @class_parameter variable_name
+# @class_parameter name
 
-bundle agent variable_iterator_from_file(variable_prefix, variable_name, file_name, separator_regex, comments_regex)
+bundle agent variable_iterator_from_file(prefix, name, file_name, separator_regex, comments_regex)
 {
   vars:
-      "old_class_prefix"  string => canonify("variable_iterator_from_file_${variable_name}");
-      "args"               slist => { "${variable_prefix}", "${variable_name}", "${file_name}", "${separator_regex}", "${comments_regex}" };
+      "old_class_prefix"  string => canonify("variable_iterator_from_file_${name}");
+      "args"               slist => { "${prefix}", "${name}", "${file_name}", "${separator_regex}", "${comments_regex}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("variable_iterator_from_file_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
-      # define the variable within the variable_prefix namespace
-      "${variable_prefix}.${variable_name}" slist => readstringlist("${file_name}", "${comments_regex}", "${separator_regex}", "10000", "0");
+      # define the variable within the prefix namespace
+      "${prefix}.${name}" slist => readstringlist("${file_name}", "${comments_regex}", "${separator_regex}", "10000", "0");
 
   classes:
-     "variable_defined" expression => isvariable("${variable_prefix}.${variable_name}");
+     "variable_defined" expression => isvariable("${prefix}.${name}");
 
   methods:
     !variable_defined::
@@ -64,5 +64,5 @@ bundle agent variable_iterator_from_file(variable_prefix, variable_name, file_na
 
     any::
       "report"
-        usebundle  => _log_v3("Set the iterator ${variable_prefix}.${variable_name} value to ${file_name} content", "${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Set the iterator ${prefix}.${name} value to ${file_name} content", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

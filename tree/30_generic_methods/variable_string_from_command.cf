@@ -19,7 +19,7 @@
 # @name Variable string from command
 # @description Define a variable from a command output
 # @documentation Define a variable from a command output.
-# The method will execute a shell command and define a variable `${variable_prefix.variable_name}` from it.
+# The method will execute a shell command and define a variable `${prefix.name}` from it.
 #
 # * Only `stdout` is kept
 # * The variable will only be defined if the exit code of the command is 0
@@ -27,18 +27,18 @@
 # report an error otherwise.
 # * The command will be executed even in *Audit mode*
 #
-# @parameter variable_prefix The prefix of the variable name
-# @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
+# @parameter prefix The prefix of the variable name
+# @parameter name   The variable to define, the full name will be prefix.name
 # @parameter command         The command to execute
 #
 # @class_prefix variable_string_from_command
-# @class_parameter variable_name
+# @class_parameter name
 
-bundle agent variable_string_from_command(variable_prefix, variable_name, command)
+bundle agent variable_string_from_command(prefix, name, command)
 {
   vars:
-      "old_class_prefix"  string => canonify("variable_string_from_command_${variable_name}");
-      "args"               slist => { "${variable_prefix}", "${variable_name}", "${command}" };
+      "old_class_prefix"  string => canonify("variable_string_from_command_${name}");
+      "args"               slist => { "${prefix}", "${name}", "${command}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("variable_string_from_command_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
@@ -65,9 +65,9 @@ bundle agent variable_string_from_command(variable_prefix, variable_name, comman
       "raw_code" string => string_head("${temp}", "3");
       "code" string => format("%d", "${raw_code}");
 
-      # define the variable within the variable_prefix namespace
+      # define the variable within the prefix namespace
     pass2::
-      "${variable_prefix}.${variable_name}" string =>  string_tail("${temp}", "${output_length}"),
+      "${prefix}.${name}" string =>  string_tail("${temp}", "${output_length}"),
                                         ifvarclass => "returned_zero";
 
   classes:
@@ -75,7 +75,7 @@ bundle agent variable_string_from_command(variable_prefix, variable_name, comman
       "returned_zero" expression => strcmp("${code}", "0");
 
     pass2::
-      "variable_defined" expression => isvariable("${variable_prefix}.${variable_name}");
+      "variable_defined" expression => isvariable("${prefix}.${name}");
 
     any::
       "pass3" expression => "pass2";
@@ -93,11 +93,11 @@ bundle agent variable_string_from_command(variable_prefix, variable_name, comman
 
     pass3::
       "report"
-        usebundle  => _log_v3("Set the string ${variable_prefix}.${variable_name} to the output of '${command}'", "${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Set the string ${prefix}.${name} to the output of '${command}'", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   reports:
     pass3.info.returned_zero::
-      "The '${command}' command returned '${${variable_prefix}.${variable_name}}'";
+      "The '${command}' command returned '${${prefix}.${name}}'";
     pass3.info.!returned_zero::
       "The '${command}' command failed with ${code} code";
 }

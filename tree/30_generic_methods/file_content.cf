@@ -61,6 +61,7 @@
 # @parameter enforce Enforce the file to contain only line(s) defined (true or false)
 #
 # @parameter_name path file
+# @parameter_name enforce replace_content
 # 
 # @class_prefix file_lines_present
 # @class_parameter path

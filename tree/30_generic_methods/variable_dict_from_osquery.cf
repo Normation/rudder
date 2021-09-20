@@ -18,7 +18,7 @@
 
 # @name Variable dict from osquery
 # @description Define a variable that contains key,value pairs (a dictionary) from an osquery query
-# @documentation To use the generated variable, you must use the form `${variable_prefix.variable_name[key]}` with each name replaced with the parameters of this method.
+# @documentation To use the generated variable, you must use the form `${prefix.name[key]}` with each name replaced with the parameters of this method.
 # 
 # Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
 # Please note that only global variables are available within templates.
@@ -62,31 +62,31 @@
 # 
 # To access this value, use the `${prefix.var1[0][cpu_logical_cores]}` syntax.
 #
-# @parameter variable_prefix The prefix of the variable name
-# @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
+# @parameter prefix The prefix of the variable name
+# @parameter name   The variable to define, the full name will be prefix.name
 # @parameter query           The query to execute (ending with a semicolon)
 # 
 # @class_prefix variable_dict_from_osquery
-# @class_parameter variable_name
+# @class_parameter name
 
-bundle agent variable_dict_from_osquery(variable_prefix, variable_name, query)
+bundle agent variable_dict_from_osquery(prefix, name, query)
 {
   vars:
-      "old_class_prefix"  string => canonify("variable_dict_from_osquery_${variable_name}");
-      "args"               slist => { "${variable_prefix}", "${variable_name}", "${query}" };
+      "old_class_prefix"  string => canonify("variable_dict_from_osquery_${name}");
+      "args"               slist => { "${prefix}", "${name}", "${query}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("variable_dict_from_osquery_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
     pass2::
-      "${variable_prefix}.${variable_name}" data => parsejson("${variable_dict_from_osquery_tmp.${variable_name}}"),
-                                              if => "variable_string_from_command_${variable_name}_ok";
+      "${prefix}.${name}" data => parsejson("${variable_dict_from_osquery_tmp.${name}}"),
+                                              if => "variable_string_from_command_${name}_ok";
 
   classes:
       "should_report"    expression => "${report_data.should_report}";
 
     pass2::
-      "variable_defined" expression => isvariable("${variable_prefix}.${variable_name}");
+      "variable_defined" expression => isvariable("${prefix}.${name}");
 
     any::
       "pass3" expression => "pass2";
@@ -96,7 +96,7 @@ bundle agent variable_dict_from_osquery(variable_prefix, variable_name, query)
   methods:
       "disable_reporting_${class_prefix}"  usebundle => disable_reporting;
       # store string output in temp variable
-      "query" usebundle => variable_string_from_command("variable_dict_from_osquery_tmp", "${variable_name}", "osqueryi --json \"${query}\" 2>/dev/null");
+      "query" usebundle => variable_string_from_command("variable_dict_from_osquery_tmp", "${name}", "osqueryi --json \"${query}\" 2>/dev/null");
       "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
                                            ifvarclass => "should_report";
 
@@ -110,5 +110,5 @@ bundle agent variable_dict_from_osquery(variable_prefix, variable_name, query)
 
     pass3::
       "report"
-        usebundle  => _log_v3("Set the dict ${variable_prefix}.${variable_name} to the result of the '${query}' query", "${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Set the dict ${prefix}.${name} to the result of the '${query}' query", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

@@ -21,20 +21,22 @@
 #
 # @parameter group Group name
 
+# @parameter_name name group_name
+
 # @class_prefix group_present
 # @class_parameter group
 
-bundle agent group_present(group)
+bundle agent group_present(name)
 {
   vars:
-      "old_class_prefix"  string => canonify("group_present_${group}");
-      "args"               slist => { "${group}" };
+      "old_class_prefix"  string => canonify("group_present_${name}");
+      "args"               slist => { "${name}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("group_present_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   classes:
-      "group_present" expression => groupexists("${group}");
+      "group_present" expression => groupexists("${name}");
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
@@ -45,11 +47,11 @@ bundle agent group_present(group)
 
     pass2::
       "report"
-        usebundle => _log_v3("Group ${group} present", "${group}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle => _log_v3("Group ${name} present", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
     !group_present.!aix::
-      "/usr/sbin/groupadd ${group}" classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+      "/usr/sbin/groupadd ${name}" classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
     !group_present.aix::
-      "/usr/bin/mkgroup ${group}"   classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+      "/usr/bin/mkgroup ${name}"   classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 }
