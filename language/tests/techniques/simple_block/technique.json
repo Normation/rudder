@@ -10,6 +10,9 @@
       "component": "Block",
       "id": "606b7f69-2b94-4bec-9050-a88196d48c14",
       "condition": "debian",
+      "reportingLogic":{
+        "type":"sum"
+      },
       "calls": [
         {
           "parameters": [

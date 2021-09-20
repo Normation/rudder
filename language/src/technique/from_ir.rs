@@ -261,6 +261,7 @@ fn value_to_string(
     })
 }
 
+// TODO this should output a Result, a valid Rudder language file is not always a valid Rudder technique
 fn statement_to_method_call(
     ir: &IR2,
     res_def: &ResourceDef,
@@ -410,6 +411,7 @@ fn statement_to_method_call(
             .collect::<Vec<MethodElem>>(),
         Statement::BlockDeclaration(block) => {
             let optComponent = block.metadata.get("component");
+            let reportingLogic = block.metadata.get("reporting_logic");
             let component = match optComponent {
                 Some(TomlValue::String(componentName)) => componentName.to_owned(),
                 _ => String::from(""),
@@ -430,8 +432,29 @@ fn statement_to_method_call(
                     statement_to_method_call(ir, res_def, state_def, child, String::from(""))
                 })
                 .collect::<Vec<MethodElem>>();
-
+            let reportingLogic = match reportingLogic {
+                Some(r) => {
+                    let logic = r.as_str().expect("Invalid reporting logic");
+                    if logic == "sum" {
+                        ReportingLogic::Sum
+                    } else if logic == "worst" {
+                        ReportingLogic::Worst
+                    } else {
+                        let mut it = logic.split(":");
+                        if it.next().expect("Invalid reporting logic value") != "focus" {
+                            panic!("Reporting logic must be a known item (sum,worst or focus)");
+                        }
+                        ReportingLogic::Focus(
+                            it.next()
+                                .expect("Focus reporting logic must have a value")
+                                .into(),
+                        )
+                    }
+                }
+                None => ReportingLogic::Sum,
+            };
             let block = MethodBlock {
+                reportingLogic,
                 component,
                 condition,
                 calls: childs,
