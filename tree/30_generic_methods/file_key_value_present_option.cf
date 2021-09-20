@@ -42,6 +42,9 @@ bundle agent file_key_value_present_option(file, key, value, separator, option)
       "full_class_prefix" string => canonify("file_key_value_present_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
+      "updated_full_class_prefix" string => canonify("file_key_value_present_option_${report_param}");
+      "updated_class_prefix"      string => string_head("${updated_full_class_prefix}", "1000");
+
       "keys[${key}]" string => "${value}";
 
     pass1.strict_spacing::
@@ -67,7 +70,8 @@ bundle agent file_key_value_present_option(file, key, value, separator, option)
 
   methods:
     pass2::
-      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
-      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Ensure line in format key${separator}value in ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "sanitize"          usebundle => _classes_sanitize("${class_prefix}");
+      "sanitize"          usebundle => _classes_sanitize("${old_class_prefix}");
+      "copy_class_prefix" usebundle => _classes_copy("${class_prefix}", "${updated_class_prefix}");
+      "report"            usebundle => _log_v3("Ensure line in format key${separator}value in ${file}", "${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
