@@ -40,6 +40,10 @@ port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
 port warnNotification    : String -> Cmd msg
 port infoNotification    : String -> Cmd msg
+port pushUrl             : String -> Cmd msg
+port getUrl             : () -> Cmd msg
+
+port readUrl : (String -> msg) -> Sub msg
 
 
 -- utility to write a understandable debug message from a get response
@@ -83,9 +87,9 @@ parseResponse (json, optJson, internalId) =
 mainInit : { contextPath : String, hasWriteRights : Bool  } -> ( Model, Cmd Msg )
 mainInit initValues =
   let
-    model =  Model [] Dict.empty [] Introduction initValues.contextPath "" (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights
+    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Introduction initValues.contextPath "" (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights
   in
-    (model, Cmd.batch ( [ getMethods model, getTechniquesCategories model ]) )
+    (model, Cmd.batch ( [ getMethods model, getTechniquesCategories model]) )
 
 updatedStoreTechnique: Model -> Cmd msg
 updatedStoreTechnique model =
@@ -114,6 +118,10 @@ subscriptions model =
     Sub.batch
         [ response parseResponse
         , updateResources (always (updateResourcesResponse model))
+        , readUrl (\s -> case List.Extra.find (.id >> .value >> (==) s ) model.techniques of
+                    Just t -> SelectTechnique t
+                    Nothing -> Ignore
+                  )
         ]
 
 
@@ -127,7 +135,7 @@ selectTechnique model technique =
   in
     ({ model | mode = TechniqueDetails technique (Edit technique) ui } )
       |> update OpenMethods
-      |> Tuple.mapSecond ( always ( Cmd.batch [ updatedStoreTechnique model, getRessources (Edit technique) model ]  ))
+      |> Tuple.mapSecond ( always ( Cmd.batch [ updatedStoreTechnique model, getRessources (Edit technique) model, pushUrl technique.id.value  ]  ))
 
 generator : Random.Generator String
 generator = Random.map (UUID.toString) UUID.generator
@@ -160,12 +168,12 @@ update msg model =
 -- UI high level stuff: list/filter techniques, create/import/select technique
 
     GetCategories (Ok categories) ->
-      ({ model | categories = List.sortBy .name categories}, Cmd.none )
+      ({ model | categories = categories}, Cmd.none )
     GetCategories (Err _) ->
       ( model , Cmd.none )
 
     GetTechniques (Ok  techniques) ->
-      ({ model | techniques = techniques},  get () )
+      ({ model | techniques = techniques},  getUrl () )
     GetTechniques (Err err) ->
       ( model , errorNotification  ("Error when getting techniques: " ++ debugHttpErr err  ) )
 

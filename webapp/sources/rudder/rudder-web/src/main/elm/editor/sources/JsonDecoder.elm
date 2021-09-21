@@ -176,8 +176,10 @@ decodeDeleteTechniqueResponse =
 decodeCategory : Decoder TechniqueCategory
 decodeCategory =
   succeed TechniqueCategory
-    |> required "path" string
+    |> required "id" string
     |> required "name" string
+    |> required "path" string
+    |> optional  "subCategories" (map SubCategories (list (lazy (\_ -> decodeCategory)))) ( SubCategories [] )
 
 decodeResource : Decoder Resource
 decodeResource =
