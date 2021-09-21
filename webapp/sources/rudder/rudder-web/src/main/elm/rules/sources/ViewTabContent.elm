@@ -387,9 +387,12 @@ tabContent model details =
             in
               span [class ("rudder-label label-sm label-" ++ policyMode)][]
 
-          buildIncludeList : RuleTarget -> Html Msg
-          buildIncludeList ruleTarget =
+          buildIncludeList : Bool -> RuleTarget -> Html Msg
+          buildIncludeList includeBool ruleTarget =
+
             let
+              groupsList = getAllElems model.groupsTree
+
               id = case ruleTarget of
                 NodeGroupId groupId -> groupId
                 Composition _ _ -> "compo"
@@ -398,14 +401,17 @@ tabContent model details =
                 Or _ -> "or"
                 And _ -> "and"
 
+              groupName = case List.Extra.find (\g -> g.id == id) groupsList of
+                Just gr -> gr.name
+                Nothing -> id
 
               rowIncludeGroup = li[]
                 [ span[class "fa fa-sitemap"][]
                 , a[href ("/rudder/secure/configurationManager/#" ++ "")]
                   [ badgePolicyModeGroup "default"
-                  , span [class "target-name"][text id]
+                  , span [class "target-name"][text groupName]
                   ]
-                , span [class "target-remove", onClick (SelectGroup (NodeGroupId id) True)][ i [class "fa fa-times"][] ]
+                , span [class "target-remove", onClick (SelectGroup (NodeGroupId id) includeBool)][ i [class "fa fa-times"][] ]
                 , span [class "border"][]
                 ]
             in
@@ -444,33 +450,52 @@ tabContent model details =
             let
               groupTreeElem : Group -> Html Msg
               groupTreeElem item =
-                    li [class "jstree-node jstree-leaf"]
-                    [ i[class "jstree-icon jstree-ocl"][]
-                    , a[href "#", class "jstree-anchor"]
-                      [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
-                      , span [class "treeGroupName tooltipable"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
-                      , div [class "treeActions-container"]
-                        [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (SelectGroup (NodeGroupId item.id) True)][]]
-                        , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onClick (SelectGroup (NodeGroupId item.id) False)][]]
-                        ]
+                let
+                  checkIncludeOrExclude : List RuleTarget -> Bool
+                  checkIncludeOrExclude lst = lst
+                    |> List.map (\t -> case t of
+                       NodeGroupId groupId -> groupId
+                       Composition _ _ -> "compo"
+                       Special spe -> spe
+                       Node node -> node
+                       Or _ -> "or"
+                       And _ -> "and"
+                    )
+                    |> List.member item.id
+
+                  includeClass =
+                    if checkIncludeOrExclude includedTargets then " item-selected"
+                    else if checkIncludeOrExclude excludedTargets then " item-selected excluded"
+                    else ""
+
+                in
+                  li [class "jstree-node jstree-leaf"]
+                  [ i[class "jstree-icon jstree-ocl"][]
+                  , a[href "#", class ("jstree-anchor" ++ includeClass)]
+                    [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
+                    , span [class "treeGroupName tooltipable"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
+                    , div [class "treeActions-container"]
+                      [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (SelectGroup (NodeGroupId item.id) True)][]]
+                      , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onClick (SelectGroup (NodeGroupId item.id) False)][]]
                       ]
                     ]
+                  ]
 
               groupTreeCat : Category Group -> Html Msg
               groupTreeCat item =
-                    let
-                      categories = List.map groupTreeCat (getSubElems item)
-                      groups = List.map groupTreeElem item.elems
-                      childsList  = ul[class "jstree-children"](categories ++ groups)
-                    in
-                      li[class "jstree-node jstree-open"]
-                      [ i[class "jstree-icon jstree-ocl"][]
-                      , a[href "#", class "jstree-anchor"]
-                        [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-                        , span [class "treeGroupCategoryName tooltipable"][text item.name]
-                        ]
-                      , childsList
-                      ]
+                let
+                  categories = List.map groupTreeCat (getSubElems item)
+                  groups = List.map groupTreeElem item.elems
+                  childsList  = ul[class "jstree-children"](categories ++ groups)
+                in
+                  li[class "jstree-node jstree-open"]
+                  [ i[class "jstree-icon jstree-ocl"][]
+                  , a[href "#", class "jstree-anchor"]
+                    [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
+                    , span [class "treeGroupCategoryName tooltipable"][text item.name]
+                    ]
+                  , childsList
+                  ]
 
 
               (includedTargets, excludedTargets) =
@@ -497,7 +522,7 @@ tabContent model details =
                          ]
                        ]
                        else
-                         List.map (buildIncludeList) includedTargets
+                         List.map (buildIncludeList True) includedTargets
                     )
                   ]
                 , div[class "list-container"]
@@ -513,7 +538,7 @@ tabContent model details =
                          ]
                        ]
                       else
-                        List.map (buildIncludeList) excludedTargets
+                        List.map (buildIncludeList False) excludedTargets
 
                     )
                   ]
