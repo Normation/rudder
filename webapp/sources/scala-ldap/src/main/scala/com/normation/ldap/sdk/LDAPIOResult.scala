@@ -34,7 +34,8 @@ sealed trait LDAPRudderError extends RudderError {
 object LDAPRudderError {
   // errors due to some LDAPException
   final case class BackendException(msg: String, cause: Throwable)  extends LDAPRudderError {
-    override def fullMsg: String = super.fullMsg + s"; cause was: ${RudderError.formatException(cause)}"
+    override def fullMsg: String = super.fullMsg + s"; cause was: ${RudderError.formatException(cause)} ;" +
+      s"you probably need to increase value ldap.maxPoolSize property in configuration file, please check the documentation - see https://docs.rudder.io/reference/7.0/administration/performance.html#_ldap_configuration"
   }
 
   // errors where there is a result, but result is not SUCCESS
