@@ -39,28 +39,35 @@ package com.normation.rudder.repository.xml
 
 import org.apache.commons.io.FileUtils
 import com.normation.rudder.repository._
-import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
+
 import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
-import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+
 import org.eclipse.jgit.api._
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventLog
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.GitRuleCategoryArchiver
-import java.io.File
+import com.normation.rudder.git.GitArchiveId
+import com.normation.rudder.git.GitCommitId
 
+import java.io.File
 import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.queries.DynGroupUpdaterService
+
 import com.normation.errors._
 import com.normation.rudder.domain.logger.GitArchiveLoggerPure
+import com.normation.rudder.git.GitArchiverFullCommitUtils
+import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.git.GitRevisionProvider
+
 import zio._
 import zio.syntax._
 import zio.duration._
@@ -151,7 +158,7 @@ class ItemArchiveManagerImpl(
     for {
       // Get Map of all categories grouped by parent categories
       categories  <- roRuleCategoryeRepository.getRootCategory().map(_.childrenMap)
-      cleanedRoot <- cleanExistingDirectory(gitRuleCategoryArchiver.getRootDirectory)
+      cleanedRoot <- cleanExistingDirectory(gitRuleCategoryArchiver.getItemDirectory)
       _           <- ZIO.foreach_(categories) {
                        case (parentCategories, cats) =>
                          // Archive each category
@@ -169,7 +176,7 @@ class ItemArchiveManagerImpl(
       // Treat categories before treating Rules
       categories  <- exportRuleCategories(commiter, modId, actor, reason)
       rules       <- roRuleRepository.getAll(false)
-      cleanedRoot <- IOResult.effect( FileUtils.cleanDirectory(gitRuleArchiver.getRootDirectory) )
+      cleanedRoot <- IOResult.effect( FileUtils.cleanDirectory(gitRuleArchiver.getItemDirectory) )
       saved       <- ZIO.foreach(rules.filterNot(_.isSystem)) { rule =>
                        gitRuleArchiver.archiveRule(rule, None)
                      }
@@ -191,7 +198,7 @@ class ItemArchiveManagerImpl(
                           case (categories, CategoryWithActiveTechniques(cat, upts)) if(cat.isSystem == false || categories.size <= 1) =>
                             (categories, CategoryWithActiveTechniques(cat, upts.filter( _.isSystem == false )))
                       }
-      cleanedRoot <- IOResult.effect( FileUtils.cleanDirectory(gitActiveTechniqueCategoryArchiver.getRootDirectory) )
+      cleanedRoot <- IOResult.effect( FileUtils.cleanDirectory(gitActiveTechniqueCategoryArchiver.getItemDirectory) )
 
       savedItems  <- exportElements(okCatWithUPT.toSeq)
 
@@ -250,7 +257,7 @@ class ItemArchiveManagerImpl(
                             case (categories, CategoryAndNodeGroup(cat, groups)) if(cat.isSystem == false || categories.size <= 1) =>
                               (categories, CategoryAndNodeGroup(cat, groups.filter( _.isSystem == false )))
                          }
-      cleanedRoot     <- IOResult.effect( FileUtils.cleanDirectory(gitNodeGroupArchiver.getRootDirectory) )
+      cleanedRoot     <- IOResult.effect( FileUtils.cleanDirectory(gitNodeGroupArchiver.getItemDirectory) )
       savedItems      <- ZIO.foreach(okCatWithGroup.toSeq) { case (categories, CategoryAndNodeGroup(cat, groups)) =>
                            for {
                              //categories.tail is OK, as no category can have an empty path (id)
@@ -272,7 +279,7 @@ class ItemArchiveManagerImpl(
   override def exportParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitArchiveId] = {
     for {
       parameters  <- roParameterRepository.getAllGlobalParameters()
-      cleanedRoot <- IOResult.effect( FileUtils.cleanDirectory(gitParameterArchiver.getRootDirectory) )
+      cleanedRoot <- IOResult.effect( FileUtils.cleanDirectory(gitParameterArchiver.getItemDirectory) )
       saved       <- ZIO.foreach(parameters) { param =>
                        gitParameterArchiver.archiveParameter(param, None)
                      }

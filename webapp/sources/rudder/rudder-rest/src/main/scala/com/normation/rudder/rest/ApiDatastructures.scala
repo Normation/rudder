@@ -39,6 +39,7 @@ package com.normation.rudder.rest
 
 import cats.implicits._
 import cats.data._
+import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
 
 

@@ -37,30 +37,32 @@
 
 package com.normation.rudder.inventory
 
-import java.io.InputStream
-import java.security.{PublicKey => JavaSecPubKey}
-
-import com.normation.errors.Chained
-import com.normation.errors.IOResult
-import com.normation.errors.SystemError
 import com.normation.inventory.domain.CertifiedKey
-import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.inventory.domain.Inventory
-import com.normation.errors._
+import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
-import com.normation.inventory.services.provisioning.InventorySaver
 import com.normation.inventory.services.provisioning.InventoryParser
+import com.normation.inventory.services.provisioning.InventorySaver
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.zio.ZioRuntime
+
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormat
+
+import java.io.InputStream
+import java.security.{PublicKey => JavaSecPubKey}
+
 import zio._
 import zio.syntax._
+import com.normation.errors.Chained
+import com.normation.errors.IOResult
+import com.normation.errors.SystemError
+import com.normation.errors._
+import com.normation.zio.ZioRuntime
 import com.normation.zio._
 
 
@@ -107,14 +109,14 @@ object StatusLog {
 
 
 class InventoryProcessor(
-    unmarshaller    : InventoryParser
-  , inventorySaver  : InventorySaver[Seq[LDIFChangeRecord]]
-  , val maxQueueSize: Int
-  , val maxParallel : Long
-  , repo            : FullInventoryRepository[Seq[LDIFChangeRecord]]
-  , digestService   : InventoryDigestServiceV1
-  , checkAliveLdap  : () => IOResult[Unit]
-  , nodeInventoryDit: InventoryDit
+    unmarshaller       : InventoryParser
+  , inventorySaver     : InventorySaver[Seq[LDIFChangeRecord]]
+  , val maxQueueSize   : Int
+  , val maxParallel    : Long
+  , repo               : FullInventoryRepository[Seq[LDIFChangeRecord]]
+  , digestService      : InventoryDigestServiceV1
+  , checkAliveLdap     : () => IOResult[Unit]
+  , nodeInventoryDit   : InventoryDit
 ) {
 
   ApplicationLogger.info(s"INFO Configure inventory processing with parallelism of '${maxParallel}' and queue size of '${maxQueueSize}'")
@@ -329,8 +331,6 @@ class InventoryProcessor(
     }
   }
 
-
-
   /**
    * Encapsulate the logic to process new incoming inventories.
    *
@@ -345,15 +345,18 @@ class InventoryProcessor(
     for {
       _     <- InventoryProcessingLogger.trace(s"Start post processing of inventory '${inventory.name}' for node '${inventory.node.main.id.value}'")
       start <- UIO(System.currentTimeMillis)
-      saved <- inventorySaver.save(inventory).chainError("Can't merge inventory inventory in LDAP directory, aborting").either
+      saved <- inventorySaver.save(inventory).chainError("Can't merge inventory in LDAP directory, aborting").either
       _     <- saved match {
                  case Left(err) =>
                    InventoryProcessingLogger.error(s"Error when trying to process inventory: ${err.fullMsg}")
-                 case Right(inventory) =>
+                 case Right(_) =>
                    InventoryProcessingLogger.debug("Inventory saved.")
                }
       _      <- InventoryProcessingLogger.info(s"Inventory '${inventory.name}' for node '${inventory.node.main.hostname}' [${inventory.node.main.id.value}] (signature:${inventory.node.main.keyStatus.value}) "+
                 s"processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)}")
     } yield ()
   }
+
 }
+
+

@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.rest
+package com.normation.rudder.apidata
 
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.TechniqueRepository
@@ -49,6 +49,7 @@ import com.normation.rudder.api.ApiAuthorization.ACL
 import com.normation.rudder.api.ApiAuthorization.RO
 import com.normation.rudder.api.ApiAuthorization.RW
 import com.normation.rudder.api.ApiAuthorization.{None => NoAccess}
+import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.properties._
@@ -57,19 +58,30 @@ import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.rest.data._
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.healthcheck.HealthcheckResult
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
-import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
+import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
 import com.normation.rudder.services.modification.DiffService
 import com.normation.utils.DateFormaterService
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import org.joda.time.DateTime
+
+
+sealed trait DetailLevel {
+  def value : String
+}
+
+final case object FullDetails extends DetailLevel {
+  val value = "full"
+}
+final case object MinimalDetails extends DetailLevel {
+  val value = "minimal"
+}
 
 /**
  *  Centralize all function to serialize data as valid answer for API Rest
@@ -95,7 +107,7 @@ trait RestDataSerializer {
 
   def serializeInventory(inventory: FullInventory, status: String) : JValue
 
-  def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, optRunDate:Option[DateTime], inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue
+  def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, optRunDate:Option[DateTime], inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel) : JValue
 
   def serializeTechnique(technique:FullActiveTechnique): JValue
 
@@ -134,8 +146,8 @@ final case class RestDataSerializerImpl (
     )
   }
 
-  def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, optRunDate: Option[DateTime], inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue = {
-    detailLevel.toJson(apiVersion, nodeInfo, status, optRunDate, inventory, software)
+  def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, optRunDate: Option[DateTime], inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel) : JValue = {
+    detailLevel.toJson(nodeInfo, status, optRunDate, inventory, software)
   }
 
   def serializeInventory (inventory: FullInventory, status: String) : JValue = {

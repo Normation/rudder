@@ -41,7 +41,7 @@ import com.normation.BoxSpecMatcher
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
-import com.normation.rudder.repository.GitCommitId
+import com.normation.rudder.git.GitCommitId
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import net.liftweb.common.Box

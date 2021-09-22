@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.rest._
 import com.normation.rudder.rest.{InfoApi => API}

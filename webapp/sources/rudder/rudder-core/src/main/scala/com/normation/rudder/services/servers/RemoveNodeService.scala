@@ -42,6 +42,7 @@ import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.function.BiPredicate
 import java.util.function.Consumer
+
 import com.normation.box._
 import com.normation.errors._
 import com.normation.eventlog.EventActor
@@ -69,18 +70,17 @@ import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.reports.ReportingConfiguration
-import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
 import com.normation.rudder.services.nodes.NodeInfoServiceCached
 import com.normation.rudder.services.policies.write.NodePoliciesPaths
@@ -89,10 +89,12 @@ import com.normation.rudder.services.reports.CacheComplianceQueueAction.Expected
 import com.normation.rudder.services.reports.CacheExpectedReportAction.RemoveNodeInCache
 import com.normation.rudder.services.reports.{CachedFindRuleNodeStatusReports, CachedNodeConfigurationService}
 import com.normation.rudder.services.servers.DeletionResult._
+
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import com.unboundid.ldif.LDIFChangeRecord
 import net.liftweb.common.Box
+
 import zio._
 import zio.syntax._
 import zio.stream._
@@ -185,39 +187,14 @@ class RemoveNodeServiceImpl(
     , nodeInfoService           : NodeInfoServiceCached
     , fullNodeRepo              : LDAPFullInventoryRepository
     , actionLogger              : EventLogRepository
-    , policyServerManagement    : PolicyServerManagementService
     , nodeLibMutex              : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
-    , nodeInfoServiceCache      : NodeInfoService with CachedRepository
-    , nodeConfigurationsRepo    : UpdateExpectedReportsRepository
-    , nodeConfigurationService  : CachedNodeConfigurationService
-    , reportingService          : CachedFindRuleNodeStatusReports
     , pathComputer              : PathComputer
     , newNodeManager            : NewNodeManager
+    , val postNodeDeleteActions : Ref[List[PostNodeDeleteAction]]
     , HOOKS_D                   : String
     , HOOKS_IGNORE_SUFFIXES     : List[String]
 ) extends RemoveNodeService {
 
-  /*
-   * Cleaning action are run for the case where the node was accepted, deleted, and unknown
-   * (ie: we want to be able to run cleaning actions even on a node that was deleted in the past, but
-   * for some reason the user discover that theres remaining things, and he wants to get rid of them
-   * without knowing rudder internal place to look for all possible garbages)
-   */
-
-  /*
-   * The list of post deletion action to execute in a shared reference, created at class instanciation.
-   * External services can update it.
-   */
-  val postNodeDeleteActions = Ref.make(
-       new RemoveNodeInfoFromCache(nodeInfoService)
-    :: new CloseNodeConfiguration(nodeConfigurationsRepo)
-    :: new RemoveNodeFromComplianceCache(nodeConfigurationService, reportingService)
-    :: new DeletePolicyServerPolicies(policyServerManagement)
-    :: new ResetKeyStatus(ldap, deletedDit)
-    :: new CleanUpCFKeys()
-    :: new CleanUpNodePolicyFiles("/var/rudder/share")
-    :: Nil
-  ).runNow
 
   // effectuffuly add an action
   def addPostNodeDeleteAction(action: PostNodeDeleteAction): Unit = {
@@ -701,4 +678,11 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
   }
 }
 
-
+class DeleteNodeFact(nodeFactRepo: NodeFactRepository) extends PostNodeDeleteAction {
+  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+    NodeLoggerPure.Delete.debug(s"  - delete fact about node '${nodeId.value}'") *>
+    nodeFactRepo.changeStatus(nodeId, RemovedInventory).catchAll(err =>
+      NodeLoggerPure.info(s"Error when trying to update fact when deleting node '${nodeId.value}': ${err.fullMsg}")
+    )
+  }
+}

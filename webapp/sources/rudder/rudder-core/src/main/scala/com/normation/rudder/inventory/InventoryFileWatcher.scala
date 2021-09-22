@@ -140,6 +140,7 @@ object Watchers {
 
         // This is a copy/paste of parent method, we just add a check for null before using `event.context`.
         // See https://issues.rudder.io/issues/14991 and https://github.com/pathikrit/better-files/pull/392
+        // v3.9.0 of better has the patch, can be removed
         override def process(key: WatchKey) = {
           val path = key.watchable().asInstanceOf[Path]
 

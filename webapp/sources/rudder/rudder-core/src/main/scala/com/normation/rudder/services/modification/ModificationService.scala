@@ -38,14 +38,12 @@
 package com.normation.rudder.services.modification
 
 import com.normation.eventlog._
-
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.StringUuidGenerator
-
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.box._
-
+import com.normation.rudder.git.GitCommitId
 import net.liftweb.common._
 
 class ModificationService(

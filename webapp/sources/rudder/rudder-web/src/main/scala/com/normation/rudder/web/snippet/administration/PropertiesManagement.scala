@@ -173,7 +173,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }
 
     // Rendering
-    ( "#configurationRepoPath" #> RudderConfig.RUDDER_DIR_GITROOT &
+    ( "#configurationRepoPath" #> RudderConfig.RUDDER_GIT_ROOT_CONFIG_REPO &
       "#enabled" #> {
         initEnabled match {
           case Full(value) =>

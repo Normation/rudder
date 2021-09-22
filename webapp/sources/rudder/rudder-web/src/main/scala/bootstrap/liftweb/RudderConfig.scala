@@ -41,6 +41,7 @@ import java.io.File
 import java.security.Security
 import java.util.concurrent.TimeUnit
 import better.files.File.root
+import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.appconfig._
 
 import com.normation.box._
@@ -86,6 +87,7 @@ import com.normation.plugins.SnippetExtensionRegister
 import com.normation.plugins.SnippetExtensionRegisterImpl
 import com.normation.rudder.UserService
 import com.normation.rudder.api._
+import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch._
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.db.Doobie
@@ -94,6 +96,10 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.queries._
+import com.normation.rudder.facts.nodes.GitNodeFactRepository
+import com.normation.rudder.git.GitRepositoryProviderImpl
+import com.normation.rudder.git.GitRevisionProvider
+import com.normation.rudder.inventory.FactRepositoryPostCommit
 import com.normation.rudder.inventory.InventoryFileWatcher
 import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.inventory.PostCommitInventoryHooks
@@ -187,6 +193,8 @@ import zio.syntax._
 import zio.duration._
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
+
+import zio.Ref
 
 object RUDDER_CHARSET {
   import java.nio.charset.StandardCharsets
@@ -378,8 +386,19 @@ object RudderConfig extends Loggable {
     }
   }
 
-  val RUDDER_DIR_GITROOT = config.getString("rudder.dir.gitRoot")
-  val RUDDER_DIR_TECHNIQUES = RUDDER_DIR_GITROOT + "/techniques"
+  /*
+   * Root directory for git config-repo et fact-repo.
+   * We should homogeneize naming here, ie s/rudder.dir.gitRoot/rudder.dir.gitRootConfigRepo/
+   */
+  val RUDDER_GIT_ROOT_CONFIG_REPO = config.getString("rudder.dir.gitRoot")
+  val RUDDER_GIT_ROOT_FACT_REPO = {
+    try {
+      config.getString("rudder.dir.gitRootFactRepo")
+    } catch {
+      case ex: Exception => "/var/rudder/fact-repository"
+    }
+  }
+  val RUDDER_DIR_TECHNIQUES = RUDDER_GIT_ROOT_CONFIG_REPO + "/techniques"
   val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL = config.getInt("rudder.batch.dyngroup.updateInterval") //60 //one hour
   val RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL = config.getInt("rudder.batch.techniqueLibrary.updateInterval") //60 * 5 //five minutes
   val RUDDER_BATCH_REPORTSCLEANER_ARCHIVE_TTL = config.getInt("rudder.batch.reportscleaner.archive.TTL") //AutomaticReportsCleaning.defaultArchiveTTL
@@ -1085,7 +1104,7 @@ object RudderConfig extends Loggable {
     , updateDynamicGroups
     , itemArchiveManager
     , personIdentService
-    , gitRepo
+    , gitConfigRepo
   )
 
   val systemApiService13 = new SystemApiService13(
@@ -1104,9 +1123,9 @@ object RudderConfig extends Loggable {
         , () => globalComplianceModeService.getGlobalComplianceMode
       )
 
-  val techniqueArchiver = new TechniqueArchiverImpl(gitRepo, new File(RUDDER_DIR_GITROOT), prettyPrinter, "/", gitModificationRepository, personIdentService, RUDDER_GROUP_OWNER_CONFIG_REPO)
+  val techniqueArchiver = new TechniqueArchiverImpl(gitConfigRepo, prettyPrinter, gitModificationRepository, personIdentService, RUDDER_GROUP_OWNER_CONFIG_REPO)
   val techniqueSerializer = new TechniqueSerializer(typeParameterService)
-  val techniqueCompiler = new RudderCRunner("/opt/rudder/etc/rudderc.conf","/opt/rudder/bin/rudderc",RUDDER_DIR_GITROOT)
+  val techniqueCompiler = new RudderCRunner("/opt/rudder/etc/rudderc.conf","/opt/rudder/bin/rudderc",RUDDER_GIT_ROOT_CONFIG_REPO)
   val ncfTechniqueWriter = new TechniqueWriter(
       techniqueArchiver
     , updateTechniqueLibrary
@@ -1116,7 +1135,7 @@ object RudderConfig extends Loggable {
     , techniqueRepository
     , workflowLevelService
     , prettyPrinter
-    , RUDDER_DIR_GITROOT
+    , RUDDER_GIT_ROOT_CONFIG_REPO
     , typeParameterService
     , techniqueSerializer
     , techniqueCompiler
@@ -1126,8 +1145,7 @@ object RudderConfig extends Loggable {
       restExtractorService
     , stringUuidGenerator
     , personIdentService
-    , gitRepo
-    , new File(RUDDER_DIR_GITROOT)
+    , gitConfigRepo
     , prettyPrinter
     , gitModificationRepository
     , RUDDER_CHARSET.name
@@ -1176,6 +1194,10 @@ object RudderConfig extends Loggable {
   )
   )
 
+  lazy val gitFactRepo = GitRepositoryProviderImpl.make(RUDDER_GIT_ROOT_FACT_REPO).runNow
+  lazy val factRepo = new GitNodeFactRepository(gitFactRepo, RUDDER_GROUP_OWNER_CONFIG_REPO)
+  factRepo.checkInit().runNow
+
   lazy val ldifInventoryLogger = new DefaultLDIFInventoryLogger(LDIF_TRACELOG_ROOT_DIR)
   lazy val inventorySaver      = new DefaultInventorySaver(
       rwLdap
@@ -1192,6 +1214,7 @@ object RudderConfig extends Loggable {
       )
     , (
          new PendingNodeIfNodeWasRemoved(fullInventoryRepository)
+      :: new FactRepositoryPostCommit(factRepo, nodeInfoService)
       :: new PostCommitLogger(ldifInventoryLogger)
       :: new PostCommitInventoryHooks(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
       :: Nil
@@ -1258,7 +1281,7 @@ object RudderConfig extends Loggable {
 
   val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")
 
-  val resourceFileService = new ResourceFileService(gitRepo)
+  val resourceFileService = new ResourceFileService(gitConfigRepo)
   lazy val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
   lazy val rudderApi = {
     import com.normation.rudder.rest.lift._
@@ -1270,7 +1293,7 @@ object RudderConfig extends Loggable {
         new ComplianceApi(restExtractorService, complianceAPIService)
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, groupApiService2, groupApiService6, groupApiService14, groupInheritedProperties)
       , new DirectiveApi(roDirectiveRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, directiveApiService2, directiveApiService14)
-      , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, restExtractorService, techniqueSerializer, stringUuidGenerator, gitRepo, resourceFileService)
+      , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, restExtractorService, techniqueSerializer, stringUuidGenerator, gitConfigRepo, resourceFileService)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12, nodeApiService13, nodeInheritedProperties, RUDDER_DEFAULT_DELETE_NODE_MODE)
       , new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14)
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
@@ -1353,7 +1376,7 @@ object RudderConfig extends Loggable {
 
   lazy val gitParseTechniqueLibrary = new GitParseTechniqueLibrary(
         techniqueParser
-      , gitRepo
+      , gitConfigRepo
       , gitRevisionProvider
       , "techniques"
       , "metadata.xml"
@@ -1534,14 +1557,14 @@ object RudderConfig extends Loggable {
     eventLogRepo
   }
   private[this] lazy val inventoryLogEventServiceImpl = new InventoryEventLogServiceImpl(logRepository)
-  private[this] lazy val gitRepo = GitRepositoryProviderImpl.make(RUDDER_DIR_GITROOT).runNow
-  private[this] lazy val gitRevisionProviderImpl = new LDAPGitRevisionProvider(rwLdap, rudderDitImpl, gitRepo, RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH)
+  private[this] lazy val gitConfigRepo = GitRepositoryProviderImpl.make(RUDDER_GIT_ROOT_CONFIG_REPO).runNow
+  private[this] lazy val gitRevisionProviderImpl = new LDAPGitRevisionProvider(rwLdap, rudderDitImpl, gitConfigRepo, RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH)
   private[this] lazy val techniqueReader: TechniqueReader = {
-    //find the relative path from gitRepo to the ptlib root
-    val gitSlash = new File(RUDDER_DIR_GITROOT).getPath + "/"
+    //find the relative path from gitConfigRepo to the ptlib root
+    val gitSlash = new File(RUDDER_GIT_ROOT_CONFIG_REPO).getPath + "/"
     if(!RUDDER_DIR_TECHNIQUES.startsWith(gitSlash)) {
-      ApplicationLogger.error("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(RUDDER_DIR_GITROOT, RUDDER_DIR_TECHNIQUES))
-      throw new RuntimeException("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(RUDDER_DIR_GITROOT, RUDDER_DIR_TECHNIQUES))
+      ApplicationLogger.error("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(RUDDER_GIT_ROOT_CONFIG_REPO, RUDDER_DIR_TECHNIQUES))
+      throw new RuntimeException("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(RUDDER_GIT_ROOT_CONFIG_REPO, RUDDER_DIR_TECHNIQUES))
     }
 
     //create a demo default-directive-names.conf if none exists
@@ -1570,7 +1593,7 @@ object RudderConfig extends Loggable {
     new GitTechniqueReader(
         techniqueParser
       , gitRevisionProviderImpl
-      , gitRepo
+      , gitConfigRepo
       , "metadata.xml"
       , "category.xml"
       , Some(relativePath)
@@ -1655,6 +1678,12 @@ object RudderConfig extends Loggable {
     , diffRepos
     , PendingInventory
   )
+  private[this] lazy val updateFactRepoOnChoice: UnitAcceptInventory with UnitRefuseInventory = new UpdateFactRepoOnChoice(
+      "accept_or_refuse_new_node:update_fact_repo"
+    , PendingInventory
+    , factRepo
+  )
+
   private[this] lazy val nodeGridImpl = new NodeGrid(ldapFullInventoryRepository, nodeInfoServiceImpl, configService)
 
   private[this] lazy val modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManagerImpl,uuidGen)
@@ -1688,8 +1717,7 @@ object RudderConfig extends Loggable {
   ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
   private[this] lazy val gitModificationRepository = new GitModificationRepositoryImpl(doobie)
   private[this] lazy val gitRuleArchiver: GitRuleArchiver = new GitRuleArchiverImpl(
-      gitRepo
-    , new File(RUDDER_DIR_GITROOT)
+      gitConfigRepo
     , ruleSerialisation
     , rulesDirectoryName
     , prettyPrinter
@@ -1698,8 +1726,7 @@ object RudderConfig extends Loggable {
     , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitRuleCategoryArchiver: GitRuleCategoryArchiver = new GitRuleCategoryArchiverImpl(
-      gitRepo
-    , new File(RUDDER_DIR_GITROOT)
+      gitConfigRepo
     , ruleCategorySerialisation
     , ruleCategoriesDirectoryName
     , prettyPrinter
@@ -1709,8 +1736,7 @@ object RudderConfig extends Loggable {
     , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver = new GitActiveTechniqueCategoryArchiverImpl(
-      gitRepo
-    , new File(RUDDER_DIR_GITROOT)
+      gitConfigRepo
     , activeTechniqueCategorySerialisation
     , userLibraryDirectoryName
     , prettyPrinter
@@ -1720,8 +1746,7 @@ object RudderConfig extends Loggable {
     , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitActiveTechniqueArchiver: GitActiveTechniqueArchiverImpl = new GitActiveTechniqueArchiverImpl(
-      gitRepo
-    , new File(RUDDER_DIR_GITROOT)
+      gitConfigRepo
     , activeTechniqueSerialisation
     , userLibraryDirectoryName
     , prettyPrinter
@@ -1732,8 +1757,7 @@ object RudderConfig extends Loggable {
     , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitDirectiveArchiver: GitDirectiveArchiver = new GitDirectiveArchiverImpl(
-      gitRepo
-    , new File(RUDDER_DIR_GITROOT)
+      gitConfigRepo
     , directiveSerialisation
     , userLibraryDirectoryName
     , prettyPrinter
@@ -1742,8 +1766,7 @@ object RudderConfig extends Loggable {
     , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitNodeGroupArchiver: GitNodeGroupArchiver = new GitNodeGroupArchiverImpl(
-      gitRepo
-    , new File(RUDDER_DIR_GITROOT)
+      gitConfigRepo
     , nodeGroupSerialisation
     , nodeGroupCategorySerialisation
     , groupLibraryDirectoryName
@@ -1754,8 +1777,7 @@ object RudderConfig extends Loggable {
     , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
   private[this] lazy val gitParameterArchiver: GitParameterArchiver = new GitParameterArchiverImpl(
-      gitRepo
-    , new File(RUDDER_DIR_GITROOT)
+      gitConfigRepo
     , globalParameterSerialisation
     , parametersDirectoryName
     , prettyPrinter
@@ -1877,7 +1899,7 @@ object RudderConfig extends Loggable {
     , roLdapNodeGroupRepository
     , roLDAPParameterRepository
     , woLDAPParameterRepository
-    , gitRepo
+    , gitConfigRepo
     , gitRevisionProviderImpl
     , gitRuleArchiver
     , gitRuleCategoryArchiver
@@ -1926,7 +1948,7 @@ object RudderConfig extends Loggable {
     , RUDDER_JDBC_URL
     , RUDDER_JDBC_USERNAME
     , RUDDER_JDBC_PASSWORD
-    , RUDDER_DIR_GITROOT
+    , RUDDER_GIT_ROOT_CONFIG_REPO
     , rudderFullVersion
     , () => configService.cfengine_server_denybadclocks().toBox
     , () => configService.relay_server_sync_method().toBox
@@ -2036,6 +2058,7 @@ object RudderConfig extends Loggable {
     //the sequence of unit process to accept a new inventory
     val unitAcceptors =
       historizeNodeStateOnChoice ::
+      updateFactRepoOnChoice ::
       acceptNodeAndMachineInNodeOu ::
       acceptInventory ::
       acceptHostnameAndIp ::
@@ -2044,6 +2067,7 @@ object RudderConfig extends Loggable {
     //the sequence of unit process to refuse a new inventory
     val unitRefusors =
       historizeNodeStateOnChoice ::
+      updateFactRepoOnChoice ::
       unitRefuseGroup ::
       acceptInventory ::
       Nil
@@ -2115,7 +2139,7 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val parseRules : ParseRules = new GitParseRules(
       ruleUnserialisation
-    , gitRepo
+    , gitConfigRepo
     , entityMigration
     , rulesDirectoryName
   )
@@ -2123,7 +2147,7 @@ object RudderConfig extends Loggable {
       activeTechniqueCategoryUnserialisation
     , activeTechniqueUnserialisation
     , directiveUnserialisation
-    , gitRepo
+    , gitConfigRepo
     , gitRevisionProvider
     , entityMigration
     , userLibraryDirectoryName
@@ -2137,19 +2161,19 @@ object RudderConfig extends Loggable {
   private[this] lazy val parseGroupLibrary : ParseGroupLibrary = new GitParseGroupLibrary(
       nodeGroupCategoryUnserialisation
     , nodeGroupUnserialisation
-    , gitRepo
+    , gitConfigRepo
     , entityMigration
     , groupLibraryDirectoryName
   )
   private[this] lazy val parseGlobalParameter : ParseGlobalParameters = new GitParseGlobalParameters(
       globalParameterUnserialisation
-    , gitRepo
+    , gitConfigRepo
     , entityMigration
     , parametersDirectoryName
   )
   private[this] lazy val parseRuleCategories : ParseRuleCategories = new GitParseRuleCategories(
       ruleCategoryUnserialisation
-    , gitRepo
+    , gitConfigRepo
     , entityMigration
     , ruleCategoriesDirectoryName
   )
@@ -2229,6 +2253,30 @@ object RudderConfig extends Loggable {
   )
 
   private[this] lazy val jsTreeUtilServiceImpl = new JsTreeUtilService(roLdapDirectiveRepository, techniqueRepositoryImpl)
+
+  /*
+   * Cleaning action are run for the case where the node was accepted, deleted, and unknown
+   * (ie: we want to be able to run cleaning actions even on a node that was deleted in the past, but
+   * for some reason the user discover that theres remaining things, and he wants to get rid of them
+   * without knowing rudder internal place to look for all possible garbages)
+   */
+
+  /*
+   * The list of post deletion action to execute in a shared reference, created at class instanciation.
+   * External services can update it from removeNodeServiceImpl.
+   */
+  private[this] lazy val postNodeDeleteActions = Ref.make(
+       new RemoveNodeInfoFromCache(nodeInfoServiceImpl)
+    :: new CloseNodeConfiguration(updateExpectedRepo)
+    :: new RemoveNodeFromComplianceCache(cachedNodeConfigurationService, reportingServiceImpl)
+    :: new DeletePolicyServerPolicies(policyServerManagementService)
+    :: new ResetKeyStatus(rwLdap, removedNodesDitImpl)
+    :: new CleanUpCFKeys()
+    :: new CleanUpNodePolicyFiles("/var/rudder/share")
+    :: new DeleteNodeFact(factRepo)
+    :: Nil
+  ).runNow
+
   private[this] lazy val removeNodeServiceImpl = new RemoveNodeServiceImpl(
         nodeDitImpl
       , rudderDitImpl
@@ -2242,14 +2290,10 @@ object RudderConfig extends Loggable {
       , nodeInfoServiceImpl
       , ldapFullInventoryRepository
       , logRepository
-      , policyServerManagementService
       , nodeReadWriteMutex
-      , nodeInfoServiceImpl
-      , updateExpectedRepo
-      , cachedNodeConfigurationService
-      , reportingServiceImpl
       , pathComputer
       , newNodeManager
+      , postNodeDeleteActions
       , HOOKS_D
       , HOOKS_IGNORE_SUFFIXES
   )

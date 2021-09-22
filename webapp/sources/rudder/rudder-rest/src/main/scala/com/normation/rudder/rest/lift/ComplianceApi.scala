@@ -45,7 +45,6 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.rest._
@@ -63,6 +62,7 @@ import com.normation.rudder.domain.reports.ComponentStatusReport
 import com.normation.rudder.domain.reports.BlockStatusReport
 import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.errors._
+import com.normation.rudder.api.ApiVersion
 import zio.syntax._
 
 class ComplianceApi(

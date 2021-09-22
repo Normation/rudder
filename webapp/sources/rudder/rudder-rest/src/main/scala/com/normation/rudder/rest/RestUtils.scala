@@ -40,6 +40,7 @@ package com.normation.rudder.rest
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.UserService
+import com.normation.rudder.api.ApiVersion
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -57,6 +58,31 @@ import net.liftweb.util.Helpers.tryo
 /**
  */
 object RestUtils extends Loggable {
+
+  def apiVersionFromRequest(req:Req)( implicit availableVersions : List[ApiVersion]) : Box[ApiVersion] = {
+
+    val latest = availableVersions.maxBy(_.value)
+    def fromString (version : String) : Box[ApiVersion] = {
+      version match {
+        case "latest"  => Full(latest)
+        case value =>
+           tryo { value.toInt } match {
+             case Full(version) =>
+               availableVersions.find(_.value == version) match {
+                 case Some(apiVersion) => Full(apiVersion)
+                 case None => Failure(s" ${version} is not a valid api version")
+               }
+             // Never empty due to tryo
+             case eb:EmptyBox => eb
+          }
+      }
+    }
+
+    req.header("X-API-VERSION") match {
+      case Full(value) => fromString(value)
+      case eb: EmptyBox => eb ?~ ("Error when getting header X-API-VERSION")
+    }
+  }
 
   /**
    * Get the rest user name, as follow:
@@ -212,39 +238,6 @@ object RestUtils extends Loggable {
 
 }
 
-sealed case class ApiVersion (
-    value : Int
-  , deprecated : Boolean
-)
-
-object ApiVersion {
-
-  def fromRequest(req:Req)( implicit availableVersions : List[ApiVersion]) : Box[ApiVersion] = {
-
-    val latest = availableVersions.maxBy(_.value)
-    def fromString (version : String) : Box[ApiVersion] = {
-      version match {
-        case "latest"  => Full(latest)
-        case value =>
-           tryo { value.toInt } match {
-             case Full(version) =>
-               availableVersions.find(_.value == version) match {
-                 case Some(apiVersion) => Full(apiVersion)
-                 case None => Failure(s" ${version} is not a valid api version")
-               }
-             // Never empty due to tryo
-             case eb:EmptyBox => eb
-          }
-      }
-    }
-
-    req.header("X-API-VERSION") match {
-      case Full(value) => fromString(value)
-      case eb: EmptyBox => eb ?~ ("Error when getting header X-API-VERSION")
-    }
-  }
-
-}
 
 trait HttpStatus {
   def code : Int

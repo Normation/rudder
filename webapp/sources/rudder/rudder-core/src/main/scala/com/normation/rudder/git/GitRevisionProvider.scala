@@ -35,39 +35,16 @@
 *************************************************************************************
 */
 
-package com.normation.cfclerk.services
+package com.normation.rudder.git
 
-import com.normation.NamedZioLogger
-import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.lib.Repository
+import com.normation.rudder.domain.logger.GitRepositoryLogger
+
 import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.revwalk.RevWalk
+
+import zio._
 import com.normation.errors._
-import zio.Semaphore
-
-/**
- * A service that gives access to the Git
- * porcelain API of the repository.
- *
- * For reference about how to use JGit: https://github.com/centic9/jgit-cookbook
- */
-trait GitRepositoryProvider {
-  /**
-   * Obtain access to JGit porcelain API.
-   */
-  def git: Git
-
-  def db: Repository
-
-  /*
-   * Git (and JGit) are not thread safe. When there is two concurrent write operations, we can get a
-   * `JGitInternalException: Exception caught during execution of add command` (which is not very
-   * informative - see https://issues.rudder.io/issues/19398).
-   * So we need to protect at the repository level write operation with a semaphore.
-   */
-  def semaphore: Semaphore
-}
-
-object GitRepositoryLogger extends NamedZioLogger() { def loggerName = "git-repository" }
+import com.normation.zio._
 
 /**
  * A service that allows to know what is the
@@ -103,4 +80,51 @@ trait GitRevisionProvider {
    */
   def setCurrentRevTreeId(id:ObjectId): IOResult[Unit]
 
+}
+
+// note: for configuration repo, we also have a revision provider that stores revision in LDAP and
+// update the value on specific moment (when the tech lib is reloaded)
+
+/**
+ * A Git revision provider that always return the RevTree matching the
+ * configured revPath.
+ * It checks the path existence, but does not do anything special if
+ * the reference does not exist (safe a error message).
+ *
+ * TODO: reading policy packages should be a Box method,
+ * so that it can  fails in a knowable way.
+ *
+ * WARNING : the current revision is not persisted between creation of that class !
+ */
+class SimpleGitRevisionProvider(refPath:String,repo:GitRepositoryProvider) extends GitRevisionProvider {
+
+  if(!refPath.startsWith("refs/")) {
+    GitRepositoryLogger.logEffect.warn("The configured reference path for the Git repository of Policy Template User Library does "+
+        "not start with 'refs/'. Are you sure you don't mistype something ?")
+  }
+
+  private[this] var currentId = Ref.make[ObjectId](getAvailableRevTreeId.runNow).runNow
+
+  override def getAvailableRevTreeId : IOResult[ObjectId] = {
+    IOResult.effect {
+      val treeId = repo.db.resolve(refPath)
+
+      if(null == treeId) {
+        val message = s"The reference branch '${refPath}' is not found in the Policy Templates User Library's git repository"
+        GitRepositoryLogger.logEffect.error(message)
+        throw new IllegalArgumentException(message)
+      }
+
+      val rw = new RevWalk(repo.db)
+      val id = rw.parseTree(treeId).getId
+      rw.dispose
+      id
+    }
+  }
+
+  override def currentRevTreeId = currentId.get
+
+  override def setCurrentRevTreeId(id: ObjectId) : IOResult[Unit] = {
+    currentId.set(id)
+  }
 }

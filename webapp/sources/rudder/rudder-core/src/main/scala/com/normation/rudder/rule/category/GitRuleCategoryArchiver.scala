@@ -37,21 +37,25 @@
 
 package com.normation.rudder.rule.category
 
-import com.normation.cfclerk.services.GitRepositoryProvider
 import java.io.File
-
 import com.normation.NamedZioLogger
 import com.normation.rudder.services.marshalling.RuleCategorySerialisation
 import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml._
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.Constants.RULE_CATEGORY_ARCHIVE_TAG
-import com.normation.rudder.repository.GitArchiveId
-import com.normation.rudder.repository.GitPath
+import com.normation.rudder.git.GitArchiveId
+import com.normation.rudder.git.GitPath
+
 import org.joda.time.DateTime
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
+
 import com.normation.errors._
+import com.normation.rudder.git.GitArchiverFullCommitUtils
+import com.normation.rudder.git.GitConfigItemRepository
+import com.normation.rudder.git.GitRepositoryProvider
+
 import zio._
 import zio.syntax._
 
@@ -113,13 +117,12 @@ trait GitRuleCategoryArchiver {
   /**
    * Get the root directory where Rule categories are saved
    */
-  def getRootDirectory : File
+  def getItemDirectory : File
 }
 
 
 class GitRuleCategoryArchiverImpl(
     override val gitRepo                   : GitRepositoryProvider
-  , override val gitRootDirectory          : File
   , ruleCategorySerialisation              : RuleCategorySerialisation
   , ruleCategoryRootDir                    : String //relative path !
   , override val xmlPrettyPrinter          : RudderPrettyPrinter
@@ -130,7 +133,8 @@ class GitRuleCategoryArchiverImpl(
 ) extends
   GitRuleCategoryArchiver with
   NamedZioLogger with
-  GitArchiverUtils with
+  GitConfigItemRepository with
+  XmlArchiverUtils with
   GitArchiverFullCommitUtils with
   BuildCategoryPathName[RuleCategoryId]
 {
@@ -161,7 +165,7 @@ class GitRuleCategoryArchiverImpl(
       commit  <- gitCommit match {
                    case Some((modId, commiter, reason)) =>
                      val commitMsg = s"Archive rule Category with ID '${category.id.value}' ${GET(reason)}"
-                     commitAddFile(modId, commiter, gitPath, commitMsg)
+                     commitAddFileWithModId(modId, commiter, gitPath, commitMsg)
                    case None =>
                      UIO.unit
                  }
@@ -192,7 +196,7 @@ class GitRuleCategoryArchiverImpl(
         commited <- doCommit match {
                       case Some((modId, commiter, reason)) =>
                         val commitMsg = s"Delete archive of rule with ID '${categoryId.value} ${GET(reason)}"
-                        commitRmFile(modId, commiter, gitPath, commitMsg)
+                        commitRmFileWithModId(modId, commiter, gitPath, commitMsg)
                       case None =>
                         UIO.unit
                     }
@@ -242,7 +246,7 @@ class GitRuleCategoryArchiverImpl(
                        val commitMsg = s"Move archive of rule category with ID '${category.id.value}'${GET(reason)}"
                        val oldPath = toGitPath(oldCategoryDir)
                        val newPath = toGitPath(newCategoryDir)
-                       commitMvDirectory(modId, commiter, oldPath, newPath, commitMsg)
+                       commitMvDirectoryWithModId(modId, commiter, oldPath, newPath, commitMsg)
                      case None =>
                        UIO.unit
                    }

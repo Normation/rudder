@@ -37,25 +37,28 @@
 
 package com.normation.rudder.web.snippet.administration
 
-import net.liftweb._
-import http._
-import common._
-import util.Helpers._
-import js._
-import JsCmds._
-import JE._
-import com.normation.rudder.repository._
-import com.normation.rudder.web.model.CurrentUser
-import org.joda.time.DateTime
-import org.eclipse.jgit.lib.PersonIdent
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import bootstrap.liftweb.RudderConfig
-import com.normation.box._
-import com.normation.errors._
+import com.normation.rudder.git.GitArchiveId
+import com.normation.rudder.git.GitCommitId
+import com.normation.rudder.repository._
+import com.normation.rudder.web.model.CurrentUser
 import com.normation.utils.DateFormaterService
 
+import bootstrap.liftweb.RudderConfig
+import net.liftweb.common._
+import net.liftweb.http._
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js._
+import net.liftweb.util.Helpers._
+import org.eclipse.jgit.lib.PersonIdent
+import org.joda.time.DateTime
+
 import scala.xml.NodeSeq
+
+import com.normation.box._
+import com.normation.errors._
 
 class Archives extends DispatchSnippet with Loggable {
 

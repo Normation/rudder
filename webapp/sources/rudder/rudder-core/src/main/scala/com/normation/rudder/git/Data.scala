@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2021 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,40 +35,33 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository.xml
+package com.normation.rudder.git
 
-import org.xml.sax.SAXParseException
+import org.eclipse.jgit.lib.PersonIdent
 
-import java.io.InputStream
-import scala.xml.Elem
-import scala.xml.XML
 
-import zio._
-import zio.syntax._
-import com.normation.errors._
+/**
+ * Container for a Git Path.
+ * Notice: a GIT path should be well formed
+ * (never starts with a "/", not heading nor trailing
+ * empty characters), but this is not enforce by that class.
+ */
+final case class GitPath(value: String) extends AnyVal
 
-object ParseXml {
+// TODO: merge with revision
 
-  /**
-   * Parse the file denoted by input stream (filePath is only
-   * for explicit error messages)
-   */
-  def apply(is: InputStream, filePath : Option[String] = None) : IOResult[Elem] = {
-    val name = filePath.getOrElse("[unknown]")
-    for {
-      doc <- Task(XML.load(is)).catchAll {
-               case e: SAXParseException =>
-                 SystemError(s"Unexpected issue with the XML file ${name}: ${e.getMessage}", e).fail
-               case e: java.net.MalformedURLException =>
-                 SystemError("XML file not found: " + name, e).fail
-               case e =>
-                SystemError(s"Error during parsing of XML file '${name}'", e).fail
-             }
-      _   <- ZIO.when(doc.isEmpty) {
-               Unexpected(s"Error when parsing XML file: '${name}': the parsed document is empty").fail
-             }
-    } yield {
-      doc
-    }
-  }
-}
+/**
+ * A git commit string character, the SHA-1 hash that can be
+ * use in git command line with git checkout, git show, etc.
+ */
+final case class GitCommitId(value: String) extends AnyVal
+
+
+/**
+ * A Git archive ID is a couple of the path on witch the archive was made,
+ * and the commit that reference the tag.
+ * Note that the commit ID is stable in time, but the path is just an
+ * indication, especially if its 'master' (a branch path is more likely to be
+ * a little more stable).
+ */
+final case class GitArchiveId(path: GitPath, commit: GitCommitId, commiter: PersonIdent)

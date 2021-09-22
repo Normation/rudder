@@ -39,21 +39,23 @@ package com.normation.rudder.metrics
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
-
 import better.files._
-import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
+
 import com.normation.errors._
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.ReportingService
+
 import org.eclipse.jgit.revwalk.RevCommit
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.format.ISODateTimeFormat
+
 import zio._
 import zio.clock.Clock
 import com.normation.zio._

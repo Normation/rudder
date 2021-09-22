@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.servers
 
-import com.normation.box._
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -46,6 +45,7 @@ import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PendingInventory
+import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
 import com.normation.inventory.ldap.core.LDAPConstants._
@@ -62,6 +62,7 @@ import com.normation.rudder.domain.eventlog.AcceptNodeEventLog
 import com.normation.rudder.domain.eventlog.InventoryLogDetails
 import com.normation.rudder.domain.eventlog.RefuseNodeEventLog
 import com.normation.rudder.domain.logger.NodeLogger
+import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
@@ -73,6 +74,7 @@ import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.RunHooks
@@ -90,14 +92,17 @@ import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
 import com.normation.rudder.services.reports.InvalidateCache
 import com.normation.utils.Control.sequence
+
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.DateTime
+
 import zio._
 import zio.syntax._
+import com.normation.box._
 
 /**
  * A newNodeManager hook is a class that accept callbacks.
@@ -945,4 +950,46 @@ class HistorizeNodeStateOnChoice(
               }
     } yield srv
   }.toBox
+}
+
+/**
+ * A unit acceptor in charge do what is necessary regarding fact repo.
+ * In the long term, it will replace `HistorizeNodeStateOnChoice`.
+ * Semantic:
+ * - if a node is refused, delete+commit its inventory
+ * - if a node is accepted, move to accepted subdif+commit its inventory
+ */
+class UpdateFactRepoOnChoice(
+    override val name: String
+  , inventoryStatus  : InventoryStatus //expected inventory status of nodes for that processor
+  , factRepo         : NodeFactRepository
+) extends UnitAcceptInventory with UnitRefuseInventory {
+  override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
+  override def postAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
+  override val fromInventoryStatus = inventoryStatus
+  override val toInventoryStatus = inventoryStatus
+
+  /**
+   * Move node fact from fact-repo/pending to fact-repo/accepted
+   */
+  def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
+    // in 7.0, we don't fail on historization problem, only log
+    factRepo.changeStatus(sm.node.main.id, PendingInventory).catchAll(err =>
+      NodeLoggerPure.info(s"Error when trying to update facts historization when accepting node '${sm.node.main.hostname}' (${sm.node.main.id.value})")
+    ).toBox.map(_ => sm)
+  }
+
+  /**
+   * Does nothing - we don't have the "id" of the historized
+   * inventory to remove
+   */
+  def rollback(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit = {}
+
+  //////////// refuse ////////////
+  override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
+    // in 7.0, we don't fail on historization problem, only log
+    factRepo.changeStatus(srv.id, RemovedInventory).catchAll(err =>
+      NodeLoggerPure.info(s"Error when trying to update facts historization when accepting node '${srv.hostname}' (${srv.id.value})")
+    ).toBox.map(_ => srv)
+  }
 }

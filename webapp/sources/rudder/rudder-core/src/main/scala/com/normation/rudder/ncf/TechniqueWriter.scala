@@ -39,6 +39,7 @@ package com.normation.rudder.ncf
 
 
 import cats.implicits._
+
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -46,10 +47,7 @@ import com.normation.eventlog.ModificationId
 import java.nio.charset.StandardCharsets
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.repository.GitModificationRepository
-import com.normation.rudder.repository.xml.GitArchiverUtils
-import com.normation.cfclerk.services.GitRepositoryProvider
 
-import java.io.{File => JFile}
 import java.nio.file.Files
 import java.nio.file.Paths
 import better.files.File
@@ -60,6 +58,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
@@ -68,26 +67,34 @@ import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.services.user.PersonIdentService
+
 import net.liftweb.common.Full
+
 import zio._
 import zio.syntax._
-
 import scala.xml.NodeSeq
 import scala.xml.{Node => XmlNode}
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control
+
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
+
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.repository.WoDirectiveRepository
+
 import com.normation.box._
 import org.joda.time.DateTime
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.git.GitConfigItemRepository
+import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.repository.xml.XmlArchiverUtils
+
 import com.normation.zio.currentTimeMillis
 
 trait NcfError extends RudderError {
@@ -884,15 +891,16 @@ trait TechniqueArchiver {
 
 class TechniqueArchiverImpl (
     override val gitRepo                   : GitRepositoryProvider
-  , override val gitRootDirectory          : JFile
   , override val xmlPrettyPrinter          : RudderPrettyPrinter
-  , override val relativePath              : String
   , override val gitModificationRepository : GitModificationRepository
   , personIdentservice                     : PersonIdentService
   , override val groupOwner                : String
-) extends GitArchiverUtils with TechniqueArchiver {
+) extends GitConfigItemRepository with XmlArchiverUtils with TechniqueArchiver {
 
   override val encoding : String = "UTF-8"
+
+  // we can't use "techniques" for relative path because of ncf and dsc files. This is an architecture smell, we need to clean it.
+  override val relativePath = "/"
 
   def deleteTechnique(techniqueName : String, techniqueVersion : String, category : String,  modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
     (for {

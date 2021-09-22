@@ -38,15 +38,14 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
+import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.eventlog.EventActor
 import com.normation.rudder.UserService
 import com.normation.rudder.domain.properties._
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
 import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RestDataSerializer
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.getActor
@@ -69,16 +68,17 @@ import net.liftweb.json.JArray
 import net.liftweb.json.JString
 import net.liftweb.json.JsonDSL._
 import com.normation.errors.IOResult
-import com.normation.rudder.rest.JsonQueryObjects.JQGlobalParameter
-import com.normation.rudder.rest.JsonResponseObjects.JRGlobalParameter
+import com.normation.rudder.apidata.JsonQueryObjects.JQGlobalParameter
+import com.normation.rudder.apidata.JsonResponseObjects.JRGlobalParameter
+import com.normation.rudder.apidata.ZioJsonExtractor
+import com.normation.rudder.apidata.implicits._
 import com.normation.box._
 import com.normation.errors._
+import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
 import com.normation.rudder.domain.properties.GenericProperty
 import zio.syntax._
-import com.normation.rudder.rest._
 import com.normation.rudder.rest.implicits._
-
 
 class ParameterApi (
     restExtractorService: RestExtractorService

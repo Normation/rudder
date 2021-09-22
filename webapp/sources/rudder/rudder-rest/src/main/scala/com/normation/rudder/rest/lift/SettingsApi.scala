@@ -50,7 +50,6 @@ import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.reports._
 import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
@@ -73,6 +72,7 @@ import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.box._
 import com.normation.errors._
+import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.services.policies.SendMetrics
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.zio._

@@ -38,7 +38,6 @@
 package com.normation.rudder.repository.xml
 
 import java.io.File
-
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.internal.storage.file.FileRepository
@@ -49,10 +48,12 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
+
 import java.nio.charset.StandardCharsets
 import java.util.zip.ZipFile
-
 import com.normation.errors._
+import com.normation.rudder.git.GitFindUtils
+import com.normation.rudder.git.ZipUtils
 import com.normation.zio._
 import org.eclipse.jgit.api.Status
 import org.specs2.matcher.ContentMatchers

@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.eventlog.EventActor
 import com.normation.eventlog._
 import com.normation.rudder.UserService
@@ -50,9 +51,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
 import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.ApiVersion
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RestDataSerializer
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.getActor
@@ -78,11 +77,17 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import com.normation.box._
 import com.normation.errors._
+import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.apidata.DetailLevel
+import com.normation.rudder.apidata.FullDetails
 import zio._
 import zio.syntax._
 import com.normation.rudder.rest._
-import com.normation.rudder.rest.JsonQueryObjects._
-import com.normation.rudder.rest.JsonResponseObjects._
+import com.normation.rudder.apidata.JsonQueryObjects._
+import com.normation.rudder.apidata.JsonResponseObjects._
+import com.normation.rudder.apidata.MinimalDetails
+import com.normation.rudder.apidata.ZioJsonExtractor
+import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.rest.implicits._
 
 class RuleApi(
@@ -571,7 +576,7 @@ class RuleApiService6(
   , restDataSerializer   : RestDataSerializer
 ) extends Loggable {
 
-  def getCategoryInformations(category: RuleCategory, parent: RuleCategoryId, detail : DetailLevel) = {
+  def getCategoryInformations(category: RuleCategory, parent: RuleCategoryId, detail: DetailLevel) = {
     for {
       rules <- readRule.getAll()
     } yield {
@@ -582,7 +587,7 @@ class RuleApiService6(
   def getCategoryTree = {
     for {
         root       <- readRuleCategory.getRootCategory().toBox
-        categories <- getCategoryInformations(root,root.id,FullDetails)
+        categories <- getCategoryInformations(root,root.id, FullDetails)
     } yield {
       categories
     }
@@ -593,7 +598,7 @@ class RuleApiService6(
       root              <- readRuleCategory.getRootCategory().toBox
       found             <- root.find(id)
       (category,parent) =  found
-      categories       <- getCategoryInformations(category,parent,MinimalDetails)
+      categories       <- getCategoryInformations(category,parent, MinimalDetails)
     } yield {
       categories
     }
@@ -609,7 +614,7 @@ class RuleApiService6(
                              Inconsistency(s"Cannot delete category '${category.name}' since that category is not empty").fail
                            }
       _                <- writeRuleCategory.delete(id, modId, actor, reason)
-      category         <- getCategoryInformations(category,parent,MinimalDetails).toIO
+      category         <- getCategoryInformations(category,parent, MinimalDetails).toIO
     } yield {
       category
     }

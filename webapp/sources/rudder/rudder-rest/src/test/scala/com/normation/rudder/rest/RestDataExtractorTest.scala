@@ -49,10 +49,10 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.core.Fragments
-import com.normation.rudder.rest.JsonQueryObjects._
-import com.normation.rudder.rest.JsonResponseObjects._
-import com.normation.rudder.rest.JsonResponseObjects.JRRuleTarget._
-import com.normation.rudder.rest.implicits._
+import com.normation.rudder.apidata.JsonQueryObjects._
+import com.normation.rudder.apidata.JsonResponseObjects._
+import com.normation.rudder.apidata.JsonResponseObjects.JRRuleTarget._
+import com.normation.rudder.apidata.implicits._
 
 @RunWith(classOf[JUnitRunner])
 class RestDataExtractorTest extends Specification {

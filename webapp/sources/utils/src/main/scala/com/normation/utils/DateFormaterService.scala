@@ -40,6 +40,7 @@ package com.normation.utils
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 import org.joda.time.DateTime
+import org.joda.time.DateTimeFieldType
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
 import org.joda.time.format.DateTimeFormat
@@ -113,4 +114,28 @@ object DateFormaterService {
   def getFormatedPeriod(start : DateTime, end : DateTime) : String = {
     formatPeriod(new Duration(start,end))
   }
+
+
+  /**
+   * For git tags or branches, we can't use ISO8601 valid format since ":" is forbidden.
+   * So we use a:
+   * YYYY-MM-dd_HH_mm_ss.SSS
+   */
+  val gitTagFormat = new DateTimeFormatterBuilder().
+                appendYear(4, 4).
+                appendLiteral('-').
+                appendFixedDecimal(DateTimeFieldType.monthOfYear(), 2).
+                appendLiteral('-').
+                appendFixedDecimal(DateTimeFieldType.dayOfMonth(), 2).
+                appendLiteral('_').
+                appendFixedDecimal(DateTimeFieldType.hourOfDay(), 2).
+                appendLiteral('-').
+                appendFixedDecimal(DateTimeFieldType.minuteOfHour(), 2).
+                appendLiteral('-').
+                appendFixedDecimal(DateTimeFieldType.secondOfMinute(), 2).
+                appendLiteral('.').
+                appendFractionOfSecond(3, 9).
+                toFormatter()
+
+
 }

@@ -6,7 +6,7 @@ import com.normation.rudder.api.RoApiAccountRepository
 import com.normation.rudder.api.WoApiAccountRepository
 import com.normation.rudder.api._
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
-import com.normation.rudder.rest.ApiAccountSerialisation._
+import com.normation.rudder.apidata.ApiAccountSerialisation._
 import com.normation.rudder.rest.RestUtils._
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Loggable
