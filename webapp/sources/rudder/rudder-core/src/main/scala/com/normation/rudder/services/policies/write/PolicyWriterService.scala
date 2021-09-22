@@ -848,7 +848,6 @@ class PolicyWriterServiceImpl(
                                    Unexpected(s"Error when trying to open resource '${templateId.displayPath}'. Check that the file exists is correctly commited in Git, or that the metadata for the technique are corrects.").fail
                                  case Some(inputStream) =>
                                      TechniqueResourceCopyInfo(templateId, templateOutPath, inputStream.byteArray).succeed
-
                                }
                              }
                } yield {

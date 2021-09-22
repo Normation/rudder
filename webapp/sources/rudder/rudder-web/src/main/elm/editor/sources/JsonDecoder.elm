@@ -2,6 +2,7 @@ module  JsonDecoder exposing (..)
 
 
 import DataTypes exposing (..)
+import Iso8601
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import MethodConditions exposing (..)
@@ -64,7 +65,7 @@ decodeBlock : Decoder MethodBlock
 decodeBlock =
   succeed MethodBlock
     |> required "id" (map CallId string)
-    |> required "component"  string
+    |> optional "component"  string ""
     |> required "condition"  (map parseCondition string)
     |> required "reportingLogic" decodeCompositionRule
     |> required "calls" (list  (lazy (\_ -> decodeMethodElem Nothing)))
@@ -82,7 +83,7 @@ decodeMethodCall =
     |> required "method_name" (map MethodId string)
     |> required "parameters"  (list decodeCallParameter )
     |> required "class_context"  (map parseCondition string)
-    |> required "component"  string
+    |> optional "component"  string ""
     |> optional "disableReporting" bool False
 
 decodeTechnique : Decoder Technique
@@ -167,11 +168,10 @@ decodeMethod =
     |> optional "deprecated" (maybe string) Nothing
     |> optional "rename" (maybe string) Nothing
 
-decodeDeleteTechniqueResponse : Decoder (TechniqueId,String)
+decodeDeleteTechniqueResponse : Decoder TechniqueId
 decodeDeleteTechniqueResponse =
-  succeed Tuple.pair
-    |> required "id" (map TechniqueId string)
-    |> required "version" string
+  succeed TechniqueId |>
+    required "id" string
 
 decodeCategory : Decoder TechniqueCategory
 decodeCategory =
@@ -192,3 +192,12 @@ decodeResource =
                                           "deleted" -> succeed Deleted
                                           _ -> fail "not a valid state"
                         ) string)
+
+
+decodeDraft : Decoder Draft
+decodeDraft =
+  succeed Draft
+    |> required "technique" decodeTechnique
+    |> optional "origin"  (maybe decodeTechnique) Nothing
+    |> required "id"  string
+    |> required "date"  Iso8601.decoder

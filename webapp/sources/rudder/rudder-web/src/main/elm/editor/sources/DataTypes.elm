@@ -1,11 +1,13 @@
 module DataTypes exposing (..)
 
 import Dict exposing (Dict)
+import Either exposing (Either)
 import File exposing (File)
 import Http exposing (Error)
 import Json.Decode exposing (Value)
 import MethodConditions exposing (..)
 import Dom.DragDrop as DragDrop
+import Time exposing (Posix)
 
 --
 -- All our data types
@@ -19,7 +21,7 @@ type alias CallId = {value : String}
 
 type alias ParameterId = {value : String}
 
-
+type alias Draft = { technique : Technique, origin : Maybe Technique, id : String, date : Posix}
 
 type AgentValue = Value String | Variable (List AgentValue)
 
@@ -128,6 +130,7 @@ type alias Model =
   { techniques         : List Technique
   , methods            : Dict String Method
   , categories         : TechniqueCategory
+  , drafts             : Dict String Draft
   , mode               : Mode
   , contextPath        : String
   , techniqueFilter    : String
@@ -186,11 +189,11 @@ type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUi
 
 -- all events in the event loop
 type Msg =
-    SelectTechnique Technique
+    SelectTechnique (Either Technique Draft)
   | GetTechniques   (Result Error (List Technique))
   | SaveTechnique   (Result Error Technique)
   | UpdateTechnique Technique
-  | DeleteTechnique (Result Error (TechniqueId, String))
+  | DeleteTechnique (Result Error TechniqueId)
   | GetTechniqueResources  (Result Error (List Resource))
   | GetCategories (Result Error  TechniqueCategory)
   | GetMethods   (Result Error (Dict String Method))
@@ -219,8 +222,7 @@ type Msg =
   | SetCallId CallId
   | StartSaving
   | Copy String
-  | Store String Value
-  | GetFromStore Technique (Maybe Technique) TechniqueId
+  | GetDrafts (Dict String Draft)
   | CloneTechnique Technique TechniqueId
   | ResetTechnique
   | ResetMethodCall MethodCall
@@ -238,6 +240,7 @@ type Msg =
   | MoveCanceled
   | MoveCompleted DragElement DropElement
   | SetMissingIds String
+  | Notification (String -> Cmd Msg) String
 
 dragDropMessages : DragDrop.Messages Msg DragElement DropElement
 dragDropMessages =
