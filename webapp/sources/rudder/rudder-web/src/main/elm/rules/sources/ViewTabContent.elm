@@ -452,16 +452,26 @@ tabContent model details =
               groupTreeElem item =
                 let
                   checkIncludeOrExclude : List RuleTarget -> Bool
-                  checkIncludeOrExclude lst = lst
-                    |> List.map (\t -> case t of
-                       NodeGroupId groupId -> groupId
-                       Composition _ _ -> "compo"
-                       Special spe -> spe
-                       Node node -> node
-                       Or _ -> "or"
-                       And _ -> "and"
-                    )
-                    |> List.member item.id
+                  checkIncludeOrExclude lst =
+                    let
+                      getTargetIds : List RuleTarget -> List String
+                      getTargetIds listTargets =
+                        List.concatMap (\target -> case target of
+                           NodeGroupId groupId -> [groupId]
+                           Composition i e ->
+                             let
+                               included = getTargetIds[ i ]
+                               excluded = getTargetIds[ e ]
+                             in
+                               included |>
+                                 List.filter (\t -> List.member t excluded)
+                           Special spe -> [spe]
+                           Node node -> [node]
+                           Or t  -> getTargetIds t
+                           And t -> getTargetIds t -- TODO : Need to be improved - we need to keep targets that are member of all targets list in t
+                        ) listTargets
+                    in
+                      List.member item.id (getTargetIds lst)
 
                   includeClass =
                     if checkIncludeOrExclude includedTargets then " item-selected"
