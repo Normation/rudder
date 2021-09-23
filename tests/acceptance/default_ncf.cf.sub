@@ -62,7 +62,7 @@ bundle agent define_expected_classes(class_prefix, status, id)
 bundle agent execute_testinfra(test_name, class_name, comment)
 {
   classes:
-      "${class_name}" expression => returnszero("py.test ${ncf_configuration.ncf_configuration_basedir}/spec/localhost/${test_name} #${comment}", "useshell"),
+      "${class_name}" expression => returnszero("python -m pytest ${ncf_configuration.ncf_configuration_basedir}/spec/localhost/${test_name} #${comment}", "useshell"),
           scope => "namespace";
 }
 
