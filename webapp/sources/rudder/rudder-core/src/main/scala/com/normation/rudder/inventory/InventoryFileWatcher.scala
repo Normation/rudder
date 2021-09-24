@@ -505,8 +505,9 @@ class ProcessFile(
    * - when a file is created, we look if it's a sig or an inventory (ends by .sign or not)
    * - if its an inventory, look for the corresponding sign. If available process, else
    *   register a timeout action that process after waitForSig duration.
-   * - if its a signature, look for the corresponding inventory. If available, remove possible action
-   *   timeout and process, else do nothing.
+   * - if its a signature, look for the corresponding inventory. If available process, else
+   *   register a timeout action that process after waitForSig duration. If inventory doesn't arrive,
+   *   do nothing
    */
   def processFile(file: File, locks: zio.Ref[Set[String]]): ZIO[Any, RudderError, Unit] = {
     // the ZIO program
@@ -529,8 +530,17 @@ class ProcessFile(
                   // process !
                   InventoryProcessingLogger.info(s"Watch new inventory file '${inventory.name}' with signature available: process.") *>
                   saveInventoryBuffer.offer((inventory, Some(file)))
-                } else {
-                  InventoryProcessingLogger.debug(s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: waiting")
+                } else { // wait for expiration time
+                  InventoryProcessingLogger.debug(s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: wait for it ${waitForSig.asJava.getSeconds}s before processing.") *>
+                  (for {
+                    sig    <- IOResult.effect(file.exists).orElseSucceed(false)
+                    inv    <- IOResult.effect(inventory.exists).orElseSucceed(false)
+                    _      <- (sig, inv) match {
+                      case (false, _    ) => ().succeed // do nothing
+                      case (true , false) => ().succeed // do nothing)
+                      case (true , true ) => saveInventoryBuffer.offer((inventory, Some(file)))
+                    }
+                  } yield ()).delay(waitForSig)
                 }
               } else { // an inventory
                 val signature = File(file.pathAsString+sign)
