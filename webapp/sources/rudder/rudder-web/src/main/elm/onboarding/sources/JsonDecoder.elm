@@ -23,12 +23,17 @@ decodeGetMetricsSettings : Decoder MetricsState
 decodeGetMetricsSettings =
   at [ "data" ] decodeMetricsSettings
 
+
+decodeSetupDone : Decoder Bool
+decodeSetupDone =
+  at [ "data", "settings", "rudder_setup_done" ] D.bool
+
 decodeMetricsSettings : Decoder MetricsState
 decodeMetricsSettings =
   at [ "settings" ] (at [ "send_metrics" ] D.string
     |> D.andThen (\str ->
        case str of
-        "not_defined" ->
+        "not defined" ->
           D.succeed NotDefined
         "no" ->
           D.succeed NoMetrics
