@@ -131,6 +131,7 @@ class SettingsApi(
       RestPolicyGenerationTrigger ::
       RestNodeAcceptDuplicatedHostname ::
       RestComputeDynGroupMaxParallelism ::
+      RestSetupDone ::
       Nil
 
   val allSettings_v12 =   RestReportProtocolDefault :: allSettings_v10
@@ -780,6 +781,13 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
     val key = "rudder_compute_dyngroups_max_parallelism"
     def get = configService.rudder_compute_dyngroups_max_parallelism()
     def set = (value : String, _, _) => configService.set_rudder_compute_dyngroups_max_parallelism(value)
+  }
+
+  final case object RestSetupDone extends RestBooleanSetting {
+    val startPolicyGeneration = false
+    val key = "rudder_setup_done"
+    def get = configService.rudder_setup_done()
+    def set = (value : Boolean, _, _) => configService.set_rudder_setup_done(value)
   }
 
   // if the directive is missing for policy server, it may be because it misses dedicated allowed networks.

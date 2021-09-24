@@ -28,5 +28,5 @@ encodeMetricsSettings metrics =
       Complete   -> "complete"
   in
     object
-    [ ("send_metrics", string metricsValue)
+    [ ("value", string metricsValue)
     ]

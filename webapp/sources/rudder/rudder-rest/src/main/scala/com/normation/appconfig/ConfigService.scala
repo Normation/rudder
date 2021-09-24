@@ -224,6 +224,8 @@ trait ReadConfigService {
 
   def rudder_generation_continue_on_error(): IOResult[Boolean]
 
+  def rudder_setup_done(): IOResult[Boolean]
+
 }
 
 /**
@@ -362,6 +364,8 @@ trait UpdateConfigService {
   def set_rudder_compute_dyngroups_max_parallelism(value: String): IOResult[Unit]
 
   def set_rudder_generation_continue_on_error(value: Boolean): IOResult[Unit]
+
+  def set_rudder_setup_done(value : Boolean): IOResult[Unit]
 }
 
 /*
@@ -429,6 +433,7 @@ class GenericConfigService(
        rudder.generation.trigger=all
        node.accept.duplicated.hostname=false
        rudder.compute.dyngroups.max.parallelism=1
+       rudder.setup.done=false
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -762,5 +767,8 @@ class GenericConfigService(
 
   def rudder_compute_dyngroups_max_parallelism(): IOResult[String] = get("rudder_compute_dyngroups_max_parallelism")
   def set_rudder_compute_dyngroups_max_parallelism(value: String): IOResult[Unit] = save("rudder_compute_dyngroups_max_parallelism", value)
+
+  def rudder_setup_done(): IOResult[Boolean] = get("rudder_setup_done")
+  def set_rudder_setup_done(value: Boolean): IOResult[Unit] = save("rudder_setup_done", value)
 
 }

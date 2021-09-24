@@ -2,7 +2,8 @@ module ApiCalls exposing (..)
 
 import DataTypes exposing (Model, Msg(..), AccountSettings, MetricsState)
 import Http exposing (emptyBody, expectJson, jsonBody, request, send)
-import JsonDecoder exposing (decodeGetAccountSettings, decodeGetMetricsSettings)
+import Json.Encode
+import JsonDecoder exposing (decodeGetAccountSettings, decodeGetMetricsSettings, decodeSetupDone)
 import JsonEncoder exposing (encodeAccountSettings, encodeMetricsSettings)
 
 getUrl: Model -> String -> String
@@ -72,3 +73,20 @@ postMetricsSettings model metrics =
         }
   in
     send PostMetricsSettings req
+
+
+setupDone : Model -> Bool -> Cmd Msg
+setupDone model res =
+  let
+    req =
+      request
+        { method          = "POST"
+        , headers         = []
+        , url             = getUrl model "/settings/rudder_setup_done"
+        , body            = jsonBody (Json.Encode.object [ ("value", Json.Encode.bool res)])
+        , expect          = expectJson decodeSetupDone
+        , timeout         = Nothing
+        , withCredentials = False
+        }
+  in
+    send SetupDone req

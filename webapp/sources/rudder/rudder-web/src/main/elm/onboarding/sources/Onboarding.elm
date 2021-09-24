@@ -2,16 +2,14 @@ port module Onboarding exposing (update)
 
 import Browser
 import DataTypes exposing (..)
-import ApiCalls exposing (getAccountSettings, getMetricsSettings, postAccountSettings, postMetricsSettings)
-import Http exposing (Error)
+import ApiCalls exposing (..)
 import Init exposing (init, subscriptions)
 import View exposing (view)
 import Result
 import Process
 import Task
-import List exposing (any, intersperse, map, sortWith)
-import List.Extra exposing (minimumWith, updateAt)
-import Json.Encode as E
+import List
+import List.Extra
 
 --
 -- Port for interacting with external JS
@@ -54,7 +52,7 @@ update msg model =
         ({model | activeSection = index, sections = newSections, animation = False}, Cmd.none)
 
     GoToLast ->
-      ({model | activeSection = (List.length model.sections) - 1}, Cmd.none)
+      ({model | activeSection = (List.length model.sections) - 1}, setupDone model True)
 
     UpdateSection index newSection ->
       let
@@ -109,6 +107,10 @@ update msg model =
       in
         ({ model | saveMetricsFlag = flag}, Cmd.none)
 
+
+    SetupDone _ ->
+        ( model, Cmd.none)
+
     SaveAction ->
       let
         accountSettings = case List.Extra.getAt 1 model.sections of
@@ -124,6 +126,7 @@ update msg model =
         listActions =
           [ postAccountSettings model accountSettings
           , postMetricsSettings model metricsSettings
+          , setupDone model True
           , actionsAfterSaving model
           ]
       in
