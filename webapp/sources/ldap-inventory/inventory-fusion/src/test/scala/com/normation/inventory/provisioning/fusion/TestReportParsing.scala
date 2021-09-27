@@ -252,6 +252,24 @@ class TestReportParsing extends Specification with Loggable {
 
   }
 
+  "Parsing Processors" should {
+    "count 6 CPU in total" in {
+      val cpus = parseRun("fusion-report/cpus-count.ocs").machine.processors
+      val count = cpus.map(_.quantity).sum
+      count === 6
+    }
+    "count 2 different CPU models" in {
+      val cpus = parseRun("fusion-report/cpus-count.ocs").machine.processors
+      val count = cpus.length
+      count === 2
+    }
+    "count 5 same CPU models" in {
+      val cpus = parseRun("fusion-report/cpus-count.ocs").machine.processors
+      val count = cpus.filter(_.name == "Intel(R) Xeon(R) Gold 6254 CPU @ 3.10GHz").head.quantity
+      count === 5
+    }
+  }
+
   "Parsing Windows 2012" should {
     "parse as windows 2012" in {
       val os = parseRun("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.osDetails.os
