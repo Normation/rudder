@@ -1,0 +1,62 @@
+<TECHNIQUE name="Rudder Webapp">
+  <DESCRIPTION>Configure the Rudder webapp</DESCRIPTION>
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <SYSTEM>true</SYSTEM>
+
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>system_rudder_webapp</NAME>
+    </BUNDLES>
+    <TMLS>
+      <TML name="main"/>
+    </TMLS>
+    <FILES>
+      <FILE name="alive-check.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="compress-webapp-log.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="integrity-check.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="metrics-reporting.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="password-check.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="updateNcfHash.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+
+  <SECTIONS>
+    <SECTION name="Rudder-jetty service" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>Enabled</VALUE>
+        <VALUE>Started</VALUE>
+        <VALUE>API status</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Check configuration-repository" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>Configuration-repository exists</VALUE>
+        <VALUE>Check configuration-repository GIT lock</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Check webapp configuration" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>postgres password</VALUE>
+        <VALUE>ldap password</VALUE>
+        <VALUE>webdav password</VALUE>
+        <VALUE>rudder-passwords.conf permissions</VALUE>
+        <VALUE>rudder-web.properties permissions</VALUE>
+        <VALUE>rudder-users.xml permissions</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Send metrics to rudder-project" component="true"/>
+  </SECTIONS>
+</TECHNIQUE>

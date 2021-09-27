@@ -40,7 +40,7 @@ class InMemoryDsConnectionProvider[CON <: RoLDAPConnection](
     //an optional list of path to LDIF files to load
     //for example for bootstrap datas
   , bootstrapLDIFPaths : Seq[String] = Seq()
-  , val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger()
+  , val ldifFileLogger:LDIFFileLogger = new DummyLDIFFileLogger()
   , val blockingModule: Blocking
 ) extends LDAPConnectionProvider[CON] with OneConnectionProvider[CON] with UnboundidConnectionProvider {
 

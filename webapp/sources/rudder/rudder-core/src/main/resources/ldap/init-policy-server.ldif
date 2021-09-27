@@ -220,9 +220,8 @@ isSystem: TRUE
 directivePriority: 0
 directiveVariable: OWNER[0]:${rudder.node.admin}
 directiveVariable: UUID[0]:${rudder.node.id}
-directiveVariable: POLICYSERVER[0]:%%POLICY_SERVER_HOSTNAME%%
-directiveVariable: POLICYSERVER_ID[0]:root
-directiveVariable: POLICYSERVER_ADMIN[0]:root
+directiveVariable: POLICYSERVER_ID[0]:${rudder.node.policyserver.id}
+directiveVariable: POLICYSERVER_ADMIN[0]:${rudder.node.policyserver.admin}
 
 #######################################################################################################################
 ## Allowed networks for root server: init corresponding setting in ou=Application Properties

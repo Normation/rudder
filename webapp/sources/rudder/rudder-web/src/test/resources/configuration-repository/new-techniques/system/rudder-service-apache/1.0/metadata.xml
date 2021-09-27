@@ -1,0 +1,65 @@
+<TECHNIQUE name="Rudder apache">
+  <DESCRIPTION>Configure the apache components</DESCRIPTION>
+  <SYSTEM>true</SYSTEM>
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+
+  <TMLS>
+    <TML name="apache/main"/>
+    <TML name="apache/nodescerts.pem">
+      <INCLUDED>false</INCLUDED>
+      <OUTPATH>rudder-service-apache/1.0/apache/nodescerts.pem</OUTPATH>
+    </TML>
+  </TMLS>
+  <FILES>
+    <FILE name="apache/apache-certificate.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="apache/system_rudder_apache_networks_configuration.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="apache/system_rudder_apache_webdav_configuration.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="apache/logrotate.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="apache/apache-logrotate.mustache">
+      <INCLUDED>false</INCLUDED>
+    </FILE>
+  </FILES>
+
+  <BUNDLES>
+    <NAME>system_rudder_apache_configuration</NAME>
+  </BUNDLES>
+
+  <SYSTEMVARS>
+    <NAME>MANAGED_NODES_CERT_PEM</NAME>
+  </SYSTEMVARS>
+
+  <SECTIONS>
+    <SECTION name="Apache service" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>Enabled</VALUE>
+        <VALUE>Started</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Apache configuration" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>Allowed networks permissions</VALUE>
+        <VALUE>Allowed networks configuration</VALUE>
+        <VALUE>Remote run permissions</VALUE>
+        <VALUE>Remote run configuration</VALUE>
+        <VALUE>Webdav configuration</VALUE>
+        <VALUE>Webdav permissions</VALUE>
+        <VALUE>Logrotate</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Configure apache certificate" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>Permissions</VALUE>
+        <VALUE>Apache certificate</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

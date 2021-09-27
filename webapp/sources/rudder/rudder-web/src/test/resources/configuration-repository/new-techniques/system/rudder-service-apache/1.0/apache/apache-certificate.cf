@@ -1,0 +1,40 @@
+bundle agent apache_cert(trackingkey, technique_name)
+{
+  vars:
+      "component"            string => "Configure apache certificate";
+
+      "ssl_ca_file"          string => "nodescerts.pem";
+      # Concatenated list of sub-nodes certificates
+      # Also used by relayd
+      "nodes_certs"          string => "${g.rudder_var}/lib/ssl/${ssl_ca_file}";
+
+      "nodes_certs_src"      string => "${this.promise_dirname}/${ssl_ca_file}";
+      # Before first generation we do not have a nodescerts.pem,
+      # so we use local cert to allow starting apache
+      "nodes_certs_default"  string => "${g.rudder_base}/etc/ssl/agent.cert";
+
+      "nodes_certs_src_size" string => filestat("${nodes_certs_src}", "size");
+
+    pass1::
+      "src_ca_file" string => "${nodes_certs_src}",
+                        if => "!empty_ssl_ca";
+      "src_ca_file" string => "${nodes_certs_default}",
+                        if => "empty_ssl_ca";
+
+  classes:
+      "empty_ssl_ca" expression => strcmp("${nodes_certs_src_size}", "0");
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass2::
+      # Copy the right file in the expected path
+      "any" usebundle => _method_reporting_context("${component}", "Apache certificate");
+      "any" usebundle => file_from_local_source_recursion("${src_ca_file}", "${nodes_certs}", "0");
+
+      "any" usebundle => _method_reporting_context("${component}", "Permissions");
+      "any" usebundle => permissions("${nodes_certs}", "640", "root", "rudder");
+
+}

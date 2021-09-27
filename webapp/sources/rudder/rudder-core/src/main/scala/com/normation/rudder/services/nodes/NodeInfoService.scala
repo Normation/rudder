@@ -126,7 +126,7 @@ trait NodeInfoService {
 
 
   /**
-   * Return the number of managed (ie non policy server, no rudder role )nodes.
+   * Return the number of managed (ie non policy server, no rudder role nodes.
    * Implementation of that method must as efficient as possible.
    * It can't fails (implementation must use a sane default if backend is not accessible,
    * or cache the information)

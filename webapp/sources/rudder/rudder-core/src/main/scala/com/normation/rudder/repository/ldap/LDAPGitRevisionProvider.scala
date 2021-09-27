@@ -93,7 +93,8 @@ class LDAPGitRevisionProvider(
         logPure.error(s"Error when trying to read persisted version of the current technique " +
           s"reference library revision to use. Using the last available from Git. Error was: ${err.fullMsg}") *> setID
     , res => res match {
-      case Some(id) => IOResult.effect(ObjectId.fromString(id))
+      case Some(id) =>
+        IOResult.effect(ObjectId.fromString(id))
       case None =>
         logPure.info("No persisted version of the current technique reference library revision " +
           "to use where found, init to last available from Git repository") *> setID

@@ -172,6 +172,7 @@ import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
 import bootstrap.liftweb.checks.consistency.CheckConnections
 import bootstrap.liftweb.checks.consistency.CheckDIT
 import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
+import bootstrap.liftweb.checks.migration.CheckMigratedSystemTechniques
 import bootstrap.liftweb.checks.migration.CheckMigrationXmlFileFormat5_6
 import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
 import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
@@ -2328,6 +2329,7 @@ object RudderConfig extends Loggable {
 
   lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       new CheckConnections(dataSourceProvider, rwLdap)
+    , new CheckMigratedSystemTechniques(policyServerManagementService, gitConfigRepo, nodeInfoService, rwLdap, techniqueRepository, techniqueRepositoryImpl, uuidGen, woDirectiveRepository, woRuleRepository)
     , new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
     , new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,
@@ -2338,7 +2340,6 @@ object RudderConfig extends Loggable {
     // Check technique library reload needs to be achieved after modification in configuration (like migration of CFEngine variables)
     , new CheckTechniqueLibraryReload(
           techniqueRepositoryImpl
-        , asyncDeploymentAgent
         , uuidGen
       )
     , new CheckNcfTechniqueUpdate(

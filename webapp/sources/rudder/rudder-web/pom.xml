@@ -276,5 +276,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${spring-security-version}</version>
     </dependency>
 
+    <!-- TESTS -->
+    <dependency>
+      <groupId>com.normation.rudder</groupId>
+      <artifactId>rudder-core</artifactId>
+      <version>${rudder-version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

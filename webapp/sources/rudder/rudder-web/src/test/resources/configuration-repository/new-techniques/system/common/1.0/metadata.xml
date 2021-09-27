@@ -1,0 +1,157 @@
+
+<TECHNIQUE  name="Common policies">
+  <DESCRIPTION>Has a policy server</DESCRIPTION>
+  <SYSTEM>true</SYSTEM>
+
+  <TMLS>
+    <TML name="common"/>
+    <TML name="cf-serverd"/>
+    <TML name="update"/>
+    <TML name="failsafe">
+      <OUTPATH>failsafe.cf</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="promises">
+      <OUTPATH>promises.cf</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="rudder-directives">
+      <OUTPATH>rudder-directives.cf</OUTPATH>
+    </TML>
+    <TML name="rudder-system-directives">
+      <OUTPATH>rudder-system-directives.cf</OUTPATH>
+    </TML>
+    <TML name="rudder-promises-generated">
+      <OUTPATH>rudder-promises-generated</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="rudder_promises_generated">
+      <OUTPATH>rudder_promises_generated</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="rudder-parameters"/>
+    <TML name="run_interval">
+      <OUTPATH>run_interval</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="rudder-groups"/>
+    <TML name="rudder-vars">
+      <OUTPATH>rudder-vars.json</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+  </TMLS>
+
+  <FILES>
+    <FILE name="hooks.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="cron-setup.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="site.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="monitoring.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="restart-services.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="internal-security.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="environment-variables.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="properties.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="reporting-http.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="rudder-agent-community-cron">
+      <OUTPATH>common/cron/rudder-agent-community-cron</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </FILE>
+  </FILES>
+
+  <SYSTEMVARS>
+    <NAME>ALLOWED_NETWORKS</NAME>
+    <NAME>INPUTLIST</NAME>
+    <NAME>BUNDLELIST</NAME>
+    <NAME>RUDDER_DIRECTIVES_SEQUENCE</NAME>
+    <NAME>RUDDER_DIRECTIVES_INPUTS</NAME>
+    <NAME>RUDDER_SYSTEM_DIRECTIVES_SEQUENCE</NAME>
+    <NAME>RUDDER_SYSTEM_DIRECTIVES_INPUTS</NAME>
+    <NAME>COMMUNITY</NAME>
+    <NAME>COMMUNITYPORT</NAME>
+    <NAME>SHARED_FILES_FOLDER</NAME>
+    <NAME>DAVUSER</NAME>
+    <NAME>DAVPASSWORD</NAME>
+    <NAME>MANAGED_NODES_NAME</NAME>
+    <NAME>MANAGED_NODES_ID</NAME>
+    <NAME>MANAGED_NODES_KEY</NAME>
+    <NAME>MANAGED_NODES_ADMIN</NAME>
+    <NAME>DENYBADCLOCKS</NAME>
+    <NAME>AGENT_RUN_INTERVAL</NAME>
+    <NAME>AGENT_RUN_SPLAYTIME</NAME>
+    <NAME>AGENT_RUN_SCHEDULE</NAME>
+    <NAME>MODIFIED_FILES_TTL</NAME>
+    <NAME>CFENGINE_OUTPUTS_TTL</NAME>
+    <NAME>RUDDER_NODE_KIND</NAME>
+    <NAME>RUDDER_NODE_CONFIG_ID</NAME>
+    <NAME>RUDDER_REPORT_MODE</NAME>
+    <NAME>RUDDER_HEARTBEAT_INTERVAL</NAME>
+    <NAME>CONFIGURATION_REPOSITORY_FOLDER</NAME>
+    <NAME>RUDDER_NODE_GROUPS_VARS</NAME>
+    <NAME>RUDDER_NODE_GROUPS_CLASSES</NAME>
+    <NAME>RUDDER_INVENTORY_VARS</NAME>
+    <NAME>RUDDER_COMPLIANCE_MODE</NAME>
+    <NAME>RUDDER_VERIFY_CERTIFICATES</NAME>
+    <NAME>POLICY_SERVER_KEY</NAME>
+  </SYSTEMVARS>
+
+  <SECTIONS>
+
+    <!-- The following sections are for reporting only, variable are defined in the main section below -->
+    <SECTION name="Update" component="true" />
+    <SECTION name="ncf Initialization" component="true" />
+    <SECTION name="Security parameters" component="true" />
+    <SECTION name="Log system for reports" component="true" />
+    <SECTION name="CRON Daemon" component="true" />
+    <SECTION name="Monitoring" component="true" />
+
+    <SECTION name="common">
+      <INPUT>
+        <NAME>POLICYSERVER_ADMIN</NAME>
+        <DESCRIPTION>The policy server admin allowed to connect to this node via cf-runagent (see also distributePolicy.ADMIN)</DESCRIPTION>
+      </INPUT>
+      <INPUT>
+        <NAME>OWNER</NAME>
+        <DESCRIPTION>User launching cfe (usually root)</DESCRIPTION>
+      </INPUT>
+      <INPUT>
+        <NAME>UUID</NAME>
+        <DESCRIPTION>UUID of the machine</DESCRIPTION>
+      </INPUT>
+      <INPUT>
+        <NAME>POLICYSERVER</NAME>
+        <DESCRIPTION>Promises server hostname</DESCRIPTION>
+      </INPUT>
+      <INPUT>
+        <NAME>POLICYSERVER_ID</NAME>
+        <DESCRIPTION>UUID of the policy server</DESCRIPTION>
+      </INPUT>
+      <SECTION name="authorizedNetworkSection" multivalued="true">
+      <INPUT>
+        <NAME>ALLOWEDNETWORK</NAME>
+        <DESCRIPTION>The network(s) allowed to connect to the server (can use the / parameter)</DESCRIPTION>
+        <CONSTRAINT>
+          <MAYBEEMPTY>true</MAYBEEMPTY>
+        </CONSTRAINT>
+      </INPUT>
+      </SECTION>
+    </SECTION>
+  </SECTIONS>
+
+</TECHNIQUE>

@@ -315,9 +315,9 @@ class MockDirectives(mockTechniques: MockTechniques) {
       , Map(
           ("OWNER", Seq("${rudder.node.admin}"))
         , ("UUID", Seq("${rudder.node.id}"))
-        , ("POLICYSERVER_ID", Seq("${rudder.node.policyserver.id}"))
-        , ("POLICYSERVER", Seq("${rudder.node.policyserver.hostname}"))
-        , ("POLICYSERVER_ADMIN", Seq("${rudder.node.policyserver.admin}"))
+        , ("POLICYSERVER_ID", Seq("${rudder.node.id}"))
+        , ("POLICYSERVER", Seq("${rudder.node.hostname}"))
+        , ("POLICYSERVER_ADMIN", Seq("${rudder.node.admin}"))
         )
       , "common-root"
       , "", None, "", 5, true, true // short desc / policyMode / long desc / prio / enabled / system

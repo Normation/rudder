@@ -278,26 +278,24 @@ class TechniqueAcceptationUpdater(
                                         //ignore ? => do nothing
                                         UIO.unit
                                       case Some(t) =>
-                                        //if the technique is system, we must not add it to UserTechniqueLib, the process
-                                        //must be handled by a dedicated action. Only update system techniques!
+                                        val referenceId = t.head._2.id
+
+                                        //if the technique is system, we must be careful: the category is not "system" like in fs
+                                        // but "Rudder Internal"
+
                                         val isSystem = t.exists( _._2.isSystem == true) //isSystem should be consistant, but still
-                                        if(isSystem && mod == VersionAdded) {
-                                          logPure.info(s"Not auto-adding system techniques '${name.value}' in user library. You will need to add it explicitly.") *>
-                                          UIO.unit
+                                        val parentCat = if(isSystem && mod == VersionAdded) {
+                                          (ActiveTechniqueCategoryId("Rudder Internal"), "Active techniques used by Rudder")
                                         } else {
-                                          val referenceId = t.head._2.id
-
                                           val referenceCats = techniquesInfo.techniquesCategory(referenceId).getIdPathFromRoot.map( techniquesInfo.allCategories(_) )
-
-                                            //now, for each category in reference library, look if it exists in target library, and recurse on children
-                                            //tail of cats, because if root, we want an empty list to return immediatly in findCategory
-                                            val parentCat = findCategory(referenceCats.tail.map(x => CategoryInfo(x.id.name.value, x.name, x.description)), techLib)
-
-                                          logPure.info(s"Automatically adding technique '${name.value}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library") *>
-                                          rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, modId, actor, reason).chainError(
-                                              s"Error when automatically activating technique '${name.value}'"
-                                          ).unit
+                                          //now, for each category in reference library, look if it exists in target library, and recurse on children
+                                          //tail of cats, because if root, we want an empty list to return immediatly in findCategory
+                                          findCategory(referenceCats.tail.map(x => CategoryInfo(x.id.name.value, x.name, x.description)), techLib)
                                         }
+                                        logPure.info(s"Automatically adding technique '${name.value}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library") *>
+                                        rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, modId, actor, reason).chainError(
+                                            s"Error when automatically activating technique '${name.value}'"
+                                        ).unit
                                     }
 
                                 }

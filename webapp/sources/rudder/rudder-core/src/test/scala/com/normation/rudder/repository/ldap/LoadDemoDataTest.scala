@@ -37,6 +37,8 @@
 
 package com.normation.rudder.repository.ldap
 
+import com.normation.ldap.ldif.DummyLDIFFileLogger
+
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
@@ -53,6 +55,31 @@ import com.normation.ldap.sdk.RwLDAPConnection
 @RunWith(classOf[JUnitRunner])
 class LoadDemoDataTest extends Specification {
 
+  val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
+    // toURI is needed for https://issues.rudder.io/issues/19186
+    this.getClass.getClassLoader.getResource(name).toURI.getPath
+  }
+
+
+  val numEntries = bootstrapLDIFs.foldLeft(0) { case (x,path) =>
+    val reader = new com.unboundid.ldif.LDIFReader(path)
+    var i = 0
+    while(reader.readEntry != null) i += 1
+    i + x
+  }
+
+  val ldap = InitTestLDAPServer.newLdapConnectionProvider(bootstrapLDIFs)
+
+  "The in memory LDAP directory" should {
+
+    "correctly load and read back test-entries" in {
+
+      ldap.server.countEntries === numEntries
+    }
+  }
+}
+
+object InitTestLDAPServer {
   val schemaLDIFs = (
       "00-core" ::
       "01-pwpolicy" ::
@@ -67,31 +94,13 @@ class LoadDemoDataTest extends Specification {
   }
 
   val baseDN = "cn=rudder-configuration"
-  val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
-    // toURI is needed for https://issues.rudder.io/issues/19186
-    this.getClass.getClassLoader.getResource(name).toURI.getPath
-  }
 
-
-  val numEntries = bootstrapLDIFs.foldLeft(0) { case (x,path) =>
-    val reader = new com.unboundid.ldif.LDIFReader(path)
-    var i = 0
-    while(reader.readEntry != null) i += 1
-    i + x
-  }
-
-  val ldap = InMemoryDsConnectionProvider[RwLDAPConnection with RoLDAPConnection](
-      baseDNs = baseDN :: Nil
-    , schemaLDIFPaths = schemaLDIFs
-    , bootstrapLDIFPaths = bootstrapLDIFs
-  )
-
-
-  "The in memory LDAP directory" should {
-
-    "correctly load and read back test-entries" in {
-
-      ldap.server.countEntries === numEntries
-    }
+  def newLdapConnectionProvider(fullLdifPaths: List[String]) = {
+    InMemoryDsConnectionProvider[RwLDAPConnection with RoLDAPConnection](
+        baseDNs = baseDN :: Nil
+      , schemaLDIFPaths = schemaLDIFs
+      , bootstrapLDIFPaths = fullLdifPaths
+      , ldifFileLogger = new DummyLDIFFileLogger()
+    )
   }
 }

@@ -326,7 +326,10 @@ object RuleTarget extends Loggable {
         unserJson(parse(s))
       } catch {
         case e : Exception =>
-          logger.error(s"Error when trying to read the following serialized Rule target as a composite target: '${s}'. Reported parsing error cause was: ${e.getMessage}")
+          // these two target were removed in 7.0, we don't want error log on them.
+          if(s != "special:all_servers_with_role" && s != "special:all_servers_with_role") {
+            logger.error(s"Error when trying to read the following serialized Rule target as a composite target: '${s}'. Reported parsing error cause was: ${e.getMessage}")
+          }
           None
       }
     )

@@ -1,0 +1,26 @@
+
+<TECHNIQUE name="Make an inventory of the node">
+  <DESCRIPTION>Inventory of the computer</DESCRIPTION>
+
+  <SYSTEM>true</SYSTEM>
+
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+
+  <SYSTEMVARS>
+    <NAME>AGENT_RUN_INTERVAL</NAME>
+  </SYSTEMVARS>
+
+  <BUNDLES>
+    <NAME>doInventory</NAME>
+  </BUNDLES>
+
+  <TMLS>
+    <TML name="fusionAgent"/>
+    <TML name="test-inventory.pl">
+      <OUTPATH>inventory/1.0/test-inventory.pl</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+  </TMLS>
+
+  <SECTIONS/>
+</TECHNIQUE>

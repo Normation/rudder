@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+bundle agent system_rudder_jetty_alive_check {
+  vars:
+      "site_to_check"        string => "http://localhost:8080/rudder/api/status";
+
+      "api_check_cmd"        string => "${g.rudder_curl} --proxy '' --max-time 240 -s ${site_to_check} |/bin/grep -q OK";
+      "condition_prefix"     string => "rudder_system_api_status";
+      "persistent_condition" string => "rudder_system_api_status_down";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+    pass3::
+      # Restart rudder-jetty if the api call failed two times in two agent run intervals.
+      "rudder_server_system_restart_jetty" expression => "${condition_prefix}_false.${persistent_condition}",
+                                                scope => "namespace";
+
+      "${persistent_condition}"            expression => "${condition_prefix}_false",
+                                          persistence => "${g.agent_run_interval}";
+
+  methods:
+      "any" usebundle => _method_reporting_context("Rudder-jetty service", "API status");
+      "any" usebundle => condition_from_command("${condition_prefix}", "${api_check_cmd}", "0", "1,255");
+}

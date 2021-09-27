@@ -1,0 +1,26 @@
+<TECHNIQUE name="Server Common">
+  <DESCRIPTION>Configure generic feature for all Rudder policy servers</DESCRIPTION>
+  <SYSTEM>true</SYSTEM>
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+
+  <TMLS>
+    <TML name="reloadRudderServices"/>
+  </TMLS>
+  <FILES>
+    <FILE name="rudder_syslog.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="bootstrapRudderServer.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+  </FILES>
+
+  <BUNDLES>
+    <NAME>system_reload_rudder_services</NAME>
+  </BUNDLES>
+
+  <SECTIONS>
+    <SECTION name="Reload Rudder services" component="true"/>
+  </SECTIONS>
+</TECHNIQUE>

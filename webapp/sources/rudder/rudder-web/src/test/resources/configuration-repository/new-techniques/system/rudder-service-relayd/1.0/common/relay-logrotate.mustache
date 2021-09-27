@@ -1,0 +1,15 @@
+{{{#vars.system_relay_logrotate.relay_logs}}} {
+{{{.name}}} {
+        daily
+        missingok
+        rotate {{{.duration}}}
+        compress
+        notifyempty
+        create {{{.create}}}
+        delaycompress
+        sharedscripts
+        postrotate
+          {{{.postrotate}}}
+        endscript
+}
+{{{/vars.system_relay_logrotate.relay_logs}}} {

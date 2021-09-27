@@ -1,0 +1,72 @@
+####################################################################################
+# Copyright 2021 Normation SAS
+####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+bundle agent system_rudder_apache_networks_configuration {
+  vars:
+    any::
+      "component"              string => "Apache configuration";
+      "defacl"                  slist => filter("0.0.0.0/0", "def.acl", "false", "true", "99999");
+      "nodes_acl_24"            slist => maplist("Require ip ${this}", "defacl");
+      "nodes_generate_24"      string => join("${const.n}","nodes_acl_24");
+
+      "allowed_network_file"   string => "${g.rudder_base}/etc/rudder-networks-24.conf";
+      "remote_run_file"        string => "${g.rudder_base}/etc/rudder-networks-policy-server-24.conf";
+
+      "allowed_network_prefix" string => canonify("file_lines_present_${allowed_network_file}");
+      "remote_run_prefix"      string => canonify("file_lines_present_${remote_run_file}");
+
+      "policy_server_ip"       string => host2ip("${server_info.policy_server}");
+
+
+    server_ip_found::
+      "policy_server_acl"      slist => { "127.0.0.0/8", "::1",  "${policy_server_ip}" };
+    !server_ip_found::
+      "policy_server_acl"      slist => { "127.0.0.0/8", "::1" };
+
+
+    server_ip_found::
+      "remote_run_acl"       string => "Require local${const.n}Require ip ${policy_server_ip}";
+    !server_ip_found::
+      "remote_run_acl"       string => "Require local";
+
+
+    has_all_granted::
+      "allowed_network_acl"          string => "Require all granted";
+    !has_all_granted::
+      "allowed_network_acl"          string => "${nodes_generate_24}";
+
+  classes:
+      "has_all_granted" expression => some("0.0.0.0/0", "def.acl");
+      "server_ip_found" expression => regcmp("^[0-9.]+$|^[0-9a-fA-F:]+:[0-9a-fA-F:]+$", "${policy_server_ip}");
+
+      # Restart apache at the end of the technique if needed
+      "rudder_server_system_restart_apache" expression => "${allowed_network_prefix}_repaired|${remote_run_prefix}_repaired",
+                                   scope => "namespace";
+
+  methods:
+      # Allowed networks
+      "any" usebundle => _method_reporting_context("${component}", "Allowed networks permissions");
+      "any" usebundle => permissions("${allowed_network_file}", "600", "root", "0");
+      "any" usebundle => _method_reporting_context("${component}", "Allowed networks configuration");
+      "any" usebundle => file_content("${allowed_network_file}", "${allowed_network_acl}", "true");
+
+      # Remote run
+      "any" usebundle => _method_reporting_context("${component}", "Remote run configuration");
+      "any" usebundle => file_content("${remote_run_file}", "${remote_run_acl}", "true");
+      "any" usebundle => _method_reporting_context("${component}", "Remote run permissions");
+      "any" usebundle => permissions("${remote_run_file}", "600", "root", "0");
+}
