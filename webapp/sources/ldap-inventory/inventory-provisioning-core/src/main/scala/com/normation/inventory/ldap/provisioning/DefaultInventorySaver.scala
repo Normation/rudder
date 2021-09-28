@@ -47,6 +47,7 @@ import com.normation.inventory.ldap.core._
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.zio._
 import zio._
+import zio.syntax.ToZio
 
 /**
  * Post-commit convention:
@@ -83,11 +84,17 @@ class DefaultInventorySaver(
         t3  <- currentTimeMillis
         _   <- InventoryProcessingLogger.timing.trace(s"Saving node: ${t3 - t2} ms")
 
-        d3  <- ZIO.foreach(inventory.vms) { x =>con.saveTree(mapper.treeFromMachine(x), deleteRemoved = true) }
+        d3  <- con.save(mapper.processesFromNode(inventory.node), removeMissingAttributes = false).map(x => Seq(x)).catchAll(err => // we don't want to fail because we tried to compensate
+                 InventoryProcessingLogger.error(s"Couldn't update 'processes' for node '${inventory.node.main.id.value}', Error is: ${err.fullMsg}") *> Seq().succeed
+              )
         t4  <- currentTimeMillis
-        _   <- InventoryProcessingLogger.timing.trace(s"Saving vms: ${t4-t3} ms")
+        _   <- InventoryProcessingLogger.timing.trace(s"Saving processes: ${t4-t3} ms")
+
+        d4  <- ZIO.foreach(report.vms) { x =>con.saveTree(mapper.treeFromMachine(x), deleteRemoved = true) }
+        t5  <- currentTimeMillis
+        _   <- InventoryProcessingLogger.timing.trace(s"Saving vms: ${t5-t4} ms")
       } yield {
-      d0 ++ d1 ++ d2 ++ d3.flatten
+      d0 ++ d1 ++ d2 ++ d3 ++ d4.flatten
     }
   }
 }
