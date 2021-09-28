@@ -18,7 +18,7 @@
 
 # @name Variable string escaped
 # @description Define a variable from another string variable and escape regular expression characters in it.
-# @documentation To use the generated variable, you must use the form `${<variable_name>_escaped}` where <variable_name> is the composed complete name
+# @documentation To use the generated variable, you must use the form `${<name>_escaped}` where <name> is the composed complete name
 # of the variable you want to escape.
 #
 # Please note that the variable you want to escape must be defined before this method evaluation.
@@ -31,32 +31,32 @@
 #  something like [] that
 # ````
 #
-# Passing `my_prefix.my_variable` as `variable_name` parameter to this method will result in a
+# Passing `my_prefix.my_variable` as `name` parameter to this method will result in a
 # variable named `my_prefix.my_variable_escaped` and valued to:
 #
 # ````
 # something\ like\ \[\]\ that
 # ````
 #
-# @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
+# @parameter name   The variable to define, the full name will be prefix.name
 #
 # @class_prefix variable_string_escaped
-# @class_parameter variable_name
+# @class_parameter name
 
-bundle agent variable_string_escaped(variable_name)
+bundle agent variable_string_escaped(name)
 {
   vars:
-      "old_class_prefix"  string => canonify("variable_string_escaped_${variable_name}");
-      "args"               slist => { "${variable_name}" };
+      "old_class_prefix"  string => canonify("variable_string_escaped_${name}");
+      "args"               slist => { "${name}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("variable_string_escaped_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       # define the variable within the same namespace
-      "${variable_name}_escaped" string => escape("${${variable_name}}");
+      "${name}_escaped" string => escape("${${name}}");
 
   classes:
-     "variable_defined" expression => isvariable("${variable_name}_escaped");
+     "variable_defined" expression => isvariable("${name}_escaped");
 
   methods:
     !variable_defined::
@@ -69,6 +69,6 @@ bundle agent variable_string_escaped(variable_name)
 
     any::
       "report"
-        usebundle  => _log_v3("Set the string ${variable_name}_escaped to the escaped value of ${variable_name}", "${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Set the string ${name}_escaped to the escaped value of ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 

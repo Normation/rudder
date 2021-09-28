@@ -18,36 +18,36 @@
 
 # @name Variable dict merge tolerant
 # @description Define a variable resulting of the merge of two other variables, allowing merging undefined variables
-# @documentation To use the generated variable, you must use the form `${variable_prefix.variable_name[key]}` with each name replaced with the parameters of this method.
+# @documentation To use the generated variable, you must use the form `${prefix.name[key]}` with each name replaced with the parameters of this method.
 #
 # See [variable_dict_merge](#_variable_dict_merge) for usage documentation. The only difference is that this method
 # will not fail if one of the variables do not exist, and will return the other one. If both are undefined, the method will still fail.
 #
-# @parameter variable_prefix The prefix of the variable name
-# @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
-# @parameter first_variable  The first variable, which content will be overridden in the resulting variable if necessary (written in the form variable_prefix.variable_name)
-# @parameter second_variable The second variable, which content will override the first in the resulting variable if necessary (written in the form variable_prefix.variable_name)
+# @parameter prefix The prefix of the variable name
+# @parameter name   The variable to define, the full name will be prefix.name
+# @parameter first_variable  The first variable, which content will be overridden in the resulting variable if necessary (written in the form prefix.name)
+# @parameter second_variable The second variable, which content will override the first in the resulting variable if necessary (written in the form prefix.name)
 #
 # 
 # @class_prefix variable_dict_merge_tolerant
-# @class_parameter variable_name
+# @class_parameter name
 
-bundle agent variable_dict_merge_tolerant(variable_prefix, variable_name, first_variable, second_variable)
+bundle agent variable_dict_merge_tolerant(prefix, name, first_variable, second_variable)
 {
   vars:
-      "old_class_prefix"  string => canonify("variable_dict_merge_tolerant_${variable_name}");
-      "args"               slist => { "${variable_prefix}", "${variable_name}", "${first_variable}", "${second_variable}" };
+      "old_class_prefix"  string => canonify("variable_dict_merge_tolerant_${name}");
+      "args"               slist => { "${prefix}", "${name}", "${first_variable}", "${second_variable}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("variable_dict_merge_tolerant_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
     pass1::
-      # define the variable within the variable_prefix namespace
-      "${variable_prefix}.${variable_name}" data => mergedata("${first_variable}", "${second_variable}"),
+      # define the variable within the prefix namespace
+      "${prefix}.${name}" data => mergedata("${first_variable}", "${second_variable}"),
                                       ifvarclass => "first_variable_defined.second_variable_defined";
-      "${variable_prefix}.${variable_name}" data => mergedata("${first_variable}"),
+      "${prefix}.${name}" data => mergedata("${first_variable}"),
                                       ifvarclass => "first_variable_defined.!second_variable_defined";
-      "${variable_prefix}.${variable_name}" data => mergedata("${second_variable}"),
+      "${prefix}.${name}" data => mergedata("${second_variable}"),
                                       ifvarclass => "!first_variable_defined.second_variable_defined";
 
 
@@ -55,7 +55,7 @@ bundle agent variable_dict_merge_tolerant(variable_prefix, variable_name, first_
       "first_variable_defined"  expression => isvariable("${first_variable}");
       "second_variable_defined" expression => isvariable("${second_variable}");
 
-      "variable_defined"        expression => isvariable("${variable_prefix}.${variable_name}");
+      "variable_defined"        expression => isvariable("${prefix}.${name}");
 
       "pass2" expression => "pass1";
       "pass1" expression => "any";
@@ -71,5 +71,5 @@ bundle agent variable_dict_merge_tolerant(variable_prefix, variable_name, first_
 
     pass2::
       "report"
-        usebundle  => _log_v3("Set the dict ${variable_prefix}.${variable_name} to the content of the tolerant merge of ${first_variable} and ${second_variable}", "${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log_v3("Set the dict ${prefix}.${name} to the content of the tolerant merge of ${first_variable} and ${second_variable}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

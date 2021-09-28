@@ -54,24 +54,24 @@
 # variable_string_from_augeas("label","value","/etc/hosts/1/ipaddr","Hosts","/etc/hosts");
 # ```
 #
-# @parameter variable_prefix The prefix of the variable name
-# @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
+# @parameter prefix The prefix of the variable name
+# @parameter name   The variable to define, the full name will be prefix.name
 # @parameter path            The path to the file and node label
 # @parameter lens            The lens specified by the user in case he wants to load a specified lens associated with its file
 # @parameter file            The file specified by the user in case he wants to load a specified file associated with its lens
 # @parameter_constraint file "allow_empty_string" : true
 # @parameter_constraint lens "allow_empty_string" : true
 # @class_prefix variable_string_from_augeas
-# @class_parameter variable_name
+# @class_parameter name
 
 
-bundle agent variable_string_from_augeas(variable_prefix, variable_name, path, lens, file)
+bundle agent variable_string_from_augeas(prefix, name, path, lens, file)
 {
  vars:
-     "old_class_prefix" string => canonify("variable_string_from_augeas_${variable_name}");
+     "old_class_prefix" string => canonify("variable_string_from_augeas_${name}");
      "promisers" slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
      "class_prefix" string => canonify(join("_", "promisers"));
-     "args" slist => {"${variable_prefix}", "${variable_name}", "${path}", "${lens}", "${file}"};
+     "args" slist => {"${prefix}", "${name}", "${path}", "${lens}", "${file}"};
 
 
    pass1.file_defined::
@@ -84,7 +84,7 @@ bundle agent variable_string_from_augeas(variable_prefix, variable_name, path, l
      "case" string => execresult("${aug_cmd}", "useshell");
      "data" data => "{}";
      "data" data => data_regextract("= (.*)", "$(case)");
-     "${variable_prefix}.${variable_name}" string => "${data[1]}";
+     "${prefix}.${name}" string => "${data[1]}";
 
  classes:
     "pass2" expression => "pass1";
