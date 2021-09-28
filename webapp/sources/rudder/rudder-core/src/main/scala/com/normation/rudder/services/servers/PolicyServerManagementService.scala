@@ -61,7 +61,6 @@ import zio._
 import zio.syntax._
 import com.normation.errors._
 import com.normation.eventlog.EventLogDetails
-import com.normation.ldap.sdk.LDAPEntry
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification

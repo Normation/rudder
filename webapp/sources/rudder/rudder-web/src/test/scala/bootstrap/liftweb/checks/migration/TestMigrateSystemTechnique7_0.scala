@@ -135,12 +135,23 @@ class TestMigrateSystemTechniques7_0 extends Specification {
 
   // initialize test environnement - long and painful //
 
-  val bootstrapLDIFs = ("ldap-data/bootstrap-6_2.ldif" ::
-                        "ldap-data/init-root-server-6_2.ldif" ::
-                        "ldap-data/init-relay1-server-6_2.ldif" ::
+  val schema = (
+      "00-core" ::
+      "01-pwpolicy" ::
+      "04-rfc2307bis" ::
+      "05-rfc4876" ::
+      "099-0-inventory" ::
+      "099-1-rudder" :: Nil) map { name =>
+    // toURI is needed for https://issues.rudder.io/issues/19186
+    this.getClass.getClassLoader.getResource("ldap-data/schema/"+name+".ldif").toURI.getPath
+  }
+
+  val bootstrapLDIFs = ("bootstrap-6_2.ldif" ::
+                        "init-root-server-6_2.ldif" ::
+                        "init-relay1-server-6_2.ldif" ::
                         Nil) map { name =>
     // toURI is needed for https://issues.rudder.io/issues/19186
-    this.getClass.getClassLoader.getResource(name).toURI.getPath
+    this.getClass.getClassLoader.getResource("ldap-data/"+name).toURI.getPath
   }
 
   val root = NodeConfigData.root
@@ -189,7 +200,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     }
   }
 
-  val ldap = InitTestLDAPServer.newLdapConnectionProvider(bootstrapLDIFs)
+  val ldap = InitTestLDAPServer.newLdapConnectionProvider(schema, bootstrapLDIFs)
   val roLdap = ldap.asInstanceOf[LDAPConnectionProvider[RoLDAPConnection]]
 
   val policyServerService = new PolicyServerManagementServiceImpl(ldap, rudderDit, eventLogRepos)
