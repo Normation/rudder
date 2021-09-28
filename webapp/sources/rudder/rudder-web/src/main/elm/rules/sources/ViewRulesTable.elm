@@ -1,15 +1,13 @@
 module ViewRulesTable exposing (..)
 
 import DataTypes exposing (..)
-import Html exposing (Html, button, div, i, span, text, h1, h4, ul, li, input, a, p, form, label, textarea, select, option, table, thead, tbody, tr, th, td, small)
-import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute)
-import Html.Events exposing (onClick, onInput)
+import Html exposing (Html, text,  tr, td)
+import Html.Events exposing (onClick)
 import List.Extra
 import List
-import String exposing ( fromFloat)
-import NaturalOrdering exposing (compareOn)
-import ApiCalls exposing (..)
-import ViewUtilsCompliance exposing (buildComplianceBar)
+import String
+import ViewUtilsCompliance exposing (buildComplianceBar, getAllComplianceValues)
+
 --
 -- This file contains all methods to display the Rules table
 --
@@ -83,32 +81,20 @@ getSortFunction model r1 r2 =
 buildRulesTable : Model -> List(Html Msg)
 buildRulesTable model =
   let
-    rulesList      = getListRules model.rulesTree
-    categoriesList = getListCategories model.rulesTree
-
-    getCategoryName : String -> String
-    getCategoryName id =
-      let
-        cat = List.Extra.find (.id >> (==) id  ) categoriesList
-      in
-        case cat of
-          Just c -> c.name
-          Nothing -> id
+    rulesList       = getListRules model.rulesTree
+    sortedRulesList = List.sortWith (getSortFunction model) rulesList
 
     rowTable : Rule -> Html Msg
     rowTable r =
       let
         compliance =
-            case List.Extra.find (\c -> c.ruleId == r.id) model.rulesCompliance of
+            case getRuleCompliance model r.id of
               Just co ->
-                let
-                  complianceDetails = co.complianceDetails
-                in
-                  buildComplianceBar complianceDetails
+                buildComplianceBar co.complianceDetails
 
               Nothing -> text "No report"
       in
-            tr[onClick (OpenRuleDetails r.id)]
+            tr[onClick (OpenRuleDetails r.id True)]
             [ td[][ text r.name ]
             , td[][ text (getCategoryName model r.categoryId) ]
             , td[][ text (if r.enabled then "Enabled" else "Disabled") ]
@@ -116,4 +102,4 @@ buildRulesTable model =
             , td[][ text ""   ]
             ]
   in
-    List.map rowTable rulesList
+    List.map rowTable sortedRulesList

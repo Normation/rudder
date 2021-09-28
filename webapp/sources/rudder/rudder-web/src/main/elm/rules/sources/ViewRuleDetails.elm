@@ -1,34 +1,35 @@
 module ViewRuleDetails exposing (..)
 
 import DataTypes exposing (..)
-import Html exposing (Html, button, div, i, span, text, h1, h4, ul, li, input, a, p, form, label, textarea, select, option, table, thead, tbody, tr, th, td, small)
-import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute)
-import Html.Events exposing (onClick, onInput)
+import Html exposing (Html, button, div, i, span, text, h1, ul, li,  a, p)
+import Html.Attributes exposing (id, class, type_,  style, attribute)
+import Html.Events exposing (onClick)
 import List.Extra
 import List
-import String exposing ( fromFloat)
-import NaturalOrdering exposing (compareOn)
+import String
 import ApiCalls exposing (..)
 import ViewTabContent exposing (tabContent)
+import Maybe.Extra
 
 --
 -- This file contains all methods to display the details of the selected rule.
 --
 
 
-editionTemplate : Model -> EditRuleDetails -> Bool -> Html Msg
-editionTemplate model details isNewRule =
+editionTemplate : Model -> RuleDetails -> Html Msg
+editionTemplate model details =
   let
     originRule = details.originRule
+
     rule = details.rule
-    ruleTitle = if (String.isEmpty originRule.name && isNewRule) then
-        span[style "opacity" "0.4"][text "New rule"]
-      else
-         text originRule.name
-    (classDisabled, badgeDisabled) = if originRule.enabled /= True then
-        ("item-disabled", span[ class "badge-disabled"][])
-      else
+    ruleTitle = case originRule of
+      Nothing -> span[style "opacity" "0.4"][text "New rule"]
+      Just r -> text r.name
+    (classDisabled, badgeDisabled) = if (Maybe.withDefault True (Maybe.map .enabled originRule)) then
         ("", text "")
+      else
+        ("item-disabled", span[ class "badge-disabled"][])
+
     topButtons =
       case originRule of
         Just or ->
@@ -62,8 +63,7 @@ editionTemplate model details isNewRule =
                   ]
                 ]
             ]
-          ]
-        ]
+        Nothing -> [ text "" ]
 
     isNotMember : List a -> a -> Bool
     isNotMember listIds id =
@@ -93,8 +93,9 @@ editionTemplate model details isNewRule =
           in
             (diff, lengthDiff + diff)
 
-    (diffDirectivesPos, diffDirectivesNeg) = getDiffList originRule.directives rule.directives
-    nbInclude = case originRule.targets of
+
+    (diffDirectivesPos, diffDirectivesNeg) = getDiffList (Maybe.Extra.unwrap [] .directives originRule) rule.directives
+    nbInclude = case Maybe.Extra.unwrap [] .targets originRule of
       [Composition (Or i) (Or e)] -> List.length i
       targets -> List.length targets
   in
@@ -108,15 +109,9 @@ editionTemplate model details isNewRule =
         , div[class "header-buttons"]
           ( button [class "btn btn-default", type_ "button", onClick CloseDetails][text "Close", i [ class "fa fa-times"][]]
           :: (
-            if model.hasWriteRights == True then
-              [ div [ class "btn-group" ]
-                [ button [ class "btn btn-default dropdown-toggle" , attribute "data-toggle" "dropdown" ] [
-                  text "Actions "
-                  , i [ class "caret" ] []
-                  ]
-                , ul [ class "dropdown-menu" ] topButtons
-                ]
-                , button [class "btn btn-success", type_ "button", onClick (CallApi (saveRuleDetails rule isNewRule))][text "Save", i [ class "fa fa-download"] []]
+            if model.ui.hasWriteRights then
+              [ div [ class "btn-group" ]  topButtons
+              , button [class "btn btn-success", type_ "button", onClick (CallApi (saveRuleDetails rule (Maybe.Extra.isNothing details.originRule)))][text "Save", i [ class "fa fa-download"] []]
               ]
             else
               []
@@ -124,16 +119,16 @@ editionTemplate model details isNewRule =
           )
         ]
       , div [class "header-description"]
-        [ p[][text originRule.shortDescription] ]
+        [ p[][text (Maybe.Extra.unwrap "" .shortDescription originRule)] ]
       ]
     , div [class "main-navbar" ]
       [ ul[class "ui-tabs-nav "]
         [ li[class ("ui-tabs-tab" ++ (if details.tab == Information   then " ui-tabs-active" else ""))]
-          [ a[onClick (ChangeTabFocus Information  )]
+          [ a[onClick (UpdateRuleForm {details | tab = Information })]
             [ text "Information" ]
           ]
         , li[class ("ui-tabs-tab" ++ (if details.tab == Directives    then " ui-tabs-active" else ""))]
-          [ a[onClick (ChangeTabFocus Directives   )]
+          [ a[onClick (UpdateRuleForm {details | tab = Directives})]
             [ text "Directives"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
               [ span [class "nb-resources"] [ text (String.fromInt(List.length rule.directives))]
@@ -143,7 +138,7 @@ editionTemplate model details isNewRule =
             ]
           ]
         , li[class ("ui-tabs-tab" ++ (if details.tab == Groups        then " ui-tabs-active" else ""))]
-          [ a[onClick (ChangeTabFocus Groups       )]
+          [ a[onClick (UpdateRuleForm {details | tab = Groups })]
             [ text "Groups"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
               [ span [class "nb-resources"] [ text (String.fromInt(nbInclude))]
@@ -151,11 +146,11 @@ editionTemplate model details isNewRule =
             ]
           ]
         , li[class ("ui-tabs-tab" ++ (if details.tab == TechnicalLogs then " ui-tabs-active" else ""))]
-          [ a[onClick (ChangeTabFocus TechnicalLogs)]
+          [ a[onClick (UpdateRuleForm {details | tab = TechnicalLogs })]
             [ text "Technical logs"]
           ]
         ]
       ]
     , div [class "main-details"]
-      [ tabContent model details isNewRule ]
+      [ tabContent model details ]
     ]

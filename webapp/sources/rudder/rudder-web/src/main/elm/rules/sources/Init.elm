@@ -4,23 +4,22 @@ import ApiCalls exposing (..)
 import DataTypes exposing (..)
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
-
+-- PORTS
 init : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
 init flags =
   let
 
     initCategory      = Category "" "" "" (SubCategories []) []
-    initModel = Model flags.contextPath Loading "" initCategory initCategory initCategory [] [] Nothing flags.hasWriteRights
+    initRuleFilters   = RuleFilters Name True ""
+    initUI = UI initRuleFilters NoModal flags.hasWriteRights
+    initModel = Model flags.contextPath Loading "" initCategory initCategory initCategory [] [] initUI
 
     listInitActions =
       [ getPolicyMode      initModel
-      , getRulesTree       initModel
+      , getRulesCompliance initModel
       , getGroupsTree      initModel
       , getTechniquesTree  initModel
-      , getRulesCompliance initModel
+      , getRulesTree       initModel
       ]
   in
     ( initModel

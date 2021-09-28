@@ -13,7 +13,6 @@ import ViewRulesTable exposing (..)
 import ViewRuleDetails exposing (..)
 import ViewCategoryDetails exposing (..)
 
-
 view : Model -> Html Msg
 view model =
   let
@@ -27,7 +26,7 @@ view model =
       in
         li [class "jstree-node jstree-leaf"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[href "#", class ("jstree-anchor"++classDisabled), onClick (OpenRuleDetails item.id)]
+        , a[class ("jstree-anchor"++classDisabled), onClick (OpenRuleDetails item.id True)]
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
           , span [class "treeGroupName tooltipable"]
             [ text item.name
@@ -39,13 +38,19 @@ view model =
     ruleTreeCategory : (Category Rule) -> Html Msg
     ruleTreeCategory item =
       let
-        categories = List.map ruleTreeCategory (getSubElems item)
-        rules = List.map ruleTreeElem item.elems
-        childsList  = ul[class "jstree-children"](categories ++ rules)
+        categories = getSubElems item
+                       |> List.sortBy .name
+                       |> List.map ruleTreeCategory
+        rules = item.elems
+                |> List.sortBy .name
+                |> List.map ruleTreeElem
+
+        childsList  = ul[class "jstree-children"] (List.concat [ categories, rules] )
+
       in
         li[class "jstree-node jstree-open"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[href "#", class "jstree-anchor", onClick (OpenCategoryDetails item)]
+        , a[class "jstree-anchor", onClick (OpenCategoryDetails item.id True)]
           [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
           , span [class "treeGroupCategoryName tooltipable"][text item.name]
           ]
@@ -78,27 +83,20 @@ view model =
                   , th [class ""                   , rowspan 1, colspan 1][text "Recent changes"]
                   ]
                 ]
+              , tbody [] (buildRulesTable model)
               ]
-            , tbody [] (buildRulesTable model)
             ]
           ]
-        ]
 
-      EditRule details ->
-        (editionTemplate model details False)
+      RuleForm details ->
+        (editionTemplate model details)
 
-      CreateRule details ->
-        (editionTemplate model details True)
+      CategoryForm details ->
+        (editionTemplateCat model details)
 
-      EditCategory details ->
-        (editionTemplateCat model details False)
-
-      CreateCategory details ->
-        (editionTemplateCat model details True)
-
-    modal = case model.modal of
-      Nothing -> text ""
-      Just (DeletionValidation rule) ->
+    modal = case model.ui.modal of
+      NoModal -> text ""
+      DeletionValidation rule ->
         div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
         [ div [ class "modal-dialog" ] [
             div [ class "modal-content" ] [
@@ -119,7 +117,7 @@ view model =
             ]
           ]
         ]
-      Just (DeactivationValidation rule) ->
+      DeactivationValidation rule ->
         let
           txtDisable = if rule.enabled then "Disable" else "Enable"
         in
@@ -145,7 +143,7 @@ view model =
               ]
             ]
           ]
-      Just (DeletionValidationCat category) ->
+      DeletionValidationCat category ->
         div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
          [ div [ class "modal-dialog" ] [
              div [ class "modal-content" ] [
@@ -174,7 +172,7 @@ view model =
           [ h1[]
             [ span[][text "Rules"]
             ]
-          , ( if model.hasWriteRights == True then
+          , ( if model.ui.hasWriteRights then
               div [class "header-buttons"]
               [ button [class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s      ))][text "Add Category"]
               , button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s) ))][text "Create"]
