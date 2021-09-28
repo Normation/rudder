@@ -18,7 +18,7 @@
         }
       ],
       "id": "8b575191-0ab0-4851-b05c-e7cde3726f05",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "class_context": "any.(lucid)",
@@ -32,7 +32,7 @@
         }
       ],
       "id": "3a8f5707-a86a-4599-8c68-3dbbfd6f70a1",
-      "reportingDisabled": false
+      "disableReporting": false
     }
   ]
 }

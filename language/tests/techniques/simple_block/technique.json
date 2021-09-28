@@ -26,7 +26,7 @@
           "method_name": "file_absent",
           "component": "File absent",
           "id": "d58aec44-675b-48fd-985e-499ec4c5e525",
-          "reportingDisabled": false
+          "disableReporting": false
         },
         {
           "parameters": [
@@ -40,7 +40,7 @@
           "method_name": "file_present",
           "component": "File absent",
           "id": "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9",
-          "reportingDisabled": true
+          "disableReporting": true
         }
       ]
     }

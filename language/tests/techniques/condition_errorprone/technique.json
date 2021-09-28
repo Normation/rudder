@@ -18,7 +18,7 @@
       "method_name": "command_execution",
       "component": "Command execution",
       "id": "40be703f-dac9-4809-8ee3-97969afc29c0",
-      "reportingDisabled": false
+      "disableReporting": false
     }
   ]
 }

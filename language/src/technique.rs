@@ -349,7 +349,7 @@ pub struct MethodCall {
     parameters: Vec<Parameter>,
     #[serde(default = "generate_id")] // >=7.0
     id: String,
-    #[serde(default = "default_disable_reporting", rename = "reportingDisabled")] // >=7.0
+    #[serde(default = "default_disable_reporting", rename = "disableReporting")]
     reporting_disabled: bool,
 }
 fn generate_id() -> String {

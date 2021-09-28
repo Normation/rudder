@@ -18,7 +18,7 @@
       "method_name": "directory_create",
       "component": "Directory create",
       "id": "3a5c97e5-0b4d-4341-b880-262ccd51f453",
-      "reportingDisabled": false
+      "disableReporting": false
     }
   ],
   "resources": []

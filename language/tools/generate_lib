@@ -139,7 +139,7 @@ def parse_method_metadata(content):
                         match.group(3), default_constraint.copy()).update(constraint)
                 if tag == "parameter_type":
                     param_type = match.group(4)
-                    param_types[match.group(3)] = param_type               
+                    param_types[match.group(3)] = param_type
                 else:
                     res[tag] = match.group(2)
                 previous_tag = tag
@@ -503,7 +503,7 @@ def generate_lib(resource_name, resource, lib_dir):
     out.write("\n\n")
 
     for state in sorted(resource["states"], key=lambda item: item["state"]):
-        # set the deprecated metadata as an alias if the bundle name matches 
+        # set the deprecated metadata as an alias if the bundle name matches
         for (key, value) in deprecated_name_conversion_table.items():
             if 'method' in state and value == state['method']:
                 if 'method_aliases' in state:

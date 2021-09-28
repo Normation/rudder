@@ -16,7 +16,7 @@
         }
       ],
       "id": "2dadd92c-c519-42a8-a871-50fe179bf04c",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "permissions_ntfs",
@@ -45,7 +45,7 @@
         }
       ],
       "id": "b9f8a4d5-ea74-461b-9d0d-81575fa78cc6",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "permissions",
@@ -70,7 +70,7 @@
         }
       ],
       "id": "6912f9ff-27f8-42fb-9f38-bd330d64162a",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "audit_from_osquery",
@@ -91,7 +91,7 @@
         }
       ],
       "id": "9a29b174-d512-4534-b58c-7804a1ad990e",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "monitoring_template",
@@ -104,7 +104,7 @@
         }
       ],
       "id": "43697ece-b31e-4756-ae04-a47c8ab0034d",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "monitoring_parameter",
@@ -121,7 +121,7 @@
         }
       ],
       "id": "8594e7f6-2f7b-452c-9dac-9b29515797af",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "variable_string_escaped",
@@ -134,7 +134,7 @@
         }
       ],
       "id": "7feb6a03-8c42-4a37-b947-8f642a00445d",
-      "reportingDisabled": false
+      "disableReporting": false
     }
   ],
   "parameter": [],
