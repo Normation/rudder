@@ -10,8 +10,8 @@ import Maybe.Extra
 import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
-import ViewUtilsCompliance exposing (buildComplianceBar)
-
+import ViewUtilsCompliance exposing (buildComplianceBar, getDirectiveComputedCompliance)
+import ViewUtils exposing (thClass, sortTable, getDirectivesSortFunction, filterDirectives)
 --
 -- This file contains all methods to display the details of the selected rule.
 --
@@ -180,36 +180,25 @@ tabContent model details =
           [ ruleForm
           , rightCol
           ]
-      Directives    ->
+      Directives ->
         let
-          buildTableRow : DirectiveId -> Html Msg
-          buildTableRow id =
+          buildTableRow : Directive -> Html Msg
+          buildTableRow d =
             let
-              directive = List.Extra.find (.id >> (==) id) model.directives
-              rowDirective = case directive of
-                Nothing -> [td[colspan 2][text ("Cannot find details of Directive " ++ id.value)]]
-                Just d  ->
-                  let
-                    compliance = case List.Extra.find (\c -> c.ruleId == rule.id) model.rulesCompliance of
-                      Nothing -> text "No report"
-                      Just co ->
-                        case List.Extra.find (\dir -> dir.directiveId == d.id) co.directives of
-                          Just com ->
-                            let
-                              complianceDetails = com.complianceDetails
-                            in
-                              buildComplianceBar complianceDetails
-
-                          Nothing  -> text "No report"
-                  in
-                    [ td[]
-                      [ badgePolicyMode d
-                      , text d.displayName
-                      ]
-                    , td[][compliance]
-                    ]
+              compliance = case List.Extra.find (\c -> c.ruleId == rule.id) model.rulesCompliance of
+                Just co ->
+                  case List.Extra.find (\dir -> dir.directiveId == d.id) co.directives of
+                    Just com -> buildComplianceBar com.complianceDetails
+                    Nothing  -> text "No report"
+                Nothing -> text "No report"
             in
-              tr[](rowDirective)
+              tr[]
+              [ td[]
+                [ badgePolicyMode d
+                , text d.displayName
+                ]
+              , td[][compliance]
+              ]
 
           buildListRow : List DirectiveId -> List (Html Msg)
           buildListRow ids =
@@ -220,17 +209,16 @@ tabContent model details =
                   knownDirectives = model.directives
                     |> List.filter (\d -> List.member d.id ids)
                     |> List.sortWith (compareOn .displayName)
+
+                  -- add missing directives
+                  knonwIds = List.map .id knownDirectives
                 in
-                    -- add missing directives
-                    let
-                      knonwIds = List.map .id knownDirectives
-                    in
-                      List.append
-                        knownDirectives
-                        (ids
-                          |> List.filter (\id -> not (List.member id knonwIds) )
-                          |> List.map (\id -> (Directive id ("Missing directive with ID "++id.value) "" "" "" False False ""))
-                        )
+                  List.append
+                    knownDirectives
+                    ( ids
+                      |> List.filter (\id -> not (List.member id knonwIds) )
+                      |> List.map (\id -> (Directive id ("Missing directive with ID "++id.value) "" "" "" False False ""))
+                    )
 
               rowDirective  : Directive -> Html Msg
               rowDirective directive =
@@ -244,6 +232,11 @@ tabContent model details =
                 ]
             in
                 List.map rowDirective directives
+
+          sortedDirectives = model.directives
+            |> List.filter (\d -> List.member d.id rule.directives && (filterDirectives model.ui.directiveFilters.tableFilters.filter d))
+            |> List.sortWith (getDirectivesSortFunction model.rulesCompliance rule.id model.ui.directiveFilters.tableFilters)
+
         in
 
           if not details.ui.editDirectives then
@@ -257,20 +250,27 @@ tabContent model details =
                 )
               ]
             , div [class "table-header"]
-              [ input [type_ "text", placeholder "Filter", class "input-sm form-control"][]
+              [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.directiveFilters.tableFilters.filter
+              , onInput (\s ->
+                let
+                  directiveFilters = model.ui.directiveFilters
+                  tableFilters = directiveFilters.tableFilters
+                in
+                  UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}}
+              )][]
               , button [class "btn btn-primary btn-sm"][text "Refresh"]
               ]
             , div[class "table-container"]
               [ table [class "dataTable"]
                 [ thead[]
                   [ tr[class "head"]
-                    [ th [class "sorting_asc"][text "Directive" ]
-                    , th [class "sorting"    ][text "Compliance"]
+                    [ th [class (thClass model.ui.directiveFilters.tableFilters Name      ), onClick (UpdateDirectiveFilters (sortTable model.ui.directiveFilters Name       ))][text "Directive" ]
+                    , th [class (thClass model.ui.directiveFilters.tableFilters Compliance), onClick (UpdateDirectiveFilters (sortTable model.ui.directiveFilters Compliance ))][text "Compliance"]
                     ]
                   ]
                 , tbody[]
-                  ( if(List.length rule.directives > 0) then
-                      List.map buildTableRow rule.directives
+                  ( if(List.length sortedDirectives > 0) then
+                      List.map buildTableRow sortedDirectives
                     else
                       [ tr[]
                         [ td[colspan 2, class "dataTables_empty"][text "There is no directive applied"]
@@ -294,57 +294,63 @@ tabContent model details =
                 in
                   UpdateRuleForm {details | rule = {rule | directives = newDirectives} }
 
-              directiveTreeElem : Technique -> Html Msg
+              directiveTreeElem : Technique -> Maybe (Html Msg)
               directiveTreeElem item =
-                    let
-                      directivesList =
-                        List.map  (\d ->
-                          let
-                            selectedClass = if (List.member d.id rule.directives) then " item-selected" else ""
-                          in
-                            li [class "jstree-node jstree-leaf"]
-                            [ i[class "jstree-icon jstree-ocl"][]
-                            , a[href "#", class ("jstree-anchor" ++ selectedClass)]
-                              [ badgePolicyMode d
-                              , span [class "treeGroupName tooltipable"][text d.displayName]
-                              , div [class "treeActions-container"]
-                                [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (addDirectives d.id)][]]
-                                ]
-                              ]
-                            ]) item.directives
-                    in
-                      if List.length directivesList > 0 then
-                        li [class "jstree-node jstree-open"]
+                let
+                  directivesList = item.directives
+                    |> List.filter (\d -> (filterDirectives model.ui.directiveFilters.treeFilters.filter d))
+                    |> List.sortBy .displayName
+                    |> List.map  (\d ->
+                      let
+                        selectedClass = if (List.member d.id rule.directives) then " item-selected" else ""
+                      in
+                        li [class "jstree-node jstree-leaf"]
                         [ i[class "jstree-icon jstree-ocl"][]
-                        , a[href "#", class "jstree-anchor"]
-                          [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
-                          , span [class "treeGroupName tooltipable"][text item.name]
+                        , a[href "#", class ("jstree-anchor" ++ selectedClass)]
+                          [ badgePolicyMode d
+                          , span [class "treeGroupName tooltipable"][text d.displayName]
+                          , div [class "treeActions-container"]
+                            [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (addDirectives d.id)][]]
+                            ]
                           ]
-                        , ul[class "jstree-children"](directivesList)
-                        ]
-                      else
-                        text ""
+                        ])
+                in
 
-              directiveTreeCategory : Category Technique -> List  (Html Msg)
+                  if not (List.isEmpty directivesList) then
+                    Just(li [class "jstree-node jstree-open"]
+                    [ i[class "jstree-icon jstree-ocl"][]
+                    , a[href "#", class "jstree-anchor"]
+                      [ i [class "jstree-icon jstree-themeicon fa fa-gear jstree-themeicon-custom"][]
+                      , span [class "treeGroupName tooltipable"][text item.name]
+                      ]
+                    , ul[class "jstree-children"](directivesList)
+                    ])
+                  else
+                    Nothing
+
+              directiveTreeCategory : Category Technique -> Maybe (Html Msg)
               directiveTreeCategory item =
-                    let
-                      categories = List.concatMap directiveTreeCategory (getSubElems item)
-                      techniques = List.map directiveTreeElem (List.filter (\t -> not (List.isEmpty t.directives) ) item.elems)
-                      children = techniques ++ categories
+                let
+                  categories = getSubElems item
+                    |> List.sortBy .name
+                    |> List.filterMap directiveTreeCategory
 
+                  techniques = item.elems
+                    |> List.filterMap directiveTreeElem
 
-                    in
-                      if(not (List.isEmpty children) ) then
-                        [ li[class "jstree-node jstree-open"]
-                        [ i[class "jstree-icon jstree-ocl"][]
-                        , a[href "#", class "jstree-anchor"]
-                          [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-                          , span [class "treeGroupCategoryName tooltipable"][text item.name]
-                          ]
-                        , ul[class "jstree-children"] children
-                        ] ]
-                      else
-                        []
+                  children = techniques ++ categories
+                in
+                  if not (List.isEmpty children) then
+                    Just (li[class "jstree-node jstree-open"]
+                    [ i[class "jstree-icon jstree-ocl"][]
+                    , a[href "#", class "jstree-anchor"]
+                      [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
+                      , span [class "treeGroupCategoryName tooltipable"][text item.name]
+                      ]
+                    , ul[class "jstree-children"] children
+                    ])
+                  else
+                    Nothing
 
             in
               div[class "row flex-container"]
@@ -378,9 +384,42 @@ tabContent model details =
                           ]
                         , i [class "fa fa-bars"][]
                         ]
-                        , div [class "jstree jstree-default"]
-                          [ ul[class "jstree-container-ul jstree-children"](directiveTreeCategory model.techniquesTree)
+                      , div [class "header-filter"]
+                        [ div [class "input-group"]
+                          [ div [class "input-group-btn"]
+                            [ button [class "btn btn-default", type_ "button"][span [class "fa fa-folder fa-folder-open"][]]
+                            ]
+                          , input[type_ "text", placeholder "Filter", class "form-control"
+                            , onInput (\s ->
+                              let
+                                directiveFilters = model.ui.directiveFilters
+                                treeFilters = directiveFilters.treeFilters
+                              in
+                                UpdateDirectiveFilters {directiveFilters | treeFilters = {treeFilters | filter = s}}
+                            )][]
+                          , div [class "input-group-btn"]
+                            [ button [class "btn btn-default", type_ "button"
+                            , onClick (
+                              let
+                                directiveFilters = model.ui.directiveFilters
+                                treeFilters = directiveFilters.treeFilters
+                              in
+                                UpdateDirectiveFilters {directiveFilters | treeFilters = {treeFilters | filter = ""}}
+                            )]
+                              [span [class "fa fa-times"][]]
+                            ]
                           ]
+                        ]
+                      , div [class "jstree jstree-default"]
+                        [ ul[class "jstree-container-ul jstree-children"]
+                          [(case directiveTreeCategory model.techniquesTree of
+                            Just html -> html
+                            Nothing   -> div [class "alert alert-warning"]
+                              [ i [class "fa fa-exclamation-triangle"][]
+                              , text  "No directives match your filter."
+                              ]
+                          )]
+                        ]
                       ]
                     ]
                   ]

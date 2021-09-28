@@ -22,6 +22,11 @@ getValueCompliance f =
     Just v  -> v
     Nothing -> 0
 
+
+getRuleCompliance : Model -> RuleId -> Maybe RuleCompliance
+getRuleCompliance model rId =
+  List.Extra.find (\c -> c.ruleId == rId) model.rulesCompliance
+
 getAllComplianceValues : ComplianceDetails -> {okStatus : Float, nonCompliant : Float, error : Float, unexpected : Float, pending : Float, reportsDisabled : Float, noReport : Float}
 getAllComplianceValues complianceDetails =
   let
@@ -72,3 +77,13 @@ buildComplianceBar complianceDetails=
       , getCompliance allComplianceValues.reportsDisabled "reportsdisabled"
       , getCompliance allComplianceValues.noReport        "no-report"
       ]
+
+getDirectiveComputedCompliance : DirectiveCompliance -> Float
+getDirectiveComputedCompliance dc =
+  let
+    allComplianceValues = getAllComplianceValues dc.complianceDetails
+  in
+    if ( allComplianceValues.okStatus + allComplianceValues.nonCompliant + allComplianceValues.error + allComplianceValues.unexpected + allComplianceValues.pending + allComplianceValues.reportsDisabled + allComplianceValues.noReport == 0 ) then
+      -1.0
+    else
+      dc.compliance

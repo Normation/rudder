@@ -12,7 +12,9 @@ import ApiCalls exposing (..)
 import ViewRulesTable exposing (..)
 import ViewRuleDetails exposing (..)
 import ViewCategoryDetails exposing (..)
+import ViewUtils exposing (sortTable)
 import ViewUtilsRules exposing (..)
+
 
 view : Model -> Html Msg
 view model =
@@ -49,8 +51,9 @@ view model =
           |> List.map ruleTreeElem
 
         childsList  = ul[class "jstree-children"] (List.concat [ categories, rules] )
+
       in
-        if (String.isEmpty model.ui.ruleFilters.filter) || ((List.length rules > 0) || (List.length categories > 0)) then
+        if (String.isEmpty model.ui.ruleFilters.treeFilters.filter) || ((List.length rules > 0) || (List.length categories > 0)) then
           Just (
             li[class "jstree-node jstree-open"]
             [ i[class "jstree-icon jstree-ocl"][]
@@ -70,30 +73,31 @@ view model =
         let
           thClass : SortBy -> String
           thClass sortBy =
-            if sortBy == model.ui.ruleFilters.sortBy then
-              if model.ui.ruleFilters.sortOrder then
+            if sortBy == model.ui.ruleFilters.tableFilters.sortBy then
+              if model.ui.ruleFilters.tableFilters.sortOrder then
                 "sorting_asc"
               else
                 "sorting_desc"
             else
               "sorting"
+          ruleFilters = model.ui.ruleFilters
         in
           div [class "main-details"]
           [ div [class "main-table"]
             [ table [ class "no-footer dataTable"]
               [ thead []
                 [ tr [class "head"]
-                  [ th [class (thClass Name      ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters Name      )][text "Name"          ]
-                  , th [class (thClass Parent    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters Parent    )][text "Category"      ]
-                  , th [class (thClass Status    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters Status    )][text "Status"        ]
-                  , th [class (thClass Compliance) , rowspan 1, colspan 1, onClick (UpdateRuleFilters Compliance)][text "Compliance"    ]
+                  [ th [class (thClass Name      ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Name      ))][text "Name"          ]
+                  , th [class (thClass Parent    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Parent    ))][text "Category"      ]
+                  , th [class (thClass Status    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Status    ))][text "Status"        ]
+                  , th [class (thClass Compliance) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Compliance))][text "Compliance"    ]
                   , th [class ""                   , rowspan 1, colspan 1][text "Recent changes"]
                   ]
                 ]
               , tbody [] (buildRulesTable model)
-              ]
             ]
           ]
+        ]
 
       RuleForm details ->
         (editionTemplate model details)
@@ -193,9 +197,21 @@ view model =
             [ div [class "input-group-btn"]
               [ button [class "btn btn-default", type_ "button"][span [class "fa fa-folder fa-folder-open"][]]
               ]
-            , input[type_ "text", value model.ui.ruleFilters.filter ,placeholder "Filter", class "form-control", onInput (\s -> RulesSearch s)][]
+            , input[type_ "text", value model.ui.ruleFilters.treeFilters.filter ,placeholder "Filter", class "form-control", onInput (\s ->
+              let
+                ruleFilters = model.ui.ruleFilters
+                treeFilters = ruleFilters.treeFilters
+              in
+                UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | filter = s}}
+            )][]
             , div [class "input-group-btn"]
-              [ button [class "btn btn-default", type_ "button", onClick (RulesSearch "")][span [class "fa fa-times"][]]
+              [ button [class "btn btn-default", type_ "button", onClick (
+                let
+                  ruleFilters = model.ui.ruleFilters
+                  treeFilters = ruleFilters.treeFilters
+                in
+                  UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | filter = ""}}
+                )] [span [class "fa fa-times"][]]
               ]
             ]
           ]

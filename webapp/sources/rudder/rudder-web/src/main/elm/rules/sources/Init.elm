@@ -9,10 +9,10 @@ init : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
 init flags =
   let
 
-    initCategory      = Category "" "" "" (SubCategories []) []
-    initRuleFilters   = RuleFilters Name True ""
-    initUI = UI initRuleFilters NoModal flags.hasWriteRights
-    initModel = Model flags.contextPath Loading "" initCategory initCategory initCategory [] [] initUI
+    initCategory = Category "" "" "" (SubCategories []) []
+    initFilters  = Filters (TableFilters Name True "") (TreeFilters "" [])
+    initUI       = UI initFilters initFilters NoModal flags.hasWriteRights
+    initModel    = Model flags.contextPath Loading "" initCategory initCategory initCategory [] [] initUI
 
     listInitActions =
       [ getPolicyMode      initModel

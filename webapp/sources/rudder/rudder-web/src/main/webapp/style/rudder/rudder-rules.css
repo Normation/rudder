@@ -36,7 +36,7 @@
 */
 
 /* === TEMPLATE === */
-.rudder-template .template-sidebar .sidebar-header .header-filter > .input-group {
+.rudder-template .header-filter > .input-group {
   width: 100%;
 }
 .rudder-template .template-sidebar .sidebar-list li > a {
