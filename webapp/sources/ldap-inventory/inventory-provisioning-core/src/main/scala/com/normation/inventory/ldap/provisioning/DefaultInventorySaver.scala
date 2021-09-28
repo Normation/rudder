@@ -90,7 +90,7 @@ class DefaultInventorySaver(
         t4  <- currentTimeMillis
         _   <- InventoryProcessingLogger.timing.trace(s"Saving processes: ${t4-t3} ms")
 
-        d4  <- ZIO.foreach(report.vms) { x =>con.saveTree(mapper.treeFromMachine(x), deleteRemoved = true) }
+        d4  <- ZIO.foreach(inventory.vms) { x =>con.saveTree(mapper.treeFromMachine(x), deleteRemoved = true) }
         t5  <- currentTimeMillis
         _   <- InventoryProcessingLogger.timing.trace(s"Saving vms: ${t5-t4} ms")
       } yield {
