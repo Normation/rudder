@@ -84,12 +84,12 @@ class NodeExpectedReportTest extends Specification {
   // return the couple of (var name, var with value)
   def v(x: String, values: String*) = {
     val v = tvar(x).toVariable(values)
-    (v.spec.name, v)
+    ((Nil,v.spec.name), v)
   }
   // same with multivalued
   def mv(x: String, values: String*) = {
     val v = tmvar(x).toVariable(values)
-    (v.spec.name, v)
+    ((Nil,v.spec.name), v)
   }
 
   def technique(x: String) = {

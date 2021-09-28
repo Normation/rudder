@@ -868,10 +868,14 @@ final case class ContextForNoAnswer(
 
     var u1, u2, u3, u4 = 0L
 
-    def getExpectedComponents(component : ComponentExpectedReport) : List[String] = {
+    case class EffectiveExpectedComponent (
+      parents : List[BlockExpectedReport]
+    , value : ValueExpectedReport
+    )
+    def getExpectedComponents(component : ComponentExpectedReport) : List[EffectiveExpectedComponent] = {
       component match {
-        case c : ValueExpectedReport => c.componentName :: Nil
-        case c : BlockExpectedReport => c.subComponents.flatMap(getExpectedComponents)
+        case c : ValueExpectedReport => EffectiveExpectedComponent(Nil, c) :: Nil
+        case c : BlockExpectedReport => c.subComponents.flatMap(getExpectedComponents).map(exp => exp.copy(parents = c :: exp.parents))
       }
     }
 
@@ -885,9 +889,9 @@ final case class ContextForNoAnswer(
 
                                    val reportsForThatNodeRule: Seq[ResultReports] = reportsPerRule.getOrElse(ruleId, Seq[ResultReports]())
 
-                                   val reports = reportsForThatNodeRule.groupBy(x => (x.directiveId, x.component) )
+                                   val reports = reportsForThatNodeRule.groupBy(x => (x.directiveId, x.component, x.keyValue) )
 
-                                   val expectedComponents: Map[(DirectiveId, List[String]), (PolicyMode, ReportType, ComponentExpectedReport)] = (for {
+                                   val expectedComponents: Map[(DirectiveId, List[EffectiveExpectedComponent]), (PolicyMode, ReportType, ComponentExpectedReport)] = (for {
                                      directive  <- directives
                                      policyMode =  PolicyMode.directivePolicyMode(
                                                           lastRunNodeConfig.modes.globalPolicyMode
@@ -916,7 +920,7 @@ final case class ContextForNoAnswer(
                                     * - both expected component and reports => check
                                     */
                                    val reportKeys = reports.keySet
-                                   val expectedKeys = expectedComponents.keySet.flatMap(c => c._2.map(d => (c._1, d)))
+                                   val expectedKeys: Set[(DirectiveId,String,String)] = expectedComponents.keySet.flatMap(c => c._2.flatMap(d => d.value.componentsValues.map(v => (c._1, d.value.componentName, v))))
                                    val okKeys = reportKeys.intersect(expectedKeys)
 
                                    val t3 = System.nanoTime
@@ -940,7 +944,7 @@ final case class ContextForNoAnswer(
                                        case (directiveId, expectedComponentsForDirective) =>
                                          DirectiveStatusReport(directiveId, expectedComponentsForDirective.map {
                                            case ((directiveId, components), (policyMode, missingReportStatus, component)) =>
-                                             val filteredReports = components.flatMap(c => reports.getOrElse((directiveId, c), Seq()))
+                                             val filteredReports = components.flatMap(c => c.value.componentsValues.flatMap(v => reports.getOrElse((directiveId, c.value.componentName, v), Seq())))
 
                                              (component.componentName, checkExpectedComponentWithReports(component, filteredReports, missingReportStatus, policyMode, unexpectedInterpretation))
                                          })
@@ -954,7 +958,7 @@ final case class ContextForNoAnswer(
                                    ( unexpected, expected)
                                 }
     } yield {
-      // if there is no missing nor unexpected, then data is alreay correct, otherwise we need to merge it
+      // if there is no missing nor unexpected, then data is already correct, otherwise we need to merge it
       val directiveStatusReports = {
         if (unexpected.nonEmpty) {
           DirectiveStatusReport.merge(expected ++ unexpected)

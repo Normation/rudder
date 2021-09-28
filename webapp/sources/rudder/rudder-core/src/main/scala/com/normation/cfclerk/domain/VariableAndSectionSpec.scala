@@ -78,6 +78,13 @@ sealed trait SectionChildSpec {
       section.children.flatMap(_.getAllVariables)
   }
 
+  // get current variables and variables in sub section
+  def getAllVariablesBySection(parents : List[SectionSpec]): Seq[(List[SectionSpec], VariableSpec)] = this match {
+    case variable: SectionVariableSpec => Seq((parents, variable))
+    case section: SectionSpec =>
+      section.children.flatMap(_.getAllVariablesBySection(section :: parents))
+  }
+
   def filterByName(name: String): Seq[SectionChildSpec] = {
     val root = if (this.name == name) Seq(this) else Seq()
 

@@ -131,8 +131,8 @@ class PolicyAgregationTest extends Specification {
       , "directive name"
       , technique
       , DateTime.now
-      , Map((v.spec.name -> v))
-      , Map((v.spec.name -> v))
+      , Map(((Nil, v.spec.name) -> v))
+      , Map(((Nil, v.spec.name) -> v))
       , trackerVariable
       , 5
       , false

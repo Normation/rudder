@@ -296,8 +296,8 @@ final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVer
 final case class PolicyVars(
     policyId       : PolicyId
   , policyMode     : Option[PolicyMode]
-  , expandedVars   : Map[String, Variable]
-  , originalVars   : Map[String, Variable] // variable with non-expanded ${node.prop etc} values
+  , expandedVars   : Map[(List[String],String), Variable]
+  , originalVars   : Map[(List[String],String), Variable] // variable with non-expanded ${node.prop etc} values
   , trackerVariable: TrackerVariable
 )
 
@@ -467,13 +467,13 @@ final case class ParsedPolicyDraft(
   , isSystem         : Boolean
   , policyMode       : Option[PolicyMode]
   , trackerVariable  : TrackerVariable
-  , variables        : InterpolationContext => IOResult[Map[String, Variable]]
-  , originalVariables: Map[String, Variable] // the original variable, unexpanded
+  , variables        : InterpolationContext => IOResult[Map[(List[String],String),Variable]]
+  , originalVariables: Map[(List[String],String), Variable] // the original variable, unexpanded
   , ruleOrder        : BundleOrder
   , directiveOrder   : BundleOrder
 ) {
 
-  def toBoundedPolicyDraft(expandedVars: Map[String, Variable]) = {
+  def toBoundedPolicyDraft(expandedVars: Map[(List[String],String),Variable]) = {
     BoundPolicyDraft(
         id             = id
       , ruleName       = ruleName
@@ -505,8 +505,8 @@ final case class BoundPolicyDraft(
   , directiveName  : String // human readable name of the original directive, for ex for log
   , technique      : Technique
   , acceptationDate: DateTime
-  , expandedVars   : Map[String, Variable] // contains vars with expanded parameters
-  , originalVars   : Map[String, Variable] // contains original, pre-compilation, variable values
+  , expandedVars   : Map[(List[String],String),Variable] // contains vars with expanded parameters
+  , originalVars   : Map[(List[String],String),Variable] // contains original, pre-compilation, variable values
   , trackerVariable: TrackerVariable
   , priority       : Int
   , isSystem       : Boolean
@@ -521,14 +521,14 @@ final case class BoundPolicyDraft(
    * and retrieve it, along with bounded variable (or itself if it's bound to nothing)
    * Can throw a lot of exceptions if something fails
    */
-  def getDirectiveVariable(): (TrackerVariable, Variable) = {
+  def getDirectiveVariable(): (TrackerVariable, Seq[Variable]) = {
       trackerVariable.spec.boundingVariable match {
-        case None | Some("") | Some(null) => (trackerVariable, trackerVariable)
+        case None | Some("") | Some(null) => (trackerVariable, Seq(trackerVariable))
         case Some(value) =>
-          originalVars.get(value) match {
+          originalVars.filter(_._1._2 == value).values.toList match {
             //should not happen, techniques consistency are checked
-            case None => throw new IllegalArgumentException("No valid bounding found for trackerVariable " + trackerVariable.spec.name + " found in directive " + id.directiveId.debugString)
-            case Some(variable) => (trackerVariable, variable)
+            case Nil=> throw new IllegalArgumentException("No valid bounding found for trackerVariable " + trackerVariable.spec.name + " found in directive " + id.directiveId.debugString)
+            case variable => (trackerVariable, variable)
           }
       }
   }
@@ -542,7 +542,7 @@ final case class BoundPolicyDraft(
    */
   def toPolicy(agent: AgentType): Either[String, Policy] = {
     PolicyTechnique.forAgent(technique, agent).flatMap { pt =>
-      expandedVars.collectFirst { case (_, v) if(!v.spec.constraint.mayBeEmpty && v.values.exists(_ == "")) => v } match {
+      expandedVars.values.collectFirst { case v if(!v.spec.constraint.mayBeEmpty && v.values.exists(_ == "")) => v } match {
         case Some(v) =>
           Left(s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.value}]: " +
                s"a non optional value is missing for parameter '${v.spec.description}' [param ID: ${v.spec.name}]")
