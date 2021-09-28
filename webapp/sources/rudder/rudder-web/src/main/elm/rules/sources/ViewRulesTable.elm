@@ -70,7 +70,7 @@ getSortFunction model r1 r2 =
         in
           compare r1Compliance r2Compliance
   in
-    if model.ui.ruleFilters.sortOrder == True then
+    if model.ui.ruleFilters.sortOrder then
       order
     else
       case order of
@@ -97,7 +97,7 @@ buildRulesTable model =
             tr[onClick (OpenRuleDetails r.id True)]
             [ td[][ text r.name ]
             , td[][ text (getCategoryName model r.categoryId) ]
-            , td[][ text (if r.enabled == True then "Enabled" else "Disabled") ]
+            , td[][ text (if r.enabled then "Enabled" else "Disabled") ]
             , td[][ compliance ]
             , td[][ text ""   ]
             ]

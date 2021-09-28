@@ -366,6 +366,21 @@
 .tags-container .btn-group.btn-group-xs .btn.btn-default:last-of-type{
   border: 1px solid #ccc !important;
 }
+.tags-container .btn-group.delete-action .btn.btn-default:first-of-type{
+  border-top-right-radius: 20px;
+  border-bottom-right-radius: 20px;
+  padding-right: 10px;
+}
+.tags-container .btn-group.delete-action:hover .btn.btn-default:first-of-type{
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+}
+.tags-container .btn-group.delete-action .btn-delete{
+  display: none;
+}
+.tags-container .btn-group.delete-action:hover .btn-delete{
+  display: block;
+}
 /* === MAIN === */
 .rudder-template .template-main{
   display: flex;

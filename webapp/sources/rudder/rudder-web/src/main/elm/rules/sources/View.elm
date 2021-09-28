@@ -64,7 +64,7 @@ view model =
           thClass : SortBy -> String
           thClass sortBy =
             if sortBy == model.ui.ruleFilters.sortBy then
-              if(model.ui.ruleFilters.sortOrder == True) then
+              if model.ui.ruleFilters.sortOrder then
                 "sorting_asc"
               else
                 "sorting_desc"
@@ -119,7 +119,7 @@ view model =
         ]
       DeactivationValidation rule ->
         let
-          txtDisable = if rule.enabled == True then "Disable" else "Enable"
+          txtDisable = if rule.enabled then "Disable" else "Enable"
         in
           div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
           [ div [ class "modal-dialog" ] [

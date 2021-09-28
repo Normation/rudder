@@ -214,7 +214,7 @@ update msg model =
       case model.mode of
         RuleForm details ->
           let
-            txtDisable = if ruleDetails.enabled == True then "enabled" else "disabled"
+            txtDisable = if ruleDetails.enabled then "enabled" else "disabled"
           in
             ({model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails}}, (Cmd.batch [successNotification ("Rule '"++ ruleDetails.name ++"' successfully "++ txtDisable), (getRulesTree model)]))
         _   -> (model, Cmd.none)
