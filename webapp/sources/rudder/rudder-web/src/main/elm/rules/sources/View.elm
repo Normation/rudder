@@ -55,16 +55,28 @@ view model =
     templateMain = case model.mode of
       Loading -> text "loading"
       RuleTable   ->
-        div [class "main-details"]
-        [ div [class "main-table"]
-          [ table [ class "no-footer dataTable"]
-            [ thead []
-              [ tr [class "head"]
-                [ th [class "sorting_asc", rowspan 1, colspan 1][text "Name"          ]
-                , th [class "sorting"    , rowspan 1, colspan 1][text "Category"      ]
-                , th [class "sorting"    , rowspan 1, colspan 1][text "Status"        ]
-                , th [class "sorting"    , rowspan 1, colspan 1][text "Compliance"    ]
-                , th [class "sorting"    , rowspan 1, colspan 1][text "Recent changes"]
+        let
+          thClass : SortBy -> String
+          thClass sortBy =
+            if sortBy == model.ui.ruleFilters.sortBy then
+              if model.ui.ruleFilters.sortOrder then
+                "sorting_asc"
+              else
+                "sorting_desc"
+            else
+              "sorting"
+        in
+          div [class "main-details"]
+          [ div [class "main-table"]
+            [ table [ class "no-footer dataTable"]
+              [ thead []
+                [ tr [class "head"]
+                  [ th [class (thClass Name      ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters Name      )][text "Name"          ]
+                  , th [class (thClass Parent    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters Parent    )][text "Category"      ]
+                  , th [class (thClass Status    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters Status    )][text "Status"        ]
+                  , th [class (thClass Compliance) , rowspan 1, colspan 1, onClick (UpdateRuleFilters Compliance)][text "Compliance"    ]
+                  , th [class ""                   , rowspan 1, colspan 1][text "Recent changes"]
+                  ]
                 ]
               ]
             , tbody [] (buildRulesTable model)
@@ -109,7 +121,7 @@ view model =
         ]
       Just (DeactivationValidation rule) ->
         let
-          txtDisable = if rule.enabled == True then "Disable" else "Enable"
+          txtDisable = if rule.enabled then "Disable" else "Enable"
         in
           div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
           [ div [ class "modal-dialog" ] [

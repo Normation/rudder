@@ -27,17 +27,23 @@ buildListCategories sep c =
   in
     newList
 
-buildTagsContainer : Rule -> Html Msg
-buildTagsContainer rule =
+buildTagsContainer : Rule -> Bool -> RuleDetails -> Html Msg
+buildTagsContainer rule editMode details =
   let
     tagsList = List.map (\t ->
-      div [class "btn-group btn-group-xs"]
+      div [class "btn-group btn-group-xs delete-action"]
         [ button [class "btn btn-default tags-label", type_ "button"]
           [ i[class "fa fa-tag"][]
           , span[class "tag-key"][text t.key]
           , span[class "tag-separator"][text "="]
           , span[class "tag-value"][text t.value]
           ]
+        , (if editMode then
+            button [class "btn btn-default btn-delete", type_ "button", onClick  (UpdateRuleForm {details | rule = {rule |  tags = List.Extra.remove t rule.tags }})]
+            [ span [class "fa fa-times text-danger"][] ]
+          else
+            text ""
+          )
         ]
       ) rule.tags
   in
@@ -110,11 +116,11 @@ tabContent model details isNewRule=
                   [ div[class "input-group"]
                     [ input[ id "rule-tags-key", type_ "text", placeholder "key", class "form-control", onInput (\s -> UpdateNewTag {newTag | key = s} ), value newTag.key][]
                     , span [ class "input-group-addon addon-json"][ text "=" ]
-                    , input[ type_ "text", placeholder "value", class "form-control", onInput (\s -> UpdateNewTag {newTag | value = s} ), value newTag.value][]
-                    , span [ class "input-group-btn"][ button [ class "btn btn-success", type_ "button", onClick  (UpdateRule {rule | tags = newTag :: rule.tags }) ][ span[class "fa fa-plus"][]] ]
+                    , input[ type_ "text", placeholder "value", class "form-control", onInput (\s -> UpdateRuleForm {details | ui = {ui | newTag = {newTag | value = s}}}), value newTag.value][]
+                    , span [ class "input-group-btn"][ button [ class "btn btn-success", type_ "button", onClick  (UpdateRuleForm {details | rule = {rule |  tags = newTag :: rule.tags }, ui = {ui | newTag = Tag "" ""}}), disabled (String.isEmpty details.ui.newTag.key || String.isEmpty details.ui.newTag.value) ][ span[class "fa fa-plus"][]] ]
                     ]
                   ]
-                , buildTagsContainer rule
+                , buildTagsContainer rule True details
                 ]
               , div [class "form-group"]
                 [ label[for "rule-short-description"][text "Short description"]
@@ -140,7 +146,7 @@ tabContent model details isNewRule=
               , div [class "tags-container"]
                 [ label[for "rule-tags-key"][text "Tags"]
                 , ( if List.length rule.tags > 0 then
-                    buildTagsContainer rule
+                    buildTagsContainer rule False details
                   else
                     div[class "half-opacity"][text "There is no tags"]
                   )
@@ -412,8 +418,8 @@ tabContent model details isNewRule=
             div[class "tab-table-content"]
             [ div [class "table-title"]
               [ h4 [][text "Compliance by Nodes"]
-              , ( if model.hasWriteRights == True then
-                  button [class "btn btn-default btn-sm", onClick (EditGroups True)][text "Edit"]
+              , ( if model.ui.hasWriteRights then
+                  button [class "btn btn-default btn-sm", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}})][text "Edit"]
                 else
                   text ""
                 )

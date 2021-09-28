@@ -30,29 +30,37 @@ editionTemplate model details isNewRule =
       else
         ("", text "")
     topButtons =
-      let
-        disableWhileCreating = case model.mode of
-          EditRule _ -> ""
-          _ -> " disabled"
-        txtDisabled = if rule.enabled == True then "Disable" else "Enable"
-      in
-        [ li [] [
-            a [ class ("action-success"++disableWhileCreating), onClick (GenerateId (\r -> CloneRule originRule (RuleId r)))] [
-              i [ class "fa fa-clone"] []
-            , text "Clone"
-            ]
-          ]
-        , li [] [
-            a [ class ("action-primary "++disableWhileCreating), onClick (OpenDeactivationPopup rule)] [
-              i [ class "fa fa-ban"] []
-            , text txtDisabled
-            ]
-          ]
-        , li [class "divider"][]
-        , li [] [
-            a [ class ("action-danger"++disableWhileCreating), onClick (OpenDeletionPopup rule)] [
-              i [ class "fa fa-times-circle"] []
-            , text "Delete"
+      case originRule of
+        Just or ->
+          let
+            txtDisabled = if rule.enabled then "Disable" else "Enable"
+          in
+
+            [ button [ class "btn btn-default dropdown-toggle" , attribute "data-toggle" "dropdown" ] [
+                text "Actions "
+              , i [ class "caret" ] []
+              ]
+            , ul [ class "dropdown-menu" ]
+                [ li [] [
+                    a [ class ("action-success"), onClick (GenerateId (\r -> CloneRule or (RuleId r)))] [
+                      i [ class "fa fa-clone"] []
+                    , text "Clone"
+                    ]
+                  ]
+                , li [] [
+                    a [ class ("action-primary"), onClick (OpenDeactivationPopup rule)] [
+                      i [ class "fa fa-ban"] []
+                    , text txtDisabled
+                    ]
+                  ]
+                , li [class "divider"][]
+                , li [] [
+                    a [ class ("action-danger"), onClick (OpenDeletionPopup rule)] [
+                      i [ class "fa fa-times-circle"] []
+                    , text "Delete"
+                    ]
+                  ]
+                ]
             ]
           ]
         ]

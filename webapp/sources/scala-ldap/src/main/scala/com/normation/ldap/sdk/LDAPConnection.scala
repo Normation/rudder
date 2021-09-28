@@ -610,8 +610,15 @@ class RwLDAPConnection(
   }
 
   override def save(entry : LDAPEntry, removeMissingAttributes:Boolean=false, forceKeepMissingAttributes:Seq[String] = Seq()) : LDAPIOResult[LDIFChangeRecord] = {
+    val attributes = {
+      if (removeMissingAttributes) {
+        Seq()
+      } else {
+        entry.attributes.toSeq.map(_.getName)
+      }
+    }
     synchronized {
-      get(entry.dn) flatMap {  //TODO if removeMissing is false, only get attribute in entry (we don't care of others)
+      get(entry.dn, attributes:_*) flatMap {  //TODO if removeMissing is false, only get attribute in entry (we don't care of others)
         case None =>
           applyAdd(new AddRequest(entry.backed))
         case Some(existing) =>
