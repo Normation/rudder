@@ -321,9 +321,9 @@ object ExecutionBatch extends Loggable {
    * talking about in that merge ?"
    */
   private[reports] final case class MergeInfo(
-      nodeId: NodeId
-    , run: Option[DateTime]
-    , configId: Option[NodeConfigId]
+      nodeId        : NodeId
+    , run           : Option[DateTime]
+    , configId      : Option[NodeConfigId]
     , expirationTime: DateTime
   )
 
@@ -356,6 +356,15 @@ object ExecutionBatch extends Loggable {
    */
   final def replaceCFEngineVars(x : String) : Pattern = {
     Pattern.compile("""\Q"""+ x.replaceAll(replaceCFEngineVars, """\\E.*\\Q""") + """\E""")
+  }
+
+  final def checkExpectedVariable(expected : String,effective : String) : Boolean = {
+    val isVar = matchCFEngineVars.pattern.matcher(expected).matches()
+    if (isVar) { // If this is not a var, there isn't anything to replace.
+      replaceCFEngineVars(expected).matcher(effective).matches()
+    } else {
+      expected == effective
+    }
   }
 
 final case class ContextForNoAnswer(
@@ -831,6 +840,176 @@ final case class ContextForNoAnswer(
     }
 
   }
+
+
+  class ComputeComplianceTimer() {
+    var u1, u2, u3, u4 = 0L
+  }
+
+  private[reports] def getComplianceForRule(
+      mergeInfo               : MergeInfo
+      // only report for that ruleId, for that nodeid, of type ResultReports,
+      // for the correct run, for the correct version
+    , reportsForThatNodeRule  : Seq[ResultReports]
+    , modes                   : NodeModeConfig
+    , ruleExpectedReports     : RuleExpectedReports
+    , unexpectedInterpretation: UnexpectedReportInterpretation
+    , timer                   : ComputeComplianceTimer
+  ): RuleNodeStatusReport = {
+
+    // An effective expected component contains only the component path from the root component to a unique Value
+    // Component is the root component and only contains subElemens that leads to the value
+    // Value is the in just a shortcut the last leaf of the component
+    // This will allow  to analyse each component path separately so that reports are affected accordingly with blocks
+    // In case there is no block, the component is the same than the value
+    case class EffectiveExpectedComponent (
+      component : ComponentExpectedReport
+    , value     : ValueExpectedReport
+    )
+
+    def getExpectedComponents(component : ComponentExpectedReport) : List[EffectiveExpectedComponent] = {
+      component match {
+        case c : ValueExpectedReport => EffectiveExpectedComponent(c, c) :: Nil
+        case c : BlockExpectedReport => c.subComponents.flatMap(getExpectedComponents).map(exp => exp.copy(component = c.copy(subComponents = exp.component :: Nil)))
+      }
+    }
+
+    val RuleExpectedReports(ruleId, directives) = ruleExpectedReports
+    val t1 = System.nanoTime
+    //here, we had at least one report, even if it not a ResultReports (i.e: run start/end is meaningful
+
+    val reports = reportsForThatNodeRule.groupBy(x => (x.directiveId, x.component) )
+
+    val expectedComponents: Map[(DirectiveId, List[EffectiveExpectedComponent]), (PolicyMode, ReportType)] = (for {
+      directive  <- directives
+      policyMode =  PolicyMode.directivePolicyMode(
+                           modes.globalPolicyMode
+                         , modes.nodePolicyMode
+                         , directive.policyMode
+                         , directive.isSystem
+                    )
+      // the status to use for ACTUALLY missing reports, i.e for reports for which
+      // we have a run but are not here. Basically, it's "missing" when on
+      // full compliance and "success" when on changes only - but that success
+      // depends upon the policy mode
+      missingReportStatus = missingReportType(modes.globalComplianceMode, policyMode)
+
+      component  <- directive.components
+
+    } yield {
+
+      ((directive.directiveId, getExpectedComponents(component)), (policyMode, missingReportStatus))
+    }).toMap
+    val t2 = System.nanoTime
+    timer.u1 += t2-t1
+
+    /*
+     * now we have three cases:
+     * - expected component without reports => missing (modulo changes only interpretation)
+     * - reports without expected component => unknown
+     * - both expected component and reports => check
+     */
+    val reportKeys = reports.keySet
+    val expectedKeys: Set[(DirectiveId,String)] = expectedComponents.keySet.flatMap(c => c._2.map(d => (c._1, d.value.componentName)))
+    val okKeys = reportKeys.intersect(expectedKeys)
+
+    val t3 = System.nanoTime
+    timer.u2 += t3-t2
+
+    //unexpected contains the one with unexpected key and all non matching serial/version
+    val unexpected = (if (okKeys.size != reportKeys.size) {
+      buildUnexpectedDirectives(
+        reports.filter(k => !expectedKeys.contains((k._1._1,k._1._2)                                       )).values.flatten.toSeq
+      )
+    } else {
+      Seq[DirectiveStatusReport]()
+    })
+
+    val t4 = System.nanoTime
+    timer.u3 += t4-t3
+
+    // okKeys is DirectiveId, ComponentName
+    val expected: Iterable[DirectiveStatusReport] =
+      expectedComponents.groupBy(_._1._1).map {
+        case (directiveId, expectedComponentsForDirective) =>
+          DirectiveStatusReport(directiveId, expectedComponentsForDirective.flatMap {
+            case ((directiveId, components), (policyMode, missingReportStatus)) =>
+              // We iterate on each effective component (not a component but a component that only contains a unique path to a unique value
+              val r = components.map { c =>
+                // HEre reports need to be filtered to only match values that are expected for the Value that is at the end of the component path
+                // and its component nae
+                val filteredReports = reports.flatMap { case ((id, cname), r) => r.filter(value => directiveId == id && cname == c.value.componentName && c.value.componentsValues.exists(v => checkExpectedVariable(v, value.keyValue))) }.toList
+                // The component used to analyse reports is the component at the top of our structure that we recreate the whole tree
+                checkExpectedComponentWithReports(c.component, filteredReports, missingReportStatus, policyMode, unexpectedInterpretation)
+              }
+              // Merge all components together
+              ComponentStatusReport.merge(r)
+          })
+      }
+
+
+    val t5 = System.nanoTime
+    timer.u4 += t5-t4
+
+    // if there is no missing nor unexpected, then data is already correct, otherwise we need to merge it
+    val directiveStatusReports = {
+      if (unexpected.nonEmpty) {
+        DirectiveStatusReport.merge(expected ++ unexpected)
+      } else {
+        expected.map( dir => (dir.directiveId, dir)).toMap
+      }
+    }
+
+    RuleNodeStatusReport(
+        mergeInfo.nodeId
+      , ruleId
+      , mergeInfo.run
+      , mergeInfo.configId
+      , directiveStatusReports
+      , mergeInfo.expirationTime
+    )
+
+  }
+
+  /**
+   * Compute compliance for run for each rules
+   *
+   */
+  private[reports] def getComplianceForRun(
+      mergeInfo               : MergeInfo
+      // only report for that nodeid, of type ResultReports,
+      // for the correct run, for the correct version
+    , executionReports        : Seq[ResultReports]
+    , lastRunNodeConfig       : NodeExpectedReports
+    , unexpectedInterpretation: UnexpectedReportInterpretation
+  ): Map[RuleId, RuleNodeStatusReport] = {
+
+    val timer = new ComputeComplianceTimer()
+    val t0 = System.currentTimeMillis
+
+    val reportsPerRule = executionReports.groupBy(_.ruleId)
+    val complianceForRun: Map[RuleId, RuleNodeStatusReport] = (for {
+      ruleExpectedReport <- lastRunNodeConfig.ruleExpectedReports
+    } yield {
+
+      val reportsForThatNodeRule: Seq[ResultReports] = reportsPerRule.getOrElse(ruleExpectedReport.ruleId, Seq[ResultReports]())
+      val ruleCompliance = getComplianceForRule(mergeInfo, reportsForThatNodeRule, lastRunNodeConfig.modes, ruleExpectedReport, unexpectedInterpretation, timer)
+      (ruleExpectedReport.ruleId, ruleCompliance)
+    }).toMap
+
+    val t1 = System.currentTimeMillis
+
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - prepare data: ${timer.u1/1000}µs")
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - get missing reports: ${timer.u2/1000}µs")
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - unexpected directives computation: ${timer.u3/1000}µs")
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - expected directives computation: ${timer.u4/1000}µs")
+
+    TimingDebugLogger.trace(s"Compliance: Compute complianceForRun map: ${t1-t0}ms")
+
+    complianceForRun
+  }
+
+
   /**
    * That method only take care of the low level logic of comparing
    * expected reports with actual reports rule by rule. So we expect
@@ -866,122 +1045,12 @@ final case class ContextForNoAnswer(
     , unexpectedInterpretation: UnexpectedReportInterpretation
   ): Set[RuleNodeStatusReport] = {
 
-    var u1, u2, u3, u4 = 0L
+    val t0 = System.currentTimeMillis()
 
-    def getExpectedComponents(component : ComponentExpectedReport) : List[String] = {
-      component match {
-        case c : ValueExpectedReport => c.componentName :: Nil
-        case c : BlockExpectedReport => c.subComponents.flatMap(getExpectedComponents)
-      }
-    }
+    val complianceForRun = getComplianceForRun(mergeInfo, executionReports, lastRunNodeConfig, unexpectedInterpretation)
 
-    val t0 = System.currentTimeMillis
-    val reportsPerRule = executionReports.groupBy(_.ruleId)
-    val complianceForRun: Map[RuleId, RuleNodeStatusReport] = (for {
-      RuleExpectedReports(ruleId, directives) <- lastRunNodeConfig.ruleExpectedReports
-      (unexpected, expected) =  {
-                                   val t1 = System.nanoTime
-                                   //here, we had at least one report, even if it not a ResultReports (i.e: run start/end is meaningful
+    val t10 = System.currentTimeMillis()
 
-                                   val reportsForThatNodeRule: Seq[ResultReports] = reportsPerRule.getOrElse(ruleId, Seq[ResultReports]())
-
-                                   val reports = reportsForThatNodeRule.groupBy(x => (x.directiveId, x.component) )
-
-                                   val expectedComponents: Map[(DirectiveId, List[String]), (PolicyMode, ReportType, ComponentExpectedReport)] = (for {
-                                     directive  <- directives
-                                     policyMode =  PolicyMode.directivePolicyMode(
-                                                          lastRunNodeConfig.modes.globalPolicyMode
-                                                        , lastRunNodeConfig.modes.nodePolicyMode
-                                                        , directive.policyMode
-                                                        , directive.isSystem
-                                                   )
-                                     // the status to use for ACTUALLY missing reports, i.e for reports for which
-                                     // we have a run but are not here. Basically, it's "missing" when on
-                                     // full compliance and "success" when on changes only - but that success
-                                     // depends upon the policy mode
-                                     missingReportStatus = missingReportType(lastRunNodeConfig.complianceMode, policyMode)
-
-                                     component  <- directive.components
-
-                                   } yield {
-
-                                     ((directive.directiveId, getExpectedComponents(component)), (policyMode, missingReportStatus, component))
-                                   }).toMap
-                                   val t2 = System.nanoTime
-                                   u1 += t2-t1
-                                   /*
-                                    * now we have three cases:
-                                    * - expected component without reports => missing (modulo changes only interpretation)
-                                    * - reports without expected component => unknown
-                                    * - both expected component and reports => check
-                                    */
-                                   val reportKeys = reports.keySet
-                                   val expectedKeys = expectedComponents.keySet.flatMap(c => c._2.map(d => (c._1, d)))
-                                   val okKeys = reportKeys.intersect(expectedKeys)
-
-                                   val t3 = System.nanoTime
-                                   u2 += t3-t2
-
-                                   //unexpected contains the one with unexpected key and all non matching serial/version
-                                   val unexpected = (if (okKeys.size != reportKeys.size) {
-                                     buildUnexpectedDirectives(
-                                       reports.filter(k => !expectedKeys.contains(k._1)).values.flatten.toSeq
-                                     )
-                                   } else {
-                                     Seq[DirectiveStatusReport]()
-                                   })
-
-                                   val t4 = System.nanoTime
-                                   u3 += t4-t3
-
-                                   // okKeys is DirectiveId, ComponentName
-                                   val expected: Iterable[DirectiveStatusReport] =
-                                     expectedComponents.groupBy(_._1._1).map {
-                                       case (directiveId, expectedComponentsForDirective) =>
-                                         DirectiveStatusReport(directiveId, expectedComponentsForDirective.map {
-                                           case ((directiveId, components), (policyMode, missingReportStatus, component)) =>
-                                             val filteredReports = components.flatMap(c => reports.getOrElse((directiveId, c), Seq()))
-
-                                             (component.componentName, checkExpectedComponentWithReports(component, filteredReports, missingReportStatus, policyMode, unexpectedInterpretation))
-                                         })
-                                     }
-
-
-                                   val t5 = System.nanoTime
-                                   u4 += t5-t4
-
-
-                                   ( unexpected, expected)
-                                }
-    } yield {
-      // if there is no missing nor unexpected, then data is alreay correct, otherwise we need to merge it
-      val directiveStatusReports = {
-        if (unexpected.nonEmpty) {
-          DirectiveStatusReport.merge(expected ++ unexpected)
-        } else {
-          expected.map( dir => (dir.directiveId, dir)).toMap
-        }
-      }
-      (
-          ruleId
-        , RuleNodeStatusReport(
-              mergeInfo.nodeId
-            , ruleId
-            , mergeInfo.run
-            , mergeInfo.configId
-            , directiveStatusReports
-            , mergeInfo.expirationTime
-          )
-      )
-    }).toMap
-    val t10 = System.currentTimeMillis
-
-    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - prepare data: ${u1/1000}µs")
-    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - get missing reports: ${u2/1000}µs")
-    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - unexpected directives computation: ${u3/1000}µs")
-    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - expected directives computation: ${u4/1000}µs")
-
-    TimingDebugLogger.trace(s"Compliance: Compute complianceForRun map: ${t10-t0}ms")
     //now, for all current expected reports, choose between the computed value and the default one
 
     // note: isn't there something specific to do for unexpected reports ? Keep them all ?
@@ -1124,7 +1193,7 @@ final case class ContextForNoAnswer(
           checkExpectedComponentWithReports(e,filteredReports.filter(_.component == e.componentName), noAnswerType, policyMode, unexpectedInterpretation)
         case e => checkExpectedComponentWithReports(e,filteredReports, noAnswerType, policyMode, unexpectedInterpretation)})
       case expectedComponent: ValueExpectedReport =>
-        // an utility class that store an expected value and the list of mathing reports for it
+        // an utility class that store an expected value and the list of matching reports for it
         final case class Value(
           value: String
           , unexpanded: String
@@ -1137,13 +1206,13 @@ final case class ContextForNoAnswer(
         )
 
         /*
-     * This function recursively try to pair the first report from input list with one of the component
-     * value.
-     * If no component value is found for the report, it is set aside in an "unexpected" list.
-     * A value can hold at most one report safe if:
-     * - the report is the exact duplicate of the one already paired AND UnexpectedReportBehavior.AllowsDuplicate is set
-     * - the report is variable AND UnexpectedReportBehavior.UnboundVarValues is set
-     */
+         * This function recursively try to pair the first report from input list with one of the component
+         * value.
+         * If no component value is found for the report, it is set aside in an "unexpected" list.
+         * A value can hold at most one report safe if:
+         * - the report is the exact duplicate of the one already paired AND UnexpectedReportBehavior.AllowsDuplicate is set
+         * - the report is variable AND UnexpectedReportBehavior.UnboundVarValues is set
+         */
         def recPairReports(reports: List[ResultReports], freeValues: List[Value], pairedValues: List[Value], unexpected: List[ResultReports], mode: UnexpectedReportInterpretation): (List[Value], List[ResultReports]) = {
           // utility function: given a list of Values and one report, try to find a value whose pattern matches reports component value.
           // the first matching value is used (they must be sorted by specificity).
@@ -1157,7 +1226,7 @@ final case class ContextForNoAnswer(
           //   values (or if not runtime, at least a sequence obtained through a variable).
           // Be careful: the list of values must be kept sorted in the same order as paramater!
           def findMatchingValue(
-            report: ResultReports
+              report: ResultReports
             , values: List[Value]
             , dropDuplicated: (Value, ResultReports) => Boolean
             , incrementCardinality: (Value, ResultReports) => Boolean

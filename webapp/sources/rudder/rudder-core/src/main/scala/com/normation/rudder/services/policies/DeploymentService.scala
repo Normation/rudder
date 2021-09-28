@@ -110,6 +110,7 @@ import com.normation.rudder.domain.reports.BlockExpectedReport
 import com.normation.rudder.domain.reports.ValueExpectedReport
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 
+import scala.collection.immutable.Map
 import scala.concurrent.duration.FiniteDuration
 
 
@@ -1456,23 +1457,23 @@ object RuleExpectedReportBuilder extends Loggable {
     val getTrackingVariableCardinality : (Seq[String], Seq[String]) = {
       val boundingVar = vars.trackerVariable.spec.boundingVariable.getOrElse(vars.trackerVariable.spec.name)
       // now the cardinality is the length of the boundingVariable
-      (vars.expandedVars.get(boundingVar), vars.originalVars.get(boundingVar)) match {
-        case (None, None) =>
+      (vars.expandedVars.filter(_._1.value == boundingVar), vars.originalVars.filter(_._1.value == boundingVar)) match {
+        case (m, n) if m.isEmpty && n.isEmpty =>
           PolicyGenerationLogger.debug("Could not find the bounded variable %s for %s in ParsedPolicyDraft %s".format(
               boundingVar, vars.trackerVariable.spec.name, directiveId.serialize))
           (Seq(DEFAULT_COMPONENT_KEY),Seq()) // this is an autobounding policy
-        case (Some(variable), Some(originalVariables)) if (variable.values.size==originalVariables.values.size) =>
-          (variable.values, originalVariables.values)
-        case (Some(variable), Some(originalVariables)) =>
-          PolicyGenerationLogger.warn("Expanded and unexpanded values for bounded variable %s for %s in ParsedPolicyDraft %s have not the same size : %s and %s".format(
-              boundingVar, vars.trackerVariable.spec.name, directiveId.serialize,variable.values, originalVariables.values ))
-          (variable.values, originalVariables.values)
-        case (None, Some(originalVariables)) =>
-          (Seq(DEFAULT_COMPONENT_KEY),originalVariables.values) // this is an autobounding policy
-        case (Some(variable), None) =>
+        case (variables, originalVariables) if (variables.values.flatMap(_.values).size==originalVariables.values.flatMap(_.values).size) =>
+          (variables.values.flatMap(_.values).toSeq, originalVariables.values.flatMap(_.values).toSeq)
+        case (m, originalVariables) if (m.isEmpty && originalVariables.nonEmpty) =>
+          (Seq(DEFAULT_COMPONENT_KEY),originalVariables.values.flatMap(_.values).toSeq) // this is an autobounding policy
+        case (variables, m)  if (m.isEmpty) =>
           PolicyGenerationLogger.warn("Somewhere in the expansion of variables, the bounded variable %s for %s in ParsedPolicyDraft %s appeared, but was not originally there".format(
               boundingVar, vars.trackerVariable.spec.name, directiveId.serialize))
-          (variable.values,Seq()) // this is an autobounding policy
+          (variables.values.flatMap(_.values).toSeq,Seq()) // this is an autobounding policy
+        case (variables, originalVariables) =>
+          PolicyGenerationLogger.warn("Expanded and unexpanded values for bounded va.flatMap(_.values)riable %s for %s in ParsedPolicyDraft %s have not the same size : %s and %s".format(
+            boundingVar, vars.trackerVariable.spec.name, directiveId.serialize,variables.values, originalVariables.values ))
+          (variables.values.flatMap(_.values).toSeq, originalVariables.values.flatMap(_.values).toSeq)
 
       }
     }
@@ -1482,8 +1483,7 @@ object RuleExpectedReportBuilder extends Loggable {
      * If there is no component for that policy, the policy is autobounded to DEFAULT_COMPONENT_KEY
      *
      */
-    def sectionToExpectedReports (section : SectionSpec): List[ComponentExpectedReport] = {
-      def childExpectedReports = section.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports).toList
+    def sectionToExpectedReports (expandedVarMap : Map[String,List[String]], unexpandedVarMap : Map[String,List[String]])( section : SectionSpec): List[ComponentExpectedReport] = {
       if(section.isComponent) {
         section.reportingLogic match {
           case None =>
@@ -1493,28 +1493,34 @@ object RuleExpectedReportBuilder extends Loggable {
                 ValueExpectedReport(section.name, List(DEFAULT_COMPONENT_KEY), List(DEFAULT_COMPONENT_KEY)) :: Nil
               case Some(varName) =>
                 //a section with a componentKey variable: card=variable card
-                val values = vars.expandedVars.get(varName).map(_.values.toList).getOrElse(Nil)
-                val unexpandedValues = vars.originalVars.get(varName).map(_.values.toList).getOrElse(Nil)
-                if (values.size != unexpandedValues.size)
+                val expandedValues = expandedVarMap.get(varName).getOrElse(Nil)
+                val unexpandedValues = unexpandedVarMap.get(varName).getOrElse(Nil)//= vars.expandedVars.get((section.name :: parent,varName)).map(_.values.toList).getOrElse(Nil)
+                //val unexpandedValues = vars.originalVars.get((section.name :: parent,varName)).map(_.values.toList).getOrElse(Nil)
+                if (expandedValues.size != unexpandedValues.size)
                   PolicyGenerationLogger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
-                    section.componentKey, directiveId.serialize, values, unexpandedValues))
+                    section.componentKey, directiveId.serialize, expandedValues, unexpandedValues))
 
-                ValueExpectedReport(section.name, values, unexpandedValues) :: childExpectedReports
+                val children = section.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports(expandedVarMap, unexpandedVarMap)).toList
+                ValueExpectedReport(section.name, expandedValues, unexpandedValues) :: children
             }
           case Some(rule) =>
-            BlockExpectedReport(section.name, rule, section.children.toList.flatMap{
-              case s : SectionSpec => sectionToExpectedReports(s)
-              case _ => Nil
-            }) :: Nil
+            val innerExpandedVars = vars.expandedVars.filter(_._1.parents.contains(section.name)).values.groupMapReduce(_.spec.name)(_.values.toList)(_ ++ _)
+            val innerUnexpandedVars = vars.originalVars.filter(_._1.parents.contains(section.name)).values.groupMapReduce(_.spec.name)(_.values.toList)(_ ++ _)
+
+            val children = section.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports(innerExpandedVars, innerUnexpandedVars)).toList
+            BlockExpectedReport(section.name, rule, children) :: Nil
 
         }
       } else {
-        childExpectedReports
+        section.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports(expandedVarMap, unexpandedVarMap)).toList
+
       }
     }
 
+    val expandedVars = vars.expandedVars.values.groupMapReduce(_.spec.name)(_.values.toList)(_ ++ _)
+    val unExpandedVars = vars.originalVars.values.groupMapReduce(_.spec.name)(_.values.toList)(_ ++ _)
 
-    val allComponents = technique.rootSection.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports).toList
+    val allComponents = technique.rootSection.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports(expandedVars, unExpandedVars)).toList
 
     if(allComponents.isEmpty) {
       //that log is outputed one time for each directive for each node using a technique, it's far too

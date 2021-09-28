@@ -288,6 +288,16 @@ final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVer
   lazy val getRudderUniqueId = (techniqueVersion.serialize + "_" + directiveId.serialize).replaceAll("""\W""","_")
 }
 
+// Until we have a unique identifier, we need to use another key to identify our components/Variable so that blocks can identified  correctly when building expected reports
+//  Since in this case several blocks can have the same component name
+// This will allow too prevent missing expected reports, because we were building a map with toMap, that only keep one elem for a specific key
+// A component Id for now is composed of component name and a list of Parents Section (and maybe blocks) that has lead to it
+case class ComponentId (
+    value : String
+  , parents : List[String]
+)
+
+
 /*
  * A policy "vars" is all the var data for a policy (expandedVars, originalVars,
  * trackingKey). They are grouped together in policy because some policy can
@@ -296,8 +306,8 @@ final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVer
 final case class PolicyVars(
     policyId       : PolicyId
   , policyMode     : Option[PolicyMode]
-  , expandedVars   : Map[String, Variable]
-  , originalVars   : Map[String, Variable] // variable with non-expanded ${node.prop etc} values
+  , expandedVars   : Map[ComponentId, Variable]
+  , originalVars   : Map[ComponentId, Variable] // variable with non-expanded ${node.prop etc} values
   , trackerVariable: TrackerVariable
 )
 
@@ -467,13 +477,13 @@ final case class ParsedPolicyDraft(
   , isSystem         : Boolean
   , policyMode       : Option[PolicyMode]
   , trackerVariable  : TrackerVariable
-  , variables        : InterpolationContext => IOResult[Map[String, Variable]]
-  , originalVariables: Map[String, Variable] // the original variable, unexpanded
+  , variables        : InterpolationContext => IOResult[Map[ComponentId,Variable]]
+  , originalVariables: Map[ComponentId, Variable] // the original variable, unexpanded
   , ruleOrder        : BundleOrder
   , directiveOrder   : BundleOrder
 ) {
 
-  def toBoundedPolicyDraft(expandedVars: Map[String, Variable]) = {
+  def toBoundedPolicyDraft(expandedVars: Map[ComponentId,Variable]) = {
     BoundPolicyDraft(
         id             = id
       , ruleName       = ruleName
@@ -505,8 +515,8 @@ final case class BoundPolicyDraft(
   , directiveName  : String // human readable name of the original directive, for ex for log
   , technique      : Technique
   , acceptationDate: DateTime
-  , expandedVars   : Map[String, Variable] // contains vars with expanded parameters
-  , originalVars   : Map[String, Variable] // contains original, pre-compilation, variable values
+  , expandedVars   : Map[ComponentId,Variable] // contains vars with expanded parameters
+  , originalVars   : Map[ComponentId,Variable] // contains original, pre-compilation, variable values
   , trackerVariable: TrackerVariable
   , priority       : Int
   , isSystem       : Boolean
@@ -521,14 +531,14 @@ final case class BoundPolicyDraft(
    * and retrieve it, along with bounded variable (or itself if it's bound to nothing)
    * Can throw a lot of exceptions if something fails
    */
-  def getDirectiveVariable(): (TrackerVariable, Variable) = {
+  def getDirectiveVariable(): (TrackerVariable, Seq[Variable]) = {
       trackerVariable.spec.boundingVariable match {
-        case None | Some("") | Some(null) => (trackerVariable, trackerVariable)
+        case None | Some("") | Some(null) => (trackerVariable, Seq(trackerVariable))
         case Some(value) =>
-          originalVars.get(value) match {
+          originalVars.filter(_._1.value == value).values.toList match {
             //should not happen, techniques consistency are checked
-            case None => throw new IllegalArgumentException("No valid bounding found for trackerVariable " + trackerVariable.spec.name + " found in directive " + id.directiveId.debugString)
-            case Some(variable) => (trackerVariable, variable)
+            case Nil=> throw new IllegalArgumentException("No valid bounding found for trackerVariable " + trackerVariable.spec.name + " found in directive " + id.directiveId.debugString)
+            case variable => (trackerVariable, variable)
           }
       }
   }
@@ -542,7 +552,7 @@ final case class BoundPolicyDraft(
    */
   def toPolicy(agent: AgentType): Either[String, Policy] = {
     PolicyTechnique.forAgent(technique, agent).flatMap { pt =>
-      expandedVars.collectFirst { case (_, v) if(!v.spec.constraint.mayBeEmpty && v.values.exists(_ == "")) => v } match {
+      expandedVars.values.collectFirst { case v if(!v.spec.constraint.mayBeEmpty && v.values.exists(_ == "")) => v } match {
         case Some(v) =>
           Left(s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.value}]: " +
                s"a non optional value is missing for parameter '${v.spec.description}' [param ID: ${v.spec.name}]")
