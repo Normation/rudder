@@ -711,9 +711,7 @@ class InventoryMapper(
 
   //////////////////Node/ NodeInventory /////////////////////////
 
-  def treeFromNode(server:NodeInventory) : LDAPTree = {
-    import com.normation.inventory.domain.AgentInfoSerialisation._
-
+  private def createNodeModelFromServer(server:NodeInventory): LDAPEntry = {
     val dit = ditService.getDit(server.main.status)
     //the root entry of the tree: the machine inventory
     val root = server.main.osDetails match {
@@ -782,6 +780,18 @@ class InventoryMapper(
         win.setOpt(productId, A_WIN_ID, { x: String => x })
         win
     }
+    root
+  }
+
+  // This won't include the Process in it, it needs to be done with method
+  // processesFromNode below
+  def treeFromNode(server:NodeInventory) : LDAPTree = {
+    import com.normation.inventory.domain.AgentInfoSerialisation._
+
+    val dit = ditService.getDit(server.main.status)
+    //the root entry of the tree: the machine inventory
+    val root = createNodeModelFromServer(server)
+
     root.resetValuesTo(A_OS_FULL_NAME      , server.main.osDetails.fullName)
     root.resetValuesTo(A_OS_VERSION        , server.main.osDetails.version.value)
     root.setOpt(server.main.osDetails.servicePack, A_OS_SERVICE_PACK, { x:String => x })
@@ -800,7 +810,6 @@ class InventoryMapper(
     root.resetValuesTo(A_AGENTS_NAME       , server.agents.map(x => x.toJsonString):_*)
     root.resetValuesTo(A_SOFTWARE_DN       , server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString):_*)
     root.resetValuesTo(A_EV                , server.environmentVariables.map(x => Serialization.write(x)):_*)
-    root.resetValuesTo(A_PROCESS           , server.processes.map(x => Serialization.write(x)):_*)
     root.resetValuesTo(A_LIST_OF_IP        , server.serverIps.distinct:_*)
     //we don't know their dit...
     root.resetValuesTo(A_CONTAINER_DN      , server.machineId.map { case (id, status) =>
@@ -823,6 +832,17 @@ class InventoryMapper(
     server.fileSystems.foreach { x => tree.addChild(entryFromFileSystem(x, dit, server.main.id)) }
     server.vms.foreach { x => tree.addChild(entryFromVMInfo(x,dit,server.main.id)) }
     tree
+  }
+
+  // Create the entry with only processes
+  // we need to have a proper object class to avoid error
+  // com.unboundid.ldap.sdk.LDAPException: no structural object class provide
+  def processesFromNode(node:NodeInventory) : LDAPEntry = {
+    val entry = createNodeModelFromServer(node)
+
+    // convert the processes
+    entry +=! (A_PROCESS, node.processes.map(x => Serialization.write(x)):_*)
+    entry
   }
 
   /*
