@@ -137,11 +137,13 @@ final case class GenericMethod(
   , classParameter : ParameterId
   , classPrefix    : String
   , agentSupport   : Seq[AgentType]
+
   , description    : String
   , documentation  : Option[String]
   , deprecated     : Option[String]
   // New name of the method replacing this method, may be defined only if deprecated is defined. Maybe we should have a deprecation info object
   , renameTo       : Option[String]
+  , renameParam    : Seq[(String,String)]
 )
 
 final case class MethodParameter(
@@ -327,7 +329,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
   import net.liftweb.json.JsonDSL._
 
-  def serializeTechniqueMetadata(technique: ncf.EditorTechnique): JValue = {
+  def serializeTechniqueMetadata(technique: ncf.EditorTechnique, methods: Map[BundleName, GenericMethod]): JValue = {
 
     def serializeTechniqueParameter(parameter: TechniqueParameter): JValue = {
       ( ("id" -> parameter.id.value)
@@ -362,9 +364,10 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     }
 
     def serializeMethodCall(call: MethodCall): JValue = {
+      val renameParam = methods.get(call.methodId).map(_.renameParam).getOrElse(Nil)
       val params: JValue = call.parameters.map {
         case (parameterName, value) =>
-          ( ("name" -> parameterName.value)
+          ( ("name" -> renameParam.find(_._1 == parameterName.value).map(_._2).getOrElse(parameterName.value))
           ~ ("value" -> value)
           )
       }
@@ -442,6 +445,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     ~ ("documentation" -> method.documentation)
     ~ ("deprecated" -> method.deprecated)
     ~ ("rename" -> method.renameTo)
+    ~ ("parameter_rename" -> method.renameParam.map(t => ( "old" -> t._1) ~ ("new" -> t._2)))
     )
   }
 }

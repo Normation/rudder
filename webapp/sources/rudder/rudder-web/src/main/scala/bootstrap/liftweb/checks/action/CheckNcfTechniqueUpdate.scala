@@ -97,10 +97,14 @@ class CheckNcfTechniqueUpdate(
 
     def updateNcfTechniques  = {
       for {
+        _ <- BootstrapLogger.info("started")
         _          <- techniqueReader.updateTechniquesMetadataFile
 
+        _ <- BootstrapLogger.info("techniques - update")
         methods    <- techniqueReader.readMethodsMetadataFile
+        _ <- BootstrapLogger.info("methods")
         techniques <- techniqueReader.readTechniquesMetadataFile
+        _ <- BootstrapLogger.info("techniques - read")
         techniquesWithResources <-
           ZIO.foreach(techniques) {
             technique =>
