@@ -102,7 +102,6 @@ class TestNcf(avocado.Test):
     self.assertEqual(metadata['class_parameter_id'], 1)
     self.assertEqual(metadata['agent_version'], ">= 3.6")
     self.assertEqual(len(metadata), len(self.methods_expected_tags))
-    self.assertEqual(metadata['agent_version'], ">= 3.6")
 
   ###########################################################
   # Tests to obtain the generic methods that a Technique uses
@@ -141,12 +140,14 @@ class TestNcf(avocado.Test):
   def test_get_all_generic_methods_filenames(self):
     """test_get_all_generic_methods_filenames should return a list of all generic_methods files"""
     base_dir = ncf.get_root_dir() + "/tree/30_generic_methods"
+    conf_repo_dir = "/var/rudder/configuration-repository/ncf/30_generic_methods"
     alternative_path = os.path.dirname(os.path.realpath(__file__)) + "/test_methods"
 
     # Get list of generic_methods without prefix "_" on the filesystem
     list_methods_files = []
     ## Get recursively each promises in the basic path and the alternative one
     list_methods_files += [os.path.join(full_path,filename) for full_path, dirname, files in os.walk(base_dir) for filename in files if not filename.startswith('_') and filename.endswith('.cf')]
+    list_methods_files += [os.path.join(full_path,filename) for full_path, dirname, files in os.walk(conf_repo_dir) for filename in files if not filename.startswith('_') and filename.endswith('.cf')]
 
     filenames = ncf.get_all_generic_methods_filenames()
 

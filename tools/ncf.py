@@ -27,12 +27,12 @@ dirs = [ "10_ncf_internals", "20_cfe_basics", "30_generic_methods", "40_it_ops_k
 
 tags = {}
 common_tags            = [ "name", "description", "parameter", "bundle_name", "bundle_args"]
-tags["generic_method"] = [ "documentation", "class_prefix", "class_parameter", "class_parameter_id", "deprecated", "agent_version", "agent_requirements", "parameter_constraint", "parameter_type", "action", "rename" ]
+tags["generic_method"] = [ "documentation", "class_prefix", "class_parameter", "class_parameter_id", "deprecated", "agent_version", "agent_requirements", "parameter_constraint", "parameter_type", "action", "rename", "parameter_rename" ]
 tags["technique"]      = [ "version" ]
 [ value.extend(common_tags) for (k,value) in tags.items() ]
 
 optionnal_tags = {}
-optionnal_tags["generic_method"] = [ "deprecated", "documentation", "parameter_constraint", "parameter_type", "agent_requirements", "action", "rename" ]
+optionnal_tags["generic_method"] = [ "deprecated", "documentation", "parameter_constraint", "parameter_type", "agent_requirements", "action", "rename", "parameter_rename" ]
 optionnal_tags["technique"]      = [ "parameter" ]
 multiline_tags                   = [ "description", "documentation", "deprecated" ]
 
@@ -155,6 +155,7 @@ def parse_bundlefile_metadata(content, bundle_type):
   param_names = set()
   param_constraints = {}
   param_types = {}
+  param_rename = []
   default_constraint = {
     "allow_whitespace_string" : False
   , "allow_empty_string" : False
@@ -187,13 +188,18 @@ def parse_bundlefile_metadata(content, bundle_type):
               parameters.append(parameter)
             except:
               print("Error while loading JSON " +match.group(2))
-        if tag == "parameter_constraint":
+        elif tag == "parameter_constraint":
           constraint = json.loads("{" + match.group(4).replace('\\', '\\\\') + "}")
           # extend default_constraint if it was not already defined)
           param_constraints.setdefault(match.group(3), default_constraint.copy()).update(constraint)
-        if tag == "parameter_type":
+        elif tag == "parameter_type":
           param_type = match.group(4)
           param_types[match.group(3)] = param_type
+        elif tag == "parameter_rename":
+          old_name = match.group(3)
+          new_name = match.group(4)
+          param_rename.append( { "new": new_name, "old" : old_name } )
+          res['parameter_rename'] = param_rename
         else:
           res[tag] = match.group(2)
         previous_tag = tag
@@ -439,7 +445,7 @@ def get_all_techniques_metadata(include_methods_calls = True, migrate_technique 
     try:
       # path of file is Category/technique_name/technique_version/technique.cf  
       # to get back the category of our technique we need to go up 3 directories
-      category = os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(file))))
+      category = os.path.relpath(os.path.dirname(os.path.dirname(os.path.dirname(file))), "/var/rudder/configuration-repository/techniques")
       # if we are migrating a technique (5.0 -> 6.0) from configuration-repository/ncf to techniques/ncf_techniques, we need to set the category manually
       if migrate_technique:
         category = "ncf_techniques"
