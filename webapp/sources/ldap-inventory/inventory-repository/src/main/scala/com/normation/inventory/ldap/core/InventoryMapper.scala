@@ -841,7 +841,7 @@ class InventoryMapper(
     val entry = createNodeModelFromServer(node)
 
     // convert the processes
-    entry +=! (A_PROCESS, node.processes.map(x => Serialization.write(x)):_*)
+    entry.resetValuesTo(A_PROCESS, node.processes.map(x => Serialization.write(x)):_*)
     entry
   }
 
