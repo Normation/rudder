@@ -217,3 +217,4 @@ type Msg
   | ClosePopup Msg
   | Ignore
   | UpdateRuleFilters SortBy
+  | RulesSearch String

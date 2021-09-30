@@ -1,32 +1,17 @@
 module ViewRulesTable exposing (..)
 
 import DataTypes exposing (..)
-import Html exposing (Html, text,  tr, td)
+import Html exposing (Html, text,  tr, td, i)
+import Html.Attributes exposing (class, colspan)
 import Html.Events exposing (onClick)
 import List.Extra
 import List
 import String
 import ViewUtilsCompliance exposing (buildComplianceBar, getAllComplianceValues)
-
+import ViewUtilsRules exposing (..)
 --
 -- This file contains all methods to display the Rules table
 --
-
-
-getListRules : Category Rule -> List (Rule)
-getListRules r = getAllElems r
-
-getListCategories : Category Rule  -> List (Category Rule)
-getListCategories r = getAllCats r
-
-getCategoryName : Model -> String -> String
-getCategoryName model id =
-  let
-    cat = List.Extra.find (.id >> (==) id  ) (getListCategories model.rulesTree)
-  in
-    case cat of
-      Just c -> c.name
-      Nothing -> id
 
 getRuleCompliance : Model -> RuleId -> Maybe RuleCompliance
 getRuleCompliance model rId =
@@ -82,7 +67,9 @@ buildRulesTable : Model -> List(Html Msg)
 buildRulesTable model =
   let
     rulesList       = getListRules model.rulesTree
-    sortedRulesList = List.sortWith (getSortFunction model) rulesList
+    sortedRulesList = rulesList
+      |> List.filter (filterRules model)
+      |> List.sortWith (getSortFunction model)
 
     rowTable : Rule -> Html Msg
     rowTable r =
@@ -102,4 +89,7 @@ buildRulesTable model =
             , td[][ text ""   ]
             ]
   in
-    List.map rowTable sortedRulesList
+    if List.length sortedRulesList > 0 then
+      List.map rowTable sortedRulesList
+    else
+      [ tr[][td [class "empty", colspan 5][i [class "fa fa-exclamation-triangle"][], text "No rules match your filters."]]]
