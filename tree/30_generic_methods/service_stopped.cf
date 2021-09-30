@@ -21,8 +21,8 @@
 #
 # @parameter name Service
 # 
-# @parameter_name name service_name
 #
+# @parameter_rename service_name name
 # @class_prefix service_stopped
 # @class_parameter name
 

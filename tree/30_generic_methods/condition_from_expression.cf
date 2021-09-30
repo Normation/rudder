@@ -60,8 +60,9 @@
 # @parameter condition            The condition prefix
 # @parameter expression The expression evaluated to create the condition (use 'any' to always evaluate to true)
 # 
-# @parameter_name condition condition_prefix
 #
+# @parameter_rename condition_prefix condition
+# @parameter_rename condition_expression expression
 # @class_prefix condition_from_expression
 # @class_parameter condition
 

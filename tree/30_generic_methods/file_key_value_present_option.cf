@@ -29,8 +29,8 @@
 # @parameter_constraint separator "allow_whitespace_string" : true
 # @parameter_constraint option "select" : [ "strict", "lax" ]
 #
-# @parameter_name path file
 #
+# @parameter_rename file path
 # @class_prefix file_key_value_present
 # @class_parameter path
 

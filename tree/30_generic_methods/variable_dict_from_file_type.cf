@@ -55,6 +55,8 @@
 # @parameter_constraint file_type "allow_empty_string" : true
 # @parameter_constraint file_type "select" : [ "", "auto", "JSON", "YAML", "CSV" ]
 # 
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
 # @class_prefix variable_dict_from_file_type
 # @class_parameter name
 

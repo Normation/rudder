@@ -21,8 +21,8 @@
 #
 # @parameter name Service name (as recognized by systemd, init.d, Windows, SRC, SMF, etc...)
 #
-# @parameter_name name service_name
 #
+# @parameter_rename service_name name
 # @class_prefix service_enabled
 # @class_parameter name
 

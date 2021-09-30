@@ -23,8 +23,8 @@
 #
 # @parameter name Service name (as recognized by systemd, init.d, etc...)
 # 
-# @parameter_name name service_name
 #
+# @parameter_rename service_name name
 # @class_prefix service_ensure_running
 # @class_parameter name
 

@@ -23,8 +23,8 @@
 # @parameter path      File name
 # @parameter file_type File type to check, can be "block device", "character device", "directory", "FIFO/pipe", "regular file", "socket", "symlink"
 # 
-# @parameter_name path file_name
 #
+# @parameter_rename file_name path
 # @class_prefix file_check
 # @class_parameter path
 # This bundle will define a condition file_check_${file_type}_${path}_{ok, reached, kept} if the

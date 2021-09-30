@@ -35,8 +35,8 @@
 #
 # @parameter name Complete name of the kernel module, as seen by lsmod or listed in /proc/modules
 #
-# @parameter_name name module_name
 #
+# @parameter_rename module_name name
 # @class_prefix kernel_module_enabled_at_boot
 # @class_parameter name
 

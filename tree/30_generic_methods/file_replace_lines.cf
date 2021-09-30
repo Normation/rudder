@@ -41,8 +41,8 @@
 # @parameter line Line to match in the file
 # @parameter replacement Line to add in the file as a replacement
 #
-# @parameter_name path file
 #
+# @parameter_rename file path
 # @class_prefix file_replace_lines
 # @class_parameter path
 

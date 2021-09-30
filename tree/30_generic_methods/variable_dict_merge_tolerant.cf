@@ -29,6 +29,8 @@
 # @parameter second_variable The second variable, which content will override the first in the resulting variable if necessary (written in the form prefix.name)
 #
 # 
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
 # @class_prefix variable_dict_merge_tolerant
 # @class_parameter name
 

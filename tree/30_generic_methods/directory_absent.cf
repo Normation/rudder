@@ -24,8 +24,8 @@
 # @parameter recursive  Should deletion be recursive, "true" or "false" (defaults to "false")
 # @parameter_constraint recursive "allow_empty_string" : true
 # 
-# @parameter_name path target
 #
+# @parameter_rename target path
 # @class_prefix directory_absent
 # @class_parameter path
 

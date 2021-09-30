@@ -25,8 +25,8 @@
 # @parameter path        Destination file (absolute path on the target node)
 # @parameter enforce     Force symlink if file already exist (true or false)
 #
-# @parameter_name path   destination
 # 
+# @parameter_rename destination path
 # @class_prefix file_create_symlink
 # @class_parameter path
 

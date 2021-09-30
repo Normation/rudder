@@ -36,8 +36,8 @@
 # @parameter source      Source file (absolute path on the policy server)
 # @parameter path        Destination file (absolute path on the target node)
 #
-# @parameter_name path destination
 # 
+# @parameter_rename destination path
 # @class_prefix file_copy_from_remote_source
 # @class_parameter path
 

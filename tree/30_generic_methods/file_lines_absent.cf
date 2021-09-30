@@ -22,8 +22,8 @@
 # @parameter path File name to edit (absolute path on the target node)
 # @parameter lines Line(s) to remove in the file
 #
-# @parameter_name path file
 #
+# @parameter_rename file path
 # @class_prefix file_lines_absent
 # @class_parameter path
 

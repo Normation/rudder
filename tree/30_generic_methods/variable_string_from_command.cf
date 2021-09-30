@@ -31,6 +31,8 @@
 # @parameter name   The variable to define, the full name will be prefix.name
 # @parameter command         The command to execute
 #
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
 # @class_prefix variable_string_from_command
 # @class_parameter name
 

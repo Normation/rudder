@@ -26,9 +26,9 @@
 # @parameter path   File name #1 (absolute path on the target node)
 # @parameter path_2   File name #2 (absolute path on the target node)
 #
-# @parameter_name path file_name_1
-# @parameter_name path_2 file_name_2
 #
+# @parameter_rename file_name_1 path
+# @parameter_rename file_name_2 path_2
 # @class_prefix file_check_hardlink
 # @class_parameter path
 

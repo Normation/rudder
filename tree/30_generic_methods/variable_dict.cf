@@ -27,6 +27,8 @@
 # @parameter name   The variable to define, the full name will be prefix.name
 # @parameter value           The variable content in JSON format
 # 
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
 # @class_prefix variable_dict
 # @class_parameter name
 

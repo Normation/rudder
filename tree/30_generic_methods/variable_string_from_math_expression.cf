@@ -106,6 +106,8 @@
 # @parameter expression      The mathematical expression to evaluate
 # @parameter format          The format string to use
 # 
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
 # @class_prefix variable_string_from_math_expression
 # @class_parameter name
 

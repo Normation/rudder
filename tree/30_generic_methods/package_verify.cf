@@ -21,8 +21,8 @@
 #
 # @parameter name Name of the package to verify
 #
-# @parameter_name name package_name
 #
+# @parameter_rename package_name name
 # @class_prefix package_install
 # @class_parameter name
 

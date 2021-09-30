@@ -184,10 +184,10 @@
 # ```
 #
 # @parameter source_template Source file containing a template to be expanded (absolute path on the target node)
-# @parameter path            Destination file (absolute path on the target node)
+# @parameter path            Destination file (absolute path on the target node)
 #
-# @parameter_name path destination
 #
+# @parameter_rename destination path
 # @class_prefix file_from_template
 # @class_parameter path
 

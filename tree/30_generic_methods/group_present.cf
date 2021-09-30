@@ -19,12 +19,12 @@
 # @name Group present
 # @description Create a group
 #
-# @parameter group Group name
+# @parameter name Group name
 
-# @parameter_name name group_name
 
+# @parameter_rename group name
 # @class_prefix group_present
-# @class_parameter group
+# @class_parameter name
 
 bundle agent group_present(name)
 {

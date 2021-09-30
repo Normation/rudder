@@ -22,10 +22,10 @@
 # @description Ensure that a text block is present in a specific location
 #
 # @parameter path File name to edit (absolute path on the target node)
-# @parameter block Block(s) to add in the file
+# @parameter block Block(s) to add in the file
 #
-# @parameter_name path file
 #
+# @parameter_rename file path
 # @class_prefix file_ensure_block_present
 # @class_parameter path
 

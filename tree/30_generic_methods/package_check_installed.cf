@@ -24,8 +24,8 @@
 #
 # @parameter name Name of the package to check
 #
-# @parameter_name name package_name
 #
+# @parameter_rename package_name name
 # @class_prefix package_check_installed
 # @class_parameter name
 

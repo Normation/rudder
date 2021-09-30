@@ -26,8 +26,8 @@
 # @parameter name Name of the key to add or edit
 # @parameter value Value of the key to add or edit
 #
-# @parameter_name path file
 #
+# @parameter_rename file path
 # @class_prefix file_ensure_key_value_present_in_ini_section
 # @class_parameter path
 

@@ -27,8 +27,8 @@
 #
 # @parameter name        Name of the package to remove
 #
-# @parameter_name name package_name
 #
+# @parameter_rename package_name name
 # @class_prefix package_remove
 # @class_parameter name
 

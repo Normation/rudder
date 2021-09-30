@@ -100,8 +100,8 @@
 # @parameter path            Destination file (absolute path on the target node)
 # @parameter template_type   Template type (cfengine, jinja2 or mustache)
 #
-# @parameter_name path destination
 #
+# @parameter_rename destination path
 # @class_prefix file_from_template
 # @class_parameter path
 

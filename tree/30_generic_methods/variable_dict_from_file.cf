@@ -29,6 +29,8 @@
 # @parameter file_name       The absolute local file name with JSON content
 #
 # 
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
 # @class_prefix variable_dict_from_file
 # @class_parameter name
 

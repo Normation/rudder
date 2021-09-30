@@ -27,8 +27,8 @@
 # @parameter owner Owner of destination file
 # @parameter group Group of destination file
 #
-# @parameter_name path target_file
 #
+# @parameter_rename target_file path
 # @class_prefix file_template_expand
 # @class_parameter path
 

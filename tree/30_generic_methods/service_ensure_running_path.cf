@@ -25,9 +25,9 @@
 # @parameter name Service name (as recognized by systemd, init.d, Windows, etc...)
 # @parameter path Service with its path, as in the output from 'ps'
 #
-# @parameter_name name service_name
-# @parameter_name path service_path
 
+# @parameter_rename service_name name
+# @parameter_rename service_path path
 # @class_prefix service_ensure_running
 # @class_parameter name
 

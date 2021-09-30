@@ -42,8 +42,8 @@
 # @parameter login           User login
 # @parameter group_name     Secondary group name for the user
 #
-# @parameter_name login user
 #
+# @parameter_rename user login
 # @class_prefix user_group
 # @class_parameter login
 

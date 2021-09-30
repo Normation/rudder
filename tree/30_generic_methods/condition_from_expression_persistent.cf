@@ -61,8 +61,9 @@
 # @parameter expression The expression evaluated to create the condition (use 'any' to always evaluate to true)
 # @parameter duration             The persistence suffix in minutes
 #
-# @parameter_name condition condition_prefix
 # 
+# @parameter_rename condition_prefix condition
+# @parameter_rename condition_expression expression
 # @class_prefix condition_from_expression_persistent
 # @class_parameter condition
  

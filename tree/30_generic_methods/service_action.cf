@@ -79,8 +79,8 @@
 # @parameter name Name of the service
 # @parameter action Action to trigger on the service (start, stop, restart, reload, ...)
 #
-# @parameter_name name service_name
 # 
+# @parameter_rename service_name name
 # @class_prefix service_action
 # @class_parameter name
 

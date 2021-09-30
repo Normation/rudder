@@ -22,8 +22,8 @@
 #
 # @parameter path Full path of directory to create (trailing '/' is optional)
 #
-# @parameter_name path target
 #
+# @parameter_rename target path
 # @class_prefix directory_present
 # @class_parameter path
 

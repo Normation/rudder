@@ -29,8 +29,8 @@
 # @parameter rc_ok           Return codes to be considered as valid, separated by a comma (default is 0)
 # @parameter_constraint      rc_ok "allow_empty_string" : true
 #
-# @parameter_name path destination
 # 
+# @parameter_rename destination path
 # @class_prefix file_copy_from_local_source_with_check
 # @class_parameter path
 

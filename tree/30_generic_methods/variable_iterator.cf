@@ -35,6 +35,8 @@
 # @parameter_constraint separator "allow_whitespace_string" : true
 # 
 #
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
 # @class_prefix variable_iterator
 # @class_parameter name
 

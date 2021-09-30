@@ -64,8 +64,8 @@
 # @parameter_constraint context "allow_empty_string" : true
 # @parameter_constraint context "regex" : "^\d*$"
 #
-# @parameter_name path target
 #
+# @parameter_rename target path
 # @class_prefix file_report_content
 # @class_parameter path
 

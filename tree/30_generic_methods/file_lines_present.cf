@@ -22,8 +22,8 @@
 # @parameter path  File name to edit (absolute path on the target node)
 # @parameter lines Line(s) to add in the file
 #
-# @parameter_name path file
 # 
+# @parameter_rename file path
 # @class_prefix file_lines_present
 # @class_parameter path
 

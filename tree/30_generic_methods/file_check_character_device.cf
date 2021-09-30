@@ -25,8 +25,8 @@
 #
 # @parameter path File name (absolute path on the target node)
 #
-# @parameter_name path file_name
 # 
+# @parameter_rename file_name path
 # @class_prefix file_check_character_device
 # @class_parameter path
 

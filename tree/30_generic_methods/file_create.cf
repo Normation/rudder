@@ -23,8 +23,8 @@
 #
 # @parameter path      File to create (absolute path on the target node)
 #
-# @parameter_name path target
 #
+# @parameter_rename target path
 # @class_prefix file_create
 # @class_parameter path
 

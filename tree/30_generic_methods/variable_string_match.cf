@@ -27,6 +27,7 @@
 # @parameter name Complete name of the variable being tested, like my_prefix.my_variable
 # @parameter expected_match Regex to use to test if the variable content is compliant
 #
+# @parameter_rename variable_name name
 # @class_prefix variable_string_match
 # @class_parameter name
 

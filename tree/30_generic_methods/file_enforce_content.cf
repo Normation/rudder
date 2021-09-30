@@ -25,8 +25,8 @@
 # @parameter lines     Line(s) to add in the file - if lines is a list, please use @{lines} to pass the iterator rather than iterating over each values
 # @parameter enforce   Enforce the file to contain only line(s) defined (true or false)
 #
-# @parameter_name path file
 # 
+# @parameter_rename file path
 # @class_prefix file_ensure_lines_present
 # @class_parameter path
 

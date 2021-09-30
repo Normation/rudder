@@ -51,8 +51,8 @@
 # @parameter_constraint leading_char_separator "allow_empty_string" : true
 # @parameter_constraint closing_char_separator "allow_empty_string" : true
 #
-# @parameter_name path file
 #
+# @parameter_rename file path
 # @class_prefix file_ensure_key_value_parameter_in_list
 # @class_parameter path
 

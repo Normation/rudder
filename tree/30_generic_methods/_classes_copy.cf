@@ -19,7 +19,7 @@
 # @name Classes copy
 # @description Copy a class prefix to another one, to switch the context from a bundle to another
 # @documentation This bundle will define a condition ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
-# based on ${source_prefix}_{kept,repaired,not_ok,ok,reached}
+# based on ${source_prefix}_{kept,repaired,not_ok,ok,reached}
 #
 # @parameter source_prefix      The prefix of the source class to copy
 # @parameter destination_prefix The prefix of the destination class to copy

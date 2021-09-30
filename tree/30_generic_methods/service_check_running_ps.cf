@@ -21,8 +21,8 @@
 #
 # @parameter name Regular expression used to select a process in ps output
 #
-# @parameter_name name service_regex
 # 
+# @parameter_rename service_regex name
 # @class_prefix service_check_running
 # @class_parameter name
 

@@ -23,8 +23,8 @@
 # @parameter section Name of the INI-style section under which lines should be added (not including the [] brackets)
 # @parameter line Line to ensure is present inside the section
 #
-# @parameter_name path file
 #
+# @parameter_rename file path
 # @class_prefix file_line_present_in_ini_section
 # @class_parameter path
 

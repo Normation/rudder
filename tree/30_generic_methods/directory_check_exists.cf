@@ -24,8 +24,8 @@
 #
 # @parameter path     Full path of the directory to check
 # 
-# @parameter_name path directory_name
 #
+# @parameter_rename directory_name path
 # @class_prefix directory_check_exists
 # @class_parameter path
 

@@ -66,6 +66,8 @@
 # @parameter name   The variable to define, the full name will be prefix.name
 # @parameter query           The query to execute (ending with a semicolon)
 # 
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
 # @class_prefix variable_dict_from_osquery
 # @class_parameter name
 

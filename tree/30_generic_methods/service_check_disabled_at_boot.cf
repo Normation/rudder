@@ -21,8 +21,8 @@
 #
 # @parameter name  Service name (as recognized by systemd, init.d, etc...)
 # 
-# @parameter_name name service_name
 #
+# @parameter_rename service_name name
 # @class_prefix service_check_disabled_at_boot
 # @class_parameter name
 # This bundle will define a condition service_check_disabled_at_boot_${name}_{kept,ok,not_ok,failed,reached}

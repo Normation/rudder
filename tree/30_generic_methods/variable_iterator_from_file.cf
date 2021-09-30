@@ -35,6 +35,8 @@
 # @parameter separator_regex  Regular expression that is used to split the value into items ( usually: \n )
 # @parameter comments_regex   Regular expression that is used to remove comments ( usually: \s*#.*?(?=\n) )
 # 
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
 # @class_prefix variable_iterator_from_file
 # @class_parameter name
 

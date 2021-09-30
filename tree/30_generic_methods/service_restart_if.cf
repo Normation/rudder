@@ -24,9 +24,9 @@
 # @parameter name Name of the service
 # @parameter expression Condition expression which will trigger the restart of Service "(package_service_installed|service_conf_changed)" by example
 # 
-# @parameter_name name service_name
-# @parameter_name expression restart_condition
 #
+# @parameter_rename service_name name
+# @parameter_rename trigger_class expression
 # @class_prefix service_restart
 # @class_parameter name
 

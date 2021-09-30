@@ -21,8 +21,8 @@
 #
 # @parameter path     File to remove (absolute path on the path node)
 #
-# @parameter_name path target
 #
+# @parameter_rename target path
 # @class_prefix file_absent
 # @class_parameter path
 

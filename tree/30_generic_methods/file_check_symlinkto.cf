@@ -27,8 +27,8 @@
 # @parameter path Symbolic link (absolute path on the target node)
 # @parameter target Target file (absolute path on the target node)
 #
-# @parameter_name path symlink
 # 
+# @parameter_rename symlink path
 # @class_prefix file_check_symlinkto
 # @class_parameter path
 

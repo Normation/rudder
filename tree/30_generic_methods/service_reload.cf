@@ -23,8 +23,8 @@
 #
 # @parameter name Name of the service
 # 
-# @parameter_name name service_name
 #
+# @parameter_rename service_name name
 # @class_prefix service_reload
 # @class_parameter name
 

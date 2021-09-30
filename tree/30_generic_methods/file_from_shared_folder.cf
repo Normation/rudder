@@ -32,8 +32,8 @@
 # @parameter_constraint hash_type "select" : [ "", "sha256", "sha512", "md5", "sha1" ]
 # @parameter_constraint hash_type "allow_empty_string" : true
 #
-# @parameter_name path destination
 #
+# @parameter_rename destination path
 # @class_prefix file_from_shared_folder
 # @class_parameter path
 

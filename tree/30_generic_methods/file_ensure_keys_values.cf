@@ -78,8 +78,8 @@
 # @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
 # @parameter_constraint separator "allow_whitespace_string" : true 
 #
-# @parameter_name path file
 #
+# @parameter_rename file path
 # @class_prefix file_ensure_keys_values
 # @class_parameter path
 

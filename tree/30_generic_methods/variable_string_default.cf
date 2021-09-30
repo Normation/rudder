@@ -28,6 +28,8 @@
 # @parameter source_variable The source variable name
 # @parameter default_value   The default value to use if source_variable is not defined
 # 
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
 # @class_prefix variable_string_default
 # @class_parameter name
 

@@ -26,8 +26,8 @@
 # @parameter section_end End of the section
 # @parameter block Block representing the content of the section
 #
-# @parameter_name path file
 #
+# @parameter_rename file path
 # @class_prefix file_ensure_block_in_section
 # @class_parameter path
 

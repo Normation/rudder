@@ -56,8 +56,8 @@
 #
 # @parameter_constraint configuration "regex" : "^(alias|blacklist|install|options|remove|softdeps) +.*$"
 #
-# @parameter_name name module_name
 #
+# @parameter_rename module_name name
 # @class_prefix kernel_module_configuration
 # @class_parameter name
 

@@ -19,12 +19,12 @@
 # @name Group absent
 # @description Make sure a group is absent
 #
-# @parameter group Group name
+# @parameter name Group name
 
-# @parameter_name name group_name
 
+# @parameter_rename group name
 # @class_prefix group_absent
-# @class_parameter group
+# @class_parameter name
 
 bundle agent group_absent(name)
 {

@@ -32,8 +32,8 @@
 # @parameter update_policy       While verifying packages, check against latest version ("true") or just installed ("false")
 # @parameter_constraint version_comparator  "select" : [ "==", "<=", ">=", "<", ">" , "!=" ]
 #
-# @parameter_name name package_name
 #
+# @parameter_rename package_name name
 # @class_prefix package_install
 # @class_parameter name
 

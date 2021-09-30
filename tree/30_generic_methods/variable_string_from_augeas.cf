@@ -61,6 +61,8 @@
 # @parameter file            The file specified by the user in case he wants to load a specified file associated with its lens
 # @parameter_constraint file "allow_empty_string" : true
 # @parameter_constraint lens "allow_empty_string" : true
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
 # @class_prefix variable_string_from_augeas
 # @class_parameter name
 
