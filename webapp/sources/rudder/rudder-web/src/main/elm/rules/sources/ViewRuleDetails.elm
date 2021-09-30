@@ -98,6 +98,10 @@ editionTemplate model details =
     nbInclude = case Maybe.Extra.unwrap [] .targets originRule of
       [Composition (Or i) (Or e)] -> List.length i
       targets -> List.length targets
+
+    nbDirectives = case originRule of
+      Just oR -> String.fromInt (List.length oR.directives)
+      Nothing -> "0"
   in
     div [class "main-container"]
     [ div [class "main-header "]
@@ -131,7 +135,7 @@ editionTemplate model details =
           [ a[onClick (UpdateRuleForm {details | tab = Directives})]
             [ text "Directives"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
-              [ span [class "nb-resources"] [ text (String.fromInt(List.length rule.directives))]
+              [ span [class "nb-resources"] [ text nbDirectives]
               , ( if diffDirectivesPos /= 0 then span [class "nb-resources new"] [ text (String.fromInt diffDirectivesPos)] else text "")
               , ( if diffDirectivesNeg /= 0 then span [class "nb-resources del"] [ text (String.fromInt diffDirectivesNeg)] else text "")
               ]
