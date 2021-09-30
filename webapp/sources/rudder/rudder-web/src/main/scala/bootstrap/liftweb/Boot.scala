@@ -405,6 +405,13 @@ class Boot extends Loggable {
           >> LocGroup((name+"Manager"))
           >> TestAccess ( () => userIsAllowed("/secure/index",AuthorizationType.Technique.Read))
 
+        , Menu("Technique", <span>Technique</span>) /
+          "secure" / (name+"Manager") / "techniqueEditor" / "technique" / *
+          >> TemplateBox {case _ => Templates("secure" :: (name+"Manager") :: "techniqueEditor" :: Nil)}
+          >> LocGroup (name+"Group")
+          >> TestAccess( () => userIsAllowed("/secure/index", AuthorizationType.Rule.Read) )
+          >> Hidden
+
         , Menu(name+"ParameterManagement", <span>Parameters</span>) /
             "secure" / (name+"Manager") / "parameterManagement"
             >> LocGroup(name+"Group")

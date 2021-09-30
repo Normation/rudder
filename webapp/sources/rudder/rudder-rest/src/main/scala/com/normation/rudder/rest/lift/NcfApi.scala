@@ -64,6 +64,8 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import com.normation.box._
+import com.normation.cfclerk.domain.RootTechniqueCategory
+import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.cfclerk.services.TechniqueRepository
 
 import com.normation.errors.IOResult
@@ -308,8 +310,23 @@ class NcfApi(
     implicit val dataName = "techniqueCategories"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val response=
-        JArray(techniqueRepository.getAllCategories.toList.filter(_._1.name.value != "/").map(c => JObject(JField("path",JString(c._1.getPathFromRoot.tail.map(_.value).mkString("/"))),(JField("name",JString(c._2.name))))))
+      val response= {
+        val categories = techniqueRepository.getAllCategories
+        def serializeTechniqueCategory(t : TechniqueCategory ) : JObject = {
+          val subs = t.subCategoryIds.flatMap(categories.get).map(serializeTechniqueCategory).toList
+          val name = t match {
+            case t : RootTechniqueCategory => "/"
+            case _ => t.name
+          }
+          JObject(
+            JField("name", JString(name))
+          , JField("path",JString(t.id.getPathFromRoot.tail.map(_.value).mkString("/")))
+          , JField("id", JString(t.id.name.value))
+          , JField("subCategories", JArray(subs))
+          )
+        }
+        serializeTechniqueCategory(techniqueRepository.getTechniqueLibrary)
+      }
 
       resp(Full(response), req, "Could not get generic methods metadata")("getMethods")
 
