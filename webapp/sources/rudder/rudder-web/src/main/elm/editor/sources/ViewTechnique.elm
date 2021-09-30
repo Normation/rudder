@@ -239,8 +239,8 @@ view model =
     central = case model.mode of
                 Introduction ->
                     div [ class "main-container" ] [
-                      div [ class "col no-technique" ] [
-                        h1 [] [ text "Technique editor" ]
+                      div [ class "col jumbotron" ] [
+                        h1 [] [ text "Techniques" ]
                       , p [] [ text "Create a new technique or edit one from the list on the left."]
                       , p [] [ text "Define target configuration using the generic methods from the list on the right as building blocks."]
                       , button [ class "btn btn-success btn-lg" , onClick (GenerateId (\s -> NewTechnique (TechniqueId s) ))] [

@@ -101,9 +101,20 @@ type alias TechniqueParameter =
   }
 
 type alias TechniqueCategory =
-  { path : String
-  , name : String
-  }
+    { id : String
+    , name : String
+    , path : String
+    , subCategories : SubCategories
+    }
+type SubCategories = SubCategories (List TechniqueCategory)
+
+allCategories t =
+  let subElems = case t.subCategories of SubCategories l -> List.concatMap allCategories l
+  in t :: subElems
+
+allCategorieswithoutRoot m =
+  let subElems = case m.categories.subCategories of SubCategories l -> List.concatMap allCategories l
+  in subElems
 
 type TechniqueState = Creation TechniqueId | Edit Technique | Clone Technique TechniqueId
 
@@ -116,7 +127,7 @@ type DropElement = StartList | AfterElem (Maybe CallId) MethodElem | InBlock Met
 type alias Model =
   { techniques         : List Technique
   , methods            : Dict String Method
-  , categories         : List TechniqueCategory
+  , categories         : TechniqueCategory
   , mode               : Mode
   , contextPath        : String
   , techniqueFilter    : String
@@ -181,7 +192,7 @@ type Msg =
   | UpdateTechnique Technique
   | DeleteTechnique (Result Error (TechniqueId, String))
   | GetTechniqueResources  (Result Error (List Resource))
-  | GetCategories (Result Error (List TechniqueCategory))
+  | GetCategories (Result Error  TechniqueCategory)
   | GetMethods   (Result Error (Dict String Method))
   | UIMethodAction CallId MethodCallUiInfo
   | RemoveMethod CallId

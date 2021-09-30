@@ -51,7 +51,7 @@ getTechniquesCategories model =
         , headers = []
         , url     = getUrl model "internal/techniques/categories"
         , body    = emptyBody
-        , expect  = expectJson GetCategories ( Json.Decode.at ["data", "techniqueCategories" ] ( Json.Decode.list decodeCategory))
+        , expect  = expectJson GetCategories ( Json.Decode.at ["data", "techniqueCategories" ] ( decodeCategory))
         , timeout = Nothing
         , tracker = Nothing
         }

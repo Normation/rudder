@@ -25,6 +25,17 @@
       </lift:authz>
       <script>
 
+    function getTechniqueRedirection(app){
+      var path = window.location.pathname.split("/")
+      if (path.length > 2) {
+        var id = path[path.length -1];
+        if (id !== "techniqueEditor") {
+          app.ports.readUrl.send(id);
+
+        }
+      }
+
+    }
 
 document.body.addEventListener("dragstart", event => {
   if (event.target && event.target.draggable) {
@@ -65,7 +76,18 @@ $(document).ready(function(){
   });
 
 
+  app.ports.pushUrl.subscribe(function(id) {
 
+    var url = contextPath + "/secure/configurationManager/techniqueEditor"
+    if (id !== "") {
+      url += "/technique/" + id
+    }
+    history.pushState({}, '', url);
+  });
+
+  app.ports.getUrl.subscribe(function() {
+    getTechniqueRedirection(app);
+  });
   app.ports.store.subscribe(function(kv) {
     var key = kv[0];
     var json = kv[1];
@@ -84,7 +106,7 @@ $(document).ready(function(){
       origin = JSON.parse(localStorage.getItem("originTechnique"))
       id = localStorage.getItem("internalId")
     } catch (e) {}
-    port.send([current,origin, ""])
+    //port.send([current,origin, ""])
 
   });
 
