@@ -148,10 +148,10 @@ update msg model =
             isIncluded = List.member groupId include
             isExcluded = List.member groupId exclude
             (newInclude, newExclude)  = case (includeBool, isIncluded, isExcluded) of
-              (True, True, _)  -> (remove groupId include,exclude)
-              (True, _, True)  -> (groupId :: include, remove groupId exclude)
-              (False, True, _) -> (remove groupId include, groupId :: exclude)
-              (False, _, True) -> (include,  remove groupId exclude)
+              (True, True, _)       -> (remove groupId include,exclude)
+              (True, _, True)       -> (groupId :: include, remove groupId exclude)
+              (False, True, _)      -> (remove groupId include, groupId :: exclude)
+              (False, _, True)      -> (include,  remove groupId exclude)
               (True, False, False)  -> ( groupId :: include, exclude)
               (False, False, False) -> (include, groupId :: exclude)
           in

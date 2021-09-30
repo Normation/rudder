@@ -60,10 +60,12 @@
 .content-wrapper .rudder-template .jstree .jstree-anchor.item-selected {
   background-color: #F1F9DF;
 }
+.content-wrapper .rudder-template .jstree .jstree-anchor.excluded {
+  background-color: #fbeae9;
+}
 .content-wrapper .rudder-template .jstree .jstree-anchor:hover {
   background-color: #e7f4f9;
 }
-
 .content-wrapper .rudder-template .jstree .jstree-anchor .btn.create{
   margin-left: auto;
   min-width: 25px;
