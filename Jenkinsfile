@@ -4,7 +4,10 @@ pipeline {
     stages {
         stage('webapp-test') {
             agent {
-                docker { image 'openjdk:11' }
+                docker { 
+                    image 'openjdk:11'
+                    label 'docker'
+                }
             }
             steps {
                 sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
