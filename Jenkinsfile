@@ -13,7 +13,8 @@ pipeline {
                               // don't archive jars
                               options: [artifactsPublisher(disabled: true)]
                     ) {
-                    sh script: 'mvn clean test -Dmaven.test.postgres=false', label: "webapp tests"
+                        sh script: 'mvn clean test -Dmaven.test.postgres=false', label: "webapp tests"
+                    }
                 }
             }
         }
