@@ -4,13 +4,10 @@ pipeline {
     stages {
         stage('webapp-test') {
             agent {
-                dockerfile true
-                docker { 
-                    //image 'rust:1.55.0-bullseye'
+                dockerfile {
                     args '-v $HOME/.cargo:/usr/local/cargo'
                 }
             }
-
             steps {
                                 dir('language') {
                                     dir('repos') {
