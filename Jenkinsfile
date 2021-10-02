@@ -10,10 +10,23 @@ pipeline {
                     //args '-v $HOME/.m2:/root/.m2'
                 //}
             }
+
             steps {
-                dir('relay/sources/relayd/') {
-                    sh script: 'cargo build'
-                }
+                                dir('language') {
+                                    dir('repos') {
+                                        dir('ncf') {
+                                            git url: 'https://github.com/normation/ncf.git'
+                                        }
+                                        dir('dsc') {
+                                            git url: 'https://github.com/normation/rudder-agent-windows.git',
+                                                credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                                        }
+                                    }
+                                    sh script: 'typos', label: 'check typos'
+                                    sh script: 'make check', label: 'language tests'
+                                    sh script: 'make docs', label: 'language docs'
+                                    sh script: 'make clean', label: 'relayd clean'
+                                }
             }
         }
     }
