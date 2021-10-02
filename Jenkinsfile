@@ -4,20 +4,15 @@ pipeline {
     stages {
         stage('webapp-test') {
             agent {
-                docker { 
-                    image 'openjdk:11'
-                    label 'docker'
-                }
+                dockerfile true
+                //docker { 
+                    //image 'rust:1.55.0-bullseye'
+                    //args '-v $HOME/.m2:/root/.m2'
+                //}
             }
             steps {
-                sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
-                dir('webapp/sources') {
-                    withMaven(maven: "latest",
-                              // don't archive jars
-                              options: [artifactsPublisher(disabled: true)]
-                    ) {
-                        sh script: 'mvn clean test -Dmaven.test.postgres=false', label: "webapp tests"
-                    }
+                dir('relay/sources/relayd/') {
+                    sh script: 'cargo build'
                 }
             }
         }
