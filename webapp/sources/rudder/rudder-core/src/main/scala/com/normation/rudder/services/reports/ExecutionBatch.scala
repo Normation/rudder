@@ -43,6 +43,7 @@ import com.normation.rudder.domain.logger.ComplianceDebugLogger._
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.reports._
 import com.normation.rudder.reports.execution.AgentRunId
@@ -947,7 +948,7 @@ final case class ContextForNoAnswer(
                                      Seq[DirectiveStatusReport]()
                                    })
 
-
+                                   if (ruleId == RuleId("32377fd7-02fd-43d0-aab7-28460a91347b")) logger.error(unexpected)
                                    val t4 = System.nanoTime
                                    u3 += t4-t3
 
@@ -957,17 +958,15 @@ final case class ContextForNoAnswer(
                                        case (directiveId, expectedComponentsForDirective) =>
                                          DirectiveStatusReport(directiveId, expectedComponentsForDirective.map {
                                            case ((directiveId, components), (policyMode, missingReportStatus, component)) =>
-                                             logger.warn(component)
-                                             val filteredReports =  reports.getOrElse((directiveId, component.componentName), Seq())
-                                             logger.info(filteredReports)
-                                             //
-                                             // val filteredReports = components.flatMap(c => reports.flatMap{case ((id,cname),r) =>  r.filter(value => directiveId == id && cname == c.value.componentName && checkExpectedVariable(v,value.keyValue))})
+
+                                             val filteredReports = components.flatMap(c => reports.flatMap{case ((id,cname),r) =>  r.filter(value => directiveId == id && cname == c.value.componentName && c.value.componentsValues.exists(v => checkExpectedVariable(v,value.keyValue)))})
 
                                              (component.componentName, checkExpectedComponentWithReports(component, filteredReports, missingReportStatus, policyMode, unexpectedInterpretation))
                                          })
                                      }
 
 
+                                   if (ruleId == RuleId("32377fd7-02fd-43d0-aab7-28460a91347b")) logger.error(expected.filter(_.directiveId == DirectiveId(DirectiveUid("e041f5e8-c57a-4b80-a42f-58ccf612de96"))))
                                    val t5 = System.nanoTime
                                    u4 += t5-t4
 
