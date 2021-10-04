@@ -1,0 +1,69 @@
+#####################################################################################
+# Copyright 2021 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Report if condition
+# @description Report a Rudder report based on a condition.
+# @action
+# @documentation
+#
+# This method will only send a Rudder report:
+#
+# If the **condition** is met, it will report a compliant report, with the following message:
+# `**<report_message>** was correct.`
+#
+# Otherwise, it will report an error, with the following message:
+# `**report_message** was incorrect`
+#
+# This method will never be in a repaired state.
+#
+# @parameter report_message  Message subject, will be extended based on the report status
+# @parameter condition  Condition to report a success
+#
+# @class_prefix report_if_condition
+# @class_parameter report_message
+
+bundle agent report_if_condition(report_message, condition)
+{
+  vars:
+      "old_class_prefix"  string => canonify("report_if_condition_${report_message}");
+      "args"               slist => { "${report_message}", "${condition}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("report_if_condition_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "extended_message"  string => "${report_message} was correct",
+                              if => "${condition}";
+      "extended_message"  string => "${report_message} was incorrect",
+                              if => not("${condition}");
+
+  methods:
+      "success old class class" usebundle => _classes_success("${old_class_prefix}"),
+                                       if => "${condition}";
+      "success class prefix"    usebundle => _classes_success("${class_prefix}"),
+                                       if => "${condition}";
+
+      "error old class class"   usebundle => _classes_failure("${old_class_prefix}"),
+                                       if => not("${condition}");
+      "error class prefix"      usebundle => _classes_failure("${class_prefix}"),
+                                       if => not("${condition}");
+
+      "report"                  usebundle => _log_v3("${extended_message}", "${report_message}", "${old_class_prefix}", "${class_prefix}", @{args}),
+                                       if => "${old_class_prefix}_reached|${class_prefix}_reached";
+
+}
+
