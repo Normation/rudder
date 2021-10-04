@@ -67,10 +67,10 @@ check: lint test
 libs:
 	mkdir -p repos
 	[ -d repos/ncf ] || git clone git@github.com:Normation/ncf.git repos/ncf
-	cd repos/ncf && git checkout master && git pull origin master
+	cd repos/ncf && git checkout branches/rudder/7.0 && git pull origin branches/rudder/7.0
 	[ -d repos/dsc ] || git clone git@github.com:Normation/rudder-agent-windows.git repos/dsc \
 	 || mkdir -p repos/dsc/plugin/ncf/30_generic_methods/ repos/dsc/packaging/Files/share/initial-policy/ncf/30_generic_methods/
-	cd repos/dsc && git checkout master && git pull origin master || true
+	cd repos/dsc && git checkout branches/rudder/7.0 && git pull origin branches/rudder/7.0 || true
 	tools/generate_lib tools/rudderc-dev.conf
 
 libs-docs: libs
