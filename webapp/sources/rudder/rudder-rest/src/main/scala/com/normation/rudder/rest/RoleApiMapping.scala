@@ -43,6 +43,7 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.Role
 import com.normation.rudder.api.AclPathSegment
+import com.normation.rudder.rest.PluginApi.GetPluginsSettings
 
 /*
  * The goal of that class is to map Authorization to what API
@@ -106,9 +107,9 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
                                      SystemApi.ArchivesFullList.x :: SystemApi.ArchivesGroupsList.x :: SystemApi.ArchivesRulesList.x ::
                                      SystemApi.GetAllZipArchive.x :: SystemApi.GetDirectivesZipArchive.x :: SystemApi.GetGroupsZipArchive.x ::
                                      SystemApi.GetRulesZipArchive.x :: SystemApi.Info.x :: SystemApi.Status.x :: SystemApi.ArchivesParametersList.x ::
-                                     SystemApi.GetParametersZipArchive.x :: SystemApi.GetHealthcheckResult.x :: Nil
-        case Administration.Write => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
-        case Administration.Edit  => SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
+                                     SystemApi.GetParametersZipArchive.x :: SystemApi.GetHealthcheckResult.x :: PluginApi.GetPluginsSettings.x :: Nil
+        case Administration.Write => PluginApi.UpdatePluginsSettings.x :: SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
+        case Administration.Edit  => PluginApi.UpdatePluginsSettings.x :: SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
 
         case Compliance.Read      => ComplianceApi.GetGlobalCompliance.x :: ComplianceApi.GetRulesCompliance.x ::
                                      ComplianceApi.GetRulesComplianceId.x :: ComplianceApi.GetNodesCompliance.x ::
@@ -132,7 +133,9 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
         case Parameter.Write      => ParameterApi.CreateParameter.x :: ParameterApi.DeleteParameter.x :: Nil
         case Parameter.Edit       => ParameterApi.UpdateParameter.x :: Nil
 
-        case Directive.Read       => DirectiveApi.ListDirectives.x :: DirectiveApi.DirectiveDetails.x :: Nil
+        case Directive.Read       => DirectiveApi.ListDirectives.x :: DirectiveApi.DirectiveDetails.x ::
+                                     DirectiveApi.DirectiveTree.x :: DirectiveApi.DirectiveRevisions.x ::
+                                     Nil
         case Directive.Write      => DirectiveApi.CreateDirective.x :: DirectiveApi.DeleteDirective.x ::
                                      DirectiveApi.CheckDirective.x :: Nil
         case Directive.Edit       => DirectiveApi.UpdateDirective.x :: Nil
@@ -161,7 +164,8 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
         case Rule.Edit            => RuleApi.UpdateRule.x :: RuleApi.UpdateRuleCategory.x :: Nil
 
         case Technique.Read       => TechniqueApi.ListTechniques.x :: TechniqueApi.ListTechniquesDirectives.x ::
-                                     TechniqueApi.ListTechniqueDirectives.x :: NcfApi.GetMethods.x :: NcfApi.GetTechniques.x  ::
+                                     TechniqueApi.ListTechniqueDirectives.x :: TechniqueApi.TechniqueRevisions.x ::
+                                     NcfApi.GetMethods.x :: NcfApi.GetTechniques.x  ::
                                      NcfApi.GetAllTechniqueCategories.x :: NcfApi.GetResources.x :: NcfApi.GetNewResources.x  ::
                                      NcfApi.ParameterCheck.x :: Nil
         case Technique.Write      => NcfApi.CreateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x :: Nil
