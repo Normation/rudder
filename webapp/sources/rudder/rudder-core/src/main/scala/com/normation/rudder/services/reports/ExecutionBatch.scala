@@ -358,6 +358,18 @@ object ExecutionBatch extends Loggable {
     Pattern.compile("""\Q"""+ x.replaceAll(replaceCFEngineVars, """\\E.*\\Q""") + """\E""")
   }
 
+  final def checkExpectedVariable(expected : String,effective : String) : Boolean = {
+    val isVar = matchCFEngineVars.pattern.matcher(expected).matches()
+    if (isVar) { // If this is not a var, there isn't anything to replace.
+      println(expected)
+      println(effective)
+      println(replaceCFEngineVars(expected).matcher(effective).matches())
+      replaceCFEngineVars(expected).matcher(effective).matches()
+    } else {
+      expected == effective
+    }
+  }
+
 final case class ContextForNoAnswer(
       agentExecutionInterval: Int
     , complianceMode        : ComplianceMode
@@ -889,7 +901,7 @@ final case class ContextForNoAnswer(
 
                                    val reportsForThatNodeRule: Seq[ResultReports] = reportsPerRule.getOrElse(ruleId, Seq[ResultReports]())
 
-                                   val reports = reportsForThatNodeRule.groupBy(x => (x.directiveId, x.component, x.keyValue) )
+                                   val reports = reportsForThatNodeRule.groupBy(x => (x.directiveId, x.component) )
 
                                    val expectedComponents: Map[(DirectiveId, List[EffectiveExpectedComponent]), (PolicyMode, ReportType, ComponentExpectedReport)] = (for {
                                      directive  <- directives
@@ -920,7 +932,7 @@ final case class ContextForNoAnswer(
                                     * - both expected component and reports => check
                                     */
                                    val reportKeys = reports.keySet
-                                   val expectedKeys: Set[(DirectiveId,String,String)] = expectedComponents.keySet.flatMap(c => c._2.flatMap(d => d.value.componentsValues.map(v => (c._1, d.value.componentName, v))))
+                                   val expectedKeys: Set[(DirectiveId,String)] = expectedComponents.keySet.flatMap(c => c._2.map(d => (c._1, d.value.componentName)))
                                    val okKeys = reportKeys.intersect(expectedKeys)
 
                                    val t3 = System.nanoTime
@@ -929,11 +941,12 @@ final case class ContextForNoAnswer(
                                    //unexpected contains the one with unexpected key and all non matching serial/version
                                    val unexpected = (if (okKeys.size != reportKeys.size) {
                                      buildUnexpectedDirectives(
-                                       reports.filter(k => !expectedKeys.contains(k._1)).values.flatten.toSeq
+                                       reports.filter(k => !expectedKeys.contains((k._1._1,k._1._2)                                       )).values.flatten.toSeq
                                      )
                                    } else {
                                      Seq[DirectiveStatusReport]()
                                    })
+
 
                                    val t4 = System.nanoTime
                                    u3 += t4-t3
@@ -944,7 +957,11 @@ final case class ContextForNoAnswer(
                                        case (directiveId, expectedComponentsForDirective) =>
                                          DirectiveStatusReport(directiveId, expectedComponentsForDirective.map {
                                            case ((directiveId, components), (policyMode, missingReportStatus, component)) =>
-                                             val filteredReports = components.flatMap(c => c.value.componentsValues.flatMap(v => reports.getOrElse((directiveId, c.value.componentName, v), Seq())))
+                                             logger.warn(component)
+                                             val filteredReports =  reports.getOrElse((directiveId, component.componentName), Seq())
+                                             logger.info(filteredReports)
+                                             //
+                                             // val filteredReports = components.flatMap(c => reports.flatMap{case ((id,cname),r) =>  r.filter(value => directiveId == id && cname == c.value.componentName && checkExpectedVariable(v,value.keyValue))})
 
                                              (component.componentName, checkExpectedComponentWithReports(component, filteredReports, missingReportStatus, policyMode, unexpectedInterpretation))
                                          })
@@ -1128,7 +1145,7 @@ final case class ContextForNoAnswer(
           checkExpectedComponentWithReports(e,filteredReports.filter(_.component == e.componentName), noAnswerType, policyMode, unexpectedInterpretation)
         case e => checkExpectedComponentWithReports(e,filteredReports, noAnswerType, policyMode, unexpectedInterpretation)})
       case expectedComponent: ValueExpectedReport =>
-        // an utility class that store an expected value and the list of mathing reports for it
+        // an utility class that store an expected value and the list of matching reports for it
         final case class Value(
           value: String
           , unexpanded: String

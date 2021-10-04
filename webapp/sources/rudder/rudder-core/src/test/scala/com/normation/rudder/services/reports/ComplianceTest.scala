@@ -233,6 +233,7 @@ class ComplianceTest extends Specification {
       val runinfo = ComputeCompliance(runTime, config, runTime)
       val status = ExecutionBatch.getNodeStatusReports(config.nodeId, runinfo, reports, UnexpectedReportInterpretation(Set()))
 
+      println(status.byRules.get(RuleId("32377fd7-02fd-43d0-aab7-28460a91347b")).flatMap(_.directives.get(DirectiveId(DirectiveUid("e041f5e8-c57a-4b80-a42f-58ccf612de96")))))
       status.compliance must beEqualTo(ComplianceLevel(success=34, notApplicable = 5))
     }
   }
