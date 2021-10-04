@@ -368,7 +368,7 @@ class TechniqueWriter (
       // Before writing down technique, set all resources to Untouched state, and remove Delete resources, was the cause of #17750
       updateResources = technique.ressources.collect{case r if r.state != ResourceFileState.Deleted => r.copy(state = ResourceFileState.Untouched) }
                          techniqueWithResourceUpdated = technique.copy(ressources = updateResources)
-      json       <- writeJson(techniqueWithResourceUpdated)
+      json       <- writeJson(techniqueWithResourceUpdated, methods)
       time_2     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing json for technique '${technique.name}' took ${time_2 - time_1}ms")
 
@@ -383,7 +383,7 @@ class TechniqueWriter (
                   |error =>
                   |  ${e.fullMsg}
                   |technique data =>
-                  |  ${net.liftweb.json.prettyRender(techniqueSerializer.serializeTechniqueMetadata(technique))}""".stripMargin)
+                  |  ${net.liftweb.json.prettyRender(techniqueSerializer.serializeTechniqueMetadata(technique,methods))}""".stripMargin)
                }.catchAll(e2 =>
                    ApplicationLoggerPure.error(s"Error when writing error log of '${technique.name}' (id : '${technique.bundleName}') in in ${errorPath}: ${e2.fullMsg}") *>
                    ApplicationLoggerPure.error(s"Error when compiling '${technique.name}' (id : '${technique.bundleName}') with rudderc was: ${e.fullMsg}")
@@ -432,12 +432,12 @@ class TechniqueWriter (
     }
   }
 
-  def writeJson(technique: EditorTechnique) = {
+  def writeJson(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]) = {
     val metadataPath = s"${technique.path}/technique.json"
 
     val path = s"${basePath}/${metadataPath}"
 
-    val content = techniqueSerializer.serializeTechniqueMetadata(technique)
+    val content = techniqueSerializer.serializeTechniqueMetadata(technique, methods)
     for {
       _       <- IOResult.effect(s"An error occurred while creating json file for Technique '${technique.name}'") {
         implicit val charSet = StandardCharsets.UTF_8

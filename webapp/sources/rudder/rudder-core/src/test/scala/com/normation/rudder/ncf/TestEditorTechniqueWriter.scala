@@ -259,6 +259,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     , None
     , None
     , None
+    , Seq()
   ) ::
   GenericMethod(
       BundleName("service_start")
@@ -271,6 +272,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     , None
     , None
     , None
+    , Seq()
   ) ::
   GenericMethod(
       BundleName("package_install")
@@ -283,6 +285,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     , None
     , None
     , None
+    , Seq()
   ) ::
   GenericMethod(
       BundleName("command_execution")
@@ -295,6 +298,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     , None
     , None
     , None
+    , Seq()
   ) ::
   GenericMethod(
       BundleName("_logger")
@@ -308,6 +312,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     , None
     , None
     , None
+    , Seq()
   ) ::
   Nil ).map(m => (m.id,m)).toMap
 

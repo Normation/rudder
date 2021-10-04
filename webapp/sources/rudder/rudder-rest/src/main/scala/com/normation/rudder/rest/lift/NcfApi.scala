@@ -192,7 +192,7 @@ class NcfApi(
           technique <- restExtractor.extractEditorTechnique(json, methodMap, false, false)
           updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor ).toBox
         } yield {
-          JObject(JField("technique", techniqueSerializer.serializeTechniqueMetadata(updatedTechnique)))
+          JObject(JField("technique", techniqueSerializer.serializeTechniqueMetadata(updatedTechnique, methodMap)))
         }
       val wrapper : ActionType = {
         case _ => response
@@ -232,9 +232,10 @@ class NcfApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response = for {
+        methods <- techniqueReader.readMethodsMetadataFile
         techniques <- techniqueReader.readTechniquesMetadataFile
       } yield {
-         JArray(techniques.map(techniqueSerializer.serializeTechniqueMetadata))
+         JArray(techniques.map(techniqueSerializer.serializeTechniqueMetadata(_, methods)))
       }
       resp(response.toBox, req, "Could not get techniques metadata")("getTechniques")
 
@@ -294,7 +295,7 @@ class NcfApi(
         techniques <- techniqueReader.readTechniquesMetadataFile
         _          <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, methods, modId, authzToken.actor))
       } yield {
-        JArray(techniques.map(techniqueSerializer.serializeTechniqueMetadata))
+        JArray(techniques.map(techniqueSerializer.serializeTechniqueMetadata(_,methods)))
      }
       resp(response.toBox, req, "Could not get generic methods metadata")("getMethods")
 
@@ -375,7 +376,7 @@ class NcfApi(
           resoucesMoved <- internalId.map( internalId => moveRessources(technique,internalId).toBox).getOrElse(Full("Ok"))
           updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor).toBox
         } yield {
-          JObject(JField("technique", techniqueSerializer.serializeTechniqueMetadata(updatedTech)))
+          JObject(JField("technique", techniqueSerializer.serializeTechniqueMetadata(updatedTech, methodMap)))
         }
 
       val wrapper : ActionType = {

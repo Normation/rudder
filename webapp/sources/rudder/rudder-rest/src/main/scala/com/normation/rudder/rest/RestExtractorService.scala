@@ -1361,8 +1361,17 @@ final case class RestExtractorService (
         documentation  <- OptionnalJson.extractJsonString(json, "documentation")
         deprecated  <- OptionnalJson.extractJsonString(json, "deprecated")
         renameTo  <- OptionnalJson.extractJsonString(json, "rename")
+        param_rename  <- OptionnalJson.extractJsonArray(json, "parameter_rename") {j =>
+          for {
+            old <- CompleteJson.extractJsonString(j,"old")
+            newValue <- CompleteJson.extractJsonString(j,"new")
+          } yield {
+            (old,newValue)
+          }
+
+        }
       } yield {
-        GenericMethod(bundleName, name, parameters, classParameter, classPrefix, agentSupport, description, documentation, deprecated, renameTo)
+        GenericMethod(bundleName, name, parameters, classParameter, classPrefix, agentSupport, description, documentation, deprecated, renameTo, param_rename.getOrElse(Nil))
       }
     }
 
