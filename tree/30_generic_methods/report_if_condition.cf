@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name Report if
+# @name Report if condition
 # @description Report a Rudder report based on a condition.
 # @action
 # @documentation
@@ -34,16 +34,16 @@
 # @parameter report_message  Message subject, will be extended based on the report status
 # @parameter condition  Condition to report a success
 #
-# @class_prefix report_if
+# @class_prefix report_if_condition
 # @class_parameter report_message
 
-bundle agent report_if(report_message, condition)
+bundle agent report_if_condition(report_message, condition)
 {
   vars:
-      "old_class_prefix"  string => canonify("report_if_${report_message}");
+      "old_class_prefix"  string => canonify("report_if_condition_${report_message}");
       "args"               slist => { "${report_message}", "${condition}" };
       "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("report_if_${report_param}");
+      "full_class_prefix" string => canonify("report_if_condition_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       "extended_message"  string => "${report_message} was correct",
