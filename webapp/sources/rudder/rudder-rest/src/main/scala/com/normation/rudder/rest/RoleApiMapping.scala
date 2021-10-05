@@ -43,7 +43,6 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.Role
 import com.normation.rudder.api.AclPathSegment
-import com.normation.rudder.rest.PluginApi.GetPluginsSettings
 
 /*
  * The goal of that class is to map Authorization to what API
