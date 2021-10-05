@@ -63,8 +63,7 @@ pipeline {
                         "centos8",
                         "sles12",
                         "sles15",
-                        "ubuntu18_04",
-                        "ubuntu20_04"
+                        "ubuntu18_04"
                     ]
                     String ncf_path = "${workspace}/ncf"
                     testNcfLocal(agent_versions, systems, ncf_path)
