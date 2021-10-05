@@ -463,7 +463,9 @@ class FusionReportUnmarshaller(
     r = r.copy(machine = r.machine.copy( controllers = report.machine.controllers.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( memories = demuxMemories(report.machine.memories) ) )
     r = r.copy(machine = r.machine.copy( ports = report.machine.ports.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( processors = report.machine.processors.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    // Here we decided to take the first processor of the result of the groupBy name, some information could be missing
+    // from other CPU in the list, this shouldn't be problematic (https://issues.rudder.io/issues/19988)
+    r = r.copy(machine = r.machine.copy( processors = report.machine.processors.groupBy(_.name).toList.map(_._2).map { case x => x.head.copy(quantity = x.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( slots = report.machine.slots.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( sounds = report.machine.sounds.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( storages = report.machine.storages.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
