@@ -458,7 +458,9 @@ class FusionInventoryParser(
     r = r.copy(machine = r.machine.copy( controllers = inventory.machine.controllers.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( memories = demuxMemories(inventory.machine.memories) ) )
     r = r.copy(machine = r.machine.copy( ports = inventory.machine.ports.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( processors = inventory.machine.processors.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    // Here we decided to take the first processor of the result of the groupBy name, some information could be missing
+    // from other CPU in the list, this shouldn't be problematic (https://issues.rudder.io/issues/19988)
+    r = r.copy(machine = r.machine.copy( processors = inventory.machine.processors.groupBy(_.name).toList.map(_._2).map { case x => x.head.copy(quantity = x.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( slots = inventory.machine.slots.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( sounds = inventory.machine.sounds.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( storages = inventory.machine.storages.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
