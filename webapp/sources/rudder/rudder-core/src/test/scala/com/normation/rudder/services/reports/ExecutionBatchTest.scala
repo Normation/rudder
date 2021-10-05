@@ -473,18 +473,18 @@ class ExecutionBatchTest extends Specification {
   "Sub block with same component names are authorised, with reporting focus " should {
     val reports = Seq[ResultReports](
       new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component1", "b1c1", executionTimestamp, "message")
-    , new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component2", "b1c2", executionTimestamp, "message")
+    , new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component1", "b1c2", executionTimestamp, "message")
     , new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component2", "b2c1", executionTimestamp, "message")
     , new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component2", "b2c2", executionTimestamp, "message")
     )
 
     val badReports = Seq[ResultReports](
       new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component1", "b1c1", executionTimestamp, "message")
-    , new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component2", "b1c2", executionTimestamp, "message")
-    , new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component1", "b2c1", executionTimestamp, "message")
+    , new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component1", "b1c2", executionTimestamp, "message")
+    , new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component2", "b2c1", executionTimestamp, "message")
     , new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component2", "b2c2", executionTimestamp, "message")
     // bad ones
-    , new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component1", "b2c2", executionTimestamp, "message")
+    , new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component2", "b2c2", executionTimestamp, "message")
     )
 
     val expectedComponent = BlockExpectedReport(
@@ -523,7 +523,7 @@ class ExecutionBatchTest extends Specification {
     "return a success block " in {
       withGood.compliance === ComplianceLevel(success = 1)
     }
-    "return a component with two key values " in {
+    "return a component with 4 key values " in {
       withGood.componentValues.size === 4
     }
     "return 3 component with the key values b1c1,b1c2,b2c2 which is repaired " in {
