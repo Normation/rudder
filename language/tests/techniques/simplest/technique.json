@@ -17,7 +17,7 @@
         }
       ],
       "id": "aeca6c93-47af-41ee-ba4a-8772f4ce7dd8",
-      "reportingDisabled": false
+      "disableReporting": false
     }
   ],
   "parameter": [],

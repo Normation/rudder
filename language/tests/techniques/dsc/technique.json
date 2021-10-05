@@ -16,7 +16,7 @@
         }
       ],
       "id": "58fc35d7-7277-49d9-a6f5-a3ecb715d694",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "command_execution",
@@ -29,7 +29,7 @@
         }
       ],
       "id": "c00d3129-f612-4087-84ea-c1ae9b98f9d8",
-      "reportingDisabled": false
+      "disableReporting": false
     }
   ],
   "parameter": [],

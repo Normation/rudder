@@ -17,7 +17,7 @@
         }
       ],
       "id": "3316c616-faec-46e7-b7be-bd5463b47142",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "class_context": "any.(SLES12)",
@@ -38,7 +38,7 @@
         }
       ],
       "id": "018d891b-9a63-4bf7-b90f-dfc123050b85",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "file_replace_lines",
@@ -59,7 +59,7 @@
         }
       ],
       "id": "00c8bb99-805c-4c43-ab58-f9df8eec99c3",
-      "reportingDisabled": false
+      "disableReporting": false
     }
   ],
   "resources": []

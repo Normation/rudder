@@ -20,7 +20,7 @@
         }
       ],
       "id": "7c09271d-81cb-4d6a-b7e6-060b3fd4617c",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "kernel_module_configuration",
@@ -37,7 +37,7 @@
         }
       ],
       "id": "70d2759a-b3f8-43ca-a515-f005a9be651a",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "kernel_module_not_loaded",
@@ -50,7 +50,7 @@
         }
       ],
       "id": "449625c9-30a4-4b1a-8e88-f854fe67a108",
-      "reportingDisabled": false
+      "disableReporting": false
     }
   ],
   "parameter": [

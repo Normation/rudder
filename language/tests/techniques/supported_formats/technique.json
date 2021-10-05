@@ -16,7 +16,7 @@
         }
       ],
       "id": "929a286e-1fc0-4147-876e-5a009f162822",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "directory_present",
@@ -29,7 +29,7 @@
         }
       ],
       "id": "65a6abf0-52cc-47d3-a3d0-6470bca49734",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "directory_present",
@@ -42,7 +42,7 @@
         }
       ],
       "id": "2c88bb01-9178-4aa0-87b0-cbcbda5c8a71",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "registry_key_present",
@@ -55,7 +55,7 @@
         }
       ],
       "id": "062332fb-2b49-4386-8cfe-46dad2dbe92d",
-      "reportingDisabled": false
+      "disableReporting": false
     },
     {
       "method_name": "registry_key_present",
@@ -68,7 +68,7 @@
         }
       ],
       "id": "37a1055d-ee98-4b56-81a0-562134476acc",
-      "reportingDisabled": false
+      "disableReporting": false
     }
   ],
   "parameter": [],
