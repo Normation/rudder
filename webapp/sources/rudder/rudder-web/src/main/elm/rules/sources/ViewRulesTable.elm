@@ -7,27 +7,25 @@ import Html.Events exposing (onClick)
 import List.Extra
 import List
 import String
-import ViewUtilsCompliance exposing (buildComplianceBar, getAllComplianceValues)
+import NaturalOrdering exposing (compareOn)
 import ViewUtilsRules exposing (..)
+import ViewUtilsCompliance exposing (buildComplianceBar, getAllComplianceValues, getRuleCompliance)
+
 --
 -- This file contains all methods to display the Rules table
 --
 
-getRuleCompliance : Model -> RuleId -> Maybe RuleCompliance
-getRuleCompliance model rId =
-  List.Extra.find (\c -> c.ruleId == rId) model.rulesCompliance
-
 getSortFunction : Model -> Rule -> Rule -> Order
 getSortFunction model r1 r2 =
   let
-    order = case model.ui.ruleFilters.sortBy of
-      Name       -> compare r1.name r2.name
+    order = case model.ui.ruleFilters.tableFilters.sortBy of
+      Name       -> NaturalOrdering.compare r1.name r2.name
       Parent     ->
         let
-          o = compare (getCategoryName model r1.categoryId) (getCategoryName model r2.categoryId)
+          o = NaturalOrdering.compare (getCategoryName model r1.categoryId) (getCategoryName model r2.categoryId)
         in
           case o of
-            EQ -> compare r1.name r2.name
+            EQ -> NaturalOrdering.compare r1.name r2.name
             _  -> o
 
       Status     ->
@@ -55,7 +53,7 @@ getSortFunction model r1 r2 =
         in
           compare r1Compliance r2Compliance
   in
-    if model.ui.ruleFilters.sortOrder then
+    if model.ui.ruleFilters.tableFilters.sortOrder then
       order
     else
       case order of
