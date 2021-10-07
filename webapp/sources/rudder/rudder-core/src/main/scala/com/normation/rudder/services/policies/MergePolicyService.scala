@@ -259,7 +259,7 @@ final object MergePolicyService {
         // Only multi-instance policy may have a trackingKeyVariable with high cardinal
         // Because if the technique is Unique, then we can't have several directive ID on the same
         // rule, and we just always use the same cf3PolicyId
-        val size = if (d.technique.isMultiInstance) { trackedVariable.values.size } else { 1 }
+        val size = if (d.technique.isMultiInstance) { trackedVariable.flatMap(_.values).size } else { 1 }
         Seq.fill(size)(d.id.getReportId)
       }
       val newTrackingKey = trackingKeyVariable.copyWithSavedValues(values) match {

@@ -54,6 +54,7 @@ import com.normation.rudder.services.policies.BoundPolicyDraft
 import org.joda.time.DateTime
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.services.policies.ComponentId
 
 
 @RunWith(classOf[JUnitRunner])
@@ -131,8 +132,8 @@ class PolicyAgregationTest extends Specification {
       , "directive name"
       , technique
       , DateTime.now
-      , Map((v.spec.name -> v))
-      , Map((v.spec.name -> v))
+      , Map(ComponentId(v.spec.name, Nil) -> v)
+      , Map(ComponentId(v.spec.name, Nil) -> v)
       , trackerVariable
       , 5
       , false

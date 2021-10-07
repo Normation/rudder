@@ -301,7 +301,9 @@ final case class BlockStatusReport (
     import ReportingLogic._
     reportingLogic match {
       case WorstReport =>
-        ComplianceLevel.compute(ReportType.getWorseType(subComponents.map(_.status)) :: Nil)
+        val worstReport = ReportType.getWorseType(subComponents.map(_.status))
+        val allReports = getValues(_ => true).flatMap(_._2.messages.map(_ => worstReport))
+        ComplianceLevel.compute(allReports)
       case SumReport => ComplianceLevel.sum(subComponents.map(_.compliance))
       case FocusReport(component) => ComplianceLevel.sum(findChildren(component).map(_.compliance))
     }

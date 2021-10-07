@@ -734,7 +734,8 @@ class TestNodeConfiguration(prefixTestResources: String = ""
   }
 
   val commonTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("common"), TechniqueVersionHelper("1.0")))
-  def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = {
+  def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]): Map[ComponentId, Variable
+  ] = {
      val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
        spec("OWNER").toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName))
@@ -742,7 +743,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
      , spec("POLICYSERVER_ID").toVariable(Seq(allNodeInfos(nodeId).policyServerId.value))
      , spec("POLICYSERVER").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).hostname))
      , spec("POLICYSERVER_ADMIN").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).localAdministratorAccountName))
-     ).map(v => (v.spec.name, v)).toMap
+     ).map(v => (ComponentId(v.spec.name, Nil), v)).toMap
   }
 
   def draft (
@@ -750,7 +751,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
     , ruleName      : String
     , directiveName : String
     , technique     : Technique
-    , variableMap   : Map[String, Variable]
+    , variableMap   : Map[ComponentId, Variable]
     , tracker       : TrackerVariable
     , ruleOrder     : BundleOrder
     , directiveOrder: BundleOrder
@@ -805,7 +806,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
 
   val rolesTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("server-roles"), TechniqueVersionHelper("1.0")))
   val rolesVariables = {
-     Map[String, Variable]()
+     Map[ComponentId, Variable]()
   }
 
   val serverRole = {
@@ -824,7 +825,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
 
   val distributeTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("distributePolicy"), TechniqueVersionHelper("1.0")))
   val distributeVariables = {
-     Map[String, Variable]()
+     Map[ComponentId, Variable]()
   }
 
   val distributePolicy = {
@@ -843,7 +844,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
 
   val inventoryTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("inventory"), TechniqueVersionHelper("1.0")))
   val inventoryVariables = {
-     Map[String, Variable]()
+     Map[ComponentId, Variable]()
   }
   val inventoryAll = {
     val id = PolicyId(RuleId("inventory-all"), DirectiveId(DirectiveUid("inventory-all")), TechniqueVersionHelper("1.0"))
@@ -863,7 +864,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
   // 4 user directives: clock management, rpm, package, a multi-policiy: fileTemplate, and a ncf one: Create_file
   //
   lazy val clockTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("clockConfiguration"), TechniqueVersionHelper("3.0")))
-  lazy val clockVariables = {
+  lazy val clockVariables: Map[ComponentId,Variable] = {
      val spec = clockTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
          spec("CLOCK_FQDNNTP").toVariable(Seq("true"))
@@ -871,7 +872,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
        , spec("CLOCK_NTPSERVERS").toVariable(Seq("${rudder.param.ntpserver}"))
        , spec("CLOCK_SYNCSCHED").toVariable(Seq("240"))
        , spec("CLOCK_TIMEZONE").toVariable(Seq("dontchange"))
-     ).map(v => (v.spec.name, v)).toMap
+     ).map(v => (ComponentId(v.spec.name, Nil), v)).toMap
   }
   lazy val clock = {
     val id = PolicyId(RuleId("rule1"), DirectiveId(DirectiveUid("directive1")), TechniqueVersionHelper("1.0"))
@@ -896,7 +897,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
    */
 
   lazy val rpmTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersionHelper("7.0")))
-  lazy val rpmVariables = {
+  lazy val rpmVariables: Map[ComponentId, Variable] = {
      val spec = rpmTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
          spec("RPM_PACKAGE_CHECK_INTERVAL").toVariable(Seq("5"))
@@ -907,7 +908,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
        , spec("RPM_PACKAGE_VERSION").toVariable(Seq("","",""))
        , spec("RPM_PACKAGE_VERSION_CRITERION").toVariable(Seq("==","==","=="))
        , spec("RPM_PACKAGE_VERSION_DEFINITION").toVariable(Seq("default","default","default"))
-     ).map(v => (v.spec.name, v)).toMap
+     ).map(v => (ComponentId(v.spec.name, Nil), v)).toMap
   }
   def rpmDirective(id: String, pkg: String) = Directive(
       DirectiveId(DirectiveUid(id), GitVersion.defaultRev)
@@ -941,7 +942,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
   }
 
   lazy val pkgTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("packageManagement"), TechniqueVersionHelper("1.0")))
-  lazy val pkgVariables = {
+  lazy val pkgVariables: Map[ComponentId,Variable] = {
      val spec = pkgTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
          spec("PACKAGE_LIST").toVariable(Seq("htop"))
@@ -952,7 +953,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
        , spec("PACKAGE_ARCHITECTURE_SPECIFIC").toVariable(Seq(""))
        , spec("PACKAGE_MANAGER").toVariable(Seq("default"))
        , spec("PACKAGE_POST_HOOK_COMMAND").toVariable(Seq(""))
-     ).map(v => (v.spec.name, v)).toMap
+     ).map(v => (ComponentId(v.spec.name, Nil), v)).toMap
   }
   lazy val pkg = {
     val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId(DirectiveUid("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f")), TechniqueVersionHelper("1.0"))
@@ -971,7 +972,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
   }
 
   lazy val fileTemplateTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("fileTemplate"), TechniqueVersionHelper("1.0")))
-  lazy val fileTemplateVariables1 = {
+  lazy val fileTemplateVariables1: Map[ComponentId, Variable]   = {
      val spec = fileTemplateTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
      Seq(
          spec("FILE_TEMPLATE_RAW_OR_NOT").toVariable(Seq("Raw"))
@@ -984,7 +985,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
        , spec("FILE_TEMPLATE_PERMISSIONS").toVariable(Seq("700"))
        , spec("FILE_TEMPLATE_PERSISTENT_POST_HOOK").toVariable(Seq("false"))
        , spec("FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND").toVariable(Seq(""))
-     ).map(v => (v.spec.name, v)).toMap
+     ).map(v => (ComponentId(v.spec.name, Nil), v)).toMap
   }
   lazy val fileTemplate1 = {
     val id = PolicyId(RuleId("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), DirectiveId(DirectiveUid("e9a1a909-2490-4fc9-95c3-9d0aa01717c9")), TechniqueVersionHelper("1.0"))
@@ -1023,7 +1024,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "60-rule-technique-std-lib"
       , "20-File template 2"
       , fileTemplateTechnique
-      , fileTemplateVariables2
+      , fileTemplateVariables2.map(a => (ComponentId(a._1, Nil), a._2))
       , fileTemplateTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
       , BundleOrder("60-rule-technique-std-lib")
       , BundleOrder("20-File template 2")
@@ -1040,7 +1041,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "99-rule-technique-std-lib"
       , "20-File template 2"
       , fileTemplateTechnique
-      , fileTemplateVariables2
+      , fileTemplateVariables2.map(a => (ComponentId(a._1, Nil), a._2))
       , fileTemplateTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
       , BundleOrder("99-rule-technique-std-lib")
       , BundleOrder("20-File template 2")
@@ -1066,7 +1067,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "50-rule-technique-ncf"
       , "Create a file"
       , ncf1Technique
-      , ncf1Variables
+      , ncf1Variables.map(a => (ComponentId(a._1, Nil), a._2))
       , ncf1Technique.trackerVariableSpec.toVariable(Seq(id.getReportId))
       , BundleOrder("50-rule-technique-ncf")
       , BundleOrder("Create a file")
@@ -1108,7 +1109,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "90-copy-git-file"
       , "Copy git file"
       , copyGitFileTechnique
-      , copyGitFileVariable(i)
+      , copyGitFileVariable(i).map(a => (ComponentId(a._1, Nil), a._2))
       , copyGitFileTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
       , BundleOrder("90-copy-git-file")
       , BundleOrder("Copy git file")
@@ -1180,7 +1181,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "10. Global configuration for all nodes"
       , "99. Generic Variable Def #1"
       , gvdTechnique
-      , gvdVariables1
+      , gvdVariables1.map(a => (ComponentId(a._1, Nil), a._2))
       , gvdTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
       , BundleOrder("10. Global configuration for all nodes")
       , BundleOrder("99. Generic Variable Def #1") // the sort name tell that it comes after directive 2
@@ -1204,7 +1205,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "10. Global configuration for all nodes"
       , "00. Generic Variable Def #2"
       , gvdTechnique
-      , gvdVariables2
+      , gvdVariables2.map(a => (ComponentId(a._1, Nil), a._2))
       , gvdTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
       , BundleOrder("10. Global configuration for all nodes")
       , BundleOrder("00. Generic Variable Def #2") // sort name comes before sort name of directive 1
