@@ -35,7 +35,7 @@ filterRules model r =
     stringToCheck = String.join "|" searchFields
       |> String.toLower
 
-    searchString  = model.ui.ruleFilters.filter
+    searchString  = model.ui.ruleFilters.treeFilters.filter
       |> String.toLower
       |> String.trim
   in

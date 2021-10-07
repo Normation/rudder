@@ -309,26 +309,16 @@ update msg model =
       in
         (nm , cmd)
 
-    UpdateRuleFilters sortBy ->
+    UpdateRuleFilters filters ->
       let
         ui = model.ui
-        oldFilters = model.ui.ruleFilters
-        filters =
-          if sortBy == oldFilters.sortBy then
-            {oldFilters | sortOrder = not oldFilters.sortOrder}
-          else
-            {oldFilters | sortBy = sortBy, sortOrder = True}
       in
         ({model | ui = { ui | ruleFilters = filters}}, Cmd.none)
-
-    RulesSearch searchString ->
+    UpdateDirectiveFilters filters ->
       let
         ui = model.ui
-        oldFilters = model.ui.ruleFilters
-        newFilters = {oldFilters | filter = searchString}
-        newUi = {ui | ruleFilters = newFilters}
       in
-        ({ model | ui = newUi }, Cmd.none)
+        ({model | ui = { ui | directiveFilters = filters}}, Cmd.none)
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =

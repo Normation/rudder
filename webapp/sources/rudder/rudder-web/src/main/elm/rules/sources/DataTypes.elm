@@ -105,7 +105,7 @@ type alias DirectiveCompliance =
   { directiveId       : DirectiveId
   , compliance        : Float
   , complianceDetails : ComplianceDetails
-  , components : List ComponentCompliance
+  , components        : List ComponentCompliance
   }
 
 type alias ComponentCompliance =
@@ -162,16 +162,27 @@ type SortBy
   | Status
   | Compliance
 
-type alias RuleFilters =
+type alias TableFilters =
   { sortBy    : SortBy
   , sortOrder : Bool
   , filter    : String
   }
-  
+
+type alias TreeFilters =
+  { filter : String
+  , folded : List String
+  }
+
+type alias Filters =
+  { tableFilters : TableFilters
+  , treeFilters  : TreeFilters
+  }
+
 type alias UI =
-  { ruleFilters   : RuleFilters
-  , modal         : ModalState
-  , hasWriteRights: Bool
+  { ruleFilters      : Filters
+  , directiveFilters : Filters
+  , modal            : ModalState
+  , hasWriteRights   : Bool
   }
 
 type alias Model =
@@ -216,5 +227,5 @@ type Msg
   | OpenDeactivationPopup Rule
   | ClosePopup Msg
   | Ignore
-  | UpdateRuleFilters SortBy
-  | RulesSearch String
+  | UpdateRuleFilters Filters
+  | UpdateDirectiveFilters Filters
