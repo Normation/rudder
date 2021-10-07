@@ -111,6 +111,13 @@ update msg model =
         Err err ->
           (model, Cmd.none)
 
+    GetNodesList res ->
+      case res of
+        Ok nodes ->
+          ({model | nodes = nodes}, Cmd.none)
+        Err err  ->
+          processApiError "Getting Nodes list" err model
+
     OpenRuleDetails rId True ->
       (model, Cmd.batch [getRuleDetails model rId, pushUrl ("rule", rId.value)])
     OpenRuleDetails rId False ->

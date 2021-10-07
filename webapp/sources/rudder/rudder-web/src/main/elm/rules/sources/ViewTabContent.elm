@@ -10,8 +10,8 @@ import Maybe.Extra
 import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
-import ComplianceUtils exposing (buildComplianceBar, getDirectiveComputedCompliance)
-import ViewUtils exposing (thClass, sortTable, getDirectivesSortFunction, filterSearch, searchFieldRules, searchFieldDirectives, searchFieldGroups, buildTagsList, buildTagsTree)
+import ComplianceUtils exposing (buildComplianceBar, getRuleCompliance, getDirectiveComputedCompliance, toNodeCompliance)
+import ViewUtils exposing (thClass, sortTable, getDirectivesSortFunction, getNodesSortFunction, filterSearch, searchFieldRules, searchFieldDirectives, searchFieldGroups, searchFieldNodes, buildTagsList, buildTagsTree, badgePolicyMode)
 
 
 --
@@ -56,13 +56,6 @@ tabContent: Model -> RuleDetails  -> Html Msg
 tabContent model details =
   let
       isNewRule = Maybe.Extra.isNothing details.originRule
-      badgePolicyMode : Directive -> Html Msg
-      badgePolicyMode d =
-        let
-          policyMode = if d.policyMode == "default" then model.policyMode else d.policyMode
-        in
-          span [class ("rudder-label label-sm label-" ++ policyMode)][]
-
       rule       = details.rule
       ui = details.ui
       newTag     = ui.newTag
@@ -196,7 +189,7 @@ tabContent model details =
             in
               tr[]
               [ td[]
-                [ badgePolicyMode d
+                [ badgePolicyMode model.policyMode d.policyMode
                 , text d.displayName
                 ]
               , td[][compliance]
@@ -226,7 +219,7 @@ tabContent model details =
               rowDirective directive =
                 li[]
                 [ a[href ("/rudder/secure/configurationManager/directiveManagement#" ++ directive.id.value)]
-                  [ badgePolicyMode directive
+                  [ badgePolicyMode model.policyMode directive.policyMode
                   , span [class "target-name"][text directive.displayName]
                   , buildTagsList directive.tags
                   ]
@@ -310,7 +303,7 @@ tabContent model details =
                         li [class "jstree-node jstree-leaf"]
                         [ i[class "jstree-icon jstree-ocl"][]
                         , a[href "#", class ("jstree-anchor" ++ selectedClass)]
-                          [ badgePolicyMode d
+                          [ badgePolicyMode model.policyMode d.policyMode
                           , span [class "treeGroupName tooltipable"][text d.displayName]
                           , buildTagsTree d.tags
                           , div [class "treeActions-container"]
@@ -441,13 +434,6 @@ tabContent model details =
                   ]
       Groups        ->
         let
-          badgePolicyModeGroup : String -> Html Msg
-          badgePolicyModeGroup p =
-            let
-              policyMode = if p == "default" then model.policyMode else p
-            in
-              span [class ("rudder-label label-sm label-" ++ policyMode)][]
-
           buildIncludeList : Bool -> RuleTarget -> Html Msg
           buildIncludeList includeBool ruleTarget =
             let
@@ -468,14 +454,45 @@ tabContent model details =
               rowIncludeGroup = li[]
                 [ span[class "fa fa-sitemap"][]
                 , a[href ("/rudder/secure/configurationManager/#" ++ "")]
-                  [ badgePolicyModeGroup "default"
-                  , span [class "target-name"][text groupName]
+                  [ span [class "target-name"][text groupName]
                   ]
                 , span [class "target-remove", onClick (SelectGroup (NodeGroupId id) includeBool)][ i [class "fa fa-times"][] ]
                 , span [class "border"][]
                 ]
             in
               rowIncludeGroup
+
+          buildNodesTable : RuleId -> List (Html Msg)
+          buildNodesTable rId =
+            let
+              ruleCompliance = getRuleCompliance model rId
+              nodesList = case ruleCompliance of
+                Nothing -> [tr[][td[colspan 2, class "dataTables_empty"][text "This rule is not applied on any node"]]]
+                Just rc ->
+                  let
+                    nodeItem : NodeComplianceByNode -> Html Msg
+                    nodeItem node =
+                      let
+                        nodeInfo = List.Extra.find (\n -> n.id == node.nodeId.value) model.nodes
+                        nodeName = case nodeInfo of
+                          Just nn -> nn.hostname
+                          Nothing -> "Cannot find node details"
+                      in
+                        tr[]
+                        [ td[][ text nodeName ]
+                        , td[][ buildComplianceBar node.complianceDetails ] -- Here goes the compliance bar
+                        ]
+                    nodesCompliance = toNodeCompliance rc
+
+                    sortedNodes = nodesCompliance.nodes
+                      |> List.filter (\n -> filterSearch model.ui.groupFilters.tableFilters.filter (searchFieldNodes n model.nodes))
+                      |> List.sortWith (getNodesSortFunction model.ui.groupFilters.tableFilters model.nodes)
+                      |> List.map nodeItem
+                  in
+                    sortedNodes
+
+            in
+              nodesList
         in
 
           if not details.ui.editGroups then
@@ -489,19 +506,26 @@ tabContent model details =
                 )
               ]
             , div [class "table-header"]
-              [ input [type_ "text", placeholder "Filter", class "input-sm form-control"][]
+              [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.groupFilters.tableFilters.filter
+                , onInput (\s ->
+                  let
+                    groupFilters = model.ui.groupFilters
+                    tableFilters = groupFilters.tableFilters
+                  in
+                    UpdateGroupFilters {groupFilters | tableFilters = {tableFilters | filter = s}}
+                )][]
               , button [class "btn btn-primary btn-sm"][text "Refresh"]
               ]
             , div[class "table-container"]
               [ table [class "dataTable"]
                 [ thead[]
                   [ tr[class "head"]
-                    [ th [class "sorting_asc"][text "Node" ]
-                    , th [class "sorting"    ][text "Compliance"]
+                    [ th [class (thClass model.ui.groupFilters.tableFilters Name       ), onClick (UpdateGroupFilters (sortTable model.ui.groupFilters Name       ))][text "Node"      ]
+                    , th [class (thClass model.ui.groupFilters.tableFilters Compliance ), onClick (UpdateGroupFilters (sortTable model.ui.groupFilters Compliance ))][text "Compliance"]
                     ]
                   ]
                 , tbody[]
-                  [tr[][]]
+                  (buildNodesTable details.rule.id)
                 ]
               ]
             ]

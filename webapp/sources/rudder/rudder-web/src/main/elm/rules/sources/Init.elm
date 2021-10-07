@@ -12,10 +12,11 @@ init flags =
     initCategory = Category "" "" "" (SubCategories []) []
     initFilters  = Filters (TableFilters Name True "") (TreeFilters "" [])
     initUI       = UI initFilters initFilters initFilters NoModal flags.hasWriteRights
-    initModel    = Model flags.contextPath Loading "" initCategory initCategory initCategory [] [] initUI
+    initModel    = Model flags.contextPath Loading "" initCategory initCategory initCategory [] [] [] initUI
 
     listInitActions =
       [ getPolicyMode      initModel
+      , getNodesList       initModel
       , getRulesCompliance initModel
       , getGroupsTree      initModel
       , getTechniquesTree  initModel
