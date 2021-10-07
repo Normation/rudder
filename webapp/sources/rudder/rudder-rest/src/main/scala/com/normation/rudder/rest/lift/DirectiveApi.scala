@@ -231,7 +231,7 @@ class DirectiveAPIService2 (
                        crName
                      , crDescription
                      , technique.id.name
-                     , technique.rootSection
+                     , Some(technique.rootSection)
                      , directive.id
                      , initialState
                      , diff
@@ -405,7 +405,7 @@ class DirectiveAPIService2 (
       updatedDirective = directiveUpdate.after.directive
       oldTechnique     = directiveUpdate.before.technique
       oldDirective     = directiveUpdate.before.directive
-      diff = ModifyToDirectiveDiff(updatedTechnique.id.name,updatedDirective,oldTechnique.rootSection)
+      diff = ModifyToDirectiveDiff(updatedTechnique.id.name,updatedDirective, Some(oldTechnique.rootSection))
     } yield {
         createChangeRequestAndAnswer(
             diff

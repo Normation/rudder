@@ -186,7 +186,7 @@ class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisati
 
   def serialise(
       ptName             : TechniqueName
-    , variableRootSection: SectionSpec
+    , variableRootSection: Option[SectionSpec]
     , directive          : Directive
   ) = {
     createTrimedElem(XML_TAG_DIRECTIVE, xmlVersion) (
@@ -194,7 +194,7 @@ class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisati
       ::  <displayName>{directive.name}</displayName>
       ::  <techniqueName>{ptName.value}</techniqueName>
       ::  <techniqueVersion>{directive.techniqueVersion}</techniqueVersion>
-      ::  {SectionVal.toXml(SectionVal.directiveValToSectionVal(variableRootSection, directive.parameters))}
+      ::  {SectionVal.toOptionnalXml(variableRootSection.map(SectionVal.directiveValToSectionVal(_, directive.parameters)))}
       ::  <shortDescription>{directive.shortDescription}</shortDescription>
       ::  <longDescription>{directive.longDescription}</longDescription>
       ::  <priority>{directive.priority}</priority>
@@ -324,12 +324,12 @@ class ChangeRequestChangesSerialisationImpl(
           case  AddDirectiveDiff(techniqueName,directive) =>
             techniqueRepo.get(TechniqueId(techniqueName,directive.techniqueVersion)) match {
               case None => (s"Error, could not retrieve technique ${techniqueName} version ${directive.techniqueVersion.toString}")
-              case Some(technique) => <diff action="add">{directiveSerializer.serialise(techniqueName,technique.rootSection,directive)}</diff>
+              case Some(technique) => <diff action="add">{directiveSerializer.serialise(techniqueName,Some(technique.rootSection),directive)}</diff>
              }
           case DeleteDirectiveDiff(techniqueName,directive) =>
             techniqueRepo.get(TechniqueId(techniqueName,directive.techniqueVersion)) match {
               case None => (s"Error, could not retrieve technique ${techniqueName} version ${directive.techniqueVersion.toString}")
-              case Some(technique) => <diff action="delete">{directiveSerializer.serialise(techniqueName,technique.rootSection,directive)}</diff>
+              case Some(technique) => <diff action="delete">{directiveSerializer.serialise(techniqueName,Some(technique.rootSection),directive)}</diff>
              }
           case ModifyToDirectiveDiff(techniqueName,directive,rootSection) =>
              val rootSectionXml = change.diff match {

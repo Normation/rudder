@@ -44,6 +44,7 @@ import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.parameters.ModifyGlobalParameterDiff
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.rudder.domain.logger.ChangeRequestLogger
 
 /**
  * A service that allows to build diff between
@@ -53,9 +54,9 @@ trait DiffService {
 
   def diffDirective(
       reference:Directive
-    , refRootSection : SectionSpec
+    , refRootSection : Option[SectionSpec]
     , newItem:Directive
-    , newRootSection : SectionSpec
+    , newRootSection : Option[SectionSpec]
     , techniqueName : TechniqueName
   ) : ModifyDirectiveDiff
 
@@ -68,6 +69,8 @@ trait DiffService {
 
 class DiffServiceImpl extends DiffService {
 
+  val logger = ChangeRequestLogger
+
   def toDiff[U,T](reference : U, newItem : U)(toData : U => T) : Option[SimpleDiff[T]] = {
     val refValue = toData(reference)
     val newValue = toData(newItem)
@@ -76,16 +79,26 @@ class DiffServiceImpl extends DiffService {
 
   def diffDirective(
       reference:Directive
-    , refRootSection : SectionSpec
+    , refRootSection : Option[SectionSpec]
     , newItem:Directive
-    , newRootSection : SectionSpec
+    , newRootSection : Option[SectionSpec]
     , techniqueName : TechniqueName) : ModifyDirectiveDiff = {
     import SectionVal._
 
     def toDirectiveDiff[T] : (Directive => T) => Option[SimpleDiff[T]] = toDiff[Directive, T](reference,newItem) _
-    val refSectionVal        = directiveValToSectionVal(refRootSection,reference.parameters)
-    val newSectionVal        = directiveValToSectionVal(newRootSection,newItem.parameters)
-    val diffParameters       = if (refSectionVal == newSectionVal) None else Some(SimpleDiff(refSectionVal,newSectionVal))
+    val refSectionVal        = refRootSection.map(directiveValToSectionVal(_,reference.parameters))
+    val newSectionVal        = newRootSection.map(directiveValToSectionVal(_,newItem.parameters))
+    val diffParameters       = {
+      (refSectionVal, newSectionVal) match {
+        case (None, None) => None // Nothing available
+        case (Some(a), Some(b)) => Some(SimpleDiff(a,b))
+        case (_ , _) =>
+          logger.warn(s"Inconsistency when computing the diff for directive ${reference.id.value}" +
+            s"One of the reference of new root section could not be unserialized - not storing the diff")
+          None
+          // This should never happen, we should be able to serialize both
+      }
+    }
     val diffName             = toDirectiveDiff( _.name)
     val diffShortDescription = toDirectiveDiff( _.shortDescription)
     val diffLongDescription  = toDirectiveDiff( _.longDescription)

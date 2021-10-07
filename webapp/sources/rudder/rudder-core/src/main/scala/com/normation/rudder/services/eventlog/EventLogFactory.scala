@@ -418,7 +418,7 @@ class EventLogFactoryImpl(
     , severity           : Int = 100
     , reason             : Option[String]
   ) = {
-    val details = EventLog.withContent(DirectiveXmlSerializer.serialise(addDiff.techniqueName, varsRootSectionSpec, addDiff.directive) % ("changeType" -> "add"))
+    val details = EventLog.withContent(DirectiveXmlSerializer.serialise(addDiff.techniqueName, Some(varsRootSectionSpec), addDiff.directive) % ("changeType" -> "add"))
     AddDirective(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -439,7 +439,7 @@ class EventLogFactoryImpl(
     , severity           : Int = 100
     , reason             : Option[String]
   ) = {
-    val details = EventLog.withContent(DirectiveXmlSerializer.serialise(deleteDiff.techniqueName, varsRootSectionSpec, deleteDiff.directive) % ("changeType" -> "delete"))
+    val details = EventLog.withContent(DirectiveXmlSerializer.serialise(deleteDiff.techniqueName, Some(varsRootSectionSpec), deleteDiff.directive) % ("changeType" -> "delete"))
     DeleteDirective(EventLogDetails(
         id = id
       , modificationId = modificationId

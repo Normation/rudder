@@ -506,7 +506,7 @@ final case class RestDataSerializerImpl (
           val result = change.initialState match {
             case Some((techniqueName,initialState,initialRootSection)) =>
               val diff = diffService.diffDirective(initialState, initialRootSection, directive, rootSection,techniqueName)
-              technique.flatMap(t => serializeDirectiveDiff(diff, initialState, t, initialRootSection)).getOrElse(JString("Error while fetching technique"))
+              technique.flatMap(t => initialRootSection.flatMap( rootSection => serializeDirectiveDiff(diff, initialState, t, rootSection))).getOrElse(JString("Error while fetching technique"))
             case None => JString(s"Error while fetching initial state of change request.")
           }
           (   ("action" -> modify)
