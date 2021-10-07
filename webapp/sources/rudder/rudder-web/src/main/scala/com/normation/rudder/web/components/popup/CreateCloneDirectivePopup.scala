@@ -188,7 +188,7 @@ class CreateCloneDirectivePopup(
     } else {
       val cloneDirective =
         new Directive(
-            id = DirectiveId(DirectiveUid(uuidGen.newUuid), GitVersion.defaultRev)
+            id = DirectiveId(DirectiveUid(uuidGen.newUuid), GitVersion.DEFAULT_REV)
           , techniqueVersion = directive.techniqueVersion
           , parameters = directive.parameters
           , name = directiveName.get

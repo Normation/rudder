@@ -276,7 +276,7 @@ class CachedNodeChangesServiceImpl(
         s" ${int}:${size}"
       }.mkString(" ", "\n ", "")
 
-      s"${ruleId.value}\n${byInt}"
+      s"${ruleId.serialize}\n${byInt}"
     }.mkString("\n")
   }
 

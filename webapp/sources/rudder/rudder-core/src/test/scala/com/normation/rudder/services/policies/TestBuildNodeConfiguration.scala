@@ -52,11 +52,13 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
+
 import org.joda.time.DateTime
 import org.junit.runner._
 import org.specs2.mutable._
@@ -116,7 +118,7 @@ class TestBuildNodeConfiguration extends Specification {
                                     , true
                                   )
 
-  val rule                      = Rule(RuleId("rule"), None, "rule", RuleCategoryId("rootcat"), Set(GroupTarget(group.id)), directiveLib.allDirectives.keySet,"","", true, true)
+  val rule                      = Rule(RuleId(RuleUid("rule")), "rule", RuleCategoryId("rootcat"), Set(GroupTarget(group.id)), directiveLib.allDirectives.keySet,"","", true, true)
   val propertyEngineService     = new PropertyEngineServiceImpl(List.empty)
   val valueCompiler             = new InterpolatedValueCompilerImpl(propertyEngineService)
   val ruleValService            = new RuleValServiceImpl(valueCompiler)

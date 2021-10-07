@@ -159,9 +159,9 @@ final case class DirectiveApplicationManagement (
 
     // Compute Rules that are now applying the Directive, We need the Rules that are now applying and were not appying at the beginning
     val nowApplying = current.diff(applyingRulesId)
-    logger.debug(s"Current rules: ${current.map(_.value).mkString(", ")}")
-    logger.debug(s"ApplyingRules are: ${applyingRulesId.map(_.value).mkString(", ")}")
-    logger.debug(s"NowApplying rules are: ${nowApplying.map(_.value).mkString(", ")}")
+    logger.debug(s"Current rules: ${current.map(_.serialize).mkString(", ")}")
+    logger.debug(s"ApplyingRules are: ${applyingRulesId.map(_.serialize).mkString(", ")}")
+    logger.debug(s"NowApplying rules are: ${nowApplying.map(_.serialize).mkString(", ")}")
 
     // Compute that are not applyting the Directive anymore, We need the rules that were applying and that don't apply anymore
     val notApplyingAnymore = applyingRulesId.diff(current)
@@ -176,14 +176,14 @@ final case class DirectiveApplicationManagement (
    */
   def checkRule(id : RuleId, status: Boolean) = {
     def checkRule(id : RuleId, status: Boolean, category : CategoryId) : DirectiveApplicationResult = {
-      logger.debug(s"check for ${id.value}, in ${category.value}")
+      logger.debug(s"check for ${id.serialize}, in ${category.value}")
       // Get current state
       val currentAppliedRules = currentApplyingRules.get(category).getOrElse(Nil)
       // Get the new application status, and if the category completed is Full
       val (newApplication,isComplete) = {
         if (status) {
-          val result = (id :: currentAppliedRules).sortBy(_.value).distinct
-          val completeRules = rulesByCategory(category).sortBy(_.value)
+          val result = (id :: currentAppliedRules).sortBy(_.serialize).distinct
+          val completeRules = rulesByCategory(category).sortBy(_.serialize)
           (result,result == completeRules)
         } else {
           val result = currentAppliedRules.filter(_ != id)
@@ -247,7 +247,7 @@ final case class DirectiveApplicationManagement (
   def ruleStatus(ruleId : RuleId) : Box[Boolean] = {
     rulesMap.get(ruleId) match {
       case Some(rule) => Full(ruleStatus(rule))
-      case None       => Failure(s"Could not get Rule with id ${ruleId.value} from directive application.")
+      case None       => Failure(s"Could not get Rule with id ${ruleId.serialize} from directive application.")
     }
   }
 

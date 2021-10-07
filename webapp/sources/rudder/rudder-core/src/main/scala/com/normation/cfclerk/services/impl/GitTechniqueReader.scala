@@ -388,8 +388,8 @@ class GitTechniqueReader(
     val managed = Managed.make(
       for {
         currentId <- rev match {
-                       case GitVersion.defaultRev => revisionProvider.currentRevTreeId
-                       case r                     => GitFindUtils.findRevTreeFromRevString(repo.db, r.value)
+                       case GitVersion.DEFAULT_REV => revisionProvider.currentRevTreeId
+                       case r                      => GitFindUtils.findRevTreeFromRevString(repo.db, r.value)
                      }
         optStream <- IOResult.effect {
                        try {

@@ -61,7 +61,7 @@ trait RoRuleRepository {
   /**
    * Find the rule with the given ID (error if not found)
    */
-  def get(ruleId:RuleId) : IOResult[Rule] = getOpt(ruleId).notOptional(s"Rule with id '${ruleId.value}' was not found")
+  def get(ruleId:RuleId) : IOResult[Rule] = getOpt(ruleId).notOptional(s"Rule with id '${ruleId.serialize}' was not found")
 
   /**
    * Return all rules.

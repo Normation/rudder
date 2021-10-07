@@ -632,7 +632,7 @@ final case class RestExtractorService (
   def extractGroupProperties (params : Map[String, List[String]]) : Box[Option[List[GroupProperty]]] = {
     // properties coming from the API are always provider=rudder / mode=read-write
     // TODO: parse revision correctly
-    extractProperties(params, (k,v) => GroupProperty.parse(k, GitVersion.defaultRev, v, None, None))
+    extractProperties(params, (k,v) => GroupProperty.parse(k, GitVersion.DEFAULT_REV, v, None, None))
   }
 
   def extractProperties[A](params : Map[String, List[String]], make:(String, String) => PureResult[A]): Box[Option[List[A]]] = {
@@ -1182,7 +1182,7 @@ final case class RestExtractorService (
     }
   }
 
-  def extractId[T] (req : Req)(fun : String => Full[T])  = extractString("id")(req)(fun)
+  def extractId[T] (req : Req)(fun : String => Box[T])  = extractString("id")(req)(fun)
 
   def extractEditorTechnique (json : JValue, methods: Map[BundleName, GenericMethod], creation : Boolean, supportMissingId : Boolean) : Box[EditorTechnique] = {
     for {

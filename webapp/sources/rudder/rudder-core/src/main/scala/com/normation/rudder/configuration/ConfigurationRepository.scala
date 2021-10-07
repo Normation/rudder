@@ -104,18 +104,18 @@ class ConfigurationRepositoryImpl(
 
   override def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]] = {
     (id.rev match {
-      case GitVersion.defaultRev =>
+      case GitVersion.DEFAULT_REV =>
         roDirectiveRepository.getActiveTechniqueAndDirective(id)
-      case r                     =>
+      case r                      =>
         parseActiveTechniqueLibrary.getDirectiveRevision(id.uid, r)
     }).map( _.map{ case (at, d) => ActiveDirective(at, d)} )
   }
 
   override def getTechnique(id: TechniqueId): IOResult[Option[Technique]] = {
     id.version.rev match {
-      case GitVersion.defaultRev =>
+      case GitVersion.DEFAULT_REV =>
         techniqueRepository.get(id).succeed
-      case r                     =>
+      case r                      =>
         parseTechniques.getTechnique(id.name, id.version.version, r)
     }
   }
@@ -126,7 +126,7 @@ class ConfigurationRepositoryImpl(
   }
 
   def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory] = {
-    def nonDefaultRev(rev: Revision): Boolean = rev != GitVersion.defaultRev
+    def nonDefaultRev(rev: Revision): Boolean = rev != GitVersion.DEFAULT_REV
     val versionedDirectives = ids.filter(x => nonDefaultRev(x.rev))
     for {
       optDirs   <- ZIO.foreach(versionedDirectives.toList)(getDirective) // TODO: find a way to do that without N git treewalks

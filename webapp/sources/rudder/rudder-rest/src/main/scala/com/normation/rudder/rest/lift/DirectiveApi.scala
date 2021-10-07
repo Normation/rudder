@@ -243,7 +243,7 @@ class DirectiveApi (
   object DirectiveDetailsV14 extends LiftApiModuleString {
     val schema = API.DirectiveDetails
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val rev = req.params.get("revision").flatMap(_.headOption).map(Revision).getOrElse(GitVersion.defaultRev)
+      val rev = req.params.get("revision").flatMap(_.headOption).map(Revision).getOrElse(GitVersion.DEFAULT_REV)
       serviceV14.directiveDetails(DirectiveId(DirectiveUid(id), rev)).toLiftResponseOne(params, schema, _.id)
     }
   }
@@ -372,7 +372,7 @@ class DirectiveApiService2 (
                      , crDescription
                      , technique.id.name
                      , technique.rootSection
-                     , directive.id.uid
+                     , directive.id
                      , initialState
                      , diff
                      , actor
@@ -455,7 +455,7 @@ class DirectiveApiService2 (
       technique       <- DirectiveApiService.extractTechnique(techniqueRepository, restDirective.techniqueName, restDirective.techniqueVersion).chainError(
                            s"Technique is not correctly defined in request data.").toBox
       activeTechnique <- readDirective.getActiveTechnique(technique.id.name).notOptional(s"Technique ${technique.id.serialize} cannot be found.").toBox
-      baseDirective   =  Directive(DirectiveId(directiveId, GitVersion.defaultRev), technique.id.version,Map(),name,"",None, _isEnabled = true)
+      baseDirective   =  Directive(DirectiveId(directiveId, GitVersion.DEFAULT_REV), technique.id.version,Map(),name,"",None, _isEnabled = true)
       result          =  actualDirectiveCreation(restDirective,baseDirective,activeTechnique,technique) _
     } yield {
       result
@@ -664,7 +664,7 @@ class DirectiveApiService14 (
           name            <- restDirective.displayName.checkMandatory(_.size > 3, v => "'displayName' is mandatory and must be at least 3 char long")
           technique       <- getTechniqueWithVersion(restDirective.techniqueName, restDirective.techniqueVersion, restDirective.techniqueRevision).chainError(s"Technique is not correctly defined in request data.")
           activeTechnique <- readDirective.getActiveTechnique(technique.id.name).notOptional(s"Technique ${technique.id.name} cannot be found.")
-          baseDirective   =  Directive(DirectiveId(directiveId, GitVersion.defaultRev), technique.id.version, Map(), name, "", None, _isEnabled = true)
+          baseDirective   =  Directive(DirectiveId(directiveId, GitVersion.DEFAULT_REV), technique.id.version, Map(), name, "", None, _isEnabled = true)
           result          <- actualDirectiveCreation(restDirective, baseDirective, activeTechnique, technique, params, actor)
         } yield {
           result
@@ -681,7 +681,7 @@ class DirectiveApiService14 (
                      , params.changeRequestDescription.getOrElse("")
                      , change.techniqueName
                      , change.sectionSpec
-                     , change.newDirective.id.uid
+                     , change.newDirective.id
                      , change.previousDirective
                      , diff
                      , actor

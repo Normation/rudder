@@ -51,16 +51,18 @@ import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.BoundPolicyDraft
+
 import org.joda.time.DateTime
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.services.policies.ComponentId
 
 
 @RunWith(classOf[JUnitRunner])
 class PolicyAgregationTest extends Specification {
   implicit def str2pId(id: String) = TechniqueId(TechniqueName(id), TechniqueVersionHelper("1.0"))
-  implicit def str2PolicyId(id: String) = PolicyId(RuleId("r_"+id), DirectiveId(DirectiveUid("d_" + id)), TechniqueVersionHelper("1.0"))
+  implicit def str2PolicyId(id: String) = PolicyId(RuleId(RuleUid("r_" + id)), DirectiveId(DirectiveUid("d_" + id)), TechniqueVersionHelper("1.0"))
 
 
   // we are testing error cases, so we don't want to output error log for them
@@ -138,7 +140,7 @@ class PolicyAgregationTest extends Specification {
       , 5
       , false
       , None
-      , BundleOrder(id.ruleId.value)
+      , BundleOrder(id.ruleId.serialize)
       , BundleOrder(id.directiveId.serialize)
       , Set()
     )

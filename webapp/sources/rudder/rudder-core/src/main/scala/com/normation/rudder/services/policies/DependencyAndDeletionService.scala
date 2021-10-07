@@ -294,13 +294,13 @@ class DependencyAndDeletionServiceImpl(
                             woRuleRepository.update(newRule, modId, actor, reason)
                           }
                           updatedRuleRes.chainError(
-                            s"Can not remove directive '${id.value}' from rule with ID '${rule.id.value}'. %s".format {
+                            s"Can not remove directive '${id.value}' from rule with ID '${rule.id.serialize}'. %s".format {
                                val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
                                if(alreadyUpdated.isEmpty) ""
                                else "Some rules were already updated: %s".format(alreadyUpdated.mkString(", "))
                           })
                         } else {
-                          logPure.debug(s"Do not remove directive with ID '${id.value}' from rule '${rule.id.value}' (already not present?)") *>
+                          logPure.debug(s"Do not remove directive with ID '${id.value}' from rule '${rule.id.serialize}' (already not present?)") *>
                           None.succeed
                         }
       }
@@ -455,7 +455,7 @@ class DependencyAndDeletionServiceImpl(
       } else {
         woRuleRepository.update(updatedRule, modId, actor, reason)
       }
-      updatedRuleRes.chainError(s"Can not remove target '${targetToDelete.target}' from rule with id '${rule.id.value}'.")
+      updatedRuleRes.chainError(s"Can not remove target '${targetToDelete.target}' from rule with id '${rule.id.serialize}'.")
     }
 
     targetToDelete match {
@@ -465,7 +465,7 @@ class DependencyAndDeletionServiceImpl(
           updatedRules  <- ZIO.foreach(configRules)(updateRule)
           deletedTarget <- woGroupRepository.delete(groupId, modId, actor, reason).chainError(
                             "Error when deleting target %s. All dependent rules where updated %s".format(
-                              targetToDelete, configRules.map( _.id.value ).mkString("(", ", ", ")" ))
+                              targetToDelete, configRules.map( _.id.serialize ).mkString("(", ", ", ")" ))
                            )
         } yield {
           TargetDependencies(targetToDelete,configRules.toSet)

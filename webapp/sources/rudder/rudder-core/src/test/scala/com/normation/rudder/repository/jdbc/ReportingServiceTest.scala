@@ -928,8 +928,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //  }
 
   implicit def toReport(t:(DateTime,String, String, String, Int, String, String, DateTime, String, String)): Reports = {
-    implicit def toRuleId(s:String) = RuleId(s)
-    implicit def toDirectiveId(s: String) = DirectiveId(DirectiveUid(s), GitVersion.defaultRev)
+    implicit def toRuleId(s:String) = RuleId(RuleUid(s))
+    implicit def toDirectiveId(s: String) = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
     implicit def toNodeId(s: String) = NodeId(s)
 
     Reports(t._1, t._2, t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10)
@@ -979,7 +979,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     (nodeId, lines.map(t => toReport((t._6, t._1, t._3, nodeId, t._2,t._4,t._5,t._6,t._7,t._8))))
   }
 
-  implicit def toRuleId(id: String): RuleId = RuleId(id)
+  implicit def toRuleId(id: String): RuleId = RuleId(RuleUid(id))
   implicit def toNodeId(id: String): NodeId = NodeId(id)
   implicit def toConfigId(id: String): NodeConfigId = NodeConfigId(id)
 

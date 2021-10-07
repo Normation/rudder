@@ -184,7 +184,7 @@ class FindExpectedReportsJdbcRepository(
   override def findCurrentNodeIds(ruleId : RuleId) : Box[Set[NodeId]] = {
     transactRunBox(xa => sql"""
       select distinct nodeid from nodeconfigurations
-      where enddate is null and configuration like ${"%"+ruleId.value+"%"}
+      where enddate is null and configuration like ${"%"+ruleId.serialize+"%"}
     """.query[NodeId].to[Set].transact(xa))
   }
 
@@ -195,9 +195,9 @@ class FindExpectedReportsJdbcRepository(
   override def findCurrentNodeIdsForRule(ruleId : RuleId, nodeIds: Set[NodeId]) : IOResult[Set[NodeId]] = {
     if (nodeIds.isEmpty) Set.empty[NodeId].succeed
     else {
-      transactIOResult(s"Error when getting nodes for rule '${ruleId.value}' from expected reports")(xa => sql"""
+      transactIOResult(s"Error when getting nodes for rule '${ruleId.serialize}' from expected reports")(xa => sql"""
         select distinct nodeid from nodeconfigurations
-        where enddate is null and configuration like ${"%" + ruleId.value + "%"}
+        where enddate is null and configuration like ${"%" + ruleId.serialize + "%"}
         and nodeid in (${nodeIds.map(id => s"'${id}'").mkString(",")})
       """.query[NodeId].to[Set].transact(xa))
     }

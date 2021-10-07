@@ -165,7 +165,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
       time_0  <- currentTimeMillis
       nodeIds <- nodeConfigService.findNodesApplyingRule(ruleId)
       time_1  <- currentTimeMillis
-      _       <- TimingDebugLoggerPure.debug(s"findCurrentNodeIds: Getting node IDs for rule '${ruleId.value}' took ${time_1 - time_0}ms")
+      _       <- TimingDebugLoggerPure.debug(s"findCurrentNodeIds: Getting node IDs for rule '${ruleId.serialize}' took ${time_1 - time_0}ms")
       reports <- findRuleNodeStatusReports(nodeIds, Set(ruleId)).toIO
     } yield {
       reports
@@ -424,7 +424,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     c.map { case (nodeId, status) =>
 
       val reportsString = status.reports.map { r =>
-        s"${r.ruleId.value}[exp:${r.expirationDate}]${r.compliance.toString}"
+        s"${r.ruleId.serialize}[exp:${r.expirationDate}]${r.compliance.toString}"
       }.mkString("\n  ", "\n  ", "")
 
       s"node: ${nodeId.value}${status.runInfo.toLog}${reportsString}"

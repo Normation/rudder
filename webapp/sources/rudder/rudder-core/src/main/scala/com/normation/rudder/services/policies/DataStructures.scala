@@ -270,14 +270,13 @@ final case class NodeConfiguration(
 
 /**
  * Unique identifier for the policy.
- * These a general container that can be used to generate the different ID
+ * These is a general container that can be used to generate the different ID
  * used in rudder: the policyId as used in reports, the unique identifier
  * used to differenciate multi-version technique, etc.
- *
  */
 final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVersion: TechniqueVersion) {
 
-  val value = s"${ruleId.value}@@${directiveId.serialize}"
+  val value = s"${ruleId.serialize}@@${directiveId.serialize}"
 
   /**
    * Create the value of the Rudder Id from the Id of the Policy and
@@ -288,14 +287,15 @@ final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVer
   lazy val getRudderUniqueId = (techniqueVersion.serialize + "_" + directiveId.serialize).replaceAll("""\W""","_")
 }
 
-// Until we have a unique identifier, we need to use another key to identify our components/Variable so that blocks can identified  correctly when building expected reports
-//  Since in this case several blocks can have the same component name
-// This will allow too prevent missing expected reports, because we were building a map with toMap, that only keep one elem for a specific key
-// A component Id for now is composed of component name and a list of Parents Section (and maybe blocks) that has lead to it
-case class ComponentId (
-    value : String
-  , parents : List[String]
-)
+/**
+ * Until we have a unique identifier, we need to use another key to identify our components/Variable so that blocks
+ * can identified  correctly when building expected reports. Since in this case several blocks can have the same
+ * component name.
+ * This will allow too prevent missing expected reports, because we were building a map with toMap, that only keep
+ * one elem for a specific key. A component Id for now is composed of component name and a list of Parents
+ * Section (and maybe blocks) that has lead to it.
+ */
+case class ComponentId(value: String, parents: List[String])
 
 
 /*
@@ -554,7 +554,7 @@ final case class BoundPolicyDraft(
     PolicyTechnique.forAgent(technique, agent).flatMap { pt =>
       expandedVars.values.collectFirst { case v if(!v.spec.constraint.mayBeEmpty && v.values.exists(_ == "")) => v } match {
         case Some(v) =>
-          Left(s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.value}]: " +
+          Left(s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.serialize}]: " +
                s"a non optional value is missing for parameter '${v.spec.description}' [param ID: ${v.spec.name}]")
         case None =>
           Right(Policy(

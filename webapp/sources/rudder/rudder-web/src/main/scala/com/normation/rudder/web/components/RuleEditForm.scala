@@ -398,8 +398,8 @@ class RuleEditForm(
   private[this] def serializedirectiveIds(ids:Seq[DirectiveId]) : String = {
     implicit val formats = Serialization.formats(NoTypeHints)
     Serialization.write(ids.map(x => x.rev match {
-      case GitVersion.defaultRev => "jsTree-" + x.uid.value
-      case Revision(r)           => "jsTree-" + x.uid.value + "_" + r
+      case GitVersion.DEFAULT_REV => "jsTree-" + x.uid.value
+      case Revision(r)            => "jsTree-" + x.uid.value + "_" + r
     }))
   }
 
@@ -412,7 +412,7 @@ class RuleEditForm(
     implicit val formats = DefaultFormats
     parse(ids).extract[List[String]].map { x =>
       val parts = x.replace("jsTree-","").split("_")
-      DirectiveId(DirectiveUid(parts(0)), if(parts.length == 2) Revision(parts(1)) else GitVersion.defaultRev)
+      DirectiveId(DirectiveUid(parts(0)), if(parts.length == 2) Revision(parts(1)) else GitVersion.DEFAULT_REV)
     }
   }
 
@@ -501,11 +501,11 @@ class RuleEditForm(
     boxTag match {
       case Full(tags) => newTags = tags
       case eb : EmptyBox =>
-        val failure = eb ?~! s"Error when updating Rule ${rule.id.value} tag"
+        val failure = eb ?~! s"Error when updating Rule ${rule.id.serialize} tag"
         formTracker.addFormError(error(failure.messageChain))
     }
   }
-  def tagsEditForm = new TagsEditForm(rule.tags, rule.id.value)
+  def tagsEditForm = new TagsEditForm(rule.tags, rule.id.serialize)
 
   private[this] val crName = new WBTextField("Name", rule.name) {
     override def setFilter = notNull _ :: trim _ :: Nil

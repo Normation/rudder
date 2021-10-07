@@ -437,18 +437,18 @@ class LDAPEntityMapper(
     }
   }
 
-  def dn2LDAPRuleID(dn:DN) : DirectiveUid = {
+  def dn2LDAPDirectiveUid(dn:DN) : DirectiveUid = {
     import net.liftweb.common._
-    rudderDit.ACTIVE_TECHNIQUES_LIB.getLDAPRuleID(dn) match {
+    rudderDit.ACTIVE_TECHNIQUES_LIB.getLDAPDirectiveUid(dn) match {
       case Full(value) => DirectiveUid(value)
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Directive ID. Error was: %s".format(dn,e.toString))
     }
   }
 
-  def dn2RuleId(dn:DN) : RuleId = {
+  def dn2RuleUid(dn:DN): RuleUid = {
     import net.liftweb.common._
-    rudderDit.RULES.getRuleId(dn) match {
-      case Full(value) => RuleId(value)
+    rudderDit.RULES.getRuleUid(dn) match {
+      case Full(value) => RuleUid(value)
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Rule ID. Error was: %s".format(dn,e.toString))
     }
   }
@@ -802,8 +802,7 @@ class LDAPEntityMapper(
         val category = e(A_RULE_CATEGORY).map(RuleCategoryId(_)).getOrElse(rudderDit.RULECATEGORY.rootCategoryId)
 
         Rule(
-            RuleId(id)
-          , Some(rev)
+            RuleId(RuleUid(id), rev)
           , name
           , category
           , targets
@@ -827,7 +826,6 @@ class LDAPEntityMapper(
   def rule2Entry(rule: Rule): LDAPEntry = {
     val entry = rudderDit.RULES.ruleModel(
         rule.id
-      , rule.rev.getOrElse(GitVersion.defaultRev)
       , rule.name
       , rule.isEnabledStatus
       , rule.isSystem
@@ -998,7 +996,7 @@ class LDAPEntityMapper(
         parsed      =  e(A_PARAMETER_VALUE).getOrElse("").parseGlobalParameter(name, e.hasAttribute("overridable"))
         mode        =  e(A_INHERIT_MODE).flatMap(InheritMode.parseString(_).toOption)
         rev         =  e(A_REV_ID).map(Revision(_)) match {
-                         case None    => GitVersion.defaultRev
+                         case None    => GitVersion.DEFAULT_REV
                          case Some(x) => x
                        }
     } yield {

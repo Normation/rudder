@@ -1087,9 +1087,9 @@ final case class ContextForNoAnswer(
 
     if (ComplianceDebugLogger.node(mergeInfo.nodeId).isTraceEnabled) {
       ComplianceDebugLogger.node(mergeInfo.nodeId).trace(s"Compute compliance for node ${mergeInfo.nodeId.value} using: rules for which compliance is based on run reports: ${
-        computed.map { x => s"[${x.ruleId.value}]" }.mkString("")
+        computed.map { x => s"[${x.ruleId.serialize}]" }.mkString("")
       };" + s" rule updated since run: ${
-        newStatus.map { x => s"${x.ruleId.value}" }.mkString("[", "][", "]")
+        newStatus.map { x => s"${x.ruleId.serialize}" }.mkString("[", "][", "]")
       }")
     }
 

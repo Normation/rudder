@@ -163,7 +163,7 @@ class RuleDisplayer (
 
   def check() = {
     def action(ruleId : RuleId, status:Boolean) = {
-      JsRaw(s"""$$('#${ruleId.value}Checkbox').prop("checked",${status}); """)
+      JsRaw(s"""$$('#${ruleId.serialize}Checkbox').prop("checked",${status}); """)
     }
 
     directive match {

@@ -161,7 +161,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
 
     //update UI
     onRuleChange(changeMsgEnabled)(rule) &
-    JsRaw(s"sessionStorage.removeItem('tags-${rule.id.value}');") &
+    JsRaw(s"sessionStorage.removeItem('tags-${rule.id.serialize}');") &
     Replace(htmlId_editRuleDiv, editRule(changeMsgEnabled, action))
   }
 
@@ -177,7 +177,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
       val json = parse(ruleData)
       json \ "ruleId" match {
         case JString(ruleId) =>
-          ruleRepository.get(RuleId(ruleId)).toBox match {
+          RuleId.parse(ruleId).toBox.flatMap(id => ruleRepository.get(id).toBox) match {
             case Full(rule) =>
               json \ "action" match {
                 case JString(action) =>
@@ -241,8 +241,8 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
     //update UI
     Replace(htmlId_editRuleDiv, editRule(changeMsgEnabled, action )) &
     JsRaw(s"""
-      sessionStorage.removeItem('tags-${rule.id.value}');
-      this.window.location.hash = "#" + JSON.stringify({'ruleId':'${rule.id.value}'});
+      sessionStorage.removeItem('tags-${rule.id.serialize}');
+      this.window.location.hash = "#" + JSON.stringify({'ruleId':'${rule.id.serialize}'});
     """.stripMargin)
   }
 

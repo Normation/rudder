@@ -148,7 +148,7 @@ final object MergePolicyService {
                                    case v :: Nil => Full(v)
                                    case list     => Failure(s"Node ${nodeInfo.hostname} '${nodeInfo.id.value}' get directives from different versions of technique '${sameTechniqueName.value}', but " +
                                                             s"that technique does not support multi-policy generation. Problematic rules/directives: " +
-                                                            drafts.map(d => d.id.ruleId.value + " / " + d.id.directiveId.serialize).mkString(" ; ")
+                                                            drafts.map(d => d.id.ruleId.serialize + " / " + d.id.directiveId.serialize).mkString(" ; ")
                                                     )
                                  }
             /*
@@ -166,7 +166,7 @@ final object MergePolicyService {
                                    case modes       => PolicyMode.computeMode(globalPolicyMode, nodeInfo.node.policyMode, modes).map(Some(_)).toBox ?~! (s"Node ${nodeInfo.hostname} "+
                                                           s"'${nodeInfo.id.value}' get directives with incompatible different policy mode but technique " +
                                                           s"'${sameTechniqueName}/${sameVersion}' does not support multi-policy generation. Problematic rules/directives: " +
-                                                          drafts.map(d => d.id.ruleId.value + " / " + d.id.directiveId.serialize).mkString(" ; "))
+                                                          drafts.map(d => d.id.ruleId.serialize + " / " + d.id.directiveId.serialize).mkString(" ; "))
                                  }
             // actually merge.
             // Be carefull, there is TWO merge to consider:
@@ -232,7 +232,7 @@ final object MergePolicyService {
       //Following parameter are not relevant in that comparison (we compare directive, not rule, here:)
 
       if(seq.lengthCompare(1) > 0) {
-        PolicyGenerationLogger.error(s"The directive '${seq.head.id.directiveId.debugString}' on rule '${seq.head.id.ruleId.value}' was added several times on node " +
+        PolicyGenerationLogger.error(s"The directive '${seq.head.id.directiveId.debugString}' on rule '${seq.head.id.ruleId.serialize}' was added several times on node " +
                                      s"'${nodeInfo.id.value}' WITH DIFFERENT PARAMETERS VALUE. It's a bug, please report it. Taking one set of parameter " +
                                      s"at random for the policy generation.")
         import net.liftweb.json._
@@ -320,13 +320,13 @@ final object MergePolicyService {
       if(differentDirectives.size > 1) {
         PolicyGenerationLogger.warn(s"Unicity check: NON STABLE POLICY ON NODE '${nodeInfo.hostname}' for mono-instance (unique) technique " +
                                     s"'${keep.technique.id.debugString}'. Several directives with same priority '${keep.priority}' are applied. " +
-                                    s"Keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.debugString}' (order: ${keep.ruleOrder.value}/" +
-                                    s"${keep.directiveName}, discarding: ${samePriority.tail.map(x => s"${x.id.ruleId.value}@@${x.id.directiveId.debugString}:" +
+                                    s"Keeping (ruleId@@directiveId) '${keep.id.ruleId.serialize}@@${keep.id.directiveId.debugString}' (order: ${keep.ruleOrder.value}/" +
+                                    s"${keep.directiveName}, discarding: ${samePriority.tail.map(x => s"${x.id.ruleId.serialize}@@${x.id.directiveId.debugString}:" +
                                                                                                       s"${x.ruleName}/${x.directiveName}").mkString("'", "', ", "'")}")
       }
       PolicyGenerationLogger.trace(s"Unicity check: on node '${nodeInfo.id.value}' for mono-instance (unique) technique '${keep.technique.id.debugString}': " +
-                                   s"keeping (ruleId@@directiveId) '${keep.id.ruleId.value}@@${keep.id.directiveId.debugString}', discarding less priorize: " +
-                                   s"${lesserPriority.map(x => x.id.ruleId.value+"@@"+x.id.directiveId.debugString).mkString("'", "', ", "'")}")
+                                   s"keeping (ruleId@@directiveId) '${keep.id.ruleId.serialize}@@${keep.id.directiveId.debugString}', discarding less priorize: " +
+                                   s"${lesserPriority.map(x => x.id.ruleId.serialize+"@@"+x.id.directiveId.debugString).mkString("'", "', ", "'")}")
 
       setOverrides(keep, samePriority.tail ++ lesserPriority)
     }

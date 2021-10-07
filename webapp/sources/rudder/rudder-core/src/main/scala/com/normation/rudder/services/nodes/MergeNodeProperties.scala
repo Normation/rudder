@@ -372,7 +372,7 @@ object MergeNodeProperties {
       merged    <- mergeAll(flatten)
       globals   =  globalParams.toList.map { case (n, v) =>
                      // TODO: no verion in param for now
-                     val config = GenericProperty.toConfig(n, GitVersion.defaultRev, v.value, v.inheritMode, Some (INHERITANCE_PROVIDER), None, ConfigParseOptions.defaults().setOriginDescription(s"Global parameter '${n}'"))
+                     val config = GenericProperty.toConfig(n, GitVersion.DEFAULT_REV, v.value, v.inheritMode, Some (INHERITANCE_PROVIDER), None, ConfigParseOptions.defaults().setOriginDescription(s"Global parameter '${n}'"))
                      (n, NodePropertyHierarchy(NodeProperty(config), ParentProperty.Global(v.value) :: Nil))
                    }
     } yield {

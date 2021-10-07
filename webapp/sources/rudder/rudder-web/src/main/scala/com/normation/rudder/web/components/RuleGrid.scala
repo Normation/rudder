@@ -311,13 +311,13 @@ class RuleGrid(
                JObject(JField("rules",JArray(childs)) :: Nil) <- JsonParser.parse(arg)
                JString(ruleId) <- childs
              } yield {
-               RuleId(ruleId)
+               RuleId(RuleUid(ruleId))
              }) match {
               case ruleIds =>
                 directiveApp.checkRules(ruleIds,status)  match {
                 case DirectiveApplicationResult(rules,completeCategories,indeterminate) =>
                   After(TimeSpan(50),JsRaw(s"""
-                    ${rules.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${status}); """).mkString("\n")}
+                    ${rules.map(c => s"""$$('#${c.serialize}Checkbox').prop("checked",${status}); """).mkString("\n")}
                     ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
                     ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${status}); """).mkString("\n")}
                     ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
@@ -375,7 +375,7 @@ class RuleGrid(
             } yield {
               val changeCount = change.values.sum
               val data = NodeChanges.json(change, recentChanges.getCurrentValidIntervals(None))
-              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds, ${changeCount}, ${showChangesGraph})"""
+              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.serialize}",currentPageIds, ${changeCount}, ${showChangesGraph})"""
            }
 
           JsRaw(s"""
@@ -461,12 +461,12 @@ class RuleGrid(
             case Some((activeTechnique, directive)) =>
               techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
                 case None =>
-                  Failure(s"Can not find Technique for activeTechnique with name ${activeTechnique.techniqueName.value} referenced in Rule with ID ${rule.id.value}")
+                  Failure(s"Can not find Technique for activeTechnique with name ${activeTechnique.techniqueName.value} referenced in Rule with ID ${rule.id.serialize}")
                 case Some(technique) =>
                   Full((directive, activeTechnique.toActiveTechnique(), technique))
               }
             case None => //it's an error if the directive ID is defined and found but it is not attached to an activeTechnique
-              val error = Failure(s"Can not find Directive with ID '${id.debugString}' referenced in Rule with ID '${rule.id.value}'")
+              val error = Failure(s"Can not find Directive with ID '${id.debugString}' referenced in Rule with ID '${rule.id.serialize}'")
               logger.debug(error.messageChain, error)
               error
           }
@@ -482,7 +482,7 @@ class RuleGrid(
             case Some(t) =>
               Full(t.toTargetInfo)
             case None =>
-              Failure(s"Can not find full information for target '${target.target}' referenced in Rule with ID '${rule.id.value}'")
+              Failure(s"Can not find full information for target '${target.target}' referenced in Rule with ID '${rule.id.serialize}'")
           }
        }.map(x => x.toSet)
 
@@ -507,20 +507,20 @@ class RuleGrid(
                       , Some("Rule automatically disabled because it contains error (bad target or bad directives)")
                     )
              } yield {
-               logger.warn(s"Disabling rule '${rule.name}' (ID: '${rule.id.value}') because it refers missing objects. Go to rule's details and save, then enable it back to correct the problem.")
+               logger.warn(s"Disabling rule '${rule.name}' (ID: '${rule.id.serialize}') because it refers missing objects. Go to rule's details and save, then enable it back to correct the problem.")
                x match {
                  case f: Failure =>
-                   logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.value}' directive problem: " + f.messageChain)
+                   logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.serialize}' directive problem: " + f.messageChain)
                  case _ => // Directive Ok!
                }
                y match {
                     case f: Failure =>
-                      logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.value}' target problem: " + f.messageChain)
+                      logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.serialize}' target problem: " + f.messageChain)
                     case _ => // Group Ok!
                }
              } ).toBox match {
                case eb: EmptyBox =>
-                 val e = eb ?~! s"Error when to trying to disable the rule '${rule.name}' (ID: '${rule.id.value}') because it's data are inconsistant."
+                 val e = eb ?~! s"Error when to trying to disable the rule '${rule.name}' (ID: '${rule.id.serialize}') because it's data are inconsistant."
                  logger.warn(e.messageChain)
                  e.rootExceptionCause.foreach { ex =>
                    logger.warn("Exception was: ", ex)
@@ -715,7 +715,7 @@ final case class RuleLine (
 
       val base = JsObj(
           ( "name"         , name          )
-        , ( "id"           , id.value      )
+        , ( "id"           , id.serialize  )
         , ( "description"  , description   )
         , ( "applying"     , applying      )
         , ( "category"     , category      )

@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.GitVersion
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.eventlog.EventActor
 import com.normation.eventlog._
@@ -66,6 +67,7 @@ import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.RuleModAction
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.StringUuidGenerator
+
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -75,11 +77,13 @@ import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
+
 import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.DetailLevel
 import com.normation.rudder.apidata.FullDetails
+
 import zio._
 import zio.syntax._
 import com.normation.rudder.rest._
@@ -88,6 +92,7 @@ import com.normation.rudder.apidata.JsonResponseObjects._
 import com.normation.rudder.apidata.MinimalDetails
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.rest.implicits._
 
 class RuleApi(
@@ -139,12 +144,12 @@ class RuleApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       var action = "createRule"
-      val id = restExtractor.extractId(req)(x => Full(RuleId(x))).map(_.getOrElse(RuleId(uuidGen.newUuid)))
+      val id = restExtractor.extractId(req)(x => RuleId.parse(x).toBox).map(_.getOrElse(RuleId(RuleUid(uuidGen.newUuid))))
 
       val response = for {
         ruleId     <- id
         restRule   <- restExtractor.extractRule(req) ?~! s"Could not extract Rule parameters from request"
-        optCloneId <- restExtractor.extractString("source")(req)(x => Full(RuleId(x)))
+        optCloneId <- restExtractor.extractString("source")(req)(x => RuleId.parse(x).toBox)
         result     <- serviceV2.createRule(restRule, ruleId, optCloneId, authzToken.actor)
       } yield {
         if (optCloneId.nonEmpty)
@@ -152,7 +157,7 @@ class RuleApi(
         result
       }
 
-      actionResponse(response, req, "Could not create Rule", id.map(_.value), authzToken.actor, "rules")(action)
+      actionResponse(response, req, "Could not create Rule", id.map(_.serialize), authzToken.actor, "rules")(action)
     }
   }
 
@@ -300,8 +305,11 @@ class RuleApi(
 
   object RuleDetailsV14 extends LiftApiModuleString {
     val schema = API.RuleDetails
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.getRule(RuleId(id)).toLiftResponseOne(params, schema, _.id)
+    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        id <- RuleId.parse(sid).toIO
+        r  <- serviceV14.getRule(id)
+      } yield r).toLiftResponseOne(params, schema, _.id)
     }
   }
 
@@ -310,7 +318,8 @@ class RuleApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
         restRule   <- zioJsonExtractor.extractRule(req).chainError(s"Could not extract rule parameters from request").toIO
-        result     <- serviceV14.createRule(restRule, RuleId(restRule.id.getOrElse(uuidGen.newUuid)), restRule.source.map(RuleId), params, authzToken.actor)
+        sourceId   <- ZIO.foreach(restRule.source){ x => RuleId.parse(x).toIO }
+        result     <- serviceV14.createRule(restRule, RuleId(RuleUid(restRule.id.getOrElse(uuidGen.newUuid))), sourceId, params, authzToken.actor)
       } yield {
         val action = if (restRule.source.nonEmpty) "cloneRule" else schema.name
         (RudderJsonResponse.ResponseSchema(action, schema.dataContainer), result)
@@ -332,8 +341,12 @@ class RuleApi(
 
   object DeleteRuleV14 extends LiftApiModuleString {
     val schema = API.DeleteRule
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.deleteRule(RuleId(id), params, authzToken.actor).toLiftResponseOne(params, schema, _.id)
+    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        id <- RuleId.parse(sid).toIO
+        r  <-serviceV14.deleteRule(id, params, authzToken.actor)
+      } yield r).toLiftResponseOne(params, schema, _.id)
+
     }
   }
 
@@ -450,7 +463,7 @@ class RuleApiService2 (
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
       JArray(serialize(change.newRule, None) :: Nil)
-    }) ?~ (s"Could not save Rule ${change.newRule.id.value}")
+    }) ?~ (s"Could not save Rule ${change.newRule.id.serialize}")
   }
 
   def createRule(restRule: RestRule, ruleId: RuleId, clone: Option[RuleId], actor : EventActor): Box[(EventActor, ModificationId, Option[String]) =>  Box[JValue] ] = {
@@ -462,7 +475,7 @@ class RuleApiService2 (
           // clone existing rule
           for {
             rule <- readRule.get(sourceId).toBox ?~!
-              s"Could not create rule '${name}' (id:${ruleId.value}) by cloning rule '${sourceId.value}')"
+              s"Could not create rule '${name}' (id:${ruleId.serialize}) by cloning rule '${sourceId.serialize}')"
           } yield {
             RuleChangeRequest(RuleModAction.Create, restRule.updateRule(rule).copy(id = ruleId), Some(rule))
           }
@@ -470,7 +483,7 @@ class RuleApiService2 (
         case None =>
           // create from scratch - base rule is the same with default values
           val category = restRule.category.getOrElse(RuleCategoryId("rootRuleCategory"))
-          val baseRule = Rule(ruleId, None, name, category)
+          val baseRule = Rule(ruleId, name, category)
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restRule.enabled.getOrElse(true)
 
@@ -504,11 +517,12 @@ class RuleApiService2 (
     }) ?~ (s"Error when creating new rule")
   }
 
+  // only used in old API, don't care about revision
   def ruleDetails(id:String, req:Req) = {
     implicit val action = "ruleDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
-    readRule.get(RuleId(id)).toBox match {
+    readRule.get(RuleId(RuleUid(id))).toBox match {
       case Full(rule) =>
         val jsonRule = List(serialize(rule,None))
         toJsonResponse(Some(id),("rules" -> JArray(jsonRule)))
@@ -523,7 +537,7 @@ class RuleApiService2 (
     implicit val action = "deleteRule"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = RestUtils.getActor(req)
-    val ruleId = RuleId(id)
+    val ruleId = RuleId(RuleUid(id))
 
     readRule.get(ruleId).toBox match {
       case Full(rule) =>
@@ -532,9 +546,9 @@ class RuleApiService2 (
         createChangeRequestAndAnswer(id, deleteRuleDiff, change, actor, req)
 
       case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not find Rule ${ruleId.value}" )
-        val message = s"Could not delete Rule ${ruleId.value} cause is: ${fail.msg}."
-        toJsonError(Some(ruleId.value), message)
+        val fail = eb ?~ (s"Could not find Rule ${ruleId.serialize}" )
+        val message = s"Could not delete Rule ${ruleId.serialize} cause is: ${fail.msg}."
+        toJsonError(Some(ruleId.serialize), message)
     }
   }
 
@@ -542,7 +556,7 @@ class RuleApiService2 (
     implicit val action = "updateRule"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = getActor(req)
-    val ruleId = RuleId(id)
+    val ruleId = RuleId(RuleUid(id))
 
     readRule.get(ruleId).toBox match {
       case Full(rule) =>
@@ -555,14 +569,14 @@ class RuleApiService2 (
 
           case eb : EmptyBox =>
             val fail = eb ?~ (s"Could extract values from request" )
-            val message = s"Could not modify Rule ${ruleId.value} cause is: ${fail.msg}."
-            toJsonError(Some(ruleId.value), message)
+            val message = s"Could not modify Rule ${ruleId.serialize} cause is: ${fail.msg}."
+            toJsonError(Some(ruleId.serialize), message)
         }
 
       case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not find Rule ${ruleId.value}" )
-        val message = s"Could not modify Rule ${ruleId.value} cause is: ${fail.msg}."
-        toJsonError(Some(ruleId.value), message)
+        val fail = eb ?~ (s"Could not find Rule ${ruleId.serialize}" )
+        val message = s"Could not modify Rule ${ruleId.serialize} cause is: ${fail.msg}."
+        toJsonError(Some(ruleId.serialize), message)
     }
   }
 
@@ -679,7 +693,7 @@ class RuleApiService14 (
     for {
       workflow <- workflowLevelService.getForRule(actor, change)
       cr       =  ChangeRequestService.createChangeRequestFromRule(
-                    params.changeRequestName.getOrElse(s"${change.action.name} rule '${change.newRule.name}' (${change.newRule.id.value}) by API request")
+                    params.changeRequestName.getOrElse(s"${change.action.name} rule '${change.newRule.name}' (${change.newRule.id.serialize}) by API request")
                   , params.changeRequestDescription.getOrElse("")
                   , change.newRule
                   , change.previousRule
@@ -697,7 +711,7 @@ class RuleApiService14 (
 
   def listRules(): IOResult[Seq[JRRule]] = {
     readRule.getAll(false).chainError("Could not fetch Rules").map(rules =>
-      rules.map(JRRule.fromRule(_, None))
+      rules.sortBy(_.id.serialize).map(JRRule.fromRule(_, None))
     )
   }
 
@@ -709,7 +723,7 @@ class RuleApiService14 (
         case Some(sourceId) =>
           // clone existing rule
           for {
-            rule <- readRule.get(sourceId).chainError(s"Could not create rule '${name}' (id:${ruleId.value}) by cloning rule '${sourceId.value}')")
+            rule <- readRule.get(sourceId).chainError(s"Could not create rule '${name}' (id:${ruleId.serialize}) by cloning rule '${sourceId.serialize}')")
           } yield {
             RuleChangeRequest(RuleModAction.Create, restRule.updateRule(rule).copy(id = ruleId), Some(rule))
           }
@@ -717,7 +731,7 @@ class RuleApiService14 (
         case None =>
           // create from scratch - base rule is the same with default values
           val category = restRule.category.getOrElse("rootRuleCategory")
-          val baseRule = Rule(ruleId, None, name, RuleCategoryId(category))
+          val baseRule = Rule(ruleId, name, RuleCategoryId(category))
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restRule.enabled.getOrElse(true)
 
@@ -756,15 +770,16 @@ class RuleApiService14 (
 
 
   def getRule(id: RuleId): IOResult[JRRule] = {
-    readRule.get(id).chainError(s"Could not get rule with id: '${id.value}'").map(rule =>
+    readRule.get(id).chainError(s"Could not get rule with id: '${id.serialize}'").map(rule =>
       JRRule.fromRule(rule, None)
     )
   }
 
   def updateRule(restRule: JQRule, params: DefaultParams, actor: EventActor): IOResult[JRRule] = {
     for {
-      id          <- restRule.id.notOptional(s"Rule id is mandatory in update")
-      rule        <- readRule.get(RuleId(id))
+      sid         <- restRule.id.notOptional(s"Rule id is mandatory in update")
+      id          <- RuleId.parse(sid).toIO
+      rule        <- readRule.get(id)
       updatedRule =  restRule.updateRule(rule)
       diff        =  ModifyToRuleDiff(updatedRule)
       change      =  RuleChangeRequest(RuleModAction.Update, updatedRule, Some(rule))
@@ -776,12 +791,16 @@ class RuleApiService14 (
 
   def deleteRule(id: RuleId, params: DefaultParams, actor: EventActor): IOResult[JRRule] = {
     // if the rule is already missing, we report a success
-    readRule.getOpt(id).flatMap {
-      case Some(rule) =>
-        val change = RuleChangeRequest(RuleModAction.Delete, rule, Some(rule))
-        createChangeRequest(DeleteRuleDiff(rule), change, params, actor).toIO
-      case None =>
-        JRRule.empty(id.value).succeed
+    id.rev match {
+      case GitVersion.DEFAULT_REV =>
+        readRule.getOpt(id).flatMap {
+          case Some(rule) =>
+            val change = RuleChangeRequest(RuleModAction.Delete, rule, Some(rule))
+            createChangeRequest(DeleteRuleDiff(rule), change, params, actor).toIO
+          case None =>
+            JRRule.empty(id.serialize).succeed
+        }
+      case _ => Inconsistency(s"You can't delete a past revision of a rule, only current version can be deleted.").fail
     }
   }
 
@@ -808,7 +827,7 @@ class RuleApiService14 (
       found <- (if(root.id == id) Some((root, root)) else recFind(root, id)).notOptional(s"Error: rule category with id '${id.value}' was not found")
       rules <- readRule.getAll().map(_.groupBy(_.categoryId).get(id))
     } yield {
-      JRCategoriesRootEntrySimple(JRSimpleRuleCategory.fromCategory(found._2, found._1.id.value, rules.map(_.map(_.id.value).toList.sorted).getOrElse(Nil)))
+      JRCategoriesRootEntrySimple(JRSimpleRuleCategory.fromCategory(found._2, found._1.id.value, rules.map(_.map(_.id.serialize).toList.sorted).getOrElse(Nil)))
     }
   }
 

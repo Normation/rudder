@@ -49,9 +49,11 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
 import com.normation.rudder.domain.reports.NodeConfigId
+
 import org.joda.time.format.DateTimeFormatterBuilder
 import com.normation.rudder.domain.reports.ComplianceLevel
 
@@ -164,7 +166,7 @@ class ComplianceTest extends Specification {
       lines.map( l =>
         Reports(
             dateParser.parseDateTime(l(1))
-          , RuleId(l(4))
+          , RuleId(RuleUid(l (4)))
           , DirectiveId(DirectiveUid(l(3)))
           , NodeId(l(2))
           , l(5).toInt

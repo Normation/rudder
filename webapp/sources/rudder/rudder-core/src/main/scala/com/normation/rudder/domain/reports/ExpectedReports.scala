@@ -251,8 +251,8 @@ object ExpectedReportsSerialisation {
      ~  ("rules" -> jsonRuleExpectedReports(n.ruleExpectedReports))
      ~  ("overrides" -> (n.overrides.map { o =>
           (
-            ("policy"      -> ( ("ruleId" -> o.policy.ruleId.value     ) ~ ("directiveId" -> o.policy.directiveId.serialize) ))
-          ~ ("overridenBy" -> ( ("ruleId" -> o.overridenBy.ruleId.value) ~ ("directiveId" -> o.overridenBy.directiveId.serialize) ))
+            ("policy"      -> ( ("ruleId" -> o.policy.ruleId.serialize     ) ~ ("directiveId" -> o.policy.directiveId.serialize) ))
+          ~ ("overridenBy" -> ( ("ruleId" -> o.overridenBy.ruleId.serialize) ~ ("directiveId" -> o.overridenBy.directiveId.serialize) ))
           )
         }))
     )
@@ -277,7 +277,7 @@ object ExpectedReportsSerialisation {
     (
       rules.map { r =>
          (
-           ("ruleId"     -> r.ruleId.value)
+           ("ruleId"     -> r.ruleId.serialize)
          ~ ("directives" -> r.directives.map { d =>
              (
                ("directiveId" -> d.directiveId.serialize)
@@ -385,8 +385,10 @@ object ExpectedReportsSerialisation {
             tv2 <- TechniqueVersion.parse(v2)
             dd  <- DirectiveId.parse(ddid)
             od  <- DirectiveId.parse(odid)
+            dr  <- RuleId.parse(drid)
+            or  <- RuleId.parse(orid)
           } yield {
-            OverridenPolicy(PolicyId(RuleId(drid), dd, tv1), PolicyId(RuleId(orid), od, tv2))
+            OverridenPolicy(PolicyId(dr, dd, tv1), PolicyId(or, od, tv2))
           }).toBox ?~! s"Error when parsing rule expected reports from json: '${compactRender(json)}'"
 
         case _ =>
@@ -405,8 +407,9 @@ object ExpectedReportsSerialisation {
                             case JArray(directives) => sequence(directives)(directive)
                             case x                  => Failure(s"Error when parsing the list of directives from expected rule report: '${compactRender(x)}'")
                           }
+            rid        <- RuleId.parse(id).toBox
           } yield {
-            RuleExpectedReports(RuleId(id), directives.toList)
+            RuleExpectedReports(rid, directives.toList)
           }
         case _ =>
           Failure(s"Error when parsing rule expected reports from json: '${compactRender(json)}'")

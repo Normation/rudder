@@ -45,10 +45,13 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleUid
+
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import com.normation.rudder.services.reports.Pending
+
 import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.ReportType._
 import com.normation.rudder.services.policies.NodeConfigData
@@ -61,8 +64,8 @@ import com.normation.rudder.services.policies.NodeConfigData
 @RunWith(classOf[JUnitRunner])
 class StatusReportTest extends Specification {
   private[this] implicit def s2n(s: String): NodeId = NodeId(s)
-  private[this] implicit def r2n(s: String): RuleId = RuleId(s)
-  private[this] implicit def d2n(s: String): DirectiveId = DirectiveId(DirectiveUid(s), GitVersion.defaultRev)
+  private[this] implicit def r2n(s: String): RuleId = RuleId(RuleUid(s))
+  private[this] implicit def d2n(s: String): DirectiveId = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
 
   sequential
 
@@ -236,15 +239,15 @@ class StatusReportTest extends Specification {
     }
 
     "Correctly compute the by rule compliance" in {
-      report.byRules(RuleId("r1")).compliance === ComplianceLevel(pending = 2) and
-      report.byRules(RuleId("r2")).compliance === ComplianceLevel(success = 1) and
-      report.byRules(RuleId("r3")).compliance === ComplianceLevel(error = 1)
+      report.byRules(RuleId(RuleUid("r1"))).compliance === ComplianceLevel(pending = 2) and
+      report.byRules(RuleId(RuleUid("r2"))).compliance === ComplianceLevel(success = 1) and
+      report.byRules(RuleId(RuleUid("r3"))).compliance === ComplianceLevel(error = 1)
     }
 
   }
 
   "Rule status reports" should {
-    val report = RuleStatusReport(RuleId("r1"), parse("""
+    val report = RuleStatusReport(RuleId(RuleUid("r1")), parse("""
        n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
        n1, r1, 0, d1, c1  , v1  , "", pending   , pending msg
        n2, r1, 0, d1, c0  , v0  , "", success   , pending msg
@@ -253,7 +256,7 @@ class StatusReportTest extends Specification {
     """), Nil)
 
     "Filter out r2" in {
-      report.report.reports.map( _.ruleId).toSet === Set(RuleId("r1"))
+      report.report.reports.map( _.ruleId).toSet === Set(RuleId(RuleUid("r1")))
     }
 
     "Correctly compute the compliance" in {

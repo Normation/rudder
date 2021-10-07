@@ -187,7 +187,7 @@ object JsonCompliance {
 
   implicit class JsonbyRuleCompliance(val rule: ByRuleRuleCompliance) extends AnyVal {
     def toJsonV6 = (
-        ("id" -> rule.id.value)
+        ("id" -> rule.id.serialize)
       ~ ("name" -> rule.name)
       ~ ("compliance" -> rule.compliance.complianceWithoutPending)
       ~ ("complianceDetails" -> percents(rule.compliance))
@@ -203,7 +203,7 @@ object JsonCompliance {
      */
 
     def toJson(level: Int) = (
-        ("id" -> rule.id.value)
+        ("id" -> rule.id.serialize)
       ~ ("name" -> rule.name)
       ~ ("compliance" -> rule.compliance.complianceWithoutPending)
       ~ ("mode" -> rule.mode.name)
@@ -294,7 +294,7 @@ object JsonCompliance {
       if(level < 2) None
       else Some(rules.map { rule =>
         (
-            ("id" -> rule.id.value)
+            ("id" -> rule.id.serialize)
           ~ ("name" -> rule.name)
           ~ ("compliance" -> rule.compliance.complianceWithoutPending)
           ~ ("complianceDetails" -> percents(rule.compliance))

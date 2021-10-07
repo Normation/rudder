@@ -46,13 +46,14 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.ChangeRequestDirectiveDiff
 import com.normation.rudder.domain.policies.ChangeRequestRuleDiff
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.ModifyToRuleDiff
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.workflows.ChangeRequestInfo
 import com.normation.rudder.domain.workflows._
+
 import org.joda.time.DateTime
 
 
@@ -69,7 +70,7 @@ object ChangeRequestService {
     , changeRequestDesc: String
     , techniqueName    : TechniqueName
     , rootSection      : SectionSpec
-    , directiveId      : DirectiveUid
+    , directiveId      : DirectiveId
     , originalDirective: Option[Directive]
     , diff             : ChangeRequestDirectiveDiff
     , actor            : EventActor
@@ -122,7 +123,7 @@ object ChangeRequestService {
     , changeRequestDesc: String
     , techniqueName    : TechniqueName
     , rootSection      : SectionSpec
-    , directiveId      : DirectiveUid
+    , directiveId      : DirectiveId
     , originalDirective: Option[Directive]
     , diff             : ChangeRequestDirectiveDiff
     , actor            : EventActor
