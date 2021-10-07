@@ -22,9 +22,9 @@ type ModalState = NoModal | DeletionValidation Rule | DeactivationValidation Rul
 
 type RuleTarget = NodeGroupId String | Composition  RuleTarget RuleTarget | Special String | Node String | And (List RuleTarget) | Or (List RuleTarget)
 
-type alias RuleId = { value : String }
+type alias RuleId      = { value : String }
 type alias DirectiveId = { value : String }
-type alias NodeId = { value : String }
+type alias NodeId      = { value : String }
 
 type alias Rule =
   { id                : RuleId
@@ -52,7 +52,7 @@ type alias Directive =
  }
 
 type alias Technique =
-  { name     : String
+  { name       : String
   , directives : List Directive
   }
 
@@ -65,13 +65,14 @@ type alias Category a =
   }
 
 type SubCategories a = SubCategories (List (Category a))
+
 type alias Group =
-  { id : String
-  , name : String
+  { id          : String
+  , name        : String
   , description : String
-  , nodeIds : List String
-  , dynamic : Bool
-  , enabled : Bool
+  , nodeIds     : List String
+  , dynamic     : Bool
+  , enabled     : Bool
   }
 
 getAllElems: Category a -> List a
@@ -112,18 +113,21 @@ type alias ComponentCompliance =
   { component         : String
   , compliance        : Float
   , complianceDetails : ComplianceDetails
-  , nodes : List NodeCompliance
+  , nodes             : List NodeCompliance
   }
+
 type alias ValueCompliance =
   { value   : String
   , reports : List Report
-
   }
 
-type alias Report = { status : String, message : Maybe String}
+type alias Report =
+  { status  : String
+  , message : Maybe String
+  }
 
 type alias NodeCompliance =
-  { nodeId            : NodeId
+  { nodeId : NodeId
   , values : List ValueCompliance
   }
 
@@ -181,6 +185,7 @@ type alias Filters =
 type alias UI =
   { ruleFilters      : Filters
   , directiveFilters : Filters
+  , groupFilters     : Filters
   , modal            : ModalState
   , hasWriteRights   : Bool
   }
@@ -227,5 +232,6 @@ type Msg
   | OpenDeactivationPopup Rule
   | ClosePopup Msg
   | Ignore
-  | UpdateRuleFilters Filters
+  | UpdateRuleFilters      Filters
   | UpdateDirectiveFilters Filters
+  | UpdateGroupFilters     Filters

@@ -12,8 +12,7 @@ import ApiCalls exposing (..)
 import ViewRulesTable exposing (..)
 import ViewRuleDetails exposing (..)
 import ViewCategoryDetails exposing (..)
-import ViewUtils exposing (sortTable)
-import ViewUtilsRules exposing (..)
+import ViewUtils exposing (thClass, sortTable, getCategoryName, getListRules, filterSearch, searchFieldRules)
 
 
 view : Model -> Html Msg
@@ -46,7 +45,7 @@ view model =
           |> List.filterMap ruleTreeCategory
 
         rules = item.elems
-          |> List.filter (filterRules model)
+          |> List.filter (\r -> filterSearch model.ui.ruleFilters.treeFilters.filter (searchFieldRules r model))
           |> List.sortBy .name
           |> List.map ruleTreeElem
 
@@ -71,15 +70,6 @@ view model =
       Loading -> text "loading"
       RuleTable   ->
         let
-          thClass : SortBy -> String
-          thClass sortBy =
-            if sortBy == model.ui.ruleFilters.tableFilters.sortBy then
-              if model.ui.ruleFilters.tableFilters.sortOrder then
-                "sorting_asc"
-              else
-                "sorting_desc"
-            else
-              "sorting"
           ruleFilters = model.ui.ruleFilters
         in
           div [class "main-details"]
@@ -87,10 +77,10 @@ view model =
             [ table [ class "no-footer dataTable"]
               [ thead []
                 [ tr [class "head"]
-                  [ th [class (thClass Name      ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Name      ))][text "Name"          ]
-                  , th [class (thClass Parent    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Parent    ))][text "Category"      ]
-                  , th [class (thClass Status    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Status    ))][text "Status"        ]
-                  , th [class (thClass Compliance) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Compliance))][text "Compliance"    ]
+                  [ th [class (thClass model.ui.ruleFilters.tableFilters Name      ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Name      ))][text "Name"          ]
+                  , th [class (thClass model.ui.ruleFilters.tableFilters Parent    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Parent    ))][text "Category"      ]
+                  , th [class (thClass model.ui.ruleFilters.tableFilters Status    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Status    ))][text "Status"        ]
+                  , th [class (thClass model.ui.ruleFilters.tableFilters Compliance) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Compliance))][text "Compliance"    ]
                   , th [class ""                   , rowspan 1, colspan 1][text "Recent changes"]
                   ]
                 ]
