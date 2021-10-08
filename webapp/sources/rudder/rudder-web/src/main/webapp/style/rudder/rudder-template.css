@@ -142,10 +142,12 @@
 .rudder-template .header-buttons .btn {
   margin-left: 10px;
 }
-.rudder-template .header-buttons .btn > .fa:last-child{
+.rudder-template .header-buttons .btn > .fa:last-child,
+.rudder-template .btn.btn-icon > .fa:last-child{
   margin-left: 6px;
 }
-.rudder-template .header-buttons .btn.btn-default > .fa{
+.rudder-template .header-buttons .btn.btn-default > .fa,
+.rudder-template .btn.btn-default.btn-icon > .fa{
   opacity: .5;
 }
 .rudder-template .header-buttons .btn.btn-danger {
