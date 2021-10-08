@@ -51,11 +51,14 @@ import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.reports.execution.{AgentRunId, AgentRunWithoutCompliance, AgentRun => RudderAgentRun}
 import com.normation.rudder.rule.category.RuleCategoryId
+
 import org.joda.time.DateTime
 import doobie._
 import com.normation.rudder.db.Doobie._
+
 import cats.implicits._
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.git.GitCommitId
 
 
@@ -111,7 +114,7 @@ final object DB {
 
   def insertReports(reports: List[com.normation.rudder.domain.reports.Reports]): ConnectionIO[Int] = {
     val dbreports = reports.map { r =>
-      DB.Reports[Unit]((), r.executionDate, r.nodeId.value, r.directiveId.serialize, r.ruleId.value, r.serial
+      DB.Reports[Unit]((), r.executionDate, r.nodeId.value, r.directiveId.serialize, r.ruleId.serialize, r.serial
                       , r.component, r.keyValue, r.executionTimestamp, r.severity, "policy", r.message)
     }
 
@@ -320,8 +323,7 @@ final case class SerializedRules[T](
       , directives : Seq[SerializedRuleDirectives]
     ) : Rule = {
       Rule (
-          RuleId(rule.ruleId)
-        , None// TODO: we should perhaps be able to get ride of these table.
+          RuleId(RuleUid(rule.ruleId))
         , rule.name
         , RuleCategoryId(rule.categoryId.getOrElse("rootRuleCategory")) // this is not really useful as RuleCategory are not really serialized
         , ruleTargets.flatMap(x => RuleTarget.unser(x.targetSerialisation)).toSet
@@ -337,7 +339,7 @@ final case class SerializedRules[T](
     def fromRule(rule : Rule) : SerializedRules[Unit] = {
       SerializedRules (
           ()
-        , rule.id.value
+        , rule.id.uid.value
         , Opt(rule.categoryId.value)
         , rule.name
         , Opt(rule.shortDescription)

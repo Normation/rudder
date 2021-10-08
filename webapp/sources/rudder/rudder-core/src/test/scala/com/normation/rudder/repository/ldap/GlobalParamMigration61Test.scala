@@ -100,7 +100,7 @@ class GlobalParamMigration61Test extends Specification {
     new LDAPEntityMapper(rudderDit, nodeDit, acceptedNodesDitImpl, cmdbQueryParser, inventoryMapper)
   }
 
-  val baseParam = GlobalParameter.parse("test", GitVersion.defaultRev, "", None, "", None).forceGet
+  val baseParam = GlobalParameter.parse("test", GitVersion.DEFAULT_REV, "", None, "", None).forceGet
 
   // attribute that used to be set in GlobalParameter entry before 6.1.
   def setIs6_0(e: LDAPEntry): Unit = {

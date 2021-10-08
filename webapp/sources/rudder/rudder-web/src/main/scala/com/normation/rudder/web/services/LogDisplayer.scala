@@ -158,7 +158,7 @@ class LogDisplayer(
     }
 
     def getRuleName(ruleId : RuleId) : String = {
-      ruleMap.get(ruleId).getOrElse({val result = ruleRepository.get(ruleId).map(x => x.name).toBox.openOr(ruleId.value); ruleMap += ( ruleId -> result); result } )
+      ruleMap.get(ruleId).getOrElse({val result = ruleRepository.get(ruleId).map(x => x.name).toBox.openOr(ruleId.serialize); ruleMap += ( ruleId -> result); result } )
     }
 
     val lines = {

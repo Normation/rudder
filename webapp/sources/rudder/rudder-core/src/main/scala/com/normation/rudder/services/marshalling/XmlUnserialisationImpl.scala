@@ -148,8 +148,8 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
                                  else Failure("Entry type is not a <%s>: %s".format(XML_TAG_DIRECTIVE, xml))
                                }
       fileFormatOk          <- TestFileFormat(directive)
-      id                    <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + xml)
-      rev                 =  ParseRev((directive \ "revision").map(_.text).mkString(""))
+      sid                   <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + xml)
+      id                    <- DirectiveId.parse(sid).toBox
       ptName                <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + xml)
       name                  <- (directive \ "displayName").headOption.map( _.text.trim ) ?~! ("Missing attribute 'displayName' in entry type directive : " + xml)
       techniqueVersion      <- (directive \ "techniqueVersion").headOption.flatMap( x => TechniqueVersion.parse(x.text).toBox) ?~! ("Missing attribute 'techniqueVersion' in entry type directive : " + xml)
@@ -165,7 +165,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
       (
           TechniqueName(ptName)
         , Directive(
-              id               = DirectiveId(DirectiveUid(id), rev)
+              id               = id
             , name             = name
             , techniqueVersion = techniqueVersion
             , parameters       = SectionVal.toMapVariables(sectionVal)
@@ -276,8 +276,9 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
                             else Failure("Entry type is not a <%s>: %s".format(XML_TAG_RULE, entry))
                           }
       fileFormatOk     <- TestFileFormat(rule)
-      id               <- (rule \ "id").headOption.map( _.text ) ?~!
+      sid              <- (rule \ "id").headOption.map( _.text ) ?~!
                           ("Missing attribute 'id' in entry type rule: " + entry)
+      id               <- RuleId.parse(sid).toBox
       category         <- (rule \ "category").headOption.map( n => RuleCategoryId(n.text) ) ?~!
                           ("Missing attribute 'category' in entry type rule: " + entry)
       name             <- (rule \ "displayName").headOption.map( _.text.trim ) ?~!
@@ -300,8 +301,7 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
 
     } yield {
       Rule(
-          RuleId(id)
-        , Some(revision)
+          id
         , name
         , category
         , targets.toSet
@@ -550,7 +550,7 @@ class ChangeRequestChangesUnserialisationImpl (
 
         (rulesNode \ "rule").iterator.flatMap { rule =>
           for {
-            ruleId       <- rule.attribute("id").map(id => RuleId(id.text)) ?~!
+            ruleId       <- rule.attribute("id").flatMap(id => RuleId.parse(id.text).toBox) ?~!
                              s"Missing attribute 'id' in entry type changeRequest rule changes  : ${rule}"
             initialRule  <- (rule \ "initialState").headOption
             initialState <- (initialRule \ "rule").headOption match {
@@ -659,7 +659,7 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
       provider         =  (globalParam \ "provider").headOption.map(x => PropertyProvider(x.text))
       mode             =  (globalParam \ "inheritMode").headOption.flatMap(x => InheritMode.parseString(x.text).toOption)
                           // TODO: no version in param for now
-      g                <- GlobalParameter.parse(name, GitVersion.defaultRev, value, mode, description, provider).toBox
+      g                <- GlobalParameter.parse(name, GitVersion.DEFAULT_REV, value, mode, description, provider).toBox
     } yield {
       g                          // TODO: no version in param for now
 

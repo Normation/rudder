@@ -217,7 +217,7 @@ class HistorizationServiceImpl(
 
       // a closable rule is a rule that is in the database, but not in the ldap
       val closable = registered.keySet.filter(x => !(rules.map(rule => rule.id)).contains(x)).
-                    map(x => x.value)
+                    map(x => x.serialize)
       historizationRepository.updateRules(changed, closable.toSeq)
     }) ?~! s"Could not update the rules historization information in base."
     log("update rules", res)

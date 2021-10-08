@@ -42,6 +42,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.AggregatedStatusReport
 import com.normation.rudder.domain.reports.DirectiveStatusReport
 import com.normation.rudder.domain.reports.NodeStatusReport
@@ -50,6 +51,7 @@ import com.normation.rudder.domain.reports.RuleNodeStatusReport
 import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.services.policies.PolicyId
+
 import org.joda.time.DateTime
 import org.junit.runner._
 import org.specs2.mutable._
@@ -66,9 +68,9 @@ class ReportingServiceUtilsTest extends Specification {
    */
   val node1 = NodeId("node1")
   val node2 = NodeId("node2")
-  val rule1 = RuleId("rule1")
-  val rule2 = RuleId("rule2")
-  val rule3 = RuleId("rule3")
+  val rule1 = RuleId(RuleUid("rule1"))
+  val rule2 = RuleId(RuleUid("rule2"))
+  val rule3 = RuleId(RuleUid("rule3"))
   val dir1  = DirectiveId(DirectiveUid("dir1"))
   val dir2  = DirectiveId(DirectiveUid("dir2"))
   val dir3  = DirectiveId(DirectiveUid("dir3"))

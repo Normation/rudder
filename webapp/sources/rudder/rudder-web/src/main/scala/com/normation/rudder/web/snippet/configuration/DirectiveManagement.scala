@@ -469,7 +469,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         val directiveDefaultName = allDefaults.get(technique.id.serialize).orElse(allDefaults.get(technique.id.name.value)).getOrElse(technique.name)
         val directive =
           Directive(
-              DirectiveId(DirectiveUid(uuidGen.newUuid), GitVersion.defaultRev)
+              DirectiveId(DirectiveUid(uuidGen.newUuid), GitVersion.DEFAULT_REV)
             , technique.id.version
             , Map()
             , directiveDefaultName
@@ -526,8 +526,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
 
     val json = directiveId.rev match {
-      case GitVersion.defaultRev => s"""{"directiveId":"${directiveId.uid.value}"}"""
-      case r                     => s"""{"directiveId":"${directiveId.uid.value}", "rev":"${r.value}"}"""
+      case GitVersion.DEFAULT_REV => s"""{"directiveId":"${directiveId.uid.value}"}"""
+      case r                      => s"""{"directiveId":"${directiveId.uid.value}", "rev":"${r.value}"}"""
     }
     SetHtml(html_techniqueDetails, NodeSeq.Empty) &
     Replace(htmlId_policyConf, showDirectiveDetails()) &

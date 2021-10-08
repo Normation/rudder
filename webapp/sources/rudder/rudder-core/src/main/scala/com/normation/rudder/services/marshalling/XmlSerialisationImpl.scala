@@ -110,7 +110,7 @@ final case class XmlSerializerImpl (
 class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
   def serialise(rule:Rule):  Elem = {
     createTrimedElem(XML_TAG_RULE, xmlVersion) (
-        <id>{rule.id.value}</id>
+        <id>{rule.id.serialize}</id>
         <displayName>{rule.name}</displayName>
         <category>{rule.categoryId.value}</category>
         <targets>{
@@ -119,8 +119,8 @@ class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
         <directiveIds>{
           rule.directiveIds.map { case DirectiveId(uid, rev) =>
             rev match {
-              case GitVersion.defaultRev => <id>{uid.value}</id>
-              case r                     => <id revision={r.value}>{uid.value}</id>
+              case GitVersion.DEFAULT_REV => <id>{uid.value}</id>
+              case r                      => <id revision={r.value}>{uid.value}</id>
             }
           }
         }</directiveIds>
@@ -198,7 +198,7 @@ class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisati
     , directive          : Directive
   ) = {
     createTrimedElem(XML_TAG_DIRECTIVE, xmlVersion) (
-          <id>{directive.id.uid.value}</id>
+          <id>{directive.id.serialize}</id>
       ::  <displayName>{directive.name}</displayName>
       ::  <techniqueName>{ptName.value}</techniqueName>
       ::  <techniqueVersion>{directive.techniqueVersion.serialize}</techniqueVersion>
@@ -396,7 +396,7 @@ class ChangeRequestChangesSerialisationImpl(
           }
 
         val directives = changeRequest.directives.map{ case (directiveId,directive) =>
-          <directive id={directiveId.value}>
+          <directive id={directiveId.serialize}>
             <initialState>
               {directive.changes.initialState.map{
                         case (techniqueName,directive,rootSection) =>
@@ -414,7 +414,7 @@ class ChangeRequestChangesSerialisationImpl(
           }
 
         val rules = changeRequest.rules.map{ case (ruleId, rule) =>
-          <rule id={ruleId.value}>
+          <rule id={ruleId.serialize}>
             <initialState>
               {rule.changes.initialState.map{
                 case (initialRule) =>

@@ -160,7 +160,7 @@ class AsyncComplianceService (
       val nodeIds: Set[NodeId]
     , val ruleIds: Set[RuleId]
   ) extends ComplianceBy[RuleId] {
-    def value(key : RuleId) : String = key.value
+    def value(key : RuleId) : String = key.serialize
     val jsContainer : String = "ruleCompliances"
     def empty : Boolean = ruleIds.isEmpty
 

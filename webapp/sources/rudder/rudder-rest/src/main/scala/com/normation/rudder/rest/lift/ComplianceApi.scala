@@ -129,7 +129,8 @@ class ComplianceApi(
 
       (for {
         level <- restExtractor.extractComplianceLevel(req.params)
-        rule  <- complianceService.getRuleCompliance(RuleId(ruleId))
+        id    <- RuleId.parse(ruleId).toBox
+        rule  <- complianceService.getRuleCompliance(id)
       } yield {
         if(version.value <= 6) {
           rule.toJsonV6
@@ -356,7 +357,7 @@ class ComplianceAPIService(
     for {
       rule    <- rulesRepo.get(ruleId)
       reports <- getByRulesCompliance(Set(rule))
-      report  <- reports.find( _.id == ruleId).notOptional(s"No reports were found for rule with ID '${ruleId.value}'")
+      report  <- reports.find( _.id == ruleId).notOptional(s"No reports were found for rule with ID '${ruleId.serialize}'")
     } yield {
       report
     }

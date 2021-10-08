@@ -257,7 +257,7 @@ class AutomaticReportLogger(
           val s         = report.severity
           val nid       = report.nodeId.value
           val n         = allNodes.get(report.nodeId).map(_.hostname).getOrElse("Unknown node")
-          val rid       = report.ruleId.value
+          val rid       = report.ruleId.serialize
           val r         = rules.get(report.ruleId).map(_.name).getOrElse("Unknown rule")
           val did       = report.directiveId.debugString
           // TODO: do we need to store rev for directive (and rule and etc) or can we find it back from other part ?

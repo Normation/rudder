@@ -45,6 +45,7 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.reports.ComplianceMode
@@ -65,8 +66,9 @@ import com.normation.rudder.services.reports.UnexpectedReportBehavior.UnboundVar
 @RunWith(classOf[JUnitRunner])
 class ExecutionBatchTest extends Specification {
   private implicit def str2directiveId(s:String) = DirectiveId(DirectiveUid(s))
-  private implicit def str2ruleId(s:String) = RuleId(s)
+  private implicit def str2ruleId(s:String) = RuleId(RuleUid(s))
   private implicit def str2nodeId(s:String) = NodeId(s)
+  private implicit def str2ruleUid(s:String) = RuleUid(s)
 
   // a logger for timing information
   val logger = org.slf4j.LoggerFactory.getLogger("timing-test").asInstanceOf[ch.qos.logback.classic.Logger]

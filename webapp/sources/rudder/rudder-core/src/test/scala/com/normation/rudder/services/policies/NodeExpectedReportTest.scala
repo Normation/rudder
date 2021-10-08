@@ -49,12 +49,15 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.cfclerk.domain.SectionVariableSpec
+
 import org.joda.time.DateTime
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
+
 import net.liftweb.json._
 import net.liftweb.json.JsonAST.JArray
 
@@ -114,8 +117,8 @@ class NodeExpectedReportTest extends Specification {
   val t1 = technique("1")
   val t2 = technique("2")
 
-  val r1 = RuleId("rule_1")
-  val r2 = RuleId("rule_2")
+  val r1 = RuleId(RuleUid("rule_1"))
+  val r2 = RuleId(RuleUid("rule_2"))
   val d1 = DirectiveId(DirectiveUid("directive_1"))
   val d2 = DirectiveId(DirectiveUid("directive_2"))
   val d3 = DirectiveId(DirectiveUid("directive_3"))
@@ -258,7 +261,7 @@ class NodeExpectedReportTest extends Specification {
 
 
 
-      val json = ExpectedReportsSerialisation.jsonRuleExpectedReports(RuleExpectedReportBuilder(p1 :: p2 :: Nil).sortBy( _.ruleId.value))
+      val json = ExpectedReportsSerialisation.jsonRuleExpectedReports(RuleExpectedReportBuilder(p1 :: p2 :: Nil).sortBy( _.ruleId.serialize))
       val Diff(changed, added, deleted) = expected diff json
       // we don't want to deals with JNothing trailing leaf
       def clean(j: JValue): JValue = {

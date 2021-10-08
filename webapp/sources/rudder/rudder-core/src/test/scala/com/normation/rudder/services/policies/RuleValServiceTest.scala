@@ -37,6 +37,7 @@
 package com.normation.rudder.services.policies
 
 import com.normation.GitVersion
+
 import org.junit.runner._
 import org.specs2.runner._
 import org.specs2.mutable._
@@ -57,7 +58,9 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
+
 import com.normation.zio._
 
 
@@ -82,7 +85,7 @@ class RuleValServiceTest extends Specification {
       , TechniqueVersionHelper("1.0")
     )
   val directiveId = DirectiveUid("dirId")
-  val ruleId = RuleId("ruleId")
+  val ruleId = RuleId(RuleUid("ruleId"))
 
   /* create representation of meta techniques */
   def makePredefinedSectionSpec(name: String, providedValues: (String, Seq[String])) =
@@ -134,7 +137,7 @@ class RuleValServiceTest extends Specification {
     val technique = makeMetaTechnique(techniqueId)
 
     val directive = Directive(
-        DirectiveId(directiveId, GitVersion.defaultRev)
+        DirectiveId(directiveId, GitVersion.DEFAULT_REV)
       , techniqueId.version
       , Map()
       , "MyDirective"
@@ -148,7 +151,6 @@ class RuleValServiceTest extends Specification {
 
     val rule = Rule(
           ruleId
-        , None
         , "Rule Name"
         , RuleCategoryId("cat1")
         , Set(GroupTarget(NodeGroupId("nodeGroupId")))

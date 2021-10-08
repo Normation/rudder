@@ -240,12 +240,12 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
         //as of 4.3, serial is always 0 before being totally deleted in future version
         pk <- sql"""
                 insert into rules (ruleid, serial, categoryid, name, shortdescription, longdescription, isenabled, starttime)
-                values (${r.id}, 0, ${r.categoryId}, ${r.name}, ${r.shortDescription}, ${r.longDescription}, ${r.isEnabled}, ${now})
+                values (${r.id.serialize}, 0, ${r.categoryId}, ${r.name}, ${r.shortDescription}, ${r.longDescription}, ${r.isEnabled}, ${now})
                """.update.withUniqueGeneratedKeys[Long]("rulepkeyid")
         _  <- Update[DB.SerializedRuleDirectives]("""
                  insert into rulesdirectivesjoin (rulepkeyid, directiveid)
                  values (?, ?)
-               """).updateMany(r.directiveIds.filter(_.rev == GitVersion.defaultRev).toList.map(d => DB.SerializedRuleDirectives(pk, d.uid.value)))
+               """).updateMany(r.directiveIds.filter(_.rev == GitVersion.DEFAULT_REV).toList.map(d => DB.SerializedRuleDirectives(pk, d.uid.value)))
                 // TODO: above, we need to filter directive with non empty rev to avoid ducplicate insert. Not sure it's what we want.
         _  <- Update[DB.SerializedRuleGroups]("""
                  insert into rulesgroupjoin (rulepkeyid, targetserialisation)
@@ -258,7 +258,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
 
     val now = DateTime.now
 
-    updateQuery(rules.map(_.id.value).toList ++ closable, "rules", "ruleid") match {
+    updateQuery(rules.map(_.id.serialize).toList ++ closable, "rules", "ruleid") match {
       case None              =>  //nothing to do
       case Some(updateQuery) =>
         ZioRuntime.unsafeRun((for {

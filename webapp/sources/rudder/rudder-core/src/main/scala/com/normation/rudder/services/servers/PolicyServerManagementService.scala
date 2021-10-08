@@ -76,6 +76,7 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.PolicyServerTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.queries.AgentComparator
 import com.normation.rudder.domain.queries.And
@@ -568,7 +569,7 @@ object PolicyServerConfigurationObjects {
 
   def ruleCommonHasPolicyServer(nodeId: NodeId) = {
     Rule(
-        RuleId(s"hasPolicyServer-${nodeId.value}"), None
+        RuleId(RuleUid(s"hasPolicyServer-${nodeId.value}"))
       , s"Rudder system policy: basic setup (common) - ${nodeId.value}"
       , RuleCategoryId("rootRuleCategory")
       , Set(GroupTarget(NodeGroupId(s"hasPolicyServer-${nodeId.value}")))
@@ -582,7 +583,7 @@ object PolicyServerConfigurationObjects {
 
   def rulePolicyServer(nodeId: NodeId, techniques: List[String]) = {
     Rule(
-        RuleId(s"policy-server-${nodeId.value}"), None
+        RuleId(RuleUid(s"policy-server-${nodeId.value}"))
       , s"Rule for policy server ${nodeId.value}"
       , RuleCategoryId("rootRuleCategory")
       , Set(PolicyServerTarget(nodeId))

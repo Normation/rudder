@@ -512,7 +512,7 @@ class ModificationValidationPopup(
               , crReasons.map( _.get ).getOrElse("")
               , techniqueName
               , oldRootSection
-              , directive.id.uid
+              , directive.id
               , optOriginal
               , diff
               , CurrentUser.actor

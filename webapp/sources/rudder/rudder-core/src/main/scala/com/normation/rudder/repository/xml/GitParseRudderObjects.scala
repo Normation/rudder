@@ -480,7 +480,7 @@ class GitParseActiveTechniqueLibrary(
                       val rd = (d
                         .modify(_.id.rev).setTo(rev)
                         // we need to check if the technique version wasn't already frozen
-                        .modify(_.techniqueVersion).using(v => if(v.rev == GitVersion.defaultRev) v.copy(rev = rev) else v)
+                        .modify(_.techniqueVersion).using(v => if(v.rev == GitVersion.DEFAULT_REV) v.copy(rev = rev) else v)
                       )
                       Some((at, rd))
                     }).tapError(err =>

@@ -87,12 +87,12 @@ class RuleCompliance (
 
   import RuleCompliance._
 
-  def tagsEditForm = new TagsEditForm(rule.tags, rule.id.value)
+  def tagsEditForm = new TagsEditForm(rule.tags, rule.id.serialize)
   def display : NodeSeq = {
     ( "#ruleName"             #> rule.name &
       "#ruleCategory"         #> categoryService.shortFqdn(rootRuleCategory, rule.categoryId) &
       "#tagField *"           #> tagsEditForm.viewTags("viewRuleTags", "ruleViewTagsApp", true) &
-      "#ruleID"               #> rule.id.value &
+      "#ruleID"               #> rule.id.serialize &
       "#ruleShortDescription" #> rule.shortDescription &
       "#ruleLongDescription"  #> rule.longDescription &
       "#compliancedetails"    #> showCompliance
@@ -266,7 +266,7 @@ class RuleCompliance (
     ).either.runNow match {
         case Right(cmd) => cmd
         case Left(err) =>
-          val fail = s"Error while computing Rule ${rule.name} (${rule.id.value}): ${err.fullMsg}"
+          val fail = s"Error while computing Rule ${rule.name} (${rule.id.serialize}): ${err.fullMsg}"
           logger.error(fail)
           Noop
       }

@@ -122,7 +122,7 @@ object NodeStatusReport {
   // Only used in `getNodeStatusReports`
   def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, overrides: List[OverridenPolicy], reports: Set[RuleNodeStatusReport]) = {
     assert(reports.forall(_.nodeId == nodeId), {
-      s"You can't build a NodeStatusReport with reports for other node than itself. Current node id: ${nodeId.value}; Wrong reports: ${reports.filter(_.nodeId != nodeId).map(r => s"${r.nodeId.value}:${r.ruleId.value}").mkString("|")}"
+      s"You can't build a NodeStatusReport with reports for other node than itself. Current node id: ${nodeId.value}; Wrong reports: ${reports.filter(_.nodeId != nodeId).map(r => s"${r.nodeId.value}:${r.ruleId.serialize}").mkString("|")}"
     })
     new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, reports)
   }
@@ -200,7 +200,7 @@ final case class RuleNodeStatusReport(
 
   override lazy val compliance = ComplianceLevel.sum(directives.map(_._2.compliance) )
 
-  override def toString() = s"""[[${nodeId.value}: ${ruleId.value}; run: ${agentRunTime.getOrElse("no time")};${configId.map(_.value).getOrElse("no config id")}->${expirationDate}]
+  override def toString() = s"""[[${nodeId.value}: ${ruleId.serialize}; run: ${agentRunTime.getOrElse("no time")};${configId.map(_.value).getOrElse("no config id")}->${expirationDate}]
   |  compliance:${compliance}
   |  ${directives.values.toSeq.sortBy( _.directiveId.serialize ).map { x => s"${x}" }.mkString("\n  ")}]
   |""".stripMargin('|')
@@ -593,7 +593,7 @@ object NodeStatusReportSerialization {
       //number of events to be able to rebuild raw data
 
       "rules" -> reports.map { r =>
-        ( ("ruleId"        -> r.ruleId.value)
+        ( ("ruleId"        -> r.ruleId.serialize)
         ~ ("compliance"    -> r.compliance.pc.toJson)
         ~ ("numberReports" -> r.compliance.total)
         ~ ("directives"    -> r.directives.values.map { d =>

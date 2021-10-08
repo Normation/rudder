@@ -154,14 +154,14 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
       val op1 = repos.updateRules(Seq(NodeConfigData.r1), Seq())
       val op2 = repos.getAllOpenedRules()
 
-      (op1 === (())) and (op2.size === 1) and (op2.head.id.value === "r1")
+      (op1 === (())) and (op2.size === 1) and (op2.head.id.uid.value === "r1")
     }
 
     "be able to close and found new ones" in {
       val op1 = service.updatesRuleNames(NodeConfigData.r2 :: Nil).openOrThrowException("that test should not throw")
       val op2 = repos.getAllOpenedRules()
 
-      (op1 === (())) and (op2.size === 1) and (op2.head.id.value === "r2")
+      (op1 === (())) and (op2.size === 1) and (op2.head.id.uid.value === "r2")
     }
 
   }

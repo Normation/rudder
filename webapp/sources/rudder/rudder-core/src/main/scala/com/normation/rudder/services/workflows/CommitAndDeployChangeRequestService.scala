@@ -219,7 +219,7 @@ class CommitAndDeployChangeRequestServiceImpl(
     }
 
     final case object CheckRule extends CheckChanges[Rule]  {
-      def failureMessage(rule : Rule)  = s"Rule ${rule.name} (id: ${rule.id.value})"
+      def failureMessage(rule : Rule)  = s"Rule ${rule.name} (id: ${rule.id.serialize})"
       def getCurrentValue(rule : Rule) = roRuleRepository.get(rule.id).toBox
       def compareMethod(initial:Rule, current:Rule) = compareRules(initial,current)
       def xmlSerialize(rule : Rule) = Full(xmlSerializer.rule.serialise(rule))
@@ -238,7 +238,7 @@ class CommitAndDeployChangeRequestServiceImpl(
           case None => Failure("could not find directive context from initial state")
         }
       }
-      def failureMessage(directive : Directive)  = s"Rule ${directive.name} (id: ${directive.id.uid.value})"
+      def failureMessage(directive : Directive)  = s"Directive ${directive.name} (id: ${directive.id.serialize})"
       def getCurrentValue(directive : Directive) = roDirectiveRepo.getDirective(directive.id.uid).toBox.flatMap {
         case None => Empty
         case Some(dir) => Full(dir)
@@ -249,7 +249,7 @@ class CommitAndDeployChangeRequestServiceImpl(
           case (techniqueName,rootSection) =>
             xmlSerializer.directive.serialise(techniqueName,rootSection,directive)}
       }
-      def xmlUnserialize(xml : Node)          = xmlUnserializer.directive.unserialise(xml).map(_._2)
+      def xmlUnserialize(xml : Node) = xmlUnserializer.directive.unserialise(xml).map(_._2)
     }
 
     final case object CheckGroup extends CheckChanges[NodeGroup]  {
@@ -296,15 +296,15 @@ class CommitAndDeployChangeRequestServiceImpl(
         // Write debug logs to understand what cause the conflict
         debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
         if ( initialFixed.name != currentFixed.name) {
-          debugLog(s"Rule ID ${initialFixed.id.value} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
+          debugLog(s"Rule ID ${initialFixed.id.serialize} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
         }
 
         if ( initialFixed.shortDescription != currentFixed.shortDescription) {
-          debugLog(s"Rule ID ${initialFixed.id.value} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}")
+          debugLog(s"Rule ID ${initialFixed.id.serialize} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}")
         }
 
         if ( initialFixed.longDescription != currentFixed.longDescription) {
-          debugLog(s"Rule ID ${initialFixed.id.value} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}")
+          debugLog(s"Rule ID ${initialFixed.id.serialize} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}")
         }
 
         def displayTarget(target : RuleTarget) = {
@@ -315,15 +315,15 @@ class CommitAndDeployChangeRequestServiceImpl(
           }
         }
         if ( initialFixed.targets != currentFixed.targets) {
-          debugLog(s"Rule ID ${initialFixed.id.value} target Groups have changed: original state from CR: ${initialFixed.targets.map(displayTarget).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.targets.map(displayTarget).mkString("[ ", ", ", " ]")}")
+          debugLog(s"Rule ID ${initialFixed.id.serialize} target Groups have changed: original state from CR: ${initialFixed.targets.map(displayTarget).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.targets.map(displayTarget).mkString("[ ", ", ", " ]")}")
         }
 
         if ( initialFixed.isEnabledStatus != currentFixed.isEnabledStatus) {
-          debugLog(s"Rule ID ${initialFixed.id.value} enable status has changed: original state from CR: ${initialFixed.isEnabledStatus}, current value: ${currentFixed.isEnabledStatus}")
+          debugLog(s"Rule ID ${initialFixed.id.serialize} enable status has changed: original state from CR: ${initialFixed.isEnabledStatus}, current value: ${currentFixed.isEnabledStatus}")
         }
 
         if ( initialFixed.directiveIds != currentFixed.directiveIds) {
-          debugLog(s"Rule ID ${initialFixed.id.value} attached Directives have changed: original state from CR: ${initialFixed.directiveIds.map(_.debugString).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.directiveIds.map(_.debugString).mkString("[ ", ", ", " ]")}")
+          debugLog(s"Rule ID ${initialFixed.id.serialize} attached Directives have changed: original state from CR: ${initialFixed.directiveIds.map(_.debugString).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.directiveIds.map(_.debugString).mkString("[ ", ", ", " ]")}")
         }
 
         //return

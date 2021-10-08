@@ -339,7 +339,7 @@ class MigrateTechniques6_x_7_0(
     // groups and targets: nothing to do
     // for rule, we need to use placeholder to not overwrite things for now: we use "new_"
       _   <- MigrationLoggerPure.info(s"Creating new system rules for policy server '${nodeId.value}'")
-    rules = configs.rules.map(r => r.modify(_.id.value).using(NEW_RULE_PREFIX + _))
+    rules = configs.rules.map(r => r.modify(_.id.uid.value).using(NEW_RULE_PREFIX + _))
       _   <- ZIO.foreach(rules)(r => ruleRepo.create(r, modId, RudderEventActor, Some(s"Update system rules for rudder v7.0 for policy server '${nodeId.value}'")))
     } yield (rules.map(_.id))
   }
