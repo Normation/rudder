@@ -5,18 +5,21 @@ import Browser
 import Browser.Dom
 import DataTypes exposing (..)
 import Dict exposing ( Dict )
+import Dict.Extra
 import Dom.DragDrop as DragDrop
+import Either exposing (Either(..))
 import File
 import File.Download
 import File.Select
 import Json.Decode exposing ( Value )
 import Json.Encode
-import JsonEncoder exposing ( encodeTechnique, encodeExportTechnique )
-import JsonDecoder exposing ( decodeTechnique)
+import JsonEncoder exposing (encodeDraft, encodeExportTechnique, encodeTechnique)
+import JsonDecoder exposing (decodeDraft, decodeTechnique)
 import List.Extra
 import MethodConditions exposing (..)
 import Random
 import Task
+import Time
 import UUID
 import ViewTechnique exposing ( view, checkTechniqueName, checkTechniqueId )
 import ViewMethod exposing ( accumulateErrorConstraint )
@@ -30,15 +33,15 @@ import AgentValueParser exposing (..)
 -- Port for interacting with external JS
 --
 port copy : String -> Cmd msg
-port store : (String , Value) -> Cmd msg
-port clear : String  -> Cmd msg
-port get : () -> Cmd msg
-port response: ((Value, Value, String) -> msg) -> Sub msg
+port storeDraft : Value -> Cmd msg
+port clearDraft : String  -> Cmd msg
+port getDrafts : () -> Cmd msg
+port draftsResponse: (Value -> msg) -> Sub msg
 port openManager: String -> Cmd msg
 port updateResources : (() -> msg) -> Sub msg
 port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
-port warnNotification    : String -> Cmd msg
+--port warnNotification    : String -> Cmd msg
 port infoNotification    : String -> Cmd msg
 port pushUrl             : String -> Cmd msg
 port getUrl             : () -> Cmd msg
@@ -71,39 +74,33 @@ updateResourcesResponse model =
     TechniqueDetails _ s _ -> CallApi ( getRessources s )
     _ -> Ignore
 
-parseResponse: (Value, Value, String) -> Msg
-parseResponse (json, optJson, internalId) =
-  case Json.Decode.decodeValue decodeTechnique json of
-    Ok tech ->
-      let
-        o =
-          case  (Json.Decode.decodeValue (Json.Decode.nullable  decodeTechnique)) optJson of
-            Ok (m) -> m
-            _ -> Nothing
-      in
-        GetFromStore tech o (TechniqueId internalId)
-    Err _ -> Ignore
+parseDraftsResponse: Value -> Msg
+parseDraftsResponse json =
+  case Json.Decode.decodeValue (Json.Decode.dict decodeDraft) json  of
+    Ok drafts ->
+        GetDrafts drafts
+    Err e -> Notification errorNotification (Json.Decode.errorToString e)
 
 mainInit : { contextPath : String, hasWriteRights : Bool  } -> ( Model, Cmd Msg )
 mainInit initValues =
   let
-    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Introduction initValues.contextPath "" (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights
+    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty Introduction initValues.contextPath "" (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights
   in
-    (model, Cmd.batch ( [ getMethods model, getTechniquesCategories model]) )
+    (model, Cmd.batch ( [ getDrafts (), getMethods model, getTechniquesCategories model]) )
 
-updatedStoreTechnique: Model -> Cmd msg
+updatedStoreTechnique: Model -> (Model, Cmd msg)
 updatedStoreTechnique model =
   case model.mode of
     TechniqueDetails t o _ ->
       let
-        storeOriginTechnique =
+        draft =
           case o of
-            Edit origin -> [ store ("originTechnique", encodeTechnique origin), clear "internalId" ]
-            Creation id -> [  clear "originTechnique", store ("internalId", Json.Encode.string id.value) ]
-            Clone origin id -> [  store ("originTechnique", encodeTechnique origin), store ("internalId", Json.Encode.string id.value) ]
+            Edit origin -> Draft  t (Just origin) origin.id.value (Time.millisToPosix 0)
+            Creation id -> Draft  t Nothing id.value (Time.millisToPosix 0)
+            Clone origin id -> Draft  t Nothing id.value (Time.millisToPosix 0)
       in
-        Cmd.batch ( store ("currentTechnique", encodeTechnique t) ::  storeOriginTechnique )
-    _ -> Cmd.none
+         ({ model | drafts = Dict.insert draft.id draft model.drafts }, storeDraft (encodeDraft draft))
+    _ -> (model, Cmd.none)
 
 main =
   Browser.element
@@ -116,10 +113,10 @@ main =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ response parseResponse
+        [ draftsResponse parseDraftsResponse
         , updateResources (always (updateResourcesResponse model))
         , readUrl (\s -> case List.Extra.find (.id >> .value >> (==) s ) model.techniques of
-                    Just t -> SelectTechnique t
+                    Just t -> SelectTechnique (Left t)
                     Nothing -> Ignore
                   )
         ]
@@ -128,14 +125,29 @@ subscriptions model =
 defaultMethodUiInfo  =
     MethodCallUiInfo Closed Nothing Dict.empty True
 
-selectTechnique: Model -> Technique -> (Model, Cmd Msg)
+selectTechnique: Model -> (Either Technique Draft) -> (Model, Cmd Msg)
 selectTechnique model technique =
   let
-    ui = TechniqueUiInfo General (Dict.fromList (List.map (\c -> ((getId c).value, defaultMethodUiInfo)) (List.concatMap getAllCalls technique.elems))) [] False ValidState ValidState
+    (effectiveTechnique, state, action) = case technique  of
+      Left t ->
+        let
+          tech = case Dict.get t.id.value model.drafts of
+                   Just d -> d.technique
+                   Nothing -> t
+        in
+          (tech, Edit t, pushUrl t.id.value)
+      Right d ->
+        let
+         st = case d.origin of
+                   Just o -> Clone d.technique o.id
+                   Nothing -> Creation (TechniqueId d.id)
+        in
+        (d.technique, st, Cmd.none)
+    ui = TechniqueUiInfo General (Dict.fromList (List.map (\c -> ((getId c).value, defaultMethodUiInfo)) (List.concatMap getAllCalls effectiveTechnique.elems))) [] False ValidState ValidState
   in
-    ({ model | mode = TechniqueDetails technique (Edit technique) ui } )
+    ({ model | mode = TechniqueDetails effectiveTechnique  state ui } )
       |> update OpenMethods
-      |> Tuple.mapSecond ( always ( Cmd.batch [ updatedStoreTechnique model, getRessources (Edit technique) model, pushUrl technique.id.value  ]  ))
+      |> Tuple.mapSecond ( always ( Cmd.batch [ getRessources state model, action  ]  ))
 
 generator : Random.Generator String
 generator = Random.map (UUID.toString) UUID.generator
@@ -186,8 +198,8 @@ update msg model =
     SelectTechnique technique ->
       case model.mode of
         TechniqueDetails t _ _ ->
-          if t.id == technique.id then
-             ( { model | mode = Introduction }, clear "storedTechnique")
+          if t.id == (Either.unpack .id (.technique >> .id) technique) then
+             ( { model | mode = Introduction }, Cmd.none)
           else
             selectTechnique model technique
         _ ->
@@ -199,7 +211,7 @@ update msg model =
         t = Technique (TechniqueId "") "1.0" "" "" "ncf_techniques" [] [] []
         newModel =  { model | mode = TechniqueDetails t (Creation id) ui}
       in
-        (newModel, updatedStoreTechnique newModel )
+        updatedStoreTechnique newModel
 
     -- import a technique from a JSON file
     StartImport ->
@@ -253,36 +265,17 @@ update msg model =
               { model | mode = TechniqueDetails technique o {ui |  nameState = checkTechniqueName technique model, idState = checkTechniqueId o technique model } }
             _ -> model
       in
-        (newModel, updatedStoreTechnique newModel )
+        updatedStoreTechnique newModel
 
-    Store _ _ ->
-      (model, updatedStoreTechnique model )
-
-    GetFromStore technique originTechnique newId ->
-            let
-
-              notification = case (List.Extra.find (.id >> (==) technique.id) model.techniques,originTechnique) of
-                (Nothing, Just _) -> warnNotification "Technique reloaded from cache was deleted, Saving will recreate it"
-                (Just _ , Nothing) -> warnNotification "Technique from cache was created, change name/id before saving"
-                (Just t , Just o) -> if t /= o then warnNotification "Technique reloaded from cache since you modified it, saving will overwrite current changes" else infoNotification "Technique reloaded from cache"
-                (Nothing, Nothing) -> infoNotification "Technique reloaded from cache"
-              state = Maybe.withDefault (Creation newId)  (Maybe.map Edit originTechnique)
-              allCalls = List.concatMap getAllCalls technique.elems
-
-              ui = TechniqueUiInfo General (Dict.fromList (List.map (\c -> ((getId c).value, defaultMethodUiInfo))  allCalls)) [] False (checkTechniqueName technique model) (checkTechniqueId state technique model)
-            in
-              ({ model | mode = TechniqueDetails technique state ui } )
-                |> update OpenMethods
-                |>  Tuple.mapSecond (\c -> Cmd.batch [c, notification ])
+    GetDrafts drafts ->
+      ({ model | drafts = drafts }, Cmd.none)
 
     CloneTechnique technique internalId ->
       let
         ui = TechniqueUiInfo General (Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap allMethodCalls technique.elems))) [] False Unchanged Unchanged
+        (newModel,_) = update OpenMethods { model | mode = TechniqueDetails technique  (Clone technique internalId) ui }
       in
-        ({ model | mode = TechniqueDetails technique  (Clone technique internalId) ui } )
-          |> update OpenMethods
-          |> Tuple.first
-          |> update (Store "storedTechnique" (encodeTechnique technique))
+        updatedStoreTechnique newModel
 
     SaveTechnique (Ok technique) ->
       let
@@ -309,15 +302,22 @@ update msg model =
                update (CallApi (saveTechnique t True)) { model | mode = TechniqueDetails t o ui }
           _ -> (model, Cmd.none)
 
-    DeleteTechnique (Ok (techniqueId, _)) ->
-      let
-        techniques = List.filter (.id >> (/=) techniqueId) model.techniques
-        newMode = case model.mode of
-                     TechniqueDetails t _ _ -> if t.id == techniqueId then Introduction else model.mode
-                     _ -> model.mode
+    DeleteTechnique (Ok techniqueId) ->
+      case model.mode of
+                     TechniqueDetails t (Edit _) _ ->
+                       let
+                         techniques = List.filter (.id >> (/=) techniqueId) model.techniques
+                         newMode = if t.id == techniqueId then Introduction else model.mode
+                       in
+                         ({ model | mode = newMode, techniques = techniques}, infoNotification ("Successfully deleted technique '" ++ techniqueId.value ++  "'"))
+                     TechniqueDetails t _ _ ->
+                       let
+                         drafts = Dict.filter (\ _ -> (.technique >> .id >> (/=) techniqueId)) model.drafts
+                         newMode = if t.id == techniqueId then Introduction else model.mode
+                       in
+                         ({ model | mode = newMode, drafts = drafts}, clearDraft techniqueId.value)
+                     _ -> (model, Cmd.none)
 
-      in
-        ({ model | mode = newMode, techniques = techniques}, infoNotification ("Successfully deleted technique '" ++ techniqueId.value ++  "'"))
 
     DeleteTechnique (Err err) ->
       ( model , errorNotification ("Error when deleting technique: " ++ debugHttpErr err))
@@ -329,7 +329,7 @@ update msg model =
       let
         (nm,cmd) = update callback { model | modal = Nothing}
       in
-        (nm , Cmd.batch [  clear "storedTechnique", clear "originTechnique", cmd ] )
+        (nm , Cmd.batch [ cmd ] )
 
     ResetTechnique  ->
       let
@@ -346,7 +346,7 @@ update msg model =
                 { model | mode = TechniqueDetails technique s ui }
             _ -> model
       in
-        (newModel, updatedStoreTechnique newModel )
+        updatedStoreTechnique newModel
 
     ResetMethodCall call  ->
       let
@@ -393,7 +393,7 @@ update msg model =
                 { model | mode = TechniqueDetails updatedTechnique s { ui | callsUI = callUi } }
             _ -> model
       in
-        (newModel, updatedStoreTechnique newModel )
+        updatedStoreTechnique newModel
 
     -- export a technique to its JSON descriptor
     Export ->
@@ -423,7 +423,7 @@ update msg model =
                 { model | mode = TechniqueDetails technique o ui }
             _ -> model
       in
-       (newModel , updatedStoreTechnique newModel )
+       updatedStoreTechnique newModel
 
     TechniqueParameterRemoved paramId ->
       let
@@ -438,7 +438,7 @@ update msg model =
                 { model | mode = TechniqueDetails technique o newUI }
             _ -> model
       in
-        ( newModel , updatedStoreTechnique newModel )
+        updatedStoreTechnique newModel
 
     TechniqueParameterAdded paramId ->
       let
@@ -555,7 +555,7 @@ update msg model =
               { model | mode = TechniqueDetails technique o newUi }
             _ -> model
       in
-        (  newModel , updatedStoreTechnique newModel )
+        updatedStoreTechnique newModel
       else
         (model,Cmd.none)
 
@@ -573,7 +573,7 @@ update msg model =
               { model | mode = TechniqueDetails technique o newUi }
             _ -> model
       in
-        (  newModel , updatedStoreTechnique newModel )
+        updatedStoreTechnique newModel
       else
         (model,Cmd.none)
 
@@ -621,7 +621,7 @@ update msg model =
            m -> m
         newModel = { model | mode = newMode}
       in
-        (newModel, updatedStoreTechnique newModel )
+        updatedStoreTechnique newModel
 
     CloneMethod call newId ->
       let
@@ -642,7 +642,7 @@ update msg model =
                 { model | mode = TechniqueDetails technique o newUi }
             _ -> model
       in
-        (newModel, updatedStoreTechnique newModel )
+        updatedStoreTechnique newModel
 
     MethodCallModified method ->
       case model.mode of
@@ -650,7 +650,7 @@ update msg model =
           let
             newModel = {model | mode = TechniqueDetails {t | elems = updateElemIf (getId >> (==) (getId method) ) (always method) t.elems} s ui}
           in
-          (newModel, Cmd.none )
+          updatedStoreTechnique newModel
         _ -> (model,Cmd.none)
 
 
@@ -681,7 +681,7 @@ update msg model =
                 { model | mode = TechniqueDetails technique o {ui | callsUI = callUi } }
             _ -> model
       in
-        ( newModel , updatedStoreTechnique newModel  )
+        updatedStoreTechnique newModel
 
     SetMissingIds newId ->
       case model.mode of
@@ -765,3 +765,6 @@ update msg model =
           in
             update (GenerateId SetMissingIds ) { model | mode = TechniqueDetails updateTechnique u e , dnd = DragDrop.initialState}
 
+
+    Notification notif notifMsg ->
+      (model, notif notifMsg)

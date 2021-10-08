@@ -56,13 +56,14 @@ showTechnique model technique origin ui =
   let
     activeTabClass = (\tab -> "ui-tabs-tab " ++ (if ui.tab == tab then "active" else ""))
     creation = case origin of
-                 Creation _ ->True
+                 Creation _ -> True
                  Clone _ _ -> True
                  Edit _ -> False
     isUnchanged = case origin of
                     Edit t -> t == technique
                     Creation _ -> False
                     Clone t _ -> t == technique
+    deleteAction = if creation then .id >> Ok >> DeleteTechnique else OpenDeletionPopup
     topButtons =  [ li [] [
                       a [ class "action-success", disabled creation , onClick (GenerateId (\s -> CloneTechnique technique (TechniqueId s))) ] [
                         text "Clone "
@@ -76,7 +77,7 @@ showTechnique model technique origin ui =
                       ]
                     ]
                   , li [] [
-                      a [ class "action-danger", disabled creation, onClick (OpenDeletionPopup technique)] [ --ng-disabled="isNotSaved()"  ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)"
+                      a [ class "action-danger", onClick (deleteAction technique)] [ --ng-disabled="isNotSaved()"  ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)"
                         text "Delete "
                       , i [ class "fa fa-times-circle"] []
                       ]
