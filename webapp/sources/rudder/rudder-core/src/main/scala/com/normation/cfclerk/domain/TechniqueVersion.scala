@@ -50,22 +50,22 @@ final case class TechniqueVersion protected (version: Version, rev: Revision) ex
       // we can't compare two rev, so just use alpha-num order
       // A rev is always before none (which means "HEAD")
       (rev, v.rev) match {
-        case (GitVersion.defaultRev , GitVersion.defaultRev ) =>  0
-        case (GitVersion.defaultRev , _                     ) =>  1
-        case (_                     , GitVersion.defaultRev ) => -1
-        case (x                     , y                     ) =>  String.CASE_INSENSITIVE_ORDER.compare(x.value, y.value)
+        case (GitVersion.DEFAULT_REV , GitVersion.DEFAULT_REV ) =>  0
+        case (GitVersion.DEFAULT_REV , _                     )  =>  1
+        case (_                     , GitVersion.DEFAULT_REV )  => -1
+        case (x                     , y                     )   =>  String.CASE_INSENSITIVE_ORDER.compare(x.value, y.value)
       }
     case i => i
   }
 
-  def withDefaultRev = this.copy(rev = GitVersion.defaultRev)
+  def withDefaultRev = this.copy(rev = GitVersion.DEFAULT_REV)
 
   // intended for debug
   def debugString = serialize
   // for serialisation on path
   def serialize = rev match {
-    case GitVersion.defaultRev => version.toVersionString
-    case r                     => version.toVersionString + "+" + r.value
+    case GitVersion.DEFAULT_REV => version.toVersionString
+    case r                      => version.toVersionString + "+" + r.value
   }
 
   // to avoid compat error
@@ -83,12 +83,12 @@ object TechniqueVersion {
    * NOTE: it seems that in existing env, sometimes epoch was written when it should
    * not have. So we must accept also leading number+":".
    */
-  def apply(v: Version, rev: Revision = GitVersion.defaultRev): Either[String, TechniqueVersion] = {
+  def apply(v: Version, rev: Revision = GitVersion.DEFAULT_REV): Either[String, TechniqueVersion] = {
     if(v.head.isInstanceOf[PartType.Numeric] && v.parts.forall {
       case VersionPart.After(Separator.Dot, PartType.Numeric(_)) => true
       case x                                                     => false
     }) {
-      Right(new TechniqueVersion(v, GitVersion.defaultRev))
+      Right(new TechniqueVersion(v, GitVersion.DEFAULT_REV))
     } else {
       Left("Technique version must be composed of digits")
     }
@@ -98,7 +98,7 @@ object TechniqueVersion {
     val (v, rev) = {
       val parts = value.split("\\+")
       if(parts.size == 1) {
-        (value, GitVersion.defaultRev)
+        (value, GitVersion.DEFAULT_REV)
       } else {
         (parts.take(parts.size-1).mkString("+"), Revision(parts(parts.size - 1).trim))
       }

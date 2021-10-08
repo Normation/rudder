@@ -120,6 +120,6 @@ class CheckRudderGlobalParameter(
 // TODO: add Option[String] revision in API
 private[checks] final case class JsonParam(name: String, description: String, value: JValue, inheritMode: Option[String], provider: Option[String]) {
   def toGlobalParam = {
-    GlobalParameter(name, GitVersion.defaultRev, GenericProperty.fromJsonValue(value), inheritMode.flatMap(InheritMode.parseString(_).toOption), description, provider.map(PropertyProvider.apply))
+    GlobalParameter(name, GitVersion.DEFAULT_REV, GenericProperty.fromJsonValue(value), inheritMode.flatMap(InheritMode.parseString(_).toOption), description, provider.map(PropertyProvider.apply))
   }
 }

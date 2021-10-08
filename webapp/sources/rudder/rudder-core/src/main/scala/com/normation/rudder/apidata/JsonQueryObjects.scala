@@ -178,7 +178,7 @@ object JsonQueryObjects {
 
     def updateDirective(directive: Directive) = {
       directive.patchUsing(PatchDirective(
-          id.map(x => DirectiveId(DirectiveUid(x), GitVersion.defaultRev))
+          id.map(x => DirectiveId(DirectiveUid(x), GitVersion.DEFAULT_REV))
         , techniqueVersion
         , parameters.flatMap(_.get("section").map(s => SectionVal.toMapVariables(s.toSectionVal._2)))
         , displayName
@@ -193,7 +193,7 @@ object JsonQueryObjects {
 
     def getSourceId = source match {
       case None    => None
-      case Some(x) => Some(DirectiveId(DirectiveUid(x), sourceRevision.map(Revision).getOrElse(GitVersion.defaultRev)))
+      case Some(x) => Some(DirectiveId(DirectiveUid(x), sourceRevision.map(Revision).getOrElse(GitVersion.DEFAULT_REV)))
     }
 
   }
@@ -263,7 +263,7 @@ object JsonQueryObjects {
     , value      : ConfigValue
     , inheritMode: Option[InheritMode]
   ) {
-    def toGroupProperty = GroupProperty(name, rev.map(Revision).getOrElse(GitVersion.defaultRev), value, inheritMode, Some(PropertyProvider.defaultPropertyProvider))
+    def toGroupProperty = GroupProperty(name, rev.map(Revision).getOrElse(GitVersion.DEFAULT_REV), value, inheritMode, Some(PropertyProvider.defaultPropertyProvider))
   }
 
   final case class JQStringQuery(

@@ -46,9 +46,14 @@ final object GitVersion {
    * Note that "master" actually means "last commit on master" and so is not fixed in time,
    * while "9f35b60b93f01123c13a02db06ccab0a6aa87110" (a specific sha1) is fixed in time.
    *
-   * By convention, an empty `value` means `defaultRev`.
+   * By convention, an empty `value` means `DEFAULT_REV`.
    */
-  final case class Revision(value: String) extends AnyVal
+  final case class Revision(value: String) extends AnyVal {
+    def toOptionString = value match {
+      case DEFAULT_REV.value => None
+      case v                 => Some(v)
+    }
+  }
 
 
   /**
@@ -70,19 +75,32 @@ final object GitVersion {
    * This is not HEAD, it's actually the last commit on master/main branch.
    *
    * Without more configuration, it's "master"
+   * Capitalized so that it can be used in pattern matching
    */
-  val defaultRev = Revision("default")
+  val DEFAULT_REV = Revision("default")
 
-  // an empty string is considered as missing version, so defaultRev.
+  // an empty string is considered as missing version, so DEFAULT_REV.
   object ParseRev {
     def apply(rev: String): Revision = rev match {
-      case null | "" | defaultRev.value => defaultRev
-      case r                            => Revision(r)
+      case null | "" | DEFAULT_REV.value => DEFAULT_REV
+      case r                             => Revision(r)
     }
 
     def apply(rev: Option[String]): Revision = rev match {
-      case null | None | Some(defaultRev.value) => defaultRev
-      case Some(r)                              => Revision(r)
+      case null | None | Some(DEFAULT_REV.value) => DEFAULT_REV
+      case Some(r)                               => Revision(r)
+    }
+  }
+
+  /**
+   * A method to parse a standard uid+revision
+   */
+  def parseUidRed(s: String): Either[String, (String, Revision)] = {
+    s.split("\\+").toList match {
+      case id :: Nil        => Right((id, GitVersion.DEFAULT_REV))
+      case id :: "" :: Nil  => Right((id, GitVersion.DEFAULT_REV))
+      case id :: rev :: Nil => Right((id, Revision(rev)))
+      case _                => Left(s"Error when parsing '${s}' as a directive id. At most one '+' is authorized.")
     }
   }
 

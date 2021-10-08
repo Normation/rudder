@@ -176,9 +176,10 @@ final case class RestDataSerializerImpl (
     JArray(tags.tags.toList.sortBy(_.name.value).map ( t => JObject( JField(t.name.value,t.value.value) :: Nil) ).toList)
   }
 
-  def serializeRule (rule:Rule , crId: Option[ChangeRequestId]): JValue = {
+  def serializeRule (rule: Rule, crId: Option[ChangeRequestId]): JValue = {
    (   ( "changeRequestId"  -> crId.map(_.value.toString))
-     ~ ( "id"               -> rule.id.value )
+     ~ ( "id"               -> rule.id.uid.value)
+     ~ ( "revision"         -> rule.id.rev.toOptionString)
      ~ ( "displayName"      -> rule.name )
      ~ ( "categoryId"       -> rule.categoryId.value)
      ~ ( "shortDescription" -> rule.shortDescription )
@@ -193,7 +194,7 @@ final case class RestDataSerializerImpl (
 
   def serializeRuleCategory (category:RuleCategory, parent: RuleCategoryId, rulesMap : Map[RuleCategoryId,Seq[Rule]], detailLevel : DetailLevel): JValue = {
 
-    val ruleList = rulesMap.get(category.id).getOrElse(Nil).sortBy(_.id.value)
+    val ruleList = rulesMap.get(category.id).getOrElse(Nil).sortBy(_.id.serialize)
     val children = category.childs.sortBy(_.id.value)
     val (rules ,categories) : (Seq[JValue],Seq[JValue]) = detailLevel match {
       case FullDetails =>
@@ -201,7 +202,7 @@ final case class RestDataSerializerImpl (
         , children.map(serializeRuleCategory(_,category.id, rulesMap, detailLevel))
         )
       case MinimalDetails =>
-        ( ruleList.map(rule => JString(rule.id.value))
+        ( ruleList.map(rule => JString(rule.id.serialize))
         , children.map(cat => JString(cat.id.value))
         )
     }
@@ -291,6 +292,7 @@ final case class RestDataSerializerImpl (
     val sectionVal = serializeSectionVal(SectionVal.directiveValToSectionVal(technique.rootSection, directive.parameters))
     ( ( "changeRequestId"  -> crId.map(_.value.toString))
     ~ ( "id"               -> directive.id.uid.value)
+    ~ ( "revision"         -> directive.id.rev.toOptionString)
     ~ ( "displayName"      -> directive.name)
     ~ ( "shortDescription" -> directive.shortDescription)
     ~ ( "longDescription"  -> directive.longDescription)
@@ -328,7 +330,7 @@ final case class RestDataSerializerImpl (
       val directives :JValue       = diff.modDirectiveIds.map(displaySimpleDiff(_)(convertDirectives)).getOrElse(initialState.directiveIds.map(x => JString(x.serialize)).toList)
       val enabled :JValue          = diff.modIsActivatedStatus.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
 
-      (   ( "id"               -> initialState.id.value)
+      (   ( "id"               -> initialState.id.serialize)
         ~ ( "displayName"      -> name )
         ~ ( "shortDescription" -> shortDescription )
         ~ ( "longDescription"  -> longDescription )
@@ -489,7 +491,7 @@ final case class RestDataSerializerImpl (
         val enabled :JValue          = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
         val initialParams :JValue    = serializeSectionVal(SectionVal.directiveValToSectionVal(initialRootSection, initialState.parameters))
         val parameters :JValue       = diff.modParameters.map(displaySimpleDiff(_)(convertParameters)).getOrElse(initialParams)
-        Full ( ("id"               -> initialState.id.uid.value)
+        Full ( ("id"          -> initialState.id.serialize)
         ~ ("displayName"      -> name )
         ~ ("shortDescription" -> shortDescription)
         ~ ("longDescription"  -> longDescription)

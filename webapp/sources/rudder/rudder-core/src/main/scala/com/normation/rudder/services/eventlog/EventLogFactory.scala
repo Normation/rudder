@@ -414,7 +414,7 @@ class EventLogFactoryImpl(
     val details = EventLog.withContent {
       scala.xml.Utility.trim(
         <rule changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
-          <id>{modifyDiff.id.value}</id>
+          <id>{modifyDiff.id.serialize}</id>
           <displayName>{modifyDiff.name}</displayName>{
             modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
             modCategory.map(x => SimpleDiff.stringToXml(<category/>, x) ) ++
@@ -427,8 +427,8 @@ class EventLogFactoryImpl(
             modifyDiff.modDirectiveIds.map(x =>
               SimpleDiff.toXml[Set[DirectiveId]](<directiveIds/>, x){ ids =>
                 ids.toSeq.map { case DirectiveId(uid, rev) => rev match {
-                  case GitVersion.defaultRev => <id>{uid.value}</id>
-                  case r                     => <id revision={r.value}>{uid.value}</id>
+                  case GitVersion.DEFAULT_REV => <id>{uid.value}</id>
+                  case r                      => <id revision={r.value}>{uid.value}</id>
                 }}
               }
             ) ++
@@ -517,7 +517,7 @@ class EventLogFactoryImpl(
     val details = EventLog.withContent{
       scala.xml.Utility.trim(
         <directive changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
-          <id>{modifyDiff.id.value}</id>
+          <id>{modifyDiff.id.serialize}</id>
           <techniqueName>{modifyDiff.techniqueName.value}</techniqueName>
           <displayName>{modifyDiff.name}</displayName>{
             modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++

@@ -177,7 +177,7 @@ class TechniqueWriter (
           , ""
           , TechniqueName(techniqueName)
           , rootSection
-          , directive.id.uid
+          , directive.id
           , Some(directive)
           , diff
           , committer

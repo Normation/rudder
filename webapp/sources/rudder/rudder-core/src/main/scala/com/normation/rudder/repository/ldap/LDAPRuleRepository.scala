@@ -39,7 +39,6 @@ package com.normation.rudder.repository
 package ldap
 
 
-import com.normation.GitVersion
 import com.normation.NamedZioLogger
 import com.normation.errors._
 import com.normation.eventlog.EventActor
@@ -73,17 +72,14 @@ class RoLDAPRuleRepository(
 
   /**
    * Try to find the rule with the given ID.
-   * Empty: no directive with such ID
-   * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
-   * Failure => an error happened.
    */
   def getOpt(id:RuleId) : IOResult[Option[Rule]]  = {
     ruleMutex.readLock(for {
       con     <- ldap
-      crEntry <- con.get(rudderDit.RULES.configRuleDN(id, GitVersion.defaultRev))
+      crEntry <- con.get(rudderDit.RULES.configRuleDN(id))
       rule    <- crEntry match {
                    case None    => None.succeed
-                   case Some(r) => mapper.entry2Rule(r).map(Some(_)).toIO.chainError(s"Error when transforming LDAP entry into a rule for id '${id.value}'. Entry: ${r}")
+                   case Some(r) => mapper.entry2Rule(r).map(Some(_)).toIO.chainError(s"Error when transforming LDAP entry into a rule for id '${id.serialize}'. Entry: ${r}")
                  }
     } yield {
       rule
@@ -112,7 +108,7 @@ class RoLDAPRuleRepository(
                    for {
                      id <- ruleEntry(A_RULE_UUID).notOptional(s"Missing required attribute uuid in rule entry ${ruleEntry.dn.toString}")
                    } yield {
-                     RuleId(id)
+                     RuleId(RuleUid(id))
                    }
                  }
     } yield {
@@ -142,7 +138,7 @@ class WoLDAPRuleRepository(
    * Check if a configuration exist with the given name, and another id
    */
   private[this] def nodeRuleNameExists(con:RoLDAPConnection, name : String, id:RuleId) : IOResult[Boolean] = {
-    val filter = AND(AND(IS(OC_RULE), EQ(A_NAME,name), NOT(EQ(A_RULE_UUID, id.value))))
+    val filter = AND(AND(IS(OC_RULE), EQ(A_NAME,name), NOT(EQ(A_RULE_UUID, id.uid.value))))
     con.searchSub(rudderDit.RULES.dn, filter).flatMap(_.size match {
       case 0 => false.succeed
       case 1 => true.succeed
@@ -153,14 +149,14 @@ class WoLDAPRuleRepository(
   private[this] def internalDeleteRule(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String], callSystem: Boolean) : IOResult[DeleteRuleDiff] = {
     ruleMutex.writeLock(for {
       con          <- ldap
-      entry        <- con.get(rudderDit.RULES.configRuleDN(id, GitVersion.defaultRev)).notOptional("rule with ID '%s' is not present".format(id.value))
+      entry        <- con.get(rudderDit.RULES.configRuleDN(id)).notOptional("rule with ID '%s' is not present".format(id.serialize))
       oldCr        <- mapper.entry2Rule(entry).toIO.chainError("Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry))
       checkSystem  <-  (oldCr.isSystem, callSystem) match {
-                        case (true, false) => Unexpected(s"System Rule '${id.value}' can't be deleted").fail
-                        case (false, true) => Inconsistency(s"Non-system Rule '${id.value}' can not be deleted with that method").fail
+                        case (true, false) => Unexpected(s"System Rule '${id.serialize}' can't be deleted").fail
+                        case (false, true) => Inconsistency(s"Non-system Rule '${id.serialize}' can not be deleted with that method").fail
                         case _ => oldCr.succeed
                       }
-      deleted      <- con.delete(rudderDit.RULES.configRuleDN(id, GitVersion.defaultRev)).chainError("Error when deleting rule with ID %s".format(id))
+      deleted      <- con.delete(rudderDit.RULES.configRuleDN(id)).chainError("Error when deleting rule with ID %s".format(id))
       diff         =  DeleteRuleDiff(oldCr)
       loggedAction <- actionLogger.saveDeleteRule(modId, principal = actor, deleteDiff = diff, reason = reason)
       autoArchive  <- ZIO.when(autoExportOnModify && deleted.nonEmpty  && !oldCr.isSystem) {
@@ -190,9 +186,9 @@ class WoLDAPRuleRepository(
     ruleMutex.writeLock(
       for {
         con             <- ldap
-        ruleExits       <- con.exists(rudderDit.RULES.configRuleDN(rule.id, rule.rev.getOrElse(GitVersion.defaultRev)))
+        ruleExits       <- con.exists(rudderDit.RULES.configRuleDN(rule.id))
         idDoesntExist   <- ZIO.when(ruleExits) {
-                             s"Cannot create a rule with ID '${rule.id.value}' : there is already a rule with the same id".fail
+                             s"Cannot create a rule with ID '${rule.id.serialize}' : there is already a rule with the same id".fail
                            }
         nameExists      <- nodeRuleNameExists(con, rule.name, rule.id)
         nameIsAvailable <- ZIO.when(nameExists) { "Cannot create a rule with name %s : there is already a rule with the same name".format(rule.name).fail }
@@ -217,10 +213,10 @@ class WoLDAPRuleRepository(
     ruleMutex.writeLock(
       for {
         con           <- ldap
-        existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id, rule.rev.getOrElse(GitVersion.defaultRev))).notOptional(s"Cannot update rule with id ${rule.id.value} : there is no rule with that id")
-        oldRule       <- mapper.entry2Rule(existingEntry).toIO.chainError(s"Error when transforming LDAP entry into a Rule for id ${rule.id.value}. Entry: ${existingEntry}")
+        existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id)).notOptional(s"Cannot update rule with id ${rule.id.serialize} : there is no rule with that id")
+        oldRule       <- mapper.entry2Rule(existingEntry).toIO.chainError(s"Error when transforming LDAP entry into a Rule for id ${rule.id.serialize}. Entry: ${existingEntry}")
         systemCheck   <- (oldRule.isSystem, systemCall) match {
-                         case (true, false) => s"System rule '${oldRule.name}' (${oldRule.id.value}) can not be modified".fail
+                         case (true, false) => s"System rule '${oldRule.name}' (${oldRule.id.serialize}) can not be modified".fail
                          case (false, true) => "You can't modify a non-system rule with updateSystem method".fail
                          case _ => UIO.unit
                        }
@@ -230,7 +226,7 @@ class WoLDAPRuleRepository(
                            }
         crEntry         =  mapper.rule2Entry(rule)
         result          <- con.save(crEntry, true).chainError(s"Error when saving rule entry in repository: ${crEntry}")
-        optDiff         <- diffMapper.modChangeRecords2RuleDiff(existingEntry,result).toIO.chainError("Error when mapping rule '%s' update to an diff: %s".format(rule.id.value, result))
+        optDiff         <- diffMapper.modChangeRecords2RuleDiff(existingEntry,result).toIO.chainError(s"Error when mapping rule '${rule.id.serialize}' update to an diff: ${result}")
         loggedAction    <- optDiff match {
                              case None => UIO.unit
                              case Some(diff) => actionLogger.saveModifyRule(modId, principal = actor, modifyDiff = diff, reason = reason)

@@ -232,7 +232,7 @@ class RuleCategoryTree(
                       TimeSpan(50)
                     , JsRaw(s"""
                         $$('#${category.id.value + "Checkbox"}').prop("indeterminate",false);
-                        ${rules.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${status}); """).mkString("\n")}
+                        ${rules.map(c => s"""$$('#${c.serialize}Checkbox').prop("checked",${status}); """).mkString("\n")}
                         ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
                         ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${status}); """).mkString("\n")}
                         ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}

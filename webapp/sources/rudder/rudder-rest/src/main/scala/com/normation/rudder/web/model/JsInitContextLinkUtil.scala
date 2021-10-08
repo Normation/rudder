@@ -87,7 +87,7 @@ class LinkUtil (
     RedirectTo(baseTargetLink(target))
 
   def baseRuleLink(id:RuleId) =
-    s"""/secure/configurationManager/ruleManagement#{"ruleId":"${id.value}"}"""
+    s"""/secure/configurationManager/ruleManagement/rule/${id.serialize}"""
 
   def ruleLink(id:RuleId) =
     s"""${S.contextPath}${baseRuleLink(id)}"""
@@ -133,10 +133,10 @@ class LinkUtil (
 
   def createRuleLink(id:RuleId) = {
     roRuleRepository.get(id).either.runNow match {
-      case Right(rule) => <span> <a href={baseRuleLink(id)}>{rule.name}</a> (Rudder ID: {id.value})</span>
+      case Right(rule) => <span> <a href={baseRuleLink(id)}>{rule.name}</a> (Rudder ID: {id.serialize})</span>
       case Left(err)   =>
-        logger.error(s"Could not find Rule with Id ${id.value}. Error was: ${err.fullMsg}")
-        <span> {id.value} </span>
+        logger.error(s"Could not find Rule with Id ${id.serialize}. Error was: ${err.fullMsg}")
+        <span> {id.serialize} </span>
     }
   }
 

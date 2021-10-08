@@ -68,7 +68,7 @@ import com.normation.cfclerk.domain.SectionSpec
  *
  * ==== some more evolution
  *
- * - forcing rev everywhere, when we want it to be almost always `defaultRev`, is not efficient. We should use
+ * - forcing rev everywhere, when we want it to be almost always `DEFAULT_REV`, is not efficient. We should use
  *   Option[Rev]
  *   BUT it means that special attention need to be used on unserialisation: defaultValue (if serialised)
  *   must be unserialized to `None`.
@@ -99,12 +99,12 @@ final case class DirectiveUid(value: String) extends AnyVal {
  * For backward compatibility, the UID field is named "id" in most serialized format. We will keep
  * "uid" in code to avoid code looking like `directive.id.id`.
  */
-final case class DirectiveId(uid: DirectiveUid, rev: Revision = GitVersion.defaultRev) {
+final case class DirectiveId(uid: DirectiveUid, rev: Revision = GitVersion.DEFAULT_REV) {
   def debugString: String = serialize
 
   def serialize: String = rev match {
-    case GitVersion.defaultRev => uid.value
-    case rev                   => s"${uid.value}+${rev.value}"
+    case GitVersion.DEFAULT_REV => uid.value
+    case rev                    => s"${uid.value}+${rev.value}"
   }
 }
 
@@ -112,11 +112,8 @@ object DirectiveId {
 
   // parse a directiveId which was serialize by "id.serialize"
   def parse(s: String) : Either[String, DirectiveId] = {
-    s.split("\\+").toList match {
-      case id :: Nil        => Right(DirectiveId(DirectiveUid(id), GitVersion.defaultRev))
-      case id :: "" :: Nil  => Right(DirectiveId(DirectiveUid(id), GitVersion.defaultRev))
-      case id :: rev :: Nil => Right(DirectiveId(DirectiveUid(id), Revision(rev)))
-      case _                => Left(s"Error when parsing '${s}' as a directive id. At most one '+' is authorized.")
+    GitVersion.parseUidRed(s).map { case (id, rev) =>
+      DirectiveId(DirectiveUid(id), rev)
     }
   }
 }

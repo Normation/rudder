@@ -138,7 +138,7 @@ class TechniqueTree(
     ruleRepository.get(id).toBox match {
       case Full(rule) => new JsTreeNode {
         override val attrs = ("data-jstree" -> """{ "type" : "rule" }""")  :: Nil ::: (if(!rule.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
-        override def body = { <a href="#"><span class="treeRuleName tooltipable" tooltipid={id.value} title={rule.shortDescription}>{rule.name}</span></a><div class="tooltipContent" id={id.value}><h3>{rule.name}</h3><div>{rule.shortDescription}</div></div> }
+        override def body = { <a href="#"><span class="treeRuleName tooltipable" tooltipid={id.serialize} title={rule.shortDescription}>{rule.name}</span></a><div class="tooltipContent" id={id.serialize}><h3>{rule.name}</h3><div>{rule.shortDescription}</div></div> }
         override def children = Nil
       }
       case e:EmptyBox =>

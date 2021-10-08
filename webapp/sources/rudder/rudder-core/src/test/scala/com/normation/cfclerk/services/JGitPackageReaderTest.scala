@@ -120,19 +120,19 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
    *      --- template2.st
    */
   val template = new File(gitRoot, "template.st")
-  val templateId = TechniqueResourceIdByPath(Nil, GitVersion.defaultRev, "template")
+  val templateId = TechniqueResourceIdByPath(Nil, GitVersion.DEFAULT_REV, "template")
   val templateContent = "this is some template content"
   template.getParentFile.mkdirs
   FileUtils.writeStringToFile(template, templateContent, StandardCharsets.UTF_8)
   val template2 = new File(new File(gitRoot, "libdir"), "template2.st")
-  val template2Id = TechniqueResourceIdByPath(List("libdir"), GitVersion.defaultRev, "template2")
+  val template2Id = TechniqueResourceIdByPath(List("libdir"), GitVersion.DEFAULT_REV, "template2")
   val template2Content = "this is template2 content"
   template2.getParentFile.mkdirs
   FileUtils.writeStringToFile(template2, template2Content, StandardCharsets.UTF_8)
 
   val f1 = new File(new File(gitRoot, "libdir"), "file1.txt")
   val f1Content = "this is the content of file 1"
-  val file1 = TechniqueResourceIdByPath(List("libdir"), GitVersion.defaultRev, f1.getName)
+  val file1 = TechniqueResourceIdByPath(List("libdir"), GitVersion.DEFAULT_REV, f1.getName)
   FileUtils.writeStringToFile(f1, f1Content, StandardCharsets.UTF_8)
 
   val file2 = TechniqueResourceIdByName(TechniqueId(TechniqueName("p1_1"), TechniqueVersionHelper("1.0")), "file2.txt")

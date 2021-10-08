@@ -542,8 +542,8 @@ object GenericProperty {
     val m = new java.util.HashMap[String, ConfigValue]()
     m.put(NAME, ConfigValueFactory.fromAnyRef(name))
     rev match {
-      case GitVersion.defaultRev => // nothing
-      case x                     => m.put(REV_ID, ConfigValueFactory.fromAnyRef(x.value))
+      case GitVersion.DEFAULT_REV => // nothing
+      case x                      => m.put(REV_ID, ConfigValueFactory.fromAnyRef(x.value))
     }
     provider.foreach(x => m.put(PROVIDER, ConfigValueFactory.fromAnyRef(x.value)))
     description.foreach(x => m.put(DESCRIPTION, ConfigValueFactory.fromAnyRef(x)))
@@ -650,10 +650,10 @@ object NodeProperty {
    * used as json.
    */
   def parse(name: String, value: String, mode: Option[InheritMode], provider: Option[PropertyProvider]): PureResult[NodeProperty] = {
-    GenericProperty.parseConfig(name, GitVersion.defaultRev, value, mode, provider, None).map(c => new NodeProperty(c))
+    GenericProperty.parseConfig(name, GitVersion.DEFAULT_REV, value, mode, provider, None).map(c => new NodeProperty(c))
   }
   def apply(name: String, value: ConfigValue, mode: Option[InheritMode], provider: Option[PropertyProvider]): NodeProperty = {
-    new NodeProperty(GenericProperty.toConfig(name, GitVersion.defaultRev, value, mode, provider, None))
+    new NodeProperty(GenericProperty.toConfig(name, GitVersion.DEFAULT_REV, value, mode, provider, None))
   }
 
   def unserializeLdapNodeProperty(json: String): PureResult[NodeProperty] = {

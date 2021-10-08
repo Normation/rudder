@@ -196,7 +196,7 @@ object JsonResponseObjects {
         .enableBeanGetters
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
         .withFieldComputed(_.id, _.id.uid.value)
-        .withFieldComputed(_.revision, _.id.rev match { case GitVersion.defaultRev => None ; case rev => Some(rev.value) })
+        .withFieldComputed(_.revision, _.id.rev match { case GitVersion.DEFAULT_REV => None ; case rev => Some(rev.value) })
         .withFieldRenamed(_.name, _.displayName)
         .withFieldConst(_.techniqueName, technique.id.name.value)
         .withFieldComputed(_.techniqueVersion, _.techniqueVersion.serialize)
@@ -243,6 +243,7 @@ object JsonResponseObjects {
   final case class JRRule(
       changeRequestId : Option[String] = None
     , id              : String
+    , revision        : Option[String]
     , displayName     : String
     , categoryId      : String
     , shortDescription: String
@@ -256,13 +257,15 @@ object JsonResponseObjects {
 
   object JRRule {
     // create an empty json rule with just ID set
-    def empty(id: String) = JRRule(None, id, "", "", "", "", Nil, Nil, false, false, Nil)
+    def empty(id: String) = JRRule(None, id, None, "", "", "", "", Nil, Nil, false, false, Nil)
 
     // create from a rudder business rule
     def fromRule(rule: Rule, crId: Option[ChangeRequestId]): JRRule = {
       rule.into[JRRule]
         .enableBeanGetters
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
+        .withFieldComputed(_.id, _.id.uid.value)
+        .withFieldComputed(_.revision, _.id.rev match { case GitVersion.DEFAULT_REV => None ; case rev => Some(rev.value) })
         .withFieldRenamed(_.name, _.displayName)
         .withFieldComputed(_.categoryId, _.categoryId.value)
         .withFieldComputed(_.directives, _.directiveIds.map(_.uid.value).toList.sorted)

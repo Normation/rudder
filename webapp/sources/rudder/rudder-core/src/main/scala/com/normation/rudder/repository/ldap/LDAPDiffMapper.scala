@@ -247,7 +247,7 @@ class LDAPDiffMapper(
         case (modify:LDIFModifyChangeRecord, Some(beforeChangeEntry)) =>
           for {
             oldPi <- mapper.entry2Directive(beforeChangeEntry)
-            diff  <- modify.getModifications().foldLeft(ModifyDirectiveDiff(ptName, oldPi.id.uid, oldPi.name).asRight[RudderError]) { (diff, mod) =>
+            diff  <- modify.getModifications().foldLeft(ModifyDirectiveDiff(ptName, oldPi.id, oldPi.name).asRight[RudderError]) { (diff, mod) =>
                         mod.getAttributeName() match {
                           case A_TECHNIQUE_VERSION =>
                             mod.getAttribute().getValue match {

@@ -91,8 +91,8 @@ object RudderDit {
    */
   def buildRDN(attributeName: String, uuid: String, rev: Revision): RDN = {
       rev match {
-        case GitVersion.defaultRev => new RDN(attributeName, uuid)
-        case r                     => new RDN(Array(attributeName, A_REV_ID), Array(uuid, r.value))
+        case GitVersion.DEFAULT_REV => new RDN(attributeName, uuid)
+        case r                      => new RDN(Array(attributeName, A_REV_ID), Array(uuid, r.value))
       }
   }
 
@@ -219,7 +219,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     def getActiveTechniqueId(dn:DN) : Box[String] = singleRdnValue(dn,A_ACTIVE_TECHNIQUE_UUID)
 
 
-    def getLDAPRuleID(dn:DN) : Box[String] = singleRdnValue(dn,A_DIRECTIVE_UUID)
+    def getLDAPDirectiveUid(dn:DN) : Box[String] = singleRdnValue(dn,A_DIRECTIVE_UUID)
 
     /**
      * Return a new sub category
@@ -261,12 +261,12 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   object RULES extends OU("Rules", BASE_DN) {
     rules =>
 
-    def getRuleId(dn:DN) : Box[String] = singleRdnValue(dn,A_RULE_UUID)
+    def getRuleUid(dn:DN) : Box[String] = singleRdnValue(dn,A_RULE_UUID)
 
-    def configRuleDN(uuid: RuleId, rev: Revision) = RudderDit.buildDN(rules.dn, A_RULE_UUID, uuid.value, rev)
+    def configRuleDN(id: RuleId) = RudderDit.buildDN(rules.dn, A_RULE_UUID, id.uid.value, id.rev)
 
-    def ruleModel(uuid: RuleId, rev: Revision, name: String, isEnabled: Boolean,isSystem: Boolean,category: String) : LDAPEntry = {
-      val mod = LDAPEntry(configRuleDN(uuid, rev))
+    def ruleModel(id: RuleId, name: String, isEnabled: Boolean,isSystem: Boolean,category: String) : LDAPEntry = {
+      val mod = LDAPEntry(configRuleDN(id))
       mod.resetValuesTo(A_OC,OC.objectClassNames(OC_RULE).toSeq:_*)
       mod.resetValuesTo(A_NAME, name)
       mod.resetValuesTo(A_IS_ENABLED, isEnabled.toLDAPString)

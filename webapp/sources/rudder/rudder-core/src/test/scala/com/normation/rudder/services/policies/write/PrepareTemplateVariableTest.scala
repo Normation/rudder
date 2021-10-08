@@ -51,6 +51,7 @@ import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.templates.FillTemplatesService
 
 @RunWith(classOf[JUnitRunner])
@@ -139,15 +140,15 @@ bundle agent run_directive5
         NodeRunHook(
             "package-install"
           , RunHook.Kind.Pre
-          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId(DirectiveUid("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) ::
-            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId(DirectiveUid("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) :: Nil
+          , NodeRunHook.ReportOn(PolicyId(RuleId(RuleUid("r1")), DirectiveId(DirectiveUid("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) ::
+            NodeRunHook.ReportOn(PolicyId(RuleId(RuleUid("r1")), DirectiveId(DirectiveUid("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt1", Some("val1"))) :: Nil
           , RunHook.Parameter("package", "vim") :: RunHook.Parameter("action", "update-only") :: Nil
         ) ::
         NodeRunHook(
             "service-restart"
           , RunHook.Kind.Post
-          , NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId(DirectiveUid("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) ::
-            NodeRunHook.ReportOn(PolicyId(RuleId("r1"), DirectiveId(DirectiveUid("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) :: Nil
+          , NodeRunHook.ReportOn(PolicyId(RuleId(RuleUid("r1")), DirectiveId(DirectiveUid("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) ::
+            NodeRunHook.ReportOn(PolicyId(RuleId(RuleUid("r1")), DirectiveId(DirectiveUid("d1")), TechniqueVersionHelper("1.0")), PolicyMode.Enforce, "tech1", RunHook.Report("cmpt2", None)) :: Nil
           , RunHook.Parameter("service", "syslog") :: Nil
         ) :: Nil
 

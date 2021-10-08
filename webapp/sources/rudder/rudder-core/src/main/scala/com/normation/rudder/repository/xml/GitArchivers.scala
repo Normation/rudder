@@ -93,7 +93,7 @@ class GitRuleArchiverImpl(
   override val relativePath = ruleRootDir
   override val tagPrefix = "archives/configurations-rules/"
 
-  private[this] def newCrFile(ruleId: RuleId) = new File(getItemDirectory, ruleId.value + ".xml")
+  private[this] def newCrFile(ruleId: RuleId) = new File(getItemDirectory, ruleId.serialize + ".xml")
 
   def archiveRule(rule:Rule, doCommit: Option[(ModificationId, PersonIdent, Option[String])]) : IOResult[GitPath] = {
     val crFile  = newCrFile(rule.id)
@@ -107,7 +107,7 @@ class GitRuleArchiverImpl(
                  )
       commit  <- doCommit match {
                    case Some((modId, commiter, reason)) =>
-                     commitAddFileWithModId(modId, commiter, gitPath, s"Archive rule with ID '${rule.id.value}'${GET(reason)}")
+                     commitAddFileWithModId(modId, commiter, gitPath, s"Archive rule with ID '${rule.id.serialize}'${GET(reason)}")
                    case None => UIO.unit
                  }
     } yield {
@@ -131,7 +131,7 @@ class GitRuleArchiverImpl(
         _        <- logPure.debug("Deleted archive of rule: " + crFile.getPath)
         commited <- doCommit match {
                       case Some((modId, commiter, reason)) =>
-                        commitRmFileWithModId(modId, commiter, gitPath, s"Delete archive of rule with ID '${ruleId.value}'${GET(reason)}")
+                        commitRmFileWithModId(modId, commiter, gitPath, s"Delete archive of rule with ID '${ruleId.serialize}'${GET(reason)}")
                       case None => UIO.unit
                     }
       } yield {

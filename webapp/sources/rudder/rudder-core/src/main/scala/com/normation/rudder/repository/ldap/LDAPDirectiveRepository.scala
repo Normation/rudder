@@ -96,8 +96,8 @@ class RoLDAPDirectiveRepository(
    */
   def getDirectiveEntry(con:RoLDAPConnection, id: DirectiveId, attributes:String*) : LDAPIOResult[Option[LDAPEntry]] = {
     val filter = id.rev match {
-      case GitVersion.defaultRev => EQ(A_DIRECTIVE_UUID, id.uid.value)
-      case r                     => AND(EQ(A_DIRECTIVE_UUID, id.uid.value), EQ(A_REV_ID, r.value))
+      case GitVersion.DEFAULT_REV => EQ(A_DIRECTIVE_UUID, id.uid.value)
+      case r                      => AND(EQ(A_DIRECTIVE_UUID, id.uid.value), EQ(A_REV_ID, r.value))
     }
     con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter, attributes:_*).flatMap(piEntries =>
       piEntries.size match {
@@ -402,7 +402,7 @@ class RoLDAPDirectiveRepository(
       piEntries <- con.searchOne(dn, EQ(A_OC, OC_DIRECTIVE), "objectClass").fold(_ => Seq(), x => x)
     } yield {
       activeTechnique.copy(
-        directives = piEntries.map(e => mapper.dn2LDAPRuleID(e.dn)).toList
+        directives = piEntries.map(e => mapper.dn2LDAPDirectiveUid(e.dn)).toList
       )
     }
   }

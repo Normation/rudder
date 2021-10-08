@@ -567,11 +567,11 @@ class DirectiveEditForm(
       onFailure()
     } else {
       val (addRules,removeRules)= directiveApp.checkRulesToUpdate
-      val baseRules = (addRules ++ removeRules).sortBy(_.id.value)
+      val baseRules = (addRules ++ removeRules).sortBy(_.id.serialize)
 
       val finalAdd = addRules.map(r => r.copy(directiveIds =  r.directiveIds + directive.id ))
       val finalRem = removeRules.map(r => r.copy(directiveIds =  r.directiveIds - directive.id ))
-      val updatedRules = (finalAdd ++ finalRem).sortBy(_.id.value)
+      val updatedRules = (finalAdd ++ finalRem).sortBy(_.id.serialize)
 
       val newPolicyMode = policyModes.get match {
         case "global"  => None

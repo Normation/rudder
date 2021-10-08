@@ -39,11 +39,13 @@ package com.normation.rudder.rest.internal
 
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.UserService
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QSObject
 import com.normation.rudder.services.quicksearch.QuickSearchResult
 import com.normation.rudder.web.model.LinkUtil
+
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JArray
@@ -202,7 +204,7 @@ class RestQuicksearch (
       import linkUtil._
       val url = r.id match {
         case QRNodeId(v)      => nodeLink(NodeId(v))
-        case QRRuleId(v)      => ruleLink(RuleId(v))
+        case QRRuleId(v)      => ruleLink(RuleId(RuleUid(v)))
         case QRDirectiveId(v) => directiveLink(DirectiveUid(v))
         case QRGroupId(v)     => groupLink(NodeGroupId(v))
         case QRParameterId(v) => globalParameterLink(v)

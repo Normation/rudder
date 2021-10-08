@@ -317,8 +317,9 @@ class EventLogDetailsServiceImpl(
                              Failure("Rule attribute does not have changeType=modify: " + entry.toString())
                          }
     fileFormatOk      <- TestFileFormat(rule)
-    id                <- (rule \ "id").headOption.map( _.text ) ?~!
+    sid               <- (rule \ "id").headOption.map( _.text ) ?~!
                          ("Missing attribute 'id' in entry type rule : " + entry.toString())
+    id                <- RuleId.parse(sid).toBox
     displayName       <- (rule \ "displayName").headOption.map( _.text ) ?~!
                          ("Missing attribute 'displayName' in entry type rule : " + entry.toString())
     name              <- getFromToString((rule \ "name").headOption)
@@ -347,7 +348,7 @@ class EventLogDetailsServiceImpl(
                          } )
   } yield {
     ModifyRuleDiff(
-        id = RuleId(id)
+        id = id
       , name = displayName
       , modName = name
       , modSerial = serial
@@ -412,31 +413,32 @@ class EventLogDetailsServiceImpl(
 
   def getDirectiveModifyDetails(xml:NodeSeq) : Box[ModifyDirectiveDiff] = {
     for {
-      entry <- getEntryContent(xml)
-      directive                    <- (entry \ "directive").headOption ?~! ("Entry type is not directive : " + entry.toString())
-      changeTypeAddOk       <- {
-                                 if(directive.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
-                                 else Failure("Directive attribute does not have changeType=modify: " + entry.toString())
-                               }
-      fileFormatOk          <- TestFileFormat(directive)
-      id                    <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + entry.toString())
-      ptName                <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + entry.toString())
-      displayName           <- (directive \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type directive : " + entry.toString())
-      name                  <- getFromToString((directive \ "name").headOption)
-      techniqueVersion      <- getFromTo[TechniqueVersion]((directive \ "techniqueVersion").headOption, {v => TechniqueVersion.parse(v.text).toBox } )
-      parameters            <- getFromTo[SectionVal]((directive \ "parameters").headOption, {parameter =>
-                                piUnserialiser.parseSectionVal(parameter)
-                              })
-      shortDescription      <- getFromToString((directive \ "shortDescription").headOption)
-      longDescription       <- getFromToString((directive \ "longDescription").headOption)
-      priority              <- getFromTo[Int]((directive \ "priority").headOption, { x => tryo(x.text.toInt) } )
-      isEnabled             <- getFromTo[Boolean]((directive \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } )
-      isSystem              <- getFromTo[Boolean]((directive \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
-      policyMode            <- getFromTo[Option[PolicyMode]]((directive \ "policyMode" ).headOption ,{ x => PolicyMode.parseDefault(x.text).toBox })
+      entry            <- getEntryContent(xml)
+      directive        <- (entry \ "directive").headOption ?~! ("Entry type is not directive : " + entry.toString())
+      changeTypeAddOk  <- {
+                            if(directive.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
+                            else Failure("Directive attribute does not have changeType=modify: " + entry.toString())
+                          }
+      fileFormatOk     <- TestFileFormat(directive)
+      sid              <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + entry.toString())
+      id               <- DirectiveId.parse(sid).toBox
+      ptName           <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + entry.toString())
+      displayName      <- (directive \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type directive : " + entry.toString())
+      name             <- getFromToString((directive \ "name").headOption)
+      techniqueVersion <- getFromTo[TechniqueVersion]((directive \ "techniqueVersion").headOption, {v => TechniqueVersion.parse(v.text).toBox } )
+      parameters       <- getFromTo[SectionVal]((directive \ "parameters").headOption, {parameter =>
+                           piUnserialiser.parseSectionVal(parameter)
+                         })
+      shortDescription <- getFromToString((directive \ "shortDescription").headOption)
+      longDescription  <- getFromToString((directive \ "longDescription").headOption)
+      priority         <- getFromTo[Int]((directive \ "priority").headOption, { x => tryo(x.text.toInt) } )
+      isEnabled        <- getFromTo[Boolean]((directive \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } )
+      isSystem         <- getFromTo[Boolean]((directive \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
+      policyMode       <- getFromTo[Option[PolicyMode]]((directive \ "policyMode" ).headOption ,{ x => PolicyMode.parseDefault(x.text).toBox })
     } yield {
       ModifyDirectiveDiff(
           techniqueName = TechniqueName(ptName)
-        , DirectiveUid(id)
+        , id
         , displayName
         , name
         , techniqueVersion

@@ -316,7 +316,7 @@ final case class RuleComplianceLine (
         ( "rule"              -> escapeHTML(rule.name)       )
       , ( "compliance"        -> jsCompliance(compliance)    )
       , ( "compliancePercent" -> compliance.compliance       )
-      , ( "id"                -> escapeHTML(rule.id.value)   )
+      , ( "id"                -> escapeHTML(rule.id.serialize) )
       , ( "details"           -> details.json                )
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page

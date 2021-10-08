@@ -104,11 +104,11 @@ class EventLogDetailsGenerator(
   def displayDescription(event:EventLog) = {
     import linkUtil._
     def crDesc(x:EventLog, actionName: NodeSeq) = {
-      val id = (x.details \ "rule" \ "id").text
+      val id = RuleId.parse((x.details \ "rule" \ "id").text).getOrElse(RuleId(RuleUid("")))
       val name = (x.details \ "rule" \ "displayName").text
       Text("Rule ") ++ {
-        if(id.size < 1) Text(name)
-        else <a href={ruleLink(RuleId(id))} onclick="noBubble(event);">{name}</a> ++ actionName
+        if(id.serialize.length < 1) Text(name)
+        else <a href={ruleLink(id)} onclick="noBubble(event);">{name}</a> ++ actionName
       }
     }
 
@@ -332,7 +332,7 @@ class EventLogDetailsGenerator(
                 { generatedByChangeRequest }
                 <h4>Rule overview:</h4>
                 <ul class="evlogviewpad">
-                  <li><b>Rule ID:</b> { modDiff.id.value }</li>
+                  <li><b>Rule ID:</b> { modDiff.id.serialize }</li>
                   <li><b>Name:</b> {
                     modDiff.modName.map(diff => diff.newValue).getOrElse(modDiff.name)
                     }</li>
@@ -382,13 +382,13 @@ class EventLogDetailsGenerator(
                 { generatedByChangeRequest }
                 <h4>Directive overview:</h4>
                 <ul class="evlogviewpad">
-                  <li><b>Directive ID:</b> { modDiff.id.value }</li>
+                  <li><b>Directive ID:</b> { modDiff.id.serialize }</li>
                   <li><b>Name:</b> {
                     modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)
                     }</li>
                 </ul>
                 {(
-                "#name" #> mapSimpleDiff(modDiff.modName, modDiff.id) &
+                  "#name" #> mapSimpleDiff(modDiff.modName, modDiff.id) &
                   "#priority *" #> mapSimpleDiff(modDiff.modPriority) &
                   "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivated) &
                   "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
@@ -1141,30 +1141,30 @@ class EventLogDetailsGenerator(
 
   private[this] def ruleDetails(xml:NodeSeq, rule:Rule, groupLib: FullNodeGroupCategory, rootRuleCategory: RuleCategory) = {
     (
-      "#ruleID"    #> rule.id.value &
-        "#ruleName"  #> rule.name &
-        "#category"  #> diffDisplayer.displayRuleCategory(rootRuleCategory, rule.categoryId, None) &
-        "#target"    #> diffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq, groupLib) &
-        "#policy"    #> diffDisplayer.displayDirectiveChangeList(rule.directiveIds.toSeq, rule.directiveIds.toSeq) &
-        "#isEnabled" #> rule.isEnabled &
-        "#isSystem"  #> rule.isSystem &
-        "#shortDescription" #> rule.shortDescription &
-        "#longDescription"  #> rule.longDescription
-      ) (xml)
+      "#ruleID"    #> rule.id.serialize &
+      "#ruleName"  #> rule.name &
+      "#category"  #> diffDisplayer.displayRuleCategory(rootRuleCategory, rule.categoryId, None) &
+      "#target"    #> diffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq, groupLib) &
+      "#policy"    #> diffDisplayer.displayDirectiveChangeList(rule.directiveIds.toSeq, rule.directiveIds.toSeq) &
+      "#isEnabled" #> rule.isEnabled &
+      "#isSystem"  #> rule.isSystem &
+      "#shortDescription" #> rule.shortDescription &
+      "#longDescription"  #> rule.longDescription
+    ) (xml)
   }
 
   private[this] def directiveDetails(xml:NodeSeq, ptName: TechniqueName, directive:Directive, sectionVal:SectionVal) = (
-    "#directiveID" #> directive.id.uid.value &
-      "#directiveName" #> directive.name &
-      "#ptVersion" #> directive.techniqueVersion.debugString &
-      "#ptName" #> ptName.value &
-      "#ptVersion" #> directive.techniqueVersion.debugString &
-      "#ptName" #> ptName.value &
-      "#priority" #> directive.priority &
-      "#isEnabled" #> directive.isEnabled &
-      "#isSystem" #> directive.isSystem &
-      "#shortDescription" #> directive.shortDescription &
-      "#longDescription" #> directive.longDescription
+    "#directiveID" #> directive.id.serialize &
+    "#directiveName" #> directive.name &
+    "#ptVersion" #> directive.techniqueVersion.debugString &
+    "#ptName" #> ptName.value &
+    "#ptVersion" #> directive.techniqueVersion.debugString &
+    "#ptName" #> ptName.value &
+    "#priority" #> directive.priority &
+    "#isEnabled" #> directive.isEnabled &
+    "#isSystem" #> directive.isSystem &
+    "#shortDescription" #> directive.shortDescription &
+    "#longDescription" #> directive.longDescription
     )(xml)
 
   private[this] def groupDetails(xml:NodeSeq, group: NodeGroup) = (
@@ -1223,10 +1223,10 @@ class EventLogDetailsGenerator(
 
   private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]]) = mapSimpleDiffT(opt, (x:T) => x.toString)
 
-  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]], id: DirectiveUid) = opt.map { diff =>
+  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]], id: DirectiveId) = opt.map { diff =>
     ".diffOldValue *" #> diff.oldValue.toString &
       ".diffNewValue *" #> diff.newValue.toString &
-      "#directiveID" #> id.value
+      "#directiveID" #> id.serialize
   }
 
   private[this] def mapComplexDiff[T](opt:Option[SimpleDiff[T]])(display: T => NodeSeq) = {

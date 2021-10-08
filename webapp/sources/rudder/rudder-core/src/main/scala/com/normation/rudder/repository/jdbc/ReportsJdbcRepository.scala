@@ -80,7 +80,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
    if(runs.isEmpty) Full(Map())
    else {
      val ruleClause = if (filterByRules.isEmpty) ""
-                      else s"and ruleid in ${filterByRules.map(_.value).mkString("('", "','", "')")}"
+                      else s"and ruleid in ${filterByRules.map(_.serialize).mkString("('", "','", "')")}"
 
      val nodeParam = runs.map(x => s"('${x.nodeId.value}','${new Timestamp(x.date.getMillis)}'::timestamp)").mkString(",")
        /*
@@ -522,7 +522,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       case _                 => ""
     }
     transactRunBox(xa => query[ResultRepairedReport](s"""
-      ${typedQuery} and eventtype='${Reports.RESULT_REPAIRED}' and ruleid='${ruleId.value}'
+      ${typedQuery} and eventtype='${Reports.RESULT_REPAIRED}' and ruleid='${ruleId.serialize}'
       and executionTimeStamp >  '${new Timestamp(interval.getStartMillis)}'::timestamp
       and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)  }'::timestamp order by executionTimeStamp asc ${l}
     """).to[Vector].transact(xa))

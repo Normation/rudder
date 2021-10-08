@@ -122,6 +122,7 @@ import com.normation.inventory.domain.PendingInventory
 import com.normation.inventory.domain.VMWare
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
@@ -477,8 +478,8 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
   implicit def toTV(s: String) = TechniqueVersionHelper(s)
   implicit def toTN(s: String) = TechniqueName(s)
   implicit def toTID(id: (String, String)) = TechniqueId(id._1, id._2)
-  implicit def toDID(id: String) = DirectiveId(DirectiveUid(id), GitVersion.defaultRev)
-  implicit def toRID(id: String) = RuleId(id)
+  implicit def toDID(id: String) = DirectiveId(DirectiveUid(id), GitVersion.DEFAULT_REV)
+  implicit def toRID(id: String) = RuleId(RuleUid(id))
   implicit def toRCID(id: String) = RuleCategoryId(id)
   val t1 = Technique(("t1", "1.0"), "t1", "t1", Nil, TrackerVariableSpec(), SectionSpec("root"), None)
   val d1 = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
@@ -498,8 +499,8 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
    *   ************************************************************************
    */
 
-   val r1 = Rule("r1", None, "r1", "cat1")
-   val r2 = Rule("r2", None, "r2", "cat1")
+   val r1 = Rule("r1", "r1", "cat1")
+   val r2 = Rule("r2", "r2", "cat1")
 
 }
 
@@ -520,6 +521,9 @@ class TestTechniqueRepo(prefixTestResources: String = ""
   implicit class PathString2(root: File) {
     def /(child: String) = new File(root, child)
   }
+
+  implicit def stringToRuleUid(s: String) = RuleUid(s)
+
   val t0 = System.currentTimeMillis()
 
   val abstractRoot = new File("/tmp/test-rudder-config-repo-" + DateTime.now.toString())
@@ -588,6 +592,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
   implicit class PathString2(root: File) {
     def /(child: String) = new File(root, child)
   }
+  implicit def stringToRuleUid(s: String) = RuleUid(s)
 
   // technique repository + expose services & vars
 
@@ -777,7 +782,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
   }
 
   val commonDirective = Directive(
-      DirectiveId(DirectiveUid("common-root"), GitVersion.defaultRev)
+      DirectiveId(DirectiveUid("common-root"), GitVersion.DEFAULT_REV)
     , TechniqueVersionHelper("1.0")
     , Map(
         ("OWNER", Seq("${rudder.node.admin}"))
@@ -911,7 +916,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
      ).map(v => (ComponentId(v.spec.name, Nil), v)).toMap
   }
   def rpmDirective(id: String, pkg: String) = Directive(
-      DirectiveId(DirectiveUid(id), GitVersion.defaultRev)
+      DirectiveId(DirectiveUid(id), GitVersion.DEFAULT_REV)
     , TechniqueVersionHelper("7.0")
     , Map(
          ("RPM_PACKAGE_CHECK_INTERVAL", Seq("5"))
