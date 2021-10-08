@@ -1,9 +1,25 @@
 module  JsonEncoder exposing (..)
 
 import DataTypes exposing (..)
+import Iso8601
 import Json.Encode exposing (..)
 import MethodConditions exposing (..)
 import AgentValueParser exposing (..)
+
+encodeDraft: Draft -> Value
+encodeDraft draft =
+  let
+    standardData =  [
+                     ("technique", encodeTechnique draft.technique)
+                     , ("id", string draft.id)
+                     , ("date", Iso8601.encode draft.date)
+                     ]
+    data = case draft.origin of
+             Nothing -> standardData
+             Just t ->
+                     ("origin", encodeTechnique t) :: standardData
+  in
+    object data
 
 encodeTechnique: Technique -> Value
 encodeTechnique technique =

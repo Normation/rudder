@@ -77,7 +77,6 @@ $(document).ready(function(){
 
 
   app.ports.pushUrl.subscribe(function(id) {
-
     var url = contextPath + "/secure/configurationManager/techniqueEditor"
     if (id !== "") {
       url += "/technique/" + id
@@ -88,26 +87,24 @@ $(document).ready(function(){
   app.ports.getUrl.subscribe(function() {
     getTechniqueRedirection(app);
   });
-  app.ports.store.subscribe(function(kv) {
-    var key = kv[0];
-    var json = kv[1];
-    localStorage.setItem(key, JSON.stringify(json));
-  });
-  app.ports.clear.subscribe(function(key) {
-    localStorage.setItem(key, null);
+
+  app.ports.storeDraft.subscribe(function(draft) {
+    draft.date = new Date().toISOString();
+    var drafts = JSON.parse(localStorage.getItem("drafts"))
+    if (drafts === null) { drafts = {} }
+    drafts[draft.id] = draft;
+    localStorage.setItem("drafts", JSON.stringify(drafts));
   });
 
-  app.ports.get.subscribe(function() {
-    var current = undefined;
-    var origin = null;
-    var id = undefined;
-    try {
-      current = JSON.parse(localStorage.getItem("currentTechnique"))
-      origin = JSON.parse(localStorage.getItem("originTechnique"))
-      id = localStorage.getItem("internalId")
-    } catch (e) {}
-    //port.send([current,origin, ""])
+  app.ports.clearDraft.subscribe(function(key) {
+    var drafts = JSON.parse(localStorage.getItem("drafts"))
+    delete drafts[draft.id]
+    localStorage.setItem("drafts", JSON.stringify(drafts));
+  });
 
+  app.ports.getDrafts.subscribe(function() {
+    var drafts = JSON.parse(localStorage.getItem("drafts"))
+    app.ports.draftsResponse.send(drafts)
   });
 
   app.ports.successNotification.subscribe(function(str) {
@@ -119,9 +116,9 @@ $(document).ready(function(){
   app.ports.infoNotification.subscribe(function(str) {
     createInfoNotification(str)
   });
-  app.ports.warnNotification.subscribe(function(str) {
+  /*app.ports.warnNotification.subscribe(function(str) {
     createWarningNotification(str)
-  });
+  });*/
     $(document).on('mouseover','.popover-bs',function(){
       $(this).bsPopover('show');
     });
