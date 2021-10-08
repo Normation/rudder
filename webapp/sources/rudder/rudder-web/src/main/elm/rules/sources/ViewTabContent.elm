@@ -242,9 +242,9 @@ tabContent model details =
           if not details.ui.editDirectives then
             div[class "tab-table-content"]
             [ div [class "table-title"]
-              [ h4 [][text "Compliance by Directives"]
+              [ h4 [][text "Compliance by directives"]
               , ( if model.ui.hasWriteRights then
-                  button [class "btn btn-default btn-sm", onClick (UpdateRuleForm {details | ui = {ui | editDirectives = True }})][text "Edit"]
+                  button [class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editDirectives = True }})][text "Select directives", i[class "fa fa-plus-circle"][]]
                 else
                   text ""
                 )
@@ -352,6 +352,17 @@ tabContent model details =
                   else
                     Nothing
 
+              (noChange, cancelDirectives) = case details.originRule of
+                Just oR -> (rule.directives == oR.directives, oR.directives)
+                Nothing -> (rule.directives == [], [])
+
+              cancelBtn =
+                if noChange then
+                  text ""
+                else
+                  button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | directives = cancelDirectives} })]
+                  [text "Cancel", i[class "fa fa-undo-alt"][]]
+
             in
               div[class "row flex-container"]
               [ div[class "list-edit col-xs-12 col-sm-6 col-lg-7"]
@@ -359,8 +370,9 @@ tabContent model details =
                   [ div[class "list-heading"]
                     [ h4[][text "Apply these directives"]
                     , div [class "btn-actions"]
-                      [ button[class "btn btn-sm btn-default", onClick (UpdateRuleForm {details | ui = {ui | editDirectives = False}} )][text "Cancel"]
-                      , button[class "btn btn-sm btn-success", onClick (CallApi (saveRuleDetails rule isNewRule))][text "Save"]
+                      [ cancelBtn
+                      , button[class "btn btn-default btn-icon", onClick ( UpdateRuleForm { details | ui = {ui | editDirectives = False}} )][text "Close", i[class "fa fa-times"][]]
+                      , button[class "btn btn-success btn-icon", onClick ( CallApi (saveRuleDetails rule isNewRule))][text "Save", i[class "fa fa-download"][]]
                       ]
                     ]
                   , ul[class "directives applied-list"]
@@ -467,7 +479,7 @@ tabContent model details =
             [ div [class "table-title"]
               [ h4 [][text "Compliance by Nodes"]
               , ( if model.ui.hasWriteRights then
-                  button [class "btn btn-default btn-sm", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}})][text "Edit"]
+                  button [class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}})][text "Select targets", i[class "fa fa-plus-circle"][]]
                 else
                   text ""
                 )
@@ -567,6 +579,17 @@ tabContent model details =
                   [Composition (Or include) (Or exclude)] -> (include, exclude)
                   _ -> (rule.targets, [])
 
+              (noChange, cancelTargets) = case details.originRule of
+                Just oR -> (rule.targets == oR.targets, oR.targets)
+                Nothing -> (rule.targets == [], [])
+
+              cancelBtn =
+                if noChange then
+                  text ""
+                else
+                  button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | targets = cancelTargets} })]
+                  [text "Cancel", i[class "fa fa-undo-alt"][]]
+
             in
               div[class "row flex-container"]
               [ div[class "list-edit col-xs-12 col-sm-6 col-lg-7"]
@@ -574,8 +597,11 @@ tabContent model details =
                   [ div[class "list-heading"]
                     [ h4[][text "Apply to Nodes in any of these Groups"]
                     , div [class "btn-actions"]
-                      [ button[class "btn btn-sm btn-default", onClick (UpdateRuleForm {details | ui = {ui | editGroups = False}})][text "Cancel"]
-                      , button[class "btn btn-sm btn-success", onClick (CallApi (saveRuleDetails rule isNewRule))][text "Save"]
+                      [ cancelBtn
+                      , button[class "btn btn-default btn-icon"  , onClick (UpdateRuleForm {details | ui = {ui | editGroups = False}} )]
+                        [text "Close", i[class "fa fa-times"][]]
+                      , button[class "btn btn-success btn-icon", onClick (CallApi (saveRuleDetails rule isNewRule))]
+                        [text "Save", i[class "fa fa-download"][]]
                       ]
                     ]
                   , ul[class "groups applied-list"]
