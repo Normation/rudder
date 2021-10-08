@@ -122,7 +122,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
       moved = (categoryId.value, intoParent.value, optionNewName.map(_.value)) :: moved
       optionNewName.getOrElse(categoryId).succeed
     }
-    override def addTechniqueInUserLibrary(categoryId: ActiveTechniqueCategoryId, techniqueName: TechniqueName, versions: Seq[TechniqueVersion], modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechnique] = {
+    override def addTechniqueInUserLibrary(categoryId: ActiveTechniqueCategoryId, techniqueName: TechniqueName, versions: Seq[TechniqueVersion], isSystem: Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechnique] = {
       updatedTechniques = techniqueName.value :: updatedTechniques
       ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, Map()).succeed
     }
