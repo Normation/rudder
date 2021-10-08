@@ -5,9 +5,9 @@ Rudder package manager
 
 Usage:
     rudder package [--debug] install-file <package.rpkg>...
-    rudder package [--debug] install <package> [--exact-version][--nightly] [--quiet]
+    rudder package [--debug] install <package> [--exact-version=<version>][--nightly] [--quiet]
     rudder package [--debug] upgrade-all [--nightly] [--quiet]
-    rudder package [--debug] show <package> [--exact-version] [--nightly]
+    rudder package [--debug] show <package> [--exact-version=<version>] [--nightly]
     rudder package [--debug] remove <package>...
     rudder package [--debug] search <package>...
     rudder package [--debug] list [--all]
@@ -15,7 +15,7 @@ Usage:
     rudder package [--debug] licenses [--quiet]
     rudder package [--debug] check-connection
     rudder package [--debug] rudder-postupgrade
-    rudder package [--debug] check-compatibility [--exact-version]
+    rudder package [--debug] check-compatibility [--strict]
     rudder package [--debug] plugin save-status
     rudder package [--debug] plugin restore-status
     rudder package [--debug] plugin enable <plugin>...
@@ -28,6 +28,8 @@ Options:
     --version <version>  Provide specific version
     --nightly  Force the command to execute on the nightlies instead of the released plugins
     --all      List all plugin name available
+    --strict   Verify the compatibility between plugins and the current Rudder version exactly.
+               Otherwise, the patch version is ignored.
     --quiet    Deprecated, force the log level to info
 
 Commands:
@@ -149,10 +151,10 @@ if __name__ == '__main__':
     elif args['rudder-postupgrade']:
         rudderPkg.rudder_postupgrade()
     elif args['check-compatibility']:
-        exact_version = False
-        if args['--exact-version']:
-            exact_version = True
-        rudderPkg.check_compatibility(exact_version)
+        strict = False
+        if args['--strict']:
+            strict = True
+        rudderPkg.check_compatibility(strict)
     elif args['plugin']:
         if args['save-status']:
             rudderPkg.plugin_save_status()

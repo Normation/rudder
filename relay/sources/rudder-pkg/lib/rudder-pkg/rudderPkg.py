@@ -264,10 +264,10 @@ def rudder_postupgrade():
         utils.run_script('postinst', script_dir, True)
 
 
-def check_compatibility(exact_version):
+def check_compatibility(strict):
     for p in utils.DB['plugins']:
         metadata = utils.DB['plugins'][p]
-        if not utils.check_plugin_compatibility(metadata, exact_version):
+        if not utils.check_plugin_compatibility(metadata, strict):
             logger.warning('Plugin ' + p + ' is not compatible with rudder anymore, disabling it.')
             if 'jar-files' in metadata:
                 for j in metadata['jar-files']:
