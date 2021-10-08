@@ -786,10 +786,10 @@
 .jstree .item-disabled{
   color: #828894;
 }
-.sidebar-list .jstree > ul > .alert:first-child{
+.rudder-template .jstree > ul > .alert:first-child{
   margin: 15px 15px 15px 5px;
 }
-.sidebar-list .jstree .alert .fa:first-child{
+.rudder-template .jstree .alert .fa:first-child{
   margin-right: 6px;
 }
 /* === CALLOUT === */

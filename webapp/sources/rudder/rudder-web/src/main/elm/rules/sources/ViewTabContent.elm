@@ -11,7 +11,7 @@ import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
 import ViewUtilsCompliance exposing (buildComplianceBar, getDirectiveComputedCompliance)
-import ViewUtils exposing (thClass, sortTable, getDirectivesSortFunction, filterDirectives)
+import ViewUtils exposing (thClass, sortTable, getDirectivesSortFunction, filterSearch, searchFieldRules, searchFieldDirectives, searchFieldGroups)
 --
 -- This file contains all methods to display the details of the selected rule.
 --
@@ -234,7 +234,7 @@ tabContent model details =
                 List.map rowDirective directives
 
           sortedDirectives = model.directives
-            |> List.filter (\d -> List.member d.id rule.directives && (filterDirectives model.ui.directiveFilters.tableFilters.filter d))
+            |> List.filter (\d -> List.member d.id rule.directives && (filterSearch model.ui.directiveFilters.tableFilters.filter (searchFieldDirectives d)))
             |> List.sortWith (getDirectivesSortFunction model.rulesCompliance rule.id model.ui.directiveFilters.tableFilters)
 
         in
@@ -298,7 +298,7 @@ tabContent model details =
               directiveTreeElem item =
                 let
                   directivesList = item.directives
-                    |> List.filter (\d -> (filterDirectives model.ui.directiveFilters.treeFilters.filter d))
+                    |> List.filter (\d -> (filterSearch model.ui.directiveFilters.treeFilters.filter (searchFieldDirectives d)))
                     |> List.sortBy .displayName
                     |> List.map  (\d ->
                       let
@@ -434,7 +434,6 @@ tabContent model details =
 
           buildIncludeList : Bool -> RuleTarget -> Html Msg
           buildIncludeList includeBool ruleTarget =
-
             let
               groupsList = getAllElems model.groupsTree
 
@@ -536,22 +535,32 @@ tabContent model details =
                     ]
                   ]
 
-              groupTreeCat : Category Group -> Html Msg
-              groupTreeCat item =
+              groupTreeCategory : Category Group -> Maybe (Html Msg)
+              groupTreeCategory item =
                 let
-                  categories = List.map groupTreeCat (getSubElems item)
-                  groups = List.map groupTreeElem item.elems
-                  childsList  = ul[class "jstree-children"](categories ++ groups)
-                in
-                  li[class "jstree-node jstree-open"]
-                  [ i[class "jstree-icon jstree-ocl"][]
-                  , a[href "#", class "jstree-anchor"]
-                    [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-                    , span [class "treeGroupCategoryName tooltipable"][text item.name]
-                    ]
-                  , childsList
-                  ]
+                  categories = getSubElems item
+                    |> List.sortBy .name
+                    |> List.filterMap groupTreeCategory
 
+                  groups = item.elems
+                    |> List.filter (\g -> (filterSearch model.ui.groupFilters.treeFilters.filter (searchFieldGroups g)))
+                    |> List.sortBy .name
+                    |> List.map groupTreeElem
+
+                  children  = categories ++ groups
+
+                in
+                  if not (List.isEmpty children) then
+                    Just (li[class "jstree-node jstree-open"]
+                    [ i[class "jstree-icon jstree-ocl"][]
+                    , a[href "#", class "jstree-anchor"]
+                      [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
+                      , span [class "treeGroupCategoryName tooltipable"][text item.name]
+                      ]
+                    , ul[class "jstree-children"](children)
+                    ])
+                  else
+                    Nothing
 
               (includedTargets, excludedTargets) =
                 case rule.targets of
@@ -571,13 +580,13 @@ tabContent model details =
                     ]
                   , ul[class "groups applied-list"]
                     ( if(List.isEmpty includedTargets ) then
-                       [ li [class "empty"]
-                         [ span [] [text "There is no group included."]
-                         , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
-                         ]
-                       ]
-                       else
-                         List.map (buildIncludeList True) includedTargets
+                      [ li [class "empty"]
+                        [ span [] [text "There is no group included."]
+                        , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
+                        ]
+                      ]
+                    else
+                      List.map (buildIncludeList True) includedTargets
                     )
                   ]
                 , div[class "list-container"]
@@ -586,15 +595,13 @@ tabContent model details =
                     ]
                   , ul[class "groups applied-list"]
                     ( if(List.isEmpty excludedTargets) then
-
-                       [ li [class "empty"]
-                         [ span [] [text "There is no group excluded."]
-                         , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
-                         ]
-                       ]
-                      else
-                        List.map (buildIncludeList False) excludedTargets
-
+                      [ li [class "empty"]
+                        [ span [] [text "There is no group excluded."]
+                        , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
+                        ]
+                      ]
+                    else
+                      List.map (buildIncludeList False) excludedTargets
                     )
                   ]
                 ]
@@ -607,8 +614,41 @@ tabContent model details =
                       ]
                     , i [class "fa fa-bars"][]
                     ]
+                    , div [class "header-filter"]
+                      [ div [class "input-group"]
+                        [ div [class "input-group-btn"]
+                          [ button [class "btn btn-default", type_ "button"][span [class "fa fa-folder fa-folder-open"][]]
+                          ]
+                        , input [type_ "text", placeholder "Filter", class "form-control", value model.ui.groupFilters.treeFilters.filter
+                          , onInput (\s ->
+                            let
+                              groupFilters = model.ui.groupFilters
+                              treeFilters = groupFilters.treeFilters
+                            in
+                              UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = s}}
+                          )][]
+                        , div [class "input-group-btn"]
+                          [ button [class "btn btn-default", type_ "button"
+                          , onClick (
+                            let
+                              groupFilters = model.ui.groupFilters
+                              treeFilters = groupFilters.treeFilters
+                            in
+                              UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = ""}}
+                          )]
+                            [span [class "fa fa-times"][]]
+                          ]
+                        ]
+                      ]
                   , div [class "jstree jstree-default"]
-                    [ ul[class "jstree-container-ul jstree-children"][(groupTreeCat model.groupsTree)]
+                    [ ul[class "jstree-container-ul jstree-children"]
+                      [(case groupTreeCategory model.groupsTree of
+                        Just html -> html
+                        Nothing   -> div [class "alert alert-warning"]
+                          [ i [class "fa fa-exclamation-triangle"][]
+                          , text  "No groups match your filter."
+                          ]
+                      )]
                     ]
                   ]
                 ]

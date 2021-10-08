@@ -8,7 +8,7 @@ import List.Extra
 import List
 import String
 import NaturalOrdering exposing (compareOn)
-import ViewUtilsRules exposing (..)
+import ViewUtils exposing (getCategoryName, getListRules, filterSearch, searchFieldRules)
 import ViewUtilsCompliance exposing (buildComplianceBar, getAllComplianceValues, getRuleCompliance)
 
 --
@@ -66,7 +66,7 @@ buildRulesTable model =
   let
     rulesList       = getListRules model.rulesTree
     sortedRulesList = rulesList
-      |> List.filter (filterRules model)
+      |> List.filter (\r -> filterSearch model.ui.ruleFilters.treeFilters.filter (searchFieldRules r model))
       |> List.sortWith (getSortFunction model)
 
     rowTable : Rule -> Html Msg

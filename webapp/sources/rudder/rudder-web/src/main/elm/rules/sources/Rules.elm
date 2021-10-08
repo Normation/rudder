@@ -320,6 +320,12 @@ update msg model =
       in
         ({model | ui = { ui | directiveFilters = filters}}, Cmd.none)
 
+    UpdateGroupFilters filters ->
+      let
+        ui = model.ui
+      in
+        ({model | ui = { ui | groupFilters = filters}}, Cmd.none)
+
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
   let
