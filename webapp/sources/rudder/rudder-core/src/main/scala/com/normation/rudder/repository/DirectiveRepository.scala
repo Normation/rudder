@@ -504,6 +504,7 @@ trait WoDirectiveRepository {
       categoryId   : ActiveTechniqueCategoryId
     , techniqueName: TechniqueName
     , versions     : Seq[TechniqueVersion]
+    , isSystem     : Boolean
     , modId        : ModificationId
     , actor        : EventActor
     , reason       : Option[String]
@@ -616,6 +617,7 @@ class InitDirectivesTree(
           , description = fromCat.description
           , children = Nil
           , items = Nil
+          , isSystem = fromCat.isSystem
         )
         res <- if(fromCat.isSystem && !includeSystem) { //Rudder internal Technique category are handle elsewhere
             Full(newUserPTCat)
@@ -637,6 +639,7 @@ class InitDirectivesTree(
                           newUserPTCat.id
                         , name
                         , ids.map( _.version).toSeq
+                        , newUserPTCat.isSystem
                         , ModificationId(uuidGen.newUuid)
                         , RudderEventActor, reason = Some("Initialize active templates library")).toBox ?~!
                         "Error when adding Technique '%s' into user library category '%s'".format(name.value, newUserPTCat.id.value)

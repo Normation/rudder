@@ -240,10 +240,18 @@ class TechniqueAcceptationUpdater(
                                 UIO.unit
 
                               case (TechniqueDeleted(name, versions), Some(activeTechnique)) =>
-                                //if an active technique still exists for that technique, disable it
-                                ApplicationLoggerPure.warn(s"Technique '${name}' (${versions.map(_.debugString).mkString(",")})' is deleted" +
-                                                           s"but an active technique is still present in tree: disabling it.") *>
-                                rwActiveTechniqueRepo.changeStatus(activeTechnique.id, false, modId, actor, reason)
+                                // If an active technique, not system, still exists for that technique, disable it.
+                                // In the case of a system one, something is very broken. Don't disable it, as
+                                // It is likely to worsen things, but log an error.
+                                if(activeTechnique.isSystem) {
+                                  ApplicationLoggerPure.error(s"System technique '${name}' (${versions.map(_.debugString).mkString(",")})' is deleted in" +
+                                                             s"git base. This will likely cause grave problem. You should investigate.")
+
+                                } else {
+                                  ApplicationLoggerPure.warn(s"Technique '${name}' (${versions.map(_.debugString).mkString(",")})' is deleted " +
+                                                             s"but an active technique is still present in tree: disabling it.") *>
+                                  rwActiveTechniqueRepo.changeStatus(activeTechnique.id, false, modId, actor, reason)
+                                }
 
                               case (TechniqueUpdated(name, mods), Some(activeTechnique)) =>
                                 val versionsMap = mods.keySet.map( v => (v, acceptationDatetime)).toMap
@@ -293,7 +301,7 @@ class TechniqueAcceptationUpdater(
                                           findCategory(referenceCats.tail.map(x => CategoryInfo(x.id.name.value, x.name, x.description)), techLib)
                                         }
                                         logPure.info(s"Automatically adding technique '${name.value}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library") *>
-                                        rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, modId, actor, reason).chainError(
+                                        rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, isSystem, modId, actor, reason).chainError(
                                             s"Error when automatically activating technique '${name.value}'"
                                         ).unit
                                     }

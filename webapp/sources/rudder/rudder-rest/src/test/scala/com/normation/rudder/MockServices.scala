@@ -713,7 +713,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
       deleteGen(id)
     }
 
-    override def addTechniqueInUserLibrary(categoryId: ActiveTechniqueCategoryId, techniqueName: TechniqueName, versions: Seq[TechniqueVersion], modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechnique] = {
+    override def addTechniqueInUserLibrary(categoryId: ActiveTechniqueCategoryId, techniqueName: TechniqueName, versions: Seq[TechniqueVersion], isSystem: Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[ActiveTechnique] = {
       val techs = techniqueRepos.getByName(techniqueName)
       for {
         all <- ZIO.foreach(versions)(v => techs.get(v).notOptional(s"Missing version '${v}' for technique '${techniqueName.value}'"))

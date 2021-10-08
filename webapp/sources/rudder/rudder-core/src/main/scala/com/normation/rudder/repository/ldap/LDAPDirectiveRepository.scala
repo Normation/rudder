@@ -931,6 +931,7 @@ class WoLDAPDirectiveRepository(
       categoryId   : ActiveTechniqueCategoryId
     , techniqueName: TechniqueName
     , versions     : Seq[TechniqueVersion]
+    , isSystem     : Boolean
     , modId        : ModificationId
     , actor        : EventActor
     , reason       : Option[String]
@@ -948,7 +949,7 @@ class WoLDAPDirectiveRepository(
                               }
                             }
       categoryEntry      <- getCategoryEntry(con, categoryId, "1.1").notOptional(s"Category entry with ID '${categoryId.value}' was not found")
-      newActiveTechnique =  ActiveTechnique(ActiveTechniqueId(techniqueName.value),techniqueName, versions.map(x => x -> DateTime.now()).toMap)
+      newActiveTechnique =  ActiveTechnique(ActiveTechniqueId(techniqueName.value),techniqueName, versions.map(x => x -> DateTime.now()).toMap, isSystem = isSystem)
       uptEntry           =  mapper.activeTechnique2Entry(newActiveTechnique,categoryEntry.dn)
       result             <- con.save(uptEntry, true)
       // a new active technique is never system, see constructor call, using defvault value,

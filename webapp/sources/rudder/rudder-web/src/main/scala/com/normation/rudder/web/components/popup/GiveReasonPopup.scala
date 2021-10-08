@@ -150,6 +150,7 @@ class GiveReasonPopup(
                       ActiveTechniqueCategoryId(destCatId.value),
                       ptName,
                       techniqueRepository.getTechniqueVersions(ptName).toSeq,
+                      false,
                       ModificationId(uuidGen.newUuid),
                       CurrentUser.actor,
                       crReasons.map (_.get)
