@@ -488,6 +488,21 @@ impl Generator for CFEngine {
                     // means it's a lib file, not the file we are interested to generate
                     continue;
                 }
+                let resource_name = resource_name
+                    .strip_prefix("technique_")
+                    .or_else(|| {
+                        if policy_metadata {
+                            Some(resource_name)
+                        } else {
+                            None
+                        }
+                    })
+                    .ok_or_else(|| {
+                        err!(
+                            Token::new(resource.name, ""),
+                            "Technique resource must start with 'technique_'"
+                        )
+                    })?;
 
                 self.reset_context();
 
@@ -495,9 +510,9 @@ impl Generator for CFEngine {
                 let bundle_name = if state_name.fragment() == "technique" {
                     // special cases to be compatible with bundles produced by the webapp
                     // and called in the generated policies
-                    resource_name.fragment().to_owned()
+                    resource_name.to_owned()
                 } else {
-                    format!("{}_{}", resource_name.fragment(), state_name.fragment())
+                    format!("{}_{}", resource_name, state_name.fragment())
                 };
                 let parameters = resource
                     .parameters

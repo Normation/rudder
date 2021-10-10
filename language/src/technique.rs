@@ -164,9 +164,9 @@ impl Technique {
 @category = "{category}"
 @parameters = [{parameters_meta}]
 
-resource {bundle_name}({parameter_list})
+resource technique_{bundle_name}({parameter_list})
 
-{bundle_name} state technique() {{{calls}}}
+technique_{bundle_name} state technique() {{{calls}}}
 "#,
             name = self.name,
             description = self.description,

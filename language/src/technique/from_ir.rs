@@ -26,14 +26,19 @@ impl<'src> Technique {
                     .is_some()
                 // means at least one state from the resource is a technique
                 {
-                    return Some(res);
+                    Some(res)
                 } else {
-                    return None;
+                    None
                 }
             })
             .collect::<Vec<&ResourceDef>>();
 
-        // TODO handle the case where there are several resources, ie wrap in loop and generate one or several Techniques
+        if resources.len() > 1 {
+            return fail!(
+                Token::new("Technique", ""),
+                "There was too many resources to create a Technique from"
+            );
+        }
         let resource = match resources.get(0) {
             Some(r) => r,
             None => {
@@ -43,6 +48,12 @@ impl<'src> Technique {
                 )
             }
         };
+        if !resource.name.starts_with("technique_") {
+            return fail!(
+                Token::new(resource.name, ""),
+                "A valid technique resource must start with 'technique_'"
+            );
+        }
 
         let meta = &resource.metadata;
 
@@ -64,9 +75,20 @@ impl<'src> Technique {
             })
             .collect::<Vec<MethodElem>>();
 
+        let bundle_name = resource
+            .name
+            .strip_prefix("technique_")
+            .ok_or_else(|| {
+                err!(
+                    Token::new("Technique", ""),
+                    "Techniquex  resource must start with 'technique_'"
+                )
+            })?
+            .to_owned();
+
         // TODO unit tests
         Ok(Technique {
-            bundle_name: resource.name.to_owned(),
+            bundle_name,
             description,
             name,
             version: Version::from_str(&version).unwrap(),
@@ -80,10 +102,10 @@ impl<'src> Technique {
 
 fn get_metadatas(
     metadata: &TomlMap<String, TomlValue>,
-    name: &str,
+    info_name: &str,
 ) -> Result<(String, String, String, String, Vec<InterpolatedParameter>)> {
     let mut errors: Vec<Error> = Vec::new();
-    let mut push_err = |err: &str| errors.push(Error::new(format!("'{}': {}", name, err)));
+    let mut push_err = |err: &str| errors.push(Error::new(format!("'{}': {}", info_name, err)));
 
     let mut name = String::new();
     let mut description = String::new();
@@ -116,9 +138,9 @@ fn get_metadatas(
         match map.get(key) {
             Some(v) => match v {
                 TomlValue::String(s) => Ok(s.to_owned()),
-                _ => Err(Error::new(format!("'{}': {}", name, "'parameters' metadata must be an array of tables of (String, String) pairs")))
+                _ => Err(Error::new(format!("'{}': {}", info_name, "'parameters' metadata must be an array of tables of (String, String) pairs")))
             },
-            None => Err(Error::new(format!("'{}': {}", name, "'parameters' metadata content must include the following informations: id, name, description")))
+            None => Err(Error::new(format!("'{}': {}", info_name, "'parameters' metadata content must include the following informations: id, name, description")))
         }
     };
 

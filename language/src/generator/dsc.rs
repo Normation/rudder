@@ -508,6 +508,21 @@ impl Generator for DSC {
                     // means it's a lib file, not the file we want to generate
                     continue;
                 }
+                let resource_name = resource_name
+                    .strip_prefix("technique_")
+                    .or_else(|| {
+                        if policy_metadata {
+                            Some(resource_name)
+                        } else {
+                            None
+                        }
+                    })
+                    .ok_or_else(|| {
+                        err!(
+                            Token::new(resource.name, ""),
+                            "Technique resource must start with 'technique_'"
+                        )
+                    })?;
                 self.reset_context();
 
                 // get parameters, default params are hardcoded for now
@@ -535,9 +550,9 @@ impl Generator for DSC {
                 formatted_parameters.push("[Switch]$AuditOnly".to_owned());
 
                 let fn_name = if state_name.fragment() == "technique" {
-                    resource_name.fragment().to_owned()
+                    resource_name.to_owned()
                 } else {
-                    format!("{} {}", resource_name.fragment(), state_name.fragment(),)
+                    format!("{} {}", resource_name, state_name.fragment(),)
                 };
 
                 let mut function = Function::agent(fn_name.clone())
