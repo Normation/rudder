@@ -128,6 +128,8 @@ class RuleApi(
       case API.CreateRuleCategory     => ChooseApi0(CreateRuleCategory    , CreateRuleCategoryV14    )
       case API.UpdateRuleCategory     => ChooseApiN(UpdateRuleCategory    , UpdateRuleCategoryV14    )
       case API.DeleteRuleCategory     => ChooseApiN(DeleteRuleCategory    , DeleteRuleCategoryV14    )
+      case API.LoadRuleRevisionForGeneration   => LoadRuleRevisionForGeneration
+      case API.UnloadRuleRevisionForGeneration => UnloadRuleRevisionForGeneration
     })
   }
 
@@ -392,6 +394,29 @@ class RuleApi(
     val schema = API.DeleteRuleCategory
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV14.deleteCategory(RuleCategoryId(id), params, authzToken.actor).toLiftResponseOne(params, schema, _.ruleCategories.id)
+    }
+  }
+
+  object LoadRuleRevisionForGeneration extends LiftApiModuleString {
+    val schema = API.LoadRuleRevisionForGeneration
+    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        cat <- zioJsonExtractor.extractRuleRevision(req).toIO
+        res <- serviceV14.updateCategory(RuleCategoryId(id), cat, params, authzToken.actor)
+      } yield {
+        res
+      }).toLiftResponseOne(params, schema, _.ruleCategories.id)
+    }
+  }
+  object UnloadRuleRevisionForGeneration extends LiftApiModuleString {
+    val schema = API.UnloadRuleRevisionForGeneration
+    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        cat <- zioJsonExtractor.extractRuleRevision(req).toIO
+        res <- serviceV14.updateCategory(RuleCategoryId(id), cat, params, authzToken.actor)
+      } yield {
+        res
+      }).toLiftResponseOne(params, schema, _.ruleCategories.id)
     }
   }
 }
@@ -683,8 +708,7 @@ class RuleApiService14 (
   , categoryService      : RuleCategoryService
 ) {
 
-  private
-  def createChangeRequest(
+  private def createChangeRequest(
       diff  : ChangeRequestRuleDiff
     , change: RuleChangeRequest
     , params: DefaultParams
@@ -803,6 +827,19 @@ class RuleApiService14 (
       case _ => Inconsistency(s"You can't delete a past revision of a rule, only current version can be deleted.").fail
     }
   }
+
+  /*
+   * Load a rule so that is will be included in following generation.
+   * Loading a rule with `revision == default` is a noop.
+   * Loading a rule with `revision == a branch name` won't follow that branch name, but just load the current
+   * configuration for the rule at that branch. If the rule for that branch was already loaded, the last available
+   * version will be used.
+   * Loading a rule a `revision == commit id` will look for that commit id.
+   */
+  def loadRuleRevisionForGeneration(id: RuleId, params: DefaultParams, actor: EventActor): IOResult[JRRule] = {
+
+  }
+
 
   def getCategoryTree(): IOResult[JRCategoriesRootEntryFull] = {
     for {

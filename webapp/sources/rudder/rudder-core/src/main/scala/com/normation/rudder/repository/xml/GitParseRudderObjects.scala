@@ -46,6 +46,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.rudder.configuration.DirectiveRevisionRepository
+import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.domain.logger.ConfigurationLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
@@ -54,6 +55,7 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTargetInfo
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
@@ -123,25 +125,26 @@ trait GitParseCommon[T] {
   }
 }
 
+
+
 class GitParseRules(
     ruleUnserialisation: RuleUnserialisation
   , val repo           : GitRepositoryProvider
   , xmlMigration       : XmlEntityMigration
   , rulesRootDirectory : String //relative name to git root file
-) extends ParseRules with GitParseCommon[List[Rule]] {
+) extends ParseRules with GitParseCommon[List[Rule]] with RuleRevisionRepository {
+
+  val rulesDirectory = getGitDirectoryPath(rulesRootDirectory)
 
   def getArchiveForRevTreeId(revTreeId:ObjectId): IOResult[List[Rule]] = {
-
-    val root = getGitDirectoryPath(rulesRootDirectory)
-
     for {
       //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
-      files <- GitFindUtils.listFiles(repo.db, revTreeId, List(root.root), List(".xml"))
+      files <- GitFindUtils.listFiles(repo.db, revTreeId, List(rulesDirectory.root), List(".xml"))
       paths =  files.filter { p =>
-                   p.size > root.directoryPath.size &&
-                   p.startsWith(root.directoryPath) &&
+                   p.size > rulesDirectory.directoryPath.size &&
+                   p.startsWith(rulesDirectory.directoryPath) &&
                    p.endsWith(".xml") &&
-                   UuidRegex.isValid(p.substring(root.directoryPath.size,p.size - 4))
+                   UuidRegex.isValid(p.substring(rulesDirectory.directoryPath.size,p.size - 4))
                }
       xmls  <- ZIO.foreach(paths) { crPath =>
                  GitFindUtils.getFileContent(repo.db, revTreeId, crPath){ inputStream =>
@@ -158,6 +161,27 @@ class GitParseRules(
                }
     } yield {
       rules.toList
+    }
+  }
+
+  override def getRuleRevision(uid: RuleUid, rev: Revision): IOResult[Option[Rule]] = {
+    for {
+      treeId  <- GitFindUtils.findRevTreeFromRevString(repo.db, rev.value)
+      // rules are just under "rules", but use list to check is one exists on that revtree
+      rules  <- GitFindUtils.listFiles(repo.db, treeId, List(rulesDirectory.directoryPath), uid.value + ".xml" :: Nil)
+      res    <- rules.toList match {
+        case Nil => None.succeed
+        case h :: Nil => for {
+                          xml <- GitFindUtils.getFileContent(repo.db, treeId, h) { is =>
+                                    ParseXml(is, Some(h))
+                                  }
+                          ruleXml <- xmlMigration.getUpToDateXml(xml).toIO
+                          rule    <- ruleUnserialisation.unserialise(ruleXml).toIO
+                        } yield Some(rule)
+        case _ => Unexpected(s"Several rule with id '${uid.value}' found under '${rulesDirectory.directoryPath}' directory for revision '${rev.value}'").fail
+      }
+    } yield {
+      res
     }
   }
 }
@@ -635,3 +659,4 @@ class GitParseActiveTechniqueLibrary(
     }
   }
 }
+
