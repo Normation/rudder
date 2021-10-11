@@ -7,9 +7,9 @@
 @category = "ncf_techniques"
 @parameters = []
 
-resource simplest()
+resource technique_simplest()
 
-simplest state technique() {
+technique_simplest state technique() {
     @component = "File absent"
   @id = "aeca6c93-47af-41ee-ba4a-8772f4ce7dd8"
   file("""tmp""").absent() as file_absent_tmp
