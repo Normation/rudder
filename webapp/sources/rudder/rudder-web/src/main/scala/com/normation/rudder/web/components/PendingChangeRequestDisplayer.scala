@@ -45,13 +45,12 @@ import net.liftweb.common.Full
 import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.workflows.ChangeRequest
 import net.liftweb.common.Box
-import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.AuthorizationType
-
 import com.normation.box._
+import com.normation.rudder.domain.policies.RuleUid
 
 /*
  * This object is just a service that check if a given rule/directive/etc has
@@ -106,7 +105,7 @@ object PendingChangeRequestDisplayer extends Loggable{
     }
   }
 
-  def checkByRule(xml:NodeSeq,ruleId:RuleId): NodeSeq = {
+  def checkByRule(xml:NodeSeq,ruleId:RuleUid): NodeSeq = {
     checkChangeRequest(xml,ruleId,workflowLevel.getByRule)
   }
 

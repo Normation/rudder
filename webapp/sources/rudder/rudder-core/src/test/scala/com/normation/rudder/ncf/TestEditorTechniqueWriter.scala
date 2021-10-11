@@ -87,6 +87,7 @@ import java.io.File
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import org.specs2.matcher.ContentMatchers
@@ -200,7 +201,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
     def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
 
-    def getByRule(id: RuleId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
+    def getByRule(id: RuleUid, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
   }
 
   def techRepo : TechniqueRepository = new TechniqueRepository {
