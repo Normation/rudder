@@ -413,6 +413,9 @@ impl<'src> IR2<'src> {
                     return Ok(());
                 }
                 // TODO stored in AST now
+                if !self.resources.contains_key(child) {
+                    fail!(child, "Resource {} is not defined", child.fragment());
+                }
                 self.children_check(name, &self.resources[child].children, depth + 1)?;
             }
         }
