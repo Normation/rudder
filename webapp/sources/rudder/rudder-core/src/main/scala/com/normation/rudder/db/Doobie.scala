@@ -171,16 +171,30 @@ object Doobie {
     )( dt => new java.sql.Timestamp(dt.getMillis)
   )
 
-  implicit val ReportRead: Read[Reports] = {
-    type R = (DateTime, RuleId, String, NodeId, Int, String, String, DateTime, String, String)
-    Read[R].map(
-        (t: R      ) => {
-          DirectiveId.parse(t._3) match {
-            case Right(drid) => Reports.factory(t._1,t._2,drid,t._4,t._5,t._6,t._7,t._8,t._9,t._10)
-            case Left(err)   => throw new IllegalArgumentException(s"Error when unserializing a report from ruddersysevents base: can not parse directive ID: ${t._3}: ${err}")
-          }
-        })
+  implicit val ReadRuleId: Read[RuleId] = {
+    Read[String].map(r => RuleId.parse(r) match {
+      case Right(rid) => rid
+      case Left(err)  => throw new IllegalArgumentException(s"Error when unserializing a report from base: Can not parse rule ID: ${r}: ${err}.")
+    })
   }
+  implicit val WriteRuleId: Write[RuleId] = {
+    Write[String].contramap(_.serialize)
+  }
+  implicit val ReadDirectiveId: Read[DirectiveId] = {
+    Read[String].map(r => DirectiveId.parse(r) match {
+      case Right(rid) => rid
+      case Left(err)  => throw new IllegalArgumentException(s"Error when unserializing a report from base: Can not parse directive ID: ${r}: ${err}.")
+    })
+  }
+  implicit val WriteDirectiveId: Write[DirectiveId] = {
+    Write[String].contramap(_.serialize)
+  }
+
+  implicit val ReportRead: Read[Reports] = {
+    type R = (DateTime, RuleId, DirectiveId, NodeId, Int, String, String, DateTime, String, String)
+    Read[R].map( (t: R) => Reports.factory(t._1,t._2,t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10) )
+  }
+
   implicit val ReportWrite: Write[Reports] = {
     type R = (DateTime, RuleId, DirectiveId, NodeId, Int, String, String, DateTime, String, String)
     Write[R].contramap(

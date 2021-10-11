@@ -64,7 +64,6 @@ import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveUid
-import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.repository.CategoryWithActiveTechniques
