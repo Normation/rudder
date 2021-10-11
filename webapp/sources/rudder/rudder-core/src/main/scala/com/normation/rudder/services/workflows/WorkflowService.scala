@@ -51,7 +51,7 @@ import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleUid
 
 
 final case object WorkflowUpdate
@@ -153,7 +153,7 @@ trait WorkflowLevelService {
    */
   def getByDirective(id: DirectiveUid, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
   def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
-  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
+  def getByRule(id : RuleUid, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
 }
 
 // and default implementation is: no
@@ -190,7 +190,7 @@ class DefaultWorkflowLevel(val defaultWorkflowService: WorkflowService) extends 
 
   override def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = this.level.map( _.getByNodeGroup(id, onlyPending)).getOrElse(Full(Vector()))
 
-  override def getByRule(id: RuleId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = this.level.map( _.getByRule(id, onlyPending)).getOrElse(Full(Vector()))
+  override def getByRule(id: RuleUid, onlyPending: Boolean): Box[Vector[ChangeRequest]] = this.level.map( _.getByRule(id, onlyPending)).getOrElse(Full(Vector()))
 }
 
 /**

@@ -451,7 +451,7 @@ class ChangeRequestChangesUnserialisationImpl (
   , techRepo                : TechniqueRepository
   , sectionSpecUnserialiser : SectionSpecParser
 ) extends ChangeRequestChangesUnserialisation with Loggable {
-  def unserialise(xml:XNode): Box[(Box[Map[DirectiveUid,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges],Map[String,GlobalParameterChanges])] = {
+  def unserialise(xml:XNode): Box[(Box[Map[DirectiveId,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges],Map[String,GlobalParameterChanges])] = {
     def unserialiseNodeGroupChange(changeRequest:XNode): Box[Map[NodeGroupId,NodeGroupChanges]]= {
       (for {
           groupsNode  <- (changeRequest \ "groups").headOption ?~! s"Missing child 'groups' in entry type changeRequest : ${xml}"
@@ -490,13 +490,13 @@ class ChangeRequestChangesUnserialisationImpl (
       })
     }
 
-    def unserialiseDirectiveChange(changeRequest:XNode): Box[Map[DirectiveUid,DirectiveChanges]]= {
+    def unserialiseDirectiveChange(changeRequest:XNode): Box[Map[DirectiveId,DirectiveChanges]]= {
       (for {
           directivesNode  <- (changeRequest \ "directives").headOption ?~! s"Missing child 'directives' in entry type changeRequest : ${xml}"
       } yield {
         (directivesNode \ "directive").iterator.flatMap { directive =>
           for {
-            directiveId  <- directive.attribute("id").map(id => DirectiveUid(id.text)) ?~!
+            directiveId  <- directive.attribute("id").flatMap(id => DirectiveId.parse(id.text).toBox) ?~!
                             s"Missing attribute 'id' in entry type changeRequest directive changes  : ${directive}"
             initialNode  <- (directive \ "initialState").headOption
             initialState <- (initialNode \\ "directive").headOption match {

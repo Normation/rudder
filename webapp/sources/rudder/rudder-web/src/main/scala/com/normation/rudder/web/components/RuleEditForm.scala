@@ -309,7 +309,7 @@ class RuleEditForm(
 
     (
       "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
-          PendingChangeRequestDisplayer.checkByRule(xml, rule.id)
+          PendingChangeRequestDisplayer.checkByRule(xml, rule.id.uid)
         } &
       //activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if(rule.isEnabledStatus) "Disable" else "Enable" } &
