@@ -162,7 +162,7 @@ decodeGetDirectives =
 decodeDirective : Decoder Directive
 decodeDirective =
   succeed Directive
-    |> required "id"               (D.map DirectiveId D.string)
+    |> required "id"              (D.map DirectiveId D.string)
     |> required "displayName"      D.string
     |> required "longDescription"  D.string
     |> required "techniqueName"    D.string
@@ -170,6 +170,7 @@ decodeDirective =
     |> required "enabled"          D.bool
     |> required "system"           D.bool
     |> required "policyMode"       D.string
+    |> required "tags"            (D.list (D.keyValuePairs D.string) |> andThen toTags)
 
 decodeGetTechniquesTree : Decoder (Category Technique, List Technique)
 decodeGetTechniquesTree =

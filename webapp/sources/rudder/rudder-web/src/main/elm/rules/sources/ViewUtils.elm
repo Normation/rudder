@@ -1,7 +1,7 @@
 module ViewUtils exposing (..)
 
 import DataTypes exposing (..)
-import Html exposing (Html, button, div, i, span, text, h1, h3, h4, ul, li, table, thead, tbody, tr, th, td)
+import Html exposing (Html, button, div, i, span, text, h1, h3, h4, ul, li, table, thead, tbody, tr, th, td, b)
 import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute, tabindex)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
@@ -109,3 +109,69 @@ filterSearch filterString searchFields =
       |> String.trim
   in
     String.contains searchString stringToCheck
+
+
+-- TAGS DISPLAY
+buildHtmlStringTag : Tag -> String
+buildHtmlStringTag tag =
+  let
+    tagOpen  = "<span class='tags-label'>"
+    tagIcon  = "<i class='fa fa-tag'></i>"
+    tagKey   = "<span class='tag-key'>"   ++ tag.key   ++ "</span>"
+    tagSep   = "<span class='tag-separator'>=</span>"
+    tagVal   = "<span class='tag-value'>" ++ tag.value ++ "</span>"
+    tagClose = "</span>"
+  in
+    tagOpen ++ tagIcon ++ tagKey ++ tagSep ++ tagVal ++ tagClose
+
+
+buildTagsTree : List Tag -> Html Msg
+buildTagsTree tags =
+  let
+    nbTags = List.length tags
+
+    tooltipContent : List Tag -> String
+    tooltipContent listTags =
+      "<h4 class='tags-tooltip-title'>Tags <span class='tags-label'><i class='fa fa-tags'></i><b>"++ (String.fromInt nbTags) ++"</b></span></h4><div class='tags-list'>" ++ (String.concat (List.map (\tt -> buildHtmlStringTag tt) listTags)) ++ "</div>"
+  in
+    if (nbTags > 0) then
+      span [class "tags-label bs-tooltip", attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (tooltipContent tags)]
+      [ i [class "fa fa-tags"][]
+      , b[][text (String.fromInt nbTags)]
+      ]
+    else
+      text ""
+
+buildTagsList : List Tag -> Html Msg
+buildTagsList tags =
+  let
+    nbTags = List.length tags
+
+    spanTags : Tag -> Html Msg
+    spanTags t =
+      span [class "tags-label"]
+      [ i [class "fa fa-tag"][]
+      , span [class "tag-key"       ][(if (String.isEmpty t.key  ) then i [class "fa fa-asterisk"][] else span[][text t.key  ])]
+      , span [class "tag-separator" ][text "="]
+      , span [class "tag-value"     ][(if (String.isEmpty t.value) then i [class "fa fa-asterisk"][] else span[][text t.value])]
+      ]
+
+    tooltipContent : List Tag -> String
+    tooltipContent listTags =
+      "<h4 class='tags-tooltip-title'>Tags <span class='tags-label'><i class='fa fa-tags'></i><b><i>"++ (String.fromInt (nbTags - 2)) ++" more</i></b></span></h4><div class='tags-list'>" ++ (String.concat (List.map (\tt -> buildHtmlStringTag tt) listTags)) ++ "</div>"
+  in
+    if (nbTags > 0) then
+      if (nbTags > 2) then
+        span[class "tags-list"](
+          List.append (List.map (\t -> spanTags t) (List.take 2 tags)) [
+            span [class "tags-label bs-tooltip", attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (tooltipContent (List.drop 2 tags))]
+            [ i [class "fa fa-tags"][]
+            , b [][ i[][text (String.fromInt (nbTags - 2)), text " more"]]
+            ]
+          ]
+        )
+      else
+        span[class "tags-list"](List.map (\t -> spanTags t) tags)
+    else
+      text ""
+
