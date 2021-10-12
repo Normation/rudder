@@ -65,24 +65,102 @@ impl Markdown {
         out
     }
 
+    /// Render state
+    fn render_state(state: &StateDef, resource_signature: &String) -> String {
+        fn get_state_attribute(attribute_name: &str, state: &StateDef) -> String {
+            if let Some(x) = state.metadata.get(attribute_name) {
+                x.as_str().unwrap().to_string()
+            } else {
+                "".to_string()
+            }
+        }
+
+        let description = get_state_attribute("description", &state);
+        let documentation = get_state_attribute("documentation", &state);
+        let deprecated = if get_state_attribute("deprecated", &state).is_empty() {
+            "".to_string()
+        } else {
+            "- DEPRECATED".to_string()
+        };
+
+        let platforms = if let Some(targets) = state
+            .metadata
+            .get("supported_targets")
+            .and_then(|a| a.as_array())
+        {
+            let targets = targets
+                .iter()
+                .map(|t| match t.as_str().unwrap() {
+                    "cf" => "unix",
+                    "dsc" => "windows",
+                    _ => unreachable!(),
+                })
+                .collect::<Vec<&str>>();
+            format!(" [{}]", targets.join(", "))
+        } else {
+            "".to_string()
+        };
+
+        let signature = {
+            let state_params = state
+                .parameters
+                .iter()
+                .map(|p| p.name.fragment())
+                .collect::<Vec<&str>>();
+
+            format!(
+                "```rudder\n{}.{}({})\n```",
+                resource_signature,
+                state.name,
+                state_params.join(", ")
+            )
+        };
+
+        let state_parameters = Self::render_parameters(&state.metadata).join("\n");
+
+        return format!(
+            "
+### {md_state_name} {md_platforms} {md_deprecated}
+
+{md_description}
+
+{md_state_signature}
+
+{md_state_parameters}
+
+{md_documentation}
+
+----
+",
+            md_platforms = platforms,
+            md_state_name = state.name,
+            md_deprecated = deprecated,
+            md_description = description,
+            md_documentation = documentation,
+            md_state_signature = signature,
+            md_state_parameters = state_parameters,
+        );
+    }
+
     fn render_parameters(metadata: &toml::map::Map<String, toml::Value>) -> Vec<String> {
         // FIXME type
         let mut out = vec![];
         if let Some(params) = metadata.get("parameter") {
             for (parameter, properties) in params.as_table().unwrap().iter() {
-                let constraints = if let Some(constraints) =
-                    properties.get("constraints").and_then(|a| a.as_table())
-                {
-                    format!(" ({})", Self::render_constraints(&constraints).join(", "))
+                // FIXME hardcode others?
+                let description = if let Some(description) = properties.get("description") {
+                    description.as_str().unwrap().to_string()
                 } else {
                     "".to_string()
                 };
+                out.push(format!("* **{}**: {}", parameter, description));
 
-                out.push(format!("#### {}{}", parameter, constraints));
-                // FIXME hardcode others?
-
-                if let Some(description) = properties.get("description") {
-                    out.push(description.as_str().unwrap().to_string());
+                if let Some(constraints) = properties.get("constraints").and_then(|a| a.as_table())
+                {
+                    out.push(format!(
+                        "** {}",
+                        Self::render_constraints(&constraints).join(", ")
+                    ));
                 }
             }
         }
@@ -142,65 +220,7 @@ impl Markdown {
             });
 
             for state in states {
-                let platforms = if let Some(targets) = state
-                    .metadata
-                    .get("supported_targets")
-                    .and_then(|a| a.as_array())
-                {
-                    let targets = targets
-                        .iter()
-                        .map(|t| match t.as_str().unwrap() {
-                            "cf" => "unix",
-                            "dsc" => "windows",
-                            _ => unreachable!(),
-                        })
-                        .collect::<Vec<&str>>();
-                    format!(" [{}]", targets.join(", "))
-                } else {
-                    "".to_string()
-                };
-
-                let command = if state
-                    .metadata
-                    .get("command")
-                    .and_then(|a| a.as_bool())
-                    .unwrap_or(false)
-                {
-                    " (command)".to_string()
-                } else {
-                    "".to_string()
-                };
-
-                out.push(format!("### {}{}{}", state.name, platforms, command));
-
-                if let Some(deprecation) = state.metadata.get("deprecated") {
-                    out.push(format!(
-                        "WARNING: *DEPRECATED*: {}",
-                        deprecation.as_str().unwrap()
-                    ));
-                }
-
-                if let Some(description) = state.metadata.get("description") {
-                    out.push(description.as_str().unwrap().to_string());
-                }
-
-                let state_params = state
-                    .parameters
-                    .iter()
-                    .map(|p| p.name.fragment())
-                    .collect::<Vec<&str>>();
-                out.push(format!(
-                    "```rudder\n{}.{}({})\n```",
-                    resource_signature,
-                    state.name,
-                    state_params.join(", ")
-                ));
-
-                if let Some(documentation) = state.metadata.get("documentation") {
-                    out.push(documentation.as_str().unwrap().to_string());
-                }
-
-                out.extend(Self::render_parameters(&state.metadata).iter().cloned());
+                out.push(Self::render_state(&state, &resource_signature));
             }
             files.push(CommandResult::new(
                 Format::Markdown,
