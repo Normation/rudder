@@ -407,12 +407,13 @@ fn punescaped_string(i: PInput) -> PResult<(Token, String)> {
     sequence!(
         {
             prefix: etag("\"\"\"");
-            content: map(
-                         or_fail(take_until("\"\"\""), || PErrorKind::UnterminatedDelimiter(prefix)),
-                         |x: PInput| x.to_string()
-                    );
-            _x: or_fail(tag("\"\"\""), || PErrorKind::UnterminatedDelimiter(prefix));
-        } => (prefix.into(), content)
+            content: or_fail(take_until("\"\"\""), || PErrorKind::UnterminatedDelimiter(prefix));
+            end: or_fail(alt((
+                        value("\"\"", etag("\"\"\"\"\"")),
+                        value("\"",   etag("\"\"\"\"")),
+                        value("",     etag("\"\"\"")),
+                    )), || PErrorKind::UnterminatedDelimiter(prefix));
+        } => (prefix.into(), format!("{}{}", content, end))
     )(i)
 }
 

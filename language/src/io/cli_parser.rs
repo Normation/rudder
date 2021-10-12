@@ -26,7 +26,7 @@ use structopt::StructOpt;
 pub enum CLI {
     // See cli_parser/technique.rs for documentation
     Technique(Technique),
-    /// Generates a RudderLang technique from a CFEngine technique
+    /// Generates a RudderLang technique from a JSON technique
     Save {
         #[structopt(flatten)]
         options: Options,

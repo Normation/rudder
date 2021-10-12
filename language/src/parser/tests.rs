@@ -655,6 +655,18 @@ fn test_punescaped_strings() {
         Ok(("", ("\"\"\"".into(), "".to_string())))
     );
     assert_eq!(
+        map_res(punescaped_string, "\"\"\"\"\"\"\""),
+        Ok(("", ("\"\"\"".into(), "\"".to_string())))
+    );
+    assert_eq!(
+        map_res(punescaped_string, "\"\"\"\"\"\"\"\""),
+        Ok(("", ("\"\"\"".into(), "\"\"".to_string())))
+    );
+    assert_eq!(
+        map_res(punescaped_string, "\"\"\"echo \"ok\"\"\"\""),
+        Ok(("", ("\"\"\"".into(), "echo \"ok\"".to_string())))
+    );
+    assert_eq!(
         map_res(punescaped_string, "\"\"\"0hello\nHerman\"\"\""),
         Ok(("", ("\"\"\"".into(), "0hello\nHerman".to_string())))
     );
