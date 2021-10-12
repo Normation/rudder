@@ -1,7 +1,10 @@
 module DataTypes exposing (..)
 
+import Dict
 import Http exposing (Error)
-
+import List.Extra
+import Dict.Extra
+import Tuple3
 --
 -- All our data types
 --
@@ -130,6 +133,37 @@ type alias NodeCompliance =
   { nodeId : NodeId
   , values : List ValueCompliance
   }
+
+type alias RuleComplianceByNode =
+  { ruleId            : RuleId
+  , mode              : String
+  , compliance        : Float
+  , complianceDetails : ComplianceDetails
+  , nodes             : List NodeComplianceByNode
+  }
+
+type alias NodeComplianceByNode =
+  { nodeId            : NodeId
+  , compliance        : Float
+  , complianceDetails : ComplianceDetails
+  , directives        : List DirectiveComplianceByNode
+  }
+
+type alias DirectiveComplianceByNode =
+  { directiveId         : DirectiveId
+  , compliance          : Float
+  , complianceDetails   : ComplianceDetails
+  , components          : List ComponentComplianceByNode
+  }
+
+type alias ComponentComplianceByNode =
+  { component         : String
+  , compliance        : Float
+  , complianceDetails : ComplianceDetails
+  , value             : List ValueCompliance
+  }
+
+
 
 type alias ComplianceDetails =
   { successNotApplicable       : Maybe Float
