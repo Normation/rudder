@@ -183,7 +183,7 @@ impl<'src> LanguageLib<'src> {
                 None => return Some(method.to_owned()),
             };
             if vec!["kept", "success"].iter().any(|x| x == &outcome) {
-                return Some(format!("{} =~ success", method));
+                return Some(format!("{} =~ kept", method));
             } else if vec!["error", "not_ok", "failed", "denied", "timeout"]
                 .iter()
                 .any(|x| x == &outcome)
