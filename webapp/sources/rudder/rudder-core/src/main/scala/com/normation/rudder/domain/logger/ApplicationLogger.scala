@@ -127,6 +127,15 @@ object TechniqueReaderLoggerPure extends NamedZioLogger {
   def loggerName = "techniques.reader"
 }
 
+/*
+ * Things related to transforming technique from editor
+ * to final agent specific files
+ */
+object TechniqueWriterLoggerPure extends NamedZioLogger {
+  def loggerName = "techniques.writer"
+}
+
+
 /**
  * Logger about change request and other workflow thing.
  */

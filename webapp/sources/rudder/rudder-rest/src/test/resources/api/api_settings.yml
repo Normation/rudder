@@ -55,6 +55,7 @@ response:
           "rudder_generation_js_timeout":30,
           "rudder_generation_max_parallelism":"x0.5",
           "rudder_generation_policy":"all",
+          "rudder_generation_rudderc_enabled_targets":["cfengine"],
           "rudder_report_protocol_default":"HTTPS",
           "rudder_save_db_compliance_details":false,
           "rudder_save_db_compliance_levels":true,
@@ -65,6 +66,27 @@ response:
           "unexpected_allows_duplicate":true,
           "unexpected_unbound_var_values":true
         }
+      }
+    }
+---
+description: Modify rudderc target
+method: POST
+url: /api/latest/settings/rudder_generation_rudderc_enabled_targets
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "value": ["dsc"]
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"modifySetting",
+      "id":"rudder_generation_rudderc_enabled_targets",
+      "result":"success",
+      "data":{
+        "settings":{"rudder_generation_rudderc_enabled_targets":["dsc"]}
       }
     }
 ---

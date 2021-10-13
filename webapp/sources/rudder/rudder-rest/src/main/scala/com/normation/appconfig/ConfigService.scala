@@ -37,11 +37,13 @@
 package com.normation.appconfig
 
 import com.normation.NamedZioLogger
+
 import net.liftweb.common.Full
 import com.typesafe.config.Config
 import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.batch.PolicyGenerationTrigger
 import com.normation.rudder.services.workflows.WorkflowUpdate
+
 import com.typesafe.config.ConfigFactory
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.reports.ComplianceMode
@@ -49,6 +51,8 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.eventlog.EventActor
+import com.normation.inventory.domain.RuddercTarget
+import com.normation.rudder.apidata.JsonResponseObjects.JRRuddercTargets
 import com.normation.rudder.domain.eventlog.ModifyAgentRunIntervalEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunStartHourEventType
@@ -56,6 +60,7 @@ import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
 import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
 import com.normation.rudder.domain.eventlog.ModifyComplianceModeEventType
 import com.normation.rudder.domain.eventlog.ModifyHeartbeatPeriodEventType
+
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.reports._
 import com.normation.rudder.domain.appconfig.FeatureSwitch
@@ -69,12 +74,13 @@ import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.workflows.WorkflowLevelService
+
 import com.normation.errors._
 import com.normation.rudder.domain.eventlog.ModifyRudderVerifyCertificates
 import com.normation.rudder.services.policies.SendMetrics
+
 import zio._
 import zio.syntax._
-
 import scala.concurrent.duration.Duration
 
 /**
@@ -226,6 +232,8 @@ trait ReadConfigService {
 
   def rudder_setup_done(): IOResult[Boolean]
 
+  def rudder_generation_rudderc_enabled_targets(): IOResult[Set[RuddercTarget]]
+
 }
 
 /**
@@ -334,7 +342,7 @@ trait UpdateConfigService {
   def set_rudder_policy_overridable(overridable : Boolean, actor: EventActor, reason: Option[String]) : IOResult[Unit]
 
   /**
-   * Default value for node properties after acceptation:
+   * Default name for node properties after acceptation:
    * - policy mode
    * - node lifecycle state
    */
@@ -366,6 +374,8 @@ trait UpdateConfigService {
   def set_rudder_generation_continue_on_error(value: Boolean): IOResult[Unit]
 
   def set_rudder_setup_done(value : Boolean): IOResult[Unit]
+
+  def set_rudder_generation_rudderc_enabled_targets(targets: Set[RuddercTarget]): IOResult[Unit]
 }
 
 /*
@@ -434,28 +444,34 @@ class GenericConfigService(
        node.accept.duplicated.hostname=false
        rudder.compute.dyngroups.max.parallelism=1
        rudder.setup.done=false
+       rudder.generation.rudderc.enabled.targets=\"\"\"["${RuddercTarget.CFEngine.name}"]\"\"\"
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
 
   /*
-   *  Correct implementation use a macro in place of all the
-   *  redondant calls...
-   *
+   * Get the value, default to the default value defined above in `defaultConfig` if not available in base.
+   * In that case, the default value is saved in base.
+   * Parsing can't fail: in case of bad data in base, we still want to return a correct
+   * value (not sure why ? At least, we could save back the value in base ?)
    */
-
   private[this] def get[T](name: String)(implicit converter: RudderWebProperty => T) : IOResult[T] = {
     for {
-      params <- repos.getConfigParameters()
-      param  <- params.find( _.name.value == name) match {
-                  case None =>
-                    val configName = name.replaceAll("_", ".")
-                    val value      = configWithFallback.getString(configName)
-                    save(name, value)
-                  case Some(p) => p.succeed
-                }
+      params   <- repos.getConfigParameters()
+      needSave <- Ref.make(false)
+      param    <- params.find( _.name.value == name) match {
+                    case None =>
+                      val configName = name.replaceAll("_", ".")
+                      val value      = configWithFallback.getString(configName)
+                      needSave.set(true) *> RudderWebProperty(RudderWebPropertyName(name), value, "").succeed
+                    case Some(p) => p.succeed
+                  }
+      value    =  converter(param)
+      _        <- ZIO.whenM(needSave.get) {
+                    save(name, param)
+                  }
     } yield {
-      param
+      value
     }
   }
 
@@ -771,4 +787,21 @@ class GenericConfigService(
   def rudder_setup_done(): IOResult[Boolean] = get("rudder_setup_done")
   def set_rudder_setup_done(value: Boolean): IOResult[Unit] = save("rudder_setup_done", value)
 
+
+  private[this] implicit def toRuddercTargets(p: RudderWebProperty): Set[RuddercTarget] = {
+    import com.normation.rudder.apidata.implicits.ruddercTargetsDecoder
+    ruddercTargetsDecoder.decodeJson(p.value).map(_.values) match {
+      case Right(targets) => targets
+      case Left(err) =>
+        logEffect.warn(s"Error when trying the read rudderc targets from settings (using default: ${RuddercTarget.defaultTargets.map(_.name).mkString(", ")}): ${err}")
+        RuddercTarget.defaultTargets
+    }
+  }
+  private[this] implicit def serRuddercTargets(x: Set[RuddercTarget]): String = {
+    import com.normation.rudder.apidata.implicits.ruddercTargetsEncoder
+    ruddercTargetsEncoder.encodeJson(JRRuddercTargets(x), None).toString
+  }
+
+  def rudder_generation_rudderc_enabled_targets(): IOResult[Set[RuddercTarget]] = get("rudder_generation_rudderc_enabled_targets")
+  def set_rudder_generation_rudderc_enabled_targets(targets: Set[RuddercTarget]): IOResult[Unit] = save("rudder_generation_rudderc_enabled_targets", targets)
 }
