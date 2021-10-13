@@ -8,7 +8,11 @@ import scala.xml._
 
 trait SectionSpecWriter {
 
-  def serialize(rootSection:SectionSpec):Box[NodeSeq]
+  // we serialize an option, because Technique may not be present anymore
+  // rather than changing all calls to this method with boilerplate,
+  // it's better to have the handling here
+  // If we have a None, we return an Full(NodeSeq.empty))
+  def serialize(rootSection:Option[SectionSpec]):Box[NodeSeq]
 
 }
 
@@ -21,14 +25,19 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
   private[this] def createXmlNode(label : String, children : Seq[Node]) : Elem =
     <tag>{children}</tag>.copy(label = label)
 
-  def serialize(rootSection:SectionSpec):Box[NodeSeq] = {
-    if (rootSection.name != SECTION_ROOT_NAME)
-      Failure(s"root section name should be equals to ${SECTION_ROOT_NAME} but is ${rootSection.name}")
-    else {
-      val children = rootSection.children.flatMap( serializeChild(_)).foldLeft(NodeSeq.Empty)((a,b) => a ++ b)
-      val xml = createXmlNode(SECTIONS_ROOT,children)
-      Full(xml)
+  def serialize(rootSection:Option[SectionSpec]):Box[NodeSeq] = {
+    rootSection match {
+      case None => Full(NodeSeq.Empty)
+      case Some(section) =>
+        if (section.name != SECTION_ROOT_NAME)
+          Failure(s"root section name should be equals to ${SECTION_ROOT_NAME} but is ${section.name}")
+        else {
+          val children = section.children.flatMap( serializeChild(_)).foldLeft(NodeSeq.Empty)((a,b) => a ++ b)
+          val xml = createXmlNode(SECTIONS_ROOT,children)
+          Full(xml)
+        }
     }
+
   }
 
   private[this] def serializeChild(section:SectionChildSpec):NodeSeq = {

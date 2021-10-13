@@ -69,7 +69,7 @@ object ChangeRequestService {
       changeRequestName: String
     , changeRequestDesc: String
     , techniqueName    : TechniqueName
-    , rootSection      : SectionSpec
+    , rootSection      : Option[SectionSpec]
     , directiveId      : DirectiveId
     , originalDirective: Option[Directive]
     , diff             : ChangeRequestDirectiveDiff
@@ -122,7 +122,7 @@ object ChangeRequestService {
       changeRequestName: String
     , changeRequestDesc: String
     , techniqueName    : TechniqueName
-    , rootSection      : SectionSpec
+    , rootSection      : Option[SectionSpec]
     , directiveId      : DirectiveId
     , originalDirective: Option[Directive]
     , diff             : ChangeRequestDirectiveDiff

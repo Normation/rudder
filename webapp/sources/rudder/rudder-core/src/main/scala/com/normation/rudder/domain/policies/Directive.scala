@@ -210,23 +210,34 @@ final case class SectionVal(
 object SectionVal {
   val ROOT_SECTION_NAME = "sections"
 
-  def toXml(sv : SectionVal, sectionName : String = ROOT_SECTION_NAME): Node = {
+  def toOptionnalXml(sv : Option[SectionVal], sectionName : String = ROOT_SECTION_NAME): Node = {
     <section name={sectionName}>
-      { //variables
-        sv.variables.toSeq.sortBy(_._1).map { case (variable,value) =>
-          <var name={variable}>{value}</var>
-        } ++
-        //section
-        (for {
-          (sectionName, sectionIterations) <- sv.sections.toSeq.sortBy(_._1)
-          sectionValue <- sectionIterations
-        } yield {
-          this.toXml(sectionValue,sectionName)
-        })
+      {
+        sv.map(innerSectionXML(_)).getOrElse(NodeSeq.Empty)
       }
     </section>
   }
 
+  // kept for compatibility with the plugin change-validation
+  def toXml(sv : SectionVal, sectionName : String = ROOT_SECTION_NAME): Node = {
+    <section name={sectionName}>
+      {innerSectionXML(sv)}
+    </section>
+  }
+
+  private[this] def innerSectionXML(section: SectionVal) : NodeSeq = {
+    //variables
+    section.variables.toSeq.sortBy(_._1).map { case (variable,value) =>
+      <var name={variable}>{value}</var>
+    } ++
+      //section
+    (for {
+      (sectionName, sectionIterations) <- section.sections.toSeq.sortBy(_._1)
+      sectionValue <- sectionIterations
+    } yield {
+      this.toXml(sectionValue,sectionName)
+    })
+  }
   def directiveValToSectionVal(rootSection : SectionSpec, allValues : Map[String,Seq[String]]) : SectionVal = {
     /*
      * build variables with a parent section multivalued.

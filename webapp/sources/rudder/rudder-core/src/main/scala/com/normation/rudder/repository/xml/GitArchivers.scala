@@ -511,7 +511,7 @@ class GitDirectiveArchiverImpl(
       gitPath =  toGitPath(piFile)
       archive <- writeXml(
                      piFile
-                   , directiveSerialisation.serialise(ptName, variableRootSection, directive)
+                   , directiveSerialisation.serialise(ptName, Some(variableRootSection), directive)
                    , "Archived directive: " + piFile.getPath
                  )
       commit  <- gitCommit match {

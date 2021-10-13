@@ -93,7 +93,7 @@ final case class ModifyDirectiveDiff(
 final case class ModifyToDirectiveDiff(
     techniqueName: TechniqueName
   , directive    : Directive
-  , rootSection  : SectionSpec
+  , rootSection  : Option[SectionSpec]
 ) extends DirectiveDiff with ChangeRequestDirectiveDiff {
   // This case is undecidable, so it is always true
   def needDeployment : Boolean = true

@@ -176,7 +176,7 @@ class TechniqueWriter (
           s"Deleting technique ${techniqueName}/${techniqueVersion}"
           , ""
           , TechniqueName(techniqueName)
-          , rootSection
+          , Some(rootSection)
           , directive.id
           , Some(directive)
           , diff
