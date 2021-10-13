@@ -37,8 +37,8 @@ editionTemplateCat model details =
         , div [class "form-group"]
           [ label[for "category-parent"][text "Parent"]
           , div[]
-            [ select[ id "category-parent", class "form-control" ] --, onInput (\s -> UpdateCategory {category | parent = s} ) ]
-              (buildListCategories  "" model.rulesTree)
+            [ select[ id "category-parent", class "form-control", onInput (\s -> UpdateCategoryForm {details | parentId = s}) ]
+              (buildListCategories "" category.id details.parentId model.rulesTree)
             ]
           ]
         , div [class "form-group"]
@@ -80,7 +80,7 @@ editionTemplateCat model details =
                 [ button [ class "btn btn-danger" , onClick (OpenDeletionPopupCat category)]
                   [ text "Delete", i [ class "fa fa-times-circle"][]]
                 ]
-              , button [class "btn btn-success", type_ "button", onClick (CallApi (saveCategoryDetails category (Maybe.Extra.isNothing details.originCategory)))]
+              , button [class "btn btn-success", type_ "button", onClick (CallApi (saveCategoryDetails category details.parentId (Maybe.Extra.isNothing details.originCategory)))]
                 [ text "Save", i [ class "fa fa-download"][]]
               ]
             else

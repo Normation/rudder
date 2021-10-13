@@ -17,18 +17,21 @@ import ViewUtils exposing (thClass, sortTable, getDirectivesSortFunction, filter
 --
 -- This file contains all methods to display the details of the selected rule.
 --
-buildListCategories : String -> (Category Rule) -> List(Html Msg)
-buildListCategories sep c =
-  let
-    newList =
-      let
-        currentOption  = [option [value c.id][text (sep ++ c.name)]]
-        separator      = sep ++ "└─ "
-        listCategories = List.concatMap (buildListCategories separator) (getSubElems c)
-      in
-        List.append currentOption listCategories
-  in
-    newList
+buildListCategories : String -> String -> String -> (Category Rule) -> List(Html Msg)
+buildListCategories sep categoryId parentId c =
+  if categoryId == c.id then
+    []
+  else
+    let
+      newList =
+        let
+          currentOption  = [option [value c.id, selected (parentId == c.id)][text (sep ++ c.name)]]
+          separator      = sep ++ "└─ "
+          listCategories = List.concatMap (buildListCategories separator categoryId parentId) (getSubElems c)
+        in
+          List.append currentOption listCategories
+    in
+      newList
 
 buildTagsContainer : Rule -> Bool -> RuleDetails -> Html Msg
 buildTagsContainer rule editMode details =
@@ -113,7 +116,7 @@ tabContent model details =
                 [ label[for "rule-category"][text "Category"]
                 , div[]
                   [ select[ id "rule-category", class "form-control", onInput (\s -> UpdateRuleForm {details | rule = {rule | categoryId = s}} ) ]
-                    (buildListCategories  "" model.rulesTree)
+                    (buildListCategories "" "" rule.categoryId model.rulesTree)
                   ]
                 ]
               , div [class "tags-container"]

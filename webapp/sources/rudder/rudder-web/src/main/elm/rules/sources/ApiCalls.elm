@@ -169,8 +169,8 @@ saveDisableAction ruleDetails model =
   in
     send SaveDisableAction req
 
-saveCategoryDetails : (Category Rule) -> Bool -> Model -> Cmd Msg
-saveCategoryDetails category creation model =
+saveCategoryDetails : (Category Rule) -> String -> Bool -> Model -> Cmd Msg
+saveCategoryDetails category parentId creation model =
   let
     (method, url) = if creation then ("PUT","/rules/categories") else ("POST", ("/rules/categories/"++category.id))
     req =
@@ -178,7 +178,7 @@ saveCategoryDetails category creation model =
         { method  = method
         , headers = []
         , url     = getUrl model url
-        , body    = encodeCategoryDetails category |> jsonBody
+        , body    = encodeCategoryDetails parentId category |> jsonBody
         , expect  = expectJson decodeGetCategoryDetails
         , timeout = Nothing
         , withCredentials = False
