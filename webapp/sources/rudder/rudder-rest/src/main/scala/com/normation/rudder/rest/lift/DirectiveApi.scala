@@ -371,7 +371,7 @@ class DirectiveApiService2 (
                        crName
                      , crDescription
                      , technique.id.name
-                     , technique.rootSection
+                     , Some(technique.rootSection)
                      , directive.id
                      , initialState
                      , diff
@@ -546,7 +546,7 @@ class DirectiveApiService2 (
       updatedDirective = directiveUpdate.after.directive
       oldTechnique     = directiveUpdate.before.technique
       oldDirective     = directiveUpdate.before.directive
-      diff = ModifyToDirectiveDiff(updatedTechnique.id.name,updatedDirective,oldTechnique.rootSection)
+      diff = ModifyToDirectiveDiff(updatedTechnique.id.name,updatedDirective, Some(oldTechnique.rootSection))
     } yield {
         createChangeRequestAndAnswer(
             diff
@@ -680,7 +680,7 @@ class DirectiveApiService14 (
                        params.changeRequestName.getOrElse(s"${change.action.name} directive '${change.newDirective.name}' (${change.newDirective.id.uid.value}) from API")
                      , params.changeRequestDescription.getOrElse("")
                      , change.techniqueName
-                     , change.sectionSpec
+                     , Some(change.sectionSpec)
                      , change.newDirective.id
                      , change.previousDirective
                      , diff
@@ -702,7 +702,7 @@ class DirectiveApiService14 (
       updatedDirective =  directiveUpdate.after.directive
       oldTechnique     =  directiveUpdate.before.technique
       oldDirective     =  directiveUpdate.before.directive
-      diff             =  ModifyToDirectiveDiff(updatedTechnique.id.name,updatedDirective,oldTechnique.rootSection)
+      diff             =  ModifyToDirectiveDiff(updatedTechnique.id.name,updatedDirective,Some(oldTechnique.rootSection))
       change           =  DirectiveChangeRequest(DGModAction.Update, updatedTechnique.id.name, directiveUpdate.activeTechnique.id, updatedTechnique.rootSection, updatedDirective, Some(oldDirective), Nil, Nil)
       result           <- createChangeRequest(diff, updatedTechnique, change, params, actor)
     } yield result
