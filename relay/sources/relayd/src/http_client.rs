@@ -5,6 +5,7 @@ use crate::{CRATE_NAME, CRATE_VERSION};
 use anyhow::Error;
 use lazy_static::lazy_static;
 use reqwest::{Certificate, Client};
+use std::time::Duration;
 use tracing::debug;
 
 lazy_static! {
@@ -27,6 +28,53 @@ pub enum HttpClient {
     NoVerify(Client),
 }
 
+pub struct HttpClientBuilder {
+    builder: reqwest::ClientBuilder,
+}
+
+// With Rudder cert model we currently need one client for each host we talk to.
+// Fortunately we only talk with other policy servers, which are only a few.
+//
+// Not efficient in "System" case, but it's deprecated anyway.
+//
+// A future improvement could be to implement public key pinning in the reqwest-hyper-tokio stack.
+impl HttpClientBuilder {
+    /// Common parameters
+    pub fn new(idle_timeout: Duration) -> Self {
+        let builder = Client::builder()
+            // enforce HTTPS to prevent misconfigurations
+            .https_only(true)
+            .user_agent(USER_AGENT.clone())
+            .pool_idle_timeout(idle_timeout);
+        Self { builder }
+    }
+
+    // Not very efficient as we parse a cert just dumped by openssl
+    pub fn pinned(self, certs: Vec<PemCertificate>) -> Result<HttpClient, Error> {
+        debug!("Creating HTTP client with pinned certificates");
+        let mut client = self
+            .builder
+            .danger_accept_invalid_hostnames(true)
+            .tls_built_in_root_certs(false);
+        for cert in &certs {
+            client = client.add_root_certificate(Certificate::from_pem(cert)?);
+        }
+        Ok(HttpClient::Pinned(client.build()?, certs))
+    }
+
+    pub fn system(self) -> Result<HttpClient, Error> {
+        debug!("Creating HTTP client with system root certificates");
+        Ok(HttpClient::System(self.builder.build()?))
+    }
+
+    pub fn no_verify(self) -> Result<HttpClient, Error> {
+        debug!("Creating HTTP client with no certificate verification");
+        Ok(HttpClient::System(
+            self.builder.danger_accept_invalid_certs(true).build()?,
+        ))
+    }
+}
+
 // With Rudder cert model we currently need one client for each host we talk to.
 // Fortunately we only talk with other policy servers, which are only a few.
 //
@@ -35,37 +83,8 @@ pub enum HttpClient {
 // A future improvement could be to implement public key pinning in the reqwest-hyper-tokio stack.
 impl HttpClient {
     /// Common parameters
-    fn new_client_builder() -> reqwest::ClientBuilder {
-        Client::builder()
-            // enforce HTTPS to prevent misconfigurations
-            .https_only(true)
-            .user_agent(USER_AGENT.clone())
-    }
-
-    // Not very efficient as we parse a cert just dumped by openssl
-    pub fn new_pinned(certs: Vec<PemCertificate>) -> Result<Self, Error> {
-        debug!("Creating HTTP client with pinned certificates");
-        let mut client = Self::new_client_builder()
-            .danger_accept_invalid_hostnames(true)
-            .tls_built_in_root_certs(false);
-        for cert in &certs {
-            client = client.add_root_certificate(Certificate::from_pem(cert)?);
-        }
-        Ok(Self::Pinned(client.build()?, certs))
-    }
-
-    pub fn new_system() -> Result<Self, Error> {
-        debug!("Creating HTTP client with system root certificates");
-        Ok(Self::System(Self::new_client_builder().build()?))
-    }
-
-    pub fn new_no_verify() -> Result<Self, Error> {
-        debug!("Creating HTTP client with no certificate verification");
-        Ok(Self::System(
-            Self::new_client_builder()
-                .danger_accept_invalid_certs(true)
-                .build()?,
-        ))
+    pub fn builder(idle_timeout: Duration) -> HttpClientBuilder {
+        HttpClientBuilder::new(idle_timeout)
     }
 
     /// Access inner client
@@ -97,7 +116,9 @@ mod tests {
         let cert = fs::read("tests/files/keys/37817c4d-fbf7-4850-a985-50021f4e8f41.cert").unwrap();
         let certs = vec![cert];
 
-        let client = HttpClient::new_pinned(certs.clone()).unwrap();
+        let client = HttpClient::builder(Duration::from_secs(10))
+            .pinned(certs.clone())
+            .unwrap();
 
         assert!(!client.outdated(&certs));
 

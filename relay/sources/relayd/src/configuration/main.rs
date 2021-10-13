@@ -200,6 +200,10 @@ pub struct GeneralConfig {
     /// Port to use for communication
     #[serde(default = "GeneralConfig::default_https_port")]
     pub https_port: u16,
+    /// Timeout for idle connections being kept-alive
+    #[serde(deserialize_with = "compat_humantime")]
+    #[serde(default = "GeneralConfig::default_https_idle_timeout")]
+    pub https_idle_timeout: Duration,
     /// Which certificate validation model to use
     #[serde(default = "GeneralConfig::default_peer_authentication")]
     peer_authentication: PeerAuthentication,
@@ -227,6 +231,10 @@ impl GeneralConfig {
         443
     }
 
+    fn default_https_idle_timeout() -> Duration {
+        Duration::from_secs(2)
+    }
+
     fn default_peer_authentication() -> PeerAuthentication {
         // For compatibility
         PeerAuthentication::SystemRootCerts
@@ -244,6 +252,7 @@ impl Default for GeneralConfig {
             core_threads: None,
             blocking_threads: None,
             https_port: Self::default_https_port(),
+            https_idle_timeout: Self::default_https_idle_timeout(),
             peer_authentication: Self::default_peer_authentication(),
         }
     }
@@ -653,6 +662,7 @@ mod tests {
                 core_threads: None,
                 blocking_threads: None,
                 https_port: 443,
+                https_idle_timeout: Duration::from_secs(2),
                 peer_authentication: PeerAuthentication::SystemRootCerts,
             },
             processing: ProcessingConfig {
@@ -748,6 +758,7 @@ mod tests {
                 core_threads: None,
                 blocking_threads: Some(512),
                 https_port: 4443,
+                https_idle_timeout: Duration::from_secs(42),
                 peer_authentication: PeerAuthentication::CertPinning,
             },
             processing: ProcessingConfig {

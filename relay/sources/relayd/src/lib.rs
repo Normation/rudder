@@ -262,10 +262,14 @@ impl JobConfig {
         let upstream_client = match model {
             PeerAuthentication::CertPinning => {
                 let cert = fs::read(&cfg.output.upstream.server_certificate_file)?;
-                HttpClient::new_pinned(vec![cert])
+                HttpClient::builder(cfg.general.https_idle_timeout).pinned(vec![cert])
             }
-            PeerAuthentication::SystemRootCerts => HttpClient::new_system(),
-            PeerAuthentication::DangerousNone => HttpClient::new_no_verify(),
+            PeerAuthentication::SystemRootCerts => {
+                HttpClient::builder(cfg.general.https_idle_timeout).system()
+            }
+            PeerAuthentication::DangerousNone => {
+                HttpClient::builder(cfg.general.https_idle_timeout).no_verify()
+            }
         }?;
 
         let mut downstream_clients = HashMap::new();
@@ -282,10 +286,14 @@ impl JobConfig {
                             .collect(),
                         None => vec![],
                     };
-                    HttpClient::new_pinned(certs)
+                    HttpClient::builder(cfg.general.https_idle_timeout).pinned(certs)
                 }
-                PeerAuthentication::SystemRootCerts => HttpClient::new_system(),
-                PeerAuthentication::DangerousNone => HttpClient::new_no_verify(),
+                PeerAuthentication::SystemRootCerts => {
+                    HttpClient::builder(cfg.general.https_idle_timeout).system()
+                }
+                PeerAuthentication::DangerousNone => {
+                    HttpClient::builder(cfg.general.https_idle_timeout).no_verify()
+                }
             }?;
             downstream_clients.insert(id, client);
         }
@@ -351,7 +359,8 @@ impl JobConfig {
                     &self.cfg.output.upstream.server_certificate_file.display()
                 );
                 let mut upstream_client = self.upstream_client.write().await;
-                *upstream_client = HttpClient::new_pinned(certs)?;
+                *upstream_client =
+                    HttpClient::builder(self.cfg.general.https_idle_timeout).pinned(certs)?;
             } else {
                 debug!("Upstream HTTP client has up-to-date certificate");
             }
@@ -376,7 +385,8 @@ impl JobConfig {
                     Some(c) => {
                         if c.outdated(&certs) {
                             debug!("HTTP client for '{}' has outdated certificate", id);
-                            let client = HttpClient::new_pinned(certs)?;
+                            let client = HttpClient::builder(self.cfg.general.https_idle_timeout)
+                                .pinned(certs)?;
                             new_downstream_clients.insert(id, client);
                         } else {
                             debug!("HTTP client for '{}' is up-to-date", id);
@@ -385,7 +395,8 @@ impl JobConfig {
                     }
                     None => {
                         debug!("Creating HTTP client for '{}'", id);
-                        let client = HttpClient::new_pinned(certs)?;
+                        let client = HttpClient::builder(self.cfg.general.https_idle_timeout)
+                            .pinned(certs)?;
                         new_downstream_clients.insert(id, client);
                     }
                 }
