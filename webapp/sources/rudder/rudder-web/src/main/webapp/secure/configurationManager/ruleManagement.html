@@ -31,6 +31,27 @@
       app.ports.errorNotification.subscribe(function(str) {
         createErrorNotification(str)
       });
+
+      // Change the URL upon request, inform app of the change.
+      app.ports.pushUrl.subscribe(function(url) {
+        var kind = url[0];
+        var id = url[1];
+        var url = "/rudder/secure/configurationManager/ruleManagement"
+        if (kind !== "") {
+          url += "/" + kind + "/" + id
+        }
+        history.pushState({}, '', url);
+      });
+
+      getRuleRedirection(app);
+
+      // Initialize tooltips
+      app.ports.initTooltips.subscribe(function(msg) {
+        setTimeout(function(){
+          $('.bs-tooltip').bsTooltip();
+        }, 100);
+      });
+
     });
   </script>
 

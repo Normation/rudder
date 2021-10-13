@@ -149,6 +149,16 @@
 .tags-label .tag-separator{
   padding: 0 3px;
 }
+
+.target-name + span.tags-list{
+  margin-left: 6px;
+}
+
+.tags-label > .fa-tag,
+.tags-label > .fa-tags{
+  margin-right: 4px;
+}
+
 .tags-label .fa-times{
   position: absolute;
   right: 7px;

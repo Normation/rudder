@@ -52,6 +52,7 @@ type alias Directive =
   , enabled          : Bool
   , system           : Bool
   , policyMode       : String
+  , tags             : List Tag
  }
 
 type alias Technique =

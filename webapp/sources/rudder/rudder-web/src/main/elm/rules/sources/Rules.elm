@@ -16,7 +16,7 @@ import UUID
 port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
 port pushUrl             : (String,String) -> Cmd msg
-
+port initTooltips        : String -> Cmd msg
 port readUrl : ((String, String) -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
@@ -163,10 +163,13 @@ update msg model =
           _   -> (model, Cmd.none)
 
     UpdateRuleForm details ->
-      case model.mode of
-        RuleForm _ ->
-          ({model | mode = RuleForm  details}, Cmd.none)
-        _   -> (model, Cmd.none)
+      let
+        cmd = initTooltips ""
+      in
+        case model.mode of
+          RuleForm _ ->
+            ({model | mode = RuleForm  details}, cmd)
+          _ -> (model, cmd)
 
     DisableRule ->
       case model.mode of

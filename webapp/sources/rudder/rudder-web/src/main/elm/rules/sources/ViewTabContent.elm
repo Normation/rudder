@@ -11,7 +11,9 @@ import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
 import ComplianceUtils exposing (buildComplianceBar, getDirectiveComputedCompliance)
-import ViewUtils exposing (thClass, sortTable, getDirectivesSortFunction, filterSearch, searchFieldRules, searchFieldDirectives, searchFieldGroups)
+import ViewUtils exposing (thClass, sortTable, getDirectivesSortFunction, filterSearch, searchFieldRules, searchFieldDirectives, searchFieldGroups, buildTagsList, buildTagsTree)
+
+
 --
 -- This file contains all methods to display the details of the selected rule.
 --
@@ -217,7 +219,7 @@ tabContent model details =
                     knownDirectives
                     ( ids
                       |> List.filter (\id -> not (List.member id knonwIds) )
-                      |> List.map (\id -> (Directive id ("Missing directive with ID "++id.value) "" "" "" False False ""))
+                      |> List.map (\id -> (Directive id ("Missing directive with ID "++id.value) "" "" "" False False "" []))
                     )
 
               rowDirective  : Directive -> Html Msg
@@ -226,6 +228,7 @@ tabContent model details =
                 [ a[href ("/rudder/secure/configurationManager/directiveManagement#" ++ directive.id.value)]
                   [ badgePolicyMode directive
                   , span [class "target-name"][text directive.displayName]
+                  , buildTagsList directive.tags
                   ]
                 , span [class "target-remove", onClick (UpdateRuleForm {details | rule = {rule | directives = List.Extra.remove directive.id rule.directives}})][ i [class "fa fa-times"][] ]
                 , span [class "border"][]
@@ -309,6 +312,7 @@ tabContent model details =
                         , a[href "#", class ("jstree-anchor" ++ selectedClass)]
                           [ badgePolicyMode d
                           , span [class "treeGroupName tooltipable"][text d.displayName]
+                          , buildTagsTree d.tags
                           , div [class "treeActions-container"]
                             [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (addDirectives d.id)][]]
                             ]
