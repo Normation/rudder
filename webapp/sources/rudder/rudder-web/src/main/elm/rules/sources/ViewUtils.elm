@@ -9,7 +9,7 @@ import List
 import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
-import ViewUtilsCompliance exposing (getDirectiveComputedCompliance)
+import ComplianceUtils exposing (getDirectiveComputedCompliance)
 
 getListRules : Category Rule -> List (Rule)
 getListRules r = getAllElems r

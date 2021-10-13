@@ -10,7 +10,7 @@ import Maybe.Extra
 import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
-import ViewUtilsCompliance exposing (buildComplianceBar, getDirectiveComputedCompliance)
+import ComplianceUtils exposing (buildComplianceBar, getDirectiveComputedCompliance)
 import ViewUtils exposing (thClass, sortTable, getDirectivesSortFunction, filterSearch, searchFieldRules, searchFieldDirectives, searchFieldGroups)
 --
 -- This file contains all methods to display the details of the selected rule.
