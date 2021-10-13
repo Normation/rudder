@@ -23,26 +23,27 @@
 # The file will be downloaded using native agent protocol and copied into a new file.
 # The destination path must be the complete absolute path of the destination file.
 #
-# See [sharedfile_to_node](#_sharedfile_to_node) for a complete example. 
+# See [sharedfile_to_node](#_sharedfile_to_node) for a complete example.
 #
-# @parameter source_uuid  Which node to take the file from
+# @parameter remote_node  Which node to take the file from
 # @parameter file_id      Unique name that was used to identify the file on the sender
 # @parameter_constraint file_id "regex" : "^[A-z0-9._-]+$"
 # @parameter file_path    Where to put the file content
-# 
+#
+# @parameter_rename source_uuid remote_node
 # @class_prefix sharedfile_from_node
 # @class_parameter file_id
 
-bundle agent sharedfile_from_node(source_uuid, file_id, file_path)
+bundle agent sharedfile_from_node(remote_node, file_id, file_path)
 {
   vars:
       "old_class_prefix"  string => canonify("sharedfile_from_node_${file_id}");
-      "args"              slist  => { "${source_uuid}", "${file_id}", "${file_path}" };
+      "args"              slist  => { "${remote_node}", "${file_id}", "${file_path}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("sharedfile_from_node_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
-      "source"            string => "/var/rudder/shared-files/${g.uuid}/files/${source_uuid}/${file_id}";
+      "source"            string => "/var/rudder/shared-files/${g.uuid}/files/${remote_node}/${file_id}";
 
   files:
       "${file_path}"
@@ -50,5 +51,5 @@ bundle agent sharedfile_from_node(source_uuid, file_id, file_path)
         classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report" usebundle => _log_v3("Retrieving ${file_id} from ${source_uuid} into ${file_path}", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log_v3("Retrieving ${file_id} from ${remote_node} into ${file_path}", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

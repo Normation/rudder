@@ -30,7 +30,7 @@
 #
 # This section describes the generic method parameters.
 #
-# #### target_uuid
+# #### remote_node
 #
 # The node you want to share this file with. The uuid of a node
 # is visible in the Nodes details (in the Web interface) or by entering
@@ -89,27 +89,28 @@
 # sharedfile_from_node("2bf1afdc-6725-4d3d-96b8-9128d09d353c", "application.properties", "/opt/application/etc/application.properties")
 # ```
 #
-# @parameter target_uuid  Which node to share the file with
+# @parameter remote_node  Which node to share the file with
 # @parameter file_id      Unique name that will be used to identify the file on the receiver
 # @parameter_constraint file_id "regex" : "^[A-z0-9._-]+$"
 # @parameter file_path    Path of the file to share
 # @parameter ttl          Time to keep the file on the policy server in seconds or in human readable form (see long description)
 # @parameter_constraint ttl "regex" : "^(\d+\s*(days?|d))?(\d+\s*(hours?|h))?(\d+\s*(minutes?|m))?(\d+\s*(seconds?|s))?$"
 #
+# @parameter_rename target_uuid remote_node
 # @class_prefix sharedfile_to_node
 # @class_parameter file_id
 
-bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
+bundle agent sharedfile_to_node(remote_node, file_id, file_path, ttl)
 {
   vars:
       "old_class_prefix"  string => canonify("sharedfile_to_node_${file_id}");
-      "args"              slist  => { "${target_uuid}", "${file_id}", "${file_path}", "${ttl}" };
+      "args"              slist  => { "${remote_node}", "${file_id}", "${file_path}", "${ttl}" };
       "report_param"      string => join("_", args);
       "full_class_prefix" string => canonify("sharedfile_to_node_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       "canonified_path"   string => canonify("${file_path}");
-      "url"               string => "https://${server_info.policy_server}/rudder/relay-api/shared-files/${target_uuid}/${g.uuid}/${file_id}";
+      "url"               string => "https://${server_info.policy_server}/rudder/relay-api/shared-files/${remote_node}/${g.uuid}/${file_id}";
 
       "hash"              string => execresult("sed -n '/^hash_value=/s/^hash_value=//p' ${file_path}.sign", "useshell"),
                       ifvarclass => "${canonified_path}_signed";
@@ -147,7 +148,7 @@ bundle agent sharedfile_to_node(target_uuid, file_id, file_path, ttl)
       "result"                    usebundle => _classes_combine_ifthenelse("${old_class_prefix}_exist", "success", "${old_class_prefix}_uploaded", "${old_class_prefix}");
       "result"                    usebundle => _classes_combine_ifthenelse("${class_prefix}_exist", "success", "${class_prefix}_uploaded", "${class_prefix}");
 
-      "report"                    usebundle => _log_v3("Sharing ${file_path} with ${target_uuid} under the name ${file_id} for ${ttl}", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                    usebundle => _log_v3("Sharing ${file_path} with ${remote_node} under the name ${file_id} for ${ttl}", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
     _ncf_path_exists_curl::
