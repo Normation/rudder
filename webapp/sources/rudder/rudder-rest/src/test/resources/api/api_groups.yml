@@ -30,7 +30,9 @@ response:
             "properties":[
               {"name":"stringParam","value":"string","inheritMode":"map","provider":"datasources"},
               {"name":"jsonParam","value":{"array":[5,6],"group":"string","json":{"g1":"g1"}}}
-            ]
+            ],
+            "target":"group:0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
           }
         ]
       }
@@ -230,7 +232,9 @@ response:
             "properties":[
               {"name":"stringParam","value":"string","inheritMode":"map","provider":"datasources"},
               {"name":"jsonParam","value":{"array":[5,6],"group":"string","json":{"g1":"g1"}}}
-            ]
+            ],
+            "target":"group:0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
           },
           {
             "id":"1111f5d3-8c61-4d20-88a7-bb947705ba8a",
@@ -244,7 +248,9 @@ response:
               "group_1111f5d3_8c61_4d20_88a7_bb947705ba8a",
               "group_empty_group"
             ],
-            "properties":[]
+            "properties":[],
+            "target":"group:1111f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
           },
           {
             "id":"2222f5d3-8c61-4d20-88a7-bb947705ba8a",
@@ -258,7 +264,9 @@ response:
               "group_2222f5d3_8c61_4d20_88a7_bb947705ba8a",
               "group_only_root"
             ],
-            "properties":[]
+            "properties":[],
+            "target":"group:2222f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
           },
           {
             "id":"3333f5d3-8c61-4d20-88a7-bb947705ba8a",
@@ -272,7 +280,9 @@ response:
               "group_3333f5d3_8c61_4d20_88a7_bb947705ba8a",
               "group_even_nodes"
             ],
-            "properties":[]
+            "properties":[],
+            "target":"group:3333f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
           },
           {
             "id":"4444f5d3-8c61-4d20-88a7-bb947705ba8a",
@@ -286,7 +296,9 @@ response:
               "group_4444f5d3_8c61_4d20_88a7_bb947705ba8a",
               "group_odd_nodes"
             ],
-            "properties":[]
+            "properties":[],
+            "target":"group:4444f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
           },
           {
             "id":"5555f5d3-8c61-4d20-88a7-bb947705ba8a",
@@ -300,7 +312,9 @@ response:
               "group_5555f5d3_8c61_4d20_88a7_bb947705ba8a",
               "group_nodes_id_divided_by_3"
             ],
-            "properties":[]
+            "properties":[],
+            "target":"group:5555f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
           },
           {
             "id":"6666f5d3-8c61-4d20-88a7-bb947705ba8a",
@@ -314,7 +328,9 @@ response:
               "group_6666f5d3_8c61_4d20_88a7_bb947705ba8a",
               "group_nodes_id_divided_by_5"
             ],
-            "properties":[]
+            "properties":[],
+            "target":"group:6666f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
           },
           {
             "id":"a-group-for-root-only",
@@ -328,7 +344,9 @@ response:
               "group_a_group_for_root_only",
               "group_serveurs_______casses"
             ],
-            "properties":[]
+            "properties":[],
+            "target":"group:a-group-for-root-only",
+            "system":false
           }
         ]
       }
@@ -346,7 +364,6 @@ body: >-
     "description": "A node group for debian version 10",
     "category": "GroupRoot",
     "enabled": true,
-    "system": false,
     "properties": [{"name":"os", "value": { "name": "debian", "nickname":"Buster" }}],
     "query": {
       "select": "node",
@@ -416,7 +433,9 @@ response:
                   "nickname":"Buster"
                 }
               }
-            ]
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "system":false
           }
         ]
       }
@@ -505,7 +524,9 @@ response:
                   "nickname":"Buster"
                 }
               }
-            ]
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-0001-af114289fc9a",
+            "system":false
           }
         ]
       }
@@ -570,7 +591,9 @@ response:
                   "nickname":"Buster"
                 }
               }
-            ]
+            ],
+            "target":"group:00000000-cb9d-4f7b-abda-ca38c5d643ea",
+            "system":false
           }
         ]
       }
@@ -634,7 +657,9 @@ response:
                   "nickname":"Buster"
                 }
               }
-            ]
+            ],
+            "target":"group:00000000-cb9d-4f7b-0001-ca38c5d643ea",
+            "system":false
           }
         ]
       }
@@ -710,7 +735,9 @@ response:
                   "version":"10"
                 }
               }
-            ]
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "system":false
           }
         ]
       }
@@ -786,7 +813,9 @@ response:
                   "version":"10"
                 }
               }
-            ]
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-0001-af114289fc9a",
+            "system":false
           }
         ]
       }
@@ -842,7 +871,9 @@ response:
                   "version":"10"
                 }
               }
-            ]
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "system":false
           }
         ]
       }
@@ -907,7 +938,9 @@ response:
                   "version":"10"
                 }
               }
-            ]
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "system":false
           }
         ]
       }
@@ -971,7 +1004,9 @@ response:
                   "version":"10"
                 }
               }
-            ]
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-0001-af114289fc9a",
+            "system":false
           }
         ]
       }
@@ -1030,7 +1065,9 @@ response:
                   "version":"10"
                 }
               }
-            ]
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "system":false
           }
         ]
       }
@@ -1089,7 +1126,9 @@ response:
                   "version":"10"
                 }
               }
-            ]
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-0001-af114289fc9a",
+            "system":false
           }
         ]
       }
@@ -1120,7 +1159,8 @@ response:
             "description":"",
             "parent": "GroupRoot",
             "categories":[],
-            "groups":[]
+            "groups":[],
+            "targets":[]
           }
       }
     }
@@ -1150,7 +1190,8 @@ response:
             "description":"",
             "parent": "GroupRoot",
             "categories":[],
-            "groups":[]
+            "groups":[],
+            "targets":[]
           }
       }
     }
@@ -1181,7 +1222,8 @@ response:
             "description":"category 2",
             "parent": "category1",
             "categories":[],
-            "groups":[]
+            "groups":[],
+            "targets":[]
           }
       }
     }
@@ -1212,7 +1254,8 @@ response:
             "description":"category 2",
             "parent": "category1",
             "categories":[],
-            "groups":[]
+            "groups":[],
+            "targets":[]
           }
       }
     }
@@ -1239,7 +1282,8 @@ response:
           ],
           "groups":[
 
-          ]
+          ],
+          "targets":[]
         }
       }
     }

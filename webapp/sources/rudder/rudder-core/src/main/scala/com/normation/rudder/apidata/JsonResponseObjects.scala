@@ -513,9 +513,11 @@ object JsonResponseObjects {
     , enabled         : Boolean
     , groupClass      : List[String]
     , properties      : List[JRProperty]
+    , target          : String
+    , system          : Boolean
   )
   object JRGroup {
-    def empty(id: String) = JRGroup(None, id, "", "", "", None, Nil, false, false, Nil, Nil)
+    def empty(id: String) = JRGroup(None, id, "", "", "", None, Nil, false, false, Nil, Nil, "", false)
 
     def fromGroup(group: NodeGroup, catId: NodeGroupCategoryId, crId: Option[ChangeRequestId]) = {
       group.into[JRGroup]
@@ -528,6 +530,8 @@ object JsonResponseObjects {
         .withFieldComputed(_.nodeIds, _.serverList.toList.map(_.value).sorted)
         .withFieldComputed(_.groupClass, x => List(x.id.value, x.name).map(RuleTarget.toCFEngineClassName _).sorted)
         .withFieldComputed(_.properties, _.properties.map(JRProperty.fromGroupProp(_)))
+        .withFieldComputed(_.target, x => GroupTarget(x.id).target)
+        .withFieldComputed(_.system, _.isSystem)
         .transform
     }
   }

@@ -236,15 +236,27 @@ final case class RestDataSerializerImpl (
       ~ ("query"           -> query)
       ~ ("nodeIds"         -> group.serverList.toSeq.map(_.value).sorted)
       ~ ("dynamic"         -> group.isDynamic)
-      ~ ("enabled"         -> group.isEnabled )
+      ~ ("enabled"         -> group.isEnabled)
       ~ ("groupClass"      -> List(group.id.value, group.name).map(RuleTarget.toCFEngineClassName _).sorted)
       ~ ("properties"      -> group.properties.toApiJson)
+      ~ ("system"          -> group.isSystem)
+      ~ ("target"          -> GroupTarget(group.id).target)
     )
   }
 
   override def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel, apiVersion: ApiVersion): JValue = {
     val groupList = category.ownGroups.values.toSeq.sortBy(_.nodeGroup.id.value)
     val subCat = category.subCategories.sortBy(_.id.value)
+
+    def serializeTarget (target: FullRuleTargetInfo): JValue = {
+      ( ("id" -> target.target.target.target)
+      ~ ("displayName" -> target.name)
+      ~ ("description" -> target.description)
+      ~ ("enabled" -> target.isEnabled)
+      ~ ("target" -> target.target.target.target)
+      )
+    }
+    val otherTargets = category.allTargets.collect{case (AllTargetExceptPolicyServers|PolicyServerTarget(_)|AllTarget, v) => serializeTarget(v) }
 
     val (groups ,categories) : (Seq[JValue],Seq[JValue]) = detailLevel match {
       case FullDetails =>
@@ -262,6 +274,7 @@ final case class RestDataSerializerImpl (
       ~ ( "parent" -> parent.value)
       ~ ( "categories" -> categories)
       ~ ( "groups" -> groups)
+      ~ ( "targets" -> otherTargets)
     )
   }
 

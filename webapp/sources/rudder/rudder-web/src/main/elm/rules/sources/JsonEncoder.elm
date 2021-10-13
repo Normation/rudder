@@ -3,6 +3,14 @@ module  JsonEncoder exposing (..)
 import DataTypes exposing (..)
 import Json.Encode exposing (..)
 
+
+encodeRuleCategory: (String, Category Rule)  -> Value
+encodeRuleCategory (parent, category) =
+        object [
+          ("parents"               , string parent               )
+        , ("name"      , string category.name      )
+        ]
+
 encodeRuleDetails: Rule -> Value
 encodeRuleDetails ruleDetails =
   let

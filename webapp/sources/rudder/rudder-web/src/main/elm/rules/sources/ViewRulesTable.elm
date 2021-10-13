@@ -9,7 +9,7 @@ import List
 import String
 import NaturalOrdering exposing (compareOn)
 import ViewUtils exposing (getCategoryName, getListRules, filterSearch, searchFieldRules)
-import ViewUtilsCompliance exposing (buildComplianceBar, getAllComplianceValues, getRuleCompliance)
+import ComplianceUtils exposing (buildComplianceBar, getAllComplianceValues, getRuleCompliance)
 
 --
 -- This file contains all methods to display the Rules table
