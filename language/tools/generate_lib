@@ -131,17 +131,16 @@ def parse_method_metadata(content):
                     parameters[param_name] = {
                         'name': param_name, 'description': match.group(4)}
                     param_names.add(param_name)
-                if tag == "parameter_constraint":
+                elif tag == "parameter_constraint":
                     constraint = json.loads(
                         "{" + match.group(4).replace('\\', '\\\\') + "}")
                     # extend default_constraint if it was not already defined)
                     param_constraints.setdefault(
                         match.group(3), default_constraint.copy()).update(constraint)
-                if tag == "parameter_type":
+                elif tag == "parameter_type":
                     param_type = match.group(4)
                     param_types[match.group(3)] = param_type
-                else:
-                    res[tag] = match.group(2)
+                res[tag] = match.group(2)
                 previous_tag = tag
                 continue
 
@@ -282,7 +281,6 @@ def parse_method_metadata(content):
             param["constraints"] = constraints
             param["type"] = param_type
 
-
             if param['name'] == res['class_parameter']:
                 resource_id -= 1
                 res["resource_parameters"].append(param)
@@ -330,18 +328,9 @@ def extract_resources(metadata):
         else:
             resources[method["resource"]]["states"].append(method)
 
-    # TODO remove special case names since it has been updated in ncf library
     # hardcode special cases for better consistency
     resources["package"]["description"] = "Package of the system"
     resources["file"]["parameters"][0]["description"] = "File path to manage"
-    # temporarily set some resource param name manually until NCF pending related PR is merged
-    resources["file"]["parameters"][0]["name"] = "path"
-    resources["directory"]["parameters"][0]["name"] = "path"
-    resources["package"]["parameters"][0]["name"] = "name"
-    resources["kernel_module"]["parameters"][0]["name"] = "name"
-    resources["group"]["parameters"][0]["name"] = "name"
-    resources["variable"]["parameters"][0]["name"] = "prefix"
-    resources["variable"]["parameters"][1]["name"] = "name"
     resources["variable"]["parameters"][1]["description"] = "The variable to define, the full name will be prefix.name"
 
     return resources
