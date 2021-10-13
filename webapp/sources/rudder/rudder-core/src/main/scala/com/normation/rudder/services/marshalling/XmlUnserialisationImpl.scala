@@ -510,7 +510,7 @@ class ChangeRequestChangesUnserialisationImpl (
                 case Some(rsXml) =>
                   val techId = TechniqueId(techniqueName,changeDirective.techniqueVersion)
                   sectionSpecUnserialiser.parseSectionsInPolicy(rsXml, techId, techniqueName.value).map(rootSection =>
-                    ModifyToDirectiveDiff(techniqueName,changeDirective,rootSection)
+                    ModifyToDirectiveDiff(techniqueName,changeDirective,Some(rootSection))
                   ).toBox
                 case None => Failure(s"Could not find rootSection node in ${changeNode}")
 
@@ -521,9 +521,8 @@ class ChangeRequestChangesUnserialisationImpl (
 
             }
         } yield {
-
           val directiveChange = DirectiveChange(initialState.map{case (techName,directive) =>
-                      val rootSection = techRepo.get(TechniqueId(techName,directive.techniqueVersion)).map(_.rootSection).get
+                      val rootSection = techRepo.get(TechniqueId(techName,directive.techniqueVersion)).map(_.rootSection)
                           (techName,directive,rootSection)},DirectiveChangeItem(actor,date,reason,change),Seq())
 
           (directiveId -> DirectiveChanges(directiveChange,Seq()))

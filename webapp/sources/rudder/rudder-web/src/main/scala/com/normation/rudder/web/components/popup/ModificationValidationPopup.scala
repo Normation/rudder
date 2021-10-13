@@ -459,7 +459,7 @@ class ModificationValidationPopup(
                 if (d == directive) {
                   Full(None)
                 } else {
-                  Full(Some(ModifyToDirectiveDiff(techniqueName,directive,rootSection)))
+                  Full(Some(ModifyToDirectiveDiff(techniqueName,directive,Some(rootSection))))
                 }
             }
         }
@@ -511,7 +511,7 @@ class ModificationValidationPopup(
                 changeRequestName.get
               , crReasons.map( _.get ).getOrElse("")
               , techniqueName
-              , oldRootSection
+              , Some(oldRootSection)
               , directive.id
               , optOriginal
               , diff

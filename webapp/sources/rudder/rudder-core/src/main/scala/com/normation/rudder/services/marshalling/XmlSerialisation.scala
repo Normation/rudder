@@ -177,7 +177,7 @@ trait DirectiveSerialisation {
    */
   def serialise(
       ptName             : TechniqueName
-    , variableRootSection: SectionSpec
+    , variableRootSection: Option[SectionSpec]
     , directive          : Directive
   ) : Elem
 }
