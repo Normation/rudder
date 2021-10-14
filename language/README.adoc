@@ -21,3 +21,17 @@ To run doc tests:
 ---
 make test-docs
 ---
+
+=== Lib generation
+
+Rudder lang states and resources libraries are generated from the parsing of the ncf repository.
+To generates the libraries, the parsing starts from the methods metadata, and produce a Json
+describing each resource and states found under it.
+
+To generate the libraries and see the resulting Json run:
+
+---
+python tools/generate_lib_bis.py tools/rudderc-dev.conf
+---
+
+Resulting libraries will be available in `libs/std/`, the Json is the output of the command.

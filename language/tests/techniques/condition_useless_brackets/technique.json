@@ -7,6 +7,9 @@
   "category": "ncf_techniques",
   "method_calls": [
     {
+      "method_name": "dsc_built_in_resource",
+      "class_context": "any.(((!debian|linux)|ubuntu.windows|(linux|ubuntu)))",
+      "component": "DSC built-in resource",
       "parameters": [
         {
           "name": "tag",
@@ -14,19 +17,16 @@
           "$errors": []
         },
         {
-          "name": "resourceName",
-          "value": "file",
-          "$errors": []
-        },
-        {
           "name": "scriptBlock",
           "value": "exists",
           "$errors": []
+        },
+        {
+          "name": "resourceName",
+          "value": "file",
+          "$errors": []
         }
       ],
-      "class_context": "any.(((!debian|linux)|ubuntu.windows|(linux|ubuntu)))",
-      "method_name": "dsc_built_in_resource",
-      "component": "DSC built-in resource",
       "id": "b75bd5d3-8304-4cd6-8689-2ba650c7c42a",
       "disableReporting": false
     }

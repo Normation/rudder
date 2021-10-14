@@ -32,8 +32,11 @@ install: build
 
 	# Python libs
 	cp -r tools/jsondiff $(DESTDIR)/opt/rudder/share/python/
+	cp -r tools/methods_generator $(DESTDIR)/opt/rudder/share/python/
 	chmod 755 $(DESTDIR)/opt/rudder/share/python/jsondiff
 	chmod 644 $(DESTDIR)/opt/rudder/share/python/jsondiff/*
+	chmod 755 $(DESTDIR)/opt/rudder/share/python/methods_generator
+	chmod 644 $(DESTDIR)/opt/rudder/share/python/methods_generator/*
 	chmod 644 $(DESTDIR)/opt/rudder/etc/rudderc.conf
 	chmod 644 $(DESTDIR)/var/log/rudder/language
 
