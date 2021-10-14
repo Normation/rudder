@@ -2012,6 +2012,10 @@ response:
                   {
                     "name": "technique_by_Rudder",
                     "directives": []
+                  },
+                  {
+                    "name": "technique_with_blocks",
+                    "directives": []
                   }
                 ]
               },

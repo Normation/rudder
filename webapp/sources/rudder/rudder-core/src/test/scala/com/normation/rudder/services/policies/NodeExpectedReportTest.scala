@@ -39,25 +39,17 @@ package com.normation.rudder.services.policies
 import org.junit.runner._
 import org.specs2.runner.JUnitRunner
 import org.specs2.mutable._
-import com.normation.cfclerk.domain.AgentConfig
+import com.normation.cfclerk.domain.{AgentConfig, BundleName, SectionSpec, SectionVariableSpec, TechniqueId, TechniqueName, TechniqueVersionHelper, TrackerVariableSpec, Variable}
 import com.normation.inventory.domain.AgentType
-import com.normation.cfclerk.domain.BundleName
-import com.normation.cfclerk.domain.TrackerVariableSpec
-import com.normation.cfclerk.domain.SectionSpec
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.DirectiveUid
-import com.normation.cfclerk.domain.SectionVariableSpec
-
 import org.joda.time.DateTime
 import cats.data.NonEmptyList
-import com.normation.cfclerk.domain.TechniqueVersionHelper
+import com.normation.cfclerk.services.impl.TechniqueRepositoryImpl
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
-
 import net.liftweb.json._
 import net.liftweb.json.JsonAST.JArray
 
@@ -87,12 +79,12 @@ class NodeExpectedReportTest extends Specification {
   // return the couple of (var name, var with value)
   def v(x: String, values: String*) = {
     val v = tvar(x).toVariable(values)
-    (ComponentId(v.spec.name, Nil), v)
+    (ComponentId(v.spec.name,  v.spec.name :: "root" :: Nil), v)
   }
   // same with multivalued
   def mv(x: String, values: String*) = {
     val v = tmvar(x).toVariable(values)
-    (ComponentId(v.spec.name, Nil), v)
+    (ComponentId(v.spec.name, v.spec.name :: "root":: Nil), v)
   }
 
   def technique(x: String) = {
@@ -117,11 +109,34 @@ class NodeExpectedReportTest extends Specification {
   val t1 = technique("1")
   val t2 = technique("2")
 
+
+  // used in NodeExpectedReportTest
+  val testNodeConfiguration = new TestNodeConfiguration("")
+  implicit class UnsafeGet(repo: TechniqueRepositoryImpl) {
+    def unsafeGet(id: TechniqueId) = repo.get(id).getOrElse(throw new RuntimeException(s"Bad init for test: technique '${id.serialize}' not found"))
+  }
+  val ncfTechniqueWithBlocks = testNodeConfiguration.techniqueRepository.unsafeGet(TechniqueId(TechniqueName("technique_with_blocks"), TechniqueVersionHelper("1.0")))
+
+  val policyTechniqueWithBlock = PolicyTechnique(
+      ncfTechniqueWithBlocks.id
+    , AgentConfig(AgentType.CfeCommunity, Nil, Nil, List(BundleName("technique_with_blocks")), Nil)
+    , ncfTechniqueWithBlocks.trackerVariableSpec
+    , ncfTechniqueWithBlocks.rootSection
+    , ncfTechniqueWithBlocks.systemVariableSpecs
+    , ncfTechniqueWithBlocks.isMultiInstance
+    , ncfTechniqueWithBlocks.isSystem
+    , ncfTechniqueWithBlocks.generationMode
+    , ncfTechniqueWithBlocks.useMethodReporting
+  )
+
+
   val r1 = RuleId(RuleUid("rule_1"))
   val r2 = RuleId(RuleUid("rule_2"))
+  val r3 = RuleId(RuleUid("rule_3"))
   val d1 = DirectiveId(DirectiveUid("directive_1"))
   val d2 = DirectiveId(DirectiveUid("directive_2"))
   val d3 = DirectiveId(DirectiveUid("directive_3"))
+  val d4 = DirectiveId(DirectiveUid("directive_4"))
 
   val p1_id = PolicyId(r1, d1, TechniqueVersionHelper("1.0"))
   val p1 = Policy(
@@ -176,6 +191,50 @@ class NodeExpectedReportTest extends Specification {
     , overrides      = Set()
   )
 
+  def sortJs(js: JValue): JValue = js match {
+    case JObject(fields) => JObject(fields.sortBy{ case x =>
+      x.name match {
+        case "componentName" => x.value match { // special case for component name, we want also to sort by value
+          case  JString(value) => value
+          case _ => x.value.toString
+        }
+        case _ => x.name
+      }} .map { case JField(k, v) => JField(k, sortJs(v)) })
+    case JArray(array) => JArray(array.sortBy{ case x => x.values.toString }.map(e => sortJs(e))) // this toString is not optimal but it's consistent :)
+    case _ => js
+  }
+
+  // compare and json of expected reports with the one produced by RuleExpectedReports.
+  // things are sorted and Jnothing values are cleaned up to keep things understandable
+  def compareExpectedReportsJson(expected: JValue, policies: List[Policy]) = {
+    val json = ExpectedReportsSerialisation.jsonRuleExpectedReports(RuleExpectedReportBuilder(policies).sortBy( _.ruleId.serialize))
+
+    // we must compare the sorted diff
+    val Diff(changed, added, deleted) = sortJs(expected) diff sortJs(json)
+    // we don't want to deals with JNothing trailing leaf
+    def clean(j: JValue): JValue = {
+      j match {
+        case JObject(fs) =>
+          fs.map { case JField(n, v) => JField(n, clean(v)) }.filter( _.value != JNothing) match {
+            case Nil => JNothing
+            case l   => JObject(l)
+          }
+        case JArray(ll) => ll.map(clean).filter( _ != JNothing) match {
+          case Nil => JNothing
+          case l   => JArray(l)
+        }
+        case x => x
+      }
+    }
+
+    def res(json: JValue) = json match {
+      case JNothing => ""
+      case x        => prettyRender(x)
+    }
+
+    // all that for that...
+    (res(clean(changed)) === "") and (res(clean(added)) === "") and (res(clean(deleted)) === "")
+  }
 
   // Ok, now I can test
   "The expected reports from a merged policy with two directives" should {
@@ -259,27 +318,110 @@ class NodeExpectedReportTest extends Specification {
            }
          ]""")
 
+      compareExpectedReportsJson(expected, p1 :: p2 :: Nil)
+    }
+  }
 
+  "The rule expected reports from a technique with blocks " should {
+    def componentIdCreator(componentKey: String, parentPath: List[String], value: String) : (ComponentId, Variable)= {
+      // expectedReportKey is the prefix of the variable name, so necessary
+      val componentId = ComponentId("expectedReportKey " + componentKey, parentPath)
+      val variable = SectionVariableSpec("expectedReportKey " + componentKey, "", "REPORTKEYS", valueslabels = Nil, providedValues = Seq(value))
+      (componentId, variable.toVariable(Seq(value)))
+    }
 
-      val json = ExpectedReportsSerialisation.jsonRuleExpectedReports(RuleExpectedReportBuilder(p1 :: p2 :: Nil).sortBy( _.ruleId.serialize))
-      val Diff(changed, added, deleted) = expected diff json
-      // we don't want to deals with JNothing trailing leaf
-      def clean(j: JValue): JValue = {
-        j match {
-          case JObject(fs) =>
-            fs.map { case JField(n, v) => JField(n, clean(v)) }.filter( _.value != JNothing) match {
-              case Nil => JNothing
-              case l   => JObject(l)
-            }
-          case JArray(ll) => ll.map(clean).filter( _ != JNothing) match {
-            case Nil => JNothing
-            case l   => JArray(l)
-          }
-          case x => x
-        }
-      }
-      // all that for that...
-      (clean(changed) === JNothing) and (clean(added) === JNothing) and (clean(deleted) === JNothing)
+    val policyVarsMaps : Map[ComponentId, Variable]= Map(
+        componentIdCreator("Command execution", List("Command execution", "SECTIONS")                              , "/bin/true #root1")
+      , componentIdCreator("File absent"      , List("File absent", "SECTIONS")                                    , "/tmp/root2")
+      , componentIdCreator("File absent"      , List("File absent", "First block", "SECTIONS")                     , "/tmp/block1")
+      , componentIdCreator("File absent"      , List("File absent", "inner block", "First block", "SECTIONS")      , "/tmp/block1_1")
+      , componentIdCreator("Command execution", List("Command execution", "inner block", "First block", "SECTIONS"), "/bin/true")
+    )
+
+    val p_with_block_id = PolicyId(r3, d4, TechniqueVersionHelper("1.0"))
+    val p_with_block = Policy(
+      p_with_block_id
+      , "rule name with block"
+      , "directive name with block"
+      , technique = policyTechniqueWithBlock
+      , DateTime.now.minusDays(1)
+      , policyVars     = NonEmptyList.of(
+        PolicyVars(
+          PolicyId(r3, d4, TechniqueVersionHelper("1.0"))
+          , Some(PolicyMode.Enforce)
+          , policyVarsMaps
+          , policyVarsMaps
+          , policyTechniqueWithBlock.trackerVariableSpec.toVariable(p_with_block_id.getReportId :: Nil)
+        )
+      )
+      , priority       = 0
+      , policyMode     = None
+      , ruleOrder      = BundleOrder("1")
+      , directiveOrder = BundleOrder("1")
+      , overrides      = Set()
+    )
+
+    "return the expected expected reports" in {
+      val expected = RuleExpectedReportBuilder(p_with_block :: Nil)
+
+      val json = ExpectedReportsSerialisation.jsonRuleExpectedReports(expected)
+      val expectedJson =
+
+        """
+        [
+           {
+             "ruleId": "rule_3"
+           , "directives": [
+               {
+                 "directiveId": "directive_4"
+               , "policyMode" : "enforce"
+               , "isSystem"   : false
+               , "components":[
+                   {
+                     "componentName":"File absent"
+                   , "values": [ "/tmp/root2" ]
+                   , "unexpanded": [ "/tmp/root2" ]
+                   }
+                 , {
+                     "componentName":"Command execution"
+                   , "values": [ "/bin/true #root1" ]
+                   , "unexpanded":[ "/bin/true #root1" ]
+                   }
+                 , {
+                     "componentName":"First block"
+                   , "reportingLogic":"sum"
+                   , "subComponents": [
+                       {
+                         "componentName":"File absent"
+                       , "values":[ "/tmp/block1" ]
+                       , "unexpanded":[ "/tmp/block1" ]
+                       }
+                     , {
+                         "componentName":"inner block"
+                       , "reportingLogic":"sum"
+                       , "subComponents": [
+                         {
+                           "componentName":"File absent"
+                         , "values":[ "/tmp/block1_1" ]
+                         , "unexpanded":[ "/tmp/block1_1" ]
+                         }
+                       , {
+                           "componentName":"Command execution"
+                         , "values": [  "/bin/true" ]
+                         , "unexpanded": [  "/bin/true" ]
+                         }
+                       ]
+                     }
+                     ]
+                   }
+                 ]
+               }
+             ]
+           }
+         ]
+        """
+
+      compareExpectedReportsJson(parse(expectedJson), p_with_block :: Nil)
     }
   }
 }

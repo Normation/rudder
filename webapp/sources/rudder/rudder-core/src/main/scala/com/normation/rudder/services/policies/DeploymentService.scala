@@ -1428,7 +1428,6 @@ object RuleExpectedReportBuilder extends Loggable {
     // before anything else, we need to "flatten" rule/directive by policy vars
     // (i.e one for each PolicyVar, and we only have more than one of them in the
     // case where several directives from the same technique where merged.
-
     val flatten = policies.flatMap { p =>
       p.policyVars.toList.map { v => p.copy(id = v.policyId, policyVars = NonEmptyList.one(v)) }
     }
@@ -1446,7 +1445,6 @@ object RuleExpectedReportBuilder extends Loggable {
           , componentsFromVariables(policy.technique, policy.id.directiveId, pvar)
         )
       }
-
       RuleExpectedReports(ruleId, directives)
     }.toList
   }
@@ -1483,7 +1481,8 @@ object RuleExpectedReportBuilder extends Loggable {
      * If there is no component for that policy, the policy is autobounded to DEFAULT_COMPONENT_KEY
      *
      */
-    def sectionToExpectedReports (expandedVarMap : Map[String,List[String]], unexpandedVarMap : Map[String,List[String]])( section : SectionSpec): List[ComponentExpectedReport] = {
+    def sectionToExpectedReports (
+           path: List[String])( section : SectionSpec): List[ComponentExpectedReport] = {
       if(section.isComponent) {
         section.reportingLogic match {
           case None =>
@@ -1493,34 +1492,36 @@ object RuleExpectedReportBuilder extends Loggable {
                 ValueExpectedReport(section.name, List(DEFAULT_COMPONENT_KEY), List(DEFAULT_COMPONENT_KEY)) :: Nil
               case Some(varName) =>
                 //a section with a componentKey variable: card=variable card
-                val expandedValues = expandedVarMap.get(varName).getOrElse(Nil)
-                val unexpandedValues = unexpandedVarMap.get(varName).getOrElse(Nil)//= vars.expandedVars.get((section.name :: parent,varName)).map(_.values.toList).getOrElse(Nil)
-                //val unexpandedValues = vars.originalVars.get((section.name :: parent,varName)).map(_.values.toList).getOrElse(Nil)
-                if (expandedValues.size != unexpandedValues.size)
-                  PolicyGenerationLogger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
-                    section.componentKey, directiveId.serialize, expandedValues, unexpandedValues))
+                // we are maybe not in a block, but we should only take the values matching the current parent path
+                val currentPath = section.name :: path // (varName is not in parent, but in value)
+                val refComponentId = ComponentId(varName, currentPath)
+                val innerExpandedVars = vars.expandedVars.get(refComponentId).map(_.values.toList).getOrElse(Nil)
+                val innerUnexpandedVars = vars.originalVars.get(refComponentId).map(_.values.toList).getOrElse(Nil)
 
-                val children = section.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports(expandedVarMap, unexpandedVarMap)).toList
-                ValueExpectedReport(section.name, expandedValues, unexpandedValues) :: children
+                if (innerExpandedVars.size != innerUnexpandedVars.size)
+                  PolicyGenerationLogger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
+                    section.componentKey, directiveId.serialize, innerExpandedVars, innerUnexpandedVars))
+
+                val children = section.children.collect{case c : SectionSpec => c }.flatMap(c => sectionToExpectedReports(path)(c)).toList
+
+                ValueExpectedReport(section.name, innerExpandedVars, innerUnexpandedVars) :: children
             }
           case Some(rule) =>
-            val innerExpandedVars = vars.expandedVars.filter(_._1.parents.contains(section.name)).values.groupMapReduce(_.spec.name)(_.values.toList)(_ ++ _)
-            val innerUnexpandedVars = vars.originalVars.filter(_._1.parents.contains(section.name)).values.groupMapReduce(_.spec.name)(_.values.toList)(_ ++ _)
-
-            val children = section.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports(innerExpandedVars, innerUnexpandedVars)).toList
+            // here, every values in the child will match because of the contains.
+            // structure of componentId is "Component Name", List("Component Name", "current block", "parent block", "great parent block")
+            val currentPath = section.name :: path
+            val children = section.children.collect{case c : SectionSpec => c }.flatMap(c => sectionToExpectedReports(currentPath)(c)).toList
             BlockExpectedReport(section.name, rule, children) :: Nil
 
         }
       } else {
-        section.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports(expandedVarMap, unexpandedVarMap)).toList
+        section.children.collect{case c : SectionSpec => c }.flatMap(c => sectionToExpectedReports( path)(c)).toList
 
       }
     }
 
-    val expandedVars = vars.expandedVars.values.groupMapReduce(_.spec.name)(_.values.toList)(_ ++ _)
-    val unExpandedVars = vars.originalVars.values.groupMapReduce(_.spec.name)(_.values.toList)(_ ++ _)
-
-    val allComponents = technique.rootSection.children.collect{case c : SectionSpec => c }.flatMap(sectionToExpectedReports(expandedVars, unExpandedVars)).toList
+    val initPath = technique.rootSection.name :: Nil
+    val allComponents = technique.rootSection.children.collect{case c : SectionSpec => c }.flatMap(c => sectionToExpectedReports(initPath)(c)).toList
 
     if(allComponents.isEmpty) {
       //that log is outputed one time for each directive for each node using a technique, it's far too

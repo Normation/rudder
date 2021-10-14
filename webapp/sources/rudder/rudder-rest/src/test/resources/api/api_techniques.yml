@@ -15,6 +15,10 @@ response:
             "versions":["1.0"]
           },
           {
+            "name":"technique_with_blocks",
+            "versions":["1.0"]
+          },
+          {
             "name":"server-roles",
             "versions":["1.0"]
           },
