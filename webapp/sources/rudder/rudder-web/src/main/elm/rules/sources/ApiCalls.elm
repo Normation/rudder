@@ -136,6 +136,22 @@ getRulesCompliance model =
   in
     send GetRulesComplianceResult req
 
+getNodesList : Model -> Cmd Msg
+getNodesList model =
+  let
+    req =
+      request
+        { method          = "GET"
+        , headers         = []
+        , url             = getUrl model "/nodes"
+        , body            = emptyBody
+        , expect          = expectJson decodeGetNodesList
+        , timeout         = Nothing
+        , withCredentials = False
+        }
+  in
+    send GetNodesList req
+
 saveRuleDetails : Rule -> Bool -> Model -> Cmd Msg
 saveRuleDetails ruleDetails creation model =
   let
