@@ -4,35 +4,29 @@ import DataTypes exposing (..)
 import Json.Encode exposing (..)
 
 
-encodeRuleCategory: (String, Category Rule)  -> Value
-encodeRuleCategory (parent, category) =
-        object [
-          ("parents"               , string parent               )
-        , ("name"      , string category.name      )
-        ]
-
 encodeRuleDetails: Rule -> Value
 encodeRuleDetails ruleDetails =
   let
     listTags = object(List.map (\t -> (t.key, string t.value)) ruleDetails.tags)
   in
       object [
-        ("id"               , string ruleDetails.id.value               )
-      , ("displayName"      , string ruleDetails.name      )
-      , ("category"         , string ruleDetails.categoryId       )
-      , ("shortDescription" , string ruleDetails.shortDescription )
-      , ("longDescription"  , string ruleDetails.longDescription  )
-      , ("enabled"          , bool   ruleDetails.enabled          )
-      , ("system"           , bool   ruleDetails.isSystem         )
-      , ("directives"        , list string (List.map .value ruleDetails.directives)  )
-      , ("targets"          , list encodeTargets ruleDetails.targets   )
-      , ("tags"             , list encodeTags ruleDetails.tags    )
+        ("id"               , string ruleDetails.id.value            )
+      , ("displayName"      , string ruleDetails.name                )
+      , ("category"         , string ruleDetails.categoryId          )
+      , ("shortDescription" , string ruleDetails.shortDescription    )
+      , ("longDescription"  , string ruleDetails.longDescription     )
+      , ("enabled"          , bool   ruleDetails.enabled             )
+      , ("system"           , bool   ruleDetails.isSystem            )
+      , ("directives"       , list string (List.map .value ruleDetails.directives) )
+      , ("targets"          , list encodeTargets ruleDetails.targets )
+      , ("tags"             , list encodeTags ruleDetails.tags       )
       ]
 
-encodeCategoryDetails: (Category Rule) -> Value
-encodeCategoryDetails category =
-  object [
-    ("name"        , string category.name        )
+encodeCategoryDetails: String -> (Category Rule) -> Value
+encodeCategoryDetails parentId category =
+  object
+  [ ("parent"      , string parentId             )
+  , ("name"        , string category.name        )
   , ("description" , string category.description )
   ]
 

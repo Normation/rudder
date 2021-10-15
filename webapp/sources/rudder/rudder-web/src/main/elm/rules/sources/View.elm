@@ -51,20 +51,25 @@ view model =
 
         childsList  = ul[class "jstree-children"] (List.concat [ categories, rules] )
 
+        treeItem =
+          if item.id /= "rootRuleCategory" then
+            if (String.isEmpty model.ui.ruleFilters.treeFilters.filter) || ((List.length rules > 0) || (List.length categories > 0)) then
+              Just (
+                li[class "jstree-node jstree-open"]
+                [ i[class "jstree-icon jstree-ocl"][]
+                , a[href "#", class "jstree-anchor", onClick (OpenCategoryDetails item.id True)]
+                  [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
+                  , span [class "treeGroupCategoryName tooltipable"][text item.name]
+                  ]
+                , childsList
+                ]
+              )
+            else
+              Nothing
+          else
+            Just childsList
       in
-        if (String.isEmpty model.ui.ruleFilters.treeFilters.filter) || ((List.length rules > 0) || (List.length categories > 0)) then
-          Just (
-            li[class "jstree-node jstree-open"]
-            [ i[class "jstree-icon jstree-ocl"][]
-            , a[href "#", class "jstree-anchor", onClick (OpenCategoryDetails item.id True)]
-              [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-              , span [class "treeGroupCategoryName tooltipable"][text item.name]
-              ]
-            , childsList
-            ]
-          )
-        else
-          Nothing
+        treeItem
 
     templateMain = case model.mode of
       Loading -> text "loading"
