@@ -570,7 +570,7 @@ final case object RestChangesGraphs extends RestBooleanSetting {
 final case object RestSendMetrics extends RestSetting[Option[SendMetrics]] {
   val startPolicyGeneration = true
   def toJson(value : Option[SendMetrics]) : JValue = JString ( value match {
-    case None => "not defined"
+    case None => "not_defined"
     case Some(SendMetrics.NoMetrics) => "no"
     case Some(SendMetrics.MinimalMetrics) => "minimal"
     case Some(SendMetrics.CompleteMetrics) => "complete"
@@ -578,7 +578,7 @@ final case object RestSendMetrics extends RestSetting[Option[SendMetrics]] {
   def parseJson(json: JValue) = {
     json match {
       case JString(s)    => parseParam(s)
-      case x                      => Failure(s"Invalid value for 'send metrics' settings, should be a json string 'no'/'minimal'/'complete', but is instead: ${net.liftweb.json.compactRender(x)}")
+      case x             => Failure(s"Invalid value for 'send metrics' settings, should be a json string 'no'/'minimal'/'complete', but is instead: ${net.liftweb.json.compactRender(x)}")
     }
   }
   def parseParam(param : String): Box[Option[SendMetrics]] = {
@@ -586,7 +586,7 @@ final case object RestSendMetrics extends RestSetting[Option[SendMetrics]] {
       case "complete"|"true"        => Full(Some(SendMetrics.CompleteMetrics))
       case "no"|"false"       => Full(Some(SendMetrics.NoMetrics))
       case "minimal"       => Full(Some(SendMetrics.MinimalMetrics))
-      case "not defined" => Full(None)
+      case "not_defined" => Full(None)
       case _             => Failure(s"value for 'send metrics' settings should be 'no', 'minimal' or 'complete' instead of ${param}")
     }
   }
