@@ -187,7 +187,7 @@ type alias RuleDetailsUI = { editDirectives: Bool, editGroups : Bool, newTag : T
 
 type alias RuleDetails = { originRule : Maybe Rule, rule : Rule, tab :  TabMenu, ui : RuleDetailsUI }
 
-type alias CategoryDetails = { originCategory : Maybe (Category Rule), category : Category Rule, tab :  TabMenu}
+type alias CategoryDetails = { originCategory : Maybe (Category Rule), category : Category Rule, parentId : String, tab :  TabMenu}
 
 type Mode
   = Loading

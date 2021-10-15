@@ -8,6 +8,7 @@ import Init exposing (init)
 import View exposing (view)
 import Result
 import ApiCalls exposing (getRuleDetails, getRulesCategoryDetails, getRulesTree, saveDisableAction)
+import ViewUtils exposing (getListCategories, getParentCategoryId)
 import List.Extra exposing (remove)
 import Random
 import UUID
@@ -107,17 +108,19 @@ update msg model =
     GetCategoryDetailsResult res ->
       case res of
         Ok c ->
-          ({model | mode = CategoryForm (CategoryDetails (Just c) c Information )}, Cmd.none)
+          ({model | mode = CategoryForm (CategoryDetails (Just c) c (getParentCategoryId (getListCategories model.rulesTree) c.id) Information)}, Cmd.none)
         Err err ->
           (model, Cmd.none)
 
     OpenRuleDetails rId True ->
       (model, Cmd.batch [getRuleDetails model rId, pushUrl ("rule", rId.value)])
+
     OpenRuleDetails rId False ->
       (model, getRuleDetails model rId)
 
     OpenCategoryDetails category True ->
       (model, Cmd.batch [getRulesCategoryDetails model category, pushUrl ("ruleCategory" , category)])
+
     OpenCategoryDetails category False ->
       (model, getRulesCategoryDetails model category)
 
@@ -193,7 +196,7 @@ update msg model =
     NewCategory id ->
       let
         category        = Category id "" "" (SubCategories []) []
-        categoryDetails = CategoryDetails Nothing category Information
+        categoryDetails = CategoryDetails Nothing category "rootRuleCategory" Information
       in
         ({model | mode = CategoryForm categoryDetails}, Cmd.none )
 

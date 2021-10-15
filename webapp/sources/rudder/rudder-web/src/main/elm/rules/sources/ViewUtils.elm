@@ -26,6 +26,18 @@ getCategoryName model id =
       Just c -> c.name
       Nothing -> id
 
+getParentCategoryId : List (Category a) -> String -> String
+getParentCategoryId categories categoryId =
+  let
+    findSubCategory : String -> Category a -> Bool
+    findSubCategory catId cat =
+      case List.Extra.find (\c -> c.id == catId) (getSubElems cat) of
+        Just _  -> True
+        Nothing -> False
+  in
+    case List.Extra.find (\c -> (findSubCategory categoryId c)) categories of
+      Just ct -> ct.id
+      Nothing -> "rootRuleCategory"
 --
 -- DATATABLES & TREES
 --
