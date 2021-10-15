@@ -97,13 +97,14 @@ $(document).ready(function(){
   });
 
   app.ports.clearDraft.subscribe(function(key) {
-    var drafts = JSON.parse(localStorage.getItem("drafts"))
-    delete drafts[draft.id]
+    var drafts = JSON.parse(localStorage.getItem("drafts"));
+    delete drafts[key];
     localStorage.setItem("drafts", JSON.stringify(drafts));
   });
 
   app.ports.getDrafts.subscribe(function() {
     var drafts = JSON.parse(localStorage.getItem("drafts"))
+    if (drafts === null) { drafts = {} }
     app.ports.draftsResponse.send(drafts)
   });
 

@@ -63,7 +63,10 @@ showTechnique model technique origin ui =
                     Edit t -> t == technique
                     Creation _ -> False
                     Clone t _ -> t == technique
-    deleteAction = if creation then .id >> Ok >> DeleteTechnique else OpenDeletionPopup
+    deleteAction = case origin of
+                     Creation id -> DeleteTechnique (Ok id)
+                     Clone _ id -> DeleteTechnique (Ok id)
+                     Edit _ -> OpenDeletionPopup technique
     topButtons =  [ li [] [
                       a [ class "action-success", disabled creation , onClick (GenerateId (\s -> CloneTechnique technique (TechniqueId s))) ] [
                         text "Clone "
@@ -77,7 +80,7 @@ showTechnique model technique origin ui =
                       ]
                     ]
                   , li [] [
-                      a [ class "action-danger", onClick (deleteAction technique)] [ --ng-disabled="isNotSaved()"  ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)"
+                      a [ class "action-danger", onClick deleteAction ] [ --ng-disabled="isNotSaved()"  ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)"
                         text "Delete "
                       , i [ class "fa fa-times-circle"] []
                       ]
