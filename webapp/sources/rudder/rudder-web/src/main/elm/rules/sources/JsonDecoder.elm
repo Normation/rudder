@@ -128,7 +128,8 @@ decodeReport =
 decodeNodeCompliance : Decoder NodeCompliance
 decodeNodeCompliance =
   succeed NodeCompliance
-    |> required "id"         (D.map NodeId D.string)
+    |> required "id"     (D.map NodeId D.string)
+    |> required "name"    D.string
     |> required "values" (D.list decodeValueCompliance)
 
 decodeComplianceDetails : Decoder ComplianceDetails
@@ -234,3 +235,15 @@ decodeTargets =
     string
 
   ]
+
+decodeGetNodesList : Decoder (List NodeInfo)
+decodeGetNodesList =
+  D.at ["data", "nodes" ] (D.list decodeNodeInfo)
+
+decodeNodeInfo : Decoder NodeInfo
+decodeNodeInfo =
+  succeed NodeInfo
+    |> required "id"          D.string
+    |> required "hostname"    D.string
+    |> required "description" D.string
+    |> required "policyMode"  D.string

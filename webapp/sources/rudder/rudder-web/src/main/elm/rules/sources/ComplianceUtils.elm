@@ -11,6 +11,7 @@ import List
 import String exposing (fromFloat)
 import ApiCalls exposing (..)
 
+
 getCompliance : Float -> String -> Html msg
 getCompliance val t =
   if val > 0 then
@@ -23,7 +24,6 @@ getValueCompliance f =
   case f of
     Just v  -> v
     Nothing -> 0
-
 
 getRuleCompliance : Model -> RuleId -> Maybe RuleCompliance
 getRuleCompliance model rId =
@@ -90,6 +90,15 @@ getDirectiveComputedCompliance dc =
     else
       dc.compliance
 
+getNodeComputedCompliance : NodeComplianceByNode -> Float
+getNodeComputedCompliance nc =
+  let
+    allComplianceValues = getAllComplianceValues nc.complianceDetails
+  in
+    if ( allComplianceValues.okStatus + allComplianceValues.nonCompliant + allComplianceValues.error + allComplianceValues.unexpected + allComplianceValues.pending + allComplianceValues.reportsDisabled + allComplianceValues.noReport == 0 ) then
+      -1.0
+    else
+      nc.compliance
 
 mergeCompliance : ComplianceDetails -> ComplianceDetails -> ComplianceDetails
 mergeCompliance c1 c2 =

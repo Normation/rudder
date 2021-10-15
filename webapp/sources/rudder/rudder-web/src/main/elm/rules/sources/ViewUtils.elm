@@ -9,7 +9,8 @@ import List
 import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
-import ComplianceUtils exposing (getDirectiveComputedCompliance)
+import ComplianceUtils exposing (getDirectiveComputedCompliance, getNodeComputedCompliance)
+
 
 getListRules : Category Rule -> List (Rule)
 getListRules r = getAllElems r
@@ -91,6 +92,39 @@ getDirectivesSortFunction rulesCompliance ruleId tableFilter d1 d2 =
         EQ -> EQ
         GT -> LT
 
+getNodesSortFunction : TableFilters -> List NodeInfo -> NodeComplianceByNode -> NodeComplianceByNode -> Order
+getNodesSortFunction tableFilter nodes n1 n2 =
+  let
+    order = case tableFilter.sortBy of
+      Name ->
+        let
+         n1Name = case List.Extra.find (\n -> n.id == n1.nodeId.value) nodes of
+           Just nn -> nn.hostname
+           Nothing -> ""
+
+         n2Name = case List.Extra.find (\n -> n.id == n2.nodeId.value) nodes of
+           Just nn -> nn.hostname
+           Nothing -> ""
+        in
+          NaturalOrdering.compare n1Name n2Name
+
+      Compliance ->
+        let
+          n1Co = getNodeComputedCompliance n1
+          n2Co = getNodeComputedCompliance n2
+        in
+          compare n1Co n2Co
+
+      _ -> LT
+  in
+    if tableFilter.sortOrder then
+      order
+    else
+      case order of
+        LT -> GT
+        EQ -> EQ
+        GT -> LT
+
 searchFieldDirectives d =
   [ d.id.value
   , d.displayName
@@ -101,6 +135,13 @@ searchFieldRules r model =
   , r.name
   , r.categoryId
   , getCategoryName model r.categoryId
+  ]
+
+searchFieldNodes n nodes=
+  [ n.nodeId.value
+  , case List.Extra.find (\node -> node.id == n.nodeId.value) nodes of
+    Just nn -> nn.hostname
+    Nothing -> ""
   ]
 
 searchFieldGroups g =
@@ -187,3 +228,10 @@ buildTagsList tags =
     else
       text ""
 
+
+badgePolicyMode : String -> String -> Html Msg
+badgePolicyMode globalPolicyMode policyMode =
+  let
+    mode = if policyMode == "default" then globalPolicyMode else policyMode
+  in
+    span [class ("rudder-label label-sm label-" ++ mode)][]
