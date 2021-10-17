@@ -28,7 +28,7 @@ getTooltipContent method =
       Nothing -> ""
       Just  m -> "<div class='deprecated-info'><div>This generic method is <b>deprecated</b>.</div> <div class='deprecated-message'><b>↳</b>"++m++"</div></div>"
   in
-    "<div>" ++ description ++ deprecation ++ "</div>"
+    "<div>Method '<b style=\"color:#444;\">"++ method.name ++"</b>'.<br/>" ++ description ++ deprecation ++ "</div>"
 
 methodsList: Model -> Html Msg
 methodsList model =
@@ -51,7 +51,7 @@ methodsList model =
                         |> addClass "cursorMove"
                         |> appendChild
                            ( element "i"
-                             |> addClass "fas fa-grip-horizontal"
+                             |> addClass "fas fa-cubes"
                            )
                       , element "div"
                         |> addAttributeList [ class "method-name col",  onClick (GenerateId (\s -> AddBlock (CallId s))) ]
@@ -75,7 +75,7 @@ methodsList model =
         div [ class "template-sidebar sidebar-right col-methods", onClick OpenMethods ] [
          div [ class "sidebar-header" ] [
            div  [ class "header-title" ] [
-             h1 [] [ text "Generic Methods" ]
+             h1 [] [ text "Methods" ]
            , div [ class "header-buttons" ] [
                button [ class "btn btn-sm btn-default", stopPropagationOn "click" (Json.Decode.succeed  (OpenTechniques,True))  ] [ text "Close"]
              ]
@@ -201,7 +201,7 @@ showMethod ui method dnd =
             |> addClass "cursorMove"
             |> appendChild
                            ( element "i"
-                             |> addClass "fas fa-grip-horizontal"
+                             |> addClass "fas fa-cog"
                            )
           , element "div"
             |> addAttributeList [ class "method-name col",  onClick (GenerateId (\s -> AddMethod method (CallId s))) ]

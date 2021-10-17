@@ -161,28 +161,37 @@ type alias MethodFilter =
   }
 
 type MethodFilterState = FilterOpened | FilterClosed
-type ValidationState error = Unchanged | ValidState | InvalidState error
+type ValidationState error = Unchanged | ValidState | InvalidState (List error)
 type TechniqueNameError = EmptyName | AlreadyTakenName
+type BlockError = EmptyComponent | NoFocusError
 type TechniqueIdError = TooLongId | AlreadyTakenId | InvalidStartId
-type MethodCallParamError = ConstraintError (List String)
+type MethodCallParamError = ConstraintError { id : ParameterId , message: String }
 
 type alias MethodCallUiInfo =
   { mode       : MethodCallMode
-  , tab        : Maybe MethodCallTab
-  , validation : Dict String  ( ValidationState MethodCallParamError )
+  , tab        : MethodCallTab
+  , validation : ValidationState MethodCallParamError
+  }
+type alias MethodBlockUiInfo =
+  { mode       : MethodCallMode
+  , tab        : MethodBlockTab
+  , validation : ValidationState BlockError
   , showChildDetails : Bool
   }
 
 type alias TechniqueUiInfo =
   { tab              : Tab
   , callsUI          : Dict String MethodCallUiInfo
+  , blockUI          : Dict String MethodBlockUiInfo
   , openedParameters : List ParameterId
   , saving           : Bool
   , nameState        : ValidationState TechniqueNameError
   , idState          : ValidationState TechniqueIdError
+  , enableDragDrop   : Bool
   }
 
-type MethodCallTab = CallParameters | Conditions | Result | Reporting
+type MethodCallTab = CallParameters | CallConditions | Result | CallReporting
+type MethodBlockTab = BlockConditions | BlockReporting | Children
 type MethodCallMode = Opened | Closed
 type Tab = General |  Parameters | Resources | None
 type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUiInfo
@@ -198,8 +207,9 @@ type Msg =
   | GetCategories (Result Error  TechniqueCategory)
   | GetMethods   (Result Error (Dict String Method))
   | UIMethodAction CallId MethodCallUiInfo
+  | UIBlockAction CallId MethodBlockUiInfo
   | RemoveMethod CallId
-  | CloneMethod  MethodCall CallId
+  | CloneElem  MethodElem CallId
   | MethodCallParameterModified MethodCall ParameterId String
   | MethodCallModified MethodElem
   | TechniqueParameterModified ParameterId TechniqueParameter
@@ -207,7 +217,6 @@ type Msg =
   | TechniqueParameterAdded ParameterId
   | TechniqueParameterToggle ParameterId
   | GenerateId (String -> Msg)
-  | SwitchTabMethod CallId MethodCallTab
   | CallApi  (Model -> Cmd Msg)
   | SwitchTab Tab
   | UpdateTechniqueFilter String
@@ -225,7 +234,7 @@ type Msg =
   | GetDrafts (Dict String Draft)
   | CloneTechnique Technique TechniqueId
   | ResetTechnique
-  | ResetMethodCall MethodCall
+  | ResetMethodCall MethodElem
   | ToggleFilter
   | OpenDeletionPopup Technique
   | ClosePopup Msg
@@ -241,6 +250,8 @@ type Msg =
   | MoveCompleted DragElement DropElement
   | SetMissingIds String
   | Notification (String -> Cmd Msg) String
+  | DisableDragDrop
+  | EnableDragDrop
 
 dragDropMessages : DragDrop.Messages Msg DragElement DropElement
 dragDropMessages =

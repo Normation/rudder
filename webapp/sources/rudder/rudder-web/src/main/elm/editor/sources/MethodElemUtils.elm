@@ -3,12 +3,17 @@ module MethodElemUtils exposing (..)
 import DataTypes exposing (..)
 import List.Extra
 
-getAllCalls: MethodElem -> List MethodElem
+getAllCalls: MethodElem -> List MethodCall
 getAllCalls call =
-  call ::
   case call of
     Block _ b -> List.concatMap getAllCalls b.calls
-    _ -> []
+    Call _ c -> [c]
+
+getAllBlocks: MethodElem -> List MethodBlock
+getAllBlocks call =
+  case call of
+    Block _ b -> b :: List.concatMap getAllBlocks b.calls
+    Call _ c -> []
 
 setIdRec : String -> List MethodElem -> (List MethodElem, Bool)
 setIdRec  newId elems =
@@ -37,6 +42,20 @@ updateElemIf predicate updateFun list =
         Block p b -> Block p {b | calls = updateElemIf predicate updateFun b.calls}
         Call _ _ -> x
     ) updateLowerLevel
+
+findElemIf : (MethodElem -> Bool) -> List MethodElem -> Maybe MethodElem
+findElemIf predicate list =
+  case List.Extra.find predicate list of
+    Just e -> Just e
+    Nothing ->
+      List.foldl  (\ x acc ->
+        case acc of
+          Just res -> acc
+          Nothing ->
+            case x of
+               Block _ b ->  findElemIf predicate  b.calls
+               Call _ _ -> Nothing
+      ) Nothing list
 
 
 
@@ -74,3 +93,19 @@ setId newId x =
   case x of
     Call parent c -> Call parent {c | id = newId }
     Block parent b -> Block parent {b | id = newId }
+
+checkBlockConstraint : MethodBlock -> ValidationState BlockError
+checkBlockConstraint block =
+  let
+    checkEmptyComponent = if String.isEmpty block.component then InvalidState [ EmptyComponent ] else ValidState
+    checkFocusNotSet = case block.reportingLogic of
+                         FocusReport "" -> InvalidState [ NoFocusError ]
+                         _ -> ValidState
+    fold = \acc h -> case (acc,h) of
+                       (InvalidState err1, InvalidState err2) -> InvalidState (List.concat [err1, err2])
+                       (InvalidState err, _) -> acc
+                       (_, InvalidState err) -> h
+                       (_,_) -> acc
+
+  in
+    List.foldl  fold checkEmptyComponent [ checkFocusNotSet]

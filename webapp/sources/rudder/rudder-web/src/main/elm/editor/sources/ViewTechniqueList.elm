@@ -44,17 +44,17 @@ techniqueList : Model -> List Technique -> Html Msg
 techniqueList model techniques =
   let
     filteredTechniques = List.sortBy .name (List.filter (\t -> (String.contains model.techniqueFilter t.name) || (String.contains model.techniqueFilter t.id.value) ) techniques)
+    filteredDrafts = List.sortBy (.technique >> .name) (List.filter (\t -> (String.contains model.techniqueFilter t.technique.name) && Maybe.Extra.isNothing t.origin ) (Dict.values model.drafts))
     techniqueItems =
-      if List.isEmpty techniques then
+      if List.isEmpty techniques && Dict.isEmpty model.drafts then
          div [ class "empty"] [text "The techniques list is empty."]
       else
-        case filteredTechniques of
-          []   ->   div [ class "empty"] [text "No technique matches the search filter."]
-          list ->
+        case (filteredTechniques, filteredDrafts) of
+          ([], [])   ->   div [ class "empty"] [text "No technique matches the search filter."]
+          (list, _) ->
               treeCategory model list model.categories |> Maybe.withDefault (text "")
-    newDrafts = List.filter (\d ->Maybe.Extra.isNothing d.origin) (Dict.values model.drafts)
     drafts =
-      if List.isEmpty newDrafts then
+      if List.isEmpty filteredDrafts then
         text ""
       else
           li[class "jstree-node jstree-open"]
@@ -63,7 +63,7 @@ techniqueList model techniques =
               [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
               , i [class "treeGroupCategoryName tooltipable"][text "Drafts"]
               ]
-            , ul[class "jstree-children"] (List.map (draftsItem model) newDrafts)
+            , ul[class "jstree-children"] (List.map (draftsItem model) filteredDrafts)
             ]
 
   in
@@ -132,7 +132,7 @@ draftsItem model draft =
           , a[class ("jstree-anchor " ++ activeClass), onClick (SelectTechnique (Right draft))]
             [ i [class "jstree-icon jstree-themeicon fa fa-pen jstree-themeicon-custom"][]
             , span [class "treeGroupName tooltipable"]
-              [ text draft.technique.name  ]
+              [ text (if String.isEmpty draft.technique.name then "<unamed draft>" else draft.technique.name)  ]
             , if hasDeprecatedMethod  then
                 span [ class "cursor-help popover-bs", attribute "data-toggle"  "popover", attribute "data-trigger" "hover"
                      , attribute "data-container" "body", attribute  "data-placement" "right", attribute "data-title" draft.technique.name
