@@ -93,13 +93,27 @@ updatedStoreTechnique model =
   case model.mode of
     TechniqueDetails t o _ ->
       let
-        draft =
+        (drafts, action) =
           case o of
-            Edit origin -> Draft  t (Just origin) origin.id.value (Time.millisToPosix 0)
-            Creation id -> Draft  t Nothing id.value (Time.millisToPosix 0)
-            Clone origin id -> Draft  t Nothing id.value (Time.millisToPosix 0)
+            Edit origin -> if t == origin then
+                             (Dict.remove t.id.value model.drafts, clearDraft t.id.value)
+                           else
+                             let
+                               draft = Draft  t (Just origin) origin.id.value (Time.millisToPosix 0)
+                             in
+                               (Dict.insert draft.id draft model.drafts,  storeDraft (encodeDraft draft))
+            Creation id ->
+              let
+               draft = Draft  t Nothing id.value (Time.millisToPosix 0)
+              in
+                (Dict.insert draft.id draft model.drafts,  storeDraft (encodeDraft draft))
+            Clone origin id ->
+              let
+               draft = Draft  t Nothing id.value (Time.millisToPosix 0)
+              in
+                (Dict.insert draft.id draft model.drafts,  storeDraft (encodeDraft draft))
       in
-         ({ model | drafts = Dict.insert draft.id draft model.drafts }, storeDraft (encodeDraft draft))
+         ({ model | drafts = drafts }, action)
     _ -> (model, Cmd.none)
 
 main =
@@ -310,9 +324,9 @@ update msg model =
                          newMode = if t.id == techniqueId then Introduction else model.mode
                        in
                          ({ model | mode = newMode, techniques = techniques}, infoNotification ("Successfully deleted technique '" ++ techniqueId.value ++  "'"))
-                     TechniqueDetails t _ _ ->
+                     TechniqueDetails t (Creation id) _ ->
                        let
-                         drafts = Dict.filter (\ _ -> (.technique >> .id >> (/=) techniqueId)) model.drafts
+                         drafts = Dict.remove techniqueId.value model.drafts
                          newMode = if t.id == techniqueId then Introduction else model.mode
                        in
                          ({ model | mode = newMode, drafts = drafts}, clearDraft techniqueId.value)
@@ -337,13 +351,13 @@ update msg model =
           case model.mode of
             TechniqueDetails base s ui ->
               let
-                technique =
+                (technique, drafts) =
                   case s of
-                    Edit t -> t
-                    Clone t _ -> t
-                    Creation _ -> base
+                    Edit t -> (t, Dict.remove t.id.value model.drafts)
+                    Clone t _ -> (t, model.drafts)
+                    Creation _ -> (base, model.drafts)
               in
-                { model | mode = TechniqueDetails technique s ui }
+                { model | mode = TechniqueDetails technique s ui, drafts = drafts }
             _ -> model
       in
         updatedStoreTechnique newModel
