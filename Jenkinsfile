@@ -16,8 +16,15 @@ pipeline {
                 sh script: './qa-test --typos', label: 'check typos'
                 sh script: './qa-test --quick', label: 'check typos'
             }
-        }
+            post {
+                always {
+                    script {
+                        new SlackNotifier().notifyResult("shell-team")
+                    }
+                }
+            }
 
+        }
         stage('ncf-tests pull-request') {
             agent { label 'rtf' }
             when { changeRequest() }
@@ -68,13 +75,6 @@ pipeline {
                     String ncf_path = "${workspace}/ncf"
                     testNcfLocal(agent_versions, systems, ncf_path)
                 }
-            }
-        }
-    }
-    post {
-        always {
-            script {
-                new SlackNotifier().notifyResult("shell-team")
             }
         }
     }
