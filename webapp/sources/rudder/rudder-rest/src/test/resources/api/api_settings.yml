@@ -60,7 +60,7 @@ response:
           "rudder_save_db_compliance_levels":true,
           "rudder_setup_done":false,
           "run_frequency":5,
-          "send_metrics":"not defined",
+          "send_metrics":"not_defined",
           "splay_time":4,
           "unexpected_allows_duplicate":true,
           "unexpected_unbound_var_values":true
