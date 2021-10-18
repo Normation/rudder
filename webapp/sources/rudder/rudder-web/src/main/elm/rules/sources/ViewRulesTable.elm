@@ -8,7 +8,7 @@ import List.Extra
 import List
 import String
 import NaturalOrdering exposing (compareOn)
-import ViewUtils exposing (getCategoryName, getListRules, filterSearch, searchFieldRules)
+import ViewUtils exposing (getCategoryName, getListRules, filterSearch, searchFieldRules, buildTagsTree)
 import ComplianceUtils exposing (buildComplianceBar, getAllComplianceValues, getRuleCompliance)
 
 --
@@ -80,7 +80,10 @@ buildRulesTable model =
               Nothing -> text "No report"
       in
             tr[onClick (OpenRuleDetails r.id True)]
-            [ td[][ text r.name ]
+            [ td[]
+              [ text r.name
+              , buildTagsTree r.tags
+              ]
             , td[][ text (getCategoryName model r.categoryId) ]
             , td[][ text (if r.enabled then "Enabled" else "Disabled") ]
             , td[][ compliance ]

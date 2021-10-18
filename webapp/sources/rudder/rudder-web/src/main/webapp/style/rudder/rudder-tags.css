@@ -136,7 +136,7 @@
   border: 1px solid #ababab;
 }
 
-.tags-label:first-of-type{
+.tooltip .tags-label:first-of-type{
   margin-left : 0
 }
 
@@ -416,7 +416,7 @@ hr.separator-filter-tree{
   margin-right: 0;
 }
 
-.jstree-anchor > span.tags-label {
+.jstree-anchor span.tags-label {
   padding: 0px 6px;
   font-size: .9em;
 }

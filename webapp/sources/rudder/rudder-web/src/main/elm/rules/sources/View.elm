@@ -12,7 +12,7 @@ import ApiCalls exposing (..)
 import ViewRulesTable exposing (..)
 import ViewRuleDetails exposing (..)
 import ViewCategoryDetails exposing (..)
-import ViewUtils exposing (thClass, sortTable, getCategoryName, getListRules, filterSearch, searchFieldRules)
+import ViewUtils exposing (thClass, sortTable, getCategoryName, getListRules, filterSearch, searchFieldRules, buildTagsTree)
 
 
 view : Model -> Html Msg
@@ -33,6 +33,7 @@ view model =
           , span [class "treeGroupName tooltipable"]
             [ text item.name
             , badgeDisabled
+            , buildTagsTree item.tags
             ]
           ]
         ]
