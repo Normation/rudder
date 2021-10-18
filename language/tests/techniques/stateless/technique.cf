@@ -8,10 +8,10 @@ bundle agent stateless
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "2dadd92c-c519-42a8-a871-50fe179bf04c" usebundle => _method_reporting_context("Variable string escaped", "pref.name"),
-                                                                   if => concat("any");
-    "2dadd92c-c519-42a8-a871-50fe179bf04c" usebundle => variable_string_escaped("pref.name"),
-                                                                   if => concat("any");
+#    "2dadd92c-c519-42a8-a871-50fe179bf04c" usebundle => _method_reporting_context("Variable string escaped", "pref.name"),
+#                                                                   if => concat("any");
+#    "2dadd92c-c519-42a8-a871-50fe179bf04c" usebundle => variable_string_escaped("pref.name"),
+#                                                                   if => concat("any");
     "b9f8a4d5-ea74-461b-9d0d-81575fa78cc6" usebundle => _method_reporting_context("Permissions NTFS", "/var/test"),
                                                             if => concat("any");
     "b9f8a4d5-ea74-461b-9d0d-81575fa78cc6" usebundle => permissions_ntfs("/var/test", "admin", "rxw", "Allow", "ThisFolderOnly"),
@@ -32,8 +32,8 @@ bundle agent stateless
                                                                 if => concat("any");
     "8594e7f6-2f7b-452c-9dac-9b29515797af" usebundle => monitoring_parameter("paramname", "paramval"),
                                                                 if => concat("any");
-    "7feb6a03-8c42-4a37-b947-8f642a00445d" usebundle => _method_reporting_context("Variable string escaped", "escaped.var"),
-                                                                   if => concat("any");
-    "7feb6a03-8c42-4a37-b947-8f642a00445d" usebundle => variable_string_escaped("escaped.var"),
-                                                              if => concat("any");
+#    "7feb6a03-8c42-4a37-b947-8f642a00445d" usebundle => _method_reporting_context("Variable string escaped", "escaped.var"),
+#                                                                   if => concat("any");
+#    "7feb6a03-8c42-4a37-b947-8f642a00445d" usebundle => variable_string_escaped("escaped.var"),
+#                                                              if => concat("any");
 }

@@ -97,7 +97,7 @@ def translate_ncf_to_json(method_files, dsc_files, ncf_source):
             method_state = methods_generator.State(
                 method_metadata, method_path, dsc_files
             )
-            if 'rename' not in method_metadata:
+            if 'rename' not in method_metadata and 'drop' not in method_metadata:
                 states[method_metadata['name']] = method_state.to_dict()
         except ncf.NcfError as exception:
             error = ncf.NcfError(
@@ -198,7 +198,8 @@ def translate_lib(config_file):
     dsc_files = get_methods_filenames(dsc_methods)
 
     data = translate_ncf_to_json(method_files, dsc_files, ncf_source)
-    print(json.dumps(data, indent=2, sort_keys=True))
+    print(json.dumps(data['errors'], indent=2, sort_keys=True))
+
     for resource_name in data['data']:
         methods_generator.generate_lib(
             resource_name, data['data'][resource_name], lib_dir

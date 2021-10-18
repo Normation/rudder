@@ -6,19 +6,6 @@
   "name": "stateless",
   "method_calls": [
     {
-      "method_name": "variable_string_escaped",
-      "class_context": "any",
-      "component": "Variable string escaped",
-      "parameters": [
-        {
-          "name": "name",
-          "value": "pref.name"
-        }
-      ],
-      "id": "2dadd92c-c519-42a8-a871-50fe179bf04c",
-      "disableReporting": false
-    },
-    {
       "method_name": "permissions_ntfs",
       "class_context": "any",
       "component": "Permissions NTFS",
@@ -121,19 +108,6 @@
         }
       ],
       "id": "8594e7f6-2f7b-452c-9dac-9b29515797af",
-      "disableReporting": false
-    },
-    {
-      "method_name": "variable_string_escaped",
-      "class_context": "any",
-      "component": "Variable string escaped",
-      "parameters": [
-        {
-          "name": "name",
-          "value": "escaped.var"
-        }
-      ],
-      "id": "7feb6a03-8c42-4a37-b947-8f642a00445d",
       "disableReporting": false
     }
   ],
