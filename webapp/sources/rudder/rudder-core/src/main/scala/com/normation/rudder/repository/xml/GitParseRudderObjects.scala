@@ -177,7 +177,9 @@ class GitParseRules(
                                   }
                           ruleXml <- xmlMigration.getUpToDateXml(xml).toIO
                           rule    <- ruleUnserialisation.unserialise(ruleXml).toIO
-                        } yield Some(rule)
+                          // we need to correct techniqueId revision to the one we just looked-up.
+                          // (it's normal to not have it serialized, since it's given by git, it's not intrinsic)
+                        } yield Some(rule.modify(_.id.rev).setTo(rev))
         case _ => Unexpected(s"Several rule with id '${uid.value}' found under '${rulesDirectory.directoryPath}' directory for revision '${rev.value}'").fail
       }
     } yield {

@@ -82,7 +82,7 @@ trait RoConfigurationRepository {
    */
   def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]]
   def getTechnique(id: TechniqueId): IOResult[Option[Technique]]
-  def Rule(id: RuleId): IOResult[Option[Rule]]
+  def getRule(id: RuleId): IOResult[Option[Rule]]
 
   def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory]
 
@@ -134,7 +134,7 @@ class ConfigurationRepositoryImpl(
   }
 
 
-  override def Rule(id: RuleId): IOResult[Option[Rule]] = {
+  override def getRule(id: RuleId): IOResult[Option[Rule]] = {
     id.rev match {
       case GitVersion.DEFAULT_REV =>
         roRuleRepository.getOpt(id)

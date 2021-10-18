@@ -72,6 +72,8 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.ModifyRuleDiff
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.rudder.domain.workflows.ChangeRequestId
@@ -257,6 +259,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     override def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]] = ???
     override def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory] = ???
     override def getDirectiveRevision(uid: DirectiveUid): IOResult[List[GitVersion.RevisionInfo]] = ???
+    override def getRule(id: RuleId): IOResult[Option[Rule]] = ???
   }
   private[this] lazy val roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
         rudderDit, roLdap, ldapEntityMapper, testEnv.techniqueRepository, uptLibReadWriteMutex

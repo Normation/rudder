@@ -38,6 +38,7 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
+import com.normation.GitVersion.Revision
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.eventlog.EventActor
 import com.normation.eventlog._
@@ -92,6 +93,9 @@ import com.normation.rudder.apidata.JsonResponseObjects._
 import com.normation.rudder.apidata.MinimalDetails
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.configuration.ConfigurationRepository
+import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.ConfigurationLoggerPure
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.rest.implicits._
 
@@ -400,23 +404,16 @@ class RuleApi(
   object LoadRuleRevisionForGeneration extends LiftApiModuleString {
     val schema = API.LoadRuleRevisionForGeneration
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      (for {
-        cat <- zioJsonExtractor.extractRuleRevision(req).toIO
-        res <- serviceV14.updateCategory(RuleCategoryId(id), cat, params, authzToken.actor)
-      } yield {
-        res
-      }).toLiftResponseOne(params, schema, _.ruleCategories.id)
+      val rev = req.params.get("revision").flatMap(_.headOption).map(Revision).getOrElse(GitVersion.DEFAULT_REV)
+      serviceV14.loadRule(RuleId(RuleUid(id), rev), params, authzToken.actor).toLiftResponseOne(params, schema, _.id)
     }
   }
+
   object UnloadRuleRevisionForGeneration extends LiftApiModuleString {
     val schema = API.UnloadRuleRevisionForGeneration
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      (for {
-        cat <- zioJsonExtractor.extractRuleRevision(req).toIO
-        res <- serviceV14.updateCategory(RuleCategoryId(id), cat, params, authzToken.actor)
-      } yield {
-        res
-      }).toLiftResponseOne(params, schema, _.ruleCategories.id)
+      val rev = req.params.get("revision").flatMap(_.headOption).map(Revision).getOrElse(GitVersion.DEFAULT_REV)
+      serviceV14.unloadRule(RuleId(RuleUid(id), rev), params, authzToken.actor).toLiftResponseOne(params, schema, _.serialize)
     }
   }
 }
@@ -698,6 +695,7 @@ class RuleApiService6(
 class RuleApiService14 (
     readRule             : RoRuleRepository
   , writeRule            : WoRuleRepository
+  , configRepository     : ConfigurationRepository
   , uuidGen              : StringUuidGenerator
   , asyncDeploymentAgent : AsyncDeploymentActor
   , workflowLevelService : WorkflowLevelService
@@ -799,6 +797,46 @@ class RuleApiService14 (
     )
   }
 
+  /*
+   * Loading a rule with `revision == a branch name` won't follow that branch name, but just load the current
+   * configuration for the rule at that branch. If the rule for that branch was already loaded, the last available
+   * version will be used.
+   * Loading a rule a `revision == commit id` will look for that commit id.
+   * You can't load a rule with default revision (should it be a noop instead?)
+   */
+  def loadRule(id: RuleId, params: DefaultParams, actor: EventActor): IOResult[JRRule] = {
+    (if(id.rev == GitVersion.DEFAULT_REV) {
+      Inconsistency(s"The default revision can not be specifically loaded for generation (it is always loaded)").fail
+    } else {
+      for {
+        rule  <- configRepository.getRule(id).notOptional((s"Could not get rule with id '${id.uid.serialize}' and revision '${id.rev.value}' from configuration repository"))
+        // perhaps that will need to go throught change requests
+        modId  = ModificationId(uuidGen.newUuid)
+        ldap  <- writeRule.load(rule, modId, actor, params.reason)
+        _     <- ConfigurationLoggerPure.info(s"Revision '${id.rev.value}' for rule with id '${id.uid.serialize}' loaded. It will be used in comming policy generations.")
+      } yield {
+        asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+        JRRule.fromRule(rule, None)
+      }
+    })
+  }
+
+  def unloadRule(id: RuleId, params: DefaultParams, actor: EventActor): IOResult[RuleId] = {
+    (if(id.rev == GitVersion.DEFAULT_REV) {
+      Inconsistency(s"The default revision can not be specifically loaded for generation (it is always loaded)").fail
+    } else {
+      val modId = ModificationId(uuidGen.newUuid)
+      for {
+        // perhaps that will need to go throught change requests
+        ldap  <- writeRule.unload(id, modId, actor, params.reason)
+        _     <- ConfigurationLoggerPure.info(s"Revision '${id.rev.value}' for rule with id '${id.uid.serialize}' unloaded. It will not be used anymore in comming policy generations.")
+      } yield {
+        asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+        id
+      }
+    })
+  }
+
   def updateRule(restRule: JQRule, params: DefaultParams, actor: EventActor): IOResult[JRRule] = {
     for {
       sid         <- restRule.id.notOptional(s"Rule id is mandatory in update")
@@ -826,18 +864,6 @@ class RuleApiService14 (
         }
       case _ => Inconsistency(s"You can't delete a past revision of a rule, only current version can be deleted.").fail
     }
-  }
-
-  /*
-   * Load a rule so that is will be included in following generation.
-   * Loading a rule with `revision == default` is a noop.
-   * Loading a rule with `revision == a branch name` won't follow that branch name, but just load the current
-   * configuration for the rule at that branch. If the rule for that branch was already loaded, the last available
-   * version will be used.
-   * Loading a rule a `revision == commit id` will look for that commit id.
-   */
-  def loadRuleRevisionForGeneration(id: RuleId, params: DefaultParams, actor: EventActor): IOResult[JRRule] = {
-
   }
 
 
