@@ -67,7 +67,7 @@ update msg model =
                   rulesTree = r
                 , mode = if (model.mode == Loading) then RuleTable else model.mode
               }
-              , Cmd.none
+              , initTooltips ""
              )
         Err err ->
           processApiError "Getting Rules tree" err model
