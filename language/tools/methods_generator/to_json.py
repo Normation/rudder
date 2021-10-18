@@ -34,6 +34,7 @@ class State:
         # variable_string_escaped and variable_string_match are using a complete variable name and
         # not a coupled prefix + name
         if bundle_name in ['variable_string_escaped', 'variable_string_match']:
+            metadata['drop'] = True
             metadata['parameter'] = [
                 {
                     'name': 'prefix',
