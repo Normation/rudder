@@ -158,10 +158,7 @@ def package_show(name, version, mode):
     if version != '':
         rpkg = pkgs.getRpkgByLongVersion(version, mode)
     else:
-        if mode == 'release':
-            rpkg = pkgs.getLatestCompatibleRelease(None)
-        else:
-            rpkg = pkgs.getLatestCompatibleNightly(None)
+        rpkg = pkgs.getLatestCompatible(mode, None)
     if rpkg is not None:
         rpkg.show_metadata()
     else:
@@ -224,10 +221,7 @@ def package_install_specific_version(name, longVersion, mode='release'):
 def package_install_latest(name, mode='release', exact_version=True, exit_on_error=True):
     pkgs = plugin.Plugin(name[0])
     pkgs.getAvailablePackages()
-    if mode == 'release':
-        rpkg = pkgs.getLatestCompatibleRelease(exact_version)
-    else:
-        rpkg = pkgs.getLatestCompatibleNightly(exact_version)
+    rpkg = pkgs.getLatestCompatible(mode, exact_version)
     if rpkg is not None:
         rpkgPath = utils.downloadByRpkg(rpkg)
         install_file([rpkgPath], exact_version, exit_on_error=exit_on_error)
@@ -399,22 +393,11 @@ def upgrade_all(mode, exact_version):
         latestVersion = currentVersion
         pkgs = plugin.Plugin(p)
         pkgs.getAvailablePackages()
-        if mode == 'nightly':
-            latest_packages = pkgs.getLatestCompatibleNightly(exact_version)
-            if latest_packages is None:
-                logger.debug(
-                    'No newer nightly %s compatible versions found for the plugin %s' % (mode, p)
-                )
-            else:
-                latestVersion = latest_packages.version
+        latest_packages = pkgs.getLatestCompatible(mode, exact_version)
+        if latest_packages is None:
+            logger.debug('No newer %s compatible versions found for the plugin %s' % (mode, p))
         else:
-            latest_packages = pkgs.getLatestCompatibleRelease(exact_version)
-            if latest_packages is None:
-                logger.debug(
-                    'No newer release %s compatible versions found for the plugin %s' % (mode, p)
-                )
-            else:
-                latestVersion = latest_packages.version
+            latestVersion = latest_packages.version
         if currentVersion < latestVersion:
             logger.info(
                 'The plugin %s is installed in version %s. The version %s %s is available, the plugin will be upgraded.'
