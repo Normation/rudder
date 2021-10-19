@@ -194,6 +194,7 @@ tabContent model details =
               [ td[]
                 [ badgePolicyMode model.policyMode d.policyMode
                 , text d.displayName
+                , buildTagsTree d.tags
                 ]
               , td[][compliance]
               ]
