@@ -128,11 +128,7 @@ impl DSC {
                         // // TODO there may still be some conflicts with var or enum containing '_'
                         // format!("{}_{}_{}", prefix, e.fragment(), item.fragment())
                         // format!("{}_{}", var.fragment(), item.fragment())
-                        format!(
-                            r#"{}_${{report_data.canonified_directive_id}}_{}"#,
-                            var.fragment(),
-                            item.fragment()
-                        )
+                        format!(r#"{}_{}"#, var.fragment(), item.fragment())
                     }
                 }
             }
