@@ -12,7 +12,7 @@ import ApiCalls exposing (..)
 import ViewRulesTable exposing (..)
 import ViewRuleDetails exposing (..)
 import ViewCategoryDetails exposing (..)
-import ViewUtils exposing (thClass, sortTable, getCategoryName, getListRules, filterSearch, searchFieldRules, buildTagsTree)
+import ViewUtils exposing (thClass, sortTable, getCategoryName, getListRules, filterSearch, searchFieldRules, buildTagsTree, foldedClass, foldUnfoldCategory)
 
 
 view : Model -> Html Msg
@@ -56,9 +56,9 @@ view model =
           if item.id /= "rootRuleCategory" then
             if (String.isEmpty model.ui.ruleFilters.treeFilters.filter) || ((List.length rules > 0) || (List.length categories > 0)) then
               Just (
-                li[class "jstree-node jstree-open"]
-                [ i[class "jstree-icon jstree-ocl"][]
-                , a[href "#", class "jstree-anchor", onClick (OpenCategoryDetails item.id True)]
+                li[class ("jstree-node" ++ foldedClass model.ui.ruleFilters.treeFilters item.id)]
+                [ i[class "jstree-icon jstree-ocl", onClick (UpdateRuleFilters (foldUnfoldCategory model.ui.ruleFilters item.id))][]
+                , a[href "", class "jstree-anchor", onClick (OpenCategoryDetails item.id True)]
                   [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
                   , span [class "treeGroupCategoryName tooltipable"][text item.name]
                   ]
