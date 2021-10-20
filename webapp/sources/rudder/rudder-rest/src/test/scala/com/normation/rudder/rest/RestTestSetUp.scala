@@ -220,6 +220,7 @@ class RestTestSetUp {
   val mockTechniques = MockTechniques(mockGitRepo)
   val mockDirectives = new MockDirectives(mockTechniques)
   val mockRules = new MockRules()
+  val mockConfigRepo = new MockConfigRepo(mockTechniques, mockDirectives, mockRules)
   val mockNodes = new MockNodes()
   val mockParameters = new MockGlobalParam()
   val mockNodeGroups = new MockNodeGroups(mockNodes)
@@ -473,6 +474,7 @@ class RestTestSetUp {
   val ruleApiService14 = new RuleApiService14 (
         mockRules.ruleRepo
       , mockRules.ruleRepo
+      , mockConfigRepo.configurationRepository
       , uuidGen
       , asyncDeploymentAgent
       , workflowLevelService
@@ -505,7 +507,7 @@ class RestTestSetUp {
       def toForm = Full(SHtml.textarea("", {s =>  parseClient(s)}))
     }
   }
-  val directiveEditorService = new DirectiveEditorServiceImpl(mockDirectives.configurationRepository, new Section2FieldService(fieldFactory, Translator.defaultTranslators))
+  val directiveEditorService = new DirectiveEditorServiceImpl(mockConfigRepo.configurationRepository, new Section2FieldService(fieldFactory, Translator.defaultTranslators))
   val directiveApiService2 =
     new DirectiveApiService2 (
         mockDirectives.directiveRepo
@@ -522,7 +524,7 @@ class RestTestSetUp {
   val directiveApiService14 =
     new DirectiveApiService14 (
         mockDirectives.directiveRepo
-      , mockDirectives.configurationRepository
+      , mockConfigRepo.configurationRepository
       , mockDirectives.directiveRepo
       , uuidGen
       , asyncDeploymentAgent

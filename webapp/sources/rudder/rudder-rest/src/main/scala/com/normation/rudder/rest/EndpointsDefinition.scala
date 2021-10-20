@@ -501,6 +501,18 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
     override def dataContainer = None
   }
 
+  // internal, because non definitive, API to load/unload a specific revision from git to ldap
+  final case object LoadRuleRevisionForGeneration extends RuleApi with OneParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Load a revision of a rule from config-repo to ldap, ready for next generation"
+    val (action, path)  = POST / "rules" / "internal" / "revision" / "load" / "{id}"
+    override def dataContainer = None
+  }
+  final case object UnloadRuleRevisionForGeneration extends RuleApi with OneParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Unload a revision of a rule from ldap, it will not be used in next generation. Only rule with a revision can be unloaded"
+    val (action, path)  = POST / "rules" / "internal" / "revision" / "unload" / "{id}"
+    override def dataContainer = None
+  }
+
   def endpoints = ca.mrvisser.sealerate.values[RuleApi].toList.sortBy( _.z )
 }
 

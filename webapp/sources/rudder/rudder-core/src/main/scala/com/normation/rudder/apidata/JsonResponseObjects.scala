@@ -559,6 +559,8 @@ trait RudderJsonEncoders {
     }
   }
 
+  implicit val ruleIdEncoder: JsonEncoder[RuleId] = JsonEncoder[String].contramap(_.serialize)
+
   implicit val ruleEncoder: JsonEncoder[JRRule] = DeriveJsonEncoder.gen
 
   implicit val simpleCategoryEncoder: JsonEncoder[JRSimpleRuleCategory] = DeriveJsonEncoder.gen

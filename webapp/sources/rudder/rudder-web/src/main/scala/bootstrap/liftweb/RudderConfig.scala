@@ -90,6 +90,7 @@ import com.normation.rudder.api._
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch._
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
+import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._
 import com.normation.rudder.domain.logger.ApplicationLogger
@@ -935,6 +936,7 @@ object RudderConfig extends Loggable {
     new RuleApiService14 (
         roRuleRepository
       , woRuleRepository
+      , configurationRepository
       , uuidGen
       , asyncDeploymentAgent
       , workflowLevelService
@@ -1385,8 +1387,10 @@ object RudderConfig extends Loggable {
   lazy val configurationRepository = new ConfigurationRepositoryImpl(
       roLdapDirectiveRepository
     , techniqueRepository
+    , roLdapRuleRepository
     , parseActiveTechniqueLibrary
     , gitParseTechniqueLibrary
+    , parseRules
   )
 
   private[this] lazy val roLDAPApiAccountRepository = new RoLDAPApiAccountRepository(
@@ -2138,7 +2142,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD, RUDDER_JDBC_MAX_POOL_SIZE)
   lazy val doobie = new Doobie(dataSourceProvider.datasource)
 
-  private[this] lazy val parseRules : ParseRules = new GitParseRules(
+  private[this] lazy val parseRules : ParseRules with RuleRevisionRepository = new GitParseRules(
       ruleUnserialisation
     , gitConfigRepo
     , entityMigration
