@@ -39,7 +39,9 @@ package com.normation.rudder.repository
 package ldap
 
 
+import com.normation.GitVersion
 import com.normation.NamedZioLogger
+
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -52,9 +54,11 @@ import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.services.user.PersonIdentService
+
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+
 import zio._
 import zio.syntax._
 import com.normation.ldap.sdk.syntax._
@@ -148,6 +152,9 @@ class WoLDAPRuleRepository(
 
   private[this] def internalDeleteRule(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String], callSystem: Boolean) : IOResult[DeleteRuleDiff] = {
     ruleMutex.writeLock(for {
+      _            <- ZIO.when(id.rev != GitVersion.DEFAULT_REV) {
+                        Inconsistency(s"Error: you can't delete a rule with a specific revision like here for rule with id '${id.uid.serialize}' which has revision '${id.rev.value}'").fail
+                      }
       con          <- ldap
       entry        <- con.get(rudderDit.RULES.configRuleDN(id)).notOptional("rule with ID '%s' is not present".format(id.serialize))
       oldCr        <- mapper.entry2Rule(entry).toIO.chainError("Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry))
@@ -182,9 +189,47 @@ class WoLDAPRuleRepository(
   }
 
 
+  override def load(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
+    ruleMutex.writeLock(
+      for {
+        _               <- ZIO.when(rule.id.rev == GitVersion.DEFAULT_REV) {
+                             Inconsistency(s"Error: you can't load a rule with default revision like here for rule with id '${rule.id.uid.serialize}'. Use create or update for that.").fail
+                           }
+        con             <- ldap
+        ruleExits       <- con.exists(rudderDit.RULES.configRuleDN(rule.id))
+        idDoesntExist   <- ZIO.when(ruleExits) {
+                             logPure.info(s"Rule with ID '${rule.id.serialize}' is already loaded: updating it.")
+                           }
+        crEntry         =  mapper.rule2Entry(rule)
+        result          <- con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}")
+        // we don't persist a diff in git here because it wouldn't make any sens, but perhaps we
+        // at least need to store an new event log for that. Since it's a WIP API, not doing it right now.
+        // That's also why there is a modId/actor/reason not used.
+      } yield ()
+    )
+  }
+
+  override def unload(ruleId: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
+    ruleMutex.writeLock(
+      for {
+        _       <- ZIO.when(ruleId.rev == GitVersion.DEFAULT_REV) {
+                     Inconsistency(s"Error: you can't unload a rule with default revision like here for rule with id '${ruleId.uid.serialize}'. Use delete for that.").fail
+                   }
+        con     <- ldap
+        deleted <- con.delete(rudderDit.RULES.configRuleDN(ruleId)).chainError(s"Error when unloading rule with ID '${ruleId.uid.serialize}' for revision '${ruleId.rev.value}'")
+        // we don't persist a diff in git here because it wouldn't make any sens, but perhaps we
+        // at least need to store an new event log for that. Since it's a WIP API, not doing it right now.
+        // That's also why there is a modId/actor/reason not used.
+      } yield ()
+    )
+  }
+
   def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[AddRuleDiff] = {
     ruleMutex.writeLock(
       for {
+        _               <- ZIO.when(rule.id.rev != GitVersion.DEFAULT_REV) {
+                             Inconsistency(s"Error: you can't create a rule with a specific revision like here for rule with id '${rule.id.uid.serialize}' which has revision '${rule.id.rev.value}'").fail
+                           }
         con             <- ldap
         ruleExits       <- con.exists(rudderDit.RULES.configRuleDN(rule.id))
         idDoesntExist   <- ZIO.when(ruleExits) {
@@ -212,6 +257,9 @@ class WoLDAPRuleRepository(
   private[this] def internalUpdate(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean) : IOResult[Option[ModifyRuleDiff]] = {
     ruleMutex.writeLock(
       for {
+        _             <- ZIO.when(rule.id.rev != GitVersion.DEFAULT_REV) {
+                           Inconsistency(s"Error: you can't update a rule with a specific revision like here for rule with id '${rule.id.uid.serialize}' which has revision '${rule.id.rev.value}'").fail
+                         }
         con           <- ldap
         existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id)).notOptional(s"Cannot update rule with id ${rule.id.serialize} : there is no rule with that id")
         oldRule       <- mapper.entry2Rule(existingEntry).toIO.chainError(s"Error when transforming LDAP entry into a Rule for id ${rule.id.serialize}. Entry: ${existingEntry}")

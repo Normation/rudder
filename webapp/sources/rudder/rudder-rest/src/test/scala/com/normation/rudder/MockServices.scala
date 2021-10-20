@@ -89,12 +89,14 @@ import org.joda.time.format.ISODateTimeFormat
 
 import scala.annotation.tailrec
 import scala.collection.SortedMap
+
 import com.normation.box._
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.configuration.DirectiveRevisionRepository
 import com.normation.rudder.batch.AsyncWorkflowInfo
+import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.archives.ParameterArchiveId
@@ -112,8 +114,11 @@ import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
+import com.normation.rudder.migration.XmlEntityMigration
+import com.normation.rudder.repository.xml.GitParseRules
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
+import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
 import com.normation.rudder.services.queries._
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.PolicyServer
@@ -127,6 +132,7 @@ import org.eclipse.jgit.lib.ObjectId
 
 import scala.collection.immutable
 import scala.util.control.NonFatal
+import scala.xml.Elem
 
 /*
  * Mock services for test, especially reposositories, and provides
@@ -241,6 +247,10 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
   val techniqueRepo = new TechniqueRepositoryImpl(techniqueReader, Seq(), stringUuidGen)
 
   val techniqueRevisionRepo: TechniqueRevisionRepository = new GitParseTechniqueLibrary(techniqueParser, mockGit.gitRepo, mockGit.revisionProvider,  "techniques", "metadata.xml")
+  val xmlEntityMigration = new XmlEntityMigration {
+    override def getUpToDateXml(entity: Elem): Box[Elem] = Full(entity)
+  }
+  val ruleRevisionRepo: RuleRevisionRepository = new GitParseRules(new RuleUnserialisationImpl(), mockGit.gitRepo, xmlEntityMigration, "rules")
 
   ///////////////////////////  policyServer and systemVariables  ///////////////////////////
 
@@ -757,7 +767,6 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
   }
 
-  val configurationRepository = new ConfigurationRepositoryImpl(directiveRepo, mockTechniques.techniqueRepo, directiveRepo, mockTechniques.techniqueRevisionRepo)
 
   val initDirectivesTree = new InitDirectivesTree(mockTechniques.techniqueRepo, directiveRepo, directiveRepo, new StringUuidGeneratorImpl())
 
@@ -1103,7 +1112,22 @@ class MockRules() {
     }
 
     override def deleteSavedRuleArchiveId(saveId: RuleArchiveId): IOResult[Unit] = UIO.unit
+
+    override def load(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit] = ???
+
+    override def unload(ruleId: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit] = ???
   }
+}
+
+class MockConfigRepo(mockTechniques: MockTechniques, mockDirectives: MockDirectives, mockRules: MockRules) {
+    val configurationRepository = new ConfigurationRepositoryImpl(
+      mockDirectives.directiveRepo
+    , mockTechniques.techniqueRepo
+    , mockRules.ruleRepo
+    , mockDirectives.directiveRepo
+    , mockTechniques.techniqueRevisionRepo
+    , mockTechniques.ruleRevisionRepo
+  )
 }
 
 class MockGlobalParam() {

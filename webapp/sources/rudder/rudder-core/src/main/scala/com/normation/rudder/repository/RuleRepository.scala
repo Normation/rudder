@@ -81,12 +81,6 @@ trait RoRuleRepository {
 
 trait WoRuleRepository {
   /**
-   * Save the given directive into given active technique
-   * If a directive with the same ID is already present in the
-   * system, raise an error.
-   * If the directive is not in the system, add it.
-   *
-   * Returned the saved Rule
    *
    * NOTE: only save here, deploy is done in the DeploymentService
    *
@@ -94,6 +88,7 @@ trait WoRuleRepository {
    * one provided. It is the responsability of the user to check that if he wants
    * with the provided resulting rule.
    *
+   * We can't create a rule with a revision, it will fail. Use #load for that.
    */
   def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[AddRuleDiff]
 
@@ -103,9 +98,30 @@ trait WoRuleRepository {
    *
    * If the rule is not in the repos, the method fails.
    * If the rule is a system one, the methods fails.
+   *
+   * We can't update a rule with a revision, it will failt. Use #load for that.
    */
   def update(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Option[ModifyRuleDiff]]
 
+
+  /**
+   * Load a rule with a specific revision in LDAP for generation - that means
+   * save it into LDAP.
+   * Revision can't be DEFAULT_REVISION - use create/update for that.
+   * Such a rule is removed with "unload", not delete.
+   * If you load an already loaded rule with a revision, it's parameter
+   * will be update to current state for that revision:
+   * - when revision is a specific commit id, it will always be a noop,
+   * - when revision is a moving reference, like a branch name, HEAD is loaded.
+   */
+  def load(rule: Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Unit]
+
+  /**
+   * Unload a rule with the corresponding uid/revision: it will stop to be taken into account in
+   * policy generation. If the revision is DEFAULT_REVISION, that method will fail and you should
+   * use delete for that.
+   */
+  def unload(ruleId: RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : IOResult[Unit]
 
   /**
    * Update the system configuration rule with the given ID with the given

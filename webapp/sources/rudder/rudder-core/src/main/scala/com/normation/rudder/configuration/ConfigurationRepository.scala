@@ -43,14 +43,20 @@ import com.normation.GitVersion.RevisionInfo
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.TechniqueRepository
+
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
+
 import zio._
 import zio.syntax._
 
@@ -76,6 +82,7 @@ trait RoConfigurationRepository {
    */
   def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]]
   def getTechnique(id: TechniqueId): IOResult[Option[Technique]]
+  def getRule(id: RuleId): IOResult[Option[Rule]]
 
   def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory]
 
@@ -93,13 +100,19 @@ trait DirectiveRevisionRepository {
   def getRevisions(uid: DirectiveUid): IOResult[List[RevisionInfo]]
 }
 
+trait RuleRevisionRepository {
+  def getRuleRevision(uid: RuleUid, rev: Revision): IOResult[Option[Rule]]
+}
+
 /****************************************************************************************/
 
 class ConfigurationRepositoryImpl(
-    roDirectiveRepository      : RoDirectiveRepository
-  , techniqueRepository        : TechniqueRepository
-  , parseActiveTechniqueLibrary: DirectiveRevisionRepository
-  , parseTechniques            : TechniqueRevisionRepository
+    roDirectiveRepository: RoDirectiveRepository
+  , techniqueRepository  : TechniqueRepository
+  , roRuleRepository     : RoRuleRepository
+  , directiveRevisionRepo: DirectiveRevisionRepository
+  , techniqueRevisionRepo: TechniqueRevisionRepository
+  , ruleRevisionRepo     : RuleRevisionRepository
 ) extends ConfigurationRepository {
 
   override def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]] = {
@@ -107,7 +120,7 @@ class ConfigurationRepositoryImpl(
       case GitVersion.DEFAULT_REV =>
         roDirectiveRepository.getActiveTechniqueAndDirective(id)
       case r                      =>
-        parseActiveTechniqueLibrary.getDirectiveRevision(id.uid, r)
+        directiveRevisionRepo.getDirectiveRevision(id.uid, r)
     }).map( _.map{ case (at, d) => ActiveDirective(at, d)} )
   }
 
@@ -116,13 +129,22 @@ class ConfigurationRepositoryImpl(
       case GitVersion.DEFAULT_REV =>
         techniqueRepository.get(id).succeed
       case r                      =>
-        parseTechniques.getTechnique(id.name, id.version.version, r)
+        techniqueRevisionRepo.getTechnique(id.name, id.version.version, r)
     }
   }
 
 
+  override def getRule(id: RuleId): IOResult[Option[Rule]] = {
+    id.rev match {
+      case GitVersion.DEFAULT_REV =>
+        roRuleRepository.getOpt(id)
+      case r                      =>
+        ruleRevisionRepo.getRuleRevision(id.uid, id.rev)
+    }
+  }
+
   override def getDirectiveRevision(uid: DirectiveUid): IOResult[List[RevisionInfo]] = {
-    parseActiveTechniqueLibrary.getRevisions(uid)
+    directiveRevisionRepo.getRevisions(uid)
   }
 
   def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory] = {
