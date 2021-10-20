@@ -84,6 +84,22 @@ import docopt
 import rudderPkg
 import rudderPkgLogger
 import rudderPkgUtils as utils
+import os
+
+
+def get_mode(args):
+    version_file = '/opt/rudder/share/versions/rudder-webapp-version'
+    mode = 'release'
+    if os.path.isfile(version_file):
+        with open(version_file) as fd:
+            for line in fd:
+                name, value = line.partition('=')[::2]
+                if name == 'nightly_tag' and value != '':
+                    mode = 'nightly'
+    if args['--nightly']:
+        mode = 'force-nightly'
+    return mode
+
 
 ## MAIN
 if __name__ == '__main__':
@@ -106,9 +122,7 @@ if __name__ == '__main__':
         rudderPkg.install_file(args['<package.rpkg>'], exact_version)
     if args['show']:
         version = ''
-        mode = 'release'
-        if args['--nightly']:
-            mode = 'nightly'
+        mode = get_mode(args)
         if args['--exact-version']:
             version = args['--exact-version']
         rudderPkg.package_show(args['<package>'], version, mode)
@@ -122,11 +136,8 @@ if __name__ == '__main__':
         rudderPkg.update()
     elif args['upgrade-all']:
         utils.check_url()
-        if args['--nightly']:
-            rudderPkg.upgrade_all('nightly', True)
-        else:
-            rudderPkg.upgrade_all('release', True)
-
+        mode = get_mode(args)
+        rudderPkg.upgrade_all(mode, True)
     elif args['licenses']:
         utils.check_url()
         rudderPkg.update_licenses()
@@ -138,12 +149,10 @@ if __name__ == '__main__':
     elif args['install']:
         utils.check_url()
         exact_version = False
+        mode = get_mode(args)
         if args['--exact-version']:
             exact_version = True
-        if args['--nightly']:
-            rudderPkg.package_install_latest(args['<package>'], 'nightly', exact_version)
-        else:
-            rudderPkg.package_install_latest(args['<package>'], 'release', exact_version)
+        rudderPkg.package_install_latest(args['<package>'], mode, exact_version)
     elif args['remove']:
         rudderPkg.remove(args['<package>'])
     elif args['rudder-postupgrade']:

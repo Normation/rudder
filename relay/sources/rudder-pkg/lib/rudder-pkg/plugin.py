@@ -103,3 +103,17 @@ class Plugin:
             return max(self.getCompatibleNightly(exact_version))
         except:
             return None
+
+    """Return the latest Rpkg object found compatible with current Rudder version, nightly or release depending on mode."""
+
+    def getLatestCompatible(self, mode, version):
+        if mode == 'release':
+            return self.getLatestCompatibleRelease(version)
+        elif mode == 'force-nightly':
+            return self.getLatestCompatibleNightly(version)
+        else:   # mode = nightly
+            # try latest release first
+            rpkg = self.getLatestCompatibleRelease(version)
+            if rpkg is None:
+                rpkg = self.getLatestCompatibleNightly(version)
+            return rpkg
