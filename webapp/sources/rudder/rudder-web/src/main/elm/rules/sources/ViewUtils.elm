@@ -63,6 +63,26 @@ sortTable filters sortBy =
     else
       {filters | tableFilters = {tableFilters | sortBy = sortBy, sortOrder = True}}
 
+
+foldedClass : TreeFilters -> String -> String
+foldedClass treeFilters catId =
+  if List.member catId treeFilters.folded then
+    " jstree-closed"
+  else
+    " jstree-open"
+
+foldUnfoldCategory : Filters -> String -> Filters
+foldUnfoldCategory filters catId =
+  let
+    treeFilters = filters.treeFilters
+    foldedList  =
+      if List.member catId treeFilters.folded then
+        List.Extra.remove catId treeFilters.folded
+      else
+        catId :: treeFilters.folded
+  in
+    {filters | treeFilters = {treeFilters | folded = foldedList}}
+
 getDirectivesSortFunction : List RuleCompliance -> RuleId -> TableFilters -> Directive -> Directive -> Order
 getDirectivesSortFunction rulesCompliance ruleId tableFilter d1 d2 =
   let
