@@ -1,0 +1,44 @@
+<TECHNIQUE name="Test Technique created through Rudder API">
+  <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <DESCRIPTION>This Technique exists only to see if Rudder creates Technique correctly.</DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <AGENT type="cfengine-community,cfengine-nova">
+    <BUNDLES>
+      <NAME>technique_any</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/technique_any/2.0/technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Technique-Any</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/technique_any/2.0/technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION component="true" multivalued="true" name="Test component$&amp;é)à\'&quot;">
+      <REPORTKEYS>
+        <VALUE>${node.properties[apache_package_name]}</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Technique parameters">
+      <INPUT>
+        <NAME>PACKAGE_VERSION</NAME>
+        <DESCRIPTION>version</DESCRIPTION>
+        <LONGDESCRIPTION>Package version to install</LONGDESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+          <MAYBEEMPTY>false</MAYBEEMPTY>
+        </CONSTRAINT>
+      </INPUT>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

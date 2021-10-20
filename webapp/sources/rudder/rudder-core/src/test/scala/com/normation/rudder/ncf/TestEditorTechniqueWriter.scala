@@ -52,10 +52,12 @@ import com.normation.cfclerk.services.TechniquesInfo
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.RuddercTarget
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.ActiveTechnique
@@ -76,6 +78,7 @@ import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowService
+
 import com.normation.zio._
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -89,15 +92,18 @@ import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
+
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import zio._
 
+import zio._
+import zio.syntax._
 import scala.collection.SortedMap
 import scala.collection.SortedSet
 import net.liftweb.common.Loggable
 import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
+
 import org.apache.commons.io.FileUtils
 import org.specs2.specification.BeforeAfterAll
 
@@ -224,7 +230,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
   val valueCompiler = new InterpolatedValueCompilerImpl(propertyEngineService)
   val parameterTypeService : PlugableParameterTypeService = new PlugableParameterTypeService
-  val techniqueCompiler = new RudderCRunner("/opt/rudder/etc/rudderc.conf","/opt/rudder/bin/rudderc",basePath)
+  val techniqueCompiler = new RudderCRunner("/opt/rudder/etc/rudderc.conf","/bin/true", basePath)
   val writer = new TechniqueWriter(
       TestTechniqueArchiver
     , TestLibUpdater
@@ -239,6 +245,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     , new TechniqueSerializer(parameterTypeService)
     , techniqueCompiler
     , basePath
+    , Set().succeed
   )
   val dscWriter = new DSCTechniqueWriter(basePath, valueCompiler, new ParameterType.PlugableParameterTypeService)
   val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService)
@@ -485,6 +492,37 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     "Should not generate expected additional rudder reporting content for our technique" in {
       val resultFile = new File(s"${basePath}/${reportingPath_any}")
       resultFile must not exist
+    }
+  }
+
+  // same than previous one but with direct call to techniqueWriter.writeTechnique
+  "Calling compile with no target should correctly fallback without error" >> {
+    val tech = technique_any.copy(version = new Version("2.0") )
+    val expectedMetadataPath_any = s"techniques/ncf_techniques/${tech.bundleName.value}/${tech.version.value}/metadata.xml"
+    val dscTechniquePath_any     = s"techniques/ncf_techniques/${tech.bundleName.value}/${tech.version.value}/technique.ps1"
+    val techniquePath_any = s"techniques/ncf_techniques/${tech.bundleName.value}/${tech.version.value}/technique.cf"
+    val reportingPath_any = s"techniques/ncf_techniques/${tech.bundleName.value}/${tech.version.value}/rudder_reporting.cf"
+
+    "Should write everything without error" in {
+      (writer.writeTechnique(tech, methods, ModificationId("test"), EventActor("test")).either.runNow must beRight( tech ))
+    }
+
+    "Should generate expected metadata content for our technique" in {
+      val expectedMetadataFile = new File(s"${expectedPath}/${expectedMetadataPath_any}")
+      val resultMetadataFile = new File(s"${basePath}/${expectedMetadataPath_any}")
+      resultMetadataFile must haveSameLinesAs (expectedMetadataFile)
+    }
+
+    "Should generate expected classic technique content for our technique" in {
+      val expectedFile = new File(s"${expectedPath}/${techniquePath_any}")
+      val resultFile = new File(s"${basePath}/${techniquePath_any}")
+      resultFile must haveSameLinesAs (expectedFile)
+    }
+
+    "Should generate expected dsc technique content for our technique" in {
+      val expectedDscFile = new File(s"${expectedPath}/${dscTechniquePath_any}")
+      val resultDscFile = new File(s"${basePath}/${dscTechniquePath_any}")
+      resultDscFile must haveSameLinesAs (expectedDscFile)
     }
   }
 

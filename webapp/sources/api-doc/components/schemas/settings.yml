@@ -169,6 +169,14 @@ settings:
       type: boolean
       default: true
       description: Recompute all dynamic groups at the start of policy generation
+    rudder_generation_rudderc_enabled_targets:
+      type: array
+      items:
+        type: string
+        enum:
+          - cfengine
+          - dsc
+      description: target agent languages for which rudderc will be tried first (with fallback to old generation method on error). Other targets will use fallback directly.
     rudder_compute_dyngroups_max_parallelism:
       type: string
       default: "1"

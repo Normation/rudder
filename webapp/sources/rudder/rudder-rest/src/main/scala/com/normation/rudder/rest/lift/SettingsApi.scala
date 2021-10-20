@@ -42,6 +42,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.appconfig.ReadConfigService
 import com.normation.appconfig.UpdateConfigService
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.RuddercTarget
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.batch.PolicyGenerationTrigger
@@ -62,6 +63,7 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.utils.Control.bestEffort
 import com.normation.utils.Control.sequence
 import com.normation.utils.StringUuidGenerator
+
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
@@ -70,15 +72,16 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
+
 import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.services.policies.SendMetrics
 import com.normation.rudder.services.servers.AllowedNetwork
+
 import com.normation.zio._
 import zio._
 import zio.syntax._
-
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 
@@ -132,6 +135,7 @@ class SettingsApi(
       RestNodeAcceptDuplicatedHostname ::
       RestComputeDynGroupMaxParallelism ::
       RestSetupDone ::
+      RestRuddercTargets ::
       Nil
 
   val allSettings_v12 =   RestReportProtocolDefault :: allSettings_v10
@@ -788,6 +792,32 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
     val key = "rudder_setup_done"
     def get = configService.rudder_setup_done()
     def set = (value : Boolean, _, _) => configService.set_rudder_setup_done(value)
+  }
+
+  final case object RestRuddercTargets extends RestSetting[Set[RuddercTarget]] {
+
+    val key = "rudder_generation_rudderc_enabled_targets"
+    val startPolicyGeneration = true
+
+    override def toJson(value: Set[RuddercTarget]): JValue = JArray(value.toList.sortBy(_.name).map(x => JString(x.name)))
+    override def parseJson(json: JValue): Box[Set[RuddercTarget]] = {
+      def err(x: JValue) = Left(s"Can not parse '${prettyRender(x)}' as a rudderc target, accepted values are: '${RuddercTarget.all.map(_.name).mkString("', '")}'").toIO
+      (json match {
+        case JArray(values) => values.accumulate {
+          case JString(x) => RuddercTarget.parse(x.trim).toIO
+          case x => err(x)
+        }.map(_.toSet)
+        case x => err(x)
+      }).toBox
+    }
+    // when a param, it's just a comma separated list of target
+    override def parseParam(param: String): Box[Set[RuddercTarget]] = {
+      param.split(",").map(x => RuddercTarget.parse(x.trim)).toList.accumulate(_.toIO).map(_.toSet).toBox
+    }
+
+
+    def get = configService.rudder_generation_rudderc_enabled_targets()
+    def set = (value : Set[RuddercTarget], _, _) => configService.set_rudder_generation_rudderc_enabled_targets(value)
   }
 
   // if the directive is missing for policy server, it may be because it misses dedicated allowed networks.

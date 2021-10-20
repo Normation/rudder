@@ -1143,6 +1143,7 @@ object RudderConfig extends Loggable {
     , techniqueSerializer
     , techniqueCompiler
     , "/var/log/rudder"
+    , configService.rudder_generation_rudderc_enabled_targets()
   )
   val ncfTechniqueReader : ncf.TechniqueReader = new ncf.TechniqueReader(
       restExtractorService
