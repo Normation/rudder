@@ -305,8 +305,8 @@ tabContent model details =
                         selectedClass = if (List.member d.id rule.directives) then " item-selected" else ""
                       in
                         li [class "jstree-node jstree-leaf"]
-                        [ i[class "jstree-icon jstree-ocl"][]
-                        , a[href "", class ("jstree-anchor" ++ selectedClass)]
+                        [ i [class "jstree-icon jstree-ocl"][]
+                        , a [class ("jstree-anchor" ++ selectedClass)]
                           [ badgePolicyMode model.policyMode d.policyMode
                           , span [class "treeGroupName tooltipable"][text d.displayName]
                           , buildTagsTree d.tags
@@ -319,8 +319,8 @@ tabContent model details =
 
                   if not (List.isEmpty directivesList) then
                     Just(li [class ("jstree-node" ++ foldedClass model.ui.directiveFilters.treeFilters item.name)]
-                    [ i[class "jstree-icon jstree-ocl", onClick (UpdateDirectiveFilters (foldUnfoldCategory model.ui.directiveFilters item.name))][]
-                    , a[href "", class "jstree-anchor"]
+                    [ i [class "jstree-icon jstree-ocl", onClick (UpdateDirectiveFilters (foldUnfoldCategory model.ui.directiveFilters item.name))][]
+                    , a [class "jstree-anchor"]
                       [ i [class "jstree-icon jstree-themeicon fa fa-gear jstree-themeicon-custom"][]
                       , span [class "treeGroupName tooltipable"][text item.name]
                       ]
@@ -343,8 +343,8 @@ tabContent model details =
                 in
                   if not (List.isEmpty children) then
                     Just (li[class ("jstree-node" ++ foldedClass model.ui.directiveFilters.treeFilters item.id)]
-                    [ i[class "jstree-icon jstree-ocl", onClick (UpdateDirectiveFilters (foldUnfoldCategory model.ui.directiveFilters item.name))][]
-                    , a[href "", class "jstree-anchor"]
+                    [ i [class "jstree-icon jstree-ocl", onClick (UpdateDirectiveFilters (foldUnfoldCategory model.ui.directiveFilters item.name))][]
+                    , a [class "jstree-anchor"]
                       [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
                       , span [class "treeGroupCategoryName tooltipable"][text item.name]
                       ]
@@ -568,8 +568,8 @@ tabContent model details =
 
                 in
                   li [class "jstree-node jstree-leaf"]
-                  [ i[class "jstree-icon jstree-ocl"][]
-                  , a[href "", class ("jstree-anchor" ++ includeClass)]
+                  [ i [class "jstree-icon jstree-ocl"][]
+                  , a [class ("jstree-anchor" ++ includeClass)]
                     [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
                     , span [class "treeGroupName tooltipable"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
                     , div [class "treeActions-container"]
@@ -596,8 +596,8 @@ tabContent model details =
                 in
                   if not (List.isEmpty children) then
                     Just (li[class ("jstree-node" ++ foldedClass model.ui.groupFilters.treeFilters item.id)]
-                    [ i[class "jstree-icon jstree-ocl", onClick (UpdateGroupFilters (foldUnfoldCategory model.ui.groupFilters item.id))][]
-                    , a[href "", class "jstree-anchor"]
+                    [ i [class "jstree-icon jstree-ocl", onClick (UpdateGroupFilters (foldUnfoldCategory model.ui.groupFilters item.id))][]
+                    , a [class "jstree-anchor"]
                       [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
                       , span [class "treeGroupCategoryName tooltipable"][text item.name]
                       ]
