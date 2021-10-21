@@ -66,6 +66,14 @@
 .content-wrapper .rudder-template .jstree .jstree-anchor:hover {
   background-color: #e7f4f9;
 }
+.content-wrapper .rudder-template .jstree .jstree-node a.jstree-anchor{
+  color: inherit;
+}
+.content-wrapper .rudder-template .jstree .jstree-node a.jstree-anchor:hover,
+.content-wrapper .rudder-template .jstree .jstree-node.jstree-leaf a.jstree-anchor{
+  color: #337ab7;
+  cursor: pointer;
+}
 .content-wrapper .rudder-template .jstree .jstree-anchor .btn.create{
   margin-left: auto;
   min-width: 25px;

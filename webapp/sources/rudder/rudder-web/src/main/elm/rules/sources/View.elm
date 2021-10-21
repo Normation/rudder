@@ -57,8 +57,8 @@ view model =
             if (String.isEmpty model.ui.ruleFilters.treeFilters.filter) || ((List.length rules > 0) || (List.length categories > 0)) then
               Just (
                 li[class ("jstree-node" ++ foldedClass model.ui.ruleFilters.treeFilters item.id)]
-                [ i[class "jstree-icon jstree-ocl", onClick (UpdateRuleFilters (foldUnfoldCategory model.ui.ruleFilters item.id))][]
-                , a[href "", class "jstree-anchor", onClick (OpenCategoryDetails item.id True)]
+                [ i [class "jstree-icon jstree-ocl", onClick (UpdateRuleFilters (foldUnfoldCategory model.ui.ruleFilters item.id))][]
+                , a [class "jstree-anchor", onClick (OpenCategoryDetails item.id True)]
                   [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
                   , span [class "treeGroupCategoryName tooltipable"][text item.name]
                   ]
