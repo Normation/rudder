@@ -711,5 +711,4 @@ tabContent model details =
                   ]
                 ]
               ]
-      TechnicalLogs ->
-        div[][text "Technical Logs"]
+      TechnicalLogs -> text ""
