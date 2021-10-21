@@ -518,13 +518,12 @@ object PropertyParser {
   // after "${rudder." there is no backtracking to an "otherProp" or string possible.
   def rudderVariable[_: P]  : P[Interpolation] = P( IgnoreCase("rudder") ~ space ~ "." ~ space ~/ (rudderNode | parameters | oldParameter) )
 
-  def rudderEngine[_: P]  : P[Interpolation] = P( (IgnoreCase("data") | IgnoreCase("rudder-data")) ~ space ~ "." ~ space ~/ (rudderEngineFormat) )
+  def rudderEngine[_: P]  : P[Interpolation] = P( IgnoreCase("data") ~ space ~ "." ~ space ~/ (rudderEngineFormat) )
 
   //a node path looks like: ${rudder.node.HERE.PATH}
   def rudderNode[_: P]  : P[Interpolation] = P( IgnoreCase("node") ~/ space ~ "." ~ space ~/ variableId.rep(sep = space ~ "." ~ space) ).map { seq => NodeAccessor(seq.toList) }
 
   // ${data.name[val][val2] | option1 = xxx | option2 = xxx}
-  // ${rudder-data.name[val][val2] | option1 = xxx | option2 = xxx}
   def rudderEngineFormat[_: P]  : P[Interpolation] = P(propertyId ~/ arrayNames  ~/ engineOption.? ).map{
     case (name, methods, opt) => RudderEngine(name, methods, opt)
   }
