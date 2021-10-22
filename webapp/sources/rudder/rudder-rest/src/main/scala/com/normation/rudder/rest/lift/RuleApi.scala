@@ -334,8 +334,7 @@ class RuleApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
         restRule   <- zioJsonExtractor.extractRule(req).chainError(s"Could not extract rule parameters from request").toIO
-        sourceId   <- ZIO.foreach(restRule.source){ x => RuleId.parse(x).toIO }
-        result     <- serviceV14.createRule(restRule, RuleId(RuleUid(restRule.id.getOrElse(uuidGen.newUuid))), sourceId, params, authzToken.actor)
+        result     <- serviceV14.createRule(restRule, restRule.id.getOrElse(RuleId(RuleUid(uuidGen.newUuid))), restRule.source, params, authzToken.actor)
       } yield {
         val action = if (restRule.source.nonEmpty) "cloneRule" else schema.name
         (RudderJsonResponse.ResponseSchema(action, schema.dataContainer), result)
@@ -345,8 +344,9 @@ class RuleApi(
 
   object UpdateRuleV14 extends LiftApiModuleString {
     val schema = API.UpdateRule
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
+        id       <- RuleId.parse(sid).toIO
         restRule <- zioJsonExtractor.extractRule(req).chainError(s"Could not extract a rule from request.").toIO
         res      <- serviceV14.updateRule(restRule.copy(id = Some(id)), params, authzToken.actor)
       } yield {
@@ -886,8 +886,7 @@ class RuleApiService14 (
 
   def updateRule(restRule: JQRule, params: DefaultParams, actor: EventActor): IOResult[JRRule] = {
     for {
-      sid         <- restRule.id.notOptional(s"Rule id is mandatory in update")
-      id          <- RuleId.parse(sid).toIO
+      id          <- restRule.id.notOptional(s"Rule id is mandatory in update")
       rule        <- readRule.get(id)
       updatedRule =  restRule.updateRule(rule)
       diff        =  ModifyToRuleDiff(updatedRule)

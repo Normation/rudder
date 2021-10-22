@@ -413,7 +413,7 @@ class GitParseTechniqueLibrary(
                     None.succeed
                   case 1 =>
                     val path = paths.head
-
+                    ConfigurationLoggerPure.trace(s"Technique ${id.debugString} found at path '${path}', loading it'") *>
                     (for {
                       t <- loadTechnique(repo.db, treeId, path, id)
                     } yield {
@@ -428,7 +428,10 @@ class GitParseTechniqueLibrary(
                  }
     } yield {
       tech
-    }).tapBoth(err => ConfigurationLoggerPure.error(err.fullMsg), _ => ConfigurationLoggerPure.debug(s" -> found it!"))
+    }).tapBoth(err => ConfigurationLoggerPure.error(err.fullMsg), _ match {
+      case None     => ConfigurationLoggerPure.revision.debug(s" -> not found")
+      case Some(_)  => ConfigurationLoggerPure.revision.debug(s" -> found it!")
+    })
   }
 
 

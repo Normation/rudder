@@ -37,7 +37,6 @@
 
 package com.normation.rudder.apidata
 
-import com.normation.GitVersion
 import com.normation.GitVersion.RevisionInfo
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyHtml
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyJson
@@ -177,8 +176,7 @@ object JsonResponseObjects {
 
   final case class JRDirective(
       changeRequestId  : Option[String]
-    , id               : String
-    , revision         : Option[String]
+    , id               : String // id is in format uid+rev
     , displayName      : String
     , shortDescription : String
     , longDescription  : String
@@ -193,14 +191,13 @@ object JsonResponseObjects {
   )
 
   object JRDirective {
-    def empty(id: String) = JRDirective(None, id, None, "", "", "", "", "", Map(), 5, false, false, "", List())
+    def empty(id: String) = JRDirective(None, id, "", "", "", "", "", Map(), 5, false, false, "", List())
 
     def fromDirective(technique: Technique, directive: Directive, crId: Option[ChangeRequestId]): JRDirective = {
       directive.into[JRDirective]
         .enableBeanGetters
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
-        .withFieldComputed(_.id, _.id.uid.value)
-        .withFieldComputed(_.revision, _.id.rev match { case GitVersion.DEFAULT_REV => None ; case rev => Some(rev.value) })
+        .withFieldComputed(_.id, _.id.serialize)
         .withFieldRenamed(_.name, _.displayName)
         .withFieldConst(_.techniqueName, technique.id.name.value)
         .withFieldComputed(_.techniqueVersion, _.techniqueVersion.serialize)
@@ -252,8 +249,7 @@ object JsonResponseObjects {
   )
   final case class JRRule(
       changeRequestId : Option[String] = None
-    , id              : String
-    , revision        : Option[String]
+    , id              : String // id is in format uid+rev
     , displayName     : String
     , categoryId      : String
     , shortDescription: String
@@ -269,18 +265,17 @@ object JsonResponseObjects {
 
   object JRRule {
     // create an empty json rule with just ID set
-    def empty(id: String) = JRRule(None, id, None, "", "", "", "", Nil, Nil, false, false, Nil, None,None)
+    def empty(id: String) = JRRule(None, id, "", "", "", "", Nil, Nil, false, false, Nil, None,None)
 
     // create from a rudder business rule
     def fromRule(rule: Rule, crId: Option[ChangeRequestId], policyMode : Option[String], status: Option[(String,Option[String])]): JRRule = {
       rule.into[JRRule]
         .enableBeanGetters
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
-        .withFieldComputed(_.id, _.id.uid.value)
-        .withFieldComputed(_.revision, _.id.rev match { case GitVersion.DEFAULT_REV => None ; case rev => Some(rev.value) })
+        .withFieldComputed(_.id, _.id.serialize)
         .withFieldRenamed(_.name, _.displayName)
         .withFieldComputed(_.categoryId, _.categoryId.value)
-        .withFieldComputed(_.directives, _.directiveIds.map(_.uid.value).toList.sorted)
+        .withFieldComputed(_.directives, _.directiveIds.map(_.serialize).toList.sorted)
         .withFieldComputed(_.targets, _.targets.toList.sortBy(_.target).map(t => JRRuleTarget(t)))
         .withFieldRenamed(_.isEnabledStatus, _.enabled)
         .withFieldComputed(_.tags, x => JRTags.fromTags(rule.tags))

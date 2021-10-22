@@ -7,7 +7,7 @@ headers:
 body: >-
   {
     "source": "16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
-    "techniqueRevision": "VALID-REV",
+    "techniqueVersion": "1.0+VALID-REV",
     "id": "00000000-0000-4e4a-87b6-d0bcdfb4019f",
     "displayName":"clone from api of new package management with revision",
     "enabled": true
