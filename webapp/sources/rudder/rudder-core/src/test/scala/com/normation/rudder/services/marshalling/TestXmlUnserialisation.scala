@@ -1,7 +1,7 @@
 package com.normation.rudder.services.marshalling
 
 
-import com.normation.cfclerk.domain.{TechniqueName, TechniqueVersion, TechniqueVersionHelper}
+import com.normation.cfclerk.domain.{TechniqueName, TechniqueVersionHelper}
 import com.normation.cfclerk.xmlparsers.{SectionSpecParser, VariableSpecParser}
 import com.normation.rudder.domain.policies.{Directive, DirectiveId, DirectiveUid, SectionVal, Tags}
 import com.normation.rudder.domain.queries.ObjectCriterion

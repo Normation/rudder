@@ -131,7 +131,6 @@ import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.StatelessUserPropertyService
 import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
-
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import net.liftweb.common.Box
@@ -156,12 +155,14 @@ import java.nio.charset.StandardCharsets
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
-
 import zio._
 import zio.duration._
 import zio.syntax._
 import com.normation.box._
 import com.normation.errors.IOResult
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
+import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
 /*
  * This file provides all the necessary plumbing to allow test REST API.
  *
@@ -468,7 +469,6 @@ class RestTestSetUp {
         mockRules.ruleCategoryRepo
       , mockRules.ruleRepo
       , mockRules.ruleCategoryRepo
-      , ruleCategoryService
       , restDataSerializer
     )
   val ruleApiService14 = new RuleApiService14 (
@@ -478,11 +478,13 @@ class RestTestSetUp {
       , uuidGen
       , asyncDeploymentAgent
       , workflowLevelService
-      , restExtractorService
-      , restDataSerializer
       , mockRules.ruleCategoryRepo
       , mockRules.ruleCategoryRepo
-      , ruleCategoryService
+      , mockDirectives.directiveRepo
+      , mockNodeGroups.groupsRepo
+      , mockNodes.nodeInfoService
+      , () => GlobalPolicyMode(Enforce, Always).succeed
+      , new RuleApplicationStatusServiceImpl()
   )
 
   val fieldFactory = new DirectiveFieldFactory {

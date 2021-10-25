@@ -1208,7 +1208,8 @@ response:
                 "subCategories": [],
                 "techniques": [
                   {
-                    "name": "packageManagement",
+                    "id": "packageManagement",
+                    "name": "Packages",
                     "directives": [
                       {
                         "id": "16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
@@ -1403,7 +1404,8 @@ response:
                     ]
                   },
                   {
-                    "name": "rpmPackageInstallation",
+                    "id": "rpmPackageInstallation",
+                    "name": "Packages (RHEL/CentOS/SuSE/RPM)",
                     "directives": [
                       {
                         "id": "directive2",
@@ -1518,7 +1520,8 @@ response:
                 "subCategories": [],
                 "techniques": [
                   {
-                    "name": "copyGitFile",
+                    "id": "copyGitFile",
+                    "name": "File download (Rudderserver)",
                     "directives": [
                       {
                         "id": "directive-copyGitFile",
@@ -1670,7 +1673,8 @@ response:
                     ]
                   },
                   {
-                    "name": "fileTemplate",
+                    "id": "fileTemplate",
+                    "name": "File content (from remote template)",
                     "directives": [
                       {
                         "id": "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
@@ -1942,7 +1946,8 @@ response:
                 "subCategories": [],
                 "techniques": [
                   {
-                    "name": "Create_file",
+                    "id": "Create_file",
+                    "name": "Create a file",
                     "directives": [
                       {
                         "id": "16d86a56-93ef-49aa-86b7-0d10102e4ea9",
@@ -2006,38 +2011,18 @@ response:
                     ]
                   },
                   {
-                    "name": "technique_any",
+                    "id": "technique_any",
+                    "name": "TestTechnique created through Rudder API",
                     "directives": []
                   },
                   {
-                    "name": "technique_by_Rudder",
+                    "id": "technique_by_Rudder",
+                    "name": "TestTechnique created through Rudder API",
                     "directives": []
                   },
                   {
-                    "name": "technique_with_blocks",
-                    "directives": []
-                  }
-                ]
-              },
-              {
-                "name": "System Techniques",
-                "description": "\n This category contains internal Techniques (system).\n These Techniques should not be used directly.\n ",
-                "subCategories": [],
-                "techniques": [
-                  {
-                    "name": "common",
-                    "directives": []
-                  },
-                  {
-                    "name": "distributePolicy",
-                    "directives": []
-                  },
-                  {
-                    "name": "inventory",
-                    "directives": []
-                  },
-                  {
-                    "name": "server-roles",
+                    "id": "technique_with_blocks",
+                    "name": "technique with blocks",
                     "directives": []
                   }
                 ]
@@ -2052,7 +2037,8 @@ response:
                     "subCategories": [],
                     "techniques": [
                       {
-                        "name": "clockConfiguration",
+                        "id": "clockConfiguration",
+                        "name": "Time settings",
                         "directives": [
                           {
                             "id": "directive1",
@@ -2137,7 +2123,8 @@ response:
                         ]
                       },
                       {
-                        "name": "genericVariableDefinition",
+                        "id": "genericVariableDefinition",
+                        "name": "Variable (string)",
                         "directives": [
                           {
                             "id": "gvd-directive2",

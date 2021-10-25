@@ -21,7 +21,9 @@ response:
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
             "enabled":true,
             "system":false,
-            "tags":[{"datacenter":"Paris"},{"serverType":"webserver"}]
+            "tags":[{"datacenter":"Paris"},{"serverType":"webserver"}],
+            "policyMode":"enforce",
+            "status":{"value":"Not applied","details":"Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
           }
         ]
       }
@@ -36,7 +38,7 @@ response:
     {
       "action":"ruleDetails",
       "result":"error",
-      "errorDetails":"Could not get rule with id: 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa';cause was:Inconsistency:Rule with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found"
+      "errorDetails":"Inconsistency:Rule with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found"
     }
 ---
 description: List rules
@@ -60,7 +62,10 @@ response:
             "exclude":{"or":["policyServer:root"]}}],
             "enabled":true,
             "system":false,
-            "tags":[{"datacenter":"Paris"},{"serverType":"webserver"}]},
+            "tags":[{"datacenter":"Paris"},{"serverType":"webserver"}],
+            "policyMode":"enforce",
+            "status":{"value":"Not applied","details":"Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
+          },
           {"id":"ff44fb97-b65e-43c4-b8c2-000000000000",
             "displayName":"99-rule-technique-std-lib",
             "categoryId":"rootRuleCategory",
@@ -70,7 +75,10 @@ response:
             "targets":["special:all"],
             "enabled":true,
             "system":false,
-            "tags":[]},
+            "tags":[],
+            "policyMode":"enforce",
+            "status":{"value":"In application"}
+          },
           {"id":"ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
             "displayName":"60-rule-technique-std-lib",
             "categoryId":"rootRuleCategory",
@@ -82,7 +90,10 @@ response:
             "targets":["special:all"],
             "enabled":true,
             "system":false,
-            "tags":[]},
+            "tags":[],
+            "policyMode":"enforce",
+            "status":{"value":"Partially applied","details":"Directive 'directive 16617aa8-1f02-4e4a-87b6-d0bcdfb4019f' disabled, Directive 'directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9' disabled"}
+          },
           {"id":"rule1",
             "displayName":"10.Global configuration for all nodes",
             "categoryId":"rootRuleCategory",
@@ -92,7 +103,10 @@ response:
             "targets":["special:all"],
             "enabled":true,
             "system":false,
-            "tags":[]},
+            "tags":[],
+            "policyMode":"enforce",
+            "status":{"value":"In application"}
+          },
           {"id":"rule2",
             "displayName":"50.Deploy PLOP STACK",
             "categoryId":"rootRuleCategory",
@@ -102,7 +116,10 @@ response:
             "targets":["special:all"],
             "enabled":true,
             "system":false,
-            "tags":[]},
+            "tags":[],
+            "policyMode":"enforce",
+            "status":{"value":"Not applied","details":"Directive 'directive2' disabled"}
+          },
           {"id":"rulecopyGitFile",
             "displayName":"90-copy-git-file",
             "categoryId":"rootRuleCategory",
@@ -112,7 +129,10 @@ response:
             "targets":["special:all"],
             "enabled":true,
             "system":false,
-            "tags":[]}
+            "tags":[],
+            "policyMode":"enforce",
+            "status":{"value":"Not applied","details":"Directive 'directive-copyGitFile' disabled"}
+          }
         ]
       }
     }
@@ -395,7 +415,9 @@ response:
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
             "enabled":false,
             "system":false,
-            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}],
+            "policyMode":"enforce",
+            "status":{"value":"Disabled","details":"This rule is disabled., Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
           }
         ]
       }
@@ -700,7 +722,9 @@ response:
               "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
               "enabled":true,
               "system":false,
-              "tags":[{"customer":"MyCompany"}]
+              "tags":[{"customer":"MyCompany"}],
+              "policyMode":"enforce",
+              "status":{"value":"Not applied","details":"Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
             },{
               "id":"00000000-cb9d-4f7b-abda-ca38c5d643ea",
               "displayName":"clone from api of 50-rule-technique-ncf",
@@ -711,7 +735,9 @@ response:
               "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
               "enabled":true,
               "system":false,
-              "tags":[{"customer":"MyCompany"}]
+              "tags":[{"customer":"MyCompany"}],
+              "policyMode":"enforce",
+              "status":{"value":"Not applied","details":"Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
             },{
               "id":"208716db-2675-43b9-ab57-bfbab84346aa",
               "displayName":"50-rule-technique-ncf",
@@ -722,7 +748,9 @@ response:
               "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
               "enabled":true,
               "system":false,
-              "tags":[{"datacenter":"Paris"},{"serverType":"webserver"}]
+              "tags":[{"datacenter":"Paris"},{"serverType":"webserver"}],
+              "policyMode":"enforce",
+              "status":{"value":"Not applied","details":"Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
             },{
               "id":"ff44fb97-b65e-43c4-b8c2-000000000000",
               "displayName":"99-rule-technique-std-lib",
@@ -733,7 +761,9 @@ response:
               "targets":["special:all"],
               "enabled":true,
               "system":false,
-              "tags":[]
+              "tags":[],
+              "policyMode":"enforce",
+              "status":{"value":"In application"}
             },{
               "id":"ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
               "displayName":"60-rule-technique-std-lib",
@@ -746,7 +776,9 @@ response:
               "targets":["special:all"],
               "enabled":true,
               "system":false,
-              "tags":[]
+              "tags":[],
+              "policyMode":"enforce",
+              "status":{"value":"Partially applied","details":"Directive 'directive 16617aa8-1f02-4e4a-87b6-d0bcdfb4019f' disabled, Directive 'directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9' disabled"}
             },{
               "id":"rule1",
               "displayName":"10.Global configuration for all nodes",
@@ -757,7 +789,9 @@ response:
               "targets":["special:all"],
               "enabled":true,
               "system":false,
-              "tags":[]
+              "tags":[],
+              "policyMode":"enforce",
+              "status":{"value":"In application"}
             },{
               "id":"rule2",
               "displayName":"50.Deploy PLOP STACK",
@@ -768,7 +802,9 @@ response:
               "targets":["special:all"],
               "enabled":true,
               "system":false,
-              "tags":[]
+              "tags":[],
+              "policyMode":"enforce",
+              "status":{"value":"Not applied","details":"Directive 'directive2' disabled"}
             },{
               "id":"rulecopyGitFile",
               "displayName":"90-copy-git-file",
@@ -779,7 +815,9 @@ response:
               "targets":["special:all"],
               "enabled":true,
               "system":false,
-              "tags":[]
+              "tags":[],
+              "policyMode":"enforce",
+              "status":{"value":"Not applied","details":"Directive 'directive-copyGitFile' disabled"}
             }
           ]
         }

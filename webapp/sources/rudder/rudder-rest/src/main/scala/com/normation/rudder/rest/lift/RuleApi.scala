@@ -42,6 +42,7 @@ import com.normation.GitVersion.Revision
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.eventlog.EventActor
 import com.normation.eventlog._
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.UserService
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
@@ -94,10 +95,19 @@ import com.normation.rudder.apidata.MinimalDetails
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.configuration.ConfigurationRepository
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ConfigurationLoggerPure
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.ApplicationStatus
+import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.rest.implicits._
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.policies.RuleApplicationStatusService
+import com.normation.rudder.web.services.ComputePolicyMode
 
 class RuleApi(
     restExtractorService: RestExtractorService
@@ -608,13 +618,13 @@ class RuleApiService6(
     readRuleCategory     : RoRuleCategoryRepository
   , readRule             : RoRuleRepository
   , writeRuleCategory    : WoRuleCategoryRepository
-  , categoryService      : RuleCategoryService
   , restDataSerializer   : RestDataSerializer
 ) extends Loggable {
 
   def getCategoryInformations(category: RuleCategory, parent: RuleCategoryId, detail: DetailLevel) = {
     for {
       rules <- readRule.getAll()
+
     } yield {
       restDataSerializer.serializeRuleCategory(category, parent, rules.groupBy(_.categoryId), detail)
     }
@@ -692,6 +702,9 @@ class RuleApiService6(
 
 }
 
+
+final case class RuleApplicationStatus(policyMode: (String, String),  applicationStatusDetails: (String, Option[String]))
+
 class RuleApiService14 (
     readRule             : RoRuleRepository
   , writeRule            : WoRuleRepository
@@ -699,11 +712,13 @@ class RuleApiService14 (
   , uuidGen              : StringUuidGenerator
   , asyncDeploymentAgent : AsyncDeploymentActor
   , workflowLevelService : WorkflowLevelService
-  , restExtractor        : RestExtractorService
-  , restDataSerializer   : RestDataSerializer
   , readRuleCategory     : RoRuleCategoryRepository
   , writeRuleCategory    : WoRuleCategoryRepository
-  , categoryService      : RuleCategoryService
+  , readDirectives       : RoDirectiveRepository
+  , readGroup            : RoNodeGroupRepository
+  , readNodes            : NodeInfoService
+  , getGlobalPolicyMode  : () => IOResult[GlobalPolicyMode]
+  , applicationService   : RuleApplicationStatusService
 ) {
 
   private def createChangeRequest(
@@ -726,15 +741,38 @@ class RuleApiService14 (
       id       <- workflow.startWorkflow(cr, actor, params.reason)
     } yield {
       val optCrId = if(workflow.needExternalValidation()) Some(id) else None
-      JRRule.fromRule(change.newRule, optCrId)
+      JRRule.fromRule(change.newRule, optCrId, None,None)
     }
   }
 
 
+  def getRuleApplicationStatus(rule: Rule, groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, nodesLib: Map[NodeId, NodeInfo], globalMode: GlobalPolicyMode): RuleApplicationStatus = {
+    val directives = rule.directiveIds.flatMap(directiveLib.allDirectives.get(_)).map{case (a,d)=> (a.toActiveTechnique(), d)}
+    val nodes = groupLib.getNodeIds(rule.targets, nodesLib).flatMap(nodesLib.get)
+    val allTargets = rule.targets.flatMap(groupLib.allTargets.get).map(_.toTargetInfo)
+    val policyMode = ComputePolicyMode.ruleMode(globalMode, directives.map(_._2), nodes.map(_.policyMode))
+    val applicationStatus = applicationService.isApplied(rule,groupLib,directiveLib,nodesLib)
+    val applicationStatusDetails = ApplicationStatus.details(rule,applicationStatus, allTargets, directives, nodes)
+    RuleApplicationStatus(policyMode, applicationStatusDetails)
+  }
+
   def listRules(): IOResult[Seq[JRRule]] = {
-    readRule.getAll(false).chainError("Could not fetch Rules").map(rules =>
-      rules.sortBy(_.id.serialize).map(JRRule.fromRule(_, None))
-    )
+    for {
+      rules <- readRule.getAll(false).chainError("Could not fetch Rules")
+      directiveLib <- readDirectives.getFullDirectiveLibrary()
+      groupLib <- readGroup.getFullGroupLibrary()
+      nodesLib <- readNodes.getAll()
+      globalMode  <- getGlobalPolicyMode()
+
+    } yield {
+      for {
+        rule <- rules.sortBy(_.id.serialize)
+      } yield {
+        val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
+        JRRule.fromRule(rule, None, Some(status.policyMode._1),Some(status.applicationStatusDetails))
+      }
+    }
+
   }
 
   def createRule(restRule: JQRule, ruleId: RuleId, clone: Option[RuleId], params: DefaultParams, actor: EventActor): IOResult[JRRule] = {
@@ -786,15 +824,24 @@ class RuleApiService14 (
       _      <- writeRule.create(change.newRule, modId, actor, params.reason)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
-      JRRule.fromRule(change.newRule, None)
+      JRRule.fromRule(change.newRule, None, None, None)
     }).chainError(s"Error when creating new rule")
   }
 
 
   def getRule(id: RuleId): IOResult[JRRule] = {
-    readRule.get(id).chainError(s"Could not get rule with id: '${id.serialize}'").map(rule =>
-      JRRule.fromRule(rule, None)
-    )
+    for {
+      rule <- readRule.get(id)
+
+      directiveLib <- readDirectives.getFullDirectiveLibrary()
+      groupLib <- readGroup.getFullGroupLibrary()
+      nodesLib <- readNodes.getAll()
+      globalMode  <- getGlobalPolicyMode()
+    } yield {
+      val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
+      JRRule.fromRule(rule, None, Some(status.policyMode._1), Some(status.applicationStatusDetails))
+    }
+
   }
 
   /*
@@ -816,7 +863,7 @@ class RuleApiService14 (
         _     <- ConfigurationLoggerPure.info(s"Revision '${id.rev.value}' for rule with id '${id.uid.serialize}' loaded. It will be used in comming policy generations.")
       } yield {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
-        JRRule.fromRule(rule, None)
+        JRRule.fromRule(rule, None, None, None)
       }
     })
   }
@@ -871,9 +918,20 @@ class RuleApiService14 (
     for {
       root  <- readRuleCategory.getRootCategory()
       rules <- readRule.getAll()
+
+      directiveLib <- readDirectives.getFullDirectiveLibrary()
+      groupLib <- readGroup.getFullGroupLibrary()
+      nodesLib <- readNodes.getAll()
+      globalMode  <- getGlobalPolicyMode()
+      rulesMap =  ( for {
+        rule <- rules.sortBy(_.id.serialize)
+      } yield {
+        val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
+        (rule, Some(status.policyMode._1), Some(status.applicationStatusDetails))
+      }).groupBy(_._1.categoryId.value)
     } yield {
       // root category is given itself as a parent, which looks like a bug
-      JRCategoriesRootEntryFull(JRFullRuleCategory.fromCategory(root, rules.groupBy(_.categoryId.value), Some(root.id.value)))
+      JRCategoriesRootEntryFull(JRFullRuleCategory.fromCategory(root, rulesMap, Some(root.id.value)))
     }
   }
 

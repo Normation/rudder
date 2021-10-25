@@ -362,9 +362,7 @@ class NodeExpectedReportTest extends Specification {
     )
 
     "return the expected expected reports" in {
-      val expected = RuleExpectedReportBuilder(p_with_block :: Nil)
 
-      val json = ExpectedReportsSerialisation.jsonRuleExpectedReports(expected)
       val expectedJson =
 
         """
