@@ -176,16 +176,30 @@ unless specified otherwise, the place repos are cloned is not important. Maybe k
 
 #### Create potentially missing files and add permission
 
-1. Create some file for the webapp:
+1. Create necessary groups
+
 ```
-mkdir -p /var/rudder/inventories/incoming /var/rudder/share /var/rudder/inventories/accepted-nodes-updates /var/rudder/inventories/received /var/rudder/inventories/failed /var/log/rudder/core /var/log/rudder/compliance/ /var/rudder/run/       
+groupadd rudder
+groupadd rudder-policy-reder
+usermod -a -G rudder <username>
+usermod -a -G rudder-policy-reader <username>
+```
+
+Please note that this change will need to start a new shell or session to be taken into account
+
+
+2. Create some file for the webapp:
+```
+mkdir -p /var/rudder/inventories/incoming /var/rudder/share /var/rudder/inventories/accepted-nodes-updates /var/rudder/inventories/received /var/rudder/inventories/failed /var/log/rudder/core /var/log/rudder/compliance/ /var/rudder/run/
 touch /var/log/rudder/core/rudder-webapp.log /var/log/rudder/compliance/non-compliant-reports.log /var/rudder/run/api-token
 ```
 
-2. Add permissions
+3. Add permissions
 ```
 sudo chown -R <username> /var/rudder/
 sudo chown -R <username> /var/log/rudder
+sudo chgrp -R rudder /var/rudder/configuration-repository
+sudo chmod -R 770 /var/rudder/share
 ```
 
 #### Synchronize techniques
