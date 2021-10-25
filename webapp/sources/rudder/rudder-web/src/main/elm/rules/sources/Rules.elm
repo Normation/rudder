@@ -196,7 +196,7 @@ update msg model =
     NewRule id ->
       let
         rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] []
-        ruleDetails = RuleDetails Nothing rule Information (RuleDetailsUI False False (Tag "" ""))
+        ruleDetails = RuleDetails Nothing rule Information (RuleDetailsUI True True (Tag "" ""))
       in
         ({model | mode = RuleForm ruleDetails}, Cmd.none)
 
@@ -214,7 +214,8 @@ update msg model =
             action = case details.originRule of
               Just oR -> "saved"
               Nothing -> "created"
-            newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails}}
+            ui = details.ui
+            newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails, ui = {ui | editDirectives = False, editGroups = False }}}
           in
             (newModel, Cmd.batch [(successNotification ("Rule '"++ ruleDetails.name ++"' successfully " ++ action))  , (getRulesTree newModel)])
         _   -> (model, Cmd.none )
