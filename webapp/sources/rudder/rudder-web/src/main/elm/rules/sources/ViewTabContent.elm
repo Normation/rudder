@@ -372,7 +372,11 @@ tabContent model details =
                     [ h4[][text "Apply these directives"]
                     , div [class "btn-actions"]
                       [ cancelBtn
-                      , button[class "btn btn-default btn-icon", onClick ( UpdateRuleForm { details | ui = {ui | editDirectives = False}} )][text "Close", i[class "fa fa-times"][]]
+                      , ( if isNewRule then
+                          text ""
+                        else
+                          button[class "btn btn-default btn-icon", onClick ( UpdateRuleForm { details | ui = {ui | editDirectives = False}} )][text "Close", i[class "fa fa-times"][]]
+                      )
                       , button[class "btn btn-success btn-icon", onClick ( CallApi (saveRuleDetails rule isNewRule))][text "Save", i[class "fa fa-download"][]]
                       ]
                     ]
@@ -630,8 +634,11 @@ tabContent model details =
                     [ h4[][text "Apply to Nodes in any of these Groups"]
                     , div [class "btn-actions"]
                       [ cancelBtn
-                      , button[class "btn btn-default btn-icon"  , onClick (UpdateRuleForm {details | ui = {ui | editGroups = False}} )]
-                        [text "Close", i[class "fa fa-times"][]]
+                      , ( if isNewRule then
+                          text ""
+                        else
+                          button[class "btn btn-default btn-icon"  , onClick (UpdateRuleForm {details | ui = {ui | editGroups = False}} )][text "Close", i[class "fa fa-times"][]]
+                      )
                       , button[class "btn btn-success btn-icon", onClick (CallApi (saveRuleDetails rule isNewRule))]
                         [text "Save", i[class "fa fa-download"][]]
                       ]
