@@ -243,7 +243,10 @@ class TestRestFromFileDef extends Specification with Loggable with AfterAll {
   }
 
 
-  def cleanBreakline(text: String) = text.replaceAll("(\\w)\\s+", "$1").replaceAll("(\\W)\\s+", "$1").replaceAll("\\s+$", "")
+  def cleanBreakline(text: String) = {
+    val cleaned = text.replaceAll("(\\w)\\s+", "$1").replaceAll("(\\W)\\s+", "$1").replaceAll("\\s+$", "")
+    net.liftweb.json.parseOpt(cleaned).map(net.liftweb.json.prettyRender).getOrElse(cleaned)
+  }
   def cleanResponse(r: LiftResponse): (Int, String) = {
     val response = r.toResponse.asInstanceOf[InMemoryResponse]
     val resp = cleanBreakline(new String(response.data, "UTF-8"))

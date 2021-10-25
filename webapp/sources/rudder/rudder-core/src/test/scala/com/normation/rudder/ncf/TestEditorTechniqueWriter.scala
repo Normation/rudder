@@ -57,7 +57,6 @@ import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.RuddercTarget
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.ActiveTechnique
@@ -501,7 +500,6 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     val expectedMetadataPath_any = s"techniques/ncf_techniques/${tech.bundleName.value}/${tech.version.value}/metadata.xml"
     val dscTechniquePath_any     = s"techniques/ncf_techniques/${tech.bundleName.value}/${tech.version.value}/technique.ps1"
     val techniquePath_any = s"techniques/ncf_techniques/${tech.bundleName.value}/${tech.version.value}/technique.cf"
-    val reportingPath_any = s"techniques/ncf_techniques/${tech.bundleName.value}/${tech.version.value}/rudder_reporting.cf"
 
     "Should write everything without error" in {
       (writer.writeTechnique(tech, methods, ModificationId("test"), EventActor("test")).either.runNow must beRight( tech ))

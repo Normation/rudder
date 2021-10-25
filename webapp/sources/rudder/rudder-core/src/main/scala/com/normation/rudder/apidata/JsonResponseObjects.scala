@@ -230,13 +230,15 @@ object JsonResponseObjects {
   }
 
   final  case class JRDirectiveTreeTechnique (
-      name : String
+      id : String
+    , name : String
     , directives : List[JRDirective]
   )
   object JRDirectiveTreeTechnique {
     def fromActiveTechnique (technique: FullActiveTechnique) : JRDirectiveTreeTechnique = {
       JRDirectiveTreeTechnique(
         technique.techniqueName.value
+      , technique.newestAvailableTechnique.map(_.name).getOrElse(technique.techniqueName.value)
       , technique.directives.flatMap{
           d =>
             technique.techniques.get(d.techniqueVersion).map( t =>  JRDirective.fromDirective(t, d, None))
@@ -244,6 +246,10 @@ object JsonResponseObjects {
       )
     }
   }
+  final case class JRApplicationStatus (
+    value : String
+  , details : Option[String]
+  )
   final case class JRRule(
       changeRequestId : Option[String] = None
     , id              : String
@@ -257,14 +263,16 @@ object JsonResponseObjects {
     , enabled         : Boolean
     , system          : Boolean
     , tags            : List[Map[String, String]]
+    , policyMode      : Option[String]
+    , status          : Option[JRApplicationStatus]
   )
 
   object JRRule {
     // create an empty json rule with just ID set
-    def empty(id: String) = JRRule(None, id, None, "", "", "", "", Nil, Nil, false, false, Nil)
+    def empty(id: String) = JRRule(None, id, None, "", "", "", "", Nil, Nil, false, false, Nil, None,None)
 
     // create from a rudder business rule
-    def fromRule(rule: Rule, crId: Option[ChangeRequestId]): JRRule = {
+    def fromRule(rule: Rule, crId: Option[ChangeRequestId], policyMode : Option[String], status: Option[(String,Option[String])]): JRRule = {
       rule.into[JRRule]
         .enableBeanGetters
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
@@ -276,6 +284,8 @@ object JsonResponseObjects {
         .withFieldComputed(_.targets, _.targets.toList.sortBy(_.target).map(t => JRRuleTarget(t)))
         .withFieldRenamed(_.isEnabledStatus, _.enabled)
         .withFieldComputed(_.tags, x => JRTags.fromTags(rule.tags))
+        .withFieldConst(_.policyMode, policyMode)
+        .withFieldConst(_.status, status.map(s => JRApplicationStatus(s._1, s._2)))
         .transform
     }
   }
@@ -342,11 +352,11 @@ object JsonResponseObjects {
      * Prepare for json.
      * Sort field by ID to keep diff easier.
      */
-    def fromCategory(cat: RuleCategory, allRules: Map[String, Seq[Rule]], parent: Option[String]): JRFullRuleCategory = {
+    def fromCategory(cat: RuleCategory, allRules: Map[String, Seq[(Rule, Option[String], Option[(String,Option[String])])]], parent: Option[String]): JRFullRuleCategory = {
       cat.into[JRFullRuleCategory]
         .withFieldConst(_.parent, parent)
         .withFieldComputed(_.categories, _.childs.map(c => JRFullRuleCategory.fromCategory(c, allRules, Some(cat.id.value))).sortBy(_.id))
-        .withFieldConst(_.rules, allRules.get(cat.id.value).getOrElse(Nil).map(JRRule.fromRule(_, None)).toList.sortBy(_.id))
+        .withFieldConst(_.rules, allRules.get(cat.id.value).getOrElse(Nil).map{case (r,p,s) => JRRule.fromRule(r, None, p, s)}.toList.sortBy(_.id))
         .transform
     }
   }
@@ -566,6 +576,8 @@ trait RudderJsonEncoders {
   }
 
   implicit val ruleIdEncoder: JsonEncoder[RuleId] = JsonEncoder[String].contramap(_.serialize)
+
+  implicit val applicationStatusEncoder: JsonEncoder[JRApplicationStatus] = DeriveJsonEncoder.gen
 
   implicit val ruleEncoder: JsonEncoder[JRRule] = DeriveJsonEncoder.gen
 

@@ -37,6 +37,8 @@
 
 package com.normation.rudder.domain.policies
 
+import com.normation.rudder.domain.nodes.NodeInfo
+
 /**
  * Application status of a rule
  */
@@ -51,3 +53,39 @@ final case object NotAppliedCrDisabled extends NotAppliedStatus
 
 final case object FullyApplied extends AppliedStatus
 final case class PartiallyApplied(disabled: Seq[(ActiveTechnique, Directive)]) extends AppliedStatus
+
+object ApplicationStatus {
+  def details(rule : Rule, applicationStatus: ApplicationStatus,targets: Set[RuleTargetInfo], directives : Set[(ActiveTechnique, Directive)], nodes : Set[NodeInfo]) = {
+    applicationStatus match {
+      case FullyApplied => ("In application", None)
+      case PartiallyApplied(seq) =>
+        val why = seq.map { case (at, d) => "Directive '" + d.name + "' disabled" }.mkString(", ")
+        ("Partially applied", Some(why))
+      case x: NotAppliedStatus =>
+
+        val (status, disabledMessage) =
+          if ((!rule.isEnabled) && (!rule.isEnabledStatus)) {
+            ("Disabled", Some("This rule is disabled. "))
+          } else {
+            ("Not applied", None)
+          }
+        val isAllTargetsEnabled = targets.filter(t => !t.isEnabled).isEmpty
+
+        val conditions = {
+          Seq((rule.isEnabledStatus && !rule.isEnabled, "Rule unapplied")
+            , (directives.isEmpty, "No policy defined")
+            , (!isAllTargetsEnabled, "Group disabled")
+            , (nodes.isEmpty, "Empty groups")
+          ) ++
+            directives.flatMap {
+              case (activeTechnique, directive) =>
+                Seq((!directive.isEnabled, "Directive '" + directive.name + "' disabled")
+                  , (!activeTechnique.isEnabled, "Technique for '" + directive.name + "' disabled")
+                )
+            }
+        }
+        val why = (disabledMessage ++ (conditions.collect { case (ok, label) if (ok) => label })).mkString(", ")
+        (status, Some(why))
+    }
+  }
+}
