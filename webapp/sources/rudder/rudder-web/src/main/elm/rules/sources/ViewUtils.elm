@@ -2,15 +2,15 @@ module ViewUtils exposing (..)
 
 import DataTypes exposing (..)
 import Html exposing (..)
-import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute, tabindex)
+import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
 import List
 import Maybe.Extra
-import String exposing ( fromFloat)
+import String exposing (fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
-import ComplianceUtils exposing (getDirectiveComputedCompliance, getNodeComputedCompliance, getRuleCompliance, toNodeCompliance)
+import ComplianceUtils exposing (..)
 
 
 getListRules : Category Rule -> List (Rule)
@@ -314,5 +314,28 @@ buildIncludeList groupsTree editMode includeBool ruleTarget =
   in
     rowIncludeGroup
 
---displayEditModeGroups : Rule -> RuleDetails -> Category Group -> List RuleTarget -> List RuleTarget -> Filters -> Html Msg
---displayEditModeGroups rule details groupsTree includedTargets excludedTargets groupFilters =
+buildComplianceBar : ComplianceDetails -> Html Msg
+buildComplianceBar complianceDetails=
+  let
+    displayCompliance : {value : Float, details : String} -> String -> Html msg
+    displayCompliance compliance className =
+      if compliance.value > 0 then
+        div [class ("progress-bar progress-bar-" ++ className ++ " bs-tooltip"), attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat compliance.value)]
+        [ text ((fromFloat compliance.value) ++ "%") ]
+      else
+        text ""
+
+    allComplianceValues = getAllComplianceValues complianceDetails
+  in
+    if ( allComplianceValues.okStatus.value + allComplianceValues.nonCompliant.value + allComplianceValues.error.value + allComplianceValues.unexpected.value + allComplianceValues.pending.value + allComplianceValues.reportsDisabled.value + allComplianceValues.noReport.value == 0 ) then
+      div[ class "text-muted"][text "No data available"]
+    else
+      div[ class "progress progress-flex"]
+      [ displayCompliance allComplianceValues.okStatus        "success"
+      , displayCompliance allComplianceValues.nonCompliant    "audit-noncompliant"
+      , displayCompliance allComplianceValues.error           "error"
+      , displayCompliance allComplianceValues.unexpected      "unknown progress-bar-striped"
+      , displayCompliance allComplianceValues.pending         "pending progress-bar-striped"
+      , displayCompliance allComplianceValues.reportsDisabled "reportsdisabled"
+      , displayCompliance allComplianceValues.noReport        "no-report"
+      ]

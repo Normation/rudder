@@ -10,7 +10,7 @@ import Maybe.Extra
 import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
-import ComplianceUtils exposing (buildComplianceBar, getRuleCompliance, getDirectiveComputedCompliance, toNodeCompliance)
+import ComplianceUtils exposing (getRuleCompliance, getDirectiveComputedCompliance, toNodeCompliance)
 import ViewUtils exposing (..)
 
 
@@ -70,22 +70,30 @@ tabContent model details =
     case details.tab of
       Information   ->
         let
-          rightCol = if isNewRule then
-              div [class "col-xs-12 col-sm-6 col-lg-5"]
-              [ div [class "callout-fade callout-info"]
-                [ div [class "marker"][span [class "glyphicon glyphicon-info-sign"][]]
-                , div []
-                  [ p[][text "You are creating a new rule. You may already want to apply directives and groups to it."]
-                  , p[][text "To do so, please go to their corresponding tab, or use the shortcuts below:"]
-                  , div[class "action-btn"]
-                    [ button [class "btn btn-default", onClick (UpdateRuleForm {details | ui = { ui | editDirectives = True }, tab = Directives})][text "Select directives", span[class "fa fa-plus"][]]
-                    , button [class "btn btn-default", onClick (UpdateRuleForm {details | ui = { ui | editGroups     = True }, tab = Groups    })][text "Select groups"    , span[class "fa fa-plus"][]]
-                    ]
+          compliance =
+            case getRuleCompliance model rule.id of
+             Just co ->
+                buildComplianceBar co.complianceDetails
+             Nothing -> text "No report"
+
+          rightCol =
+            if isNewRule then
+              div [class "callout-fade callout-info"]
+              [ div [class "marker"][span [class "glyphicon glyphicon-info-sign"][]]
+              , div []
+                [ p[][text "You are creating a new rule. You may already want to apply directives and groups to it."]
+                , p[][text "To do so, please go to their corresponding tab, or use the shortcuts below:"]
+                , div[class "action-btn"]
+                  [ button [class "btn btn-default", onClick (UpdateRuleForm {details | ui = { ui | editDirectives = True }, tab = Directives})][text "Select directives", span[class "fa fa-plus"][]]
+                  , button [class "btn btn-default", onClick (UpdateRuleForm {details | ui = { ui | editGroups     = True }, tab = Groups    })][text "Select groups"    , span[class "fa fa-plus"][]]
                   ]
                 ]
               ]
             else
-              text ""
+              div [class "form-group show-compliance"]
+              [ label[][text "Compliance"]
+              , compliance
+              ]
 
           getCategoryName : String -> String
           getCategoryName cId =
@@ -179,7 +187,7 @@ tabContent model details =
         in
           div[class "row"]
           [ ruleForm
-          , rightCol
+          , div [class "col-xs-12 col-sm-6 col-lg-5"][ rightCol ]
           ]
       Directives ->
         let
