@@ -62,8 +62,6 @@ const ATTRIBUTES_ORDERING: [AttributeType; 5] = [
 
 const LONGUEST_ATTRIBUTE_LEN: usize = 9;
 
-// TODO add rudder language lines to comments
-
 impl PromiseType {
     fn allows(self, attribute_type: AttributeType) -> bool {
         match self {
@@ -427,6 +425,19 @@ impl Method {
             Some(id),
             vec![],
         );
+
+        // check if we have a newline and shorten the source for the comment
+        let source = if self.source.as_bytes().iter().any(|c| *c == '\n' as u8) {
+            let line = self
+                .source
+                .lines()
+                .next()
+                .expect("There is always a first line in a string");
+            format!("{} [...]", line)
+        } else {
+            self.source
+        };
+
         let reporting_context = Promise::usebundle(
             "_method_reporting_context",
             Some(&self.report_component),
@@ -438,7 +449,7 @@ impl Method {
         )
         .comment(format!("{}:", self.report_component))
         .comment("")
-        .comment(format!("  {}", self.source))
+        .comment(format!("  {}", source))
         .comment("");
 
         let formatted_bundle = match self.method_alias {
