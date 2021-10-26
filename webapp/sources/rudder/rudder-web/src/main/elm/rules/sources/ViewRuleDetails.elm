@@ -10,6 +10,7 @@ import String
 import ApiCalls exposing (..)
 import ViewTabContent exposing (tabContent)
 import Maybe.Extra
+import ViewUtils exposing (badgePolicyMode)
 
 --
 -- This file contains all methods to display the details of the selected rule.
@@ -30,40 +31,41 @@ editionTemplate model details =
       else
         ("item-disabled", span[ class "badge-disabled"][])
 
-    topButtons =
+    (topButtons, badgePolicy) =
       case originRule of
         Just or ->
           let
             txtDisabled = if rule.enabled then "Disable" else "Enable"
           in
-
-            [ button [ class "btn btn-default dropdown-toggle" , attribute "data-toggle" "dropdown" ] [
-                text "Actions "
+            (
+            [ button [ class "btn btn-default dropdown-toggle" , attribute "data-toggle" "dropdown" ]
+              [ text "Actions "
               , i [ class "caret" ] []
               ]
             , ul [ class "dropdown-menu" ]
-                [ li [] [
-                    a [ class ("action-success"), onClick (GenerateId (\r -> CloneRule or (RuleId r)))] [
-                      i [ class "fa fa-clone"] []
-                    , text "Clone"
-                    ]
-                  ]
-                , li [] [
-                    a [ class ("action-primary"), onClick (OpenDeactivationPopup rule)] [
-                      i [ class "fa fa-ban"] []
-                    , text txtDisabled
-                    ]
-                  ]
-                , li [class "divider"][]
-                , li [] [
-                    a [ class ("action-danger"), onClick (OpenDeletionPopup rule)] [
-                      i [ class "fa fa-times-circle"] []
-                    , text "Delete"
-                    ]
+              [ li []
+                [ a [ class ("action-success"), onClick (GenerateId (\r -> CloneRule or (RuleId r)))]
+                  [ i [ class "fa fa-clone"] []
+                  , text "Clone"
                   ]
                 ]
-            ]
-        Nothing -> [ text "" ]
+              , li []
+                [ a [ class ("action-primary"), onClick (OpenDeactivationPopup rule)]
+                  [ i [ class "fa fa-ban"] []
+                  , text txtDisabled
+                  ]
+                ]
+              , li [class "divider"][]
+              , li []
+                [ a [ class ("action-danger"), onClick (OpenDeletionPopup rule)]
+                  [ i [ class "fa fa-times-circle"] []
+                  , text "Delete"
+                  ]
+                ]
+              ]
+            ], badgePolicyMode model.policyMode or.policyMode
+            )
+        Nothing -> ([ text "" ], text "")
 
     isNotMember : List a -> a -> Bool
     isNotMember listIds id =
@@ -102,12 +104,14 @@ editionTemplate model details =
     nbDirectives = case originRule of
       Just oR -> String.fromInt (List.length oR.directives)
       Nothing -> "0"
+
   in
     div [class "main-container"]
     [ div [class "main-header "]
       [ div [class "header-title"]
         [ h1[class classDisabled]
-          [ ruleTitle
+          [ badgePolicy
+          , ruleTitle
           , badgeDisabled
           ]
         , div[class "header-buttons"]
