@@ -61,6 +61,7 @@ decodeRule =
     |> required "system"           D.bool
     |> required "directives"      (D.list (D.map DirectiveId D.string))
     |> required "targets"         (D.list decodeTargets)
+    |> required "policyMode"       D.string
     |> required "tags"            (D.list (D.keyValuePairs D.string) |> andThen toTags)
 
 toTags : List (List ( String, String )) -> Decoder (List Tag)

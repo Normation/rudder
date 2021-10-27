@@ -8,7 +8,7 @@ import List.Extra
 import List
 import String
 import NaturalOrdering exposing (compareOn)
-import ViewUtils exposing (getCategoryName, getListRules, filterSearch, searchFieldRules, buildTagsTree)
+import ViewUtils exposing (getCategoryName, getListRules, filterSearch, searchFieldRules, buildTagsTree, badgePolicyMode)
 import ComplianceUtils exposing (buildComplianceBar, getAllComplianceValues, getRuleCompliance)
 
 --
@@ -81,7 +81,8 @@ buildRulesTable model =
       in
             tr[onClick (OpenRuleDetails r.id True)]
             [ td[]
-              [ text r.name
+              [ badgePolicyMode model.policyMode r.policyMode
+              , text r.name
               , buildTagsTree r.tags
               ]
             , td[][ text (getCategoryName model r.categoryId) ]

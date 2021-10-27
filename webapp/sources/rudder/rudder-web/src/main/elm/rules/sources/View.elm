@@ -12,7 +12,7 @@ import ApiCalls exposing (..)
 import ViewRulesTable exposing (..)
 import ViewRuleDetails exposing (..)
 import ViewCategoryDetails exposing (..)
-import ViewUtils exposing (thClass, sortTable, getCategoryName, getListRules, filterSearch, searchFieldRules, buildTagsTree, foldedClass, foldUnfoldCategory)
+import ViewUtils exposing (..)
 
 
 view : Model -> Html Msg
@@ -31,7 +31,8 @@ view model =
         , a[class ("jstree-anchor"++classDisabled), onClick (OpenRuleDetails item.id True)]
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
           , span [class "treeGroupName tooltipable"]
-            [ text item.name
+            [ badgePolicyMode model.policyMode item.policyMode
+            , text item.name
             , badgeDisabled
             , buildTagsTree item.tags
             ]

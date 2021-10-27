@@ -145,6 +145,11 @@
   margin: 0;
   font-size: 26px;
 }
+.rudder-template .header-title h1 > .rudder-label.label-sm {
+  position: relative;
+  margin-right: 8px;
+  top: -4px;
+}
 .rudder-template .header-title h1.item-disabled {
   color: #828894;
 }

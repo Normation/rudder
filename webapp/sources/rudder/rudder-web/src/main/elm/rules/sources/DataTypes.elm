@@ -39,6 +39,7 @@ type alias Rule =
   , isSystem          : Bool
   , directives        : List DirectiveId
   , targets           : List RuleTarget
+  , policyMode        : String
   , tags              : List Tag
   }
 
