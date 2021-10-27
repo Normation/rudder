@@ -600,6 +600,13 @@
 .rudder-template .dataTable td.empty .fa:first-child{
   margin-right: 6px;
 }
+.rudder-template .dataTable td .disabled {
+  cursor: help;
+  color: #041922A0;
+}
+.rudder-template .dataTable td .disabled > .fa{
+  margin-left: 4px;
+}
 /* === JUMBOTRON === */
 .rudder-template .template-main .jumbotron {
   color: #6c7586;

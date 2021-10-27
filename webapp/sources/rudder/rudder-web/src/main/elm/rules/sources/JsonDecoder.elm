@@ -5,11 +5,11 @@ import Json.Decode as D exposing (Decoder, andThen, bool, field, float, index, m
 import Json.Decode.Pipeline exposing (..)
 import Tuple
 
+
 -- GENERAL
 decodeGetPolicyMode : Decoder String
 decodeGetPolicyMode =
   D.at ["data", "settings", "global_policy_mode" ] D.string
-
 
 decodeCategoryWithLeaves : String -> String -> String -> Decoder a -> Decoder ((Category a), List a)
 decodeCategoryWithLeaves idIdentifier categoryIdentifier elemIdentifier elemDecoder =
@@ -52,7 +52,7 @@ decodeGetCategoryDetails =
 decodeRule : Decoder Rule
 decodeRule =
   D.succeed Rule
-    |> required "id"          (D.map RuleId D.string)
+    |> required "id"              (D.map RuleId D.string)
     |> required "displayName"      D.string
     |> required "categoryId"       D.string
     |> required "shortDescription" D.string
@@ -62,6 +62,7 @@ decodeRule =
     |> required "directives"      (D.list (D.map DirectiveId D.string))
     |> required "targets"         (D.list decodeTargets)
     |> required "policyMode"       D.string
+    |> required "status"           decodeStatus
     |> required "tags"            (D.list (D.keyValuePairs D.string) |> andThen toTags)
 
 toTags : List (List ( String, String )) -> Decoder (List Tag)
@@ -88,6 +89,12 @@ decodeDeleteCategoryResponse =
      |> required "name" string
   ))
 
+decodeStatus : Decoder RuleStatus
+decodeStatus =
+  succeed RuleStatus
+    |> required "value"    D.string
+    |> optional "details" (D.maybe D.string) Nothing
+
 -- COMPLIANCE
 decodeGetRulesCompliance : Decoder (List RuleCompliance)
 decodeGetRulesCompliance =
@@ -101,6 +108,7 @@ decodeRuleCompliance =
     |> required "compliance" D.float
     |> required "complianceDetails" decodeComplianceDetails
     |> required "directives" (D.list decodeDirectiveCompliance)
+
 decodeDirectiveCompliance : Decoder DirectiveCompliance
 decodeDirectiveCompliance =
   succeed DirectiveCompliance
@@ -108,6 +116,7 @@ decodeDirectiveCompliance =
     |> required "compliance" D.float
     |> required "complianceDetails" decodeComplianceDetails
     |> required "components" (D.list decodeComponentCompliance)
+
 decodeComponentCompliance : Decoder ComponentCompliance
 decodeComponentCompliance =
   succeed ComponentCompliance
@@ -115,11 +124,13 @@ decodeComponentCompliance =
     |> required "compliance" D.float
     |> required "complianceDetails" decodeComplianceDetails
     |> required "nodes" (D.list decodeNodeCompliance)
+
 decodeValueCompliance : Decoder ValueCompliance
 decodeValueCompliance =
   succeed ValueCompliance
     |> required "value"      D.string
     |> required "reports" (D.list decodeReport)
+
 decodeReport : Decoder Report
 decodeReport =
   succeed Report
@@ -189,7 +200,6 @@ decodeGetGroupsTree : Decoder (Category Group)
 decodeGetGroupsTree =
   D.at ["data", "groupCategories"] (decodeCategory "id" "categories" "groups" decodeGroup)
 
-
 decodeGroup : Decoder Group
 decodeGroup =
   succeed Group
@@ -199,8 +209,6 @@ decodeGroup =
     |> required "nodeIds"    (D.list D.string)
     |> required "dynamic"     D.bool
     |> required "enabled"     D.bool
-
-
 
 decodeComposition : Decoder RuleTarget
 decodeComposition =
@@ -220,21 +228,18 @@ decodeOr =
 
 decodeTargets : Decoder RuleTarget
 decodeTargets =
-
-  D.oneOf [
-     D.lazy (\_ -> decodeComposition)
-   , D.lazy (\_ -> decodeAnd)
-   , D.lazy (\_ -> decodeOr)
-   , map (\s ->
-           if String.startsWith "group:" s then
-             NodeGroupId (String.dropLeft 6 s)
-           else if String.startsWith "node:" s then
-             Node (String.dropLeft 5 s)
-           else Special s
-         )
-
-    string
-
+  D.oneOf
+  [ D.lazy (\_ -> decodeComposition)
+  , D.lazy (\_ -> decodeAnd)
+  , D.lazy (\_ -> decodeOr)
+  , map
+    (\s ->
+      if String.startsWith "group:" s then
+        NodeGroupId (String.dropLeft 6 s)
+      else if String.startsWith "node:" s then
+        Node (String.dropLeft 5 s)
+      else Special s
+    ) string
   ]
 
 decodeGetNodesList : Decoder (List NodeInfo)

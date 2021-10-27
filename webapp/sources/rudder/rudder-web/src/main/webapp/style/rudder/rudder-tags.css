@@ -389,8 +389,9 @@ hr.separator-filter-tree{
   color: #222D42;
   background-color: #f9f9f9;
 }
-.tooltip .tooltip-inner > div.tags-list{
-  padding: 10px 5px 5px 5px;
+.tooltip .tooltip-inner > div.tags-list,
+.tooltip .tooltip-inner > div.tooltip-inner-content {
+  padding: 10px;
   font-size: 14px;
 }
 .tags-label,
@@ -403,8 +404,7 @@ hr.separator-filter-tree{
   cursor: default;
   transition-duration: .2s;
   transition-property: opacity, background, background-color;
-  margin-right: 5px;
-  margin-left: 5px;
+  margin-right: 10px;
   white-space: nowrap;
 }
 
