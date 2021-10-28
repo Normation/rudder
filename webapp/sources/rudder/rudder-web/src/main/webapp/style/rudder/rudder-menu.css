@@ -2164,7 +2164,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   margin-left: 10px;
   cursor: pointer;
 }
-.button-group-success .button-success,.button-group-success .button-warning{
+.button-group-success .button-warning{
   opacity:0;
   background-color: #9bc832;
   display: inline-block;
@@ -2174,15 +2174,12 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   margin-left: -15px;
   border-radius: 3px;
 }
-.button-group-success .button-success.ngHide{
-  visibility:hidden;
-}
-.button-warning.no-modif,.button-group-success .button-success{
+.button-warning.no-modif{
   top: 1.5px;
   position: relative;
   margin-left:2px;
 }
-.button-group-success .button-warning.no-modif:before,.button-group-success .button-success:before{
+.button-group-success .button-warning.no-modif:before{
   width: 0;
   height: 0;
   border-left: none;
@@ -2197,10 +2194,6 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   top: 6px;
   left: -10px;
 }
-.button-group-success .button-success:before{
-  border-right: 12px solid #9bc832;
-}
-
 .button-group-success .button-warning{
   background-color: #b1b1b1;
 }
@@ -2222,24 +2215,12 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   z-index: 1;
   top: 26px;
 }
-.button-group-success .button-success.error{
-  background-color:#C50000;
-}
-.button-group-success .button-success.error:before{
-  border-right: 12px solid #C50000;
-}
-.button-group-success .button-success:before{
-  visibility:hidden;
-}
-.button-group-success .button-success.pop:before{
-  visibility:visible;
-}
 .button-group-success .button-warning:before{
   border-top: 14px solid #F08004;
 }
 .button-group-success .pop.button-warning:before{
 }
-.button-group-success .button-success.pop,.button-group-success .button-warning.pop{
+.button-group-success .button-warning.pop{
   opacity: 1;
 }
 
