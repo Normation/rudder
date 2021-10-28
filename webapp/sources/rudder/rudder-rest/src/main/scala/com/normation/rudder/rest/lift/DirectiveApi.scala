@@ -264,9 +264,8 @@ class DirectiveApi (
         restDirective <- zioJsonExtractor.extractDirective(req).chainError(s"Could not extract directive parameters from request").toIO
         result        <- serviceV14.createOrCloneDirective(
                              restDirective
-                           , DirectiveUid(restDirective.id.getOrElse(uuidGen.newUuid))
-                           , restDirective.getSourceId
-                           , restDirective.techniqueRevision
+                           , restDirective.id.map(_.uid).getOrElse(DirectiveUid(uuidGen.newUuid))
+                           , restDirective.source
                            , params
                            , authzToken.actor
                          )
@@ -280,8 +279,9 @@ class DirectiveApi (
 
   object UpdateDirectiveV14 extends LiftApiModuleString {
     val schema = API.UpdateDirective
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
+        id            <- DirectiveId.parse(sid).toIO
         restDirective <- zioJsonExtractor.extractDirective(req).chainError(s"Could not extract a directive from request.").toIO
         result        <- serviceV14.updateDirective(restDirective.copy(id = Some(id)), params, authzToken.actor)
       } yield {
@@ -314,17 +314,6 @@ class DirectiveApi (
 
 // utility methods used in both service
 object DirectiveApiService {
-  def checkTechniqueVersion (techniqueRepository: TechniqueRepository, techniqueName: TechniqueName, techniqueVersion: Option[TechniqueVersion]): PureResult[Option[TechniqueVersion]]  = {
-    techniqueVersion match {
-      case Some(version) =>
-        techniqueRepository.getTechniqueVersions(techniqueName).find(_ == version) match {
-          case Some(version) => Right(Some(version))
-          case None => Left(Inconsistency(s" version ${version} of Technique ${techniqueName}  is not valid"))
-        }
-      case None => Right(None)
-    }
-  }
-
   def extractTechnique(techniqueRepository: TechniqueRepository, optTechniqueName: Option[TechniqueName], opTechniqueVersion: Option[TechniqueVersion]): PureResult[Technique] = {
     (optTechniqueName, opTechniqueVersion) match {
       case (None               , _            ) =>
@@ -438,10 +427,20 @@ class DirectiveApiService2 (
   }
 
   def cloneDirective(directiveId: DirectiveUid, restDirective: RestDirective, source: DirectiveUid) : Box[( EventActor,ModificationId,  Option[String]) => Box[JValue]] = {
+    def checkTechniqueVersion (techniqueRepository: TechniqueRepository, techniqueName: TechniqueName, techniqueVersion: Option[TechniqueVersion]): PureResult[Option[TechniqueVersion]]  = {
+      techniqueVersion match {
+        case Some(version) =>
+          techniqueRepository.getTechniqueVersions(techniqueName).find(_ == version) match {
+            case Some(version) => Right(Some(version))
+            case None => Left(Inconsistency(s" version ${version} of Technique ${techniqueName}  is not valid"))
+          }
+        case None => Right(None)
+      }
+    }
     for {
       name                                        <- Box(restDirective.name) ?~! s"Directive name is not defined in request data."
       (technique,activeTechnique,sourceDirective) <- readDirective.getDirectiveWithContext(source).notOptional(s"Cannot find Directive ${source.value} to use as clone base.").toBox
-      version                                     <- DirectiveApiService.checkTechniqueVersion(techniqueRepository, technique.id.name, restDirective.techniqueVersion).chainError(s"Cannot find a valid technique version" ).toBox
+      version                                     <- checkTechniqueVersion(techniqueRepository, technique.id.name, restDirective.techniqueVersion).chainError(s"Cannot find a valid technique version" ).toBox
       newDirective                                =  restDirective.copy(enabled = Some(false),techniqueVersion = version)
       baseDirective                               =  sourceDirective.modify(_.id.uid).setTo(directiveId)
     } yield {
@@ -601,7 +600,7 @@ class DirectiveApiService14 (
     }
   }
 
-  def getTechniqueWithVersion(optTechniqueName: Option[TechniqueName], opTechniqueVersion: Option[TechniqueVersion], revision: Option[Revision]): IOResult[Technique] = {
+  def getTechniqueWithVersion(optTechniqueName: Option[TechniqueName], opTechniqueVersion: Option[TechniqueVersion]): IOResult[Technique] = {
     // we need at least a name.
     // It version is not specified, use last version of technique, last revision, even if revision is specified (if someone want something precise, he must give the main version)
     // If both version and revision are specified, revision from techniqueRevision field is prefered.
@@ -609,15 +608,14 @@ class DirectiveApiService14 (
       case (None               , _            ) =>
         Inconsistency("techniqueName should not be empty").fail
       case (Some(techniqueName), None         ) => // get last version of technique, with last revision in that case
-          IOResult.effect(techniqueRepository.getLastTechniqueByName(techniqueName)).notOptional( s"Error while fetching last version of technique ${techniqueName}")
+          IOResult.effect(techniqueRepository.getLastTechniqueByName(techniqueName)).notOptional( s"Error while fetching last version of technique ${techniqueName.value}")
       case (Some(techniqueName), Some(version)) =>
-        val v = version.modify(_.rev).using(r => revision.getOrElse(r))
-        val id = TechniqueId(techniqueName, v)
-        configRepository.getTechnique(id).notOptional(s" Technique ${techniqueName} version ${version} is not a valid Technique")
+        val id = TechniqueId(techniqueName, version)
+        configRepository.getTechnique(id).notOptional(s" Technique '${techniqueName.value}' version '${version.serialize}' is not a valid Technique")
     }
   }
 
-  def createOrCloneDirective(restDirective: JQDirective, directiveId: DirectiveUid, source: Option[DirectiveId], techniqueRevision: Option[Revision], params: DefaultParams, actor: EventActor): IOResult[JRDirective] = {
+  def createOrCloneDirective(restDirective: JQDirective, directiveId: DirectiveUid, source: Option[DirectiveId], params: DefaultParams, actor: EventActor): IOResult[JRDirective] = {
     def actualDirectiveCreation(restDirective: JQDirective, baseDirective: Directive, activeTechnique: ActiveTechnique, technique: Technique, params: DefaultParams, actor: EventActor): IOResult[JRDirective] = {
       val newDirective = restDirective.updateDirective(baseDirective)
       val modId = ModificationId(uuidGen.newUuid)
@@ -649,10 +647,9 @@ class DirectiveApiService14 (
           name          <- restDirective.displayName.checkMandatory(_.size > 3, v => "'displayName' is mandatory and must be at least 3 char long")
           ad            <- configRepository.getDirective(cloneId).notOptional(s"Can not find directive to clone: ${cloneId.debugString}")
           // technique version: by default, directive one. It techniqueVersion is given, use that. If techniqueRevision is specified, use it.
-          techVersion   =  restDirective.techniqueVersion.getOrElse(ad.directive.techniqueVersion).modify(_.rev).using(r => restDirective.techniqueRevision.getOrElse(r))
+          techVersion   =  restDirective.techniqueVersion.getOrElse(ad.directive.techniqueVersion)
           techId        =  TechniqueId(ad.activeTechnique.techniqueName, techVersion)
           technique     <- configRepository.getTechnique(techId).notOptional(s"Technique with ID '${techId.debugString}' was not found")
-          _             <- DirectiveApiService.checkTechniqueVersion(techniqueRepository, technique.id.name, restDirective.techniqueVersion).chainError(s"Cannot find a valid technique version" ).toIO
           newDirective  =  restDirective.copy(enabled = Some(false), techniqueVersion = Some(techId.version))
           baseDirective =  ad.directive.modify(_.id.uid).setTo(directiveId)
           result        <- actualDirectiveCreation(newDirective, baseDirective, ad.activeTechnique, technique, params, actor)
@@ -662,7 +659,7 @@ class DirectiveApiService14 (
       case None =>
         for {
           name            <- restDirective.displayName.checkMandatory(_.size > 3, v => "'displayName' is mandatory and must be at least 3 char long")
-          technique       <- getTechniqueWithVersion(restDirective.techniqueName, restDirective.techniqueVersion, restDirective.techniqueRevision).chainError(s"Technique is not correctly defined in request data.")
+          technique       <- getTechniqueWithVersion(restDirective.techniqueName, restDirective.techniqueVersion).chainError(s"Technique is not correctly defined in request data.")
           activeTechnique <- readDirective.getActiveTechnique(technique.id.name).notOptional(s"Technique ${technique.id.name} cannot be found.")
           baseDirective   =  Directive(DirectiveId(directiveId, GitVersion.DEFAULT_REV), technique.id.version, Map(), name, "", None, _isEnabled = true)
           result          <- actualDirectiveCreation(restDirective, baseDirective, activeTechnique, technique, params, actor)
@@ -697,7 +694,7 @@ class DirectiveApiService14 (
   def updateDirective(restDirective: JQDirective, params: DefaultParams, actor: EventActor): IOResult[JRDirective] = {
     for {
       id               <- restDirective.id.notOptional(s"Directive id is mandatory in update")
-      directiveUpdate  <- updateDirectiveModel(DirectiveUid(id), restDirective)
+      directiveUpdate  <- updateDirectiveModel(id.uid, restDirective)
       updatedTechnique =  directiveUpdate.after.technique
       updatedDirective =  directiveUpdate.after.directive
       oldTechnique     =  directiveUpdate.before.technique

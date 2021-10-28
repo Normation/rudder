@@ -128,22 +128,22 @@ class RestDataExtractorTest extends Specification {
             ]
          }"""
       , JQRule(
-            Some("0c1713ae-cb9d-4f7b-abda-ca38c5d643ea")
+            RuleId.parse("0c1713ae-cb9d-4f7b-abda-ca38c5d643ea").toOption
           , Some("Security policy")
           , Some("38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca")
           , Some("Baseline applying CIS guidelines")
           , Some("This rules should be applied to all Linux nodes required basic hardening")
-          , Some(Set(DirectiveUid("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f")))
+          , Some(Set(DirectiveId(DirectiveUid("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f"))))
           , Some(Set(JRRuleTargetString(AllTarget)))
           , Some(true)
           , Some(Tags(Set(Tag(TagName("customer"), TagValue("MyCompany")))))
-          , Some("b9f6d98a-28bc-4d80-90f7-d2f14269e215")
+          , RuleId.parse("b9f6d98a-28bc-4d80-90f7-d2f14269e215").toOption
         )
       ),
       ("""{
             "source": "b9f6d98a-28bc-4d80-90f7-d2f14269e215"
          }"""
-      , JQRule(source = Some("b9f6d98a-28bc-4d80-90f7-d2f14269e215"))
+      , JQRule(source = RuleId.parse("b9f6d98a-28bc-4d80-90f7-d2f14269e215").toOption)
       ),
       ("""{
             "category": "38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca"

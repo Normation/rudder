@@ -88,12 +88,21 @@ object TechniqueVersion {
       case VersionPart.After(Separator.Dot, PartType.Numeric(_)) => true
       case x                                                     => false
     }) {
-      Right(new TechniqueVersion(v, GitVersion.DEFAULT_REV))
+      Right(new TechniqueVersion(v, rev))
     } else {
       Left("Technique version must be composed of digits")
     }
   }
 
+  /*
+   * Technique parsing is a bit more complexe than RuleId/etc
+   * because technnique version must be parsed, too.
+   * We start by splitting on "+", since technique version can't have
+   * that character in them, but we still take the last bit of the split
+   * for revision, and redo a string separated with + with the first parts
+   * (of course, if "+" is authorized in techniques version, we don't know
+   * if the '+' is for the version or the revision).
+   */
   def parse(value: String): Either[String, TechniqueVersion] = {
     val (v, rev) = {
       val parts = value.split("\\+")

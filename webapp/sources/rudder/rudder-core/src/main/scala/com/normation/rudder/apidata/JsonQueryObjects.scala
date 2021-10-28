@@ -150,7 +150,7 @@ object JsonQueryObjects {
   )
   // the input query mapping
   final case class JQDirective(
-      id               : Option[String]                           = None
+      id               : Option[DirectiveId]                      = None
     , displayName      : Option[String]                           = None
     , shortDescription : Option[String]                           = None
     , longDescription  : Option[String]                           = None
@@ -165,9 +165,7 @@ object JsonQueryObjects {
     , policyMode       : Option[Option[PolicyMode]]               = None
     , tags             : Option[Tags]                             = None
       //for clone
-    , source           : Option[String]                           = None
-    , sourceRevision   : Option[String]                           = None
-    , techniqueRevision: Option[Revision]                         = None
+    , source           : Option[DirectiveId]                      = None
   ) {
     val onlyName = displayName.isDefined    &&
                    shortDescription.isEmpty &&
@@ -184,7 +182,7 @@ object JsonQueryObjects {
 
     def updateDirective(directive: Directive) = {
       directive.patchUsing(PatchDirective(
-          id.map(x => DirectiveId(DirectiveUid(x), GitVersion.DEFAULT_REV))
+          id
         , techniqueVersion
         , parameters.flatMap(_.get("section").map(s => SectionVal.toMapVariables(s.toSectionVal._2)))
         , displayName
@@ -196,27 +194,20 @@ object JsonQueryObjects {
         , tags
       ))
     }
-
-    def getSourceId = source match {
-      case None    => None
-      case Some(x) => Some(DirectiveId(DirectiveUid(x), sourceRevision.map(Revision).getOrElse(GitVersion.DEFAULT_REV)))
-    }
-
   }
 
   final case class JQRule(
-      id               : Option[String]              = None
+      id               : Option[RuleId]              = None
     , displayName      : Option[String]              = None
     , category         : Option[String]              = None
     , shortDescription : Option[String]              = None
     , longDescription  : Option[String]              = None
-    , directives       : Option[Set[DirectiveUid]]    = None
+    , directives       : Option[Set[DirectiveId]]    = None
     , targets          : Option[Set[JRRuleTarget]]   = None
     , enabled          : Option[Boolean]             = None
     , tags             : Option[Tags]                = None
       //for clone
-    , source           : Option[String]              = None
-    , sourceRevision   : Option[String]              = None
+    , source           : Option[RuleId]              = None
   ) {
 
     val onlyName = displayName.isDefined    &&
@@ -229,16 +220,19 @@ object JsonQueryObjects {
                    tags.isEmpty  // no need to check source or reason
 
     def updateRule(rule: Rule) = {
+      val updateRevision   = id.map(_.rev).getOrElse(rule.id.rev)
       val updateName       = displayName.getOrElse(rule.name)
       val updateCategory   = category.map(RuleCategoryId).getOrElse(rule.categoryId)
       val updateShort      = shortDescription.getOrElse(rule.shortDescription)
       val updateLong       = longDescription.getOrElse(rule.longDescription)
-      val updateDirectives = directives.map(_.map(DirectiveId(_))).getOrElse(rule.directiveIds)
+      val updateDirectives = directives.getOrElse(rule.directiveIds)
       val updateTargets    = targets.map(t => Set[RuleTarget](RuleTarget.merge(t.map(_.toRuleTarget)))).getOrElse(rule.targets)
       val updateEnabled    = enabled.getOrElse(rule.isEnabledStatus)
       val updateTags       = tags.getOrElse(rule.tags)
       rule.copy(
-          name             = updateName
+        // we can't change id, but revision
+          id               = RuleId(rule.id.uid, updateRevision)
+        , name             = updateName
         , categoryId       = updateCategory
         , shortDescription = updateShort
         , longDescription  = updateLong
@@ -394,7 +388,12 @@ trait RudderJsonDecoders {
   implicit val techniqueNameDecoder: JsonDecoder[TechniqueName] = JsonDecoder[String].map(TechniqueName)
   implicit val techniqueVersionDecoder: JsonDecoder[TechniqueVersion] = JsonDecoder[String].mapOrFail(TechniqueVersion.parse(_))
   implicit lazy val ruleCategoryIdDecoder: JsonDecoder[RuleCategoryId]  = JsonDecoder[String].map(RuleCategoryId)
-  implicit lazy val directiveIdsDecoder: JsonDecoder[Set[DirectiveUid]] = JsonDecoder[List[String]].map(_.map(DirectiveUid).toSet)
+  implicit lazy val directiveIdsDecoder: JsonDecoder[Set[DirectiveId]] = {
+    import cats.implicits._
+    JsonDecoder[List[String]].mapOrFail(list => list.traverse(x => DirectiveId.parse(x)).map(_.toSet))
+  }
+  implicit val ruleIdIdDecoder: JsonDecoder[RuleId]  = JsonDecoder[String].mapOrFail(x => RuleId.parse(x))
+  implicit val directiveIdDecoder: JsonDecoder[DirectiveId]  = JsonDecoder[String].mapOrFail(x => DirectiveId.parse(x))
 
   // RestRule
   implicit lazy val ruleDecoder: JsonDecoder[JQRule] = DeriveJsonDecoder.gen
@@ -478,6 +477,12 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         case Some(x) => decoder(x).map(Some(_))
       }
     }
+    def parseString[A](key: String, decoder: String => Either[String, A]): PureResult[Option[A]] = {
+      optGet(key) match {
+        case None    => Right(None)
+        case Some(x) => decoder(x).map(Some(_)).left.map(Inconsistency)
+      }
+    }
   }
 
 
@@ -523,13 +528,15 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
 
   def extractRuleFromParams(params: Map[String,List[String]]) : PureResult[JQRule] = {
     for {
+      id               <- params.parseString("id"  , RuleId.parse)
       enabled          <- params.parse("enabled"   , JsonDecoder[Boolean])
-      directives       <- params.parse("directives", JsonDecoder[Set[DirectiveUid]])
+      directives       <- params.parse("directives", JsonDecoder[Set[DirectiveId]])
       target           <- params.parse("targets"   , JsonDecoder[Set[JRRuleTarget]])
       tags             <- params.parse("tags"      , JsonDecoder[Tags])
+      source           <- params.parseString("source"    , RuleId.parse)
     } yield {
       JQRule(
-          params.optGet("id")
+          id
         , params.optGet("displayName")
         , params.optGet("category")
         , params.optGet("shortDescription")
@@ -538,7 +545,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         , target
         , enabled
         , tags
-        , params.optGet("source")
+        , source
       )
     }
   }
@@ -556,15 +563,17 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
   def extractDirectiveFromParams(params: Map[String,List[String]]) : PureResult[JQDirective] = {
 
     for {
+      id         <- params.parseString("id", DirectiveId.parse)
       enabled    <- params.parse("enabled"          , JsonDecoder[Boolean])
       priority   <- params.parse("priority"         , JsonDecoder[Int])
       parameters <- params.parse("parameters"       , JsonDecoder[Map[String, JQDirectiveSection]])
       policyMode <- params.parse2("policyMode"      , PolicyMode.parseDefault(_))
       tags       <- params.parse("tags"             , JsonDecoder[Tags])
       tv         <- params.parse2("techniqueVersion", TechniqueVersion.parse(_).left.map(Inconsistency(_)))
+      source     <- params.parseString("source"           , DirectiveId.parse)
     } yield {
       JQDirective(
-          params.optGet("id")
+          id
         , params.optGet("displayName")
         , params.optGet("shortDescription")
         , params.optGet("longDescription")
@@ -575,8 +584,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         , tv
         , policyMode
         , tags
-        , params.optGet("source")
-        , params.optGet("sourceRevision")
+        , source
       )
     }
   }

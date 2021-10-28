@@ -37,13 +37,19 @@
 
 package com.normation.cfclerk.domain
 
+import com.normation.GitVersion.Revision
+import com.normation.utils.ParseVersion
+import com.normation.utils.PartType
+import com.normation.utils.Separator
+import com.normation.utils.Version
+import com.normation.utils.VersionPart
+
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 
 @RunWith(classOf[JUnitRunner])
 class TechniqueVersionTest extends Specification {
-
   sequential
 
   "technique version are simple" should {
@@ -56,6 +62,8 @@ class TechniqueVersionTest extends Specification {
     TechniqueVersion.parse("1:a") must beLeft()
     TechniqueVersion.parse("1.0") must beRight()
     TechniqueVersion.parse("4.8.1.5") must beRight()
+    val v = TechniqueVersion(Version(0, PartType.Numeric(1), VersionPart.After(Separator.Dot, PartType.Numeric(0)) :: Nil), Revision("21dae29cc95a8b492325a0fb7625eac07fae3868"))
+    TechniqueVersion.parse("1.0+21dae29cc95a8b492325a0fb7625eac07fae3868") must beRight(v.getOrElse(throw new Exception("error in test init")))
   }
 
 }

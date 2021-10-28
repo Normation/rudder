@@ -38,7 +38,8 @@
 .content-wrapper > .rudder_col{
   padding: 0;
 }
-.content-wrapper .rudder-template .template-sidebar .sidebar-body{
+.content-wrapper .rudder-template .template-sidebar .sidebar-body,
+.rudder-template .template-main .main-table .table-container{
   margin-top: 0;
   display: flex;
   flex: 1;
@@ -505,7 +506,8 @@
 .rudder-template.one-col .template-main .main-details{
   padding-bottom: 50px;
 }
-.rudder-template .template-main .main-container{
+.rudder-template .template-main .main-container,
+.rudder-template .template-main .main-table{
   display: flex;
   flex-direction: column;
   height: calc(100vh - 50px);
@@ -528,12 +530,7 @@
   width: 100%;
 }
 .rudder-template .template-main .main-table{
-  flex: 1;
-  margin-left: -15px;
-  margin-right: -15px;
-}
-.rudder-template .template-main .main-details > .main-table:first-child{
-  margin-top: -10px;
+  background-color: #fff;
 }
 .rudder-template .template-main h2.title-tab {
   margin: 0;
@@ -566,6 +563,7 @@
 .rudder-template .template-main .main-table .dataTable,
 .rudder-template .template-main .main-table .dataTables_wrapper_bottom{
   border-left: none;
+  border-right: none;
 }
 .rudder-template .template-main .main-table .dataTable thead > tr > th:first-child,
 .rudder-template .template-main .main-table .dataTable tbody > tr > td:first-child,
@@ -578,11 +576,11 @@
   padding-left: 15px;
 }
 .rudder-template .tab-table-content .dataTable > tbody > tr:nth-child(even),
-.rudder-template .main-details > .main-table:first-child .dataTable > tbody > tr:nth-child(even){
+.rudder-template .template-main .main-table > .table-container > .dataTable > tbody > tr:nth-child(even){
   background-color: #f2f8ff;
 }
 .rudder-template .tab-table-content .dataTable > tbody > tr:nth-child(even):hover,
-.rudder-template .main-details > .main-table:first-child .dataTable > tbody > tr:nth-child(even):hover{
+.rudder-template .template-main .main-table > .table-container > .dataTable > tbody > tr:nth-child(even):hover{
   background-color: #e2f2ff;
 }
 .rudder-template .tab-table-content .dataTable > tbody > tr > td.dataTables_empty{
