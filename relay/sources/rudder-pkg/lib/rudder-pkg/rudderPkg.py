@@ -42,6 +42,12 @@ def install_file(package_files, exact_version, exit_on_error=True):
                 logger.info('Skipping update, this package cannot be updated')
                 break
             logger.info('The package is already installed, ugrading')
+            # When upgrading, we need to remove previous jar if there is one, because
+            # of https://issues.rudder.io/issues/20204
+            if metadata['type'] == 'plugin' and 'jar-files' in metadata:
+                logger.info('Removing previous plugin jar')
+                utils.remove_previous_jar(metadata['name'])
+
         script_dir = utils.extract_scripts(metadata, package_file)
         utils.run_script('preinst', script_dir, exist, exit_on_error=exit_on_error)
         utils.install(metadata, package_file, exist)

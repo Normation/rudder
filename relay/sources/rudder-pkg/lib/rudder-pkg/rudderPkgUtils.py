@@ -573,6 +573,19 @@ def jar_status(name, enable):
     jetty_needs_restart = True
 
 
+def remove_previous_jar(plugin_name):
+    # sanity check: the plugin is installed
+    if not plugin_name in DB['plugins']:
+        logger.info('Plugin ' + plugin_name + 'is not installed - not removing its jar')
+        return False
+    # get the previous metadata
+    previous_metadata = DB['plugins'][plugin_name]
+    if previous_metadata['type'] == 'plugin' and 'jar-files' in previous_metadata:
+        for j in previous_metadata['jar-files']:
+            jar_status(j, False)
+    return True
+
+
 def remove_files(metadata):
     for filename in reversed(metadata['files']):
         # ignore already removed files
