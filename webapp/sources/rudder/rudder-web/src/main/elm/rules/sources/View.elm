@@ -79,8 +79,8 @@ view model =
         let
           ruleFilters = model.ui.ruleFilters
         in
-          div [class "main-details"]
-          [ div [class "main-table"]
+          div [class "main-table"]
+          [ div [class "table-container"]
             [ table [ class "no-footer dataTable"]
               [ thead []
                 [ tr [class "head"]
@@ -92,9 +92,9 @@ view model =
                   ]
                 ]
               , tbody [] (buildRulesTable model)
+              ]
             ]
           ]
-        ]
 
       RuleForm details ->
         (editionTemplate model details)
