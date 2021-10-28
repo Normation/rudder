@@ -49,3 +49,4 @@ type Msg
   | PostMetricsSettings (Result Error MetricsState   )
   | SetupDone (Result Error Bool   )
   | SaveAction
+  | Redirect

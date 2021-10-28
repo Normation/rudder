@@ -111,7 +111,7 @@ view model =
                 , span[] [text ". Welcome!"]
                 ]
               , div[ class "wizard-btn-group"]
-                [ button[class "btn btn-default", type_ "button", onClick (GoToLast)] [text "I will configure my Rudder later"]
+                [ button[class "btn btn-default", type_ "button", onClick (SaveAction)] [text "I will configure my Rudder later"]
                 , button[class "btn btn-success", type_ "button", onClick (ChangeActiveSection (model.activeSection+1))] [text "Let's configure my account"]
                 ]
               ]
