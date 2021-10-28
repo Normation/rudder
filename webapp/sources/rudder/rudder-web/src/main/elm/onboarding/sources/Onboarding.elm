@@ -1,6 +1,7 @@
 port module Onboarding exposing (update)
 
 import Browser
+import Browser.Navigation
 import DataTypes exposing (..)
 import ApiCalls exposing (..)
 import Init exposing (init, subscriptions)
@@ -73,7 +74,7 @@ update msg model =
             newModel    = {model | sections = newSections}
           in
             (newModel, getMetricsSettings newModel)
-        Err err ->
+        Err _ ->
           (model, (errorNotification "Error while fetching account credentials"))
 
     GetMetricsSettings res ->
@@ -88,28 +89,37 @@ update msg model =
             newModel    = {model | sections = newSections}
           in
             (newModel, Cmd.none)
-        Err err ->
+        Err _ ->
           (model, (errorNotification "Error while fetching metrics"))
 
     PostAccountSettings res ->
       let
         flag = case res of
-          Ok s    -> True
-          Err err -> False
+          Ok _    -> True
+          Err _ -> False
+
+        metricsSettings = case List.Extra.getAt 2 model.sections of
+          Just  s -> case s of
+            Metrics _ settings -> settings
+            _ -> NoMetrics
+          Nothing -> NoMetrics
       in
-        ({model | saveAccountFlag = flag}, Cmd.none)
+        ({model | saveAccountFlag = flag}, postMetricsSettings model metricsSettings)
 
     PostMetricsSettings res ->
       let
         flag = case res of
-          Ok s    -> True
-          Err err -> False
+          Ok _  -> True
+          Err _ -> False
       in
-        ({ model | saveMetricsFlag = flag}, Cmd.none)
+        ({ model | saveMetricsFlag = flag}, setupDone model True)
 
 
     SetupDone _ ->
-        ( model, Cmd.none)
+        ( model, Cmd.batch [ actionsAfterSaving model, Task.perform (always Redirect) (Process.sleep 3000) ])
+
+    Redirect ->
+        ( model, Browser.Navigation.load (model.contextPath ++ "/secure/index.html"))
 
     SaveAction ->
       let
@@ -118,26 +128,15 @@ update msg model =
             Account _ settings -> settings
             _ -> AccountSettings "" "" "" Nothing Nothing Nothing
           Nothing -> AccountSettings "" "" "" Nothing Nothing Nothing
-        metricsSettings = case List.Extra.getAt 2 model.sections of
-          Just  s -> case s of
-            Metrics _ settings -> settings
-            _ -> NoMetrics
-          Nothing -> NoMetrics
-        listActions =
-          [ postAccountSettings model accountSettings
-          , postMetricsSettings model metricsSettings
-          , setupDone model True
-          , actionsAfterSaving model
-          ]
+        listActions =  [ postAccountSettings model accountSettings ]
       in
-        --( model, postMetricsSettings model metricsSettings)
         (model, Cmd.batch listActions)
 
 actionsAfterSaving : Model ->  Cmd Msg
 actionsAfterSaving model =
   if model.saveAccountFlag == True && model.saveMetricsFlag == True then
     -- SAVING SUCCESS
-    successNotification "Your changes have been saved"
+    successNotification "Your changes have been saved. Redirecting to dashboard in a few seconds ..."
   else
     -- ERROR WHILE SAVING
     let
