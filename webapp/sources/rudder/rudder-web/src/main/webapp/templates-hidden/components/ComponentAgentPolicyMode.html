@@ -83,13 +83,8 @@
                  </button>
                </span>
                <span class="first-index">
-                 <span class="button-warning no-modif" ng-if="$parent.nochange && $parent.saving === 0" ng-class="{pop:$parent.pop}">
+                 <span class="button-warning no-modif" ng-if="$parent.nochange && $parent.saving !== 1" ng-class="{pop:$parent.pop}">
                    There are no modifications to save.
-                 </span>
-                 <span class="button-success" ng-class="{pop: $parent.saving === 2, ngHide:$parent.nochange, error:$parent.errorFeedback}">
-                   <span ng-if="!$parent.errorFeedback">Your changes have been saved</span>
-                   <span ng-if="$parent.errorFeedback">Error while saving: {{errorDetails}}</span>
-                   <span class="close-message glyphicon glyphicon-remove" ng-click="$parent.saving=0"></span>
                  </span>
                </span>
              </div>
