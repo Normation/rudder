@@ -43,10 +43,6 @@
   width: 100%;
   display: inline-block;
 }
-/* === OVERRIDE JSTREE === */
-.jstree-default li:last-child {
-  background: transparent;
-}
 /*================= */
 .main-details .row > div > .callout-fade.callout-info:first-child{
   margin-top: 10px;
