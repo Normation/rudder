@@ -1,14 +1,14 @@
 module ViewRulesTable exposing (..)
 
 import DataTypes exposing (..)
-import Html exposing (Html, text,  tr, td, i)
-import Html.Attributes exposing (class, colspan)
+import Html exposing (Html, text,  tr, td, i, span)
+import Html.Attributes exposing (class, colspan, attribute)
 import Html.Events exposing (onClick)
 import List.Extra
 import List
 import String
 import NaturalOrdering exposing (compareOn)
-import ViewUtils exposing (getCategoryName, getListRules, filterSearch, searchFieldRules, buildTagsTree, badgePolicyMode)
+import ViewUtils exposing (getCategoryName, getListRules, filterSearch, searchFieldRules, buildTagsTree, badgePolicyMode, buildTooltipContent)
 import ComplianceUtils exposing (buildComplianceBar, getAllComplianceValues, getRuleCompliance)
 
 --
@@ -72,12 +72,27 @@ buildRulesTable model =
     rowTable : Rule -> Html Msg
     rowTable r =
       let
-        compliance =
-            case getRuleCompliance model r.id of
-              Just co ->
-                buildComplianceBar co.complianceDetails
+        categoryName = text (getCategoryName model r.categoryId)
 
-              Nothing -> text "No report"
+        compliance   =
+          case getRuleCompliance model r.id of
+            Just co ->
+              buildComplianceBar co.complianceDetails
+            Nothing -> text "No report"
+
+        displayStatus : Html Msg
+        displayStatus =
+          let
+            status = text r.status.value
+          in
+            case r.status.details of
+              Just ms ->
+               span[ class "bs-tooltip disabled", attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Reason(s)" ms)]
+               [ status
+               , i[class "fa fa-info-circle"][]
+               ]
+
+              Nothing -> span[][ status ]
       in
             tr[onClick (OpenRuleDetails r.id True)]
             [ td[]
@@ -85,10 +100,9 @@ buildRulesTable model =
               , text r.name
               , buildTagsTree r.tags
               ]
-            , td[][ text (getCategoryName model r.categoryId) ]
-            , td[][ text (if r.enabled then "Enabled" else "Disabled") ]
-            , td[][ compliance ]
-            , td[][ text ""   ]
+            , td[][ categoryName  ]
+            , td[][ displayStatus ]
+            , td[][ compliance    ]
             ]
   in
     if List.length sortedRulesList > 0 then

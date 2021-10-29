@@ -88,7 +88,6 @@ view model =
                   , th [class (thClass model.ui.ruleFilters.tableFilters Parent    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Parent    ))][text "Category"      ]
                   , th [class (thClass model.ui.ruleFilters.tableFilters Status    ) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Status    ))][text "Status"        ]
                   , th [class (thClass model.ui.ruleFilters.tableFilters Compliance) , rowspan 1, colspan 1, onClick (UpdateRuleFilters (sortTable ruleFilters Compliance))][text "Compliance"    ]
-                  , th [class ""                   , rowspan 1, colspan 1][text "Recent changes"]
                   ]
                 ]
               , tbody [] (buildRulesTable model)
