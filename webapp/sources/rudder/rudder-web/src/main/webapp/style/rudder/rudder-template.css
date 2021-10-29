@@ -88,7 +88,9 @@
 .content-wrapper .rudder-template .jstree > .jstree-container-ul:first-child > ul.jstree-children > .jstree-node{
   margin-left: 0px;
 }
-
+.content-wrapper .rudder-template .jstree li:last-child {
+  background: transparent;
+}
 .content-wrapper .rudder-template .jstree .fa.jstree-icon,
 .content-wrapper .rudder-template .jstree .rudder-label.label-sm{
   margin-right: 2px;
