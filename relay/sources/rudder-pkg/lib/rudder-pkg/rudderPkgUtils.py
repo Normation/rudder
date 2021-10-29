@@ -558,6 +558,19 @@ def run_script(name, script_dir, exist, exit_on_error=True):
 
 
 def jar_status(name, enable):
+
+    # we can only enable if the name is in the list of registered jar
+    if enable:
+        canEnable = False
+        for plugin in DB['plugins'].keys():
+            metadata = DB['plugins'][plugin]
+            if 'jar-files' in metadata:
+                if name in metadata['jar-files']:
+                    canEnable = True
+        if not canEnable:
+            logger.info("Don't restore jar " + name + ' as it is not in the list of registered jar')
+            return
+
     global jetty_needs_restart
     text = open(PLUGINS_CONTEXT_XML).read()
 
