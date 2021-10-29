@@ -40,6 +40,7 @@ type alias Rule =
   , directives        : List DirectiveId
   , targets           : List RuleTarget
   , policyMode        : String
+  , status            : RuleStatus
   , tags              : List Tag
   }
 
@@ -138,6 +139,11 @@ type alias Report =
   , message : Maybe String
   }
 
+type alias RuleStatus =
+  { value   : String
+  , details : Maybe String
+  }
+
 type alias NodeCompliance =
   { nodeId : NodeId
   , name   : String
@@ -172,8 +178,6 @@ type alias ComponentComplianceByNode =
   , complianceDetails : ComplianceDetails
   , value             : List ValueCompliance
   }
-
-
 
 type alias ComplianceDetails =
   { successNotApplicable       : Maybe Float

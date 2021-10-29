@@ -205,7 +205,7 @@ buildTagsTree tags =
 
     tooltipContent : List Tag -> String
     tooltipContent listTags =
-      "<h4 class='tags-tooltip-title'>Tags <span class='tags-label'><i class='fa fa-tags'></i><b>"++ (String.fromInt nbTags) ++"</b></span></h4><div class='tags-list'>" ++ (String.concat (List.map (\tt -> buildHtmlStringTag tt) listTags)) ++ "</div>"
+      buildTooltipContent ("Tags <span class='tags-label'><i class='fa fa-tags'></i><b>"++ (String.fromInt nbTags) ++"</b></span>") (String.concat (List.map (\tt -> buildHtmlStringTag tt) listTags))
   in
     if (nbTags > 0) then
       span [class "tags-label bs-tooltip", attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (tooltipContent tags)]
@@ -231,7 +231,7 @@ buildTagsList tags =
 
     tooltipContent : List Tag -> String
     tooltipContent listTags =
-      "<h4 class='tags-tooltip-title'>Tags <span class='tags-label'><i class='fa fa-tags'></i><b><i>"++ (String.fromInt (nbTags - 2)) ++" more</i></b></span></h4><div class='tags-list'>" ++ (String.concat (List.map (\tt -> buildHtmlStringTag tt) listTags)) ++ "</div>"
+      buildTooltipContent ("Tags <span class='tags-label'><i class='fa fa-tags'></i><b><i>"++ (String.fromInt (nbTags - 2)) ++" more</i></b></span>") (String.concat (List.map (\tt -> buildHtmlStringTag tt) listTags))
   in
     if (nbTags > 0) then
       if (nbTags > 2) then
@@ -255,3 +255,12 @@ badgePolicyMode globalPolicyMode policyMode =
     mode = if policyMode == "default" then globalPolicyMode else policyMode
   in
     span [class ("rudder-label label-sm label-" ++ mode)][]
+
+buildTooltipContent : String -> String -> String
+buildTooltipContent title content =
+  let
+    headingTag = "<h4 class='tags-tooltip-title'>"
+    contentTag = "</h4><div class='tooltip-inner-content'>"
+    closeTag   = "</div>"
+  in
+    headingTag ++ title ++ contentTag ++ content ++ closeTag

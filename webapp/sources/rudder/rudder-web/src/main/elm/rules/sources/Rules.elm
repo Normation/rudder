@@ -195,7 +195,7 @@ update msg model =
 
     NewRule id ->
       let
-        rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] "" []
+        rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] "" (RuleStatus "" Nothing) []
         ruleDetails = RuleDetails Nothing rule Information (RuleDetailsUI True True (Tag "" ""))
       in
         ({model | mode = RuleForm ruleDetails}, Cmd.none)
