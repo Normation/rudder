@@ -326,13 +326,13 @@ blockBody model parentId block ui techniqueUi =
                   ]
     methodName = case ui.mode of
                    Opened -> element "input"
-                             |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , onBlur EnableDragDrop, type_ "text", name "component", style "width" "calc(100% - 50px)", class "form-control", value block.component,  placeholder "Enter a component name" ]
+                             |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop, onBlur (EnableDragDrop block.id)  , type_ "text", name "component", style "width" "calc(100% - 50px)", class "form-control", value block.component,  placeholder "Enter a component name" ]
                              |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
                    Closed -> element "div"
                              |> addClass "method-name"
                              |> addStyleListConditional [ ("font-style", "italic"), ("opacity", "0.7") ]  (String.isEmpty block.component)
                              |> addClassConditional "text-danger"  (String.isEmpty block.component)
-                             |> appendText  (if (String.isEmpty block.component) then "No component name" else block.component)
+                             |> appendText  (if (String.isEmpty block.component) then "No component name" else block.id.value)
 
     currentDrag = case DragDrop.currentlyDraggedObject model.dnd of
                     Just (Move x) -> getId x == block.id
@@ -344,7 +344,8 @@ blockBody model parentId block ui techniqueUi =
   |> addClass "method"
   |> addAttribute (id block.id.value)
   |> addAttribute (hidden currentDrag)
-  |> (if techniqueUi.enableDragDrop then DragDrop.makeDraggable model.dnd (Move (Block parentId block)) dragDropMessages else identity)
+  |> addActionStopPropagation ("mousedown", EnableDragDrop block.id)
+  |> (if (techniqueUi.enableDragDrop == Just block.id) then DragDrop.makeDraggable model.dnd (Move (Block parentId block)) dragDropMessages else identity)
   |> Dom.appendChildList
      [ dragElem
      , element "div"

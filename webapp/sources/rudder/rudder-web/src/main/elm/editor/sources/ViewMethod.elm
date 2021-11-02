@@ -11,7 +11,7 @@ import MethodConditions exposing (..)
 import Regex
 import String.Extra
 import MethodElemUtils exposing (..)
-import Dom.DragDrop as DragDrop
+import Dom.DragDrop as DragDrop exposing (State)
 import Dom exposing (..)
 import Json.Decode
 import AgentValueParser exposing (..)
@@ -69,7 +69,7 @@ showParam model call state methodParam param =
       ]
     , small [] [ text ( " " ++ methodParam.description) ]
     ]
-  , textarea  [ attribute "draggable" "false", stopPropagationOn "click" (Json.Decode.succeed (Ignore, True)), onFocus DisableDragDrop , onBlur EnableDragDrop,  readonly (not model.hasWriteRights),  name "param", class "form-control", rows  1 , value (displayValue param.value) , onInput  (MethodCallParameterModified call param.id)   ] [] --msd-elastic     ng-trim="{{trimParameter(parameterInfo)}}" ng-model="parameter.value"></textarea>
+  , textarea  [ attribute "draggable" "false", stopPropagationOn "click" (Json.Decode.succeed (Ignore, True)), onFocus DisableDragDrop,  readonly (not model.hasWriteRights),  name "param", class "form-control", rows  1 , value (displayValue param.value) , onInput  (MethodCallParameterModified call param.id)   ] [] --msd-elastic     ng-trim="{{trimParameter(parameterInfo)}}" ng-model="parameter.value"></textarea>
   , if (not (List.isEmpty errors)) then ul [ class "list-unstyled" ]
       (List.map (\e -> li [ class "text-danger" ] [ text e ]) errors)
     else text ""
@@ -172,7 +172,7 @@ showMethodTab model method parentId call uiInfo=
         ]
       , div [ class "form-group condition-form" ] [
           label [ for "advanced"] [ text "Other conditions:" ]
-        , textarea [  readonly (not model.hasWriteRights), onFocus DisableDragDrop , onBlur EnableDragDrop, name "advanced", class "form-control", rows 1, id "advanced", value condition.advanced, onInput (\s ->
+        , textarea [  readonly (not model.hasWriteRights), onFocus DisableDragDrop, name "advanced", class "form-control", rows 1, id "advanced", value condition.advanced, onInput (\s ->
                      let
                        updatedCondition = {condition | advanced = s }
                        updatedCall = Call parentId {call | condition = updatedCondition }
@@ -180,7 +180,7 @@ showMethodTab model method parentId call uiInfo=
        ]
       , div [ class "form-group condition-form" ] [
           label [ for "class_context" ] [ text "Applied condition expression:" ]
-        , textarea [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , onBlur EnableDragDrop,  name "class_context",  class "form-control",  rows 1, id "advanced", value (conditionStr condition), readonly True ] []
+        , textarea [ readonly (not model.hasWriteRights), onFocus DisableDragDrop,  name "class_context",  class "form-control",  rows 1, id "advanced", value (conditionStr condition), readonly True ] []
         , if String.length (conditionStr condition) > 2048 then
             span [ class "text-danger" ] [text "Classes over 2048 characters are currently not supported." ]
           else
@@ -341,8 +341,6 @@ callBody model ui techniqueUi call pid =
                      |> appendText "Condition:"
                    , element "span"
                      |> appendText (conditionStr call.condition)
-                     |> addAction ("onmousedown", DisableDragDrop)
-                     |> addAction ("onmouseup", EnableDragDrop)
                      |> addAttributeList
                         [ class "popover-bs", title (conditionStr call.condition)
                         , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "top"
@@ -353,11 +351,11 @@ callBody model ui techniqueUi call pid =
                   ]
     methodName = case ui.mode of
                    Opened -> element "input"
-                             |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , onBlur EnableDragDrop, type_ "text", name "component", style "width" "calc(100% - 65px)", class "form-control", value call.component,  placeholder "Enter a component name" ]
+                             |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop, type_ "text", name "component", style "width" "calc(100% - 65px)", class "form-control", value call.component,  placeholder "Enter a component name" ]
                              |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s }))
                    Closed -> element "div"
                              |> addClass "method-name"
-                             |> appendText  (if (String.isEmpty call.component) then method.name else call.component)
+                             |> appendText  (if (String.isEmpty call.component) then method.name else call.id.value )
                              |> appendChildConditional
                                   (element "span" |> addStyle ("opacity"," 0.4") |> appendText (" - "++ method.name) )
                                   ((not (String.isEmpty call.component)) && call.component /= method.name )
@@ -365,8 +363,6 @@ callBody model ui techniqueUi call pid =
 
     methodContent = element "div"
                     |> addClass  "method-param flex-form"
-                    |> addActionStopAndPrevent ("dragstart", Ignore)
-                    |> addListenerStopAndPrevent ("dragStart", Json.Decode.succeed Ignore)
                     |> appendChildList
                        [ element "label" |> appendText ((parameterName classParameter) ++ ": ")
                        , element "span"
@@ -382,7 +378,9 @@ callBody model ui techniqueUi call pid =
   |> addClass "method"
   |> addAttribute (id call.id.value)
   |> addAttribute (hidden currentDrag)
-  |> (if techniqueUi.enableDragDrop then DragDrop.makeDraggable model.dnd (Move (Call pid call)) dragDropMessages else identity)
+  |> addActionStopPropagation ("mousedown", EnableDragDrop call.id)
+  |> (if techniqueUi.enableDragDrop == (Just call.id) then DragDrop.makeDraggable model.dnd (Move (Call pid call)) dragDropMessages else identity)
+  |> addAction ( "dragend", MoveFirstElemBLock (Call pid call))
   |> Dom.appendChildList
      [ dragElem
      , element "div"
@@ -417,8 +415,8 @@ callBody model ui techniqueUi call pid =
                         ( element "div"
                           |> addClass "method-details"
                           |> appendNode (methodDetail method call pid ui model )
-                          |> addAttribute (VirtualDom.property "draggable" (Json.Encode.bool techniqueUi.enableDragDrop))
-                          |> addActionStopAndPrevent ("dragstart", Ignore)
+                          |> addAttribute (VirtualDom.property "draggable" (Json.Encode.bool (techniqueUi.enableDragDrop == Just call.id)))
+
                         ) (ui.mode == Opened)
 
         ]
