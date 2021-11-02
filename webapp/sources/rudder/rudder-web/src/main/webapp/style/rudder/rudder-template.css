@@ -196,7 +196,7 @@
 .header-buttons .dropdown-toggle{
   border: 1px solid #ccc;
 }
-.header-buttons .dropdown-toggle:hover{
+.header-buttons .dropdown-toggle:hover, .btn.btn-default:hover{
   background-color: #eeeaea;
 }
 .header-buttons .dropdown-menu{
@@ -286,6 +286,15 @@
   display: inline-flex;
   border-radius: 4px;
   overflow: hidden;
+}
+.badge-block{
+  padding: 0 !important;
+  display: inline-flex;
+  border-radius: 4px;
+  overflow: hidden;
+  font-size: 8px;
+  min-width: 16px;
+  padding : 3px;
 }
 .badge span,
 .badge > span{
