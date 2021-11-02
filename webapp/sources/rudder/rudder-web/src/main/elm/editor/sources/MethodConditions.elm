@@ -5,6 +5,14 @@ module MethodConditions exposing (..)
 -- This file model the "condition" form applied to generic methods
 --
 
+--
+-- This is not an exact mapping of Rudder language OS conditions but a simplified version
+-- to handle most common cases.
+--
+-- For example, Amazon Linux versions are not handled as they are not cleanly mapped to
+-- sensible CFEngine classes.
+--
+
 
 type OS = AIX     { version : Maybe  Int }
         | Linux   ( Maybe LinuxOS )
@@ -16,14 +24,20 @@ type alias Condition =
   , advanced : String
   }
 
-type LinuxOS = Debian    { major : Maybe  Int, minor : Maybe Int }
+-- Here Redhat and Suse are actually families of OSes
+-- But we want to avoid a third level of selection so we keep them inline
+type LinuxOS = DebianFamily
+             | Debian    { major : Maybe  Int, minor : Maybe Int }
              | Ubuntu    { major : Maybe  Int, minor : Maybe Int }
-             | RH        { major : Maybe  Int, minor : Maybe Int }
+             | RedhatFamily
+             | RHEL      { major : Maybe  Int, minor : Maybe Int }
              | Centos    { major : Maybe  Int, minor : Maybe Int }
+             | Alma      { major : Maybe  Int, minor : Maybe Int }
+             | Rocky     { major : Maybe  Int, minor : Maybe Int }
+             | Oracle    { major : Maybe  Int, minor : Maybe Int }
              | Fedora    { version : Maybe  Int }
-             | Oracle
              | Amazon
-             | Suse
+             | SuseFamily
              | SLES      { version : Maybe  Int, sp : Maybe Int }
              | SLED      { version : Maybe  Int, sp : Maybe Int }
              | OpenSuse  { major : Maybe  Int, minor : Maybe Int }
@@ -42,18 +56,22 @@ osName maybeOs =
         Linux Nothing -> "Linux"
         Linux (Just linux) ->
           case linux of
-            Debian _    -> "Debian (and derivatives)"
-            Ubuntu _    -> "Ubuntu"
-            RH _        -> "Red hat (and derivatives)"
-            Centos _    -> "CentOS"
-            Fedora _    -> "Fedora"
-            Oracle      -> "Oracle Linux"
-            Amazon      -> "Amazon Linux"
-            Suse        -> "SuSE family"
-            SLES _      -> "SLES"
-            SLED _      -> "SLED"
-            OpenSuse _  -> "OpenSuSE"
-            Slackware _ -> "Slackware"
+            DebianFamily  -> "Debian family"
+            Debian _      -> "Debian"
+            Ubuntu _      -> "Ubuntu"
+            RedhatFamily  -> "Red Hat family"
+            RHEL _        -> "RHEL"
+            Centos _      -> "CentOS"
+            Alma _        -> "AlmaLinux"
+            Rocky _       -> "Rocky Linux"
+            Oracle _      -> "Oracle Linux"
+            Fedora _      -> "Fedora"
+            Amazon        -> "Amazon Linux"
+            SuseFamily    -> "SUSE family"
+            SLES _        -> "SLES"
+            SLED _        -> "SLED"
+            OpenSuse _    -> "OpenSUSE"
+            Slackware _   -> "Slackware"
 
 majorMinorVersionCondition: String -> { major : Maybe Int, minor : Maybe Int} -> String
 majorMinorVersionCondition s v =
@@ -73,18 +91,24 @@ versionSPCondition s v =
 conditionLinux: LinuxOS -> String
 conditionLinux os =
   case os of
-    Debian v    -> majorMinorVersionCondition "debian" v
-    Ubuntu v    -> majorMinorVersionCondition "ubuntu" v
-    RH v        -> majorMinorVersionCondition "redhat" v
-    Centos v    -> majorMinorVersionCondition "centos" v
-    Fedora v    -> Maybe.withDefault "fedora" (Maybe.map (String.fromInt >> (++) "fedora_") v.version)
-    Oracle      -> "oracle_linux"
-    Amazon      -> "amazon_linux"
-    Suse        -> "suse"
-    SLES v      -> versionSPCondition "sles" v
-    SLED v      -> versionSPCondition "sled" v
-    OpenSuse v  -> majorMinorVersionCondition "opensuse" v
-    Slackware v -> majorMinorVersionCondition "slackware" v
+    DebianFamily  -> "debian"
+    Debian v      -> majorMinorVersionCondition "debian" v
+    Ubuntu v      -> majorMinorVersionCondition "ubuntu" v
+    RedhatFamily  -> "redhat"
+    -- redhat_x_y are defined on Oracle Linux too,
+    -- but let's keep things simple here.
+    RHEL v        -> majorMinorVersionCondition "redhat" v
+    Centos v      -> majorMinorVersionCondition "centos" v
+    Alma v        -> majorMinorVersionCondition "almalinux" v
+    Rocky v       -> majorMinorVersionCondition "rocky" v
+    Oracle v      -> majorMinorVersionCondition "oracle" v
+    Fedora v      -> Maybe.withDefault "fedora" (Maybe.map (String.fromInt >> (++) "fedora_") v.version)
+    Amazon        -> "amazon_linux"
+    SuseFamily    -> "suse"
+    SLES v        -> versionSPCondition "sles" v
+    SLED v        -> versionSPCondition "sled" v
+    OpenSuse v    -> majorMinorVersionCondition "opensuse" v
+    Slackware v   -> majorMinorVersionCondition "slackware" v
 
 conditionOs : OS -> String
 conditionOs os =
@@ -107,8 +131,9 @@ parseOs os =
   case String.split "_" os of
     [ "windows" ]      -> Just Windows
     [ "linux" ]        -> Just (Linux Nothing)
-    [ "suse" ]         -> Just (Linux (Just (Suse)))
-    [ "oracle_linux" ] -> Just (Linux (Just (Oracle)))
+    [ "suse" ]         -> Just (Linux (Just (SuseFamily)))
+    [ "redhat" ]       -> Just (Linux (Just (RedhatFamily)))
+    [ "debian" ]       -> Just (Linux (Just (DebianFamily)))
     [ "amazon_linux" ] -> Just (Linux (Just (Amazon)))
 
     [ "fedora" ]        -> Just (Linux (Just (Fedora  { version = Nothing })))
@@ -116,15 +141,14 @@ parseOs os =
                              Nothing -> Nothing
                              x       -> Just (Linux (Just (Fedora { version = x })))
 
-    [ "redhat" ]               -> Just (Linux (Just (RH { major = Nothing, minor = Nothing })))
     [ "redhat", major ]        -> case String.toInt major of
                                     Nothing -> Nothing
-                                    x       -> Just (Linux (Just (RH { major = x, minor = Nothing })))
+                                    x       -> Just (Linux (Just (RHEL { major = x, minor = Nothing })))
     [ "redhat", major, minor ] -> case (String.toInt major, String.toInt minor) of
                                     (Nothing, Nothing) -> Nothing
                                     (Just _, Nothing)  -> Nothing
                                     (Nothing, Just _ ) -> Nothing
-                                    (x, y)             -> Just (Linux (Just (RH { major = x, minor = y })))
+                                    (x, y)             -> Just (Linux (Just (RHEL { major = x, minor = y })))
 
     [ "centos" ]               -> Just (Linux (Just (Centos { major = Nothing, minor = Nothing })))
     [ "centos", major ]        -> case String.toInt major of
@@ -136,7 +160,36 @@ parseOs os =
                                     (Nothing, Just _ ) -> Nothing
                                     (x, y)             -> Just (Linux (Just (Centos { major = x, minor = y })))
 
-    [ "debian" ]               -> Just (Linux (Just (Debian { major = Nothing, minor = Nothing })))
+    [ "almalinux" ]               -> Just (Linux (Just (Alma { major = Nothing, minor = Nothing })))
+    [ "almalinux", major ]        -> case String.toInt major of
+                                    Nothing -> Nothing
+                                    x       -> Just (Linux (Just (Alma { major = x, minor = Nothing })))
+    [ "almalinux", major, minor ] -> case (String.toInt major, String.toInt minor) of
+                                    (Nothing, Nothing) -> Nothing
+                                    (Just _, Nothing)  -> Nothing
+                                    (Nothing, Just _ ) -> Nothing
+                                    (x, y)             -> Just (Linux (Just (Alma { major = x, minor = y })))
+
+    [ "rocky" ]               -> Just (Linux (Just (Rocky { major = Nothing, minor = Nothing })))
+    [ "rocky", major ]        -> case String.toInt major of
+                                    Nothing -> Nothing
+                                    x       -> Just (Linux (Just (Rocky { major = x, minor = Nothing })))
+    [ "rocky", major, minor ] -> case (String.toInt major, String.toInt minor) of
+                                    (Nothing, Nothing) -> Nothing
+                                    (Just _, Nothing)  -> Nothing
+                                    (Nothing, Just _ ) -> Nothing
+                                    (x, y)             -> Just (Linux (Just (Rocky { major = x, minor = y })))
+
+    [ "oracle" ]               -> Just (Linux (Just (Oracle { major = Nothing, minor = Nothing })))
+    [ "oracle", major ]        -> case String.toInt major of
+                                    Nothing -> Nothing
+                                    x       -> Just (Linux (Just (Oracle { major = x, minor = Nothing })))
+    [ "oracle", major, minor ] -> case (String.toInt major, String.toInt minor) of
+                                    (Nothing, Nothing) -> Nothing
+                                    (Just _, Nothing)  -> Nothing
+                                    (Nothing, Just _ ) -> Nothing
+                                    (x, y)             -> Just (Linux (Just (Oracle { major = x, minor = y })))
+
     [ "debian", major ]        -> case String.toInt major of
                                     Nothing -> Nothing
                                     x       -> Just (Linux (Just (Debian { major = x, minor = Nothing })))
@@ -221,14 +274,18 @@ osList : List (Maybe OS)
 osList =
   [ Nothing
   , Just (Linux Nothing)
+  , Just (Linux (Just (DebianFamily)))
   , Just (Linux (Just (Debian noVersion)))
   , Just (Linux (Just (Ubuntu noVersion)))
-  , Just (Linux (Just (RH noVersion)))
+  , Just (Linux (Just (RedhatFamily)))
+  , Just (Linux (Just (RHEL noVersion)))
   , Just (Linux (Just (Centos noVersion)))
+  , Just (Linux (Just (Alma noVersion)))
+  , Just (Linux (Just (Rocky noVersion)))
+  , Just (Linux (Just (Oracle noVersion)))
   , Just (Linux (Just (Fedora {version = Nothing})))
-  , Just (Linux (Just (Oracle)))
   , Just (Linux (Just (Amazon)))
-  , Just (Linux (Just (Suse)))
+  , Just (Linux (Just (SuseFamily)))
   , Just (Linux (Just (SLES {version = Nothing, sp = Nothing})))
   , Just (Linux (Just (SLED {version = Nothing, sp = Nothing})))
   , Just (Linux (Just (OpenSuse noVersion)))
@@ -267,7 +324,7 @@ updateVersion newVersion os =
     Just (AIX v) -> Just (AIX {v | version = newVersion})
     _ -> os
 
--- for OS with service patcks
+-- for OS with service packs
 hasSP: Maybe OS -> Bool
 hasSP os =
   case os of
@@ -295,8 +352,11 @@ hasMajorMinorVersion os =
   case os of
     Just (Linux (Just (Debian _))) -> True
     Just (Linux (Just (Ubuntu _)))-> True
-    Just (Linux (Just (RH _))) -> True
+    Just (Linux (Just (RHEL _))) -> True
     Just (Linux (Just (Centos _))) -> True
+    Just (Linux (Just (Alma _))) -> True
+    Just (Linux (Just (Rocky _))) -> True
+    Just (Linux (Just (Oracle _))) -> True
     Just (Linux (Just (OpenSuse _))) -> True
     Just (Linux (Just (Slackware _))) -> True
     Just (Solaris _) -> True
@@ -308,8 +368,11 @@ getMajorVersion os =
   case os of
     Just (Linux (Just (Debian v))) -> v.major
     Just (Linux (Just (Ubuntu v)))-> v.major
-    Just (Linux (Just (RH v))) -> v.major
+    Just (Linux (Just (RHEL v))) -> v.major
     Just (Linux (Just (Centos v))) -> v.major
+    Just (Linux (Just (Alma v))) -> v.major
+    Just (Linux (Just (Rocky v))) -> v.major
+    Just (Linux (Just (Oracle v))) -> v.major
     Just (Linux (Just (OpenSuse v))) -> v.major
     Just (Linux (Just (Slackware v))) -> v.major
     Just (Solaris v) -> v.major
@@ -320,8 +383,11 @@ getMinorVersion os =
   case os of
     Just (Linux (Just (Debian v))) -> v.minor
     Just (Linux (Just (Ubuntu v)))-> v.minor
-    Just (Linux (Just (RH v))) -> v.minor
+    Just (Linux (Just (RHEL v))) -> v.minor
     Just (Linux (Just (Centos v))) -> v.minor
+    Just (Linux (Just (Alma v))) -> v.minor
+    Just (Linux (Just (Rocky v))) -> v.minor
+    Just (Linux (Just (Oracle v))) -> v.minor
     Just (Linux (Just (OpenSuse v))) -> v.minor
     Just (Linux (Just (Slackware v))) -> v.minor
     Just (Solaris v) -> v.minor
@@ -332,8 +398,11 @@ updateMajorVersion newMajor os =
   case os of
     Just (Linux (Just (Debian v))) -> Just (Linux (Just (Debian {v | major = newMajor})))
     Just (Linux (Just (Ubuntu v)))-> Just (Linux (Just (Ubuntu {v | major = newMajor})))
-    Just (Linux (Just (RH v))) -> Just (Linux (Just (RH {v | major = newMajor})))
+    Just (Linux (Just (RHEL v))) -> Just (Linux (Just (RHEL {v | major = newMajor})))
     Just (Linux (Just (Centos v))) -> Just (Linux (Just (Centos {v | major = newMajor})))
+    Just (Linux (Just (Alma v))) -> Just (Linux (Just (Centos {v | major = newMajor})))
+    Just (Linux (Just (Rocky v))) -> Just (Linux (Just (Centos {v | major = newMajor})))
+    Just (Linux (Just (Oracle v))) -> Just (Linux (Just (Centos {v | major = newMajor})))
     Just (Linux (Just (OpenSuse v))) -> Just (Linux (Just (OpenSuse {v | major = newMajor})))
     Just (Linux (Just (Slackware v))) -> Just (Linux (Just (Slackware {v | major = newMajor})))
     Just (Solaris v) -> Just ( Solaris { v | major = newMajor } )
@@ -343,9 +412,12 @@ updateMinorVersion: Maybe Int -> Maybe OS -> Maybe OS
 updateMinorVersion newMinor os =
   case os of
     Just (Linux (Just (Debian v))) -> Just (Linux (Just (Debian {v | minor = newMinor})))
-    Just (Linux (Just (Ubuntu v)))-> Just (Linux (Just (Ubuntu {v | minor = newMinor})))
-    Just (Linux (Just (RH v))) -> Just (Linux (Just (RH {v | minor = newMinor})))
+    Just (Linux (Just (Ubuntu v))) -> Just (Linux (Just (Ubuntu {v | minor = newMinor})))
+    Just (Linux (Just (RHEL v))) -> Just (Linux (Just (RHEL {v | minor = newMinor})))
     Just (Linux (Just (Centos v))) -> Just (Linux (Just (Centos {v | minor = newMinor})))
+    Just (Linux (Just (Alma v))) -> Just (Linux (Just (Centos {v | minor = newMinor})))
+    Just (Linux (Just (Rocky v))) -> Just (Linux (Just (Centos {v | minor = newMinor})))
+    Just (Linux (Just (Oracle v))) -> Just (Linux (Just (Centos {v | minor = newMinor})))
     Just (Linux (Just (OpenSuse v))) -> Just (Linux (Just (OpenSuse {v | minor = newMinor})))
     Just (Linux (Just (Slackware v))) -> Just (Linux (Just (Slackware {v | minor = newMinor})))
     Just (Solaris v) -> Just ( Solaris { v | minor = newMinor } )

@@ -36,6 +36,7 @@ items in windows_server {
   windows_2012,
   windows_2016,
   windows_2019,
+  windows_2022,
   *
 }
 # == Windows
@@ -108,12 +109,16 @@ items in linux {
 }
 
 items in redhat_family {
-  @cfengine_name="(redhat.!centos.!fedora.!oracle_linux.!scientific_linux.!amazon_linux)"
+  # Ugly but needed as very old rhel do not have the rhel class
+  @cfengine_name="rhel|(redhat.!centos.!fedora.!oracle.!almalinux.!rocky.!scientific_linux.!amazon_linux)"
   rhel,
   centos,
   fedora,
-  oracle_linux,
+  oracle,
+  almalinux,
+  rocky,
   scientific_linux,
+  @cfengine_name=["amzn", "amazon_linux"]
   amazon_linux,
   # Warning: update rhel if you make change here
   *
@@ -379,17 +384,98 @@ items in centos_7 {
   centos_7_5,
   centos_7_6,
   centos_7_7,
+  centos_7_8,
+  centos_7_9,
   *
 }
 
 items in centos_8 {
   centos_8_0,
   centos_8_1,
+  centos_8_2,
+  centos_8_3,
+  centos_8_4,
   *
 }
 # == centos: cfengine+wikipedia checked
 
+# == oracle
+items in oracle {
+  # TODO check classes for previous versions
+  oracle_7,
+  oracle_8,
+  *
+}
+
+items in oracle_7 {
+  oracle_7_0,
+  oracle_7_1,
+  oracle_7_2,
+  oracle_7_3,
+  oracle_7_4,
+  oracle_7_5,
+  oracle_7_6,
+  oracle_7_7,
+  oracle_7_8,
+  oracle_7_9,
+  *
+}
+
+items in oracle_8 {
+  oracle_8_0,
+  oracle_8_1,
+  oracle_8_2,
+  oracle_8_3,
+  oracle_8_4,
+  *
+}
+
+# == almalinux
+items in almalinux {
+  almalinux_8,
+  *
+}
+
+items in almalinux_8 {
+  almalinux_8_0,
+  almalinux_8_1,
+  almalinux_8_2,
+  almalinux_8_3,
+  almalinux_8_4,
+  *
+}
+
+# == rocky linux
+items in rocky {
+  rocky_8,
+  *
+}
+
+items in rocky_8 {
+  rocky_8_0,
+  rocky_8_1,
+  rocky_8_2,
+  rocky_8_3,
+  rocky_8_4,
+  *
+}
+
+# == amazon_linux
+items in amazon_linux {
+  @cfengine_name="amzn.!amzn_2"
+  amazon_linux_1,
+  @cfengine_name="amzn_2"
+  amazon_linux_2,
+  *
+}
+
 # == rhel
+
+# WARNING: redhat_x and redhat_x_y are also defined on Oracle Linux so they are
+#          not actual aliases for rhel.
+#
+# The rhel_ classes should be used when available (on RHEL 7+).
+
 items in rhel {
   @cfengine_name="redhat_3"
   rhel_3,
@@ -522,6 +608,10 @@ items in rhel_7 {
   rhel_7_6,
   @cfengine_name=["redhat_7_7", "rhel_7_7"]
   rhel_7_7,
+  @cfengine_name=["redhat_7_8", "rhel_7_8"]
+  rhel_7_8,
+  @cfengine_name=["redhat_7_9", "rhel_7_9"]
+  rhel_7_9,
   *
 }
 
@@ -530,6 +620,12 @@ items in rhel_8 {
   rhel_8_0,
   @cfengine_name=["redhat_8_1", "rhel_8_1"]
   rhel_8_1,
+  @cfengine_name=["redhat_8_2", "rhel_8_2"]
+  rhel_8_2,
+  @cfengine_name=["redhat_8_3", "rhel_8_3"]
+  rhel_8_3,
+  @cfengine_name=["redhat_8_4", "rhel_8_4"]
+  rhel_8_4,
   *
 }
 
