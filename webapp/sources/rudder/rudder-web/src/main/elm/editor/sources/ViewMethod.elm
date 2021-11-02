@@ -5,6 +5,7 @@ import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Json.Encode
 import List.Extra
 import MethodConditions exposing (..)
 import Regex
@@ -15,6 +16,8 @@ import Dom exposing (..)
 import Json.Decode
 import AgentValueParser exposing (..)
 import ViewMethodsList exposing (getTooltipContent)
+import VirtualDom
+
 --
 -- This file deals with one method container (condition, parameters, etc)
 --
@@ -49,58 +52,71 @@ showParam: Model -> MethodCall -> ValidationState MethodCallParamError -> Method
 showParam model call state methodParam param =
   let
     errors = case state of
-      InvalidState (ConstraintError err) -> err
+      InvalidState constraintErrors -> List.filterMap (\c -> case c of
+                                                         ConstraintError err ->
+                                                           if (err.id == param.id) then
+                                                             Just err.message
+                                                           else
+                                                             Nothing
+                                                ) constraintErrors
       _ -> []
   in
   div [class "form-group method-parameter"] [
     label [ for "param-index" ] [
       span [] [
-        text (param.id.value ++ " - ")
+        text (String.Extra.toTitleCase param.id.value ++ " -")
       , span [ class "badge badge-secondary ng-binding" ] [ text methodParam.type_ ]
       ]
-    , small [] [ text methodParam.description ]
+    , small [] [ text ( " " ++ methodParam.description) ]
     ]
-  , textarea  [  readonly (not model.hasWriteRights),  name "param", class "form-control", rows  1 , value (displayValue param.value) , onInput  (MethodCallParameterModified call param.id)   ] [] --msd-elastic     ng-trim="{{trimParameter(parameterInfo)}}" ng-model="parameter.value"></textarea>
-  , ul [ class "list-unstyled" ]
+  , textarea  [ attribute "draggable" "false", stopPropagationOn "click" (Json.Decode.succeed (Ignore, True)), onFocus DisableDragDrop , onBlur EnableDragDrop,  readonly (not model.hasWriteRights),  name "param", class "form-control", rows  1 , value (displayValue param.value) , onInput  (MethodCallParameterModified call param.id)   ] [] --msd-elastic     ng-trim="{{trimParameter(parameterInfo)}}" ng-model="parameter.value"></textarea>
+  , if (not (List.isEmpty errors)) then ul [ class "list-unstyled" ]
       (List.map (\e -> li [ class "text-danger" ] [ text e ]) errors)
+    else text ""
   ]
 
-accumulateErrorConstraint: CallParameter -> List Constraint -> ValidationState MethodCallParamError
-accumulateErrorConstraint call constraints =
-  List.foldl (\c acc -> case (acc,  checkConstraint call c) of
-                          (InvalidState (ConstraintError errAcc),InvalidState (ConstraintError err) ) -> InvalidState (ConstraintError (List.concat [ err, errAcc ] ))
+accumulateValidationState: List (ValidationState a) -> ValidationState a -> ValidationState a
+accumulateValidationState validations base =
+  List.foldl (\c acc -> case (acc,  c) of
+                          (InvalidState errAcc,InvalidState err ) -> InvalidState (List.concat [ err, errAcc ] )
                           (InvalidState err, _) -> InvalidState err
                           (_, InvalidState err) -> InvalidState err
-                          _ -> ValidState
-             ) Unchanged constraints
+                          (_, ValidState) -> ValidState
+                          (ValidState, Unchanged) -> ValidState
+                          (Unchanged, Unchanged) -> Unchanged
+             ) base validations
+
+accumulateErrorConstraint: CallParameter -> List Constraint -> ValidationState MethodCallParamError -> ValidationState MethodCallParamError
+accumulateErrorConstraint call constraints base =
+  accumulateValidationState (List.map  (checkConstraint call) constraints ) base
 
 checkConstraint: CallParameter -> Constraint -> ValidationState MethodCallParamError
 checkConstraint call constraint =
   case constraint of
     AllowEmpty True -> ValidState
-    AllowEmpty False -> if (isEmptyValue call.value) then InvalidState (ConstraintError ["Parameter '"++call.id.value++"' is empty"]) else ValidState
+    AllowEmpty False -> if (isEmptyValue call.value) then InvalidState [ConstraintError { id = call.id, message = ("Parameter '"++call.id.value++"' is empty")}] else ValidState
     AllowWhiteSpace True -> ValidState
     AllowWhiteSpace False -> case Regex.fromString "(^\\s)|(\\s$)" of
                                Nothing -> ValidState
-                               Just r -> if Regex.contains r (displayValue call.value) then InvalidState (ConstraintError [ "Parameter '"++call.id.value++"' start or end with whitespace characters" ] ) else ValidState
-    MaxLength max -> if lengthValue call.value >= max then  InvalidState (ConstraintError [ "Parameter '"++call.id.value++"' should be at most " ++ (String.fromInt max) ++ " long"] ) else ValidState
-    MinLength min -> if lengthValue call.value <= min then  InvalidState (ConstraintError ["Parameter '"++call.id.value++"' should be at least " ++ (String.fromInt min) ++ " long"] ) else ValidState
+                               Just r -> if Regex.contains r (displayValue call.value) then InvalidState [ConstraintError { id = call.id, message = ( "Parameter '"++call.id.value++"' start or end with whitespace characters"  ) } ] else ValidState
+    MaxLength max -> if lengthValue call.value >= max then  InvalidState [ConstraintError  { id = call.id, message = ("Parameter '"++call.id.value++"' should be at most " ++ (String.fromInt max) ++ " long" ) } ]else ValidState
+    MinLength min -> if lengthValue call.value <= min then  InvalidState [ConstraintError { id = call.id, message = ("Parameter '"++call.id.value++"' should be at least " ++ (String.fromInt min) ++ " long") } ] else ValidState
     MatchRegex r -> case Regex.fromString r of
                       Nothing ->  ValidState
                       Just regex -> if Regex.contains regex (displayValue call.value) then
                                       ValidState
                                     else
-                                       InvalidState (ConstraintError [ "Parameter '" ++ call.id.value ++"' should match the following regexp: " ++ r ] )
+                                       InvalidState [ConstraintError { id = call.id, message = ( "Parameter '" ++ call.id.value ++"' should match the following regexp: " ++ r  )} ]
     NotMatchRegex r -> case Regex.fromString r of
                       Nothing ->  ValidState
                       Just regex -> if Regex.contains regex (displayValue call.value) then
-                                       InvalidState (ConstraintError ["Parameter '" ++ call.id.value ++"' should not match the following regexp: " ++ r]  )
+                                       InvalidState [ConstraintError { id = call.id, message = ("Parameter '" ++ call.id.value ++"' should not match the following regexp: " ++ r ) }]
                                     else
                                       ValidState
     Select list -> if List.any ( (==) (displayValue call.value) ) list then
                      ValidState
                    else
-                     InvalidState (ConstraintError [ "Parameter '" ++ call.id.value ++ "'  should be one of the value from the following list: " ++ (String.join ", " list)] )
+                     InvalidState [ConstraintError { id = call.id, message =  ( "Parameter '" ++ call.id.value ++ "'  should be one of the value from the following list: " ++ (String.join ", " list) )} ]
 
 
 {-
@@ -111,21 +127,17 @@ checkConstraint call constraint =
 
 showMethodTab: Model -> Method -> Maybe CallId ->  MethodCall -> MethodCallUiInfo -> Html Msg
 showMethodTab model method parentId call uiInfo=
-  case (Maybe.withDefault CallParameters uiInfo.tab) of
-    Reporting ->
+  case uiInfo.tab of
+    CallReporting ->
       div [ class "tab-parameters"] [
         div [ class "form-group"] [
-          label [ for "component"] [ text "Report component:"]
-        , input [ readonly (not model.hasWriteRights), type_ "text", name "component", class "form-control", value call.component,  placeholder method.name,  onInput  (\s -> MethodCallModified (Call parentId {call  | component = s }))] []
-        ]
-      , div [ class "form-group"] [
           label [ for "disable_reporting"] [ text "Disable reporting:"]
         , input [ readonly (not model.hasWriteRights), type_ "checkbox", name "disable_reporting", checked call.disableReporting,  onCheck  (\b -> MethodCallModified (Call parentId {call  | disableReporting = b }))] []
         ]
       ]
     CallParameters ->
-      div [ class "tab-parameters"] (List.map2 (\m c -> showParam model call (Maybe.withDefault Unchanged (Dict.get c.id.value uiInfo.validation)) m c )  method.parameters call.parameters)
-    Conditions ->
+      div [ class "tab-parameters"] (List.map2 (\m c -> showParam model call uiInfo.validation m c )  method.parameters call.parameters)
+    CallConditions ->
       let
         condition = call.condition
         updateConditonVersion = \f s ->
@@ -136,7 +148,7 @@ showMethodTab model method parentId call uiInfo=
       in
       div [ class "tab-conditions"] [
         div [class "form-group condition-form", id "os-form"] [
-          div [ class "form-inline" ] [ -- form
+          div [ class "form-inline" ] [
             div [ class "form-group" ] [
               label [ style "display" "inline-block",  class "", for "OsCondition"] [ text "Operating system: " ]
             , div [ style "display" "inline-block", style "width" "auto", style "margin-left" "5px",class "btn-group"] [
@@ -157,76 +169,24 @@ showMethodTab model method parentId call uiInfo=
             , if (hasSP condition.os ) then input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getSP condition.os) )), onInput (updateConditonVersion updateSP), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Service pack"] []  else text ""
             ]
           ]
-          {-
-                        <div class="tab-conditions" ng-if="ui.methodTabs[method_call['$$hashKey']]=='conditions'">
-                          <div class="form-group condition-form" id="os-form">
-                            <label for="os_class">Operating system:</label>
-                            <form class="form-inline" role="form">
-                            <form class="form-inline sm-space-top" name="CForm.versionForm" role="form">
-                              <div class="form-group" ng-show="checkMajorVersion(method_call)">
-                                <label for="os_class">Version (Major):</label>
-                                <input type="text" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext(method_call)" ng-model="method_call.OS_class.majorVersion" name="versionMaj" placeholder="">
-                              </div>
-                              <div class="form-group" ng-show="checkMinorVersion(method_call)">
-                                <label for="os_class">Version (Minor):</label>
-                                <input type="text"  ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext(method_call)" ng-disabled="method_call.OS_class.majorVersion === undefined || method_call.OS_class.majorVersion === '' " ng-model="method_call.OS_class.minorVersion"  placeholder="" name="versionMin">
-                              </div>
-                              <div ng-messages="CForm.versionForm.versionMaj.$error" class="sm-space-top" role="alert">
-                                <div ng-message="pattern" class="text-danger">Invalid major version's number</div>
-                              </div>
-                              <div ng-messages="CForm.versionForm.versionMin.$error" role="alert">
-                                <div ng-message="pattern" class="text-danger">Invalid minor version's number</div>
-                              </div>
-                            </form>
-                          </div>
-                          -}
         ]
       , div [ class "form-group condition-form" ] [
           label [ for "advanced"] [ text "Other conditions:" ]
-        , textarea [  readonly (not model.hasWriteRights), name "advanced", class "form-control", rows 1, id "advanced", value condition.advanced, onInput (\s ->
+        , textarea [  readonly (not model.hasWriteRights), onFocus DisableDragDrop , onBlur EnableDragDrop, name "advanced", class "form-control", rows 1, id "advanced", value condition.advanced, onInput (\s ->
                      let
                        updatedCondition = {condition | advanced = s }
                        updatedCall = Call parentId {call | condition = updatedCondition }
-                     in MethodCallModified updatedCall)  ] [] --ng-pattern="/^[a-zA-Z0-9_!.|${}\[\]()@:]+$/" ng-model="method_call.advanced_class" ng-change="updateClassContext(method_call)"></textarea>
-          {-<div ng-messages="CForm.form.cfClasses.$error" role="alert">
-                                <div ng-message="pattern" class="text-danger">This field should only contains alphanumerical characters (a-zA-Z0-9) or the following characters _!.|${}[]()@:</div>
-                              </div>
-                            </div>-}
+                     in MethodCallModified updatedCall)  ] []
        ]
       , div [ class "form-group condition-form" ] [
           label [ for "class_context" ] [ text "Applied condition expression:" ]
-        , textarea [ readonly (not model.hasWriteRights),  name "class_context",  class "form-control",  rows 1, id "advanced", value (conditionStr condition), readonly True ] []
+        , textarea [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , onBlur EnableDragDrop,  name "class_context",  class "form-control",  rows 1, id "advanced", value (conditionStr condition), readonly True ] []
         , if String.length (conditionStr condition) > 2048 then
             span [ class "text-danger" ] [text "Classes over 2048 characters are currently not supported." ]
           else
             text ""
         ]
       ]
-    {-
-                        <div class="tab-conditions" ng-if="ui.methodTabs[method_call['$$hashKey']]=='conditions'">
-                          <div class="form-group condition-form" id="os-form">
-                            <label for="os_class">Operating system:</label>
-                            <form class="form-inline" role="form">
-                            <form class="form-inline sm-space-top" name="CForm.versionForm" role="form">
-                              <div class="form-group" ng-show="checkMajorVersion(method_call)">
-                                <label for="os_class">Version (Major):</label>
-                                <input type="text" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext(method_call)" ng-model="method_call.OS_class.majorVersion" name="versionMaj" placeholder="">
-                              </div>
-                              <div class="form-group" ng-show="checkMinorVersion(method_call)">
-                                <label for="os_class">Version (Minor):</label>
-                                <input type="text"  ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext(method_call)" ng-disabled="method_call.OS_class.majorVersion === undefined || method_call.OS_class.majorVersion === '' " ng-model="method_call.OS_class.minorVersion"  placeholder="" name="versionMin">
-                              </div>
-                              <div ng-messages="CForm.versionForm.versionMaj.$error" class="sm-space-top" role="alert">
-                                <div ng-message="pattern" class="text-danger">Invalid major version's number</div>
-                              </div>
-                              <div ng-messages="CForm.versionForm.versionMin.$error" role="alert">
-                                <div ng-message="pattern" class="text-danger">Invalid minor version's number</div>
-                              </div>
-                            </form>
-                          </div>
-
-
-                          -}
     Result     ->
       let
         classParameter = getClassParameter method
@@ -273,31 +233,29 @@ showMethodTab model method parentId call uiInfo=
         ]
       ]
 
-
-
 methodDetail: Method -> MethodCall -> Maybe CallId -> MethodCallUiInfo -> Model -> Html Msg
 methodDetail method call parentId ui model =
   let
-    activeClass = (\c -> if c == (Maybe.withDefault CallParameters ui.tab) then "active" else "" )
+    activeClass = (\c -> if c == ui.tab then "active" else "" )
   in
   div [ class "method-details" ] [
     div [] [
       ul [ class "tabs-list"] [
-        li [ class (activeClass CallParameters), onClick (SwitchTabMethod call.id CallParameters) ] [text "Parameters"] -- click select param tabs, class active if selected
-      , li [ class (activeClass Conditions), onClick (SwitchTabMethod call.id Conditions) ] [text "Conditions"]
-      , li [class (activeClass Result), onClick (SwitchTabMethod call.id Result) ] [text "Result conditions"]
-      , li [class (activeClass Reporting), onClick (SwitchTabMethod call.id Reporting) ] [text "Reporting"]
+        li [ class (activeClass CallParameters),  stopPropagationOn "click" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallParameters}, True)) ] [text "Parameters"] -- click select param tabs, class active if selected
+      , li [ class (activeClass CallConditions),stopPropagationOn "click" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallConditions}, True)) ] [text "Conditions"]
+      , li [class (activeClass Result), stopPropagationOn "click" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = Result}, True))] [text "Result conditions"]
+      , li [class (activeClass CallReporting), stopPropagationOn "click" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallReporting}, True)) ] [text "Reporting"]
       ]
     , div [ class "tabs" ] [ (showMethodTab model method parentId call ui) ]
     , div [ class "method-details-footer"] [
-          button [ class "btn btn-outline-secondary btn-sm" , type_ "button", onClick (ResetMethodCall call)] [ -- ng-disabled="!canResetMethod(method_call)" ng-click="resetMethod(method_call)"
+          button [ class "btn btn-outline-secondary btn-sm" , type_ "button", onClick (ResetMethodCall (Call parentId call))] [ -- ng-disabled="!canResetMethod(method_call)" ng-click="resetMethod(method_call)"
             text "Reset "
           , i [ class "fa fa-undo-all"] []
           ]
         , case method.documentation of
             Just _ ->
               let
-                classes = "btn btn-sm btn-primary show-doc " ++
+                classes = "btn btn-sm btn-primary " ++
                           if List.member method.id model.methodsUI.docsOpen then "doc-opened" else ""
               in
                 button [ class classes, type_ "button", onClick (ToggleDoc call.methodName) ] [
@@ -310,67 +268,69 @@ methodDetail method call parentId ui model =
   ]
 
 
-showMethodCall: Model -> MethodCallUiInfo -> Maybe CallId ->  MethodCall -> Element Msg
-showMethodCall model ui  parentId call =
-  let
-    method = case Dict.get call.methodName.value model.methods of
-               Just m -> m
-               Nothing -> Method call.methodName call.methodName.value "" "" (Maybe.withDefault (ParameterId "") (Maybe.map .id (List.head call.parameters))) [] [] Nothing Nothing Nothing
-  in
-      element "li"
-      |> addClass (if (ui.mode == Opened) then "active" else "") --     ng-class="{'active': methodIsSelected(method_call), 'missingParameters': checkMissingParameters(method_call.parameters, method.parameter).length > 0, 'errorParameters': checkErrorParameters(method_call.parameters).length > 0, 'is-edited' : canResetMethod(method_call)}"
-      |> appendChild (callBody model ui call parentId)
-      |> addAttribute (hidden (Maybe.withDefault False (Maybe.map ((==) (Move (Call parentId  call))) (DragDrop.currentlyDraggedObject model.dnd) )))
-      |> appendChildConditional
-         ( element "div"
-           |> addClass "method-details"
-           |> appendNode (methodDetail method call parentId ui model )
-         ) (ui.mode == Opened)
+showMethodCall: Model -> MethodCallUiInfo -> TechniqueUiInfo -> Maybe CallId ->  MethodCall -> Element Msg
+showMethodCall model ui tui parentId call =
+  element "li"
+  |> addClass (if (ui.mode == Opened) then "active" else "")
+  |> appendChild (callBody model ui tui call parentId)
+  |> addAttribute (hidden (Maybe.withDefault False (Maybe.map ((==) (Move (Call parentId  call))) (DragDrop.currentlyDraggedObject model.dnd) )))
 
 
 
-callBody : Model -> MethodCallUiInfo ->  MethodCall -> Maybe CallId -> Element Msg
-callBody model ui call pid =
+
+callBody : Model -> MethodCallUiInfo -> TechniqueUiInfo ->  MethodCall -> Maybe CallId -> Element Msg
+callBody model ui techniqueUi call pid =
   let
     method = case Dict.get call.methodName.value model.methods of
                    Just m -> m
                    Nothing -> Method call.methodName call.methodName.value "" "" (Maybe.withDefault (ParameterId "") (Maybe.map .id (List.head call.parameters))) [] [] Nothing Nothing Nothing
 
-    deprecatedClass = "fa fa-info-circle tooltip-icon popover-bs" ++
+    deprecatedClass = "fa fa-info-circle method-action text-info popover-bs" ++
                          case method.deprecated of
                            Just _ -> " deprecated-icon"
                            Nothing -> ""
     classParameter = getClassParameter method
     paramValue = call.parameters |> List.Extra.find (\c -> c.id == classParameter.name) |> Maybe.map (.value)  |> Maybe.withDefault [Value ""]
 
-    editAction = case ui.mode of
-                   Opened -> UIMethodAction call.id {ui | mode = Closed}
-                   Closed -> UIMethodAction call.id {ui | mode = Opened}
 
-    nbErrors = List.length (List.filter ( List.any ( (/=) Nothing) ) []) -- get errors
+    (textClass, tooltipContent) = case ui.validation of
+                  InvalidState [_] -> ("text-danger", "A parameter of this method is invalid")
+                  InvalidState err -> ("text-danger", (String.fromInt (List.length err)) ++ " parameters of this method are invalid")
+                  Unchanged -> ("","")
+                  ValidState -> ("text-primary","This method was modified")
     dragElem =  element "div"
                 |> addClass "cursorMove"
                 |> Dom.appendChild
                            ( element "i"
-                             |> addClass "fas fa-grip-horizontal"
+                             |> addClass "popover-bs fa"
+                             |> addClassConditional "fa-cog" (ui.mode == Closed)
+                             |> addClassConditional "fa-check" (ui.mode == Opened)
+                             |> addClass textClass
+                             |> addStyleConditional ("font-style", "20px") (ui.mode == Opened)
+                             |> addAttributeList
+                                  [ type_ "button", attribute "data-content" ((if (ui.mode == Opened) then "Close method details<br/>" else "") ++ tooltipContent) , attribute "data-toggle" "popover"
+                                  , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "auto"
+                                  , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                                  ]
                            )
+                |> addActionStopPropagation ("click",  UIMethodAction call.id {ui | mode = Closed})
     cloneIcon = element "i" |> addClass "fa fa-clone"
     cloneButton = element "button"
-                  |> addClass "text-success method-action tooltip-bs"
-                  |> addAction ("click", GenerateId (\s -> CloneMethod call (CallId s)))
+                  |> addClass "text-success method-action popover-bs"
+                  |> addActionStopAndPrevent ("click", GenerateId (\s -> CloneElem (Call pid call) (CallId s)))
                   |> addAttributeList
-                     [ type_ "button", title "Clone this method", attribute "data-toggle" "tooltip"
-                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
+                     [ type_ "button", attribute "data-content" "Clone this method", attribute "data-toggle" "popover"
+                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "auto"
                      , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild cloneIcon
     removeIcon = element "i" |> addClass "fa fa-times-circle"
     removeButton = element "button"
-                  |> addClass "text-danger method-action tooltip-bs"
-                  |> addAction ("click", RemoveMethod call.id)
+                  |> addClass "text-danger method-action popover-bs"
+                  |> addActionStopAndPrevent ("click", RemoveMethod call.id)
                   |> addAttributeList
-                     [ type_ "button", title "Remove this method", attribute "data-toggle" "tooltip"
-                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
+                     [ type_ "button", attribute "data-content" "Remove this method", attribute "data-toggle" "popover"
+                       , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "auto"
                      , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild removeIcon
@@ -381,6 +341,8 @@ callBody model ui call pid =
                      |> appendText "Condition:"
                    , element "span"
                      |> appendText (conditionStr call.condition)
+                     |> addAction ("onmousedown", DisableDragDrop)
+                     |> addAction ("onmouseup", EnableDragDrop)
                      |> addAttributeList
                         [ class "popover-bs", title (conditionStr call.condition)
                         , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "top"
@@ -389,41 +351,28 @@ callBody model ui call pid =
                         , attribute "data-html" "true"
                         ]
                   ]
-    methodName = element "div"
-                 |> addClass "method-name"
-                 |> appendText  (if (String.isEmpty call.component) then method.name else call.component)
-                 |> appendChild
-                    ( element "span"
-                      |> appendChild
-                         ( element "i"
-                           |> addAttributeList
-                              [ class deprecatedClass
-                              , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-container" "body"
-                              , attribute "data-placement" "auto", attribute "data-title" method.name, attribute "data-content" (getTooltipContent method)
-                              , attribute "data-html" "true"
-                              ]
-                         )
-                    )
+    methodName = case ui.mode of
+                   Opened -> element "input"
+                             |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , onBlur EnableDragDrop, type_ "text", name "component", style "width" "calc(100% - 65px)", class "form-control", value call.component,  placeholder "Enter a component name" ]
+                             |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s }))
+                   Closed -> element "div"
+                             |> addClass "method-name"
+                             |> appendText  (if (String.isEmpty call.component) then method.name else call.component)
+                             |> appendChildConditional
+                                  (element "span" |> addStyle ("opacity"," 0.4") |> appendText (" - "++ method.name) )
+                                  ((not (String.isEmpty call.component)) && call.component /= method.name )
+
 
     methodContent = element "div"
                     |> addClass  "method-param flex-form"
-                    |> addActionStopAndPrevent ("ondragstart", Ignore)
                     |> addActionStopAndPrevent ("dragstart", Ignore)
                     |> addListenerStopAndPrevent ("dragStart", Json.Decode.succeed Ignore)
                     |> appendChildList
-                       [ element "label" |> appendText ((parameterName classParameter) ++ ":")
+                       [ element "label" |> appendText ((parameterName classParameter) ++ ": ")
                        , element "span"
                          |> appendText (displayValue paramValue)
                        ]
 
-    warns = element "div"
-            |> addClass "warns"
-            |> appendChild
-               ( element "span"
-                 |> addClass  "warn-param error popover-bs"
-                 |> appendChild (element "b" |> appendText (String.fromInt nbErrors)  )
-                 |> appendText (" invalid " ++ (if nbErrors == 1 then "parameter" else "parameters") )
-               )
     currentDrag = case DragDrop.currentlyDraggedObject model.dnd of
                     Just (Move x) -> getId x == call.id
                     Nothing -> False
@@ -433,34 +382,50 @@ callBody model ui call pid =
   |> addClass "method"
   |> addAttribute (id call.id.value)
   |> addAttribute (hidden currentDrag)
-  |> DragDrop.makeDraggable model.dnd (Move (Call pid call)) dragDropMessages
+  |> (if techniqueUi.enableDragDrop then DragDrop.makeDraggable model.dnd (Move (Call pid call)) dragDropMessages else identity)
   |> Dom.appendChildList
      [ dragElem
      , element "div"
        |> addClass "method-info"
+       |> addClassConditional ("closed") (ui.mode == Closed)
+       |> addActionStopPropagation ("click",  UIMethodAction call.id {ui | mode = Opened})
        |> appendChildList
           [ element "div"
             |> addClass "btn-holder"
             |> addAttribute (hidden (not model.hasWriteRights))
             |> appendChildList
                [ cloneButton
+               , element "span" |> appendText " "
                , removeButton
+               , element "span" |> appendText " "
+               , element "span" |> addAttributeList
+                                   [ class deprecatedClass
+                                   , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-container" "body"
+                                   , attribute "data-placement" "auto", attribute "data-content" (getTooltipContent method)
+                                   , attribute "data-html" "true"
+                                   ]
+               , element "span" |> appendText " "
                ]
           , element "div"
             |> addClass "flex-column"
             |> appendChildConditional condition (call.condition.os /= Nothing || call.condition.advanced /= "")
             |> appendChildList
                [ methodName
-               , methodContent
                ]
-            |> appendChildConditional warns (nbErrors > 0)
+            |> appendChildConditional methodContent (ui.mode == Closed)
+            |> appendChildConditional
+                        ( element "div"
+                          |> addClass "method-details"
+                          |> appendNode (methodDetail method call pid ui model )
+                          |> addAttribute (VirtualDom.property "draggable" (Json.Encode.bool techniqueUi.enableDragDrop))
+                          |> addActionStopAndPrevent ("dragstart", Ignore)
+                        ) (ui.mode == Opened)
+
         ]
-       , element "div"
+       {-, element "div"
          |> addAttributeList [ class "edit-method popover-bs", onClick editAction
                  , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "left"
                  --, attribute "data-template" "{{getStatusTooltipMessage(method_call)}}", attribute "data-container" "body"
                  , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'""" ]
-         |> appendChild (element "i" |> addClass "ion ion-edit" )
-
+         |> appendChild (element "i" |> addClass "ion ion-edit" ) -}
      ]
-

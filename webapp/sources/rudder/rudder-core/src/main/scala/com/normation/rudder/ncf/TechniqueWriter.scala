@@ -279,17 +279,21 @@ class TechniqueWriter (
 
   def techniqueMetadataContent(technique : EditorTechnique, methods: Map[BundleName, GenericMethod]) : PureResult[XmlNode] = {
 
-    def reportingValuePerBlock (component: String, calls :Seq[MethodBlock]) : PureResult[Seq[XmlNode]] = {
+    def reportingValuePerBlock (component: String, calls :Seq[MethodBlock]) : PureResult[List[NodeSeq]] = {
 
       for {
         res <- calls.toList.traverse(block =>
           for {
             childs <- reportingSections(block.calls)
           } yield {
-            val reportingLogic = block.reportingLogic.value
-            <SECTION component="true" multivalued="true" name={component} reporting={reportingLogic}>
+            if (childs.isEmpty) {
+              NodeSeq.Empty
+            } else {
+              val reportingLogic = block.reportingLogic.value
+              <SECTION component="true" multivalued="true" name={component} reporting={reportingLogic}>
                 {childs}
-            </SECTION>
+              </SECTION>
+            }
           })
       } yield {
         res

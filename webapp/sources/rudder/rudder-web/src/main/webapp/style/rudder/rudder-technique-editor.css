@@ -50,7 +50,6 @@
   font-size: .9em;
   color: #f08004 !important;
   opacity: 1 !important;
-  margin-left: 4px;
 }
 .ion.ion-edit {
   font-size: 18px;
@@ -148,7 +147,8 @@ body > .container-fluid {
 	padding: 0 !important;
 }
 .col-techniques,
-.col-methods {
+.col-methods,
+.methods {
   transition-duration: .3s;
   transition-timing-function: ease;
   overflow: hidden;
@@ -235,7 +235,8 @@ body > .ng-toast {
   opacity: .8;
 }
 .col-techniques > .row,
-.col-methods > .row{
+.col-methods > .row,
+.methods .method {
   margin: 0;
   transition-duration: .4s;
   transition-property: transform, opacity;
@@ -851,19 +852,15 @@ button.btn.clipboard:hover {
   font-size: 14px;
   position: relative;
   opacity: 1;
-  transition:opacity 0.25s ease-in;
+  transition:opacity 0.5s ease-in;
   transition-property: opacity, height, padding;
 }
 
 /* METHOD DETAILS */
 .method-details{
-  border: 1px solid #a7d0f1;
-  border-top: none;
-  border-bottom-left-radius : 4px;
-  border-bottom-right-radius: 4px;
-  background-color: #f3f8ff;
-  padding: 10px 10px 0 10px;
+  padding: 0;
   font-size: 14px;
+  user-select: text;
 }
 .method-details .form-control{
   padding: 4px 6px;
@@ -880,8 +877,12 @@ button.btn.clipboard:hover {
 }
 .method-details .tabs-list{
   border-bottom: 1px solid #e5e5e5;
-  margin: 10px -10px 15px -10px;
-  width: calc(100% + 20px);
+  margin: 10px 0px 15px 0px;
+  width: 100% ;
+}
+
+.method-details .tabs{
+  padding-left: 10px;
 }
 
 .method-details .form-group{
@@ -891,9 +892,7 @@ button.btn.clipboard:hover {
   min-height: 19px;
   font-size: .9em;
 }
-.method-details ul.list-unstyled > li{
-  margin-bottom: 0px;
-}
+
 .method-details .btn.show-doc{
   position: relative;
   box-shadow: none !important;
@@ -983,7 +982,18 @@ ul.list-unstyled > li{
   border: 1px solid #e5e5e5;
   border-radius: 4px;
   display: flex;
-
+  transition: all 1s ease;
+  max-height:100000px
+}
+ul li.hide-method {
+  margin-bottom : 0px !important;
+}
+.show-method .method {
+  animation: slide-up 0.5s ease forwards;
+  }
+.hide-method .method {
+  animation: slide-down 0.5s ease forwards;
+  max-height: 0px;
 }
 .active .method {
   border-top-color: #a7d0f1;
@@ -1001,6 +1011,9 @@ ul.list-unstyled > li{
   position: relative;
   flex: 1;
 }
+#methods .method .method-info.closed{
+  cursor: pointer;
+}
 #methods .method .method-info .btn-holder{
   position: absolute;
   right: 6px;
@@ -1015,7 +1028,7 @@ ul.list-unstyled > li{
   transition-duration: .2s;
   opacity: 0;
 }
-#methods .method:hover .method-info .btn-holder .method-action {
+#methods .method:hover > .method-info > .btn-holder > .method-action {
   opacity: .6;
 }
 #methods .method .method-info .btn-holder .method-action:hover {
@@ -1089,7 +1102,6 @@ ul.list-unstyled > li{
 }
 .method .method-name {
   font-size: 16px;
-  color: #222D42;
 }
 .method .method-name .dsc-icon {
   margin-left: 6px;
@@ -1153,9 +1165,9 @@ ul.list-unstyled > li{
   width: 10px;
   height: 10px;
   transform: rotate(45deg);
-  bottom: 0px;
+  left: -5px;
   opacity: 0;
-  left: calc(50% - 5px);
+  top: calc(50% - 5px);
   background-color: #337ab7;
   z-index: 999;
 }
@@ -1177,12 +1189,12 @@ ul.list-unstyled > li{
   background-color: #0069d9;
 }
 .method.doc-opened .show-doc,
-.active .method .edit-method{
+.active > .method > .edit-method{
   background-color: #337ab7;
   color: #fff !important;
 }
 .method.doc-opened .show-doc:before,
-.active .method .edit-method:before{
+.active > .method > .edit-method:before{
   opacity: 1;
   bottom: -5px;
 }
@@ -1444,11 +1456,8 @@ ul.list-unstyled > li{
     padding-left: 35px;
 }
 .expandBlockChild {
-  position:absolute;
-  bottom:-11px;
-  left: 50%;
   padding:3px;
-  opacity: 0.5;
+  opacity: 0.7;
   border-radius:100%;
   background-color: #efefef;
   transition-property: opacity;
@@ -1460,4 +1469,28 @@ ul.list-unstyled > li{
 }
 #__RENDERED_TEXT__ * {
   background-color: transparent !important;
+}
+.method-parameter {
+  padding-bottom: 5px;
+}
+
+@keyframes slide-up {
+    0% {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+        max-height:10000px;
+    }
+}
+@keyframes slide-down {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(50px);
+    }
 }

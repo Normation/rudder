@@ -111,8 +111,12 @@ techniqueTab model technique creation ui =
                               ] []
                            ]
                          , case ui.nameState of
-                             InvalidState AlreadyTakenName -> span [ class "text-danger col-sm-8" ] [ text "Technique name must be unique" ]
-                             InvalidState EmptyName -> span [ class "text-danger col-sm-8" ] [ text "Technique name is required" ]
+                             InvalidState errors -> ul []
+                                                      (List.map (
+                                                        \err -> case err of
+                                                          AlreadyTakenName -> li [ class "text-danger col-sm-8" ] [ text "Technique name must be unique" ]
+                                                          EmptyName -> li [ class "text-danger col-sm-8" ] [ text "Technique name is required" ]
+                                                      ) errors)
                              _ -> text ""
                          ]
                        , div [ class "row form-group" ] [
@@ -138,9 +142,13 @@ techniqueTab model technique creation ui =
                              input [ readonly True,  id "bundleName", name "bundle_name", class "form-control", value technique.id.value ] [] -- bundlename ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
                            ]
                          , case ui.idState of
-                             InvalidState TooLongId -> span [ class "text-danger col-sm-8 col-sm-offset-3" ] [text "Technique IDs longer than 255 characters won't work on most filesystems." ]
-                             InvalidState AlreadyTakenId -> span [ class "text-danger col-sm-8 col-sm-offset-3" ] [ text "Technique ID must be unique." ]
-                             InvalidState InvalidStartId -> span [ class "text-danger col-sm-8 col-sm-offset-3"] [ text "Technique ID should start with an alphanumeric character." ]
+                             InvalidState errors -> ul []
+                                                      (List.map (
+                                                        \err -> case err of
+                                                          TooLongId -> li [ class "text-danger col-sm-8 col-sm-offset-3" ] [text "Technique IDs longer than 255 characters won't work on most filesystems." ]
+                                                          AlreadyTakenId -> li [ class "text-danger col-sm-8 col-sm-offset-3" ] [ text "Technique ID must be unique." ]
+                                                          InvalidStartId -> li [ class "text-danger col-sm-8 col-sm-offset-3"] [ text "Technique ID should start with an alphanumeric character." ]
+                                                      ) errors)
                              _ -> if String.length technique.id.value > 100 then
                                     span [ class "rudder-text-warning col-sm-8 col-sm-offset-3" ] [
                                       b [] [ span [ class "glyphicon glyphicon-exclamation-sign" ] [] ]

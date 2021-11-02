@@ -18,37 +18,43 @@ appendNodeConditional e test =
     True -> appendNode e
     False -> (\x -> x)
 
-showMethodBlock: Model -> TechniqueUiInfo ->  MethodCallUiInfo -> Maybe CallId -> MethodBlock -> Element Msg
+showMethodBlock: Model -> TechniqueUiInfo ->  MethodBlockUiInfo -> Maybe CallId -> MethodBlock -> Element Msg
 showMethodBlock model techniqueUi ui parentId block =
 
   element "li"
-    |> appendChild  --     ng-class="{'active': methodIsSelected(method_call), 'missingParameters': checkMissingParameters(method_call.parameters, method.parameter).length > 0, 'errorParameters': checkErrorParameters(method_call.parameters).length > 0, 'is-edited' : canResetMethod(method_call)}"
+    |> addClass (if (ui.mode == Opened) then "active" else "")
+    |> appendChild
        ( blockBody model parentId block ui techniqueUi )
-    |> appendChildConditional
-         (blockDetail block parentId ui model )
-         (ui.mode == Opened)
+
+
     |> addAttribute (hidden (Maybe.withDefault False (Maybe.map ((==) (Move (Block parentId  block))) (DragDrop.currentlyDraggedObject model.dnd) )))
 
 
 
-blockDetail: MethodBlock -> Maybe CallId -> MethodCallUiInfo -> Model -> Element Msg
-blockDetail block parentId ui model =
+blockDetail: MethodBlock -> Maybe CallId -> MethodBlockUiInfo -> TechniqueUiInfo -> Model -> Element Msg
+blockDetail block parentId ui techniqueUi model =
   let
-    activeClass = (\c -> if c == (Maybe.withDefault Reporting ui.tab) then "active" else "" )
+    activeClass = (\c -> if c == ui.tab then "active" else "" )
 
     tabsList =
       element "ul"
       |> addClass "tabs-list"
       |> appendChildList
           [ element "li"
-            |> addClass (activeClass Conditions)
-            |> addActionStopAndPrevent ("click", SwitchTabMethod block.id Conditions)
+            |> addClass (activeClass Children)
+            |> addActionStopAndPrevent ("click", UIBlockAction block.id {ui | tab = Children})
+            |> appendChildList [
+                 element "span" |> appendText "Content"
+               , element "span" |> addClass "badge badge-secondary badge-resources" |> appendChild(element "span" |> appendText (String.fromInt (List.length block.calls)))
+               ]
+          , element "li"
+            |> addClass (activeClass BlockConditions)
+            |> addActionStopAndPrevent ("click", UIBlockAction block.id {ui | tab = BlockConditions})
             |> appendText "Conditions"
           , element "li"
-            |> addClass (activeClass Reporting)
-            |> addActionStopAndPrevent ("click", SwitchTabMethod block.id Reporting)
+            |> addClass (activeClass BlockReporting)
+            |> addActionStopAndPrevent ("click", UIBlockAction block.id {ui | tab = BlockReporting})
             |> appendText "Reporting"
-
           ]
 
   in
@@ -56,7 +62,7 @@ blockDetail block parentId ui model =
     |> addClass "method-details"
     |> appendChildList
        [ tabsList
-       , element "div" |> addClass "tabs" |> appendChild (showBlockTab model parentId block ui)
+       , element "div" |> addClass "tabs" |> appendChild (showBlockTab model parentId block ui techniqueUi)
        , element "div"
          |> addClass "method-details-footer"
          |> appendChild
@@ -64,15 +70,16 @@ blockDetail block parentId ui model =
               |> addClass "btn btn-outline-secondary btn-sm"
               |> appendText "Reset "
               |> appendChild (element "i" |> addClass "fa fa-undo-all" )
+              |> addActionStopAndPrevent ("click", ResetMethodCall (Block parentId block))
             )
        ]
 
 
 
-showBlockTab: Model -> Maybe CallId ->  MethodBlock -> MethodCallUiInfo -> Element Msg
-showBlockTab model parentId block uiInfo=
-  case (Maybe.withDefault Reporting uiInfo.tab) of
-    Conditions ->
+showBlockTab: Model -> Maybe CallId ->  MethodBlock -> MethodBlockUiInfo -> TechniqueUiInfo -> Element Msg
+showBlockTab model parentId block uiInfo techniqueUi =
+  case uiInfo.tab of
+    BlockConditions ->
       let
         osLi = List.map (\os ->
                  let
@@ -163,46 +170,40 @@ showBlockTab model parentId block uiInfo=
                advanced
              , result
              ]
-    Result     -> element "span"
-    CallParameters     -> element "span"
-    Reporting ->
+    Children -> showChildren model block  { uiInfo | showChildDetails = True } techniqueUi parentId
+    BlockReporting ->
       let
         compositionText  = (\reportingLogic ->
                                case reportingLogic of
                                  WorstReport -> "Worst report"
                                  SumReport -> "Sum of reports"
-                                 FocusReport "" -> "Focus on one child method report"
-                                 FocusReport x -> "Focus on one child method: " ++ (focusText x)
+                                 FocusReport _ -> "Focus on one child method report"
                              )
         liCompositionRule =  \rule -> element "li"
                                            |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = rule }))
                                            |> appendChild (element "a" |> addAttribute (href "#") |> appendText (compositionText rule))
         availableComposition = List.map liCompositionRule [ WorstReport, SumReport, FocusReport "" ]
 
-        focusText  = (\reportingLogic ->
-                         case reportingLogic of
-                           "" -> ""
-                           x -> Maybe.withDefault x (Maybe.map getComponent (List.Extra.find (getId >> .value >> (==) x) block.calls))
-                       )
-        liFocus =  \child -> element "li"
+        liFocus =  \child ->
+                     let
+                       componentValue = getComponent child
+                       component = if componentValue == "" then
+                                     case child of
+                                       Block _ _ -> "< unamed block > "
+                                       Call _ c -> Maybe.withDefault (c.methodName.value) (Maybe.map .name (Dict.get c.methodName.value model.methods))
+                                   else
+                                     componentValue
+
+                     in
+                       element "li"
                                |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = FocusReport (getId child).value }))
-                               |> appendChild (element "a" |> addAttribute (href "#") |> appendText (getComponent child))
+                               |> appendChild (element "a" |> addAttribute (href "#") |> appendText component)
         availableFocus = List.map liFocus block.calls
 
       in
          element "div"
            |> appendChildList
                         [ element "div"
-                          |> addClass "form-group"
-                          |> appendChildList
-                             [ element "label"
-                               |> addAttribute (for "component")
-                               |> appendText "Report component:"
-                             , element "input"
-                               |> addAttributeList [ readonly (not model.hasWriteRights), type_ "text", name "component", class "form-control", value block.component,  placeholder "Enter a component name" ]
-                               |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
-                             ]
-                        , element "div"
                           |> addClass "form-group"
                           |> appendChildList
                              [ element "label"
@@ -230,59 +231,68 @@ showBlockTab model parentId block uiInfo=
                                    ]
                             ]
                         ]
-                     |> appendChildConditional
-                          ( element "div"
-                          |> addClass "form-group"
-                          |> appendChildList
-                             [ element "label"
-                               |> addAttribute (for "reporting-rule-focus")
-                               |> appendText "Focus reporting on method:"
-                             , element "div"
-                               |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
-                               |> addClass "btn-group"
-                               |> appendChildList
-                                  [ element "button"
-                                    |> addClass "btn btn-default dropdown-toggle"
-                                    |> Dom.setId  "reporting-rule-focus"
-                                    |> addAttributeList
-                                         [ attribute  "data-toggle" "dropdown"
-                                         , attribute  "aria-haspopup" "true"
-                                         , attribute "aria-expanded" "true"
+                     |> appendChild
+                          ( case block.reportingLogic of
+                              FocusReport value ->
+                                element "div"
+                                |> addClass "form-group"
+                                |> appendChildList
+                                   [ element "label"
+                                     |> addAttribute (for "reporting-rule-focus")
+                                     |> appendText "Focus reporting on method:"
+                                   , element "div"
+                                     |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
+                                     |> addClass "btn-group"
+                                     |> appendChildList
+                                        [ element "button"
+                                          |> addClass "btn btn-default dropdown-toggle"
+                                          |> Dom.setId  "reporting-rule-focus"
+                                          |> addAttributeList
+                                               [ attribute  "data-toggle" "dropdown"
+                                               , attribute  "aria-haspopup" "true"
+                                               , attribute "aria-expanded" "true"
+                                               ]
+                                          |> appendText value
+                                          |> appendChild (element "span" |> addClass "caret")
+                                        , element "ul"
+                                          |> addClass "dropdown-menu"
+                                          |> addAttribute  (attribute "aria-labelledby" "reporting-rule-focus")
+                                          |> addStyle ("margin-left", "0px")
+                                          |> appendChildList availableFocus
                                          ]
-                                    |> appendText ((compositionText block.reportingLogic) ++ " ")
-                                    |> appendChild (element "span" |> addClass "caret")
-                                  , element "ul"
-                                    |> addClass "dropdown-menu"
-                                    |> addAttribute  (attribute "aria-labelledby" "reporting-rule-focus")
-                                    |> addStyle ("margin-left", "0px")
-                                    |> appendChildList availableFocus
-                                   ]
-                            ] )
-                            ( case block.reportingLogic of
-                                  FocusReport _ -> True
-                                  _ -> False
+                                     ]
+                              _ -> element "span"
                             )
 
 
-blockBody : Model -> Maybe CallId -> MethodBlock -> MethodCallUiInfo -> TechniqueUiInfo -> Element Msg
+blockBody : Model -> Maybe CallId -> MethodBlock -> MethodBlockUiInfo -> TechniqueUiInfo -> Element Msg
 blockBody model parentId block ui techniqueUi =
   let
-
-    editAction = case ui.mode of
-                   Opened -> UIMethodAction block.id {ui | mode = Closed}
-                   Closed -> UIMethodAction block.id {ui | mode = Opened}
-
-    nbErrors = List.length (List.filter ( List.any ( (/=) Nothing) ) []) -- get errors
+    (textClass, tooltipContent) = case ui.validation of
+                  InvalidState _ -> ("text-danger", "This block is invalid")
+                  Unchanged -> ("","")
+                  ValidState -> ("text-primary","This method was modified")
     dragElem =  element "div"
                 |> addClass "cursorMove"
                 |> Dom.appendChild
                            ( element "i"
-                             |> addClass "fas fa-grip-horizontal"
+                             |> addClass "popover-bs fa"
+                             |> addClassConditional "fa-cubes" (ui.mode == Closed)
+                             |> addClassConditional "fa-check" (ui.mode == Opened)
+                             |> addClass textClass
+                             |> addStyleConditional ("font-style", "20px") (ui.mode == Opened)
+                             |> addAttributeList
+                                  [ type_ "button", attribute "data-content" ((if (ui.mode == Opened) then "Close details<br/>" else "") ++ tooltipContent) , attribute "data-toggle" "popover"
+                                  , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "auto"
+                                  , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                                  ]
                            )
+                |> addActionStopPropagation ("click",  UIBlockAction block.id {ui | mode = Closed})
+
     cloneIcon = element "i" |> addClass "fa fa-clone"
     cloneButton = element "button"
                   |> addClass "text-success method-action tooltip-bs"
-                  --|> addAction ("click", GenerateId (\s -> CloneMethod block (CallId s)))
+                  |> addActionStopPropagation ("click", GenerateId (\s -> CloneElem (Block parentId block) (CallId s)))
                   |> addAttributeList
                      [ type_ "button", title "Clone this block", attribute "data-toggle" "tooltip"
                      , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
@@ -292,7 +302,7 @@ blockBody model parentId block ui techniqueUi =
     removeIcon = element "i" |> addClass "fa fa-times-circle"
     removeButton = element "button"
                   |> addClass "text-danger method-action tooltip-bs"
-                  |> addAction ("click", RemoveMethod block.id)
+                  |> addActionStopPropagation ("click", RemoveMethod block.id)
                   |> addAttributeList
                      [ type_ "button", title "Remove this block", attribute "data-toggle" "tooltip"
                      , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
@@ -308,28 +318,22 @@ blockBody model parentId block ui techniqueUi =
                      |> appendText (conditionStr block.condition)
                      |> addAttributeList
                         [ class "popover-bs", title (conditionStr block.condition)
-                            --msd-elastic
-                            --ng-click="$event.stopPropagation();"
                         , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "top"
                         , attribute "data-title" (conditionStr block.condition), attribute "data-content" "<small>Click <span class='text-info'>3</span> times to copy the whole condition below</small>"
                         , attribute "data-template" """<div class="popover condition" role="tooltip"><div class="arrow"></div><h3 class="popover-header"></h3><div class="popover-body"></div></div>"""
                         , attribute "data-html" "true"
                         ]
                   ]
-    methodName = element "div"
-                 |> addClass "method-name"
-                 |> addStyleListConditional [ ("font-style", "italic"), ("color", "#ccc") ]  (String.isEmpty block.component)
-                 |> appendText  (if (String.isEmpty block.component) then "no component name" else block.component)
+    methodName = case ui.mode of
+                   Opened -> element "input"
+                             |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , onBlur EnableDragDrop, type_ "text", name "component", style "width" "calc(100% - 50px)", class "form-control", value block.component,  placeholder "Enter a component name" ]
+                             |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
+                   Closed -> element "div"
+                             |> addClass "method-name"
+                             |> addStyleListConditional [ ("font-style", "italic"), ("opacity", "0.7") ]  (String.isEmpty block.component)
+                             |> addClassConditional "text-danger"  (String.isEmpty block.component)
+                             |> appendText  (if (String.isEmpty block.component) then "No component name" else block.component)
 
-
-    warns = element "div"
-            |> addClass "warns"
-            |> appendChild
-               ( element "span"
-                 |> addClass  "warn-param error popover-bs"
-                 |> appendChild (element "b" |> appendText (String.fromInt nbErrors)  )
-                 |> appendText (" invalid " ++ (if nbErrors == 1 then "parameter" else "parameters") )
-               )
     currentDrag = case DragDrop.currentlyDraggedObject model.dnd of
                     Just (Move x) -> getId x == block.id
                     Nothing -> False
@@ -340,110 +344,127 @@ blockBody model parentId block ui techniqueUi =
   |> addClass "method"
   |> addAttribute (id block.id.value)
   |> addAttribute (hidden currentDrag)
-  |> DragDrop.makeDraggable model.dnd (Move (Block parentId block)) dragDropMessages
+  |> (if techniqueUi.enableDragDrop then DragDrop.makeDraggable model.dnd (Move (Block parentId block)) dragDropMessages else identity)
   |> Dom.appendChildList
      [ dragElem
      , element "div"
        |> addClass "method-info"
+       |> addClassConditional ("closed") (ui.mode == Closed)
+       |> addAction ("click", UIBlockAction block.id {ui | mode = Opened})
        |> appendChildList
           [ element "div"
             |> addClass "btn-holder"
             |> addAttribute (hidden (not model.hasWriteRights))
             |> appendChildList
                [ cloneButton
+               , element "span" |> appendText " "
                , removeButton
+               , element "span" |> appendText " "
                ]
           , element "div"
             |> addClass "flex-column"
             |> appendChildConditional condition  (block.condition.os /= Nothing || block.condition.advanced /= "")
             |> appendChild methodName
-            |> appendChildConditional warns (nbErrors > 0)
+         ]
+       |> appendChildConditional
+         (blockDetail block parentId ui techniqueUi model )
+             (ui.mode == Opened)
 
-          , element "div"
-             |> addClass ("expandBlockChild fas fa-chevron-" ++ (if ui.showChildDetails then "down" else "up"))
-             |> addAction ("click", UIMethodAction block.id { ui | showChildDetails = not ui.showChildDetails})
-
-          ,  ( element "div"
-                    |> addClass "block-child"
-                    |> addStyleListConditional [ ("opacity" ,"0"),  ("padding", "0"), ("height", "0"), ("border", "none")] (not ui.showChildDetails)
-
-                    |> appendChild (
-                       element "ul"
-                       |> addClass "methods list-unstyled"
-                       |> appendChild
-                       ( element "li"
-                         |> addAttribute (id "no-methods")
-                         |> appendChildList
-                            [ element "i"
-                              |> addClass "fas fa-sign-in-alt"
-                              |> addStyle ("transform", "rotate(90deg)")
-                            , element "span"
-                              |> appendText " Drag and drop generic methods here to fill this component"
-                            ]
-                         |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
-                         |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
-                         |> addAttribute (hidden (not (List.isEmpty block.calls)))
-                       )
-
-
-                       |> appendChild
-                            ( element "li"
-                                         |> addAttribute (id "no-methods")
-                                         |> addStyle ("text-align", "center")
-                                         |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
-                                         |> appendChild
-                                            ( element "i"
-                                              |> addClass "fas fa-sign-in-alt"
-                                              |> addStyle ("transform", "rotate(90deg)")
-                                            )
-                                         |> addStyle ("padding", "3px 15px")
-                                         |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
-                                         |> addAttribute (hidden  ( (case DragDrop.currentlyDraggedObject model.dnd of
-                                                                               Nothing -> True
-                                                                               Just (Move x) ->Maybe.withDefault True (Maybe.map (\c->  (getId x) /= (getId c)) (List.head block.calls))
-                                                                               Just _ -> List.isEmpty block.calls
-                                                         ) ) )
-                                       )
-                            |> appendChildList
-                                       ( List.concatMap ( \ call ->
-                                           case call of
-                                             Call _ c ->
-                                               let
-                                                 methodUi = Maybe.withDefault (MethodCallUiInfo Closed Nothing Dict.empty True) (Dict.get c.id.value techniqueUi.callsUI)
-
-
-                                                 currentDragChild = case DragDrop.currentlyDraggedObject model.dnd of
-                                                   Just (Move x) -> getId x == c.id
-                                                   Nothing -> True
-                                                   _ -> False
-                                                 base =     [ showMethodCall model methodUi parentId c ]
-                                                 dropElem = AfterElem (Just block.id) (Call parentId c)
-                                                 dropTarget =  element "li"
-                                                               |> addAttribute (id "no-methods") |> addStyle ("padding", "3px 15px")
-                                                               |> addStyle ("text-align", "center")
-                                                               |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd dropElem) then "1" else  "0.4"))
-                                                               |> DragDrop.makeDroppable model.dnd dropElem dragDropMessages
-                                                               |> addAttribute (hidden currentDragChild)
-                                                               |> appendChild
-                                                                  ( element "i"
-                                                                    |> addClass "fas fa-sign-in-alt"
-                                                                    |> addStyle ("transform", "rotate(90deg)")
-                                                                  )
-                                               in
-                                                  List.reverse (dropTarget :: base)
-                                             Block _ b ->
-                                               let
-                                                 methodUi = Maybe.withDefault (MethodCallUiInfo Closed Nothing Dict.empty True) (Dict.get b.id.value techniqueUi.callsUI)
-                                               in
-                                                 [ showMethodBlock model techniqueUi methodUi parentId b ]
-                             ) block.calls ) ) )
-
-        ]
-       , element "div"
-         |> addAttributeList [ class "edit-method popover-bs", onClick editAction
-                 , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "left"
-                 --, attribute "data-template" "{{getStatusTooltipMessage(method_call)}}", attribute "data-container" "body"
-                 , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'""" ]
-         |> appendChild (element "i" |> addClass "ion ion-edit" )
+       |>appendChildConditional (showChildren model block ui techniqueUi parentId)
+             (ui.mode == Closed)
 
      ]
+
+showChildren : Model -> MethodBlock -> MethodBlockUiInfo -> TechniqueUiInfo -> Maybe CallId ->  Element Msg
+showChildren model block ui techniqueUi parentId =
+  element "div"
+  |> addClass "block-child"
+  |> appendChild (
+     element "ul"
+     |> addClass "methods list-unstyled"
+     |> appendChild
+     ( element "li"
+       |> addAttribute (id "no-methods")
+       |> appendChildList
+          [ element "i"
+            |> addClass "fas fa-sign-in-alt"
+            |> addStyle ("transform", "rotate(90deg)")
+          , element "span"
+            |> appendText " Drag and drop generic methods here to fill this component"
+          ]
+
+       |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
+       |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
+       |> addAttribute (hidden (not (List.isEmpty block.calls)))
+     )
+     |> appendChildConditional
+        ( element "li"
+          |> addAttribute (id "no-methods")
+          |> addStyle ("text-align", "center")
+          |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
+          |> appendChild
+             ( element "i"
+               |> addClass "fas fa-sign-in-alt"
+               |> addStyle ("transform", "rotate(90deg)")
+             )
+          |> addStyle ("padding", "3px 15px")
+          |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages)
+        ( case DragDrop.currentlyDraggedObject model.dnd of
+            Nothing -> False
+            Just (Move x) ->Maybe.withDefault False (Maybe.map (\c->  (getId x) == (getId c)) (List.head block.calls))
+            Just _ -> not (List.isEmpty block.calls)
+        )
+     |> appendChildConditional
+        ( element "li"
+          |> appendChild
+            ( element "button"
+              |> addClass "btn btn-default"
+              |> appendChild (element "span" |> appendText ((if ui.showChildDetails then "Hide" else "Show") ++ " content"))
+              |> appendChild (
+                 element "span"
+                  |> addClass "badge badge-secondary badge-block"
+                  |> addStyle ("font-size", "10px")
+                  |> appendChild (element "span" |> appendText (String.fromInt (List.length block.calls ) ) )
+               )
+              |> appendChild (element "span" |> appendText " ")
+              |> appendChild (element "span" |> addClass  ("expandBlockChild fas fa-chevron-" ++ (if ui.showChildDetails then "up" else "down")))
+
+            |> addAction ("click", UIBlockAction block.id { ui | showChildDetails = not ui.showChildDetails})
+            )
+          )
+        (ui.mode == Closed && (not (List.isEmpty block.calls) ))
+     |> appendChildList
+          ( List.concatMap ( \ call ->
+            (case call of
+              Call _ c ->
+                let
+                  methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged) (Dict.get c.id.value techniqueUi.callsUI)
+                  currentDragChild = case DragDrop.currentlyDraggedObject model.dnd of
+                    Just (Move x) -> getId x == c.id
+                    Nothing -> True
+                    _ -> False
+                  base =     [ showMethodCall model methodUi techniqueUi (Just block.id) c ]
+                  dropElem = AfterElem (Just block.id) (Call parentId c)
+                  dropTarget =  element "li"
+                                |> addAttribute (id "no-methods") |> addStyle ("padding", "3px 15px")
+                                |> addStyle ("text-align", "center")
+                                |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd dropElem) then "1" else  "0.4"))
+                                |> DragDrop.makeDroppable model.dnd dropElem dragDropMessages
+                                |> addAttribute (hidden currentDragChild)
+                                |> appendChild
+                                   ( element "i"
+                                     |> addClass "fas fa-sign-in-alt"
+                                     |> addStyle ("transform", "rotate(90deg)")
+                                   )
+                in
+                   List.reverse (dropTarget :: base)
+              Block _ b ->
+                let
+                  methodUi = Maybe.withDefault (MethodBlockUiInfo Closed Children ValidState True) (Dict.get b.id.value techniqueUi.blockUI)
+                in
+                  [ showMethodBlock model techniqueUi methodUi (Just block.id) b ]
+            )
+            |> List.map ( addClass (if ui.showChildDetails then "show-method" else "hide-method"))
+           ) block.calls )
+     )
+
