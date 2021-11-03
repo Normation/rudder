@@ -255,6 +255,7 @@ type Msg =
   | Notification (String -> Cmd Msg) String
   | DisableDragDrop
   | EnableDragDrop CallId
+  | ToggleDropdown String
 
 dragDropMessages : DragDrop.Messages Msg DragElement DropElement
 dragDropMessages =

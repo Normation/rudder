@@ -107,6 +107,9 @@ $(document).ready(function(){
     if (drafts === null) { drafts = {} }
     app.ports.draftsResponse.send(drafts)
   });
+  app.ports.toggleDropdown.subscribe(function(id) {
+    $("#"+id).dropdown('toggle')
+  });
 
   app.ports.successNotification.subscribe(function(str) {
     createSuccessNotification(str)

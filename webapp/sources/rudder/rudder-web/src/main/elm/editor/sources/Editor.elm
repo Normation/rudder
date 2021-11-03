@@ -41,6 +41,7 @@ port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
 --port warnNotification    : String -> Cmd msg
 port infoNotification    : String -> Cmd msg
+port toggleDropdown    : String -> Cmd msg
 port pushUrl             : String -> Cmd msg
 port getUrl             : () -> Cmd msg
 
@@ -750,34 +751,26 @@ update msg model =
            newUi = { u | callsUI = Dict.update newId (always (Just defaultMethodUiInfo) ) u.callsUI }
           in
           case setIdRec newId t.elems of
-            (_, False) -> (model, Cmd.none)
+            (_, False) -> updatedStoreTechnique model
             (newCalls, True) -> update (GenerateId SetMissingIds) { model | mode = TechniqueDetails {t  | elems = newCalls} e newUi }
 
     MoveStarted draggedItemId ->
-      ( { model | dnd = Debug.log "move started" DragDrop.startDragging model.dnd draggedItemId, dropTarget =  Nothing },Cmd.none )
+      ( { model | dnd = DragDrop.startDragging model.dnd draggedItemId, dropTarget =  Nothing },Cmd.none )
 
     MoveTargetChanged dropTargetId ->
-      ( { model | dnd = DragDrop.updateDropTarget model.dnd dropTargetId, dropTarget = Debug.log "target changed"  (Just dropTargetId) }, Cmd.none  )
+      ( { model | dnd = DragDrop.updateDropTarget model.dnd dropTargetId, dropTarget = Just dropTargetId }, Cmd.none  )
 
     MoveCanceled ->
-      ( { model | dnd = Debug.log "cancelled" DragDrop.stopDragging model.dnd }, Cmd.none )
+      ( { model | dnd = DragDrop.stopDragging model.dnd }, Cmd.none )
 
     MoveCompleted draggedItemId dropTarget ->
-      case Debug.log "move ended" model.mode of
+      case model.mode of
         Introduction -> (model, Cmd.none)
         TechniqueDetails t u e ->
           let
             (baseCalls, newElem) =
               case draggedItemId of
-                Move b -> case getParent b of
-                             Nothing -> (List.filter (getId >> (/=) (getId b) ) t.elems, b)
-                             Just parent ->
-                               (updateElemIf (getId >> (==) parent )
-                                  (\x -> case x of
-                                    Block p k -> Block p { k | calls = List.filter (getId >> (/=) (getId b) ) k.calls}
-                                    _ -> x
-                                  ) t.elems
-                               , b)
+                Move b ->  ( removeElem (getId >> (==) (getId b)) t.elems, b)
                 NewBlock -> (t.elems, Block Nothing (MethodBlock (CallId "") "" (Condition Nothing "") SumReport []))
                 NewMethod method ->
                  let
@@ -817,12 +810,13 @@ update msg model =
                       )
                 InBlock b ->
                   updateElemIf (getId >> (==) b.id ) (\x -> case x of
-                                                    Block p k -> Block p { k | calls = newElem :: b.calls }
+                                                    Block p k -> Block p { k | calls = newElem :: k.calls }
                                                     _ -> x
                                                   ) baseCalls
             updateTechnique = { t | elems = updatedCalls}
+            newModel = { model | mode = TechniqueDetails updateTechnique u e , dnd = DragDrop.initialState}
           in
-            update (GenerateId SetMissingIds ) { model | mode = TechniqueDetails updateTechnique u e , dnd = Debug.log "move finished" DragDrop.initialState}
+            update (GenerateId SetMissingIds ) newModel
 
     MoveFirstElemBLock elem ->
       let
@@ -835,6 +829,8 @@ update msg model =
 
     Notification notif notifMsg ->
       (model, notif notifMsg)
+    ToggleDropdown id ->
+      (model, toggleDropdown id)
     DisableDragDrop ->
 
       case model.mode of

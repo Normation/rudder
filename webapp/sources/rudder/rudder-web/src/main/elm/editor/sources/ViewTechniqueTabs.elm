@@ -104,7 +104,7 @@ techniqueTab model technique creation ui =
                            ]
                          ]
                        ,-} div [ class "row form-group" ] [--ng-class="{'has-error':ui.editForm.name.$dirty && (ui.editForm.name.$error.required || ui.editForm.name.$error.techniqueName)}">
-                           label [ for "techniqueName", class "col-xs-12 control-label" ] [ text "Name" ]
+                           label [ for "techniqueName", class "col-xs-12 control-label" ] [ text "Name"  ]
                          , div  [ class "col-sm-8" ] [
                              input [readonly (not model.hasWriteRights), type_ "text" , id "techniqueName",  name "name",  class "form-control" , placeholder "Technique Name", value technique.name
                               , onInput (\newName -> UpdateTechnique {technique | name = newName, id = TechniqueId(if creation then canonifyHelper (Value newName) else technique.id.value) })

@@ -108,7 +108,7 @@ showTechnique model technique origin ui =
              |> DragDrop.makeDroppable model.dnd StartList dragDropMessages
              |> addAttribute (hidden (not (List.isEmpty technique.elems)))
            )
-      |> appendChild
+      |> appendChildConditional
            ( element "li"
              |> addAttribute (id "no-methods")
              |> addStyle ("text-align", "center")
@@ -120,42 +120,46 @@ showTechnique model technique origin ui =
                 )
              |> addStyle ("padding", "3px 15px")
              |> DragDrop.makeDroppable model.dnd StartList dragDropMessages
-             |> addAttribute (hidden (case DragDrop.currentlyDraggedObject model.dnd of
-                                                   Nothing -> True
-                                                   Just (Move x) ->Maybe.withDefault True (Maybe.map (\c->  (getId x) == (getId c)) (List.head technique.elems))
-                                                   Just _ -> False
-                             ) )
-           )
+
+           ) ( case DragDrop.currentlyDraggedObject model.dnd of
+                 Nothing -> False
+                 Just (Move x) -> Maybe.withDefault False (Maybe.map (\c->  (getId x) /= (getId c)) (List.head technique.elems))
+                 Just _ -> True
+             )
       |> appendChildList
-           ( List.concatMap ( \ call ->
-               case call of
-                 Call parentId c ->
-                   let
-                     methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged) (Dict.get c.id.value ui.callsUI)
-                     currentDrag = case DragDrop.currentlyDraggedObject model.dnd of
-                                     Nothing -> True
-                                     Just (Move x) ->(getId x) == c.id
-                                     Just _ -> False
-                     base =     [ showMethodCall model methodUi ui parentId c ]
-                     dropElem = AfterElem Nothing (Call parentId c)
-                     dropTarget =  element "li"
+           ( List.concatMap
+             ( \ call ->
+                let
+                  currentDrag = case DragDrop.currentlyDraggedObject model.dnd of
+                                                       Nothing -> True
+                                                       Just (Move x) ->(getId x) == (getId call)
+                                                       Just _ -> False
+                  dropElem = AfterElem Nothing call
+                  dropTarget =  element "li"
                                    |> addAttribute (id "no-methods") |> addStyle ("padding", "3px 15px")
                                    |> addStyle ("text-align", "center")
                                    |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd dropElem) then "1" else  "0.4"))
                                    |> DragDrop.makeDroppable model.dnd dropElem dragDropMessages
-                                   |> addAttribute (hidden currentDrag)
                                    |> appendChild
                                       ( element "i"
                                         |> addClass "fas fa-sign-in-alt"
                                         |> addStyle ("transform", "rotate(90deg)")
                                       )
-                   in
-                      List.reverse (dropTarget :: base)
-                 Block parentId b ->
-                   let
-                     methodUi = Maybe.withDefault (MethodBlockUiInfo Closed Children ValidState True) (Dict.get b.id.value ui.blockUI)
-                   in
-                     [ showMethodBlock model ui methodUi parentId b ]
+                  base = if currentDrag then [] else [dropTarget]
+                  elem =
+                      case call of
+                       Call parentId c ->
+                         let
+                           methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged) (Dict.get c.id.value ui.callsUI    )
+                         in
+                           showMethodCall model methodUi ui parentId c
+                       Block parentId b ->
+                         let
+                           methodUi = Maybe.withDefault (MethodBlockUiInfo Closed Children ValidState True) (Dict.get b.id.value ui.blockUI)
+                         in
+                           showMethodBlock model ui methodUi parentId b
+                in
+                  elem :: base
              ) technique.elems
            )
 

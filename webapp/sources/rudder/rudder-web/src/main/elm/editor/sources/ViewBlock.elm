@@ -5,7 +5,7 @@ import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import List.Extra
+import Json.Decode
 import MethodConditions exposing (..)
 import Dom.DragDrop as DragDrop
 import Dom exposing (..)
@@ -128,32 +128,64 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                          ]
                                    ]
                                  |> appendNodeConditional
-                                    ( input [readonly (not model.hasWriteRights),value (Maybe.withDefault "" (Maybe.map String.fromInt (getMajorVersion condition.os) )), onInput (updateConditionVersion updateMajorVersion),type_ "number", style "display" "inline-block", style "width" "auto", style "margin-left" "5px",  class "form-control", placeholder "Major version"] [] )
+                                    ( input [ readonly (not model.hasWriteRights)
+                                            , value (Maybe.withDefault "" (Maybe.map String.fromInt (getMajorVersion condition.os) ))
+                                            , onInput (updateConditionVersion updateMajorVersion)
+                                            , type_ "number", style "display" "inline-block", style "width" "auto"
+                                            , style "margin-left" "5px",  class "form-control", placeholder "Major version"
+                                            , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                                            ] [] )
                                     ( hasMajorMinorVersion condition.os)
                                  |> appendNodeConditional
-                                    ( input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getMinorVersion condition.os) )), onInput (updateConditionVersion updateMinorVersion), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Minor version"] [] )
+                                    ( input [ readonly (not model.hasWriteRights)
+                                            , value (Maybe.withDefault "" (Maybe.map String.fromInt (getMinorVersion condition.os) ))
+                                            , onInput (updateConditionVersion updateMinorVersion), type_ "number"
+                                            , style "display" "inline-block", style "width" "auto", class "form-control"
+                                            , style "margin-left" "5px", placeholder "Minor version"
+                                            , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                                            ] [] )
                                     ( hasMajorMinorVersion condition.os )
                                  |> appendNodeConditional
-                                    ( input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getVersion condition.os) )), onInput  (updateConditionVersion updateVersion), type_ "number",style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Version"] [] )
+                                    ( input [ readonly (not model.hasWriteRights)
+                                            , value (Maybe.withDefault "" (Maybe.map String.fromInt (getVersion condition.os) ))
+                                            , onInput  (updateConditionVersion updateVersion), type_ "number"
+                                            , style "display" "inline-block", style "width" "auto", class "form-control"
+                                            , style "margin-left" "5px", placeholder "Version"
+                                            , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                                            ] [] )
                                     ( hasVersion condition.os )
                                  |> appendNodeConditional
-                                    ( input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getSP condition.os) )), onInput (updateConditionVersion updateSP), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Service pack"] [] )
+                                    ( input [ readonly (not model.hasWriteRights)
+                                            , value (Maybe.withDefault "" (Maybe.map String.fromInt (getSP condition.os) ))
+                                            , onInput (updateConditionVersion updateSP), type_ "number"
+                                            , style "display" "inline-block", style "width" "auto", class "form-control"
+                                            , style "margin-left" "5px", placeholder "Service pack"
+                                            , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                                            ] [] )
                                     ( hasSP condition.os )
                                )
                             )
         advanced = div [ class "form-group condition-form" ] [
                              label [ for "advanced"] [ text "Other conditions:" ]
-                           , textarea [  readonly (not model.hasWriteRights), name "advanced", class "form-control", rows 1, id "advanced", value condition.advanced, onInput (\s ->
-                                        let
-                                          updatedCondition = {condition | advanced = s }
-                                          updatedCall = Block parentId {block | condition = updatedCondition }
-                                        in MethodCallModified updatedCall)  ] [] --ng-pattern="/^[a-zA-Z0-9_!.|${}\[\]()@:]+$/" ng-model="method_call.advanced_class" ng-change="updateClassContext(method_call)"></textarea>
-
+                           , textarea [
+                               readonly (not model.hasWriteRights), name "advanced", class "form-control", rows 1
+                               , id "advanced", value condition.advanced,  onFocus DisableDragDrop
+                               , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                               , onInput ( \s ->
+                                           let
+                                             updatedCondition = {condition | advanced = s }
+                                             updatedCall = Block parentId {block | condition = updatedCondition }
+                                           in MethodCallModified updatedCall
+                                         )
+                             ] []
                           ]
         result =
           div [ class "form-group condition-form" ] [
             label [ for "class_context" ] [ text "Applied condition expression:" ]
-          , textarea [ readonly (not model.hasWriteRights),  name "class_context",  class "form-control",  rows 1, id "advanced", value (conditionStr condition), readonly True ] []
+          , textarea [ readonly (not model.hasWriteRights),  name "class_context",  class "form-control",  rows 1
+                     , id "advanced", value (conditionStr condition), readonly True,  onFocus DisableDragDrop
+                     ,stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                     ] []
           , if String.length (conditionStr condition) > 2048 then
               span [ class "text-danger" ] [text "Classes over 2048 characters are currently not supported." ]
             else
@@ -316,6 +348,7 @@ blockBody model parentId block ui techniqueUi =
                      |> appendText "Condition:"
                    , element "span"
                      |> appendText (conditionStr block.condition)
+                     |> addActionStopPropagation ("mousedown" ,DisableDragDrop )
                      |> addAttributeList
                         [ class "popover-bs", title (conditionStr block.condition)
                         , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "top"
@@ -326,13 +359,21 @@ blockBody model parentId block ui techniqueUi =
                   ]
     methodName = case ui.mode of
                    Opened -> element "input"
-                             |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop, onBlur (EnableDragDrop block.id)  , type_ "text", name "component", style "width" "calc(100% - 50px)", class "form-control", value block.component,  placeholder "Enter a component name" ]
+                             |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , type_ "text"
+                                                 , name "component", style "width" "calc(100% - 50px)", class "form-control"
+                                                 , value block.component,  placeholder "Enter a component name" ]
+                             |> addActionStopPropagation ("mousedown" ,DisableDragDrop )
                              |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
                    Closed -> element "div"
                              |> addClass "method-name"
                              |> addStyleListConditional [ ("font-style", "italic"), ("opacity", "0.7") ]  (String.isEmpty block.component)
                              |> addClassConditional "text-danger"  (String.isEmpty block.component)
-                             |> appendText  (if (String.isEmpty block.component) then "No component name" else block.id.value)
+                             |> appendChild
+                                ( element "span" |> appendText  (if (String.isEmpty block.component) then "No component name" else block.component)
+
+                                  |> addActionStopPropagation ("mousedown" , DisableDragDrop)
+                                  |> addActionStopPropagation ("click" , DisableDragDrop)
+                                )
 
     currentDrag = case DragDrop.currentlyDraggedObject model.dnd of
                     Just (Move x) -> getId x == block.id
@@ -346,6 +387,7 @@ blockBody model parentId block ui techniqueUi =
   |> addAttribute (hidden currentDrag)
   |> addActionStopPropagation ("mousedown", EnableDragDrop block.id)
   |> (if (techniqueUi.enableDragDrop == Just block.id) then DragDrop.makeDraggable model.dnd (Move (Block parentId block)) dragDropMessages else identity)
+  |> addActionStopAndPrevent ( "dragend", MoveFirstElemBLock (Block parentId block))
   |> Dom.appendChildList
      [ dragElem
      , element "div"
@@ -383,38 +425,6 @@ showChildren model block ui techniqueUi parentId =
   |> appendChild (
      element "ul"
      |> addClass "methods list-unstyled"
-     |> appendChild
-     ( element "li"
-       |> addAttribute (id "no-methods")
-       |> appendChildList
-          [ element "i"
-            |> addClass "fas fa-sign-in-alt"
-            |> addStyle ("transform", "rotate(90deg)")
-          , element "span"
-            |> appendText " Drag and drop generic methods here to fill this component"
-          ]
-
-       |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
-       |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
-       |> addAttribute (hidden (not (List.isEmpty block.calls)))
-     )
-     |> appendChildConditional
-        ( element "li"
-          |> addAttribute (id "no-methods")
-          |> addStyle ("text-align", "center")
-          |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
-          |> appendChild
-             ( element "i"
-               |> addClass "fas fa-sign-in-alt"
-               |> addStyle ("transform", "rotate(90deg)")
-             )
-          |> addStyle ("padding", "3px 15px")
-          |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages)
-        ( case DragDrop.currentlyDraggedObject model.dnd of
-            Nothing -> False
-            Just (Move x) ->Maybe.withDefault False (Maybe.map (\c->  (getId x) == (getId c)) (List.head block.calls))
-            Just _ -> not (List.isEmpty block.calls)
-        )
      |> appendChildConditional
         ( element "li"
           |> appendChild
@@ -430,10 +440,42 @@ showChildren model block ui techniqueUi parentId =
               |> appendChild (element "span" |> appendText " ")
               |> appendChild (element "span" |> addClass  ("expandBlockChild fas fa-chevron-" ++ (if ui.showChildDetails then "up" else "down")))
 
-            |> addAction ("click", UIBlockAction block.id { ui | showChildDetails = not ui.showChildDetails})
+            |> addActionStopAndPrevent ("click", UIBlockAction block.id { ui | showChildDetails = not ui.showChildDetails})
             )
           )
         (ui.mode == Closed && (not (List.isEmpty block.calls) ))
+     |> appendChildConditional
+          ( element "li"
+            |> addAttribute (id "no-methods")
+            |> appendChildList
+               [ element "i"
+                 |> addClass "fas fa-sign-in-alt"
+                 |> addStyle ("transform", "rotate(90deg)")
+               , element "span"
+                 |> appendText " Drag and drop generic methods here to fill this component"
+               ]
+
+            |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
+            |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
+          )  (List.isEmpty block.calls)
+     |> appendChildConditional
+        ( element "li"
+          |> addAttribute (id "no-methods")
+          |> addStyle ("text-align", "center")
+          |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
+          |> appendChild
+             ( element "i"
+               |> addClass "fas fa-sign-in-alt"
+               |> addStyle ("transform", "rotate(90deg)")
+             )
+          |> addStyle ("padding", "3px 15px")
+          |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages)
+        ( case DragDrop.currentlyDraggedObject model.dnd of
+            Nothing -> False
+            Just (Move x) ->Maybe.withDefault True (Maybe.map (\c->  (getId x) /= (getId c)) (List.head block.calls))
+            Just _ -> not (List.isEmpty block.calls)
+        )
+
      |> appendChildList
           ( List.concatMap ( \ call ->
             (case call of
