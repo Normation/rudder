@@ -37,33 +37,17 @@
 
 package com.normation.rudder.db
 
-import com.normation.cfclerk.domain.Technique
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies.ActiveTechnique
-import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveUid
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.reports.execution.{AgentRunId, AgentRunWithoutCompliance, AgentRun => RudderAgentRun}
-import com.normation.rudder.rule.category.RuleCategoryId
 
 import org.joda.time.DateTime
 import doobie._
 import com.normation.rudder.db.Doobie._
 
 import cats.implicits._
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.git.GitCommitId
-
-
-
-
 
 /*
  * Here, we are declaring case classes that are mapped to SQL tables.
@@ -168,204 +152,11 @@ final object DB {
   }
   //////////
 
-final case class StatusUpdate(
+  final case class StatusUpdate(
       key    : String
     , lastId : Long
     , date   : DateTime
   )
-
-  //////////
-
-  final  case class SerializedGroups[T](
-      id              : T
-    , groupId         : String
-    , groupName       : String
-    , groupDescription: Option[String]
-    , nodeCount       : Int
-    , groupStatus     : Int
-    , startTime       : DateTime
-    , endTime         : Option[DateTime]
-  )
-
-  //////////
-
-final case class SerializedGroupsNodes(
-      groupPkeyId: Long   // really, the database id from the group
-    , nodes      : String
-  )
-
-  //////////
-
-final case class SerializedNodes[T](
-        id             : T  // will be Unit for insert and Long for select
-      , nodeId         : String
-      , nodeName       : String
-      , nodeDescription: Option[String]
-      , startTime      : DateTime
-      , endTime        : Option[DateTime]
-  )
-
-  //////////
-
-final case class SerializedDirectives[T](
-        id                  : T
-      , directiveId         : String
-      , directiveName       : String
-      , directiveDescription: Option[String]
-      , priority            : Int
-      , techniqueName       : String
-      , techniqueHumanName  : String
-      , techniqueDescription: Option[String]
-      , techniqueVersion    : String
-      , startTime           : DateTime
-      , endTime             : Option[DateTime]
-  )
-
-  //////////
-
-final case class SerializedRules[T](
-      id               : T
-    , ruleId           : String
-    , categoryId       : Option[String]
-    , name             : String
-    , shortDescription : Option[String]
-    , longDescription  : Option[String]
-    , isEnabledStatus  : Boolean
-    , startTime        : DateTime
-    , endTime          : Option[DateTime]
-  )
-
-  //////////
-
-  final case class SerializedRuleGroups(
-      rulePkeyId: Long   // really, the database id from the group
-    , targetSerialisation      : String
-  )
-
-  //////////
-
-  final case class SerializedRuleDirectives(
-      rulePkeyId  : Long   // really, the database id from the group
-    , directiveId : String
-  )
-
-  //////////
-
-  final case class SerializedGlobalSchedule[T](
-      id          : T //long or unit
-    , interval    : Int
-    , splaytime   : Int
-    , start_hour  : Int
-    , start_minute: Int
-    , startTime   : DateTime
-    , endTime     : Option[DateTime]
-  )
-
-  object Historize {
-
-    //sanitize a string to option string
-    def Opt(s: String) = s match {
-      case null => None
-      case _ if(s.trim == "") => None
-      case _ => Some(s)
-    }
-
-    // Utility method to convert from/to nodeGroup/SerializedGroups
-    def fromNodeGroup(nodeGroup : NodeGroup) : SerializedGroups[Unit] = {
-      SerializedGroups((), nodeGroup.id.value,
-              nodeGroup.name,
-              Opt(nodeGroup.description),
-              nodeGroup.serverList.size,
-              isDynamicToSql(nodeGroup.isDynamic),
-              DateTime.now(), None )
-    }
-
-    def isDynamicToSql(boolean : Boolean) : Int = {
-      boolean match {
-        case true => 1;
-        case false => 0;
-      }
-    }
-
-    def fromSQLtoDynamic(value : Int) : Option[Boolean] = {
-      value match {
-        case 1 => Some(true)
-        case 0 => Some(false)
-        case _ => None
-      }
-    }
-
-    def fromNode(node : NodeInfo) : SerializedNodes[Unit] = {
-      new SerializedNodes((), node.id.value,
-              node.hostname,
-              Opt(node.description),
-              DateTime.now(), None )
-    }
-
-    def fromDirective(t3 : (Directive, ActiveTechnique, Technique)) : SerializedDirectives[Unit] = {
-      val (directive, at, technique) = t3
-      SerializedDirectives[Unit](
-        (), directive.id.uid.value,
-              directive.name,
-              Opt(directive.shortDescription),
-              directive.priority,
-              at.techniqueName.value,
-              technique.name,
-              Opt(technique.description),
-              directive.techniqueVersion.serialize,
-              DateTime.now(), None )
-    }
-
-    // TODO: this is only used for history, no version here
-    def fromSerializedRule(
-        rule : SerializedRules[Long]
-      , ruleTargets : Seq[SerializedRuleGroups]
-      , directives : Seq[SerializedRuleDirectives]
-    ) : Rule = {
-      Rule (
-          RuleId(RuleUid(rule.ruleId))
-        , rule.name
-        , RuleCategoryId(rule.categoryId.getOrElse("rootRuleCategory")) // this is not really useful as RuleCategory are not really serialized
-        , ruleTargets.flatMap(x => RuleTarget.unser(x.targetSerialisation)).toSet
-        , directives.map(x => DirectiveId(DirectiveUid(x.directiveId))).toSet
-        , rule.shortDescription.getOrElse("")
-        , rule.longDescription.getOrElse("")
-        , rule.isEnabledStatus
-        , false
-      )
-
-    }
-
-    def fromRule(rule : Rule) : SerializedRules[Unit] = {
-      SerializedRules (
-          ()
-        , rule.id.uid.value
-        , Opt(rule.categoryId.value)
-        , rule.name
-        , Opt(rule.shortDescription)
-        , Opt(rule.longDescription)
-        , rule.isEnabledStatus
-        , DateTime.now()
-        , None
-      )
-    }
-
-    def fromGlobalSchedule(
-          interval    : Int
-        , splaytime   : Int
-        , start_hour  : Int
-        , start_minute: Int) : SerializedGlobalSchedule[Unit] = {
-      SerializedGlobalSchedule(
-              ()
-            , interval
-            , splaytime
-            , start_hour
-            , start_minute
-            , DateTime.now()
-            , None
-      )
-    }
-  }
 
 }
 

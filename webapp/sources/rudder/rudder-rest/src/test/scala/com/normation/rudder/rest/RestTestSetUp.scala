@@ -291,7 +291,6 @@ class RestTestSetUp {
     override def writeNodeConfigurations(rootNodeId: NodeId, updated: Map[NodeId, NodeConfigId], allNodeConfig: Map[NodeId, NodeConfiguration], allNodeInfos: Map[NodeId, NodeInfo], globalPolicyMode: GlobalPolicyMode, generationTime: DateTime, maxParallelism: Int): Box[Set[NodeId]] = ???
     override def computeExpectedReports(allNodeConfigurations: Map[NodeId, NodeConfiguration], updatedId: Map[NodeId, NodeConfigId], generationTime: DateTime, allNodeModes: Map[NodeId, NodeModeConfig]): List[NodeExpectedReports] = ???
     override def saveExpectedReports(expectedReports: List[NodeExpectedReports]): Box[Seq[NodeExpectedReports]] = ???
-    override def historizeData(rules: Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo], globalAgentRun: AgentRunInterval): Box[Unit] = ???
     override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
     override def runPostHooks(generationTime: DateTime, endTime: DateTime, idToConfiguration: Map[NodeId, NodeInfo], systemEnv: HookEnvPairs, nodeIdsPath: String): Box[Unit] = ???
     override def runFailureHooks(generationTime: DateTime, endTime: DateTime, systemEnv: HookEnvPairs, errorMessage: String, errorMessagePath: String): Box[Unit] = ???
