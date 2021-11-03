@@ -76,7 +76,6 @@ import com.normation.rudder.services.reports.CachedNodeConfigurationService
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.repository._
-import com.normation.rudder.services.eventlog.HistorizationService
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
@@ -227,9 +226,9 @@ trait PromiseGenerationService {
       // We need to do that as many time as necessary to free memory during policy generation
 
       fetch0Time           =  System.currentTimeMillis
-      (updatedNodesId, updatedNodeInfo, expectedReports, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig, timeWriteNodeConfig, timeSetExpectedReport) <- for {
-        (updatedNodeConfigIds, allNodeConfigurations, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig) <- for {
-          (activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, timeFetchAll, timeHistorize, timeRuleVal, errors) <- for {
+      (updatedNodesId, updatedNodeInfo, expectedReports, allErrors, errorNodes, timeFetchAll, timeRuleVal, timeBuildConfig, timeWriteNodeConfig, timeSetExpectedReport) <- for {
+        (updatedNodeConfigIds, allNodeConfigurations, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeRuleVal, timeBuildConfig) <- for {
+          (activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, timeFetchAll, timeRuleVal, errors) <- for {
              allRules             <- findDependantRules() ?~! "Could not find dependant rules"
              fetch1Time           =  System.currentTimeMillis
              _                    =  PolicyGenerationLogger.timing.trace(s"Fetched rules in ${fetch1Time-fetch0Time} ms")
@@ -259,7 +258,7 @@ trait PromiseGenerationService {
              nodeConfigCaches     <- getNodeConfigurationHash() ?~! "Cannot get the Configuration Cache"
              allNodeModes         =  buildNodeModes(allNodeInfos, globalComplianceMode, globalAgentRun, globalPolicyMode)
              timeFetchAll         =  (System.currentTimeMillis - fetch0Time)
-             _                    =  PolicyGenerationLogger.timing.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
+             _                    =  PolicyGenerationLogger.timing.debug(s"All relevant information fetched in ${timeFetchAll} ms.")
 
 
              _                    =  logMetrics(allNodeInfos, allRules, directiveLib, groupLib, allParameters, nodeConfigCaches)
@@ -267,13 +266,6 @@ trait PromiseGenerationService {
              ///// end of inputs, all information gathered for promise generation.
              /////
 
-             ///// this thing has nothing to do with promise generation and should be
-             ///// else where. You can ignore it if you want to understand generation process.
-             historizeTime =  System.currentTimeMillis
-             _             <- historizeData(allRules, directiveLib, groupLib, allNodeInfos, globalAgentRun)
-             timeHistorize =  (System.currentTimeMillis - historizeTime)
-             _             =  PolicyGenerationLogger.timing.debug(s"Historization of names done in ${timeHistorize} ms, start to build rule values.")
-             ///// end ignoring
 
             /////
             ///// Generate the root file with all certificate. This could be done in the node lifecycle management.
@@ -299,7 +291,7 @@ trait PromiseGenerationService {
              timeNodeContexts      =  (System.currentTimeMillis - nodeContextsTime)
              _                     =  PolicyGenerationLogger.timing.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
           } yield {
-            (activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, timeFetchAll, timeHistorize, timeRuleVal, errors)
+            (activeNodeIds, ruleVals, nodeContexts, allNodeModes, scriptEngineEnabled, globalPolicyMode, nodeConfigCaches, timeFetchAll, timeRuleVal, errors)
           }
           buildConfigTime       =  System.currentTimeMillis
           /// here, we still have directive by directive info
@@ -324,7 +316,7 @@ trait PromiseGenerationService {
           _                     <- forgetOtherNodeConfigurationState(allNodeConfigsId) ?~! "Cannot clean the configuration cache"
 
         } yield {
-          (updatedNodeConfigIds, allNodeConfigurations, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig)
+          (updatedNodeConfigIds, allNodeConfigurations, allNodeConfigsInfos, updatedNodesId, updatedNodeInfo, globalPolicyMode, allNodeModes, allErrors, errorNodes, timeFetchAll, timeRuleVal, timeBuildConfig)
         }
         ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
 
@@ -338,7 +330,7 @@ trait PromiseGenerationService {
         timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
         _                     =  PolicyGenerationLogger.timing.debug(s"Reports computed in ${timeSetExpectedReport} ms")
       } yield {
-        (updatedNodesId, updatedNodeInfo, expectedReports, allErrors, errorNodes, timeFetchAll, timeHistorize, timeRuleVal, timeBuildConfig, timeWriteNodeConfig, timeSetExpectedReport)
+        (updatedNodesId, updatedNodeInfo, expectedReports, allErrors, errorNodes, timeFetchAll, timeRuleVal, timeBuildConfig, timeWriteNodeConfig, timeSetExpectedReport)
       }
       saveExpectedTime      =  System.currentTimeMillis
       _                     <- saveExpectedReports(expectedReports) ?~! "Error when saving expected reports"
@@ -363,7 +355,6 @@ trait PromiseGenerationService {
                                  PolicyGenerationLogger.timing.info("Run pre-gen scripts hooks     : %10s ms".format(timeRunPreGenHooks))
                                  PolicyGenerationLogger.timing.info("Run pre-gen modules hooks     : %10s ms".format(timeCodePreGenHooks))
                                  PolicyGenerationLogger.timing.info("Fetch all information         : %10s ms".format(timeFetchAll))
-                                 PolicyGenerationLogger.timing.info("Historize names               : %10s ms".format(timeHistorize))
                                  PolicyGenerationLogger.timing.info("Build current rule values     : %10s ms".format(timeRuleVal))
                                  PolicyGenerationLogger.timing.info("Build target configuration    : %10s ms".format(timeBuildConfig))
                                  PolicyGenerationLogger.timing.info("Write node configurations     : %10s ms".format(timeWriteNodeConfig))
@@ -607,17 +598,6 @@ trait PromiseGenerationService {
   def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit]
 
   /**
-   * Store groups and directive in the database
-   */
-  def historizeData(
-      rules            : Seq[Rule]
-    , directiveLib     : FullActiveTechniqueCategory
-    , groupLib         : FullNodeGroupCategory
-    , allNodeInfos     : Map[NodeId, NodeInfo]
-    , globalAgentRun   : AgentRunInterval
-  ) : Box[Unit]
-
-  /**
    * Run pre generation hooks
    */
   def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit]
@@ -645,7 +625,6 @@ class PromiseGenerationServiceImpl (
   , override val nodeConfigurationService : NodeConfigurationHashRepository
   , override val nodeInfoService : NodeInfoService
   , override val confExpectedRepo : UpdateExpectedReportsRepository
-  , override val historizationService : HistorizationService
   , override val roNodeGroupRepository: RoNodeGroupRepository
   , override val roDirectiveRepository: RoDirectiveRepository
   , override val configurationRepository: ConfigurationRepository
@@ -680,7 +659,6 @@ class PromiseGenerationServiceImpl (
   PromiseGeneration_buildNodeConfigurations with
   PromiseGeneration_updateAndWriteRule with
   PromiseGeneration_setExpectedReports with
-  PromiseGeneration_historization with
   PromiseGeneration_Hooks {
 
   private[this] var dynamicsGroupsUpdate : Option[UpdateDynamicGroups] = None
@@ -1535,29 +1513,6 @@ object RuleExpectedReportBuilder extends Loggable {
       allComponents
     }
 
-  }
-
-}
-
-trait PromiseGeneration_historization extends PromiseGenerationService {
-  def historizationService : HistorizationService
-
-  def historizeData(
-        rules            : Seq[Rule]
-      , directiveLib     : FullActiveTechniqueCategory
-      , groupLib         : FullNodeGroupCategory
-      , allNodeInfos     : Map[NodeId, NodeInfo]
-      , globalAgentRun   : AgentRunInterval
-    ) : Box[Unit] = {
-    for {
-      _ <- historizationService.updateNodes(allNodeInfos.values.toSet)
-      _ <- historizationService.updateGroups(groupLib)
-      _ <- historizationService.updateDirectiveNames(directiveLib)
-      _ <- historizationService.updatesRuleNames(rules)
-      _ <- historizationService.updateGlobalSchedule(globalAgentRun.interval, globalAgentRun.splaytime, globalAgentRun.startHour, globalAgentRun.startMinute)
-    } yield {
-      () // unit is expected
-    }
   }
 
 }

@@ -132,7 +132,6 @@ import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.rule.category._
 import com.normation.rudder.services._
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
-import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.eventlog._
 import com.normation.rudder.services.healthcheck._
 import com.normation.rudder.services.marshalling._
@@ -760,7 +759,6 @@ object RudderConfig extends Loggable {
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
   lazy val srvGrid = new SrvGrid(roAgentRunsRepository, configService, roLdapRuleRepository, nodeInfoService)
   val findExpectedReportRepository : FindExpectedReportRepository = findExpectedRepo
-  val historizationRepository : HistorizationRepository =  historizationJdbcRepository
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
   val woApiAccountRepository : WoApiAccountRepository = woLDAPApiAccountRepository
 
@@ -1607,7 +1605,6 @@ object RudderConfig extends Loggable {
       , "default-directive-names.conf"
     )
   }
-  private[this] lazy val historizationJdbcRepository = new HistorizationJdbcRepository(doobie)
 
   private[this] lazy val roLdap =
     new ROPooledSimpleAuthConnectionProvider(
@@ -2007,7 +2004,6 @@ object RudderConfig extends Loggable {
     , rudderDit
     , eventLogRepository
   )
-  private[this] lazy val historizationService = new HistorizationServiceImpl(historizationJdbcRepository)
 
   lazy val deploymentService = {
     new PromiseGenerationServiceImpl(
@@ -2018,7 +2014,6 @@ object RudderConfig extends Loggable {
       , nodeConfigurationHashRepo
       , nodeInfoServiceImpl
       , updateExpectedRepo
-      , historizationService
       , roNodeGroupRepository
       , roDirectiveRepository
       , configurationRepository

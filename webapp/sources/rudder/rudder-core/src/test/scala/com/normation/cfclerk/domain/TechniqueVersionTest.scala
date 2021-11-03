@@ -38,7 +38,6 @@
 package com.normation.cfclerk.domain
 
 import com.normation.GitVersion.Revision
-import com.normation.utils.ParseVersion
 import com.normation.utils.PartType
 import com.normation.utils.Separator
 import com.normation.utils.Version
