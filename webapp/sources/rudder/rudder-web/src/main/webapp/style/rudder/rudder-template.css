@@ -91,9 +91,11 @@
 .content-wrapper .rudder-template .jstree li:last-child {
   background: transparent;
 }
-.content-wrapper .rudder-template .jstree .fa.jstree-icon,
-.content-wrapper .rudder-template .jstree .rudder-label.label-sm{
+.content-wrapper .rudder-template .jstree .fa.jstree-icon{
   margin-right: 2px;
+}
+.content-wrapper .rudder-template .jstree .rudder-label.label-sm{
+  margin-right: 4px;
 }
 .main-details .well{
   padding: 6px 12px;
@@ -598,9 +600,68 @@
 .rudder-template .template-main .main-table .dataTables_wrapper_bottom{
   padding-left: 15px;
 }
-.dataTable tr.head th:first-child,
-.dataTable tr td:first-child{
+.rudder-template .template-main .dataTable .dataTable tr.head th:first-child,
+.rudder-template .template-main .dataTable tr.head th:first-child,
+.rudder-template .template-main .dataTable tr td:first-child{
   padding-left: 15px;
+}
+.rudder-template .dataTable .report-compliance{
+  padding: 0;
+}
+.rudder-template .dataTable .report-compliance > div{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.rudder-template .dataTable .report-compliance > div span{
+  flex: 1;
+  padding: 6px;
+  text-align: center;
+}
+/* FOLDABLE ROWS */
+.dataTable.compliance-table thead tr th:last-child,
+.dataTable.compliance-table tbody tr td:last-child,
+.dataTable.compliance-table .dataTable thead tr th:last-child,
+.dataTable.compliance-table .dataTable tbody tr td:last-child{
+  width: 275px;
+}
+.rudder-template .template-main .dataTable tr.row-foldable{
+  cursor: pointer;
+}
+.rudder-template .template-main .dataTable tr.details,
+.rudder-template .template-main .dataTable tr.details + tr{
+  border-top: 1px solid #e5e5e5;
+}
+.rudder-template .template-main .dataTable.compliance-table tr td:first-child{
+  padding-left: 30px;
+  position: relative;
+}
+.rudder-template .template-main .dataTable tr.row-foldable td:first-child:before{
+  font-family: "Font Awesome 5 Free";
+  -webkit-font-smoothing: antialiased;
+  display: inline-block;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  line-height: 1;
+  font-weight: 900;
+  color: #999;
+  font-size: 22px;
+  position: absolute;
+}
+.rudder-template .template-main .dataTable tr.row-foldable.row-folded td:first-child:before{
+  content: "\f0da";
+  left: 10px;
+}
+.rudder-template .template-main .dataTable tr.row-foldable.row-open td:first-child:before{
+  content: "\f0d7";
+  left: 8px;
+}
+.rudder-template .template-main .dataTable .innerDetails{
+  display: block;
+}
+.rudder-template .template-main .dataTable tr.details td.details{
+  padding-left: 0;
 }
 .rudder-template .tab-table-content .dataTable > tbody > tr:nth-child(even),
 .rudder-template .template-main .main-table > .table-container > .dataTable > tbody > tr:nth-child(even){

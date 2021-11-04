@@ -56,6 +56,7 @@
   border-bottom: none !important;
   border-right: none;
   border-top: none;
+  background-color: #fff;
 }
 /* </TABLE> */
 
@@ -153,27 +154,41 @@
 .DataTables_sort_icon.ui-icon-triangle-1-s:before{
     content: "\f0d7";
 }
-td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.AuditCompliant,td.Compliant,td.NotApplicable,td.Success{
+td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.AuditCompliant,td.Compliant,td.NotApplicable,td.Success,
+.report-compliance .successNotApplicable,
+.report-compliance .successAlreadyOK,
+.report-compliance .auditCompliant,
+.report-compliance .auditNotApplicable {
   background-color:#9bc832;
   color: #fff;
 }
-td.AuditNonCompliant,td.NonCompliant {
+td.AuditNonCompliant,td.NonCompliant,
+.report-compliance .auditNonCompliant {
   background-color:#ff7125;
   color: #fff;
 }
-td.Missing,td.EnforceError,td.AuditError,td.Error,td.Unexpected,td.BadPolicyMode {
+td.Missing,td.EnforceError,td.AuditError,td.Error,td.Unexpected,td.BadPolicyMode,
+.report-compliance .unexpectedMissingComponent,
+.report-compliance .error,
+.report-compliance .auditError,
+.report-compliance .unexpectedUnknownComponent,
+.report-compliance .badPolicyMode {
   background-color:#c9302c;
   color: #fff;
 }
-td.Pending{
+td.Pending,
+.report-compliance .applying {
   background-color: #5bc0de;
   color: #fff;
 }
-td.Disabled, td.NoAnswer {
+td.Disabled, td.NoAnswer,
+.report-compliance .reportsDisabled,
+.report-compliance .noReport {
   background-color: #b4b4b4;
   color: #fff;
 }
-td.Repaired{
+td.Repaired,
+.report-compliance .successRepaired {
   background-color: #F5DD4D;
   color: #333;
 }

@@ -419,6 +419,8 @@ hr.separator-filter-tree{
 .jstree-anchor span.tags-label {
   padding: 0px 6px;
   font-size: .9em;
+  margin-right: 0;
+  margin-left: 4px;
 }
 .tags-list .tags-label{
   margin-bottom: 5px;

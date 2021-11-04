@@ -191,23 +191,39 @@ tabContent model details =
           ]
       Directives ->
         let
-          buildTableRow : Directive -> Html Msg
+          buildTableRow : Directive -> List (Html Msg)
           buildTableRow d =
             let
-              compliance = case List.Extra.find (\c -> c.ruleId == rule.id) model.rulesCompliance of
+              (compliance, trAttributes, trDetails) = case List.Extra.find (\c -> c.ruleId == rule.id) model.rulesCompliance of
                 Just co ->
                   case List.Extra.find (\dir -> dir.directiveId == d.id) co.directives of
-                    Just com -> buildComplianceBar com.complianceDetails
-                    Nothing  -> text "No report"
-                Nothing -> text "No report"
+                    Just com ->
+                      let
+                        rowId         = d.id.value
+                        rowState      = DirectiveComponentLvl com
+                        rowDetails    = rowComplianceDetails rowId rowState model.ui.directiveFilters (UpdateDirectiveFilters model.ui.directiveFilters) model
+
+                        clickEvent    = onCustomClick (UpdateDirectiveFilters (foldUnfoldRow rowId model.ui.directiveFilters))
+                        trClass       = class (foldedRowClass rowId model.ui.directiveFilters.tableFilters)
+                        complianceBar = buildComplianceBar com.complianceDetails
+                      in
+                        ( complianceBar
+                        , [trClass, clickEvent]
+                        , rowDetails
+                        )
+                    Nothing  -> (text "No report", [], text "")
+                Nothing      -> (text "No report", [], text "")
+
             in
-              tr[]
-              [ td[]
-                [ badgePolicyMode model.policyMode d.policyMode
-                , text d.displayName
-                , buildTagsTree d.tags
+              [ tr(trAttributes)
+                [ td[]
+                  [ badgePolicyMode model.policyMode d.policyMode
+                  , text d.displayName
+                  , buildTagsTree d.tags
+                  ]
+                , td[][compliance]
                 ]
-              , td[][compliance]
+              , trDetails
               ]
 
           buildListRow : List DirectiveId -> List (Html Msg)
@@ -269,19 +285,19 @@ tabContent model details =
                 in
                   UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}}
               )][]
-              , button [class "btn btn-primary btn-sm"][text "Refresh"]
+              , button [class "btn btn-primary btn-sm", onCustomClick Ignore][text "Refresh"]
               ]
             , div[class "table-container"]
-              [ table [class "dataTable"]
+              [ table [class "dataTable compliance-table"]
                 [ thead[]
                   [ tr[class "head"]
                     [ th [class (thClass model.ui.directiveFilters.tableFilters Name      ), onClick (UpdateDirectiveFilters (sortTable model.ui.directiveFilters Name       ))][text "Directive" ]
-                    , th [class (thClass model.ui.directiveFilters.tableFilters Compliance), onClick (UpdateDirectiveFilters (sortTable model.ui.directiveFilters Compliance ))][text "Compliance"]
+                    , th [class (thClass model.ui.directiveFilters.tableFilters Compliance), onClick (UpdateDirectiveFilters (sortTable model.ui.directiveFilters Compliance ))][text "Status"]
                     ]
                   ]
                 , tbody[]
                   ( if(List.length sortedDirectives > 0) then
-                      List.map buildTableRow sortedDirectives
+                      List.concatMap buildTableRow sortedDirectives
                     else
                       [ tr[]
                         [ td[colspan 2, class "dataTables_empty"][text "There is no directive applied"]
@@ -461,24 +477,44 @@ tabContent model details =
                 Nothing -> [tr[][td[colspan 2, class "dataTables_empty"][text "This rule is not applied on any node"]]]
                 Just rc ->
                   let
-                    nodeItem : NodeComplianceByNode -> Html Msg
+                    nodeItem : NodeComplianceByNode -> List (Html Msg)
                     nodeItem node =
                       let
                         nodeInfo = List.Extra.find (\n -> n.id == node.nodeId.value) model.nodes
                         nodeName = case nodeInfo of
                           Just nn -> nn.hostname
                           Nothing -> "Cannot find node details"
+
+                        (compliance, trAttributes, trDetails) = case nodeInfo of
+                          Just nn ->
+                            let
+                              complianceBar = buildComplianceBar node.complianceDetails
+                              rowId         = node.nodeId.value
+                              rowState      = NodeDirectiveLvl node
+                              clickEvent    = onCustomClick (UpdateGroupFilters (foldUnfoldRow rowId model.ui.groupFilters))
+                              trClass       = class (foldedRowClass rowId model.ui.groupFilters.tableFilters)
+                              rowDetails    = rowComplianceDetails rowId rowState model.ui.groupFilters (UpdateGroupFilters model.ui.groupFilters ) model
+                            in
+                              ( complianceBar
+                              , [trClass, clickEvent]
+                              , rowDetails
+                              )
+                          Nothing -> (text "No report", [], text "")
                       in
-                        tr[]
-                        [ td[][ text nodeName ]
-                        , td[][ buildComplianceBar node.complianceDetails ] -- Here goes the compliance bar
+
+                        [ tr(trAttributes)
+                          [ td[][ text nodeName ]
+                          , td[][ compliance    ]
+                          ]
+                        , trDetails
                         ]
+
                     nodesCompliance = toNodeCompliance rc
 
                     sortedNodes = nodesCompliance.nodes
                       |> List.filter (\n -> filterSearch model.ui.groupFilters.tableFilters.filter (searchFieldNodes n model.nodes))
                       |> List.sortWith (getNodesSortFunction model.ui.groupFilters.tableFilters model.nodes)
-                      |> List.map nodeItem
+                      |> List.concatMap nodeItem
                   in
                     sortedNodes
             in
