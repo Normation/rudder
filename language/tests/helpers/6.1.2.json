@@ -2,15 +2,15 @@
   "type": "ncf_technique",
   "version": 2,
   "data": {
-    "bundle_name": "ruder_lang",
+    "id": "ruder_lang",
     "version": "1.0",
     "category": "ncf_techniques",
     "description": "wd",
     "name": "ruder-lang",
-    "method_calls": [
+    "calls": [
       {
-        "method_name": "command_execution",
-        "class_context": "any",
+        "method": "command_execution",
+        "condition": "any",
         "component": "Command execution",
         "parameters": [
           {

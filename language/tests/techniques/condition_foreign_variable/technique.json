@@ -1,15 +1,15 @@
 {
-  "bundle_name": "condition_foreign_variable",
+  "id": "condition_foreign_variable",
   "description": "condition foreign variable",
   "name": "condition_foreign_variable",
   "version": "1.0",
   "parameter": [],
   "category": "ncf_techniques",
-  "method_calls": [
+  "calls": [
     {
-      "class_context": "any.(server_machine|group_sbu_cmcs__sles12_)",
+      "condition": "any.(server_machine|group_sbu_cmcs__sles12_)",
       "component": "Command execution",
-      "method_name": "command_execution",
+      "method": "command_execution",
       "parameters": [
         {
           "name": "command",

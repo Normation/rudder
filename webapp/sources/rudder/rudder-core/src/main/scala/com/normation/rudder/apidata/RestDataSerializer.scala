@@ -111,6 +111,8 @@ trait RestDataSerializer {
 
   def serializeTechnique(technique:FullActiveTechnique): JValue
 
+  def serializeTechnique(technique:Technique): JObject
+
   def serializeHealthcheckResult(check: HealthcheckResult): JValue
 
 }
@@ -586,6 +588,12 @@ final case class RestDataSerializerImpl (
   def serializeTechnique(technique:FullActiveTechnique): JValue = {
     (   ( "name"     -> technique.techniqueName.value )
       ~ ( "versions" ->  technique.techniques.map(_._1.serialize ))
+      )
+  }
+  def serializeTechnique(technique:Technique) = {
+    (   ( "name"     -> technique.name )
+      ~ ( "id"       -> technique.id.name.value)
+      ~ ( "version" ->  technique.id.version.serialize)
     )
   }
 

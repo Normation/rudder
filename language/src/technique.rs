@@ -87,7 +87,7 @@ impl FromStr for Version {
 
 #[derive(Serialize, Deserialize)]
 pub struct Technique {
-    bundle_name: String,
+    id: String,
     #[serde(
         serialize_with = "version_into_string",
         deserialize_with = "string_into_version"
@@ -97,7 +97,7 @@ pub struct Technique {
     category: String,
     description: String,
     name: String,
-    method_calls: Vec<MethodElem>,
+    calls: Vec<MethodElem>,
     #[serde(rename = "parameter")]
     interpolated_parameters: Vec<InterpolatedParameter>,
     // does not appear in labs. maybe skip only if empty?
@@ -145,7 +145,7 @@ impl Technique {
         };
 
         let calls = self
-            .method_calls
+            .calls
             .iter()
             .map(|c| match c {
                 MethodElem::MethodCall(callData) => callData.to_rudderlang(&Vec::new(), lib),
@@ -166,16 +166,16 @@ impl Technique {
 @category = {category}
 @parameters = [{parameters_meta}]
 
-resource technique_{bundle_name}({parameter_list})
+resource technique_{id}({parameter_list})
 
-technique_{bundle_name} state technique() {{{calls}}}
+technique_{id} state technique() {{{calls}}}
 "#,
             name = to_toml_string(&self.name)?,
             description = to_toml_string(&self.description)?,
             version = to_toml_string(&self.version.to_string())?,
             category = to_toml_string(&self.category)?,
             parameters_meta = parameters_meta_fmt,
-            bundle_name = self.bundle_name,
+            id = self.id,
             parameter_list = parameter_list.join(", "),
             calls = calls_fmt
         ))
@@ -345,8 +345,8 @@ impl MethodBlock {
 }
 #[derive(Serialize, Deserialize)]
 pub struct MethodCall {
+    #[serde(rename = "method")]
     method_name: String,
-    #[serde(rename = "class_context")]
     condition: String,
     component: String,
     #[serde(default)]

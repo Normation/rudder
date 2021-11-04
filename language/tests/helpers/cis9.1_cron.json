@@ -2,13 +2,13 @@
   "type": "ncf_technique",
   "version": 2,
   "data": {
-    "bundle_name": "CIS_9_1_configure_cron",
+    "id": "CIS_9_1_configure_cron",
     "description": "CIS benchmark section for cron.",
     "name": "CIS 9.1 configure cron",
     "version": "1.0",
     "parameter": [],
     "category": "ncf_techniques",
-    "method_calls": [
+    "calls": [
       {
         "parameters": [
           {
@@ -17,8 +17,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any.(debian)",
-        "method_name": "service_started",
+        "condition": "any.(debian)",
+        "method": "service_started",
         "component": "Service started"
       },
       {
@@ -29,8 +29,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any.(redhat)",
-        "method_name": "service_started",
+        "condition": "any.(redhat)",
+        "method": "service_started",
         "component": "Service started"
       },
       {
@@ -41,8 +41,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any.(debian)",
-        "method_name": "service_check_started_at_boot",
+        "condition": "any.(debian)",
+        "method": "service_check_started_at_boot",
         "component": "Service check started at boot"
       },
       {
@@ -53,8 +53,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any.(redhat)",
-        "method_name": "service_check_started_at_boot",
+        "condition": "any.(redhat)",
+        "method": "service_check_started_at_boot",
         "component": "Service check started at boot"
       },
       {
@@ -80,8 +80,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "permissions",
+        "condition": "any",
+        "method": "permissions",
         "component": "Permissions (non recursive)"
       },
       {
@@ -107,8 +107,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "permissions_dirs",
+        "condition": "any",
+        "method": "permissions_dirs",
         "component": "Permissions dirs"
       },
       {
@@ -134,8 +134,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "permissions_dirs",
+        "condition": "any",
+        "method": "permissions_dirs",
         "component": "Permissions dirs"
       },
       {
@@ -161,8 +161,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "permissions_dirs",
+        "condition": "any",
+        "method": "permissions_dirs",
         "component": "Permissions dirs"
       },
       {
@@ -188,8 +188,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "permissions_dirs",
+        "condition": "any",
+        "method": "permissions_dirs",
         "component": "Permissions dirs"
       },
       {
@@ -215,8 +215,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "permissions_dirs",
+        "condition": "any",
+        "method": "permissions_dirs",
         "component": "Permissions dirs"
       },
       {
@@ -227,8 +227,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "file_absent",
+        "condition": "any",
+        "method": "file_absent",
         "component": "File absent"
       },
       {
@@ -239,8 +239,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "file_absent",
+        "condition": "any",
+        "method": "file_absent",
         "component": "File absent"
       },
       {
@@ -251,8 +251,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "file_present",
+        "condition": "any",
+        "method": "file_present",
         "component": "File present"
       },
       {
@@ -263,8 +263,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "file_present",
+        "condition": "any",
+        "method": "file_present",
         "component": "File present"
       },
       {
@@ -290,8 +290,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "permissions",
+        "condition": "any",
+        "method": "permissions",
         "component": "Permissions (non recursive)"
       },
       {
@@ -317,8 +317,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "permissions",
+        "condition": "any",
+        "method": "permissions",
         "component": "Permissions (non recursive)"
       }
     ]

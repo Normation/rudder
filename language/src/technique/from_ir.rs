@@ -60,7 +60,7 @@ impl<'src> Technique {
         let (name, description, version, category, interpolated_parameters) =
             get_metadatas(meta, resource.name)?;
 
-        let method_calls: Vec<MethodElem> = resource
+        let calls: Vec<MethodElem> = resource
             .states
             .iter()
             .filter(|(tk, sd)| !sd.is_dependency) // do not print dependencies
@@ -75,7 +75,7 @@ impl<'src> Technique {
             })
             .collect::<Vec<MethodElem>>();
 
-        let bundle_name = resource
+        let id = resource
             .name
             .strip_prefix("technique_")
             .ok_or_else(|| {
@@ -88,13 +88,13 @@ impl<'src> Technique {
 
         // TODO unit tests
         Ok(Technique {
-            bundle_name,
+            id,
             description,
             name,
             version: Version::from_str(&version).unwrap(),
             category,
             interpolated_parameters,
-            method_calls,
+            calls,
             resources: Vec::new(),
         })
     }

@@ -229,7 +229,7 @@ class LiftHandler(
  * and an other for API with zio_json in V14 (and choose processing based on that)
  */
 final case class ChooseApi0[A <: LiftApiModule0](old: A, current: A) extends LiftApiModule0 {
-  override val schema = old.schema
+  override val schema = current.schema
   override def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
     if(version.value < 14) old.process0(version, path, req, params, authzToken)
     else current.process0(version, path, req, params, authzToken)

@@ -203,60 +203,6 @@ object DirectiveApi extends ApiModuleProvider[DirectiveApi] {
   def endpoints = ca.mrvisser.sealerate.values[DirectiveApi].toList.sortBy( _.z )
 }
 
-sealed trait NcfApi extends EndpointSchema with GeneralApi with SortIndex {
-  override def dataContainer = Some("techniques")
-}
-object NcfApi extends ApiModuleProvider[NcfApi] {
-
-  final case object UpdateTechnique extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
-    val description = "Update technique created with technique editor"
-    val (action, path)  = POST / "internal" / "techniques"
-  }
-  final case object CreateTechnique extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
-    val description = "Create a new technique in Rudder from a technique in the technique editor"
-    val (action, path)  = PUT / "internal" / "techniques"
-  }
-  final case object DeleteTechnique extends NcfApi with TwoParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
-    val description = "Delete a technique from technique editor"
-    val (action, path)  = DELETE / "internal" / "techniques"  / "{techniqueId}" / "{techniqueVersion}"
-  }
-  final case object GetResources extends NcfApi with TwoParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
-    val description = "Get currently deployed resources of a technique"
-    val (action, path)  = GET / "internal" / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources"
-  }
-  final case object GetNewResources extends NcfApi with TwoParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
-    val description = "Get resources of a technique draft"
-    val (action, path)  = GET / "internal" /  "techniques" / "draft" / "{techniqueId}" / "{techniqueVersion}" / "resources"
-  }
-  final case object ParameterCheck extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
-    val description = "Get currently deployed resources of a technique"
-    val (action, path)  = POST / "internal" / "techniques" / "parameter" / "check"
-  }
-  final case object GetTechniques extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
-    val description = "Get all Techniques metadata"
-    val (action, path)  = GET / "internal" / "techniques"
-  }
-  /*
-   * Method are returned sorted alpha-numericaly
-   */
-  final case object GetMethods extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
-    val description = "Get all methods metadata"
-    val (action, path)  = GET / "internal" / "methods"
-  }
-  final case object UpdateMethods extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
-    val description = "reload methods metadata from file system"
-    val (action, path)  = POST / "internal" / "methods" / "reload"
-  }
-  final case object UpdateTechniques extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
-    val description = "reload techniques metadata from file system"
-    val (action, path)  = POST / "internal" / "techniques"   / "reload"
-  }
-  final case object GetAllTechniqueCategories extends NcfApi with ZeroParam with StartsAtVersion12 with SortIndex { val z = implicitly[Line].value
-    val description = "Get all technique categories"
-    val (action, path)  = GET / "internal" / "techniques"   / "categories"
-  }
-  def endpoints = ca.mrvisser.sealerate.values[NcfApi].toList.sortBy( _.z )
-}
 
 sealed trait NodeApi extends EndpointSchema with SortIndex {
   override def dataContainer = Some("nodes")
@@ -427,9 +373,21 @@ sealed trait TechniqueApi extends EndpointSchema with GeneralApi with SortIndex 
 }
 object TechniqueApi extends ApiModuleProvider[TechniqueApi] {
 
-  final case object ListTechniques extends TechniqueApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
-    val description = "List all techniques"
+  final case object GetTechniques extends TechniqueApi with ZeroParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all Techniques metadata"
     val (action, path)  = GET / "techniques"
+  }
+  final case object UpdateTechniques extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "reload techniques metadata from file system"
+    val (action, path)  = POST / "techniques"   / "reload"
+  }
+  final case object GetAllTechniqueCategories extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all technique categories"
+    val (action, path)  = GET / "techniques" / "categories"
+  }
+  final case object ListTechniques extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "List all techniques version"
+    val (action, path)  = GET / "techniques"/ "versions"
   }
   final case object ListTechniquesDirectives extends TechniqueApi with OneParam with StartsAtVersion6 with SortIndex { val z = implicitly[Line].value
     val description = "List directives derived from given technique"
@@ -446,6 +404,45 @@ object TechniqueApi extends ApiModuleProvider[TechniqueApi] {
     val (action, path)  = GET / "techniques" / "{name}" / "{version}" / "revisions"
   }
 
+  final case object UpdateTechnique extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Update technique created with technique editor"
+    val (action, path)  = POST / "techniques" / "{techniqueId}" / "{version}"
+  }
+  final case object CreateTechnique extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Create a new technique in Rudder from a technique in the technique editor"
+    val (action, path)  = PUT / "techniques"
+  }
+  final case object DeleteTechnique extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Delete a technique from technique editor"
+    val (action, path)  = DELETE / "techniques"  / "{techniqueId}" / "{techniqueVersion}"
+  }
+  final case object GetResources extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Get currently deployed resources of a technique"
+    val (action, path)  = GET / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources"
+  }
+  final case object GetNewResources extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Get resources of a technique draft"
+    val (action, path)  = GET /  "drafts" / "{techniqueId}" / "{techniqueVersion}" / "resources"
+  }
+  final case object GetTechniqueAllVersion extends TechniqueApi with OneParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all Techniques metadata"
+    val (action, path)  = GET / "techniques" / "{techniqueId}"
+  }
+  final case object GetTechnique extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all Techniques metadata"
+    val (action, path)  = GET / "techniques" / "{techniqueId}" / "{techniqueVersion}"
+  }
+  /*
+   * Method are returned sorted alpha-numericaly
+   */
+  final case object GetMethods extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all methods metadata"
+    val (action, path)  = GET / "methods"
+  }
+  final case object UpdateMethods extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "reload methods metadata from file system"
+    val (action, path)  = POST / "methods" / "reload"
+  }
   def endpoints = ca.mrvisser.sealerate.values[TechniqueApi].toList.sortBy( _.z )
 }
 
@@ -504,12 +501,12 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
   // internal, because non definitive, API to load/unload a specific revision from git to ldap
   final case object LoadRuleRevisionForGeneration extends RuleApi with OneParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
     val description = "Load a revision of a rule from config-repo to ldap, ready for next generation"
-    val (action, path)  = POST / "rules" / "internal" / "revision" / "load" / "{id}"
+    val (action, path)  = POST / "rules" / "revision" / "load" / "{id}"
     override def dataContainer = None
   }
   final case object UnloadRuleRevisionForGeneration extends RuleApi with OneParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
     val description = "Unload a revision of a rule from ldap, it will not be used in next generation. Only rule with a revision can be unloaded"
-    val (action, path)  = POST / "rules" / "internal" / "revision" / "unload" / "{id}"
+    val (action, path)  = POST / "rules" / "revision" / "unload" / "{id}"
     override def dataContainer = None
   }
 
@@ -848,7 +845,6 @@ object AllApi {
     ComplianceApi.endpoints :::
     GroupApi.endpoints :::
     DirectiveApi.endpoints :::
-    NcfApi.endpoints :::
     NodeApi.endpoints :::
     ParameterApi.endpoints :::
     SettingsApi.endpoints :::

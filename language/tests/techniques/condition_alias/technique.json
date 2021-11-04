@@ -2,14 +2,14 @@
   "name": "conditional method that includes aliases for condition",
   "description": "one method with an alias in condition",
   "version": "1.0",
-  "bundle_name": "condition_alias",
+  "id": "condition_alias",
   "category": "ncf_techniques",
   "parameter": [],
-  "method_calls": [
+  "calls": [
     {
-      "class_context": "any.(SLES12)",
+      "condition": "any.(SLES12)",
       "component": "Command execution",
-      "method_name": "command_execution",
+      "method": "command_execution",
       "parameters": [
         {
           "name": "command",
@@ -21,9 +21,9 @@
       "disableReporting": false
     },
     {
-      "class_context": "any.(lucid)",
+      "condition": "any.(lucid)",
       "component": "Command execution",
-      "method_name": "command_execution",
+      "method": "command_execution",
       "parameters": [
         {
           "name": "command",

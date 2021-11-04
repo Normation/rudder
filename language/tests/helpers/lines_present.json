@@ -2,7 +2,7 @@
   "type": "ncf_technique",
   "version": 2,
   "data": {
-    "bundle_name": "CIS_redhat7___Ensure_lines_present_in_file",
+    "id": "CIS_redhat7___Ensure_lines_present_in_file",
     "description": "",
     "name": "CIS redhat7 - Ensure lines present in file",
     "version": "1.0",
@@ -24,7 +24,7 @@
       }
     ],
     "category": "CIS_redhat7",
-    "method_calls": [
+    "calls": [
       {
         "parameters": [
           {
@@ -38,8 +38,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "condition_from_variable_existence",
+        "condition": "any",
+        "method": "condition_from_variable_existence",
         "component": "condition_from_variable_existence"
       },
       {
@@ -60,8 +60,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false.${extra_condition})",
-        "method_name": "file_content",
+        "condition": "any.(skip_item_${report_data.canonified_directive_id}_false.${extra_condition})",
+        "method": "file_content",
         "component": "File content"
       }
     ]

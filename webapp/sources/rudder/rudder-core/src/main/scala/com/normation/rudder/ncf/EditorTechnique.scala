@@ -372,8 +372,8 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
           )
       }
 
-      ( ("method_name" -> call.methodId.value)
-      ~ ("class_context" -> call.condition)
+      ( ("method" -> call.methodId.value)
+      ~ ("condition" -> call.condition)
       ~ ("disableReporting" -> call.disabledReporting)
       ~ ("component" -> call.component)
       ~ ("parameters" -> params)
@@ -390,14 +390,15 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     val resource = technique.ressources.map(serializeResource)
     val parameters = technique.parameters.map(serializeTechniqueParameter).toList
     val calls = technique.methodCalls.map(serializeMethod).toList
-    ( ("bundle_name" -> technique.bundleName.value)
+    ( ("id" -> technique.bundleName.value)
     ~ ("version" -> technique.version.value)
     ~ ("category" -> technique.category)
     ~ ("description" -> technique.description)
     ~ ("name" -> technique.name)
-    ~ ("method_calls" -> calls)
+    ~ ("calls" -> calls)
     ~ ("parameter" -> parameters)
     ~ ("resources" -> resource)
+    ~ ("source" -> "editor")
     )
   }
 
@@ -435,17 +436,23 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
     val parameters = method.parameters.map(serializeMethodParameter)
     val agentSupport = method.agentSupport.map(serializeAgentSupport)
-    ( ("bundle_name" -> method.id.value)
+    ( ("id" -> method.id.value)
     ~ ("name" -> method.name)
     ~ ("description" -> method.description)
-    ~ ("class_prefix" -> method.classPrefix)
-    ~ ("class_parameter" -> method.classParameter.value)
-    ~ ("agent_support" -> agentSupport)
-    ~ ("parameter" -> parameters)
+    ~ ("condition" -> ( ("prefix" -> method.classPrefix)
+                      ~ ("parameter" -> method.classParameter.value)
+                      )
+      )
+    ~ ("agents" -> agentSupport)
+    ~ ("parameters" -> parameters)
     ~ ("documentation" -> method.documentation)
-    ~ ("deprecated" -> method.deprecated)
-    ~ ("rename" -> method.renameTo)
-    ~ ("parameter_rename" -> method.renameParam.map(t => ( "old" -> t._1) ~ ("new" -> t._2)))
+    ~ ("deprecated" -> ( method.deprecated match {
+                           case None => None
+                           case Some(info) => Some(( ("info" -> method.classPrefix)
+                                              ~ ("replacedBy" -> method.classParameter.value)
+                                              ) )
+                        })
+       )
     )
   }
 }

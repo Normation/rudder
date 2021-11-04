@@ -164,12 +164,11 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
 
         case Technique.Read       => TechniqueApi.ListTechniques.x :: TechniqueApi.ListTechniquesDirectives.x ::
                                      TechniqueApi.ListTechniqueDirectives.x :: TechniqueApi.TechniqueRevisions.x ::
-                                     NcfApi.GetMethods.x :: NcfApi.GetTechniques.x  ::
-                                     NcfApi.GetAllTechniqueCategories.x :: NcfApi.GetResources.x :: NcfApi.GetNewResources.x  ::
-                                     NcfApi.ParameterCheck.x :: Nil
-        case Technique.Write      => NcfApi.CreateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x :: Nil
-        case Technique.Edit       => NcfApi.UpdateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x ::
-                                     NcfApi.DeleteTechnique.x :: NcfApi.UpdateTechniques.x :: NcfApi.UpdateMethods.x :: Nil
+                                     TechniqueApi.GetMethods.x :: TechniqueApi.GetTechniques.x  ::
+                                     TechniqueApi.GetAllTechniqueCategories.x :: TechniqueApi.GetResources.x :: TechniqueApi.GetNewResources.x  :: Nil
+        case Technique.Write      => TechniqueApi.CreateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x :: Nil
+        case Technique.Edit       => TechniqueApi.UpdateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x ::
+                                     TechniqueApi.DeleteTechnique.x :: TechniqueApi.UpdateTechniques.x :: TechniqueApi.UpdateMethods.x :: Nil
 
 
         case UserAccount.Read     => UserApi.GetApiToken.x :: Nil

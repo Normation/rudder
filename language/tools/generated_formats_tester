@@ -49,10 +49,10 @@ def print_json(function, filename, json_to_format, is_python_error=False):
     formatted_json = { "function": function, "file": filename,  "error": json_to_format }
   print(json.dumps(formatted_json, indent=2) + ',')
 
-# for now ignore all `class_context` parenthesis differences, priorities should be handled correctly from within the program
+# for now ignore all `condition` parenthesis differences, priorities should be handled correctly from within the program
 # depends (TE builtin condition type vs any.(manually written condition))
 # eventually check condition equivalence
-def filter_class_context(diff_values):
+def filter_condition(diff_values):
   # remove all parenthesis
   generated_filtered = ''.join(filter(lambda c: c not in ['(', ')'], diff_values[1]))
   original_filtered = ''.join(filter(lambda c: c not in ['(', ')'], diff_values[0]))
@@ -83,12 +83,12 @@ def compare_json(first, second):
     exit(1)
   diff = jsondiff.diff(j1, j2, syntax="symmetric", marshal=True)
   # del as this field just does not exist on <Rudder6 versions json
-  deep_del(diff, ['method_calls', 'parameters', '$insert'], '$$errors', lambda d: True)
+  deep_del(diff, ['calls', 'parameters', '$insert'], '$$errors', lambda d: True)
   deep_del(diff, ['$insert'], 'resources', lambda d: len(d['resources']) == 0)
   deep_del(diff, ['$delete'], 'resources', lambda d: len(d['resources']) == 0)
-  deep_del(diff, ['method_calls'], 'class_context', lambda d: filter_class_context(d['class_context']))
+  deep_del(diff, ['calls'], 'condition', lambda d: filter_condition(d['condition']))
   # for now generated lib has no method specific resource parameter so it will take default resource parameter
-  deep_del(diff, ['method_calls', 'parameters'], 'name', lambda d: True)
+  deep_del(diff, ['calls', 'parameters'], 'name', lambda d: True)
   empty_dict_cleaner(diff)
   # print if diff
   if len(diff) != 0:
@@ -259,7 +259,7 @@ def remove_wilful_entries_cf(file_name, diff):
     deep_del(diff, promises_path + ['attributes'], '$delete', lambda d: d['lval'] == 'if')
 
     # del priority and 'any.' starting conditions
-    deep_del(diff, promises_path + ['attributes', 'rval', 'arguments'], 'value', lambda d: filter_class_context(d['value']))
+    deep_del(diff, promises_path + ['attributes', 'rval', 'arguments'], 'value', lambda d: filter_condition(d['value']))
     # del lines that add log_rudder and _classes_noop
     del_method_insertions = lambda d: del_from_array(d['$insert'], ['attributes', 'rval'], 'name', ['log_rudder', '_classes_noop'])
     deep_del(diff, promises_path, '$insert', del_method_insertions)

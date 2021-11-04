@@ -159,10 +159,15 @@ import zio._
 import zio.duration._
 import zio.syntax._
 import com.normation.box._
+import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.secret.Secret
+import com.normation.rudder.ncf.ResourceFileService
+import com.normation.rudder.ncf.TechniqueReader
+import com.normation.rudder.ncf.TechniqueSerializer
+import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -544,13 +549,14 @@ class RestTestSetUp {
   val techniqueAPIService6 = new TechniqueAPIService6(
       mockDirectives.directiveRepo
     , restDataSerializer
-    , mockTechniques.techniqueRepo
   )
 
   val techniqueAPIService14 = new TechniqueAPIService14(
       mockDirectives.directiveRepo
-    , mockTechniques.techniqueRepo
     , mockTechniques.techniqueRevisionRepo
+    , null
+    , null
+    , null
   )
 
   val systemApi = new SystemApi(restExtractorService, apiService11, apiService13, "5.0", "5.0.0", "some time")
@@ -595,14 +601,18 @@ class RestTestSetUp {
   val groupService6  = new GroupApiService6( mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, restDataSerializer)
   val groupService14 = new GroupApiService14(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockParameters.paramsRepo, uuidGen, asyncDeploymentAgent, workflowLevelService, restExtractorService, queryParser, mockNodes.queryProcessor, restDataSerializer)
   val groupApiInheritedProperties = new GroupApiInheritedProperties(mockNodeGroups.groupsRepo, mockParameters.paramsRepo)
-
+  val ncfTechniqueWriter : TechniqueWriter = null
+  val ncfTechniqueReader : TechniqueReader = null
+  val techniqueRepository: TechniqueRepository = null
+  val techniqueSerializer : TechniqueSerializer = null
+  val resourceFileService : ResourceFileService = null
   val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
   val rudderApi = {
     //append to list all new format api to test it
     val modules = List(
         systemApi
       , new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14)
-      , new TechniqueApi(restExtractorService, techniqueAPIService6, techniqueAPIService14)
+      , new TechniqueApi(restExtractorService, techniqueAPIService6, techniqueAPIService14, ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, techniqueSerializer, uuidGen, resourceFileService)
       , new DirectiveApi(mockDirectives.directiveRepo, restExtractorService, zioJsonExtractor, uuidGen, directiveApiService2, directiveApiService14)
       , new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService14, uuidGen)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12,  nodeApiService13, null, DeleteMode.Erase)

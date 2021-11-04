@@ -1,13 +1,13 @@
 {
-  "bundle_name": "supported_formats",
+  "id": "supported_formats",
   "version": "1.0",
   "category": "ncf_techniques",
   "description": "a gm supported only by cfengine, another one supported only by dsc, and one that is supported by both",
   "name": "supported_formats",
-  "method_calls": [
+  "calls": [
     {
-      "method_name": "condition_once",
-      "class_context": "any",
+      "method": "condition_once",
+      "condition": "any",
       "component": "Condition once",
       "parameters": [
         {
@@ -19,8 +19,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "directory_present",
-      "class_context": "any",
+      "method": "directory_present",
+      "condition": "any",
       "component": "Directory present",
       "parameters": [
         {
@@ -32,8 +32,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "directory_present",
-      "class_context": "windows",
+      "method": "directory_present",
+      "condition": "windows",
       "component": "Directory present",
       "parameters": [
         {
@@ -45,8 +45,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "registry_key_present",
-      "class_context": "any",
+      "method": "registry_key_present",
+      "condition": "any",
       "component": "Registry key present",
       "parameters": [
         {
@@ -58,8 +58,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "registry_key_present",
-      "class_context": "windows",
+      "method": "registry_key_present",
+      "condition": "windows",
       "component": "Registry key present",
       "parameters": [
         {

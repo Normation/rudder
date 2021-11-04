@@ -2,7 +2,7 @@
   "type": "ncf_technique",
   "version": 2,
   "data": {
-    "bundle_name": "normal",
+    "id": "normal",
     "description": "ewf",
     "name": "normal",
     "version": "1.0",
@@ -14,13 +14,13 @@
       }
     ],
     "category": "systemSettings/misc",
-    "method_calls": [
+    "calls": [
       {
         "args": [
           "mycond"
         ],
-        "class_context": "any",
-        "method_name": "condition_once",
+        "condition": "any",
+        "method": "condition_once",
         "component": "Condition once"
       }
     ]

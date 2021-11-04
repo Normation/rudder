@@ -507,7 +507,7 @@ impl Generator for CFEngine {
                 self.reset_context();
 
                 // Result bundle
-                let bundle_name = if state_name.fragment() == "technique" {
+                let id = if state_name.fragment() == "technique" {
                     // special cases to be compatible with bundles produced by the webapp
                     // and called in the generated policies
                     resource_name.to_owned()
@@ -520,7 +520,7 @@ impl Generator for CFEngine {
                     .chain(state.parameters.iter())
                     .map(|p| p.name.fragment().to_string())
                     .collect::<Vec<String>>();
-                let mut bundle = Bundle::agent(bundle_name.clone())
+                let mut bundle = Bundle::agent(id.clone())
                     .parameters(parameters.clone())
                     // Standard variables for all techniques
                     .promise_group(vec![
@@ -529,7 +529,7 @@ impl Generator for CFEngine {
                         Promise::string_raw("report_param", "join(\"_\", args)"),
                         Promise::string_raw(
                             "full_class_prefix",
-                            format!("canonify(\"{}_${{report_param}}\")", &bundle_name),
+                            format!("canonify(\"{}_${{report_param}}\")", &id),
                         ),
                         Promise::string_raw(
                             "class_prefix",

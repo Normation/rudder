@@ -1,11 +1,11 @@
 {
-  "bundle_name": "cdt",
+  "id": "cdt",
   "description": "rudderlang cdt for a complete loop",
   "name": "cdt",
   "version": "1.0",
   "parameter": [],
   "category": "ncf_techniques",
-  "method_calls": [
+  "calls": [
     {
       "parameters": [
         {
@@ -14,8 +14,8 @@
           "$errors": []
         }
       ],
-      "class_context": "any.(debian)",
-      "method_name": "file_absent",
+      "condition": "any.(debian)",
+      "method": "file_absent",
       "component": "File absent",
       "id": "ee867477-8629-448f-85d5-c8ef33357c0f",
       "disableReporting": false

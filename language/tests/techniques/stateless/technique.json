@@ -1,13 +1,13 @@
 {
-  "bundle_name": "stateless",
+  "id": "stateless",
   "version": "1.0",
   "category": "ncf_techniques",
   "description": "test technique created to help making sure these particular resources are properly handed by rudderlang",
   "name": "stateless",
-  "method_calls": [
+  "calls": [
     {
-      "method_name": "permissions_ntfs",
-      "class_context": "any",
+      "method": "permissions_ntfs",
+      "condition": "any",
       "component": "Permissions NTFS",
       "parameters": [
         {
@@ -35,8 +35,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "permissions",
-      "class_context": "any",
+      "method": "permissions",
+      "condition": "any",
       "component": "Permissions (non recursive)",
       "parameters": [
         {
@@ -60,8 +60,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "audit_from_osquery",
-      "class_context": "any",
+      "method": "audit_from_osquery",
+      "condition": "any",
       "component": "Audit from osquery",
       "parameters": [
         {
@@ -81,8 +81,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "monitoring_template",
-      "class_context": "any",
+      "method": "monitoring_template",
+      "condition": "any",
       "component": "Monitoring template",
       "parameters": [
         {
@@ -94,8 +94,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "monitoring_parameter",
-      "class_context": "any",
+      "method": "monitoring_parameter",
+      "condition": "any",
       "component": "Monitoring parameter",
       "parameters": [
         {

@@ -5,6 +5,7 @@ import Browser
 import Browser.Dom
 import DataTypes exposing (..)
 import Dict exposing ( Dict )
+import Dict.Extra
 import Dom.DragDrop as DragDrop
 import Either exposing (Either(..))
 import File
@@ -15,6 +16,7 @@ import Json.Encode
 import JsonEncoder exposing (encodeDraft, encodeExportTechnique, encodeTechnique)
 import JsonDecoder exposing (decodeDraft, decodeTechnique)
 import List.Extra
+import Maybe.Extra
 import MethodConditions exposing (..)
 import Random
 import Task
@@ -77,8 +79,13 @@ parseDraftsResponse: Value -> Msg
 parseDraftsResponse json =
   case Json.Decode.decodeValue (Json.Decode.dict decodeDraft) json  of
     Ok drafts ->
-        GetDrafts drafts
-    Err e -> Notification errorNotification (Json.Decode.errorToString e)
+      let
+        invalidDrafts = Dict.keys (Dict.filter (\ _ v -> Maybe.Extra.isNothing v) drafts)
+        validDrafts = Dict.Extra.filterMap (\ _ v -> v) drafts
+      in
+
+        GetDrafts validDrafts invalidDrafts
+    Err e -> Notification errorNotification "Invalid drafts in local storage, please clean your local storage"
 
 mainInit : { contextPath : String, hasWriteRights : Bool  } -> ( Model, Cmd Msg )
 mainInit initValues =
@@ -273,8 +280,8 @@ update msg model =
       in
         updatedStoreTechnique newModel
 
-    GetDrafts drafts ->
-      ({ model | drafts = drafts }, Cmd.none)
+    GetDrafts drafts invalidDraftsToClean->
+      ({ model | drafts = drafts }, Cmd.batch (List.map clearDraft invalidDraftsToClean))
 
     CloneTechnique technique internalId ->
       let
@@ -846,13 +853,11 @@ update msg model =
     ToggleDropdown id ->
       (model, toggleDropdown id)
     DisableDragDrop ->
-
       case model.mode of
         Introduction -> (model, Cmd.none)
         TechniqueDetails t e u ->
           ({model | mode = TechniqueDetails t e {u | enableDragDrop = Nothing} }, Cmd.none )
     EnableDragDrop id ->
-
       case model.mode of
         Introduction -> (model, Cmd.none)
         TechniqueDetails t e u ->

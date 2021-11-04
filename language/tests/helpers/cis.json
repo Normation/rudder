@@ -2,7 +2,7 @@
   "type": "ncf_technique",
   "version": 2,
   "data": {
-    "bundle_name": "CIS_redhat7___Enable_Service",
+    "id": "CIS_redhat7___Enable_Service",
     "description": "test",
     "name": "CIS redhat7 - Enable Service",
     "version": "1.0",
@@ -14,7 +14,7 @@
       }
     ],
     "category": "CIS_redhat7",
-    "method_calls": [
+    "calls": [
       {
         "parameters": [
           {
@@ -28,8 +28,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "condition_from_variable_existence",
+        "condition": "any",
+        "method": "condition_from_variable_existence",
         "component": "condition_from_variable_existence"
       },
       {
@@ -40,8 +40,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any.(skip_item_${report_data.canonified_directive_id}_kept)",
-        "method_name": "service_enabled",
+        "condition": "any.(skip_item_${report_data.canonified_directive_id}_kept)",
+        "method": "service_enabled",
         "component": "service_enabled"
       },
       {
@@ -52,8 +52,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any.(skip_item_${report_data.canonified_directive_id}_not_kept)",
-        "method_name": "service_started",
+        "condition": "any.(skip_item_${report_data.canonified_directive_id}_not_kept)",
+        "method": "service_started",
         "component": "service_started"
       }
     ]
