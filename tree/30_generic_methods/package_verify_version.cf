@@ -18,6 +18,7 @@
 
 # @name Package verify version
 # @description Verify if a package is installed in a specific version
+# @deprecated Use [package_present](#_package_present) in audit mode
 #
 # @parameter name    Name of the package to verify
 # @parameter version Version of the package to verify (can be "latest" for latest version)
