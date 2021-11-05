@@ -4,7 +4,6 @@ import Dict exposing (Dict)
 import Either exposing (Either)
 import File exposing (File)
 import Http exposing (Error)
-import Json.Decode exposing (Value)
 import MethodConditions exposing (..)
 import Dom.DragDrop as DragDrop
 import Time exposing (Posix)
@@ -139,6 +138,7 @@ type alias Model =
   , dnd                : DragDrop.State DragElement DropElement
   , modal              : Maybe ModalState
   , hasWriteRights     : Bool
+  , dropTarget         : Maybe DropElement
   }
 
 type ResourceState = New | Untouched | Deleted | Modified
@@ -187,7 +187,7 @@ type alias TechniqueUiInfo =
   , saving           : Bool
   , nameState        : ValidationState TechniqueNameError
   , idState          : ValidationState TechniqueIdError
-  , enableDragDrop   : Bool
+  , enableDragDrop   : Maybe CallId
   }
 
 type MethodCallTab = CallParameters | CallConditions | Result | CallReporting
@@ -195,6 +195,8 @@ type MethodBlockTab = BlockConditions | BlockReporting | Children
 type MethodCallMode = Opened | Closed
 type Tab = General |  Parameters | Resources | None
 type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUiInfo
+
+
 
 -- all events in the event loop
 type Msg =
@@ -248,10 +250,12 @@ type Msg =
   | MoveTargetChanged DropElement
   | MoveCanceled
   | MoveCompleted DragElement DropElement
+  | MoveFirstElemBLock MethodElem
   | SetMissingIds String
   | Notification (String -> Cmd Msg) String
   | DisableDragDrop
-  | EnableDragDrop
+  | EnableDragDrop CallId
+  | ToggleDropdown String
 
 dragDropMessages : DragDrop.Messages Msg DragElement DropElement
 dragDropMessages =

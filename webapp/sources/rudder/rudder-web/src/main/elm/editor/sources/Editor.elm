@@ -5,7 +5,6 @@ import Browser
 import Browser.Dom
 import DataTypes exposing (..)
 import Dict exposing ( Dict )
-import Dict.Extra
 import Dom.DragDrop as DragDrop
 import Either exposing (Either(..))
 import File
@@ -24,7 +23,6 @@ import UUID
 import ViewTechnique exposing ( view, checkTechniqueName, checkTechniqueId )
 import ViewMethod exposing ( accumulateErrorConstraint )
 import ViewTechniqueList exposing (allMethodCalls)
-import Maybe.Extra
 import MethodElemUtils exposing (..)
 import Http exposing ( Error )
 import AgentValueParser exposing (..)
@@ -43,6 +41,7 @@ port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
 --port warnNotification    : String -> Cmd msg
 port infoNotification    : String -> Cmd msg
+port toggleDropdown    : String -> Cmd msg
 port pushUrl             : String -> Cmd msg
 port getUrl             : () -> Cmd msg
 
@@ -84,7 +83,7 @@ parseDraftsResponse json =
 mainInit : { contextPath : String, hasWriteRights : Bool  } -> ( Model, Cmd Msg )
 mainInit initValues =
   let
-    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty Introduction initValues.contextPath "" (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights
+    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty Introduction initValues.contextPath "" (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing
   in
     (model, Cmd.batch ( [ getDrafts (), getMethods model, getTechniquesCategories model]) )
 
@@ -161,7 +160,7 @@ selectTechnique model technique =
         (d.technique, st, Cmd.none)
     callState = (Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap getAllCalls effectiveTechnique.elems)))
     blockState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks effectiveTechnique.elems)))
-    ui = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged True
+    ui = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
   in
     ({ model | mode = TechniqueDetails effectiveTechnique  state ui } )
       |> update OpenMethods
@@ -225,7 +224,7 @@ update msg model =
 
     NewTechnique id ->
       let
-        ui = TechniqueUiInfo General Dict.empty Dict.empty [] False Unchanged Unchanged True
+        ui = TechniqueUiInfo General Dict.empty Dict.empty [] False Unchanged Unchanged Nothing
         t = Technique (TechniqueId "") "1.0" "" "" "ncf_techniques" [] [] []
         newModel =  { model | mode = TechniqueDetails t (Creation id) ui}
       in
@@ -243,7 +242,7 @@ update msg model =
             callsState = (Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap allMethodCalls t.elems)))
             bloksState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks t.elems)))
             mode = TechniqueDetails t (Creation t.id) (
-                     TechniqueUiInfo General callsState bloksState [] False (checkTechniqueName t model) (checkTechniqueId (Creation t.id) t model) True
+                     TechniqueUiInfo General callsState bloksState [] False (checkTechniqueName t model) (checkTechniqueId (Creation t.id) t model) Nothing
                    )
             (newModel, cmd) = (update (CallApi ( getRessources (Creation t.id) ))  {model | mode = mode })
           in
@@ -281,7 +280,7 @@ update msg model =
       let
         callState =  Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap allMethodCalls technique.elems))
         blockState =  Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks technique.elems))
-        ui = TechniqueUiInfo General callState  blockState [] False Unchanged Unchanged True
+        ui = TechniqueUiInfo General callState  blockState [] False Unchanged Unchanged Nothing
         (newModel,_) = update OpenMethods { model | mode = TechniqueDetails technique  (Clone technique internalId) ui }
       in
         updatedStoreTechnique newModel
@@ -752,14 +751,14 @@ update msg model =
            newUi = { u | callsUI = Dict.update newId (always (Just defaultMethodUiInfo) ) u.callsUI }
           in
           case setIdRec newId t.elems of
-            (_, False) -> (model, Cmd.none)
+            (_, False) -> updatedStoreTechnique model
             (newCalls, True) -> update (GenerateId SetMissingIds) { model | mode = TechniqueDetails {t  | elems = newCalls} e newUi }
 
     MoveStarted draggedItemId ->
-      ( { model | dnd = DragDrop.startDragging model.dnd draggedItemId },Cmd.none )
+      ( { model | dnd = DragDrop.startDragging model.dnd draggedItemId, dropTarget =  Nothing },Cmd.none )
 
     MoveTargetChanged dropTargetId ->
-      ( { model | dnd = DragDrop.updateDropTarget model.dnd dropTargetId }, Cmd.none  )
+      ( { model | dnd = DragDrop.updateDropTarget model.dnd dropTargetId, dropTarget = Just dropTargetId }, Cmd.none  )
 
     MoveCanceled ->
       ( { model | dnd = DragDrop.stopDragging model.dnd }, Cmd.none )
@@ -771,15 +770,7 @@ update msg model =
           let
             (baseCalls, newElem) =
               case draggedItemId of
-                Move b -> case getParent b of
-                             Nothing -> (List.filter (getId >> (/=) (getId b) ) t.elems, b)
-                             Just parent ->
-                               (updateElemIf (getId >> (==) parent )
-                                  (\x -> case x of
-                                    Block p k -> Block p { k | calls = List.filter (getId >> (/=) (getId b) ) k.calls}
-                                    _ -> x
-                                  ) t.elems
-                               , b)
+                Move b ->  ( removeElem (getId >> (==) (getId b)) t.elems, b)
                 NewBlock -> (t.elems, Block Nothing (MethodBlock (CallId "") "" (Condition Nothing "") SumReport []))
                 NewMethod method ->
                  let
@@ -819,25 +810,36 @@ update msg model =
                       )
                 InBlock b ->
                   updateElemIf (getId >> (==) b.id ) (\x -> case x of
-                                                    Block p k -> Block p { k | calls = newElem :: b.calls }
+                                                    Block p k -> Block p { k | calls = newElem :: k.calls }
                                                     _ -> x
                                                   ) baseCalls
             updateTechnique = { t | elems = updatedCalls}
+            newModel = { model | mode = TechniqueDetails updateTechnique u e , dnd = DragDrop.initialState}
           in
-            update (GenerateId SetMissingIds ) { model | mode = TechniqueDetails updateTechnique u e , dnd = DragDrop.initialState}
+            update (GenerateId SetMissingIds ) newModel
 
+    MoveFirstElemBLock elem ->
+      let
+        newMsg =
+          case model.dropTarget of
+            Nothing -> MoveCanceled
+            Just drop -> MoveCompleted (Move elem) drop
+      in
+        update newMsg model
 
     Notification notif notifMsg ->
       (model, notif notifMsg)
+    ToggleDropdown id ->
+      (model, toggleDropdown id)
     DisableDragDrop ->
 
       case model.mode of
         Introduction -> (model, Cmd.none)
         TechniqueDetails t e u ->
-          ({model | mode = TechniqueDetails t e {u | enableDragDrop = False} }, Cmd.none )
-    EnableDragDrop ->
+          ({model | mode = TechniqueDetails t e {u | enableDragDrop = Nothing} }, Cmd.none )
+    EnableDragDrop id ->
 
       case model.mode of
         Introduction -> (model, Cmd.none)
         TechniqueDetails t e u ->
-          ({model | mode = TechniqueDetails t e {u | enableDragDrop = True} }, Cmd.none )
+          ({model | mode = TechniqueDetails t e {u | enableDragDrop = Just id} }, Cmd.none )

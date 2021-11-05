@@ -11,7 +11,7 @@ import MethodConditions exposing (..)
 import Regex
 import String.Extra
 import MethodElemUtils exposing (..)
-import Dom.DragDrop as DragDrop
+import Dom.DragDrop as DragDrop exposing (State)
 import Dom exposing (..)
 import Json.Decode
 import AgentValueParser exposing (..)
@@ -69,7 +69,7 @@ showParam model call state methodParam param =
       ]
     , small [] [ text ( " " ++ methodParam.description) ]
     ]
-  , textarea  [ attribute "draggable" "false", stopPropagationOn "click" (Json.Decode.succeed (Ignore, True)), onFocus DisableDragDrop , onBlur EnableDragDrop,  readonly (not model.hasWriteRights),  name "param", class "form-control", rows  1 , value (displayValue param.value) , onInput  (MethodCallParameterModified call param.id)   ] [] --msd-elastic     ng-trim="{{trimParameter(parameterInfo)}}" ng-model="parameter.value"></textarea>
+  , textarea  [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop,  readonly (not model.hasWriteRights),  name "param", class "form-control", rows  1 , value (displayValue param.value) , onInput  (MethodCallParameterModified call param.id)   ] [] --msd-elastic     ng-trim="{{trimParameter(parameterInfo)}}" ng-model="parameter.value"></textarea>
   , if (not (List.isEmpty errors)) then ul [ class "list-unstyled" ]
       (List.map (\e -> li [ class "text-danger" ] [ text e ]) errors)
     else text ""
@@ -151,28 +151,60 @@ showMethodTab model method parentId call uiInfo=
           div [ class "form-inline" ] [
             div [ class "form-group" ] [
               label [ style "display" "inline-block",  class "", for "OsCondition"] [ text "Operating system: " ]
-            , div [ style "display" "inline-block", style "width" "auto", style "margin-left" "5px",class "btn-group"] [
-                button [ class "btn btn-default dropdown-toggle", id "OsCondition", attribute  "data-toggle" "dropdown", attribute  "aria-haspopup" "true", attribute "aria-expanded" "true" ] [
+            , div [ style "display" "inline-block", style "width" "auto", style "margin-left" "5px",class "btn-group" ] [
+                button [ class "btn btn-default dropdown-toggle", id ("OsCondition-" ++ call.id.value), onClick (ToggleDropdown  ("OsCondition-" ++ call.id.value)), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))  ] [
                   text ((osName condition.os) ++ " ")
                 , span [ class "caret" ] []
                 ]
-              , ul [ class "dropdown-menu", attribute "aria-labelledby" "OsCondition", style "margin-left" "0px" ]
+              , ul [ class "dropdown-menu", style "margin-left" "0px" ]
                  ( List.map (\os ->
                      let
                        updatedCondition = {condition | os = os }
                      in
                        li [ onClick (MethodCallModified (Call parentId {call | condition = updatedCondition })), class (osClass os) ] [ a [href "#" ] [ text (osName os) ] ] ) osList )
               ]
-            , if (hasMajorMinorVersion condition.os ) then input [readonly (not model.hasWriteRights),value (Maybe.withDefault "" (Maybe.map String.fromInt (getMajorVersion condition.os) )), onInput (updateConditonVersion updateMajorVersion),type_ "number", style "display" "inline-block", style "width" "auto", style "margin-left" "5px",  class "form-control", placeholder "Major version"] [] else text ""
-            , if (hasMajorMinorVersion condition.os ) then input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getMinorVersion condition.os) )), onInput (updateConditonVersion updateMinorVersion), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Minor version"] []  else text ""
-            , if (hasVersion condition.os ) then input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getVersion condition.os) )), onInput  (updateConditonVersion updateVersion), type_ "number",style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Version"] []  else text ""
-            , if (hasSP condition.os ) then input [readonly (not model.hasWriteRights), value (Maybe.withDefault "" (Maybe.map String.fromInt (getSP condition.os) )), onInput (updateConditonVersion updateSP), type_ "number", style "display" "inline-block", style "width" "auto", class "form-control", style "margin-left" "5px", placeholder "Service pack"] []  else text ""
+            , if (hasMajorMinorVersion condition.os ) then
+                input [ readonly (not model.hasWriteRights)
+                      , value (Maybe.withDefault "" (Maybe.map String.fromInt (getMajorVersion condition.os) ))
+                      , onInput (updateConditonVersion updateMajorVersion)
+                      , type_ "number", style "display" "inline-block", style "width" "auto", style "margin-left" "5px"
+                      ,  class "form-control", placeholder "Major version"
+                      , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                      ] []
+              else text ""
+            , if (hasMajorMinorVersion condition.os ) then
+                input [ readonly (not model.hasWriteRights)
+                      , value (Maybe.withDefault "" (Maybe.map String.fromInt (getMinorVersion condition.os) ))
+                      , onInput (updateConditonVersion updateMinorVersion)
+                      , type_ "number", style "display" "inline-block", style "width" "auto", class "form-control"
+                      , style "margin-left" "5px", placeholder "Minor version"
+                      , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                      ] []
+              else text ""
+            , if (hasVersion condition.os ) then
+                input [ readonly (not model.hasWriteRights)
+                      , value (Maybe.withDefault "" (Maybe.map String.fromInt (getVersion condition.os) ))
+                      , onInput  (updateConditonVersion updateVersion)
+                      , type_ "number", style "display" "inline-block", style "width" "auto"
+                      , class "form-control", style "margin-left" "5px", placeholder "Version"
+                      , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                      ] []
+              else text ""
+            , if (hasSP condition.os ) then
+                input [ readonly (not model.hasWriteRights)
+                      , value (Maybe.withDefault "" (Maybe.map String.fromInt (getSP condition.os) ))
+                      , onInput (updateConditonVersion updateSP)
+                      , type_ "number", style "display" "inline-block", style "width" "auto", class "form-control"
+                      , style "margin-left" "5px", placeholder "Service pack"
+                      , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                      ] []
+              else text ""
             ]
           ]
         ]
       , div [ class "form-group condition-form" ] [
           label [ for "advanced"] [ text "Other conditions:" ]
-        , textarea [  readonly (not model.hasWriteRights), onFocus DisableDragDrop , onBlur EnableDragDrop, name "advanced", class "form-control", rows 1, id "advanced", value condition.advanced, onInput (\s ->
+        , textarea [  readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)),  onFocus DisableDragDrop, name "advanced", class "form-control", rows 1, id "advanced", value condition.advanced, onInput (\s ->
                      let
                        updatedCondition = {condition | advanced = s }
                        updatedCall = Call parentId {call | condition = updatedCondition }
@@ -180,7 +212,7 @@ showMethodTab model method parentId call uiInfo=
        ]
       , div [ class "form-group condition-form" ] [
           label [ for "class_context" ] [ text "Applied condition expression:" ]
-        , textarea [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , onBlur EnableDragDrop,  name "class_context",  class "form-control",  rows 1, id "advanced", value (conditionStr condition), readonly True ] []
+        , textarea [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop,  name "class_context",  class "form-control",  rows 1, id "advanced", value (conditionStr condition), readonly True ] []
         , if String.length (conditionStr condition) > 2048 then
             span [ class "text-danger" ] [text "Classes over 2048 characters are currently not supported." ]
           else
@@ -201,7 +233,8 @@ showMethodTab model method parentId call uiInfo=
             div [ class "input-group-addon" ] [
               text "Success"
             ]
-          , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_kept") ] []
+          , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_kept")
+                   , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)) , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True)) ] []
           , span [ class "input-group-btn" ] [
               button [ class "btn btn-outline-secondary clipboard", type_ "button", title "Copy to clipboard", onClick (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_kept")) ] [
                 i [ class "ion ion-clipboard" ] []
@@ -212,7 +245,8 @@ showMethodTab model method parentId call uiInfo=
             div [ class "input-group-addon" ] [
               text "Repaired"
             ]
-          , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired") ] []
+          , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired")
+                   , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)) , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True)) ] []
           , span [ class "input-group-btn" ] [
               button [ class "btn btn-outline-secondary clipboard", type_ "button" , title "Copy to clipboard" , onClick (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired")) ] [
                 i [ class "ion ion-clipboard" ] []
@@ -223,7 +257,8 @@ showMethodTab model method parentId call uiInfo=
             div [ class "input-group-addon" ] [
               text "Error"
             ]
-          , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error") ] []
+          , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error")
+                   , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)) , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True)) ] []
           , span [ class "input-group-btn" ] [
               button [ class "btn btn-outline-secondary clipboard", type_ "button", title "Copy to clipboard", onClick (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error")) ] [
                 i [ class "ion ion-clipboard" ] []
@@ -241,10 +276,10 @@ methodDetail method call parentId ui model =
   div [ class "method-details" ] [
     div [] [
       ul [ class "tabs-list"] [
-        li [ class (activeClass CallParameters),  stopPropagationOn "click" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallParameters}, True)) ] [text "Parameters"] -- click select param tabs, class active if selected
-      , li [ class (activeClass CallConditions),stopPropagationOn "click" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallConditions}, True)) ] [text "Conditions"]
-      , li [class (activeClass Result), stopPropagationOn "click" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = Result}, True))] [text "Result conditions"]
-      , li [class (activeClass CallReporting), stopPropagationOn "click" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallReporting}, True)) ] [text "Reporting"]
+        li [ class (activeClass CallParameters),  stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallParameters}, True)) ] [text "Parameters"] -- click select param tabs, class active if selected
+      , li [ class (activeClass CallConditions),stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallConditions}, True)) ] [text "Conditions"]
+      , li [class (activeClass Result), stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = Result}, True))] [text "Result conditions"]
+      , li [class (activeClass CallReporting), stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallReporting}, True)) ] [text "Reporting"]
       ]
     , div [ class "tabs" ] [ (showMethodTab model method parentId call ui) ]
     , div [ class "method-details-footer"] [
@@ -341,8 +376,8 @@ callBody model ui techniqueUi call pid =
                      |> appendText "Condition:"
                    , element "span"
                      |> appendText (conditionStr call.condition)
-                     |> addAction ("onmousedown", DisableDragDrop)
-                     |> addAction ("onmouseup", EnableDragDrop)
+                     |> addActionStopPropagation ("mousedown" , DisableDragDrop)
+                     |> addActionStopPropagation ("click" , DisableDragDrop)
                      |> addAttributeList
                         [ class "popover-bs", title (conditionStr call.condition)
                         , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "top"
@@ -353,11 +388,15 @@ callBody model ui techniqueUi call pid =
                   ]
     methodName = case ui.mode of
                    Opened -> element "input"
-                             |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , onBlur EnableDragDrop, type_ "text", name "component", style "width" "calc(100% - 65px)", class "form-control", value call.component,  placeholder "Enter a component name" ]
+                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "calc(100% - 65px)", class "form-control", value call.component,  placeholder "Enter a component name" ]
                              |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s }))
                    Closed -> element "div"
                              |> addClass "method-name"
-                             |> appendText  (if (String.isEmpty call.component) then method.name else call.component)
+                             |> appendChild
+                                ( element "span" |> appendText  (if (String.isEmpty call.component) then method.name else call.component )
+                                  |> addActionStopPropagation ("mousedown" , DisableDragDrop)
+                                  |> addActionStopPropagation ("click" , DisableDragDrop)
+                                )
                              |> appendChildConditional
                                   (element "span" |> addStyle ("opacity"," 0.4") |> appendText (" - "++ method.name) )
                                   ((not (String.isEmpty call.component)) && call.component /= method.name )
@@ -365,12 +404,12 @@ callBody model ui techniqueUi call pid =
 
     methodContent = element "div"
                     |> addClass  "method-param flex-form"
-                    |> addActionStopAndPrevent ("dragstart", Ignore)
-                    |> addListenerStopAndPrevent ("dragStart", Json.Decode.succeed Ignore)
                     |> appendChildList
                        [ element "label" |> appendText ((parameterName classParameter) ++ ": ")
                        , element "span"
                          |> appendText (displayValue paramValue)
+                         |> addActionStopPropagation ("mousedown" , DisableDragDrop)
+                         |> addActionStopPropagation ("click" , DisableDragDrop)
                        ]
 
     currentDrag = case DragDrop.currentlyDraggedObject model.dnd of
@@ -382,13 +421,15 @@ callBody model ui techniqueUi call pid =
   |> addClass "method"
   |> addAttribute (id call.id.value)
   |> addAttribute (hidden currentDrag)
-  |> (if techniqueUi.enableDragDrop then DragDrop.makeDraggable model.dnd (Move (Call pid call)) dragDropMessages else identity)
+  |> addActionStopPropagation ("mousedown", EnableDragDrop call.id)
+  |> (if techniqueUi.enableDragDrop == (Just call.id) then DragDrop.makeDraggable model.dnd (Move (Call pid call)) dragDropMessages else identity)
+  |> addActionStopAndPrevent ( "dragend", MoveFirstElemBLock (Call pid call))
   |> Dom.appendChildList
      [ dragElem
      , element "div"
        |> addClass "method-info"
        |> addClassConditional ("closed") (ui.mode == Closed)
-       |> addActionStopPropagation ("click",  UIMethodAction call.id {ui | mode = Opened})
+       |> addAction ("click",  UIMethodAction call.id {ui | mode = Opened})
        |> appendChildList
           [ element "div"
             |> addClass "btn-holder"
@@ -409,16 +450,14 @@ callBody model ui techniqueUi call pid =
           , element "div"
             |> addClass "flex-column"
             |> appendChildConditional condition (call.condition.os /= Nothing || call.condition.advanced /= "")
-            |> appendChildList
-               [ methodName
-               ]
+            |> appendChild methodName
             |> appendChildConditional methodContent (ui.mode == Closed)
             |> appendChildConditional
                         ( element "div"
                           |> addClass "method-details"
                           |> appendNode (methodDetail method call pid ui model )
-                          |> addAttribute (VirtualDom.property "draggable" (Json.Encode.bool techniqueUi.enableDragDrop))
-                          |> addActionStopAndPrevent ("dragstart", Ignore)
+                          |> addAttribute (VirtualDom.property "draggable" (Json.Encode.bool (techniqueUi.enableDragDrop == Just call.id)))
+
                         ) (ui.mode == Opened)
 
         ]
