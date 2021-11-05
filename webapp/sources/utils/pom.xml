@@ -48,7 +48,10 @@ limitations under the License.
     <dependency>
         <groupId>com.lihaoyi</groupId>
         <artifactId>fastparse_${scala-binary-version}</artifactId>
-        <version>${fastparse-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.alonsodomin.cron4s</groupId>
+      <artifactId>cron4s-core_${scala-binary-version}</artifactId>
     </dependency>
   </dependencies>
 

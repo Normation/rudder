@@ -410,6 +410,21 @@ rudder.dir.gitRoot=/var/rudder/configuration-repository
 #
 rudder.config.repo.new.file.group.owner=rudder
 
+#
+# Periodically do a Git GC to avoid accumulation of garbage.
+# The schedule is defined based on a cron-like format with the usual fields plus a second one:
+# seconds minutes hourOfDay dayOfTheMonth month DayOfTheWeek
+# See https://www.alonsodomin.me/cron4s/userguide/#parsing for more information, and
+# https://en.wikipedia.org/wiki/Cron for even more information.
+#
+# You can disable it totally with:
+#   @never
+# in place of the cron usual format.
+# Even on big systems, once a day should be enough.
+# Default run at 3:42 every morning.
+#
+rudder.git.gc=0 42 3 * * ?
+
 ###############################
 # Dynamic group configuration  ######################################################
 ###############################
