@@ -655,8 +655,10 @@ update msg model =
 
     CloneElem call newId ->
       let
-        clone = setId newId call
-        newModel =
+        clone = case setId newId call of
+                  Call p c -> Call p c
+                  Block p b -> Block p {b | calls = [] }
+        (newModel, msgs) =
           case model.mode of
             TechniqueDetails t o ui ->
               let
@@ -674,18 +676,23 @@ update msg model =
                 m = { model | mode = TechniqueDetails technique o newUi }
               in
                 case call of
-                          Call _ _  -> m
-                          Block _ b  -> List.foldl (\child acc ->
+                          Call _ _  -> (m, [])
+                          Block _ b  ->
+
+                            let
+                              res = List.map (\child  ->
                                                      let
                                                        elem = case child of
-                                                                Call _ c -> Call (Just (getId call)) c
-                                                                Block _ c -> Block (Just (getId call)) c
+                                                                Call _ c -> Call (Just (getId clone)) c
+                                                                Block _ c -> Block (Just (getId clone)) c
                                                      in
-                                                       Tuple.first (update (GenerateId (\s -> CloneElem elem (CallId s))) acc)
-                                                   ) m b.calls
-            _ -> model
+                                                       Tuple.second (update (GenerateId (\s -> CloneElem  elem (CallId s))) m)
+                                                   ) b.calls
+                            in
+                              (m,res)
+            _ -> (model, [])
       in
-        updatedStoreTechnique newModel
+            Tuple.mapSecond (\c -> ( c :: (List.reverse msgs)) |> Cmd.batch) (updatedStoreTechnique newModel)
 
     MethodCallModified method ->
       case model.mode of
