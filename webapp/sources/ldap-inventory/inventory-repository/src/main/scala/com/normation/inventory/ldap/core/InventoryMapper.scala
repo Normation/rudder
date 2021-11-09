@@ -734,6 +734,7 @@ class InventoryMapper(
           case Slackware   => linux.addValues(A_OS_NAME, A_OS_SLACKWARE)
           case Mint        => linux.addValues(A_OS_NAME, A_OS_MINT)
           case AmazonLinux => linux.addValues(A_OS_NAME, A_OS_AMAZON_LINUX)
+          case RockyLinux  => linux.addValues(A_OS_NAME, A_OS_ROCKY_LINUX)
           case _           => linux.addValues(A_OS_NAME, A_OS_UNKNOWN_LINUX)
         }
         linux
@@ -926,6 +927,7 @@ class InventoryMapper(
                             case A_OS_SLACKWARE     => Slackware
                             case A_OS_MINT          => Mint
                             case A_OS_AMAZON_LINUX  => AmazonLinux
+                            case A_OS_ROCKY_LINUX   => RockyLinux
                             case _                  => UnknownLinuxType
                           }
                           Right(Linux(os,osFullName,osVersion,osServicePack,kernelVersion))

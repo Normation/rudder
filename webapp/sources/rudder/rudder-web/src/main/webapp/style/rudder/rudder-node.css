@@ -286,6 +286,9 @@
 .id-card .card-img.mint{
   background-image: url(../../images/os/mint-logo.svg);
 }
+.id-card .card-img.rockylinux{
+  background-image: url(../../images/os/rocky-logo.svg);
+}
 .id-card .card-img.windowsxp,
 .id-card .card-img.windowsvista,
 .id-card .card-img.windowsseven,
