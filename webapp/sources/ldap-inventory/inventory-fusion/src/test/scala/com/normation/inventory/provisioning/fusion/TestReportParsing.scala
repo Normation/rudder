@@ -330,6 +330,13 @@ class TestInventoryParsing extends Specification with Loggable {
     }
   }
 
+  "Parsing RockyLinux" should {
+    "parse as rocky linux" in {
+      val os = parseRun("fusion-inventories/rocky.ocs").node.main.osDetails.os
+      os == RockyLinux
+    }
+  }
+
   "Parsing inventory with only KERNEL_NAME in OPERATING SYSTEM" should {
     "parse as a unknown linux when it's a linux" in {
       val os = parseRun("fusion-inventories/only-kernel-name-0034fbbe-4b52-4212-9535-1f1a952c6f36.ocs").node.main.osDetails.os

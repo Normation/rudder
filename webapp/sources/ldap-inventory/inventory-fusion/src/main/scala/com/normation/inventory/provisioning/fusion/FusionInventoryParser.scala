@@ -731,6 +731,7 @@ class FusionInventoryParser(
           else if(x contains "slackware"   ) Slackware
           else if(x contains "mint"        ) Mint
           else if(x contains "amazon linux") AmazonLinux
+          else if(x contains "rocky"       ) RockyLinux
           else                               UnknownLinuxType
 
         case("solaris", _) => SolarisOS

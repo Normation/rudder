@@ -198,6 +198,7 @@ object LinuxType {
     :: Slackware
     :: Mint
     :: AmazonLinux
+    :: RockyLinux
     :: Nil
   )
 }
@@ -216,6 +217,7 @@ final case object Scientific       extends LinuxType { val name = "Scientific"  
 final case object Slackware        extends LinuxType { val name = "Slackware"    }
 final case object Mint             extends LinuxType { val name = "Mint"         }
 final case object AmazonLinux      extends LinuxType { val name = "AmazonLinux"  }
+final case object RockyLinux       extends LinuxType { val name = "RockyLinux"   }
 
 //solaris has only one flavour for now
 //to be updated in the future with OSS verison
