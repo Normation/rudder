@@ -62,7 +62,10 @@ tabContent model details =
       rule       = details.rule
       ui = details.ui
       newTag     = ui.newTag
-
+      (includedTargets, excludedTargets) =
+          case rule.targets of
+            [Composition (Or include) (Or exclude)] -> (include, exclude)
+            _ -> (rule.targets, [])
   in
     case details.tab of
       Information   ->
@@ -244,7 +247,7 @@ tabContent model details =
             [ div [class "table-title"]
               [ h4 [][text "Compliance by directives"]
               , ( if model.ui.hasWriteRights then
-                  button [class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editDirectives = True }})][text "Select directives", i[class "fa fa-plus-circle"][]]
+                  button [class "btn btn-primary btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editDirectives = True }})][text "Select ", i[class "fa fa-plus-circle"][]]
                 else
                   text ""
                 )
@@ -440,36 +443,8 @@ tabContent model details =
                       ]
                     ]
                   ]
-      Groups        ->
+      Nodes        ->
         let
-          buildIncludeList : Bool -> RuleTarget -> Html Msg
-          buildIncludeList includeBool ruleTarget =
-            let
-              groupsList = getAllElems model.groupsTree
-
-              id = case ruleTarget of
-                NodeGroupId groupId -> groupId
-                Composition _ _ -> "compo"
-                Special spe -> spe
-                Node node -> node
-                Or _ -> "or"
-                And _ -> "and"
-
-              groupName = case List.Extra.find (\g -> g.id == id) groupsList of
-                Just gr -> gr.name
-                Nothing -> id
-
-              rowIncludeGroup = li[]
-                [ span[class "fa fa-sitemap"][]
-                , a[href ("/rudder/secure/configurationManager/#" ++ "")]
-                  [ span [class "target-name"][text groupName]
-                  ]
-                , span [class "target-remove", onClick (SelectGroup (NodeGroupId id) includeBool)][ i [class "fa fa-times"][] ]
-                , span [class "border"][]
-                ]
-            in
-              rowIncludeGroup
-
           buildNodesTable : RuleId -> List (Html Msg)
           buildNodesTable rId =
             let
@@ -498,17 +473,15 @@ tabContent model details =
                       |> List.map nodeItem
                   in
                     sortedNodes
-
             in
               nodesList
         in
-
-          if not details.ui.editGroups then
-            div[class "tab-table-content"]
+          div[class "tab-table-content"]
             [ div [class "table-title"]
               [ h4 [][text "Compliance by Nodes"]
               , ( if model.ui.hasWriteRights then
-                  button [class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}})][text "Select targets", i[class "fa fa-plus-circle"][]]
+                  button [class "btn btn-primary btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}, tab = Groups})]
+                  [ text "Select groups", i[class "fa fa-plus-circle" ][]]
                 else
                   text ""
                 )
@@ -525,11 +498,11 @@ tabContent model details =
               , button [class "btn btn-primary btn-sm"][text "Refresh"]
               ]
             , div[class "table-container"]
-              [ table [class "dataTable"]
+              [ table [class "dataTable compliance-table"]
                 [ thead[]
                   [ tr[class "head"]
                     [ th [class (thClass model.ui.groupFilters.tableFilters Name       ), onClick (UpdateGroupFilters (sortTable model.ui.groupFilters Name       ))][text "Node"      ]
-                    , th [class (thClass model.ui.groupFilters.tableFilters Compliance ), onClick (UpdateGroupFilters (sortTable model.ui.groupFilters Compliance ))][text "Compliance"]
+                    , th [class (thClass model.ui.groupFilters.tableFilters Compliance ), onClick (UpdateGroupFilters (sortTable model.ui.groupFilters Compliance ))][text "Status"]
                     ]
                   ]
                 , tbody[]
@@ -538,184 +511,225 @@ tabContent model details =
               ]
             ]
 
-          else
-            let
-              groupTreeElem : Group -> Html Msg
-              groupTreeElem item =
-                let
-                  checkIncludeOrExclude : List RuleTarget -> Bool
-                  checkIncludeOrExclude lst =
-                    let
-                      getTargetIds : List RuleTarget -> List String
-                      getTargetIds listTargets =
-                        List.concatMap (\target -> case target of
-                           NodeGroupId groupId -> [groupId]
-                           Composition i e ->
-                             let
-                               included = getTargetIds[ i ]
-                               excluded = getTargetIds[ e ]
-                             in
-                               included |>
-                                 List.filter (\t -> List.member t excluded)
-                           Special spe -> [spe]
-                           Node node -> [node]
-                           Or t  -> getTargetIds t
-                           And t -> getTargetIds t -- TODO : Need to be improved - we need to keep targets that are member of all targets list in t
-                        ) listTargets
-                    in
-                      List.member item.id (getTargetIds lst)
+      TechnicalLogs -> text ""
 
-                  includeClass =
-                    if checkIncludeOrExclude includedTargets then " item-selected"
-                    else if checkIncludeOrExclude excludedTargets then " item-selected excluded"
-                    else ""
-
-                in
-                  li [class "jstree-node jstree-leaf"]
-                  [ i [class "jstree-icon jstree-ocl"][]
-                  , a [class ("jstree-anchor" ++ includeClass)]
-                    [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
-                    , span [class "treeGroupName tooltipable"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
-                    , div [class "treeActions-container"]
-                      [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (SelectGroup (NodeGroupId item.id) True)][]]
-                      , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onClick (SelectGroup (NodeGroupId item.id) False)][]]
-                      ]
-                    ]
-                  ]
-
-              groupTreeCategory : Category Group -> Maybe (Html Msg)
-              groupTreeCategory item =
-                let
-                  categories = getSubElems item
-                    |> List.sortBy .name
-                    |> List.filterMap groupTreeCategory
-
-                  groups = item.elems
-                    |> List.filter (\g -> (filterSearch model.ui.groupFilters.treeFilters.filter (searchFieldGroups g)))
-                    |> List.sortBy .name
-                    |> List.map groupTreeElem
-
-                  children  = categories ++ groups
-
-                in
-                  if not (List.isEmpty children) then
-                    Just (li[class ("jstree-node" ++ foldedClass model.ui.groupFilters.treeFilters item.id)]
-                    [ i [class "jstree-icon jstree-ocl", onClick (UpdateGroupFilters (foldUnfoldCategory model.ui.groupFilters item.id))][]
-                    , a [class "jstree-anchor"]
-                      [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-                      , span [class "treeGroupCategoryName tooltipable"][text item.name]
-                      ]
-                    , ul[class "jstree-children"](children)
-                    ])
+      Groups ->
+        if not details.ui.editGroups then
+          div [class "row lists"]
+          [ div[class "list-edit col-xs-12 col-sm-6"]
+            [ div[class "list-container"]
+              [ div[class "list-heading"]
+                [ h4[][text "Applied to Nodes in any of these Groups"]
+                , ( if model.ui.hasWriteRights then
+                    button [class "btn btn-primary btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}})]
+                    [ text "Select", i[class "fa fa-plus-circle" ][]]
                   else
-                    Nothing
-
-              (includedTargets, excludedTargets) =
-                case rule.targets of
-                  [Composition (Or include) (Or exclude)] -> (include, exclude)
-                  _ -> (rule.targets, [])
-
-              (noChange, cancelTargets) = case details.originRule of
-                Just oR -> (rule.targets == oR.targets, oR.targets)
-                Nothing -> (rule.targets == [], [])
-
-              cancelBtn =
-                if noChange then
-                  text ""
-                else
-                  button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | targets = cancelTargets} })]
-                  [text "Cancel", i[class "fa fa-undo-alt"][]]
-
-            in
-              div[class "row flex-container"]
-              [ div[class "list-edit col-xs-12 col-sm-6 col-lg-7"]
-                [ div[class "list-container"]
-                  [ div[class "list-heading"]
-                    [ h4[][text "Apply to Nodes in any of these Groups"]
-                    , div [class "btn-actions"]
-                      [ cancelBtn
-                      , ( if isNewRule then
-                          text ""
-                        else
-                          button[class "btn btn-default btn-icon"  , onClick (UpdateRuleForm {details | ui = {ui | editGroups = False}} )][text "Close", i[class "fa fa-times"][]]
-                      )
-                      , button[class "btn btn-success btn-icon", onClick (CallApi (saveRuleDetails rule isNewRule))]
-                        [text "Save", i[class "fa fa-download"][]]
-                      ]
+                    text ""
+                  )
+                ]
+              , ul[class "groups applied-list"]
+                ( if(List.isEmpty includedTargets ) then
+                  [ li [class "empty"]
+                    [ span [] [text "There is no group included."]
+                    , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
+                    , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
                     ]
-                  , ul[class "groups applied-list"]
-                    ( if(List.isEmpty includedTargets ) then
-                      [ li [class "empty"]
-                        [ span [] [text "There is no group included."]
-                        , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
-                        ]
-                      ]
-                    else
-                      List.map (buildIncludeList True) includedTargets
-                    )
                   ]
-                , div[class "list-container"]
-                  [ div[class "list-heading except"]
-                    [ h4[][text "Except to Nodes in any of these Groups"]
+                else
+                  List.map (buildIncludeList model.groupsTree details.ui.editGroups True) includedTargets
+                )
+              ]
+            ]
+          , div[class "list-edit col-xs-12 col-sm-6"]
+            [ div[class "list-container"]
+              [ div[class "list-heading except"]
+                [ h4[][text "Except to Nodes in any of these Groups"]
+                ]
+              , ul[class "groups applied-list"]
+                ( if(List.isEmpty excludedTargets) then
+                  [ li [class "empty"]
+                    [ span [] [text "There is no group excluded."]
+                    , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
                     ]
-                  , ul[class "groups applied-list"]
-                    ( if(List.isEmpty excludedTargets) then
-                      [ li [class "empty"]
-                        [ span [] [text "There is no group excluded."]
-                        , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
-                        ]
-                      ]
-                    else
-                      List.map (buildIncludeList False) excludedTargets
-                    )
+                  ]
+                else
+                  List.map (buildIncludeList model.groupsTree details.ui.editGroups False) excludedTargets
+                )
+              ]
+            ]
+          ]
+        else
+          let
+            groupTreeElem : Group -> Html Msg
+            groupTreeElem item =
+              let
+                checkIncludeOrExclude : List RuleTarget -> Bool
+                checkIncludeOrExclude lst =
+                  let
+                    getTargetIds : List RuleTarget -> List String
+                    getTargetIds listTargets =
+                      List.concatMap (\target -> case target of
+                         NodeGroupId groupId -> [groupId]
+                         Composition i e ->
+                           let
+                             included = getTargetIds[ i ]
+                             excluded = getTargetIds[ e ]
+                           in
+                             included |>
+                               List.filter (\t -> List.member t excluded)
+                         Special spe -> [spe]
+                         Node node -> [node]
+                         Or t  -> getTargetIds t
+                         And t -> getTargetIds t -- TODO : Need to be improved - we need to keep targets that are member of all targets list in t
+                      ) listTargets
+                  in
+                    List.member item.id (getTargetIds lst)
+
+                includeClass =
+                  if checkIncludeOrExclude includedTargets then " item-selected"
+                  else if checkIncludeOrExclude excludedTargets then " item-selected excluded"
+                  else ""
+
+              in
+                li [class "jstree-node jstree-leaf"]
+                [ i [class "jstree-icon jstree-ocl"][]
+                , a [class ("jstree-anchor" ++ includeClass)]
+                  [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
+                  , span [class "treeGroupName tooltipable"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
+                  , div [class "treeActions-container"]
+                    [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (SelectGroup (NodeGroupId item.id) True)][]]
+                    , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onClick (SelectGroup (NodeGroupId item.id) False)][]]
+                    ]
                   ]
                 ]
-              , div [class "tree-edit col-xs-12 col-sm-6 col-lg-5"]
-                [ div [class "tree-container"]
-                  [ div [class "tree-heading"]
-                    [ h4 []
-                      [ i [class "fa fa-check"][]
-                      , text "Select groups"
-                      ]
-                    , i [class "fa fa-bars"][]
+
+            groupTreeCategory : Category Group -> Maybe (Html Msg)
+            groupTreeCategory item =
+              let
+                categories = getSubElems item
+                  |> List.sortBy .name
+                  |> List.filterMap groupTreeCategory
+
+                groups = item.elems
+                  |> List.filter (\g -> (filterSearch model.ui.groupFilters.treeFilters.filter (searchFieldGroups g)))
+                  |> List.sortBy .name
+                  |> List.map groupTreeElem
+
+                children  = categories ++ groups
+
+              in
+                if not (List.isEmpty children) then
+                  Just (li[class ("jstree-node" ++ foldedClass model.ui.groupFilters.treeFilters item.id)]
+                  [ i [class "jstree-icon jstree-ocl", onClick (UpdateGroupFilters (foldUnfoldCategory model.ui.groupFilters item.id))][]
+                  , a [class "jstree-anchor"]
+                    [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
+                    , span [class "treeGroupCategoryName tooltipable"][text item.name]
                     ]
-                    , div [class "header-filter"]
-                      [ div [class "input-group"]
-                        [ div [class "input-group-btn"]
-                          [ button [class "btn btn-default", type_ "button"][span [class "fa fa-folder fa-folder-open"][]]
-                          ]
-                        , input [type_ "text", placeholder "Filter", class "form-control", value model.ui.groupFilters.treeFilters.filter
-                          , onInput (\s ->
-                            let
-                              groupFilters = model.ui.groupFilters
-                              treeFilters = groupFilters.treeFilters
-                            in
-                              UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = s}}
-                          )][]
-                        , div [class "input-group-btn"]
-                          [ button [class "btn btn-default", type_ "button"
-                          , onClick (
-                            let
-                              groupFilters = model.ui.groupFilters
-                              treeFilters = groupFilters.treeFilters
-                            in
-                              UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = ""}}
-                          )]
-                            [span [class "fa fa-times"][]]
-                          ]
+                  , ul[class "jstree-children"](children)
+                  ])
+                else
+                  Nothing
+
+            (noChange, cancelTargets) = case details.originRule of
+              Just oR -> (rule.targets == oR.targets, oR.targets)
+              Nothing -> (rule.targets == [], [])
+
+            cancelBtn =
+              if noChange then
+                text ""
+              else
+                button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | targets = cancelTargets} })]
+                [text "Cancel", i[class "fa fa-undo-alt"][]]
+
+          in
+            div[class "row flex-container"]
+            [ div[class "list-edit col-xs-12 col-sm-6 col-lg-7"]
+              [ div[class "list-container"]
+                [ div[class "list-heading"]
+                  [ h4[][text "Apply to Nodes in any of these Groups"]
+                  , div [class "btn-actions"]
+                    [ cancelBtn
+                    , ( if isNewRule then
+                        text ""
+                      else
+                        button[class "btn btn-default btn-icon"  , onClick (UpdateRuleForm {details | ui = {ui | editGroups = False}} )][text "Close", i[class "fa fa-times"][]]
+                    )
+                    , button[class "btn btn-success btn-icon", onClick (CallApi (saveRuleDetails rule isNewRule))]
+                      [text "Save", i[class "fa fa-download"][]]
+                    ]
+                  ]
+                , ul[class "groups applied-list"]
+                  ( if(List.isEmpty includedTargets ) then
+                    [ li [class "empty"]
+                      [ span [] [text "There is no group included."]
+                      , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
+                      ]
+                    ]
+                  else
+                    List.map (buildIncludeList model.groupsTree details.ui.editGroups True) includedTargets
+                  )
+                ]
+              , div[class "list-container"]
+                [ div[class "list-heading except"]
+                  [ h4[][text "Except to Nodes in any of these Groups"]
+                  ]
+                , ul[class "groups applied-list"]
+                  ( if(List.isEmpty excludedTargets) then
+                    [ li [class "empty"]
+                      [ span [] [text "There is no group excluded."]
+                      , span [class "warning-sign"][i [class "fa fa-info-circle"][]]
+                      ]
+                    ]
+                  else
+                    List.map (buildIncludeList model.groupsTree details.ui.editGroups False) excludedTargets
+                  )
+                ]
+              ]
+            , div [class "tree-edit col-xs-12 col-sm-6 col-lg-5"]
+              [ div [class "tree-container"]
+                [ div [class "tree-heading"]
+                  [ h4 []
+                    [ i [class "fa fa-check"][]
+                    , text "Select groups"
+                    ]
+                  , i [class "fa fa-bars"][]
+                  ]
+                  , div [class "header-filter"]
+                    [ div [class "input-group"]
+                      [ div [class "input-group-btn"]
+                        [ button [class "btn btn-default", type_ "button"][span [class "fa fa-folder fa-folder-open"][]]
+                        ]
+                      , input [type_ "text", placeholder "Filter", class "form-control", value model.ui.groupFilters.treeFilters.filter
+                        , onInput (\s ->
+                          let
+                            groupFilters = model.ui.groupFilters
+                            treeFilters  = groupFilters.treeFilters
+                          in
+                            UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = s}}
+                        )][]
+                      , div [class "input-group-btn"]
+                        [ button [class "btn btn-default", type_ "button"
+                        , onClick (
+                          let
+                            groupFilters = model.ui.groupFilters
+                            treeFilters  = groupFilters.treeFilters
+                          in
+                            UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = ""}}
+                        )]
+                          [span [class "fa fa-times"][]]
                         ]
                       ]
-                  , div [class "jstree jstree-default"]
-                    [ ul[class "jstree-container-ul jstree-children"]
-                      [(case groupTreeCategory model.groupsTree of
-                        Just html -> html
-                        Nothing   -> div [class "alert alert-warning"]
-                          [ i [class "fa fa-exclamation-triangle"][]
-                          , text  "No groups match your filter."
-                          ]
-                      )]
                     ]
+                , div [class "jstree jstree-default"]
+                  [ ul[class "jstree-container-ul jstree-children"]
+                    [(case groupTreeCategory model.groupsTree of
+                      Just html -> html
+                      Nothing   -> div [class "alert alert-warning"]
+                        [ i [class "fa fa-exclamation-triangle"][]
+                        , text  "No groups match your filter."
+                        ]
+                    )]
                   ]
                 ]
               ]
-      TechnicalLogs -> text ""
+            ]

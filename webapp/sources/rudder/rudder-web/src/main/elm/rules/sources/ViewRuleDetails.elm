@@ -10,7 +10,7 @@ import String
 import ApiCalls exposing (..)
 import ViewTabContent exposing (tabContent)
 import Maybe.Extra
-import ViewUtils exposing (badgePolicyMode)
+import ViewUtils exposing (badgePolicyMode, getRuleNbNodes, getRuleNbGroups)
 
 --
 -- This file contains all methods to display the details of the selected rule.
@@ -97,9 +97,6 @@ editionTemplate model details =
 
 
     (diffDirectivesPos, diffDirectivesNeg) = getDiffList (Maybe.Extra.unwrap [] .directives originRule) rule.directives
-    nbInclude = case Maybe.Extra.unwrap [] .targets originRule of
-      [Composition (Or i) (Or e)] -> List.length i
-      targets -> List.length targets
 
     nbDirectives = case originRule of
       Just oR -> String.fromInt (List.length oR.directives)
@@ -145,11 +142,19 @@ editionTemplate model details =
               ]
             ]
           ]
-        , li[class ("ui-tabs-tab" ++ (if details.tab == Groups        then " ui-tabs-active" else ""))]
+        , li[class ("ui-tabs-tab" ++ (if details.tab == Nodes        then " ui-tabs-active" else ""))]
+          [ a[onClick (UpdateRuleForm {details | tab = Nodes })]
+            [ text "Nodes"
+            , span[class "badge badge-secondary badge-resources tooltip-bs"]
+              [ span [class "nb-resources"] [ text (String.fromInt(getRuleNbNodes model rule.id))]
+              ]
+            ]
+          ]
+        , li[class ("ui-tabs-tab" ++ (if details.tab == Groups       then " ui-tabs-active" else ""))]
           [ a[onClick (UpdateRuleForm {details | tab = Groups })]
             [ text "Groups"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
-              [ span [class "nb-resources"] [ text (String.fromInt(nbInclude))]
+              [ span [class "nb-resources"] [ text (String.fromInt(getRuleNbGroups originRule))]
               ]
             ]
           ]

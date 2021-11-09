@@ -1,15 +1,16 @@
 module ViewUtils exposing (..)
 
 import DataTypes exposing (..)
-import Html exposing (Html, button, div, i, span, text, h1, h3, h4, ul, li, table, thead, tbody, tr, th, td, b)
+import Html exposing (..)
 import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute, tabindex)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
 import List
+import Maybe.Extra
 import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
-import ComplianceUtils exposing (getDirectiveComputedCompliance, getNodeComputedCompliance)
+import ComplianceUtils exposing (getDirectiveComputedCompliance, getNodeComputedCompliance, getRuleCompliance, toNodeCompliance)
 
 
 getListRules : Category Rule -> List (Rule)
@@ -17,6 +18,23 @@ getListRules r = getAllElems r
 
 getListCategories : Category Rule  -> List (Category Rule)
 getListCategories r = getAllCats r
+
+getRuleNbNodes : Model -> RuleId -> Int
+getRuleNbNodes model ruleId =
+  case getRuleCompliance model ruleId of
+    Just rc ->
+      let
+        nodesCompliance = toNodeCompliance rc
+      in
+        List.length nodesCompliance.nodes
+    Nothing -> 0
+
+getRuleNbGroups : Maybe Rule -> Int
+getRuleNbGroups rule =
+  case Maybe.Extra.unwrap [] .targets rule of
+    [Composition (Or i) (Or e)] -> List.length i
+    targets -> List.length targets
+
 
 getCategoryName : Model -> String -> String
 getCategoryName model id =
@@ -264,3 +282,37 @@ buildTooltipContent title content =
     closeTag   = "</div>"
   in
     headingTag ++ title ++ contentTag ++ content ++ closeTag
+
+buildIncludeList : Category Group -> Bool -> Bool -> RuleTarget -> Html Msg
+buildIncludeList groupsTree editMode includeBool ruleTarget =
+  let
+    groupsList = getAllElems groupsTree
+    id = case ruleTarget of
+      NodeGroupId groupId -> groupId
+      Composition _ _ -> "compo"
+      Special spe -> spe
+      Node node -> node
+      Or _ -> "or"
+      And _ -> "and"
+
+    groupName = case List.Extra.find (\g -> g.id == id) groupsList of
+      Just gr -> gr.name
+      Nothing -> id
+
+    rowIncludeGroup = li[]
+      [ span[class "fa fa-sitemap"][]
+      , a[href ("/rudder/secure/configurationManager/#" ++ "")]
+        [ span [class "target-name"][text groupName]
+        ]
+      , ( if editMode then
+          span [class "target-remove", onClick (SelectGroup (NodeGroupId id) includeBool)][ i [class "fa fa-times"][] ]
+        else
+          text ""
+      )
+      , span [class "border"][]
+      ]
+  in
+    rowIncludeGroup
+
+--displayEditModeGroups : Rule -> RuleDetails -> Category Group -> List RuleTarget -> List RuleTarget -> Filters -> Html Msg
+--displayEditModeGroups rule details groupsTree includedTargets excludedTargets groupFilters =
