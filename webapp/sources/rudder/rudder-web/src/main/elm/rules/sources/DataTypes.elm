@@ -12,6 +12,7 @@ import Tuple3
 type TabMenu
   = Information
   | Directives
+  | Nodes
   | Groups
   | TechnicalLogs
 
