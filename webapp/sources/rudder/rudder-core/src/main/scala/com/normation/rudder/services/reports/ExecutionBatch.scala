@@ -53,6 +53,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.domain.policies.RuleId
+import org.apache.commons.lang3.StringUtils
 
 
 /*
@@ -313,6 +314,7 @@ final case class UnexpectedReportInterpretation(options: Set[UnexpectedReportBeh
 object ExecutionBatch extends Loggable {
   //these patterns must be reluctant matches to avoid strange things
   //when two variables are presents, or something like: ${foo}xxxxxx}.
+  //Note: the method checkExpectedVariable expects that a $ is in the pattern
   final val matchCFEngineVars = """.*\$(\{.+?\}|\(.+?\)).*""".r
   final private val replaceCFEngineVars = """\$\{.+?\}|\$\(.+?\)"""
 
@@ -358,12 +360,21 @@ object ExecutionBatch extends Loggable {
     Pattern.compile("""\Q"""+ x.replaceAll(replaceCFEngineVars, """\\E.*\\Q""") + """\E""")
   }
 
-  final def checkExpectedVariable(expected : String,effective : String) : Boolean = {
-    val isVar = matchCFEngineVars.pattern.matcher(expected).matches()
-    if (isVar) { // If this is not a var, there isn't anything to replace.
-      replaceCFEngineVars(expected).matcher(effective).matches()
+  final def checkExpectedVariable(expected: String, effective: String) : Boolean = {
+    if (expected == effective) {
+      true
     } else {
-      expected == effective
+      // If this is not a var, there isn't anything to match.
+      if (StringUtils.contains(expected, '$')) {
+        val isVar = matchCFEngineVars.pattern.matcher(expected).matches()
+        if (isVar) {
+          replaceCFEngineVars(expected).matcher(effective).matches()
+        } else {
+          false
+        }
+      } else {
+        false
+      }
     }
   }
 
