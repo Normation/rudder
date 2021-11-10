@@ -52,7 +52,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.domain.policies.RuleId
-import org.apache.commons.lang.StringUtils
+import org.apache.commons.lang3.StringUtils
 
 /*
  *  we want to retrieve for each node the expected reports that matches it LAST
