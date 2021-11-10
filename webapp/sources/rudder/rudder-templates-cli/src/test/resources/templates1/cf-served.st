@@ -61,21 +61,12 @@ bundle server access_rules
 
 
     any::
-  &if(SKIPIDENTIFY)&
-    &MANAGED_NODES_NAME, MANAGED_NODES_ID : {host, uuid |
-      "/var/rudder/share/&uuid&/"
-        maproot => { string_downcase(escape("&host&"))  },
-        admit   => { string_downcase(escape("&host&"))  };
-
-     } &
-  &else&
     &MANAGED_NODES_NAME, MANAGED_NODES_ID : {host, uuid |
       "/var/rudder/share/&uuid&/"
         maproot => { host2ip("&host&"), string_downcase(escape("&host&"))  },
         admit   => { host2ip("&host&"), string_downcase(escape("&host&"))  };
 
      } &
-  &endif&
 
 &endif&
     policy_server_set::
@@ -142,31 +133,6 @@ bundle common def
 
 body server control
 {
-&if(SKIPIDENTIFY)&
-        trustkeysfrom     => {
-          @{def.acl} ,
-          &if(MANAGED_NODES_NAME)&
-          &MANAGED_NODES_NAME: {
-          "&it&"};separator=","&
-          &endif&
-        }; #trustkey allows the exchange of keys
-
-        allowconnects     => {
-          @{def.acl} ,
-          &if(MANAGED_NODES_NAME)&
-          &MANAGED_NODES_NAME: {
-          "&it&"};separator=","&
-          &endif&
-        };
-
-        allowallconnects  => {
-          @{def.acl} ,
-          &if(MANAGED_NODES_NAME)&
-          &MANAGED_NODES_NAME: {
-          "&it&"};separator=","&
-          &endif&
-        };
-&else&
         trustkeysfrom     => {
           @{def.acl} ,
           &if(MANAGED_NODES_NAME)&
@@ -190,8 +156,6 @@ body server control
           host2ip("&it&"), "&it&"};separator=","&
           &endif&
         };
-&endif&
-
         maxconnections    => "1000";
         logallconnections => "true";
 

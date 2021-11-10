@@ -234,12 +234,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
 
                         )
     , SystemVariableSpec(
-                            "SKIPIDENTIFY" , "Should CFEngine server skip the forward DNS lookup for node identification?"
-                                           , multivalued = false
-                                           , constraint = Constraint(typeName = BooleanVType, default=Some("false"))
-
-                        )
-    , SystemVariableSpec(
                       "AGENT_RUN_INTERVAL" , "Run interval (in minutes) at which the agent runs"
                                            , multivalued = false
                                            , constraint = Constraint(typeName = IntegerVType())
