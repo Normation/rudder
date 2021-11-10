@@ -291,11 +291,18 @@ update msg model =
            List.Extra.updateIf (.id >> (==) technique.id ) (always technique) model.techniques
          else
            technique :: model.techniques
-        newMode = case model.mode of
-                    TechniqueDetails t _ ui -> TechniqueDetails t (Edit technique) ui
-                    m -> m
+        (newMode, idToClean) =
+          case model.mode of
+            TechniqueDetails _ (Edit _) ui ->
+              (TechniqueDetails technique (Edit technique) ui, technique.id)
+            TechniqueDetails _ (Creation id) ui ->
+              (TechniqueDetails technique (Edit technique) ui, id)
+            TechniqueDetails _ (Clone _ id) ui ->
+              (TechniqueDetails technique (Edit technique) ui, id)
+            m -> (m, technique.id)
+        drafts = Dict.remove idToClean.value model.drafts
       in
-        ({ model | techniques = techniques, mode = newMode}, successNotification "Technique saved!" )
+        ({ model | techniques = techniques, mode = newMode, drafts = drafts}, Cmd.batch [ clearDraft idToClean.value, successNotification "Technique saved!", pushUrl technique.id.value] )
 
     SaveTechnique (Err err) ->
       ( model , errorNotification ("Error when saving technique: " ++ debugHttpErr err ) )
