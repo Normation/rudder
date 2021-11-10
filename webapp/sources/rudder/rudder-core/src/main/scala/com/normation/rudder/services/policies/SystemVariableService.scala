@@ -157,9 +157,6 @@ class SystemVariableServiceImpl(
     logger.trace("Preparing the global system variables")
     val denyBadClocks        = getProp("DENYBADCLOCKS"         , getDenyBadClocks)
 
-    // To prevent breaking everything if technique still announce SKIPIDENTIFY, we set the default value
-    val skipIdentify         = getProp("SKIPIDENTIFY"          , () => Full(false))
-
     val modifiedFilesTtl     = getProp("MODIFIED_FILES_TTL"    , getModifiedFilesTtl)
     val cfengineOutputsTtl   = getProp("CFENGINE_OUTPUTS_TTL"  , getCfengineOutputsTtl)
 
@@ -191,7 +188,6 @@ class SystemVariableServiceImpl(
       varWebdavPassword ::
       configurationRepositoryFolder ::
       denyBadClocks ::
-      skipIdentify ::
       relaySyncMethod ::
       relaySyncPromises ::
       relaySyncSharedFiles ::
