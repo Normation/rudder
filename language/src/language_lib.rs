@@ -116,10 +116,10 @@ impl<'src> LanguageLib<'src> {
 
                 Ok(LibMethod::new(resource_def, state_def, alias.to_owned()))
             }
-            _ => panic!(format!(
+            _ => panic!(
                 "The standard library contains several matches for the following method: {}",
                 method_name
-            )),
+            ),
         }
     }
 

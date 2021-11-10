@@ -87,6 +87,12 @@ impl Error {
     }
 }
 
+impl From<toml::ser::Error> for Error {
+    fn from(err: toml::ser::Error) -> Self {
+        Error::new(err.to_string())
+    }
+}
+
 /// This macro returns from current function/closure with an error.
 /// When writing an iteration, use this within a map so we can continue on
 /// next iteration and aggregate errors.

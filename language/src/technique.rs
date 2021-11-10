@@ -25,6 +25,8 @@ use std::{
     fmt,
     str::{self, FromStr},
 };
+use toml::ser::to_string as to_toml_string;
+use toml::ser::to_vec as to_toml_vec;
 use toml::Value as TomlValue;
 use uuid::Uuid;
 
@@ -158,20 +160,20 @@ impl Technique {
         Ok(format!(
             r#"# Generated from json technique
 @format = 0
-@name = "{name}"
-@description = "{description}"
-@version = "{version}"
-@category = "{category}"
+@name = {name}
+@description = {description}
+@version = {version}
+@category = {category}
 @parameters = [{parameters_meta}]
 
 resource technique_{bundle_name}({parameter_list})
 
 technique_{bundle_name} state technique() {{{calls}}}
 "#,
-            name = self.name,
-            description = self.description,
-            version = self.version,
-            category = self.category,
+            name = to_toml_string(&self.name)?,
+            description = to_toml_string(&self.description)?,
+            version = to_toml_string(&self.version.to_string())?,
+            category = to_toml_string(&self.category)?,
             parameters_meta = parameters_meta_fmt,
             bundle_name = self.bundle_name,
             parameter_list = parameter_list.join(", "),
@@ -189,8 +191,10 @@ pub struct InterpolatedParameter {
 impl InterpolatedParameter {
     fn to_rudderlang(&self) -> Result<(String, String)> {
         let parameter_meta = format!(
-            r#"{{ "name" = "{}", "id" = "{}", "description" = "{}" }}"#,
-            self.name, self.id, self.description,
+            r#"{{ "name" = {}, "id" = {}, "description" = {} }}"#,
+            to_toml_string(&self.name)?,
+            to_toml_string(&self.id)?,
+            to_toml_string(&self.description)?,
         );
         let parameter = self.name.replace("\"", "").replace(" ", "_").to_owned();
 

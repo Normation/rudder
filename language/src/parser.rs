@@ -499,7 +499,7 @@ fn pfloat(i: PInput) -> PResult<(Token, f64)> {
     let (i, val) = recognize_float(i)?;
     #[allow(clippy::match_wild_err_arm)]
     match double::<&[u8], (&[u8], nom::error::ErrorKind)>(val.fragment().as_bytes()) {
-        Err(_) => panic!(format!("A parsed float cannot be reparsed: {:?}", val)),
+        Err(_) => panic!("A parsed float cannot be reparsed: {:?}", val),
         Ok((_, n)) => Ok((i, (val.into(), n))),
     }
 }
@@ -511,7 +511,7 @@ fn pinteger(i: PInput) -> PResult<(Token, i64)> {
     let (_, _) = not(alt((tag("e"), tag("E"), tag("."))))(i)?;
     match val.fragment().parse::<i64>() {
         Ok(n) => Ok((i, (val.into(), n))),
-        Err(_) => panic!(format!("A parsed integer cannot be reparsed: {:?}", val)),
+        Err(_) => panic!("A parsed integer cannot be reparsed: {:?}", val),
     }
 }
 
