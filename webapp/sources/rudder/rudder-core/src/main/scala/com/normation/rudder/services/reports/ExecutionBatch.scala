@@ -46,12 +46,13 @@ import com.normation.rudder.domain.reports._
 import com.normation.rudder.reports._
 import com.normation.rudder.reports.execution.AgentRunId
 import net.liftweb.common.Loggable
-import java.util.regex.Pattern
 
+import java.util.regex.Pattern
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.domain.policies.RuleId
+import org.apache.commons.lang.StringUtils
 
 /*
  *  we want to retrieve for each node the expected reports that matches it LAST
@@ -1214,7 +1215,14 @@ final case class ContextForNoAnswer(
     // the lenght of the pattern when \Q\E.* are removed.
     //
     val values = expectedComponent.groupedComponentValues.toList.map { case (v, u) =>
-      val isVar = matchCFEngineVars.pattern.matcher(v).matches()
+      val isVar = {
+        // It can't be a variable without a $
+        if (StringUtils.contains(v, '$')) {
+          matchCFEngineVars.pattern.matcher(v).matches()
+        } else {
+          false
+        }
+      }
       val pattern = if (isVar) { // If this is not a var, there isn't anything to replace.
         Some(replaceCFEngineVars(v))
       } else {
