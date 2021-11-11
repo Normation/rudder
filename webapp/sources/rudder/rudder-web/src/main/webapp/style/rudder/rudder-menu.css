@@ -1532,6 +1532,9 @@ form .tooltip-content p {
   opacity: 1;
   filter: alpha(opacity=100);
 }
+.skin-yellow .tooltip .tooltip-inner-content > ul:last-child {
+  margin-bottom: 0;
+}
 .content-wrapper .rudder-label{
   cursor: help;
   display: inline-block;

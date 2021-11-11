@@ -558,7 +558,23 @@
   border-bottom: 2px solid #e5e5e5;
   font-size: 20px;
 }
-
+.rudder-template .show-compliance > .text-muted {
+  background: #f7F7F7;
+  padding: 10px;
+  font-size: 14px;
+}
+.rudder-template .show-compliance .progress{
+  margin: 0;
+  height: 40px;
+  border-radius: 4px;
+}
+.rudder-template .show-compliance .progress > .progress-bar{
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  line-height: initial;
+  font-size: 14px;
+}
 /* === DATATABLE === */
 
 .rudder-template .template-main .main-table .dataTables_wrapper_top {
