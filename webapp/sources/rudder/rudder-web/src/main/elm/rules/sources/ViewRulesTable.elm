@@ -8,8 +8,8 @@ import List.Extra
 import List
 import String
 import NaturalOrdering exposing (compareOn)
-import ViewUtils exposing (getCategoryName, getListRules, filterSearch, searchFieldRules, buildTagsTree, badgePolicyMode, buildTooltipContent)
-import ComplianceUtils exposing (buildComplianceBar, getAllComplianceValues, getRuleCompliance)
+import ViewUtils exposing (getCategoryName, getListRules, filterSearch, searchFieldRules, buildTagsTree, badgePolicyMode, buildTooltipContent, buildComplianceBar)
+import ComplianceUtils exposing (getAllComplianceValues, getRuleCompliance)
 
 --
 -- This file contains all methods to display the Rules table
@@ -43,7 +43,7 @@ getSortFunction model r1 r2 =
                 let
                   allComplianceValues = getAllComplianceValues c.complianceDetails
                 in
-                  if ( allComplianceValues.okStatus + allComplianceValues.nonCompliant + allComplianceValues.error + allComplianceValues.unexpected + allComplianceValues.pending + allComplianceValues.reportsDisabled + allComplianceValues.noReport == 0 ) then
+                  if ( allComplianceValues.okStatus.value + allComplianceValues.nonCompliant.value + allComplianceValues.error.value + allComplianceValues.unexpected.value + allComplianceValues.pending.value + allComplianceValues.reportsDisabled.value + allComplianceValues.noReport.value == 0 ) then
                     -1.0
                   else
                     c.compliance

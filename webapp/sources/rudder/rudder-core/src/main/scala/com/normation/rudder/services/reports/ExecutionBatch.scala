@@ -55,7 +55,6 @@ import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.domain.policies.RuleId
 import org.apache.commons.lang3.StringUtils
 
-
 /*
  *  we want to retrieve for each node the expected reports that matches it LAST
  *  run, or if no last run, what we are wainting for.
