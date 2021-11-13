@@ -401,6 +401,7 @@ limitations under the License.
     <reflections-version>0.9.12</reflections-version>
     <graalvm-version>21.2.0</graalvm-version>
     <chimney-version>0.6.1</chimney-version>
+    <cron4s-version>0.6.1</cron4s-version>
 
     <!--
       These one must be updated to work together
@@ -583,7 +584,17 @@ limitations under the License.
         <artifactId>bcpg-jdk15on</artifactId>
         <version>${bcpkix-jdk15on-version}</version>
       </dependency>
+      <dependency>
+        <groupId>com.github.alonsodomin.cron4s</groupId>
+        <artifactId>cron4s-core_${scala-binary-version}</artifactId>
+        <version>${cron4s-version}</version>
+      </dependency>
 
+      <dependency>
+        <groupId>com.lihaoyi</groupId>
+        <artifactId>fastparse_${scala-binary-version}</artifactId>
+        <version>${fastparse-version}</version>
+      </dependency>
 
       <!-- commons -->
       <dependency>

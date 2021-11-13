@@ -161,6 +161,7 @@ import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.services._
 import com.normation.templates.FillTemplatesService
+import com.normation.utils.CronParser._
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
 
@@ -183,6 +184,7 @@ import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
+import cron4s.expr.CronExpr
 import net.liftweb.common.Loggable
 import net.liftweb.common._
 import org.apache.commons.io.FileUtils
@@ -385,6 +387,18 @@ object RudderConfig extends Loggable {
     } else {
       x
     }
+  }
+
+  val RUDDER_GIT_GC = (try {
+    config.getString("rudder.git.gc")
+  } catch {
+    // missing key, perhaps due to migration, use default
+    case ex: Exception => "0 42 3 * * ?"
+  }).toOptCron match {
+    case Left(err)  =>
+      logger.error(s"Error when parsing cron for 'rudder.git.gc', it will be disabled: ${err.fullMsg}")
+      None
+    case Right(opt) => opt
   }
 
   /*
@@ -1198,6 +1212,8 @@ object RudderConfig extends Loggable {
   )
 
   lazy val gitFactRepo = GitRepositoryProviderImpl.make(RUDDER_GIT_ROOT_FACT_REPO).runNow
+  private[this] lazy val gitFactRepoGC = new GitGC(gitFactRepo, RUDDER_GIT_GC)
+  gitFactRepoGC.start()
   lazy val factRepo = new GitNodeFactRepository(gitFactRepo, RUDDER_GROUP_OWNER_CONFIG_REPO)
   factRepo.checkInit().runNow
 
@@ -1563,6 +1579,8 @@ object RudderConfig extends Loggable {
   }
   private[this] lazy val inventoryLogEventServiceImpl = new InventoryEventLogServiceImpl(logRepository)
   private[this] lazy val gitConfigRepo = GitRepositoryProviderImpl.make(RUDDER_GIT_ROOT_CONFIG_REPO).runNow
+  private[this] lazy val gitConfigRepoGC = new GitGC(gitConfigRepo, RUDDER_GIT_GC)
+  gitConfigRepoGC.start()
   private[this] lazy val gitRevisionProviderImpl = new LDAPGitRevisionProvider(rwLdap, rudderDitImpl, gitConfigRepo, RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH)
   private[this] lazy val techniqueReader: TechniqueReader = {
     //find the relative path from gitConfigRepo to the ptlib root
