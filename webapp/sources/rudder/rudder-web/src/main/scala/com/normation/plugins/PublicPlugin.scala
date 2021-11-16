@@ -37,7 +37,9 @@
 
 package com.normation.plugins
 
+import bootstrap.liftweb.MenuUtils
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.PluginLogger
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
 import net.liftweb.sitemap.Menu
@@ -121,14 +123,33 @@ trait DefaultPluginDef extends RudderPluginDef {
    * interaction with Rudder menu (at the risk of breaking it).
    */
   def pluginMenuEntry: Option[Menu] = None
+  def pluginMenuParent: Option[Menu] = None
 
   override def updateSiteMap(menus:List[Menu]) : List[Menu] = {
+
     pluginMenuEntry match {
       case None       => menus
-      case Some(menu) =>
-        menus.map {
-          case m@Menu(l, _* ) if(l.name == "PluginsHome") =>
-            Menu(l , (m.kids.toSeq :+ menu):_* )
+      case Some(menu@Menu(loc,_*)) =>
+        val (parentName, updatedMenu) = pluginMenuParent match {
+          case None => (MenuUtils.pluginsMenu, menus)
+          case Some(parentMenu) =>
+            val menu = if (menus.exists (_.loc.name == parentMenu.loc.name )) {
+               menus
+            } else {
+              ( parentMenu :: menus).sortBy(_.loc.name)
+            }
+            (parentMenu.loc.name,menu)
+        }
+
+        updatedMenu.map {
+          case m@Menu(l, _* ) if(l.name == parentName) =>
+            // We need to avoid collision on name/loc
+            if (m.kids.exists (_.loc.name == loc.name)) {
+              PluginLogger.error(s"There is already a menu with id (${loc.name}, please contact Plugin team")
+              m
+            } else {
+              Menu(l , (m.kids :+ menu).sortBy(_.loc.name):_* )
+            }
           case m => m
         }
     }
