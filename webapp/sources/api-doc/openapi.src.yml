@@ -125,6 +125,8 @@ paths:
     $ref: paths/usermanagement/add.yml
   "/scaleoutrelay/promote/{nodeId}":
     $ref: paths/scale-out-relay/promote.yml
+  "/scaleoutrelay/demote/{nodeId}":
+    $ref: paths/scale-out-relay/demote.yml
   "/changeRequests/{changeRequestId}/accept":
     $ref: paths/change-requests/accept.yml
   "/changeRequests/{changeRequestId}":
