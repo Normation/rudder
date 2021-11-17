@@ -27,5 +27,7 @@ ignore = [
     # Only a segfault, and no patches for 0.1 version
     "RUSTSEC-2020-0071",
     # Same in chrono
-    "RUSTSEC-2020-0159"
+    "RUSTSEC-2020-0159",
+    # We don't use oneshot channels
+    "RUSTSEC-2021-0124",
 ]
