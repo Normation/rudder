@@ -16,7 +16,7 @@ use std::{
 };
 
 pub fn db_connection() -> PgConnection {
-    PgConnection::establish("postgres://rudderreports:PASSWORD@127.0.0.1/rudder").unwrap()
+    PgConnection::establish("postgres://rudderreports:PASSWORD@postgres/rudder").unwrap()
 }
 
 // Checks number of start execution reports

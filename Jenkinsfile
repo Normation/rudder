@@ -1,6 +1,9 @@
 @Library('slack-notification')
 import org.gradiant.jenkins.slack.SlackNotifier
 
+// uid of the jenkins user of the docker runners
+def user_id = "1007"
+
 pipeline {
     agent none
 
@@ -8,7 +11,11 @@ pipeline {
         stage('Tests') {
             parallel {
                 stage('shell') {
-                    agent { label 'script' }
+                    agent { 
+                        dockerfile { 
+                            filename 'ci/shellcheck.Dockerfile'
+                        }
+                    }
                     steps {
                         sh script: './qa-test --shell', label: 'shell scripts lint'
                     }
@@ -25,7 +32,11 @@ pipeline {
                     }
                 }
                 stage('python') {
-                    agent { label 'script' }
+                    agent { 
+                        dockerfile { 
+                            filename 'ci/pylint.Dockerfile'
+                        }
+                    }
                     steps {
                         sh script: './qa-test --python', label: 'python scripts lint'
                     }
@@ -64,11 +75,9 @@ pipeline {
                     agent { 
                         dockerfile { 
                             filename 'api-doc/Dockerfile'
-                            // To get the jenkins user inside of the container
-                            args '-v /etc/passwd:/etc/passwd:ro'
+                            additionalBuildArgs  '--build-arg USER_ID='+user_id
                         }
                     }
-
                     stages {
                         stage('api-doc-test') {
                             when {
@@ -127,7 +136,6 @@ pipeline {
                             args '-v /etc/passwd:/etc/passwd:ro --tmpfs /srv/jenkins/.local:exec'
                         }
                     }
-
                     steps {
                         dir ('relay/sources') {
                             sh script: 'make check', label: 'rudder-pkg tests'
@@ -146,20 +154,22 @@ pipeline {
                     }
                 }
                 stage('webapp') {
-                    agent { label 'scala' }
-
+                    agent {
+                        dockerfile {
+                            filename 'webapp/sources/Dockerfile'
+                            additionalBuildArgs '--build-arg USER_ID='+user_id
+                            // we don't share elm folder as it is may break with concurrent builds
+                            // set same timezone as some tests rely on it
+                            // and share maven cache
+                            args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/maven:/home/jenkins/.m2'
+                        }
+                    }
                     stages {
                         stage('webapp-test') {
-                            when { changeRequest() }
                             steps {
                                 sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                                 dir('webapp/sources') {
-                                    withMaven(maven: "latest",
-                                              // don't archive jars
-                                              options: [artifactsPublisher(disabled: true)]
-                                    ) {
-                                        sh script: 'mvn clean test -Dmaven.test.postgres=false', label: "webapp tests"
-                                    }
+                                    sh script: 'mvn clean test --batch-mode -Dmaven.test.postgres=false', label: "webapp tests"
                                 }
                             }
                             post {
@@ -178,12 +188,12 @@ pipeline {
                             steps {
                                 sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                                 dir('webapp/sources') {
-                                    withMaven(maven: "latest",
-                                              globalMavenSettingsConfig: "1bfa2e1a-afda-4cb4-8568-236c44b94dbf",
+                                    withMaven(globalMavenSettingsConfig: "1bfa2e1a-afda-4cb4-8568-236c44b94dbf",
                                               // don't archive jars
                                               options: [artifactsPublisher(disabled: true)]
                                     ) {
-                                        sh script: 'mvn --update-snapshots clean package deploy', label: "webapp deploy"
+                                        // we need to use $MVN_COMMAND to get the settings file path
+                                        sh script: '$MVN_CMD --update-snapshots clean package deploy', label: "webapp deploy"
                                     }
                                 }
                             }
@@ -201,80 +211,59 @@ pipeline {
                         }
                     }
                 }
-                // No parallelism inside this stage
-                stage('rust') {
-                    agent { label 'rust' }
-
-                    // sccache server is run via systemd on the builder
-                    // because of https://github.com/mozilla/sccache/blob/master/docs/Jenkins.md
-
+                stage('relayd') {
+                    // we need to use a script for side container currently
+                    agent { label 'docker' }
                     environment {
-                        PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
+                        POSTGRES_PASSWORD = 'PASSWORD'
+                        POSTGRES_DB       = 'rudder'
+                        POSTGRES_USER     = 'rudderreports'
                     }
-
-                    stages {
-                        // No built-in support for Rust tooling in Jenkins, let's do it ourselves
-                        stage('rust-tools') {
-                            steps {
-                                // System dependencies: libssl-dev pkg-config
-                                sh script: 'make -f rust.makefile setup', label: "Setup build tools"
-                            }
-
-                            post {
-                                always {
-                                    script {
-                                        new SlackNotifier().notifyResult("rust-team")
-                                    }
-                                }
-                            }
-                        }
-                        stage('relayd') {
-                            environment {
-                                RUSTC_WRAPPER = "sccache"
-                            }
-                            steps {
-                                // System dependencies: libpq-dev postgresql
-                                dir('relay/sources/relayd') {
-                                    // lock the database to avoid race conditions between parallel tests
-                                    lock('test-relayd-postgresql') {
+                    steps {
+                        script {
+                            docker.image('postgres:11-bullseye').withRun('-e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
+                                docker.build('relayd', '-f relay/sources/relayd/Dockerfile --build-arg USER_ID='+user_id+' --pull .')
+                                      .inside("-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache --link=${c.id}:postgres") {
+                                    dir('relay/sources/relayd') {
+                                        sh script: "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} -h postgres -d ${POSTGRES_DB} -a -f tools/create-database.sql", label: 'provision database'
                                         sh script: 'make check', label: 'relayd tests'
                                     }
-                                    sh script: 'make clean', label: 'relayd clean'
                                 }
-                            }
-                            post {
-                                always {
-                                    // linters results
-                                    recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
-                                                 tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
-
-                                    script {
-                                        new SlackNotifier().notifyResult("rust-team")
-                                    }
-                                }
-
+                            }    
+                        }
+                    }
+                    post {
+                        always {
+                            // linters results
+                            recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
+                                         tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
+                            script {
+                                new SlackNotifier().notifyResult("rust-team")
                             }
                         }
-                        stage('language') {
-                            environment {
-                                RUSTC_WRAPPER = "sccache"
-                            }
-                            steps {
-                                dir('rudder-lang') {
-                                    sh script: 'make check', label: 'language tests'
-                                    sh script: 'make clean', label: 'language clean'
-                                }
-                            }
-                            post {
-                                always {
-                                    // linters results
-                                    recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
-                                                 tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
-
-                                    script {
-                                        new SlackNotifier().notifyResult("rust-team")
-                                    }
-                                }
+                    }
+                }
+                stage('language') {
+                    agent { 
+                        dockerfile { 
+                            filename 'rudder-lang/Dockerfile'
+                            additionalBuildArgs  '--build-arg USER_ID='+user_id
+                            // mount cache
+                            args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
+                        }
+                    }
+                    steps {
+                        dir('rudder-lang') {
+                            sh script: 'make check', label: 'language tests'
+                        }
+                    }
+                    post {
+                        always {
+                            // linters results
+                            recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
+                                         tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
+                            script {
+                                new SlackNotifier().notifyResult("rust-team")
                             }
                         }
                     }
