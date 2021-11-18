@@ -37,8 +37,37 @@ pipeline {
                         }
                     }
                 }
+                stage('typos') {
+                    agent { 
+                        dockerfile { 
+                            filename 'ci/typos.Dockerfile'
+                            additionalBuildArgs  '--build-arg VERSION=1.0'
+                        }
+                    }
+                    steps {
+                        dir('webapp/sources/api-doc') {
+                            sh script: 'typos', label: 'check webapp api doc typos'
+                        }
+                        dir('relay/sources/') {
+                            sh script: 'typos --exclude "*.pem"', label: 'check relayd typos'
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                                new SlackNotifier().notifyResult("shell-team")
+                            }
+                        }
+                    }
+                }
                 stage('api-doc') {
-                    agent { label 'api-docs' }
+                    agent { 
+                        dockerfile { 
+                            filename 'api-doc/Dockerfile'
+                            // To get the jenkins user inside of the container
+                            args '-v /etc/passwd:/etc/passwd:ro'
+                        }
+                    }
 
                     stages {
                         stage('api-doc-test') {
@@ -49,12 +78,6 @@ pipeline {
                                 }
                             }
                             steps {
-                                dir('webapp/sources/api-doc') {
-                                    sh script: 'typos', label: 'check typos'
-                                }
-                                dir('relay/sources/api-doc') {
-                                    sh script: 'typos', label: 'check typos'
-                                }
                                 dir('api-doc') {
                                     sh script: 'make', label: 'build API docs'
                                 }
@@ -77,17 +100,11 @@ pipeline {
                                 }
                             }
                             steps {
-                                dir('webapp/sources/api-doc') {
-                                    sh script: 'typos', label: 'check typos'
-                                }
-                                dir('relay/sources/api-doc') {
-                                    sh script: 'typos', label: 'check typos'
-                                }
                                 dir('api-doc') {
                                     sh script: 'make', label: 'build API docs'
                                     withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                        sh script: 'rsync -avz -e "ssh -i${KEY_FILE} -p${SSH_PORT}" target/webapp/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/v/', label: 'publish webapp API docs'
-                                        sh script: 'rsync -avz -e "ssh -i${KEY_FILE} -p${SSH_PORT}" target/relay/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/relay/v/', label: 'publish relay API docs'
+                                        sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/webapp/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/v/', label: 'publish webapp API docs'
+                                        sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/relay/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/relay/v/', label: 'publish relay API docs'
                                     }
                                 }
                             }
@@ -104,10 +121,15 @@ pipeline {
                     }
                 }
                 stage('rudder-pkg') {
-                    agent { label 'script' }
+                    agent { 
+                        dockerfile { 
+                            filename 'relay/sources/rudder-pkg/Dockerfile'
+                            args '-v /etc/passwd:/etc/passwd:ro --tmpfs /srv/jenkins/.local:exec'
+                        }
+                    }
+
                     steps {
                         dir ('relay/sources') {
-                            sh script: 'typos --exclude "api-doc/*" --exclude "relayd/*"', label: 'check typos'
                             sh script: 'make check', label: 'rudder-pkg tests'
                         }
                     }
@@ -213,7 +235,6 @@ pipeline {
                             steps {
                                 // System dependencies: libpq-dev postgresql
                                 dir('relay/sources/relayd') {
-                                    sh script: 'typos --exclude "*.pem"', label: 'check typos'
                                     // lock the database to avoid race conditions between parallel tests
                                     lock('test-relayd-postgresql') {
                                         sh script: 'make check', label: 'relayd tests'
