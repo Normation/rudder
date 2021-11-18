@@ -184,7 +184,6 @@ import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
-import cron4s.expr.CronExpr
 import net.liftweb.common.Loggable
 import net.liftweb.common._
 import org.apache.commons.io.FileUtils
