@@ -1376,7 +1376,7 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
 
   override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = {
     cachedNodeConfigurationService.invalidateWithAction(actions)
-    }
+  }
 
   override def saveExpectedReports(
       expectedReports: List[NodeExpectedReports]

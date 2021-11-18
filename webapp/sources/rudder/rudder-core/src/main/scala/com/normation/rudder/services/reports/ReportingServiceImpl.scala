@@ -456,9 +456,13 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
       case _ => false
     } }.toSeq
 
-    ReportLoggerPure.Cache.debug(s"Compliance cache is expired for nodes: ${nodeWithOutdatedCompliance.map(_._1.value).mkString(", ")}") *>
-    // send outdated message to queue
-    invalidateWithAction(nodeWithOutdatedCompliance.map(x => (x._1, CacheComplianceQueueAction.ExpiredCompliance(x._1))))
+    if (nodeWithOutdatedCompliance.isEmpty) {
+      ReportLoggerPure.Cache.trace("No compliance cache is expired")
+    } else {
+      ReportLoggerPure.Cache.debug(s"Compliance cache is expired for nodes: ${nodeWithOutdatedCompliance.map(_._1.value).mkString(", ")}") *>
+        // send outdated message to queue
+        invalidateWithAction(nodeWithOutdatedCompliance.map(x => (x._1, CacheComplianceQueueAction.ExpiredCompliance(x._1))))
+    }
   }
   /**
    * Look in the cache for compliance for given nodes.

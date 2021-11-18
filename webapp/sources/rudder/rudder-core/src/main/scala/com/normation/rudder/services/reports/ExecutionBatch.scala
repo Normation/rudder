@@ -746,12 +746,12 @@ final case class ContextForNoAnswer(
             )
         }
 
-      case NoReportInInterval(expectedConfig, _) =>
+      case NoReportInInterval(expectedConfig, expirationTime) =>
         ComplianceDebugLogger.node(nodeId).trace(s"Node didn't received reports recently, status depend of the compliance mode and previous report status")
         buildRuleNodeStatusReport(
-            //these reports don't really expires - without change, it will
-            //always be the same.
-            MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), END_OF_TIME)
+            //these reports need to expire, so that we can recompute them automatically
+            // at expiration, and store that the nodes were not answering
+            MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime)
           , expectedConfig
           , ReportType.NoAnswer
         )
