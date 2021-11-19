@@ -3,7 +3,7 @@ module ViewUtils exposing (..)
 import DataTypes exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onClick, onInput, custom)
 import List.Extra
 import List
 import Maybe.Extra
@@ -11,7 +11,18 @@ import String exposing (fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
 import ComplianceUtils exposing (..)
+import Json.Decode as Decode
 
+
+onCustomClick : msg -> Html.Attribute msg
+onCustomClick msg =
+  custom "click"
+    (Decode.succeed
+      { message         = msg
+      , stopPropagation = True
+      , preventDefault  = True
+      }
+    )
 
 getListRules : Category Rule -> List (Rule)
 getListRules r = getAllElems r
@@ -100,6 +111,165 @@ foldUnfoldCategory filters catId =
         catId :: treeFilters.folded
   in
     {filters | treeFilters = {treeFilters | folded = foldedList}}
+
+foldUnfoldRow : String -> Filters -> Filters
+foldUnfoldRow rowId filters =
+  let
+    tableFilters = filters.tableFilters
+  in
+    if List.member rowId tableFilters.unfolded then
+      { filters | tableFilters = { tableFilters | unfolded = (List.Extra.remove rowId tableFilters.unfolded) }}
+    else
+      { filters | tableFilters = { tableFilters | unfolded = (rowId :: tableFilters.unfolded) }}
+
+foldedRowClass : String -> TableFilters -> String
+foldedRowClass rowId tableFilters =
+  if List.member rowId tableFilters.unfolded then
+    " row-foldable row-open"
+  else
+    " row-foldable row-folded"
+
+getDirectiveName : List Directive -> DirectiveId -> String
+getDirectiveName directives directiveId =
+  case List.Extra.find (\d -> d.id == directiveId) directives of
+    Just di -> di.displayName
+    Nothing -> "Cannot find directive details"
+
+rowComplianceDetails : String -> RowState -> Filters -> Msg -> Model -> Html Msg
+rowComplianceDetails rowId rowState filters onClickEvent model =
+  let
+    directives   = model.directives
+    tableFilters = filters.tableFilters
+
+    innerTableRow : ({rowId : String, rowState : RowState, name : String, value : Html Msg, optional : Maybe (Html Msg)}) -> List (Html Msg)
+    innerTableRow item =
+      let
+        newRowId       = (rowId ++ "--" ++ item.rowId)
+        trClass        = class (if item.rowState /= NoSublvl then (foldedRowClass newRowId tableFilters) else "")
+        nextClickEvent = case (item.rowState, onClickEvent) of
+          (NoSublvl, _) -> Ignore
+          (_ , UpdateDirectiveFilters f) -> UpdateDirectiveFilters (foldUnfoldRow newRowId model.ui.directiveFilters)
+          (_ , UpdateGroupFilters     f) -> UpdateGroupFilters     (foldUnfoldRow newRowId model.ui.groupFilters    )
+          _ -> Ignore
+        clickEvent     = onCustomClick nextClickEvent
+        trDetails      = rowComplianceDetails newRowId item.rowState filters nextClickEvent model
+      in
+        [ tr[trClass, clickEvent, id newRowId]
+          [ td [][ text item.name  ]
+          , td [][ item.value ]
+          , ( case item.optional of
+            Just op -> op
+            Nothing -> text ""
+          )
+          ]
+        , trDetails
+        ]
+  in
+    if List.member rowId tableFilters.unfolded then
+      let
+        ({col1, col2, col3}, items) = case rowState of
+          DirectiveComponentLvl directiveCompliance -> ( {col1 = "Component" , col2 = "Status" , col3 = Nothing } ,
+            directiveCompliance.components
+              |> List.map (\i ->
+                { rowId    = i.component
+                , rowState = DirectiveNodeLvl i
+                , name     = i.component
+                , value    = buildComplianceBar i.complianceDetails
+                , optional = Nothing
+                }
+              )
+            )
+          DirectiveNodeLvl componentCompliance -> ( {col1 = "Node" , col2 = "" , col3 = Nothing } ,
+            componentCompliance.nodes
+              |> List.map (\i ->
+                { rowId    = i.nodeId.value
+                , rowState = DirectiveValueLvl i
+                , name     = i.name
+                , value    = text ""
+                , optional = Nothing
+                }
+              )
+            )
+          DirectiveValueLvl nodeCompliance -> ( {col1 = "Value" , col2 = "Messages" , col3 = Just "Status" } ,
+            nodeCompliance.values
+              |> List.map (\i ->
+                { rowId    = i.value
+                , rowState = NoSublvl
+                , name     = i.value
+                , value    = text ( i.reports
+                  |> List.map (\r -> Maybe.withDefault "" r.message)
+                  |> String.join ", "
+                )
+                , optional = Just ( buildComplianceReport i.reports )
+                }
+              )
+            )
+          NodeDirectiveLvl nodeCompliance      -> ( {col1 = "Directive" , col2 = "Status" , col3 = Nothing } ,
+            nodeCompliance.directives
+              |> List.map (\i ->
+                { rowId    = i.directiveId.value
+                , rowState = NodeComponentLvl i
+                , name     = getDirectiveName directives i.directiveId
+                , value    = buildComplianceBar i.complianceDetails
+                , optional = Nothing
+                }
+              )
+            )
+          NodeComponentLvl directiveByNodeCompliance -> ( {col1 = "Component" , col2 = "Status" , col3 = Nothing } ,
+            directiveByNodeCompliance.components
+              |> List.map (\i ->
+                { rowId    = i.component
+                , rowState = NodeValueLvl i
+                , name     = i.component
+                , value    = buildComplianceBar i.complianceDetails
+                , optional = Nothing
+                }
+              )
+            )
+          NodeValueLvl componentByNodeCompliance -> ( {col1 = "Value" , col2 = "Messages" , col3 = Just "Status" } ,
+            componentByNodeCompliance.value
+              |> List.map (\i ->
+                { rowId    = i.value
+                , rowState = NoSublvl
+                , name     = i.value
+                , value    = text ( i.reports
+                  |> List.map (\r -> Maybe.withDefault "" r.message)
+                  |> String.join ", "
+                )
+                , optional = Just ( buildComplianceReport i.reports )
+                }
+              )
+            )
+          NoSublvl -> ( {col1 = "" , col2 = "" , col3 = Nothing }, [] )
+      in
+        tr[class "details"]
+        [ td [class "details", colspan 2]
+          [ div [class "innerDetails"]
+            [ table [class "dataTable"]
+              [ thead []
+                [ tr [class "head"]
+                  [ th[][ text col1 ]
+                  , th[][ text col2 ]
+                  , ( case col3 of
+                    Just c  -> th[][ text c ]
+                    Nothing -> text ""
+                  )
+                  ]
+                ]
+              , tbody []
+                ( if(List.length items > 0) then
+                    List.concatMap innerTableRow items
+                  else
+                    [ tr[]
+                      [ td[colspan 2, class "dataTables_empty"][text "There is no compliance"]
+                      ]
+                    ]
+                )
+              ]
+            ]
+          ]
+        ]
+      else text ""
 
 getDirectivesSortFunction : List RuleCompliance -> RuleId -> TableFilters -> Directive -> Directive -> Order
 getDirectivesSortFunction rulesCompliance ruleId tableFilter d1 d2 =
@@ -339,3 +509,30 @@ buildComplianceBar complianceDetails=
       , displayCompliance allComplianceValues.reportsDisabled "reportsdisabled"
       , displayCompliance allComplianceValues.noReport        "no-report"
       ]
+
+buildComplianceReport : List Report -> Html Msg
+buildComplianceReport reports =
+  let
+    complianceTxt : String -> String
+    complianceTxt val =
+      case val of
+        "reportsDisabled"            -> "Reports Disabled"
+        "noReport"                   -> "No report"
+        "error"                      -> "Error"
+        "successAlreadyOK"           -> "Success"
+        "successRepaired"            -> "Repaired"
+        "applying"                   -> "Applying"
+        "auditNotApplicable"         -> "Not applicable"
+        "unexpectedUnknownComponent" -> "Unexpected"
+        "unexpectedMissingComponent" -> "Missing"
+        "AuditNotApplicable"         -> "Not applicable"
+        "auditError"                 -> "Error"
+        "auditCompliant"             -> "Compliant"
+        "auditNonCompliant"          -> "Non compliant"
+        "badPolicyMode"              -> "Bad Policy Mode"
+        _ -> val
+  in
+    td [class "report-compliance"]
+    [ div[]
+      ( List.map (\r -> span[class r.status][text (complianceTxt r.status)]) reports )
+    ]

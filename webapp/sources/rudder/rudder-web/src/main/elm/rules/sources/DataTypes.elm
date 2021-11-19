@@ -4,7 +4,7 @@ import Dict
 import Http exposing (Error)
 import List.Extra
 import Dict.Extra
-import Tuple3
+
 --
 -- All our data types
 --
@@ -215,10 +215,20 @@ type SortBy
   | Status
   | Compliance
 
+type RowState
+  = NoSublvl
+  | NodeDirectiveLvl NodeComplianceByNode
+  | NodeComponentLvl DirectiveComplianceByNode
+  | NodeValueLvl ComponentComplianceByNode
+  | DirectiveComponentLvl DirectiveCompliance
+  | DirectiveNodeLvl ComponentCompliance
+  | DirectiveValueLvl NodeCompliance
+
 type alias TableFilters =
   { sortBy    : SortBy
   , sortOrder : Bool
   , filter    : String
+  , unfolded  : List String
   }
 
 type alias TreeFilters =
