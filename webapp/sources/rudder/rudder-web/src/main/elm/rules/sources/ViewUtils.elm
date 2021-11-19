@@ -283,8 +283,8 @@ buildTooltipContent title content =
   in
     headingTag ++ title ++ contentTag ++ content ++ closeTag
 
-buildIncludeList : Category Group -> Bool -> Bool -> RuleTarget -> Html Msg
-buildIncludeList groupsTree editMode includeBool ruleTarget =
+buildIncludeList : Category Group -> Model -> Bool -> Bool -> RuleTarget -> Html Msg
+buildIncludeList groupsTree model editMode includeBool ruleTarget =
   let
     groupsList = getAllElems groupsTree
     id = case ruleTarget of
@@ -301,7 +301,7 @@ buildIncludeList groupsTree editMode includeBool ruleTarget =
 
     rowIncludeGroup = li[]
       [ span[class "fa fa-sitemap"][]
-      , a[href ("/rudder/secure/configurationManager/#" ++ "")]
+      , a[href (model.contextPath ++ "/secure/configurationManager/#" ++ "")]
         [ span [class "target-name"][text groupName]
         ]
       , ( if editMode then

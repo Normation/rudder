@@ -3,7 +3,6 @@ module Init exposing (..)
 import ApiCalls exposing (..)
 import DataTypes exposing (..)
 
-
 -- PORTS
 init : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
 init flags =
@@ -22,7 +21,10 @@ init flags =
       , getTechniquesTree  initModel
       , getRulesTree       initModel
       ]
+
+
   in
+
     ( initModel
     , Cmd.batch listInitActions
     )
