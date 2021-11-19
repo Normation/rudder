@@ -233,7 +233,7 @@ tabContent model details =
               rowDirective  : Directive -> Html Msg
               rowDirective directive =
                 li[]
-                [ a[href ("/rudder/secure/configurationManager/directiveManagement#" ++ directive.id.value)]
+                [ a[href ( model.contextPath ++ "/secure/configurationManager/directiveManagement#" ++ directive.id.value)]
                   [ badgePolicyMode model.policyMode directive.policyMode
                   , span [class "target-name"][text directive.displayName]
                   , buildTagsList directive.tags
@@ -544,7 +544,7 @@ tabContent model details =
                     ]
                   ]
                 else
-                  List.map (buildIncludeList model.groupsTree details.ui.editGroups True) includedTargets
+                  List.map (buildIncludeList model.groupsTree model details.ui.editGroups True) includedTargets
                 )
               ]
             ]
@@ -561,7 +561,7 @@ tabContent model details =
                     ]
                   ]
                 else
-                  List.map (buildIncludeList model.groupsTree details.ui.editGroups False) excludedTargets
+                  List.map (buildIncludeList model.groupsTree model details.ui.editGroups False) excludedTargets
                 )
               ]
             ]
@@ -674,7 +674,7 @@ tabContent model details =
                       ]
                     ]
                   else
-                    List.map (buildIncludeList model.groupsTree details.ui.editGroups True) includedTargets
+                    List.map (buildIncludeList model.groupsTree model details.ui.editGroups True) includedTargets
                   )
                 ]
               , div[class "list-container"]
@@ -689,7 +689,7 @@ tabContent model details =
                       ]
                     ]
                   else
-                    List.map (buildIncludeList model.groupsTree details.ui.editGroups False) excludedTargets
+                    List.map (buildIncludeList  model.groupsTree model details.ui.editGroups False) excludedTargets
                   )
                 ]
               ]
