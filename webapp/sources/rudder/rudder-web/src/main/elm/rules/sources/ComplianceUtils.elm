@@ -12,6 +12,14 @@ import String exposing (fromFloat)
 import Tuple exposing (first, second)
 import ApiCalls exposing (..)
 
+
+getCompliance : Float -> String -> Html msg
+getCompliance val t =
+  if val > 0 then
+    div[class ("progress-bar progress-bar-" ++ t), style "flex" (fromFloat val)][text ((fromFloat val) ++ "%")]
+  else
+    text ""
+
 getValueCompliance : Maybe Float -> Float
 getValueCompliance f =
   case f of
@@ -171,11 +179,11 @@ mergeCompliance c1 c2 =
   let
     sumMaybeFloat : Maybe Float -> Maybe Float -> Maybe Float
     sumMaybeFloat  mf1 mf2 =
-                        case (mf1,mf2) of
-                          (Nothing,Nothing) -> Nothing
-                          (Just f1, Just f2) -> Just (f1+f2)
-                          (a, Nothing) -> a
-                          (Nothing, b) -> b
+      case (mf1,mf2) of
+        ( Nothing , Nothing ) -> Nothing
+        ( Just f1 , Just f2 ) -> Just (f1+f2)
+        ( a       , Nothing ) -> a
+        ( Nothing , b       ) -> b
     toMaybeFloat = \ fun -> sumMaybeFloat (fun c1) (fun c2)
   in
     ComplianceDetails
@@ -211,39 +219,41 @@ toNodeCompliance: RuleCompliance -> RuleComplianceByNode
 toNodeCompliance base =
   let
     nodes = base.directives
-            |> List.concatMap
-               (\directive -> directive.components
-                 |> List.concatMap
-                    (\component -> component.nodes
-                       |> List.map (\node ->
-                         TemporaryComplianceStruct node.nodeId component.compliance component.complianceDetails node.values directive.directiveId component.component) ))
+      |> List.concatMap
+        (\directive -> directive.components
+          |> List.concatMap (\component -> component.nodes
+            |> List.map (\node ->
+              TemporaryComplianceStruct node.nodeId component.compliance component.complianceDetails node.values directive.directiveId component.component
+            )
+          )
+        )
 
-    buildComplianceByNode :  (TemporaryComplianceStruct, List TemporaryComplianceStruct) -> ComponentComplianceByNode
+    buildComplianceByNode : (TemporaryComplianceStruct, List TemporaryComplianceStruct) -> ComponentComplianceByNode
     buildComplianceByNode (head, rest) =
       let
-        component =  head.component
-        values = List.concatMap .values (head :: rest)
-        details = List.foldl mergeCompliance (head.complianceDetails) (List.map .complianceDetails rest)
+        details    = List.foldl mergeCompliance (head.complianceDetails) (List.map .complianceDetails rest)
+        component  = head.component
+        values     = List.concatMap .values (head :: rest)
         compliance = (head.compliance) + (List.sum (List.map .compliance rest))
       in
-        ComponentComplianceByNode component compliance details  values
+        ComponentComplianceByNode component compliance details values
 
     buildDirectiveComplianceByNode: (TemporaryComplianceStruct, List TemporaryComplianceStruct) -> DirectiveComplianceByNode
     buildDirectiveComplianceByNode (head, irest) =
       let
         directiveId = head.directiveId
-        byComp = List.Extra.gatherEqualsBy .component (head :: irest)
-                 |>  List.map buildComplianceByNode
-        details = List.foldl mergeCompliance (head.complianceDetails) (List.map .complianceDetails irest)
-        compliance = (head.compliance) + (List.sum (List.map .compliance irest))
+        byComp      = List.Extra.gatherEqualsBy .component (head :: irest)
+          |>  List.map buildComplianceByNode
+        details     = List.foldl mergeCompliance (head.complianceDetails) (List.map .complianceDetails irest)
+        compliance  = (head.compliance) + (List.sum (List.map .compliance irest))
       in
          DirectiveComplianceByNode directiveId compliance details byComp
 
-    buildNodeCompliance:  (TemporaryComplianceStruct, List TemporaryComplianceStruct) -> NodeComplianceByNode
+    buildNodeCompliance : (TemporaryComplianceStruct, List TemporaryComplianceStruct) -> NodeComplianceByNode
     buildNodeCompliance (head,rest) =
       let
         nodeId = head.nodeId
-        byDir =
+        byDir  =
           List.Extra.gatherEqualsBy .directiveId (head :: rest)
             |> List.map buildDirectiveComplianceByNode
         details = List.foldl mergeCompliance (head.complianceDetails) (List.map .complianceDetails rest)
@@ -252,6 +262,6 @@ toNodeCompliance base =
         NodeComplianceByNode nodeId compliance details byDir
 
     lol = List.Extra.gatherEqualsBy .nodeId nodes
-            |> List.map buildNodeCompliance
+      |> List.map buildNodeCompliance
   in
     RuleComplianceByNode base.ruleId base.mode base.compliance base.complianceDetails lol
