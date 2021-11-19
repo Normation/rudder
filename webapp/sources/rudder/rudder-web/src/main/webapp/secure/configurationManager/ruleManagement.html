@@ -36,7 +36,7 @@
       app.ports.pushUrl.subscribe(function(url) {
         var kind = url[0];
         var id = url[1];
-        var url = "/rudder/secure/configurationManager/ruleManagement"
+        var url = contextPath + "/secure/configurationManager/ruleManagement"
         if (kind !== "") {
           url += "/" + kind + "/" + id
         }
