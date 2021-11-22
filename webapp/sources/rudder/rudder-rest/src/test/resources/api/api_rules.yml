@@ -153,7 +153,7 @@ body: >-
     "targets": [{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
     "enabled": true,
     "system": false,
-    "tags": [{"customer": "MyCompany"}]
+    "tags": [{"customer": "MyCompany"}]}
   }
 response:
   code: 200
@@ -174,7 +174,10 @@ response:
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
             "enabled":true,
             "system":false,
-            "tags":[{"customer":"MyCompany"}]
+            "tags":[{"customer":"MyCompany"}],
+            "policyMode":"enforce",
+            "status":{"value":"Not applied","details":"Directive 'directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9' disabled,
+    Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
           }
         ]
       }
@@ -219,7 +222,10 @@ response:
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
             "enabled":true,
             "system":false,
-            "tags":[{"customer":"MyCompany"}]
+            "tags":[{"customer":"MyCompany"}],
+            "policyMode":"enforce",
+            "status":{"value":"Not applied","details":"Directive 'directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9' disabled,
+    Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
           }
         ]
       }
@@ -260,7 +266,9 @@ response:
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
             "enabled":true,
             "system":false,
-            "tags":[{"customer":"MyCompany"}]
+            "tags":[{"customer":"MyCompany"}],
+            "policyMode":"enforce",
+            "status":{"value":"Not applied","details":"Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
           }
         ]
       }
@@ -301,7 +309,9 @@ response:
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
             "enabled":true,
             "system":false,
-            "tags":[{"customer":"MyCompany"}]
+            "tags":[{"customer":"MyCompany"}],
+            "policyMode":"enforce",
+            "status":{"value":"Not applied","details":"Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
           }
         ]
       }
@@ -343,7 +353,9 @@ response:
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
             "enabled":false,
             "system":false,
-            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}],
+            "policyMode":"enforce",
+            "status":{"value":"Disabled","details":"This rule is disabled., Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
           }
         ]
       }
@@ -387,7 +399,9 @@ response:
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
             "enabled":false,
             "system":false,
-            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}],
+            "policyMode":"enforce",
+            "status":{"value":"Disabled","details":"This rule is disabled., Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
           }
         ]
       }
@@ -451,7 +465,9 @@ response:
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
             "enabled":false,
             "system":false,
-            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}],
+            "policyMode":"enforce",
+            "status":{"value":"Disabled","details":"This rule is disabled., Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
           }
         ]
       }
@@ -484,7 +500,9 @@ response:
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
             "enabled":false,
             "system":false,
-            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}],
+            "policyMode":"enforce",
+            "status":{"value":"Disabled","details":"This rule is disabled., Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
           }
         ]
       }
@@ -512,7 +530,9 @@ response:
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
             "enabled":false,
             "system":false,
-            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}],
+            "policyMode":"enforce",
+            "status":{"value":"Disabled","details":"This rule is disabled., Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
           }
         ]
       }
@@ -540,7 +560,9 @@ response:
             "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
             "enabled":false,
             "system":false,
-            "tags":[{"customer":"MyCompany"},{"more":"tags"}]
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}],
+            "policyMode":"enforce",
+            "status":{"value":"Disabled","details":"This rule is disabled., Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
           }
         ]
       }

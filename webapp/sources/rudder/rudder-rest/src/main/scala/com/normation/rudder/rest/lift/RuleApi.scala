@@ -739,9 +739,16 @@ class RuleApiService14 (
                   , params.reason
                 )
       id       <- workflow.startWorkflow(cr, actor, params.reason)
+      directiveLib <- readDirectives.getFullDirectiveLibrary().toBox
+      groupLib <- readGroup.getFullGroupLibrary().toBox
+      nodesLib <- readNodes.getAll().toBox
+      globalMode  <- getGlobalPolicyMode().toBox
+
     } yield {
+      val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, nodesLib, globalMode)
+
       val optCrId = if(workflow.needExternalValidation()) Some(id) else None
-      JRRule.fromRule(change.newRule, optCrId, None,None)
+      JRRule.fromRule(change.newRule, optCrId, Some(status.policyMode._1), Some(status.applicationStatusDetails))
     }
   }
 
@@ -822,9 +829,15 @@ class RuleApiService14 (
       change <- createOrClone(name, restRule, ruleId, clone, params, actor)
       modId  =  ModificationId(uuidGen.newUuid)
       _      <- writeRule.create(change.newRule, modId, actor, params.reason)
+
+      directiveLib <- readDirectives.getFullDirectiveLibrary()
+      groupLib <- readGroup.getFullGroupLibrary()
+      nodesLib <- readNodes.getAll()
+      globalMode  <- getGlobalPolicyMode()
     } yield {
+      val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, nodesLib, globalMode)
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
-      JRRule.fromRule(change.newRule, None, None, None)
+      JRRule.fromRule(change.newRule, None, Some(status.policyMode._1),Some(status.applicationStatusDetails))
     }).chainError(s"Error when creating new rule")
   }
 
@@ -861,9 +874,14 @@ class RuleApiService14 (
         modId  = ModificationId(uuidGen.newUuid)
         ldap  <- writeRule.load(rule, modId, actor, params.reason)
         _     <- ConfigurationLoggerPure.info(s"Revision '${id.rev.value}' for rule with id '${id.uid.serialize}' loaded. It will be used in comming policy generations.")
+        directiveLib <- readDirectives.getFullDirectiveLibrary()
+        groupLib <- readGroup.getFullGroupLibrary()
+        nodesLib <- readNodes.getAll()
+        globalMode  <- getGlobalPolicyMode()
       } yield {
+        val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
-        JRRule.fromRule(rule, None, None, None)
+        JRRule.fromRule(rule, None, Some(status.policyMode._1), Some(status.applicationStatusDetails))
       }
     })
   }
