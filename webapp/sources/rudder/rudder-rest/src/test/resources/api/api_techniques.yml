@@ -1,7 +1,7 @@
 ---
 description: Get all techniques version
 method: GET
-url: /api/latest/techniques
+url: /api/latest/techniques/versions
 response:
   code: 200
   content: >-

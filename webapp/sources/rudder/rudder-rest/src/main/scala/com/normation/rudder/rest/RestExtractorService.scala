@@ -1186,16 +1186,17 @@ final case class RestExtractorService (
 
   def extractEditorTechnique (json : JValue, methods: Map[BundleName, GenericMethod], creation : Boolean, supportMissingId : Boolean) : Box[EditorTechnique] = {
     for {
-      bundleName  <- CompleteJson.extractJsonString(json, "bundle_name", s => Full(BundleName(s)))
+      id          <- CompleteJson.extractJsonStringMultipleKeys(json, "id" :: "bundle_name" :: Nil, s => Full(BundleName(s)))
       version     <- CompleteJson.extractJsonString(json, "version")
       category    <- OptionnalJson.extractJsonString(json, "category").map(_.filter(_.nonEmpty).getOrElse("ncf_techniques"))
       description <- CompleteJson.extractJsonString(json, "description")
       name        <- CompleteJson.extractJsonString(json, "name")
-      calls       <- CompleteJson.extractJsonArray(json , "method_calls")(extractMethodElem(_, methods, supportMissingId))
+      calls       <- CompleteJson.extractJsonArray(json, "calls" :: "method_calls" :: Nil)(extractMethodElem(_, methods, supportMissingId))
+
       parameters  <- CompleteJson.extractJsonArray(json , "parameter")(extractTechniqueParameter(creation))
       files       <- OptionnalJson.extractJsonArray(json , "resources")(extractResourceFile).map(_.getOrElse(Nil))
     } yield {
-      EditorTechnique(bundleName, name, category, calls, new Version(version), description, parameters, files)
+      EditorTechnique(id, name, category, calls, new Version(version), description, parameters, files)
     }
   }
 
@@ -1209,8 +1210,8 @@ final case class RestExtractorService (
   }
 
   def extractMethodElem(json:JValue, methods: Map[BundleName, GenericMethod], supportMissingId : Boolean) : Box[MethodElem] = {
-    json \ "method_name" match {
-      case JString(_) => extractMethodCall(json,methods,supportMissingId)
+    (json \ "method_name", json \ "method")  match {
+      case (JString(_),JNothing)|(JNothing,JString(_)) => extractMethodCall(json,methods,supportMissingId)
       case _ => extractMethodBlock(json,methods,supportMissingId)
     }
   }
@@ -1219,14 +1220,13 @@ final case class RestExtractorService (
   def extractMethodBlock (json : JValue, methods: Map[BundleName, GenericMethod], supportMissingId : Boolean) : Box[MethodBlock] = {
 
     for {
-      id        <-    CompleteJson.extractJsonString(json,"id")
-      condition       <- CompleteJson.extractJsonString(json, "condition")
-      component       <- CompleteJson.extractJsonString(json, "component")
-      reportingLogic <- CompleteJson.extractJsonObj(json,"reportingLogic", extractCompositionRule)
-      // Args was removed in 6.1.0 and replaced by parameters. keept it when we are reading old format techniques, ie when migrating from 6.1
-      childs <- CompleteJson.extractJsonArray(json,"calls" )(extractMethodElem(_, methods, supportMissingId))
+      id             <- CompleteJson.extractJsonString(json,"id")
+      condition      <- CompleteJson.extractJsonString(json, "condition")
+      component      <- CompleteJson.extractJsonString(json, "component")
+      reportingLogic <- CompleteJson.extractJsonObj(json, "reportingLogic", extractCompositionRule)
+      calls          <- CompleteJson.extractJsonArray(json,"calls" )(extractMethodElem(_, methods, supportMissingId))
     } yield {
-      MethodBlock(id,component, reportingLogic, condition, childs)
+      MethodBlock(id,component, reportingLogic, condition, calls)
     }
   }
 
@@ -1234,12 +1234,13 @@ final case class RestExtractorService (
   def extractMethodCall (json : JValue, methods: Map[BundleName, GenericMethod], supportMissingId : Boolean) : Box[MethodCall] = {
 
     for {
-      methodId          <- CompleteJson.extractJsonString(json, "method_name", s => Full(BundleName(s)))
+      methodId          <- CompleteJson.extractJsonStringMultipleKeys(json, "method" :: "method_name" :: Nil, s => Full(BundleName(s)))
+
       id                <-  if (supportMissingId) {OptionnalJson.extractJsonString(json,"id").map(_.getOrElse(uuidGenerator.newUuid))} else { CompleteJson.extractJsonString(json, "id") }
       disableReporting <-  OptionnalJson.extractJsonBoolean(json,"disableReporting").map(_.getOrElse(false))
-      condition         <- CompleteJson.extractJsonString(json, "class_context")
+      condition         <- CompleteJson.extractJsonStringMultipleKeys(json, "condition" :: "class_context" :: Nil)
       component         <- OptionnalJson.extractJsonString(json, "component").map(_.getOrElse(methods.get(methodId).map(_.name).getOrElse(methodId.value)))
-      // Args was removed in 6.1.0 and replaced by parameters. keept it when we are reading old format techniques, ie when migrating from 6.1
+      // Args was removed in 6.1.0 and replaced by parameters. kept it when we are reading old format techniques, ie when migrating from 6.1
       optArgs           <- OptionnalJson.extractJsonArray(json , "args"){
                            case JString(value) => Full(value)
                            case s => Failure(s"Invalid format of method call when extracting from json, expecting and array but got : ${s}")
@@ -1344,6 +1345,8 @@ final case class RestExtractorService (
     }
   }
 
+  // This extract a generic method from the /var/rudder/configuration-repository/generic_methods.json
+  // the format is different from the one we send via the API, I think it should be moved from the RestExtractorService
   def extractGenericMethod (json : JValue) : Box[List[GenericMethod]] = {
     CompleteJson.extractJsonArray(json,"") { json =>
       for {
@@ -1352,11 +1355,11 @@ final case class RestExtractorService (
         name           <- CompleteJson.extractJsonString(json, "name")
         classPrefix    <- CompleteJson.extractJsonString(json, "class_prefix")
         classParameter <- CompleteJson.extractJsonString(json, "class_parameter", a => Full(ParameterId(a)))
-        agentSupport   <- (CompleteJson.extractJsonListString(json, "agent_support", sequence(_) {
+        agentSupport   <- CompleteJson.extractJsonListString(json, "agent_support", sequence(_) {
                              case "dsc" => Full(AgentType.Dsc :: Nil)
                              case "cfengine-community" => Full(AgentType.CfeCommunity :: AgentType.CfeEnterprise ::Nil)
                              case _ => Failure("invalid agent")
-                          })).map(_.flatten)
+                          }).map(_.flatten)
         parameters     <- CompleteJson.extractJsonArray(json , "parameter")(extractMethodParameter)
         documentation  <- OptionnalJson.extractJsonString(json, "documentation")
         deprecated  <- OptionnalJson.extractJsonString(json, "deprecated")

@@ -1,13 +1,13 @@
 {
-  "bundle_name": "Add_GSN_users_to_vboxusers_group",
+  "id": "Add_GSN_users_to_vboxusers_group",
   "version": "1.0",
   "category": "ncf_techniques",
   "description": "",
   "name": "Add GSN users to vboxusers group",
-  "method_calls": [
+  "calls": [
     {
-      "method_name": "command_execution",
-      "class_context": "any",
+      "method": "command_execution",
+      "condition": "any",
       "component": "Command execution",
       "parameters": [
         {
@@ -19,8 +19,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "command_execution",
-      "class_context": "any",
+      "method": "command_execution",
+      "condition": "any",
       "component": "Command execution",
       "parameters": [
         {
@@ -32,8 +32,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "command_execution",
-      "class_context": "any",
+      "method": "command_execution",
+      "condition": "any",
       "component": "Command execution",
       "parameters": [
         {

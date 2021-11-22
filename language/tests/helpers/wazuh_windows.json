@@ -2,13 +2,13 @@
   "type": "ncf_technique",
   "version": 2,
   "data": {
-    "bundle_name": "Wazuh_windows_install",
+    "id": "Wazuh_windows_install",
     "description": "",
     "name": "Wazuh windows install",
     "version": "1.0",
     "parameter": [],
     "category": "ncf_techniques",
-    "method_calls": [
+    "calls": [
       {
         "parameters": [
           {
@@ -27,8 +27,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "file_from_shared_folder",
+        "condition": "any",
+        "method": "file_from_shared_folder",
         "component": "File copy from Rudder shared folder"
       },
       {
@@ -49,8 +49,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "variable_string_from_command",
+        "condition": "any",
+        "method": "variable_string_from_command",
         "component": "Variable string from command"
       },
       {
@@ -71,8 +71,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "condition_from_variable_match",
+        "condition": "any",
+        "method": "condition_from_variable_match",
         "component": "Condition from variable match"
       },
       {
@@ -83,8 +83,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any.(wazuh_installed_false)",
-        "method_name": "command_execution",
+        "condition": "any.(wazuh_installed_false)",
+        "method": "command_execution",
         "component": "Command execution"
       }
     ]

@@ -1,11 +1,11 @@
 {
-  "bundle_name": "condition_errorprone",
+  "id": "condition_errorprone",
   "description": "",
   "name": "condition_errorprone",
   "version": "1.0",
   "parameter": [],
   "category": "ncf_techniques",
-  "method_calls": [
+  "calls": [
     {
       "parameters": [
         {
@@ -14,8 +14,8 @@
           "$errors": []
         }
       ],
-      "class_context": "dragonfly",
-      "method_name": "command_execution",
+      "condition": "dragonfly",
+      "method": "command_execution",
       "component": "Command execution",
       "id": "40be703f-dac9-4809-8ee3-97969afc29c0",
       "disableReporting": false

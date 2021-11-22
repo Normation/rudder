@@ -1,14 +1,14 @@
 {
-  "bundle_name": "condition_useless_brackets",
+  "id": "condition_useless_brackets",
   "description": "dsc useless condition brackets",
   "name": "condition useless brackets",
   "version": "1.0",
   "parameter": [],
   "category": "ncf_techniques",
-  "method_calls": [
+  "calls": [
     {
-      "method_name": "dsc_built_in_resource",
-      "class_context": "any.(((!debian|linux)|ubuntu.windows|(linux|ubuntu)))",
+      "method": "dsc_built_in_resource",
+      "condition": "any.(((!debian|linux)|ubuntu.windows|(linux|ubuntu)))",
       "component": "DSC built-in resource",
       "parameters": [
         {

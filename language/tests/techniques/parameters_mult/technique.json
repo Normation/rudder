@@ -1,11 +1,11 @@
 {
-  "bundle_name": "param_mult",
+  "id": "param_mult",
   "description": "technique using multiple parameters",
   "name": "param_mult",
   "version": "1.0",
   "parameter": [],
   "category": "ncf_techniques",
-  "method_calls": [
+  "calls": [
     {
       "parameters": [
         {
@@ -14,8 +14,8 @@
           "$errors": []
         }
       ],
-      "class_context": "any.(linux)",
-      "method_name": "file_absent",
+      "condition": "any.(linux)",
+      "method": "file_absent",
       "component": "File absent",
       "id": "bfe4005a-c854-4bea-a760-6343ee84bd5c",
       "disableReporting": false
@@ -43,8 +43,8 @@
           "$errors": []
         }
       ],
-      "class_context": "any",
-      "method_name": "package_absent",
+      "condition": "any",
+      "method": "package_absent",
       "component": "Package absent",
       "id": "fa34708e-80c0-4369-b1b6-276d4f0a481a",
       "disableReporting": false

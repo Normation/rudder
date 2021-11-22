@@ -6,20 +6,21 @@ import Http exposing (..)
 import JsonDecoder exposing (..)
 import JsonEncoder exposing (..)
 import Json.Decode
+import Maybe.Extra
 
 
 --
 -- This files contains all API calls for the technique editor
 -- Summary:
--- GET    /internal/techniques : get the list of techniques (from technique editor)
--- GET    /internal/techniques/categories : get the list of techniques categories (all categories from lib)
--- GET    /internal/methods : get the list of available generic methods
--- PUT    /internal/techniques : create a new technique (error if existing)
--- POST   /internal/techniques : update an existing technique (error if doesn't exist yet)
--- DELETE /internal/techniques/${id}/${version} : delete given technique's version
--- GET    /internal/techniques/${id}/${version}/resources : get resources for an existing technique
--- GET    /internal/techniques/draft/${id}/1.0/resources : get resources for a newly created technique
--- GET    /internal/techniques/draft/${id}/${version}/resources : get resources for a newly cloned technique
+-- GET    /techniques : get the list of techniques (from technique editor)
+-- GET    /techniques/categories : get the list of techniques categories (all categories from lib)
+-- GET    /methods : get the list of available generic methods
+-- PUT    /techniques : create a new technique (error if existing)
+-- POST   /techniques : update an existing technique (error if doesn't exist yet)
+-- DELETE /techniques/${id}/${version} : delete given technique's version
+-- GET    /techniques/${id}/${version}/resources : get resources for an existing technique
+-- GET    /techniques/draft/${id}/1.0/resources : get resources for a newly created technique
+-- GET    /techniques/draft/${id}/${version}/resources : get resources for a newly cloned technique
 
 
 getUrl: Model -> String -> String
@@ -33,9 +34,9 @@ getTechniques  model =
       request
         { method  = "GET"
         , headers = []
-        , url     = getUrl model "internal/techniques"
+        , url     = getUrl model "techniques"
         , body    = emptyBody
-        , expect  = expectJson GetTechniques ( Json.Decode.at ["data", "techniques" ] ( Json.Decode.list decodeTechnique))
+        , expect  = expectJson GetTechniques ( Json.Decode.at ["data", "techniques" ] (Json.Decode.map (List.concatMap Maybe.Extra.toList) ( Json.Decode.list (Json.Decode.maybe decodeTechnique))))
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -49,7 +50,7 @@ getTechniquesCategories model =
       request
         { method  = "GET"
         , headers = []
-        , url     = getUrl model "internal/techniques/categories"
+        , url     = getUrl model "techniques/categories"
         , body    = emptyBody
         , expect  = expectJson GetCategories ( Json.Decode.at ["data", "techniqueCategories" ] ( decodeCategory))
         , timeout = Nothing
@@ -65,7 +66,7 @@ getMethods  model =
       request
         { method  = "GET"
         , headers = []
-        , url     = getUrl model "internal/methods"
+        , url     = getUrl model "methods"
         , body    = emptyBody
         , expect  = expectJson GetMethods ( Json.Decode.at ["data", "methods" ] ( Json.Decode.map (Dict.fromList) (Json.Decode.keyValuePairs decodeMethod) ))
         , timeout = Nothing
@@ -81,7 +82,7 @@ saveTechnique  technique creation model =
       request
         { method  = if creation then "PUT" else "POST"
         , headers = []
-        , url     = getUrl model "internal/techniques"
+        , url     = getUrl model "techniques" ++ (if creation then "" else "/"++technique.name++"/"++technique.version)
         , body    = encodeTechnique technique |> jsonBody
         , expect  = expectJson SaveTechnique ( Json.Decode.at ["data", "techniques", "technique" ] ( decodeTechnique ))
         , timeout = Nothing
@@ -98,7 +99,7 @@ deleteTechnique  technique model =
       request
         { method  = "DELETE"
         , headers = []
-        , url     = getUrl model "internal/techniques/" ++ technique.id.value ++ "/" ++ technique.version
+        , url     = getUrl model "techniques/" ++ technique.id.value ++ "/" ++ technique.version
         , body    = emptyBody
         , expect  = expectJson DeleteTechnique ( Json.Decode.at ["data", "techniques" ] ( decodeDeleteTechniqueResponse ))
         , timeout = Nothing
@@ -118,7 +119,7 @@ getRessources state model =
       request
         { method  = "GET"
         , headers = []
-        , url     = getUrl model "internal/techniques/" ++ url
+        , url     = getUrl model "techniques/" ++ url
         , body    = emptyBody
         , expect  = expectJson GetTechniqueResources ( Json.Decode.at ["data", "resources" ] ( Json.Decode.list decodeResource ))
         , timeout = Nothing

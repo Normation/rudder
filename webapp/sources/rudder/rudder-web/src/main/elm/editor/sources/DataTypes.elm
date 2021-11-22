@@ -233,7 +233,7 @@ type Msg =
   | SetCallId CallId
   | StartSaving
   | Copy String
-  | GetDrafts (Dict String Draft)
+  | GetDrafts (Dict String Draft) (List String)
   | CloneTechnique Technique TechniqueId
   | ResetTechnique
   | ResetMethodCall MethodElem

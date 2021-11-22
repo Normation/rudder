@@ -2,7 +2,7 @@
   "type": "rudderlang_technique",
   "version": 0,
   "data": {
-    "bundle_name": "Administrators Management",
+    "id": "Administrators Management",
     "description": "test",
     "name": "Administrators Management",
     "version": "1.0",
@@ -14,7 +14,7 @@
       }
     ],
     "category": "ncf_techniques",
-    "method_calls": [
+    "calls": [
       {
         "parameters": [
           {
@@ -23,8 +23,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "user_present",
+        "condition": "any",
+        "method": "user_present",
         "component": "User present"
       },
       {
@@ -45,8 +45,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "file_content",
+        "condition": "any",
+        "method": "file_content",
         "component": "File content"
       },
       {
@@ -57,8 +57,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any.(user_present___login_name__repaired)",
-        "method_name": "service_restart",
+        "condition": "any.(user_present___login_name__repaired)",
+        "method": "service_restart",
         "component": "Service restart"
       }
     ],

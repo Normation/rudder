@@ -1,13 +1,13 @@
 {
-  "bundle_name": "6_2_cis_updated",
+  "id": "6_2_cis_updated",
   "version": "1.0",
   "category": "CIS_redhat7",
   "description": "",
   "name": "6_2_cis_updated",
-  "method_calls": [
+  "calls": [
     {
-      "method_name": "condition_from_variable_existence",
-      "class_context": "any",
+      "method": "condition_from_variable_existence",
+      "condition": "any",
       "component": "Condition from variable existence",
       "parameters": [
         {
@@ -23,8 +23,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "kernel_module_configuration",
-      "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false)",
+      "method": "kernel_module_configuration",
+      "condition": "any.(skip_item_${report_data.canonified_directive_id}_false)",
       "component": "Kernel module configuration",
       "parameters": [
         {
@@ -40,8 +40,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "kernel_module_not_loaded",
-      "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false)",
+      "method": "kernel_module_not_loaded",
+      "condition": "any.(skip_item_${report_data.canonified_directive_id}_false)",
       "component": "Kernel module not loaded",
       "parameters": [
         {

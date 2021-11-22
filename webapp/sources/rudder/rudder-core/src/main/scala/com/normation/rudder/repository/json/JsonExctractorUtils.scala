@@ -43,7 +43,7 @@ import com.normation.utils.Control._
 import cats._, cats.implicits._
 import com.normation.rudder.domain.policies.JsonTagExtractor
 
-trait JsonExctractorUtils[A[_]] {
+trait JsonExtractorUtils[A[_]] {
 
   implicit def monad : Monad[A]
 
@@ -58,9 +58,30 @@ trait JsonExctractorUtils[A[_]] {
       case invalidJson => Failure(s"Not a good value for parameter ${key}: ${compactRender(invalidJson)}")
     }
   }
+  protected[this] def extractJson[T, U ] (json:JValue, keys:List[String], convertTo : U => Box[T], validJson : PartialFunction[JValue, U]) : Box[A[T]] = {
+    keys match {
+      case key :: rest =>
+        extractJson (json, key, convertTo, validJson) match {
+          case eb : EmptyBox =>
+            val fail = eb ?~! s"Error when looking for key '${key}'"
+            extractJson(json ,rest, convertTo, validJson) match {
+              case eb2 : EmptyBox =>
+                eb2 ?~! fail.messageChain
+              case Full(value) => Full(value)
+
+            }
+          case Full(value) => Full(value)
+        }
+
+      case Nil => Failure("No key match") // message will be clarified by parent
+    }
+  }
 
   def extractJsonString[T](json:JValue, key:String, convertTo : String => Box[T] = boxedIdentity[String]) = {
     extractJson(json, key, convertTo ,{ case JString(value) => value } )
+  }
+  def extractJsonStringMultipleKeys[T](json:JValue, keys:List[String], convertTo : String => Box[T] = boxedIdentity[String]) = {
+    extractJson(json, keys, convertTo ,{ case JString(value) => value } )
   }
 
   def extractJsonBoolean[T](json:JValue, key:String, convertTo : Boolean => Box[T] = boxedIdentity[Boolean] ) = {
@@ -77,6 +98,9 @@ trait JsonExctractorUtils[A[_]] {
 
   def extractJsonObj[T](json : JValue, key : String, jsonValueFun : JObject => Box[T])  = {
     extractJson(json, key, jsonValueFun, { case obj : JObject => obj } )
+  }
+  def extractJsonObjMultipleKeys[T](json : JValue, keys : List[String], jsonValueFun : JObject => Box[T]) : Box[A[T]] = {
+    extractJson(json, keys, jsonValueFun, { case obj : JObject => obj } )
   }
 
   def extractJsonListString[T] (json: JValue, key: String, convertTo: List[String] => Box[T] = boxedIdentity[List[String]]): Box[A[T]] = {
@@ -109,6 +133,15 @@ trait JsonExctractorUtils[A[_]] {
       case JNothing   => emptyValue(key) ?~! s"Array is empty when extracting array"
       case _          => Failure(s"Invalid json to extract a json array, current value is: ${compactRender(json)}")
     }
+  }
+  def extractJsonArray[T] (json: JValue, keys : List[String])( convertTo: JValue => Box[T] ): Box[A[List[T]]] = {
+    keys.map(k => extractJsonArray(json,k)(convertTo)).reduce[Box[A[List[T]]]] {
+      case (Full(res), _) => Full(res)
+      case (_, Full(res)) => Full(res)
+      case (eb1 : EmptyBox,eb2 : EmptyBox) =>
+        eb1 ?~! ((eb2 ?~! "error while extracting data from json array").messageChain)
+    }
+
   }
 }
 

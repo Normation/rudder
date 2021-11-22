@@ -2,10 +2,10 @@
   "name": "condition dyn",
   "description": "",
   "version": "1.0",
-  "bundle_name": "condition_dyn",
+  "id": "condition_dyn",
   "category": "ncf_technioues",
   "parameter": [],
-  "method_calls": [
+  "calls": [
     {
       "parameters": [
         {
@@ -19,16 +19,16 @@
           "$errors": []
         }
       ],
-      "class_context": "any",
-      "method_name": "condition_from_variable_existence",
+      "condition": "any",
+      "method": "condition_from_variable_existence",
       "component": "condition_from_variable_existence",
       "id": "c46f75a0-a6fd-4334-8a9a-d4bdcae345e8",
       "disableReporting": false
     },
     {
-      "class_context": "any.(skip_item_${report_data.canonified_directive_id}_false)",
+      "condition": "any.(skip_item_${report_data.canonified_directive_id}_false)",
       "component": "Command execution",
-      "method_name": "command_execution",
+      "method": "command_execution",
       "parameters": [
         {
           "name": "command",

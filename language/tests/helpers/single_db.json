@@ -2,7 +2,7 @@
   "type": "ncf_technique",
   "version": 2,
   "data": {
-    "bundle_name": "Single_database",
+    "id": "Single_database",
     "description": "",
     "name": "Single database",
     "version": "1.0",
@@ -19,7 +19,7 @@
       }
     ],
     "category": "ncf_techniques",
-    "method_calls": [
+    "calls": [
       {
         "parameters": [
           {
@@ -43,8 +43,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "package_present",
+        "condition": "any",
+        "method": "package_present",
         "component": "Package present"
       },
       {
@@ -55,8 +55,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "service_enabled",
+        "condition": "any",
+        "method": "service_enabled",
         "component": "Service enabled at boot"
       },
       {
@@ -67,8 +67,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "service_started",
+        "condition": "any",
+        "method": "service_started",
         "component": "Service started"
       },
       {
@@ -94,8 +94,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "condition_from_command",
+        "condition": "any",
+        "method": "condition_from_command",
         "component": "Condition from command"
       },
       {
@@ -106,8 +106,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any.(${db_name}_present_false)",
-        "method_name": "command_execution",
+        "condition": "any.(${db_name}_present_false)",
+        "method": "command_execution",
         "component": "Command execution"
       },
       {
@@ -128,8 +128,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any",
-        "method_name": "variable_dict",
+        "condition": "any",
+        "method": "variable_dict",
         "component": "Variable from Vault"
       },
       {
@@ -140,8 +140,8 @@
             "$errors": []
           }
         ],
-        "class_context": "any.(${db_name}_present_false)",
-        "method_name": "command_execution",
+        "condition": "any.(${db_name}_present_false)",
+        "method": "command_execution",
         "component": "Command execution"
       }
     ]

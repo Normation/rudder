@@ -24,13 +24,13 @@ encodeDraft draft =
 encodeTechnique: Technique -> Value
 encodeTechnique technique =
   object [
-    ("bundle_name" , string technique.id.value )
+    ("id"          , string technique.id.value )
   , ("version"     , string technique.version )
   , ("name"        , string technique.name )
   , ("description" , string technique.description )
   , ("category"    , string technique.category )
   , ("parameter"   , list encodeTechniqueParameters technique.parameters )
-  , ("method_calls", list encodeMethodElem technique.elems )
+  , ("calls"       , list encodeMethodElem technique.elems )
   , ("resources"   , list encodeResource technique.resources )
   ]
 
@@ -67,10 +67,10 @@ encodeMethodCall call =
   object (
     (if ( String.isEmpty call.component) then identity else  (::) ("component"    , string call.component))[
     ("id"           , string call.id.value)
-  , ("method_name"  , string call.methodName.value)
-  , ("class_context",  string <| conditionStr call.condition)
+  , ("method"  , string call.methodName.value)
+  , ("condition",  string <| conditionStr call.condition)
   , ("parameters"   , list encodeCallParameters call.parameters)
-  , ("disableReporting"   , bool call.disableReporting)
+  , ("disable_reporting"   , bool call.disableReporting)
   ] )
 
 encodeCompositionRule: ReportingLogic -> Value
@@ -86,7 +86,7 @@ encodeCompositionRule composition =
 encodeMethodBlock: MethodBlock -> Value
 encodeMethodBlock call =
   object [
-    ("reportingLogic"  , encodeCompositionRule call.reportingLogic)
+    ("reporting_logic"  , encodeCompositionRule call.reportingLogic)
   , ("condition",  string <| conditionStr call.condition)
   , ("component"    , string call.component)
   , ("calls"   , list encodeMethodElem call.calls)

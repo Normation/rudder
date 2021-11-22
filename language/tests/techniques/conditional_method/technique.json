@@ -2,14 +2,14 @@
   "name": "conditional method",
   "description": "one method with several conditons",
   "version": "1.0",
-  "bundle_name": "conditional_method",
+  "id": "conditional_method",
   "category": "ncf_techniques",
   "parameter": [],
-  "method_calls": [
+  "calls": [
     {
-      "class_context": "any.(debian)",
+      "condition": "any.(debian)",
       "component": "HTTP request check status with headers",
-      "method_name": "http_request_check_status_headers",
+      "method": "http_request_check_status_headers",
       "parameters": [
         {
           "name": "method",

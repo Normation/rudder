@@ -80,21 +80,21 @@ decodeMethodCall : Decoder MethodCall
 decodeMethodCall =
   succeed MethodCall
     |> required "id" (map CallId string)
-    |> required "method_name" (map MethodId string)
+    |> required "method" (map MethodId string)
     |> required "parameters"  (list decodeCallParameter )
-    |> required "class_context"  (map parseCondition string)
+    |> required "condition"  (map parseCondition string)
     |> optional "component"  string ""
     |> optional "disableReporting" bool False
 
 decodeTechnique : Decoder Technique
 decodeTechnique =
   succeed Technique
-    |> required "bundle_name" (map TechniqueId string)
+    |> required "id" (map TechniqueId string)
     |> required "version"  string
     |> required "name"  string
     |> required "description"  string
     |> required "category"  string
-    |> required "method_calls" (list (lazy (\_ -> decodeMethodElem Nothing)))
+    |> required "calls" (list (lazy (\_ -> decodeMethodElem Nothing)))
     |> required "parameter" (list decodeTechniqueParameter)
     |> required "resources" (list decodeResource)
 
@@ -157,16 +157,16 @@ decodeMethodParameter =
 decodeMethod : Decoder Method
 decodeMethod =
   succeed Method
-    |> required "bundle_name" (map MethodId string)
+    |> required "id" (map MethodId string)
     |> required "name" string
     |> required "description" string
-    |> required "class_prefix" string
-    |> required "class_parameter" (map ParameterId string)
-    |> required "agent_support" (list decodeAgent)
-    |> required "parameter" (list decodeMethodParameter)
+    |> requiredAt [ "condition", "prefix" ] string
+    |> requiredAt [ "condition", "parameter" ] (map ParameterId string)
+    |> required "agents" (list decodeAgent)
+    |> required "parameters" (list decodeMethodParameter)
     |> optional "documentation" (maybe string) Nothing
-    |> optional "deprecated" (maybe string) Nothing
-    |> optional "rename" (maybe string) Nothing
+    |> optionalAt [ "deprecated", "info" ] (maybe string) Nothing
+    |> optionalAt [ "deprecated", "replacedBy<" ] (maybe string) Nothing
 
 decodeDeleteTechniqueResponse : Decoder TechniqueId
 decodeDeleteTechniqueResponse =
@@ -194,10 +194,10 @@ decodeResource =
                         ) string)
 
 
-decodeDraft : Decoder Draft
+decodeDraft : Decoder (Maybe Draft)
 decodeDraft =
-  succeed Draft
+  maybe (succeed Draft
     |> required "technique" decodeTechnique
     |> optional "origin"  (maybe decodeTechnique) Nothing
     |> required "id"  string
-    |> required "date"  Iso8601.decoder
+    |> required "date"  Iso8601.decoder)

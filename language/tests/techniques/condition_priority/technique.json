@@ -2,14 +2,14 @@
   "name": "condition priority",
   "description": "Kernel simplest",
   "version": "1.0",
-  "bundle_name": "condition_priority",
+  "id": "condition_priority",
   "category": "ncf_techniques",
   "parameter": [],
-  "method_calls": [
+  "calls": [
     {
-      "class_context": "any.(((!debian|linux)|ubuntu).windows|(linux|ubuntu))",
+      "condition": "any.(((!debian|linux)|ubuntu).windows|(linux|ubuntu))",
       "component": "Kernel module loaded",
-      "method_name": "kernel_module_loaded",
+      "method": "kernel_module_loaded",
       "parameters": [
         {
           "name": "name",

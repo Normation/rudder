@@ -12,15 +12,15 @@
                 "description": "external parameter"
             }
         ],
-        "bundle_name": "parameters_mult_err",
+        "id": "parameters_mult_err",
         "bundle_args": [
             "__coucou_"
         ],
-        "method_calls": [
+        "calls": [
             {
-                "class_context": "any",
+                "condition": "any",
                 "component": "Package absent",
-                "method_name": "package_absent",
+                "method": "package_absent",
                 "parameters": [
                     {
                         "name": "name",

@@ -2,14 +2,14 @@
   "name": "multiple_simple",
   "description": "",
   "version": "1.0",
-  "bundle_name": "multiple_simple",
+  "id": "multiple_simple",
   "parameter": [],
   "category": "ncf_techniques",
-  "method_calls": [
+  "calls": [
     {
-      "class_context": "any",
+      "condition": "any",
       "component": "File absent",
-      "method_name": "file_absent",
+      "method": "file_absent",
       "parameters": [
         {
           "name": "path",
@@ -21,9 +21,9 @@
       "disableReporting": false
     },
     {
-      "class_context": "any",
+      "condition": "any",
       "component": "File check exists",
-      "method_name": "file_check_exists",
+      "method": "file_check_exists",
       "parameters": [
         {
           "name": "path",
@@ -35,9 +35,9 @@
       "disableReporting": false
     },
     {
-      "class_context": "any",
+      "condition": "any",
       "component": "File present",
-      "method_name": "file_present",
+      "method": "file_present",
       "parameters": [
         {
           "name": "path",
@@ -49,9 +49,9 @@
       "disableReporting": false
     },
     {
-      "class_context": "any",
+      "condition": "any",
       "component": "Directory absent",
-      "method_name": "directory_absent",
+      "method": "directory_absent",
       "parameters": [
         {
           "name": "path",
@@ -68,9 +68,9 @@
       "disableReporting": false
     },
     {
-      "class_context": "any",
+      "condition": "any",
       "component": "Directory present",
-      "method_name": "directory_present",
+      "method": "directory_present",
       "parameters": [
         {
           "name": "path",
@@ -82,9 +82,9 @@
       "disableReporting": false
     },
     {
-      "class_context": "any",
+      "condition": "any",
       "component": "Directory check exists",
-      "method_name": "directory_check_exists",
+      "method": "directory_check_exists",
       "parameters": [
         {
           "name": "path",

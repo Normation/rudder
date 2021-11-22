@@ -1,15 +1,15 @@
 {
-  "bundle_name": "escaped",
+  "id": "escaped",
   "description": "rudderlang escaped for a complete loop",
   "name": "escaped",
   "version": "1.0",
   "parameter": [],
   "category": "ncf_techniques",
-  "method_calls": [
+  "calls": [
     {
-      "class_context": "any",
+      "condition": "any",
       "component": "Command execution",
-      "method_name": "command_execution",
+      "method": "command_execution",
       "parameters": [
         {
           "name": "command",
@@ -20,9 +20,9 @@
       "disableReporting": false
     },
     {
-      "class_context": "any.(SLES12)",
+      "condition": "any.(SLES12)",
       "component": "Command execution result",
-      "method_name": "command_execution_result",
+      "method": "command_execution_result",
       "parameters": [
         {
           "name": "command",
@@ -41,8 +41,8 @@
       "disableReporting": false
     },
     {
-      "method_name": "file_replace_lines",
-      "class_context": "any",
+      "method": "file_replace_lines",
+      "condition": "any",
       "component": "File replace lines",
       "parameters": [
         {

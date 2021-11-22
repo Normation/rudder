@@ -917,6 +917,20 @@ object RudderConfig extends Loggable {
     def getCurrentUser = CurrentUser
   }
 
+  val ncfTechniqueReader : ncf.TechniqueReader = new ncf.TechniqueReader(
+    restExtractorService
+    , stringUuidGenerator
+    , personIdentService
+    , gitConfigRepo
+    , prettyPrinter
+    , gitModificationRepository
+    , RUDDER_CHARSET.name
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
+  )
+
+  val techniqueSerializer = new TechniqueSerializer(typeParameterService)
+
+
   lazy val linkUtil = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeInfoServiceImpl)
   // REST API
   val restApiAccounts       = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator, uuidGen, userService, apiAuthorizationLevelService)
@@ -989,14 +1003,15 @@ object RudderConfig extends Loggable {
     new TechniqueAPIService6 (
         roDirectiveRepository
       , restDataSerializer
-      , techniqueRepositoryImpl
     )
 
   val techniqueApiService14 =
     new TechniqueAPIService14 (
         roDirectiveRepository
-      , techniqueRepositoryImpl
       , gitParseTechniqueLibrary
+      , ncfTechniqueReader
+      , techniqueSerializer
+      , restDataSerializer
     )
 
   val groupApiService2 =
@@ -1139,7 +1154,6 @@ object RudderConfig extends Loggable {
       )
 
   val techniqueArchiver = new TechniqueArchiverImpl(gitConfigRepo, prettyPrinter, gitModificationRepository, personIdentService, RUDDER_GROUP_OWNER_CONFIG_REPO)
-  val techniqueSerializer = new TechniqueSerializer(typeParameterService)
   val techniqueCompiler = new RudderCRunner("/opt/rudder/etc/rudderc.conf","/opt/rudder/bin/rudderc",RUDDER_GIT_ROOT_CONFIG_REPO)
   val ncfTechniqueWriter = new TechniqueWriter(
       techniqueArchiver
@@ -1156,16 +1170,6 @@ object RudderConfig extends Loggable {
     , techniqueCompiler
     , "/var/log/rudder"
     , configService.rudder_generation_rudderc_enabled_targets()
-  )
-  val ncfTechniqueReader : ncf.TechniqueReader = new ncf.TechniqueReader(
-      restExtractorService
-    , stringUuidGenerator
-    , personIdentService
-    , gitConfigRepo
-    , prettyPrinter
-    , gitModificationRepository
-    , RUDDER_CHARSET.name
-    , RUDDER_GROUP_OWNER_CONFIG_REPO
   )
 
   lazy val pipelinedInventoryParser: InventoryParser = {
@@ -1311,11 +1315,10 @@ object RudderConfig extends Loggable {
         new ComplianceApi(restExtractorService, complianceAPIService)
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, groupApiService2, groupApiService6, groupApiService14, groupInheritedProperties)
       , new DirectiveApi(roDirectiveRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, directiveApiService2, directiveApiService14)
-      , new NcfApi(ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, restExtractorService, techniqueSerializer, stringUuidGenerator, gitConfigRepo, resourceFileService)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12, nodeApiService13, nodeInheritedProperties, RUDDER_DEFAULT_DELETE_NODE_MODE)
       , new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14)
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
-      , new TechniqueApi(restExtractorService, techniqueApiService6, techniqueApiService14)
+      , new TechniqueApi(restExtractorService, techniqueApiService6, techniqueApiService14, ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, techniqueSerializer, stringUuidGenerator, resourceFileService)
       , new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService13, stringUuidGenerator)
       , new SystemApi(restExtractorService,systemApiService11, systemApiService13, rudderMajorVersion, rudderFullVersion, builtTimestamp)
       , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
