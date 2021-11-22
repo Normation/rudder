@@ -66,7 +66,7 @@ pipeline {
             when { not { changeRequest() } }
             agent { 
                 dockerfile { 
-                    filename 'rudder-lang/Dockerfile'
+                    filename 'language/Dockerfile'
                     additionalBuildArgs  '--build-arg USER_ID='+user_id
                     // mount cache
                     args '-v /srv/cache/cargo:/usr/local/cargo/registry'

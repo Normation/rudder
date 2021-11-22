@@ -3,6 +3,7 @@
 # used to setup Rust build containers
 
 rustup component add clippy
+rustup component add rustfmt
 
 # Install pre-compiled sccache
 SCCACHE_VER=0.2.15
