@@ -201,7 +201,7 @@ pipeline {
                             steps {
                                 sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                                 dir('webapp/sources') {
-                                    sh script: 'MAVEN_OPTS="-Xms10m -Xmx10m -XX:-TieredCompilation" mvn clean test --batch-mode', label: "webapp tests"
+                                    sh script: 'MAVEN_OPTS="-Xms1024m -Xmx1024m -Xss4M -XX:ReservedCodeCacheSize=128m -XX:MaxPermSize=256m" mvn clean test --batch-mode', label: "webapp tests"
                                 }
                             }
                             post {
