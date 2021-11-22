@@ -5,7 +5,7 @@ COPY ci/user.sh .
 RUN ./user.sh $USER_ID
 
 # Install elm
-RUN curl -L -o elm.gz "https://github.com/elm/compiler/releases/download/0.19.0/binary-for-linux-64-bit.gz"
+RUN curl -L -o elm.gz "https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz"
 RUN gzip -d elm.gz
 RUN chmod +x elm
-RUN mv elm /usr/local/bin/
+RUN mv elm /usr/local/bin/elm-0.19.1

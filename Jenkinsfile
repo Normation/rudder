@@ -141,7 +141,7 @@ pipeline {
                     agent { 
                         dockerfile { 
                             filename 'relay/sources/rudder-pkg/Dockerfile'
-                            args '-v /etc/passwd:/etc/passwd:ro --tmpfs /srv/jenkins/.local:exec'
+                            args '-v /etc/passwd:/etc/passwd:ro'
                         }
                     }
                     steps {
@@ -161,6 +161,29 @@ pipeline {
                         }
                     }
                 }
+                stage('elm') {
+                    agent {
+                        dockerfile {
+                            filename 'webapp/sources/rudder/rudder-web/src/main/elm/Dockerfile'
+                            additionalBuildArgs '--build-arg USER_ID='+user_id
+                        }
+                    }
+                    steps {
+                        dir('webapp/sources/rudder/rudder-web/src/main/elm') {
+                            sh script: './build-app.sh', label: 'build elm apps'
+                            dir('editor') {
+                                sh script: 'elm-test', label: 'run technique editor tests'
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                                new SlackNotifier().notifyResult("elm-team")
+                            }
+                        }
+                    }
+                }
                 stage('webapp') {
                     agent {
                         dockerfile {
@@ -173,23 +196,6 @@ pipeline {
                         }
                     }
                     stages {
-                        stage('elm') {
-                            steps {
-                                dir('webapp/sources/rudder/rudder-web/src/main/elm') {
-                                    sh script: './build-app.sh', label: 'build elm apps'
-                                    dir('editor') {
-                                        sh script: 'elm-test --compiler elm-0.19.1', label: 'run technique editor tests'
-                                    }
-                                }
-                            }
-                            post {
-                                always {
-                                    script {
-                                        new SlackNotifier().notifyResult("elm-team")
-                                    }
-                                }
-                            }
-                        }
                         stage('webapp-test') {
                             steps {
                                 sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
@@ -271,8 +277,8 @@ pipeline {
                 stage('language') {
                     agent {
                         dockerfile { 
-                            filename 'rudder-lang/Dockerfile'
-                            additionalBuildArgs  '--build-arg USER_ID='+user_id
+                            filename 'language/Dockerfile'
+                            additionalBuildArgs  '--build-arg USER_ID='+user_id+' --build-arg RUDDER_VER=$RUDDER_VERSION'
                             // mount cache
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
