@@ -162,6 +162,7 @@ import com.normation.box._
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
+import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -253,6 +254,11 @@ class RestTestSetUp {
     override def getEventLogByChangeRequest(changeRequest: ChangeRequestId, xpath: String, optLimit: Option[Int], orderBy: Option[String], eventTypeFilter: List[EventLogFilter]): IOResult[Vector[EventLog]] = ???
     override def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
     override def getLastEventByChangeRequest(xpath: String, eventTypeFilter: List[EventLogFilter]): IOResult[Map[ChangeRequestId, EventLog]] = ???
+
+    override def saveAddSecret(modId: ModificationId, principal: EventActor, secret: Secret, reason: Option[String]): IOResult[EventLog] = ZIO.succeed(null)
+    override def saveDeleteSecret(modId: ModificationId, principal: EventActor, secret: Secret, reason: Option[String]): IOResult[EventLog] = ZIO.succeed(null)
+    override def saveModifySecret(modId: ModificationId, principal: EventActor, oldSec: Secret, newSec: Secret, reason: Option[String]): IOResult[EventLog] = ZIO.succeed(null)
+
   }
   val eventLogger = new EventLogDeploymentService(eventLogRepo, null) {
     override def getLastDeployement(): Box[CurrentDeploymentStatus] = Full(NoStatus)
