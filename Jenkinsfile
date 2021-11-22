@@ -197,13 +197,12 @@ pipeline {
                     }
                     stages {
                         stage('webapp-test') {
-                            when { not { changeRequest() } }
-
-                            //when { changeRequest() }
+                            //when { not { changeRequest() } }
+                            when { changeRequest() }
                             steps {
                                 sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                                 dir('webapp/sources') {
-                                    sh script: 'MAVEN_OPTS="-Xms2048m -Xmx2048m -Xss4M -XX:ReservedCodeCacheSize=256m" mvn clean test --batch-mode', label: "webapp tests"
+                                    sh script: 'mvn clean test -DjvmArg-Xmx="2G" -DjvmArg-Xss="4m" -DjvmArg-arg0="-XX:ReservedCodeCacheSize=256m" --batch-mode', label: "webapp tests"
                                 }
                             }
                             post {
@@ -218,7 +217,7 @@ pipeline {
                             }
                         }
                         stage('webapp-publish') {
-                            //when { not { changeRequest() } }
+                            when { not { changeRequest() } }
                             steps {
                                 sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                                 dir('webapp/sources') {
