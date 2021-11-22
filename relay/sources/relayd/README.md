@@ -6,10 +6,7 @@
 
 Runtime dependencies are:
 
-* openssl
 * libpq
-* zlib
-* lzma
 
 To install build dependencies on Debian/Ubuntu:
 
@@ -30,8 +27,6 @@ To install:
 ```bash
 make DESTDIR=/target/directory install
 ```
-
-This project requires at least Rust 1.34.
 
 ## Development database
 

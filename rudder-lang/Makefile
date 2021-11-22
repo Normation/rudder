@@ -5,9 +5,6 @@ include ../rust.makefile
 
 DOC_EXAMPLES := $(wildcard docs/examples/*.rl)
 
-dependencies:
-	$(PKG_INSTALLER) perl python3
-
 install: build
 	mkdir -p $(DESTDIR)/opt/rudder/etc
 	mkdir -p $(DESTDIR)/opt/rudder/bin

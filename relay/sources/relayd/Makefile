@@ -6,7 +6,7 @@ include ../../../rust.makefile
 # relayd tools, for general relay build see ../Makefile
 
 yum-dependencies:
-	$(YUM) pkgconfig postgresql-devel openssl-devel
+	$(YUM) pkgconfig postgresql-devel
 
 apt-dependencies:
-	$(APT) pkg-config libpq-dev libssl-dev
+	$(APT) pkg-config libpq-dev
