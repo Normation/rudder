@@ -1,4 +1,4 @@
-FROM maven:3-openjdk-11
+FROM maven:3-openjdk-17
 
 ARG USER_ID=1000
 COPY ci/user.sh .
