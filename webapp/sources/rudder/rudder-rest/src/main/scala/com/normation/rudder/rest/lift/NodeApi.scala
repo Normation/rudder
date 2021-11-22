@@ -1002,7 +1002,7 @@ class NodeApiService6 (
   , restExtractor             : RestExtractorService
   , restSerializer            : RestDataSerializer
   , acceptedNodeQueryProcessor: QueryProcessor
-  , pendingNodeQueryProcessor : PendingNodesLDAPQueryChecker
+  , pendingNodeQueryProcessor : QueryChecker
   , roAgentRunsRepository     : RoReportsExecutionRepository
 ) extends Loggable {
 

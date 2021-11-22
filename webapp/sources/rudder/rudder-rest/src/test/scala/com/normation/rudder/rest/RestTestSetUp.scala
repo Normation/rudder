@@ -514,49 +514,9 @@ object RestTestSetUp {
     override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = Full(Map())
   }
 
-  val schemaLDIFs = (
-    "00-core" ::
-      "01-pwpolicy" ::
-      "04-rfc2307bis" ::
-      "05-rfc4876" ::
-      "099-0-inventory" ::
-      "099-1-rudder"  ::
-      Nil
-    ) map { name =>
-    // toURI is needed for https://issues.rudder.io/issues/19186
-    this.getClass.getClassLoader.getResource("ldap-data/schema/" + name + ".ldif").toURI.getPath
-  }
-  val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
-    // toURI is needed for https://issues.rudder.io/issues/19186
-    this.getClass.getClassLoader.getResource(name).toURI.getPath
-  }
-  val ldifLogger = new DefaultLDIFFileLogger("TestQueryProcessor","/tmp/normation/rudder/ldif")
-
-  val ldap = InMemoryDsConnectionProvider[RoLDAPConnection](
-    baseDNs = "cn=rudder-configuration" :: Nil
-    , schemaLDIFPaths = schemaLDIFs
-    , bootstrapLDIFPaths = bootstrapLDIFs
-    , ldifLogger
-  )
-
-  val DIT = new InventoryDit(new DN("ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"),new DN("ou=Inventories,cn=rudder-configuration"),"test")
-  val ditQueryData = new DitQueryData(DIT, nodeDit, rudderDit, () => Inconsistency("For test, no subgroup").fail)
-  val ldapMapper = new LDAPEntityMapper(rudderDit, nodeDit, DIT, null, inventoryMapper)
-  val pendingDIT = new InventoryDit(new DN("ou=Pending Inventories,ou=Inventories,cn=rudder-configuration"),new DN("ou=Inventories,cn=rudder-configuration"),"test")
-  val removedDIT = new InventoryDit(new DN("ou=Removed Inventories,ou=Inventories,cn=rudder-configuration"),new DN("ou=Inventories,cn=rudder-configuration"),"test")
-
-  val ditService = new InventoryDitServiceImpl(pendingDIT, DIT, removedDIT)
-
-  val inventoryMapper = new InventoryMapper(ditService, pendingDIT, DIT, removedDIT)
-
-
-
-  val internalLDAPQueryProcessor = new InternalLDAPQueryProcessor(ldap,DIT,nodeDit,ditQueryData,ldapMapper)
-  val inventoryQueryChecker = new PendingNodesLDAPQueryChecker(internalLDAPQueryProcessor)
-
   val nodeApiService2  = new NodeApiService2(null, nodeInfo, null, uuidGen, restExtractorService, restDataSerializer)
   val nodeApiService4  = new NodeApiService4(nodeInfo, nodeInfo, softDao, uuidGen, restExtractorService, restDataSerializer, roReportsExecutionRepository)
-  val nodeApiService6  = new NodeApiService6(nodeInfo, nodeInfo, softDao, restExtractorService, restDataSerializer, mockNodes.queryProcessor, inventoryQueryChecker, roReportsExecutionRepository)
+  val nodeApiService6  = new NodeApiService6(nodeInfo, nodeInfo, softDao, restExtractorService, restDataSerializer, mockNodes.queryProcessor, null, roReportsExecutionRepository)
   val nodeApiService8  = new NodeApiService8(null, nodeInfo, uuidGen, asyncDeploymentAgent, "relay", null)
   val nodeApiService12 = new NodeApiService12(null, uuidGen, restDataSerializer)
   val nodeApiService13 = new NodeApiService13(nodeInfo, roReportsExecutionRepository, softDao,restExtractorService, () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),null, null, null )
