@@ -197,10 +197,11 @@ pipeline {
                     }
                     stages {
                         stage('webapp-test') {
+                            when { changeRequest() }
                             steps {
                                 sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                                 dir('webapp/sources') {
-                                    sh script: 'mvn clean test --batch-mode -Dmaven.test.postgres=false', label: "webapp tests"
+                                    sh script: 'mvn clean test --batch-mode', label: "webapp tests"
                                 }
                             }
                             post {
@@ -305,7 +306,7 @@ pipeline {
                                 always {
                                     // linters results
                                     recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
-                                                 tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
+                                                 tool: cargo(pattern: 'language/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
                                     script {
                                         new SlackNotifier().notifyResult("rust-team")
                                     }
@@ -328,7 +329,7 @@ pipeline {
                                     sh script: 'make check', label: 'language tests'
                                     sh script: 'make docs', label: 'language docs'
                                     withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                        sh script: 'rsync -avz -e "ssh -i${KEY_FILE} -p${SSH_PORT}" target/docs/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/language/${RUDDER_VERSION}', label: 'publish relay API docs'
+                                        sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/docs/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/language/${RUDDER_VERSION}', label: 'publish relay API docs'
                                     }
                                 }
                             }
@@ -336,7 +337,7 @@ pipeline {
                                 always {
                                     // linters results
                                     recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
-                                                 tool: cargo(pattern: 'rudder-lang/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
+                                                 tool: cargo(pattern: 'language/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
                                     script {
                                         new SlackNotifier().notifyResult("rust-team")
                                     }
