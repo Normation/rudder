@@ -5,9 +5,6 @@ include ../rust.makefile
 
 DOC_EXAMPLES := $(wildcard docs/examples/*.rd)
 
-dependencies:
-	$(PKG_INSTALLER) perl python3
-
 install: build
 	mkdir -p $(DESTDIR)/opt/rudder/etc
 	mkdir -p $(DESTDIR)/opt/rudder/bin
@@ -65,8 +62,6 @@ $(DOC_EXAMPLES):
 	cargo run -- compile -c tools/rudderc-dev.conf -i $@ -o $@ -f cf
 	rm $@.cf
 
-check: lint test
-
 libs:
 	mkdir -p repos
 	[ -d repos/ncf ] || git clone git@github.com:Normation/ncf.git repos/ncf
@@ -92,6 +87,8 @@ docs: libs-docs
 	cp -r docs/images target/docs/
 	asciidoctor -a stylesheet=assets/css/rudder.css --doctype=book --destination-dir=target/docs docs/index.adoc
 	asciidoctor -a stylesheet=assets/css/rudder.css --doctype=book --destination-dir=target/docs docs/contributing.adoc
+
+check: lint test
 
 clean:
 	cargo clean
