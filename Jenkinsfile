@@ -201,7 +201,7 @@ pipeline {
                             steps {
                                 sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                                 dir('webapp/sources') {
-                                    sh script: 'MAVEN_OPTS="-Xms1024m -Xmx1024m -Xss4M -XX:ReservedCodeCacheSize=128m -XX:MaxPermSize=256m" mvn clean test --batch-mode', label: "webapp tests"
+                                    sh script: 'MAVEN_OPTS="-Xms2048m -Xmx2048m -Xss4M -XX:ReservedCodeCacheSize=256m" mvn clean test --batch-mode', label: "webapp tests"
                                 }
                             }
                             post {
@@ -216,7 +216,7 @@ pipeline {
                             }
                         }
                         stage('webapp-publish') {
-                            when { not { changeRequest() } }
+                            //when { not { changeRequest() } }
                             steps {
                                 sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                                 dir('webapp/sources') {
@@ -225,7 +225,8 @@ pipeline {
                                               options: [artifactsPublisher(disabled: true)]
                                     ) {
                                         // we need to use $MVN_COMMAND to get the settings file path
-                                        sh script: '$MVN_CMD --update-snapshots clean package deploy', label: "webapp deploy"
+                                        sh script: 'echo $MVN_CMD'
+                                        //sh script: '$MVN_CMD --update-snapshots clean package deploy', label: "webapp deploy"
                                     }
                                 }
                             }
