@@ -197,7 +197,9 @@ pipeline {
                     }
                     stages {
                         stage('webapp-test') {
-                            when { changeRequest() }
+                            when { not { changeRequest() } }
+
+                            //when { changeRequest() }
                             steps {
                                 sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                                 dir('webapp/sources') {
