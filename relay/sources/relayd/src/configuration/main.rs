@@ -801,7 +801,7 @@ mod tests {
                     ),
                 },
                 database: DatabaseConfig {
-                    url: "postgres://rudderreports@127.0.0.1/rudder".to_string(),
+                    url: "postgres://rudderreports@postgres/rudder".to_string(),
                     password: Secret::new("PASSWORD".to_string()),
                     max_pool_size: 5,
                 },

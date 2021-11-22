@@ -5,11 +5,5 @@ include ../../../rust.makefile
 
 # relayd tools, for general relay build see ../Makefile
 
-yum-dependencies:
-	$(YUM) pkgconfig postgresql-devel openssl-devel
-
-apt-dependencies:
-	$(APT) pkg-config libpq-dev libssl-dev
-
 check: lint
-	cargo test --locked
+        cargo test --locked
