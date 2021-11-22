@@ -201,7 +201,7 @@ pipeline {
                             steps {
                                 sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                                 dir('webapp/sources') {
-                                    sh script: 'MAVEN_OPTS="-Xms2048m -Xmx2048m -XX:-TieredCompilation" mvn clean test --batch-mode', label: "webapp tests"
+                                    sh script: 'MAVEN_OPTS="-Xms100m -Xmx100m -XX:-TieredCompilation" mvn clean test --batch-mode', label: "webapp tests"
                                 }
                             }
                             post {
