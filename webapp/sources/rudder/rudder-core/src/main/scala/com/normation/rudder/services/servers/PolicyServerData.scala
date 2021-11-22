@@ -38,10 +38,9 @@
 package com.normation.rudder.services.servers
 
 import com.normation.inventory.domain.NodeId
-import sun.net.util.IPAddressUtil
 import zio.json._
 import io.scalaland.chimney.dsl._
-
+import inet.ipaddr.IPAddressString
 
 /*
  * All policy servers. A root and 0 or more relays
@@ -78,24 +77,7 @@ object AllowedNetwork {
    * A single IP address will be accepted by the test.
    */
   def isValid(net:String) = {
-
-    val parts = net.split("/")
-    if(parts.size == 1) {
-       IPAddressUtil.isIPv6LiteralAddress(parts(0)) ||
-       IPAddressUtil.isIPv4LiteralAddress(parts(0))
-    } else if(parts.size == 2) {
-      (
-       IPAddressUtil.isIPv6LiteralAddress(parts(0)) ||
-       IPAddressUtil.isIPv4LiteralAddress(parts(0))
-      ) && (
-        try {
-          val n = parts(1).toInt
-          if(n >= 0 && n < 255) true else false
-        } catch {
-          case _:NumberFormatException => false
-        }
-      )
-    } else false
+    new IPAddressString(net).isValid
   }
 }
 
