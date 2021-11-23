@@ -24,6 +24,7 @@
         contextPath    : contextPath
       , hasWriteRights : hasWriteRights
       };
+
       var app = Elm.Rules.init({node: main, flags: initValues});
       app.ports.successNotification.subscribe(function(str) {
         createSuccessNotification(str)
@@ -43,7 +44,15 @@
         history.pushState({}, '', url);
       });
 
-      getRuleRedirection(app);
+      var path = window.location.pathname.split("/")
+      if (path.length > 2) {
+        var id = path[path.length -1];
+        var kind = path[path.length -2];
+        if (id !== "ruleManagement") {
+          app.ports.readUrl.send([kind,id]);
+        }
+      }
+
 
       // Initialize tooltips
       app.ports.initTooltips.subscribe(function(msg) {
