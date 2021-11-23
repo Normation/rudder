@@ -13,7 +13,7 @@ pipeline {
     }
 
     stages {
-        stage("plouf") {}
+        stage("plouf") {
             //when { not { changeRequest() } }
             matrix {
                 axes {
