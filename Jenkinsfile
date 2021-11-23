@@ -259,46 +259,6 @@ pipeline {
                         }
                     }
                 }
-                stage('webapp-jvm-compat') {
-                    //when { not { changeRequest() } }
-                    matrix {
-                        axes {
-                            axis {
-                                name 'JDK_VERSION'
-                                values '8', '17'
-                            }
-                        }
-                        stages {
-                            stage('webapp-test') {
-                                agent {
-                                    dockerfile {
-                                        filename 'webapp/sources/Dockerfile'
-                                        additionalBuildArgs '--build-arg USER_ID='+user_id+'--build-arg JDK_VERSION=${JDK_VERSION}'
-                                        // we don't share elm folder as it is may break with concurrent builds
-                                        // set same timezone as some tests rely on it
-                                        // and share maven cache
-                                        args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/maven:/home/jenkins/.m2'
-                                    }
-                                }
-                                steps {
-                                    dir('webapp/sources') {
-                                        sh script: 'mvn clean test --batch-mode', label: "webapp tests"
-                                    }
-                                }
-                                post {
-                                    always {
-                                        // collect test results
-                                        junit 'webapp/sources/**/target/surefire-reports/*.xml'
-
-                                        script {
-                                            new SlackNotifier().notifyResult("scala-team")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
                 stage('relayd') {
                     // we need to use a script for side container currently
                     agent { label 'docker' }
@@ -397,6 +357,43 @@ pipeline {
                                     script {
                                         new SlackNotifier().notifyResult("rust-team")
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            //when { not { changeRequest() } }
+            matrix {
+                axes {
+                    axis {
+                        name 'JDK_VERSION'
+                        values '8', '17'
+                    }
+                }
+                stages {
+                    stage('webapp-test') {
+                        agent {
+                            dockerfile {
+                                filename 'webapp/sources/Dockerfile'
+                                additionalBuildArgs '--build-arg USER_ID='+user_id+'--build-arg JDK_VERSION=${JDK_VERSION}'
+                                // we don't share elm folder as it is may break with concurrent builds
+                                // set same timezone as some tests rely on it
+                                // and share maven cache
+                                args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/maven:/home/jenkins/.m2'
+                            }
+                        }
+                        steps {
+                            dir('webapp/sources') {
+                                sh script: 'mvn clean test --batch-mode', label: "webapp tests"
+                            }
+                        }
+                        post {
+                            always {
+                                // collect test results
+                                junit 'webapp/sources/**/target/surefire-reports/*.xml'
+                                    script {
+                                    new SlackNotifier().notifyResult("scala-team")
                                 }
                             }
                         }
