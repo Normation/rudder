@@ -70,7 +70,7 @@ encodeMethodCall call =
   , ("method"  , string call.methodName.value)
   , ("condition",  string <| conditionStr call.condition)
   , ("parameters"   , list encodeCallParameters call.parameters)
-  , ("disable_reporting"   , bool call.disableReporting)
+  , ("disableReporting"   , bool call.disableReporting)
   ] )
 
 encodeCompositionRule: ReportingLogic -> Value
@@ -86,7 +86,7 @@ encodeCompositionRule composition =
 encodeMethodBlock: MethodBlock -> Value
 encodeMethodBlock call =
   object [
-    ("reporting_logic"  , encodeCompositionRule call.reportingLogic)
+    ("reportingLogic"  , encodeCompositionRule call.reportingLogic)
   , ("condition",  string <| conditionStr call.condition)
   , ("component"    , string call.component)
   , ("calls"   , list encodeMethodElem call.calls)
