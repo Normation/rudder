@@ -282,7 +282,7 @@ pipeline {
             }
         }
         stage('Publish') {
-            when { not { changeRequest() } }
+            //when { not { changeRequest() } }
             parallel {
                 stage('api-doc') {
                     agent { 
@@ -311,7 +311,7 @@ pipeline {
                     }
                 }
                 stage('api-doc-redirect') {
-                    when { branch 'master' }
+                    //when { branch 'master' }
                     steps { 
                         withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
                             writeFile file: 'htaccess', text: redirectApi()
