@@ -13,6 +13,7 @@ pipeline {
     }
 
     stages {
+        stage("plouf") {}
             //when { not { changeRequest() } }
             matrix {
                 axes {
@@ -50,6 +51,7 @@ pipeline {
                     }
                 }
             }
+        }
         stage('Tests') {
             parallel {
                 stage('shell') {
