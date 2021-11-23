@@ -1,81 +1,83 @@
 module JsonDecoder exposing (..)
 
 import DataTypes exposing (..)
-import Json.Decode as D exposing (Decoder, andThen, bool, field, float, index, map, map2, map4, oneOf, string, succeed)
+import Either.Decode exposing (either)
+import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
+import Json.Decode.Field exposing (..)
 import Tuple
 
 
 -- GENERAL
 decodeGetPolicyMode : Decoder String
 decodeGetPolicyMode =
-  D.at ["data", "settings", "global_policy_mode" ] D.string
+  at ["data", "settings", "global_policy_mode" ] string
 
 decodeCategoryWithLeaves : String -> String -> String -> Decoder a -> Decoder ((Category a), List a)
 decodeCategoryWithLeaves idIdentifier categoryIdentifier elemIdentifier elemDecoder =
-  D.map5 (\id name description subCats elems -> (Category id name description (SubCategories (List.map Tuple.first subCats)) elems, List.concat [ elems, List.concatMap Tuple.second subCats ] ))
-    (field idIdentifier  D.string)
-    (field "name"        D.string)
-    (field "description" D.string)
-    (field categoryIdentifier (D.list (D.lazy (\_ -> (decodeCategoryWithLeaves idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
-    (field elemIdentifier (D.list elemDecoder))
+  map5 (\id name description subCats elems -> (Category id name description (SubCategories (List.map Tuple.first subCats)) elems, List.concat [ elems, List.concatMap Tuple.second subCats ] ))
+    (field idIdentifier  string)
+    (field "name"        string)
+    (field "description" string)
+    (field categoryIdentifier (list (lazy (\_ -> (decodeCategoryWithLeaves idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
+    (field elemIdentifier (list elemDecoder))
 
 decodeCategory : String -> String -> String -> Decoder a -> Decoder (Category a)
 decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder =
   succeed Category
-    |> required idIdentifier  D.string
-    |> required "name"        D.string
-    |> required "description" D.string
-    |> required categoryIdentifier (D.map SubCategories  (D.list (D.lazy (\_ -> (decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
-    |> required elemIdentifier      (D.list elemDecoder)
+    |> required idIdentifier  string
+    |> required "name"        string
+    |> required "description" string
+    |> required categoryIdentifier (map SubCategories  (list (lazy (\_ -> (decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
+    |> required elemIdentifier      (list elemDecoder)
 
 decodeCategoryDetails : Decoder (Category Rule)
 decodeCategoryDetails =
   succeed Category
-    |> required "id"          D.string
-    |> required "name"        D.string
-    |> required "description" D.string
+    |> required "id"          string
+    |> required "name"        string
+    |> required "description" string
     |> hardcoded (SubCategories [])
     |> hardcoded []
 
 decodeGetRulesTree =
-  D.at [ "data" , "ruleCategories" ] (decodeCategory "id" "categories" "rules" decodeRule)
+  at [ "data" , "ruleCategories" ] (decodeCategory "id" "categories" "rules" decodeRule)
 
 decodeGetRuleDetails : Decoder Rule
 decodeGetRuleDetails =
-  D.at [ "data" , "rules" ] (index 0 decodeRule)
+  at [ "data" , "rules" ] (index 0 decodeRule)
 
 decodeGetCategoryDetails : Decoder (Category Rule)
 decodeGetCategoryDetails =
-  D.at [ "data" , "ruleCategories" ] decodeCategoryDetails
+  at [ "data" , "ruleCategories" ] decodeCategoryDetails
 
 decodeRule : Decoder Rule
 decodeRule =
-  D.succeed Rule
-    |> required "id"              (D.map RuleId D.string)
-    |> required "displayName"      D.string
-    |> required "categoryId"       D.string
-    |> required "shortDescription" D.string
-    |> required "longDescription"  D.string
-    |> required "enabled"          D.bool
-    |> required "system"           D.bool
-    |> required "directives"      (D.list (D.map DirectiveId D.string))
-    |> required "targets"         (D.list decodeTargets)
-    |> required "policyMode"       D.string
+  succeed Rule
+    |> required "id"              (map RuleId string)
+    |> required "displayName"      string
+    |> required "categoryId"       string
+    |> required "shortDescription" string
+    |> required "longDescription"  string
+    |> required "enabled"          bool
+    |> required "system"           bool
+    |> required "directives"      (list (map DirectiveId string))
+    |> required "targets"         (list decodeTargets)
+    |> required "policyMode"       string
     |> required "status"           decodeStatus
-    |> required "tags"            (D.list (D.keyValuePairs D.string) |> andThen toTags)
+    |> required "tags"            (list (keyValuePairs string) |> andThen toTags)
 
 toTags : List (List ( String, String )) -> Decoder (List Tag)
 toTags lst =
   let
     concatList = List.concat lst
   in
-    D.succeed
+    succeed
       ( List.map (\t -> Tag (Tuple.first t) (Tuple.second t)) concatList )
 
 decodeDeleteRuleResponse : Decoder (RuleId,String)
 decodeDeleteRuleResponse =
-  D.at ["data", "rules" ](index 0
+  at ["data", "rules" ](index 0
   ( succeed Tuple.pair
      |> required "id" (map RuleId string)
      |> required "displayName" string
@@ -83,7 +85,7 @@ decodeDeleteRuleResponse =
 
 decodeDeleteCategoryResponse : Decoder (String, String)
 decodeDeleteCategoryResponse =
-  D.at ["data", "ruleCategories" ](index 0
+  at ["data", "ruleCategories" ](index 0
   ( succeed Tuple.pair
      |> required "id" string
      |> required "name" string
@@ -92,146 +94,192 @@ decodeDeleteCategoryResponse =
 decodeStatus : Decoder RuleStatus
 decodeStatus =
   succeed RuleStatus
-    |> required "value"    D.string
-    |> optional "details" (D.maybe D.string) Nothing
+    |> required "value"    string
+    |> optional "details" (maybe string) Nothing
 
 -- COMPLIANCE
-decodeGetRulesCompliance : Decoder (List RuleCompliance)
+decodeGetRulesCompliance : Decoder (List RuleComplianceGlobal)
 decodeGetRulesCompliance =
-  D.at [ "data" , "rules" ] (D.list decodeRuleCompliance)
+  at [ "data" , "rules" ] (list decodeRuleCompliance)
 
-decodeRuleCompliance : Decoder RuleCompliance
+
+decodeGetRulesComplianceDetails : Decoder RuleCompliance
+decodeGetRulesComplianceDetails =
+  at [ "data" , "rules" ] (oneOrMore (\a _ -> a ) decodeRuleComplianceDetails)
+
+
+decodeRuleCompliance : Decoder RuleComplianceGlobal
 decodeRuleCompliance =
+  succeed RuleComplianceGlobal
+    |> required "id"         (map RuleId string)
+    |> required "compliance" float
+    |> required "complianceDetails" decodeComplianceDetails
+
+
+decodeRuleComplianceDetails  : Decoder RuleCompliance
+decodeRuleComplianceDetails =
   succeed RuleCompliance
-    |> required "id"         (D.map RuleId D.string)
-    |> required "mode"       D.string
-    |> required "compliance" D.float
+    |> required "id"         (map RuleId string)
+    |> required "mode"       string
+    |> required "compliance" float
     |> required "complianceDetails" decodeComplianceDetails
-    |> required "directives" (D.list decodeDirectiveCompliance)
+    |> required "directives" (list (decodeDirectiveCompliance "nodes" decodeNodeCompliance) )
+    |> required "nodes" (list decodeRuleComplianceByNode )
 
-decodeDirectiveCompliance : Decoder DirectiveCompliance
-decodeDirectiveCompliance =
+
+decodeRuleComplianceByNode  : Decoder NodeCompliance
+decodeRuleComplianceByNode =
+  succeed NodeCompliance
+    |> required "id"         (map NodeId string)
+    |> required "name"       string
+    |> required "compliance" float
+    |> required "complianceDetails" decodeComplianceDetails
+    |> required "directives" (list (decodeDirectiveCompliance "values" decodeValueCompliance ))
+
+
+decodeBlockCompliance :  String -> Decoder a -> () -> Decoder (BlockCompliance a)
+decodeBlockCompliance elem decoder _ =
+  require "name" string <| \name ->
+  require "compliance" float <| \compliance ->
+  require "complianceDetails" decodeComplianceDetails <| \details ->
+  require "components" (list (decodeComponentCompliance elem decoder))   <| \components ->
+    succeed ({ component = name, compliance = compliance, complianceDetails = details, components =  components } )
+
+
+decodeComponentValueCompliance : String -> Decoder a -> Decoder (ComponentValueCompliance a)
+decodeComponentValueCompliance elem decoder =
+  succeed ComponentValueCompliance
+    |> required "name"       string
+    |> required "compliance" float
+    |> required "complianceDetails" decodeComplianceDetails
+    |> required elem (list decoder)
+
+decodeComponentCompliance : String -> Decoder a -> Decoder (ComponentCompliance a)
+decodeComponentCompliance elem decoder =
+  oneOf [
+     map  (\b -> Block b) <| decodeBlockCompliance elem decoder ()
+  ,  map  (\v -> Value v) <| decodeComponentValueCompliance elem decoder
+  ]
+
+decodeDirectiveCompliance  : String -> Decoder a ->  Decoder (DirectiveCompliance a)
+decodeDirectiveCompliance elem decoder =
   succeed DirectiveCompliance
-    |> required "id"         (D.map DirectiveId D.string)
-    |> required "compliance" D.float
+    |> required "id"         (map DirectiveId string)
+    |> required "name"       string
+    |> required "compliance" float
     |> required "complianceDetails" decodeComplianceDetails
-    |> required "components" (D.list decodeComponentCompliance)
+    |> required "components" (list (decodeComponentCompliance  elem decoder )  )
 
-decodeComponentCompliance : Decoder ComponentCompliance
-decodeComponentCompliance =
-  succeed ComponentCompliance
-    |> required "name"       D.string
-    |> required "compliance" D.float
-    |> required "complianceDetails" decodeComplianceDetails
-    |> required "nodes" (D.list decodeNodeCompliance)
 
 decodeValueCompliance : Decoder ValueCompliance
 decodeValueCompliance =
   succeed ValueCompliance
-    |> required "value"      D.string
-    |> required "reports" (D.list decodeReport)
+    |> required "value"      string
+    |> required "reports" (list decodeReport)
 
 decodeReport : Decoder Report
 decodeReport =
   succeed Report
-    |> required "status"      D.string
-    |> optional "message"    (D.maybe  D.string) Nothing
+    |> required "status"      string
+    |> optional "message"    (maybe  string) Nothing
 
-decodeNodeCompliance : Decoder NodeCompliance
+decodeNodeCompliance : Decoder NodeValueCompliance
 decodeNodeCompliance =
-  succeed NodeCompliance
-    |> required "id"     (D.map NodeId D.string)
-    |> required "name"    D.string
-    |> required "values" (D.list decodeValueCompliance)
+  succeed NodeValueCompliance
+    |> required "id"     (map NodeId string)
+    |> required "name"    string
+    |> required "compliance" float
+    |> required "complianceDetails" decodeComplianceDetails
+    |> required "values" (list decodeValueCompliance)
 
 decodeComplianceDetails : Decoder ComplianceDetails
 decodeComplianceDetails =
   succeed ComplianceDetails
-    |> optional "successNotApplicable"       (map Just D.float) Nothing
-    |> optional "successAlreadyOK"           (map Just D.float) Nothing
-    |> optional "successRepaired"            (map Just D.float) Nothing
-    |> optional "error"                      (map Just D.float) Nothing
-    |> optional "auditCompliant"             (map Just D.float) Nothing
-    |> optional "auditNonCompliant"          (map Just D.float) Nothing
-    |> optional "auditError"                 (map Just D.float) Nothing
-    |> optional "auditNotApplicable"         (map Just D.float) Nothing
-    |> optional "unexpectedUnknownComponent" (map Just D.float) Nothing
-    |> optional "unexpectedMissingComponent" (map Just D.float) Nothing
-    |> optional "noReport"                   (map Just D.float) Nothing
-    |> optional "reportsDisabled"            (map Just D.float) Nothing
-    |> optional "applying"                   (map Just D.float) Nothing
-    |> optional "badPolicyMode"              (map Just D.float) Nothing
+    |> optional "successNotApplicable"       (map Just float) Nothing
+    |> optional "successAlreadyOK"           (map Just float) Nothing
+    |> optional "successRepaired"            (map Just float) Nothing
+    |> optional "error"                      (map Just float) Nothing
+    |> optional "auditCompliant"             (map Just float) Nothing
+    |> optional "auditNonCompliant"          (map Just float) Nothing
+    |> optional "auditError"                 (map Just float) Nothing
+    |> optional "auditNotApplicable"         (map Just float) Nothing
+    |> optional "unexpectedUnknownComponent" (map Just float) Nothing
+    |> optional "unexpectedMissingComponent" (map Just float) Nothing
+    |> optional "noReport"                   (map Just float) Nothing
+    |> optional "reportsDisabled"            (map Just float) Nothing
+    |> optional "applying"                   (map Just float) Nothing
+    |> optional "badPolicyMode"              (map Just float) Nothing
 
 -- DIRECTIVES TAB
 decodeGetTechniques : Decoder (List Technique)
 decodeGetTechniques =
-  D.at ["data", "techniques" ] (D.list decodeTechnique)
+  at ["data", "techniques" ] (list decodeTechnique)
 
 
 decodeGetDirectives : Decoder (List Directive)
 decodeGetDirectives =
-  D.at ["data", "directives" ] (D.list decodeDirective)
+  at ["data", "directives" ] (list decodeDirective)
 
 decodeDirective : Decoder Directive
 decodeDirective =
   succeed Directive
-    |> required "id"              (D.map DirectiveId D.string)
-    |> required "displayName"      D.string
-    |> required "longDescription"  D.string
-    |> required "techniqueName"    D.string
-    |> required "techniqueVersion" D.string
-    |> required "enabled"          D.bool
-    |> required "system"           D.bool
-    |> required "policyMode"       D.string
-    |> required "tags"            (D.list (D.keyValuePairs D.string) |> andThen toTags)
+    |> required "id"              (map DirectiveId string)
+    |> required "displayName"      string
+    |> required "longDescription"  string
+    |> required "techniqueName"    string
+    |> required "techniqueVersion" string
+    |> required "enabled"          bool
+    |> required "system"           bool
+    |> required "policyMode"       string
+    |> required "tags"            (list (keyValuePairs string) |> andThen toTags)
 
 decodeGetTechniquesTree : Decoder (Category Technique, List Technique)
 decodeGetTechniquesTree =
-  D.at ["data", "directives"] (index 0 (decodeCategoryWithLeaves "name" "subCategories" "techniques" decodeTechnique))
+  at ["data", "directives"] (index 0 (decodeCategoryWithLeaves "name" "subCategories" "techniques" decodeTechnique))
 
 decodeTechnique : Decoder Technique
 decodeTechnique =
   succeed Technique
-    |> required "name"          D.string
-    |> required "directives" (D.list decodeDirective)
+    |> required "name"          string
+    |> required "directives" (list decodeDirective)
 
 -- GROUPS TAB
 decodeGetGroupsTree : Decoder (Category Group)
 decodeGetGroupsTree =
-  D.at ["data", "groupCategories"] (decodeCategory "id" "categories" "groups" decodeGroup)
+  at ["data", "groupCategories"] (decodeCategory "id" "categories" "groups" decodeGroup)
 
 decodeGroup : Decoder Group
 decodeGroup =
   succeed Group
-    |> required "id"          D.string
-    |> required "displayName" D.string
-    |> required "description" D.string
-    |> required "nodeIds"    (D.list D.string)
-    |> required "dynamic"     D.bool
-    |> required "enabled"     D.bool
+    |> required "id"          string
+    |> required "displayName" string
+    |> required "description" string
+    |> required "nodeIds"    (list string)
+    |> required "dynamic"     bool
+    |> required "enabled"     bool
 
 decodeComposition : Decoder RuleTarget
 decodeComposition =
   succeed Composition
-    |> required "include" (D.lazy (\_ -> decodeTargets))
-    |> required "exclude" (D.lazy (\_ -> decodeTargets))
+    |> required "include" (lazy (\_ -> decodeTargets))
+    |> required "exclude" (lazy (\_ -> decodeTargets))
 
 decodeAnd: Decoder RuleTarget
 decodeAnd =
   succeed And
-    |> required "and" (D.list (D.lazy (\_ -> decodeTargets)))
+    |> required "and" (list (lazy (\_ -> decodeTargets)))
 
 decodeOr: Decoder RuleTarget
 decodeOr =
   succeed Or
-    |> required "or" (D.list (D.lazy (\_ -> decodeTargets)))
+    |> required "or" (list (lazy (\_ -> decodeTargets)))
 
 decodeTargets : Decoder RuleTarget
 decodeTargets =
-  D.oneOf
-  [ D.lazy (\_ -> decodeComposition)
-  , D.lazy (\_ -> decodeAnd)
-  , D.lazy (\_ -> decodeOr)
+  oneOf
+  [ lazy (\_ -> decodeComposition)
+  , lazy (\_ -> decodeAnd)
+  , lazy (\_ -> decodeOr)
   , map
     (\s ->
       if String.startsWith "group:" s then
@@ -244,12 +292,12 @@ decodeTargets =
 
 decodeGetNodesList : Decoder (List NodeInfo)
 decodeGetNodesList =
-  D.at ["data", "nodes" ] (D.list decodeNodeInfo)
+  at ["data", "nodes" ] (list decodeNodeInfo)
 
 decodeNodeInfo : Decoder NodeInfo
 decodeNodeInfo =
   succeed NodeInfo
-    |> required "id"          D.string
-    |> required "hostname"    D.string
-    |> required "description" D.string
-    |> required "policyMode"  D.string
+    |> required "id"          string
+    |> required "hostname"    string
+    |> required "description" string
+    |> required "policyMode"  string

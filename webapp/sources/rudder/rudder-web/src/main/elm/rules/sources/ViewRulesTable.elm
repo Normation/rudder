@@ -48,12 +48,13 @@ getSortFunction model r1 r2 =
                   else
                     c.compliance
               Nothing -> -2.0
-          r1Compliance = getCompliance (getRuleCompliance model r1.id)
-          r2Compliance = getCompliance (getRuleCompliance model r2.id)
+          --r1Compliance = getCompliance (getRuleCompliance model r1.id)
+          --r2Compliance = getCompliance (getRuleCompliance model r2.id)
         in
-          compare r1Compliance r2Compliance
+          GT
+          --compare r1Compliance r2Compliance
   in
-    if model.ui.ruleFilters.tableFilters.sortOrder then
+    if model.ui.ruleFilters.tableFilters.sortOrder == Asc then
       order
     else
       case order of

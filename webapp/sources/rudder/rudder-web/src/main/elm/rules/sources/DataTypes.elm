@@ -1,9 +1,7 @@
 module DataTypes exposing (..)
 
-import Dict
+import Dict exposing (Dict)
 import Http exposing (Error)
-import List.Extra
-import Dict.Extra
 
 --
 -- All our data types
@@ -108,26 +106,63 @@ getAllCats category =
   in
     category :: (List.concatMap getAllCats subElems)
 
+
+type alias RuleComplianceGlobal =
+  { id                : RuleId
+  , compliance        : Float
+  , complianceDetails : ComplianceDetails
+  }
+
 type alias RuleCompliance =
   { ruleId            : RuleId
   , mode              : String
   , compliance        : Float
   , complianceDetails : ComplianceDetails
-  , directives        : List DirectiveCompliance
+  , directives        : List (DirectiveCompliance NodeValueCompliance)
+  , nodes             : List NodeCompliance
   }
 
-type alias DirectiveCompliance =
-  { directiveId       : DirectiveId
+type alias NodeCompliance =
+  { nodeId            : NodeId
+  , name              : String
   , compliance        : Float
   , complianceDetails : ComplianceDetails
-  , components        : List ComponentCompliance
+  , directives        : List (DirectiveCompliance ValueCompliance)
   }
 
-type alias ComponentCompliance =
+type alias DirectiveCompliance value =
+  { directiveId       : DirectiveId
+  , name              : String
+  , compliance        : Float
+  , complianceDetails : ComplianceDetails
+  , components        : List (ComponentCompliance value)
+  }
+
+
+type ComponentCompliance value = Block (BlockCompliance value) | Value (ComponentValueCompliance value)
+type alias BlockCompliance value =
+    { component         : String
+    , compliance        : Float
+    , complianceDetails : ComplianceDetails
+    , components        : List (ComponentCompliance value)
+    }
+
+
+type alias ComponentValueCompliance value =
   { component         : String
   , compliance        : Float
   , complianceDetails : ComplianceDetails
-  , nodes             : List NodeCompliance
+  , values            : List value
+  }
+
+type SortOrder = Asc | Desc
+
+type alias NodeValueCompliance =
+  { nodeId : NodeId
+  , name   : String
+  , compliance        : Float
+  , complianceDetails : ComplianceDetails
+  , values : List ValueCompliance
   }
 
 type alias ValueCompliance =
@@ -143,41 +178,6 @@ type alias Report =
 type alias RuleStatus =
   { value   : String
   , details : Maybe String
-  }
-
-type alias NodeCompliance =
-  { nodeId : NodeId
-  , name   : String
-  , values : List ValueCompliance
-  }
-
-type alias RuleComplianceByNode =
-  { ruleId            : RuleId
-  , mode              : String
-  , compliance        : Float
-  , complianceDetails : ComplianceDetails
-  , nodes             : List NodeComplianceByNode
-  }
-
-type alias NodeComplianceByNode =
-  { nodeId            : NodeId
-  , compliance        : Float
-  , complianceDetails : ComplianceDetails
-  , directives        : List DirectiveComplianceByNode
-  }
-
-type alias DirectiveComplianceByNode =
-  { directiveId         : DirectiveId
-  , compliance          : Float
-  , complianceDetails   : ComplianceDetails
-  , components          : List ComponentComplianceByNode
-  }
-
-type alias ComponentComplianceByNode =
-  { component         : String
-  , compliance        : Float
-  , complianceDetails : ComplianceDetails
-  , value             : List ValueCompliance
   }
 
 type alias ComplianceDetails =
@@ -197,9 +197,9 @@ type alias ComplianceDetails =
   , badPolicyMode              : Maybe Float
   }
 
-type alias RuleDetailsUI = { editDirectives: Bool, editGroups : Bool, newTag : Tag }
+type alias RuleDetailsUI = { editDirectives: Bool, editGroups : Bool, newTag : Tag, openedRows : Dict String (String, SortOrder)  }
 
-type alias RuleDetails = { originRule : Maybe Rule, rule : Rule, tab :  TabMenu, ui : RuleDetailsUI }
+type alias RuleDetails = { originRule : Maybe Rule, rule : Rule, tab :  TabMenu, ui : RuleDetailsUI, compliance : Maybe RuleCompliance }
 
 type alias CategoryDetails = { originCategory : Maybe (Category Rule), category : Category Rule, parentId : String, tab :  TabMenu}
 
@@ -215,18 +215,10 @@ type SortBy
   | Status
   | Compliance
 
-type RowState
-  = NoSublvl
-  | NodeDirectiveLvl NodeComplianceByNode
-  | NodeComponentLvl DirectiveComplianceByNode
-  | NodeValueLvl ComponentComplianceByNode
-  | DirectiveComponentLvl DirectiveCompliance
-  | DirectiveNodeLvl ComponentCompliance
-  | DirectiveValueLvl NodeCompliance
 
 type alias TableFilters =
   { sortBy    : SortBy
-  , sortOrder : Bool
+  , sortOrder : SortOrder
   , filter    : String
   , unfolded  : List String
   }
@@ -256,9 +248,9 @@ type alias Model =
   , rulesTree       : Category Rule
   , groupsTree      : Category Group
   , techniquesTree  : Category Technique
-  , rulesCompliance : List RuleCompliance
-  , directives      : List Directive
-  , nodes           : List NodeInfo
+  , rulesCompliance : Dict String RuleComplianceGlobal
+  , directives      : Dict String Directive
+  , nodes           : Dict String NodeInfo
   , ui              : UI
   }
 
@@ -276,7 +268,8 @@ type Msg
   | GetRuleDetailsResult     (Result Error Rule)
   | GetPolicyModeResult      (Result Error String)
   | GetCategoryDetailsResult (Result Error (Category Rule))
-  | GetRulesComplianceResult (Result Error (List RuleCompliance))
+  | GetRulesComplianceResult (Result Error (List RuleComplianceGlobal))
+  | GetRuleComplianceResult  RuleId (Result Error RuleCompliance)
   | GetNodesList             (Result Error (List NodeInfo))
   | SaveRuleDetails          (Result Error Rule)
   | SaveDisableAction        (Result Error Rule)
@@ -293,6 +286,8 @@ type Msg
   | OpenDeactivationPopup Rule
   | ClosePopup Msg
   | Ignore
+  | ToggleRow              String String
+  | ToggleRowSort          String String SortOrder
   | UpdateRuleFilters      Filters
   | UpdateDirectiveFilters Filters
   | UpdateGroupFilters     Filters

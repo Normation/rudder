@@ -1,15 +1,16 @@
 port module Rules exposing (..)
 
 import Browser
-import Url
+import Dict
+import Dict.Extra
 import DataTypes exposing (..)
 import Http exposing (..)
 import Init exposing (init)
 import View exposing (view)
 import Result
-import ApiCalls exposing (getRuleDetails, getRulesCategoryDetails, getRulesTree, saveDisableAction)
-import ViewUtils exposing (getListCategories, getParentCategoryId)
-import List.Extra exposing (remove)
+import ApiCalls exposing (..)
+import ViewUtils exposing (..)
+import List.Extra
 import Random
 import UUID
 
@@ -21,7 +22,7 @@ port initTooltips        : String -> Cmd msg
 port readUrl : ((String, String) -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
   Sub.batch
   [ readUrl ( \(kind,id) -> case kind of
               "rule" -> OpenRuleDetails (RuleId id) False
@@ -29,7 +30,6 @@ subscriptions model =
               _ -> Ignore
             )
   ]
-
 
 main =
   Browser.element
@@ -42,6 +42,7 @@ main =
 generator : Random.Generator String
 generator = Random.map (UUID.toString) UUID.generator
 
+defaultRulesUI = RuleDetailsUI False False (Tag "" "") Dict.empty
 --
 -- update loop --
 --
@@ -92,7 +93,7 @@ update msg model =
     GetTechniquesTreeResult res ->
       case res of
         Ok (t,d) ->
-          ( { model | techniquesTree = t, directives = List.concatMap .directives d }
+          ( { model | techniquesTree = t, directives = Dict.Extra.fromListBy (.id >> .value) (List.concatMap .directives d) }
             , Cmd.none
           )
         Err err ->
@@ -101,21 +102,24 @@ update msg model =
     GetRuleDetailsResult res ->
       case res of
         Ok r ->
-          ({model | mode = RuleForm (RuleDetails (Just r) r Information (RuleDetailsUI False False (Tag "" "")))}, Cmd.none)
+          let
+            newModel = {model | mode = RuleForm (RuleDetails (Just r) r Information defaultRulesUI Nothing ) }
+          in
+            (newModel, getRulesComplianceDetails r.id newModel)
         Err err ->
-          (model, Cmd.none)
+          processApiError "Getting Rule details" err model
 
     GetCategoryDetailsResult res ->
       case res of
         Ok c ->
           ({model | mode = CategoryForm (CategoryDetails (Just c) c (getParentCategoryId (getListCategories model.rulesTree) c.id) Information)}, Cmd.none)
         Err err ->
-          (model, Cmd.none)
+          processApiError "Getting Rule category details" err model
 
     GetNodesList res ->
       case res of
         Ok nodes ->
-          ({model | nodes = nodes}, Cmd.none)
+          ({model | nodes =  Dict.Extra.fromListBy (.id) nodes}, Cmd.none)
         Err err  ->
           processApiError "Getting Nodes list" err model
 
@@ -137,9 +141,28 @@ update msg model =
     GetRulesComplianceResult res ->
       case res of
         Ok r ->
-          ( { model | rulesCompliance  = r } , Cmd.none )
+          ( { model | rulesCompliance  =  Dict.Extra.fromListBy (.id >> .value)  r } , Cmd.none )
         Err err ->
-          (model, Cmd.none)
+          processApiError "Getting compliance" err model
+
+
+
+    GetRuleComplianceResult id res ->
+      case res of
+        Ok r ->
+          case model.mode of
+            RuleForm details   ->
+              let
+                newDetails = {details | compliance = Just r}
+              in
+                ({model | mode = RuleForm newDetails }, Cmd.none)
+            _ ->
+              (model, Cmd.none)
+        Err err ->
+          processApiError ("Getting compliance details of Rule "++ id.value) err model
+
+
+
 
     UpdateCategoryForm details ->
       case model.mode of
@@ -158,10 +181,10 @@ update msg model =
             isIncluded = List.member groupId include
             isExcluded = List.member groupId exclude
             (newInclude, newExclude)  = case (includeBool, isIncluded, isExcluded) of
-              (True, True, _)       -> (remove groupId include,exclude)
-              (True, _, True)       -> (groupId :: include, remove groupId exclude)
-              (False, True, _)      -> (remove groupId include, groupId :: exclude)
-              (False, _, True)      -> (include,  remove groupId exclude)
+              (True, True, _)       -> (List.Extra.remove groupId include,exclude)
+              (True, _, True)       -> (groupId :: include, List.Extra.remove groupId exclude)
+              (False, True, _)      -> (List.Extra.remove groupId include, groupId :: exclude)
+              (False, _, True)      -> (include,  List.Extra.remove groupId exclude)
               (True, False, False)  -> ( groupId :: include, exclude)
               (False, False, False) -> (include, groupId :: exclude)
           in
@@ -196,7 +219,7 @@ update msg model =
     NewRule id ->
       let
         rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] "" (RuleStatus "" Nothing) []
-        ruleDetails = RuleDetails Nothing rule Information (RuleDetailsUI True True (Tag "" ""))
+        ruleDetails = RuleDetails Nothing rule Information defaultRulesUI Nothing
       in
         ({model | mode = RuleForm ruleDetails}, Cmd.none)
 
@@ -212,7 +235,7 @@ update msg model =
         RuleForm details ->
           let
             action = case details.originRule of
-              Just oR -> "saved"
+              Just _ -> "saved"
               Nothing -> "created"
             ui = details.ui
             newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails, ui = {ui | editDirectives = False, editGroups = False }}}
@@ -242,7 +265,7 @@ update msg model =
           let
             oldCategory = details.category
             action      = case details.originCategory of
-              Just oC -> "saved"
+              Just _ -> "saved"
               Nothing -> "created"
             newCategory = {category | subElems = oldCategory.subElems, elems = oldCategory.elems}
             newModel    = {model | mode = CategoryForm {details | originCategory = Just newCategory, category = newCategory}}
@@ -279,13 +302,13 @@ update msg model =
     DeleteCategory (Err err) ->
       processApiError "Deleting category" err model
 
-    CloneRule rule rulelId ->
+    CloneRule rule ruleId ->
       let
         newModel = case model.mode of
           RuleForm _ ->
             let
-              newRule    = {rule | name = ("Clone of "++rule.name), id = rulelId}
-              newRuleDetails = RuleDetails Nothing newRule Information (RuleDetailsUI False False (Tag "" ""))
+              newRule    = {rule | name = ("Clone of "++rule.name), id = ruleId}
+              newRuleDetails = RuleDetails Nothing newRule Information defaultRulesUI Nothing
             in
               { model | mode = RuleForm newRuleDetails }
           _ -> model
@@ -340,17 +363,54 @@ update msg model =
       in
         ({model | ui = { ui | groupFilters = filters}}, Cmd.none)
 
+    ToggleRow rowId defaultSortId ->
+      case model.mode of
+        RuleForm r ->
+          let
+            ui = r.ui
+            newDetails  = { ui | openedRows = if Dict.member rowId r.ui.openedRows then
+                            Dict.remove rowId r.ui.openedRows
+                          else
+                            Dict.insert rowId (defaultSortId, Asc) ui.openedRows
+                          }
+            newMode = RuleForm {r | ui = newDetails }
+            newModel = { model | mode = newMode }
+          in
+            (newModel, Cmd.none)
+        _ ->
+            (model, Cmd.none)
+    ToggleRowSort rowId sortId order ->
+      case model.mode of
+        RuleForm r ->
+          let
+            ui = r.ui
+            newDetails  = { ui | openedRows = Dict.update rowId (always (Just (sortId,order)) )  r.ui.openedRows }
+            newMode = RuleForm {r | ui = newDetails }
+            newModel = { model | mode = newMode }
+          in
+            (newModel, Cmd.none)
+        _ ->
+            (model, Cmd.none)
+
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
   let
     message =
       case err of
-        BadUrl url -> "Wrong url "++ url
-        Timeout -> "Request timeout"
-        NetworkError -> "Network error"
-        BadStatus response -> "Error status: " ++ (String.fromInt response.status.code) ++ " " ++ response.status.message ++
-                              "\nError details: " ++ response.body
-        BadPayload error response -> "Invalid response: " ++ error ++ "\nResponse Body: " ++ response.body
+        Http.BadUrl url ->
+            "The URL " ++ url ++ " was invalid"
+        Http.Timeout ->
+            "Unable to reach the server, try again"
+        Http.NetworkError ->
+            "Unable to reach the server, check your network connection"
+        Http.BadStatus 500 ->
+            "The server had a problem, try again later"
+        Http.BadStatus 400 ->
+            "Verify your information and try again"
+        Http.BadStatus _ ->
+            "Unknown error"
+        Http.BadBody errorMessage ->
+            errorMessage
 
   in
     ({model | mode = if model.mode == Loading then RuleTable else model.mode}, errorNotification ("Error when "++apiName ++",details: \n" ++ message ) )
