@@ -135,6 +135,22 @@ pipeline {
                                 }
                             }
                         }
+                        stage('api-doc-latest-redirect') {
+                            when { branch 'master' }
+                            steps { 
+                                withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                    writeFile file: 'htaccess', text: redirectApi()
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" htaccess ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/.htaccess', label: "publish redirect"
+                                }
+                            }
+                            post {
+                                always {
+                                    script {
+                                        new SlackNotifier().notifyResult("shell-team")
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 stage('rudder-pkg') {
@@ -349,4 +365,43 @@ pipeline {
             }
         }
     }
+}
+
+def redirectApi() {
+    def release_info = 'https://www.rudder-project.org/release-info/rudder'
+
+    // Latest stable versions
+    def latest_webapp = "0"
+    def latest_relay = "0"
+
+    // Decide which versions to redirect to
+    def versions_r = httpRequest release_info+'/versions'
+    versions_r.content.trim().split('\n').each {
+        // These do not have the new API doc
+        major = it.tokenize(".")[0].toInteger()
+        if (major < 5) {
+        println('Skipping old: '+it)
+            return
+        }
+                                                
+        released_r = httpRequest release_info+'/versions/'+it+'/released'
+        released = released_r.content.trim() == 'True'
+                                                
+        webapp_r = httpRequest release_info+'/versions/'+it+'/api-version/webapp'
+        webapp_v = webapp_r.content
+        relay_r = httpRequest release_info+'/versions/'+it+'/api-version/relay'
+        relay_v = relay_r.content
+
+        if (released) {
+            latest_webapp = webapp_v
+            latest_relay = relay_v
+        }
+    }
+
+    return """
+    RedirectMatch ^/api/?\$                 /api/v/${latest_webapp}/
+    RedirectMatch ^/api/openapi.yml\$       /api/v/${latest_webapp}/openapi.yml
+    RedirectMatch ^/api/relay/?\$           /api/relay/v/${latest_relay}/
+    RedirectMatch ^/api/relay/openapi.yml\$ /api/relay/v/${latest_relay}/openapi.yml
+    """
 }
