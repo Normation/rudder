@@ -289,6 +289,9 @@
 .id-card .card-img.rockylinux{
   background-image: url(../../images/os/rocky-logo.svg);
 }
+.id-card .card-img.almalinux{
+  background-image: url(../../images/os/alma-logo.svg);
+}
 .id-card .card-img.windowsxp,
 .id-card .card-img.windowsvista,
 .id-card .card-img.windowsseven,

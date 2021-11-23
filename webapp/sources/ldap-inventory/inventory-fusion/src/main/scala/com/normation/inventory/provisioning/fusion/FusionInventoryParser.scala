@@ -732,6 +732,7 @@ class FusionInventoryParser(
           else if(x contains "mint"        ) Mint
           else if(x contains "amazon linux") AmazonLinux
           else if(x contains "rocky"       ) RockyLinux
+          else if(x contains "almalinux"   ) AlmaLinux
           else                               UnknownLinuxType
 
         case("solaris", _) => SolarisOS
