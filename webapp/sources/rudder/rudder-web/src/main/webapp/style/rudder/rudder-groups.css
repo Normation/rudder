@@ -185,6 +185,25 @@ label.radio-inline:hover > span {
   vertical-align: initial;
 }
 
+.toggle-cond{
+  cursor: pointer !important;
+}
+.toggle-cond.cond-hidden + .well{
+  display: none !important;
+}
+.toggle-cond > i.fa{
+  color: #222D42;
+  opacity: .4;
+  margin-left : 6px;
+  transition : opacity .2s;
+}
+.toggle-cond:hover > i.fa{
+  opacity: .6;
+}
+.toggle-cond.cond-hidden > i.fa{
+  transform: rotate(-90deg);
+}
+
 /* === GROUP PROPERTIES === */
 .info h4{
   color: #222D42AA;
