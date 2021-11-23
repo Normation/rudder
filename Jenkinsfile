@@ -13,45 +13,6 @@ pipeline {
     }
 
     stages {
-        stage("plouf") {
-            //when { not { changeRequest() } }
-            matrix {
-                axes {
-                    axis {
-                        name 'JDK_VERSION'
-                        values '8', '17'
-                    }
-                }
-                stages {
-                    stage('webapp-test') {
-                        agent {
-                            dockerfile {
-                                filename 'webapp/sources/Dockerfile'
-                                additionalBuildArgs '--build-arg USER_ID='+user_id+' --build-arg JDK_VERSION=${JDK_VERSION}'
-                                // we don't share elm folder as it is may break with concurrent builds
-                                // set same timezone as some tests rely on it
-                                // and share maven cache
-                                args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/maven:/home/jenkins/.m2'
-                            }
-                        }
-                        steps {
-                            dir('webapp/sources') {
-                                sh script: 'mvn clean test --batch-mode', label: "webapp tests"
-                            }
-                        }
-                        post {
-                            always {
-                                // collect test results
-                                junit 'webapp/sources/**/target/surefire-reports/*.xml'
-                                    script {
-                                    new SlackNotifier().notifyResult("scala-team")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
         stage('Tests') {
             parallel {
                 stage('shell') {
@@ -125,53 +86,15 @@ pipeline {
                             additionalBuildArgs  '--build-arg USER_ID='+user_id
                         }
                     }
-                    stages {
-                        stage('api-doc-test') {
-                            when {
-                                anyOf {
-                                    branch 'master'
-                                    changeRequest()
-                                }
-                            }
-                            steps {
-                                dir('api-doc') {
-                                    sh script: 'make', label: 'build API docs'
-                                }
-                            }
-                            post {
-                                always {
-                                    script {
-                                        new SlackNotifier().notifyResult("shell-team")
-                                    }
-                                }
-                            }
+                    steps {
+                        dir('api-doc') {
+                            sh script: 'make', label: 'build API docs'
                         }
-                        stage('api-doc-publish') {
-                            when {
-                                not {
-                                    anyOf {
-                                        branch 'master'
-                                        changeRequest()
-                                    }
-                                }
-                            }
-                            steps {
-                                dir('api-doc') {
-                                    sh script: 'make', label: 'build API docs'
-                                    withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                        sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/webapp/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/v/', label: 'publish webapp API docs'
-                                        sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/relay/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/relay/v/', label: 'publish relay API docs'
-                                    }
-                                }
-                            }
-                            post {
-                                always {
-                                    archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
-
-                                    script {
-                                        new SlackNotifier().notifyResult("shell-team")
-                                    }
-                                }
+                    }
+                    post {
+                        always {
+                            script {
+                                new SlackNotifier().notifyResult("shell-team")
                             }
                         }
                         stage('api-doc-latest-redirect') {
@@ -250,50 +173,18 @@ pipeline {
                             args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/maven:/home/jenkins/.m2'
                         }
                     }
-                    stages {
-                        stage('webapp-test') {
-                            when { changeRequest() }
-                            steps {
-                                sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
-                                dir('webapp/sources') {
-                                    sh script: 'mvn clean test --batch-mode', label: "webapp tests"
-                                }
-                            }
-                            post {
-                                always {
-                                    // collect test results
-                                    junit 'webapp/sources/**/target/surefire-reports/*.xml'
-
-                                    script {
-                                        new SlackNotifier().notifyResult("scala-team")
-                                    }
-                                }
-                            }
+                    steps {
+                        sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
+                        dir('webapp/sources') {
+                            sh script: 'mvn clean test --batch-mode', label: "webapp tests"
                         }
-                        stage('webapp-publish') {
-                            when { not { changeRequest() } }
-                            steps {
-                                sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
-                                dir('webapp/sources') {
-                                    withMaven(globalMavenSettingsConfig: "1bfa2e1a-afda-4cb4-8568-236c44b94dbf",
-                                              // don't archive jars
-                                              options: [artifactsPublisher(disabled: true)]
-                                    ) {
-                                        // we need to use $MVN_COMMAND to get the settings file path
-                                        sh script: '$MVN_CMD --update-snapshots clean package deploy', label: "webapp deploy"
-                                    }
-                                }
-                            }
-                            post {
-                                always {
-                                    // collect test results
-                                    archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
-                                    junit 'webapp/sources/**/target/surefire-reports/*.xml'
-
-                                    script {
-                                        new SlackNotifier().notifyResult("scala-team")
-                                    }
-                                }
+                    }
+                    post {
+                        always {
+                            // collect test results
+                            junit 'webapp/sources/**/target/surefire-reports/*.xml'
+                                script {
+                                new SlackNotifier().notifyResult("scala-team")
                             }
                         }
                     }
@@ -339,64 +230,160 @@ pipeline {
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
                     }
-                    stages {
-                        stage('language-test') {
-                            when { changeRequest() }
-                            steps {
-                                dir('language') {
-                                    dir('repos') {
-                                        dir('ncf') {
-                                            git url: 'https://github.com/normation/ncf.git'
-                                        }
-                                        dir('dsc') {
-                                            git url: 'https://github.com/normation/rudder-agent-windows.git',
-                                                credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
-                                        }
-                                    }
-                                    sh script: 'make check', label: 'language tests'
-                                    sh script: 'make docs', label: 'language docs'
+                    steps {
+                        dir('language') {
+                            dir('repos') {
+                                dir('ncf') {
+                                    git url: 'https://github.com/normation/ncf.git'
+                                }
+                                dir('dsc') {
+                                    git url: 'https://github.com/normation/rudder-agent-windows.git',
+                                        credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
                                 }
                             }
-                            post {
-                                always {
-                                    // linters results
-                                    recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
-                                                 tool: cargo(pattern: 'language/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
+                            sh script: 'make check', label: 'language tests'
+                            sh script: 'make docs', label: 'language docs'
+                        }
+                    }
+                    post {
+                        always {
+                            // linters results
+                            recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
+                                         tool: cargo(pattern: 'language/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
+                            script {
+                                new SlackNotifier().notifyResult("rust-team")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage("Compatibility test") {
+            //when { not { changeRequest() } }
+            matrix {
+                axes {
+                    axis {
+                        name 'JDK_VERSION'
+                        values '8', '17'
+                    }
+                }
+                stages {
+                    stage('webapp-test') {
+                        agent {
+                            dockerfile {
+                                filename 'webapp/sources/Dockerfile'
+                                additionalBuildArgs '--build-arg USER_ID='+user_id+' --build-arg JDK_VERSION=${JDK_VERSION}'
+                                // we don't share elm folder as it is may break with concurrent builds
+                                // set same timezone as some tests rely on it
+                                // and share maven cache
+                                args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/maven:/home/jenkins/.m2'
+                            }
+                        }
+                        steps {
+                            dir('webapp/sources') {
+                                sh script: 'mvn clean test --batch-mode', label: "webapp tests"
+                            }
+                        }
+                        post {
+                            always {
+                                // collect test results
+                                junit 'webapp/sources/**/target/surefire-reports/*.xml'
                                     script {
-                                        new SlackNotifier().notifyResult("rust-team")
-                                    }
+                                    new SlackNotifier().notifyResult("scala-team")
                                 }
                             }
                         }
-                        stage('language-publish') {
-                            when { not { changeRequest() } }
-                            steps {
-                                dir('language') {
-                                    dir('repos') {
-                                        dir('ncf') {
-                                            git url: 'https://github.com/normation/ncf.git'
-                                        }
-                                        dir('dsc') {
-                                            git url: 'https://github.com/normation/rudder-agent-windows.git',
-                                                credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
-                                        }
-                                    }
-                                    sh script: 'make check', label: 'language tests'
-                                    sh script: 'make docs', label: 'language docs'
-                                    withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                        sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/docs/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/language/${RUDDER_VERSION}', label: 'publish relay API docs'
-                                    }
+                    }
+                }
+            }
+        }
+        stage('Publish') {
+            when { not { changeRequest() } }
+            parallel {
+                stage('api-doc') {
+                    agent { 
+                        dockerfile { 
+                            filename 'api-doc/Dockerfile'
+                            additionalBuildArgs  '--build-arg USER_ID='+user_id
+                        }
+                    }
+                    when { not { branch 'master' } }
+                    steps {
+                        dir('api-doc') {
+                            sh script: 'make', label: 'build API docs'
+                            withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/webapp/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/v/', label: 'publish webapp API docs'
+                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/relay/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/relay/v/', label: 'publish relay API docs'
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
+                                script {
+                                new SlackNotifier().notifyResult("shell-team")
+                            }
+                        }
+                    }
+                }
+                stage('webapp') {
+                    agent {
+                        dockerfile {
+                            filename 'webapp/sources/Dockerfile'
+                            additionalBuildArgs '--build-arg USER_ID='+user_id
+                            // we don't share elm folder as it is may break with concurrent builds
+                            // set same timezone as some tests rely on it
+                            // and share maven cache
+                            args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/maven:/home/jenkins/.m2'
+                        }
+                    }
+                    steps {
+                        dir('webapp/sources') {
+                            withMaven(globalMavenSettingsConfig: "1bfa2e1a-afda-4cb4-8568-236c44b94dbf",
+                                      // don't archive jars
+                                      options: [artifactsPublisher(disabled: true)]
+                            ) {
+                                // we need to use $MVN_COMMAND to get the settings file path
+                                sh script: '$MVN_CMD -Dmaven.test.skip=true --update-snapshots clean package deploy', label: "webapp deploy"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
+                        }
+                    }
+                }
+                stage('language') {
+                    agent {
+                        dockerfile { 
+                            filename 'language/Dockerfile'
+                            additionalBuildArgs  '--build-arg USER_ID='+user_id+' --build-arg RUDDER_VER=$RUDDER_VERSION'
+                            // mount cache
+                            args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
+                        }
+                    }
+                    steps {
+                        dir('language') {
+                            dir('repos') {
+                                dir('ncf') {
+                                    git url: 'https://github.com/normation/ncf.git'
+                                }
+                                dir('dsc') {
+                                    git url: 'https://github.com/normation/rudder-agent-windows.git',
+                                        credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
                                 }
                             }
-                            post {
-                                always {
-                                    // linters results
-                                    recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
-                                                 tool: cargo(pattern: 'language/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
-                                    script {
-                                        new SlackNotifier().notifyResult("rust-team")
-                                    }
-                                }
+                            sh script: 'make docs', label: 'language docs'
+                            withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/docs/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/language/${RUDDER_VERSION}', label: 'publish relay API docs'
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                                new SlackNotifier().notifyResult("rust-team")
                             }
                         }
                     }
