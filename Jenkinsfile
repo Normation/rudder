@@ -27,7 +27,7 @@ pipeline {
                         agent {
                             dockerfile {
                                 filename 'webapp/sources/Dockerfile'
-                                additionalBuildArgs '--build-arg USER_ID='+user_id+'--build-arg JDK_VERSION=${JDK_VERSION}'
+                                additionalBuildArgs '--build-arg USER_ID='+user_id+' --build-arg JDK_VERSION=${JDK_VERSION}'
                                 // we don't share elm folder as it is may break with concurrent builds
                                 // set same timezone as some tests rely on it
                                 // and share maven cache
