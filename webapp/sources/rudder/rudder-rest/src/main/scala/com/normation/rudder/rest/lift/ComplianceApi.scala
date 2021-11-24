@@ -240,34 +240,18 @@ class ComplianceAPIService(
  private[this] def getByRulesCompliance(rules: Set[Rule]) : Box[Seq[ByRuleRuleCompliance]] = {
 
     for {
-      groupLib      <- nodeGroupRepo.getFullGroupLibrary().toBox
+     // groupLib      <- nodeGroupRepo.getFullGroupLibrary().toBox
       directivelib  <- directiveRepo.getFullDirectiveLibrary().toBox
       nodeInfos     <- nodeInfoService.getAll()
       compliance    <- getGlobalComplianceMode()
       reportsByNode <- reportingService.findRuleNodeStatusReports(
-                         nodeInfos.keySet, rules.map(_.id).toSet
+        nodeInfos.keySet, rules.map(_.id)
                        )
     } yield {
 
       //flatMap of Set is ok, since nodeRuleStatusReport are different for different nodeIds
-      val reportsByRule = reportsByNode.flatMap { case(nodeId, status) => status.reports }.groupBy( _.ruleId)
-
-      // get an empty-initialized array of compliances to be used
-      // as defaults
-      val initializedCompliances : Map[RuleId, ByRuleRuleCompliance] = {
-        (rules.map { rule =>
-          val nodeIds = groupLib.getNodeIds(rule.targets, nodeInfos)
-
-          (rule.id, ByRuleRuleCompliance(
-              rule.id
-            , rule.name
-            , ComplianceLevel(noAnswer = nodeIds.size)
-            , compliance.mode
-            , Seq()
-          ))
-        }).toMap
-      }
-
+      val reportsByRule = reportsByNode.flatMap { case(_, status) => status.reports }.groupBy( _.ruleId)
+      val ruleObjects = rules.map { case x => (x.id, x) }.toMap
       //for each rule for each node, we want to have a
       //directiveId -> reporttype map
       val nonEmptyRules = reportsByRule.map { case (ruleId, reports) =>
@@ -276,10 +260,9 @@ class ComplianceAPIService(
         val byDirectives = reports.flatMap { r => r.directives.values.map(d => (r.nodeId, d)).toSeq }.groupBy( _._2.directiveId)
 
         (
-          ruleId,
           ByRuleRuleCompliance(
               ruleId
-            , initializedCompliances.get(ruleId).map(_.name).getOrElse("Unknown rule")
+            , ruleObjects.get(ruleId).map(_.name).getOrElse("Unknown rule")
             , ComplianceLevel.sum(reports.map(_.compliance))
             , compliance.mode
             , byDirectives.map{ case (directiveId, nodeDirectives) =>
@@ -301,7 +284,7 @@ class ComplianceAPIService(
                                 ByRuleNodeCompliance(
                                     nodeId
                                   , nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node")
-                                  , components.toSeq.sortBy(_._2.componentName).flatMap(_._2.componentValues.values)
+                                  , components.map(_._2).toSeq.sortBy(_.componentName).flatMap(_.componentValues.values)
                                 )
                               }.toSeq
                             }
@@ -312,11 +295,9 @@ class ComplianceAPIService(
               }.toSeq
           )
         )
-      }.toMap
-
-      //return the full list, even for non responding nodes/directives
-      //but override with values when available.
-      (initializedCompliances ++ nonEmptyRules).values.toSeq
+      }
+      //return the full list
+      nonEmptyRules.toSeq
 
     }
   }
