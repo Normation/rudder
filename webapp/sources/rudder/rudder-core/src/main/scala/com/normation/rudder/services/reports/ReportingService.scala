@@ -57,6 +57,14 @@ trait ReportingService {
   def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules : Set[RuleId]): Box[Map[NodeId, NodeStatusReport]]
 
   /**
+   * Retrieve two sets of rule/node status reports given the nodes Id.
+   * Optionally restrict the set to some rules if filterByRules is non empty (else,
+   * find node status reports for all rules)
+   */
+  def findUserAndSystemRuleNodeStatusReports(nodeIds: Set[NodeId], filterByUserRules : Set[RuleId], filterBySystemRules : Set[RuleId]): Box[(Map[NodeId, NodeStatusReport], Map[NodeId, NodeStatusReport])]
+
+
+  /**
    * A specialised version of `findRuleNodeStatusReports` to find node status reports for a given rule.
    */
   def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[Map[NodeId, NodeStatusReport]]

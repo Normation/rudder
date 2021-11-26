@@ -210,13 +210,12 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
         case None => nodeInfoService.getAll().map(_.keySet)
         case Some(ids) => Full(ids)
       }
-      userRules <- rulesRepo.getIds().toBox
-      allRules <- rulesRepo.getIds(true).toBox
-      systemRules = allRules.diff(userRules)
-      n2 = System.currentTimeMillis
-      _ = TimingDebugLogger.trace(s"Reporting service - Get nodes and rules in: ${n2 - n1}ms")
-      systemReports <- findRuleNodeStatusReports(nodeIds, systemRules)
-      userReports <- findRuleNodeStatusReports(nodeIds, userRules)
+      userRules   <- rulesRepo.getIds().toBox
+      allRules    <- rulesRepo.getIds(true).toBox
+      systemRules  = allRules.diff(userRules)
+      n2           = System.currentTimeMillis
+      _            = TimingDebugLogger.trace(s"Reporting service - Get nodes and rules in: ${n2 - n1}ms")
+      (userReports, systemReports) <- findUserAndSystemRuleNodeStatusReports(nodeIds, userRules, systemRules)
     } yield {
       (systemReports, userReports)
     }
@@ -430,6 +429,17 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     }
   }
 
+  def findUserAndSystemRuleNodeStatusReports(nodeIds: Set[NodeId], filterByUserRules : Set[RuleId], filterBySystemRules : Set[RuleId]): Box[(Map[NodeId, NodeStatusReport], Map[NodeId, NodeStatusReport])] = {
+    val n1 = System.currentTimeMillis
+    for {
+      reports <- checkAndGetCache(nodeIds)
+      n2      =  System.currentTimeMillis
+      _       =  ReportLogger.Cache.debug(s"Get node compliance from cache in: ${n2 - n1}ms")
+    } yield {
+      (filterReportsByRules(reports, filterByUserRules), filterReportsByRules(reports, filterBySystemRules))
+    }
+  }
+
   /**
    * Clear cache. Try a reload asynchronously, disregarding
    * the result
@@ -503,10 +513,41 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       // compute the status
       nodeStatusReports   <- buildNodeStatusReports(runInfos, ruleIds, complianceMode.mode, unexpectedMode)
 
-      t2                  =  System.currentTimeMillis
-      _                   =  TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t2-t1}ms")
+      t3                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t3-t2}ms")
     } yield {
       nodeStatusReports
+    }
+  }
+
+  override def findUserAndSystemRuleNodeStatusReports(nodeIds: Set[NodeId], filterByUserRules : Set[RuleId], filterBySystemRules : Set[RuleId]): Box[(Map[NodeId, NodeStatusReport], Map[NodeId, NodeStatusReport])] = {
+    val t0 = System.currentTimeMillis
+    for {
+      complianceMode      <- getGlobalComplianceMode()
+      unexpectedMode      <- getUnexpectedInterpretation()
+      // we want compliance on these nodes
+      runInfos            <- getNodeRunInfos(nodeIds, complianceMode)
+      t1                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.trace(s"Compliance: get node run infos: ${t1-t0}ms")
+
+      // that gives us configId for runs, and expected configId (some may be in both set)
+      expectedConfigIds   =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfig.nodeConfigId) }
+      lastrunConfigId     =  runInfos.collect {
+        case (nodeId, Pending(_, Some(run), _)) => NodeAndConfigId(nodeId, run._2.nodeConfigId)
+        case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId)
+      }
+
+      t2                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t2-t0}ms")
+
+      // compute the status
+      nodeUserStatusReports   <- buildNodeStatusReports(runInfos, filterByUserRules, complianceMode.mode, unexpectedMode)
+      nodeSystemStatusReports <- buildNodeStatusReports(runInfos, filterBySystemRules, complianceMode.mode, unexpectedMode)
+
+      t3                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t3-t2}ms")
+    } yield {
+      (nodeUserStatusReports, nodeSystemStatusReports)
     }
   }
 
