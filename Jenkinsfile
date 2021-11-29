@@ -7,6 +7,10 @@ def user_id = "1007"
 pipeline {
     agent none
 
+    triggers {
+        cron('@midnight')
+    }
+
     environment {
         // TODO: automate
         RUDDER_VERSION = "6.1"
@@ -215,9 +219,14 @@ pipeline {
                 }
             }
         }
-        // Expensive tests done only after merges and before publication
         stage("Compatibility tests") {
-            when { not { changeRequest() } }
+            // Expensive tests only done daily on branches
+            when { 
+                allOf {
+                    triggeredBy 'TimerTrigger'
+                    not { changeRequest() }
+                }
+            }
             matrix {
                 axes {
                     axis {
