@@ -1,9 +1,6 @@
 @Library('slack-notification')
 import org.gradiant.jenkins.slack.SlackNotifier
 
-// uid of the jenkins user of the docker runners
-def user_id = "1007"
-
 pipeline {
     agent none
 
@@ -19,6 +16,20 @@ pipeline {
     stages {
         stage('Tests') {
             parallel {
+                stage('relayd-man') {
+                    agent { 
+                        dockerfile { 
+                            filename 'ci/asciidoctor.Dockerfile'
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
+                        }
+                    }
+                    when { not { branch 'master' } }
+                    steps {
+                        dir('relay/sources') {
+                            sh script: 'make man-source', label: 'build man page'
+                        }
+                    }
+                }
                 stage('shell') {
                     agent { 
                         dockerfile { 
@@ -87,7 +98,7 @@ pipeline {
                     agent { 
                         dockerfile { 
                             filename 'api-doc/Dockerfile'
-                            additionalBuildArgs  '--build-arg USER_ID='+user_id
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
                     }
                     steps {
@@ -154,7 +165,7 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'webapp/sources/Dockerfile'
-                            additionalBuildArgs '--build-arg USER_ID='+user_id
+                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                             // we don't share elm folder as it is may break with concurrent builds
                             // set same timezone as some tests rely on it
                             // and share maven cache
@@ -188,7 +199,7 @@ pipeline {
                     steps {
                         script {
                             docker.image('postgres:11-bullseye').withRun('-e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
-                                docker.build('relayd', '-f relay/sources/relayd/Dockerfile --build-arg USER_ID='+user_id+' --pull .')
+                                docker.build('relayd', "-f relay/sources/relayd/Dockerfile --build-arg USER_ID=${env.JENKINS_UID} --pull .")
                                       .inside("-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache --link=${c.id}:postgres") {
                                     dir('relay/sources/relayd') {
                                         sh script: "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} -h postgres -d ${POSTGRES_DB} -a -f tools/create-database.sql", label: 'provision database'
@@ -213,7 +224,7 @@ pipeline {
                     agent {
                         dockerfile { 
                             filename 'language/Dockerfile'
-                            additionalBuildArgs  '--build-arg USER_ID='+user_id+' --build-arg RUDDER_VER=$RUDDER_VERSION'
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=$RUDDER_VERSION"
                             // mount cache
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
@@ -266,7 +277,7 @@ pipeline {
                         agent {
                             dockerfile {
                                 filename 'webapp/sources/Dockerfile'
-                                additionalBuildArgs '--build-arg USER_ID='+user_id+' --build-arg JDK_VERSION=${JDK_VERSION}'
+                                additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID} --build-arg JDK_VERSION=${JDK_VERSION}"
                                 // we don't share elm folder as it is may break with concurrent builds
                                 // set same timezone as some tests rely on it
                                 // and share maven cache
@@ -294,14 +305,30 @@ pipeline {
         stage('Publish') {
             when { not { changeRequest() } }
             parallel {
+                stage('relayd-man') {
+                    agent { 
+                        dockerfile { 
+                            filename 'ci/asciidoctor.Dockerfile'
+                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
+                        }
+                    }
+                    when { not { branch 'master' } }
+                    steps {
+                        dir('relay/sources') {
+                            sh script: 'make man-source', label: 'build man page'
+                            withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/man-source/rudder-relayd.1 ${KEY_USER}@${HOST_DOCS}:/var/www-docs/man/${RUDDER_VERSION}/', label: 'man page publication'
+                            }
+                        }
+                    }
+                }
                 stage('api-doc') {
                     agent { 
                         dockerfile { 
                             filename 'api-doc/Dockerfile'
-                            additionalBuildArgs  '--build-arg USER_ID='+user_id
+                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
                     }
-                    when { not { branch 'master' } }
                     steps {
                         dir('api-doc') {
                             sh script: 'make', label: 'build API docs'
@@ -346,7 +373,7 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'webapp/sources/Dockerfile'
-                            additionalBuildArgs '--build-arg USER_ID='+user_id
+                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                             // we don't share elm folder as it is may break with concurrent builds
                             // set same timezone as some tests rely on it
                             // and share maven cache
