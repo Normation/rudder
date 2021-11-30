@@ -448,8 +448,8 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     ~ ("documentation" -> method.documentation)
     ~ ("deprecated" -> ( method.deprecated match {
                            case None => None
-                           case Some(info) => Some(( ("info" -> method.classPrefix)
-                                              ~ ("replacedBy" -> method.classParameter.value)
+                           case Some(info) => Some(( ("info" -> info)
+                                              ~ ("replacedBy" -> method.renameTo)
                                               ) )
                         })
        )
