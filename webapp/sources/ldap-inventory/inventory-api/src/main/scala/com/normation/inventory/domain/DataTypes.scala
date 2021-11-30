@@ -125,7 +125,7 @@ object Certificate {
 /**
  * A simple class to denote a software cryptographic public key
  */
-final case class PublicKey(value : String) extends SecurityToken { assert(!isEmpty(value))
+final case class PublicKey(value : String) extends SecurityToken {
 
   // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
   val key = {
@@ -152,7 +152,7 @@ final case class PublicKey(value : String) extends SecurityToken { assert(!isEmp
   }
 }
 
-final case class Certificate(value : String) extends SecurityToken { assert(!isEmpty(value))
+final case class Certificate(value : String) extends SecurityToken {
 
   // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
   val key = {
