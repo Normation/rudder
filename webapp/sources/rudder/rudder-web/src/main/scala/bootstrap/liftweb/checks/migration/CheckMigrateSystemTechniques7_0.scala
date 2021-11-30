@@ -276,18 +276,20 @@ class MigrateTechniques6_x_7_0(
     def touchTechniques() = {
       val base = gitRepo.rootDirectory / "techniques" / "system"
 
+      // touch can fail if the system technique is totally missing, for ex if update script failed, see #20336
       val touchAll = ZIO.foreach(PolicyServerConfigurationObjects.rootTechniques) { t =>
         val f = base / t / "1.0/placeholder"
         IOResult.effect {
           f.createFileIfNotExists()
           f.append("force reload\n")
-        }
+        }.chainError(s"Error when preparing reload of new system technique '${t}'. Please check that new system"+
+                     s" technique files are present at ${f.pathAsString}/1.0")
       }
 
       gitRepo.semaphore.withPermit(for {
         _ <- touchAll
         _ <- IOResult.effect(gitRepo.git.add().addFilepattern("techniques/system").call())
-        _ <- IOResult.effect(gitRepo.git.commit().setMessage(s"Force reloac of system technique v7.0").setCommitter(new PersonIdent("Rudder", "email not set")).call())
+        _ <- IOResult.effect(gitRepo.git.commit().setMessage(s"Force reload of system technique v7.0").setCommitter(new PersonIdent("Rudder", "email not set")).call())
       } yield ())
     }
 
