@@ -142,7 +142,7 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'webapp/sources/rudder/rudder-web/src/main/elm/Dockerfile'
-                            additionalBuildArgs '--build-arg USER_ID='+user_id
+                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
                     }
                     steps {
@@ -351,7 +351,7 @@ pipeline {
                     agent { 
                         dockerfile { 
                             filename 'api-doc/Dockerfile'
-                            additionalBuildArgs  '--build-arg USER_ID='+user_id
+                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
                     }
                     when { branch 'master' }
@@ -401,7 +401,7 @@ pipeline {
                     agent {
                         dockerfile { 
                             filename 'language/Dockerfile'
-                            additionalBuildArgs  '--build-arg USER_ID='+user_id+' --build-arg RUDDER_VER=$RUDDER_VERSION'
+                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}"
                             // mount cache
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
