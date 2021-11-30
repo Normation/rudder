@@ -3,9 +3,6 @@ import org.gradiant.jenkins.slack.SlackNotifier
 
 // Check vulns in dependencies on repo branches
 
-// uid of the jenkins user of the docker runners
-def user_id = "1007"
-
 pipeline {
     agent none
     triggers { cron('@daily') }
@@ -16,7 +13,7 @@ pipeline {
             agent {
                 dockerfile {
                     filename 'webapp/sources/Dockerfile'
-                    additionalBuildArgs  '--build-arg USER_ID='+user_id
+                    additionalBuildArgs "--build-arg USER_ID=${JENKINS_UID}"
                     // and share maven cache
                     args '-v /srv/cache/maven:/home/jenkins/.m2'
                 }
@@ -41,7 +38,7 @@ pipeline {
             agent { 
                 dockerfile { 
                     filename 'relay/sources/relayd/Dockerfile'
-                    additionalBuildArgs  '--build-arg USER_ID='+user_id
+                    additionalBuildArgs "--build-arg USER_ID=${JENKINS_UID}"
                     // mount cache
                     args '-v /srv/cache/cargo:/usr/local/cargo/registry'
                 }
@@ -67,7 +64,7 @@ pipeline {
             agent { 
                 dockerfile { 
                     filename 'language/Dockerfile'
-                    additionalBuildArgs  '--build-arg USER_ID='+user_id
+                    additionalBuildArgs "--build-arg USER_ID=${JENKINS_UID}"
                     // mount cache
                     args '-v /srv/cache/cargo:/usr/local/cargo/registry'
                 }
