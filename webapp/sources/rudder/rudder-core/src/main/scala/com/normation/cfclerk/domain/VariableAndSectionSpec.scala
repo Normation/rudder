@@ -444,30 +444,49 @@ object DisplayPriority {
   }
 }
 
+/*
+ * Compliance reporting logic, especially for block components. We have 4 kind of computation available:
+ * - `focus`:
+ *    reporting will be the exact same as the compliance of one of the direct subelements.
+ *    If the element is missing, and error will be reported, weighted 1.
+ * - `weighted`
+ *    compliance value will be the weighted contribution of all direct sub-elements
+ * - `worst case (weight = 1)`
+ *    compliance value will have the same level as the worst case, and will have weight 1
+ * - `worst case (weight = sum all)`
+ *    compliance value will have the same level as the worst case, and will have weight equals
+ *    to the sum of weight of all sub components.
+ */
 sealed  trait ReportingLogic {
   def value : String
 }
 
 object ReportingLogic {
 
-  final case object WorstReport extends ReportingLogic {
-    val value = "worst"
-  }
-  final case object SumReport extends ReportingLogic {
-    val value = "sum"
+  object FocusReport {
+    val key = "focus"
   }
   final case class FocusReport(component : String) extends ReportingLogic {
     val value = s"${FocusReport.key}:${component}"
   }
-  object FocusReport {
-    val key = "focus"
+  final case object WorstReportWeightedOne extends ReportingLogic {
+    val value = "worst-case-weighted-one"
   }
-  def apply(value : String) : PureResult[ReportingLogic] = {
-    value match {
-      case WorstReport.value => Right(WorstReport)
-      case SumReport.value => Right(SumReport)
-      case s"${FocusReport.key}:${a}" => Right(FocusReport(a))
-      case _ => Left(Unexpected(s"Value '${value}' is not a valid reporting composition rule."))
+  final case object WorstReportWeightedSum extends ReportingLogic {
+    val value = "worst-case-weighted-sum"
+  }
+  final case object WeightedReport extends ReportingLogic {
+    val value = "weighted"
+  }
+  def parse(value : String, defaultFocusKey: String = "") : PureResult[ReportingLogic] = {
+    value.toLowerCase match {
+      case WorstReportWeightedOne.value => Right(WorstReportWeightedOne)
+      case WorstReportWeightedSum.value => Right(WorstReportWeightedSum)
+      case WeightedReport.value         => Right(WeightedReport)
+      case s"FocusReport.key}:${a}"     => Right(FocusReport(a))
+      case FocusReport.key              => Right(FocusReport(defaultFocusKey))
+      case _                            => Left(Unexpected(s"Value '${value}' is not a valid reporting composition rule."))
     }
   }
+
 }

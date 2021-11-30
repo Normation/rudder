@@ -592,7 +592,7 @@ update msg model =
     AddBlock newId ->
       if model.hasWriteRights then
       let
-        newCall = MethodBlock newId "" (Condition Nothing "") SumReport []
+        newCall = MethodBlock newId "" (Condition Nothing "") WeightedReport []
         newModel =
           case model.mode of
             TechniqueDetails t o ui ->
@@ -792,7 +792,7 @@ update msg model =
             (baseCalls, newElem) =
               case draggedItemId of
                 Move b ->  ( removeElem (getId >> (==) (getId b)) t.elems, b)
-                NewBlock -> (t.elems, Block Nothing (MethodBlock (CallId "") "" (Condition Nothing "") SumReport []))
+                NewBlock -> (t.elems, Block Nothing (MethodBlock (CallId "") "" (Condition Nothing "") WeightedReport []))
                 NewMethod method ->
                  let
                    disableReporting = String.contains "variable" method.name || String.contains "condition" method.name

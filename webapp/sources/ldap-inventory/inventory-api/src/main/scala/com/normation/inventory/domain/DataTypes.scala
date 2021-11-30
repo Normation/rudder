@@ -37,7 +37,6 @@
 
 package com.normation.inventory.domain
 
-import com.normation.utils.Utils._
 import org.bouncycastle.openssl.PEMParser
 import java.io.StringReader
 

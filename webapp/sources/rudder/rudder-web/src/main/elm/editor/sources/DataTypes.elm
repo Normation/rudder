@@ -70,7 +70,7 @@ type MethodElem = Call (Maybe CallId) MethodCall | Block (Maybe CallId) MethodBl
 
 
 
-type ReportingLogic = WorstReport | SumReport | FocusReport String
+type ReportingLogic = WorstReportWeightedSum | WorstReportWeightedOne | WeightedReport | FocusReport String
 
 type alias MethodBlock =
   { id : CallId

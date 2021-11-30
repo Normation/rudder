@@ -25,8 +25,6 @@ showMethodBlock model techniqueUi ui parentId block =
     |> addClass (if (ui.mode == Opened) then "active" else "")
     |> appendChild
        ( blockBody model parentId block ui techniqueUi )
-
-
     |> addAttribute (hidden (Maybe.withDefault False (Maybe.map ((==) (Move (Block parentId  block))) (DragDrop.currentlyDraggedObject model.dnd) )))
 
 
@@ -207,14 +205,15 @@ showBlockTab model parentId block uiInfo techniqueUi =
       let
         compositionText  = (\reportingLogic ->
                                case reportingLogic of
-                                 WorstReport -> "Worst report"
-                                 SumReport -> "Sum of reports"
+                                 WorstReportWeightedSum -> "Worst report (weighted sum)"
+                                 WorstReportWeightedOne -> "Worst report (weighted 1)"
+                                 WeightedReport -> "Weighted sum of reports"
                                  FocusReport _ -> "Focus on one child method report"
                              )
         liCompositionRule =  \rule -> element "li"
                                            |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = rule }))
                                            |> appendChild (element "a" |> addAttribute (href "#") |> appendText (compositionText rule))
-        availableComposition = List.map liCompositionRule [ WorstReport, SumReport, FocusReport "" ]
+        availableComposition = List.map liCompositionRule [ WeightedReport, FocusReport "", WorstReportWeightedOne, WorstReportWeightedSum ]
 
         liFocus =  \child ->
                      let
@@ -439,25 +438,23 @@ showChildren model block ui techniqueUi parentId =
                )
               |> appendChild (element "span" |> appendText " ")
               |> appendChild (element "span" |> addClass  ("expandBlockChild fas fa-chevron-" ++ (if ui.showChildDetails then "up" else "down")))
-
-            |> addActionStopAndPrevent ("click", UIBlockAction block.id { ui | showChildDetails = not ui.showChildDetails})
+              |> addActionStopAndPrevent ("click", UIBlockAction block.id { ui | showChildDetails = not ui.showChildDetails})
             )
-          )
-        (ui.mode == Closed && (not (List.isEmpty block.calls) ))
+        ) (ui.mode == Closed && (not (List.isEmpty block.calls) ))
      |> appendChildConditional
-          ( element "li"
-            |> addAttribute (id "no-methods")
-            |> appendChildList
-               [ element "i"
-                 |> addClass "fas fa-sign-in-alt"
-                 |> addStyle ("transform", "rotate(90deg)")
-               , element "span"
-                 |> appendText " Drag and drop generic methods here to fill this component"
-               ]
+        ( element "li"
+          |> addAttribute (id "no-methods")
+          |> appendChildList
+             [ element "i"
+               |> addClass "fas fa-sign-in-alt"
+               |> addStyle ("transform", "rotate(90deg)")
+             , element "span"
+               |> appendText " Drag and drop generic methods here to fill this component"
+             ]
 
-            |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
-            |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
-          )  (List.isEmpty block.calls)
+          |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
+          |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
+        ) (List.isEmpty block.calls)
      |> appendChildConditional
         ( element "li"
           |> addAttribute (id "no-methods")
@@ -469,13 +466,12 @@ showChildren model block ui techniqueUi parentId =
                |> addStyle ("transform", "rotate(90deg)")
              )
           |> addStyle ("padding", "3px 15px")
-          |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages)
-        ( case DragDrop.currentlyDraggedObject model.dnd of
+          |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
+        ) ( case DragDrop.currentlyDraggedObject model.dnd of
             Nothing -> False
             Just (Move x) ->Maybe.withDefault True (Maybe.map (\c->  (getId x) /= (getId c)) (List.head block.calls))
             Just _ -> not (List.isEmpty block.calls)
         )
-
      |> appendChildList
           ( List.concatMap ( \ call ->
             (case call of

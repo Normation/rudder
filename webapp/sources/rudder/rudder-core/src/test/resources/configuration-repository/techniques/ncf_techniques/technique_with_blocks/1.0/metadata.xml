@@ -22,8 +22,8 @@
     </FILES>
   </AGENT>
   <SECTIONS>
-    <SECTION component="true" multivalued="true" name="First block" reporting="sum">
-      <SECTION component="true" multivalued="true" name="inner block" reporting="sum">
+    <SECTION component="true" multivalued="true" name="First block" reporting="weighted">
+      <SECTION component="true" multivalued="true" name="inner block" reporting="weighted">
         <SECTION component="true" multivalued="true" name="Command execution">
           <REPORTKEYS>
             <VALUE>/bin/true</VALUE>
