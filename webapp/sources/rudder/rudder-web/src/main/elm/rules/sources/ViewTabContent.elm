@@ -384,13 +384,6 @@ tabContent model details =
                 Just oR -> (rule.directives == oR.directives, oR.directives)
                 Nothing -> (rule.directives == [], [])
 
-              cancelBtn =
-                if noChange then
-                  text ""
-                else
-                  button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | directives = cancelDirectives} })]
-                  [text "Cancel", i[class "fa fa-undo-alt"][]]
-
             in
               div[class "row flex-container"]
               [ div[class "list-edit col-xs-12 col-sm-6 col-lg-7"]
@@ -398,13 +391,13 @@ tabContent model details =
                   [ div[class "list-heading"]
                     [ h4[][text "Apply these directives"]
                     , div [class "btn-actions"]
-                      [ cancelBtn
+                      [ button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | directives = cancelDirectives} }), disabled noChange]
+                        [text "Cancel", i[class "fa fa-undo-alt"][]]
                       , ( if isNewRule then
                           text ""
                         else
-                          button[class "btn btn-default btn-icon", onClick ( UpdateRuleForm { details | ui = {ui | editDirectives = False}} )][text "Close", i[class "fa fa-times"][]]
+                          button[class "btn btn-success btn-outline btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editDirectives = False}} )][text "Confirm", i[class "fa fa-check"][]]
                       )
-                      , button[class "btn btn-success btn-icon", onClick ( CallApi (saveRuleDetails rule isNewRule))][text "Save", i[class "fa fa-download"][]]
                       ]
                     ]
                   , ul[class "directives applied-list"]
@@ -422,10 +415,7 @@ tabContent model details =
                   , div [class "tree-edit col-xs-12 col-sm-6 col-lg-5"]
                     [ div [class "tree-container"]
                       [ div [class "tree-heading"]
-                        [ h4 []
-                          [ i [class "fa fa-check"][]
-                          , text "Select directives"
-                          ]
+                        [ h4 [][ text "Select directives" ]
                         , i [class "fa fa-bars"][]
                         ]
                       , div [class "header-filter"]
@@ -678,13 +668,6 @@ tabContent model details =
               Just oR -> (rule.targets == oR.targets, oR.targets)
               Nothing -> (rule.targets == [], [])
 
-            cancelBtn =
-              if noChange then
-                text ""
-              else
-                button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | targets = cancelTargets} })]
-                [text "Cancel", i[class "fa fa-undo-alt"][]]
-
           in
             div[class "row flex-container"]
             [ div[class "list-edit col-xs-12 col-sm-6 col-lg-7"]
@@ -692,14 +675,13 @@ tabContent model details =
                 [ div[class "list-heading"]
                   [ h4[][text "Apply to Nodes in any of these Groups"]
                   , div [class "btn-actions"]
-                    [ cancelBtn
+                    [ button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | targets = cancelTargets} }), disabled noChange]
+                      [text "Cancel", i[class "fa fa-undo-alt"][]]
                     , ( if isNewRule then
                         text ""
                       else
-                        button[class "btn btn-default btn-icon"  , onClick (UpdateRuleForm {details | ui = {ui | editGroups = False}} )][text "Close", i[class "fa fa-times"][]]
+                        button[class "btn btn-success btn-outline btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = False}} )][text "Confirm", i[class "fa fa-check"][]]
                     )
-                    , button[class "btn btn-success btn-icon", onClick (CallApi (saveRuleDetails rule isNewRule))]
-                      [text "Save", i[class "fa fa-download"][]]
                     ]
                   ]
                 , ul[class "groups applied-list"]
@@ -732,10 +714,7 @@ tabContent model details =
             , div [class "tree-edit col-xs-12 col-sm-6 col-lg-5"]
               [ div [class "tree-container"]
                 [ div [class "tree-heading"]
-                  [ h4 []
-                    [ i [class "fa fa-check"][]
-                    , text "Select groups"
-                    ]
+                  [ h4 [][ text "Select groups" ]
                   , i [class "fa fa-bars"][]
                   ]
                   , div [class "header-filter"]
