@@ -104,8 +104,8 @@ class GitGC(
       logger.info(s"Disable automatic git-gc on ${gitRepo.rootDirectory.name} (schedule: '${DISABLED}')")
     case Some(cron) =>
       val schedule = cron.toSchedule
-      logger.info(s"Automatic git-gc starts on ${gitRepo.rootDirectory.name} (schedule: '${schedule.toString}')") *>
-      gitgc.repeat(schedule).unit
+      logger.info(s"Automatic git-gc starts on ${gitRepo.rootDirectory.name} (schedule 'sec min h dayMonth month DayWeek': '${cron.toString}')") *>
+      gitgc.schedule(schedule).unit
   }
 
   // start cron

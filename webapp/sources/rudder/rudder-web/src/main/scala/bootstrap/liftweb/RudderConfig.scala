@@ -392,7 +392,11 @@ object RudderConfig extends Loggable {
     config.getString("rudder.git.gc")
   } catch {
     // missing key, perhaps due to migration, use default
-    case ex: Exception => "0 42 3 * * ?"
+    case ex: Exception => {
+      val default = "0 42 3 * * ?"
+      logger.info(s"`rudder.git.gc` property is missing, using default schedule: ${default}")
+      default
+    }
   }).toOptCron match {
     case Left(err)  =>
       logger.error(s"Error when parsing cron for 'rudder.git.gc', it will be disabled: ${err.fullMsg}")
