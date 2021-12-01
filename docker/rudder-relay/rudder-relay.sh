@@ -69,12 +69,12 @@ if [ -n "$RUDDER_RELAY_CERTIFICATE" ]; then
     echo "-----END CERTIFICATE-----"
   ) > "${PPKEYS}/agent.cert"
 elif [ ! -f "${PPKEYS}/agent.cert" ]; then
-  openssl req -new -sha256 -key "${PPKEYS}/localhost.priv" -out "${PPKEYS}/agent.cert" -passin "pass:Cfengine passphrase" -x509 -days 3650 -extensions agent_cert -config /opt/rudder/etc/ssl/openssl-agent.cnf -subj "/UID=${uuid}"
+  openssl req -new -sha256 -key "${PPKEYS}/localhost.priv" -out "${PPKEYS}/agent.cert" -x509 -days 3650 -extensions agent_cert -config /opt/rudder/etc/ssl/openssl-agent.cnf -subj "/UID=${uuid}"
 fi
 
 # We verify that the certificate belongs to the private key (Modulus is identical)
 modulus_cert=$(openssl x509 -noout -modulus -in "${PPKEYS}/agent.cert")
-modulus_key=$(openssl rsa  -noout -modulus -passin "pass:Cfengine passphrase" -in "${PPKEYS}/localhost.priv")
+modulus_key=$(openssl rsa  -noout -modulus -in "${PPKEYS}/localhost.priv")
 if [ "${modulus_cert}" != "${modulus_key}" ]; then
   echo "Certificate does not match agent key" >&2
   exit 1

@@ -78,6 +78,14 @@ This means:
 * Add an `agent.conf` file extending uuid/policy server configuration with other connection information: path to key hash, port and proxy to use.
   We will keep it minimal, and it will only contain what is necessary to connect to the server a first time.
 
+### Passphrase on agent private key
+
+Following a behavior change in CFEngine 3.18, we decided to also remove the passphrase (which was hardcoded everywhere)
+from the agent private key.
+
+This allows using it directly in other programs configuration (like httpd) without trouble, without significant
+added risk as the passphrase was publicly known.
+
 ### On the agent
 
 We use the public key pinning feature of curl. This feature is close to [HPKP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning), now deprecated and removed from browser.
