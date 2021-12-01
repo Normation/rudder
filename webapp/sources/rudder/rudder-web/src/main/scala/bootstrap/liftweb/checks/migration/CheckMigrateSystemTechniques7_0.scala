@@ -76,6 +76,9 @@ import org.eclipse.jgit.lib.PersonIdent
  * This migration check looks if we need to migrate a 6.x Rudder to a 7.x set of
  * techniques/directives/group/rules.
  * See https://issues.rudder.io/issues/19650 for details of migration
+ *
+ * We log all step at `info` level because it's rare enought to not pollute logs, and if
+ * something goes wrong, well, we need as much log as possible.
  */
 
 class CheckMigratedSystemTechniques(
@@ -164,11 +167,11 @@ object SystemConfig {
 
   object v6_2 {
     final case class DirectiveCommon(policyServerId: NodeId, at: AT) {
-      val id = s"common-${policyServerId.value}"
+      val id = s"${at.id}-${policyServerId.value}"
       val dn = new DN(s"directiveId=${id},${at.dn.toString}")
     }
     final case class DirectiveDistributePolicy(policyServerId: NodeId, at: AT) {
-      val id = s"common-${policyServerId.value}"
+      val id = s"${at.id}-${policyServerId.value}"
       val dn = new DN(s"directiveId=${id},${at.dn.toString}")
     }
 
@@ -304,7 +307,7 @@ class MigrateTechniques6_x_7_0(
         Unexpected(s"New system technique '${t}' is not available in technique repository. " +
                    s"It is necessary to be able to migrate old system configurations to 7.0.").fail
       } else {
-        MigrationLoggerPure.debug(s"System technique v7.0 present: '${t}'") *>
+        MigrationLoggerPure.info(s"System technique v7.0 present: '${t}'") *>
         UIO.unit
       }
     ).unit
@@ -421,14 +424,14 @@ class MigrateTechniques6_x_7_0(
       // move 6.2 rules from $ruleId to old_$ruleId
       _        <- MigrationLoggerPure.info(s"Starting migration for system rules for policy server '${nodeId.value}''")
       _        <- (ZIO.foreach(List(SystemConfig.v6_2.ruleHasPolicyServer(nodeId), SystemConfig.v6_2.ruleDistributePolicy(nodeId))) { r =>
-                    MigrationLoggerPure.debug(s"[${nodeId.value}] move old 6.2 rule '${r.id}' to '${OLD_RULE_PREFIX}${r.id}'") *>
+                    MigrationLoggerPure.info(s"[${nodeId.value}] move old 6.2 rule '${r.id}' to '${OLD_RULE_PREFIX}${r.id}'") *>
                     con.move(r.dn, r.dn.getParent, Some(r.dnWithPrefix(OLD_RULE_PREFIX).getRDN)) *>
                     oldSaved.update(r :: _)
                   }).catchAll(err => rollback(con, oldSaved, migrated, err))
 
       // move 7.0 rules from new_$ruleId to $ruleId
       _        <- (ZIO.foreach(List(SystemConfig.v7_x.ruleHasPolicyServer(nodeId), SystemConfig.v7_x.rulePolicyServer(nodeId))) { r =>
-                    MigrationLoggerPure.debug(s"[${nodeId.value}] move new 7.0 rule '${NEW_RULE_PREFIX}${r.id}' to '${r.id}'") *>
+                    MigrationLoggerPure.info(s"[${nodeId.value}] move new 7.0 rule '${NEW_RULE_PREFIX}${r.id}' to '${r.id}'") *>
                     con.move(r.dnWithPrefix(NEW_RULE_PREFIX), r.dn.getParent, Some(r.dn.getRDN)) *>
                     migrated.update(r :: _)
                   }).catchAll(err => rollback(con, oldSaved, migrated, err))

@@ -243,9 +243,15 @@ class TechniqueAcceptationUpdater(
                                 // If an active technique, not system, still exists for that technique, disable it.
                                 // In the case of a system one, something is very broken. Don't disable it, as
                                 // It is likely to worsen things, but log an error.
+                                // Avoid writting the log for 'server-roles' and 'distributePolicy' - they are removed in 7.0 and up
                                 if(activeTechnique.isSystem) {
-                                  ApplicationLoggerPure.error(s"System technique '${name}' (${versions.map(_.debugString).mkString(",")})' is deleted in" +
-                                                             s"git base. This will likely cause grave problem. You should investigate.")
+                                  val removedIn7_0 = List("server-roles", "distributePolicy")
+                                  if(removedIn7_0.contains(name)) {
+                                    ApplicationLoggerPure.info(s"System technique '${name}' removed from git base according to Rudder 7.0 update")
+                                  } else {
+                                    ApplicationLoggerPure.error(s"System technique '${name}' (${versions.map(_.debugString).mkString(",")})' is deleted in " +
+                                                                s"git base. This will likely cause grave problem. You should investigate.")
+                                  }
 
                                 } else {
                                   ApplicationLoggerPure.warn(s"Technique '${name}' (${versions.map(_.debugString).mkString(",")})' is deleted " +

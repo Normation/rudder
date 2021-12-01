@@ -511,7 +511,8 @@ object PolicyServerConfigurationObjects {
     )
   }
 
-  val relayTechniques = List("server-common", "rudder-service-apache","rudder-service-relayd")
+  // we need to have "common" here, even if it's not server specific, else it leads to it being deleted during migration
+  val relayTechniques = List("common", "server-common", "rudder-service-apache","rudder-service-relayd")
   val rootTechniques = List("rudder-service-postgresql","rudder-service-slapd","rudder-service-webapp") ::: relayTechniques
 
   def directiveCommonHasPolicyServer(nodeId: NodeId) = {
