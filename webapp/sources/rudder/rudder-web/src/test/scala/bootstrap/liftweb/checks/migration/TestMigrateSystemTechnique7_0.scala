@@ -386,13 +386,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     prog.runNow must containTheSameElementsAs(List("192.168.2.0/24", "192.168.3.0/24","192.168.1.0/24", "192.168.42.42"))
   }
 
-  "We can create new config objects root policy server and relay1" in {
-
-    checkMigrate.migrateConfigs6_x_7_0.createNewConfigsAll(List(NodeId("root"), NodeId("ba7e3ca5-a967-40d8-aa97-41a3ff450fd2"))).runNow
-
-    ldap.server.exportToLDIF("/tmp/ldif-after-create", false, false)
-
-    // root policy server
+  def checkNewEntries(prefix: String) = // root policy server
     Try(ldap.server.assertEntriesExist(
         s"directiveId=common-hasPolicyServer-root,activeTechniqueId=common,${dirDn}"
       , s"directiveId=server-common-root,activeTechniqueId=server-common,${dirDn}"
@@ -401,19 +395,27 @@ class TestMigrateSystemTechniques7_0 extends Specification {
       , s"directiveId=rudder-service-relayd-root    ,activeTechniqueId=rudder-service-relayd,${dirDn}"
       , s"directiveId=rudder-service-slapd-root     ,activeTechniqueId=rudder-service-slapd,${dirDn}"
       , s"directiveId=rudder-service-webapp-root    ,activeTechniqueId=rudder-service-webapp,${dirDn}"
-      , s"ruleId=new_hasPolicyServer-root,${ruleDn}"
-      , s"ruleId=new_policy-server-root,${ruleDn}"
+      , s"ruleId=${prefix}hasPolicyServer-root,${ruleDn}"
+      , s"ruleId=${prefix}policy-server-root,${ruleDn}"
     // server relay
       , s"directiveId=common-hasPolicyServer-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,activeTechniqueId=common,${dirDn}"
       , s"directiveId=server-common-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,activeTechniqueId=server-common,${dirDn}"
       , s"directiveId=rudder-service-relayd-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,activeTechniqueId=rudder-service-relayd,${dirDn}"
       , s"directiveId=rudder-service-apache-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,activeTechniqueId=rudder-service-apache,${dirDn}"
-      , s"ruleId=new_hasPolicyServer-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,${ruleDn}"
-      , s"ruleId=new_policy-server-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,${ruleDn}"
+      , s"ruleId=${prefix}hasPolicyServer-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,${ruleDn}"
+      , s"ruleId=${prefix}policy-server-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,${ruleDn}"
     )) must beSuccessfulTry
+
+  "We can create new config objects root policy server and relay1" in {
+
+    checkMigrate.migrateConfigs6_x_7_0.createNewConfigsAll(List(NodeId("root"), NodeId("ba7e3ca5-a967-40d8-aa97-41a3ff450fd2"))).runNow
+
+    ldap.server.exportToLDIF("/tmp/ldif-after-create", false, false)
+
+    checkNewEntries("new_")
   }
 
-  "We can finish migration and clean up" in {
+  "We can finish migration and clean up and all new entries STILL exists" in {
 
     checkMigrate.migrateConfigs6_x_7_0.finalMoveAndCleanAll(List(NodeId("root"), NodeId("ba7e3ca5-a967-40d8-aa97-41a3ff450fd2"))).runNow
 
@@ -429,7 +431,8 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     (ldap.server.entryExists(s"directiveId=common-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,activeTechniqueId=common,${dirDn}") must beFalse) and
     (ldap.server.entryExists(s"activeTechniqueId=distributePolicy,${dirDn}") must beFalse) and
     (ldap.server.entryExists(s"ruleTarget=special:all_nodes_without_role,${groupDn}") must beFalse) and
-    (ldap.server.entryExists(s"ruleTarget=special:all_servers_with_role") must beFalse)
+    (ldap.server.entryExists(s"ruleTarget=special:all_servers_with_role") must beFalse) and
+    checkNewEntries("")
   }
 
   "After all migration, migration is not needed anymore" in {
