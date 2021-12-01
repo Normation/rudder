@@ -1,6 +1,6 @@
 from rpkg import PluginVersion
 import unittest
-from hypothesis import given, strategies as st
+from hypothesis import given, settings, strategies as st
 
 
 class TestEncoding(unittest.TestCase):
@@ -12,6 +12,7 @@ class TestEncoding(unittest.TestCase):
             fullmatch=True,
         )
     )
+    @settings(deadline=None)
     def test_equality(self, v):
         self.assertTrue(PluginVersion(v) == PluginVersion(v))
         self.assertFalse(PluginVersion(v) != PluginVersion(v))
@@ -26,12 +27,14 @@ class TestEncoding(unittest.TestCase):
             r'[0-9]+\.[0-9]+\.[0-9]+(~(alpha|beta|rc)[0-9]+)?\-[0-9]+\.[0-9]+', fullmatch=True
         )
     )
+    @settings(deadline=None)
     def test_release_gt_nightly(self, v):
         self.assertGreater(PluginVersion(v), PluginVersion(v + '-SNAPSHOT'))
         self.assertLess(PluginVersion(v + '-SNAPSHOT'), PluginVersion(v))
         self.assertTrue(PluginVersion(v + '-SNAPSHOT') != PluginVersion(v))
 
     # W.X-Y.Z{-SNAPSHOT} < W+1.X-Y-Z{-SNAPSHOT}
+    @settings(deadline=None)
     @given(
         st.integers(min_value=0),
         st.integers(min_value=0),
@@ -49,6 +52,7 @@ class TestEncoding(unittest.TestCase):
         self.assertTrue(PluginVersion(v1) != PluginVersion(v2))
 
     # W.X-Y.Z{-SNAPSHOT} < W.X+1-Y-Z{-SNAPSHOT}
+    @settings(deadline=None)
     @given(
         st.integers(min_value=0),
         st.integers(min_value=0),
@@ -66,6 +70,7 @@ class TestEncoding(unittest.TestCase):
         self.assertTrue(PluginVersion(v1) != PluginVersion(v2))
 
     # W.X-Y.Z{-SNAPSHOT} < W.X-Y+1-Z{-SNAPSHOT}
+    @settings(deadline=None)
     @given(
         st.integers(min_value=0),
         st.integers(min_value=0),
@@ -83,6 +88,7 @@ class TestEncoding(unittest.TestCase):
         self.assertTrue(PluginVersion(v1) != PluginVersion(v2))
 
     # W.X-Y.Z{-SNAPSHOT} < W.X-Y-Z+1{-SNAPSHOT}
+    @settings(deadline=None)
     @given(
         st.integers(min_value=0),
         st.integers(min_value=0),
@@ -101,6 +107,7 @@ class TestEncoding(unittest.TestCase):
 
     # W.X-Y.Z{-SNAPSHOT} < W+iw.X+ix-Y+iy-Z+iz{-SNAPSHOT}
     # Except if iw, ix, iy, iz = 0 and the first version is a release one
+    @settings(deadline=None)
     @given(
         st.integers(min_value=0),
         st.integers(min_value=0),
