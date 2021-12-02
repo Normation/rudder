@@ -374,6 +374,23 @@ class TestMigrateSystemTechniques7_0 extends Specification {
   }
 
   "When initialized with 6.2 data, migration is needed" in {
+    val oldEntries = List(
+      ldap.server.entryExists(s"ruleId=root-DP,${ruleDn}")
+    , ldap.server.entryExists(s"ruleId=ba7e3ca5-a967-40d8-aa97-41a3ff450fd2-DP,${ruleDn}")
+    , ldap.server.entryExists(s"ruleId=server-roles,${ruleDn}")
+    , ldap.server.entryExists(s"ruleId=root-DP,${ruleDn}")
+    , ldap.server.entryExists(s"directiveId=common-root,activeTechniqueId=common,${dirDn}")
+    , ldap.server.entryExists(s"directiveId=common-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,activeTechniqueId=common,${dirDn}")
+    , ldap.server.entryExists(s"activeTechniqueId=distributePolicy,${dirDn}")
+    , ldap.server.entryExists(s"ruleTarget=special:all_nodes_without_role,${groupDn}")
+    , ldap.server.entryExists(s"ruleTarget=special:all_servers_with_role,${groupDn}")
+    )
+
+    oldEntries must contain(beTrue).foreach and
+    (Option(ldap.server.getEntry(s"ruleId=hasPolicyServer-root,${ruleDn}")).map(_.getAttribute("directiveId").getValues.toList).getOrElse(Nil)
+      must containTheSameElementsAs(List("common-root")))
+    (Option(ldap.server.getEntry(s"ruleId=hasPolicyServer-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,${ruleDn}")).map(_.getAttribute("directiveId").getValues.toList).getOrElse(Nil)
+      must containTheSameElementsAs(List("common-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2")))
     checkMigrate.checkMigrationNeeded().runNow === true
   }
 
@@ -386,7 +403,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     prog.runNow must containTheSameElementsAs(List("192.168.2.0/24", "192.168.3.0/24","192.168.1.0/24", "192.168.42.42"))
   }
 
-  def checkNewEntries(prefix: String) = // root policy server
+  def checkNewEntries(prefix: String) = {// root policy server
     Try(ldap.server.assertEntriesExist(
         s"directiveId=common-hasPolicyServer-root,activeTechniqueId=common,${dirDn}"
       , s"directiveId=server-common-root,activeTechniqueId=server-common,${dirDn}"
@@ -404,13 +421,20 @@ class TestMigrateSystemTechniques7_0 extends Specification {
       , s"directiveId=rudder-service-apache-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,activeTechniqueId=rudder-service-apache,${dirDn}"
       , s"ruleId=${prefix}hasPolicyServer-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,${ruleDn}"
       , s"ruleId=${prefix}policy-server-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,${ruleDn}"
-    )) must beSuccessfulTry
+    )) must beSuccessfulTry and
+    (Option(ldap.server.getEntry(s"ruleId=${prefix}hasPolicyServer-root,${ruleDn}")).map(_.getAttribute("directiveId").getValues.toList).getOrElse(Nil)
+      must containTheSameElementsAs(List("common-hasPolicyServer-root"))) and
+    (Option(ldap.server.getEntry(s"ruleId=${prefix}hasPolicyServer-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,${ruleDn}")).map(_.getAttribute("directiveId").getValues.toList).getOrElse(Nil)
+      must containTheSameElementsAs(List("common-hasPolicyServer-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2"))) and
+    (Option(ldap.server.getEntry(s"ruleId=${prefix}policy-server-root,${ruleDn}")).map(_.getAttribute("directiveId").getValues.toList).getOrElse(Nil)
+      must containTheSameElementsAs(List("server-common-root","rudder-service-apache-root","rudder-service-postgresql-root","rudder-service-relayd-root","rudder-service-slapd-root","rudder-service-webapp-root"))) and
+    (Option(ldap.server.getEntry(s"ruleId=${prefix}policy-server-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,${ruleDn}")).map(_.getAttribute("directiveId").getValues.toList).getOrElse(Nil)
+      must containTheSameElementsAs(List("server-common-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2","rudder-service-apache-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2","rudder-service-relayd-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2")))
+  }
 
   "We can create new config objects root policy server and relay1" in {
 
     checkMigrate.migrateConfigs6_x_7_0.createNewConfigsAll(List(NodeId("root"), NodeId("ba7e3ca5-a967-40d8-aa97-41a3ff450fd2"))).runNow
-
-    ldap.server.exportToLDIF("/tmp/ldif-after-create", false, false)
 
     checkNewEntries("new_")
   }
@@ -419,19 +443,20 @@ class TestMigrateSystemTechniques7_0 extends Specification {
 
     checkMigrate.migrateConfigs6_x_7_0.finalMoveAndCleanAll(List(NodeId("root"), NodeId("ba7e3ca5-a967-40d8-aa97-41a3ff450fd2"))).runNow
 
-    ldap.server.exportToLDIF("/tmp/ldif-after-all", false, false)
-
     // hasPolicyServer-${nodeId} exists but it's the new one
+    val oldEntries = List(
+      ldap.server.entryExists(s"ruleId=root-DP,${ruleDn}")
+    , ldap.server.entryExists(s"ruleId=ba7e3ca5-a967-40d8-aa97-41a3ff450fd2-DP,${ruleDn}")
+    , ldap.server.entryExists(s"ruleId=server-roles,${ruleDn}")
+    , ldap.server.entryExists(s"ruleId=root-DP,${ruleDn}")
+    , ldap.server.entryExists(s"directiveId=common-root,activeTechniqueId=common,${dirDn}")
+    , ldap.server.entryExists(s"directiveId=common-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,activeTechniqueId=common,${dirDn}")
+    , ldap.server.entryExists(s"activeTechniqueId=distributePolicy,${dirDn}")
+    , ldap.server.entryExists(s"ruleTarget=special:all_nodes_without_role,${groupDn}")
+    , ldap.server.entryExists(s"ruleTarget=special:all_servers_with_role,${groupDn}")
+    )
 
-    (ldap.server.entryExists(s"ruleId=root-DP,${ruleDn}") must beFalse) and
-    (ldap.server.entryExists(s"ruleId=ba7e3ca5-a967-40d8-aa97-41a3ff450fd2-DP,${ruleDn}") must beFalse) and
-    (ldap.server.entryExists(s"ruleId=server-roles,${ruleDn}") must beFalse) and
-    (ldap.server.entryExists(s"ruleId=root-DP,${ruleDn}") must beFalse) and
-    (ldap.server.entryExists(s"directiveId=common-root,activeTechniqueId=common,${dirDn}") must beFalse) and
-    (ldap.server.entryExists(s"directiveId=common-ba7e3ca5-a967-40d8-aa97-41a3ff450fd2,activeTechniqueId=common,${dirDn}") must beFalse) and
-    (ldap.server.entryExists(s"activeTechniqueId=distributePolicy,${dirDn}") must beFalse) and
-    (ldap.server.entryExists(s"ruleTarget=special:all_nodes_without_role,${groupDn}") must beFalse) and
-    (ldap.server.entryExists(s"ruleTarget=special:all_servers_with_role") must beFalse) and
+    oldEntries must contain(beFalse).foreach and
     checkNewEntries("")
   }
 
