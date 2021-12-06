@@ -120,7 +120,7 @@ class RoLDAPRuleCategoryRepository(
 
     categoryMutex.readLock(for {
       con          <- ldap
-      entries      <- categoryMutex.readLock { con.searchSub(rudderDit.RULECATEGORY.dn, IS(OC_RULE_CATEGORY), catAttributes:_*) }
+      entries      <- con.searchSub(rudderDit.RULECATEGORY.dn, IS(OC_RULE_CATEGORY), catAttributes:_*)
       // look for sub categories
       categories   <- ZIO.foreach(entries) { entry =>
                         mapper.entry2RuleCategory(entry).map(c => (entry.dn, c)).toIO.chainError(s"Error when mapping from an LDAP entry to a RuleCategory: ${entry}")
@@ -141,11 +141,11 @@ class RoLDAPRuleCategoryRepository(
       r.copy(childs = cc)
     }
 
-    categoryMutex.readLock(for {
+    for {
       root <- categories.find( _._1 == rootDn).notOptional(s"The category with id '${rootDn}' was not found on the back but is referenced by other categories")
     } yield {
       root._2.copy(childs = getChildren(rootDn))
-    })
+    }
   }
 }
 

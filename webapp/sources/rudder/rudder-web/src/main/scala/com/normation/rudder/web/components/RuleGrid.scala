@@ -488,7 +488,7 @@ class RuleGrid(
 
        (trackerVariables, targetsInfo) match {
          case (Full(seq), Full(targets)) =>
-           val applicationStatus = getRuleApplicationStatus(rule, groupsLib, directivesLib, nodes)
+           val applicationStatus = getRuleApplicationStatus(rule, groupsLib, directivesLib, nodes, None)
 
            OKLine(rule, applicationStatus, seq, targets)
 

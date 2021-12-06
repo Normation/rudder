@@ -55,7 +55,7 @@ final case object FullyApplied extends AppliedStatus
 final case class PartiallyApplied(disabled: Seq[(ActiveTechnique, Directive)]) extends AppliedStatus
 
 object ApplicationStatus {
-  def details(rule : Rule, applicationStatus: ApplicationStatus,targets: Set[RuleTargetInfo], directives : Set[(ActiveTechnique, Directive)], nodes : Set[NodeInfo]) = {
+  def details(rule : Rule, applicationStatus: ApplicationStatus,targets: Set[RuleTargetInfo], directives : Set[(ActiveTechnique, Directive)], nodes : Iterable[NodeInfo]) = {
     applicationStatus match {
       case FullyApplied => ("In application", None)
       case PartiallyApplied(seq) =>
