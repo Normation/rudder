@@ -98,7 +98,12 @@ class ComplianceApi(
 
       (for {
         level <- restExtractor.extractComplianceLevel(req.params)
-        rules <- complianceService.getRulesCompliance()
+        computeLevel <- Full(if(version.value <= 6) {
+                          None
+                        } else {
+                          level
+                        })
+        rules <- complianceService.getRulesCompliance(computeLevel)
       } yield {
         if(version.value <= 6) {
           rules.map( _.toJsonV6 )
