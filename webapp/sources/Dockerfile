@@ -11,3 +11,5 @@ RUN gzip -d elm.gz
 RUN chmod +x elm
 RUN mv elm /usr/local/bin/
 
+# Make it temporary as elm fails on concurrent builds
+ENV ELM_HOME /tmp/
