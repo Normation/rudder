@@ -242,7 +242,7 @@ class ComplianceAPIService(
    * level is optionnally the selected level.
    * level 1 includes rules but not directives
    * level 2 includes directives, but not component
-   * level 3 includes nodes, but not nodes
+   * level 3 includes components, but not nodes
    * level 4 includes the nodes
    */
  private[this] def getByRulesCompliance(rules: Seq[Rule], level: Option[Int]) : Box[Seq[ByRuleRuleCompliance]] = {
