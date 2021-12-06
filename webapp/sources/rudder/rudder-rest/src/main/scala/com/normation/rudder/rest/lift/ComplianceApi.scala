@@ -58,8 +58,8 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
-
 import com.normation.box._
+import scala.collection.immutable
 
 class ComplianceApi(
     restExtractorService: RestExtractorService
@@ -245,8 +245,10 @@ class ComplianceAPIService(
  private[this] def getByRulesCompliance(rules: Set[Rule]) : Box[Seq[ByRuleRuleCompliance]] = {
 
     for {
-     // groupLib      <- nodeGroupRepo.getFullGroupLibrary().toBox
+      groupLib      <- nodeGroupRepo.getFullGroupLibrary().toBox
+      // this could be optimized, as directive only happen for level=2
       directivelib  <- directiveRepo.getFullDirectiveLibrary().toBox
+      // this could be optimized, as nodes only happen for level=3
       nodeInfos     <- nodeInfoService.getAll()
       compliance    <- getGlobalComplianceMode()
       reportsByNode <- reportingService.findRuleNodeStatusReports(
@@ -301,8 +303,27 @@ class ComplianceAPIService(
           )
         )
       }
+      // if any rules is in the list in parameter an not in the nonEmptyRules, then it means
+      // there's no compliance for it, so it's empty
+      // we need to set the ByRuleCompliance with a compliance of NoAnswer
+      val rulesWithoutCompliance = rules.map(_.id) -- reportsByRule.keySet
+
+      val initializedCompliances : Seq[ByRuleRuleCompliance] = {
+        (rules.collect { case rule if rulesWithoutCompliance.contains(rule.id) =>
+          val nodeIds = groupLib.getNodeIds(rule.targets, nodeInfos)
+
+         ByRuleRuleCompliance(
+              rule.id
+            , rule.name
+            , ComplianceLevel(noAnswer = nodeIds.size)
+            , compliance.mode
+            , Seq()
+          )
+        }.toSeq)
+      }
+
       //return the full list
-      nonEmptyRules.toSeq
+      nonEmptyRules.toSeq ++ initializedCompliances
 
     }
   }
