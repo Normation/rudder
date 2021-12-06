@@ -52,8 +52,8 @@ decodeCompositionRule =
     innerDecoder =
       \v ->
         case v of
-          "worst-case-weighted-sum" -> succeed WorstReportWeightedSum
-          "worst-case-weighted-one" -> succeed WorstReportWeightedOne
+          "worst-case-weighted-sum" -> succeed (WorstReport WorstReportWeightedSum)
+          "worst-case-weighted-one" -> succeed (WorstReport WorstReportWeightedOne)
           "weighted"                -> succeed WeightedReport
           "focus"                   -> succeed FocusReport
                                        |> required "value" string

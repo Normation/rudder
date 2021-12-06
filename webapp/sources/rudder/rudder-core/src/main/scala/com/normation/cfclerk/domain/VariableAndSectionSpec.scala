@@ -457,9 +457,11 @@ object DisplayPriority {
  *    compliance value will have the same level as the worst case, and will have weight equals
  *    to the sum of weight of all sub components.
  */
-sealed  trait ReportingLogic {
+sealed trait ReportingLogic {
   def value : String
 }
+
+sealed trait WorstReportReportingLogic extends ReportingLogic
 
 object ReportingLogic {
 
@@ -469,10 +471,10 @@ object ReportingLogic {
   final case class FocusReport(component : String) extends ReportingLogic {
     val value = s"${FocusReport.key}:${component}"
   }
-  final case object WorstReportWeightedOne extends ReportingLogic {
+  final case object WorstReportWeightedOne extends WorstReportReportingLogic {
     val value = "worst-case-weighted-one"
   }
-  final case object WorstReportWeightedSum extends ReportingLogic {
+  final case object WorstReportWeightedSum extends WorstReportReportingLogic {
     val value = "worst-case-weighted-sum"
   }
   final case object WeightedReport extends ReportingLogic {

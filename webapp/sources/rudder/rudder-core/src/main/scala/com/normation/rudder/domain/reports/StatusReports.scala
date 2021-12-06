@@ -38,10 +38,8 @@
 package com.normation.rudder.domain.reports
 
 import com.normation.cfclerk.domain.ReportingLogic
-import com.normation.cfclerk.domain.ReportingLogic.FocusReport
-import com.normation.cfclerk.domain.ReportingLogic.WeightedReport
-import com.normation.cfclerk.domain.ReportingLogic.WorstReportWeightedOne
-import com.normation.cfclerk.domain.ReportingLogic.WorstReportWeightedSum
+import com.normation.cfclerk.domain.WorstReportReportingLogic
+import com.normation.cfclerk.domain.ReportingLogic._
 
 import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
@@ -306,10 +304,13 @@ final case class BlockStatusReport (
       // simple weighted compliance, as usual
       case WeightedReport         => ComplianceLevel.sum(subComponents.map(_.compliance))
       // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
-      case WorstReportWeightedOne | WorstReportWeightedSum =>
+      case worst:WorstReportReportingLogic =>
         val worstReport = ReportType.getWorseType(subComponents.map(_.status))
         val allReports = getValues(_ => true).flatMap(_._2.messages.map(_ => worstReport))
-        val kept = if(reportingLogic == WorstReportWeightedOne) allReports.take(1) else allReports
+        val kept = worst match {
+          case WorstReportWeightedOne => allReports.take(1)
+          case WorstReportWeightedSum => allReports
+        }
         ComplianceLevel.compute(kept)
       // focus on a given sub-component name (can be present several time, or 0 which leads to N/A)
       case FocusReport(component) => ComplianceLevel.sum(findChildren(component).map(_.compliance))
