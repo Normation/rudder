@@ -38,13 +38,12 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.domain.policies.{Directive, DirectiveId, Rule, RuleId}
+import com.normation.rudder.domain.reports.{ComplianceLevel, ComponentStatusReport, DirectiveStatusReport}
 import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.repository.RoNodeGroupRepository
-import com.normation.rudder.repository.RoRuleRepository
+import com.normation.zio.currentTimeMillis
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.repository.{FullActiveTechnique, RoDirectiveRepository, RoNodeGroupRepository, RoRuleRepository}
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.rest._
@@ -58,12 +57,13 @@ import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import com.normation.box._
-import com.normation.rudder.domain.reports.ComponentStatusReport
 import com.normation.rudder.domain.reports.BlockStatusReport
 import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.errors._
 import com.normation.rudder.api.ApiVersion
 import zio.syntax._
+
+import scala.collection.immutable
 
 class ComplianceApi(
     restExtractorService: RestExtractorService
@@ -102,7 +102,12 @@ class ComplianceApi(
 
       (for {
         level <- restExtractor.extractComplianceLevel(req.params)
-        rules <- complianceService.getRulesCompliance()
+        computeLevel <- Full(if(version.value <= 6) {
+                          None
+                        } else {
+                          level
+                        })
+        rules <- complianceService.getRulesCompliance(computeLevel)
       } yield {
         if(version.value <= 6) {
           rules.map( _.toJsonV6 )
@@ -130,7 +135,7 @@ class ComplianceApi(
       (for {
         level <- restExtractor.extractComplianceLevel(req.params)
         id    <- RuleId.parse(ruleId).toBox
-        rule  <- complianceService.getRuleCompliance(id)
+        rule  <- complianceService.getRuleCompliance(id, level)
       } yield {
         if(version.value <= 6) {
           rule.toJsonV6
@@ -241,46 +246,64 @@ class ComplianceAPIService(
 
   /**
    * Get the compliance for everything
+   * level is optionnally the selected level.
+   * level 1 includes rules but not directives
+   * level 2 includes directives, but not component
+   * level 3 includes components, but not nodes
+   * level 4 includes the nodes
    */
- private[this] def getByRulesCompliance(rules: Set[Rule]) : IOResult[Seq[ByRuleRuleCompliance]] = {
+ private[this] def getByRulesCompliance(rules: Seq[Rule], level: Option[Int]) : IOResult[Seq[ByRuleRuleCompliance]] = {
+   val computedLevel = level.getOrElse(10)
 
-    for {
+   for {
+      t1            <- currentTimeMillis
       groupLib      <- nodeGroupRepo.getFullGroupLibrary()
-      directivelib  <- directiveRepo.getFullDirectiveLibrary()
+      t2            <- currentTimeMillis
+      _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - getFullGroupLibrary in ${t2 - t1} ms")
+
+      // this can be optimized, as directive only happen for level=2
+      directives    <- if (computedLevel >= 2 ) {
+                        directiveRepo.getFullDirectiveLibrary().map(_ . allDirectives )
+                        } else {
+                          Map[DirectiveId, (FullActiveTechnique, Directive)]().succeed
+                        }
+      t3            <- currentTimeMillis
+      _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - getFullDirectiveLibrary in ${t3 - t2} ms")
+
       nodeInfos     <- nodeInfoService.getAll()
+      t4            <- currentTimeMillis
+      _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - nodeInfoService.getAll() in ${t4 - t3} ms")
+
       compliance    <- getGlobalComplianceMode().toIO
+      t5            <- currentTimeMillis
+      _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - getGlobalComplianceMode in ${t5 - t4} ms")
+
+      ruleObjects   <- rules.map { case x => (x.id, x) }.toMap.succeed
       reportsByNode <- reportingService.findRuleNodeStatusReports(
-                         nodeInfos.keySet, rules.map(_.id).toSet
+                         nodeInfos.keySet, ruleObjects.keySet
                        ).toIO
-    } yield {
+      t6            <- currentTimeMillis
+      _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - findRuleNodeStatusReports in ${t6 - t5} ms")
 
-      //flatMap of Set is ok, since nodeRuleStatusReport are different for different nodeIds
-      val reportsByRule = reportsByNode.flatMap { case (nodeId, status) => status.reports }.groupBy(_.ruleId)
+   } yield {
 
-      // get an empty-initialized array of compliances to be used
-      // as defaults
-      val initializedCompliances: Map[RuleId, ByRuleRuleCompliance] = {
-        (rules.map { rule =>
-          val nodeIds = groupLib.getNodeIds(rule.targets, nodeInfos)
-
-          (rule.id, ByRuleRuleCompliance(
-            rule.id
-            , rule.name
-            , ComplianceLevel(noAnswer = nodeIds.size)
-            , compliance.mode
-            , Seq()
-          ))
-        }).toMap
-      }
+     val reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports }.groupBy(_.ruleId)
+     val t7            = System.currentTimeMillis()
+     TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
 
       //for each rule for each node, we want to have a
       //directiveId -> reporttype map
-      val nonEmptyRules = reportsByRule.map { case (ruleId, reports) =>
+      val nonEmptyRules = reportsByRule.toSeq.map { case (ruleId, reports) =>
 
-        //aggregate by directives
-        val byDirectives = reports.flatMap { r => r.directives.values.map(d => (r.nodeId, d)).toSeq }.groupBy( _._2.directiveId)
+        //aggregate by directives, if level is at least 2
+        val byDirectives: Map[DirectiveId, immutable.Iterable[(NodeId, DirectiveStatusReport)]] = if (computedLevel < 2) {
+          Map()
+        } else {
+          reports.flatMap { r => r.directives.values.map(d => (r.nodeId, d)).toSeq }.groupBy(_._2.directiveId)
+        }
 
-        def components(name : String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
+
+        def components(name: String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
 
           val (groupsComponents, uniqueComponents) = nodeComponents.partitionMap {
             case (a, b: BlockStatusReport) => Left((a, b))
@@ -292,81 +315,115 @@ class ComplianceAPIService(
           (if (groupsComponents.isEmpty)
             Nil
           else {
-            val bidule = groupsComponents.flatMap { case (nodeId, c) => c.subComponents.map(sub => (nodeId, sub))}.groupBy((_._2.componentName))
-              ByRuleBlockCompliance(
-                name
-                , ComplianceLevel.sum(groupsComponents.map(_._2.compliance))
-                , bidule.flatMap(c => components(c._1, c._2)).toList
-              ) :: Nil
-            }) ::: (
-          if (uniqueComponents.isEmpty)
-            Nil
-          else
-            ByRuleValueCompliance(
+            val bidule = groupsComponents.flatMap { case (nodeId, c) => c.subComponents.map(sub => (nodeId, sub)) }.groupBy((_._2.componentName))
+            ByRuleBlockCompliance(
               name
-              , ComplianceLevel.sum(uniqueComponents.map(_._2.compliance))
-              , //here, we finally group by nodes for each components !
-              {
-                val byNode = uniqueComponents.groupBy(_._1)
-                byNode.map { case (nodeId, components) =>
-
-                  ByRuleNodeCompliance(
-                    nodeId
-                    , nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node")
-                    , uniqueComponents.toSeq.sortBy(_._2.componentName).flatMap(_._2.componentValues.values)
-                  )
-                }.toSeq
-              }
+              , ComplianceLevel.sum(groupsComponents.map(_._2.compliance))
+              , bidule.flatMap(c => components(c._1, c._2)).toList
             ) :: Nil
+          }) ::: (
+            if (uniqueComponents.isEmpty)
+              Nil
+            else
+              ByRuleValueCompliance(
+                name
+                , ComplianceLevel.sum(uniqueComponents.map(_._2.compliance))
+                , //here, we finally group by nodes for each components !
+                {
+                  val byNode = uniqueComponents.groupBy(_._1)
+                  byNode.map { case (nodeId, components) =>
+
+                    ByRuleNodeCompliance(
+                      nodeId
+                      , nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node")
+                      , components.toSeq.sortBy(_._2.componentName).flatMap(_._2.componentValues.values)
+                    )
+                  }.toSeq
+                }
+              ) :: Nil
             )
-          }
+        }
 
 
-        (
-          ruleId,
-          ByRuleRuleCompliance(
-              ruleId
-            , initializedCompliances.get(ruleId).map(_.name).getOrElse("Unknown rule")
+        ByRuleRuleCompliance(
+            ruleId
+            , ruleObjects.get(ruleId).map(_.name).getOrElse("Unknown rule")
             , ComplianceLevel.sum(reports.map(_.compliance))
             , compliance.mode
-            , byDirectives.map{ case (directiveId, nodeDirectives) =>
-                ByRuleDirectiveCompliance(
+            , byDirectives.map { case (directiveId, nodeDirectives) =>
+                  ByRuleDirectiveCompliance(
                     directiveId
-                  , directivelib.allDirectives.get(directiveId).map(_._2.name).getOrElse("Unknown directive")
-                  , ComplianceLevel.sum(nodeDirectives.map( _._2.compliance) )
-                  , //here we want the compliance by components of the directive. Get all components and group by their name
+                    , directives.get(directiveId).map(_._2.name).getOrElse("Unknown directive")
+                    , ComplianceLevel.sum(nodeDirectives.map(_._2.compliance))
+                    , //here we want the compliance by components of the directive.
+                    // if level is high enough, get all components and group by their name
                     {
-                      val byComponents = nodeDirectives.flatMap { case (nodeId, d) => d.components.values.map(c => (nodeId, c)).toSeq }.groupBy( _._2.componentName )
-                      byComponents.flatMap { case (name, nodeComponents) => components(name,nodeComponents.toList)
+                      val byComponents: Map[String, immutable.Iterable[(NodeId, ComponentStatusReport)]] = if (computedLevel < 3) {
+                        Map()
+                      } else {
+                        nodeDirectives.flatMap { case (nodeId, d) => d.components.values.map(c => (nodeId, c)).toSeq }.groupBy(_._2.componentName)
+                      }
+                      byComponents.flatMap { case (name, nodeComponents) => components(name, nodeComponents.toList)
                       }.toSeq
                     }
-                )
+                  )
               }.toSeq
-          )
         )
-      }.toMap
+      }
+      val t8        = System.currentTimeMillis()
+      TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - Compute non empty rules in ${t8 - t7} ms")
 
-      //return the full list, even for non responding nodes/directives
-      //but override with values when available.
-      (initializedCompliances ++ nonEmptyRules).values.toSeq
 
+      // if any rules is in the list in parameter an not in the nonEmptyRules, then it means
+      // there's no compliance for it, so it's empty
+      // we need to set the ByRuleCompliance with a compliance of NoAnswer
+      val rulesWithoutCompliance = ruleObjects.keySet -- reportsByRule.keySet
+
+
+      val initializedCompliances : Seq[ByRuleRuleCompliance] = {
+        if (rulesWithoutCompliance.isEmpty) {
+          Seq[ByRuleRuleCompliance]()
+        } else {
+          rulesWithoutCompliance.toSeq.map { case ruleId =>
+            val rule = ruleObjects(ruleId) // we know by construct that it exists
+            val nodeIds = groupLib.getNodeIds(rule.targets, nodeInfos)
+            ByRuleRuleCompliance(
+                rule.id
+                , rule.name
+                , ComplianceLevel(noAnswer = nodeIds.size)
+                , compliance.mode
+                , Seq()
+              )
+            }
+          }
+        }
+
+      val t9 = System.currentTimeMillis()
+      TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - Compute ${initializedCompliances.size} empty rules in ${t9 - t8} ms")
+
+      //return the full list
+      val result = nonEmptyRules ++ initializedCompliances
+
+      val t10 = System.currentTimeMillis()
+      TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - Compute result in ${t10 - t9} ms")
+      result
     }
   }
 
-  def getRuleCompliance(ruleId: RuleId): Box[ByRuleRuleCompliance] = {
+  def getRuleCompliance(ruleId: RuleId, level: Option[Int]): Box[ByRuleRuleCompliance] = {
     for {
       rule    <- rulesRepo.get(ruleId)
-      reports <- getByRulesCompliance(Set(rule))
+      reports <- getByRulesCompliance(Seq(rule), level)
       report  <- reports.find( _.id == ruleId).notOptional(s"No reports were found for rule with ID '${ruleId.serialize}'")
     } yield {
       report
     }
   }.toBox
 
-  def getRulesCompliance(): Box[Seq[ByRuleRuleCompliance]] = {
+  def getRulesCompliance(level: Option[Int]): Box[Seq[ByRuleRuleCompliance]] = {
     for {
       rules   <- rulesRepo.getAll()
-      reports <- getByRulesCompliance(rules.toSet)
+      reports <- getByRulesCompliance(rules, level)
     } yield {
       reports
     }
