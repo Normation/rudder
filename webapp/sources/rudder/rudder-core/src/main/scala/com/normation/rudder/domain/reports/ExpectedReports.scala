@@ -460,7 +460,7 @@ object ExpectedReportsSerialisation {
           Full(ValueExpectedReport(name, values, unexpanded))
         case (JString(name), _, _, Some(Full(sub)), Some(composition) )=>
           for {
-            reportingLogic <-  ReportingLogic(composition).toBox
+            reportingLogic <-  ReportingLogic.parse(composition).toBox
           } yield {
             BlockExpectedReport(name, reportingLogic, sub.toList)
           }

@@ -76,10 +76,12 @@ encodeMethodCall call =
 encodeCompositionRule: ReportingLogic -> Value
 encodeCompositionRule composition =
   case composition of
-    WorstReport ->
-      object [ ("type", string "worst")]
-    SumReport ->
-      object [ ("type", string "sum")]
+    (WorstReport WorstReportWeightedSum) ->
+      object [ ("type", string "worst-case-weighted-sum")]
+    (WorstReport WorstReportWeightedOne) ->
+      object [ ("type", string "worst-case-weighted-one")]
+    WeightedReport ->
+      object [ ("type", string "weighted")]
     FocusReport value ->
       object [ ("type", string "focus"), ("value", string value)]
 

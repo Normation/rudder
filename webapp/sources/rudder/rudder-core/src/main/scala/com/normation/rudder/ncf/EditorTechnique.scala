@@ -350,8 +350,8 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
       import ReportingLogic._
 
       reportingLogic match {
-        case WorstReport | SumReport=>  ("type"-> reportingLogic.value)
-        case FocusReport(component)  => ("type"  -> FocusReport.key) ~ ("value" -> component)
+        case FocusReport(component) => ("type" -> FocusReport.key) ~ ("value" -> component)
+        case _                      => ("type" -> reportingLogic.value)
       }
     }
     def serializeMethodBlock(block: MethodBlock): JValue = {

@@ -387,7 +387,7 @@ class NodeExpectedReportTest extends Specification {
                    }
                  , {
                      "componentName":"First block"
-                   , "reportingLogic":"sum"
+                   , "reportingLogic":"weighted"
                    , "subComponents": [
                        {
                          "componentName":"File absent"
@@ -396,7 +396,7 @@ class NodeExpectedReportTest extends Specification {
                        }
                      , {
                          "componentName":"inner block"
-                       , "reportingLogic":"sum"
+                       , "reportingLogic":"weighted"
                        , "subComponents": [
                          {
                            "componentName":"File absent"

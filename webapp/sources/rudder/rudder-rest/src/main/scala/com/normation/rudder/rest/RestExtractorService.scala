@@ -1273,21 +1273,15 @@ final case class RestExtractorService (
   }
 
   def extractCompositionRule(json : JValue) : Box[ReportingLogic] = {
-    import ReportingLogic._
     for {
-      type_  <- CompleteJson.extractJsonString(json, "type")
-      optValue  <- OptionnalJson.extractJsonString(json, "value")
-      result <-
-        type_ match {
-          case WorstReport.value => Full(WorstReport)
-          case SumReport.value => Full(SumReport)
-          case FocusReport.key => Full(FocusReport(optValue.getOrElse("")))
-          case _ => Failure("")
-        }
+      type_    <- CompleteJson.extractJsonString(json, "type")
+      optValue <- OptionnalJson.extractJsonString(json, "value")
+      result   <- ReportingLogic.parse(type_, optValue.getOrElse("")).toBox
     } yield {
       result
     }
   }
+
   def extractMethodConstraint(json : JValue) : Box[List[Constraint]] = {
     for {
       allowEmpty <- CompleteJson.extractJsonBoolean(json, "allow_empty_string")
