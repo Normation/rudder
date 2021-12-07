@@ -132,7 +132,8 @@ object NodeStatusReport {
    * recreating and computing all data
    * it take a NodeStatusReport, and returns it with only the relevant rules
    */
-  def filterByRules(nodeStatusReport: NodeStatusReport, ruleIds: Set[RuleId]) : NodeStatusReport = {
+  def  filterByRules(nodeStatusReport: NodeStatusReport, ruleIds: Set[RuleId]) : NodeStatusReport = {
+
     new NodeStatusReport(
         nodeStatusReport.nodeId
       , nodeStatusReport.runInfo

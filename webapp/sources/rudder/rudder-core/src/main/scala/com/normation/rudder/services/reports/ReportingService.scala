@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.reports
 
+import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.RuleId
@@ -57,11 +58,18 @@ trait ReportingService {
   def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules : Set[RuleId]): Box[Map[NodeId, NodeStatusReport]]
 
   /**
-   * Retrieve two sets of rule/node status reports given the nodes Id.
+   * Retrieve a set of rule/node compliances given the nodes Id.
    * Optionally restrict the set to some rules if filterByRules is non empty (else,
    * find node status reports for all rules)
    */
-  def findUserAndSystemRuleNodeStatusReports(nodeIds: Set[NodeId], filterByUserRules : Set[RuleId], filterBySystemRules : Set[RuleId]): Box[(Map[NodeId, NodeStatusReport], Map[NodeId, NodeStatusReport])]
+  def findRuleNodeCompliance(nodeIds: Set[NodeId], filterByRules : Set[RuleId]): IOResult[Map[NodeId, ComplianceLevel]]
+
+  /**
+   * Retrieve two sets of rule/node compliances level given the nodes Id.
+   * Optionally restrict the set to some rules if filterByRules is non empty (else,
+   * find node status reports for all rules)
+   */
+  def findSystemAndUserRuleCompliances(nodeIds: Set[NodeId], filterBySystemRules: Set[RuleId], filterByUserRules: Set[RuleId]):  IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
 
 
   /**
@@ -92,7 +100,7 @@ trait ReportingService {
   /**
    * find node status reports for user and system rules but in a separated couple (system is first element, user second)
    */
-  def getUserAndSystemNodeStatusReports(optNodeIds : Option[Set[NodeId]]) : Box[(Map[NodeId, NodeStatusReport],Map[NodeId, NodeStatusReport])]
+  def getSystemAndUserCompliance(optNodeIds : Option[Set[NodeId]]) : Box[(Map[NodeId, ComplianceLevel],Map[NodeId, ComplianceLevel])]
   /**
    * * Get the global compliance for reports passed in parameters
    * * Returns get an unique number which describe the global compliance value (without
@@ -120,12 +128,25 @@ trait ReportingService {
       reports
     } else {
       val n1 = System.currentTimeMillis
-      val result = reports.view.mapValues { status =>
+      val result = reports.view.mapValues { case status =>
         NodeStatusReport.filterByRules(status, ruleIds)
-      }.filter { case (k,v) => v.reports.nonEmpty || v.overrides.nonEmpty }
+      }.filter { case (_,v) => v.reports.nonEmpty || v.overrides.nonEmpty }
       val n2 = System.currentTimeMillis
       TimingDebugLogger.trace(s"Filter Node Status Reports on ${ruleIds.size} in : ${n2 - n1}ms")
       result
     }.toMap
+  }
+
+  def complianceByRules(report: NodeStatusReport, ruleIds: Set[RuleId]): ComplianceLevel = {
+    if(ruleIds.isEmpty) {
+      report.compliance
+    } else {
+      // compute compliance only for the selected rules
+      //BE CAREFUL: reports is a SET - and it's likely that
+      //some compliance will be equals. So change to seq.
+      ComplianceLevel.sum(report.reports.toSeq.collect { case report if (ruleIds.contains(report.ruleId)) =>
+        report.compliance }
+      )
+    }
   }
 }
