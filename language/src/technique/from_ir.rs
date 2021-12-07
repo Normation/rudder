@@ -457,10 +457,12 @@ fn statement_to_method_call(
             let reportingLogic = match reportingLogic {
                 Some(r) => {
                     let logic = r.as_str().expect("Invalid reporting logic");
-                    if logic == "sum" {
-                        ReportingLogic::Sum
-                    } else if logic == "worst" {
-                        ReportingLogic::Worst
+                    if logic == "weighted" {
+                        ReportingLogic::Weighted
+                    } else if logic == "worst-case-weighted-one" {
+                        ReportingLogic::WorstWeightedOne
+                    } else if logic == "worst-case-weighted-sum" {
+                        ReportingLogic::WorstWeightedSum
                     } else {
                         let mut it = logic.split(":");
                         if it.next().expect("Invalid reporting logic value") != "focus" {
@@ -473,7 +475,7 @@ fn statement_to_method_call(
                         )
                     }
                 }
-                None => ReportingLogic::Sum,
+                None => ReportingLogic::Weighted,
             };
             let block = MethodBlock {
                 reportingLogic,

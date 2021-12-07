@@ -211,16 +211,18 @@ enum MethodElem {
 
 enum ReportingLogic {
     Focus(String),
-    Sum,
-    Worst,
+    Weighted,
+    WorstWeightedOne,
+    WorstWeightedSum,
 }
 // Display is used for conversion to metadata format
 impl Display for ReportingLogic {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ReportingLogic::Focus(v) => write!(f, "\"focus:{}\'", v),
-            ReportingLogic::Sum => write!(f, "\"sum\""),
-            ReportingLogic::Worst => write!(f, "\"worst\""),
+            ReportingLogic::Focus(v) => write!(f, "\"focus:{}\"", v),
+            ReportingLogic::Weighted => write!(f, "\"weighted\""),
+            ReportingLogic::WorstWeightedOne => write!(f, "\"worst-case-weighted-one\""),
+            ReportingLogic::WorstWeightedSum => write!(f, "\"worst-case-weighted-sum\""),
         }
     }
 }
@@ -244,8 +246,9 @@ impl Serialize for ReportingLogic {
     {
         match self {
             ReportingLogic::Focus(v) => ser(serializer, "focus", Some(v.into())),
-            ReportingLogic::Sum => ser(serializer, "sum", None),
-            ReportingLogic::Worst => ser(serializer, "worst", None),
+            ReportingLogic::Weighted => ser(serializer, "weighted", None),
+            ReportingLogic::WorstWeightedOne => ser(serializer, "worst-case-weighted-one", None),
+            ReportingLogic::WorstWeightedSum => ser(serializer, "worst-case-weighted-sum", None),
         }
     }
 }
@@ -265,10 +268,12 @@ impl<'de> Visitor<'de> for ReportingLogicVisitor {
             real_map.insert(k, v);
         }
         if let Some(&ty) = real_map.get("type") {
-            if ty == "sum" {
-                Ok(ReportingLogic::Sum)
-            } else if ty == "worst" {
-                Ok(ReportingLogic::Worst)
+            if ty == "weighted" {
+                Ok(ReportingLogic::Weighted)
+            } else if ty == "worst-case-weighted-one" {
+                Ok(ReportingLogic::WorstWeightedOne)
+            } else if ty == "worst-case-weighted-sum" {
+                Ok(ReportingLogic::WorstWeightedSum)
             } else if ty == "focus" {
                 if let Some(&value) = real_map.get("value") {
                     Ok(ReportingLogic::Focus(value.into()))
