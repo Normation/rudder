@@ -54,6 +54,7 @@ import JE._
 import net.liftweb.common._
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
 import net.liftweb.util.Helpers.TimeSpan
+import com.normation.box._
 
 class AsyncComplianceService (
   reportingService : ReportingService
@@ -84,6 +85,14 @@ class AsyncComplianceService (
         if(c.total == 0) c.copy(missing = 1) else c
       }
       (id, Some(compliance))
+    }
+
+    final protected def toComplianceWithMissing(compliance: ComplianceLevel) = {
+      if (compliance.total == 0) {
+        Some(compliance.copy(missing = 1))
+      } else {
+        Some(compliance)
+      }
     }
 
     // Is the compliance empty (No nodes? no Rules ? )
@@ -119,11 +128,9 @@ class AsyncComplianceService (
     // Compute compliance
     def computeCompliance : Box[Map[NodeId,Option[ComplianceLevel]]] =  {
       for {
-        reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
+        compliance <- reportingService.findRuleNodeCompliance(nodeIds, ruleIds).toBox
       } yield {
-        val found = reports.map { case (nodeId, status) =>
-          toCompliance(nodeId, status.reports)
-        }
+        val found = compliance.map { case (id, comp) => (id, toComplianceWithMissing(comp))}
         //add missing elements with "None" compliance, see #7281, #8030, #8141, #11842
         val missingIds = nodeIds -- found.keySet
         found ++ (missingIds.map(id => (id,None)))
@@ -143,11 +150,10 @@ class AsyncComplianceService (
     // Compute compliance
     def computeCompliance : Box[Map[NodeId,Option[ComplianceLevel]]] =  {
       for {
-        reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
+        compliance <- reportingService.findRuleNodeCompliance(nodeIds, ruleIds).toBox
       } yield {
-        val found = reports.map { case (nodeId, status) =>
-          toCompliance(nodeId, status.reports)
-        }
+        val found = compliance.map { case (id, comp) => (id, toComplianceWithMissing(comp))}
+
         //add missing elements with "None" compliance, see #7281, #8030, #8141, #11842
         val missingIds = nodeIds -- found.keySet
         found ++ (missingIds.map(id => (id,None)))
