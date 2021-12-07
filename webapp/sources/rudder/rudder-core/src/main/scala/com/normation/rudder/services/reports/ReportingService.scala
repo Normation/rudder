@@ -103,7 +103,7 @@ trait ReportingService {
   /**
    * find node status reports for user and system rules but in a separated couple (system is first element, user second)
    */
-  def getSystemAndUserCompliance(optNodeIds : Option[Set[NodeId]]) : Box[(Map[NodeId, ComplianceLevel],Map[NodeId, ComplianceLevel])]
+  def getSystemAndUserCompliance(optNodeIds : Option[Set[NodeId]]) : IOResult[(Map[NodeId, ComplianceLevel],Map[NodeId, ComplianceLevel])]
   /**
    * * Get the global compliance for reports passed in parameters
    * * Returns get an unique number which describe the global compliance value (without

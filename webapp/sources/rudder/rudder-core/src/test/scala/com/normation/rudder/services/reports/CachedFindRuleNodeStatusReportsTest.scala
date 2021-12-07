@@ -164,7 +164,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
       override def getUnexpectedInterpretation: () => Box[UnexpectedReportInterpretation] = ???
       override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): IOResult[Map[NodeId, NodeStatusReport]] = ???
       override def getUserNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]] = ???
-      override def getSystemAndUserCompliance(optNodeIds: Option[Set[NodeId]]): Box[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
+      override def getSystemAndUserCompliance(optNodeIds: Option[Set[NodeId]]): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
       override def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
       override def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = ???
       override def findNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
@@ -187,7 +187,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     override def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = ???
     override def findUserNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
     override def findSystemNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = ???
-    override def getSystemAndUserCompliance(optNodeIds: Option[Set[NodeId]]): Box[(Map[NodeId, ComplianceLevel],Map[NodeId, ComplianceLevel])] = ???
+    override def getSystemAndUserCompliance(optNodeIds: Option[Set[NodeId]]): IOResult[(Map[NodeId, ComplianceLevel],Map[NodeId, ComplianceLevel])] = ???
 
 
   }
