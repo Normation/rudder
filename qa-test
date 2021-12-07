@@ -10,7 +10,7 @@ test_python()
 {
   export PYTHONPATH="./tests/testlib:${PYTHONPATH}"
   [ -x "$(command -v pylint3)" ] && pylintCmd="pylint3" || pylintCmd="pylint"
-  find . -path ./api -prune -o -name '*.py' -exec echo "Running pylint on {}" \; -exec ${pylintCmd} -E --disable=C,R --init-hook="import sys; sys.path.append('./tools')" --persistent=n {} \;
+  find . -name '*.py' -exec echo "Running pylint on {}" \; -exec ${pylintCmd} -E --disable=C,R --init-hook="import sys; sys.path.append('./tools')" --persistent=n {} \;
 }
 
 test_typos()

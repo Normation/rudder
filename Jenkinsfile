@@ -1,20 +1,68 @@
 @Library('slack-notification')
 import org.gradiant.jenkins.slack.SlackNotifier
-@Library('rudder-ci-libs@master') _
 
 pipeline {
     agent none
     triggers { cron('@daily') }
     stages {
-        stage('qa-test') {
-            agent { label 'script' }
-            environment {
-                PATH = "${env.HOME}/.local/bin:${env.PATH}"
+        stage('Tests') {
+            parallel {
+                stage('typos') {
+                    agent {
+                        dockerfile {
+                            filename 'ci/typos.Dockerfile'
+                            additionalBuildArgs  '--build-arg VERSION=1.0'
+                        }
+                    }
+                    steps {
+                        dir('language') {
+                            sh script: 'typos', label: 'check language typos'
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                                new SlackNotifier().notifyResult("shell-team")
+                            }
+                        }
+                    }
+                }
+                stage('python') {
+                    agent {
+                        dockerfile {
+                            filename 'ci/python.Dockerfile'
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
+                        }
+                    }
+                    steps {
+                        sh script: './qa-test --python', label: 'python scripts lint'
+                        sh script: './qa-test --quick', label: 'quick method tests'
+                    }
+                    post {
+                        always {
+                            script {
+                                new SlackNotifier().notifyResult("shell-team")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('methods') {
+            agent {
+                dockerfile {
+                    filename 'ci/methods.Dockerfile'
+                    // Run tests as root
+                    args  "--user 0"
+                    additionalBuildArgs "--build-arg OS=ubuntu:20.04"
+                }
             }
             steps {
-                sh script: './qa-test', label: 'qa-test'
-                sh script: './qa-test --typos', label: 'check typos'
-                sh script: './qa-test --quick', label: 'check typos'
+                catchError {
+                    sh script: 'PATH="/opt/rudder/bin:$PATH" make test', label: 'test methods'
+                }
+                // clean leftover files owned by root anyway
+                sh script: 'git clean -fdx', label: 'cleanup'
             }
             post {
                 always {
@@ -23,57 +71,47 @@ pipeline {
                     }
                 }
             }
-
         }
-        stage('ncf-tests pull-request') {
-            agent { label 'rtf' }
-            when { changeRequest() }
-            steps {
-                script {
-                    deleteDir()
-                    dir('ncf') {
-                        checkout scm
-                        sh script: 'git log -1 --pretty=%B'
-                    }
-                    String[] agent_versions = [
-                        "ci/rudder-6.1-nightly",
-                        "ci/rudder-6.2-nightly",
-                        "ci/rudder-7.0-nightly"
-                    ]
-                    String[] systems = [
-                        "debian10"
-                    ]
-                    String ncf_path = "${workspace}/ncf"
-                    testNcfLocal(agent_versions, systems, ncf_path)
+        stage("Compatibility tests") {
+            // Expensive tests only done daily on branches
+            when {
+                allOf {
+                    triggeredBy 'TimerTrigger'
+                    not { changeRequest() }
                 }
             }
-        }
-        stage('ncf-tests branch') {
-            agent { label 'rtf' }
-            when { not { changeRequest() } }
-            steps {
-                script {
-                    deleteDir()
-                    dir('ncf') {
-                        checkout scm
-                        sh script: 'git log -1 --pretty=%B'
+            matrix {
+                axes {
+                    axis {
+                        name 'OS'
+                        values 'debian:11'
                     }
-                    String[] agent_versions = [
-                        "ci/rudder-6.1-nightly",
-                        "ci/rudder-6.2-nightly",
-                        "ci/rudder-7.0-nightly"
-                    ]
-                    String[] systems = [
-                        "debian10",
-                        "debian9",
-                        "centos7",
-                        "centos8",
-                        "sles12",
-                        "sles15",
-                        "ubuntu18_04"
-                    ]
-                    String ncf_path = "${workspace}/ncf"
-                    testNcfLocal(agent_versions, systems, ncf_path)
+                }
+                stages {
+                    stage('methods') {
+                        agent {
+                            dockerfile {
+                                filename 'ci/methods.Dockerfile'
+                                // Run tests as root
+                                args  "--user 0"
+                                additionalBuildArgs "--build-arg OS=${OS}"
+                            }
+                        }
+                        steps {
+                            catchError {
+                                sh script: 'PATH="/opt/rudder/bin:$PATH" make test', label: 'test methods'
+                            }
+                            // clean leftover files owned by root anyway
+                            sh script: 'git clean -fdx', label: 'cleanup'
+                        }
+                        post {
+                            always {
+                                script {
+                                    new SlackNotifier().notifyResult("shell-team")
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
