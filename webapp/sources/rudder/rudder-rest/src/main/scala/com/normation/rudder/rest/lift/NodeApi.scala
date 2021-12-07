@@ -666,7 +666,7 @@ class NodeApiService13 (
       runs            <- reportsExecutionRepository.getNodesLastRun(nodes.keySet).toBox
       n3              =  System.currentTimeMillis
       _               =  TimingDebugLoggerPure.logEffect.trace(s"Getting run infos: ${n3 - n2}ms")
-      (systemCompliances, userCompliances) <- reportingService.getSystemAndUserCompliance(Some(nodes.keySet))
+      (systemCompliances, userCompliances) <- reportingService.getSystemAndUserCompliance(Some(nodes.keySet)).toBox
       n4              =  System.currentTimeMillis
       _               =  TimingDebugLoggerPure.logEffect.trace(s"Getting compliance infos: ${n4 - n3}ms")
       globalMode      <- getGlobalMode()
