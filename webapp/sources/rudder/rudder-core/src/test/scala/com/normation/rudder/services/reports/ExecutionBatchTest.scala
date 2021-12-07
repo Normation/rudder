@@ -359,7 +359,7 @@ class ExecutionBatchTest extends Specification {
   }
 
 
-  "A block, in worst case report" should {
+  "A block, in 'weighted' report" should {
     val reports = Seq[ResultReports](
       new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
       new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
@@ -373,7 +373,64 @@ class ExecutionBatchTest extends Specification {
 
     val expectedComponent = BlockExpectedReport(
       "block"
-    , ReportingLogic.WorstReport
+    , ReportingLogic.WeightedReport
+    , new ValueExpectedReport(
+      "component"
+      , List("foo", "bar")
+      , List("foo", "bar")
+    ) :: Nil
+    )
+
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+
+    "return a component globally repaired " in {
+      withGood.compliance === ComplianceLevel( repaired = 1, success = 1)
+    }
+    "return a component with two key values " in {
+      withGood.componentValues.size === 2
+    }
+    "return a component with the key values foo which is repaired " in {
+      withGood.componentValues("foo").messages.size === 1 and
+        withGood.componentValues("foo").messages.head.reportType ===  EnforceRepaired
+    }
+    "return a component with the key values bar which is a success " in {
+      withGood.componentValues("bar").messages.size === 1 and
+        withGood.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+
+    "only one reports in addition, mark only foo (ie repaired) unexpected" in {
+      withBad.compliance === ComplianceLevel(unexpected = 2, success = 1)
+    }
+    "with bad reports return a component with two key values " in {
+      withBad.componentValues.size === 2
+    }
+    "with bad reports return a component with the key values foo which is unexpected " in {
+      withBad.componentValues("foo").messages.size === 2 and
+        withBad.componentValues("foo").messages.head.reportType ===  Unexpected
+    }
+    "with bad reports return a component with the key values bar which is a success " in {
+      withBad.componentValues("bar").messages.size === 1 and
+        withBad.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+  }
+
+
+  "A block, in 'worst case weight sum' report" should {
+    val reports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val badReports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val expectedComponent = BlockExpectedReport(
+      "block"
+    , ReportingLogic.WorstReportWeightedSum
     , new ValueExpectedReport(
       "component"
       , List("foo", "bar")
@@ -399,8 +456,64 @@ class ExecutionBatchTest extends Specification {
         withGood.componentValues("bar").messages.head.reportType ===  EnforceSuccess
     }
 
-    "only one reports in plus, mark the whole block unexpected" in {
+    "only one reports in addition, mark the whole weighted block unexpected" in {
       withBad.compliance === ComplianceLevel(unexpected = 3)
+    }
+    "with bad reports return a component with two key values " in {
+      withBad.componentValues.size === 2
+    }
+    "with bad reports return a component with the key values foo which is unexpected " in {
+      withBad.componentValues("foo").messages.size === 2 and
+        withBad.componentValues("foo").messages.head.reportType ===  Unexpected
+    }
+    "with bad reports return a component with the key values bar which is a success " in {
+      withBad.componentValues("bar").messages.size === 1 and
+        withBad.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+  }
+
+  "A block, in 'worst case weight one' report" should {
+    val reports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val badReports = Seq[ResultReports](
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    val expectedComponent = BlockExpectedReport(
+      "block"
+    , ReportingLogic.WorstReportWeightedOne
+    , new ValueExpectedReport(
+      "component"
+      , List("foo", "bar")
+      , List("foo", "bar")
+    ) :: Nil
+    )
+
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce, strictUnexpectedInterpretation)
+
+    "return a component globally repaired " in {
+      withGood.compliance === ComplianceLevel( repaired = 1)
+    }
+    "return a component with two key values " in {
+      withGood.componentValues.size === 2 // yes, still 2 here, we keep access to sub values to show details
+    }
+    "return a component with the key values foo which is repaired " in {
+      withGood.componentValues("foo").messages.size === 1 and
+        withGood.componentValues("foo").messages.head.reportType ===  EnforceRepaired
+    }
+    "return a component with the key values bar which is a success " in {
+      withGood.componentValues("bar").messages.size === 1 and
+        withGood.componentValues("bar").messages.head.reportType ===  EnforceSuccess
+    }
+
+    "only one reports in addition, mark the whole block unexpected with weight 1" in {
+      withBad.compliance === ComplianceLevel(unexpected = 1)
     }
     "with bad reports return a component with two key values " in {
       withBad.componentValues.size === 2
@@ -494,10 +607,10 @@ class ExecutionBatchTest extends Specification {
 
     val expectedComponent = BlockExpectedReport(
       "blockRoot"
-      , ReportingLogic.SumReport
+      , ReportingLogic.WeightedReport
       , BlockExpectedReport(
         "block1"
-        , ReportingLogic.SumReport
+        , ReportingLogic.WeightedReport
         , new ValueExpectedReport(
           "component1"
           , List( "b1c1")
@@ -509,7 +622,7 @@ class ExecutionBatchTest extends Specification {
         )  :: Nil
       ) :: BlockExpectedReport(
         "block2"
-        , ReportingLogic.SumReport
+        , ReportingLogic.WeightedReport
         , new ValueExpectedReport(
           "component1"
           , List( "b2c1")
@@ -571,10 +684,10 @@ class ExecutionBatchTest extends Specification {
 
     val expectedComponent = BlockExpectedReport(
       "blockRoot"
-      , ReportingLogic.SumReport
+      , ReportingLogic.WeightedReport
       , BlockExpectedReport(
           "block1"
-          , ReportingLogic.SumReport
+          , ReportingLogic.WeightedReport
           , new ValueExpectedReport(
             "component1"
             , List( "b1c1")
@@ -586,7 +699,7 @@ class ExecutionBatchTest extends Specification {
           )  :: Nil
         ) :: BlockExpectedReport(
           "block2"
-          , ReportingLogic.SumReport
+          , ReportingLogic.WeightedReport
           , new ValueExpectedReport(
             "component1"
             , List( "b2c1")
@@ -706,7 +819,7 @@ class ExecutionBatchTest extends Specification {
 
 
 
-  "Sub block with same component names are authorised, with reporting worst " should {
+  "Sub block with same component names are authorised, with reporting 'worst case weighted sum'" should {
     val reports = Seq[ResultReports](
       new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component1", "b1c1", executionTimestamp, "message")
       , new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component2", "b1c2", executionTimestamp, "message")
@@ -725,10 +838,10 @@ class ExecutionBatchTest extends Specification {
 
     val expectedComponent = BlockExpectedReport(
       "blockRoot"
-      , ReportingLogic.WorstReport
+      , ReportingLogic.WorstReportWeightedSum
       , BlockExpectedReport(
         "block1"
-        , ReportingLogic.SumReport
+        , ReportingLogic.WeightedReport
         , new ValueExpectedReport(
           "component1"
           , List( "b1c1")
@@ -740,7 +853,7 @@ class ExecutionBatchTest extends Specification {
         )  :: Nil
       ) :: BlockExpectedReport(
         "block2"
-        , ReportingLogic.SumReport
+        , ReportingLogic.WeightedReport
         , new ValueExpectedReport(
           "component1"
           , List( "b2c1")
@@ -803,7 +916,7 @@ class ExecutionBatchTest extends Specification {
 
     val expectedComponent = BlockExpectedReport(
       "block"
-      , ReportingLogic.SumReport
+      , ReportingLogic.WeightedReport
       , new ValueExpectedReport(
         "component"
         , List("foo", "bar")

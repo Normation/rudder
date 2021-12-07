@@ -28,7 +28,7 @@
     </FILES>
   </AGENT>
   <SECTIONS>
-    <SECTION component="true" multivalued="true" name="block component" reporting="worst">
+    <SECTION component="true" multivalued="true" name="block component" reporting="worst-case-weighted-sum">
       <SECTION component="true" multivalued="true" name="Customized component">
         <REPORTKEYS>
           <VALUE>${node.properties[apache_package_name]}</VALUE>

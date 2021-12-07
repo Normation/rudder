@@ -330,7 +330,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       , MethodBlock (
             "id_method"
           , "block component"
-          , ReportingLogic.WorstReport
+          , ReportingLogic.WorstReportWeightedSum
           , "debian"
           , MethodCall(
                 BundleName("package_install_version")

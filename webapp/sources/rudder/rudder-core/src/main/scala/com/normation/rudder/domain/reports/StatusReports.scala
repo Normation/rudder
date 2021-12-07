@@ -38,13 +38,14 @@
 package com.normation.rudder.domain.reports
 
 import com.normation.cfclerk.domain.ReportingLogic
-import com.normation.cfclerk.domain.ReportingLogic.FocusReport
-import com.normation.cfclerk.domain.ReportingLogic.SumReport
-import com.normation.cfclerk.domain.ReportingLogic.WorstReport
+import com.normation.cfclerk.domain.WorstReportReportingLogic
+import com.normation.cfclerk.domain.ReportingLogic._
+
 import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
+
 import net.liftweb.common.Loggable
 import com.normation.rudder.services.reports._
 
@@ -300,11 +301,18 @@ final case class BlockStatusReport (
   def compliance: ComplianceLevel = {
     import ReportingLogic._
     reportingLogic match {
-      case WorstReport =>
+      // simple weighted compliance, as usual
+      case WeightedReport         => ComplianceLevel.sum(subComponents.map(_.compliance))
+      // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
+      case worst:WorstReportReportingLogic =>
         val worstReport = ReportType.getWorseType(subComponents.map(_.status))
         val allReports = getValues(_ => true).flatMap(_._2.messages.map(_ => worstReport))
-        ComplianceLevel.compute(allReports)
-      case SumReport => ComplianceLevel.sum(subComponents.map(_.compliance))
+        val kept = worst match {
+          case WorstReportWeightedOne => allReports.take(1)
+          case WorstReportWeightedSum => allReports
+        }
+        ComplianceLevel.compute(kept)
+      // focus on a given sub-component name (can be present several time, or 0 which leads to N/A)
       case FocusReport(component) => ComplianceLevel.sum(findChildren(component).map(_.compliance))
     }
   }
@@ -323,11 +331,10 @@ final case class BlockStatusReport (
 
   def status: ReportType = {
     reportingLogic match {
-      case WorstReport =>
+      case WorstReportWeightedOne | WorstReportWeightedSum | WeightedReport =>
         ReportType.getWorseType(subComponents.map(_.status))
-      case SumReport =>
-        ReportType.getWorseType(subComponents.map(_.status))
-      case FocusReport(component) => ReportType.getWorseType(findChildren(component).map(_.status))
+      case FocusReport(component)                                           =>
+        ReportType.getWorseType(findChildren(component).map(_.status))
     }
   }
 }
@@ -358,6 +365,12 @@ final case class ValueStatusReport  (
   }
 }
 
+/**
+ * Merge component status reports.
+ * We assign a arbitrary preponderance order for reporting logic mode:
+ * WorstReportWeightedOne > WorstReportWeightedSum > WeightedReport > FocusReport
+ * In the case of two focus, the focust for first component is kept.
+ */
 object ComponentStatusReport extends Loggable {
 
   def merge(components: Iterable[ComponentStatusReport]): Map[String, ComponentStatusReport] = {
@@ -375,20 +388,19 @@ object ComponentStatusReport extends Loggable {
           import ReportingLogic._
           val reportingLogic = r.map(_.reportingLogic).reduce(
             (a,b) => (a,b) match {
-                       case(WorstReport, _)    => WorstReport
-                       case(_, WorstReport)    => WorstReport
-                       case(SumReport, _)      => SumReport
-                       case(_, SumReport)      => SumReport
-                       case(FocusReport(a), _) => FocusReport(a)
+              case (WorstReportWeightedOne, _) | (_, WorstReportWeightedOne) => WorstReportWeightedOne
+              case (WorstReportWeightedSum, _) | (_, WorstReportWeightedSum) => WorstReportWeightedSum
+              case (WeightedReport, _)         | (_, WeightedReport)         => WeightedReport
+              case (FocusReport(a), _)                                       => FocusReport(a)
             }
           )
           Some(BlockStatusReport(cptName, reportingLogic, ComponentStatusReport.merge(r.flatMap(_.subComponents)).values.toList))
       }
 
       (valueComponents,groupComponent) match {
-        case (None, None) => Nil
-        case (Some(v),None) => (cptName, v) :: Nil
-        case (None,Some(v)) => (cptName, v) :: Nil
+        case (None       , None       ) => Nil
+        case (Some(v)    , None       ) => (cptName, v) :: Nil
+        case (None       , Some(v)    ) => (cptName, v) :: Nil
         case (Some(value), Some(group)) => (cptName, group.copy(subComponents = value :: group.subComponents)) :: Nil
       }
 

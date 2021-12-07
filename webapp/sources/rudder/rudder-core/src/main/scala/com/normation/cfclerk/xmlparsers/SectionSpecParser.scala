@@ -140,7 +140,7 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
 
     val composition = (root \ ("@reporting")).headOption.map( _.text) match {
       case null | Some("") | None => None
-      case Some(x) => ReportingLogic(x) match {
+      case Some(x) => ReportingLogic.parse(x) match {
         case Right(x) => Some(x)
         case Left(error) =>
           logger.error(s"There was an error when parsing reporting logic in technique ${id.name.value}/${id.version.debugString}, error is : ${error.msg} for element ${root}")

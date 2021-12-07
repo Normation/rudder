@@ -25,8 +25,6 @@ showMethodBlock model techniqueUi ui parentId block =
     |> addClass (if (ui.mode == Opened) then "active" else "")
     |> appendChild
        ( blockBody model parentId block ui techniqueUi )
-
-
     |> addAttribute (hidden (Maybe.withDefault False (Maybe.map ((==) (Move (Block parentId  block))) (DragDrop.currentlyDraggedObject model.dnd) )))
 
 
@@ -205,17 +203,19 @@ showBlockTab model parentId block uiInfo techniqueUi =
     Children -> showChildren model block  { uiInfo | showChildDetails = True } techniqueUi parentId
     BlockReporting ->
       let
+        -- main select
         compositionText  = (\reportingLogic ->
                                case reportingLogic of
-                                 WorstReport -> "Worst report"
-                                 SumReport -> "Sum of reports"
+                                 WorstReport _ -> "Worst report"
+                                 WeightedReport -> "Weighted sum of reports"
                                  FocusReport _ -> "Focus on one child method report"
                              )
         liCompositionRule =  \rule -> element "li"
                                            |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = rule }))
                                            |> appendChild (element "a" |> addAttribute (href "#") |> appendText (compositionText rule))
-        availableComposition = List.map liCompositionRule [ WorstReport, SumReport, FocusReport "" ]
+        availableComposition = List.map liCompositionRule [ WeightedReport, FocusReport "", WorstReport WorstReportWeightedSum ]
 
+        -- sub-select - focus
         liFocus =  \child ->
                      let
                        componentValue = getComponent child
@@ -225,76 +225,67 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                        Call _ c -> Maybe.withDefault (c.methodName.value) (Maybe.map .name (Dict.get c.methodName.value model.methods))
                                    else
                                      componentValue
-
                      in
                        element "li"
                                |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = FocusReport (getId child).value }))
                                |> appendChild (element "a" |> addAttribute (href "#") |> appendText component)
+
         availableFocus = List.map liFocus block.calls
+
+        -- sub-select - worst case
+        labelWorst = \weight -> case weight of
+                         WorstReportWeightedOne -> "Use a weight of '1' for component"
+                         WorstReportWeightedSum -> "Use sum of sub-components for weight"
+
+        liWorst = \weight -> element "li"
+                    |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = (WorstReport weight) }))
+                    |> appendChild (element "a" |> addAttribute (href "#") |> appendText (labelWorst weight))
+
+        availableWorst = List.map liWorst [ WorstReportWeightedOne, WorstReportWeightedSum]
 
       in
          element "div"
            |> appendChildList
-                        [ element "div"
-                          |> addClass "form-group"
-                          |> appendChildList
-                             [ element "label"
-                               |> addAttribute (for "reporting-rule")
-                               |> appendText "Reporting based on:"
-                             , element "div"
-                               |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
-                               |> addClass "btn-group"
-                               |> appendChildList
-                                  [ element "button"
-                                    |> addClass "btn btn-default dropdown-toggle"
-                                    |> Dom.setId  "reporting-rule"
-                                    |> addAttributeList
-                                         [ attribute  "data-toggle" "dropdown"
-                                         , attribute  "aria-haspopup" "true"
-                                         , attribute "aria-expanded" "true"
-                                         ]
-                                    |> appendText ((compositionText block.reportingLogic) ++ " ")
-                                    |> appendChild (element "span" |> addClass "caret")
-                                  , element "ul"
-                                    |> addClass "dropdown-menu"
-                                    |> addAttribute  (attribute "aria-labelledby" "reporting-rule")
-                                    |> addStyle ("margin-left", "0px")
-                                    |> appendChildList availableComposition
-                                   ]
-                            ]
+                        [ buildSelectReporting "reporting-rule" "Reporting based on:" availableComposition ((compositionText block.reportingLogic) ++ " ")
                         ]
                      |> appendChild
                           ( case block.reportingLogic of
                               FocusReport value ->
-                                element "div"
-                                |> addClass "form-group"
-                                |> appendChildList
-                                   [ element "label"
-                                     |> addAttribute (for "reporting-rule-focus")
-                                     |> appendText "Focus reporting on method:"
-                                   , element "div"
-                                     |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
-                                     |> addClass "btn-group"
-                                     |> appendChildList
-                                        [ element "button"
-                                          |> addClass "btn btn-default dropdown-toggle"
-                                          |> Dom.setId  "reporting-rule-focus"
-                                          |> addAttributeList
-                                               [ attribute  "data-toggle" "dropdown"
-                                               , attribute  "aria-haspopup" "true"
-                                               , attribute "aria-expanded" "true"
-                                               ]
-                                          |> appendText value
-                                          |> appendChild (element "span" |> addClass "caret")
-                                        , element "ul"
-                                          |> addClass "dropdown-menu"
-                                          |> addAttribute  (attribute "aria-labelledby" "reporting-rule-focus")
-                                          |> addStyle ("margin-left", "0px")
-                                          |> appendChildList availableFocus
-                                         ]
-                                     ]
+                                buildSelectReporting "reporting-rule-subselect" "Focus reporting on method:" availableFocus value
+                              (WorstReport weight) ->
+                                buildSelectReporting "reporting-rule-subselect" "Select weight of worst case:" availableWorst (labelWorst weight)
                               _ -> element "span"
                             )
+
+buildSelectReporting: String -> String -> (List (Element Msg)) -> String -> Element Msg
+buildSelectReporting id label items value =
+  element "div"
+  |> addClass "form-group"
+  |> appendChildList
+     [ element "label"
+       |> addAttribute (for id)
+       |> appendText label
+     , element "div"
+       |> addStyleList [ ("display","inline-block") , ("width", "auto"), ("margin-left", "5px") ]
+       |> addClass "btn-group"
+       |> appendChildList
+          [ element "button"
+            |> addClass "btn btn-default dropdown-toggle"
+            |> Dom.setId id
+            |> addAttributeList
+                 [ attribute  "data-toggle" "dropdown"
+                 , attribute  "aria-haspopup" "true"
+                 , attribute "aria-expanded" "true"
+                 ]
+            |> appendText value
+            |> appendChild (element "span" |> addClass "caret")
+          , element "ul"
+            |> addClass "dropdown-menu"
+            |> addAttribute  (attribute "aria-labelledby" "reporting-rule-focus")
+            |> addStyle ("margin-left", "0px")
+            |> appendChildList items
+           ]
+       ]
 
 
 blockBody : Model -> Maybe CallId -> MethodBlock -> MethodBlockUiInfo -> TechniqueUiInfo -> Element Msg
@@ -439,25 +430,23 @@ showChildren model block ui techniqueUi parentId =
                )
               |> appendChild (element "span" |> appendText " ")
               |> appendChild (element "span" |> addClass  ("expandBlockChild fas fa-chevron-" ++ (if ui.showChildDetails then "up" else "down")))
-
-            |> addActionStopAndPrevent ("click", UIBlockAction block.id { ui | showChildDetails = not ui.showChildDetails})
+              |> addActionStopAndPrevent ("click", UIBlockAction block.id { ui | showChildDetails = not ui.showChildDetails})
             )
-          )
-        (ui.mode == Closed && (not (List.isEmpty block.calls) ))
+        ) (ui.mode == Closed && (not (List.isEmpty block.calls) ))
      |> appendChildConditional
-          ( element "li"
-            |> addAttribute (id "no-methods")
-            |> appendChildList
-               [ element "i"
-                 |> addClass "fas fa-sign-in-alt"
-                 |> addStyle ("transform", "rotate(90deg)")
-               , element "span"
-                 |> appendText " Drag and drop generic methods here to fill this component"
-               ]
+        ( element "li"
+          |> addAttribute (id "no-methods")
+          |> appendChildList
+             [ element "i"
+               |> addClass "fas fa-sign-in-alt"
+               |> addStyle ("transform", "rotate(90deg)")
+             , element "span"
+               |> appendText " Drag and drop generic methods here to fill this component"
+             ]
 
-            |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
-            |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
-          )  (List.isEmpty block.calls)
+          |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
+          |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
+        ) (List.isEmpty block.calls)
      |> appendChildConditional
         ( element "li"
           |> addAttribute (id "no-methods")
@@ -469,13 +458,12 @@ showChildren model block ui techniqueUi parentId =
                |> addStyle ("transform", "rotate(90deg)")
              )
           |> addStyle ("padding", "3px 15px")
-          |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages)
-        ( case DragDrop.currentlyDraggedObject model.dnd of
+          |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
+        ) ( case DragDrop.currentlyDraggedObject model.dnd of
             Nothing -> False
             Just (Move x) ->Maybe.withDefault True (Maybe.map (\c->  (getId x) /= (getId c)) (List.head block.calls))
             Just _ -> not (List.isEmpty block.calls)
         )
-
      |> appendChildList
           ( List.concatMap ( \ call ->
             (case call of
