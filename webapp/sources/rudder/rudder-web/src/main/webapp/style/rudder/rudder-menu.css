@@ -727,9 +727,7 @@ ul.graph-legend > li.legend:hover{
   color: #fff !important;
   border-bottom-color: #d9534f;
 }
-
 .main-header .navbar .nav li.notifications-menu> a{
-  color:#fff;
   height: 100%;
 }
 .navbar-nav li.dropdown {
@@ -755,7 +753,6 @@ ul.graph-legend > li.legend:hover{
 .main-header .navbar .nav>li.user.user-menu.dropdown>a:focus,
 .main-header .navbar .nav>li.user.user-menu.dropdown>a:active{
   background: rgba(0,0,0,0.1);
-  color: #f6f6f6;
 }
 
 .main-header .navbar .nav>li.user.user-menu>a:hover,
