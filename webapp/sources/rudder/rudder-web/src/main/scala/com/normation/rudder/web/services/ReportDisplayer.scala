@@ -87,10 +87,11 @@ class ReportDisplayer(
    * - general compliance table (displayed by rules)
    * - missing reports table if such reports exists
    * - unknown reports table if such reports exists
+   * addOverriden decides if we need to add overriden policies (policy tab), or not (system tab)
    */
-  def asyncDisplay(node : NodeInfo,tabId : String, containerId : String, tableId : String,  getReports : NodeId => Box[NodeStatusReport]) : NodeSeq = {
+  def asyncDisplay(node : NodeInfo,tabId : String, containerId : String, tableId : String,  getReports : NodeId => Box[NodeStatusReport], addOverriden: Boolean) : NodeSeq = {
     val id = JsNodeId(node.id)
-    val callback =  SHtml.ajaxInvoke(() => SetHtml(containerId, displayReports(node, getReports, tableId, containerId)) )
+    val callback =  SHtml.ajaxInvoke(() => SetHtml(containerId, displayReports(node, getReports, tableId, containerId, addOverriden)) )
     Script(OnLoad(JsRaw(s"""
       if($$("[aria-controls='${tabId}']").hasClass('ui-tabs-active')){
         ${callback.toJsCmd}
@@ -106,11 +107,11 @@ class ReportDisplayer(
   /**
    * Refresh the main compliance table
    */
-  def refreshReportDetail(node : NodeInfo, tableId : String, getReports : NodeId => Box[NodeStatusReport]) = {
+  def refreshReportDetail(node : NodeInfo, tableId : String, getReports : NodeId => Box[NodeStatusReport], addOverriden: Boolean) = {
     def refreshData : Box[JsCmd] = {
       for {
         report  <- getReports(node.id)
-        data    <- getComplianceData(node.id, report)
+        data    <- getComplianceData(node.id, report, addOverriden)
         runDate : Option[DateTime] = report.runInfo match {
           case a : ComputeCompliance => Some(a.lastRunDateTime)
           case a : LastRunAvailable  => Some(a.lastRunDateTime)
@@ -310,7 +311,7 @@ class ReportDisplayer(
     </div>
   }
 
-  private[this] def displayReports(node : NodeInfo, getReports: NodeId => Box[NodeStatusReport], tableId : String, containerId : String) : NodeSeq = {
+  private[this] def displayReports(node : NodeInfo, getReports: NodeId => Box[NodeStatusReport], tableId : String, containerId : String, addOverriden: Boolean) : NodeSeq = {
     val boxXml = (
       if(node.state == NodeState.Ignored) {
         Full(<div><div class="col-sm-3"><p class="center bg-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>)
@@ -340,7 +341,7 @@ class ReportDisplayer(
       def triggerAgent(node: NodeInfo) : NodeSeq = if (tableId == "reportsGrid") {
         if(node.agentsName.exists(agent => agent.agentType == AgentType.CfeCommunity || agent.agentType == AgentType.CfeEnterprise)) {
           <div id="triggerAgent">
-            <button id="triggerBtn" class="btn btn-primary btn-trigger"  onClick={s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports).toJsCmd});"}>
+            <button id="triggerBtn" class="btn btn-primary btn-trigger"  onClick={s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, addOverriden).toJsCmd});"}>
               <span>Trigger Agent</span>
               &nbsp;
               <i class="fa fa-play"></i>
@@ -409,7 +410,7 @@ class ReportDisplayer(
           (
               "lastreportgrid-intro"      #> intro
             & "runagent"                  #> triggerAgent(node)
-            & "lastreportgrid-grid"       #> showReportDetail(filtered, node, withCompliance = false, tableId, containerId, getReports)
+            & "lastreportgrid-grid"       #> showReportDetail(filtered, node, withCompliance = false, tableId, containerId, getReports, addOverriden)
             & "#AllLogButton  [class+]"   #>  { if (runDate.isEmpty || tableId != "reportsGrid") "hide" else "" }
             & "#AllLogButton  [onClick]"  #> { if (runDate.nonEmpty || tableId == "reportsGrid") {
                 val init = AnonFunc(logDisplayer.asyncDisplay(node.id,runDate,"complianceLogsGrid"))
@@ -428,7 +429,7 @@ class ReportDisplayer(
           (
               "lastreportgrid-intro"      #> intro
             & "runagent"                  #> triggerAgent(node)
-            & "lastreportgrid-grid"       #> showReportDetail(report, node, withCompliance = true, tableId, containerId, getReports)
+            & "lastreportgrid-grid"       #> showReportDetail(report, node, withCompliance = true, tableId, containerId, getReports, addOverriden)
             & "#AllLogButton [class+]"    #>  { if (runDate.isEmpty || tableId != "reportsGrid") "hide" else "" }
             & "#AllLogButton [onClick]"   #> { if (runDate.nonEmpty || tableId == "reportsGrid") {
                 val init = AnonFunc(logDisplayer.asyncDisplay(node.id,runDate,"complianceLogsGrid"))
@@ -449,8 +450,8 @@ class ReportDisplayer(
     }
   }
 
-  private[this] def showReportDetail(reports: NodeStatusReport, node: NodeInfo, withCompliance: Boolean, tableId : String, id : String, getReports : NodeId => Box[NodeStatusReport]): NodeSeq = {
-    val data = getComplianceData(node.id, reports).map(_.json).getOrElse(JsArray())
+  private[this] def showReportDetail(reports: NodeStatusReport, node: NodeInfo, withCompliance: Boolean, tableId : String, id : String, getReports : NodeId => Box[NodeStatusReport], addOverriden: Boolean): NodeSeq = {
+    val data = getComplianceData(node.id, reports, addOverriden).map(_.json).getOrElse(JsArray())
 
     val jsFunctionName = if(withCompliance) {
       "createRuleComplianceTable"
@@ -461,19 +462,19 @@ class ReportDisplayer(
 
     <table id={tableId} class="tablewidth" cellspacing="0"></table> ++
     Script(JsRaw(s"""
-      ${jsFunctionName}("${tableId}",${data.toJsCmd},"${S.contextPath}", ${refreshReportDetail(node,tableId,  getReports).toJsCmd});
+      ${jsFunctionName}("${tableId}",${data.toJsCmd},"${S.contextPath}", ${refreshReportDetail(node,tableId,  getReports, addOverriden).toJsCmd});
       createTooltip();
     """))
   }
 
-  private[this] def getComplianceData(nodeId: NodeId, reportStatus: NodeStatusReport) = {
+  private[this] def getComplianceData(nodeId: NodeId, reportStatus: NodeStatusReport, addOverriden: Boolean) = {
     for {
       directiveLib <- directiveRepository.getFullDirectiveLibrary().toBox
       allNodeInfos <- getAllNodeInfos()
       rules        <- ruleRepository.getAll(true).toBox
       globalMode   <- configService.rudder_global_policy_mode().toBox
     } yield {
-      ComplianceData.getNodeByRuleComplianceDetails(nodeId, reportStatus, allNodeInfos, directiveLib, rules, globalMode)
+      ComplianceData.getNodeByRuleComplianceDetails(nodeId, reportStatus, allNodeInfos, directiveLib, rules, globalMode, addOverriden)
     }
   }
 
