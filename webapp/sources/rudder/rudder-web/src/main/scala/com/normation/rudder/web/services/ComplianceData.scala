@@ -376,6 +376,7 @@ object ComplianceData extends Loggable {
    * For a given unique node, create the "by rule"
    * tree structure of compliance elements.
    * (rule -> directives -> components -> value with messages and status)
+   * addOverriden decides if we add overriden policies in the result (policy tab) or not (policy tab)
    */
   def getNodeByRuleComplianceDetails (
       nodeId      : NodeId
@@ -384,10 +385,15 @@ object ComplianceData extends Loggable {
     , directiveLib: FullActiveTechniqueCategory
     , rules       : Seq[Rule]
     , globalMode  : GlobalPolicyMode
+    , addOverriden: Boolean
   ) : JsTableData[RuleComplianceLine] = {
 
     //add overriden directive in the list under there rule
-    val overridesByRules = report.overrides.groupBy( _.policy.ruleId )
+    val overridesByRules = if (addOverriden) {
+      report.overrides.groupBy( _.policy.ruleId )
+    } else {
+      Map[RuleId, List[OverridenPolicy]]()
+    }
 
     //we can have rules with only overriden reports, so we just prepend them. When
     //a rule is defined for that id, it will override that default.

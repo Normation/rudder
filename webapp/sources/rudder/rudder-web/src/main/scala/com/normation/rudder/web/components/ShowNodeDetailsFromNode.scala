@@ -297,8 +297,8 @@ class ShowNodeDetailsFromNode(
         </div> &
       "#nodeDetails"        #> DisplayNode.showNodeDetails(inventory, Some((node, globalMode)), Some(node.creationDate),  AcceptedInventory, isDisplayingInPopup = withinPopup) &
       "#nodeInventory *"    #> DisplayNode.showInventoryVerticalMenu(inventory) &
-      "#reportsDetails *"   #> reportDisplayer.asyncDisplay(node, "node_reports", "reportsDetails", "reportsGrid", RudderConfig.reportingService.findUserNodeStatusReport) &
-      "#systemStatus *"     #> reportDisplayer.asyncDisplay(node, "system_status", "systemStatus", "systemStatusGrid", RudderConfig.reportingService.findSystemNodeStatusReport) &
+      "#reportsDetails *"   #> reportDisplayer.asyncDisplay(node, "node_reports", "reportsDetails", "reportsGrid", RudderConfig.reportingService.findUserNodeStatusReport, true) &
+      "#systemStatus *"     #> reportDisplayer.asyncDisplay(node, "system_status", "systemStatus", "systemStatusGrid", RudderConfig.reportingService.findSystemNodeStatusReport, false) &
       "#nodeProperties *"   #> DisplayNode.displayTabProperties(id, node) &
       "#logsDetails *"      #> Script(OnLoad(logDisplayer.asyncDisplay(node.id,None, "logsGrid"))) &
       "#node_parameters -*" #> (if(node.id == Constants.ROOT_POLICY_SERVER_ID) NodeSeq.Empty else nodeStateEditForm(node).nodeStateConfiguration) &
