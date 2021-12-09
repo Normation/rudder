@@ -16,7 +16,8 @@ init flags =
       sections =
         [ Welcome
         , Account Default (AccountSettings "" "" "" Nothing Nothing Nothing)
-        , Metrics Default NotDefined
+        -- Metrics are not available for now so we remove the section see https://issues.rudder.io/issues/20394
+        --, Metrics Default NotDefined
         , GettingStarted Default
         ]
 
