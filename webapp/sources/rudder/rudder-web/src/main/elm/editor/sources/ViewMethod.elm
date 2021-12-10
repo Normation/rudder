@@ -131,7 +131,7 @@ showMethodTab model method parentId call uiInfo=
     CallReporting ->
       div [ class "tab-parameters"] [
         div [ class "form-group"] [
-          label [ for "disable_reporting"] [ text "Disable reporting:"]
+          label [ for "disable_reporting", style "margin-right" "5px"] [ text "Disable reporting"]
         , input [ readonly (not model.hasWriteRights), type_ "checkbox", name "disable_reporting", checked call.disableReporting,  onCheck  (\b -> MethodCallModified (Call parentId {call  | disableReporting = b }))] []
         ]
       ]
@@ -387,9 +387,23 @@ callBody model ui techniqueUi call pid =
                         ]
                   ]
     methodName = case ui.mode of
-                   Opened -> element "input"
-                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "calc(100% - 65px)", class "form-control", value call.component,  placeholder "Enter a component name" ]
-                             |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s }))
+                   Opened -> element "div"
+                             |> appendChild
+                                ( element "div"
+                                    |> addClass "component-name-wrapper"
+                                    |> appendChildList
+                                       [ element "div"
+                                         |> addClass "title-input-name"
+                                         |> appendText "Name"
+                                       , element "div"
+                                         |> addClass "gm-label-name"
+                                         |> appendText method.name
+                                       ]
+                                    |> appendChild
+                                       (element "input"
+                                         |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "100%", class "form-control", value call.component,  placeholder "Enter a component name" ]
+                                         |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s })))
+                                )
                    Closed -> element "div"
                              |> addClass "method-name"
                              |> appendChild
@@ -398,10 +412,17 @@ callBody model ui techniqueUi call pid =
                                   |> addActionStopPropagation ("click" , DisableDragDrop)
                                 )
                              |> appendChildConditional
-                                  (element "span" |> addStyle ("opacity"," 0.4") |> appendText (" - "++ method.name) )
-                                  ((not (String.isEmpty call.component)) && call.component /= method.name )
+                                ( element "div"
+                                  |> addClass "gm-label-name"
+                                  |> appendText method.name
+                                )
+                                ((not (String.isEmpty call.component)) && call.component /= method.name )
 
-
+    methodNameId = case ui.mode of
+                     Opened -> element "span" |> appendText method.name
+                                    |> addActionStopPropagation ("mousedown" , DisableDragDrop)
+                                    |> addActionStopPropagation ("click" , DisableDragDrop)
+                     Closed -> element ""
     methodContent = element "div"
                     |> addClass  "method-param flex-form"
                     |> appendChildList
@@ -451,6 +472,7 @@ callBody model ui techniqueUi call pid =
             |> addClass "flex-column"
             |> appendChildConditional condition (call.condition.os /= Nothing || call.condition.advanced /= "")
             |> appendChild methodName
+            --|> appendChild methodNameId
             |> appendChildConditional methodContent (ui.mode == Closed)
             |> appendChildConditional
                         ( element "div"
