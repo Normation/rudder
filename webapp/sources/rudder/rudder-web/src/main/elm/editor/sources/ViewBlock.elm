@@ -20,12 +20,20 @@ appendNodeConditional e test =
 
 showMethodBlock: Model -> TechniqueUiInfo ->  MethodBlockUiInfo -> Maybe CallId -> MethodBlock -> Element Msg
 showMethodBlock model techniqueUi ui parentId block =
-
+  let
+         isHovered = case model.isMethodHovered of
+                       Just methodId -> if ((methodId.value == block.id.value)) then "hovered" else ""
+                       Nothing -> ""
+  in
   element "li"
-    |> addClass (if (ui.mode == Opened) then "active" else "")
+    |> addClass (if (ui.mode == Opened) then "active" else isHovered)
+    |> addClass "card-method showMethodBlock"
     |> appendChild
        ( blockBody model parentId block ui techniqueUi )
     |> addAttribute (hidden (Maybe.withDefault False (Maybe.map ((==) (Move (Block parentId  block))) (DragDrop.currentlyDraggedObject model.dnd) )))
+    |> addAction ("mouseover" , HoverMethod (Just block.id))
+    |> addActionStopPropagation ("mouseleave" , HoverMethod Nothing)
+
 
 
 
@@ -364,6 +372,7 @@ blockBody model parentId block ui techniqueUi =
 
                                   |> addActionStopPropagation ("mousedown" , DisableDragDrop)
                                   |> addActionStopPropagation ("click" , DisableDragDrop)
+                                  |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
                                 )
 
     currentDrag = case DragDrop.currentlyDraggedObject model.dnd of

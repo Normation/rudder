@@ -147,8 +147,7 @@ body > .container-fluid {
 	padding: 0 !important;
 }
 .col-techniques,
-.col-methods,
-.methods {
+.col-methods {
   transition-duration: .3s;
   transition-timing-function: ease;
   overflow: hidden;
@@ -979,14 +978,17 @@ ul.list-unstyled > li{
   margin-bottom: 10px;
 }
 .method {
-  border: 1px solid #e5e5e5;
   border-radius: 4px;
   display: flex;
   transition: all 1s ease;
   max-height:100000px
 }
+.method-elmt {
+  border: 1px solid #e5e5e5;
+}
 ul li.hide-method {
   margin-bottom : 0px !important;
+  display: none;
 }
 .show-method .method {
   animation: slide-up 0.5s ease forwards;
@@ -1055,6 +1057,9 @@ ul li.hide-method {
 .method .method-errors{
   position: relative;
   padding: 0;
+}
+.name-content {
+  cursor: text;
 }
 .method .method-param{
   align-items: baseline;
@@ -1126,6 +1131,10 @@ ul li.hide-method {
 .method-param > label{
   display: inline-block;
   color: #777;
+  cursor: pointer;
+}
+.label-value {
+  cursor: text;
 }
 .method-condition > label{
   display: inline-block;
@@ -1522,7 +1531,19 @@ ul li.hide-method {
   margin-bottom:10px;
   margin-right:80px;
 }
-
 .reporting-checkbox {
   margin-left: 5px;
+}
+.card-method {
+  box-shadow: rgba(50, 50, 105, 0.15) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px;
+  transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+}
+.card-method.hovered {
+  box-shadow: 0 14px 28px rgba(0,0,100,0.07), 0 3px 3px rgba(0,0,0,0.05);
+}
+.popover-bs {
+  width: 15px;
+}
+.fa-edit {
+  color: #3c8dbc;
 }
