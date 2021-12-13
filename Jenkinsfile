@@ -8,6 +8,10 @@ pipeline {
         cron('@midnight')
     }
 
+    options {
+        buildDiscarder(logRotator(daysToKeepStr: '5', artifactDaysToKeepStr: '5'))
+    }
+
     environment {
         // TODO: automate
         RUDDER_VERSION = "7.0"
