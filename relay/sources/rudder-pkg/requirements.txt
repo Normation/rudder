@@ -3,3 +3,4 @@ bandit==1.7.0
 pylint==2.9.6
 requests==2.26.0
 hypothesis==6.24.6
+parameterized==0.8.1

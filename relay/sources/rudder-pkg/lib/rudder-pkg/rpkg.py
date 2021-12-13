@@ -3,31 +3,38 @@ from distutils.version import LooseVersion, StrictVersion
 import rudderPkgUtils as utils
 
 # Compare versions with the form "w.x-y.z"
-class RudderVersion:
+class WebappVersion:
     def __init__(self, version):
         match = re.search(
-            r'(?P<wx>[0-9]+.[0-9]+(.[0-9]+(~(alpha|beta|rc)[0-9]+)?)?)-(?P<yz>[0-9]+.[0-9]+)',
+            r'(?P<wx>[0-9]+.[0-9]+(.[0-9]+)?)(?P<mode>~[a-z0-9]+)?(-[0-9]+.[0-9]+.*)?',
             version,
         )
-        self.version = [
-            LooseVersion(
-                match.group('wx').replace('~alpha', 'a').replace('~beta', 'b').replace('~rc', 'c')
-            ),
-            LooseVersion(match.group('yz')),
-        ]
+        if match.group('mode') is not None:
+            self.rudder_mode = (
+                match.group('mode').replace('~alpha', 'a').replace('~beta', 'b').replace('~rc', 'c')
+            )
+        else:
+            self.rudder_mode = ''
+
+        self.rudder_version = match.group('wx')
+        self.version = LooseVersion(self.rudder_version + self.rudder_mode)
 
     def __eq__(self, other):
-        if isinstance(other, RudderVersion):
-            if self.version[0] == other.version[0]:
-                return self.version[1] == other.version[1]
+        if isinstance(other, WebappVersion):
+            return self.get_xyz() == other.get_xyz() and self.get_mode() == other.get_mode()
         return False
 
     def __lt__(self, other):
-        if isinstance(other, RudderVersion):
-            if self.version[0] < other.version[0]:
+        if isinstance(other, WebappVersion):
+            if LooseVersion(self.get_xyz()) < LooseVersion(other.get_xyz()):
                 return True
-            elif self.version[0] == other.version[0]:
-                return self.version[1] < other.version[1]
+            elif LooseVersion(self.get_xyz()) == LooseVersion(other.get_xyz()):
+                if self.get_mode() == '':
+                    return False
+                elif other.get_mode() == '':
+                    return True
+                else:
+                    return self.version < other.version
         return False
 
     def __le__(self, other):
@@ -41,6 +48,12 @@ class RudderVersion:
 
     def __ge__(self, other):
         return not self.__lt__(other)
+
+    def get_xyz(self):
+        return self.rudder_version
+
+    def get_mode(self):
+        return self.rudder_mode
 
 
 """
@@ -71,18 +84,11 @@ class PluginVersion:
                 % (pluginLongVersion)
             )
         else:
-            self.rudderVersion = (
-                match.group('rudderVersion')
-                .replace('~alpha', 'a')
-                .replace('~beta', 'b')
-                .replace('~rc', 'c')
-            )
+            self.rudderVersion = match.group('rudderVersion')
             self.rudderMajor = match.group('rudderMajor')
             self.pluginShortVersion = match.group('pluginShortVersion')
             self.pluginLongVersion = pluginLongVersion
-            self.versionToCompare = RudderVersion(
-                self.rudderVersion + '-' + self.pluginShortVersion
-            )
+            self.versionToCompare = WebappVersion(self.rudderVersion)
 
     def __hash__(self):
         return hash((self.mode, self.rudderVersion, self.pluginShortVersion))
@@ -98,19 +104,23 @@ class PluginVersion:
         return False
 
     # nightly are inferior to their release equivalent
+    # Compare:
+    #  - WebappVersion
+    #  - then Plugin version
+    #  - then Plugin mode
     def __lt__(self, other):
-        eq = self.versionToCompare == other.versionToCompare
-        if eq == True:
-            return False if self.mode == other.mode else self.mode == 'nightly'
-        else:
-            if StrictVersion(self.rudderVersion) < StrictVersion(other.rudderVersion):
+        if self.__eq__(other) == True:
+            return False
+        selfShortVersion = StrictVersion(self.pluginShortVersion)
+        otherShortVersion = StrictVersion(other.pluginShortVersion)
+        if self.versionToCompare < other.versionToCompare:
+            return True
+        if self.versionToCompare == other.versionToCompare:
+            if selfShortVersion < otherShortVersion:
                 return True
-            elif StrictVersion(self.rudderVersion) == StrictVersion(other.rudderVersion):
-                return StrictVersion(self.pluginShortVersion) < StrictVersion(
-                    other.pluginShortVersion
-                )
-            else:
-                return False
+            elif selfShortVersion == otherShortVersion:
+                return self.mode == 'nightly'
+        return False
 
     def __le__(self, other):
         if self.__eq__(other) == True:
