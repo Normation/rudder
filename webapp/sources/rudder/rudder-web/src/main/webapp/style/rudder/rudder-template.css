@@ -520,7 +520,7 @@
   padding-bottom: 50px;
 }
 .rudder-template .template-main .main-container,
-.rudder-template .template-main .main-table{
+.rudder-template .template-main > .main-table{
   display: flex;
   flex-direction: column;
   height: calc(100vh - 50px);
@@ -882,8 +882,11 @@
 .tab-table-content .table-header .form-control{
   max-width: 420px;
 }
-.tab-table-content .table-container{
-  margin: 0 -15px;
+.rudder-template .main-details .table-container{
+  margin: 0 -15px -10px -15px;
+}
+.rudder-template .main-details .table-container > .dataTable{
+  border-left: none;
 }
 .jstree span.badge-disabled {
   background-color: #04192257;
