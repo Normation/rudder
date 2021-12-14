@@ -910,13 +910,17 @@
   margin-right: 6px;
 }
 /* === CALLOUT === */
-.callout-fade .action-btn{
+.rudder-template .callout-fade .action-btn{
   margin-top: 15px;
 }
-.callout-fade .action-btn > .btn + .btn{
-  margin-left : 10px;
+.rudder-template .callout-fade .action-btn > .btn{
+  margin-right  : 10px;
+  margin-bottom : 10px;
 }
-.callout-fade .action-btn .btn-default > .fa{
+.rudder-template .callout-fade .action-btn > .btn:last-child{
+  margin-right  : 0;
+}
+.rudder-template .callout-fade .action-btn .btn-default > .fa{
   opacity: .5;
   margin-left: 8px;
   position: relative;

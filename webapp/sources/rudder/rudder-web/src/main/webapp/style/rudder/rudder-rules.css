@@ -43,6 +43,13 @@
   width: 100%;
   display: inline-block;
 }
+.rudder-template .callout-fade .action-btn > .btn {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 145px;
+}
 /*================= */
 .main-details .row > div > .callout-fade.callout-info:first-child{
   margin-top: 10px;
