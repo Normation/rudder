@@ -338,7 +338,16 @@ class NodeApi (
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val prettify = params.prettify
       restExtractor.extractNodeDetailLevel(req.params) match {
-        case Full(level) => serviceV6.listNodes(PendingInventory, level, None, version)
+        case Full(level) =>
+          restExtractor.extractQuery(req.params) match {
+            case Full(None) =>
+              serviceV6.listNodes(PendingInventory, level, None, version)
+            case Full(Some(query)) =>
+              serviceV6.queryNodes(query,PendingInventory, level, version)
+            case eb:EmptyBox =>
+              val failMsg = eb ?~ "Query for pending nodes not correctly sent"
+              toJsonError(None, failMsg.msg)("listPendingNodes",prettify)
+          }
         case eb:EmptyBox =>
           val failMsg = eb ?~ "node detail level not correctly sent"
           toJsonError(None, failMsg.msg)(schema.name,prettify)
@@ -988,6 +997,7 @@ class NodeApiService6 (
   , restExtractor             : RestExtractorService
   , restSerializer            : RestDataSerializer
   , acceptedNodeQueryProcessor: QueryProcessor
+  , pendingNodeQueryProcessor : QueryChecker
   , roAgentRunsRepository     : RoReportsExecutionRepository
 ) extends Loggable {
 
@@ -1036,7 +1046,11 @@ class NodeApiService6 (
   def queryNodes ( query: QueryTrait, state: InventoryStatus, detailLevel : NodeDetailLevel, version : ApiVersion)( implicit prettify : Boolean) = {
     implicit val action = s"list${state.name.capitalize}Nodes"
     ( for {
-        nodeIds <-  acceptedNodeQueryProcessor.processOnlyId(query)
+        nodeIds <-  state match {
+          case PendingInventory =>  pendingNodeQueryProcessor.check(query, None)
+          case AcceptedInventory => acceptedNodeQueryProcessor.processOnlyId(query)
+          case _ => Failure(s"Invalid branch used for nodes query, expected either AcceptedInventory or PendingInventory, got ${state}")
+        }
       } yield {
         listNodes(state,detailLevel,Some(nodeIds),version)
       }

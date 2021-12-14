@@ -169,6 +169,8 @@ import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
+import com.normation.rudder.services.queries.PendingNodesLDAPQueryChecker
+
 /*
  * This file provides all the necessary plumbing to allow test REST API.
  *
@@ -577,7 +579,7 @@ class RestTestSetUp {
 
   val nodeApiService2  = new NodeApiService2(null, nodeInfo, null, uuidGen, restExtractorService, restDataSerializer)
   val nodeApiService4  = new NodeApiService4(nodeInfo, nodeInfo, softDao, uuidGen, restExtractorService, restDataSerializer, roReportsExecutionRepository)
-  val nodeApiService6  = new NodeApiService6(nodeInfo, nodeInfo, softDao, restExtractorService, restDataSerializer, mockNodes.queryProcessor, roReportsExecutionRepository)
+  val nodeApiService6  = new NodeApiService6(nodeInfo, nodeInfo, softDao, restExtractorService, restDataSerializer, mockNodes.queryProcessor, null, roReportsExecutionRepository)
   val nodeApiService8  = new NodeApiService8(null, nodeInfo, uuidGen, asyncDeploymentAgent, "relay", null)
   val nodeApiService12 = new NodeApiService12(null, uuidGen, restDataSerializer)
   val nodeApiService13 = new NodeApiService13(nodeInfo, roReportsExecutionRepository, softDao,restExtractorService, () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),null, null, null )

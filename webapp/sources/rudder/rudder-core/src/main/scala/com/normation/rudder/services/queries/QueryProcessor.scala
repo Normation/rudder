@@ -74,6 +74,6 @@ trait QueryChecker {
    *   Full(seq) with seq being the list of nodeId which verify
    *   query.
    */
-  def check(query:QueryTrait, nodeIds:Seq[NodeId]) : Box[Seq[NodeId]]
+  def check(query:QueryTrait, nodeIds:Option[Seq[NodeId]]) : Box[Seq[NodeId]]
 
 }
