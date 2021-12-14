@@ -49,6 +49,8 @@ trait RuleApplicationStatusService {
     , groupLib    : FullNodeGroupCategory
     , directiveLib: FullActiveTechniqueCategory
     , allNodeInfos: Map[NodeId, NodeInfo]
+    , appliedOnNodes : Option[Set[NodeId]] = None // Optionnal parameter: list of node target of this rule
+                                                  // exists because it is already computed in the API call
   ) : ApplicationStatus
 }
 
@@ -63,11 +65,14 @@ class RuleApplicationStatusServiceImpl extends RuleApplicationStatusService {
     , groupLib    : FullNodeGroupCategory
     , directiveLib: FullActiveTechniqueCategory
     , allNodeInfos: Map[NodeId, NodeInfo]
+    , appliedOnNodes : Option[Set[NodeId]] = None // Optionnal parameter: list of node target of this rule
+                                                  // exists because it is already computed in the API call
   ) : ApplicationStatus = {
 
     if(rule.isEnabled) {
       val isAllTargetsEnabled = rule.targets.flatMap( groupLib.allTargets.get(_) ).filter(!_.isEnabled).isEmpty
-      if (groupLib.getNodeIds(rule.targets, allNodeInfos).nonEmpty) {
+      val nodesList = appliedOnNodes.getOrElse(groupLib.getNodeIds(rule.targets, allNodeInfos))
+      if (nodesList.nonEmpty) {
         if(isAllTargetsEnabled) {
           val disabled = (rule.directiveIds
               .flatMap( directiveLib.allDirectives.get(_) )

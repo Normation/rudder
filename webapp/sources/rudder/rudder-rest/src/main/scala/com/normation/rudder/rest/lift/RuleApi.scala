@@ -755,10 +755,13 @@ class RuleApiService14 (
 
   def getRuleApplicationStatus(rule: Rule, groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, nodesLib: Map[NodeId, NodeInfo], globalMode: GlobalPolicyMode): RuleApplicationStatus = {
     val directives = rule.directiveIds.flatMap(directiveLib.allDirectives.get(_)).map{case (a,d)=> (a.toActiveTechnique(), d)}
-    val nodes = groupLib.getNodeIds(rule.targets, nodesLib).flatMap(nodesLib.get)
+    val nodesIds = groupLib.getNodeIds(rule.targets, nodesLib)
+    // for performance reason, it's necessary to keep the .view.filterKeys, as it is 10 times
+    // faster than traditional groupLib.getNodeIds(rule.targets, nodesLib).flatMap(nodesLib.get)
+    val nodes = nodesLib.view.filterKeys( x => nodesIds.contains(x)).values
     val allTargets = rule.targets.flatMap(groupLib.allTargets.get).map(_.toTargetInfo)
     val policyMode = ComputePolicyMode.ruleMode(globalMode, directives.map(_._2), nodes.map(_.policyMode))
-    val applicationStatus = applicationService.isApplied(rule,groupLib,directiveLib,nodesLib)
+    val applicationStatus = applicationService.isApplied(rule,groupLib,directiveLib,nodesLib, Some(nodesIds))
     val applicationStatusDetails = ApplicationStatus.details(rule,applicationStatus, allTargets, directives, nodes)
     RuleApplicationStatus(policyMode, applicationStatusDetails)
   }
