@@ -958,6 +958,7 @@ object RudderConfig extends Loggable {
     , restExtractorService
     , restDataSerializer
     , queryProcessor
+    , inventoryQueryChecker
     , roAgentRunsRepository
   )
 

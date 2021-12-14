@@ -297,7 +297,7 @@ class PendingNodesLDAPQueryChecker(
     val checker:InternalLDAPQueryProcessor
 ) extends QueryChecker {
 
-  override def check(query:QueryTrait, limitToNodeIds:Seq[NodeId]) : Box[Seq[NodeId]] = {
+  override def check(query:QueryTrait, limitToNodeIds:Option[Seq[NodeId]]) : Box[Seq[NodeId]] = {
     if(query.criteria.isEmpty) {
       LoggerFactory.getILoggerFactory.getLogger(Logger.loggerNameFor(classOf[InternalLDAPQueryProcessor])).debug(
         s"Checking a query with 0 criterium will always lead to 0 nodes: ${query}"
@@ -305,7 +305,7 @@ class PendingNodesLDAPQueryChecker(
       Full(Seq.empty[NodeId])
     } else {
       for {
-        res <- checker.internalQueryProcessor(query, Seq("1.1"), Some(limitToNodeIds)).toBox
+        res <- checker.internalQueryProcessor(query, Seq("1.1"), limitToNodeIds).toBox
         ids <- sequence(res.entries) { entry =>
           checker.ldapMapper.nodeDn2OptNodeId(entry.dn).toBox ?~! "Can not get node ID from dn %s".format(entry.dn)
         }
@@ -476,7 +476,8 @@ class InternalLDAPQueryProcessor(
       // If dnMapSets returns a None, then it means that we are ANDing composition with an empty value
       // so we skip the last query
       results  <- optdms match {
-                    case None      => Seq[LDAPEntry]().succeed
+                    case None      =>
+                      Seq[LDAPEntry]().succeed
                     case Some(dms) =>
                       (for {
                         // Ok, do the computation here

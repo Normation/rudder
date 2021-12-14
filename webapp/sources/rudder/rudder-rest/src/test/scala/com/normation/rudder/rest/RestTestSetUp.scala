@@ -149,8 +149,17 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
 import com.normation.box._
+import com.normation.errors.Inconsistency
+import com.normation.inventory.ldap.core.InventoryMapper
+import com.normation.ldap.ldif.DefaultLDIFFileLogger
+import com.normation.ldap.listener.InMemoryDsConnectionProvider
+import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.rudder.db.GenerateCompliance.roLdap
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.rest.v1.RestTechniqueReload
+import com.normation.rudder.services.queries.InternalLDAPQueryProcessor
+import com.normation.rudder.services.queries.PendingNodesLDAPQueryChecker
 
 
 /*
@@ -507,7 +516,7 @@ object RestTestSetUp {
 
   val nodeApiService2  = new NodeApiService2(null, nodeInfo, null, uuidGen, restExtractorService, restDataSerializer)
   val nodeApiService4  = new NodeApiService4(nodeInfo, nodeInfo, softDao, uuidGen, restExtractorService, restDataSerializer, roReportsExecutionRepository)
-  val nodeApiService6  = new NodeApiService6(nodeInfo, nodeInfo, softDao, restExtractorService, restDataSerializer, mockNodes.queryProcessor, roReportsExecutionRepository)
+  val nodeApiService6  = new NodeApiService6(nodeInfo, nodeInfo, softDao, restExtractorService, restDataSerializer, mockNodes.queryProcessor, null, roReportsExecutionRepository)
   val nodeApiService8  = new NodeApiService8(null, nodeInfo, uuidGen, asyncDeploymentAgent, "relay", null)
   val nodeApiService12 = new NodeApiService12(null, uuidGen, restDataSerializer)
   val nodeApiService13 = new NodeApiService13(nodeInfo, roReportsExecutionRepository, softDao,restExtractorService, () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),null, null, null )
