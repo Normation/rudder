@@ -314,7 +314,7 @@ class CheckPendingNodeInDynGroups(
 
         case (h::tail, b, res) => // standard step: takes the group and deals with it
           NodeLogger.PendingNode.Policies.trace("==> process " + h.id.value)
-          (queryChecker.check(h.query, h.testNodes.toSeq).flatMap { nIds =>
+          (queryChecker.check(h.query, Some(h.testNodes.toSeq)).flatMap { nIds =>
             // node matching that group - also include the one from "include" coming from "or" dep
             val setNodeIds = nIds.toSet ++ h.includeNodes
             // get blocked group with h as a dep

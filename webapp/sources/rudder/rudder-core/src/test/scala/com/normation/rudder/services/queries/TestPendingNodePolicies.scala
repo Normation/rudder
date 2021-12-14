@@ -158,7 +158,7 @@ class TestPendingNodePolicies extends Specification {
 
   // a fake query checker
   val queryChecker = new QueryChecker {
-    override def check(query: QueryTrait, nodeIds: Seq[NodeId]): Box[Seq[NodeId]] = {
+    override def check(query: QueryTrait, nodeIds: Option[Seq[NodeId]]): Box[Seq[NodeId]] = {
       // make a 0 criteria request raise an error like LDAP would do,
       // see: https://www.rudder-project.org/redmine/issues/12338
       if(query.criteria.isEmpty) {
@@ -168,7 +168,7 @@ class TestPendingNodePolicies extends Specification {
           case x if(x == dummyQuery0) => Set.empty[NodeId]
           case x if(x == dummyQuery1) => Set(node)
           case x                      => Set(node)
-        }).intersect(nodeIds.toSet).toSeq)
+        }).intersect(nodeIds.getOrElse(Seq(node)).toSet).toSeq)
       }
     }
   }
