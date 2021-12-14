@@ -1,16 +1,19 @@
 module ViewTabContent exposing (..)
 
 import DataTypes exposing (..)
-import Html exposing (Html, button, div, i, span, text, h1, h4, ul, li, input, a, p, form, label, textarea, select, option, table, thead, tbody, tr, th, td, small)
-import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute)
+import Dict
+import Dict.Extra
+import Html exposing (..)
+import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
 import List
 import Maybe.Extra
-import String exposing ( fromFloat)
+import Set
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
-import ComplianceUtils exposing (getRuleCompliance, getDirectiveComputedCompliance, toNodeCompliance)
+import ComplianceUtils exposing (..)
+import Tuple3
 import ViewUtils exposing (..)
 
 
@@ -110,7 +113,7 @@ tabContent model details =
 
           ruleForm =
             ( if model.ui.hasWriteRights then
-              form[class "col-xs-12 col-sm-6 col-lg-7"]
+              Html.form[class "col-xs-12 col-sm-6 col-lg-7"]
               [ div [class "form-group"]
                 [ label[for "rule-name"][text "Name"]
                 , div[]
@@ -147,7 +150,7 @@ tabContent model details =
                 ]
               ]
               else
-              form[class "col-xs-12 col-sm-6 col-lg-7 readonly-form"]
+              Html.form [class "col-xs-12 col-sm-6 col-lg-7 readonly-form"]
               [ div [class "form-group"]
                 [ label[for "rule-name"][text "Name"]
                 , div[][text rule.name]
@@ -191,49 +194,14 @@ tabContent model details =
           ]
       Directives ->
         let
-          buildTableRow : Directive -> List (Html Msg)
-          buildTableRow d =
-            let
-              (compliance, trAttributes, trDetails) = case List.Extra.find (\c -> c.ruleId == rule.id) model.rulesCompliance of
-                Just co ->
-                  case List.Extra.find (\dir -> dir.directiveId == d.id) co.directives of
-                    Just com ->
-                      let
-                        rowId         = d.id.value
-                        rowState      = DirectiveComponentLvl com
-                        rowDetails    = rowComplianceDetails rowId rowState model.ui.directiveFilters (UpdateDirectiveFilters model.ui.directiveFilters) model
-
-                        clickEvent    = onCustomClick (UpdateDirectiveFilters (foldUnfoldRow rowId model.ui.directiveFilters))
-                        trClass       = class (foldedRowClass rowId model.ui.directiveFilters.tableFilters)
-                        complianceBar = buildComplianceBar com.complianceDetails
-                      in
-                        ( complianceBar
-                        , [trClass, clickEvent]
-                        , rowDetails
-                        )
-                    Nothing  -> (text "No report", [], text "")
-                Nothing      -> (text "No report", [], text "")
-
-            in
-              [ tr(trAttributes)
-                [ td[]
-                  [ badgePolicyMode model.policyMode d.policyMode
-                  , text d.displayName
-                  , buildTagsTree d.tags
-                  ]
-                , td[][compliance]
-                ]
-              , trDetails
-              ]
-
           buildListRow : List DirectiveId -> List (Html Msg)
           buildListRow ids =
             let
               --Get more information about directives, to correctly sort them by displayName
               directives =
                 let
-                  knownDirectives = model.directives
-                    |> List.filter (\d -> List.member d.id ids)
+                  knownDirectives = Dict.Extra.keepOnly (Set.fromList (List.map .value ids)) model.directives
+                    |> Dict.values
                     |> List.sortWith (compareOn .displayName)
 
                   -- add missing directives
@@ -260,9 +228,20 @@ tabContent model details =
             in
                 List.map rowDirective directives
 
-          sortedDirectives = model.directives
-            |> List.filter (\d -> List.member d.id rule.directives && (filterSearch model.ui.directiveFilters.tableFilters.filter (searchFieldDirectives d)))
-            |> List.sortWith (getDirectivesSortFunction model.rulesCompliance rule.id model.ui.directiveFilters.tableFilters)
+          fun = byDirectiveCompliance model.policyMode nodeValueCompliance
+          directiveRows = List.map Tuple3.first fun.rows
+          rowId = "byDirectives/"
+          (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Name",Asc)
+
+          sort =   case List.Extra.find (Tuple3.first >> (==) sortId) fun.rows of
+                     Just (_,_,sortFun) -> (\i1 i2 -> sortFun (fun.data model i1) (fun.data model i2))
+                     Nothing -> (\_ _ -> EQ)
+
+          filter = model.ui.directiveFilters.tableFilters.filter
+          childrenSort = Maybe.withDefault [] (Maybe.map .directives details.compliance)    |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.directiveId.value) ) |> List.sortWith sort
+          (directivesChildren, order, newOrder) = case sortOrder of
+             Asc -> (childrenSort, "asc", Desc)
+             Desc -> (List.reverse childrenSort, "desc", Asc)
 
         in
 
@@ -287,27 +266,15 @@ tabContent model details =
               )][]
               , button [class "btn btn-primary btn-sm", onCustomClick Ignore][text "Refresh"]
               ]
-            , div[class "table-container"]
-              [ table [class "dataTable compliance-table"]
-                [ thead[]
-                  [ tr[class "head"]
-                    [ th [class (thClass model.ui.directiveFilters.tableFilters Name      ), onClick (UpdateDirectiveFilters (sortTable model.ui.directiveFilters Name       ))][text "Directive" ]
-                    , th [class (thClass model.ui.directiveFilters.tableFilters Compliance), onClick (UpdateDirectiveFilters (sortTable model.ui.directiveFilters Compliance ))][text "Status"]
-                    ]
+            , div[class "table-container"] [
+                table [class "dataTable compliance-table"] [
+                  thead [] [
+                    tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) directiveRows)
                   ]
-                , tbody[]
-                  ( if(List.length sortedDirectives > 0) then
-                      List.concatMap buildTableRow sortedDirectives
-                    else
-                      [ tr[]
-                        [ td[colspan 2, class "dataTables_empty"][text "There is no directive applied"]
-                        ]
-                      ]
-                  )
+                , tbody [] (List.concatMap (\d ->  showComplianceDetails fun d "" ui.openedRows model) directivesChildren)
                 ]
               ]
             ]
-
           else
             let
               addDirectives : DirectiveId -> Msg
@@ -459,56 +426,21 @@ tabContent model details =
                   ]
       Nodes        ->
         let
-          buildNodesTable : RuleId -> List (Html Msg)
-          buildNodesTable rId =
-            let
-              ruleCompliance = getRuleCompliance model rId
-              nodesList = case ruleCompliance of
-                Nothing -> [tr[][td[colspan 2, class "dataTables_empty"][text "This rule is not applied on any node"]]]
-                Just rc ->
-                  let
-                    nodeItem : NodeComplianceByNode -> List (Html Msg)
-                    nodeItem node =
-                      let
-                        nodeInfo = List.Extra.find (\n -> n.id == node.nodeId.value) model.nodes
-                        nodeName = case nodeInfo of
-                          Just nn -> nn.hostname
-                          Nothing -> "Cannot find node details"
+          fun = byNodeCompliance model.policyMode
+          nodeRows =  List.map Tuple3.first fun.rows
+          rowId = "byNodes/"
+          (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Name",Asc)
 
-                        (compliance, trAttributes, trDetails) = case nodeInfo of
-                          Just nn ->
-                            let
-                              complianceBar = buildComplianceBar node.complianceDetails
-                              rowId         = node.nodeId.value
-                              rowState      = NodeDirectiveLvl node
-                              clickEvent    = onCustomClick (UpdateGroupFilters (foldUnfoldRow rowId model.ui.groupFilters))
-                              trClass       = class (foldedRowClass rowId model.ui.groupFilters.tableFilters)
-                              rowDetails    = rowComplianceDetails rowId rowState model.ui.groupFilters (UpdateGroupFilters model.ui.groupFilters ) model
-                            in
-                              ( complianceBar
-                              , [trClass, clickEvent]
-                              , rowDetails
-                              )
-                          Nothing -> (text "No report", [], text "")
-                      in
+          sort =   case List.Extra.find (Tuple3.first >> (==) sortId) fun.rows of
+                     Just (_,_,sortFun) -> (\i1 i2 -> sortFun (fun.data model i1) (fun.data model i2))
+                     Nothing -> (\_ _ -> EQ)
 
-                        [ tr(trAttributes)
-                          [ td[][ text nodeName ]
-                          , td[][ compliance    ]
-                          ]
-                        , trDetails
-                        ]
+          filter = model.ui.groupFilters.tableFilters.filter
+          childrenSort = Maybe.withDefault [] (Maybe.map .nodes details.compliance)    |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.nodeId.value) )  |> List.sortWith sort
+          (nodesChildren, order, newOrder) = case sortOrder of
+             Asc -> (childrenSort, "asc", Desc)
+             Desc -> (List.reverse childrenSort, "desc", Asc)
 
-                    nodesCompliance = toNodeCompliance rc
-
-                    sortedNodes = nodesCompliance.nodes
-                      |> List.filter (\n -> filterSearch model.ui.groupFilters.tableFilters.filter (searchFieldNodes n model.nodes))
-                      |> List.sortWith (getNodesSortFunction model.ui.groupFilters.tableFilters model.nodes)
-                      |> List.concatMap nodeItem
-                  in
-                    sortedNodes
-            in
-              nodesList
         in
           div[class "tab-table-content"]
             [ div [class "table-title"]
@@ -531,16 +463,12 @@ tabContent model details =
                 )][]
               , button [class "btn btn-primary btn-sm"][text "Refresh"]
               ]
-            , div[class "table-container"]
-              [ table [class "dataTable compliance-table"]
-                [ thead[]
-                  [ tr[class "head"]
-                    [ th [class (thClass model.ui.groupFilters.tableFilters Name       ), onClick (UpdateGroupFilters (sortTable model.ui.groupFilters Name       ))][text "Node"      ]
-                    , th [class (thClass model.ui.groupFilters.tableFilters Compliance ), onClick (UpdateGroupFilters (sortTable model.ui.groupFilters Compliance ))][text "Status"]
-                    ]
+            , div[class "table-container"] [
+                table [class "dataTable compliance-table"] [
+                  thead [] [
+                    tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) nodeRows)
                   ]
-                , tbody[]
-                  (buildNodesTable details.rule.id)
+                , tbody [] (List.concatMap (\d ->  showComplianceDetails fun d rowId ui.openedRows model)  nodesChildren)
                 ]
               ]
             ]

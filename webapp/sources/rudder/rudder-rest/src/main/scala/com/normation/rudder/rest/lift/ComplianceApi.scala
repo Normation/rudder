@@ -336,7 +336,8 @@ class ComplianceAPIService(
                     ByRuleNodeCompliance(
                       nodeId
                       , nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node")
-                      , components.toSeq.sortBy(_._2.componentName).flatMap(_._2.componentValues.values)
+                      , ComplianceLevel.sum(components.map(_._2.compliance))
+                      , components.sortBy(_._2.componentName).flatMap(_._2.componentValues.values)
                     )
                   }.toSeq
                 }
@@ -407,8 +408,8 @@ class ComplianceAPIService(
       val t10 = System.currentTimeMillis()
       TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - Compute result in ${t10 - t9} ms")
       result
-    }
-  }
+   }
+ }
 
   def getRuleCompliance(ruleId: RuleId, level: Option[Int]): Box[ByRuleRuleCompliance] = {
     for {
