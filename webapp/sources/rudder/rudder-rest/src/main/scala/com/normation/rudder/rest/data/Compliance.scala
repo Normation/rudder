@@ -83,7 +83,9 @@ final case class ByRuleRuleCompliance(
   , compliance     : ComplianceLevel
   , mode           : ComplianceModeName
   , directives     : Seq[ByRuleDirectiveCompliance]
-)
+) {
+  lazy val nodes = ByRuleByNodeCompliance.fromDirective(directives).toSeq
+}
 
 final case class ByRuleDirectiveCompliance(
     id        : DirectiveId
@@ -91,6 +93,7 @@ final case class ByRuleDirectiveCompliance(
   , compliance: ComplianceLevel
   , components: Seq[ByRuleComponentCompliance]
 )
+
 
 sealed trait ByRuleComponentCompliance {
   def name : String
@@ -112,9 +115,112 @@ final case class ByRuleValueCompliance(
 final case class ByRuleNodeCompliance(
     id    : NodeId
   , name  : String
+  , compliance: ComplianceLevel
   , values: Seq[ComponentValueStatusReport]
 )
 
+/* This is the same compliance structure than ByRuleByDirectiveCompliance except that the entry point is a Node
+   The full hierarchy is
+   * Node
+   |> * Directive
+      |> * Component Blocks ( There may be no blocks and directly a Value , but the leaf og the tree is a Value)
+         |> * Value
+            |> Reports
+ */
+
+final case class ByRuleByNodeCompliance(
+    id        : NodeId
+  , name      : String
+  , compliance: ComplianceLevel
+  , directives: Seq[ByRuleByNodeByDirectiveCompliance]
+)
+
+final case class ByRuleByNodeByDirectiveCompliance(
+    id        : DirectiveId
+  , name      : String
+  , compliance: ComplianceLevel
+  , components: Seq[ByRuleByNodeByDirectiveByComponentCompliance]
+)
+
+sealed trait ByRuleByNodeByDirectiveByComponentCompliance {
+  def name : String
+  def compliance : ComplianceLevel
+}
+
+final case class ByRuleByNodeByDirectiveByBlockCompliance(
+  name      : String
+  , compliance: ComplianceLevel
+  , subComponents     : Seq[ByRuleByNodeByDirectiveByComponentCompliance]
+) extends ByRuleByNodeByDirectiveByComponentCompliance
+
+final case class ByRuleByNodeByDirectiveByValueCompliance(
+  name      : String
+  , compliance: ComplianceLevel
+  , values     : Seq[ComponentValueStatusReport]
+) extends ByRuleByNodeByDirectiveByComponentCompliance
+
+object ByRuleByNodeCompliance {
+  // The goal here is to build a Compliance structure based on Nodes from a Compliance Structure Based on Directives
+  // That contains Node reference as leaf
+  // So we will go deep in the data structure to take reference to node then reconstruct the tree from the lead
+  def fromDirective(directives : Seq[ByRuleDirectiveCompliance]) = {
+    final case class TmpStruct (directiveId: DirectiveId, blocks: List[String], component:  String, node : ByRuleNodeCompliance)
+
+    // This function do the recursive treatment of components, we will have each time a pair of Sequence of coupl (NodeId , component compliance structure)
+    def recurseComponent( byRuleComponentCompliance: ByRuleComponentCompliance): Seq[(NodeId,ByRuleByNodeByDirectiveByComponentCompliance)] = {
+      byRuleComponentCompliance match {
+        // Block case
+        case b : ByRuleBlockCompliance =>
+          (for {
+              // Treat sub components
+              subComponent <- b.subComponents
+              s <- recurseComponent(subComponent)
+            } yield {
+            s
+          }).groupBy(_._1).map {
+            // All subComponents are regrouped by Node, rebuild our block for each node
+            case (nodeId, s) =>
+              val subs = s.map(_._2)
+              (nodeId,ByRuleByNodeByDirectiveByBlockCompliance(b.name, ComplianceLevel.sum(subs.map(_.compliance)), subs))
+          }.toSeq
+        // Value case
+        case v : ByRuleValueCompliance =>
+          (for {
+            // Regroup Node Compliance by Node id
+            (nodeId, data) <- v.nodes.groupBy(_.id)
+          } yield {
+            // You get all reports that were for a Node matching our value, regroup these report for our node in the structure)
+            (nodeId, ByRuleByNodeByDirectiveByValueCompliance(v.name, ComplianceLevel.sum(data.map(_.compliance)),data.flatMap(_.values)))
+          }).toSeq
+      }
+    }
+    for {
+      // Regroup all Directive by node getting Nodes values from components
+      (nodeId, data) <- directives.flatMap { d =>
+          (for {
+            // Treat all directives deeply
+            subs <- d.components
+            s <- recurseComponent(subs)
+          } yield {
+            s
+          }).groupBy(_._1).map {
+            // All components were regrouped by nodes
+            case (nodeId, s) =>
+            val subs = s.map(_._2)
+            // Rebuild a Directtive compliance for a Node
+            (nodeId,ByRuleByNodeByDirectiveCompliance(d.id,d.name, ComplianceLevel.sum(subs.map(_.compliance)), subs))
+          }
+
+      }.groupBy(_._1)
+    } yield {
+        // All Directive were regrouped by Nodes (_._1), rebuild a strucutre containing all Directives
+        val subs = data.map(_._2)
+        ByRuleByNodeCompliance(nodeId, nodeId.value, ComplianceLevel.sum(subs.map(_.compliance)), subs)
+    }
+  }
+
+
+}
 /**
  * Compliance for a node.
  * It lists:
@@ -209,6 +315,7 @@ object JsonCompliance {
       ~ ("mode" -> rule.mode.name)
       ~ ("complianceDetails" -> percents(rule.compliance))
       ~ ("directives" -> directives(rule.directives, level) )
+      ~ ("nodes" -> byNodes(rule.nodes, level) )
     )
 
     private[this] def directives(directives: Seq[ByRuleDirectiveCompliance], level: Int): Option[JsonAST.JValue] = {
@@ -223,7 +330,31 @@ object JsonCompliance {
         )
        })
     }
+    private[this] def byNodes(nodes: Seq[ByRuleByNodeCompliance], level: Int): Option[JsonAST.JValue] = {
+      if(level < 2) None
+      else Some( nodes.map { node =>
+        (
+          ("id" -> node.id.value)
+            ~ ("name" -> node.name)
+            ~ ("compliance" -> node.compliance.complianceWithoutPending)
+            ~ ("complianceDetails" -> percents(node.compliance))
+            ~ ("directives" -> byNodesByDirectives(node.directives, level))
+          )
+      })
+    }
 
+    private[this] def byNodesByDirectives(directives: Seq[ByRuleByNodeByDirectiveCompliance], level: Int): Option[JsonAST.JValue] = {
+      if(level < 3) None
+      else Some( directives.map { directive =>
+        (
+          ("id" -> directive.id.serialize)
+            ~ ("name" -> directive.name)
+            ~ ("compliance" -> directive.compliance.complianceWithoutPending)
+            ~ ("complianceDetails" -> percents(directive.compliance))
+            ~ ("components" -> byNodeByDirectiveByComponents(directive.components, level))
+          )
+      })
+    }
     private[this] def components(comps: Seq[ByRuleComponentCompliance], level: Int): Option[JsonAST.JValue] = {
       if(level < 3) None
       else Some(comps.map { component =>
@@ -241,25 +372,49 @@ object JsonCompliance {
       })
     }
 
+    private[this] def byNodeByDirectiveByComponents(comps: Seq[ByRuleByNodeByDirectiveByComponentCompliance], level: Int): Option[JsonAST.JValue] = {
+      if(level < 4) None
+      else Some(comps.map { component =>
+        (
+          ("name" -> component.name)
+            ~ ("compliance" -> component.compliance.complianceWithoutPending)
+            ~ ("complianceDetails" -> percents(component.compliance))
+            ~ (component match {
+            case component : ByRuleByNodeByDirectiveByBlockCompliance =>
+              ("components" ->   byNodeByDirectiveByComponents(component.subComponents, level))
+            case component: ByRuleByNodeByDirectiveByValueCompliance =>
+              ("values" -> values(component.values, level))
+          })
+          )
+      })
+    }
+
+    def values(values : Seq[ComponentValueStatusReport], level : Int): Option[JsonAST.JValue] = {
+      if(level < 5) None
+      else Some(values.map { value =>
+        (
+          ("value" -> value.componentValue)
+            ~ ("reports" -> value.messages.map { report =>
+            (
+              ("status" -> statusDisplayName(report.reportType))
+                ~ ("message" -> report.message)
+              )
+          })
+          )
+      })
+    }
     private[this] def nodes(nodes: Seq[ByRuleNodeCompliance], level: Int): Option[JsonAST.JValue] = {
       if(level < 4) None
       else Some(nodes.map { node =>
         (
             ("id" -> node.id.value)
           ~ ("name" -> node.name)
-          ~ ("values" -> node.values.map { value =>
-              (
-                ("value" -> value.componentValue)
-                  ~ ("reports" -> value.messages.map { report =>
-                      (
-                          ("status" -> statusDisplayName(report.reportType))
-                        ~ ("message" -> report.message)
-                      )
-                  })
-              )
-          })
+          ~ ("compliance" -> node.compliance.complianceWithoutPending)
+          ~ ("complianceDetails" -> percents(node.compliance))
+          ~ ("values" -> values(node.values, level))
         )
       })
+
     }
 
   }

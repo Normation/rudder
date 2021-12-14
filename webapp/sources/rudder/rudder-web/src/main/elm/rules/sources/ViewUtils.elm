@@ -1,6 +1,8 @@
 module ViewUtils exposing (..)
 
 import DataTypes exposing (..)
+import Dict exposing (Dict)
+import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, custom)
@@ -12,6 +14,7 @@ import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
 import ComplianceUtils exposing (..)
 import Json.Decode as Decode
+import Tuple3
 
 
 onCustomClick : msg -> Html.Attribute msg
@@ -35,7 +38,7 @@ getRuleNbNodes model ruleId =
   case getRuleCompliance model ruleId of
     Just rc ->
       let
-        nodesCompliance = toNodeCompliance rc
+        nodesCompliance = {nodes = [] }--toNodeCompliance rc
       in
         List.length nodesCompliance.nodes
     Nothing -> 0
@@ -75,10 +78,9 @@ getParentCategoryId categories categoryId =
 thClass : TableFilters -> SortBy -> String
 thClass tableFilters sortBy =
   if sortBy == tableFilters.sortBy then
-    if (tableFilters.sortOrder == True) then
-      "sorting_asc"
-    else
-      "sorting_desc"
+    case  tableFilters.sortOrder of
+      Asc  -> "sorting_asc"
+      Desc -> "sorting_desc"
   else
     "sorting"
 
@@ -86,11 +88,15 @@ sortTable : Filters -> SortBy -> Filters
 sortTable filters sortBy =
   let
     tableFilters = filters.tableFilters
+    order =
+      case tableFilters.sortOrder of
+        Asc -> Desc
+        Desc -> Asc
   in
     if sortBy == tableFilters.sortBy then
-      {filters | tableFilters = {tableFilters | sortOrder = not tableFilters.sortOrder}}
+      {filters | tableFilters = {tableFilters | sortOrder = order}}
     else
-      {filters | tableFilters = {tableFilters | sortBy = sortBy, sortOrder = True}}
+      {filters | tableFilters = {tableFilters | sortBy = sortBy, sortOrder = Asc}}
 
 
 foldedClass : TreeFilters -> String -> String
@@ -135,203 +141,186 @@ getDirectiveName directives directiveId =
     Just di -> di.displayName
     Nothing -> "Cannot find directive details"
 
-rowComplianceDetails : String -> RowState -> Filters -> Msg -> Model -> Html Msg
-rowComplianceDetails rowId rowState filters onClickEvent model =
-  let
-    directives   = model.directives
-    tableFilters = filters.tableFilters
+subItemOrder : ItemFun item subItem data ->  Model -> String -> (item -> item -> Order)
+subItemOrder fun model id  =
+  case List.Extra.find (Tuple3.first >> (==) id) fun.rows of
+    Just (_,_,sort) -> (\i1 i2 -> sort (fun.data model i1) (fun.data model i2))
+    Nothing -> (\_ _ -> EQ)
 
-    innerTableRow : ({rowId : String, rowState : RowState, name : String, value : Html Msg, optional : Maybe (Html Msg)}) -> List (Html Msg)
-    innerTableRow item =
+type alias ItemFun item subItem data =
+  { children : item -> Model -> String ->  List subItem
+  , data : Model -> item -> data
+  , rows : List (String, data -> Html Msg, (data -> data -> Order) )
+  , id : item -> String
+  , childDetails : Maybe (subItem -> String -> Dict String (String, SortOrder) -> Model -> List (Html Msg))
+  , subItemRows : item -> List String
+  }
+
+valueCompliance :  ItemFun ValueCompliance () ValueCompliance
+valueCompliance =
+  ItemFun
+    (\ _ _ _ -> [])
+    (\_ i -> i)
+    [ ("Value", .value >> text, (\d1 d2 -> compare d1.value  d2.value))
+    , ("Messages", .reports >> List.map (\r -> Maybe.withDefault "" r.message) >> List.foldl (++) "\n"  >> text, (\d1 d2 -> compare d1.value d2.value) )
+    , ( "Status", .reports >> buildComplianceReport, (\d1 d2 -> compare d1.value d2.value))
+    ]
+    .value
+    Nothing
+    (always [])
+
+nodeValueCompliance :  ItemFun NodeValueCompliance ValueCompliance NodeValueCompliance
+nodeValueCompliance =
+  ItemFun
+    (\item model sortId ->
       let
-        newRowId       = (rowId ++ "--" ++ item.rowId)
-        trClass        = class (if item.rowState /= NoSublvl then (foldedRowClass newRowId tableFilters) else "")
-        nextClickEvent = case (item.rowState, onClickEvent) of
-          (NoSublvl, _) -> Ignore
-          (_ , UpdateDirectiveFilters f) -> UpdateDirectiveFilters (foldUnfoldRow newRowId model.ui.directiveFilters)
-          (_ , UpdateGroupFilters     f) -> UpdateGroupFilters     (foldUnfoldRow newRowId model.ui.groupFilters    )
-          _ -> Ignore
-        clickEvent     = onCustomClick nextClickEvent
-        trDetails      = rowComplianceDetails newRowId item.rowState filters nextClickEvent model
+        sortFunction =  subItemOrder valueCompliance model sortId
       in
-        [ tr[trClass, clickEvent, id newRowId]
-          [ td [][ text item.name  ]
-          , td [][ item.value ]
-          , ( case item.optional of
-            Just op -> op
-            Nothing -> text ""
-          )
-          ]
-        , trDetails
-        ]
+        List.sortWith sortFunction item.values
+    )
+    (\_ i -> i)
+    [ ("Node", .name >> text,  (\d1 d2 -> compare d1.name d2.name))
+    , ("Compliance", .complianceDetails >> buildComplianceBar ,  (\d1 d2 -> compare d1.compliance d2.compliance))
+    ]
+    (.nodeId >> .value)
+    (Just (\item -> showComplianceDetails valueCompliance item))
+    (always (List.map Tuple3.first valueCompliance.rows))
+
+byComponentCompliance : ItemFun  value subValue valueData -> ItemFun (ComponentCompliance value) (Either (ComponentCompliance value) value) (ComponentCompliance value)
+byComponentCompliance subFun =
+  let
+    name = \item ->
+             case item of
+               Block b -> b.component
+               Value c -> c.component
+    compliance = \item ->
+                   case item of
+                     Block b -> b.complianceDetails
+                     Value c -> c.complianceDetails
   in
-    if List.member rowId tableFilters.unfolded then
-      let
-        ({col1, col2, col3}, items) = case rowState of
-          DirectiveComponentLvl directiveCompliance -> ( {col1 = "Component" , col2 = "Status" , col3 = Nothing } ,
-            directiveCompliance.components
-              |> List.map (\i ->
-                { rowId    = i.component
-                , rowState = DirectiveNodeLvl i
-                , name     = i.component
-                , value    = buildComplianceBar i.complianceDetails
-                , optional = Nothing
-                }
-              )
-            )
-          DirectiveNodeLvl componentCompliance -> ( {col1 = "Node" , col2 = "" , col3 = Nothing } ,
-            componentCompliance.nodes
-              |> List.map (\i ->
-                { rowId    = i.nodeId.value
-                , rowState = DirectiveValueLvl i
-                , name     = i.name
-                , value    = text ""
-                , optional = Nothing
-                }
-              )
-            )
-          DirectiveValueLvl nodeCompliance -> ( {col1 = "Value" , col2 = "Messages" , col3 = Just "Status" } ,
-            nodeCompliance.values
-              |> List.map (\i ->
-                { rowId    = i.value
-                , rowState = NoSublvl
-                , name     = i.value
-                , value    = text ( i.reports
-                  |> List.map (\r -> Maybe.withDefault "" r.message)
-                  |> String.join ", "
-                )
-                , optional = Just ( buildComplianceReport i.reports )
-                }
-              )
-            )
-          NodeDirectiveLvl nodeCompliance      -> ( {col1 = "Directive" , col2 = "Status" , col3 = Nothing } ,
-            nodeCompliance.directives
-              |> List.map (\i ->
-                { rowId    = i.directiveId.value
-                , rowState = NodeComponentLvl i
-                , name     = getDirectiveName directives i.directiveId
-                , value    = buildComplianceBar i.complianceDetails
-                , optional = Nothing
-                }
-              )
-            )
-          NodeComponentLvl directiveByNodeCompliance -> ( {col1 = "Component" , col2 = "Status" , col3 = Nothing } ,
-            directiveByNodeCompliance.components
-              |> List.map (\i ->
-                { rowId    = i.component
-                , rowState = NodeValueLvl i
-                , name     = i.component
-                , value    = buildComplianceBar i.complianceDetails
-                , optional = Nothing
-                }
-              )
-            )
-          NodeValueLvl componentByNodeCompliance -> ( {col1 = "Value" , col2 = "Messages" , col3 = Just "Status" } ,
-            componentByNodeCompliance.value
-              |> List.map (\i ->
-                { rowId    = i.value
-                , rowState = NoSublvl
-                , name     = i.value
-                , value    = text ( i.reports
-                  |> List.map (\r -> Maybe.withDefault "" r.message)
-                  |> String.join ", "
-                )
-                , optional = Just ( buildComplianceReport i.reports )
-                }
-              )
-            )
-          NoSublvl -> ( {col1 = "" , col2 = "" , col3 = Nothing }, [] )
-      in
-        tr[class "details"]
-        [ td [class "details", colspan 2]
-          [ div [class "innerDetails"]
-            [ table [class "dataTable"]
-              [ thead []
-                [ tr [class "head"]
-                  [ th[][ text col1 ]
-                  , th[][ text col2 ]
-                  , ( case col3 of
-                    Just c  -> th[][ text c ]
-                    Nothing -> text ""
-                  )
-                  ]
-                ]
-              , tbody []
-                ( if(List.length items > 0) then
-                    List.concatMap innerTableRow items
-                  else
-                    [ tr[]
-                      [ td[colspan 2, class "dataTables_empty"][text "There is no compliance"]
-                      ]
-                    ]
-                )
-              ]
-            ]
-          ]
-        ]
-      else text ""
-
-getDirectivesSortFunction : List RuleCompliance -> RuleId -> TableFilters -> Directive -> Directive -> Order
-getDirectivesSortFunction rulesCompliance ruleId tableFilter d1 d2 =
-  let
-    order = case tableFilter.sortBy of
-      Name -> NaturalOrdering.compare d1.displayName d2.displayName
-
-      Compliance -> case List.Extra.find (\c -> c.ruleId == ruleId) rulesCompliance of
-        Just co ->
+  ItemFun
+    ( \item model sortId ->
+      case item of
+        Block b ->
           let
-            d1Co = case List.Extra.find (\dir -> dir.directiveId == d1.id) co.directives of
-              Just c  -> getDirectiveComputedCompliance c
-              Nothing -> -2
-            d2Co = case List.Extra.find (\dir -> dir.directiveId == d2.id) co.directives of
-              Just c  -> getDirectiveComputedCompliance c
-              Nothing -> -2
+            sortFunction =  subItemOrder (byComponentCompliance subFun) model sortId
           in
-            compare d1Co d2Co
+             List.map Left (List.sortWith sortFunction b.components)
+        Value c ->
+          let
+            sortFunction =  subItemOrder subFun model sortId
+          in
+             List.map Right (List.sortWith sortFunction c.values)
+    )
+    (\_ i -> i)
+    [ ("Component", name >> text,  (\d1 d2 -> compare (name d1) (name d2)))
+    , ("Compliance", \i -> buildComplianceBar (compliance i), (\d1 d2 -> compare (name d1) (name d2)) )
+    ]
+    name
+    (Just ( \x ->
+      case x of
+        Left  b -> showComplianceDetails (byComponentCompliance subFun) b
+        Right value ->   showComplianceDetails subFun value
+    ))
+    ( \x ->
+      case x of
+        Block _ -> (List.map Tuple3.first (byComponentCompliance subFun).rows)
+        Value _ ->  (List.map Tuple3.first subFun.rows)
+    )
 
-        Nothing -> LT
-      _ -> LT
-  in
-    if tableFilter.sortOrder then
-      order
-    else
-      case order of
-        LT -> GT
-        EQ -> EQ
-        GT -> LT
+byDirectiveCompliance : String -> ItemFun value subValue valueData -> ItemFun (DirectiveCompliance value) (ComponentCompliance value) (Directive, DirectiveCompliance value)
+byDirectiveCompliance  globalPolicy subFun =
+  ItemFun
+    (\item model sortId ->
+      let
+        sortFunction =  subItemOrder (byComponentCompliance subFun) model sortId
+      in
+        List.sortWith sortFunction item.components
+    )
+    (\m i -> (Maybe.withDefault (Directive i.directiveId i.name "" "" "" False False "" []) (Dict.get i.directiveId.value m.directives), i ))
+    [ ("Name", \(d,i) -> span [] [ badgePolicyMode globalPolicy d.policyMode, text d.displayName, buildTagsTree d.tags ],  (\(_,d1) (_,d2) -> compare d1.name d2.name ))
+    , ("Compliance", \(d,i) -> buildComplianceBar  i.complianceDetails,  (\(_,d1) (_,d2) -> compare d1.compliance d2.compliance ))
+    ]
+    (.directiveId >> .value)
+    (Just (\b -> showComplianceDetails (byComponentCompliance subFun) b))
+    (always (List.map Tuple3.first (byComponentCompliance subFun).rows))
 
-getNodesSortFunction : TableFilters -> List NodeInfo -> NodeComplianceByNode -> NodeComplianceByNode -> Order
-getNodesSortFunction tableFilter nodes n1 n2 =
+byNodeCompliance :  String -> ItemFun NodeCompliance (DirectiveCompliance ValueCompliance) NodeCompliance
+byNodeCompliance globalPolicy =
   let
-    order = case tableFilter.sortBy of
-      Name ->
-        let
-         n1Name = case List.Extra.find (\n -> n.id == n1.nodeId.value) nodes of
-           Just nn -> nn.hostname
-           Nothing -> ""
-
-         n2Name = case List.Extra.find (\n -> n.id == n2.nodeId.value) nodes of
-           Just nn -> nn.hostname
-           Nothing -> ""
-        in
-          NaturalOrdering.compare n1Name n2Name
-
-      Compliance ->
-        let
-          n1Co = getNodeComputedCompliance n1
-          n2Co = getNodeComputedCompliance n2
-        in
-          compare n1Co n2Co
-
-      _ -> LT
+    directive = byDirectiveCompliance globalPolicy valueCompliance
   in
-    if tableFilter.sortOrder then
-      order
-    else
-      case order of
-        LT -> GT
-        EQ -> EQ
-        GT -> LT
+  ItemFun
+    (\item model sortId ->
+      let
+        sortFunction =  subItemOrder directive model sortId
+      in
+        List.sortWith sortFunction item.directives
+    )
+    (\_ i -> i)
+    [ ("Node", .name >> text,  (\d1 d2 -> compare d1.name d2.name))
+    , ("Compliance", .complianceDetails >> buildComplianceBar,  (\d1 d2 -> compare d1.compliance d2.compliance))
+    ]
+    (.nodeId >> .value)
+    (Just (\b -> showComplianceDetails directive b))
+    (always (List.map Tuple3.first directive.rows))
+
+
+
+showComplianceDetails : ItemFun item subItems data -> item -> String -> Dict String (String, SortOrder) -> Model -> List (Html Msg)
+showComplianceDetails fun compliance parent openedRows model =
+  let
+    itemRows = List.map Tuple3.second (fun.rows)
+    data = fun.data model compliance
+    detailsRows = List.map (\row -> td [] [row data]) itemRows
+    id = fun.id compliance
+    rowId = parent ++ "/" ++ id
+    rowOpened = Dict.get rowId openedRows
+    defaultSort = Maybe.withDefault "" (List.head (fun.subItemRows compliance))
+    clickEvent =
+      if Maybe.Extra.isJust fun.childDetails then
+        [ onClick (ToggleRow rowId defaultSort) ]
+      else
+        []
+    (details, classes) =
+              case (fun.childDetails, rowOpened) of
+                (Just detailsFun, Just (sortId, sortOrder)) ->
+                  let
+                    childrenSort = fun.children compliance model sortId
+                    (children, order, newOrder) = case sortOrder of
+                      Asc -> (childrenSort, "asc", Desc)
+                      Desc -> (List.reverse childrenSort, "desc", Asc)
+                  in
+                   ([ tr [ class "details" ] [
+                     td [ class "details", colspan 2 ] [
+                       div [ class "innerDetails" ] [
+                         table [class "dataTable compliance-table"] [
+                           thead [] [
+                             tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))  ] [ text row ]) (fun.subItemRows compliance) )
+                           ]
+                         , tbody []
+                            ( if(List.isEmpty children)
+                              then
+                                [ tr [] [ td [colspan 2, class "dataTables_empty" ] [ text "There is no compliance details" ] ] ]
+                              else
+                                let
+                                  sortedChildren = children
+                                in
+                                  List.concatMap (\child ->
+                                    (detailsFun child) rowId openedRows model
+                                  ) sortedChildren
+                            )
+                       ]
+                     ]
+                  ] ] ],
+                          "row-foldable row-open")
+                (Just _, Nothing) -> ([], "row-foldable row-folded")
+                (Nothing, _) -> ([],"")
+  in
+    (tr ( class classes :: clickEvent)
+      detailsRows)
+     :: details
+
 
 searchFieldDirectives d =
   [ d.id.value

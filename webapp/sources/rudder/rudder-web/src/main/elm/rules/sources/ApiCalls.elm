@@ -32,12 +32,12 @@ getRulesTree model =
         , headers         = []
         , url             = getUrl model "/rules/tree"
         , body            = emptyBody
-        , expect          = expectJson decodeGetRulesTree
+        , expect          = expectJson GetRulesResult decodeGetRulesTree
         , timeout         = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send GetRulesResult req
+    req
 
 
 getPolicyMode : Model -> Cmd Msg
@@ -49,12 +49,12 @@ getPolicyMode model =
         , headers         = []
         , url             = getUrl model "/settings/global_policy_mode"
         , body            = emptyBody
-        , expect          = expectJson decodeGetPolicyMode
+        , expect          = expectJson GetPolicyModeResult decodeGetPolicyMode
         , timeout         = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send GetPolicyModeResult req
+    req
 
 getGroupsTree : Model -> Cmd Msg
 getGroupsTree model =
@@ -65,12 +65,12 @@ getGroupsTree model =
         , headers         = []
         , url             = getUrl model "/groups/tree"
         , body            = emptyBody
-        , expect          = expectJson decodeGetGroupsTree
+        , expect          = expectJson GetGroupsTreeResult decodeGetGroupsTree
         , timeout         = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send GetGroupsTreeResult req
+    req
 
 getTechniquesTree : Model -> Cmd Msg
 getTechniquesTree model =
@@ -81,12 +81,12 @@ getTechniquesTree model =
         , headers         = []
         , url             = getUrl model "/directives/tree"
         , body            = emptyBody
-        , expect          = expectJson decodeGetTechniquesTree
+        , expect          = expectJson GetTechniquesTreeResult decodeGetTechniquesTree
         , timeout         = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send GetTechniquesTreeResult req
+    req
 
 getRuleDetails : Model -> RuleId -> Cmd Msg
 getRuleDetails model ruleId =
@@ -97,12 +97,12 @@ getRuleDetails model ruleId =
         , headers         = []
         , url             = getUrl model ("/rules/" ++ ruleId.value)
         , body            = emptyBody
-        , expect          = expectJson decodeGetRuleDetails
+        , expect          = expectJson GetRuleDetailsResult decodeGetRuleDetails
         , timeout         = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send GetRuleDetailsResult req
+    req
 
 getRulesCategoryDetails : Model -> String -> Cmd Msg
 getRulesCategoryDetails model catId =
@@ -113,12 +113,12 @@ getRulesCategoryDetails model catId =
         , headers         = []
         , url             = getUrl model ("/rules/categories/" ++ catId)
         , body            = emptyBody
-        , expect          = expectJson decodeGetCategoryDetails
+        , expect          = expectJson GetCategoryDetailsResult decodeGetCategoryDetails
         , timeout         = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send GetCategoryDetailsResult req
+    req
 
 getRulesCompliance : Model -> Cmd Msg
 getRulesCompliance model =
@@ -127,14 +127,31 @@ getRulesCompliance model =
       request
         { method          = "GET"
         , headers         = []
-        , url             = getUrl model "/compliance/rules?level=6"
+        , url             = getUrl model "/compliance/rules?level=1"
         , body            = emptyBody
-        , expect          = expectJson decodeGetRulesCompliance
+        , expect          = expectJson GetRulesComplianceResult decodeGetRulesCompliance
         , timeout         = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send GetRulesComplianceResult req
+    req
+
+getRulesComplianceDetails : RuleId -> Model -> Cmd Msg
+getRulesComplianceDetails ruleId model =
+  let
+    req =
+      request
+        { method          = "GET"
+        , headers         = []
+        , url             = getUrl model "/compliance/rules/"++ ruleId.value ++ "?level=10"
+        , body            = emptyBody
+        , expect          = expectJson (GetRuleComplianceResult ruleId) decodeGetRulesComplianceDetails
+        , timeout         = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
+
 
 getNodesList : Model -> Cmd Msg
 getNodesList model =
@@ -145,12 +162,12 @@ getNodesList model =
         , headers         = []
         , url             = getUrl model "/nodes"
         , body            = emptyBody
-        , expect          = expectJson decodeGetNodesList
+        , expect          = expectJson GetNodesList decodeGetNodesList
         , timeout         = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send GetNodesList req
+    req
 
 saveRuleDetails : Rule -> Bool -> Model -> Cmd Msg
 saveRuleDetails ruleDetails creation model =
@@ -162,12 +179,12 @@ saveRuleDetails ruleDetails creation model =
         , headers = []
         , url     = getUrl model url
         , body    = encodeRuleDetails ruleDetails |> jsonBody
-        , expect  = expectJson decodeGetRuleDetails
+        , expect  = expectJson SaveRuleDetails decodeGetRuleDetails
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send SaveRuleDetails req
+    req
 
 saveDisableAction : Rule -> Model ->  Cmd Msg
 saveDisableAction ruleDetails model =
@@ -178,12 +195,12 @@ saveDisableAction ruleDetails model =
         , headers = []
         , url     = getUrl model ("/rules/"++ruleDetails.id.value)
         , body    = encodeRuleDetails ruleDetails |> jsonBody
-        , expect  = expectJson decodeGetRuleDetails
+        , expect  = expectJson SaveDisableAction decodeGetRuleDetails
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send SaveDisableAction req
+    req
 
 saveCategoryDetails : (Category Rule) -> String -> Bool -> Model -> Cmd Msg
 saveCategoryDetails category parentId creation model =
@@ -195,12 +212,12 @@ saveCategoryDetails category parentId creation model =
         , headers = []
         , url     = getUrl model url
         , body    = encodeCategoryDetails parentId category |> jsonBody
-        , expect  = expectJson decodeGetCategoryDetails
+        , expect  = expectJson SaveCategoryResult decodeGetCategoryDetails
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send SaveCategoryResult req
+    req
 
 deleteRule : Rule -> Model -> Cmd Msg
 deleteRule rule model =
@@ -211,12 +228,12 @@ deleteRule rule model =
         , headers = []
         , url     = getUrl model "/rules/" ++ rule.id.value
         , body    = emptyBody
-        , expect  = expectJson decodeDeleteRuleResponse
+        , expect  = expectJson DeleteRule decodeDeleteRuleResponse
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send DeleteRule req
+    req
 
 deleteCategory : (Category Rule) -> Model -> Cmd Msg
 deleteCategory category model =
@@ -227,9 +244,9 @@ deleteCategory category model =
         , headers = []
         , url     = getUrl model "/rules/categories/" ++ category.id
         , body    = emptyBody
-        , expect  = expectJson decodeDeleteCategoryResponse
+        , expect  = expectJson DeleteCategory decodeDeleteCategoryResponse
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
   in
-    send DeleteCategory req
+   req
