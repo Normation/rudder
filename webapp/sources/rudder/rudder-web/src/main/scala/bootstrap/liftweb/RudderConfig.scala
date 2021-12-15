@@ -1327,7 +1327,8 @@ object RudderConfig extends Loggable {
       , new SystemApi(restExtractorService,systemApiService11, systemApiService13, rudderMajorVersion, rudderFullVersion, builtTimestamp)
       , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
       , new PluginApi(restExtractorService, pluginSettingsService)
-        // info api must be resolved latter, because else it misses plugin apis !
+      , new RecentChangesAPI(recentChangesService, restExtractorService)
+      // info api must be resolved latter, because else it misses plugin apis !
     )
 
     val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled), None)
@@ -1341,7 +1342,6 @@ object RudderConfig extends Loggable {
   // Internal APIs
   val sharedFileApi = new SharedFilesAPI(restExtractorService,RUDDER_DIR_SHARED_FILES_FOLDER)
   val eventLogApi= new EventLogAPI(eventLogRepository, restExtractorService, eventLogDetailsGenerator, personIdentService)
-
   lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
   lazy val configService: ReadConfigService with UpdateConfigService = {
     new GenericConfigService(

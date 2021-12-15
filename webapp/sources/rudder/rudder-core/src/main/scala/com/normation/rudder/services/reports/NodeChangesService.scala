@@ -352,7 +352,7 @@ class CachedNodeChangesServiceImpl(
             case None    => initCache()
             case Some(c) => update match {
               case ChangesUpdate.Init     =>
-                ReportLoggerPure.Changes.trace("Rule changes cache already initialiazed: not doint it again") *>
+                ReportLoggerPure.Changes.trace("Rule changes cache already initialized: not doing it again") *>
                 c.succeed
               case ChangesUpdate.For(l,h) => syncUpdate(c, l, h)
             }

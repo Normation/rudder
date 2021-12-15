@@ -2,6 +2,7 @@ module DataTypes exposing (..)
 
 import Dict exposing (Dict)
 import Http exposing (Error)
+import Time.ZonedDateTime exposing (ZonedDateTime)
 
 --
 -- All our data types
@@ -181,6 +182,16 @@ type alias RuleStatus =
   , details : Maybe String
   }
 
+type alias RepairedReport =
+  { directiveId        : DirectiveId
+  , nodeId             : NodeId
+  , component          : String
+  , value              : String
+  , executionTimeStamp : ZonedDateTime
+  , executionDate      : ZonedDateTime
+  , message            : String
+  }
+
 type alias ComplianceDetails =
   { successNotApplicable       : Maybe Float
   , successAlreadyOK           : Maybe Float
@@ -200,7 +211,7 @@ type alias ComplianceDetails =
 
 type alias RuleDetailsUI = { editDirectives: Bool, editGroups : Bool, newTag : Tag, openedRows : Dict String (String, SortOrder)  }
 
-type alias RuleDetails = { originRule : Maybe Rule, rule : Rule, tab :  TabMenu, ui : RuleDetailsUI, compliance : Maybe RuleCompliance }
+type alias RuleDetails = { originRule : Maybe Rule, rule : Rule, tab :  TabMenu, ui : RuleDetailsUI, compliance : Maybe RuleCompliance, reports : List RepairedReport }
 
 type alias CategoryDetails = { originCategory : Maybe (Category Rule), category : Category Rule, parentId : String, tab :  TabMenu}
 
@@ -215,6 +226,7 @@ type SortBy
   | Parent
   | Status
   | Compliance
+  | RuleChanges
 
 
 type alias TableFilters =
@@ -242,6 +254,13 @@ type alias UI =
   , hasWriteRights   : Bool
   }
 
+type alias  Changes =
+  { start : ZonedDateTime
+  , end : ZonedDateTime
+  , changes : Float
+  }
+
+
 type alias Model =
   { contextPath     : String
   , mode            : Mode
@@ -250,6 +269,7 @@ type alias Model =
   , groupsTree      : Category Group
   , techniquesTree  : Category Technique
   , rulesCompliance : Dict String RuleComplianceGlobal
+  , changes         : Dict String (List Changes)
   , directives      : Dict String Directive
   , nodes           : Dict String NodeInfo
   , ui              : UI
@@ -265,6 +285,7 @@ type Msg
   | UpdateCategoryForm CategoryDetails
   | NewRule RuleId
   | NewCategory String
+  | GetRepairedReport        RuleId Int
   | CallApi                  (Model -> Cmd Msg)
   | GetRuleDetailsResult     (Result Error Rule)
   | GetPolicyModeResult      (Result Error String)
@@ -277,6 +298,8 @@ type Msg
   | SaveCategoryResult       (Result Error (Category Rule))
   | GetRulesResult           (Result Error (Category Rule))
   | GetGroupsTreeResult      (Result Error (Category Group))
+  | GetRuleChanges           (Result Error (Dict String (List Changes)))
+  | GetRepairedReportsResult RuleId ZonedDateTime ZonedDateTime (Result Error (List RepairedReport))
   | GetTechniquesTreeResult  (Result Error ((Category Technique, List Technique)))
   | DeleteRule               (Result Error (RuleId, String))
   | DeleteCategory           (Result Error (String, String))
