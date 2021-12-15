@@ -391,7 +391,7 @@ pipeline {
                                       options: [artifactsPublisher(disabled: true)]
                             ) {
                                 // we need to use $MVN_COMMAND to get the settings file path
-                                sh script: '$MVN_CMD -Dmaven.test.skip=true --update-snapshots clean package deploy', label: "webapp deploy"
+                                sh script: '$MVN_CMD --update-snapshots package deploy', label: "webapp deploy"
                             }
                         }
                     }
