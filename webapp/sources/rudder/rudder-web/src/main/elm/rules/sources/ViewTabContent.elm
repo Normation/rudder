@@ -5,7 +5,7 @@ import Dict
 import Dict.Extra
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onClick, onInput, onSubmit)
 import List.Extra
 import List
 import Maybe.Extra
@@ -113,7 +113,7 @@ tabContent model details =
 
           ruleForm =
             ( if model.ui.hasWriteRights then
-              Html.form[class "col-xs-12 col-sm-6 col-lg-7"]
+              Html.form[class "col-xs-12 col-sm-6 col-lg-7", onSubmit Ignore]
               [ div [class "form-group"]
                 [ label[for "rule-name"][text "Name"]
                 , div[]
