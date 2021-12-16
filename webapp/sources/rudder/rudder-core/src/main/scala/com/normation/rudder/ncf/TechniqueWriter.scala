@@ -143,7 +143,7 @@ object RuddercOptionsForTarget {
 object RuddercOptionForSave {
   def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String] = {
     "save" :: "--json-logs" ::
-    "-input" :: s"""${ruddercConfig.outputPath}/${techniquePath}/technique.json""" ::
+    "--input" :: s"""${ruddercConfig.outputPath}/${techniquePath}/technique.json""" ::
     s"--config-file=${ruddercConfig.configFilePath}" :: Nil
   }
 }
