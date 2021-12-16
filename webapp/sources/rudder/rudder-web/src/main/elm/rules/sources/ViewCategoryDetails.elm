@@ -3,7 +3,7 @@ module ViewCategoryDetails exposing (..)
 import DataTypes exposing (..)
 import Html exposing (Html, button, div, i, span, text, h1, h4, ul, li, input, a, p, form, label, textarea, select, option, table, thead, tbody, tr, th, td, small)
 import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onClick, onInput, onSubmit)
 import List.Extra
 import List
 import Maybe.Extra
@@ -28,7 +28,7 @@ editionTemplateCat model details =
 
     categoryForm =
       if model.ui.hasWriteRights then
-        form[class "col-xs-12 col-sm-6 col-lg-7"]
+        form[class "col-xs-12 col-sm-6 col-lg-7", onSubmit Ignore]
         [ div [class "form-group"]
           [ label[for "category-name"][text "Name"]
           , div[]
@@ -48,7 +48,7 @@ editionTemplateCat model details =
           ]
         ]
       else
-        form[class "col-xs-12 col-sm-6 col-lg-7 readonly-form"]
+        form[class "col-xs-12 col-sm-6 col-lg-7 readonly-form", onSubmit Ignore]
         [ div [class "form-group"]
           [ label[for "category-name"][text "Name"]
           , div[][text category.name]
