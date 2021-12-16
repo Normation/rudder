@@ -7,7 +7,7 @@ use crate::{
     input::{read_compressed_file, signature, watch::*},
     metrics::{REPORTS, REPORTS_PROCESSING_DURATION, REPORTS_SIZE_BYTES},
     output::{
-        database::{insert_runlog, InsertionBehavior, RunlogInsertion},
+        database::{insert_runlog, RunlogInsertion},
         upstream::send_report,
     },
     processing::{failure, success, OutputError, ReceivedFile},
@@ -224,7 +224,6 @@ async fn output_report_database_inner(
                 .clone()
                 .expect("output uses database but no config provided"),
             &filtered_runlog,
-            InsertionBehavior::SkipDuplicate,
         )
     })
     .await?;

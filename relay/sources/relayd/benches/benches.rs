@@ -124,7 +124,7 @@ fn bench_insert_runlog(c: &mut Criterion) {
     c.bench_function("insert runlog", move |b| {
         b.iter(|| {
             assert_eq!(
-                insert_runlog(&pool, &runlog, InsertionBehavior::AllowDuplicate).unwrap(),
+                insert_runlog(&pool, &runlog).unwrap(),
                 RunlogInsertion::Inserted
             );
         })

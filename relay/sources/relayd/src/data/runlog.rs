@@ -56,6 +56,23 @@ impl InsertedRunlog {
     }
 }
 
+/// Type of agent log
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum RunLogType {
+    /// Complete policy run, which means we can use this result
+    /// as compliance source
+    Complete,
+    /// Partial policy run, the run log is not to be considered
+    /// as a full agent output but informational reports.
+    /// This happens for example when running an isolated inventory
+    /// or directly running specific directives.
+    ///
+    /// The heuristic to detect such logs is to look for the
+    /// start report (the end report may be missing because of
+    /// an agent interruption).
+    Partial,
+}
+
 /// We want to allow invalid runlogs as much as possible
 /// to let the webapp give meaningful feedback to the user.
 /// The only constraint is that the runlog contains at least one proper report.
@@ -101,6 +118,20 @@ impl RunLog {
                 .filter(|r| !types.contains(&r.event_type))
                 .cloned()
                 .collect(),
+        }
+    }
+
+    /// Is the `RunLog` an actual agent run, with a start and (hopefully) an end,
+    /// or a partial policy run, like happens with `rudder agent inventory`.
+    pub fn log_type(&self) -> RunLogType {
+        if self
+            .reports
+            .iter()
+            .any(|r| r.event_type == "control" && r.component == "start")
+        {
+            RunLogType::Complete
+        } else {
+            RunLogType::Partial
         }
     }
 }
@@ -192,6 +223,7 @@ mod tests {
             let path = entry.unwrap().path();
             if path.extension().unwrap() == "json" {
                 let runlog = RunLog::new(&path.with_extension("log")).unwrap();
+                assert_eq!(runlog.log_type(), RunLogType::Complete);
                 //println!("{}", serde_json::to_string_pretty(&runlog).unwrap());
                 let reference: RunLog =
                     serde_json::from_str(&read_to_string(path).unwrap()).unwrap();
