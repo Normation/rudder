@@ -3,7 +3,11 @@
 
 use crate::{
     configuration::main::DatabaseConfig,
-    data::{report::QueryableReport, runlog::InsertedRunlog, RunLog},
+    data::{
+        report::QueryableReport,
+        runlog::{InsertedRunlog, RunLogType},
+        RunLog,
+    },
     Error,
 };
 use diesel::{
@@ -67,12 +71,6 @@ pub enum RunlogInsertion {
     AlreadyThere,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum InsertionBehavior {
-    SkipDuplicate,
-    AllowDuplicate,
-}
-
 pub fn ping(pool: &PgPool) -> Result<(), Error> {
     use self::schema::ruddersysevents::dsl::*;
     let connection = &*pool.get()?;
@@ -83,11 +81,7 @@ pub fn ping(pool: &PgPool) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn insert_runlog(
-    pool: &PgPool,
-    runlog: &RunLog,
-    behavior: InsertionBehavior,
-) -> Result<RunlogInsertion, Error> {
+pub fn insert_runlog(pool: &PgPool, runlog: &RunLog) -> Result<RunlogInsertion, Error> {
     use self::schema::{
         reportsexecution::dsl::*,
         ruddersysevents::dsl::{nodeid, *},
@@ -126,7 +120,7 @@ pub fn insert_runlog(
             .optional()?
             .is_none();
 
-        if behavior == InsertionBehavior::AllowDuplicate || new_runlog {
+        if new_runlog {
             trace!("Inserting runlog {:#?}", runlog);
             let report_id = insert_into(ruddersysevents)
                 .values(&runlog.reports)
@@ -135,11 +129,17 @@ pub fn insert_runlog(
                 .expect("inserted runlog cannot be empty")
                 .id;
 
-            if new_runlog {
+            // Only insert full run logs into `reportsexecution`
+            if runlog.log_type() == RunLogType::Complete {
                 let runlog_info = InsertedRunlog::new(runlog, report_id);
                 insert_into(reportsexecution)
                     .values(runlog_info)
                     .execute(connection)?;
+            } else {
+                debug!(
+                    "The {} runlog was not inserted into 'reportsexecution' as it was not complete",
+                    runlog.info
+                );
             }
 
             Ok(RunlogInsertion::Inserted)
@@ -198,7 +198,7 @@ mod tests {
         // Test inserting the runlog
 
         assert_eq!(
-            insert_runlog(&pool, &runlog, InsertionBehavior::SkipDuplicate).unwrap(),
+            insert_runlog(&pool, &runlog).unwrap(),
             RunlogInsertion::Inserted
         );
 
@@ -217,7 +217,7 @@ mod tests {
         // Test inserting twice the same runlog
 
         assert_eq!(
-            insert_runlog(&pool, &runlog, InsertionBehavior::SkipDuplicate).unwrap(),
+            insert_runlog(&pool, &runlog).unwrap(),
             RunlogInsertion::AlreadyThere
         );
 

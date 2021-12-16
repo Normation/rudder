@@ -7,6 +7,19 @@
     "reports": [
         {
             "start_datetime": "2020-03-24T12:29:53+00:00",
+            "rule_id": "rudder",
+            "directive_id": "run",
+            "component": "start",
+            "key_value": "20200324-102421-f6947255",
+            "event_type": "control",
+            "msg": "Start execution",
+            "policy": "Common",
+            "node_id": "root",
+            "execution_datetime": "2020-03-24T12:29:54+00:00",
+            "serial": 0
+        },
+        {
+            "start_datetime": "2020-03-24T12:29:53+00:00",
             "rule_id": "hasPolicyServer-root",
             "directive_id": "common-root",
             "component": "ncf Initialization",
