@@ -113,38 +113,63 @@ final case class MethodNotFound(message : String, exception : Option[Throwable])
  * with the given input file and config file
  */
 trait RuddercOptionsForTarget[T <: RuddercTarget] {
-  def options(inputFilePath: String, configFilePath: String): List[String]
+  def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String]
   def targetName: String
 }
 
 object RuddercOptionsForTarget {
+  // the compile line is common to both target, only the file extension type for agent changes
+  def buildOptions(extension: String, techniquePath: String)(implicit ruddercConfig: RuddercConfig) = {
+    "compile" :: "--json-logs" :: "-f" :: extension ::
+    "-input" :: s"""${ruddercConfig.outputPath}/${techniquePath}/technique.rd""" ::
+    s"--config-file=${ruddercConfig.configFilePath}" :: Nil
+  }
+
   implicit val cfengineRuddercOption = new RuddercOptionsForTarget[RuddercTarget.CFEngine.type] {
-    override def options(inputFilePath: String, configFilePath: String): List[String] = {
-      "compile" :: "-j" :: "-f" :: "cf" :: "-i" :: inputFilePath :: s"--config-file=${configFilePath}" :: Nil
+    override def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String] = {
+      buildOptions("cf", techniquePath)
     }
     override def targetName: String = "CFEngine"
   }
 
   implicit val dscRuddercOption = new RuddercOptionsForTarget[RuddercTarget.DSC.type] {
-    override def options(inputFilePath: String, configFilePath: String): List[String] = {
-      "compile" :: "-j" :: "-f" :: "dsc" :: "-i" :: inputFilePath :: s"--config-file=${configFilePath}" :: Nil
+    override def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String] = {
+      buildOptions("dsc", techniquePath)
     }
     override def targetName: String = "DSC"
   }
 }
 
-class RudderCRunner (
+object RuddercOptionForSave {
+  def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String] = {
+    "save" :: "--json-logs" ::
+    "-input" :: s"""${ruddercConfig.outputPath}/${techniquePath}/technique.json""" ::
+    s"--config-file=${ruddercConfig.configFilePath}" :: Nil
+  }
+}
+
+final case class RuddercConfig(
+    configFilePath : String
+  , rudderCPath    : String
+  , outputPath     : String
+)
+
+class RudderCRunner(
     configFilePath : String
   , rudderCPath    : String
   , outputPath     : String
 ) {
 
+  implicit val config = RuddercConfig(configFilePath, rudderCPath, outputPath)
   import RuddercOptionsForTarget._
 
-  def compileForTarget[T <: RuddercTarget](techniquePath: String, configFilePath: String)(implicit ruddercOptionsForTarget: RuddercOptionsForTarget[T]) = {
+  /*
+   * `techniquePath` is the relative path of the technique.
+   */
+  def compileForTarget[T <: RuddercTarget](techniquePath: String)(implicit ruddercOptionsForTarget: RuddercOptionsForTarget[T]) = {
     for {
       time_1 <- currentTimeMillis
-      r      <- RunNuCommand.run(Cmd(rudderCPath, ruddercOptionsForTarget.options(s"""${outputPath}/${techniquePath}/technique.json""", configFilePath), Map.empty))
+      r      <- RunNuCommand.run(Cmd(rudderCPath, ruddercOptionsForTarget.options(techniquePath), Map.empty))
       res    <- r.await
       _      <- ZIO.when(res.code != 0) {
                   Inconsistency(
@@ -158,8 +183,12 @@ class RudderCRunner (
 
   def writeOne[T <: RuddercTarget](target: T, ruddercTargets: Set[RuddercTarget], technique: EditorTechnique, methods: Map[BundleName, GenericMethod], fallback: AgentSpecificTechniqueWriter, outputPath: String, configFilePath: String) = {
     if(ruddercTargets.contains(target)) {
-      TechniqueWriterLoggerPure.debug(s"Using rudderc for target '${target.name}' for technique '${technique.path}'") *>
-      compileForTarget[RuddercTarget.CFEngine.type](s"""${outputPath}/${technique.path}/technique.json""", configFilePath)
+      TechniqueWriterLoggerPure.debug(s"Using rudderc for target '${target.name}' for technique '${technique.path}'") *> {
+        target match {
+          case RuddercTarget.DSC      => compileForTarget[RuddercTarget.DSC.type](technique.path)
+          case RuddercTarget.CFEngine => compileForTarget[RuddercTarget.CFEngine.type](technique.path)
+        }
+      }
     } else {
       TechniqueWriterLoggerPure.debug(s"Using fallback technique generation in place of rudderc for technique '${technique.path}' because target '${target.name}' not enabled in settings") *>
       fallback.writeAgentFiles(technique, methods)
@@ -170,7 +199,7 @@ class RudderCRunner (
 
     for {
       time_0 <- currentTimeMillis
-      r      <- RunNuCommand.run(Cmd(rudderCPath, "save" :: "-j" :: "-i" :: s"""${outputPath}/${technique.path}/technique.json""" :: s"--config-file=${configFilePath}" :: Nil, Map.empty))
+      r      <- RunNuCommand.run(Cmd(rudderCPath, RuddercOptionForSave.options(technique.path), Map.empty))
       res    <- r.await
       _      <- ZIO.when(res.code != 0) {
                   Inconsistency(
