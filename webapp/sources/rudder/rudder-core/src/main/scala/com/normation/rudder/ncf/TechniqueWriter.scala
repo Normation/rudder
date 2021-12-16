@@ -121,7 +121,7 @@ object RuddercOptionsForTarget {
   // the compile line is common to both target, only the file extension type for agent changes
   def buildOptions(extension: String, techniquePath: String)(implicit ruddercConfig: RuddercConfig) = {
     "compile" :: "--json-logs" :: "--format" :: extension ::
-    "-input" :: s"""${ruddercConfig.outputPath}/${techniquePath}/technique.rd""" ::
+    "--input" :: s"""${ruddercConfig.outputPath}/${techniquePath}/technique.rd""" ::
     s"--config-file=${ruddercConfig.configFilePath}" :: Nil
   }
 
