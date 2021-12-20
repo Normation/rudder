@@ -46,8 +46,11 @@ import bootstrap.liftweb.BootstrapChecks
 
 import zio._
 import com.normation.inventory.domain.NodeId
+import com.normation.ldap.sdk.BuildFilter
 import com.normation.rudder.domain.Constants
 import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.LDAPEntry
+import com.normation.ldap.sdk.One
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.domain.eventlog.RudderEventActor
@@ -71,6 +74,8 @@ import com.normation.errors._
 import com.normation.zio._
 import com.softwaremill.quicklens._
 import org.eclipse.jgit.lib.PersonIdent
+
+import java.nio.charset.StandardCharsets
 
 /*
  * This migration check looks if we need to migrate a 6.x Rudder to a 7.x set of
@@ -357,6 +362,44 @@ class MigrateTechniques6_x_7_0(
   }
 
   /*
+   * We need to migrate rules that use server role target to corresponding policy server one
+   * (see https://issues.rudder.io/issues/20460):
+   * -  special:all_nodes_without_role => special:all_exceptPolicyServers
+   * -  special:all_servers_with_role => special:all_policyServers
+   *
+   * We can use any unserialisation tool since they won't work anymore on missing targets, so we just do
+   * a search and a sed in rule target. This will also allow to not care about where the special target was
+   * used (json, simple string, etc)
+   */
+  def migrateServerRolesRuleTarget(): IOResult[Unit] = {
+    def replace(e: LDAPEntry, attr: String, from: String, to: String): LDAPEntry = {
+      e.attribute(attr) match {
+        case None    => e //should not happen
+        case Some(a) =>
+          val values = a.getValues.map( _.replaceAll(from, to) )
+          e.resetValuesTo(attr, values.toIndexedSeq:_*)
+          e
+      }
+    }
+    def updateRuleWithTarget(oldTarget: String, newTarget: String) = {
+      for {
+        con     <- ldap
+        rules   <- con.search(SystemConfig.ruleBaseDn, One, BuildFilter.SUB(RudderLDAPConstants.A_RULE_TARGET, null, Array(oldTarget.getBytes(StandardCharsets.UTF_8)), null))
+        updated =  rules.map(r => replace(r, RudderLDAPConstants.A_RULE_TARGET, oldTarget, newTarget))
+        saved   <- ZIO.foreach(updated) { r =>
+                     con.save(r).catchAll(err =>
+                       MigrationLoggerPure.warn(s"Error when migrating target '${oldTarget}' to new target '${newTarget}' in " +
+                                                s"rule '${r("cn").getOrElse(r("ruleId").getOrElse(r.dn.toString))}': ${err.fullMsg}")
+                     )
+                   }
+      } yield ()
+    }
+
+    updateRuleWithTarget("special:all_nodes_without_role", "special:all_exceptPolicyServers") *>
+    updateRuleWithTarget("special:all_servers_with_role", "special:all_policyServers")
+  }
+
+  /*
    * We need to clean old server roles config objects, which are:
    * - remove active technique and directives and rule "server-roles"
    * - remove target ruleTarget=special:all_nodes_without_role
@@ -463,6 +506,8 @@ class MigrateTechniques6_x_7_0(
       _ <- ZIO.foreach(nodeIds)(finalMoveAndCleanOne(_))
       // then we clean distribute policy, so that migration is "DONE"
       _ <- cleanDistributePolicy()
+      // migrate rules with server role target to corresponding policy server target
+      _ <- migrateServerRolesRuleTarget()
       // and finally we clean server-roles
       _ <- cleanServerRolesConfig()
       _ <- MigrationLoggerPure.info(s"Migration of all system configuration to Rudder 7.0: done")

@@ -130,6 +130,15 @@ description: All nodes known by Rudder (excluding Rudder policy servers)
 isEnabled: TRUE
 isSystem: TRUE
 
+dn: ruleTarget=special:all_policyServers,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialRuleTarget
+objectClass: top
+ruleTarget: special:all_policyServers
+cn: All policy servers
+description: All policy servers (root policy server and relays)
+isEnabled: TRUE
+isSystem: TRUE
+
 dn: nodeGroupId=all-nodes-with-cfengine-agent,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: nodeGroup
 objectClass: top

@@ -94,7 +94,7 @@ get:
                             or:
                               - special:all
                               - special:all_exceptPolicyServers
-                              - special:all_nodes_without_role
+                              - special:all_policyServers
                           exclude:
                             or: []
                       enabled: false

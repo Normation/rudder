@@ -106,7 +106,6 @@ import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.inventory.PostCommitInventoryHooks
 import com.normation.rudder.metrics._
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
-import com.normation.rudder.migration._
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.ncf.ResourceFileService
@@ -173,8 +172,8 @@ import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
 import bootstrap.liftweb.checks.consistency.CheckConnections
 import bootstrap.liftweb.checks.consistency.CheckDIT
 import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
+import bootstrap.liftweb.checks.migration.CheckAddSpecialTargetAllPolicyServers
 import bootstrap.liftweb.checks.migration.CheckMigratedSystemTechniques
-import bootstrap.liftweb.checks.migration.CheckMigrationXmlFileFormat5_6
 import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
 import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
 
@@ -2336,18 +2335,6 @@ object RudderConfig extends Loggable {
   lazy val healthcheckNotificationService = new HealthcheckNotificationService(healthcheckService, RUDDER_HEALTHCHECK_PERIOD)
 
   /**
-   * Event log migration
-   */
-
-  private[this] lazy val migrationRepository = new MigrationEventLogRepository(doobie)
-
-  private[this] lazy val controlXmlFileFormatMigration_5_6 = new ControlXmlFileFormatMigration_5_6(
-      migrationEventLogRepository = migrationRepository
-    , doobie
-    , previousMigrationController = None
-  )
-
-  /**
    * *************************************************
    * Bootstrap check actions
    * **************************************************
@@ -2359,6 +2346,7 @@ object RudderConfig extends Loggable {
       techniqueRepositoryImpl
       , uuidGen
     )
+    , new CheckAddSpecialTargetAllPolicyServers(rwLdap)
     , new CheckMigratedSystemTechniques(policyServerManagementService, gitConfigRepo, nodeInfoService, rwLdap, techniqueRepository, techniqueRepositoryImpl, uuidGen, woDirectiveRepository, woRuleRepository)
     , new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
     , new CheckInitUserTemplateLibrary(

@@ -6,7 +6,6 @@ example: policyServer:root
 enum:
   - special:all
   - special:all_exceptPolicyServers
-  - special:all_servers_with_role
-  - special:all_nodes_without_role
+  - special:all_policyServers
   - policyServer:${policyServerId}
   - group:${nodeGroupId}
