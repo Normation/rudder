@@ -485,7 +485,7 @@ object ReportingLogic {
       case WorstReportWeightedOne.value => Right(WorstReportWeightedOne)
       case WorstReportWeightedSum.value => Right(WorstReportWeightedSum)
       case WeightedReport.value         => Right(WeightedReport)
-      case s"FocusReport.key}:${a}"     => Right(FocusReport(a))
+      case s"${FocusReport.key}:${a}"   => Right(FocusReport(a))
       case FocusReport.key              => Right(FocusReport(defaultFocusKey))
       case _                            => Left(Unexpected(s"Value '${value}' is not a valid reporting composition rule."))
     }
