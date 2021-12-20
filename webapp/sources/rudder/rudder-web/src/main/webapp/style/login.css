@@ -1,9 +1,6 @@
 html,body{
 	padding: 0;
 }
-.no-padding{
-  padding: 0 !important;
-}
 #login-page{
 	background-color: #041922;
 	background-image: url(../images/login/background.jpg);
@@ -137,12 +134,17 @@ html,body{
 #login-page #formbox .form-footer{
 	background-color: #041922;
 	color: #fff;
-	padding-top: 30px;
 	border-bottom-left-radius:4px;
 	border-bottom-right-radius:4px;
+    display: flex;
+    float: left;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 30px 0;
 }
-#login-page #formbox .form-footer div{
-	margin-bottom: 15px;
+#login-page #formbox .form-footer > .flex-col > div:first-child{
+    margin-bottom: 20px;
 }
 #login-page #formbox .form-footer div a{
 	color: #fff;
