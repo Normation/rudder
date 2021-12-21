@@ -190,6 +190,7 @@ final case class FullNodeGroupCategory(
       case FullOtherTarget(t) => t match {
         case AllTarget => true
         case AllTargetExceptPolicyServers => !node.isPolicyServer
+        case AllPolicyServers => node.isPolicyServer
         case PolicyServerTarget(id) => id == node.id
       }
     } }

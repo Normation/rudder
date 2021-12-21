@@ -2066,6 +2066,9 @@ object RudderConfig extends Loggable {
       , POSTGRESQL_IS_LOCAL
   )}
 
+
+  lazy val policyGenerationBootGuard = zio.Promise.make[Nothing, Unit].runNow
+
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentActor = {
     val agent = new AsyncDeploymentActor(
         deploymentService
@@ -2073,6 +2076,7 @@ object RudderConfig extends Loggable {
       , deploymentStatusSerialisation
       , () => configService.rudder_generation_delay()
       , () => configService.rudder_generation_trigger()
+      , policyGenerationBootGuard
     )
     techniqueRepositoryImpl.registerCallback(
         new DeployOnTechniqueCallback("DeployOnPTLibUpdate", 1000, agent)

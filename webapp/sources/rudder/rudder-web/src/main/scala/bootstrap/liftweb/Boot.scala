@@ -554,6 +554,10 @@ class Boot extends Loggable {
         ApplicationLogger.error(s"Error when trying to save the EventLog for application start: ${err.fullMsg}")
       case Right(_)  => ApplicationLogger.info("Application Rudder started")
     }
+
+    // release guard for promise generation awaiting end of boot
+    RudderConfig.policyGenerationBootGuard.succeed(()).runNow
+
   }
 
   // Run a health check

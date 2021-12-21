@@ -169,6 +169,7 @@ import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
+import com.normation.zio._
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -308,7 +309,11 @@ class RestTestSetUp {
     override def runFailureHooks(generationTime: DateTime, endTime: DateTime, systemEnv: HookEnvPairs, errorMessage: String, errorMessagePath: String): Box[Unit] = ???
     override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = ???
   }
-  val asyncDeploymentAgent = new AsyncDeploymentActor(policyGeneration, eventLogger, deploymentStatusSerialisation, () => Duration("0s").succeed, () => AllGeneration.succeed)
+  val bootGuard = (for {
+    p <- Promise.make[Nothing, Unit]
+    _ <- p.succeed(())
+  } yield p).runNow
+  val asyncDeploymentAgent = new AsyncDeploymentActor(policyGeneration, eventLogger, deploymentStatusSerialisation, () => Duration("0s").succeed, () => AllGeneration.succeed, bootGuard)
 
   val findDependencies  = new FindDependencies { //never find any dependencies
     override def findRulesForDirective(id: DirectiveUid): IOResult[Seq[Rule]] = Nil.succeed
