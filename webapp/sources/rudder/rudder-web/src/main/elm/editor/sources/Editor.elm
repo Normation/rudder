@@ -90,7 +90,7 @@ parseDraftsResponse json =
 mainInit : { contextPath : String, hasWriteRights : Bool  } -> ( Model, Cmd Msg )
 mainInit initValues =
   let
-    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty Introduction initValues.contextPath "" (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing
+    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty Introduction initValues.contextPath "" (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing
   in
     (model, Cmd.batch ( [ getDrafts (), getMethods model, getTechniquesCategories model]) )
 
@@ -862,3 +862,5 @@ update msg model =
         Introduction -> (model, Cmd.none)
         TechniqueDetails t e u ->
           ({model | mode = TechniqueDetails t e {u | enableDragDrop = Just id} }, Cmd.none )
+    HoverMethod id ->
+      ({model | isMethodHovered = id} , Cmd.none)
