@@ -140,6 +140,7 @@ type alias Model =
   , modal              : Maybe ModalState
   , hasWriteRights     : Bool
   , dropTarget         : Maybe DropElement
+  , isMethodHovered    : Maybe MethodId
   }
 
 type ResourceState = New | Untouched | Deleted | Modified
@@ -257,6 +258,7 @@ type Msg =
   | DisableDragDrop
   | EnableDragDrop CallId
   | ToggleDropdown String
+  | HoverMethod (Maybe CallId)
 
 dragDropMessages : DragDrop.Messages Msg DragElement DropElement
 dragDropMessages =

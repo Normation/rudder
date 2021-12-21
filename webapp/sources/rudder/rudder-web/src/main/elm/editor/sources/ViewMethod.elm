@@ -305,13 +305,18 @@ methodDetail method call parentId ui model =
 
 showMethodCall: Model -> MethodCallUiInfo -> TechniqueUiInfo -> Maybe CallId ->  MethodCall -> Element Msg
 showMethodCall model ui tui parentId call =
+  let
+    isHovered = case model.isMethodHovered of
+                  Just methodId -> if (methodId.value == call.id.value) then "hovered" else ""
+                  Nothing       -> ""
+  in
   element "li"
-  |> addClass (if (ui.mode == Opened) then "active" else "")
+  |> addClass (if (ui.mode == Opened) then "active" else isHovered)
+  |> addClass "card-method showMethodCall"
   |> appendChild (callBody model ui tui call parentId)
   |> addAttribute (hidden (Maybe.withDefault False (Maybe.map ((==) (Move (Call parentId  call))) (DragDrop.currentlyDraggedObject model.dnd) )))
-
-
-
+  |> addAction ("mouseover" , HoverMethod (Just call.id))
+  |> addActionStopPropagation ("mouseleave" , HoverMethod Nothing)
 
 callBody : Model -> MethodCallUiInfo -> TechniqueUiInfo ->  MethodCall -> Maybe CallId -> Element Msg
 callBody model ui techniqueUi call pid =
@@ -327,7 +332,9 @@ callBody model ui techniqueUi call pid =
     classParameter = getClassParameter method
     paramValue = call.parameters |> List.Extra.find (\c -> c.id == classParameter.name) |> Maybe.map (.value)  |> Maybe.withDefault [Value ""]
 
-
+    isHovered = case model.isMethodHovered of
+                  Just methodId -> (methodId.value == call.id.value) && ui.mode == Closed
+                  Nothing -> False
     (textClass, tooltipContent) = case ui.validation of
                   InvalidState [_] -> ("text-danger", "A parameter of this method is invalid")
                   InvalidState err -> ("text-danger", (String.fromInt (List.length err)) ++ " parameters of this method are invalid")
@@ -337,8 +344,9 @@ callBody model ui techniqueUi call pid =
                 |> addClass "cursorMove"
                 |> Dom.appendChild
                            ( element "i"
-                             |> addClass "popover-bs fa"
+                             |> addClass "popover-bs fas"
                              |> addClassConditional "fa-cog" (ui.mode == Closed)
+                             |> addClassConditional "fa-edit" isHovered
                              |> addClassConditional "fa-check" (ui.mode == Opened)
                              |> addClass textClass
                              |> addStyleConditional ("font-style", "20px") (ui.mode == Opened)
@@ -386,6 +394,9 @@ callBody model ui techniqueUi call pid =
                         , attribute "data-html" "true"
                         ]
                   ]
+    shoudHoveredMethod = case model.isMethodHovered of
+                           Just methodId -> if((methodId.value == call.id.value) && ui.mode == Closed) then " hovered" else ""
+                           Nothing -> ""
     methodName = case ui.mode of
                    Opened -> element "div"
                              |> appendChild
@@ -398,6 +409,7 @@ callBody model ui techniqueUi call pid =
                                        , element "div"
                                          |> addClass "gm-label-name"
                                          |> appendText method.name
+                                         |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
                                        ]
                                     |> appendChild
                                        (element "input"
@@ -407,9 +419,12 @@ callBody model ui techniqueUi call pid =
                    Closed -> element "div"
                              |> addClass "method-name"
                              |> appendChild
-                                ( element "span" |> appendText  (if (String.isEmpty call.component) then method.name else call.component )
+                                ( element "span"
+                                  |> addClass "name-content"
+                                  |> appendText  (if (String.isEmpty call.component) then method.name else call.component )
                                   |> addActionStopPropagation ("mousedown" , DisableDragDrop)
                                   |> addActionStopPropagation ("click" , DisableDragDrop)
+                                  |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
                                 )
                              |> appendChildConditional
                                 ( element "div"
@@ -428,9 +443,11 @@ callBody model ui techniqueUi call pid =
                     |> appendChildList
                        [ element "label" |> appendText ((parameterName classParameter) ++ ": ")
                        , element "span"
+                         |> addClass "label-value"
                          |> appendText (displayValue paramValue)
                          |> addActionStopPropagation ("mousedown" , DisableDragDrop)
                          |> addActionStopPropagation ("click" , DisableDragDrop)
+                         |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
                        ]
 
     currentDrag = case DragDrop.currentlyDraggedObject model.dnd of
@@ -448,7 +465,8 @@ callBody model ui techniqueUi call pid =
   |> Dom.appendChildList
      [ dragElem
      , element "div"
-       |> addClass "method-info"
+       |> addClass ("method-info " ++ shoudHoveredMethod)
+       |> addActionStopPropagation ("mouseleave" , HoverMethod Nothing)
        |> addClassConditional ("closed") (ui.mode == Closed)
        |> addAction ("click",  UIMethodAction call.id {ui | mode = Opened})
        |> appendChildList
@@ -470,6 +488,7 @@ callBody model ui techniqueUi call pid =
                ]
           , element "div"
             |> addClass "flex-column"
+            |> addAction ("click",  UIMethodAction call.id {ui | mode = Opened})
             |> appendChildConditional condition (call.condition.os /= Nothing || call.condition.advanced /= "")
             |> appendChild methodName
             --|> appendChild methodNameId
