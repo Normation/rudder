@@ -71,6 +71,11 @@ object PolicyGenerationLogger extends Logger {
 object PolicyGenerationLoggerPure extends NamedZioLogger {
   override def loggerName  = "policy.generation"
 
+  // async deployment agent
+  object manager extends NamedZioLogger {
+    override def loggerName = "policy.generation.manager"
+  }
+
   object expectedReports extends NamedZioLogger {
     override def loggerName = "policy.generation.expected_reports"
   }

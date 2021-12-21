@@ -43,23 +43,29 @@ import net.liftweb.actor._
 import org.joda.time._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.PromiseGenerationService
+
 import net.liftweb.http.ListenerManager
 import com.normation.eventlog.{EventActor, EventLog}
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
+
 import net.liftweb.common._
 import com.normation.eventlog.EventLogDetails
 
 import scala.xml.NodeSeq
 import com.normation.eventlog.ModificationId
 
-import com.normation.errors.RudderError
 import com.normation.errors.Unexpected
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
-import com.normation.zio._
+import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 
+import com.normation.zio._
 import scala.concurrent.duration.Duration
+
+import zio._
+import zio.syntax._
+import com.normation.errors._
 
 sealed trait StartDeploymentMessage
 
@@ -144,6 +150,7 @@ final class AsyncDeploymentActor(
   , deploymentStatusSerialisation: DeploymentStatusSerialisation
   , getGenerationDelay           : () => IOResult[Duration]
   , deploymentPolicy             : () => IOResult[PolicyGenerationTrigger]
+  , bootGuard                    : Promise[Nothing, Unit]
 ) extends LiftActor with ListenerManager with AsyncDeploymentAgent {
 
   deploymentManager =>
@@ -221,7 +228,8 @@ final class AsyncDeploymentActor(
   override protected def lowPriority = {
 
     //
-    // Start a new deployment
+    // Start a new deployment. Some triggers can be inhibited with
+    // the `rudder_generation_trigger` (all, none, onlymanual) setting.
     //
     case AutomaticStartDeployment(modId, actor) => {
       implicit val a = actor
@@ -381,39 +389,43 @@ final class AsyncDeploymentActor(
    */
   private[this] object DeployerAgent extends LiftActor {
 
+    def doDeployement(bootSemaphore: Promise[Nothing, Unit], delay: IOResult[Duration], nd: NewDeployment): UIO[Unit] = {
+      val prog = for {
+        _ <- PolicyGenerationLoggerPure.manager.trace("Policy updater Agent: start to update policies")
+        d <- delay
+        _ <- ZIO.when(d.toMillis > 0) {
+               PolicyGenerationLoggerPure.manager.debug(s"Policy generation will start in ${delay.toString}")
+             }
+        _ <- (for {
+               _   <- PolicyGenerationLoggerPure.manager.debug(s"Policy generation starts now!")
+               res <- deploymentService.deploy().toIO.foldM(
+                          err => PolicyGenerationLoggerPure.manager.error(s"Error when updating policy, reason was: ${err.fullMsg}") *>
+                                 Failure(err.fullMsg).succeed
+                        , ok  => Full(ok).succeed
+                      )
+               _   <- IOResult.effect(deploymentManager ! DeploymentResult(nd.id, nd.modId, nd.started, DateTime.now, res, nd.actor, nd.eventLogId))
+             } yield ()).delay(zio.duration.Duration.fromScala(d)).provide(ZioRuntime.environment)
+      } yield ()
+
+      val managedErr = prog.catchAll { err =>
+        val failure = Failure(s"Exception caught during policy update process: ${err.fullMsg}")
+        IOResult.effect(
+          deploymentManager ! DeploymentResult(nd.id, nd.modId, nd.started, DateTime.now, failure, nd.actor, nd.eventLogId)
+        ).catchAll(fatal =>
+          PolicyGenerationLoggerPure.manager.error(s"Fatal error when trying to send previous error to policy generation manager. First error was: ${err.fullMsg}. Fatal error is: ${fatal.fullMsg}")
+        )
+      }
+
+      bootSemaphore.await *> managedErr
+    }
+
     override protected def messageHandler = {
       //
-      // Start a new deployment
+      // Start a new deployment. Wait for the guard to be released (in `Boot.boot`).
+      // Each generation can be delayed by a given duration with the `rudder_generation_delay` setting.
       //
-      case NewDeployment(id, modId, startTime, actor, eventId) =>
-        PolicyGenerationLogger.manager.trace("Policy updater Agent: start to update policies")
-        try {
-          val delay = getGenerationDelay().either.runNow match {
-            case Right(delay) => delay
-            case Left(_)      => Duration("0s")
-          }
-          if (delay.toMillis != 0L) {
-            PolicyGenerationLogger.debug(s"Policy generation will start in ${delay.toString}")
-          }
-          Thread.sleep(delay.toMillis)
-          PolicyGenerationLogger.debug(s"Policy generation starts now!")
-
-          val result = deploymentService.deploy()
-
-          result match {
-            case Full(_) => // nothing to report
-            case m: Failure =>
-              PolicyGenerationLogger.manager.error(s"Error when updating policy, reason was: ${m.messageChain}")
-              m.rootExceptionCause.foreach { ex =>
-                PolicyGenerationLogger.manager.error(s"Root exception was: ${RudderError.formatException(ex)}")
-              }
-            case Empty => PolicyGenerationLogger.manager.error("Error when updating policy (no reason given)")
-          }
-
-          deploymentManager ! DeploymentResult(id, modId, startTime,DateTime.now, result, actor, eventId)
-        } catch {
-          case e:Exception => deploymentManager ! DeploymentResult(id, modId, startTime, DateTime.now, Failure(s"Exception caught during policy update process: ${e.getMessage}",Full(e), Empty), actor, eventId)
-        }
+      case nd:NewDeployment =>
+        doDeployement(bootGuard, getGenerationDelay(),nd).runNow
 
       //
       //Unexpected messages
