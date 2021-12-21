@@ -86,6 +86,11 @@ final case object AllTargetExceptPolicyServers extends NonGroupRuleTarget {
   def r = "special:all_exceptPolicyServers".r
 }
 
+final case object AllPolicyServers extends NonGroupRuleTarget {
+  override def target = "special:all_policyServers"
+  def r = "special:all_policyServers".r
+}
+
 /**
  * A composite target is a target composed of different target
  * This target is rendered as Json
@@ -215,6 +220,7 @@ object RuleTarget extends Loggable {
     targets.foldLeft(Set[NodeId]()) { case (nodes , target) => target match {
       case AllTarget => return allNodes.keySet
       case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case(k,isPolicyServer) if(!isPolicyServer) => k }
+      case AllPolicyServers => nodes ++ allNodes.collect{ case(k,isPolicyServer) if(isPolicyServer) => k }
       case PolicyServerTarget(nodeId) => nodes + nodeId
 
       //here, if we don't find the group, we consider it's an error in the

@@ -317,6 +317,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     , woLdapRuleRepository
   )
 
+  val addSpecialTargetAllPolicyServer = new CheckAddSpecialTargetAllPolicyServers(ldap)
 
 
   // now, mv new-techniques in place of technique, git commit, update technique lib
@@ -371,6 +372,16 @@ class TestMigrateSystemTechniques7_0 extends Specification {
       ldap.server.countEntries === numEntries + 6
     }
 
+  }
+
+  "When initialized with 6.2 data, we don't have the new special target" in {
+    (ldap.server.entryExists(addSpecialTargetAllPolicyServer.all_policyServersDN.toString()) must beFalse) and
+    (addSpecialTargetAllPolicyServer.checkMigrationNeeded().runNow must beTrue)
+  }
+
+  "If we migrate new special target, it is added" in {
+    addSpecialTargetAllPolicyServer.checks()
+    ldap.server.entryExists(addSpecialTargetAllPolicyServer.all_policyServersDN.toString()) must beTrue
   }
 
   "When initialized with 6.2 data, migration is needed" in {
@@ -439,7 +450,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     checkNewEntries("new_")
   }
 
-  "We can finish migration and clean up and all new entries STILL exists" in {
+  "We can finish migration and clean up and all new entries STILL exists and rules are migrated" in {
 
     checkMigrate.migrateConfigs6_x_7_0.finalMoveAndCleanAll(List(NodeId("root"), NodeId("ba7e3ca5-a967-40d8-aa97-41a3ff450fd2"))).runNow
 
@@ -457,7 +468,11 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     )
 
     oldEntries must contain(beFalse).foreach and
-    checkNewEntries("")
+    checkNewEntries("") and
+    (Option(ldap.server.getEntry(s"ruleId=44444444-02fd-43d0-aab7-28460a91347b,${ruleDn}")).map(_.getAttribute("ruleTarget").getValues.toList).getOrElse(Nil)
+      must containTheSameElementsAs(List("""{"include":{"or":["special:all_exceptPolicyServers"]},"exclude":{"or":["special:all_policyServers"]}}"""))) and
+    (Option(ldap.server.getEntry(s"ruleId=55555555-02fd-43d0-aab7-28460a91347b,${ruleDn}")).map(_.getAttribute("ruleTarget").getValues.toList).getOrElse(Nil)
+      must containTheSameElementsAs(List("""special:all_exceptPolicyServers""")))
   }
 
   "After all migration, migration is not needed anymore" in {

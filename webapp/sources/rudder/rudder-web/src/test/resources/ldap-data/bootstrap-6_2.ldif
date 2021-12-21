@@ -297,6 +297,30 @@ isSystem: FALSE
 tag: rootRuleCategory
 serial: 0
 
+# demonstration rule with special target that need to be migrated
+dn: ruleId=44444444-02fd-43d0-aab7-28460a91347b,ou=Rules,ou=Rudder,cn=rudder
+ -configuration
+objectClass: top
+objectClass: rule
+ruleId: 44444444-02fd-43d0-aab7-28460a91347b
+ruleTarget: {"include":{"or":["special:all_nodes_without_role"]},"exclude":{"or":["special:all_servers_with_role"]}}
+cn: rule1
+isEnabled: TRUE
+isSystem: FALSE
+tag: rootRuleCategory
+serial: 0
+
+dn: ruleId=55555555-02fd-43d0-aab7-28460a91347b,ou=Rules,ou=Rudder,cn=rudder
+ -configuration
+objectClass: top
+objectClass: rule
+ruleId: 55555555-02fd-43d0-aab7-28460a91347b
+ruleTarget: special:all_nodes_without_role
+cn: rule1
+isEnabled: TRUE
+isSystem: FALSE
+tag: rootRuleCategory
+serial: 0
 
 
 #######################################################################################################################
