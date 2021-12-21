@@ -169,7 +169,6 @@ import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
-import com.normation.rudder.services.queries.PendingNodesLDAPQueryChecker
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
