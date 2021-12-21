@@ -675,8 +675,20 @@ ul.graph-legend > li.legend:hover{
    height: 100%;
  }
  .skin-yellow aside.main-sidebar.fixed {
-   height: 100%;
- }
+  z-index: 1010;
+  height: calc(100% - 50px);
+  min-height: calc(100% - 50px);
+  margin-top: 50px;
+  padding-top: 0;
+}
+@media (max-width: 767px) {
+  .skin-yellow aside.main-sidebar.fixed {
+    z-index: 1035;
+    margin-top: 100px;
+    height: calc(100% - 100px);
+    min-height: calc(100% - 100px);
+  }
+}
  .sidebar > ul.sidebar-menu {
    height: 100%;
    overflow-y: auto;
