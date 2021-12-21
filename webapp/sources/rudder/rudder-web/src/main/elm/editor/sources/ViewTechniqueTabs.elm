@@ -5,7 +5,6 @@ import AgentValueParser exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import String.Extra
 
 --
 -- This deals with the technique tabs UI (general info/parameters/resources)
@@ -214,9 +213,9 @@ techniqueTab model technique creation ui =
               div [ class "resources-uncommitted" ] [ -- ng-if="getResourcesByState(selectedTechnique.resources, 'new').length>0 || getResourcesByState(selectedTechnique.resources, 'deleted').length > 0">
                 span [] [
                   i [ class "fa fa-exclamation-triangle"] []
-                , text ("There " ++ (String.fromInt number) ++" " ++ (String.Extra.pluralize "is"  "are" number) ++  " ")
+                , text ("There " ++ (if(number == 1) then "is " else "are "))
                 , b [] [ text (String.fromInt number) ]
-                , text (" unsaved " ++ (String.Extra.pluralize "file"  "files" number) ++ ", save your changes to complete upload.")
+                , text (" unsaved " ++ ((if(number == 1) then "file " else "files ")) ++ ", save your changes to complete upload.")
                 ]
               ]
           else text ""
