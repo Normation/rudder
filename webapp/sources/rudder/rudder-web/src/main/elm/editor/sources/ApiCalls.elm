@@ -19,8 +19,8 @@ import Maybe.Extra
 -- POST   /techniques : update an existing technique (error if doesn't exist yet)
 -- DELETE /techniques/${id}/${version} : delete given technique's version
 -- GET    /techniques/${id}/${version}/resources : get resources for an existing technique
--- GET    /techniques/draft/${id}/1.0/resources : get resources for a newly created technique
--- GET    /techniques/draft/${id}/${version}/resources : get resources for a newly cloned technique
+-- GET    /techniques/drafts/${id}/1.0/resources : get resources for a newly created technique
+-- GET    /techniques/drafts/${id}/${version}/resources : get resources for a newly cloned technique
 
 
 getUrl: Model -> String -> String
@@ -112,14 +112,14 @@ getRessources : TechniqueState ->  Model -> Cmd Msg
 getRessources state model =
   let
     url = case state of
-            Edit t -> t.id.value ++ "/" ++ t.version ++ "/resources"
-            Creation id -> "draft/" ++ id.value ++ "/" ++ "1.0/resources"
-            Clone t id -> "draft/" ++ id.value ++ "/" ++ t.version ++ "/resources"
+            Edit t -> "techniques/" ++ t.id.value ++ "/" ++ t.version ++ "/resources"
+            Creation id -> "drafts/" ++ id.value ++ "/" ++ "1.0/resources"
+            Clone t id -> "drafts/" ++ id.value ++ "/" ++ t.version ++ "/resources"
     req =
       request
         { method  = "GET"
         , headers = []
-        , url     = getUrl model "techniques/" ++ url
+        , url     = getUrl model url
         , body    = emptyBody
         , expect  = expectJson GetTechniqueResources ( Json.Decode.at ["data", "resources" ] ( Json.Decode.list decodeResource ))
         , timeout = Nothing
