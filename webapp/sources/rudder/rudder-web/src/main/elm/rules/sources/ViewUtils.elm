@@ -33,15 +33,9 @@ getListRules r = getAllElems r
 getListCategories : Category Rule  -> List (Category Rule)
 getListCategories r = getAllCats r
 
-getRuleNbNodes : Model -> RuleId -> Int
-getRuleNbNodes model ruleId =
-  case getRuleCompliance model ruleId of
-    Just rc ->
-      let
-        nodesCompliance = {nodes = [] }--toNodeCompliance rc
-      in
-        List.length nodesCompliance.nodes
-    Nothing -> 0
+getRuleNbNodes : RuleDetails -> Int
+getRuleNbNodes ruleDetails =
+  List.length (Maybe.withDefault [] (Maybe.map .nodes ruleDetails.compliance))
 
 getRuleNbGroups : Maybe Rule -> Int
 getRuleNbGroups rule =
@@ -454,9 +448,9 @@ buildIncludeList groupsTree model editMode includeBool ruleTarget =
       Or _ -> "or"
       And _ -> "and"
 
-    groupName = case List.Extra.find (\g -> g.id == id) groupsList of
-      Just gr -> gr.name
-      Nothing -> id
+    (groupName, groupTarget) = case List.Extra.find (\g -> g.id == id) groupsList of
+      Just gr -> (gr.name, gr.target)
+      Nothing -> (id, id)
 
     rowIncludeGroup = li[]
       [ span[class "fa fa-sitemap"][]
@@ -464,7 +458,7 @@ buildIncludeList groupsTree model editMode includeBool ruleTarget =
         [ span [class "target-name"][text groupName]
         ]
       , ( if editMode then
-          span [class "target-remove", onClick (SelectGroup (NodeGroupId id) includeBool)][ i [class "fa fa-times"][] ]
+          span [class "target-remove", onClick (SelectGroup groupTarget includeBool)][ i [class "fa fa-times"][] ]
         else
           text ""
       )

@@ -170,8 +170,15 @@ update msg model =
           ({model | mode = CategoryForm details }, Cmd.none)
         _   -> (model, Cmd.none)
 
-    SelectGroup groupId includeBool->
+    SelectGroup targetId includeBool->
       let
+        groupId =
+          if String.startsWith "group:" targetId then
+            NodeGroupId (String.dropLeft 6 targetId)
+          else if String.startsWith "node:" targetId then
+            Node (String.dropLeft 5 targetId)
+          else Special targetId
+
         updateTargets : Rule -> Rule
         updateTargets r =
           let

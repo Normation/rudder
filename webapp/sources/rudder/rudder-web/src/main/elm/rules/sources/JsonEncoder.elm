@@ -48,7 +48,7 @@ encodeTargets target =
   case target of
     NodeGroupId id -> string ("group:" ++ id)
     Special spe -> string spe
-    Node id -> string ("node:"++id)
+    Node id -> string ("node:" ++ id)
     Composition include exclude ->
       object [
         ("include", encodeTargets include)

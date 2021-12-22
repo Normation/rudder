@@ -62,9 +62,9 @@ tabContent: Model -> RuleDetails  -> Html Msg
 tabContent model details =
   let
       isNewRule = Maybe.Extra.isNothing details.originRule
-      rule       = details.rule
-      ui = details.ui
-      newTag     = ui.newTag
+      rule      = details.rule
+      ui        = details.ui
+      newTag    = ui.newTag
       (includedTargets, excludedTargets) =
           case rule.targets of
             [Composition (Or include) (Or exclude)] -> (include, exclude)
@@ -426,20 +426,42 @@ tabContent model details =
                   ]
       Nodes        ->
         let
-          fun = byNodeCompliance model.policyMode
+          fun      = byNodeCompliance model.policyMode
           nodeRows =  List.map Tuple3.first fun.rows
-          rowId = "byNodes/"
+          rowId    = "byNodes/"
           (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Name",Asc)
 
-          sort =   case List.Extra.find (Tuple3.first >> (==) sortId) fun.rows of
-                     Just (_,_,sortFun) -> (\i1 i2 -> sortFun (fun.data model i1) (fun.data model i2))
-                     Nothing -> (\_ _ -> EQ)
+          sort = case List.Extra.find (Tuple3.first >> (==) sortId) fun.rows of
+             Just (_,_,sortFun) -> (\i1 i2 -> sortFun (fun.data model i1) (fun.data model i2))
+             Nothing -> (\_ _ -> EQ)
 
           filter = model.ui.groupFilters.tableFilters.filter
-          childrenSort = Maybe.withDefault [] (Maybe.map .nodes details.compliance)    |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.nodeId.value) )  |> List.sortWith sort
+          children = Maybe.withDefault [] (Maybe.map .nodes details.compliance)
+          childrenSort = children |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.nodeId.value) ) |> List.sortWith sort
           (nodesChildren, order, newOrder) = case sortOrder of
              Asc -> (childrenSort, "asc", Desc)
              Desc -> (List.reverse childrenSort, "desc", Asc)
+
+          groupsList = getAllElems model.groupsTree
+          specialTargets = includedTargets
+            |> List.concatMap (\t ->
+              case t of
+                Special spe ->
+                  case List.Extra.find (\g -> g.target == spe) groupsList of
+                    Just gr -> [gr]
+                    Nothing -> []
+                _ -> []
+              )
+          infoSpecialTarget =
+            if List.isEmpty specialTargets then
+              text ""
+            else
+              div[class "callout-fade callout-info"]
+              [ text "This rule applies to some special targets: "
+              , ul[]
+                ( List.map (\t -> li[][b[][text t.name, text ": "], text t.description]) specialTargets )
+              , text "The nodes of these targets ", strong[][text "are not displayed "], text "in the following table."
+              ]
 
         in
           div[class "tab-table-content"]
@@ -452,6 +474,7 @@ tabContent model details =
                   text ""
                 )
               ]
+            , infoSpecialTarget
             , div [class "table-header"]
               [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.groupFilters.tableFilters.filter
                 , onInput (\s ->
@@ -559,8 +582,8 @@ tabContent model details =
                   [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
                   , span [class "treeGroupName tooltipable"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
                   , div [class "treeActions-container"]
-                    [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (SelectGroup (NodeGroupId item.id) True)][]]
-                    , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onClick (SelectGroup (NodeGroupId item.id) False)][]]
+                    [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (SelectGroup item.target True)][]]
+                    , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onClick (SelectGroup item.target False)][]]
                     ]
                   ]
                 ]
