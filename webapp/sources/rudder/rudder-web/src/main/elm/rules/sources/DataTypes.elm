@@ -22,7 +22,7 @@ type alias Tag =
 
 type ModalState = NoModal | DeletionValidation Rule | DeactivationValidation Rule | DeletionValidationCat (Category Rule)
 
-type RuleTarget = NodeGroupId String | Composition  RuleTarget RuleTarget | Special String | Node String | And (List RuleTarget) | Or (List RuleTarget)
+type RuleTarget = Composition RuleTarget RuleTarget | And (List RuleTarget) | Or (List RuleTarget) | NodeGroupId String | Special String | Node String
 
 type alias RuleId      = { value : String }
 type alias DirectiveId = { value : String }
@@ -85,6 +85,7 @@ type alias Group =
   , nodeIds     : List String
   , dynamic     : Bool
   , enabled     : Bool
+  , target      : String
   }
 
 getAllElems: Category a -> List a
@@ -259,7 +260,7 @@ type Msg
   | OpenRuleDetails RuleId Bool
   | OpenCategoryDetails String Bool
   | CloseDetails
-  | SelectGroup RuleTarget Bool
+  | SelectGroup String Bool
   | UpdateRuleForm RuleDetails
   | UpdateCategoryForm CategoryDetails
   | NewRule RuleId

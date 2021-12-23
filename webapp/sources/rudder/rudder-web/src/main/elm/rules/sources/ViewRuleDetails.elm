@@ -146,7 +146,7 @@ editionTemplate model details =
           [ a[onClick (UpdateRuleForm {details | tab = Nodes })]
             [ text "Nodes"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
-              [ span [class "nb-resources"] [ text (String.fromInt(getRuleNbNodes model rule.id))]
+              [ span [class "nb-resources"] [ text (String.fromInt(getRuleNbNodes details))]
               ]
             ]
           ]
