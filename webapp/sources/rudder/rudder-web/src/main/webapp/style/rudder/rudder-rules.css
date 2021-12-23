@@ -50,6 +50,9 @@
   justify-content: space-between;
   min-width: 145px;
 }
+.rudder-template .table-title + .callout-fade{
+  margin: 10px 0 20px 0;
+}
 /*================= */
 .main-details .row > div > .callout-fade.callout-info:first-child{
   margin-top: 10px;

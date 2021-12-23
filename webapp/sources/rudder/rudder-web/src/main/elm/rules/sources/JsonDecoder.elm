@@ -31,6 +31,21 @@ decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder =
     |> required categoryIdentifier (map SubCategories  (list (lazy (\_ -> (decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
     |> required elemIdentifier      (list elemDecoder)
 
+decodeCategoryGroupTarget : Decoder (Category Group)
+decodeCategoryGroupTarget =
+  succeed ( \id name description categories groups targets ->
+    let
+      elems = if id == "GroupRoot" then groups else (List.append groups targets)
+    in
+      Category id name description categories elems
+    )
+    |> required "id"          string
+    |> required "name"        string
+    |> required "description" string
+    |> required "categories"  (map SubCategories  (list (lazy (\_ -> decodeCategoryGroupTarget))))
+    |> required "groups"      (list decodeGroup)
+    |> required "targets"     (list decodeTarget)
+
 decodeCategoryDetails : Decoder (Category Rule)
 decodeCategoryDetails =
   succeed Category
@@ -246,7 +261,8 @@ decodeTechnique =
 -- GROUPS TAB
 decodeGetGroupsTree : Decoder (Category Group)
 decodeGetGroupsTree =
-  at ["data", "groupCategories"] (decodeCategory "id" "categories" "groups" decodeGroup)
+  at ["data", "groupCategories"] decodeCategoryGroupTarget
+
 
 decodeGroup : Decoder Group
 decodeGroup =
@@ -257,6 +273,18 @@ decodeGroup =
     |> required "nodeIds"    (list string)
     |> required "dynamic"     bool
     |> required "enabled"     bool
+    |> required "target"      string
+
+decodeTarget : Decoder Group
+decodeTarget =
+  succeed Group
+    |> required "id"          string
+    |> required "displayName" string
+    |> required "description" string
+    |> hardcoded []
+    |> hardcoded True
+    |> required "enabled"     bool
+    |> required "target"      string
 
 decodeComposition : Decoder RuleTarget
 decodeComposition =
