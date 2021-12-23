@@ -198,7 +198,8 @@ def translate_lib(config_file):
     dsc_files = get_methods_filenames(dsc_methods)
 
     data = translate_ncf_to_json(method_files, dsc_files, ncf_source)
-    print(json.dumps(data['errors'], indent=2, sort_keys=True))
+    if data['errors']:
+        print(json.dumps(data['errors'], indent=2, sort_keys=True))
 
     for resource_name in data['data']:
         methods_generator.generate_lib(
