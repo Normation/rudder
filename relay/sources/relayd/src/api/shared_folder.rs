@@ -26,7 +26,9 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
         .and_then(|j, p, q| handlers::head(p, q, j));
 
     let job_config_get = job_config;
-    let get = base
+    // specify get to avoid serving HEAD requests which have a specific handler
+    let get = method::get()
+        .and(base)
         // build-in method to serve static file in dir
         .and(fs::dir(job_config_get.cfg.shared_folder.path.clone()));
 

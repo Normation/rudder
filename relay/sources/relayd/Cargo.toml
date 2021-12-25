@@ -29,26 +29,26 @@ gumdrop = "0.8"
 hex = "0.4"
 humantime = "2"
 hyper = { version = "0.14", default-features = false }
-inotify = "0.9"
+inotify = "0.10"
 lazy_static = "1"
 log = "0.4"
-md-5 = "0.9"
+md-5 = "0.10"
 nom = "7"
 openssl = { version = "0.10", features = ["vendored"] }
-prometheus = { version = "0.12", default-features = false, features = ["process"] }
+prometheus = { version = "0.13", default-features = false, features = ["process"] }
 regex = "1"
 # Use openssl for TLS to be consistent
 reqwest = { version = "0.11.1", default-features = false, features = ["stream", "blocking", "native-tls-vendored"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sha2 = "0.9"
+sha2 = "0.10"
 thiserror = "1"
 tokio = { version = "1", default-features = false, features = [ "rt-multi-thread", "process", "macros", "signal", "fs"] }
 tokio-stream = { version = "0.1", default-features = false, features = ["io-util"] }
 toml = "0.5"
 # Compile dev and release with trace logs enabled
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
-tracing-subscriber = { version = "0.2", default-features = false, features = ["env-filter", "smallvec", "fmt", "tracing-log"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "smallvec", "fmt", "tracing-log"] }
 warp = { version = "0.3", default-features = false }
 # Use rust implementation
 zip = { version = "0.5", default-features = false, features = ["deflate"] }
@@ -58,7 +58,7 @@ criterion = "0.3"
 filetime = "0.2"
 proptest = "1"
 tempfile = "3"
-pretty_assertions = "0.7"
+pretty_assertions = "1"
 
 [profile.dev]
 # Disabling debug info speeds up builds a bunch,
