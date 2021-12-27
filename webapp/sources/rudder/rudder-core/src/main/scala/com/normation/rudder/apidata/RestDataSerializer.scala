@@ -258,7 +258,7 @@ final case class RestDataSerializerImpl (
       ~ ("target" -> target.target.target.target)
       )
     }
-    val otherTargets = category.allTargets.collect{case (AllTargetExceptPolicyServers|PolicyServerTarget(_)|AllTarget, v) => serializeTarget(v) }
+    val otherTargets = category.allTargets.collect{case (AllTargetExceptPolicyServers|AllPolicyServers|PolicyServerTarget(_)|AllTarget, v) => serializeTarget(v) }
 
     val (groups ,categories) : (Seq[JValue],Seq[JValue]) = detailLevel match {
       case FullDetails =>

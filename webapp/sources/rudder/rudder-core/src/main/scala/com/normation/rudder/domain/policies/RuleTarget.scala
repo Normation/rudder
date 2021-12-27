@@ -319,6 +319,8 @@ object RuleTarget extends Loggable {
         Some(PolicyServerTarget(NodeId(s)))
       case AllTarget.r() =>
         Some(AllTarget)
+      case AllPolicyServers.r() =>
+        Some(AllPolicyServers)
       case AllTargetExceptPolicyServers.r() =>
         Some(AllTargetExceptPolicyServers)
       case _ =>
