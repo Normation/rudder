@@ -53,7 +53,7 @@ import com.normation.errors._
 import com.normation.zio._
 
 /*
- * This migration check looks if we need to add special target "all_policyServer"
+ * This migration check looks if we need to add special target "all_policyServers"
  * added in rudder 7.0 (https://issues.rudder.io/issues/20460)
  */
 
@@ -73,13 +73,13 @@ class CheckAddSpecialTargetAllPolicyServers(
     entry
   }
 
-  override def description: String = "Check if special target all_policyServer from Rudder 7.0 is present"
+  override def description: String = "Check if special target all_policyServers from Rudder 7.0 is present"
 
   override def checks() : Unit = {
     ZIO.whenM(checkMigrationNeeded())(
       createSpecialTarget()
     ).catchAll(err =>
-      MigrationLoggerPure.error(s"Error during addition of new special target 'all_policyServer'. You can restart Rudder to " +
+      MigrationLoggerPure.error(s"Error during addition of new special target 'all_policyServers'. You can restart Rudder to " +
                                 s"try again the migration or report it to Rudder project")
     ).runNow
   }
