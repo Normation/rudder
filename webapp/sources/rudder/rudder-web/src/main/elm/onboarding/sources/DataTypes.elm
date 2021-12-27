@@ -6,7 +6,7 @@ import List exposing (..)
 type Section
   = Welcome
   | Account SectionState AccountSettings
-  | Metrics SectionState MetricsState
+  {- | Metrics SectionState MetricsState -}
   | GettingStarted SectionState
 
 type SectionState
@@ -17,9 +17,9 @@ type SectionState
 
 type MetricsState
   = NotDefined
-  | NoMetrics
+  {- | NoMetrics
   | Minimal
-  | Complete
+  | Complete -}
 
 type alias AccountSettings =
   { username      : String
@@ -44,9 +44,9 @@ type Msg
   | GoToLast
   | UpdateSection Int Section
   | GetAccountSettings  (Result Error AccountSettings)
-  | GetMetricsSettings  (Result Error MetricsState   )
+  {- | GetMetricsSettings  (Result Error MetricsState   ) -}
   | PostAccountSettings (Result Error AccountSettings)
-  | PostMetricsSettings (Result Error MetricsState   )
+  {- | PostMetricsSettings (Result Error MetricsState   ) -}
   | SetupDone (Result Error Bool   )
   | SaveAction
   | Redirect

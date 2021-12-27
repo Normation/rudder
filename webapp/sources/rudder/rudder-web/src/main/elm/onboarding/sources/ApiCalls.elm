@@ -26,6 +26,7 @@ getAccountSettings model =
   in
     send GetAccountSettings req
 
+{-
 getMetricsSettings : Model -> Cmd Msg
 getMetricsSettings model =
   let
@@ -41,7 +42,7 @@ getMetricsSettings model =
         }
   in
     send GetMetricsSettings req
-
+-}
 postAccountSettings : Model -> AccountSettings -> Cmd Msg
 postAccountSettings model accountSettings =
   let
@@ -57,7 +58,7 @@ postAccountSettings model accountSettings =
         }
   in
     send PostAccountSettings req
-
+{-
 postMetricsSettings : Model -> MetricsState -> Cmd Msg
 postMetricsSettings model metrics =
   let
@@ -73,7 +74,7 @@ postMetricsSettings model metrics =
         }
   in
     send PostMetricsSettings req
-
+-}
 
 setupDone : Model -> Bool -> Cmd Msg
 setupDone model res =

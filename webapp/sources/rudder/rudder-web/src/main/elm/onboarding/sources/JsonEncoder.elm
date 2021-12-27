@@ -23,9 +23,9 @@ encodeMetricsSettings metrics =
   let
     metricsValue = case metrics of
       NotDefined -> "not_defined"
-      NoMetrics  -> "no"
+    {-  NoMetrics  -> "no"
       Minimal    -> "minimal"
-      Complete   -> "complete"
+      Complete   -> "complete" -}
   in
     object
     [ ("value", string metricsValue)
