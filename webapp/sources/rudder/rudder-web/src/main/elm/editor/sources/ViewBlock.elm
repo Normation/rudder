@@ -21,9 +21,9 @@ appendNodeConditional e test =
 showMethodBlock: Model -> TechniqueUiInfo ->  MethodBlockUiInfo -> Maybe CallId -> MethodBlock -> Element Msg
 showMethodBlock model techniqueUi ui parentId block =
   let
-         isHovered = case model.isMethodHovered of
-                       Just methodId -> if ((methodId.value == block.id.value)) then "hovered" else ""
-                       Nothing -> ""
+    isHovered = case model.isMethodHovered of
+                 Just methodId -> if ((methodId.value == block.id.value)) then "hovered" else ""
+                 Nothing -> ""
   in
   element "li"
     |> addClass (if (ui.mode == Opened) then "active" else isHovered)
@@ -369,7 +369,7 @@ blockBody model parentId block ui techniqueUi =
                              |> addClassConditional "text-danger"  (String.isEmpty block.component)
                              |> appendChild
                                 ( element "span" |> appendText  (if (String.isEmpty block.component) then "No component name" else block.component)
-
+                                  |> addClass "name-content"
                                   |> addActionStopPropagation ("mousedown" , DisableDragDrop)
                                   |> addActionStopPropagation ("click" , DisableDragDrop)
                                   |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
