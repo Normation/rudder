@@ -89,7 +89,7 @@ class ReportDisplayer(
    * - unknown reports table if such reports exists
    * addOverriden decides if we need to add overriden policies (policy tab), or not (system tab)
    */
-  def asyncDisplay(node : NodeInfo,tabId : String, containerId : String, tableId : String,  getReports : NodeId => Box[NodeStatusReport], addOverriden: Boolean) : NodeSeq = {
+  def asyncDisplay(node : NodeInfo, tabId : String, containerId : String, tableId : String,  getReports : NodeId => Box[NodeStatusReport], addOverriden: Boolean) : NodeSeq = {
     val id = JsNodeId(node.id)
     val callback =  SHtml.ajaxInvoke(() => SetHtml(containerId, displayReports(node, getReports, tableId, containerId, addOverriden)) )
     Script(OnLoad(JsRaw(s"""
@@ -436,8 +436,8 @@ class ReportDisplayer(
                 val refresh = AnonFunc(logDisplayer.ajaxRefresh(node.id,runDate, "complianceLogsGrid"))
                 s"""showHideRunLogs("#logRun",${init.toJsCmd}, ${refresh.toJsCmd})"""
               } else "" }
-            & "lastreportgrid-missing"    #> showMissingReports(missing)
-            & "lastreportgrid-unexpected" #> showUnexpectedReports(unexpected)
+            & "lastreportgrid-missing"    #> showMissingReports(missing, tableId)
+            & "lastreportgrid-unexpected" #> showUnexpectedReports(unexpected, tableId)
           )(reportByNodeTemplate)
       }
     }})
@@ -478,7 +478,7 @@ class ReportDisplayer(
     }
   }
 
-  def showMissingReports(reports:Set[((String,String,List[String]),String,String)]) : NodeSeq = {
+  def showMissingReports(reports:Set[((String,String,List[String]),String,String)], tableId: String) : NodeSeq = {
     def showMissingReport(report:((String,String, List[String]),String,String)) : NodeSeq = {
       val techniqueName =report._2
       val techniqueVersion = report._3
@@ -504,7 +504,7 @@ class ReportDisplayer(
       ( "#reportLine" #> missingComponents.flatMap(showMissingReport(_) )).apply(
       <h3>Missing reports</h3>
       <div>The following reports are what Rudder expected to receive, but did not. This usually indicates a bug in the Technique being used.</div>
-      <table id="missingGrid"  cellspacing="0" style="clear:both">
+      <table id={s"missingGrid${tableId}"}  cellspacing="0" style="clear:both">
         <thead>
           <tr class="head">
             <th>Technique<span/></th>
@@ -520,7 +520,7 @@ class ReportDisplayer(
       ) ++
       buildTable(
           "missing"
-         ,"missingGrid"
+         ,s"missingGrid${tableId}"
          , """{ "sWidth": "150px" },
               { "sWidth": "150px" },
               { "sWidth": "150px" }"""
@@ -530,7 +530,7 @@ class ReportDisplayer(
     }
   }
 
-  def showUnexpectedReports(reports:Set[((String,String,List[String]),String,String)]) : NodeSeq = {
+  def showUnexpectedReports(reports:Set[((String,String,List[String]),String,String)], tableId: String) : NodeSeq = {
     def showUnexpectedReport(report:((String,String,List[String]),String,String)) : NodeSeq = {
       val techniqueName =report._2
       val techniqueVersion = report._3
@@ -554,7 +554,7 @@ class ReportDisplayer(
       <h3>Unexpected reports</h3>
       <div>The following reports were received by Rudder, but did not match the reports declared by the Technique. This usually indicates a bug in the Technique being used.</div>
 
-      <table id="unexpectedGrid"  cellspacing="0" style="clear:both">
+      <table id={s"unexpectedGrid${tableId}"}  cellspacing="0" style="clear:both">
         <thead>
           <tr class="head">
             <th>Technique<span/></th>
@@ -569,7 +569,7 @@ class ReportDisplayer(
       </table>
       <br/> ) ++
       buildTable("unexpected"
-        ,"unexpectedGrid"
+        ,s"unexpectedGrid${tableId}"
         , """{ "sWidth": "100px" },
              { "sWidth": "100px" },
              { "sWidth": "100px" },
