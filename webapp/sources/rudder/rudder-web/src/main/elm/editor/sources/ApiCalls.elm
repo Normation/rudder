@@ -3,6 +3,7 @@ module  ApiCalls exposing (..)
 import DataTypes exposing (..)
 import Dict
 import Http exposing (..)
+import Http.Detailed as Detailed
 import JsonDecoder exposing (..)
 import JsonEncoder exposing (..)
 import Json.Decode
@@ -36,7 +37,7 @@ getTechniques  model =
         , headers = []
         , url     = getUrl model "techniques"
         , body    = emptyBody
-        , expect  = expectJson GetTechniques ( Json.Decode.at ["data", "techniques" ] (Json.Decode.map (List.concatMap Maybe.Extra.toList) ( Json.Decode.list (Json.Decode.maybe decodeTechnique))))
+        , expect  = Detailed.expectJson GetTechniques ( Json.Decode.at ["data", "techniques" ] (Json.Decode.map (List.concatMap Maybe.Extra.toList) ( Json.Decode.list (Json.Decode.maybe decodeTechnique))))
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -52,7 +53,7 @@ getTechniquesCategories model =
         , headers = []
         , url     = getUrl model "techniques/categories"
         , body    = emptyBody
-        , expect  = expectJson GetCategories ( Json.Decode.at ["data", "techniqueCategories" ] ( decodeCategory))
+        , expect  = Detailed.expectJson GetCategories ( Json.Decode.at ["data", "techniqueCategories" ] ( decodeCategory))
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -68,7 +69,7 @@ getMethods  model =
         , headers = []
         , url     = getUrl model "methods"
         , body    = emptyBody
-        , expect  = expectJson GetMethods ( Json.Decode.at ["data", "methods" ] ( Json.Decode.map (Dict.fromList) (Json.Decode.keyValuePairs decodeMethod) ))
+        , expect  = Detailed.expectJson GetMethods ( Json.Decode.at ["data", "methods" ] ( Json.Decode.map (Dict.fromList) (Json.Decode.keyValuePairs decodeMethod) ))
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -84,7 +85,7 @@ saveTechnique  technique creation model =
         , headers = []
         , url     = getUrl model "techniques" ++ (if creation then "" else "/"++technique.name++"/"++technique.version)
         , body    = encodeTechnique technique |> jsonBody
-        , expect  = expectJson SaveTechnique ( Json.Decode.at ["data", "techniques", "technique" ] ( decodeTechnique ))
+        , expect  = Detailed.expectJson SaveTechnique ( Json.Decode.at ["data", "techniques", "technique" ] ( decodeTechnique ))
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -101,7 +102,7 @@ deleteTechnique  technique model =
         , headers = []
         , url     = getUrl model "techniques/" ++ technique.id.value ++ "/" ++ technique.version
         , body    = emptyBody
-        , expect  = expectJson DeleteTechnique ( Json.Decode.at ["data", "techniques" ] ( decodeDeleteTechniqueResponse ))
+        , expect  = Detailed.expectJson DeleteTechnique ( Json.Decode.at ["data", "techniques" ] ( decodeDeleteTechniqueResponse ))
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -121,7 +122,7 @@ getRessources state model =
         , headers = []
         , url     = getUrl model url
         , body    = emptyBody
-        , expect  = expectJson GetTechniqueResources ( Json.Decode.at ["data", "resources" ] ( Json.Decode.list decodeResource ))
+        , expect  = Detailed.expectJson GetTechniqueResources ( Json.Decode.at ["data", "resources" ] ( Json.Decode.list decodeResource ))
         , timeout = Nothing
         , tracker = Nothing
         }

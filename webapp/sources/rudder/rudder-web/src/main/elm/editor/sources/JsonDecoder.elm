@@ -5,8 +5,10 @@ import DataTypes exposing (..)
 import Iso8601
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
+import List exposing (drop, head)
 import MethodConditions exposing (..)
 import AgentValueParser exposing (..)
+import String exposing (join, split)
 
 decodeTechniqueParameter : Decoder TechniqueParameter
 decodeTechniqueParameter =
@@ -202,3 +204,17 @@ decodeDraft =
     |> optional "origin"  (maybe decodeTechnique) Nothing
     |> required "id"  string
     |> required "date"  Iso8601.decoder)
+
+decodeErrorDetails : String -> (String, String)
+decodeErrorDetails json =
+  let
+    errorMsg = decodeString (Json.Decode.at ["errorDetails"] string) json
+    msg = case errorMsg of
+      Ok s -> s
+      Err e -> "fail to process errorDetails"
+    errors = split "<-" msg
+    title = head errors
+  in
+  case title of
+    Nothing -> ("" , "")
+    Just s -> (s , (join " \n " (drop 1 (List.map (\err -> "\t ‣ " ++ err) errors))))

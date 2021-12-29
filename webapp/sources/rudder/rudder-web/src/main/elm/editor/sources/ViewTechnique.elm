@@ -3,6 +3,7 @@ module ViewTechnique exposing (..)
 import ApiCalls exposing (..)
 import DataTypes exposing (..)
 import Dict exposing (Dict)
+import Http exposing (Metadata)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -55,6 +56,7 @@ isValid ui =
 showTechnique : Model -> Technique ->  TechniqueState -> TechniqueUiInfo -> Html Msg
 showTechnique model technique origin ui =
   let
+    fakeMetadata = Http.Metadata "internal-elm-call" 500 "call from elm app" Dict.empty
     activeTabClass = (\tab -> "ui-tabs-tab " ++ (if ui.tab == tab then "active" else ""))
     creation = case origin of
                  Creation _ -> True
@@ -65,8 +67,8 @@ showTechnique model technique origin ui =
                     Creation _ -> False
                     Clone t _ -> t == technique
     deleteAction = case origin of
-                     Creation id -> DeleteTechnique (Ok id)
-                     Clone _ id -> DeleteTechnique (Ok id)
+                     Creation id -> DeleteTechnique (Ok (fakeMetadata, id))
+                     Clone _ id -> DeleteTechnique (Ok (fakeMetadata, id))
                      Edit _ -> OpenDeletionPopup technique
     topButtons =  [ li [] [
                       a [ class "action-success", disabled creation , onClick (GenerateId (\s -> CloneTechnique technique (TechniqueId s))) ] [

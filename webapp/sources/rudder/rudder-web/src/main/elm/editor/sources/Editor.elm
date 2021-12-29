@@ -11,10 +11,11 @@ import Either exposing (Either(..))
 import File
 import File.Download
 import File.Select
+import Http.Detailed as Detailed
 import Json.Decode exposing ( Value )
 import Json.Encode
 import JsonEncoder exposing (encodeDraft, encodeExportTechnique, encodeTechnique)
-import JsonDecoder exposing (decodeDraft, decodeTechnique)
+import JsonDecoder exposing (decodeDraft, decodeErrorDetails, decodeTechnique)
 import List.Extra
 import Maybe.Extra
 import MethodConditions exposing (..)
@@ -51,23 +52,22 @@ port readUrl : (String -> msg) -> Sub msg
 
 
 -- utility to write a understandable debug message from a get response
-debugHttpErr : Http.Error -> String
+debugHttpErr : Detailed.Error String -> String
 debugHttpErr error =
     case error of
-        Http.BadUrl url ->
+        Detailed.BadUrl url ->
             "The URL " ++ url ++ " was invalid"
-        Http.Timeout ->
+        Detailed.Timeout ->
             "Unable to reach the server, try again"
-        Http.NetworkError ->
+        Detailed.NetworkError ->
             "Unable to reach the server, check your network connection"
-        Http.BadStatus 500 ->
-            "The server had a problem, try again later"
-        Http.BadStatus 400 ->
-            "Verify your information and try again"
-        Http.BadStatus _ ->
-            "Unknown error"
-        Http.BadBody errorMessage ->
-            errorMessage
+        Detailed.BadStatus metadata body ->
+          let
+            (title, errors) = decodeErrorDetails body
+          in
+          title ++ "\n" ++ errors
+        Detailed.BadBody metadata body msg ->
+            msg
 
 updateResourcesResponse : Model -> Msg
 updateResourcesResponse model =
@@ -203,12 +203,12 @@ update msg model =
 
 -- UI high level stuff: list/filter techniques, create/import/select technique
 
-    GetCategories (Ok categories) ->
+    GetCategories (Ok (metadata, categories)) ->
       ({ model | categories = categories}, Cmd.none )
     GetCategories (Err _) ->
       ( model , Cmd.none )
 
-    GetTechniques (Ok  techniques) ->
+    GetTechniques (Ok  (metadata, techniques)) ->
       ({ model | techniques = techniques},  getUrl () )
     GetTechniques (Err err) ->
       ( model , errorNotification  ("Error when getting techniques: " ++ debugHttpErr err  ) )
@@ -292,7 +292,7 @@ update msg model =
       in
         updatedStoreTechnique newModel
 
-    SaveTechnique (Ok technique) ->
+    SaveTechnique (Ok (metadata, technique)) ->
       let
         techniques = if (List.any (.id >> (==) technique.id) model.techniques) then
            List.Extra.updateIf (.id >> (==) technique.id ) (always technique) model.techniques
@@ -324,7 +324,7 @@ update msg model =
                update (CallApi (saveTechnique t True)) { model | mode = TechniqueDetails t o ui }
           _ -> (model, Cmd.none)
 
-    DeleteTechnique (Ok techniqueId) ->
+    DeleteTechnique (Ok (metadata, techniqueId)) ->
       case model.mode of
                      TechniqueDetails t (Edit _) _ ->
                        let
@@ -514,7 +514,7 @@ update msg model =
       in
       (model, cmd)
 
-    GetTechniqueResources (Ok  resources) ->
+    GetTechniqueResources (Ok  (metadata, resources)) ->
       let
         mode = case model.mode of
                  TechniqueDetails t s ui ->
@@ -530,7 +530,7 @@ update msg model =
     OpenMethods ->
       ( { model | genericMethodsOpen = True } , Cmd.none )
 
-    GetMethods (Ok  methods) ->
+    GetMethods (Ok  (metadata, methods)) ->
       ({ model | methods = methods}, getTechniques model  )
 
     GetMethods (Err err) ->
