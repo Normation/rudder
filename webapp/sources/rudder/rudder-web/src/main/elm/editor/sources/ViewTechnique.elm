@@ -279,7 +279,9 @@ view model =
                   h3 [ class "modal-title" ] [ text "Delete Technique"]
                 ]
               , div [ class "modal-body" ] [
-                  text "Are you sure you want to Delete Technique 'ressource test'?"
+                  text ("Are you sure you want to Delete Technique '")
+                , b [][text technique.name]
+                , text "' ?"
                 ]
               , div [ class "modal-footer" ] [
                   button [ class "btn btn-primary btn-outline pull-left", onClick (ClosePopup Ignore) ] [ --ng-click="cancel()"></button>
