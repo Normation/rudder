@@ -90,15 +90,15 @@ techniqueParameter model technique param opened =
 techniqueTab : Model -> Technique -> Bool -> TechniqueUiInfo -> Html Msg
 techniqueTab model technique creation ui =
   let
-    searchForCategory = List.head (List.filter (\c -> c.path == technique.category) (allCategorieswithoutRoot model))
+    searchForCategory = List.head ( List.filter (\c -> c.path == technique.category) (allCategorieswithoutRoot model) )
     categoryName =
       case searchForCategory of
         Just c -> c.name
         _      -> "Error: unknown category name"
     disableCategory =
       if creation then
-        select [ readonly (not creation),  class "form-control", name "category", id "category", value technique.category, onInput (\s -> UpdateTechnique {technique | category = s}) ]
-                                       (List.map (\c -> option [ selected (c.path == technique.category), value c.path] [ text c.name ] ) (List.sortBy .path (allCategorieswithoutRoot model)))
+        select [class "form-control", name "category", id "category", value technique.category, onInput (\s -> UpdateTechnique {technique | category = s}) ]
+          (List.map (\c -> option [ selected (c.path == technique.category), value c.path] [ text c.name ] ) (List.sortBy .path (allCategorieswithoutRoot model)))
       else
         input [readonly True, class "form-control", id "category", value categoryName][]
   in
@@ -172,7 +172,6 @@ techniqueTab model technique creation ui =
                            label [ for "category",  class "col-xs-12 control-label"] [ text "Category" ]
                          , div [ class "col-sm-8" ] [
                              disableCategory
-
                            -- Used to be a else on creation with a readonly input a tried a readonly select <input  ng-if="originalTechnique.bundle_name !== undefined" readonly id="category" bundlename name="category" class="form-control" ng-model="getCategory(selectedTechnique.category).value">
                            ]
                          ]
