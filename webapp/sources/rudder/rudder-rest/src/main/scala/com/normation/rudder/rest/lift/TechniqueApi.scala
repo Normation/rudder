@@ -335,9 +335,14 @@ class TechniqueApi (
         } )
     }
 
-    private def isTechniqueNameExist(bundleName: BundleName) = {
+    // Comparison on technique name and ID are not case sensitive
+    private def isTechniqueNameExist(techniqueName: String) = {
       val techniques = techniqueRepository.getAll()
-      techniques.keySet.map(_.name.value).contains(bundleName.value)
+      techniques.values.map(_.name.toLowerCase).toList.contains(techniqueName.toLowerCase)
+    }
+    private def isTechniqueIdExist(bundleName: BundleName) = {
+      val techniques = techniqueRepository.getAll()
+      techniques.keySet.map(_.name.value.toLowerCase).contains(bundleName.value.toLowerCase)
     }
 
     val schema = API.CreateTechnique
@@ -350,8 +355,15 @@ class TechniqueApi (
           methodMap <- techniqueReader.readMethodsMetadataFile.toBox
           technique <- restExtractor.extractEditorTechnique(json, methodMap, true, false)
           internalId <- OptionnalJson.extractJsonString(json, "internalId")
-          isNameTaken = isTechniqueNameExist(technique.bundleName)
-          _ <- if(isNameTaken) Failure(s"Technique name and ID must be unique. '${technique.name}' already used") else Full(())
+          isNameTaken = isTechniqueNameExist(technique.name)
+          isIdTaken = isTechniqueIdExist(technique.bundleName)
+          _ <- (isNameTaken, isIdTaken) match {
+                 case (true, true)   => Failure(s"Technique name and ID must be unique. Name '${technique.name}' and ID '${technique.bundleName.value}' already used, they are case insensitive")
+                 case (true, false)  => Failure(s"Technique name must be unique. Name '${technique.name}' already used, it is case insensitive ")
+                 case (false, true)  => Failure(s"Technique ID must be unique. ID '${technique.bundleName.value}' already used, it is case insensitive")
+                 case (false, false) => Full(())
+               }
+
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           resoucesMoved <- internalId.map( internalId => moveRessources(technique,internalId).toBox).getOrElse(Full("Ok"))
           updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor).toBox
