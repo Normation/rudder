@@ -32,7 +32,7 @@ showMethodBlock model techniqueUi ui parentId block =
        ( blockBody model parentId block ui techniqueUi )
     |> addAttribute (hidden (Maybe.withDefault False (Maybe.map ((==) (Move (Block parentId  block))) (DragDrop.currentlyDraggedObject model.dnd) )))
     |> addAction ("mouseover" , HoverMethod (Just block.id))
-    |> addActionStopPropagation ("mouseleave" , HoverMethod Nothing)
+    |> addAction ("mouseleave" , HoverMethod Nothing)
 
 
 
