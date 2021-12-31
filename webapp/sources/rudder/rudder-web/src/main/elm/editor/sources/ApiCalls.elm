@@ -19,8 +19,8 @@ import Maybe.Extra
 -- POST   /techniques : update an existing technique (error if doesn't exist yet)
 -- DELETE /techniques/${id}/${version} : delete given technique's version
 -- GET    /techniques/${id}/${version}/resources : get resources for an existing technique
--- GET    /techniques/drafts/${id}/1.0/resources : get resources for a newly created technique
--- GET    /techniques/drafts/${id}/${version}/resources : get resources for a newly cloned technique
+-- GET    /techniques/draft/${id}/1.0/resources : get resources for a newly created technique
+-- GET    /techniques/draft/${id}/${version}/resources : get resources for a newly cloned technique
 
 
 getUrl: Model -> String -> String

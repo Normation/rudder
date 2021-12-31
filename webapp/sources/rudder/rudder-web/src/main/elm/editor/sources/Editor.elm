@@ -506,8 +506,8 @@ update msg model =
                   let
                     url = case s of
                             Edit _ ->  t.id.value ++ "/" ++ t.version ++ "/" ++ t.category
-                            Creation internalId -> "drafts/" ++ internalId.value ++ "/" ++ t.version
-                            Clone _ internalId -> "drafts/" ++ internalId.value ++ "/" ++ t.version
+                            Creation internalId -> "draft/" ++ internalId.value ++ "/" ++ t.version
+                            Clone _ internalId -> "draft/" ++ internalId.value ++ "/" ++ t.version
                   in
                     openManager (model.contextPath ++ "/secure/api/resourceExplorer/"  ++ url)
                 _ -> Cmd.none
