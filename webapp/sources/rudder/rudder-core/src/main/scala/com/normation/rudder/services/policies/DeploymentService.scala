@@ -1473,8 +1473,22 @@ object RuleExpectedReportBuilder extends Loggable {
                 // we are maybe not in a block, but we should only take the values matching the current parent path
                 val currentPath = section.name :: path // (varName is not in parent, but in value)
                 val refComponentId = ComponentId(varName, currentPath)
-                val innerExpandedVars = vars.expandedVars.get(refComponentId).map(_.values.toList).getOrElse(Nil)
-                val innerUnexpandedVars = vars.originalVars.get(refComponentId).map(_.values.toList).getOrElse(Nil)
+
+                // There are many cases were the variable component is not in the sections
+                // In historical techniques, we have only one componentKey for all technique, and all sections
+                // so we cannot search it in a specific path, and must rather look for it everywhere if it doesn't match
+
+                val lookingPath = if ( vars.expandedVars.get(refComponentId).isDefined ) {
+                  // ok, the componentKey is in the current path, all is great
+                  // this is a technique from technique editor, or an historical technique with the right section
+                  Some(refComponentId)
+                } else {
+                  // get the first variable that matches if it is not in the section
+                  // it is only from historical techniques
+                  vars.expandedVars.find { case (_, variable) => variable.spec.name == varName }.map(_._1)
+                }
+                val innerExpandedVars = lookingPath.map(comp => vars.expandedVars.get(comp).map(_.values.toList).getOrElse(Nil)).getOrElse(Nil)
+                val innerUnexpandedVars = lookingPath.map(comp => vars.originalVars.get(comp).map(_.values.toList).getOrElse(Nil)).getOrElse(Nil)
 
                 if (innerExpandedVars.size != innerUnexpandedVars.size)
                   PolicyGenerationLogger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
