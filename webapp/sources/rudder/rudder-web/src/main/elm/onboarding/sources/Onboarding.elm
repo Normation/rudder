@@ -41,12 +41,12 @@ update msg model =
               in
                 List.Extra.setAt index newSection model.sections
 
-            Metrics state setting  ->
+         {-   Metrics state setting  ->
               let
                 newState   = if state == Default then Visited else state
                 newSection = Metrics newState setting
               in
-                List.Extra.setAt index newSection model.sections
+                List.Extra.setAt index newSection model.sections -}
             _ -> model.sections
           Nothing -> model.sections
       in
@@ -73,10 +73,10 @@ update msg model =
             newSections = List.Extra.setAt 1 newSection model.sections
             newModel    = {model | sections = newSections}
           in
-            (newModel, getMetricsSettings newModel)
+            (newModel, Cmd.none)
         Err _ ->
           (model, (errorNotification "Error while fetching account credentials"))
-
+{-
     GetMetricsSettings res ->
       case res of
         Ok s ->
@@ -91,21 +91,16 @@ update msg model =
             (newModel, Cmd.none)
         Err _ ->
           (model, (errorNotification "Error while fetching metrics"))
-
+-}
     PostAccountSettings res ->
       let
         flag = case res of
           Ok _    -> True
           Err _ -> False
-
-        metricsSettings = case List.Extra.getAt 2 model.sections of
-          Just  s -> case s of
-            Metrics _ settings -> settings
-            _ -> NoMetrics
-          Nothing -> NoMetrics
       in
-        ({model | saveAccountFlag = flag}, postMetricsSettings model metricsSettings)
+        ({ model | saveAccountFlag = flag}, setupDone model True)
 
+{-
     PostMetricsSettings res ->
       let
         flag = case res of
@@ -113,7 +108,7 @@ update msg model =
           Err _ -> False
       in
         ({ model | saveMetricsFlag = flag}, setupDone model True)
-
+-}
 
     SetupDone _ ->
         ( model, Cmd.batch [ actionsAfterSaving model, Task.perform (always Redirect) (Process.sleep 3000) ])

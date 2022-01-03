@@ -32,7 +32,7 @@ view model =
           case s of
             Welcome          -> "Welcome"
             Account _ _      -> "Account"
-            Metrics _ _      -> "Metrics"
+         {-   Metrics _ _      -> "Metrics" -}
             GettingStarted _ -> "Getting Started"
 
         sectionIndex = case List.Extra.elemIndex s model.sections of
@@ -48,12 +48,12 @@ view model =
               Completed -> completeClass
               Warning   -> warningClass
               Default   -> defaultClass
-          Metrics se m  ->
+       {-   Metrics se m  ->
             case se of
               Visited   -> visitedClass
               Completed -> completeClass
               Warning   -> warningClass
-              Default   -> defaultClass
+              Default   -> defaultClass -}
           _ -> defaultClass
 
       in
@@ -73,11 +73,11 @@ view model =
 
           Account s ac ->
             case s of
-              Completed -> ( completeClass , completeIcon , "Your account "++ ac.username ++ " has been linked to your Rudder!"  )
-              Warning   -> ( warningClass  , warningIcon  , "There is a probleme with your account credentials."       )
-              _         -> ( defaultClass  , defaultIcon  , "No account have been linked to your Rudder installation." )
+              Completed -> ( completeClass , completeIcon , "Account "++ ac.username ++ " will be updated for your Rudder server."  )
+              Warning   -> ( warningClass  , warningIcon  , "There is a problem with your account credentials."       )
+              _         -> ( defaultClass  , defaultIcon  , "No account has been linked yet to your Rudder installation." )
 
-          Metrics s m  ->
+         {-  Metrics s m  ->
             let
               txtMetrics = case m of
                 NotDefined -> "No metrics will be shared."
@@ -88,7 +88,7 @@ view model =
               case s of
                 Completed -> ( completeClass , completeIcon , txtMetrics )
                 Warning   -> ( warningClass  , warningIcon  , txtMetrics )
-                _         -> ( defaultClass  , defaultIcon  , txtMetrics )
+                _         -> ( defaultClass  , defaultIcon  , txtMetrics ) -}
 
           _ -> ("" , "" , "" )
 
@@ -134,7 +134,7 @@ view model =
                 ]
               ]
 
-            Metrics _ metrics ->
+           {- Metrics _ metrics ->
               [ h3 [] [text "Metrics"]
               , div[] [text "Help us improve Rudder by providing anonymous usage metrics."]
               , div[]
@@ -171,7 +171,7 @@ view model =
                   ]
                 ]
               ]
-
+            -}
             GettingStarted _ ->
               let
                 listSummary = case List.tail model.sections of

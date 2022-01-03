@@ -33,7 +33,8 @@ decodeMetricsSettings =
   at [ "settings" ] (at [ "send_metrics" ] D.string
     |> D.andThen (\str ->
        case str of
-        "not_defined" ->
+        _ ->   D.succeed NotDefined
+       {- "not_defined" ->
           D.succeed NotDefined
         "no" ->
           D.succeed NoMetrics
@@ -42,6 +43,6 @@ decodeMetricsSettings =
         "complete" ->
           D.succeed Complete
         incorrectValue ->
-          D.fail <| "Incorrect value: " ++ incorrectValue
+          D.fail <| "Incorrect value: " ++ incorrectValue -}
     ))
 
