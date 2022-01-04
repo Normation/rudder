@@ -37,7 +37,7 @@
 package com.normation.rudder.api
 
 import scala.util.Random
-
+import java.security.SecureRandom
 
 /**
  * Generate random string usable as token
@@ -51,7 +51,9 @@ trait TokenGenerator {
 
 final class TokenGeneratorImpl(defaultTokenSize: Int = 32) extends TokenGenerator {
 
-  override def newToken(size: Int = defaultTokenSize) : String = Random.alphanumeric.take(size).mkString("")
+  private val random = new Random(new SecureRandom())
+  
+  override def newToken(size: Int = defaultTokenSize) : String = random.alphanumeric.take(size).mkString("")
 
 }
 
