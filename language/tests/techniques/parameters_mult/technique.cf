@@ -8,13 +8,11 @@ bundle agent param_mult {
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "bfe4005a-c854-4bea-a760-6343ee84bd5c" usebundle => _method_reporting_context("File absent", "target"),
-                                             if => concat("linux");
+    "bfe4005a-c854-4bea-a760-6343ee84bd5c" usebundle => _method_reporting_context("File absent", "target");
     "bfe4005a-c854-4bea-a760-6343ee84bd5c" usebundle => file_absent("target"),
                                              if => concat("linux");
 
-    "fa34708e-80c0-4369-b1b6-276d4f0a481a" usebundle => _method_reporting_context("Package absent", "openvpn"),
-                                             if => concat("any");
+    "fa34708e-80c0-4369-b1b6-276d4f0a481a" usebundle => _method_reporting_context("Package absent", "openvpn");
     "fa34708e-80c0-4369-b1b6-276d4f0a481a" usebundle => package_absent("openvpn", "4.2", "archi", "yum"),
                                              if => concat("any");
 

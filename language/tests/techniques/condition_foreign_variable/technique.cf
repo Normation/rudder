@@ -8,8 +8,7 @@ bundle agent condition_foreign_variable {
     "class_prefix"         string => string_head("${full_class_prefix}", "1000");
 
   methods:
-    "f2c8e8b2-43d0-4ce2-ace7-fe5ad3ac7a16" usebundle => _method_reporting_context("Command execution", "chown -R ${owner}:${owner} ${path}"),
-                                                              if => concat("any.(server_machine|group_sbu_cmcs__sles12_)");
+    "f2c8e8b2-43d0-4ce2-ace7-fe5ad3ac7a16" usebundle => _method_reporting_context("Command execution", "chown -R ${owner}:${owner} ${path}");
     "f2c8e8b2-43d0-4ce2-ace7-fe5ad3ac7a16" usebundle => command_execution("chown -R ${owner}:${owner} ${path}"),
                                                               if => concat("any.(server_machine|group_sbu_cmcs__sles12_)");
 }

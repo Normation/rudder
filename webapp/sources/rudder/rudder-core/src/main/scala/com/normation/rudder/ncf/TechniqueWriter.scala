@@ -181,12 +181,39 @@ class RudderCRunner(
     } yield ()
   }
 
+  // Create an empty reporting bundle for compatibility with the fallback process
+  // Can be removed once rudderc is the only generation method
+  def emptyReportingFile(technique : EditorTechnique) = {
+    val bundleParams = if (technique.parameters.nonEmpty) technique.parameters.map(_.name.canonify).mkString("(",",",")") else ""
+    val content =
+      s"""bundle agent ${technique.bundleName.value}_rudder_reporting${bundleParams}
+         |{
+         |}"""
+    val reportingFile = File(outputPath) / "techniques"/ technique.category / technique.bundleName.value / technique.version.value / "rudder_reporting.cf"
+
+    for {
+      _ <- TechniqueWriterLoggerPure.debug(s"Creating empty reporting file for target '${technique.name}' in path ${reportingFile.path.toString}")
+      _ <- IOResult.effect(s"Could not write empty reporting Technique file '${technique.name}' in path ${reportingFile.path.toString}") {
+             reportingFile.createFileIfNotExists(true).write(content.stripMargin('|'))
+           }
+    } yield {
+      ()
+    }
+  }
+
   def writeOne[T <: RuddercTarget](target: T, ruddercTargets: Set[RuddercTarget], technique: EditorTechnique, methods: Map[BundleName, GenericMethod], fallback: AgentSpecificTechniqueWriter, outputPath: String, configFilePath: String) = {
     if(ruddercTargets.contains(target)) {
       TechniqueWriterLoggerPure.debug(s"Using rudderc for target '${target.name}' for technique '${technique.path}'") *> {
         target match {
           case RuddercTarget.DSC      => compileForTarget[RuddercTarget.DSC.type](technique.path)
-          case RuddercTarget.CFEngine => compileForTarget[RuddercTarget.CFEngine.type](technique.path)
+          case RuddercTarget.CFEngine => {
+            for {
+              _ <- compileForTarget[RuddercTarget.CFEngine.type](technique.path)
+              _ <- emptyReportingFile(technique)
+            } yield {
+              ()
+            }
+          }
         }
       }
     } else {
@@ -430,7 +457,7 @@ class TechniqueWriter (
     for {
       updatedTechnique <- writeTechnique(technique,methods,modId,committer)
       libUpdate        <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
-                            toIO.chainError(s"An error occured during technique update after files were created for ncf Technique ${technique.name}")
+                            toIO.chainError(s"An error occurred during technique update after files were created for ncf Technique ${technique.name}")
     } yield {
       updatedTechnique
     }
@@ -478,7 +505,7 @@ class TechniqueWriter (
 
       commit     <- archiver.commitTechnique(technique, modId, committer, s"Committing technique ${technique.name}")
       time_4     <- currentTimeMillis
-      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: commiting technique '${technique.name}' took ${time_4 - time_3}ms")
+      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: committing technique '${technique.name}' took ${time_4 - time_3}ms")
       _          <- TimingDebugLoggerPure.debug(s"writeTechnique: writing technique '${technique.name}' took ${time_4 - time_0}ms")
 
     } yield {

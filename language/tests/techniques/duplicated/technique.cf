@@ -8,16 +8,13 @@ bundle agent Add_GSN_users_to_vboxusers_group
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "cc8efd39-c24d-4074-9cf6-2d53b1c27788" usebundle => _method_reporting_context("Command execution", "/usr/sbin/usermod -a -G vboxusers nwcyrille"),
-                                                             if => concat("any");
+    "cc8efd39-c24d-4074-9cf6-2d53b1c27788" usebundle => _method_reporting_context("Command execution", "/usr/sbin/usermod -a -G vboxusers nwcyrille");
     "cc8efd39-c24d-4074-9cf6-2d53b1c27788" usebundle => command_execution("/usr/sbin/usermod -a -G vboxusers nwcyrille"),
                                                              if => concat("any");
-    "4b40dc15-5a5e-4a1e-a91d-0bc53a10b658" usebundle => _method_reporting_context("Command execution", "/usr/sbin/usermod -a -G vboxusers nweric"),
-                                                             if => concat("any");
+    "4b40dc15-5a5e-4a1e-a91d-0bc53a10b658" usebundle => _method_reporting_context("Command execution", "/usr/sbin/usermod -a -G vboxusers nweric");
     "4b40dc15-5a5e-4a1e-a91d-0bc53a10b658" usebundle => command_execution("/usr/sbin/usermod -a -G vboxusers nweric"),
                                                              if => concat("any");
-    "f3510d66-e96b-4f0b-91d4-9633ec7eec86" usebundle => _method_reporting_context("Command execution", "/usr/sbin/usermod -a -G vboxusers nwantoine"),
-                                                             if => concat("any");
+    "f3510d66-e96b-4f0b-91d4-9633ec7eec86" usebundle => _method_reporting_context("Command execution", "/usr/sbin/usermod -a -G vboxusers nwantoine");
     "f3510d66-e96b-4f0b-91d4-9633ec7eec86" usebundle => command_execution("/usr/sbin/usermod -a -G vboxusers nwantoine"),
                                                              if => concat("any");
 }

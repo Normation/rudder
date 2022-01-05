@@ -8,28 +8,22 @@ bundle agent multiple_simple
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "3c1c7ff4-a4a2-4b1b-8c88-4a70b2ae3395" usebundle => _method_reporting_context("File absent", "/tmp"),
-                                                       if => concat("any");
+    "3c1c7ff4-a4a2-4b1b-8c88-4a70b2ae3395" usebundle => _method_reporting_context("File absent", "/tmp");
     "3c1c7ff4-a4a2-4b1b-8c88-4a70b2ae3395" usebundle => file_absent("/tmp"),
                                                        if => concat("any");
-    "da4e48c9-f13b-4cf7-9fbe-9130b3a4a7f0" usebundle => _method_reporting_context("File check exists", "/tmp"),
-                                                             if => concat("any");
+    "da4e48c9-f13b-4cf7-9fbe-9130b3a4a7f0" usebundle => _method_reporting_context("File check exists", "/tmp");
     "da4e48c9-f13b-4cf7-9fbe-9130b3a4a7f0" usebundle => file_check_exists("/tmp"),
                                                              if => concat("any");
-    "1c5237ee-67ff-4b4b-9b0c-71c3b5a77f15" usebundle => _method_reporting_context("File present", "/tmp"),
-                                                        if => concat("any");
+    "1c5237ee-67ff-4b4b-9b0c-71c3b5a77f15" usebundle => _method_reporting_context("File present", "/tmp");
     "1c5237ee-67ff-4b4b-9b0c-71c3b5a77f15" usebundle => file_present("/tmp"),
                                                         if => concat("any");
-    "43bc93ec-df5d-4a35-8e1c-a60185c8fc1a" usebundle => _method_reporting_context("Directory absent", "/tmp"),
-                                                            if => concat("any");
+    "43bc93ec-df5d-4a35-8e1c-a60185c8fc1a" usebundle => _method_reporting_context("Directory absent", "/tmp");
     "43bc93ec-df5d-4a35-8e1c-a60185c8fc1a" usebundle => directory_absent("/tmp", "false"),
                                                             if => concat("any");
-    "a453d84c-06d3-4f03-8df8-7142b9316cb7" usebundle => _method_reporting_context("Directory present", "/tmp"),
-                                                             if => concat("any");
+    "a453d84c-06d3-4f03-8df8-7142b9316cb7" usebundle => _method_reporting_context("Directory present", "/tmp");
     "a453d84c-06d3-4f03-8df8-7142b9316cb7" usebundle => directory_present("/tmp"),
                                                              if => concat("any");
-    "bc2b4696-130b-4f87-a65b-a6b0a7c14062" usebundle => _method_reporting_context("Directory check exists", "/tmp"),
-                                                                  if => concat("any");
+    "bc2b4696-130b-4f87-a65b-a6b0a7c14062" usebundle => _method_reporting_context("Directory check exists", "/tmp");
     "bc2b4696-130b-4f87-a65b-a6b0a7c14062" usebundle => directory_check_exists("/tmp"),
                                                                   if => concat("any");
 }

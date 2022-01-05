@@ -8,8 +8,7 @@ bundle agent conditional_method
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "48da1b53-5c97-4894-acf7-f4d7a0179050" usebundle => _method_reporting_context("HTTP request check status with headers", "/myurl"),
-                                                                                  if => concat("any.(debian)");
+    "48da1b53-5c97-4894-acf7-f4d7a0179050" usebundle => _method_reporting_context("HTTP request check status with headers", "/myurl");
     "48da1b53-5c97-4894-acf7-f4d7a0179050" usebundle => http_request_check_status_headers("GET", "/myurl", "200", ""),
                                                                                   if => concat("any.(debian)");
 }
