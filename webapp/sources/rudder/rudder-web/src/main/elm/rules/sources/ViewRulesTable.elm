@@ -1,6 +1,7 @@
 module ViewRulesTable exposing (..)
 
 import DataTypes exposing (..)
+import Dict
 import Html exposing (Html, text,  tr, td, i, span)
 import Html.Attributes exposing (class, colspan, attribute)
 import Html.Events exposing (onClick)
@@ -20,6 +21,19 @@ getSortFunction model r1 r2 =
   let
     order = case model.ui.ruleFilters.tableFilters.sortBy of
       Name       -> NaturalOrdering.compare r1.name r2.name
+      RuleChanges->
+        let
+          getChanges = \r ->
+            case Dict.get r.id.value model.changes of
+              Just cl ->
+                case List.Extra.last cl of
+                  Just c -> c.changes
+                  Nothing -> 0
+              Nothing -> 0
+          r1Changes = getChanges r1
+          r2Changes = getChanges r2
+        in
+          compare r1Changes r2Changes
       Parent     ->
         let
           o = NaturalOrdering.compare (getCategoryName model r1.categoryId) (getCategoryName model r2.categoryId)
@@ -36,7 +50,7 @@ getSortFunction model r1 r2 =
           compare r1Status r2Status
       Compliance ->
         let
-          getCompliance : Maybe RuleCompliance -> Float
+          getCompliance : Maybe RuleComplianceGlobal -> Float
           getCompliance rc =
             case rc of
               Just c  ->
@@ -48,11 +62,10 @@ getSortFunction model r1 r2 =
                   else
                     c.compliance
               Nothing -> -2.0
-          --r1Compliance = getCompliance (getRuleCompliance model r1.id)
-          --r2Compliance = getCompliance (getRuleCompliance model r2.id)
+          r1Compliance = getCompliance (getRuleCompliance model r1.id)
+          r2Compliance = getCompliance (getRuleCompliance model r2.id)
         in
-          GT
-          --compare r1Compliance r2Compliance
+          compare r1Compliance r2Compliance
   in
     if model.ui.ruleFilters.tableFilters.sortOrder == Asc then
       order
@@ -81,6 +94,15 @@ buildRulesTable model =
               buildComplianceBar co.complianceDetails
             Nothing -> text "No report"
 
+        changes =
+          case Dict.get r.id.value model.changes of
+            Just cl ->
+              case List.Extra.last cl of
+                Just c -> text (String.fromFloat c.changes)
+                Nothing -> text "0"
+            Nothing -> text "0"
+
+
         displayStatus : Html Msg
         displayStatus =
           let
@@ -104,6 +126,7 @@ buildRulesTable model =
             , td[][ categoryName  ]
             , td[][ displayStatus ]
             , td[][ compliance    ]
+            , td[][ changes       ]
             ]
   in
     if List.length sortedRulesList > 0 then

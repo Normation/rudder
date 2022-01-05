@@ -1,10 +1,14 @@
 module JsonDecoder exposing (..)
 
 import DataTypes exposing (..)
-import Either.Decode exposing (either)
+import Dict exposing (Dict)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Decode.Field exposing (..)
+import Time.Iso8601
+import Time.Iso8601ErrorMsg
+import Time.TimeZones exposing (utc)
+import Time.ZonedDateTime exposing (ZonedDateTime)
 import Tuple
 
 
@@ -185,6 +189,24 @@ decodeDirectiveCompliance elem decoder =
     |> required "complianceDetails" decodeComplianceDetails
     |> required "components" (list (decodeComponentCompliance  elem decoder )  )
 
+decodeRuleChanges: Decoder (Dict String (List Changes))
+decodeRuleChanges =
+  at [ "data" ] (dict (list decodeChanges))
+
+decodeChanges : Decoder Changes
+decodeChanges =
+  succeed Changes
+    |> required "start" decodeTime
+    |> required "end" decodeTime
+    |> required "changes" float
+
+decodeTime : Decoder ZonedDateTime
+decodeTime =
+  andThen (\d ->
+            case d of
+              Ok r -> succeed r
+              Err e -> fail (String.join "\n" <| List.map (Time.Iso8601ErrorMsg.renderText "" ) e)
+          ) (map (Time.Iso8601.toZonedDateTime utc) string)
 
 decodeValueCompliance : Decoder ValueCompliance
 decodeValueCompliance =
@@ -329,3 +351,19 @@ decodeNodeInfo =
     |> required "hostname"    string
     |> required "description" string
     |> required "policyMode"  string
+
+
+decodeRepairedReports: Decoder (List RepairedReport)
+decodeRepairedReports =
+   at ["data"] (list decodeRepairedReport)
+
+decodeRepairedReport: Decoder RepairedReport
+decodeRepairedReport =
+  succeed RepairedReport
+    |> required "directiveId" (map DirectiveId string)
+    |> required "nodeId"      (map NodeId string)
+    |> required "component"   string
+    |> required "value"   string
+    |> required "executionTimestamp" decodeTime
+    |> required "executionDate" decodeTime
+    |> required "message"   string

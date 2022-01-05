@@ -112,7 +112,7 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
 
         case Compliance.Read      => ComplianceApi.GetGlobalCompliance.x :: ComplianceApi.GetRulesCompliance.x ::
                                      ComplianceApi.GetRulesComplianceId.x :: ComplianceApi.GetNodesCompliance.x ::
-                                     ComplianceApi.GetNodeComplianceId.x :: Nil
+                                     ComplianceApi.GetNodeComplianceId.x :: ChangesApi.GetRuleRepairedReports.x :: ChangesApi.GetRecentChanges.x ::Nil
         case Compliance.Write     => Nil
         case Compliance.Edit      => Nil
 
