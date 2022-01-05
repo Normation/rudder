@@ -235,7 +235,7 @@ techniqueTab model technique creation ui =
                   i [ class "fa fa-exclamation-triangle"] []
                 , text ("There " ++ (if(number == 1) then "is " else "are "))
                 , b [] [ text (String.fromInt number) ]
-                , text (" unsaved " ++ ((if(number == 1) then "file " else "files ")) ++ ", save your changes to complete upload.")
+                , text (" unsaved " ++ ((if(number == 1) then "file " else "files")) ++ ", save your changes to complete upload.")
                 ]
               ]
           else text ""
