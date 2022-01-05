@@ -37,15 +37,24 @@
 
 package com.normation.plugins
 
+import com.normation.utils.ParseVersion
+
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
+
 import com.normation.zio._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 
 @RunWith(classOf[JUnitRunner])
 class RudderPluginJsonTest extends Specification {
+  implicit class ForceParse(s: String) {
+    def toVersion = ParseVersion.parse(s) match {
+      case Left(err) => throw new IllegalArgumentException(s"Can not parse '${s}' as a version in test: ${err}")
+      case Right(v)  => v
+    }
+  }
 
   val index_json = """{
                      |  "plugins": {
@@ -110,7 +119,7 @@ class RudderPluginJsonTest extends Specification {
   val expected = List(
     JsonPluginDef(
       "rudder-plugin-branding"
-    , PluginVersion(1, 3, 0, "5.0-")
+    , PluginVersion("5.0.0".toVersion, "1.3.0".toVersion)
     , List(
         "/opt/rudder/share/plugins/",
         "/opt/rudder/share/plugins/branding/",
@@ -122,7 +131,7 @@ class RudderPluginJsonTest extends Specification {
     )
   , JsonPluginDef(
       "rudder-plugin-centreon"
-    , PluginVersion(1, 1, 0, "5.0-")
+    , PluginVersion("5.0.0".toVersion, "1.1.0".toVersion)
     , List(
         "/opt/rudder//",
         "/opt/rudder//bin/",

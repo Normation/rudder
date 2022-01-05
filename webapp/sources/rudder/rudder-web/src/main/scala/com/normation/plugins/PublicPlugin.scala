@@ -67,18 +67,32 @@ trait DefaultPluginDef extends RudderPluginDef {
 
   //get properties name for the plugin from "build.conf" file
   //have default string for errors (and avoid "missing prop exception"):
-  lazy val defaults = List(
-      "plugin-name"
-    , "plugin-fullname"
-    , "plugin-title-description"
-    , "plugin-version"
-  ).map(p => s"$p=missing property with name '$p' in file 'build.conf' for '${basePackage}'").mkString("\n")
+  lazy val defaults = {
+    val d1 = List(
+        "plugin-name"
+      , "plugin-fullname"
+      , "plugin-title-description"
+      , "plugin-version"
+    ).map(p => s"$p=missing property with name '$p' in file 'build.conf' for '${basePackage}'").mkString("\n")
 
-  //by convention, plugin "build.conf" file is copied into path:
+    val d2 = List(
+        "branch-type"
+      , "rudder-version"
+      , "common-version"
+      , "private-version"
+    ).map(p => s"$p=missing property with name '$p' in file 'main-build.conf' for '${basePackage}'").mkString("\n")
+
+    val res = d1 + "\n" + d2
+    res
+  }
+
+  //by convention, plugin "build.conf" and plugin-commons "main-build.conf" files are copied into path:
   // target/classes/com/normation/plugins/${project.artifactId}
   lazy val buildConfPath = basePackage.replaceAll("""\.""", "/") + "/build.conf"
+  lazy val mainBuildConfPath = basePackage.replaceAll("""\.""", "/") + "/main-build.conf"
   lazy val buildConf = try {
-    ConfigFactory.load(this.getClass.getClassLoader, buildConfPath).withFallback(ConfigFactory.parseString(defaults))
+    val c1 = ConfigFactory.load(this.getClass.getClassLoader, buildConfPath).withFallback(ConfigFactory.parseString(defaults))
+    ConfigFactory.load(this.getClass.getClassLoader, mainBuildConfPath).withFallback(c1)
   } catch {
     case ex: ConfigException => //something want very wrong with "build.conf" parsing
 
@@ -90,11 +104,8 @@ trait DefaultPluginDef extends RudderPluginDef {
   override lazy val shortName = buildConf.getString("plugin-name")
   override lazy val displayName = buildConf.getString("plugin-title-description")
   override lazy val version = {
-    val versionString = buildConf.getString("plugin-version")
-    PluginVersion.from(versionString).getOrElse(
-      //a version name that indicate an erro
-      PluginVersion(0,0,1, s"ERROR-PARSING-VERSION: ${versionString}")
-    )
+    val versionString = buildConf.getString("rudder-version") + "-" + buildConf.getString("plugin-version")
+    PluginVersion.from(versionString).getOrElse(PluginVersion.PARSING_ERROR(versionString))
   }
   override lazy val versionInfo = {
     try {
