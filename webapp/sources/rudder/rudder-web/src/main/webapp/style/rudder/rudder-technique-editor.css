@@ -1558,3 +1558,6 @@ ul li.hide-method {
   75% { margin-left: -0.5rem; }
   100% { margin-left: 0rem; }
 }
+.mandatory-param {
+  color: #da291c;
+}

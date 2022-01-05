@@ -48,9 +48,21 @@ parameterName: MethodParameter -> String
 parameterName param =
   String.replace "_" " " (String.Extra.toSentenceCase param.name.value)
 
+checkMandatoryParameter: MethodParameter -> Bool
+checkMandatoryParameter methodParam =
+  List.all (\c -> case c of
+             AllowEmpty bool -> not bool
+             _ -> True
+           ) methodParam.constraints
+
 showParam: Model -> MethodCall -> ValidationState MethodCallParamError -> MethodParameter -> CallParameter -> Html Msg
 showParam model call state methodParam param =
   let
+    isMandatory =
+      if (checkMandatoryParameter methodParam) then
+        span [class "mandatory-param"] [text " *"]
+      else
+        span [class "allow-empty"] [text ""]
     errors = case state of
       InvalidState constraintErrors -> List.filterMap (\c -> case c of
                                                          ConstraintError err ->
@@ -64,7 +76,9 @@ showParam model call state methodParam param =
   div [class "form-group method-parameter"] [
     label [ for "param-index" ] [
       span [] [
-        text (String.Extra.toTitleCase param.id.value ++ " -")
+        text (String.Extra.toTitleCase param.id.value)
+      , isMandatory
+      , text (" -")
       , span [ class "badge badge-secondary ng-binding" ] [ text methodParam.type_ ]
       ]
     , small [] [ text ( " " ++ methodParam.description) ]

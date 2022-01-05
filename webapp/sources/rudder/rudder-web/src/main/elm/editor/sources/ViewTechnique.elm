@@ -52,6 +52,62 @@ isValid ui =
   (isValidState ui.idState )  && ( isValidState ui.nameState ) && (List.all (isValidState) (List.map .validation (Dict.values ui.callsUI)))
   && (List.all (isValidState) (List.map (.validation) (Dict.values ui.blockUI)))
 
+{- Contains methods with parameters error
+
+   For example :
+      In technique "foo" there is three methods
+       * "command_execution" with id "e8a8d662-9d2d-44b4-87f8-591fb6f4db1b"
+         - [Mandatory] with parameter "Command"      -> "touch file"
+       * "package_present" with id "6394770e-a9c2-4e67-8569-d21560a07dc2
+         - [Mandatory] with parameter "Name"         -> empty
+         - [Optional] with parameter  "Version"      -> "latest"
+         - [Optional] with parameter  "Architecture" -> empty
+         - [Optional] with parameter  "Provider"     -> "unknown_provider"
+
+   the result will be :
+   Dict {
+     "6394770e-a9c2-4e67-8569-d21560a07dc2" -> [
+       InvalidState [ConstraintError { id = { value = "name" }, message = "Parameter 'name' is empty" }]
+     , InvalidState [
+         ConstraintError {
+           id = { value = "provider" }
+         , message = "Parameter 'provider'  should be one of the value from the following list: , default, yum, apt, zypper, zypper_pattern, slackpkg, pkg"
+         }
+       ]
+     ]
+   }
+-}
+listAllMethodWithMissingParameters: List MethodCall -> Dict String Method -> Dict String (List (ValidationState MethodCallParamError))
+listAllMethodWithMissingParameters methodCallList libMethods =
+  let
+    errorsOnParamByCallId =
+      List.map ( \mCall ->
+        case (Dict.get mCall.methodName.value libMethods) of
+          Just method ->
+            let
+              -- all the parameters errors found on a method
+              paramErrors =
+                List.map (\param ->
+                  let
+                    paramConstraints = case (List.head (List.filter (\p -> param.id.value == p.name.value) method.parameters)) of
+                      Just paramWithConstraints -> paramWithConstraints.constraints
+                      _                         -> []
+                    state = accumulateErrorConstraint param paramConstraints ValidState
+                  in
+                  state
+                ) mCall.parameters
+            in
+            ( mCall.id.value
+            , List.filter (\state ->
+                case state of
+                  InvalidState _ -> True
+                  _              -> False
+              ) paramErrors
+            )
+          _      -> (mCall.methodName.value, [ValidState])
+      ) methodCallList
+  in
+  Dict.fromList (List.filter (\(_, errors) -> if (List.isEmpty errors) then False else True) errorsOnParamByCallId)
 
 showTechnique : Model -> Technique ->  TechniqueState -> TechniqueUiInfo -> Html Msg
 showTechnique model technique origin ui =
@@ -62,6 +118,10 @@ showTechnique model technique origin ui =
                  Creation _ -> True
                  Clone _ _ -> True
                  Edit _ -> False
+    methodCallList = List.concatMap getAllCalls technique.elems
+    statesByMethodId = listAllMethodWithMissingParameters methodCallList model.methods
+    -- Keep the ID of the method in the UI if it contains invalid parameters value
+    areMethodsMissingParameters = List.isEmpty (Dict.keys statesByMethodId)
     isUnchanged = case origin of
                     Edit t -> t == technique
                     Creation _ -> False
@@ -182,7 +242,7 @@ showTechnique model technique origin ui =
               text "Reset "
             , i [ class "fa fa-undo"] []
             ]
-          , button [ class "btn btn-success btn-save", disabled (isUnchanged || (not (isValid ui)) || ui.saving || String.isEmpty technique.name), onClick (CallApi (saveTechnique technique creation)) ] [ --ng-disabled="ui.editForm.$pending || ui.editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || saving"  ng-click="saveTechnique()">
+          , button [ class "btn btn-success btn-save", disabled (isUnchanged || (not (isValid ui)) || ui.saving || String.isEmpty technique.name || not areMethodsMissingParameters), onClick (CallApi (saveTechnique technique creation)) ] [
               text "Save "
             , i [ class ("fa fa-download " ++ (if ui.saving then "glyphicon glyphicon-cog fa-spin" else "")) ] []
             ]
