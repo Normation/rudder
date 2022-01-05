@@ -280,6 +280,26 @@ object NodeApi extends ApiModuleProvider[NodeApi] {
   }
   def endpoints = ca.mrvisser.sealerate.values[NodeApi].toList.sortBy( _.z )
 }
+
+sealed trait ChangesApi extends EndpointSchema with InternalApi with SortIndex {
+  override def dataContainer = None
+}
+object ChangesApi extends ApiModuleProvider[ChangesApi] {
+
+  final case object GetRecentChanges extends ChangesApi with ZeroParam with StartsAtVersion14 with SortIndex {
+    val z = implicitly[Line].value
+    val description = "Get changes for all Rules over the last 3 days (internal)"
+    val (action, path) = GET / "changes"
+  }
+
+  final case object GetRuleRepairedReports extends ChangesApi with OneParam with StartsAtVersion14 with SortIndex {
+    val z = implicitly[Line].value
+    val description = "Get all repaired report for a Rule in a interval of time specified as parameter(internal)"
+    val (action, path) = GET / "changes" / "{ruleId}"
+  }
+
+  def endpoints = ca.mrvisser.sealerate.values[ChangesApi].toList.sortBy( _.z )
+}
 sealed trait ParameterApi extends EndpointSchema with GeneralApi with SortIndex {
   override def dataContainer = Some("parameters")
 }

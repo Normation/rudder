@@ -103,9 +103,15 @@ update msg model =
       case res of
         Ok r ->
           let
-            newModel = {model | mode = RuleForm (RuleDetails (Just r) r Information defaultRulesUI Nothing ) }
+            newModel = {model | mode = RuleForm (RuleDetails (Just r) r Information defaultRulesUI Nothing []) }
+            getChanges = case Dict.get r.id.value model.changes of
+                           Nothing -> []
+                           Just changes ->
+                             case List.Extra.last changes of
+                               Nothing -> []
+                               Just lastChanges -> [ getRepairedReports newModel r.id lastChanges.start lastChanges.end ]
           in
-            (newModel, getRulesComplianceDetails r.id newModel)
+            (newModel, Cmd.batch (getRulesComplianceDetails r.id newModel :: getChanges) )
         Err err ->
           processApiError "Getting Rule details" err model
 
@@ -145,7 +151,12 @@ update msg model =
         Err err ->
           processApiError "Getting compliance" err model
 
-
+    GetRuleChanges res ->
+      case res of
+        Ok r ->
+          ( { model | changes = r} , Cmd.none )
+        Err err ->
+          processApiError "Getting changes" err model
 
     GetRuleComplianceResult id res ->
       case res of
@@ -161,6 +172,21 @@ update msg model =
         Err err ->
           processApiError ("Getting compliance details of Rule "++ id.value) err model
 
+
+
+    GetRepairedReportsResult id start end res ->
+      case res of
+        Ok r ->
+          case model.mode of
+            RuleForm details   ->
+              let
+                newDetails = {details | reports = r}
+              in
+                ({model | mode = RuleForm newDetails }, Cmd.none)
+            _ ->
+              (model, Cmd.none)
+        Err err ->
+          processApiError ("Getting changes  of Rule "++ id.value) err model
 
 
 
@@ -226,7 +252,7 @@ update msg model =
     NewRule id ->
       let
         rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] "" (RuleStatus "" Nothing) []
-        ruleDetails = RuleDetails Nothing rule Information defaultRulesUI Nothing
+        ruleDetails = RuleDetails Nothing rule Information defaultRulesUI Nothing []
       in
         ({model | mode = RuleForm ruleDetails}, Cmd.none)
 
@@ -315,7 +341,7 @@ update msg model =
           RuleForm _ ->
             let
               newRule    = {rule | name = ("Clone of "++rule.name), id = ruleId}
-              newRuleDetails = RuleDetails Nothing newRule Information defaultRulesUI Nothing
+              newRuleDetails = RuleDetails Nothing newRule Information defaultRulesUI Nothing []
             in
               { model | mode = RuleForm newRuleDetails }
           _ -> model
@@ -386,6 +412,13 @@ update msg model =
             (newModel, Cmd.none)
         _ ->
             (model, Cmd.none)
+    GetRepairedReport ruleId idChange ->
+      case Dict.get ruleId.value model.changes of
+        Nothing -> (model, Cmd.none)
+        Just changes ->
+          case List.Extra.getAt idChange changes of
+            Nothing -> (model, Cmd.none)
+            Just c -> (model, getRepairedReports model ruleId c.start c.end)
     ToggleRowSort rowId sortId order ->
       case model.mode of
         RuleForm r ->

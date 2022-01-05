@@ -19,6 +19,7 @@
             "elm-community/dict-extra": "2.4.0",
             "elm-community/list-extra": "8.5.1",
             "elm-community/maybe-extra": "5.2.1",
+            "isaacseymour/deprecated-time": "1.0.0",
             "mcordova47/elm-natural-ordering": "1.0.5",
             "toastal/either": "3.6.3",
             "webbhuset/elm-json-decode": "1.1.0"
@@ -30,6 +31,7 @@
             "danfishgold/base64-bytes": "1.1.0",
             "elm/bytes": "1.0.8",
             "elm/file": "1.0.5",
+            "elm/parser": "1.1.0",
             "elm/regex": "1.0.0",
             "elm/time": "1.0.0",
             "elm/virtual-dom": "1.0.2",
