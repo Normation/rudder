@@ -109,10 +109,25 @@ listAllMethodWithMissingParameters methodCallList libMethods =
   in
   Dict.fromList (List.filter (\(_, errors) -> if (List.isEmpty errors) then False else True) errorsOnParamByCallId)
 
+checkBlocksOnError: List MethodElem -> Dict String (ValidationState BlockError)
+checkBlocksOnError methodElems =
+  let
+    methodsBlocks = List.concatMap getAllBlocks methodElems
+    methodBlockOnError = List.map (\b -> (b.id.value, checkBlockConstraint b)) methodsBlocks
+  in
+  Dict.fromList (
+    List.filter ( \(_, error) ->
+      case error of
+        InvalidState _ -> True
+        _              -> False
+  ) methodBlockOnError)
+
 showTechnique : Model -> Technique ->  TechniqueState -> TechniqueUiInfo -> Html Msg
 showTechnique model technique origin ui =
   let
-    fakeMetadata = Http.Metadata "internal-elm-call" 500 "call from elm app" Dict.empty
+    fakeMetadata = Http.Metadata "internal-elm-call" 200 "call from elm app" Dict.empty
+    blocksOnError = checkBlocksOnError technique.elems
+    areBlockOnError = Dict.isEmpty blocksOnError
     activeTabClass = (\tab -> "ui-tabs-tab " ++ (if ui.tab == tab then "active" else ""))
     creation = case origin of
                  Creation _ -> True
@@ -242,7 +257,7 @@ showTechnique model technique origin ui =
               text "Reset "
             , i [ class "fa fa-undo"] []
             ]
-          , button [ class "btn btn-success btn-save", disabled (isUnchanged || (not (isValid ui)) || ui.saving || String.isEmpty technique.name || not areMethodsMissingParameters), onClick (CallApi (saveTechnique technique creation)) ] [
+          , button [ class "btn btn-success btn-save", disabled (isUnchanged || (not (isValid ui)) || ui.saving || String.isEmpty technique.name || not areMethodsMissingParameters || not areBlockOnError), onClick (CallApi (saveTechnique technique creation)) ] [
               text "Save "
             , i [ class ("fa fa-download " ++ (if ui.saving then "glyphicon glyphicon-cog fa-spin" else "")) ] []
             ]
