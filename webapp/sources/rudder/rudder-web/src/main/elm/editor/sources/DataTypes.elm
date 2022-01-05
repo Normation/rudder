@@ -4,6 +4,7 @@ import Dict exposing (Dict)
 import Either exposing (Either)
 import File exposing (File)
 import Http exposing (Error)
+import Http.Detailed
 import MethodConditions exposing (..)
 import Dom.DragDrop as DragDrop
 import Time exposing (Posix)
@@ -203,13 +204,13 @@ type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUi
 -- all events in the event loop
 type Msg =
     SelectTechnique (Either Technique Draft)
-  | GetTechniques   (Result Error (List Technique))
-  | SaveTechnique   (Result Error Technique)
+  | GetTechniques   (Result (Http.Detailed.Error String) ( Http.Metadata, List Technique ))
+  | SaveTechnique   (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
   | UpdateTechnique Technique
-  | DeleteTechnique (Result Error TechniqueId)
-  | GetTechniqueResources  (Result Error (List Resource))
-  | GetCategories (Result Error  TechniqueCategory)
-  | GetMethods   (Result Error (Dict String Method))
+  | DeleteTechnique (Result (Http.Detailed.Error String) ( Http.Metadata, TechniqueId ))
+  | GetTechniqueResources  (Result (Http.Detailed.Error String) ( Http.Metadata, List Resource ))
+  | GetCategories (Result (Http.Detailed.Error String)  ( Http.Metadata, TechniqueCategory ))
+  | GetMethods   (Result (Http.Detailed.Error String) ( Http.Metadata, (Dict String Method) ))
   | UIMethodAction CallId MethodCallUiInfo
   | UIBlockAction CallId MethodBlockUiInfo
   | RemoveMethod CallId
