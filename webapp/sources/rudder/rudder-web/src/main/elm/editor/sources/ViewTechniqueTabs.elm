@@ -101,6 +101,15 @@ techniqueTab model technique creation ui =
           (List.map (\c -> option [ selected (c.path == technique.category), value c.path] [ text c.name ] ) (List.sortBy .path (allCategorieswithoutRoot model)))
       else
         input [readonly True, class "form-control", id "category", value categoryName][]
+    classErrorInputId =
+      case ui.idState of
+        InvalidState errors -> " error "
+        _ -> if String.length technique.id.value > 100 then " error " else ""
+    classErrorName =
+      case ui.nameState of
+        InvalidState errors ->
+          if (List.member (AlreadyTakenName) errors || List.member (EmptyName) errors) then " error " else ""
+        _ -> ""
   in
   case ui.tab of
     General -> div [ class "tab tab-general" ] [
@@ -118,8 +127,8 @@ techniqueTab model technique creation ui =
                        ,-} div [ class "row form-group" ] [--ng-class="{'has-error':ui.editForm.name.$dirty && (ui.editForm.name.$error.required || ui.editForm.name.$error.techniqueName)}">
                            label [ for "techniqueName", class "col-xs-12 control-label" ] [ text "Name"  ]
                          , div  [ class "col-sm-8" ] [
-                             input [readonly (not model.hasWriteRights), type_ "text" , id "techniqueName",  name "name",  class "form-control" , placeholder "Technique Name", value technique.name
-                              , onInput (\newName -> UpdateTechnique {technique | name = newName, id = TechniqueId(if creation then canonifyHelper (Value newName) else technique.id.value) })
+                             input [readonly (not model.hasWriteRights), type_ "text" , id "techniqueName",  name "name",  class ("form-control" ++ classErrorName) , placeholder "Technique Name", value technique.name
+                              , onInput (\newName -> UpdateTechnique {technique | name = newName, id = TechniqueId(if creation then canonifyHelper (Value (String.toLower newName)) else technique.id.value) })
                               ] []
                            ]
                          , case ui.nameState of
@@ -151,15 +160,15 @@ techniqueTab model technique creation ui =
                        , div [ class "row form-group" ] [ -- show-errors>
                            label [ for "bundleName", class "col-xs-12 control-label"] [ text "ID" ]
                          , div [ class "col-sm-8" ] [
-                             input [ readonly True,  id "bundleName", name "bundle_name", class "form-control", value technique.id.value ] [] -- bundlename ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
+                             input [ readonly True,  id "bundleName", name "bundle_name", class ("form-control" ++ classErrorInputId), value technique.id.value ] [] -- bundlename ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
                            ]
                          , case ui.idState of
                              InvalidState errors -> ul []
                                                       (List.map (
                                                         \err -> case err of
-                                                          TooLongId -> li [ class "text-danger col-sm-8 col-sm-offset-3" ] [text "Technique IDs longer than 255 characters won't work on most filesystems." ]
-                                                          AlreadyTakenId -> li [ class "text-danger col-sm-8 col-sm-offset-3" ] [ text "Technique ID must be unique." ]
-                                                          InvalidStartId -> li [ class "text-danger col-sm-8 col-sm-offset-3"] [ text "Technique ID should start with an alphanumeric character." ]
+                                                          TooLongId -> li [ class "text-danger col-sm-8" ] [text "Technique IDs longer than 255 characters won't work on most filesystems." ]
+                                                          AlreadyTakenId -> li [ class "text-danger col-sm-8" ] [ text "Technique ID must be unique." ]
+                                                          InvalidStartId -> li [ class "text-danger col-sm-8"] [ text "Technique ID should start with an alphanumeric character." ]
                                                       ) errors)
                              _ -> if String.length technique.id.value > 100 then
                                     span [ class "rudder-text-warning col-sm-8 col-sm-offset-3" ] [
