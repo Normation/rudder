@@ -395,7 +395,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.name}" should {
 
     "Should write metadata file without problem" in {
-      writer.writeMetadata(technique, methods, ModificationId("test"), EventActor("test")).either.runNow must beRight( expectedMetadataPath )
+      writer.writeMetadata(technique, methods, true).either.runNow must beRight( expectedMetadataPath )
     }
 
     "Should generate expected metadata content for our technique" in {
@@ -459,7 +459,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.bundleName.value}" should {
 
     "Should write metadata file without problem" in {
-      writer.writeMetadata(technique_any, methods, ModificationId("test"), EventActor("test")).either.runNow must beRight( expectedMetadataPath_any )
+      writer.writeMetadata(technique_any, methods, true).either.runNow must beRight( expectedMetadataPath_any )
     }
 
     "Should generate expected metadata content for our technique" in {
