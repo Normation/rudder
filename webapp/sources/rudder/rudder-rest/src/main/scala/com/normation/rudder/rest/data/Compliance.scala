@@ -547,6 +547,11 @@ object JsonCompliance {
       , statusDisplayName(NoAnswer) -> c.pc.noAnswer
       , statusDisplayName(Disabled) -> c.pc.reportsDisabled
       , statusDisplayName(Pending) -> c.pc.pending
+      , statusDisplayName(AuditCompliant) -> c.pc.compliant
+      , statusDisplayName(AuditNotApplicable) -> c.pc.auditNotApplicable
+      , statusDisplayName(AuditError) -> c.pc.auditError
+      , statusDisplayName(AuditNonCompliant) -> c.pc.nonCompliant
+      , statusDisplayName(BadPolicyMode) -> c.pc.badPolicyMode
     ).filter { case(k, v) => v > 0 }.view.mapValues(percent => percent).toMap
   }
 }
