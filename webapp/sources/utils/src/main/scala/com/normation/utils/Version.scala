@@ -169,7 +169,8 @@ sealed trait VersionPart extends ToVersionString with Ordered[VersionPart] {
 
   override def toVersionString: String = separator.toVersionString + value.toVersionString
   override def compare(other: VersionPart): Int = VersionPart.compare(this, other)
-  }
+}
+
 object VersionPart {
   final case class Before(separator: Separator, value: PartType) extends VersionPart //we can have before with "-" separator for ex with alpha, etc
   final case class After (separator: Separator, value: PartType) extends VersionPart
@@ -181,7 +182,7 @@ object VersionPart {
       val c = Separator.compare(a.separator, b.separator) // not sure? Does 1.0~alpha < 1.0.alpha ?
       if(c == 0) PartType.compare(a.value, b.value) else c
     }
-  }
+}
 
 object ParseVersion {
   import fastparse._, NoWhitespace._

@@ -45,6 +45,7 @@ import scala.xml.NodeSeq
 import com.normation.plugins.RudderPluginDef
 
 import bootstrap.liftweb.PluginsInfo
+import bootstrap.liftweb.RudderConfig
 
 class PluginManagement extends DispatchSnippet with Loggable {
 
@@ -62,6 +63,14 @@ class PluginManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def displayPlugin(p:RudderPluginDef)(xml:NodeSeq) : NodeSeq = {
+    val rudderPluginVersion = p.version.rudderAbi.toVersionStringNoEpoch
+    // we compare on string, since we are just looking for an exact match.
+    val versionWarning = if(RudderConfig.rudderFullVersion != rudderPluginVersion) {
+      <span style="margin-left: 4px;" class="text-danger"><strong>
+        WARNING! This plugin was not build for current Rudder ABI version ({RudderConfig.rudderFullVersion}). You should update it to avoid code incompatibilities.
+      </strong></span>
+    } else NodeSeq.Empty
+
     (
       "data-plugin=name" #>  {
         p.versionInfo match {
@@ -76,7 +85,9 @@ class PluginManagement extends DispatchSnippet with Loggable {
       } &
       "data-plugin=fullid" #> p.name.value &
       "data-plugin=baseclass" #> p.id &
-      "data-plugin=version" #> p.version.toString &
+      "data-plugin=version" #> p.version.pluginVersion.toVersionStringNoEpoch &
+      "data-plugin=rudderVersion" #> p.version.rudderAbi.toVersionStringNoEpoch &
+      "data-plugin=versionWarning" #> versionWarning &
       "data-plugin=description" #> p.description &
       "data-plugin=statusInformation" #> p.statusInformation()
     )(xml)

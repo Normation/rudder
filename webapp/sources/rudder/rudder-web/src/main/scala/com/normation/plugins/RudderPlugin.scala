@@ -39,60 +39,80 @@ package com.normation.plugins
 
 import scala.xml.NodeSeq
 import com.normation.rudder.domain.logger.ApplicationLogger
+
 import com.typesafe.config.{Config, ConfigFactory}
 import bootstrap.liftweb.{ClassPathResource, ConfigResource, FileSystemResource, RudderProperties}
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
+import com.normation.utils._
+import com.normation.utils.PartType._
+import com.normation.utils.VersionPart._
+import com.normation.utils.Separator.Dot
+import com.normation.utils.Separator.Minus
+
 import net.liftweb.sitemap.Menu
 
-final case class PluginVersion(
-    major : Int
-  , minor : Int
-  , micro : Int
-  , prefix : String = ""
-  , suffix : String = ""
-) {
+final case class PluginVersion private (rudderAbi: Version, pluginVersion: Version) {
 
-  override def toString = prefix + major + "." + minor + "." + micro + suffix
+  override def toString = rudderAbi.toVersionStringNoEpoch + "-" + pluginVersion.toVersionString
 }
 
 object PluginVersion {
 
+
+  // a special value used to indicate a plugin version parsing error
+  def PARSING_ERROR(badVersion: String) = {
+    val vr = Version(0, Numeric(0), After(Dot, Numeric(0)) :: After(Dot, Numeric(1)) :: Nil)
+    val vp = Version(0, Numeric(0), After(Dot, Numeric(0)) :: After(Dot, Numeric(1)) :: After(Minus, Chars("ERROR-PARSING-VERSION: " + badVersion)) :: Nil)
+    new PluginVersion(vr, vp)
+  }
+
   /*
    * That method will create a plugin version from a string.
    * It may fails if the pattern is not one known for rudder plugin, which is:
-   * (A.B-)x.y(.z)(post)
+   * (A.B(.C)(post1))-(x.y(.z)(post2))
    * Where part between parenthesis are optionnal,
    * A,B,x,y,z are non-empty list of digits,
-   * A.B are Rudder major.minor version,
-   * x.y are plugin major.minor.micro version - if micro not specified, assumed to be 0,
-   * post is any non blank/control char list (ex: ~alpha1)
+   * A.B(.C)(post1) are Rudder major.minor.patch version, with patch = 0 if not specified
+   * x.y(.z) are plugin major.minor.patch version - if patch not specified, assumed to be 0,
+   * postN is any non blank/control char list (ex: ~alpha1)
    *
    */
   def from(version: String): Option[PluginVersion] = {
-    //carefull: group matching nothing, like optionnal group, return null :(
-    def nonNull(s: String) = s match {
-      case null => ""
-      case x    => x
-    }
-
-    val pattern = """(\d+\.\d+-)?(\d+)\.(\d+)(\.(\d+))?(\S+)?""".r.pattern
+    // the structure of our plugin is not really version-parsing friendly.
+    // We need to split on "-" which can also be a postfix separator. So
+    // we assume that there is always a digit just after the rudder/plugin "-" separator. And that the
+    // pattern "-digit" happens only one time.
+    val pattern = """(\S+)-(\d\S+)?""".r.pattern
     val matcher = pattern.matcher(version)
     if( matcher.matches ) {
-      val micro = matcher.group(5) match {
-        case null | "" => 0
-        case x  => x.toInt
+
+      (ParseVersion.parse(matcher.group(1)), ParseVersion.parse(matcher.group(2))) match {
+        case (Right(rv), Right(pv)) => Some(PluginVersion(rv, pv))
+        case (x, y)                 => None
       }
-      Some(PluginVersion(
-          matcher.group(2).toInt
-        , matcher.group(3).toInt
-        , micro
-        , nonNull(matcher.group(1))
-        , nonNull(matcher.group(6))
-     ))
+
     } else {
       None
     }
+  }
+
+    // normalize rudderVersion and pluginVersion to have at least 3 digits
+  def normalize(v: Version): Version = {
+    v match {
+      // at least 3 digits
+      case ok@Version(_, _, After(Dot, _:Numeric) :: After(Dot, _:Numeric) :: tail) => ok
+      // only 2 - add one 0
+      case Version(epoch, major, After(Dot, minor:Numeric) :: tail) =>
+        Version(epoch, major, After(Dot, minor) :: After(Dot, Numeric(0)) :: tail)
+      // only 1 - add two 0
+      case Version(epoch, major, tail) =>
+        Version(epoch, major, After(Dot, Numeric(0)) :: After(Dot, Numeric(0)) :: tail)
+    }
+  }
+
+  def apply(rudderVersion: Version, pluginVersion: Version) = {
+    new PluginVersion(normalize(rudderVersion), normalize(pluginVersion))
   }
 }
 
@@ -142,7 +162,12 @@ trait RudderPluginDef {
   def description : NodeSeq
 
   /**
-   * Version of the plugin.
+   * Full (i.e with Rudder version) version of the plugin.
+   * For example: 7.1.5-2.3.0 for a plugin in version 2.3.0 compile against rudder 7.1.5.
+   *
+   * It is composed of rudderAbi version: this is the version of rudder used to build the plugin
+   * (ie the 7.1.5 part in version example)
+   * And of plugin own version (ie the 2.3.0 part in version example).
    */
   def version : PluginVersion
 
@@ -150,9 +175,6 @@ trait RudderPluginDef {
    * Additional information about the version. I.E : "technical preview"
    */
   def versionInfo : Option[String]
-
-
-
 
   /*
    * Information about the plugin activation status
