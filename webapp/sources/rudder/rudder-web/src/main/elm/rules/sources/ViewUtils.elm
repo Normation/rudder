@@ -15,6 +15,7 @@ import ApiCalls exposing (..)
 import ComplianceUtils exposing (..)
 import Json.Decode as Decode
 import Tuple3
+import Round
 
 
 onCustomClick : msg -> Html.Attribute msg
@@ -474,7 +475,7 @@ buildComplianceBar complianceDetails=
     displayCompliance compliance className =
       if compliance.value > 0 then
         div [class ("progress-bar progress-bar-" ++ className ++ " bs-tooltip"), attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat compliance.value)]
-        [ text ((fromFloat compliance.value) ++ "%") ]
+        [ text ((Round.round 2 compliance.value) ++ "%") ]
       else
         text ""
 
