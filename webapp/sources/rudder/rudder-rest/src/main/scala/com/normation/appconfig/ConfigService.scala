@@ -444,7 +444,7 @@ class GenericConfigService(
        node.accept.duplicated.hostname=false
        rudder.compute.dyngroups.max.parallelism=1
        rudder.setup.done=false
-       rudder.generation.rudderc.enabled.targets=\"\"\"["${RuddercTarget.CFEngine.name}"]\"\"\"
+       rudder.generation.rudderc.enabled.targets=\"\"\"[]\"\"\"
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
