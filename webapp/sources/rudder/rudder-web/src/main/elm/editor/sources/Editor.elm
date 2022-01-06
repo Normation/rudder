@@ -90,7 +90,7 @@ parseDraftsResponse json =
 mainInit : { contextPath : String, hasWriteRights : Bool  } -> ( Model, Cmd Msg )
 mainInit initValues =
   let
-    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty Introduction initValues.contextPath "" (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing
+    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty Introduction initValues.contextPath "" (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True
   in
     (model, Cmd.batch ( [ getDrafts (), getMethods model, getTechniquesCategories model]) )
 
@@ -209,9 +209,9 @@ update msg model =
       ( model , Cmd.none )
 
     GetTechniques (Ok  (metadata, techniques)) ->
-      ({ model | techniques = techniques},  getUrl () )
+      ({ model | techniques = techniques, loadingTechniques = False},  getUrl () )
     GetTechniques (Err err) ->
-      ( model , errorNotification  ("Error when getting techniques: " ++ debugHttpErr err  ) )
+      ({ model | loadingTechniques = False} , errorNotification  ("Error when getting techniques: " ++ debugHttpErr err  ) )
 
     OpenTechniques ->
       ( { model | genericMethodsOpen = False } , Cmd.none )
@@ -534,7 +534,7 @@ update msg model =
       ({ model | methods = methods}, getTechniques model  )
 
     GetMethods (Err err) ->
-      ( model , errorNotification ("Error when getting methods: " ++ debugHttpErr err ) )
+      ({ model | loadingTechniques = False}, errorNotification ("Error when getting methods: " ++ debugHttpErr err ) )
 
     ToggleFilter ->
       let
