@@ -13,16 +13,13 @@ bundle agent escaped {
     "class_prefix"         string => string_head("${full_class_prefix}", "1000");
 
   methods:
-    "3316c616-faec-46e7-b7be-bd5463b47142" usebundle => _method_reporting_context("Command execution", "echo \"Hello de Lu\" > /tmp/myfile-${sys.host}.txt"),
-                                                             if => concat("any");
+    "3316c616-faec-46e7-b7be-bd5463b47142" usebundle => _method_reporting_context("Command execution", "echo \"Hello de Lu\" > /tmp/myfile-${sys.host}.txt");
     "3316c616-faec-46e7-b7be-bd5463b47142" usebundle => command_execution("echo \"Hello de Lu\" > /tmp/myfile-${sys.host}.txt"),
                                                              if => concat("any");
-    "018d891b-9a63-4bf7-b90f-dfc123050b85" usebundle => _method_reporting_context("Command execution result", "rpm -qi gpg-pubkey-\\*|grep -E ^Packager|grep Innoflair"),
-                                                                    if => concat("any.(SLES12|group_sdf_cmcs__sles12_|group_sbu_cmcs__sles12_|group_par_cmcs__sles12_)");
+    "018d891b-9a63-4bf7-b90f-dfc123050b85" usebundle => _method_reporting_context("Command execution result", "rpm -qi gpg-pubkey-\\*|grep -E ^Packager|grep Innoflair");
     "018d891b-9a63-4bf7-b90f-dfc123050b85" usebundle => command_execution_result("rpm -qi gpg-pubkey-\\*|grep -E ^Packager|grep Innoflair", "0", "1"),
                                                                     if => concat("any.(SLES12|group_sdf_cmcs__sles12_|group_sbu_cmcs__sles12_|group_par_cmcs__sles12_)");
-    "00c8bb99-805c-4c43-ab58-f9df8eec99c3" usebundle => _method_reporting_context("File replace lines", "/etc/default/grub"),
-                                                              if => concat("any");
+    "00c8bb99-805c-4c43-ab58-f9df8eec99c3" usebundle => _method_reporting_context("File replace lines", "/etc/default/grub");
     "00c8bb99-805c-4c43-ab58-f9df8eec99c3" usebundle => file_replace_lines("/etc/default/grub", "^GRUB_TIMEOUT\\s+(0.+|[1-9].*)", "GRUB_TIMEOUT=0"),
                                                               if => concat("any");
 }

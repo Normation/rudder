@@ -181,6 +181,7 @@ class RudderCRunner(
     } yield ()
   }
 
+
   def writeOne[T <: RuddercTarget](target: T, ruddercTargets: Set[RuddercTarget], technique: EditorTechnique, methods: Map[BundleName, GenericMethod], fallback: AgentSpecificTechniqueWriter, outputPath: String, configFilePath: String) = {
     if(ruddercTargets.contains(target)) {
       TechniqueWriterLoggerPure.debug(s"Using rudderc for target '${target.name}' for technique '${technique.path}'") *> {
@@ -306,9 +307,9 @@ class TechniqueWriter (
     }
   }
 
-  def techniqueMetadataContent(technique : EditorTechnique, methods: Map[BundleName, GenericMethod]) : PureResult[XmlNode] = {
+  def techniqueMetadataContent(technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean) : PureResult[XmlNode] = {
 
-    def reportingValuePerBlock (component: String, calls :Seq[MethodBlock]) : PureResult[List[NodeSeq]] = {
+    def reportingValuePerBlock (component : String, calls : Seq[MethodBlock]) : PureResult[List[NodeSeq]] = {
 
       for {
         res <- calls.toList.traverse(block =>
@@ -401,7 +402,7 @@ class TechniqueWriter (
 
     for {
       reportingSection <- reportingSections(technique.methodCalls.toList)
-      agentSpecificSection <- agentSpecific.traverse(_.agentMetadata(technique, methods))
+      agentSpecificSection <- agentSpecific.traverse(_.agentMetadata(technique, methods, writtenByRudderWebapp))
     } yield {
       <TECHNIQUE name={technique.name}>
         { if (technique.parameters.nonEmpty) {
@@ -430,7 +431,7 @@ class TechniqueWriter (
     for {
       updatedTechnique <- writeTechnique(technique,methods,modId,committer)
       libUpdate        <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
-                            toIO.chainError(s"An error occured during technique update after files were created for ncf Technique ${technique.name}")
+                            toIO.chainError(s"An error occurred during technique update after files were created for ncf Technique ${technique.name}")
     } yield {
       updatedTechnique
     }
@@ -440,19 +441,16 @@ class TechniqueWriter (
   def writeTechnique(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[EditorTechnique] = {
     for {
       time_0     <- currentTimeMillis
-      metadata   <- writeMetadata(technique, methods, modId, committer)
-      time_1     <- currentTimeMillis
-      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: generating metadata for technique '${technique.name}' took ${time_1 - time_0}ms")
 
       // Before writing down technique, set all resources to Untouched state, and remove Delete resources, was the cause of #17750
       updateResources              = technique.ressources.collect{case r if r.state != ResourceFileState.Deleted => r.copy(state = ResourceFileState.Untouched) }
       techniqueWithResourceUpdated = technique.copy(ressources = updateResources)
 
       json       <- writeJson(techniqueWithResourceUpdated, methods)
-      time_2     <- currentTimeMillis
-      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing json for technique '${technique.name}' took ${time_2 - time_1}ms")
+      time_1     <- currentTimeMillis
+      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing json for technique '${technique.name}' took ${time_1 - time_0}ms")
       targets    <- ruddercTargets
-      agentFiles <- compiler.compileTechnique(technique, targets, methods, cfengineFallbackTechniqueWriter, dscFallbackTechniqueWriter).catchAll { e =>
+      writtenByRudderWebapp <- compiler.compileTechnique(technique, targets, methods, cfengineFallbackTechniqueWriter, dscFallbackTechniqueWriter).map(_ => false).catchAll { e =>
         val errorPath : File = root / errorLogPath /  "rudderc" / "failures" / s"${DateTime.now()}_${technique.bundleName.value}.log"
         for {
           _ <- TechniqueWriterLoggerPure.error(s"An error occurred when compiling technique '${technique.name}' (id : '${technique.bundleName}') with rudderc, error details in ${errorPath}, falling back to old saving process")
@@ -470,15 +468,18 @@ class TechniqueWriter (
                )
           _   <- writeAgentFiles(technique, methods, modId, committer)
         } yield {
-          ()
+          true
         }
       }
-      time_3     <- currentTimeMillis
-      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing agent files for technique '${technique.name}' took ${time_3 - time_2}ms")
+      time_2     <- currentTimeMillis
+      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing agent files for technique '${technique.name}' took ${time_2 - time_1}ms")
 
+      metadata   <- writeMetadata(technique, methods, writtenByRudderWebapp)
+      time_3     <- currentTimeMillis
+      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: generating metadata for technique '${technique.name}' took ${time_3 - time_2}ms")
       commit     <- archiver.commitTechnique(technique, modId, committer, s"Committing technique ${technique.name}")
       time_4     <- currentTimeMillis
-      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: commiting technique '${technique.name}' took ${time_4 - time_3}ms")
+      _          <- TimingDebugLoggerPure.trace(s"writeTechnique: committing technique '${technique.name}' took ${time_4 - time_3}ms")
       _          <- TimingDebugLoggerPure.debug(s"writeTechnique: writing technique '${technique.name}' took ${time_4 - time_0}ms")
 
     } yield {
@@ -495,13 +496,13 @@ class TechniqueWriter (
     }
   }
 
-  def writeMetadata(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : IOResult[String] = {
+  def writeMetadata(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean) : IOResult[String] = {
 
     val metadataPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
 
     val path = s"${basePath}/${metadataPath}"
     for {
-      content <- techniqueMetadataContent(technique, methods).map(n => xmlPrettyPrinter.format(n)).toIO
+      content <- techniqueMetadataContent(technique, methods, writtenByRudderWebapp).map(n => xmlPrettyPrinter.format(n)).toIO
       _       <- IOResult.effect(s"An error occurred while creating metadata file for Technique '${technique.name}'") {
                    implicit val charSet = StandardCharsets.UTF_8
                    val file = File (path).createFileIfNotExists (true)
@@ -534,7 +535,7 @@ trait AgentSpecificTechniqueWriter {
 
   def writeAgentFiles( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ) : IOResult[Seq[String]]
 
-  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ) : PureResult[NodeSeq]
+  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean ) : PureResult[NodeSeq]
 }
 
 class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterTypeService) extends AgentSpecificTechniqueWriter {
@@ -750,9 +751,10 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
     }
   }
 
-  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] )  : PureResult[NodeSeq] = {
+  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean )  : PureResult[NodeSeq] = {
 
-    val needReporting = needReportingBundle(technique, methods)
+    // Rudderc manages directly na reporting in bundle. so we only need to do rudder reporting only if it was written by Rudder
+    val needReporting =  writtenByRudderWebapp && needReportingBundle(technique, methods)
     val xml = <AGENT type="cfengine-community,cfengine-nova">
       <BUNDLES>
         <NAME>{technique.bundleName.value}</NAME>
@@ -938,7 +940,7 @@ class DSCTechniqueWriter(
     }
   }
 
-  def agentMetadata(technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ) = {
+  def agentMetadata(technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean ) = {
     val xml = <AGENT type="dsc">
       <BUNDLES>
         <NAME>{technique.bundleName.validDscName}</NAME>

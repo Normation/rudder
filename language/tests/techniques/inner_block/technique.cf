@@ -17,8 +17,7 @@ bundle agent inner_block {
     # 
     #   file("""tmp""").absent() as file_absent_tmp
     # 
-    "cb2881a0-11c8-4040-8ac0-3751d10146b7" usebundle => _method_reporting_context("File absent", "tmp"),
-                                             if => concat("(debian).(centos)");
+    "cb2881a0-11c8-4040-8ac0-3751d10146b7" usebundle => _method_reporting_context("File absent", "tmp");
     "cb2881a0-11c8-4040-8ac0-3751d10146b7" usebundle => file_absent("tmp"),
                                              if => concat("(debian).(centos)");
     "cb2881a0-11c8-4040-8ac0-3751d10146b7" usebundle => _classes_noop(canonify("${class_prefix}_file_absent_tmp")),
@@ -29,8 +28,7 @@ bundle agent inner_block {
     # 
     #   file("""tmp""").present() as file_present_tmp
     # 
-    "df319f6f-3573-4b7e-95e5-f10dcd3f7a3f" usebundle => _method_reporting_context("File absent", "tmp"),
-                                             if => concat("(debian).(centos)");
+    "df319f6f-3573-4b7e-95e5-f10dcd3f7a3f" usebundle => _method_reporting_context("File absent", "tmp");
     "df319f6f-3573-4b7e-95e5-f10dcd3f7a3f" usebundle => file_present("tmp"),
                                              if => concat("(debian).(centos)");
     "df319f6f-3573-4b7e-95e5-f10dcd3f7a3f" usebundle => _classes_noop(canonify("${class_prefix}_file_present_tmp")),
@@ -41,8 +39,7 @@ bundle agent inner_block {
     # 
     #   file("""tmp2""").absent() as file_absent_tmp2
     # 
-    "e6ccdd10-642b-494a-9b06-27ce509f579f" usebundle => _method_reporting_context("File absent", "tmp2"),
-                                             if => concat("((debian).(debian_10)).(linux)");
+    "e6ccdd10-642b-494a-9b06-27ce509f579f" usebundle => _method_reporting_context("File absent", "tmp2");
     "e6ccdd10-642b-494a-9b06-27ce509f579f" usebundle => file_absent("tmp2"),
                                              if => concat("((debian).(debian_10)).(linux)");
     "e6ccdd10-642b-494a-9b06-27ce509f579f" usebundle => _classes_noop(canonify("${class_prefix}_file_absent_tmp2")),
@@ -53,8 +50,7 @@ bundle agent inner_block {
     # 
     #   file("""tmp2""").present() as file_present_tmp2
     # 
-    "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => _method_reporting_context("File absent", "tmp2"),
-                                             if => concat("(debian).(debian_10)");
+    "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => _method_reporting_context("File absent", "tmp2");
     "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => file_present("tmp2"),
                                              if => concat("(debian).(debian_10)");
     "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => _classes_noop(canonify("${class_prefix}_file_present_tmp2")),

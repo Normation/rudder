@@ -8,24 +8,19 @@ bundle agent supported_formats
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "929a286e-1fc0-4147-876e-5a009f162822" usebundle => _method_reporting_context("Condition once", "cfengine_only"),
-                                                          if => concat("any");
+    "929a286e-1fc0-4147-876e-5a009f162822" usebundle => _method_reporting_context("Condition once", "cfengine_only");
     "929a286e-1fc0-4147-876e-5a009f162822" usebundle => condition_once("cfengine_only"),
                                                           if => concat("any");
-    "65a6abf0-52cc-47d3-a3d0-6470bca49734" usebundle => _method_reporting_context("Directory present", "shared_cf_dsc"),
-                                                             if => concat("any");
+    "65a6abf0-52cc-47d3-a3d0-6470bca49734" usebundle => _method_reporting_context("Directory present", "shared_cf_dsc");
     "65a6abf0-52cc-47d3-a3d0-6470bca49734" usebundle => directory_present("shared_cf_dsc"),
                                                              if => concat("any");
-    "2c88bb01-9178-4aa0-87b0-cbcbda5c8a71" usebundle => _method_reporting_context("Directory present", "shared_cf_dsc_condition"),
-                                                             if => concat("windows");
+    "2c88bb01-9178-4aa0-87b0-cbcbda5c8a71" usebundle => _method_reporting_context("Directory present", "shared_cf_dsc_condition");
     "2c88bb01-9178-4aa0-87b0-cbcbda5c8a71" usebundle => directory_present("shared_cf_dsc_condition"),
                                                              if => concat("windows");
-    "062332fb-2b49-4386-8cfe-46dad2dbe92d" usebundle => _method_reporting_context("Registry key present", "DSC_ONLY"),
-                                                                if => concat("any");
+    "062332fb-2b49-4386-8cfe-46dad2dbe92d" usebundle => _method_reporting_context("Registry key present", "DSC_ONLY");
     "062332fb-2b49-4386-8cfe-46dad2dbe92d" usebundle => registry_key_present("DSC_ONLY"),
                                                                 if => concat("any");
-    "37a1055d-ee98-4b56-81a0-562134476acc" usebundle => _method_reporting_context("Registry key present", "IF_DSC_ONLY"),
-                                                                if => concat("windows");
+    "37a1055d-ee98-4b56-81a0-562134476acc" usebundle => _method_reporting_context("Registry key present", "IF_DSC_ONLY");
     "37a1055d-ee98-4b56-81a0-562134476acc" usebundle => registry_key_present("IF_DSC_ONLY"),
                                                                 if => concat("windows");
 }

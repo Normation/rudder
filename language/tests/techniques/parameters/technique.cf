@@ -8,8 +8,7 @@ bundle agent parameters(paramtest)
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "235915e6-7408-4750-a7ae-38983f12b670" usebundle => _method_reporting_context("Package absent", "${paramtest}"),
-                                                          if => concat("any");
+    "235915e6-7408-4750-a7ae-38983f12b670" usebundle => _method_reporting_context("Package absent", "${paramtest}");
     "235915e6-7408-4750-a7ae-38983f12b670" usebundle => package_absent("${paramtest}", "", "", ""),
                                                           if => concat("any");
 }

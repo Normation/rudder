@@ -470,7 +470,7 @@ impl Method {
 
         let mut bundles = match (has_condition, self.is_supported) {
             (true, true) => vec![
-                reporting_context.if_condition(self.condition.clone()),
+                reporting_context,
                 method.if_condition(self.condition.clone()),
                 // NA report
                 Promise::usebundle("_classes_noop", Some(&self.report_component), Some(id), vec![na_condition.clone()]).unless_condition(&self.condition),

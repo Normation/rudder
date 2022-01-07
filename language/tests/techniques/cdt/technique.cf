@@ -8,8 +8,7 @@ bundle agent cdt
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "ee867477-8629-448f-85d5-c8ef33357c0f" usebundle => _method_reporting_context("File absent", "tmp"),
-                                                       if => concat("debian");
+    "ee867477-8629-448f-85d5-c8ef33357c0f" usebundle => _method_reporting_context("File absent", "tmp");
     "ee867477-8629-448f-85d5-c8ef33357c0f" usebundle => file_absent("tmp"),
                                                        if => concat("debian");
 }

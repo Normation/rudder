@@ -8,12 +8,10 @@ bundle agent condition_dyn
   vars:
     "resources_dir" string => "${this.promise_dirname}/resources";
   methods:
-    "c46f75a0-a6fd-4334-8a9a-d4bdcae345e8" usebundle => _method_reporting_context("condition_from_variable_existence", "skip_item_${report_data.canonified_directive_id}"),
-                                                                             if => concat("any");
+    "c46f75a0-a6fd-4334-8a9a-d4bdcae345e8" usebundle => _method_reporting_context("condition_from_variable_existence", "skip_item_${report_data.canonified_directive_id}");
     "c46f75a0-a6fd-4334-8a9a-d4bdcae345e8" usebundle => condition_from_variable_existence("skip_item_${report_data.canonified_directive_id}", "node.properties[skip][${report_data.directive_id}]"),
                                                                              if => concat("any");
-    "4faf9c44-88bb-492a-936a-aa9813af6b8d" usebundle => _method_reporting_context("Command execution", "pwd"),
-                                                             if => concat("any.(skip_item_",canonify("${report_data.canonified_directive_id}"),"_false)");
+    "4faf9c44-88bb-492a-936a-aa9813af6b8d" usebundle => _method_reporting_context("Command execution", "pwd");
     "4faf9c44-88bb-492a-936a-aa9813af6b8d" usebundle => command_execution("pwd"),
                                                              if => concat("any.(skip_item_",canonify("${report_data.canonified_directive_id}"),"_false)");
 }
