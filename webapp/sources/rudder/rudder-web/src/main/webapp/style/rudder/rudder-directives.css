@@ -198,7 +198,7 @@
   color: #999;
 }
 .btn.btn-technical-details{
-  min-width: 150px;
+  min-width: 165px;
   transition-duration: .2s;
 }
 .btn.btn-technical-details.opened{
