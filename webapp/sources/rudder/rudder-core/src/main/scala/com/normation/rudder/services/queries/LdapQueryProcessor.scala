@@ -513,7 +513,10 @@ class InternalLDAPQueryProcessor(
                       res
                     }
                   }
-      postFiltered = postFilterNode(inverted.distinctBy(_.dn), query.returnType, limitToNodeIds)
+      // distinctBy computes the hashcode of the object
+      // It is really expensive on LDAP entries.
+      // The dn string is already computed, so the toString is a good alternative (and as also unicity)
+      postFiltered = postFilterNode(inverted.distinctBy(_.dn.toString), query.returnType, limitToNodeIds)
     } yield {
       LdapQueryProcessorResult(postFiltered, nq.nodeInfoFilters)
     }
