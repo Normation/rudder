@@ -2,7 +2,7 @@ module ViewRuleDetails exposing (..)
 
 import DataTypes exposing (..)
 import Html exposing (Html, button, div, i, span, text, h1, ul, li,  a, p)
-import Html.Attributes exposing (id, class, type_,  style, attribute)
+import Html.Attributes exposing (id, class, type_,  style, attribute, disabled)
 import Html.Events exposing (onClick)
 import List.Extra
 import List
@@ -102,6 +102,11 @@ editionTemplate model details =
       Just oR -> String.fromInt (List.length oR.directives)
       Nothing -> "0"
 
+    saveAction =
+      if String.isEmpty (String.trim rule.name) then
+        Ignore
+      else
+        (CallApi (saveRuleDetails rule (Maybe.Extra.isNothing details.originRule)))
   in
     div [class "main-container"]
     [ div [class "main-header "]
@@ -116,7 +121,7 @@ editionTemplate model details =
           :: (
             if model.ui.hasWriteRights then
               [ div [ class "btn-group" ]  topButtons
-              , button [class "btn btn-success", type_ "button", onClick (CallApi (saveRuleDetails rule (Maybe.Extra.isNothing details.originRule)))][text "Save", i [ class "fa fa-download"] []]
+              , button [class "btn btn-success", type_ "button", disabled (String.isEmpty (String.trim rule.name)), onClick saveAction][text "Save", i [ class "fa fa-download"] []]
               ]
             else
               []
