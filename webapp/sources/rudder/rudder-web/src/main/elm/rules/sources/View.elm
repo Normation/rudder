@@ -1,13 +1,11 @@
 module View exposing (..)
 
 import DataTypes exposing (..)
-import Html exposing (Html, button, div, i, span, text, h1, h3, h4, ul, li, input, a, p, form, label, textarea, select, option, table, thead, tbody, tr, th, td, small)
-import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute, tabindex)
+import Html exposing (Html, button, div, i, span, text, h1, h3, ul, li, input, a, table, thead, tbody, tr, th)
+import Html.Attributes exposing (class, type_, placeholder, value, colspan, rowspan, style, tabindex)
 import Html.Events exposing (onClick, onInput)
-import List.Extra
 import List
-import String exposing ( fromFloat)
-import NaturalOrdering exposing (compareOn)
+import String
 import ApiCalls exposing (..)
 import ViewRulesTable exposing (..)
 import ViewRuleDetails exposing (..)
@@ -18,6 +16,7 @@ import ViewUtils exposing (..)
 view : Model -> Html Msg
 view model =
   let
+    allMissingCategoriesId = List.map .id (getAllMissingCats model.rulesTree)
     ruleTreeElem : Rule -> Html Msg
     ruleTreeElem item =
       let
@@ -42,7 +41,13 @@ view model =
     ruleTreeCategory : (Category Rule) -> Maybe (Html Msg)
     ruleTreeCategory item =
       let
+        missingCat = getSubElems item
+          |> List.filter (\c -> c.id == missingCategoryId)
+          |> List.sortBy .name
+          |> List.filterMap ruleTreeCategory
+
         categories = getSubElems item
+          |> List.filter (\c -> c.id /= missingCategoryId)
           |> List.sortBy .name
           |> List.filterMap ruleTreeCategory
 
@@ -51,8 +56,18 @@ view model =
           |> List.sortBy .name
           |> List.map ruleTreeElem
 
-        childsList  = ul[class "jstree-children"] (List.concat [ categories, rules] )
-
+        childsList  = ul[class "jstree-children"] (List.concat [categories, rules, missingCat] )
+        mainMissingCat =
+          if(item.id == missingCategoryId) then
+            " main-missing-cat "
+          else
+            ""
+        icons =
+          if(item.id == missingCategoryId) then
+            " fas fa-exclamation-triangle " ++ mainMissingCat
+          else
+            " fa fa-folder "
+        missingCatClass = if(List.member item.id allMissingCategoriesId) then " missing-cat " else ""
         treeItem =
           if item.id /= "rootRuleCategory" then
             if (String.isEmpty model.ui.ruleFilters.treeFilters.filter) || ((List.length rules > 0) || (List.length categories > 0)) then
@@ -60,8 +75,8 @@ view model =
                 li[class ("jstree-node" ++ foldedClass model.ui.ruleFilters.treeFilters item.id)]
                 [ i [class "jstree-icon jstree-ocl", onClick (UpdateRuleFilters (foldUnfoldCategory model.ui.ruleFilters item.id))][]
                 , a [class "jstree-anchor", onClick (OpenCategoryDetails item.id True)]
-                  [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-                  , span [class "treeGroupCategoryName tooltipable"][text item.name]
+                  [ i [class ("jstree-icon jstree-themeicon jstree-themeicon-custom" ++ icons)][]
+                  , span [class ("treeGroupCategoryName tooltipable " ++ missingCatClass ++ mainMissingCat)][text item.name]
                   ]
                 , childsList
                 ]

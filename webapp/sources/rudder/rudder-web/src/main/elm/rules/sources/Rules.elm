@@ -130,13 +130,23 @@ update msg model =
           processApiError "Getting Nodes list" err model
 
     OpenRuleDetails rId True ->
-      (model, Cmd.batch [getRuleDetails model rId, pushUrl ("rule", rId.value)])
+      let
+        modelUI = model.ui
+      in
+      ({ model | ui = { modelUI | hasWriteRights = True} }, Cmd.batch [getRuleDetails model rId, pushUrl ("rule", rId.value)])
 
     OpenRuleDetails rId False ->
       (model, getRuleDetails model rId)
 
     OpenCategoryDetails category True ->
-      (model, Cmd.batch [getRulesCategoryDetails model category, pushUrl ("ruleCategory" , category)])
+      let
+        allMissingCategories = List.filter (\sub -> sub.id == missingCategoryId) (getSubElems model.rulesTree)
+        listOfCat = List.concatMap getAllCats (allMissingCategories)
+        listCatIdMissing = List.map (\r -> r.id) (listOfCat)
+        hasWriteRight = not (category == missingCategoryId) && not (List.member category listCatIdMissing)
+        modelUI = model.ui
+      in
+      ({ model | ui = { modelUI | hasWriteRights = hasWriteRight} }, Cmd.batch [getRulesCategoryDetails model category, pushUrl ("ruleCategory" , category)])
 
     OpenCategoryDetails category False ->
       (model, getRulesCategoryDetails model category)

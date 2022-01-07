@@ -11,7 +11,6 @@ import List
 import Maybe.Extra
 import Set
 import NaturalOrdering exposing (compareOn)
-import ApiCalls exposing (..)
 import ComplianceUtils exposing (..)
 import Tuple3
 import ViewRepairedReports
@@ -23,6 +22,9 @@ import ViewUtils exposing (..)
 --
 buildListCategories : String -> String -> String -> (Category Rule) -> List(Html Msg)
 buildListCategories sep categoryId parentId c =
+  let
+    missingRootCategory = List.filter (\sub -> sub.id /= missingCategoryId) (getSubElems c)
+  in
   if categoryId == c.id then
     []
   else
@@ -37,7 +39,7 @@ buildListCategories sep categoryId parentId c =
             else
                blankSpace ++ sep
 
-          listCategories = List.concatMap (buildListCategories separator categoryId parentId) (getSubElems c)
+          listCategories = List.concatMap (buildListCategories separator categoryId parentId) missingRootCategory
         in
           List.append currentOption listCategories
     in
@@ -107,6 +109,27 @@ informationTab model details =
         case findCategory of
           Just c  -> c.name
           Nothing -> "Category not found"
+    allMissingCategoriesRulesId = List.map (\r -> r.id.value) (getAllMissingCatsRules model.rulesTree)
+    originRuleMissingCatId = case details.originRule of
+      Just oR -> oR.categoryId
+      Nothing -> "<Error: category ID not found>"
+    isMissingCatRule = List.member rule.id.value allMissingCategoriesRulesId
+    defaultOptForMissingCatRule =
+      if(isMissingCatRule) then
+        option [disabled True, selected True][text "-- select a category --"]
+      else
+        div[][]
+    msgMissingCat =
+      if(isMissingCatRule) then
+        div [class "msg-missing-cat callout-fade callout-warning"]
+        [
+          text "This rule is in a missing category which has for ID: "
+        , b [] [text  originRuleMissingCatId]
+        , br [][]
+        , text "Please move this rule under a valid category"
+        ]
+      else
+        div [][]
     ruleForm =
       ( if model.ui.hasWriteRights then
         Html.form[class "col-xs-12 col-sm-6 col-lg-7"]
@@ -117,9 +140,10 @@ informationTab model details =
           ]
         , div [class "form-group"]
           [ label[for "rule-category"][text "Category"]
+          , msgMissingCat
           , div[]
             [ select[ id "rule-category", class "form-control", onInput (\s -> UpdateRuleForm {details | rule = {rule | categoryId = s}} ) ]
-              (buildListCategories "" "" rule.categoryId model.rulesTree)
+               ( defaultOptForMissingCatRule :: (buildListCategories "" "" rule.categoryId model.rulesTree ))
             ]
           ]
         , div [class "tags-container"]

@@ -69,7 +69,6 @@ import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.RuleModAction
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.StringUuidGenerator
-
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -79,13 +78,11 @@ import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
-
 import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.DetailLevel
 import com.normation.rudder.apidata.FullDetails
-
 import zio._
 import zio.syntax._
 import com.normation.rudder.rest._
@@ -108,6 +105,8 @@ import com.normation.rudder.rest.implicits._
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.web.services.ComputePolicyMode
+
+import scala.annotation.tailrec
 
 class RuleApi(
     restExtractorService: RestExtractorService
@@ -721,6 +720,9 @@ class RuleApiService14 (
   , applicationService   : RuleApplicationStatusService
 ) {
 
+  // this Id is special and use client side to identify missing rules
+  private val MISSING_RULE_CAT_ID = RuleCategoryId("ui-missing-rule-category")
+
   private def createChangeRequest(
       diff  : ChangeRequestRuleDiff
     , change: RuleChangeRequest
@@ -933,25 +935,51 @@ class RuleApiService14 (
     }
   }
 
+  private def listCategoriesId(cat: RuleCategory) : Set[RuleCategoryId] = {
+    @tailrec
+    def listCatAcc(categories: List[RuleCategory], acc: List[RuleCategoryId]) : List[RuleCategoryId] = {
+      categories match {
+        case Nil => acc
+        case c :: t => listCatAcc(t, c.id :: acc)
+      }
+    }
+    listCatAcc(cat.childs, List(RuleCategoryId("rootRuleCategory"))).toSet
+  }
+
+  // List all categories mentioned in categoryId in rules who are not in database
+  def getMissingCategories(existingCat: RuleCategory, rules: List[Rule]): Set[RuleCategory] = {
+    val catIds = listCategoriesId(existingCat)
+    val rulesCat = rules.map(_.categoryId).toSet
+    rulesCat
+      .diff(catIds)
+      .map(rId => RuleCategory(rId, s"<${rId.value}>", s"Category ${rId.value} has been deleted, please move rules to available categories", List(), false))
+  }
 
   def getCategoryTree(): IOResult[JRCategoriesRootEntryFull] = {
     for {
-      root  <- readRuleCategory.getRootCategory()
-      rules <- readRule.getAll()
-
+      root         <- readRuleCategory.getRootCategory()
+      rules        <- readRule.getAll()
       directiveLib <- readDirectives.getFullDirectiveLibrary()
-      groupLib <- readGroup.getFullGroupLibrary()
-      nodesLib <- readNodes.getAll()
+      groupLib     <- readGroup.getFullGroupLibrary()
+      nodesLib     <- readNodes.getAll()
       globalMode  <- getGlobalPolicyMode()
       rulesMap =  ( for {
-        rule <- rules.sortBy(_.id.serialize)
-      } yield {
-        val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
-        (rule, Some(status.policyMode._1), Some(status.applicationStatusDetails))
-      }).groupBy(_._1.categoryId.value)
+                    rule <- rules.sortBy(_.id.serialize)
+                  } yield {
+                    val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
+                    (rule, Some(status.policyMode._1), Some(status.applicationStatusDetails))
+                  }).groupBy(_._1.categoryId.value)
+      missingCatContent = getMissingCategories(root, rules.toList)
+      missingCategory   = RuleCategory(
+                            MISSING_RULE_CAT_ID
+                          , "Rules with a missing/deleted category", "Category that regroup all the missing categories"
+                          , missingCatContent.toList
+                          )
+      newChilds = if (missingCatContent.isEmpty) root.childs else root.childs :+ missingCategory
+      rootAndMissingCat = root.copy(childs =  newChilds)
     } yield {
       // root category is given itself as a parent, which looks like a bug
-      JRCategoriesRootEntryFull(JRFullRuleCategory.fromCategory(root, rulesMap, Some(root.id.value)))
+      JRCategoriesRootEntryFull(JRFullRuleCategory.fromCategory(rootAndMissingCat, rulesMap, Some(rootAndMissingCat.id.value)))
     }
   }
 
@@ -965,7 +993,35 @@ class RuleApiService14 (
     }
     for {
       root  <- readRuleCategory.getRootCategory()
-      found <- (if(root.id == id) Some((root, root)) else recFind(root, id)).notOptional(s"Error: rule category with id '${id.value}' was not found")
+      rules <- readRule.getAll()
+      found <- (
+        if(root.id == id){
+          Some((root, root))
+        }
+        else {
+          recFind(root, id) match {
+            case None =>
+              // try to find if a rule has a category that is no longer available but still mentioned in a rule
+              getMissingCategories(root, rules.toList).find(id.value == _.id.value) match {
+                case Some(cat) => Some(root, cat)
+                case _         =>
+                  // The root category for missing/deleted categories
+                  if(id == MISSING_RULE_CAT_ID) {
+                    val missingCategory = RuleCategory(
+                        MISSING_RULE_CAT_ID
+                      , "Rules with a missing/deleted category"
+                      , "Category that regroup all the missing categories"
+                      , List.empty
+                    )
+                    Some(root, missingCategory)
+                  } else {
+                    None
+                  }
+              }
+            case c    => c
+          }
+        }
+      ).notOptional(s"Error: rule category with id '${id.value}' was not found")
       rules <- readRule.getAll().map(_.groupBy(_.categoryId).get(id))
     } yield {
       JRCategoriesRootEntrySimple(JRSimpleRuleCategory.fromCategory(found._2, found._1.id.value, rules.map(_.map(_.id.serialize).toList.sorted).getOrElse(Nil)))
