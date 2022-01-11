@@ -37,6 +37,8 @@
 
 package com.normation.rudder.domain.reports
 
+import com.normation.rudder.domain.logger.ComplianceLogger
+
 import net.liftweb.http.js.JE
 import net.liftweb.http.js.JE.JsArray
 import net.liftweb.json.JsonAST.JObject
@@ -44,16 +46,32 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonAST.JInt
 
 /**
- * That file define a "compliance level" object, which store
- * all the kind of reports we can get and compute percentage
- * on them.
+ * That file define a "compliance level" object, which store all the kind of reports we can get and
+ * compute percentage on them.
  *
- * This file also define simple addition on such compliance level.
+ * Percent are stored a double from 0 to 100 with two relevant digits so 12.34% is actually stored
+ * as Double(12.34) (not 0.1234)
+ *
+ * Since use only two digits in percent, we only have a 10e-4 precision, but we nonetheless NEVER EVER
+ * want to make 1 error among 20000 success reports disapear by being rounded to 0.
+ * So we accept that we have a minimum for all percent, `MIN_PC`, and whatever the real number, it
+ * will be returned as that minimum.
+ *
+ * For precise computation, you of course MUST use the level numbers, not the percent.
+ * It also mean that any transformation or computation on compliance must alway be done on level, never
+ * compliance percent, which are just a model for human convenience, but is false.
+ *
+ * This class should always be instanciated with  CompliancePercent.fromLevels` to ensure sum is 100%
+ * The rounding algorithm is:
+ * - sort levels by number of reports, less first, sum them to get total number of reports
+ * - for each level except the last one (most number):
+ *   - if there is 0 reports for that level, it's 0
+ *   - if the percent is LESS THAN `MIN_PC`, then it's MN
+ *   - else compute percent rounded to two digits
+ * - the last level is computed by: 100 - sum(other percent)
+ *
+ * In case of equality, `ReportType.level` is used for comparison.
  */
-
-
-//simple summary that only store percents - no intelligence at all
-//here, see ComplianceLevel to understand how percent are calculated.
 final case class CompliancePercent(
     pending           : Double = 0
   , success           : Double = 0
@@ -69,7 +87,132 @@ final case class CompliancePercent(
   , nonCompliant      : Double = 0
   , auditError        : Double = 0
   , badPolicyMode     : Double = 0
-)
+) {
+  val compliance = success+repaired+notApplicable+compliant+auditNotApplicable
+}
+
+object CompliancePercent {
+
+  // a correspondance array between worse order in `ReportType` and the order of fields in `ComplianceLevel`
+  val WORSE_ORDER = {
+    import ReportType._
+    Array(Pending, EnforceSuccess, EnforceRepaired, EnforceError, Unexpected, Missing, NoAnswer, EnforceNotApplicable
+        , Disabled, AuditCompliant, AuditNotApplicable, AuditNonCompliant, AuditError, BadPolicyMode).map(_.level)
+  }
+  { // maintenance sanity check between dimension
+    List(ComplianceLevel(), CompliancePercent()).foreach  { inst =>
+      if(inst.productArity != WORSE_ORDER.length) {
+        throw new IllegalArgumentException(s"Inconsistency in ${inst.getClass.getSimpleName} code (checking consistency of" +
+                                           s" fields for WORSE_ORDER). Please report to a developer, this is a coding error")
+      }
+    }
+  }
+
+  // the value for the minimum percent reported even if less (see class description)
+  val MIN_PC = BigDecimal(0.01) // since we keep two digits in percents
+
+  /*
+   * Ensure that the sum is 100% and that no case disapear because it is
+   * less that 0.01%.
+   *
+   * Rules are:
+   * - always keeps at least 0.01% for any case
+   *   (given that we have 14 categories, it means that at worst, if 13 are at 0.1 in place of ~0%;
+   *   the last one will be false by 0.13%, which is ok)
+   * - the biggest value is rounded to compensate
+   * - in case of equality (ex: 1/3 success, 1/3 NA, 1/3 error), the biggest is
+   *   chosen accordingly to "ReportType.level" logic.
+   */
+  def fromLevels(c: ComplianceLevel): CompliancePercent = {
+
+    if(c.total == 0) {  // special case: let it be 0
+      CompliancePercent()
+    } else {
+      val total = c.total // not zero
+      def pc_for(i:Int) : Double = {
+        if(i == 0) {
+          0
+        } else {
+          val pc = (i * 100 / BigDecimal(total)).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+          (if(pc < MIN_PC) MIN_PC else pc).toDouble
+        }
+      }
+
+      // default percent calculation
+      val levels = CompliancePercent.sortLevels(c)
+      // round the first ones keeping at least MIN_PC
+      val pc = levels.init.map { case (l, index) => (pc_for(l), index) }
+      // the last one is rounded by "100 - sum of other"
+      val pc_last = 100 - pc.map(_._1).sum
+
+      // check that the rounding error is below what is expected (0.15%) else warn
+      val error = Math.abs((pc_for(levels.last._1)-pc_last)/pc_last)
+      if( error > (levels.size+1) * MIN_PC) {
+        ComplianceLogger.info(s"Rounding error in compliances is above expected threshold: error is ${error} for ${c}")
+      }
+
+      // sort back percents by index
+      val all = ((pc_last, levels.last._2) :: pc).sortBy(_._2).map(_._1)
+
+      // create array of pecents
+      CompliancePercent.fromSeq(all)
+    }
+  }
+
+  /*
+   * returned a list of (level, index) where index correspond to the index of the
+   * level in the compliance array. The list is sorted in the relevant order so that
+   * the smaller level are at head, and in case of equality, the "worse order" order is
+   * kept (worse order last)
+   */
+  def sortLevels(c: ComplianceLevel): List[(Int, Int)] = {
+    // we want to compare accordingly to `ReportType.getWorsteType` but I don't see any
+    // way to do it directly since we don't use the same order in compliance.
+    // So we map index of a compliance element to it's worse type order and compare by index
+
+    val levels = List(
+        c.pending
+      , c.success
+      , c.repaired
+      , c.error
+      , c.unexpected
+      , c.missing
+      , c.noAnswer
+      , c.notApplicable
+      , c.reportsDisabled
+      , c.compliant
+      , c.auditNotApplicable
+      , c.nonCompliant
+      , c.auditError
+      , c.badPolicyMode
+    ).zipWithIndex
+
+    // sort smallest first, and then by worst type
+    levels.sortWith { case ((l1, i1), (l2, i2)) =>
+      if(l1 == l2)  {
+        // index in WORSE_ORDER is the same as index in levels, so just compare WORSE_INDEX(index)
+        WORSE_ORDER(i1) < WORSE_ORDER(i2)
+      } else {
+        l1 < l2
+      }
+    }
+
+  }
+
+  /**
+   *  Init compliance percent from a Seq. Order is of course extremely important here.
+   *  This is a dangerous internal only method: if the seq is too short or too big, throw an error.
+   */
+  protected def fromSeq(pc: Seq[Double]) = {
+    val expected = WORSE_ORDER.length
+    if(pc.length != expected) {
+      throw new IllegalArgumentException(s"We are trying to build a compliance bar from a sequence of double that has" +
+                                         s" not the expected length of ${expected}, this is a code bug, please report it: + ${pc}")
+    } else {
+      CompliancePercent(pc(0), pc(1), pc(2), pc(3), pc(4), pc(5), pc(6), pc(7), pc(8), pc(9), pc(10), pc(11), pc(12), pc(13))
+    }
+  }
+}
 
 
 //simple data structure to hold percentages of different compliance
@@ -90,32 +233,18 @@ final case class ComplianceLevel(
   , auditError        : Int = 0
   , badPolicyMode     : Int = 0
 ) {
-  import ComplianceLevel.pc_for
+
   override def toString() = s"[p:${pending} s:${success} r:${repaired} e:${error} u:${unexpected} m:${missing} nr:${noAnswer} na:${notApplicable
                               } rd:${reportsDisabled} c:${compliant} ana:${auditNotApplicable} nc:${nonCompliant} ae:${auditError} bpm:${badPolicyMode}]"
 
   lazy val total = pending+success+repaired+error+unexpected+missing+noAnswer+notApplicable+reportsDisabled+compliant+auditNotApplicable+nonCompliant+auditError+badPolicyMode
-
   lazy val total_ok = success+repaired+notApplicable+compliant+auditNotApplicable
-  lazy val complianceWithoutPending = pc_for(total_ok, total-pending-reportsDisabled)
-  lazy val compliance = pc_for(total_ok, total)
 
-  lazy val pc = CompliancePercent(
-      pc_for(pending           , total)
-    , pc_for(success           , total)
-    , pc_for(repaired          , total)
-    , pc_for(error             , total)
-    , pc_for(unexpected        , total)
-    , pc_for(missing           , total)
-    , pc_for(noAnswer          , total)
-    , pc_for(notApplicable     , total)
-    , pc_for(reportsDisabled   , total)
-    , pc_for(compliant         , total)
-    , pc_for(auditNotApplicable, total)
-    , pc_for(nonCompliant      , total)
-    , pc_for(auditError        , total)
-    , pc_for(badPolicyMode     , total)
-  )
+  lazy val pc = CompliancePercent.fromLevels(this)
+  // compliance excluding disabled and pending reports
+  lazy val complianceWithoutPending = CompliancePercent.fromLevels(this.copy(pending = 0, reportsDisabled = 0)).compliance
+  lazy val compliance = pc.compliance
+
 
   def +(compliance: ComplianceLevel): ComplianceLevel = {
     ComplianceLevel(
@@ -141,21 +270,20 @@ final case class ComplianceLevel(
 }
 
 object ComplianceLevel {
-  private def pc_for(i:Int, total:Int) : Double = if(total == 0) 0 else (i * 100 / BigDecimal(total)).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
 
   def compute(reports: Iterable[ReportType]): ComplianceLevel = {
     import ReportType._
     if(reports.isEmpty) {
       ComplianceLevel(notApplicable = 1)
     } else {
-      var notApplicable = 0
+      var pending = 0
       var success = 0
       var repaired = 0
       var error = 0
       var unexpected = 0
       var missing = 0
       var noAnswer = 0
-      var pending = 0
+      var notApplicable = 0
       var reportsDisabled = 0
       var compliant = 0
       var auditNotApplicable = 0
@@ -185,17 +313,17 @@ object ComplianceLevel {
         pending = pending
         , success = success
         , repaired = repaired
-        , error =error
-        , unexpected =unexpected
+        , error = error
+        , unexpected = unexpected
         , missing = missing
-        , noAnswer=noAnswer
-        , notApplicable=notApplicable
-        , reportsDisabled=reportsDisabled
+        , noAnswer = noAnswer
+        , notApplicable = notApplicable
+        , reportsDisabled = reportsDisabled
         , compliant  = compliant
-        , auditNotApplicable= auditNotApplicable
-        , nonCompliant  =nonCompliant
+        , auditNotApplicable = auditNotApplicable
+        , nonCompliant = nonCompliant
         , auditError = auditError
-        , badPolicyMode =badPolicyMode
+        , badPolicyMode = badPolicyMode
       )
     }
   }
