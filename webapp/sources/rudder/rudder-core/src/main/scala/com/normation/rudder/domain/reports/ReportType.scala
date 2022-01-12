@@ -46,76 +46,39 @@ import com.normation.rudder.domain.policies.PolicyMode
  * a merge/compare with expected reports.
  */
 sealed trait ReportType {
-  val severity :String
+
+  def severity :String
+
+  // a "worsiness" level for report type relative order.
+  // A bigger number means "worse than other", as in "'error' is worse than 'repaired'"
+  // level is a positive integer starting at zero.
+  def level: Int
 }
 
 
 object ReportType {
-final case object EnforceNotApplicable extends ReportType {
-    val severity = "NotApplicable"
-  }
-final case object EnforceSuccess extends ReportType {
-    val severity = "Success"
-  }
-final case object EnforceRepaired extends ReportType{
-    val severity = "Repaired"
-  }
-final case object EnforceError extends ReportType{
-    val severity = "Error"
-  }
+  // report type are declared sorted in level to ease maintenance
 
-final case object AuditNotApplicable extends ReportType {
-    val severity = "AuditNotApplicable"
-  }
-final case object AuditCompliant extends ReportType {
-    val severity = "Compliant"
-  }
-final case object AuditNonCompliant extends ReportType{
-    val severity = "NonCompliant"
-  }
-final case object AuditError extends ReportType{
-    val severity = "AuditError"
-  }
-final case object BadPolicyMode extends ReportType{
-    val severity = "BadPolicyMode"
-  }
-final case object Unexpected extends ReportType{
-    val severity = "Unexpected"
-  }
-final case object NoAnswer extends ReportType{
-    val severity = "NoAnswer"
-  }
-final case object Disabled extends ReportType{
-    val severity = "ReportsDisabled"
-  }
-final case object Pending extends ReportType{
-    val severity = "Applying"
-  }
-final case object Missing extends ReportType{
-    val severity = "Missing"
-  }
+  final case object EnforceNotApplicable extends ReportType { val level =  0 ; val severity = "NotApplicable" }
+  final case object AuditNotApplicable   extends ReportType { val level =  1 ; val severity = "AuditNotApplicable" }
+  final case object AuditCompliant       extends ReportType { val level =  2 ; val severity = "Compliant" }
+  final case object EnforceSuccess       extends ReportType { val level =  3 ; val severity = "Success" }
+  final case object Pending              extends ReportType { val level =  4 ; val severity = "Applying" }
+  final case object Disabled             extends ReportType { val level =  5 ; val severity = "ReportsDisabled" }
+  final case object NoAnswer             extends ReportType { val level =  6 ; val severity = "NoAnswer" }
+  final case object Missing              extends ReportType { val level =  7 ; val severity = "Missing" }
+  final case object EnforceRepaired      extends ReportType { val level =  8 ; val severity = "Repaired" }
+  final case object AuditNonCompliant    extends ReportType { val level =  9 ; val severity = "NonCompliant" }
+  final case object AuditError           extends ReportType { val level = 10 ; val severity = "AuditError" }
+  final case object EnforceError         extends ReportType { val level = 11 ; val severity = "Error" }
+  final case object Unexpected           extends ReportType { val level = 12 ; val severity = "Unexpected" }
+  final case object BadPolicyMode        extends ReportType { val level = 13 ; val severity = "BadPolicyMode" }
 
   def getWorseType(reportTypes : Iterable[ReportType]) : ReportType = {
     if (reportTypes.isEmpty) {
       NoAnswer
     } else {
-      reportTypes.foldLeft(EnforceNotApplicable : ReportType) {
-        case (_, BadPolicyMode)       | (BadPolicyMode, _)        => BadPolicyMode
-        case (_, Unexpected)          | (Unexpected, _)           => Unexpected
-        case (_, EnforceError)        | (EnforceError, _)         => EnforceError
-        case (_, AuditError)          | (AuditError, _)           => AuditError
-        case (_, AuditNonCompliant)   | (AuditNonCompliant, _)    => AuditNonCompliant
-        case (_, EnforceRepaired)     | (EnforceRepaired, _)      => EnforceRepaired
-        case (_, Missing)             | (Missing, _)              => Missing
-        case (_, NoAnswer)            | (NoAnswer, _)             => NoAnswer
-        case (_, Disabled)            | (Disabled, _)             => Disabled
-        case (_, Pending)             | (Pending, _)              => Pending
-        case (_, EnforceSuccess)      | (EnforceSuccess, _)       => EnforceSuccess
-        case (_, AuditCompliant)      | (AuditCompliant, _)       => AuditCompliant
-        case (_, AuditNotApplicable)  | (AuditNotApplicable, _)   => AuditNotApplicable
-        case (_, EnforceNotApplicable)| (EnforceNotApplicable, _) => EnforceNotApplicable
-        case _ => Unexpected
-      }
+      reportTypes.maxBy(_.level)
     }
   }
 
