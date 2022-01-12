@@ -167,7 +167,7 @@ object ByRuleByNodeCompliance {
     final case class TmpStruct (directiveId: DirectiveId, blocks: List[String], component:  String, node : ByRuleNodeCompliance)
 
     // This function do the recursive treatment of components, we will have each time a pair of Sequence of coupl (NodeId , component compliance structure)
-    def recurseComponent( byRuleComponentCompliance: ByRuleComponentCompliance): Seq[(NodeId,ByRuleByNodeByDirectiveByComponentCompliance)] = {
+    def recurseComponent( byRuleComponentCompliance: ByRuleComponentCompliance): Seq[((NodeId,String),ByRuleByNodeByDirectiveByComponentCompliance)] = {
       byRuleComponentCompliance match {
         // Block case
         case b : ByRuleBlockCompliance =>
@@ -190,7 +190,8 @@ object ByRuleByNodeCompliance {
             (nodeId, data) <- v.nodes.groupBy(_.id)
           } yield {
             // You get all reports that were for a Node matching our value, regroup these report for our node in the structure)
-            (nodeId, ByRuleByNodeByDirectiveByValueCompliance(v.name, ComplianceLevel.sum(data.map(_.compliance)),data.flatMap(_.values)))
+            // Node name should be the same for all nodes, we need to send it to upper structure, link it with id
+            ((nodeId, v.nodes.map(_.name).headOption.getOrElse(nodeId.value)), ByRuleByNodeByDirectiveByValueCompliance(v.name, ComplianceLevel.sum(data.map(_.compliance)),data.flatMap(_.values)))
           }).toSeq
       }
     }
@@ -215,7 +216,7 @@ object ByRuleByNodeCompliance {
     } yield {
         // All Directive were regrouped by Nodes (_._1), rebuild a strucutre containing all Directives
         val subs = data.map(_._2)
-        ByRuleByNodeCompliance(nodeId, nodeId.value, ComplianceLevel.sum(subs.map(_.compliance)), subs)
+        ByRuleByNodeCompliance(nodeId._1, nodeId._2, ComplianceLevel.sum(subs.map(_.compliance)), subs)
     }
   }
 
