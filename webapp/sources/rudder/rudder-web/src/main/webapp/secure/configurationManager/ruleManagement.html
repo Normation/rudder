@@ -32,6 +32,10 @@
         createErrorNotification(str)
       });
 
+      app.ports.copy.subscribe(function(str) {
+        navigator.clipboard.writeText(str);
+      });
+
       // Change the URL upon request, inform app of the change.
       app.ports.pushUrl.subscribe(function(url) {
         var kind = url[0];

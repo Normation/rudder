@@ -20,6 +20,7 @@ port errorNotification   : String -> Cmd msg
 port pushUrl             : (String,String) -> Cmd msg
 port initTooltips        : String -> Cmd msg
 port readUrl : ((String, String) -> msg) -> Sub msg
+port copy : String -> Cmd msg
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
@@ -49,6 +50,7 @@ defaultRulesUI = RuleDetailsUI False False (Tag "" "") Dict.empty
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
+    Copy s -> (model, copy s)
 -- utility methods
     -- Generate random id
     GenerateId nextMsg ->

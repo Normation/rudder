@@ -293,7 +293,8 @@ type alias Model =
   }
 
 type Msg
-  = GenerateId (String -> Msg)
+  = Copy String
+  | GenerateId (String -> Msg)
   | OpenRuleDetails RuleId Bool
   | OpenCategoryDetails String Bool
   | CloseDetails

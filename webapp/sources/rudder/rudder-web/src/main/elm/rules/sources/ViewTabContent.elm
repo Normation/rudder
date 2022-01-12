@@ -97,6 +97,11 @@ informationTab model details =
         div [class "form-group show-compliance"]
         [ label[][text "Compliance"]
         , compliance
+        , label[class "id-label"][text "ID"]
+        , div [class "id-container"]
+          [ p [class "id-value", onClick (Copy rule.id.value)][text rule.id.value]
+          , i [class "ion ion-clipboard clipboard-icon", onClick (Copy rule.id.value)][]
+          ]
         ]
     getCategoryName : String -> String
     getCategoryName cId =
