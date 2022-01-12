@@ -61,7 +61,8 @@ import com.normation.rudder.hooks.HookReturnCode
 import com.normation.box._
 import com.normation.cfclerk.domain.HashAlgoConstraint.SHA1
 import com.normation.rudder.domain.nodes.NodeKind
-import com.normation.rudder.domain.reports.ComplianceLevelSerialisation
+import com.normation.rudder.domain.reports.{ComplianceLevel, ComplianceLevelSerialisation, NodeStatusReport}
+import com.normation.rudder.services.reports.{NoReportInInterval, Pending}
 import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import org.joda.time.format.ISODateTimeFormat
@@ -86,8 +87,7 @@ object DisplayNode extends Loggable {
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
   private[this] val linkUtil             = RudderConfig.linkUtil
-  private[this] val roRuleRepository     = RudderConfig.roRuleRepository
-  private[this] val asyncComplianceService    = RudderConfig.asyncComplianceService
+  private[this] val reportingService     = RudderConfig.reportingService
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
   private[this] val successPopupHtmlId = "successPopupHtmlId"
@@ -95,17 +95,40 @@ object DisplayNode extends Loggable {
 
   private def loadComplianceBar(nodeInfo: Option[NodeInfo]): Option[JsArray] = {
     for {
-      node            <- nodeInfo
-      // Get only user rules.
-      rules           <- roRuleRepository.getIds(false).toBox.toOption match {
-                           // We don't want to continue if we have no user rules, and an empty set will put all rules, and here systems rule only
-                           case Some(ruleIds) if ruleIds.isEmpty => None
-                           case None                             => None
-                           case Some(ruleIds)                    => Some(ruleIds)
-                         }
-      nodeCompliance  <- asyncComplianceService.nodeCompliance(node.id, rules)
+      node                 <- nodeInfo
+      userNodeStatusReport <- reportingService.findUserNodeStatusReport(node.node.id)
+      nodeCompliance        = makeComplianceFromNodeStatusReport(userNodeStatusReport)
     } yield {
       ComplianceLevelSerialisation.ComplianceLevelToJs(nodeCompliance).toJsArray
+    }
+  }
+
+  // this method will transform the compliance for case when there's not rules applied
+  // a node with pending status and no rules will be converted to "pending=1"
+  // a node with no report status and no rules will be converted to "no report=1"
+  // anything else with no rules will stay 0 compliance
+  private def makeComplianceFromNodeStatusReport(nodeStatusReport: NodeStatusReport) : ComplianceLevel = {
+    val compliance = nodeStatusReport.compliance
+    // different case given the status
+    nodeStatusReport.runInfo match {
+      case Pending(_, _, _)      =>
+        // if there are no reports at all because no rule is applied, we say one is pending
+        if (compliance.total == 0) {
+          compliance.copy(pending = 1)
+        } else {
+          compliance
+        }
+
+      case NoReportInInterval(_) =>
+        // if there are no reports at all because no rule is applied, we say one is missing
+        if (compliance.total == 0) {
+          compliance.copy(missing = 1)
+        } else {
+          compliance
+        }
+
+      case _ => // nothing to do in this case
+                nodeStatusReport.compliance
     }
   }
 
@@ -324,7 +347,6 @@ object DisplayNode extends Loggable {
     val nodeInfo = nodeAndGlobalMode.map(_._1)
 
     val compliance = loadComplianceBar(nodeInfo).getOrElse(JsArray())
-
     val nodePolicyMode = nodeAndGlobalMode match {
       case Some((node,globalMode)) =>
         Some((globalMode.overridable,node.policyMode) match {
@@ -498,7 +520,7 @@ object DisplayNode extends Loggable {
 
         <div class="status-info col-lg-6 col-sm-5 col-xs-12">
           <h3>Status information</h3>
-          <div class="node-compliance-bar" id="toto"></div>
+          <div class="node-compliance-bar"></div>
           <div>
             <label>Inventory created (node local time):</label>  {sm.node.inventoryDate.map(DateFormaterService.getDisplayDate(_)).getOrElse("Unknown")}
           </div>
