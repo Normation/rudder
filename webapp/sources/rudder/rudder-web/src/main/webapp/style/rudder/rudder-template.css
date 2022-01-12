@@ -927,8 +927,55 @@
   top: 1px;
 }
 
+/* === LOADER === */
+.rudder-template ul.skeleton-loading {
+  padding: 0 15px;
+}
+.rudder-template ul.skeleton-loading li{
+  display: flex;
+  width: 100%;
+  margin: 20px 0;
+  min-width: 60%;
+}
+.rudder-template ul.skeleton-loading li > i,
+.rudder-template ul.skeleton-loading li > span{
+  display: inline-block;
+  background-color: #f1f2f5;
+  height: 24px;
+  overflow: hidden;
+  position: relative;
+}
+.rudder-template ul.skeleton-loading li > i:before,
+.rudder-template ul.skeleton-loading li > span:before{
+  content: '';
+  display: block;
+  position: absolute;
+  left: -180px;
+  top: 0;
+  height: 100%;
+  width: 180px;
+  background: linear-gradient(to right, transparent 0%, #e1e3e9 50%, transparent 100%);
+  animation: load 1.2s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+}
+.rudder-template ul.skeleton-loading li > i{
+  width: 24px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+.rudder-template ul.skeleton-loading li > span{
+  flex: 1;
+  border-radius: 24px;
+}
+.rudder-template ul.skeleton-loading > ul{
+  padding: 0 0 0 50px;
+}
+/* === KEYFRAMES === */
 @keyframes fadein {
   0%   {opacity:  0; transform:translateX(-100px);}
   20%  {opacity: .2; transform:translateX(0);}
   100% {opacity:  1; transform:translateX(0);}
+}
+@keyframes load {
+  0%   {left: -180px;}
+  100% {left:  100%;}
 }

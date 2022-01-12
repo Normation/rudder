@@ -96,16 +96,32 @@ techniqueList model techniques =
           ]
         ]
       ]
-    , div [ class "sidebar-body" ] [
-        div [class "sidebar-list"] [
-          div [class "jstree jstree-default"] [
-            ul[class "jstree-container-ul jstree-children"] [ techniqueItems, drafts ]
-
-          ]
+    , div [ class "sidebar-body" ]
+      [ div [class "sidebar-list"][(
+        if model.loadingTechniques then
+          generateLoadingList
+          else
+            div [class "jstree jstree-default"][
+              ul[class "jstree-container-ul jstree-children"] [ techniqueItems, drafts ]
+            ]
+          )
         ]
       ]
     ]
 
+generateLoadingList : Html Msg
+generateLoadingList =
+  ul[class "skeleton-loading"]
+  [ li[style "width" "calc(100% - 25px)"][i[][], span[][]]
+  , li[][i[][], span[][]]
+  , li[style "width" "calc(100% - 95px)"][i[][], span[][]]
+  , ul[]
+    [ li[style "width" "calc(100% - 45px)"][i[][], span[][]]
+    , li[style "width" "calc(100% - 125px)"][i[][], span[][]]
+    , li[][i[][], span[][]]
+    ]
+  , li[][i[][], span[][]]
+  ]
 
 allMethodCalls: MethodElem -> List MethodCall
 allMethodCalls call =
