@@ -29,8 +29,14 @@ buildListCategories sep categoryId parentId c =
     let
       newList =
         let
+          blankSpace     = String.repeat 2 (String.fromChar (Char.fromCode 8199))
           currentOption  = [option [value c.id, selected (parentId == c.id)][text (sep ++ c.name)]]
-          separator      = sep ++ "└─ "
+          separator      =
+            if String.isEmpty sep then
+              "└─ "
+            else
+               blankSpace ++ sep
+
           listCategories = List.concatMap (buildListCategories separator categoryId parentId) (getSubElems c)
         in
           List.append currentOption listCategories
