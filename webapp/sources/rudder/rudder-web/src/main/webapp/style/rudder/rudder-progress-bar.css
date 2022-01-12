@@ -50,6 +50,12 @@
   color: #fff;
   line-height: 22px;
 }
+.content-wrapper .progress.progress-flex .progress-bar{
+  min-width: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  padding: 0 2px;
+}
 .content-wrapper .progress-bar-reportsdisabled {
   background-color: #b4b4b4;
 }
