@@ -52,9 +52,16 @@ showTab model details =
             thead [] [
               tr [ class "head" ] (List.map (\row -> th [] [ text row.id ]) col )
             ]
-          , tbody [] (List.map (\r ->
-              tr [] (List.map (\c -> td []  [text (c.toRow r)] ) col)
-            )  details.reports)
+          , tbody [] (
+            if List.length details.reports <= 0 then
+              [ tr[]
+                [ td[class "empty", colspan 6][i [class"fa fa-exclamation-triangle"][], text "No data available."] ]
+              ]
+            else
+              List.map (\r ->
+                tr [] (List.map (\c -> td []  [text (c.toRow r)] ) col)
+              )  details.reports
+            )
           ]
         ]
       ]

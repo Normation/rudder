@@ -187,10 +187,10 @@ tabContent: Model -> RuleDetails  -> Html Msg
 tabContent model details =
     case details.tab of
       Information   -> informationTab model details
-      Directives ->  directivesTab model details
-      Nodes        -> nodesTab model details
+      Directives    -> directivesTab model details
+      Nodes         -> nodesTab model details
+      Groups        -> groupsTab model details
       TechnicalLogs -> ViewRepairedReports.showTab model details
-      Groups -> groupsTab model details
 
 directivesTab: Model -> RuleDetails -> Html Msg
 directivesTab model details =
@@ -228,16 +228,21 @@ directivesTab model details =
           , span [class "border"][]
           ]
       in
-          List.map rowDirective directives
+        List.map rowDirective directives
+
+    nbDirectives = case details.originRule of
+      Just oR -> List.length oR.directives
+      Nothing -> 0
     fun = byDirectiveCompliance model.policyMode nodeValueCompliance
     directiveRows = List.map Tuple3.first fun.rows
     rowId = "byDirectives/"
-    (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Name",Asc)
+    (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Directive",Asc)
     sort =   case List.Extra.find (Tuple3.first >> (==) sortId) fun.rows of
-               Just (_,_,sortFun) -> (\i1 i2 -> sortFun (fun.data model i1) (fun.data model i2))
-               Nothing -> (\_ _ -> EQ)
-    filter = model.ui.directiveFilters.tableFilters.filter
-    childrenSort = Maybe.withDefault [] (Maybe.map .directives details.compliance)    |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.directiveId.value) ) |> List.sortWith sort
+      Just (_,_,sortFun) -> (\i1 i2 -> sortFun (fun.data model i1) (fun.data model i2))
+      Nothing -> (\_ _ -> EQ)
+    filter       = model.ui.directiveFilters.tableFilters.filter
+    childs       = Maybe.withDefault [] (Maybe.map .directives details.compliance)
+    childrenSort = childs |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.directiveId.value) ) |> List.sortWith sort
     (directivesChildren, order, newOrder) = case sortOrder of
        Asc -> (childrenSort, "asc", Desc)
        Desc -> (List.reverse childrenSort, "desc", Asc)
@@ -268,7 +273,18 @@ directivesTab model details =
             thead [] [
               tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) directiveRows)
             ]
-          , tbody [] (List.concatMap (\d ->  showComplianceDetails fun d "" ui.openedRows model) directivesChildren)
+          , tbody [] (
+            if List.length childs <= 0 then
+              [ tr[]
+                [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule is not applied on any Directive."] ]
+              ]
+            else if List.length directivesChildren == 0 then
+              [ tr[]
+                [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No directives match your filter."] ]
+              ]
+            else
+              List.concatMap (\d ->  showComplianceDetails fun d "" ui.openedRows model) directivesChildren
+            )
           ]
         ]
       ]
@@ -409,77 +425,6 @@ directivesTab model details =
                         [ i [class "fa fa-exclamation-triangle"][]
                         , text  "No directives match your filter."
                         ]
-{-<<<<<<< HEAD
-                      ]
-                    ]
-                  ]
-      Nodes        ->
-        let
-          fun      = byNodeCompliance model.policyMode
-          nodeRows =  List.map Tuple3.first fun.rows
-          rowId    = "byNodes/"
-          (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Name",Asc)
-
-          sort = case List.Extra.find (Tuple3.first >> (==) sortId) fun.rows of
-             Just (_,_,sortFun) -> (\i1 i2 -> sortFun (fun.data model i1) (fun.data model i2))
-             Nothing -> (\_ _ -> EQ)
-
-          filter = model.ui.groupFilters.tableFilters.filter
-          children = Maybe.withDefault [] (Maybe.map .nodes details.compliance)
-          childrenSort = children |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.nodeId.value) ) |> List.sortWith sort
-          (nodesChildren, order, newOrder) = case sortOrder of
-             Asc -> (childrenSort, "asc", Desc)
-             Desc -> (List.reverse childrenSort, "desc", Asc)
-
-          groupsList = getAllElems model.groupsTree
-          specialTargets = includedTargets
-            |> List.concatMap (\t ->
-              case t of
-                Special spe ->
-                  case List.Extra.find (\g -> g.target == spe) groupsList of
-                    Just gr -> [gr]
-                    Nothing -> []
-                _ -> []
-              )
-          infoSpecialTarget =
-            if List.isEmpty specialTargets then
-              text ""
-            else
-              div[class "callout-fade callout-info"]
-              [ text "This rule applies to some special targets: "
-              , ul[]
-                ( List.map (\t -> li[][b[][text t.name, text ": "], text t.description]) specialTargets )
-              , text "The nodes of these targets ", strong[][text "are not displayed "], text "in the following table."
-              ]
-
-        in
-          div[class "tab-table-content"]
-            [ div [class "table-title"]
-              [ h4 [][text "Compliance by Nodes"]
-              , ( if model.ui.hasWriteRights then
-                  button [class "btn btn-primary btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}, tab = Groups})]
-                  [ text "Select groups", i[class "fa fa-plus-circle" ][]]
-                else
-                  text ""
-                )
-              ]
-            , infoSpecialTarget
-            , div [class "table-header"]
-              [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.groupFilters.tableFilters.filter
-                , onInput (\s ->
-                  let
-                    groupFilters = model.ui.groupFilters
-                    tableFilters = groupFilters.tableFilters
-                  in
-                    UpdateGroupFilters {groupFilters | tableFilters = {tableFilters | filter = s}}
-                )][]
-              , button [class "btn btn-primary btn-sm"][text "Refresh"]
-              ]
-            , div[class "table-container"] [
-                table [class "dataTable compliance-table"] [
-                  thead [] [
-                    tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) nodeRows)
-=======-}
                     )]
                   ]
                 ]
@@ -493,12 +438,13 @@ nodesTab model details =
     fun = byNodeCompliance model.policyMode
     nodeRows =  List.map Tuple3.first fun.rows
     rowId = "byNodes/"
-    (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Name",Asc)
+    (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Node",Asc)
     sort =   case List.Extra.find (Tuple3.first >> (==) sortId) fun.rows of
                Just (_,_,sortFun) -> (\i1 i2 -> sortFun (fun.data model i1) (fun.data model i2))
                Nothing -> (\_ _ -> EQ)
     filter = model.ui.groupFilters.tableFilters.filter
-    childrenSort = Maybe.withDefault [] (Maybe.map .nodes details.compliance)    |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.nodeId.value) )  |> List.sortWith sort
+    childs       = Maybe.withDefault [] (Maybe.map .nodes details.compliance)
+    childrenSort = childs |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.nodeId.value) )  |> List.sortWith sort
     (nodesChildren, order, newOrder) = case sortOrder of
        Asc -> (childrenSort, "asc", Desc)
        Desc -> (List.reverse childrenSort, "desc", Asc)
@@ -554,7 +500,19 @@ nodesTab model details =
             thead [] [
               tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) nodeRows)
             ]
-          , tbody [] (List.concatMap (\d ->  showComplianceDetails fun d rowId ui.openedRows model)  nodesChildren)
+          , tbody []
+            (
+              if (List.length childs) <= 0 then
+                [ tr[]
+                  [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule is not applied on any Node."] ]
+                ]
+              else if List.length nodesChildren == 0 then
+                [ tr[]
+                  [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No nodes match your filter."] ]
+                ]
+              else
+                List.concatMap (\d ->  showComplianceDetails fun d rowId ui.openedRows model)  nodesChildren
+              )
           ]
         ]
       ]

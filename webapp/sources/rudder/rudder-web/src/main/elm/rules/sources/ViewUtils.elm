@@ -233,7 +233,7 @@ byDirectiveCompliance  globalPolicy subFun =
         List.sortWith sortFunction item.components
     )
     (\m i -> (Maybe.withDefault (Directive i.directiveId i.name "" "" "" False False "" []) (Dict.get i.directiveId.value m.directives), i ))
-    [ ("Name", \(d,i) -> span [] [ badgePolicyMode globalPolicy d.policyMode, text d.displayName, buildTagsTree d.tags ],  (\(_,d1) (_,d2) -> compare d1.name d2.name ))
+    [ ("Directive", \(d,i) -> span [] [ badgePolicyMode globalPolicy d.policyMode, text d.displayName, buildTagsTree d.tags ],  (\(_,d1) (_,d2) -> compare d1.name d2.name ))
     , ("Compliance", \(d,i) -> buildComplianceBar  i.complianceDetails,  (\(_,d1) (_,d2) -> compare d1.compliance d2.compliance ))
     ]
     (.directiveId >> .value)
