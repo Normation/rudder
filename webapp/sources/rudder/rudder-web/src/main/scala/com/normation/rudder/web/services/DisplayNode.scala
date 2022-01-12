@@ -119,7 +119,7 @@ object DisplayNode extends Loggable {
           compliance
         }
 
-      case NoReportInInterval(_) =>
+      case NoReportInInterval(_, _) =>
         // if there are no reports at all because no rule is applied, we say one is missing
         if (compliance.total == 0) {
           compliance.copy(missing = 1)
