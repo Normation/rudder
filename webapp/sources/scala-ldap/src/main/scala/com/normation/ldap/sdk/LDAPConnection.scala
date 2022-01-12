@@ -318,7 +318,7 @@ sealed class RoLDAPConnection(
 
   override def search(sr:SearchRequest) : LDAPIOResult[Seq[LDAPEntry]] = {
     blocking {
-      backed.search(sr).getSearchEntries.asScala.toSeq.map(e => LDAPEntry(e.getParsedDN, e.getAttributes.asScala))
+      backed.search(sr).getSearchEntries.asScala.toSeq.map(e => LDAPEntry(e))
     } catchAll {
       case e:LDAPSearchException if(onlyReportOnSearch(e.getResultCode)) =>
         LDAPConnectionLogger.error("Ignored execption (configured to be ignored)", e) *>
@@ -336,7 +336,7 @@ sealed class RoLDAPConnection(
               else backed.getEntry(dn.toString, attributes:_*)
       e match {
         case null => None
-        case r    => Some(LDAPEntry(r.getParsedDN, r.getAttributes.asScala))
+        case r    => Some(LDAPEntry(r))
       }
     } catchAll {
       case ex: LDAPException =>
