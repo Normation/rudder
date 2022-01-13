@@ -138,7 +138,8 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
         case Directive.Edit       => DirectiveApi.UpdateDirective.x :: Nil
 
         case Group.Read           => GroupApi.ListGroups.x :: GroupApi.GroupDetails.x :: GroupApi.GetGroupTree.x ::
-                                     GroupApi.GetGroupCategoryDetails.x :: GroupApi.GroupInheritedProperties.x :: Nil
+                                     GroupApi.GetGroupCategoryDetails.x :: GroupApi.GroupInheritedProperties.x ::
+                                     GroupApi.GroupDisplayInheritedProperties.x :: Nil
         case Group.Write          => GroupApi.CreateGroup.x :: GroupApi.DeleteGroup.x :: GroupApi.ReloadGroup.x ::
                                      GroupApi.DeleteGroupCategory.x :: GroupApi.CreateGroupCategory.x :: Nil
         case Group.Edit           => GroupApi.UpdateGroup.x :: GroupApi.UpdateGroupCategory.x :: Nil
