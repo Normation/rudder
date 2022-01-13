@@ -401,10 +401,8 @@ impl RunParameters {
     ) -> Result<Self, Error> {
         let conditions: Vec<_> = match raw_conditions {
             Some(conditions) if !conditions.is_empty() => {
-                let split_conditions: Result<Vec<_>, _> = conditions
-                    .split(',')
-                    .map(|s| Condition::from_str(s))
-                    .collect();
+                let split_conditions: Result<Vec<_>, _> =
+                    conditions.split(',').map(Condition::from_str).collect();
                 split_conditions?
             }
             _ => vec![],

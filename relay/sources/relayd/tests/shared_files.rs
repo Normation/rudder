@@ -76,7 +76,7 @@ mod tests {
         .send().unwrap();
         assert_eq!(500, upload.status());
 
-        let upload = client.put("http://127.0.0.1:3030/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2?ttl=1d").body(format!("{}\n{}", signature, "test".to_string()))
+        let upload = client.put("http://127.0.0.1:3030/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2?ttl=1d").body(format!("{}\n{}", signature, "test"))
         .send().unwrap();
         assert_eq!(500, upload.status());
 

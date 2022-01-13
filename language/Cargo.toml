@@ -2,7 +2,7 @@
 name = "rudderc"
 version = "0.0.0-dev"
 authors = ["Benoît Peccatte <benoit.peccatte@rudder.io>", "Rudder developers <dev@rudder.io>"]
-edition = "2018"
+edition = "2021"
 readme = "README.adoc"
 homepage = "https://www.rudder.io"
 repository = "https://github.com/Normation/rudder"
@@ -14,7 +14,7 @@ path = "src/bin/rudderc.rs"
 
 [dependencies]
 colored = "2"
-env_logger = "0.8"
+env_logger = "0.9"
 lazy_static = "1"
 maplit = "1"
 ngrammatic = "0.3"
@@ -32,7 +32,7 @@ uuid = { version = "0.8", features = ["v4"] }
 
 [dev-dependencies]
 test-case = "1"
-pretty_assertions = "0.7"
+pretty_assertions = "1"
 
 [profile.dev]
 # Disabling debug info speeds up builds a bunch,

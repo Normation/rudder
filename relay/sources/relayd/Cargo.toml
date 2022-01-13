@@ -2,7 +2,7 @@
 name = "rudder-relayd"
 version = "0.0.0-dev"
 authors = ["Rudder developers <dev@rudder.io>"]
-edition = "2018"
+edition = "2021"
 description = "Rudder relay component"
 readme = "README.md"
 homepage = "https://www.rudder.io"

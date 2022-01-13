@@ -171,15 +171,12 @@ mod tests {
     fn assert_err_msg(cli: &str, expect: &str) {
         match opt_new(cli).get_io_context() {
             Err(Error::User((msg, _))) => assert_eq!(msg, expect),
-            _ => assert!(
-                false,
-                format!("expected error for '{}', but test result is ok", cli)
-            ),
+            _ => assert!(false, "expected error for '{}', but test result is ok", cli),
         };
     }
     fn assert_ok(cli: &str, ctx: IOContext, test_content: bool) {
         match opt_new(cli).get_io_context() {
-            Err(e) => assert!(false, format!("expected ok, got err: '{}'", e)),
+            Err(e) => assert!(false, "expected ok, got err: '{}'", e),
             Ok(context) => {
                 assert_eq!(context.stdlib, ctx.stdlib);
                 assert_eq!(context.input, ctx.input);
