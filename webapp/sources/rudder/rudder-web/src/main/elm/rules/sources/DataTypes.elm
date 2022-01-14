@@ -108,6 +108,21 @@ getAllCats category =
   in
     category :: (List.concatMap getAllCats subElems)
 
+-- get all missing categories
+getAllMissingCats: Category a -> List (Category a)
+getAllMissingCats category =
+  let
+    missingCategory = List.filter (\sub -> sub.id == missingCategoryId) (getSubElems category)
+  in
+  List.concatMap getAllCats missingCategory
+
+-- get all rules who as an unknown category id
+getAllMissingCatsRules: Category a -> List a
+getAllMissingCatsRules category =
+  let
+    missingCategory = List.filter (\sub -> sub.id == missingCategoryId) (getSubElems category)
+  in
+  List.concatMap getAllElems missingCategory
 
 type alias RuleComplianceGlobal =
   { id                : RuleId
@@ -260,6 +275,8 @@ type alias  Changes =
   , changes : Float
   }
 
+-- this is the Id used by the API to group missing categories with their rules
+missingCategoryId = "ui-missing-rule-category"
 
 type alias Model =
   { contextPath     : String
