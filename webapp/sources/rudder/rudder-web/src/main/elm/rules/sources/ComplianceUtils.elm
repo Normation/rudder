@@ -30,7 +30,15 @@ getRuleCompliance : Model -> RuleId -> Maybe RuleComplianceGlobal
 getRuleCompliance model rId =
   Dict.get rId.value model.rulesCompliance
 
-getAllComplianceValues : ComplianceDetails -> {okStatus : {value : Float, details : String}, nonCompliant : {value : Float, details : String}, error : {value : Float, details : String}, unexpected : {value : Float, details : String}, pending : {value : Float, details : String}, reportsDisabled : {value : Float, details : String}, noReport : {value : Float, details : String}}
+getAllComplianceValues : ComplianceDetails ->
+  { okStatus        : {value : Float, rounded : Int, details : String}
+  , nonCompliant    : {value : Float, rounded : Int, details : String}
+  , error           : {value : Float, rounded : Int, details : String}
+  , unexpected      : {value : Float, rounded : Int, details : String}
+  , pending         : {value : Float, rounded : Int, details : String}
+  , reportsDisabled : {value : Float, rounded : Int, details : String}
+  , noReport        : {value : Float, rounded : Int, details : String}
+  }
 getAllComplianceValues complianceDetails =
   let
     barContent : List (Float, String) -> String
@@ -142,14 +150,55 @@ getAllComplianceValues complianceDetails =
       else
         ""
 
+    -- This prevents the sum of the rounded compliances from being greater or less than 100%, using the largest remainder method.
+    -- 1. Rounding everything down
+    compliances = Dict.fromList
+      [ ("okStatus"        , { floor = Basics.floor okStatus        , decimal = okStatus        - toFloat (Basics.floor okStatus        )})
+      , ("nonCompliant"    , { floor = Basics.floor nonCompliant    , decimal = nonCompliant    - toFloat (Basics.floor nonCompliant    )})
+      , ("error"           , { floor = Basics.floor error           , decimal = error           - toFloat (Basics.floor error           )})
+      , ("unexpected"      , { floor = Basics.floor unexpected      , decimal = unexpected      - toFloat (Basics.floor unexpected      )})
+      , ("pending"         , { floor = Basics.floor pending         , decimal = pending         - toFloat (Basics.floor pending         )})
+      , ("reportsDisabled" , { floor = Basics.floor reportsDisabled , decimal = reportsDisabled - toFloat (Basics.floor reportsDisabled )})
+      , ("noReport"        , { floor = Basics.floor noReport        , decimal = noReport        - toFloat (Basics.floor noReport        )})
+      ]
+    -- 2. Getting the difference in sum and 100
+    getDiff = 100 - ( compliances
+      |> Dict.map (\k a -> a.floor)
+      |> Dict.values
+      |> List.sum
+      )
+    -- 3. Distributing the difference by adding 1 to items in decreasing order of their decimal parts
+    flippedComparison a b =
+        case compare (Tuple.second a).decimal (Tuple.second b).decimal of
+          LT -> GT
+          EQ -> EQ
+          GT -> LT
+    getNumbersToUpdate = compliances
+      |> Dict.toList
+      |> List.sortWith flippedComparison
+      |> List.take getDiff
+      |> List.map (\x -> (Tuple.first x))
+    roundedCompliance = compliances
+      |> Dict.map (\k a -> if (List.member k getNumbersToUpdate) then {a | floor = a.floor+1} else a )
+    getRoundedValue : String -> Float -> Int
+    getRoundedValue key fallback =
+      let
+        roundedValue =
+          case ( roundedCompliance
+            |> Dict.get key ) of
+              Just v  -> v.floor
+              Nothing -> Basics.round fallback
+      in
+        roundedValue
+
     allComplianceValues =
-      { okStatus        = { value = okStatus        , details = okStatusText        }
-      , nonCompliant    = { value = nonCompliant    , details = nonCompliantText    }
-      , error           = { value = error           , details = errorText           }
-      , unexpected      = { value = unexpected      , details = unexpectedText      }
-      , pending         = { value = pending         , details = pendingText         }
-      , reportsDisabled = { value = reportsDisabled , details = reportsDisabledText }
-      , noReport        = { value = noReport        , details = noReportText        }
+      { okStatus        = { value = okStatus        , rounded = (getRoundedValue "okStatus"        okStatus        ), details = okStatusText        }
+      , nonCompliant    = { value = nonCompliant    , rounded = (getRoundedValue "nonCompliant"    nonCompliant    ), details = nonCompliantText    }
+      , error           = { value = error           , rounded = (getRoundedValue "error"           error           ), details = errorText           }
+      , unexpected      = { value = unexpected      , rounded = (getRoundedValue "unexpected"      unexpected      ), details = unexpectedText      }
+      , pending         = { value = pending         , rounded = (getRoundedValue "pending"         pending         ), details = pendingText         }
+      , reportsDisabled = { value = reportsDisabled , rounded = (getRoundedValue "reportsDisabled" reportsDisabled ), details = reportsDisabledText }
+      , noReport        = { value = noReport        , rounded = (getRoundedValue "noReport"        noReport        ), details = noReportText        }
       }
   in
     allComplianceValues
