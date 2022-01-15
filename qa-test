@@ -15,7 +15,7 @@ test_python()
 
 test_typos()
 {
-  typos --exclude builder* --exclude tree/20_cfe_basics/cfengine
+  typos --exclude tree/20_cfe_basics/cfengine
 }
 
 if [ "$1" = "--python" ]; then
