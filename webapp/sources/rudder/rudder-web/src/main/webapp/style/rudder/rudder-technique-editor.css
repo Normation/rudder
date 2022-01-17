@@ -36,6 +36,10 @@
 */
 
 /* =====  GENERAL  ===== */
+#details{
+  padding-bottom: 100px;
+}
+
 .fade.modal-backdrop.in {
   opacity: .3;
 }
@@ -53,6 +57,15 @@
 }
 .ion.ion-edit {
   font-size: 18px;
+}
+
+.condition-form label + .btn-group{
+  margin-left: 8px;
+}
+.condition-form .dropdown-toggle + .dropdown-menu{
+  margin-left: 0;
+  max-height: 250px;
+  overflow: auto;
 }
 ul.dropdown-menu {
   padding: 0;

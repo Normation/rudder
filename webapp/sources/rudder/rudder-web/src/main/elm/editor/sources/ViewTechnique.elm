@@ -152,13 +152,13 @@ showTechnique model technique origin ui =
                       ]
                     ]
                   , li [] [
-                      a [ class "action-primary" , onClick Export] [ --ng-disabled="isNotSaved()"  ng-click=""exportTechnique(selectedTechnique)
+                      a [ class "action-primary" , onClick Export] [
                         text "Export "
                       , i [ class "fa fa-download"] []
                       ]
                     ]
                   , li [] [
-                      a [ class "action-danger", onClick deleteAction ] [ --ng-disabled="isNotSaved()"  ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)"
+                      a [ class "action-danger", onClick deleteAction ] [
                         text "Delete "
                       , i [ class "fa fa-times-circle"] []
                       ]

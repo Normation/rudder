@@ -115,7 +115,6 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                       |> addAttribute (for "OsCondition")
                                       |> appendText "Operating system: "
                                     , element "div"
-                                      |> addStyleList [ ("display", "inline-block"), ("width", "auto"), ("margin-left", "5px") ]
                                       |> addClass "btn-group"
                                       |> appendChildList
                                          [ element "button"
@@ -123,13 +122,13 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                            |> addAttributeList
                                               [ id "OsCondition" , attribute  "data-toggle" "dropdown"
                                               , attribute  "aria-haspopup" "true", attribute "aria-expanded" "true"
+                                              , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                                               ]
                                            |> appendText  ((osName condition.os) ++ " ")
                                            |> appendChild  (element "span" |> addClass"caret")
                                          , element "ul"
                                            |> addClass "dropdown-menu"
                                            |> addAttribute (attribute "aria-labelledby" "OsCondition")
-                                           |> addStyle ("margin-left", "0px")
                                            |> appendNodeList osLi
                                          ]
                                    ]

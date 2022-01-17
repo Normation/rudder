@@ -44,7 +44,6 @@ port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
 --port warnNotification    : String -> Cmd msg
 port infoNotification    : String -> Cmd msg
-port toggleDropdown    : String -> Cmd msg
 port pushUrl             : String -> Cmd msg
 port getUrl             : () -> Cmd msg
 
@@ -850,8 +849,6 @@ update msg model =
 
     Notification notif notifMsg ->
       (model, notif notifMsg)
-    ToggleDropdown id ->
-      (model, toggleDropdown id)
     DisableDragDrop ->
       case model.mode of
         Introduction -> (model, Cmd.none)
