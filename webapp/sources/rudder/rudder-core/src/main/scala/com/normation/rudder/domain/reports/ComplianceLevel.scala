@@ -38,6 +38,7 @@
 package com.normation.rudder.domain.reports
 
 import com.normation.rudder.domain.logger.ComplianceLogger
+import com.normation.rudder.domain.reports.ComplianceLevel.PERCENT_PRECISION
 
 import net.liftweb.http.js.JE
 import net.liftweb.http.js.JE.JsArray
@@ -241,11 +242,8 @@ final case class ComplianceLevel(
   lazy val total = pending+success+repaired+error+unexpected+missing+noAnswer+notApplicable+reportsDisabled+compliant+auditNotApplicable+nonCompliant+auditError+badPolicyMode
   lazy val total_ok = success+repaired+notApplicable+compliant+auditNotApplicable
 
-  lazy val pc = CompliancePercent.fromLevels(this, ComplianceLevel.PERCENT_PRECISION)
-  // compliance excluding disabled and pending reports
-  lazy val complianceWithoutPending = CompliancePercent.fromLevels(this.copy(pending = 0, reportsDisabled = 0), ComplianceLevel.PERCENT_PRECISION).compliance
-  lazy val compliance = pc.compliance
-
+  def withoutPending = this.copy(pending = 0, reportsDisabled = 0)
+  def percent(precision: Int = PERCENT_PRECISION) = CompliancePercent.fromLevels(this, precision)
 
   def +(compliance: ComplianceLevel): ComplianceLevel = {
     ComplianceLevel(
@@ -463,22 +461,25 @@ object ComplianceLevelSerialisation {
   // pc_error, pc_pending, pc_noAnswer, pc_missing, pc_unknown
   implicit class ComplianceLevelToJs(val compliance: ComplianceLevel) extends AnyVal {
 
-    def toJsArray: JsArray = JsArray (
-        JsArray(compliance.reportsDisabled,JE.Num(compliance.pc.reportsDisabled))    //  0
-      , JsArray(compliance.notApplicable , JE.Num(compliance.pc.notApplicable))      //  1
-      , JsArray(compliance.success , JE.Num(compliance.pc.success))            //  2
-      , JsArray(compliance.repaired , JE.Num(compliance.pc.repaired))           //  3
-      , JsArray(compliance.error , JE.Num(compliance.pc.error))              //  4
-      , JsArray(compliance.pending , JE.Num(compliance.pc.pending))            //  5
-      , JsArray(compliance.noAnswer , JE.Num(compliance.pc.noAnswer))           //  6
-      , JsArray(compliance.missing , JE.Num(compliance.pc.missing))            //  7
-      , JsArray(compliance.unexpected , JE.Num(compliance.pc.unexpected))         //  8
-      , JsArray(compliance.auditNotApplicable , JE.Num(compliance.pc.auditNotApplicable)) //  9
-      , JsArray(compliance.compliant , JE.Num(compliance.pc.compliant))          // 10
-      , JsArray(compliance.nonCompliant , JE.Num(compliance.pc.nonCompliant))       // 11
-      , JsArray(compliance.auditError , JE.Num(compliance.pc.auditError))         // 12
-      , JsArray(compliance.badPolicyMode , JE.Num(compliance.pc.badPolicyMode))      // 13
-    )
+    def toJsArray: JsArray = {
+      val pc = compliance.percent()
+      JsArray (
+        JsArray(compliance.reportsDisabled,JE.Num(pc.reportsDisabled))    //  0
+        , JsArray(compliance.notApplicable , JE.Num(pc.notApplicable))      //  1
+        , JsArray(compliance.success , JE.Num(pc.success))            //  2
+        , JsArray(compliance.repaired , JE.Num(pc.repaired))           //  3
+        , JsArray(compliance.error , JE.Num(pc.error))              //  4
+        , JsArray(compliance.pending , JE.Num(pc.pending))            //  5
+        , JsArray(compliance.noAnswer , JE.Num(pc.noAnswer))           //  6
+        , JsArray(compliance.missing , JE.Num(pc.missing))            //  7
+        , JsArray(compliance.unexpected , JE.Num(pc.unexpected))         //  8
+        , JsArray(compliance.auditNotApplicable , JE.Num(pc.auditNotApplicable)) //  9
+        , JsArray(compliance.compliant , JE.Num(pc.compliant))          // 10
+        , JsArray(compliance.nonCompliant , JE.Num(pc.nonCompliant))       // 11
+        , JsArray(compliance.auditError , JE.Num(pc.auditError))         // 12
+        , JsArray(compliance.badPolicyMode , JE.Num(pc.badPolicyMode))      // 13
+      )
+    }
 
     def toJson: JObject = {
       import compliance._

@@ -77,7 +77,8 @@ class TestComplianceLevel extends Specification {
 
     "which is 0.01 by default" >> {
       val c = ComplianceLevel(success = 1, error = 100000)
-      (c.pc.repaired === 0) and (c.pc.success === 0.01) and (c.pc.error === 99.99)
+      val pc = c.percent()
+      (pc.repaired === 0) and (pc.success === 0.01) and (pc.error === 99.99)
     }
 
     "and can be 0" >> {
@@ -96,19 +97,20 @@ class TestComplianceLevel extends Specification {
 
   "compliance when there is no report is 0" >> {
 
-    ComplianceLevel().compliance === 0
+    ComplianceLevel().percent().compliance === 0
   }
 
   "Compliance must sum to 100 percent" >> {
 
     "when using default precision" >> {
       val c = ComplianceLevel(0,1,1,1)
-      (c.pc.success === 33.33) and (c.pc.repaired === 33.33) and (c.pc.error === 33.34)
+      val pc = c.percent()
+      (pc.success === 33.33) and (pc.repaired === 33.33) and (pc.error === 33.34)
     }
 
     "when using 0 digits" >> {
       val c = ComplianceLevel(0,1,1,1)
-      val pc = CompliancePercent.fromLevels(c, 0)
+      val pc = c.percent(0)
       (pc.success === 33) and (pc.repaired === 33) and (pc.error === 34)
     }
   }

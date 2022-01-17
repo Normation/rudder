@@ -194,7 +194,7 @@ final case class ColoredChartType(value: Double) extends ChartType
                              val complianceLevel = ComplianceLevel.sum(compliancePerNodes.map(_._2))
                              Some((
                                complianceLevel
-                             , complianceLevel.complianceWithoutPending.round
+                             , complianceLevel.withoutPending.percent().compliance.round
                              ))
                            }
       n5 = System.currentTimeMillis
@@ -218,7 +218,7 @@ final case class ColoredChartType(value: Double) extends ChartType
       val complianceByNode : List[ChartType] = compliancePerNodes.values.map { r =>
         if(r.pending == r.total) { PendingChartType }
         else if(r.reportsDisabled == r.total) { DisabledChartType }
-        else { ColoredChartType(r.complianceWithoutPending) }
+        else { ColoredChartType(r.withoutPending.percent().compliance) }
       }.toList
 
       val complianceDiagram : List[ComplianceLevelPieChart] = (complianceByNode.groupBy{compliance => compliance match {

@@ -71,7 +71,7 @@ final case class RunCompliance(
 object RunCompliance {
 
   def from(runTimestamp: DateTime, endOfLife: DateTime, report: NodeStatusReport) = {
-    RunCompliance(report.nodeId, runTimestamp, endOfLife, (report.runInfo, report.statusInfo), report.compliance.pc, report.reports)
+    RunCompliance(report.nodeId, runTimestamp, endOfLife, (report.runInfo, report.statusInfo), report.compliance.percent(), report.reports)
   }
 }
 

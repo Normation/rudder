@@ -1646,7 +1646,7 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
       nodeStatus.keySet.head === one and
-      nodeStatus.head._2.reports.head.compliance.pc.success === 100
+      nodeStatus.head._2.reports.head.compliance.percent().success === 100
     }
 
   }
@@ -1675,7 +1675,7 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
      nodeStatus.keySet.head === NodeId("nodeId") and
-     nodeStatus.head._2.reports.head.compliance.pc.success === 100
+     nodeStatus.head._2.reports.head.compliance.percent().success === 100
     }
   }
 
@@ -1701,7 +1701,7 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
      nodeStatus.keySet.head === NodeId("nodeId") and
-     nodeStatus.head._2.reports.head.compliance.pc.success === 100
+     nodeStatus.head._2.reports.head.compliance.percent().success === 100
     }
   }
 
@@ -1728,11 +1728,11 @@ class ExecutionBatchTest extends Specification {
     }
     "return a component with the /var/cfengine in NotApplicable " in {
       withGood.componentValues("/var/cfengine").messages.size === 1 and
-      withGood.componentValues("/var/cfengine").compliance.pc.notApplicable === 100
+      withGood.componentValues("/var/cfengine").compliance.percent().notApplicable === 100
     }
     "return a component with the bar key success " in {
       withGood.componentValues("bar").messages.size == 1 and
-      withGood.componentValues("bar").compliance.pc.success === 100
+      withGood.componentValues("bar").compliance.percent().success === 100
     }
   }
 
