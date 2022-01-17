@@ -4,6 +4,8 @@ get:
   summary: Global compliance
   description: Get current global compliance of a Rudder server
   operationId: getGlobalCompliance
+  parameters:
+    - $ref: ../../components/parameters/compliance-percent-precision.yml
   responses:
     "200":
       description: Success

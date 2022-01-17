@@ -102,6 +102,7 @@ class ComplianceApi(
 
       (for {
         level <- restExtractor.extractComplianceLevel(req.params)
+        precision <- restExtractor.extractPercentPrecision(req.params)
         computeLevel <- Full(if(version.value <= 6) {
                           None
                         } else {
@@ -112,7 +113,7 @@ class ComplianceApi(
         if(version.value <= 6) {
           rules.map( _.toJsonV6 )
         } else {
-          rules.map( _.toJson(level.getOrElse(10) ) ) //by default, all details are displayed
+          rules.map( _.toJson(level.getOrElse(10), precision.getOrElse(2))) //by default, all details are displayed
         }
       }) match {
         case Full(rules) =>
@@ -134,13 +135,14 @@ class ComplianceApi(
 
       (for {
         level <- restExtractor.extractComplianceLevel(req.params)
+        precision <- restExtractor.extractPercentPrecision(req.params)
         id    <- RuleId.parse(ruleId).toBox
         rule  <- complianceService.getRuleCompliance(id, level)
       } yield {
         if(version.value <= 6) {
           rule.toJsonV6
         } else {
-          rule.toJson(level.getOrElse(10) ) //by default, all details are displayed
+          rule.toJson(level.getOrElse(10), precision.getOrElse(2)) //by default, all details are displayed
         }
       }) match {
         case Full(rule) =>
@@ -162,12 +164,13 @@ class ComplianceApi(
 
       (for {
         level <- restExtractor.extractComplianceLevel(req.params)
+        precision <- restExtractor.extractPercentPrecision(req.params)
         nodes <- complianceService.getNodesCompliance()
       } yield {
         if(version.value <= 6) {
           nodes.map( _.toJsonV6 )
         } else {
-          nodes.map( _.toJson(level.getOrElse(10)) )
+          nodes.map( _.toJson(level.getOrElse(10), precision.getOrElse(2)) )
         }
       })match {
         case Full(nodes) =>
@@ -189,12 +192,13 @@ class ComplianceApi(
 
       (for {
         level <- restExtractor.extractComplianceLevel(req.params)
+        precision <- restExtractor.extractPercentPrecision(req.params)
         node  <- complianceService.getNodeCompliance(NodeId(nodeId))
       } yield {
         if(version.value <= 6) {
           node.toJsonV6
         } else {
-          node.toJson(level.getOrElse(10))
+          node.toJson(level.getOrElse(10), precision.getOrElse(2))
         }
       })match {
         case Full(node) =>
@@ -215,9 +219,10 @@ class ComplianceApi(
       implicit val prettify = params.prettify
 
       (for {
+        precision <- restExtractor.extractPercentPrecision(req.params)
         optCompliance <- complianceService.getGlobalCompliance()
       } yield {
-        optCompliance.toJson
+        optCompliance.toJson(precision.getOrElse(2))
       }) match {
         case Full(json) =>
           toJsonResponse(None, json)

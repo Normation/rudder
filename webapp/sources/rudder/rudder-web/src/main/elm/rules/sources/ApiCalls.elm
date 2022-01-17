@@ -165,7 +165,7 @@ getRulesCompliance model =
       request
         { method  = "GET"
         , headers = []
-        , url     = getUrl model [ "compliance", "rules"] [ int "level" 1 ]
+        , url     = getUrl model [ "compliance", "rules"] [ int "level" 1, int "precision" 0 ]
         , body    = emptyBody
         , expect  = expectJson GetRulesComplianceResult decodeGetRulesCompliance
         , timeout = Nothing
@@ -181,7 +181,7 @@ getRulesComplianceDetails ruleId model =
       request
         { method  = "GET"
         , headers = []
-        , url     = getUrl model [ "compliance", "rules", ruleId.value ] [ int "level" 10 ]
+        , url     = getUrl model [ "compliance", "rules", ruleId.value ] [ int "level" 10 , int "precision" 0 ]
         , body    = emptyBody
         , expect  = expectJson (GetRuleComplianceResult ruleId) decodeGetRulesComplianceDetails
         , timeout = Nothing

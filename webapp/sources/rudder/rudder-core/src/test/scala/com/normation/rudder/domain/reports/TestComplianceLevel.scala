@@ -73,11 +73,24 @@ class TestComplianceLevel extends Specification {
   }
 
 
-  "a compliance must never be rounded below 0.01%" >> {
+  "a compliance must never be rounded below its precision" >> {
 
-    val c = ComplianceLevel(success = 1, error = 100000)
+    "which is 0.01 by default" >> {
+      val c = ComplianceLevel(success = 1, error = 100000)
+      (c.pc.repaired === 0) and (c.pc.success === 0.01) and (c.pc.error === 99.99)
+    }
 
-    (c.pc.repaired === 0) and (c.pc.success === 0.01) and (c.pc.error === 99.99)
+    "and can be 0" >> {
+      val c = ComplianceLevel(success = 1, error = 100000)
+      val pc = CompliancePercent.fromLevels(c, 0)
+      (pc.repaired === 0) and (pc.success === 1) and (pc.error === 99)
+    }
+
+    "or a lot" >> {
+      val c = ComplianceLevel(success = 1, error = 1000000000)
+      val pc = CompliancePercent.fromLevels(c, 5)
+      (pc.repaired === 0) and (pc.success === 0.00001) and (pc.error === 99.99999)
+    }
 
   }
 
@@ -86,11 +99,17 @@ class TestComplianceLevel extends Specification {
     ComplianceLevel().compliance === 0
   }
 
-  "Compliance must sum to 100 percent" should {
+  "Compliance must sum to 100 percent" >> {
 
-    val c = ComplianceLevel(0,1,1,1)
+    "when using default precision" >> {
+      val c = ComplianceLevel(0,1,1,1)
+      (c.pc.success === 33.33) and (c.pc.repaired === 33.33) and (c.pc.error === 33.34)
+    }
 
-    (c.pc.success === 33.33) and (c.pc.repaired === 33.33) and (c.pc.error === 33.34)
+    "when using 0 digits" >> {
+      val c = ComplianceLevel(0,1,1,1)
+      val pc = CompliancePercent.fromLevels(c, 0)
+      (pc.success === 33) and (pc.repaired === 33) and (pc.error === 34)
+    }
   }
-
 }

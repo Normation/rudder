@@ -87,7 +87,7 @@ final case class CompliancePercent(
   , nonCompliant      : Double = 0
   , auditError        : Double = 0
   , badPolicyMode     : Double = 0
-) {
+)(val precision: Int = 0) {
   val compliance = success+repaired+notApplicable+compliant+auditNotApplicable
 }
 
@@ -100,7 +100,8 @@ object CompliancePercent {
         , Disabled, AuditCompliant, AuditNotApplicable, AuditNonCompliant, AuditError, BadPolicyMode).map(_.level)
   }
   { // maintenance sanity check between dimension
-    List(ComplianceLevel(), CompliancePercent()).foreach  { inst =>
+    List(ComplianceLevel(), CompliancePercent()()).foreach  { inst =>
+      // product arity only compare first arg list
       if(inst.productArity != WORSE_ORDER.length) {
         throw new IllegalArgumentException(s"Inconsistency in ${inst.getClass.getSimpleName} code (checking consistency of" +
                                            s" fields for WORSE_ORDER). Please report to a developer, this is a coding error")
@@ -108,8 +109,6 @@ object CompliancePercent {
     }
   }
 
-  // the value for the minimum percent reported even if less (see class description)
-  val MIN_PC = BigDecimal(0.01) // since we keep two digits in percents
 
   /*
    * Ensure that the sum is 100% and that no case disapear because it is
@@ -123,17 +122,19 @@ object CompliancePercent {
    * - in case of equality (ex: 1/3 success, 1/3 NA, 1/3 error), the biggest is
    *   chosen accordingly to "ReportType.level" logic.
    */
-  def fromLevels(c: ComplianceLevel): CompliancePercent = {
+  def fromLevels(c: ComplianceLevel, precision: Int): CompliancePercent = {
+    // the value for the minimum percent reported even if less (see class description)
+    val MIN_PC = BigDecimal(1) * BigDecimal(10).pow(- precision) // since we keep precision digits in percents
 
     if(c.total == 0) {  // special case: let it be 0
-      CompliancePercent()
+      CompliancePercent()(precision)
     } else {
       val total = c.total // not zero
       def pc_for(i:Int) : Double = {
         if(i == 0) {
           0
         } else {
-          val pc = (i * 100 / BigDecimal(total)).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+          val pc = (i * 100 / BigDecimal(total)).setScale(precision, BigDecimal.RoundingMode.HALF_UP)
           (if(pc < MIN_PC) MIN_PC else pc).toDouble
         }
       }
@@ -155,7 +156,7 @@ object CompliancePercent {
       val all = ((pc_last, levels.last._2) :: pc).sortBy(_._2).map(_._1)
 
       // create array of pecents
-      CompliancePercent.fromSeq(all)
+      CompliancePercent.fromSeq(all, precision)
     }
   }
 
@@ -203,13 +204,13 @@ object CompliancePercent {
    *  Init compliance percent from a Seq. Order is of course extremely important here.
    *  This is a dangerous internal only method: if the seq is too short or too big, throw an error.
    */
-  protected def fromSeq(pc: Seq[Double]) = {
+  protected def fromSeq(pc: Seq[Double], precision: Int) = {
     val expected = WORSE_ORDER.length
     if(pc.length != expected) {
       throw new IllegalArgumentException(s"We are trying to build a compliance bar from a sequence of double that has" +
                                          s" not the expected length of ${expected}, this is a code bug, please report it: + ${pc}")
     } else {
-      CompliancePercent(pc(0), pc(1), pc(2), pc(3), pc(4), pc(5), pc(6), pc(7), pc(8), pc(9), pc(10), pc(11), pc(12), pc(13))
+      CompliancePercent(pc(0), pc(1), pc(2), pc(3), pc(4), pc(5), pc(6), pc(7), pc(8), pc(9), pc(10), pc(11), pc(12), pc(13))(precision)
     }
   }
 }
@@ -240,9 +241,9 @@ final case class ComplianceLevel(
   lazy val total = pending+success+repaired+error+unexpected+missing+noAnswer+notApplicable+reportsDisabled+compliant+auditNotApplicable+nonCompliant+auditError+badPolicyMode
   lazy val total_ok = success+repaired+notApplicable+compliant+auditNotApplicable
 
-  lazy val pc = CompliancePercent.fromLevels(this)
+  lazy val pc = CompliancePercent.fromLevels(this, ComplianceLevel.PERCENT_PRECISION)
   // compliance excluding disabled and pending reports
-  lazy val complianceWithoutPending = CompliancePercent.fromLevels(this.copy(pending = 0, reportsDisabled = 0)).compliance
+  lazy val complianceWithoutPending = CompliancePercent.fromLevels(this.copy(pending = 0, reportsDisabled = 0), ComplianceLevel.PERCENT_PRECISION).compliance
   lazy val compliance = pc.compliance
 
 
@@ -270,6 +271,8 @@ final case class ComplianceLevel(
 }
 
 object ComplianceLevel {
+
+  def PERCENT_PRECISION = 2
 
   def compute(reports: Iterable[ReportType]): ComplianceLevel = {
     import ReportType._
@@ -453,10 +456,6 @@ object ComplianceLevelSerialisation {
 
   def parseLevel(json: JValue) = {
     (ComplianceLevel.apply _).tupled(parse(json, (i:BigInt) => i.intValue))
-  }
-
-  def parsePercent(json: JValue) = {
-    (CompliancePercent.apply _).tupled(parse(json, (i:BigInt) => i.doubleValue))
   }
 
   //transform the compliance percent to a list with a given order:
