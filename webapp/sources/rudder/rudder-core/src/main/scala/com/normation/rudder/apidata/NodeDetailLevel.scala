@@ -244,7 +244,7 @@ object NodeDetailLevel {
     Map (
         ( "id"                      -> id )
       , ( "hostname"                -> hostname )
-      , ( "state   "                -> state )
+      , ( "state"                   -> state )
       , ( "os"                      -> os )
       , ( "ram"                     -> ram )
       , ( "machine"                 -> machine )
