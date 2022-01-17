@@ -200,8 +200,7 @@ showTechnique model technique origin ui =
 
            ) ( case DragDrop.currentlyDraggedObject model.dnd of
                  Nothing -> False
-                 Just (Move x) -> Maybe.withDefault False (Maybe.map (\c->  (getId x) /= (getId c)) (List.head technique.elems))
-                 Just _ -> True
+                 Just _ -> not (List.isEmpty technique.elems)
              )
       |> appendChildList
            ( List.concatMap

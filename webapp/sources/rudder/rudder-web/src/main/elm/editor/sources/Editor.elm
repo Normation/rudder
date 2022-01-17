@@ -839,12 +839,12 @@ update msg model =
           in
             update (GenerateId SetMissingIds ) newModel
 
-    MoveFirstElemBLock elem ->
+    CompleteMove ->
       let
         newMsg =
-          case model.dropTarget of
-            Nothing -> MoveCanceled
-            Just drop -> MoveCompleted (Move elem) drop
+          case (model.dropTarget, DragDrop.currentlyDraggedObject model.dnd) of
+            (Just drop, Just drag) -> MoveCompleted drag  drop
+            _ -> MoveCanceled
       in
         update newMsg model
 
