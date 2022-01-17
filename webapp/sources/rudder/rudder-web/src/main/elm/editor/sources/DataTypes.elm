@@ -254,7 +254,8 @@ type Msg =
   | MoveTargetChanged DropElement
   | MoveCanceled
   | MoveCompleted DragElement DropElement
-  | MoveFirstElemBLock MethodElem
+  -- Sometimes drag and drop event are blocked / catched, fire it manually
+  | CompleteMove
   | SetMissingIds String
   | Notification (String -> Cmd Msg) String
   | DisableDragDrop

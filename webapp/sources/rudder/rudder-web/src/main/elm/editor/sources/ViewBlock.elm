@@ -387,7 +387,7 @@ blockBody model parentId block ui techniqueUi =
   |> addAttribute (hidden currentDrag)
   |> addActionStopPropagation ("mousedown", EnableDragDrop block.id)
   |> (if (techniqueUi.enableDragDrop == Just block.id) then DragDrop.makeDraggable model.dnd (Move (Block parentId block)) dragDropMessages else identity)
-  |> addActionStopAndPrevent ( "dragend", MoveFirstElemBLock (Block parentId block))
+  |> addActionStopAndPrevent ( "dragend", CompleteMove)
   |> Dom.appendChildList
      [ dragElem
      , element "div"

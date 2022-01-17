@@ -475,7 +475,7 @@ callBody model ui techniqueUi call pid =
   |> addAttribute (hidden currentDrag)
   |> addActionStopPropagation ("mousedown", EnableDragDrop call.id)
   |> (if techniqueUi.enableDragDrop == (Just call.id) then DragDrop.makeDraggable model.dnd (Move (Call pid call)) dragDropMessages else identity)
-  |> addActionStopAndPrevent ( "dragend", MoveFirstElemBLock (Call pid call))
+  |> addActionStopAndPrevent ( "dragend", CompleteMove)
   |> Dom.appendChildList
      [ dragElem
      , element "div"
