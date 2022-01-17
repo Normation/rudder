@@ -164,13 +164,15 @@ showMethodTab model method parentId call uiInfo=
         div [class "form-group condition-form", id "os-form"] [
           div [ class "form-inline" ] [
             div [ class "form-group" ] [
-              label [ style "display" "inline-block",  class "", for "OsCondition"] [ text "Operating system: " ]
-            , div [ style "display" "inline-block", style "width" "auto", style "margin-left" "5px",class "btn-group" ] [
-                button [ class "btn btn-default dropdown-toggle", id ("OsCondition-" ++ call.id.value), onClick (ToggleDropdown  ("OsCondition-" ++ call.id.value)), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))  ] [
-                  text ((osName condition.os) ++ " ")
+              label [ style "display" "inline-block", for ("OsCondition-" ++ call.id.value)]
+              [ text "Operating system: " ]
+            , div [ class "btn-group" ]
+              [ button [ class "btn btn-default dropdown-toggle", id ("OsCondition-" ++ call.id.value), attribute  "data-toggle" "dropdown"
+                , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)) ]
+                [ text ((osName condition.os) ++ " ")
                 , span [ class "caret" ] []
                 ]
-              , ul [ class "dropdown-menu", style "margin-left" "0px" ]
+              , ul [ class "dropdown-menu" ]
                  ( List.map (\os ->
                      let
                        updatedCondition = {condition | os = os }
