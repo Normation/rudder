@@ -401,11 +401,23 @@ form.readonly-form .form-group,
 form.readonly-form .tags-container{
   margin-bottom: 15px;
 }
-
 .missing-cat {
   color: #222D42AA;
 }
-
 .main-missing-cat {
   color: #f08004;
+}
+.id-label {
+  margin-top: 5px;
+}
+.id-value {
+ display:inline-block;
+}
+.clipboard-icon {
+  display:inline-block;
+  margin-left:15px;
+}
+.clipboard-icon:hover {
+  cursor: pointer;
+  color: #0366d6;
 }
