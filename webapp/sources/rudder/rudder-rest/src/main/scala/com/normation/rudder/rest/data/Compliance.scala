@@ -190,8 +190,8 @@ object ByRuleByNodeCompliance {
             (nodeId, data) <- v.nodes.groupBy(_.id)
           } yield {
             // You get all reports that were for a Node matching our value, regroup these report for our node in the structure)
-            // Node name should be the same for all nodes, we need to send it to upper structure, link it with id
-            ((nodeId, v.nodes.map(_.name).headOption.getOrElse(nodeId.value)), ByRuleByNodeByDirectiveByValueCompliance(v.name, ComplianceLevel.sum(data.map(_.compliance)),data.flatMap(_.values)))
+            // Node name should be the same for all items, take the first one. We need to send it to upper structure, link it with id
+            ((nodeId, data.map(_.name).headOption.getOrElse(nodeId.value)), ByRuleByNodeByDirectiveByValueCompliance(v.name, ComplianceLevel.sum(data.map(_.compliance)),data.flatMap(_.values)))
           }).toSeq
       }
     }
