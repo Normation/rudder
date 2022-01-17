@@ -36,6 +36,7 @@ response:
             "id":"root",
             "hostname":"server.rudder.local",
             "status":"accepted",
+            "state":"enabled",
             "os":{
               "type":"Linux",
               "name":"Debian",
