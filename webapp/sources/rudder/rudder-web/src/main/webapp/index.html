@@ -14,122 +14,103 @@
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/jquery/jquery-3.6.0.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/utils/clipboard.min.js"></script>
 </head>
-<body id="login-page">
-  <div id="formbox">
-  <fieldset>
+<body>
+<div class="flex-container">
+  <div class="col-lg-4 col-sm-6 col-xs-12">
+
     <div data-lift="Login.display">
-    <p class="legend col-xs-12">
-      <img src="/images/logo-rudder-white.svg" data-lift="with-cached-resource" alt="Rudder"></img>
-      <span>${rudder-major-version}</span>
-    </p>
-    <div class="plugin-info"></div>
-      <div class="col-xs-12">
-        <form class="rudder-form" name="contact" id="contact" method="post" action="/j_spring_security_check">
-          <h4 class="welcome col-xs-12">Welcome, please sign in:</h4>
-          <div class="form-group group-user has-feedback col-xs-12">
-            <label class="sr-only" for="username">Username</label>
-            <div class="input-group">
-              <label class="input-group-addon" for="username"><span class="ion ion-android-person"></span></label>
-              <input type="text" class="form-control" id="username" name="username" placeholder="Username" size="30"></input>
-              <span class="glyphicon glyphicon-remove form-control-feedback" aria-hidden="true" aria-describedby="inputError2Status"></span>
-            </div>
-              <span id="inputErrorStatus" class="sr-only">The field is required</span>
-              <span id="helpBlock" class="help-block">This field is required.</span>
-          </div>
-          <div class="form-group group-password has-feedback col-xs-12">
-            <label class="sr-only" for="password">Password</label>
-            <div class="input-group">
-              <label class="input-group-addon" for="password"><span class="ion ion-android-lock"></span></label>
-              <input type="password" class="form-control" id="password" name="password" placeholder="Password"></input>
-              <span class="glyphicon glyphicon-remove form-control-feedback" aria-hidden="true" aria-describedby="inputError2Status"></span>
-            </div>
-            <span id="inputError2Status" class="sr-only">The field is required</span>
-            <span id="helpBlock2" class="help-block">This field is required.</span>
-          </div>
-          <div class="form-group col-xs-12">
-            <label class="sr-only" for="valid">Sign in</label>
-            <div class="input-group col-xs-12">
-               <span id="errorInfo" class="help-block">
-                   Login error, please try again.
-               </span>
-              <button class="btn btn-warning-rudder col-xs-12" id="valid" name="valid" type="submit">
-                Sign in
-                <span class="ion ion-android-unlock"></span>
-              </button>
-            </div>
-          </div>
-        </form>
+
+      <div class="logo-container">
+        <img src="/images/logo-rudder.svg" data-lift="with-cached-resource" alt="Rudder"/>
       </div>
-      <div class="form-footer">
-        <div class="flex-col">
-          <div>
-            <a href="/rudder-doc" target="_blank">
-            <span class="fa fa-book"></span>
-              Documentation
-            </a>
-          </div>
-          <div>
-            <a href="https://www.rudder.io/open-source/community/" target="_blank">
-            <span class="ion ion-chatboxes"></span>
-              Community
-            </a>
-          </div>
+
+      <div class="plugin-info"></div>
+
+
+      <form id="login-form" method="post" action="/j_spring_security_check">
+
+        <div class="motd"></div>
+
+        <div class="form-group group-username">
+          <label>
+            Username
+            <span class="warning-info"><i class="fa fa-warning"></i>This field is required</span>
+          </label>
+          <input class="form-control" type="text" name="username"/>
+
         </div>
-        <div class="flex-col">
-          <div>
-            <a href="https://www.rudder.io/pricing/subscription/" target="_blank">
-            <span class="fa fa-life-ring"></span>
-              Support
-            </a>
-          </div>
-          <div>
-            <a href="https://issues.rudder.io/" target="_blank">
-              <span class="ion ion-bug"></span>
-              Bug tracker
-            </a>
-          </div>
+        <div class="form-group group-password">
+          <label>
+            Password
+            <span class="warning-info"><i class="fa fa-warning"></i>This field is required</span>
+          </label>
+          <input class="form-control" type="password" name="password"/>
         </div>
-      </div>
+        <div class="form-group group-submit">
+          <button class="btn btn-primary" type="submit" id="submit" name="valid">Sign in</button>
+          <span id="errorInfo" class="warning-info"><i class="fa fa-warning"></i> Login error, please try again.</span>
+        </div>
+      </form>
+
     </div>
-  </fieldset>
+
   </div>
-  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/login.min.js"></script>
-  <script>
-      $(document).ready(function(){
-        $('.welcome').fadeIn(1000);
-        (function(){
-            var urlVars = {};
-            var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
-                urlVars[key] = value;
-            });
-            if(urlVars["login_error"]) {
-                $('#errorInfo').toggleClass('has-error');
-            }
-        })();
-        $('form.rudder-form').on('submit', function(e){
-          var errors=false;
-          if($('.group-user input').val().length===0){
-            $('.group-user').addClass('has-error');
-            errors=true;
-          }else{
-            $('.group-user').removeClass('has-error');
-          }
-          if($('.group-password input').val().length===0){
-            $('.group-password').addClass('has-error');
-            errors=true;
-          }else{
-            $('.group-password').removeClass('has-error');
-          }
-          if(errors){
-            e.preventDefault();
-          }
-        });
-        $(document).keypress(function(e) {
-          if(e.which == 13) {
-            $('form.rudder-form').submit();
-          }
-        });
+  <div class="links">
+    <a href="/rudder-doc" target="_blank">
+      Documentation
+    </a>
+    <a href="https://www.rudder.io/pricing/subscription/" target="_blank">
+      Support
+    </a>
+    <a href="https://www.rudder.io/open-source/community/" target="_blank">
+      Community
+    </a>
+    <a href="https://issues.rudder.io/" target="_blank">
+      Bug tracker
+    </a>
+  </div>
+  <div class="version">
+    <span>v${rudder-major-version}</span>
+  </div>
+</div>
+<script type="text/javascript" data-lift="with-cached-resource" src="/javascript/login.min.js"></script>
+<script>
+  $(document).ready(function(){
+    (function(){
+      var urlVars = {};
+      var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+        urlVars[key] = value;
       });
-  </script>
+      if(urlVars["login_error"]) {
+        $('#errorInfo').toggleClass('has-error');
+      }
+    })();
+    $('#login-form').on('submit', function(e){
+      $("#submit").addClass("signing").text("Signing in...");
+      var errors=false;
+      if($('.group-username input').val().length===0){
+        $('.group-username').addClass('has-error');
+          errors=true;
+      }else{
+        $('.group-username').removeClass('has-error');
+      }
+      if($('.group-password input').val().length===0){
+        $('.group-password').addClass('has-error');
+        errors=true;
+      }else{
+        $('.group-password').removeClass('has-error');
+      }
+      if(errors){
+        $("#submit").removeClass("signing").text("Sign in");
+        e.preventDefault();
+      }
+    });
+    $(document).keypress(function(e) {
+      if(e.which == 13) {
+        $('#login-form').submit();
+      }
+    });
+  });
+</script>
 </body>
 </html>
