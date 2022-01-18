@@ -1094,12 +1094,12 @@ class ExecutionBatchTest extends Specification {
       res.compliance === ComplianceLevel(success = 1, unexpected = 2) // 2 unexpected because the whole "foo" becomes unexpected
     }
     "when allow duplicated, duplicate messages is ignored" in {
-      val res = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, duplicated, ReportType.Missing, PolicyMode.Enforce, UnexpectedReportInterpretation(Set(UnexpectedReportBehavior.AllowsDuplicate)))
-      res.compliance === ComplianceLevel(success = 2)
+      val res = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, duplicated, ReportType.Missing, PolicyMode.Enforce, UnexpectedReportInterpretation(Set()))
+      res.compliance === ComplianceLevel(success = 1, unexpected = 2)
     }
     "when allow duplicated, duplicate messages is ignored but not for 4 duplications" in {
-      val res = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, tooMuchDuplicated, ReportType.Missing, PolicyMode.Enforce, UnexpectedReportInterpretation(Set(UnexpectedReportBehavior.AllowsDuplicate)))
-      res.compliance === ComplianceLevel(success = 1, unexpected = 2)
+      val res = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, tooMuchDuplicated, ReportType.Missing, PolicyMode.Enforce, UnexpectedReportInterpretation(Set()))
+      res.compliance === ComplianceLevel(success = 1, unexpected = 4)
     }
 
     "when on strict mode, out of bound vars are unexpected" in {

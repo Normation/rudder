@@ -63,7 +63,6 @@ response:
           "run_frequency":5,
           "send_metrics":"not_defined",
           "splay_time":4,
-          "unexpected_allows_duplicate":true,
           "unexpected_unbound_var_values":true
         }
       }

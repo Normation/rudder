@@ -152,11 +152,6 @@ settings:
         - audit
       example: default
       description: Default policy mode for accepted node
-    unexpected_allows_duplicate:
-      type: boolean
-      example: true
-      description: Ignore duplicated compliance reports
-      default: true
     unexpected_unbound_var_values:
       type: boolean
       description: Allows multiple reports for configuration based on a multivalued variable

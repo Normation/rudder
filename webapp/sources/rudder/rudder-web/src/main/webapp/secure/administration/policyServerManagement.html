@@ -241,45 +241,9 @@
                       <div class="marker">
                         <span class="glyphicon glyphicon-info-sign"></span>
                       </div>
-                      The two following settings affect the interpretation given to some type of unexpected reports when computing compliance.
-                      These options will take effects when the next reports are received from a node or if you "clear caches" below.
+                      The following settings affect the interpretation given to some type of unexpected reports when computing compliance.
+                      This option will take effect when the next reports are received from a node or if you "clear caches" below.
                     </div>
-                    <div class="col-lg-12 callout-fade callout-info">
-                      <div class="marker">
-                        <span class="glyphicon glyphicon-info-sign"></span>
-                      </div>
-                      <p><b>Duplicated reports</b></p>
-                      <p>
-                        Due to the underlying protocol used to send compliance reports back to the policy server (syslog),
-                        it may happen that some reports, for an unitary control point, are duplicated. In that case, compliance for
-                        the corresponding element will be "unexpected": Rudder was awaiting one report, but it got two.
-                        The risk to have a real error reported as a duplicated messages is very low, as messages need to have the
-                        same timestamp and information message to be considered duplicated on a given node.
-                      </p>
-                      <p>
-                        That option will ignore the duplicated message in compliance computation and log an information level
-                        message about that duplication. A double duplication will still be ignored but with a warning log, and more
-                        duplicates will lead to an error log and an unexpected compliance.
-                      <p>
-                        It is safe to ignore duplicated reports and you should check that option.
-                      </p>
-                    </div>
-                    <ul>
-                      <li class="rudder-form">
-                        <div class="input-group">
-                          <label class="input-group-addon" for="allowsDuplicate">
-                            <input id="allowsDuplicate" type="checkbox">
-                            <label for="allowsDuplicate" class="label-radio">
-                              <span class="ion ion-checkmark-round"></span>
-                            </label>
-                            <span class="ion ion-checkmark-round check-icon"></span>
-                          </label>
-                          <label class="form-control" for="allowsDuplicate">
-                            Ignore duplicated compliance report
-                          </label>
-                        </div>
-                      </li>
-                    </ul>
                     <div class="col-lg-12 callout-fade callout-info">
                       <div class="marker">
                         <span class="glyphicon glyphicon-info-sign"></span>
