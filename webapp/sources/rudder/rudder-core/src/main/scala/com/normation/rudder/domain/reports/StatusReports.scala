@@ -573,11 +573,11 @@ object NodeStatusReportSerialization {
       c match {
         case c : ValueStatusReport =>
           ( ("componentName" -> c.componentName)
-          ~ ("compliance"    -> c.compliance.percent().toJson)
+          ~ ("compliance"    -> c.compliance.computePercent().toJson)
           ~ ("numberReports" -> c.compliance.total)
           ~ ("values"        -> c.componentValues.values.map { v =>
               ( ("value"         -> v.componentValue)
-              ~ ("compliance"    -> v.compliance.percent().toJson)
+              ~ ("compliance"    -> v.compliance.computePercent().toJson)
               ~ ("numberReports" -> v.compliance.total)
               ~ ("unexpanded"    -> v.unexpandedComponentValue)
               ~ ("messages"      -> v.messages.map { m =>
@@ -590,7 +590,7 @@ object NodeStatusReportSerialization {
           )
         case c : BlockStatusReport =>
           ( ("componentName" -> c.componentName)
-            ~ ("compliance"    -> c.compliance.percent().toJson)
+            ~ ("compliance"    -> c.compliance.computePercent().toJson)
             ~ ("numberReports" -> c.compliance.total)
             ~ ("subComponents" -> c.subComponents.map(componentValueToJson))
             ~ ("reportingLogic" -> c.reportingLogic.toString)
@@ -607,11 +607,11 @@ object NodeStatusReportSerialization {
 
       "rules" -> reports.map { r =>
         ( ("ruleId"        -> r.ruleId.serialize)
-        ~ ("compliance"    -> r.compliance.percent().toJson)
+        ~ ("compliance"    -> r.compliance.computePercent().toJson)
         ~ ("numberReports" -> r.compliance.total)
         ~ ("directives"    -> r.directives.values.map { d =>
             ( ("directiveId"   -> d.directiveId.serialize)
-            ~ ("compliance"    -> d.compliance.percent().toJson)
+            ~ ("compliance"    -> d.compliance.computePercent().toJson)
             ~ ("numberReports" -> d.compliance.total)
             ~ ("components"    -> d.components.values.map(componentValueToJson))
             )

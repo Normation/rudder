@@ -243,7 +243,7 @@ final case class ComplianceLevel(
   lazy val total_ok = success+repaired+notApplicable+compliant+auditNotApplicable
 
   def withoutPending = this.copy(pending = 0, reportsDisabled = 0)
-  def percent(precision: Int = PERCENT_PRECISION) = CompliancePercent.fromLevels(this, precision)
+  def computePercent(precision: Int = PERCENT_PRECISION) = CompliancePercent.fromLevels(this, precision)
 
   def +(compliance: ComplianceLevel): ComplianceLevel = {
     ComplianceLevel(
@@ -462,7 +462,7 @@ object ComplianceLevelSerialisation {
   implicit class ComplianceLevelToJs(val compliance: ComplianceLevel) extends AnyVal {
 
     def toJsArray: JsArray = {
-      val pc = compliance.percent()
+      val pc = compliance.computePercent()
       JsArray (
         JsArray(compliance.reportsDisabled,JE.Num(pc.reportsDisabled))    //  0
         , JsArray(compliance.notApplicable , JE.Num(pc.notApplicable))      //  1

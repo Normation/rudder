@@ -596,7 +596,7 @@ class NodeApiService13 (
 
     import net.liftweb.json.JsonDSL._
     def toComplianceArray(comp : ComplianceLevel) : JArray = {
-      val pc = comp.percent()
+      val pc = comp.computePercent()
       JArray (
         JArray(JInt(comp.reportsDisabled) :: JDouble(pc.reportsDisabled) :: Nil)  :: //0
         JArray(JInt(comp.notApplicable) :: JDouble(pc.notApplicable) :: Nil ) ::       //  1
@@ -639,7 +639,7 @@ class NodeApiService13 (
       ~  ("os"                  -> nodeInfo.osDetails.fullName)
       ~  ("state"               -> nodeInfo.state.name)
       ~  ("compliance"          -> userCompliance )
-      ~  ("systemError"         -> sysCompliance.map(_.percent().compliance < 100 ).getOrElse(true) )
+      ~ ("systemError"         -> sysCompliance.map(_.computePercent().compliance < 100 ).getOrElse(true))
       ~  ("ipAddresses"         -> nodeInfo.ips.filter(ip => ip != "127.0.0.1" && ip != "0:0:0:0:0:0:0:1").map(escapeHTML(_)))
       ~  ("lastRun"             -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
       ~  ("lastInventory"       -> DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))

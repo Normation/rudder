@@ -296,7 +296,7 @@ object JsonCompliance {
     def toJsonV6 = (
         ("id" -> rule.id.serialize)
       ~ ("name" -> rule.name)
-      ~ ("compliance" -> rule.compliance.withoutPending.percent().compliance)
+      ~ ("compliance" -> rule.compliance.withoutPending.computePercent().compliance)
       ~ ("complianceDetails" -> percents(rule.compliance, 2))
       ~ ("directives" -> directives(rule.directives, 10, 2) )
     )
@@ -312,7 +312,7 @@ object JsonCompliance {
     def toJson(level: Int, precision: Int) = (
         ("id" -> rule.id.serialize)
       ~ ("name" -> rule.name)
-      ~ ("compliance" -> rule.compliance.withoutPending.percent().compliance)
+      ~ ("compliance" -> rule.compliance.withoutPending.computePercent().compliance)
       ~ ("mode" -> rule.mode.name)
       ~ ("complianceDetails" -> percents(rule.compliance, precision))
       ~ ("directives" -> directives(rule.directives, level, precision) )
@@ -325,7 +325,7 @@ object JsonCompliance {
         (
             ("id" -> directive.id.serialize)
           ~ ("name" -> directive.name)
-          ~ ("compliance" -> directive.compliance.withoutPending.percent().compliance)
+          ~ ("compliance" -> directive.compliance.withoutPending.computePercent().compliance)
           ~ ("complianceDetails" -> percents(directive.compliance, precision))
           ~ ("components" -> components(directive.components, level, precision))
         )
@@ -337,7 +337,7 @@ object JsonCompliance {
         (
           ("id" -> node.id.value)
             ~ ("name" -> node.name)
-            ~ ("compliance" -> node.compliance.withoutPending.percent().compliance)
+            ~ ("compliance" -> node.compliance.withoutPending.computePercent().compliance)
             ~ ("complianceDetails" -> percents(node.compliance, precision))
             ~ ("directives" -> byNodesByDirectives(node.directives, level, precision))
           )
@@ -350,7 +350,7 @@ object JsonCompliance {
         (
           ("id" -> directive.id.serialize)
             ~ ("name" -> directive.name)
-            ~ ("compliance" -> directive.compliance.withoutPending.percent().compliance)
+            ~ ("compliance" -> directive.compliance.withoutPending.computePercent().compliance)
             ~ ("complianceDetails" -> percents(directive.compliance, precision))
             ~ ("components" -> byNodeByDirectiveByComponents(directive.components, level, precision))
           )
@@ -361,7 +361,7 @@ object JsonCompliance {
       else Some(comps.map { component =>
         (
             ("name" -> component.name)
-          ~ ("compliance" -> component.compliance.withoutPending.percent().compliance)
+          ~ ("compliance" -> component.compliance.withoutPending.computePercent().compliance)
           ~ ("complianceDetails" -> percents(component.compliance, precision))
           ~ (component match {
               case component : ByRuleBlockCompliance =>
@@ -378,7 +378,7 @@ object JsonCompliance {
       else Some(comps.map { component =>
         (
           ("name" -> component.name)
-            ~ ("compliance" -> component.compliance.withoutPending.percent().compliance)
+            ~ ("compliance" -> component.compliance.withoutPending.computePercent().compliance)
             ~ ("complianceDetails" -> percents(component.compliance, precision))
             ~ (component match {
             case component : ByRuleByNodeByDirectiveByBlockCompliance =>
@@ -410,7 +410,7 @@ object JsonCompliance {
         (
             ("id" -> node.id.value)
           ~ ("name" -> node.name)
-          ~ ("compliance" -> node.compliance.withoutPending.percent().compliance)
+          ~ ("compliance" -> node.compliance.withoutPending.computePercent().compliance)
           ~ ("complianceDetails" -> percents(node.compliance, precision))
           ~ ("values" -> values(node.values, level))
         )
@@ -423,7 +423,7 @@ object JsonCompliance {
   implicit class JsonByNodeCompliance(val n: ByNodeNodeCompliance) extends AnyVal {
     def toJsonV6 = (
         ("id" -> n.id.value)
-      ~ ("compliance" -> n.compliance.withoutPending.percent().compliance)
+      ~ ("compliance" -> n.compliance.withoutPending.computePercent().compliance)
       ~ ("complianceDetails" -> percents(n.compliance, 2))
       ~ ("rules" -> rules(n.nodeCompliances, 10, 2))
     )
@@ -440,7 +440,7 @@ object JsonCompliance {
     def toJson(level: Int, precision: Int) = (
         ("id" -> n.id.value)
       ~ ("name" -> n.name)
-      ~ ("compliance" -> n.compliance.withoutPending.percent().compliance)
+      ~ ("compliance" -> n.compliance.withoutPending.computePercent().compliance)
       ~ ("mode" -> n.mode.name)
       ~ ("complianceDetails" -> percents(n.compliance, precision))
       ~ ("rules" -> rules(n.nodeCompliances, level, precision))
@@ -452,7 +452,7 @@ object JsonCompliance {
         (
             ("id" -> rule.id.serialize)
           ~ ("name" -> rule.name)
-          ~ ("compliance" -> rule.compliance.withoutPending.percent().compliance)
+          ~ ("compliance" -> rule.compliance.withoutPending.computePercent().compliance)
           ~ ("complianceDetails" -> percents(rule.compliance, precision))
           ~ ("directives" -> directives(rule.directives, level, precision))
        )
@@ -465,7 +465,7 @@ object JsonCompliance {
         (
             ("id" -> directive.id.serialize)
           ~ ("name" -> directive.name)
-          ~ ("compliance" -> directive.compliance.withoutPending.percent().compliance)
+          ~ ("compliance" -> directive.compliance.withoutPending.computePercent().compliance)
           ~ ("complianceDetails" -> percents(directive.compliance, precision))
           ~ ("components" -> components(directive.components, level, precision))
         )
@@ -477,7 +477,7 @@ object JsonCompliance {
       else Some(comps.map { case (_, component) =>
         (
             ("name" -> component.componentName)
-          ~ ("compliance" -> component.compliance.withoutPending.percent().compliance)
+          ~ ("compliance" -> component.compliance.withoutPending.computePercent().compliance)
           ~ ("complianceDetails" -> percents(component.compliance, precision))
           ~ (component match {
               case component : BlockStatusReport =>
