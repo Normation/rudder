@@ -526,3 +526,17 @@ buildComplianceReport reports =
     [ div[]
       ( List.map (\r -> span[class r.status][text (complianceTxt r.status)]) reports )
     ]
+
+generateLoadingList : Html Msg
+generateLoadingList =
+  ul[class "skeleton-loading"]
+  [ li[style "width" "calc(100% - 25px)"][i[][], span[][]]
+  , li[][i[][], span[][]]
+  , li[style "width" "calc(100% - 95px)"][i[][], span[][]]
+  , ul[]
+    [ li[style "width" "calc(100% - 45px)"][i[][], span[][]]
+    , li[style "width" "calc(100% - 125px)"][i[][], span[][]]
+    , li[][i[][], span[][]]
+    ]
+  , li[][i[][], span[][]]
+  ]

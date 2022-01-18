@@ -267,6 +267,7 @@ type alias UI =
   , groupFilters     : Filters
   , modal            : ModalState
   , hasWriteRights   : Bool
+  , loadingRules     : Bool
   }
 
 type alias  Changes =
