@@ -239,8 +239,11 @@ view model =
           ]
         ]
       , div [class "sidebar-body"]
-        [ div [class "sidebar-list"]
-          [ div [class "jstree jstree-default"]
+        [ div [class "sidebar-list"][(
+          if model.ui.loadingRules then
+            generateLoadingList
+          else
+            div [class "jstree jstree-default"]
             [ ul[class "jstree-container-ul jstree-children"]
               [(case ruleTreeCategory model.rulesTree of
                 Just html -> html
@@ -250,9 +253,9 @@ view model =
                   ]
               )]
             ]
-          ]
+          )]
         ]
-      ]
+     ]
     , div [class "template-main"]
       [ templateMain ]
     , modal

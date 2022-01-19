@@ -95,7 +95,10 @@ update msg model =
     GetTechniquesTreeResult res ->
       case res of
         Ok (t,d) ->
-          ( { model | techniquesTree = t, directives = Dict.Extra.fromListBy (.id >> .value) (List.concatMap .directives d) }
+          let
+            modelUi = model.ui
+          in
+          ( { model | techniquesTree = t, directives = Dict.Extra.fromListBy (.id >> .value) (List.concatMap .directives d), ui = { modelUi | loadingRules = False} }
             , Cmd.none
           )
         Err err ->
@@ -447,6 +450,7 @@ update msg model =
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
   let
+    modelUi = model.ui
     message =
       case err of
         Http.BadUrl url ->
@@ -465,7 +469,7 @@ processApiError apiName err model =
             errorMessage
 
   in
-    ({model | mode = if model.mode == Loading then RuleTable else model.mode}, errorNotification ("Error when "++apiName ++",details: \n" ++ message ) )
+    ({model | mode = if model.mode == Loading then RuleTable else model.mode, ui = { modelUi | loadingRules = False}}, errorNotification ("Error when "++apiName ++",details: \n" ++ message ) )
 
 getUrl : Model -> String
 getUrl model = model.contextPath ++ "/secure/configurationManager/ruleManagement"
