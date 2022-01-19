@@ -106,13 +106,18 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
                                      SystemApi.ArchivesFullList.x :: SystemApi.ArchivesGroupsList.x :: SystemApi.ArchivesRulesList.x ::
                                      SystemApi.GetAllZipArchive.x :: SystemApi.GetDirectivesZipArchive.x :: SystemApi.GetGroupsZipArchive.x ::
                                      SystemApi.GetRulesZipArchive.x :: SystemApi.Info.x :: SystemApi.Status.x :: SystemApi.ArchivesParametersList.x ::
-                                     SystemApi.GetParametersZipArchive.x :: SystemApi.GetHealthcheckResult.x :: PluginApi.GetPluginsSettings.x :: Nil
-        case Administration.Write => PluginApi.UpdatePluginsSettings.x :: SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
-        case Administration.Edit  => PluginApi.UpdatePluginsSettings.x :: SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x :: SystemApi.endpoints.map(_.x)
+                                     SystemApi.GetParametersZipArchive.x :: SystemApi.GetHealthcheckResult.x :: PluginApi.GetPluginsSettings.x ::
+                                     SettingsApi.GetAllowedNetworks.x :: SettingsApi.GetAllAllowedNetworks.x :: InfoApi.endpoints.map(_.x)
+        case Administration.Write => PluginApi.UpdatePluginsSettings.x :: SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x ::
+                                     InventoryApi.FileWatcherRestart.x :: InventoryApi.FileWatcherStart.x :: InventoryApi.FileWatcherStop.x ::
+                                     SystemApi.endpoints.map(_.x)
+        case Administration.Edit  => PluginApi.UpdatePluginsSettings.x :: SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x ::
+                                     SettingsApi.ModifyAllowedNetworks.x :: SettingsApi.ModifyDiffAllowedNetworks.x ::
+                                     Nil
 
-        case Compliance.Read      => ComplianceApi.GetGlobalCompliance.x :: ComplianceApi.GetRulesCompliance.x ::
-                                     ComplianceApi.GetRulesComplianceId.x :: ComplianceApi.GetNodesCompliance.x ::
-                                     ComplianceApi.GetNodeComplianceId.x :: ChangesApi.GetRuleRepairedReports.x :: ChangesApi.GetRecentChanges.x ::Nil
+        case Compliance.Read      => ComplianceApi.GetGlobalCompliance.x :: ComplianceApi.GetRulesCompliance.x :: ComplianceApi.GetRulesComplianceId.x ::
+                                     ComplianceApi.GetNodesCompliance.x :: ComplianceApi.GetNodeComplianceId.x :: ChangesApi.GetRuleRepairedReports.x ::
+                                     ChangesApi.GetRecentChanges.x ::Nil
         case Compliance.Write     => Nil
         case Compliance.Edit      => Nil
 
@@ -128,9 +133,11 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
         case Deployer.Write       => Nil // ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
         case Deployer.Edit        => Nil // ChangeRequestApi.UpdateRequestsDetails.x :: Nil
 
+
         case Parameter.Read       => ParameterApi.ListParameters.x :: ParameterApi.ParameterDetails.x :: Nil
         case Parameter.Write      => ParameterApi.CreateParameter.x :: ParameterApi.DeleteParameter.x :: Nil
         case Parameter.Edit       => ParameterApi.UpdateParameter.x :: Nil
+
 
         case Directive.Read       => DirectiveApi.ListDirectives.x :: DirectiveApi.DirectiveDetails.x ::
                                      DirectiveApi.DirectiveTree.x :: DirectiveApi.DirectiveRevisions.x ::
@@ -139,6 +146,7 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
                                      DirectiveApi.CheckDirective.x :: Nil
         case Directive.Edit       => DirectiveApi.UpdateDirective.x :: Nil
 
+
         case Group.Read           => GroupApi.ListGroups.x :: GroupApi.GroupDetails.x :: GroupApi.GetGroupTree.x ::
                                      GroupApi.GetGroupCategoryDetails.x :: GroupApi.GroupInheritedProperties.x ::
                                      NodeApi.NodeDetailsTable.x :: GroupApi.GroupDisplayInheritedProperties.x :: Nil
@@ -146,34 +154,42 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
                                      GroupApi.DeleteGroupCategory.x :: GroupApi.CreateGroupCategory.x :: Nil
         case Group.Edit           => GroupApi.UpdateGroup.x :: GroupApi.UpdateGroupCategory.x :: Nil
 
+
         case Node.Read            => NodeApi.ListAcceptedNodes.x :: NodeApi.ListPendingNodes.x :: NodeApi.NodeDetails.x ::
                                      NodeApi.NodeInheritedProperties.x :: NodeApi.NodeDisplayInheritedProperties.x :: NodeApi.NodeDetailsTable.x ::
+                                     NodeApi.PendingNodeDetails.x :: NodeApi.NodeDetailsSoftware.x :: NodeApi.NodeDetailsProperty.x ::
+                                     NodeApi.GetNodesStatus.x :: InventoryApi.QueueInformation.x ::
                                      // node read also allows to read some settings
                                      AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode") :: Nil ) ::
                                      AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode_overridable") :: Nil ) ::
                                      Nil
         case Node.Write           => NodeApi.DeleteNode.x :: NodeApi.ChangePendingNodeStatus.x :: NodeApi.ChangePendingNodeStatus2.x ::
                                      NodeApi.ApplyPolicyAllNodes.x :: NodeApi.ApplyPolicy.x :: Nil
-        case Node.Edit            => NodeApi.UpdateNode.x :: Nil
+        case Node.Edit            => NodeApi.UpdateNode.x:: InventoryApi.UploadInventory.x :: Nil
+
 
         case Rule.Read            => RuleApi.ListRules.x :: RuleApi.RuleDetails.x :: RuleApi.GetRuleTree.x ::
                                      RuleApi.GetRuleCategoryDetails.x :: Nil
         case Rule.Write           => RuleApi.CreateRule.x :: RuleApi.DeleteRule.x :: RuleApi.CreateRuleCategory.x ::
-                                     RuleApi.DeleteRuleCategory.x :: Nil
+                                     RuleApi.DeleteRuleCategory.x :: RuleApi.LoadRuleRevisionForGeneration.x :: RuleApi.UnloadRuleRevisionForGeneration.x ::
+                                     Nil
         case Rule.Edit            => RuleApi.UpdateRule.x :: RuleApi.UpdateRuleCategory.x :: Nil
+
 
         case Technique.Read       => TechniqueApi.ListTechniques.x :: TechniqueApi.ListTechniquesDirectives.x ::
                                      TechniqueApi.ListTechniqueDirectives.x :: TechniqueApi.TechniqueRevisions.x ::
-                                     TechniqueApi.GetMethods.x :: TechniqueApi.GetTechniques.x  ::
-                                     TechniqueApi.GetAllTechniqueCategories.x :: TechniqueApi.GetResources.x :: TechniqueApi.GetNewResources.x  :: Nil
-        case Technique.Write      => TechniqueApi.CreateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x :: Nil
+                                     TechniqueApi.GetMethods.x :: TechniqueApi.GetTechniques.x ::
+                                     TechniqueApi.GetAllTechniqueCategories.x :: TechniqueApi.GetResources.x :: TechniqueApi.GetNewResources.x ::
+                                     TechniqueApi.GetTechniqueAllVersion.x :: TechniqueApi.GetTechnique.x :: Nil
+        case Technique.Write      => TechniqueApi.CreateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x ::
+                                     TechniqueApi.DeleteTechnique.x :: Nil
         case Technique.Edit       => TechniqueApi.UpdateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x ::
-                                     TechniqueApi.DeleteTechnique.x :: TechniqueApi.UpdateTechniques.x :: TechniqueApi.UpdateMethods.x :: Nil
+                                     TechniqueApi.UpdateTechniques.x :: TechniqueApi.UpdateMethods.x :: Nil
 
 
         case UserAccount.Read     => UserApi.GetApiToken.x :: Nil
-        case UserAccount.Write    => Nil
-        case UserAccount.Edit     => UserApi.CreateApiToken.x :: UserApi.DeleteApiToken.x :: Nil
+        case UserAccount.Write    => UserApi.CreateApiToken.x :: UserApi.DeleteApiToken.x :: Nil
+        case UserAccount.Edit     => UserApi.UpdateApiToken.x :: Nil
 
         case Validator.Read       => Nil // ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
         case Validator.Write      => Nil // ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
