@@ -121,7 +121,6 @@ class SettingsApi(
       RestSendMetrics ::
       RestOnAcceptNodeState ::
       RestOnAcceptPolicyMode ::
-      RestChangeRequestUnexpectedAllowsDuplicate ::
       RestChangeRequestUnexpectedUnboundVarValues ::
       RestComputeChanges ::
       RestGenerationComputeDynGroups ::
@@ -667,11 +666,6 @@ final case object RestOnAcceptNodeState extends RestSetting[NodeState] {
     }
   }
 
-final case object RestChangeRequestUnexpectedAllowsDuplicate extends RestChangeUnexpectedReportInterpretation {
-    val startPolicyGeneration = false
-    val key = "unexpected_allows_duplicate"
-    val prop = UnexpectedReportBehavior.AllowsDuplicate
-  }
 final case object RestChangeRequestUnexpectedUnboundVarValues extends RestChangeUnexpectedReportInterpretation {
     val startPolicyGeneration = false
     val key = "unexpected_unbound_var_values"
