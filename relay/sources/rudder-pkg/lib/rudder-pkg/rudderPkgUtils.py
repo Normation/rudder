@@ -479,7 +479,7 @@ def install_dependencies(metadata):
                                 mi = ts.dbMatch('name', package)
                                 packageManagerQueried = True
                                 try:
-                                    h = mi.next()
+                                    h = mi.__next__()
                                 except StopIteration:
                                     logger.warning(
                                         'The rpm package '
