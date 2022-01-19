@@ -429,7 +429,6 @@ class GenericConfigService(
        rudder.featureSwitch.directiveScriptEngine=enabled
        rudder.node.onaccept.default.state=enabled
        rudder.node.onaccept.default.policyMode=default
-       rudder.compliance.unexpectedReportAllowsDuplicate=true
        rudder.compliance.unexpectedReportUnboundedVarValues=true
        rudder.verify.certificates=false
        rudder.compute.changes=true
@@ -733,18 +732,15 @@ class GenericConfigService(
 
   def rudder_compliance_unexpected_report_interpretation(): IOResult[UnexpectedReportInterpretation] = {
     for {
-      duplicate <- get[Boolean]("rudder_compliance_unexpectedReportAllowsDuplicate")
       iterators <- get[Boolean]("rudder_compliance_unexpectedReportUnboundedVarValues")
     } yield {
       UnexpectedReportInterpretation(
-        (if(duplicate) Set(UnexpectedReportBehavior.AllowsDuplicate) else Set() ) ++
         (if(iterators) Set(UnexpectedReportBehavior.UnboundVarValues) else Set())
       )
     }
   }
   def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation) : IOResult[Unit] = {
     for {
-      _ <- save("rudder_compliance_unexpectedReportAllowsDuplicate", mode.isSet(UnexpectedReportBehavior.AllowsDuplicate))
       _ <- save("rudder_compliance_unexpectedReportUnboundedVarValues", mode.isSet(UnexpectedReportBehavior.UnboundVarValues))
     } yield ()
   }

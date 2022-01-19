@@ -277,8 +277,6 @@ final case class ComputeCompliance(
  */
 sealed trait UnexpectedReportBehavior
 object UnexpectedReportBehavior {
-  // if two reports are exactly the same and one is unexpected, assume it was a duplication
-  final case object AllowsDuplicate  extends UnexpectedReportBehavior
   // if a reports originally has a CFEngine var, allows to get several reports value for it.
   final case object UnboundVarValues extends UnexpectedReportBehavior
 }
@@ -1208,7 +1206,6 @@ final case class ContextForNoAnswer(
           value: String
           , unexpanded: String
           , cardinality: Int // number of expected reports, most of the time '1'
-          , numberDuplicates: Int // the number of dropped duplicated message for that pairing, so that we can know how bad syslog is. Should be 0.
           , isVar: Boolean
           , pattern: Option[Pattern]
           , specificity: Int // how specific the pattern is. ".*" is 0 (not specific at all), "foobarbaz" is 9.
@@ -1220,7 +1217,6 @@ final case class ContextForNoAnswer(
          * value.
          * If no component value is found for the report, it is set aside in an "unexpected" list.
          * A value can hold at most one report safe if:
-         * - the report is the exact duplicate of the one already paired AND UnexpectedReportBehavior.AllowsDuplicate is set
          * - the report is variable AND UnexpectedReportBehavior.UnboundVarValues is set
          */
         def recPairReports(reports: List[ResultReports], freeValues: List[Value], pairedValues: List[Value], unexpected: List[ResultReports], mode: UnexpectedReportInterpretation): (List[Value], List[ResultReports]) = {
@@ -1238,7 +1234,6 @@ final case class ContextForNoAnswer(
           def findMatchingValue(
               report: ResultReports
             , values: List[Value]
-            , dropDuplicated: (Value, ResultReports) => Boolean
             , incrementCardinality: (Value, ResultReports) => Boolean
           ): (List[Value], Option[Value]) = {
             val (stack, found) = values.foldLeft(((Nil: List[Value]), Option.empty[Value])) { case ((stack, found), value) =>
@@ -1248,26 +1243,9 @@ final case class ContextForNoAnswer(
                   // We don't need to match if it's not a variable. By construct, if it is a var, there is a pattern
                   if (((!value.isVar) && (value.value == report.keyValue)) || (value.isVar && (value.pattern.get.matcher(report.keyValue).matches()))) {
                     val card = value.cardinality + (if (incrementCardinality(value, report)) 1 else 0)
-                    val (r, nbDup) = if (dropDuplicated(value, report)) {
-                      val msg = s"Following report is duplicated and will be ignored because of Rudder setting choice: ${report.toString}"
-                      if (value.numberDuplicates <= 0) { //first time is an info
-                        logger.info(msg)
-                        (value.matchingReports, 1)
-                      } else if (value.numberDuplicates == 1) { //second time is a warning
-                        logger.warn(msg)
-                        (value.matchingReports, 2)
-                      } else { // more than two times: log error and let the report leads to an unexpected
-                        val n = value.numberDuplicates + 1
-                        logger.error(s"Following report is duplicated ${n} times. This is spurious and should be investigated. The message is kept as unexpected despite Rudder setting.")
-                        (report :: value.matchingReports, n)
-                      }
-                    } else {
-                      (report :: value.matchingReports, value.numberDuplicates)
-                    }
                     (stack, Some(value.copy(
                       cardinality = card
-                      , numberDuplicates = nbDup
-                      , matchingReports = r
+                      , matchingReports = report :: value.matchingReports
                     )))
                   } else {
                     (value :: stack, None)
@@ -1283,7 +1261,7 @@ final case class ContextForNoAnswer(
               // we look in the free values for one matching the report. If found, we return (remaining freevalues, Some[paired value]
               // else (all free values, None).
               // never increment the cardinality for free value.
-              val (newFreeValues, tryPair) = findMatchingValue(report, freeValues, (value, report) => false, (value, report) => false)
+              val (newFreeValues, tryPair) = findMatchingValue(report, freeValues,  (value, report) => false)
 
               logger.trace(s"found unpaired value for '${report.keyValue}'? " + tryPair)
 
@@ -1295,17 +1273,7 @@ final case class ContextForNoAnswer(
                   // unexpected reports bound to an already existing value (and so the whole component should be
                   // unexpected or if mode allows duplicates or unbound var values, it can be ok.
 
-                  val duplicate = (value: Value, report: ResultReports) => {
-                    mode.isSet(UnexpectedReportBehavior.AllowsDuplicate) && {
-                      // for duplicate, we want exact same report than already accepted (it must be a real duplicate)
-                      // and we will also forbid more than 3 duplicates for the same component value. Because if there is
-                      // more than 3, it's OK to raise attention of people on that, it may be an other problem than syslog
-                      // being made, or syslog being so made than something must be done.
-                      val dup = value.matchingReports.collect { case r if (r == report) => r }
-                      //predicate OK if we found at least one identical report
-                      dup.size >= 1
-                    }
-                  }
+
                   val unboundedVar = (value: Value, report: ResultReports) => {
                     mode.isSet(UnexpectedReportBehavior.UnboundVarValues) && {
                       // this predicate is simpler: it just have to be a variable
@@ -1313,7 +1281,7 @@ final case class ContextForNoAnswer(
                     }
                   }
 
-                  val (newPairedValues, pairedAgain) = findMatchingValue(report, pairedValues, duplicate, unboundedVar)
+                  val (newPairedValues, pairedAgain) = findMatchingValue(report, pairedValues, unboundedVar)
 
                   logger.trace(s"Found paired again value for ${report.keyValue}? " + pairedAgain)
 
@@ -1346,7 +1314,7 @@ final case class ContextForNoAnswer(
           val specificity = pattern.map(_.toString.replaceAll("""\\Q""", "").replaceAll("""\\E""", "").replaceAll("""\.\*""", "")).getOrElse(v).size
           // default cardinality for a value is 1
           // default duplicate is 0 (and hopefully will remain so)
-          Value(v, u, 1, 0, isVar, pattern, specificity, Nil)
+          Value(v, u, 1, isVar, pattern, specificity, Nil)
         }.sortWith(_.specificity > _.specificity)
 
         if (logger.isTraceEnabled)

@@ -1168,14 +1168,7 @@ final case class TriggerProp(maxNodes: Result[Int], percent: Result[Int])
           check() & createNotification
         }
 
-        ( "#allowsDuplicate" #> {
-            SHtml.ajaxCheckbox(
-                x.isSet(AllowsDuplicate)
-              , (b : Boolean) => { if(b) { x = x.set(AllowsDuplicate) } else { x = x.unset(AllowsDuplicate) }; check()}
-              , ("id","allowsDuplicate")
-            )
-          } &
-          "#unboundVarValues" #> {
+        ( "#unboundVarValues" #> {
             SHtml.ajaxCheckbox(
                 x.isSet(UnboundVarValues)
               , (b : Boolean) => { if(b) { x = x.set(UnboundVarValues) } else { x = x.unset(UnboundVarValues) }; check()}
