@@ -181,22 +181,30 @@ class RudderCRunner(
     } yield ()
   }
 
-
-  def writeOne[T <: RuddercTarget](target: T, ruddercTargets: Set[RuddercTarget], technique: EditorTechnique, methods: Map[BundleName, GenericMethod], fallback: AgentSpecificTechniqueWriter, outputPath: String, configFilePath: String) = {
+  // returns whether the fallback was applied
+  def writeOne[T <: RuddercTarget](target: T, ruddercTargets: Set[RuddercTarget], technique: EditorTechnique,
+                                   methods: Map[BundleName, GenericMethod], fallback: AgentSpecificTechniqueWriter,
+                                   outputPath: String, configFilePath: String): ZIO[Any, RudderError, Boolean] = {
     if(ruddercTargets.contains(target)) {
       TechniqueWriterLoggerPure.debug(s"Using rudderc for target '${target.name}' for technique '${technique.path}'") *> {
         target match {
           case RuddercTarget.DSC      => compileForTarget[RuddercTarget.DSC.type](technique.path)
+          // no need for na reporting file when succeeds
           case RuddercTarget.CFEngine => compileForTarget[RuddercTarget.CFEngine.type](technique.path)
         }
-      }
+      }.map(_ => false)
     } else {
-      TechniqueWriterLoggerPure.debug(s"Using fallback technique generation in place of rudderc for technique '${technique.path}' because target '${target.name}' not enabled in settings") *>
-      fallback.writeAgentFiles(technique, methods)
+      for {
+        _ <- TechniqueWriterLoggerPure.debug(s"Using fallback technique generation in place of rudderc for technique '${technique.path}' because target '${target.name}' not enabled in settings")
+        _ <- fallback.writeAgentFiles(technique, methods)
+      } yield {
+        true
+      }
     }
   }
 
-  def compileTechnique(technique : EditorTechnique, targets: Set[RuddercTarget], methods: Map[BundleName, GenericMethod], cfengineFallback: AgentSpecificTechniqueWriter, dscFallback: AgentSpecificTechniqueWriter) = {
+  def compileTechnique(technique : EditorTechnique, targets: Set[RuddercTarget], methods: Map[BundleName, GenericMethod],
+                       cfengineFallback: AgentSpecificTechniqueWriter, dscFallback: AgentSpecificTechniqueWriter) = {
 
     for {
       time_0 <- currentTimeMillis
@@ -210,10 +218,10 @@ class RudderCRunner(
       time_1 <- currentTimeMillis
       _      <- TimingDebugLoggerPure.trace(s"compileTechnique: saving technique '${technique.name}' took ${time_1 - time_0}ms")
 
-      _      <- writeOne(RuddercTarget.CFEngine, targets, technique, methods, cfengineFallback, outputPath, configFilePath)
-      _      <- writeOne(RuddercTarget.DSC     , targets, technique, methods, dscFallback     , outputPath, configFilePath)
+      writtenByRudderWebapp <- writeOne(RuddercTarget.CFEngine, targets, technique, methods, cfengineFallback, outputPath, configFilePath)
+      _                     <- writeOne(RuddercTarget.DSC     , targets, technique, methods, dscFallback     , outputPath, configFilePath)
     } yield {
-      ()
+      writtenByRudderWebapp
     }
   }
 }
@@ -450,7 +458,7 @@ class TechniqueWriter (
       time_1     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing json for technique '${technique.name}' took ${time_1 - time_0}ms")
       targets    <- ruddercTargets
-      writtenByRudderWebapp <- compiler.compileTechnique(technique, targets, methods, cfengineFallbackTechniqueWriter, dscFallbackTechniqueWriter).map(_ => false).catchAll { e =>
+      writtenByRudderWebapp <- compiler.compileTechnique(technique, targets, methods, cfengineFallbackTechniqueWriter, dscFallbackTechniqueWriter).catchAll { e =>
         val errorPath : File = root / errorLogPath /  "rudderc" / "failures" / s"${DateTime.now()}_${technique.bundleName.value}.log"
         for {
           _ <- TechniqueWriterLoggerPure.error(s"An error occurred when compiling technique '${technique.name}' (id : '${technique.bundleName}') with rudderc, error details in ${errorPath}, falling back to old saving process")
