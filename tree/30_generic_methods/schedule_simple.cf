@@ -19,6 +19,7 @@
 # @name Schedule Simple
 # @description Trigger a repaired outcome when a job should be run
 # @documentation This method compute the expected time for running the job, based on the parameters and splayed uing system ids, and define a conditions based on this computation:
+#
 #  * `schedule_simple_${job_id}_kept` if the job should not be run now
 #  * `schedule_simple_${job_id}_repaired` if the job should be run
 #  * `schedule_simple_${job_id}_error` if their is an inconsistency in the method parameters
@@ -33,7 +34,7 @@
 #
 # ```
 # schedule_simple("job_schedule_id", "5", "0", "0",  "0", "0", "0",  "30", "0", "0", "catchup")
-# ``
+# ```
 #
 # During each run right after o'clock and half-hour, this method will define the condition
 # schedule_simple_job_schedule_id_repaired, that you can use as a condition for a generic
