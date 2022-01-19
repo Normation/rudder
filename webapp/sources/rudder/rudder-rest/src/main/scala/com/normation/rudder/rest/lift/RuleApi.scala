@@ -1003,7 +1003,7 @@ class RuleApiService14 (
             case None =>
               // try to find if a rule has a category that is no longer available but still mentioned in a rule
               getMissingCategories(root, rules.toList).find(id.value == _.id.value) match {
-                case Some(cat) => Some(root, cat)
+                case Some(cat) => Some((root, cat))
                 case _         =>
                   // The root category for missing/deleted categories
                   if(id == MISSING_RULE_CAT_ID) {
@@ -1013,7 +1013,7 @@ class RuleApiService14 (
                       , "Category that regroup all the missing categories"
                       , List.empty
                     )
-                    Some(root, missingCategory)
+                    Some((root, missingCategory))
                   } else {
                     None
                   }
