@@ -38,6 +38,7 @@
 package com.normation.rudder.domain.reports
 
 import com.normation.rudder.domain.logger.ComplianceLogger
+import com.normation.rudder.domain.reports.ComplianceLevel.PERCENT_PRECISION
 
 import net.liftweb.http.js.JE
 import net.liftweb.http.js.JE.JsArray
@@ -87,7 +88,7 @@ final case class CompliancePercent(
   , nonCompliant      : Double = 0
   , auditError        : Double = 0
   , badPolicyMode     : Double = 0
-) {
+)(val precision: Int = 0) {
   val compliance = success+repaired+notApplicable+compliant+auditNotApplicable
 }
 
@@ -100,7 +101,8 @@ object CompliancePercent {
         , Disabled, AuditCompliant, AuditNotApplicable, AuditNonCompliant, AuditError, BadPolicyMode).map(_.level)
   }
   { // maintenance sanity check between dimension
-    List(ComplianceLevel(), CompliancePercent()).foreach  { inst =>
+    List(ComplianceLevel(), CompliancePercent()()).foreach  { inst =>
+      // product arity only compare first arg list
       if(inst.productArity != WORSE_ORDER.length) {
         throw new IllegalArgumentException(s"Inconsistency in ${inst.getClass.getSimpleName} code (checking consistency of" +
                                            s" fields for WORSE_ORDER). Please report to a developer, this is a coding error")
@@ -108,32 +110,33 @@ object CompliancePercent {
     }
   }
 
-  // the value for the minimum percent reported even if less (see class description)
-  val MIN_PC = BigDecimal(0.01) // since we keep two digits in percents
 
   /*
    * Ensure that the sum is 100% and that no case disapear because it is
-   * less that 0.01%.
+   * less that 0.01% (assuming precision 2).
    *
    * Rules are:
-   * - always keeps at least 0.01% for any case
-   *   (given that we have 14 categories, it means that at worst, if 13 are at 0.1 in place of ~0%;
-   *   the last one will be false by 0.13%, which is ok)
+   * - always keeps at least 10e(-precision)% for any case
+   *   (given that we have 14 categories, it means that at worst, if 13 are at the mean in place of ~0%;
+   *   the last one will be false by 13*10e(-precision)%. For precision = 0, it can reach 13% in a pathological case.
    * - the biggest value is rounded to compensate
    * - in case of equality (ex: 1/3 success, 1/3 NA, 1/3 error), the biggest is
    *   chosen accordingly to "ReportType.level" logic.
+   *
    */
-  def fromLevels(c: ComplianceLevel): CompliancePercent = {
+  def fromLevels(c: ComplianceLevel, precision: Int): CompliancePercent = {
+    // the value for the minimum percent reported even if less (see class description)
+    val MIN_PC = BigDecimal(1) * BigDecimal(10).pow(- precision) // since we keep precision digits in percents
 
     if(c.total == 0) {  // special case: let it be 0
-      CompliancePercent()
+      CompliancePercent()(precision)
     } else {
       val total = c.total // not zero
       def pc_for(i:Int) : Double = {
         if(i == 0) {
           0
         } else {
-          val pc = (i * 100 / BigDecimal(total)).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+          val pc = (i * 100 / BigDecimal(total)).setScale(precision, BigDecimal.RoundingMode.HALF_UP)
           (if(pc < MIN_PC) MIN_PC else pc).toDouble
         }
       }
@@ -155,7 +158,7 @@ object CompliancePercent {
       val all = ((pc_last, levels.last._2) :: pc).sortBy(_._2).map(_._1)
 
       // create array of pecents
-      CompliancePercent.fromSeq(all)
+      CompliancePercent.fromSeq(all, precision)
     }
   }
 
@@ -203,13 +206,13 @@ object CompliancePercent {
    *  Init compliance percent from a Seq. Order is of course extremely important here.
    *  This is a dangerous internal only method: if the seq is too short or too big, throw an error.
    */
-  protected def fromSeq(pc: Seq[Double]) = {
+  protected def fromSeq(pc: Seq[Double], precision: Int) = {
     val expected = WORSE_ORDER.length
     if(pc.length != expected) {
       throw new IllegalArgumentException(s"We are trying to build a compliance bar from a sequence of double that has" +
                                          s" not the expected length of ${expected}, this is a code bug, please report it: + ${pc}")
     } else {
-      CompliancePercent(pc(0), pc(1), pc(2), pc(3), pc(4), pc(5), pc(6), pc(7), pc(8), pc(9), pc(10), pc(11), pc(12), pc(13))
+      CompliancePercent(pc(0), pc(1), pc(2), pc(3), pc(4), pc(5), pc(6), pc(7), pc(8), pc(9), pc(10), pc(11), pc(12), pc(13))(precision)
     }
   }
 }
@@ -240,11 +243,8 @@ final case class ComplianceLevel(
   lazy val total = pending+success+repaired+error+unexpected+missing+noAnswer+notApplicable+reportsDisabled+compliant+auditNotApplicable+nonCompliant+auditError+badPolicyMode
   lazy val total_ok = success+repaired+notApplicable+compliant+auditNotApplicable
 
-  lazy val pc = CompliancePercent.fromLevels(this)
-  // compliance excluding disabled and pending reports
-  lazy val complianceWithoutPending = CompliancePercent.fromLevels(this.copy(pending = 0, reportsDisabled = 0)).compliance
-  lazy val compliance = pc.compliance
-
+  def withoutPending = this.copy(pending = 0, reportsDisabled = 0)
+  def computePercent(precision: Int = PERCENT_PRECISION) = CompliancePercent.fromLevels(this, precision)
 
   def +(compliance: ComplianceLevel): ComplianceLevel = {
     ComplianceLevel(
@@ -270,6 +270,8 @@ final case class ComplianceLevel(
 }
 
 object ComplianceLevel {
+
+  def PERCENT_PRECISION = 2
 
   def compute(reports: Iterable[ReportType]): ComplianceLevel = {
     import ReportType._
@@ -455,31 +457,30 @@ object ComplianceLevelSerialisation {
     (ComplianceLevel.apply _).tupled(parse(json, (i:BigInt) => i.intValue))
   }
 
-  def parsePercent(json: JValue) = {
-    (CompliancePercent.apply _).tupled(parse(json, (i:BigInt) => i.doubleValue))
-  }
-
   //transform the compliance percent to a list with a given order:
   // pc_reportDisabled, pc_notapplicable, pc_success, pc_repaired,
   // pc_error, pc_pending, pc_noAnswer, pc_missing, pc_unknown
   implicit class ComplianceLevelToJs(val compliance: ComplianceLevel) extends AnyVal {
 
-    def toJsArray: JsArray = JsArray (
-        JsArray(compliance.reportsDisabled,JE.Num(compliance.pc.reportsDisabled))    //  0
-      , JsArray(compliance.notApplicable , JE.Num(compliance.pc.notApplicable))      //  1
-      , JsArray(compliance.success , JE.Num(compliance.pc.success))            //  2
-      , JsArray(compliance.repaired , JE.Num(compliance.pc.repaired))           //  3
-      , JsArray(compliance.error , JE.Num(compliance.pc.error))              //  4
-      , JsArray(compliance.pending , JE.Num(compliance.pc.pending))            //  5
-      , JsArray(compliance.noAnswer , JE.Num(compliance.pc.noAnswer))           //  6
-      , JsArray(compliance.missing , JE.Num(compliance.pc.missing))            //  7
-      , JsArray(compliance.unexpected , JE.Num(compliance.pc.unexpected))         //  8
-      , JsArray(compliance.auditNotApplicable , JE.Num(compliance.pc.auditNotApplicable)) //  9
-      , JsArray(compliance.compliant , JE.Num(compliance.pc.compliant))          // 10
-      , JsArray(compliance.nonCompliant , JE.Num(compliance.pc.nonCompliant))       // 11
-      , JsArray(compliance.auditError , JE.Num(compliance.pc.auditError))         // 12
-      , JsArray(compliance.badPolicyMode , JE.Num(compliance.pc.badPolicyMode))      // 13
-    )
+    def toJsArray: JsArray = {
+      val pc = compliance.computePercent()
+      JsArray (
+        JsArray(compliance.reportsDisabled,JE.Num(pc.reportsDisabled))    //  0
+        , JsArray(compliance.notApplicable , JE.Num(pc.notApplicable))      //  1
+        , JsArray(compliance.success , JE.Num(pc.success))            //  2
+        , JsArray(compliance.repaired , JE.Num(pc.repaired))           //  3
+        , JsArray(compliance.error , JE.Num(pc.error))              //  4
+        , JsArray(compliance.pending , JE.Num(pc.pending))            //  5
+        , JsArray(compliance.noAnswer , JE.Num(pc.noAnswer))           //  6
+        , JsArray(compliance.missing , JE.Num(pc.missing))            //  7
+        , JsArray(compliance.unexpected , JE.Num(pc.unexpected))         //  8
+        , JsArray(compliance.auditNotApplicable , JE.Num(pc.auditNotApplicable)) //  9
+        , JsArray(compliance.compliant , JE.Num(pc.compliant))          // 10
+        , JsArray(compliance.nonCompliant , JE.Num(pc.nonCompliant))       // 11
+        , JsArray(compliance.auditError , JE.Num(pc.auditError))         // 12
+        , JsArray(compliance.badPolicyMode , JE.Num(pc.badPolicyMode))      // 13
+      )
+    }
 
     def toJson: JObject = {
       import compliance._

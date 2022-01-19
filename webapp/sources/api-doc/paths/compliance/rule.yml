@@ -6,6 +6,7 @@ get:
   operationId: getRuleCompliance
   parameters:
     - $ref: ../../components/parameters/compliance-level.yml
+    - $ref: ../../components/parameters/compliance-percent-precision.yml
     - $ref: ../../components/parameters/rule-id.yml
   responses:
     "200":

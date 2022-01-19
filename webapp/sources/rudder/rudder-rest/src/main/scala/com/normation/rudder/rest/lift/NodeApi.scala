@@ -595,23 +595,25 @@ class NodeApiService13 (
     def escapeHTML(s: String): String = JsExp.strToJsExp(xml.Utility.escape(s)).str
 
     import net.liftweb.json.JsonDSL._
-    def toComplianceArray(comp : ComplianceLevel) : JArray =
+    def toComplianceArray(comp : ComplianceLevel) : JArray = {
+      val pc = comp.computePercent()
       JArray (
-        JArray(JInt(comp.reportsDisabled) :: JDouble(comp.pc.reportsDisabled) :: Nil)  :: //0
-        JArray(JInt(comp.notApplicable) :: JDouble(comp.pc.notApplicable) :: Nil ) ::       //  1
-        JArray(JInt(comp.success) :: JDouble(comp.pc.success) :: Nil ) ::         //  2
-        JArray(JInt(comp.repaired) :: JDouble(comp.pc.repaired) :: Nil ) ::            //  3
-        JArray(JInt(comp.error) :: JDouble(comp.pc.error) :: Nil ) ::               //  4
-        JArray(JInt(comp.pending) :: JDouble(comp.pc.pending) :: Nil ) ::             //  5
-        JArray(JInt(comp.noAnswer) :: JDouble(comp.pc.noAnswer) :: Nil ) ::            //  6
-        JArray(JInt(comp.missing) :: JDouble(comp.pc.missing) :: Nil ) ::             //  7
-        JArray(JInt(comp.unexpected) :: JDouble(comp.pc.unexpected) :: Nil ) ::          //  8
-        JArray(JInt(comp.auditNotApplicable) :: JDouble(comp.pc.auditNotApplicable) :: Nil ) ::  //  9
-        JArray(JInt(comp.compliant) :: JDouble(comp.pc.compliant) :: Nil ) ::           // 10
-        JArray(JInt(comp.nonCompliant) :: JDouble(comp.pc.nonCompliant) :: Nil ) ::        // 11
-        JArray(JInt(comp.auditError) :: JDouble(comp.pc.auditError) :: Nil ) ::          // 12
-        JArray(JInt(comp.badPolicyMode) :: JDouble(comp.pc.badPolicyMode) :: Nil ) :: Nil       // 13
+        JArray(JInt(comp.reportsDisabled) :: JDouble(pc.reportsDisabled) :: Nil)  :: //0
+        JArray(JInt(comp.notApplicable) :: JDouble(pc.notApplicable) :: Nil ) ::       //  1
+        JArray(JInt(comp.success) :: JDouble(pc.success) :: Nil ) ::         //  2
+        JArray(JInt(comp.repaired) :: JDouble(pc.repaired) :: Nil ) ::            //  3
+        JArray(JInt(comp.error) :: JDouble(pc.error) :: Nil ) ::               //  4
+        JArray(JInt(comp.pending) :: JDouble(pc.pending) :: Nil ) ::             //  5
+        JArray(JInt(comp.noAnswer) :: JDouble(pc.noAnswer) :: Nil ) ::            //  6
+        JArray(JInt(comp.missing) :: JDouble(pc.missing) :: Nil ) ::             //  7
+        JArray(JInt(comp.unexpected) :: JDouble(pc.unexpected) :: Nil ) ::          //  8
+        JArray(JInt(comp.auditNotApplicable) :: JDouble(pc.auditNotApplicable) :: Nil ) ::  //  9
+        JArray(JInt(comp.compliant) :: JDouble(pc.compliant) :: Nil ) ::           // 10
+        JArray(JInt(comp.nonCompliant) :: JDouble(pc.nonCompliant) :: Nil ) ::        // 11
+        JArray(JInt(comp.auditError) :: JDouble(pc.auditError) :: Nil ) ::          // 12
+        JArray(JInt(comp.badPolicyMode) :: JDouble(pc.badPolicyMode) :: Nil ) :: Nil       // 13
       )
+    }
 
     val userCompliance = compliance.map(c => toComplianceArray(c))
     val (policyMode,explanation) =
@@ -637,7 +639,7 @@ class NodeApiService13 (
       ~  ("os"                  -> nodeInfo.osDetails.fullName)
       ~  ("state"               -> nodeInfo.state.name)
       ~  ("compliance"          -> userCompliance )
-      ~  ("systemError"         -> sysCompliance.map(_.compliance < 100 ).getOrElse(true) )
+      ~ ("systemError"         -> sysCompliance.map(_.computePercent().compliance < 100 ).getOrElse(true))
       ~  ("ipAddresses"         -> nodeInfo.ips.filter(ip => ip != "127.0.0.1" && ip != "0:0:0:0:0:0:0:1").map(escapeHTML(_)))
       ~  ("lastRun"             -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
       ~  ("lastInventory"       -> DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))

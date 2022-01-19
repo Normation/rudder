@@ -268,7 +268,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
 
       Some((
       complianceLevel
-      , complianceLevel.complianceWithoutPending.round
+      , complianceLevel.withoutPending.computePercent().compliance.round
       ))
     }
   }
