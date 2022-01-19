@@ -113,17 +113,18 @@ html,body{
   padding : 4px 18px;
   color   : #041922;
   border-right : 1px solid #ccc;
-  transition-duration : .2s;
-  text-decoration           : underline;
-  text-decoration-color     : transparent;
-  text-decoration-thickness : 0.15rem;
-  text-underline-offset     : 0.25rem;
+  text-decoration : none !important;
 }
 .links > a:last-child {
   border-right : none;
 }
-.links > a:hover {
-  text-decoration-color: #13beb7;
+.links > a > span {
+  transition-duration: .2s;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.links > a:hover > span{
+  border-color: #13beb7;
 }
 
 /* === VERSION === */
