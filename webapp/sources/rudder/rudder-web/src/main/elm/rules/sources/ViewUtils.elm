@@ -470,15 +470,13 @@ buildIncludeList groupsTree model editMode includeBool ruleTarget =
 buildComplianceBar : ComplianceDetails -> Html Msg
 buildComplianceBar complianceDetails=
   let
-    displayCompliance : {value : Float, details : String} -> String -> Html msg
+    displayCompliance : {value : Float, rounded : Int, details : String} -> String -> Html msg
     displayCompliance compliance className =
       if compliance.value > 0 then
         let
-          --Remove insignificant trailing zeros (e.g. 100.00% --> 100%)
-          truncatedCompliance = toFloat (truncate compliance.value)
-          strCompliance = if compliance.value - truncatedCompliance == 0 then String.fromFloat truncatedCompliance else (Round.round 2 compliance.value)
+
           --Hide the compliance text if the value is too small (less than 3%)
-          complianceTxt = if compliance.value < 3 then "" else strCompliance ++ "%"
+          complianceTxt = if compliance.rounded < 3 then "" else String.fromInt (compliance.rounded) ++ "%"
         in
           div [class ("progress-bar progress-bar-" ++ className ++ " bs-tooltip"), attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat compliance.value)]
           [ text complianceTxt ]
