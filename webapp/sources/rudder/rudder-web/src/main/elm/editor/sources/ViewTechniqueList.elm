@@ -14,6 +14,23 @@ import Maybe.Extra
 -- This file deals with the technique list UI
 -- (ie the part in the left of the UI)
 --
+foldedClass : TreeFilters -> String -> String
+foldedClass treeFilters techniqueId =
+  if List.member techniqueId treeFilters.folded then
+    " jstree-closed"
+  else
+    " jstree-open"
+
+foldUnfoldCategory : TreeFilters -> String -> TreeFilters
+foldUnfoldCategory treeFilters catId =
+  let
+    foldedList  =
+      if List.member catId treeFilters.folded then
+        List.Extra.remove catId treeFilters.folded
+      else
+        catId :: treeFilters.folded
+  in
+    {treeFilters | folded = foldedList}
 
 treeCategory : Model -> List Technique -> TechniqueCategory -> Maybe (Html Msg)
 treeCategory model techniques category =
@@ -30,8 +47,8 @@ treeCategory model techniques category =
 
       in
         Maybe.map (\children ->
-          li[class "jstree-node jstree-open"]
-            [ i[class "jstree-icon jstree-ocl"][]
+          li[class ("jstree-node " ++ (foldedClass model.techniqueFilter category.id))]
+            [ i[class "jstree-icon jstree-ocl", onClick (UpdateTechniqueFilter (foldUnfoldCategory model.techniqueFilter category.id))][]
             , a[class "jstree-anchor" ]
               [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
               , span [class "treeGroupCategoryName tooltipable"][text category.name]
@@ -43,8 +60,8 @@ treeCategory model techniques category =
 techniqueList : Model -> List Technique -> Html Msg
 techniqueList model techniques =
   let
-    filteredTechniques = List.sortBy .name (List.filter (\t -> (String.contains model.techniqueFilter t.name) || (String.contains model.techniqueFilter t.id.value) ) techniques)
-    filteredDrafts = List.sortBy (.technique >> .name) (List.filter (\t -> (String.contains model.techniqueFilter t.technique.name) && Maybe.Extra.isNothing t.origin ) (Dict.values model.drafts))
+    filteredTechniques = List.sortBy .name (List.filter (\t -> (String.contains model.techniqueFilter.filter t.name) || (String.contains model.techniqueFilter.filter t.id.value) ) techniques)
+    filteredDrafts = List.sortBy (.technique >> .name) (List.filter (\t -> (String.contains model.techniqueFilter.filter t.technique.name) && Maybe.Extra.isNothing t.origin ) (Dict.values model.drafts))
     techniqueItems =
       if List.isEmpty techniques && Dict.isEmpty model.drafts then
          div [ class "empty"] [text "The techniques list is empty."]
@@ -57,15 +74,15 @@ techniqueList model techniques =
       if List.isEmpty filteredDrafts then
         text ""
       else
-          li[class "jstree-node jstree-open"]
-            [ i[class "jstree-icon jstree-ocl"][]
+          li[class ("jstree-node " ++ (foldedClass model.techniqueFilter "drafts"))]
+            [ i[class "jstree-icon jstree-ocl", onClick (UpdateTechniqueFilter (foldUnfoldCategory model.techniqueFilter "drafts"))][]
             , a[class "jstree-anchor" ]
               [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
               , i [class "treeGroupCategoryName tooltipable"][text "Drafts"]
               ]
             , ul[class "jstree-children"] (List.map (draftsItem model) filteredDrafts)
             ]
-
+    modelTechniqueFilter = model.techniqueFilter
   in
     div [ class "template-sidebar sidebar-left col-techniques", onClick OpenTechniques ] [
       div [ class "sidebar-header"] [
@@ -89,9 +106,9 @@ techniqueList model techniques =
         ]
       , div [ class "header-filter" ] [
           div [class "input-group"] [
-            input [ class "form-control",  type_ "text",  placeholder "Filter", onInput UpdateTechniqueFilter , value model.techniqueFilter]  []
+            input [ class "form-control",  type_ "text",  placeholder "Filter", onInput (\s -> UpdateTechniqueFilter {modelTechniqueFilter | filter = s}) , value model.techniqueFilter.filter]  []
           , div [class "input-group-btn"] [
-              button [class "btn btn-default", type_ "button", onClick (UpdateTechniqueFilter "")][span [class "fa fa-times"][]]
+              button [class "btn btn-default", type_ "button", onClick (UpdateTechniqueFilter {modelTechniqueFilter | filter = ""})][span [class "fa fa-times"][]]
             ]
           ]
         ]

@@ -134,7 +134,7 @@ type alias Model =
   , drafts             : Dict String Draft
   , mode               : Mode
   , contextPath        : String
-  , techniqueFilter    : String
+  , techniqueFilter    : TreeFilters
   , methodsUI          : MethodListUI
   , genericMethodsOpen : Bool
   , dnd                : DragDrop.State DragElement DropElement
@@ -163,6 +163,12 @@ type alias MethodFilter =
   , agent          : Maybe Agent
   , state          : MethodFilterState
   }
+
+type alias TreeFilters =
+  { filter : String
+  , folded : List String
+  }
+
 
 type MethodFilterState = FilterOpened | FilterClosed
 type ValidationState error = Unchanged | ValidState | InvalidState (List error)
@@ -225,7 +231,7 @@ type Msg =
   | GenerateId (String -> Msg)
   | CallApi  (Model -> Cmd Msg)
   | SwitchTab Tab
-  | UpdateTechniqueFilter String
+  | UpdateTechniqueFilter TreeFilters
   | UpdateMethodFilter MethodFilter
   | ToggleDoc MethodId
   | OpenMethods
