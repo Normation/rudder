@@ -89,7 +89,7 @@ parseDraftsResponse json =
 mainInit : { contextPath : String, hasWriteRights : Bool  } -> ( Model, Cmd Msg )
 mainInit initValues =
   let
-    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty Introduction initValues.contextPath "" (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True
+    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty Introduction initValues.contextPath (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True
   in
     (model, Cmd.batch ( [ getDrafts (), getMethods model, getTechniquesCategories model]) )
 
@@ -215,8 +215,8 @@ update msg model =
     OpenTechniques ->
       ( { model | genericMethodsOpen = False } , Cmd.none )
 
-    UpdateTechniqueFilter newFilter ->
-      ( { model | techniqueFilter = newFilter } , Cmd.none )
+    UpdateTechniqueFilter treeFilter ->
+      ( { model | techniqueFilter = treeFilter } , Cmd.none )
 
     SelectTechnique technique ->
       case model.mode of
