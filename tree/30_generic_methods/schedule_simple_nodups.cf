@@ -19,9 +19,11 @@
 # @name Schedule Simple Nodups
 # @description Trigger a repaired outcome when a job should be run (avoid running twice)
 # @documentation This bundle will define a condition `schedule_simple_${job_id}_{kept,repaired,not_ok,ok,reached}`
+#
 #  * _ok or _kept for when there is nothing to do
 #  * _repaired if the job should run
 #  * _not_ok and _reached have their usual meaning
+#
 #  If the agent is run twice (for example from a manual run), the jo is run only once.
 #  However if the agent run is skipped during the period, the job is never run.
 #
