@@ -20,6 +20,7 @@
 # @description Ensure that files or directories has no ACLs set
 #
 # @documentation The `permissions_*acl_*` manage the POSIX ACL on files and directories.
+#
 # #### Parameters
 #
 # ##### Path
