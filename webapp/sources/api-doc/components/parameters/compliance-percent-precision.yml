@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+name: "precision"
+in: query
+schema:
+  type: integer
+  example: 0
+  default: 2
+description: Number of digits after comma in compliance percent figures

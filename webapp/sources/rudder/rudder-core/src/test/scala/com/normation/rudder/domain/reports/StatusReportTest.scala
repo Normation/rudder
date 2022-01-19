@@ -116,15 +116,15 @@ class StatusReportTest extends Specification {
     }
 
     "correctly add them" in {
-      aggregate(d1c1v1_s ++ d1c2v21_s).compliance.pc.success === 100
+      aggregate(d1c1v1_s ++ d1c2v21_s).compliance.computePercent().success === 100
     }
 
     "correctly add them by directive" in {
       val a = aggregate(d1c1v1_s ++ d1c2v21_s ++ d2c2v21_e)
 
-      (a.compliance.pc.success === 66.67.toDouble) and
-      (a.directives("d1").compliance.pc.success === 100) and
-      (a.directives("d2").compliance.pc.error === 100)
+      (a.compliance.computePercent().success === 66.67.toDouble) and
+      (a.directives("d1").compliance.computePercent().success === 100) and
+      (a.directives("d2").compliance.computePercent().error === 100)
     }
   }
 

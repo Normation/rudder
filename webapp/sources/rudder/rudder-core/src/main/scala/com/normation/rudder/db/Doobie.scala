@@ -245,11 +245,7 @@ object Doobie {
     )
   }
 
-  implicit val CompliancePercentRead: Read[CompliancePercent] = {
-    import ComplianceLevelSerialisation._
-    import net.liftweb.json._
-    Read[String].map(json => parsePercent(parse(json)))
-  }
+
   implicit val CompliancePercentWrite: Write[CompliancePercent] = {
     import ComplianceLevelSerialisation._
     import net.liftweb.json._

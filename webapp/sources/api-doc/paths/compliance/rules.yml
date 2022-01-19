@@ -6,6 +6,7 @@ get:
   operationId: getRulesCompliance
   parameters:
     - $ref: ../../components/parameters/compliance-level.yml
+    - $ref: ../../components/parameters/compliance-percent-precision.yml
   responses:
     "200":
       description: Success
