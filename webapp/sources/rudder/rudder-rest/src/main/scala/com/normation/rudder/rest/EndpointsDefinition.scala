@@ -258,7 +258,7 @@ object NodeApi extends ApiModuleProvider[NodeApi] {
     val (action, path)  = POST / "nodes" / "details" / "software" / "{software}"
   }
   final case object NodeDetailsProperty extends NodeApi with InternalApi with OneParam with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
-    val description = "Getting a property vallue for a set of Nodes"
+    val description = "Getting a property value for a set of Nodes"
     val (action, path)  = POST / "nodes" / "details" / "property" / "{property}"
   }
   final case object UpdateNode extends NodeApi with GeneralApi with OneParam with StartsAtVersion5 with SortIndex { val z = implicitly[Line].value
@@ -351,7 +351,7 @@ object SettingsApi extends ApiModuleProvider[SettingsApi] {
   }
 
   final case object ModifyDiffAllowedNetworks extends SettingsApi with OneParam with StartsAtVersion11 with SortIndex { val z = implicitly[Line].value
-    val description = "Modity some allowed networks for one relay with a diff structure"
+    val description = "Modify some allowed networks for one relay with a diff structure"
     val (action, path)  = POST / "settings" / "allowed_networks" / "{nodeId}" / "diff"
   }
 
