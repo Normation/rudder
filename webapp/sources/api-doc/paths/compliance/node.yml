@@ -6,6 +6,7 @@ get:
   operationId: getNodeCompliance
   parameters:
     - $ref: ../../components/parameters/compliance-level.yml
+    - $ref: ../../components/parameters/compliance-percent-precision.yml
     - $ref: ../../components/parameters/node-id.yml
   responses:
     "200":

@@ -765,6 +765,16 @@ final case class RestExtractorService (
         }
     }
   }
+  def extractPercentPrecision(params: Map[String, List[String]]) : Box[Option[Int]] = {
+    params.get("precision") match {
+      case None | Some(Nil) => Full(None)
+      case Some(h :: tail) => //only take into account the first level param is several are passed
+        try { Full(Some(h.toInt)) }
+        catch {
+          case ex:NumberFormatException => Failure(s"percent precison must be an integer, was: '${h}'")
+        }
+    }
+  }
 
   def extractRule(req : Req) : Box[RestRule] = {
     req.json match {

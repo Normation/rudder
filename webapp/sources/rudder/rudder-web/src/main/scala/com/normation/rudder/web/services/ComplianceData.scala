@@ -148,7 +148,7 @@ final case class RuleComplianceLine (
     JsObj (
         ( "rule"              -> escapeHTML(rule.name)       )
       , ( "compliance"        -> jsCompliance(compliance)    )
-      , ( "compliancePercent" -> compliance.compliance       )
+      , ( "compliancePercent" -> compliance.computePercent().compliance)
       , ( "id"                -> escapeHTML(rule.id.serialize) )
       , ( "details"           -> details.json                )
       //unique id, usable as DOM id - rules, directives, etc can
@@ -194,7 +194,7 @@ final case class DirectiveComplianceLine (
       , ( "techniqueName"    -> escapeHTML(techniqueName)             )
       , ( "techniqueVersion" -> escapeHTML(techniqueVersion.serialize))
       , ( "compliance"       -> jsCompliance(compliance)              )
-      , ( "compliancePercent"-> compliance.compliance                 )
+      , ( "compliancePercent"-> compliance.computePercent().compliance)
       , ( "details"          -> details.json                          )
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page
@@ -228,7 +228,7 @@ final case class NodeComplianceLine (
     JsObj (
         ( "node"              -> escapeHTML(nodeInfo.hostname) )
       , ( "compliance"        -> jsCompliance(compliance)      )
-      , ( "compliancePercent" -> compliance.compliance         )
+      , ( "compliancePercent" -> compliance.computePercent().compliance)
       , ( "id"                -> escapeHTML(nodeInfo.id.value) )
       , ( "details"           -> details.json                  )
       //unique id, usable as DOM id - rules, directives, etc can
@@ -269,7 +269,7 @@ final case class BlockComplianceLine (
     JsObj(
       ("component" -> escapeHTML(component))
       , ("compliance" -> jsCompliance(compliance))
-      , ("compliancePercent" -> compliance.compliance)
+      , ("compliancePercent" -> compliance.computePercent().compliance)
       , ("details" -> details.json)
       , ("jsid" -> nextFuncName)
       , ("composition" -> reportingLogic.toString)
@@ -288,7 +288,7 @@ final case class ValueComplianceLine (
     JsObj (
         ( "component"         -> escapeHTML(component)    )
       , ( "compliance"        -> jsCompliance(compliance) )
-      , ( "compliancePercent" -> compliance.compliance    )
+      , ( "compliancePercent" -> compliance.computePercent().compliance)
       , ( "details"           -> details.json             )
       , ( "noExpand"          -> noExpand                 )
       , ( "jsid"              -> nextFuncName             )
@@ -323,7 +323,7 @@ final case class ComponentValueComplianceLine (
       , ( "statusClass"       -> statusClass )
       , ( "messages"          -> JsArray(messages.map{ case(s, m) => JsObj(("status" -> s), ("value" -> escapeHTML(m)))}))
       , ( "compliance"        -> jsCompliance(compliance))
-      , ( "compliancePercent" -> compliance.compliance)
+      , ( "compliancePercent" -> compliance.computePercent().compliance)
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page
       , ( "jsid"              -> nextFuncName )
