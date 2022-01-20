@@ -189,7 +189,7 @@ showMethod: MethodListUI -> Method -> ( DragDrop.State DragElement DropElement) 
 showMethod ui method dnd =
   let
     docOpen = List.member method.id ui.docsOpen
-    attributes = class ("method method-elmt" ++ (if docOpen then "doc-opened" else ""))::  id method.id.value :: []
+    attributes = class ("method method-elmt " ++ (if docOpen then "doc-opened" else ""))::  id method.id.value :: []
   in
     element "li"
     |> appendChild
