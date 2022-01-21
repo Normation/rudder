@@ -224,6 +224,24 @@ ul.applied-list > li:hover > .border{
 ul.applied-list > li > .target-remove:hover + .border{
   background-color: #da534f !important;
 }
+ul.applied-list > li.new {
+  background-color: #f1f9df;
+}
+ul.applied-list > li.new > .border{
+  background-color: #c1d0a0;
+}
+ul.applied-list > li.new:hover > .border{
+  background-color: #8fba2b;
+}
+.except + ul.applied-list > li.new {
+  background-color: #faeae9;
+}
+.except + ul.applied-list > li.new > .border{
+  background-color: #deaeab;
+}
+.except + ul.applied-list > li.new:hover > .border{
+  background-color: #d43f3a;
+}
 
 .applied-list > li.empty {
   border-left: 4px solid #3379b7;
@@ -333,7 +351,9 @@ ul.applied-list > .add-target > .fa{
 #groupTree ul > li.excluded .action-icon.except:before{
   content: "\f00d";
 }
-
+.jstree.jstree-groups a.jstree-anchor:hover > .treeActions-container > .treeActions:first-child{
+  opacity: 1;
+}
 /* --- MODAL --- */
 #selectDirectives .modal-body{
   padding-top: 0;
