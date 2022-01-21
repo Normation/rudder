@@ -94,8 +94,10 @@ view model =
 
       in
         li[class stateClass]
-          [ span[][i[class iconClass][]]
-          , text textItem
+          [ div[]
+            [ i[class iconClass][]
+            , text textItem
+            ]
           ]
 
     activeSection : List (Html Msg)
