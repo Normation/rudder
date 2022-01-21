@@ -479,6 +479,26 @@ objectClass: top
 networkInterface: eth0
 ipHostNumber: 192.168.1.3
 
+
+dn: virtualMachineUuid=aaaaaaaa-6f1d-4bc0-976d-7ebcfada4a0e,nodeId=node2,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+virtualMachineUuid: aaaaaaaa-6f1d-4bc0-976d-7ebcfada4a0e
+objectClass: virtualMachineLogicalElement
+objectClass: logicalElement
+objectClass: top
+vmMemory: 10000
+vmType: vmware
+vmName: vm1
+
+
+dn: virtualMachineUuid=bbbbbbbb-6f1d-4bc0-976d-7ebcfada4a0e,nodeId=node3,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+virtualMachineUuid: bbbbbbbb-6f1d-4bc0-976d-7ebcfada4a0e
+objectClass: virtualMachineLogicalElement
+objectClass: logicalElement
+objectClass: top
+vmMemory: 10000000
+vmType: vmware
+vmName: vm2
+
 ###################################################################################################
 # Machines #
 ###################################################################################################
