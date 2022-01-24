@@ -334,7 +334,7 @@ update msg model =
                      TechniqueDetails t (Creation id) _ ->
                        let
                          drafts = Dict.remove techniqueId.value model.drafts
-                         newMode = if t.id == techniqueId then Introduction else model.mode
+                         newMode = if id == techniqueId then Introduction else model.mode
                        in
                          ({ model | mode = newMode, drafts = drafts}, clearDraft techniqueId.value)
                      _ -> (model, Cmd.none)
