@@ -421,3 +421,6 @@ form.readonly-form .tags-container{
   cursor: pointer;
   color: #0366d6;
 }
+.focused {
+  background-color:#beebff;
+}
