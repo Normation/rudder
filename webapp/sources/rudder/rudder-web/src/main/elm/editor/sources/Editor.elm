@@ -14,7 +14,7 @@ import File.Select
 import Http.Detailed as Detailed
 import Json.Decode exposing ( Value )
 import Json.Encode
-import JsonEncoder exposing (encodeDraft, encodeExportTechnique, encodeTechnique)
+import JsonEncoder exposing (encodeDraft, encodeExportTechnique)
 import JsonDecoder exposing (decodeDraft, decodeErrorDetails, decodeTechnique)
 import List.Extra
 import Maybe.Extra
@@ -27,7 +27,6 @@ import ViewTechnique exposing ( view, checkTechniqueName, checkTechniqueId )
 import ViewMethod exposing ( accumulateErrorConstraint )
 import ViewTechniqueList exposing (allMethodCalls)
 import MethodElemUtils exposing (..)
-import Http exposing ( Error )
 import AgentValueParser exposing (..)
 
 --
@@ -178,6 +177,17 @@ updateParameter paramId newValue x =
   case x of
     Call p c -> Call p { c | parameters =  List.Extra.updateIf (.id >> (==) paramId) (\param -> { param | value = (getAgentValue newValue) } ) c.parameters }
     Block p b -> Block p { b | calls = List.map (updateParameter paramId newValue) b.calls}
+
+scrollInMethod: String -> Cmd Msg
+scrollInMethod containerId =
+  let
+    task = (Browser.Dom.getElement "methods-list-container")
+      |> ((Browser.Dom.getViewportOf "methods-list-container")
+      |> ((Browser.Dom.getElement containerId)
+      |> Task.map3 (\elem viewport container -> viewport.viewport.y + elem.element.y - container.element.y ))  )
+      |> Task.andThen (Browser.Dom.setViewportOf "methods-list-container" 0)
+  in
+  Task.attempt (always Ignore) task
 --
 -- update loop --
 --
@@ -553,21 +563,21 @@ update msg model =
 
 
     ScrollCategory category ->
-      let
-        task = (Browser.Dom.getElement "methods-list-container")
-            |> ((Browser.Dom.getViewportOf "methods-list-container")
-            |> ((Browser.Dom.getElement category)
-            |> Task.map3 (\elem viewport container -> viewport.viewport.y + elem.element.y - container.element.y ))  )
-            |> Task.andThen (Browser.Dom.setViewportOf "methods-list-container" 0)
-      in
-        (model, Task.attempt (always Ignore) task )
+        (model, scrollInMethod category )
 
     ToggleDoc methodId ->
       let
         ui = model.methodsUI
         newDocs = if List.member methodId ui.docsOpen then List.Extra.remove methodId ui.docsOpen else methodId :: ui.docsOpen
       in
-        ( { model | methodsUI = { ui | docsOpen = newDocs } } , Cmd.none )
+        ( { model | methodsUI = { ui | docsOpen = newDocs }, genericMethodsOpen = True } , scrollInMethod methodId.value)
+
+    ShowDoc methodId ->
+      let
+        ui = model.methodsUI
+        newDocs = if List.member methodId ui.docsOpen then ui.docsOpen else methodId :: ui.docsOpen
+      in
+      ( { model | methodsUI = { ui | docsOpen = newDocs }, genericMethodsOpen = True } , scrollInMethod methodId.value)
 
     AddMethod method newId ->
       if model.hasWriteRights then

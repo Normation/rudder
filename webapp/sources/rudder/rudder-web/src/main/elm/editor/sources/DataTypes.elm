@@ -234,6 +234,7 @@ type Msg =
   | UpdateTechniqueFilter TreeFilters
   | UpdateMethodFilter MethodFilter
   | ToggleDoc MethodId
+  | ShowDoc MethodId
   | OpenMethods
   | OpenTechniques
   | NewTechnique TechniqueId

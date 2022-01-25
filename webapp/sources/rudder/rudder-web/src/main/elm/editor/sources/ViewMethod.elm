@@ -309,7 +309,7 @@ methodDetail method call parentId ui model =
                 classes = "btn btn-sm btn-primary " ++
                           if List.member method.id model.methodsUI.docsOpen then "doc-opened" else ""
               in
-                button [ class classes, type_ "button", onClick (ToggleDoc call.methodName) ] [
+                button [ class classes, type_ "button", onClick (ShowDoc call.methodName) ] [
                   text "Show docs "
                 , i [ class "fa fa-book"] []
                 ]
