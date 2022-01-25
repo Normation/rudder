@@ -202,6 +202,11 @@ Parameters in URLs are used to indicate which resource you want to interact with
     # Get the Rule of ID "id"
     curl -H "X-API-Token: yourToken" https://rudder.example.com/rudder/api/latest/rules/id
 
+
+
+CAUTION: To avoid suprising behavior, do not put a '/' at the end of an URL: it would be interpreted as '/[empty string parameter]' and redirected to '/index', likely not what you wanted to do.
+
+
 #### Sending data for POST/PUT requests
 
 ##### Directly in JSON format
