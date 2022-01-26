@@ -692,6 +692,7 @@ GPG_RUDDER_KEY_FINGERPRINT = '7C16 9817 7904 212D D58C  B4D1 9322 C330 474A 19E8
 
 try:
     with open(VERSIONS_PATH) as version_file:
+        step = ''
         for line in version_file:
             m = re.match(r'release_step *= *([a-z]+)(\d*)$', line)
             if m:
