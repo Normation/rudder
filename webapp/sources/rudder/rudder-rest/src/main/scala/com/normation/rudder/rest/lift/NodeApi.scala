@@ -103,7 +103,6 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.reports.ComplianceLevel
-import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
@@ -593,8 +592,8 @@ class NodeApiService13 (
     , properties            : List[NodeProperty]
     , inheritedProperties   : List[NodePropertyHierarchy]
     , softs                 : List[Software]
-    , compliance            : Option[NodeStatusReport]
-    , sysCompliance         : Option[NodeStatusReport]
+    , compliance            : Option[ComplianceLevel]
+    , sysCompliance         : Option[ComplianceLevel]
   ): JObject = {
 
     def escapeHTML(s: String): String = JsExp.strToJsExp(xml.Utility.escape(s)).str
@@ -618,7 +617,7 @@ class NodeApiService13 (
         JArray(JInt(comp.badPolicyMode) :: JDouble(comp.pc.badPolicyMode) :: Nil ) :: Nil       // 13
       )
 
-    val userCompliance = compliance.map(c => toComplianceArray(ComplianceLevel.sum(c.reports.toSeq.map(_.compliance))))
+    val userCompliance = compliance.map(c => toComplianceArray(c))
     val (policyMode,explanation) =
       (globalPolicyMode.overridable,nodeInfo.policyMode) match {
         case (Always,Some(mode)) =>
@@ -642,7 +641,7 @@ class NodeApiService13 (
       ~  ("os"                  -> nodeInfo.osDetails.fullName)
       ~  ("state"               -> nodeInfo.state.name)
       ~  ("compliance"          -> userCompliance )
-      ~  ("systemError"         -> sysCompliance.map(_.compliance.compliance < 100 ).getOrElse(true) )
+      ~  ("systemError"         -> sysCompliance.map(_.compliance < 100 ).getOrElse(true) )
       ~  ("ipAddresses"         -> nodeInfo.ips.filter(ip => ip != "127.0.0.1" && ip != "0:0:0:0:0:0:0:1").map(escapeHTML(_)))
       ~  ("lastRun"             -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
       ~  ("lastInventory"       -> DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))
@@ -680,7 +679,7 @@ class NodeApiService13 (
       runs            <- reportsExecutionRepository.getNodesLastRun(nodes.keySet)
       n3              =  System.currentTimeMillis
       _               =  TimingDebugLoggerPure.logEffect.trace(s"Getting run infos: ${n3 - n2}ms")
-      (systemCompliances, userCompliances) <- reportingService.getUserAndSystemNodeStatusReports(Some(nodes.keySet))
+      (systemCompliances, userCompliances) <- reportingService.getSystemAndUserCompliance(Some(nodes.keySet))
       n4              =  System.currentTimeMillis
       _               =  TimingDebugLoggerPure.logEffect.trace(s"Getting compliance infos: ${n4 - n3}ms")
       globalMode      <- getGlobalMode()

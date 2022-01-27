@@ -1,4 +1,5 @@
-FROM maven:3-openjdk-11
+ARG JDK_VERSION=11
+FROM maven:3-openjdk-${JDK_VERSION}
 
 ARG USER_ID=1000
 COPY ci/user.sh .
@@ -9,3 +10,6 @@ RUN curl -L -o elm.gz "https://github.com/elm/compiler/releases/download/0.19.0/
 RUN gzip -d elm.gz
 RUN chmod +x elm
 RUN mv elm /usr/local/bin/
+
+# Make it temporary as elm fails on concurrent builds
+ENV ELM_HOME /tmp/

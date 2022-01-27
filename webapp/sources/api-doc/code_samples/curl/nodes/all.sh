@@ -19,4 +19,11 @@ curl -k -H "X-API-Token: yourToken" -H "Content-Type: application/json" -X GET '
 # ]
 #}
 
-
+# To get information about the nodes running a JVM process
+#
+# This gets information about nodes with processes matching the quesry, and then extract the flat list of matching processes
+curl -s -k -H "X-API-Token: yourToken" 'https://rudder.example.com/rudder/api/latest/nodes?include=minimal,processes&where=\[\{"objectType":"process","attribute":"commandName","comparator":"regex","value":".*(java|jre|jdk).*"\}\]' | jq -r '.data.nodes[] | [ { hostname } + .processes[] ][] | select( .name | test(".*(java|jdk|jre).*")) | [.hostname, .user, .name] | @tsv' | cut -c -120
+# It gives:
+#
+# node1.example.com	jenkins	java -jar remoting.jar -workDir /home/jenkins -jar-cache /home/jenkins/rem
+# node2.example.com	tomcat8	/usr/lib/jvm/java-11-openjdk-amd64//bin/java -Djava.util.logging.config.fi

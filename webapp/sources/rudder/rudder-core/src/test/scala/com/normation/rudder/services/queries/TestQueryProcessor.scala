@@ -150,7 +150,7 @@ class TestQueryProcessor extends Loggable {
       res.size
     }).runNow
 
-    val expected = 43+38  //bootstrap + inventory-sample
+    val expected = 43+40  //bootstrap + inventory-sample
     assert(expected == s, s"Not found the expected number of entries in test LDAP directory [expected: ${expected}, found: ${s}], perhaps the demo entries where not correctly loaded")
   }
 
@@ -370,7 +370,25 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(3) :: Nil)
 
-    testQueries(q1 :: q2 :: Nil, true)
+    val q3 = TestQuery(
+      "q3",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"virtualMachineLogicalElement", "attribute":"vmMemory", "comparator":"gteq", "value":"100" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(2) :: s(3) :: Nil)
+
+    val q3bis = TestQuery(
+      "q3bis",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"virtualMachineLogicalElement", "attribute":"vmMemory", "comparator":"lteq", "value":"10000" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(2) :: Nil)
+
+    testQueries(q1 :: q2 :: q3 :: Nil, true)
   }
 
   @Test def networkInterfaceElementQueries(): Unit = {

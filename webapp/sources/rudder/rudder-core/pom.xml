@@ -37,7 +37,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <parent>
     <groupId>com.normation.rudder</groupId>
     <artifactId>rudder-parent</artifactId>
-    <version>6.2.12-SNAPSHOT</version>
+    <version>6.2.13-SNAPSHOT</version>
   </parent>
 
   <artifactId>rudder-core</artifactId>
@@ -63,16 +63,26 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
        <artifactId>maven-jar-plugin</artifactId>
        <executions>
          <execution>
+           <id>fake-compile-test-jar</id>
+           <goals> <!-- fake compile jar, needed so that compile dependencies work, see https://issues.rudder.io/issues/20410 -->
+             <goal>test-jar</goal>
+           </goals>
+           <phase>compile</phase>
+         </execution>
+         <execution>
+           <id>test-jar</id>
            <goals>
              <goal>test-jar</goal>
            </goals>
+           <phase>test-compile</phase>
          </execution>
        </executions>
-        <configuration>
-          <excludes>
-            <exclude>**/logback-test.xml</exclude>
-          </excludes>
-        </configuration>
+       <configuration>
+         <skip>false</skip>
+         <excludes>
+           <exclude>**/logback-test.xml</exclude>
+         </excludes>
+       </configuration>
      </plugin>
     </plugins>
 
