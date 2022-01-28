@@ -1,6 +1,7 @@
 module ViewRuleDetails exposing (..)
 
 import DataTypes exposing (..)
+import Dict
 import Html exposing (Html, button, div, i, span, text, h1, ul, li,  a, p)
 import Html.Attributes exposing (id, class, type_,  style, attribute, disabled)
 import Html.Events exposing (onClick)
@@ -10,7 +11,7 @@ import String
 import ApiCalls exposing (..)
 import ViewTabContent exposing (tabContent)
 import Maybe.Extra
-import ViewUtils exposing (badgePolicyMode, getRuleNbNodes, getRuleNbGroups)
+import ViewUtils exposing (badgePolicyMode, countRecentChanges, getRuleNbGroups, getRuleNbNodes)
 
 --
 -- This file contains all methods to display the details of the selected rule.
@@ -165,7 +166,11 @@ editionTemplate model details =
           ]
         , li[class ("ui-tabs-tab" ++ (if details.tab == TechnicalLogs       then " ui-tabs-active" else ""))]
           [ a[onClick (UpdateRuleForm {details | tab = TechnicalLogs })]
-            [ text "Recent Changes" ]
+            [ text "Recent Changes"
+            , span[class "badge badge-secondary badge-resources tooltip-bs"]
+              [ span [class "nb-resources"] [text (String.fromFloat (countRecentChanges details.rule.id model.changes))]
+              ]
+            ]
           ]
         ]
       ]

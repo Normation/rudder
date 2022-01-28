@@ -538,3 +538,12 @@ generateLoadingList =
     ]
   , li[][i[][], span[][]]
   ]
+
+countRecentChanges: RuleId -> (Dict String (List Changes)) -> Float
+countRecentChanges rId changes =
+  case Dict.get rId.value changes of
+    Just cl ->
+      case List.Extra.last cl of
+        Just c -> c.changes
+        Nothing -> 0
+    Nothing -> 0
