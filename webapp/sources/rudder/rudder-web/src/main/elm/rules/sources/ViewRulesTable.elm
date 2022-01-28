@@ -9,7 +9,7 @@ import List.Extra
 import List
 import String
 import NaturalOrdering exposing (compareOn)
-import ViewUtils exposing (getCategoryName, getListRules, filterSearch, searchFieldRules, buildTagsTree, badgePolicyMode, buildTooltipContent, buildComplianceBar)
+import ViewUtils exposing (badgePolicyMode, buildComplianceBar, buildTagsTree, buildTooltipContent, countRecentChanges, filterSearch, getCategoryName, getListRules, searchFieldRules)
 import ComplianceUtils exposing (getAllComplianceValues, getRuleCompliance)
 
 --
@@ -23,13 +23,7 @@ getSortFunction model r1 r2 =
       Name       -> NaturalOrdering.compare r1.name r2.name
       RuleChanges->
         let
-          getChanges = \r ->
-            case Dict.get r.id.value model.changes of
-              Just cl ->
-                case List.Extra.last cl of
-                  Just c -> c.changes
-                  Nothing -> 0
-              Nothing -> 0
+          getChanges = \r -> countRecentChanges r.id model.changes
           r1Changes = getChanges r1
           r2Changes = getChanges r2
         in
@@ -94,14 +88,7 @@ buildRulesTable model =
               buildComplianceBar co.complianceDetails
             Nothing -> text "No report"
 
-        changes =
-          case Dict.get r.id.value model.changes of
-            Just cl ->
-              case List.Extra.last cl of
-                Just c -> text (String.fromFloat c.changes)
-                Nothing -> text "0"
-            Nothing -> text "0"
-
+        changes = text (String.fromFloat (countRecentChanges r.id model.changes))
 
         displayStatus : Html Msg
         displayStatus =
