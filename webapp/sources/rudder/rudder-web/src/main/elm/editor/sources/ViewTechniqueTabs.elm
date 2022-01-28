@@ -87,6 +87,29 @@ techniqueParameter model technique param opened =
       ]
     ]
 
+getSubElems: TechniqueCategory -> List TechniqueCategory
+getSubElems cat =
+  case cat.subCategories of
+    SubCategories subs -> subs
+
+buildListCategoriesWithoutRoot : String -> String -> TechniqueCategory -> List(Html Msg)
+buildListCategoriesWithoutRoot sep category c =
+    let
+      newList =
+        let
+          blankSpace     = String.repeat 2 (String.fromChar (Char.fromCode 8199))
+          currentOption  = if (c.name == "/") then [] else [ option [ selected (c.path == category), value c.path] [ text (sep ++ c.name) ] ]
+          separator      =
+            if String.isEmpty sep then
+              "└─ "
+            else
+               blankSpace ++ sep
+          listCategories = List.concatMap (buildListCategoriesWithoutRoot separator category) (getSubElems c)
+        in
+          List.append currentOption listCategories
+    in
+      newList
+
 techniqueTab : Model -> Technique -> Bool -> TechniqueUiInfo -> Html Msg
 techniqueTab model technique creation ui =
   let
@@ -98,7 +121,7 @@ techniqueTab model technique creation ui =
     disableCategory =
       if creation then
         select [class "form-control", name "category", id "category", value technique.category, onInput (\s -> UpdateTechnique {technique | category = s}) ]
-          (List.map (\c -> option [ selected (c.path == technique.category), value c.path] [ text c.name ] ) (List.sortBy .path (allCategorieswithoutRoot model)))
+          (buildListCategoriesWithoutRoot "" technique.category model.categories)
       else
         input [readonly True, class "form-control", id "category", value categoryName][]
     classErrorInputId =
