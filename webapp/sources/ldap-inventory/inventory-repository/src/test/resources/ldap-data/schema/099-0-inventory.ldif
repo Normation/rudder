@@ -50,6 +50,12 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.1.5
   NAME 'policyServerId'
   DESC 'Unique identifier for the policy server of a node'
   SUP uuid )
+# Revision identifier is not used in these objects, but they will be at
+# some point, so definition is here
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.1.6
+  NAME 'revision'
+  DESC '(git) revision identifier of the object'
+  SUP uuid )
 #######################################################################
 #
 # Top level objects: nodes and machines.
@@ -290,6 +296,16 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.300.19
 attributeTypes: ( 1.3.6.1.4.1.35061.1.1.300.20
   NAME 'customProperty'
   DESC 'A custom property from and agent intentory hook'
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+# A software update.
+# This is a json string containing information
+# related to software updates (one by value):
+# { "name": "software name", "version": "target version of the update", etc }
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.300.21
+  NAME 'softwareUpdate'
+  DESC 'A software available update on that node'
   EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
@@ -672,6 +688,18 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.57
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.58
+  NAME 'sourceName'
+  DESC 'Name of the source package (used on debian like systems)'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.59
+  NAME 'sourceVersion'
+  DESC 'Version of the source package, used on debian like systems, for ex: v3.0.34-pre4'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 #######################################################
 ################  Object Classes ######################
 #######################################################
@@ -834,7 +862,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.1.2.14
   inventoryDate $ receiveDate $ ipHostNumber $ osFullName $
   osArchitectureType $ lastLoggedUser $ lastLoggedUserTime $
   environmentVariable $ process $ rudderServerRole $ keyStatus $
-  timezoneName $ timezoneOffset $ customProperty) )
+  timezoneName $ timezoneOffset $ customProperty $ softwareUpdate) )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.15
   NAME 'windowsNode'
   DESC 'A node running Microsoft Windows as an operating system'
@@ -895,7 +923,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.1.2.21
   STRUCTURAL
   MUST ( softwareId )
   MAY ( cn $ description $ releaseDate $ editor $ softwareVersion $
-  licenseExpirationDate $ licenseName $ licenseProductId $ licenseProductKey ) )
+  licenseExpirationDate $ licenseName $ licenseProductId $ licenseProductKey $ sourceName $ sourceVersion ) )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.22
   NAME 'virtualMachineLogicalElement'
   DESC 'A VM installed on that node'

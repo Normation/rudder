@@ -54,6 +54,7 @@ import zio.syntax._
 import com.normation.errors._
 
 import scala.xml._
+import com.softwaremill.quicklens._
 
 class FusionInventoryParser(
     uuidGen:StringUuidGenerator
@@ -171,12 +172,12 @@ class FusionInventoryParser(
             bios              : Option[Bios]
           , manufacturer      : Option[Manufacturer]
           , systemSerialNumber: Option[String]) : Unit = {
-          bios.foreach {x => inventory = inventory.copy( machine = inventory.machine.copy( bios = x +: inventory.machine.bios ) ) }
+          bios.foreach {x => inventory = inventory.modify(_.machine.bios).using( x +: _) }
 
           manufacturer.foreach{ x =>
             inventory.machine.manufacturer match {
               case None => // can update the manufacturer
-                inventory = inventory.copy(machine = inventory.machine.copy(manufacturer = Some(x)))
+                inventory = inventory.modify(_.machine.manufacturer).setTo(Some(x))
               case Some(existingManufacturer) => //cannot update it
                 InventoryProcessingLogger.logEffect.warn(s"Duplicate Machine Manufacturer definition in the inventory: s{existingManufacturer} is the current value, skipping the other value ${x.name}")
             }
@@ -184,7 +185,7 @@ class FusionInventoryParser(
           systemSerialNumber.foreach{ x =>
             inventory.machine.systemSerialNumber match {
               case None => // can update the System Serial Number
-                inventory = inventory.copy(machine = inventory.machine.copy(systemSerialNumber = Some(x)))
+                inventory = inventory.modify(_.machine.systemSerialNumber).setTo(Some(x))
               case Some(existingSystemSerialNumber) => //cannot update it
                 InventoryProcessingLogger.logEffect.warn(s"Duplicate System Serial Number definition in the inventory: s{existingSystemSerialNumber} is the current value, skipping the other value ${x}")
             }
@@ -197,29 +198,30 @@ class FusionInventoryParser(
        */
       for(e <- (doc \\ "REQUEST").head.child) { e.label match {
         case "CONTENT" => for( elt <- e.head.child ) { elt.label match {
-          case "ACCESSLOG"   => processAccessLog(elt).foreach(x => inventory = inventory.copy ( node = inventory.node.copy( inventoryDate = Some(x) ), machine = inventory.machine.copy ( inventoryDate = Some(x) ) ))
+          case "ACCESSLOG"   => processAccessLog(elt).foreach(x => inventory = inventory.modify(_.node.inventoryDate).setTo(Some(x)).modify(_.machine.inventoryDate).setTo(Some(x)))
           case "BATTERIES"   => //TODO not sure about that
           case "BIOS"        => val (bios, manufacturer, systemSerialNumber) = processBios(elt)
                                 addBiosInfosIntoInventory(bios, manufacturer, systemSerialNumber)
-          case "CONTROLLERS" => processController(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( controllers = x +: inventory.machine.controllers ) ) }
-          case "CPUS"        => processCpu(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( processors = x +: inventory.machine.processors ) ) }
-          case "DRIVES"      => processFileSystem(elt).foreach { x => inventory = inventory.copy( node = inventory.node.copy( fileSystems = x +: inventory.node.fileSystems ) ) }
-          case "ENVS"        => processEnvironmentVariable(elt).foreach {x => inventory = inventory.copy(node = inventory.node.copy (environmentVariables = x +: inventory.node.environmentVariables ) ) }
-          case "HARDWARE"    =>  processHardware(elt, inventory).foreach(x => inventory = inventory.copy(node = x._1, machine = x._2))
+          case "CONTROLLERS" => processController(elt).foreach { x => inventory = inventory.modify(_.machine.controllers).using(x +: _ ) }
+          case "CPUS"        => processCpu(elt).foreach { x => inventory = inventory.modify(_.machine.processors).using(x +: _ ) }
+          case "DRIVES"      => processFileSystem(elt).foreach { x => inventory = inventory.modify(_.node.fileSystems).using(x +: _  ) }
+          case "ENVS"        => processEnvironmentVariable(elt).foreach {x => inventory = inventory.modify(_.node.environmentVariables).using(x +: _ ) }
+          case "HARDWARE"    => processHardware(elt, inventory).foreach(x => inventory = inventory.copy(node = x._1, machine = x._2))
           case "INPUTS"      => //TODO keyborad, mouse, speakers
-          case "LOCAL_USERS" => processLocalAccount(elt).foreach { x => inventory = inventory.copy(node = inventory.node.copy( accounts = (x +: inventory.node.accounts).distinct)) }
-          case "MEMORIES"    => processMemory(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( memories = x +: inventory.machine.memories ) ) }
-          case "NETWORKS"    => processNetworks(elt).foreach { x => inventory = inventory.copy( node = inventory.node.copy( networks = x +: inventory.node.networks ) ) }
+          case "LOCAL_USERS" => processLocalAccount(elt).foreach { x => inventory = inventory.modify(_.node.accounts).using(a => (x +: a).distinct ) }
+          case "MEMORIES"    => processMemory(elt).foreach { x => inventory = inventory.modify(_.machine.memories).using(x +: _ ) }
+          case "NETWORKS"    => processNetworks(elt).foreach { x => inventory = inventory.modify(_.node.networks).using( x +: _ ) }
           case "OPERATINGSYSTEM" => inventory = processOsDetails(elt, inventory, e)
-          case "PORTS"       => processPort(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( ports = x +: inventory.machine.ports ) ) }
-          case "PROCESSES"   => processProcesses(elt).foreach { x => inventory = inventory.copy( node = inventory.node.copy ( processes = x +: inventory.node.processes))}
-          case "SLOTS"       => processSlot(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( slots = x +: inventory.machine.slots ) ) }
-          case "SOFTWARES"   => inventory = inventory.copy( applications  = processSoftware(elt) +: inventory.applications )
-          case "SOUNDS"      => processSound(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( sounds = x +: inventory.machine.sounds ) ) }
-          case "STORAGES"    => processStorage(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( storages = x +: inventory.machine.storages ) ) }
+          case "PORTS"       => processPort(elt).foreach { x => inventory = inventory.modify(_.machine.ports).using(x +: _ ) }
+          case "PROCESSES"   => processProcesses(elt).foreach { x => inventory = inventory.modify(_.node.processes).using( x +: _ ) }
+          case "SLOTS"       => processSlot(elt).foreach { x => inventory = inventory.modify(_.machine.slots).using(x +: _ ) }
+          case "SOFTWARES"   => inventory = inventory.modify( _.applications).using(s => processSoftware(elt) +: s )
+          case "SOUNDS"      => processSound(elt).foreach { x => inventory = inventory.modify(_.machine.sounds).using(x +: _ ) }
+          case "STORAGES"    => processStorage(elt).foreach { x => inventory = inventory.modify(_.machine.storages).using(x +: _ ) }
           case "USBDEVICES"  => //TODO only digits for them, not sure we want to keep that as it is.
-          case "VIDEOS"      => processVideo(elt).foreach { x => inventory = inventory.copy( machine = inventory.machine.copy( videos = x +: inventory.machine.videos ) ) }
-          case "VIRTUALMACHINES" => processVms(elt).foreach { x =>  inventory = inventory.copy(node  = inventory.node.copy( vms = x +: inventory.node.vms) ) }
+          case "VIDEOS"      => processVideo(elt).foreach { x => inventory = inventory.modify(_.machine.videos).using(x +: _ ) }
+          case "VIRTUALMACHINES" => processVms(elt).foreach { x =>  inventory = inventory.modify( _.node.vms).using( x +: _ ) }
+          case "SOFTWAREUPDATES" => processSoftwareUpdates(elt).foreach { x => inventory = inventory.modify(_.node.softwareUpdates).using( x :: _ )}
           case x => contentParsingExtensions.find {
               pf => pf.isDefinedAt((elt,inventory))
             }.foreach { pf =>
@@ -234,12 +236,8 @@ class FusionInventoryParser(
       } }
 
       val demuxed = demux(inventory)
-      val inventoryWithSoftwareIds = demuxed.copy(
-         //add all software ids to node
-        node = demuxed.node.copy(
-            softwareIds = demuxed.applications.map( _.id )
-        )
-      )
+      //add all software ids to node
+      val inventoryWithSoftwareIds = demuxed.modify(_.node.softwareIds).setTo(demuxed.applications.map( _.id ))
       inventoryWithSoftwareIds
     }).flatMap(inventoryWithSoftwareIds =>
       // <RUDDER> elements parsing must be done after software processing, because we get agent version from them
@@ -348,7 +346,6 @@ class FusionInventoryParser(
       }
     }
 
-
     /*
      * Process agents. We want to keep the maximum number of agents,
      * ie if there's two agents, and XML for one is not valid, still
@@ -409,31 +406,26 @@ class FusionInventoryParser(
 
     checkNumberOfRudderTag.andThen(
       ( for {
-          agents         <- agentList.map(_.flatten)
-          agentOK        <- ZIO.when(agents.size < 1) {
-                              Inconsistency(s"No <AGENT> entry was correctly defined in <RUDDER> extension tag (missing or see previous errors)").fail
-                            }
-          uuid           <- optText(xml \ "UUID").notOptional("could not parse uuid (tag UUID) from rudder specific inventory")
-          rootUser       <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
-          policyServerId <- uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
-          // Node Custom properties from agent hooks
-          customProperties =  processCustomProperties(xml \ "CUSTOM_PROPERTIES")
-          // hostname is a special case processed in `processHostname`
-          // capabilties should be per agent
-          capabilities   =  processAgentCapabilities(xml)
-        } yield {
-
-          inventory.copy (
-            node = inventory.node.copy (
-                main = inventory.node.main.copy (
-                    rootUser = rootUser
-                  , policyServerId = NodeId(policyServerId)
-                  , id = NodeId(uuid)
-                )
-              , agents = agents.map(_._1.copy(capabilities = capabilities))
-              , customProperties = customProperties
-            )
-          )
+        agents         <- agentList.map(_.flatten)
+        agentOK        <- ZIO.when(agents.size < 1) {
+                            Inconsistency(s"No <AGENT> entry was correctly defined in <RUDDER> extension tag (missing or see previous errors)").fail
+                          }
+        uuid           <- optText(xml \ "UUID").notOptional("could not parse uuid (tag UUID) from rudder specific inventory")
+        rootUser       <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
+        policyServerId <- uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
+        // Node Custom properties from agent hooks
+        customProperties = processCustomProperties(xml \ "CUSTOM_PROPERTIES")
+        // hostname is a special case processed in `processHostname`
+        // capabilties should be per agent
+        capabilities     = processAgentCapabilities(xml)
+      } yield {
+        (inventory
+          .modify(_.node.main.rootUser).setTo(rootUser)
+          .modify(_.node.main.policyServerId).setTo(NodeId(policyServerId))
+          .modify(_.node.main.id).setTo(NodeId(uuid))
+          .modify(_.node.agents).setTo(agents.map(_._1.copy(capabilities = capabilities)))
+          .modify(_.node.customProperties).setTo(customProperties)
+        )
       } ) catchAll { eb =>
           val fail = Chained(s"Error when parsing <RUDDER> extention node in inventory inventory with name '${inventory.name}'. Rudder extension attribute won't be available in inventory.", eb)
           InventoryProcessingLogger.error(fail.fullMsg) *> inventory.succeed
@@ -452,19 +444,17 @@ class FusionInventoryParser(
   private[this] def demux(inventory:Inventory) : Inventory = {
     //how can that be better ?
     var r = inventory
-    r = r.copy(machine = r.machine.copy( bios = inventory.machine.bios.
-
-      groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( controllers = inventory.machine.controllers.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( memories = demuxMemories(inventory.machine.memories) ) )
-    r = r.copy(machine = r.machine.copy( ports = inventory.machine.ports.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    r = r.modify(_.machine.bios).setTo(inventory.machine.bios.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq )
+    r = r.modify(_.machine.controllers).setTo(inventory.machine.controllers.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq )
+    r = r.modify(_.machine.memories).setTo(demuxMemories(inventory.machine.memories) )
+    r = r.modify(_.machine.ports).setTo(inventory.machine.ports.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq )
     // Here we decided to take the first processor of the result of the groupBy name, some information could be missing
     // from other CPU in the list, this shouldn't be problematic (https://issues.rudder.io/issues/19988)
-    r = r.copy(machine = r.machine.copy( processors = inventory.machine.processors.groupBy(_.name).toList.map(_._2).map { case x => x.head.copy(quantity = x.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( slots = inventory.machine.slots.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( sounds = inventory.machine.sounds.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( storages = inventory.machine.storages.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( videos = inventory.machine.videos.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    r = r.modify(_.machine.processors).setTo(inventory.machine.processors.groupBy(_.name).toList.map(_._2).map { case x => x.head.copy(quantity = x.size) }.toSeq )
+    r = r.modify(_.machine.slots).setTo(inventory.machine.slots.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq )
+    r = r.modify(_.machine.sounds).setTo(inventory.machine.sounds.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq )
+    r = r.modify(_.machine.storages).setTo(inventory.machine.storages.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq )
+    r = r.modify(_.machine.videos).setTo(inventory.machine.videos.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq )
     //node part
     r = demuxSameInterfaceDifferentIp(r)
     r = r.copy(applications = inventory.applications.groupBy( app => (app.name, app.version)).map { case (x,seq) => seq.head }.toSeq ) //seq.head is ok since its the result of groupBy
@@ -822,8 +812,11 @@ class FusionInventoryParser(
     // for arch, we want to keep the value only in the case where OPERATINGSYSTEM/ARCH is missing
     val arch = optText(xml\\"ARCH").map(normalizeArch(inventory.node.main.osDetails)).orElse(inventory.node.archDescription)
 
-    inventory.copy( node = inventory.node.copyWithMain(m => m.copy (osDetails = osDetail) ).copy(timezone = timezone, archDescription = arch ) )
-
+    (inventory
+      .modify(_.node.main.osDetails).setTo(osDetail)
+      .modify(_.node.timezone).setTo(timezone)
+      .modify(_.node.archDescription).setTo(arch)
+    )
   }
 
   /**
@@ -927,6 +920,39 @@ class FusionInventoryParser(
       , sourceVersion = optText(s \ "SOURCE_VERSION").map(x => new Version(x))
     )
   }
+
+  /*
+     we have a list of UPDATE elements:
+      <UPDATE>
+        <NAME>rudder-agent</NAME>
+        <ARCH>x86_64</ARCH>
+        <FROM>yum</FROM>
+        <VERSION>7.0.1.release.EL.7</VERSION>
+      </UPDATE>
+   */
+  def processSoftwareUpdates(e: NodeSeq): Option[SoftwareUpdate] = {
+    def getOrError(e: NodeSeq, f: String) = {
+      optTextHead(e \ f).notOptionalPure(s"Missing mandatory tag under SOTWAREUPDATES: '${f}'")
+    }
+    (for {
+      n <- getOrError(e, "NAME")
+      v <- getOrError(e, "VERSION")
+      a <- getOrError(e, "ARCH")
+      f <- getOrError(e, "FROM")
+      k = optText(e \ "KIND").map(SoftwareUpdateKind.parse(_)).getOrElse(SoftwareUpdateKind.None)
+      s = optText(e \ "SOURCE")
+    } yield {
+      SoftwareUpdate(n, v, a, f, k, s)
+    }) match {
+      case Left(err)    =>
+        InventoryProcessingLogger.logEffect.warn(s"Ignoring malformed software update: '${err.fullMsg}': ${e}")
+        None
+      case Right(value) =>
+        Some(value)
+    }
+  }
+
+
 
   /**
    * Process the bios, and return its, plus the system manufacturer and the system serial number

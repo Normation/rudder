@@ -62,10 +62,15 @@ response:
             "properties":[],
             "policyMode":"enforce",
             "timezone":{"name":"UTC","offset":"+00"},
+            "accounts":["root","httpd"],
             "environmentVariables":{"THE_VAR":"THE_VAR value!"},
-            "fileSystems":[{"name":"swap"}],
+            "fileSystems":[
+              {"name":"swap","totalSpace":0},
+              {"name":"ext4","freeSpace":11517,"totalSpace":52524,"mountPoint":"/"}
+            ],
             "managementTechnologyDetails":{"cfengineKeys":[],"cfengineUser":"root"},
-            "networkInterfaces":[],
+            "networkInterfaces":[{"name":"enp0s3","mask":[],"speed":"1000","status":"Up","ipAddresses":["10.0.2.15"]}],
+            "processes":[{"pid":54432,"name":"/bin/true","memory":4235,"cpuUsage":34.5}],
             "software":[
               {"name":"s09","version":"1.0"},
               {"name":"s06","version":"1.0"},
@@ -81,6 +86,11 @@ response:
               {"name":"s01","version":"1.0"},
               {"name":"s00","version":"1.0"},
               {"name":"s07","version":"1.0"}
+            ],
+            "softwareUpdate":[
+              {"name":"s00","version":"2.15.6~RC1","arch":"x86_64","from":"yum","kind":"defect"},
+              {"name":"s01","version":"1-23-RELEASE-1","arch":"x86_64","from":"apt","kind":"none","source":"default-repo"},
+              {"name":"s01","version":"1-24-RELEASE-64","arch":"x86_64","from":"apt","kind":"security","source":"security-backports"}
             ]
           }
         ]

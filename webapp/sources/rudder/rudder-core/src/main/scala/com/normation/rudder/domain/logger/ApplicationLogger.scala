@@ -52,6 +52,14 @@ object ApplicationLoggerPure extends NamedZioLogger {
   def loggerName = "application"
 }
 
+object ApiLogger extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("api")
+}
+
+object ApiLoggerPure extends NamedZioLogger {
+  def loggerName = "api"
+}
+
 /**
  * A logger dedicated to "plugin" information, especially boot info.
  */

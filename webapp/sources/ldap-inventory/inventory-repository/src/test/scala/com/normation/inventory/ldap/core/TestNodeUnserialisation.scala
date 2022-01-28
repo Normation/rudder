@@ -209,6 +209,33 @@ class TestNodeUnserialisation extends Specification {
       |receiveDate: 20180717000527.050Z
       |lastLoggedUserTime: 20000714084300.000Z""".stripMargin
 
+  val linux70Ldif =
+    """dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+      |objectClass: top
+      |objectClass: node
+      |objectClass: unixNode
+      |objectClass: linuxNode
+      |nodeId: root
+      |localAdministratorAccountName: root
+      |policyServerId: root
+      |osFullName: SUSE Linux Enterprise Server 11 (x86_64)
+      |osServicePack: 3
+      |ram: 1572864000
+      |swap: 781189120
+      |lastLoggedUser: root
+      |osKernelVersion: 3.0.76-0.11-default
+      |osName: Suse
+      |osVersion: 11
+      |keyStatus: certified
+      |nodeHostname: orchestrateur-3.labo.normation.com
+      |osArchitectureType: x86_64
+      |timezoneOffset: +0200
+      |timezoneName: Europe/Paris
+      |agentName: {"agentType":"cfengine-community","version":"6.1.0","securityToken":{"value":"certificate","type":"certificate"},"capabilities":["https"]}
+      |inventoryDate: 20180717000031.000Z
+      |receiveDate: 20180717000527.050Z
+      |lastLoggedUserTime: 20000714084300.000Z
+      |softwareUpdate: {"name":"rudder-agent","version":"7.0.0-realease","from":"yum","arch":"x86_64","kind":"none"}""".stripMargin
 
   def node(ldif: String): NodeInventory = {
     val nodeEntry = new LDAPEntry(new Entry(ldif.split("\n").toSeq:_*))
@@ -236,6 +263,11 @@ class TestNodeUnserialisation extends Specification {
       node(dsc42Ldif).agents(0) must beEqualTo(AgentInfo(AgentType.Dsc, Some(AgentVersion("4.2-1.9")), Certificate("certificate"), Set()))
     }
 
+    "correctly unserialize software updates node from 7_0" in {
+      node(linux70Ldif).softwareUpdates(0) must beEqualTo(
+        SoftwareUpdate("rudder-agent","7.0.0-realease","x86_64", "yum", SoftwareUpdateKind.None, None)
+      )
+    }
   }
 }
 

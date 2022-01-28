@@ -826,6 +826,11 @@ class InventoryMapper(
       import CustomPropertiesSerialization.Serialise
       root.addValues(A_CUSTOM_PROPERTY, cp.toJson)
     }
+    server.softwareUpdates.foreach { s =>
+      import zio.json._
+      import JsonSerializers.implicits._
+      root.addValues(A_SOFTWARE_UPDATE, s.toJson)
+    }
 
     val tree = LDAPTree(root)
     //now, add machine elements as children
@@ -1022,6 +1027,16 @@ class InventoryMapper(
                                 )
                               )
                             }
+      softwareUpdates    <- ZIO.foreach(entry.valuesFor(A_SOFTWARE_UPDATE)){ a =>
+                              import JsonSerializers.implicits._
+                              import zio.json._
+                                a.fromJson[SoftwareUpdate] match {
+                                  case Left(err)    =>
+                                    InventoryProcessingLogger.warn(s"Error when deserializing node software update (ignoring that update): ${err}") *> None.succeed
+                                  case Right(value) =>
+                                    Some(value).succeed
+                                }
+                            }
       main               =  NodeSummary (
                                 id
                               , inventoryStatus
@@ -1052,6 +1067,7 @@ class InventoryMapper(
          , process
          , timezone = timezone
          , customProperties = customProperties.toList.flatten
+         , softwareUpdates = softwareUpdates.toList.flatten
        )
     }
   }

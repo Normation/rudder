@@ -164,11 +164,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>postgresql</artifactId>
       <version>${postgresql-version}</version>
     </dependency>
-    <dependency>
-      <groupId>com.softwaremill.quicklens</groupId>
-      <artifactId>quicklens_${scala-binary-version}</artifactId>
-      <version>${quicklens-version}</version>
-    </dependency>
 
     <!-- Doobie for SQL queries -->
     <dependency>

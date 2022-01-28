@@ -223,20 +223,30 @@ class TestInventoryParsing extends Specification with Loggable {
     }
 
     "correctly parse a 6.1 agent declaration with cert, capabilities and custom propeties" in {
-    val inventorys = parseRun("fusion-inventories/rudder-tag/one-agent-full.ocs")
+    val inventory = parseRun("fusion-inventories/rudder-tag/one-agent-full.ocs")
 
-      (inventorys.node.agents.head === AgentInfo(
+      (inventory.node.agents.head === AgentInfo(
           AgentType.CfeCommunity
         , Some(AgentVersion("6.1.0.release-1.EL.7"))
         , Certificate("-----BEGIN CERTIFICATE----\ncertificate\n-----END CERTIFICATE-----")
         , Set("cfengine", "yaml", "xml", "curl", "http_reporting", "acl").map(AgentCapability)
       )) and (
-        inventorys.node.customProperties === List(
+        inventory.node.customProperties === List(
           CustomProperty("cpu_vulnerabilities", JObject(List(
             JField("spectre_v2",JObject(List(JField("status",JString("vulnerable")), JField("details",JString("Retpoline without IBPB")))))
           , JField("spectre_v1",JObject(List(JField("status",JString("mitigated")), JField("details",JString("Load fences")))))
           , JField("meltdown",JObject(List(JField("status",JString("mitigated")), JField("details",JString("PTI"))))))))
         )
+      ) and (
+        inventory.node.softwareUpdates === List(
+          SoftwareUpdate(
+              name    = "rudder-agent"
+            , version = "7.0.1.release.EL.7"
+            , arch    = "x86_64"
+            , from    = "yum"
+            , kind    = SoftwareUpdateKind.None
+            , source  = Some("security-backport")
+          ))
       )
     }
 

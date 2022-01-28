@@ -82,6 +82,7 @@ object LDAPConstants {
   val A_TIMEZONE_NAME = "timezoneName"
   val A_TIMEZONE_OFFSET = "timezoneOffset"
   val A_CUSTOM_PROPERTY = "customProperty"
+  val A_SOFTWARE_UPDATE = "softwareUpdate"
 
   val A_LIST_OF_IP = "ipHostNumber"
   val A_ARCH = "osArchitectureType"

@@ -771,6 +771,11 @@ limitations under the License.
       <artifactId>joda-time</artifactId>
       <version>${jodatime-version}</version>
     </dependency>
+    <!-- standard utility to deep modify immutable structures -->
+    <dependency>
+      <groupId>com.softwaremill.quicklens</groupId>
+      <artifactId>quicklens_${scala-binary-version}</artifactId>
+    </dependency>
     <!-- this is now standard -->
     <dependency>
       <groupId>org.typelevel</groupId>

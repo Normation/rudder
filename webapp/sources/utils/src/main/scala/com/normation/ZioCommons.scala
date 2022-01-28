@@ -26,17 +26,18 @@
 package com.normation
 
 import java.util.concurrent.TimeUnit
-
 import net.liftweb.common.{Logger => _, _}
 import cats.data._
 import cats.implicits._
 import cats.kernel.Order
+
 import com.normation.errors.Chained
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.errors.SystemError
 import com.normation.zio.ZioRuntime
 import org.slf4j.Logger
+
 import _root_.zio._
 import _root_.zio.syntax._
 import _root_.zio.internal.Platform
@@ -548,4 +549,63 @@ trait NamedZioLogger extends ZioLogger {
 
 object NamedZioLogger {
   def apply(name: String): NamedZioLogger = new NamedZioLogger(){def loggerName = name}
+}
+
+
+/*
+ * Translation between lift JSON and ZIO json.
+ */
+object json {
+
+  /*
+   * For now, we don't have the possibility to change representation at the AST level,
+   * so we need to go through the string representation each time, which is extremely
+   * costly. Avoid translation if possible.
+   */
+
+  import net.liftweb.json._
+  import _root_.zio.json.ast._
+  import _root_.zio.json.ast.Json._
+  import _root_.zio.json._
+
+  def zioToLift(json: Json): JValue = {
+    json match {
+      case Json.Obj(fields)   => JObject(fields.map { case (k, j) => JField(k, zioToLift(j)) }:_* )
+      case Json.Arr(elements) => JArray(elements.map(zioToLift(_)).toList)
+      case Json.Bool(value)   => JBool(value)
+      case Json.Str(value)    => JString(value)
+      case Json.Num(value)    =>
+        try {
+          JInt(value.intValueExact())
+        } catch {
+          case _: ArithmeticException => JDouble(value.doubleValue())
+        }
+      case Json.Null          => JNull
+    }
+  }
+
+  def liftToZio(json: JValue): Json = {
+    json match {
+      case JsonAST.JNothing     => Null
+      case JsonAST.JNull        => Null
+      case JsonAST.JString(s)   => Str(s)
+      case JsonAST.JDouble(num) => Num(num)
+      case JsonAST.JInt(num)    => Num(BigDecimal(num))
+      case JsonAST.JBool(value) => Bool(value)
+      case JsonAST.JObject(obj) => Obj(obj.map(jf => (jf.name, liftToZio(jf.value))):_* )
+      case JsonAST.JArray(arr)  => Arr(arr.map(v => liftToZio(v)):_*)
+    }
+  }
+
+  implicit class ZioToLift[A](a: A) {
+    def toLiftJson(implicit enc: JsonEncoder[A]): Either[String, JValue] = {
+      a.toJsonAST.map(zioToLift(_))
+    }
+  }
+
+  implicit class LiftToZio[A](json: JValue) {
+    def toZioJson(implicit dec: JsonDecoder[A]): Either[String, A] = {
+      dec.fromJsonAST(liftToZio(json))
+    }
+  }
 }

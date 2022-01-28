@@ -125,6 +125,7 @@ import com.normation.rudder.services.servers.PolicyServer
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.utils.DateFormaterService
 
 import com.typesafe.config.ConfigFactory
 import com.unboundid.ldif.LDIFChangeRecord
@@ -1237,6 +1238,13 @@ class MockNodes() {
   , Software(SoftwareUuid("s13"), name = Some("s13"), version = Some(new Version("1.0")))
   )
 
+  val softwareUpdates = List(
+    SoftwareUpdate("s00", "2.15.6~RC1", "x86_64", "yum", SoftwareUpdateKind.Defect, None)
+  , SoftwareUpdate("s01", "1-23-RELEASE-1", "x86_64", "apt", SoftwareUpdateKind.None, Some("default-repo"))
+    // we can have several time the same app
+  , SoftwareUpdate("s01", "1-24-RELEASE-64", "x86_64", "apt", SoftwareUpdateKind.Security, Some("security-backports"))
+  )
+
 
   //a valid, not used pub key
   //cfengine key hash is: 081cf3aac62624ebbc83be7e23cb104d
@@ -1301,23 +1309,24 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       )
     , name                 = None
     , description          = None
-    , ram                  = None
-    , swap                 = None
+    , ram                  = Some(MemorySize(100000))
+    , swap                 = Some(MemorySize(1000000))
     , inventoryDate        = None
-    , receiveDate          = None
-    , archDescription      = None
+    , receiveDate          = DateFormaterService.parseDate("2021-01-31T03:05:00+01:00").toOption
+    , archDescription      = Some("x86_64")
     , lastLoggedUser       = None
     , lastLoggedUserTime   = None
     , agents               = Seq()
     , serverIps            = Seq()
     , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
     , softwareIds          = softwares.take(7).map(_.id)
-    , accounts             = Seq()
+    , softwareUpdates      = softwareUpdates
+    , accounts             = Seq("root", "httpd")
     , environmentVariables = Seq(EnvironmentVariable("THE_VAR", Some("THE_VAR value!")))
-    , processes            = Seq()
+    , processes            = Seq(Process(54432, Some("/bin/true"), Some(34.5f), Some(4235)))
     , vms                  = Seq()
-    , networks             = Seq()
-    , fileSystems          = Seq()
+    , networks             = Seq(Network("enp0s3", None, InetAddressUtils.getAddressByName("10.0.2.15").toSeq, speed = Some("1000"), status = Some("Up")))
+    , fileSystems          = Seq(FileSystem("/", Some("ext4"), freeSpace = Some(MemorySize(12076449792L)), totalSpace = Some(MemorySize(55076449792L))))
   )
 
   val node1Node = Node (
@@ -1395,7 +1404,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
         , root.id
         , node2.keyStatus
       )
-    )
+    ).modify(_.softwareUpdates).setTo(Nil)
   }
 
   val dscNode1Node = Node (

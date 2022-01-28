@@ -37,7 +37,6 @@
 
 package com.normation.inventory.ldap.core
 
-import com.normation.errors.RudderError
 import com.normation.inventory.domain._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
@@ -51,7 +50,8 @@ import org.specs2.matcher.MatchResult
 import org.specs2.mutable._
 import org.specs2.runner._
 import zio._
-import com.normation.zio._
+import com.normation.errors._
+import com.softwaremill.quicklens._
 
 final case class SystemError(cause: Throwable) extends RudderError {
   def msg = "Error in test"
@@ -69,9 +69,23 @@ class TestInventory extends Specification {
   implicit class RunThing[E,T](thing: ZIO[Any,E,T]) {
     def testRun = ZioRuntime.unsafeRun(thing.either)
   }
+  implicit class RunOptThing[A](thing: IOResult[Option[A]]) {
+    def testRunGet: A = ZioRuntime.unsafeRun(thing.either) match {
+      case Right(Some(a)) => a
+      case Right(None)    => throw new RuntimeException(s"Error in test: found None, expected Some")
+      case Left(err)      => throw new RuntimeException(s"Error in test: ${err}")
+    }
+  }
 
   implicit class TestIsOK[E,T](thing: ZIO[Any,E,T]) {
     def isOK = thing.testRun must beRight
+  }
+
+  implicit class ForceGetE[E, A](opt: Either[E, A]) {
+    def forceGet: A  = opt match {
+      case Right(x)  => x
+      case Left(err) => throw new Exception(s"error in Test: ${err}")
+    }
   }
 
   //needed because the in memory LDAP server is not used with connection pool
@@ -219,9 +233,9 @@ class TestInventory extends Specification {
         val m = machine("machine in " + status.name, status)
         repo.save(m).testRun
 
-        val found = repo.getMachine(m.id).testRun
+        val found = repo.getMachine(m.id).testRunGet
 
-        (Right(Some(m)) === found) and {
+        (m === found) and {
           repo.delete(m.id).testRun
           val x = repo.getMachine(m.id).testRun
           x must beEqualTo(Right(None))
@@ -237,9 +251,9 @@ class TestInventory extends Specification {
       }
 
       val toFound = machine("m1", AcceptedInventory)
-      val found = repo.getMachine(toFound.id).testRun
+      val found = repo.getMachine(toFound.id).testRunGet
 
-      Right(Some(toFound)) === found
+      toFound === found
 
     }
 
@@ -251,9 +265,9 @@ class TestInventory extends Specification {
 
       (
         repo.move(m.id, AcceptedInventory).isOK
-        and (repo.getMachine(m.id).testRun must beRight(Some(m.copy(status = AcceptedInventory))))
+        and (repo.getMachine(m.id).testRunGet must beEqualTo(m.copy(status = AcceptedInventory)))
         and repo.move(m.id, RemovedInventory).isOK
-        and (repo.getMachine(m.id).testRun must beRight(Some(m.copy(status = RemovedInventory))))
+        and (repo.getMachine(m.id).testRunGet must beEqualTo(m.copy(status = RemovedInventory)))
       )
     }
 
@@ -262,23 +276,17 @@ class TestInventory extends Specification {
       val m2 = m1.copy(status = RemovedInventory, name = Some("modified"))
 
       (
-        (repo.save(m1).testRun must beRight)
-        and (repo.save(m2).testRun must beRight)
-        and (repo.move(m1.id, RemovedInventory).testRun must beRight)
+        (repo.save(m1).isOK)
+        and (repo.save(m2).isOK)
+        and (repo.move(m1.id, RemovedInventory).isOK)
         and {
           val dn = inventoryDitService.getDit(AcceptedInventory).MACHINES.MACHINE.dn(m1.id)
-          Right(Some(m2)) === repo.getMachine(m1.id).testRun and ldap.server.entryExists(dn.toString) === false
+          repo.getMachine(m1.id).testRunGet === m2 and ldap.server.entryExists(dn.toString) === false
         }
       )
     }
   }
 
-  implicit class ForceGet[A, B](opt: Either[A, Option[B]]) {
-    def forceGet: Some[B]  = opt match {
-      case Right(Some(b)) => Some(b)
-      case x              => throw new Exception(s"in Test: ${x}")
-    }
-  }
 
   "Saving, finding and moving node" should {
 
@@ -303,7 +311,7 @@ class TestInventory extends Specification {
           } yield {
             nodes.map { case (k,v) => (k, v.map( _.dn)) }
           })
-          res.testRun.getOrElse(throw new Exception("in Test")) must havePairs ( AcceptedInventory -> Set(toDN(n1)), PendingInventory -> Set(toDN(n2)), RemovedInventory -> Set(toDN(n3)))
+          res.testRun.forceGet must havePairs ( AcceptedInventory -> Set(toDN(n1)), PendingInventory -> Set(toDN(n2)), RemovedInventory -> Set(toDN(n3)))
         }
       )
     }
@@ -316,7 +324,7 @@ class TestInventory extends Specification {
         repo.save(full(n, m)).isOK
         and repo.move(n.main.id, PendingInventory, AcceptedInventory).isOK
         and {
-          val Some(FullInventory(node, machine)) = repo.get(n.main.id, AcceptedInventory).testRun.forceGet
+          val FullInventory(node, machine) = repo.get(n.main.id, AcceptedInventory).testRunGet
 
           (
             machine === Some(m.copy(status = AcceptedInventory)) and
@@ -332,7 +340,7 @@ class TestInventory extends Specification {
       (
         repo.save(full(n, m)).isOK
         and {
-          val Some(FullInventory(node, machine)) = repo.get(n.main.id, PendingInventory).testRun.forceGet
+          val FullInventory(node, machine) = repo.get(n.main.id, PendingInventory).testRunGet
 
           (
             node === n
@@ -348,7 +356,7 @@ class TestInventory extends Specification {
       (
         repo.save(full(n, m)).isOK
         and {
-          val Some(FullInventory(node, machine)) = repo.get(n.main.id, PendingInventory).testRun.forceGet
+          val FullInventory(node, machine) = repo.get(n.main.id, PendingInventory).testRunGet
 
           (
             node === n
@@ -370,10 +378,10 @@ class TestInventory extends Specification {
         repo.save(FullInventory(n2,None)).isOK and repo.save(FullInventory(n3,None)).isOK
         and repo.move(n0.main.id, PendingInventory, AcceptedInventory).isOK
         and {
-          val Some(FullInventory(node0, m0)) = repo.get(n0.main.id, AcceptedInventory).testRun.forceGet
-          val Some(FullInventory(node1, m1)) = repo.get(n1.main.id, PendingInventory).testRun.forceGet
-          val Some(FullInventory(node2, m2)) = repo.get(n2.main.id, AcceptedInventory).testRun.forceGet
-          val Some(FullInventory(node3, m3)) = repo.get(n3.main.id, RemovedInventory).testRun.forceGet
+          val FullInventory(node0, m0) = repo.get(n0.main.id, AcceptedInventory).testRunGet
+          val FullInventory(node1, m1) = repo.get(n1.main.id, PendingInventory).testRunGet
+          val FullInventory(node2, m2) = repo.get(n2.main.id, AcceptedInventory).testRunGet
+          val FullInventory(node3, m3) = repo.get(n3.main.id, RemovedInventory).testRunGet
 
           //expected machine value
           val machine = m.copy(status = AcceptedInventory)
@@ -418,28 +426,53 @@ class TestInventory extends Specification {
       )
 
       repo.save(FullInventory(node, None)).isOK and {
-        val Some(FullInventory(n, m)) = repo.get(nodeId, AcceptedInventory).testRun.forceGet
+        val FullInventory(n, m) = repo.get(nodeId, AcceptedInventory).testRunGet
         n === node
       }
-
     }
 
   }
 
   "Softwares" should {
     "Find 2 software referenced by nodes with the repository" in {
-      val softwares = readOnlySoftware.getSoftwaresForAllNodes().either.runNow
+      val softwares = readOnlySoftware.getSoftwaresForAllNodes().testRun
       softwares.map(_.size) must beEqualTo(Right(2))
     }
 
     "Find 3 software in ou=software with the repository" in {
-      val softwares = readOnlySoftware.getAllSoftwareIds().either.runNow
+      val softwares = readOnlySoftware.getAllSoftwareIds().testRun
       softwares.map(_.size) must beEqualTo(Right(3))
     }
 
     "Purge one unreferenced software with the SoftwareService" in {
-      val purgedSoftwares = softwareService.deleteUnreferencedSoftware().runNow
-      purgedSoftwares must beEqualTo(1)
+      val purgedSoftwares = softwareService.deleteUnreferencedSoftware().testRun
+      purgedSoftwares must beEqualTo(Right(1))
+    }
+  }
+
+  "Software updates" should {
+
+    "be correctly saved for a node" in {
+      val dn = "nodeId=node0,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
+      val inv = repo.get(NodeId("node0")).testRunGet
+      val su1 = inv.node.softwareUpdates
+
+      val updates = List(
+        SoftwareUpdate("app1", "2.15.6~RC1", "x86_64", "yum", SoftwareUpdateKind.Defect, None)
+      , SoftwareUpdate("app2", "1-23-RELEASE-1", "x86_64", "apt", SoftwareUpdateKind.None, Some("default-repo"))
+        // we can have several time the same app
+      , SoftwareUpdate("app2", "1-24-RELEASE-64", "x86_64", "apt", SoftwareUpdateKind.Security, Some("security-backports"))
+      )
+
+      val ldapValues = List(
+        """{"name":"app1","version":"2.15.6~RC1","arch":"x86_64","from":"yum","kind":"defect"}"""
+      , """{"name":"app2","version":"1-23-RELEASE-1","arch":"x86_64","from":"apt","kind":"none","source":"default-repo"}"""
+      , """{"name":"app2","version":"1-24-RELEASE-64","arch":"x86_64","from":"apt","kind":"security","source":"security-backports"}"""
+      )
+
+      (su1 === Nil) and
+      repo.save(inv.modify(_.node.softwareUpdates).setTo(updates)).isOK and
+      (ldap.server.getEntry(dn).getAttribute("softwareUpdate").getValues.toList must containTheSameElementsAs(ldapValues))
     }
   }
 

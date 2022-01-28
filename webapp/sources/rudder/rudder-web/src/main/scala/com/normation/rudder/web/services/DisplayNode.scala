@@ -182,7 +182,7 @@ object DisplayNode extends Loggable {
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
     val softPanelId = "soft_tab"
     val eltIdswidth = List( ("process",List("50","50","70","85","120","50","100","850"),1),("var",List("200","800"),0))
-    val eltIds = List( "vm", "fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos")
+    val eltIds = List( "vm", "fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "softUpdates", "storages", "videos")
 
     JsRaw("var "+softGridDataId +"= null") &
     OnLoad(
@@ -265,7 +265,8 @@ object DisplayNode extends Loggable {
     val mainTabDeclaration : List[NodeSeq] =
       <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>         ::
       <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>  ::
-      <li id="soft_tab"><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>           ::
+      <li id="soft_tab"><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_softUpdates_")}>Software Update</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_var_")}>Environment</a></li>         ::
     // Hardware content
       <li><a href={htmlId_#(jsId,"sd_bios_")}>BIOS</a></li>               ::
@@ -295,6 +296,7 @@ object DisplayNode extends Loggable {
       displayTabFilesystems(jsId, sm) ::
       displayTabNetworks(jsId, sm)    ::
       displayTabSoftware(jsId)        ::
+      displayTabSoftwareUpdates(jsId, sm) ::
       displayTabVariable(jsId, sm)    ::
       displayTabProcess(jsId, sm)     ::
       displayTabVM(jsId, sm)          ::
@@ -532,6 +534,9 @@ object DisplayNode extends Loggable {
               <xml:group><label>Accepted since:</label> {DateFormaterService.getDisplayDate(creation)}</xml:group>
             }.getOrElse(NodeSeq.Empty) }
           </div>
+          <div>
+            <label>Software updates available:</label> {sm.node.softwareUpdates.size}
+          </div>
         </div>
 
         <div class="accounts-info col-xs-12">
@@ -665,6 +670,17 @@ object DisplayNode extends Loggable {
       ("Name", {x:Software => ?(x.name)} ) ::
       ("Version", {x:Software => ?(x.version.map(_.value)) } ) ::
       ("Description", {x:Software => ?(x.description) } ) ::
+      Nil
+    }
+
+  private def displayTabSoftwareUpdates(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
+    displayTabGrid(jsId)("softUpdates",Full(sm.node.softwareUpdates)){
+      ("Name"   , {x:SoftwareUpdate => Text(x.name) } ) ::
+      ("Version", {x:SoftwareUpdate => Text(x.version) }) ::
+      ("Arch"   , {x:SoftwareUpdate => Text(x.arch) } ) ::
+      ("From"   , {x:SoftwareUpdate => Text(x.from) } ) ::
+      ("Kind"   , {x:SoftwareUpdate => Text(x.kind.name) } ) ::
+      ("Source" , {x:SoftwareUpdate => ?(x.source) } ) ::
       Nil
     }
 

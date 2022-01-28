@@ -600,6 +600,36 @@ properties:
               format: date
               type: string
               description: License expiration date
+  softwareUpdate:
+    type: array
+    description: Software that can be updated on that machine
+    items:
+      type: object
+      properties:
+        name:
+          type: String
+          description: name of software that can be updated
+        version:
+          type: String
+          description: available version for software
+        arch:
+          type: String
+          description: CPU architecture of the update
+        from:
+          type: String
+          description: tool that discovered that update
+        kind:
+          type: String
+          description: if available, kind of patch provided by that update, else none
+          enum:
+            - none
+            - security
+            - defect
+            - enhancement
+            - other
+        source:
+          type: String
+          description: information about the source providing that update
   sound:
     type: array
     description: Sound card information

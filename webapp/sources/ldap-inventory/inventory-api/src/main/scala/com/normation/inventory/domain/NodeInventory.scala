@@ -97,7 +97,7 @@ final case class Process (
   , user          : Option[String]   = None
   , virtualMemory : Option[Double]   = None
   , description   : Option[String]   = None
-)extends NodeElement
+) extends NodeElement
 
 final case class VirtualMachine (
     vmtype      : Option[String] = None
@@ -349,6 +349,44 @@ final case class CustomProperty(
    , value: JValue
 )
 
+
+sealed trait SoftwareUpdateKind {
+  def name: String
+}
+
+final object SoftwareUpdateKind {
+  final case object None                 extends SoftwareUpdateKind { val name = "none" }
+  final case object Defect               extends SoftwareUpdateKind { val name = "defect" }
+  final case object Security             extends SoftwareUpdateKind { val name = "security" }
+  final case object Enhancement          extends SoftwareUpdateKind { val name = "enhancement" }
+  final case class  Other(value: String) extends SoftwareUpdateKind { val name = "other" }
+
+  def all = ca.mrvisser.sealerate.collect[SoftwareUpdateKind]
+
+  def parse(value: String) = all.find( _.name == value.toLowerCase()).getOrElse(Other(value))
+}
+
+
+/*
+ * A software update:
+ * - name: software name (the same that installed, used as key)
+ * - version: target version (only one, different updates for different version)
+ * - arch: arch of the package (x86_64, etc)
+ * - from: tools that produced that update (yum, apt, etc)
+ * - what kind
+ * - source: from what source like repo name (for now, they are not specific)
+ * #TODO: other informations ? A Map[String, String] of things ?
+ */
+final case class SoftwareUpdate(
+    name   : String
+  , version: String
+  , arch   : String
+  , from   : String
+  , kind   : SoftwareUpdateKind
+  , source : Option[String]
+)
+
+
 object KeyStatus {
   def apply(value : String) : Either[InventoryError.SecurityToken, KeyStatus] = {
     value match {
@@ -396,6 +434,8 @@ final case class NodeInventory(
      */
   , timezone             : Option[NodeTimezone]     = None
   , customProperties     : List[CustomProperty]     = Nil
+
+  , softwareUpdates      : List[SoftwareUpdate]     = Nil
 ) {
 
   /**A copy of the node with the updated main.

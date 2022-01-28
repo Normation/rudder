@@ -38,8 +38,10 @@
 package com.normation.rudder.apidata
 
 import com.normation.inventory.domain._
+import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.utils.DateFormaterService
+
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import org.joda.time.DateTime
@@ -93,10 +95,6 @@ final case object FullDetailLevel extends NodeDetailLevel {
   val fields = NodeDetailLevel.allFields.toSet
 }
 
-final case object API2DetailLevel extends NodeDetailLevel {
-  val fields = NodeDetailLevel.minimalFields.toSet ++ Set("os","machine")
-}
-
 final case class CustomDetailLevel (
     base         : NodeDetailLevel
   , customFields : Set[String]
@@ -146,6 +144,7 @@ object NodeDetailLevel {
       , "processors"
       , "slots"
       , "software"
+      , "softwareUpdate"
       , "sound"
       , "storage"
       , "ports"
@@ -373,6 +372,21 @@ object NodeDetailLevel {
         }
     }
 
+    val softwareUpdate :FullInventory => JValue = {
+      import com.normation.inventory.domain.JsonSerializers.implicits._
+      import com.normation.json._
+      ( inv : FullInventory ) =>
+        JArray(inv.node.softwareUpdates.flatMap { su =>
+          su.toLiftJson match {
+            case Left(err) =>
+              ApiLogger.warn(s"Error when converting software update data for API: ${err}")
+              None
+            case Right(v)  =>
+              Some(v)
+          }
+        }.toList)
+    }
+
     val storages : FullInventory => JValue = {
       ( inv : FullInventory ) =>
         inv.machine.map {
@@ -587,7 +601,7 @@ object NodeDetailLevel {
               ( "name" -> process.commandName ) ~
               ( "user" -> process.user ) ~
               ( "started"  -> process.started ) ~
-              ( "memory"   -> process.memory ) ~
+              ( "memory"   -> process.memory.map(_.toLong) ) ~
               ( "cpuUsage" -> process.cpuUsage ) ~
               ( "virtualMemory" -> process.virtualMemory ) ~
               ( "description"   -> process.description )
@@ -613,6 +627,7 @@ object NodeDetailLevel {
       , ( "networkInterfaces" -> network )
       , ( "environmentVariables" -> env )
       , ( "managementTechnologyDetails" -> managementDetails )
+      , ( "softwareUpdate" -> softwareUpdate)
     )
 
   }

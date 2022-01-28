@@ -19,6 +19,13 @@
       <SYSTEM_CATEGORY>Applications/System</SYSTEM_CATEGORY>
       <VERSION>6.1.0.release-1.EL.7</VERSION>
     </SOFTWARES>
+    <SOFTWAREUPDATES>
+      <NAME>rudder-agent</NAME>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <VERSION>7.0.1.release.EL.7</VERSION>
+      <SOURCE>security-backport</SOURCE>
+    </SOFTWAREUPDATES>
     <RUDDER>
       <AGENT>
         <AGENT_CERT>-----BEGIN CERTIFICATE----
