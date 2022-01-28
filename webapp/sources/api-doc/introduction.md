@@ -78,6 +78,10 @@ period of time to allow migration from previous versions.
       <td class="code">14</td>
       <td class="code">7.0</td>
       <td><ul>
+        <li>Secret management</li>
+        <li>Directive tree</li>
+        <li>Improve techniques management</li>
+        <li>Demote a relay</li>
       </ul></td>
     </tr>
   </tbody>
