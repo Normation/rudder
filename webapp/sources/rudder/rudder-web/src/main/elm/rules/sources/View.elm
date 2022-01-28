@@ -24,10 +24,15 @@ view model =
             (" item-disabled", span[ class "badge-disabled"][])
           else
             ("", text "")
+        classFocus =
+          case model.mode of
+            RuleForm rDetails ->
+              if (rDetails.rule.id.value == item.id.value) then " focused " else ""
+            _ -> ""
       in
         li [class "jstree-node jstree-leaf"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[class ("jstree-anchor"++classDisabled), onClick (OpenRuleDetails item.id True)]
+        , a[class ("jstree-anchor"++classDisabled++classFocus), onClick (OpenRuleDetails item.id True)]
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
           , span [class "treeGroupName tooltipable"]
             [ badgePolicyMode model.policyMode item.policyMode
@@ -67,6 +72,11 @@ view model =
             " fas fa-exclamation-triangle " ++ mainMissingCat
           else
             " fa fa-folder "
+        classFocus =
+          case model.mode of
+            CategoryForm cDetails ->
+              if (cDetails.category.id == item.id) then " focused " else ""
+            _ -> ""
         missingCatClass = if(List.member item.id allMissingCategoriesId) then " missing-cat " else ""
         treeItem =
           if item.id /= "rootRuleCategory" then
@@ -74,7 +84,7 @@ view model =
               Just (
                 li[class ("jstree-node" ++ foldedClass model.ui.ruleFilters.treeFilters item.id)]
                 [ i [class "jstree-icon jstree-ocl", onClick (UpdateRuleFilters (foldUnfoldCategory model.ui.ruleFilters item.id))][]
-                , a [class "jstree-anchor", onClick (OpenCategoryDetails item.id True)]
+                , a [class ("jstree-anchor" ++ classFocus), onClick (OpenCategoryDetails item.id True)]
                   [ i [class ("jstree-icon jstree-themeicon jstree-themeicon-custom" ++ icons)][]
                   , span [class ("treeGroupCategoryName tooltipable " ++ missingCatClass ++ mainMissingCat)][text item.name]
                   ]
