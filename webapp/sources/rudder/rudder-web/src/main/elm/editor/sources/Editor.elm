@@ -284,10 +284,12 @@ update msg model =
 
     CloneTechnique technique internalId ->
       let
+        copiedName = technique.name ++ " (Copy)"
+        newId = canonifyHelper (Value (String.toLower copiedName))
         callState =  Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap allMethodCalls technique.elems))
         blockState =  Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks technique.elems))
         ui = TechniqueUiInfo General callState  blockState [] False Unchanged Unchanged Nothing
-        (newModel,_) = update OpenMethods { model | mode = TechniqueDetails technique  (Clone technique internalId) ui }
+        newModel = { model | mode = TechniqueDetails {technique | name = copiedName, id = TechniqueId newId}  (Clone technique internalId) ui }
       in
         updatedStoreTechnique newModel
 

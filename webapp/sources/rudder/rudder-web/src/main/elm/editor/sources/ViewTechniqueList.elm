@@ -151,12 +151,17 @@ draftsItem: Model -> Draft -> Html Msg
 draftsItem model draft =
   let
     activeClass = case model.mode of
-                    TechniqueDetails t _ _ ->
-                      if t.id.value == draft.id then
+                    TechniqueDetails _ (Clone _ id) _ ->
+                      if id.value == draft.id then
                          "jstree-clicked"
                       else
                         ""
-                    _ -> ""
+                    TechniqueDetails _ (Creation id) _ ->
+                      if id.value == draft.id then
+                         "jstree-clicked"
+                      else
+                        ""
+                    _ ->  ""
     hasDeprecatedMethod = List.any (\m -> Maybe.Extra.isJust m.deprecated )(List.concatMap (\c -> Maybe.Extra.toList (Dict.get c.methodName.value model.methods)) (List.concatMap allMethodCalls draft.technique.elems))
   in
 
@@ -180,7 +185,7 @@ techniqueItem: Model -> Technique -> Html Msg
 techniqueItem model technique =
   let
     activeClass = case model.mode of
-                    TechniqueDetails t _ _ ->
+                    TechniqueDetails t (Edit _) _ ->
                       if t.id == technique.id then
                          "jstree-clicked"
                       else
