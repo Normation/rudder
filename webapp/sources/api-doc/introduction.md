@@ -268,7 +268,7 @@ Parameters follow the following schema:
 
 You can pass parameters by two means:
 
-* As query parameters: At the end of your url, put a **?** then your first parameter and then a **&** before next parameters
+* As query parameters: At the end of your url, put a **?** then your first parameter and then a **&** before next parameters. In that case, parameters need to be https://en.wikipedia.org/wiki/Percent-encoding[URL encoded]
 
 
     # Update the Rule 'id' with a new name, disabled, and setting it one directive
