@@ -1,0 +1,174 @@
+/*
+*************************************************************************************
+* Copyright 2022 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+*
+*************************************************************************************
+*/
+button.form-control.btn-datepicker{
+  text-align: left;
+}
+button.form-control.btn-datepicker:disabled {
+  background-color: #eef1f4;
+  cursor: not-allowed;
+}
+.elm-datepicker-container{
+  display: flex;
+  flex-direction: column;
+}
+.elm-datepicker-container .form-control{
+  cursor: pointer;
+}
+.elm-datetimepicker-single--picker-container {
+  background-color: #fff;
+  position: absolute;
+  color: #22292f;
+  font-size: .875rem;
+  padding: .75rem;
+  border-radius: 5px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.15);
+}
+.elm-datetimepicker-single--calendar-container {
+  margin-bottom: .5rem;
+}
+.elm-datetimepicker-single--calendar-header {
+  padding: .25rem 0 0 0;
+  font-weight: bold;
+}
+.elm-datetimepicker-single--calendar-header-row {
+  display: flex;
+  justify-content: space-between;
+}
+.elm-datetimepicker-single--calendar-header-text {
+  display: inline-flex;
+  align-items: center;
+}
+.elm-datetimepicker-single--calendar-header-chevron {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 .5rem 0 .5rem;
+  cursor: pointer;
+}
+.elm-datetimepicker-single--calendar-header-chevron:hover {
+  color: #38c172;
+}
+.elm-datetimepicker-single--calendar-header-week {
+  display: flex;
+  color: #a0aec0;
+  font-weight: normal;
+  padding: .5rem 0 .25rem 0
+}
+.elm-datetimepicker-single--calendar-header-day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  width: 30px;
+}
+.elm-datetimepicker-single--calendar-week {
+  display: flex;
+}
+.elm-datetimepicker-single--calendar-day {
+  height: 30px;
+  width: 30px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  font-size: .75rem;
+  background-color: #fff;
+  color: #22292f;
+  cursor: pointer;
+  border: none;
+  outline: 0;
+}
+.elm-datetimepicker-single--calendar-day:hover {
+  background-color: #e2f2ff;
+}
+.elm-datetimepicker-single--calendar-day.elm-datetimepicker-single--hidden {
+  visibility: hidden;
+}
+.elm-datetimepicker-single--calendar-day.elm-datetimepicker-single--disabled {
+  color: #a0aec0;
+  cursor: default;
+  background-color: #fff;
+}
+.elm-datetimepicker-single--calendar-day.elm-datetimepicker-single--picked {
+  background-color: #3490dc;
+  color: #fff;
+}
+.elm-datetimepicker-single--calendar-day.elm-datetimepicker-single--today {
+  color: #3490dc;
+}
+.elm-datetimepicker-single--footer {
+  width: 100%;
+  border-top: 1px solid #a0aec0;
+  padding: .25rem .75rem .25rem .75rem;
+}
+.elm-datetimepicker-single--time-picker-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.elm-datetimepicker-single--time-picker-toggle {
+  display: flex;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.elm-datetimepicker-single--date-display-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  height: 20px;
+  padding-top: 5px;
+}
+.elm-datetimepicker-single--time-picker {
+  display: flex;
+  justify-content: space-between;
+  padding: .25rem 0 .25rem 0
+}
+.elm-datetimepicker-single--select-container {
+  display: inline-flex;
+}
+.elm-datetimepicker-single--select {
+  display: inline-flex;
+}
+.elm-datetimepicker-single--selection-time {
+  margin-left: 5px;
+}
+.elm-datetimepicker-single--selection-time-danger {
+  margin-left: 5px;
+  color: red;
+}
+.elm-datetimepicker-single--select-spacer {
+  display: inline-flex;
+  padding: 0 .25rem 0 .25rem;
+}

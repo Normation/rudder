@@ -15,6 +15,21 @@
 .dataTables_wrapper_top {
   border-bottom    : none;
 }
+.rudder-template .template-main .main-table .dataTables_wrapper_top.table-filter{
+  display: flex;
+  margin-top : 15px;
+  padding: 10px 15px 0px 15px;
+}
+.rudder-template .template-main .main-table .dataTables_wrapper_top.table-filter > .form-group{
+  min-width: 300px;
+  margin-bottom: 10px;
+}
+.rudder-template .template-main .main-table  .dataTables_wrapper_top.table-filter > .form-group + .form-group{
+  margin-left: 15px;
+}
+.rudder-template .template-main .main-table .dataTables_wrapper_top.table-filter > .end{
+  margin: 0 0 10px auto;
+}
 .dataTables_filter{
   float: left;
 }

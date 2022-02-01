@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2020 Normation SAS
+* Copyright 2022 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -275,6 +275,14 @@
   margin-left: 6px;
 }
 /* === BADGES === */
+.badge.badge-grey {
+  font-weight: 600 !important;
+  padding: 4px 8px;
+  font-size: 1em;
+  position: relative;
+  top: -1px;
+  margin-left: 6px !important;
+}
 #nb-techniques {
   background-color: #d3d5d9;
   color: #5d6778;
@@ -671,6 +679,13 @@
 .rudder-template .template-main .main-table > .table-container > .dataTable > tbody > tr:nth-child(even):hover{
   background-color: #e2f2ff;
 }
+.rudder-template .template-main .main-table > .table-container > .dataTable > tbody > tr.is-expired {
+  background-color: #ef960012;
+}
+.rudder-template .template-main .main-table > .table-container > .dataTable > tbody > tr.is-expired > td.date{
+  font-weight: bold;
+  color: #ef9600;
+}
 .rudder-template .tab-table-content .dataTable > tbody > tr > td.dataTables_empty{
   padding: 12px 15px;
   background-color: #fcfcfc;
@@ -974,6 +989,7 @@
 .rudder-template ul.skeleton-loading > ul{
   padding: 0 0 0 50px;
 }
+
 /* === TOGGLE CHECKBOX ===*/
 .rudder-template .toggle-checkbox-container{
   width: 100%;
@@ -1009,6 +1025,7 @@
 .rudder-template .toggle-checkbox-container .callout-fade.callout-warning .badge{
   background-color: #F08004 !important;
 }
+.acl-category .toggle-checkbox + .category-header .fa-caret-down,
 .rudder-template .toggle-checkbox + .callout-fade label .fa-caret-down{
   position: absolute;
   font-size: 1.8em;
@@ -1016,16 +1033,24 @@
   transform: rotate(-90deg);
   display: inline-block;
   transition-duration: .2s;
+  transition-property: transform;
   color: #04192288;
   opacity: .8;
   margin-left: 10px;
 }
+.acl-category .toggle-checkbox + .category-header .fa-caret-down{
+  margin-left: 0px;
+  left: 8px;
+}
+.acl-category .toggle-checkbox + .category-header:hover .fa-caret-down,
 .rudder-template .toggle-checkbox + .callout-fade label:hover .fa-caret-down{
   opacity: 1;
 }
+.acl-category .toggle-checkbox:checked + .category-header .fa-caret-down,
 .rudder-template .toggle-checkbox:checked + .callout-fade label .fa-caret-down{
   transform: rotate(0deg);
 }
+.acl-category .toggle-checkbox ~ .category-body,
 .rudder-template .toggle-checkbox + .callout-fade ul{
   height: 0;
   transition-duration: .2s;
@@ -1035,6 +1060,11 @@
   max-height: 166px;
   overflow: auto;
 }
+.acl-category .toggle-checkbox ~ .category-body{
+  max-height: initial;
+  border-top : none !important;
+}
+.acl-category .toggle-checkbox:checked ~ .category-body,
 .rudder-template .toggle-checkbox:checked + .callout-fade ul{
   height: auto;
   border-top: 1px solid #eee;
@@ -1061,6 +1091,7 @@
   margin-left: 4px;
   opacity: 0;
   transition: opacity .1s;
+  cursor: pointer;
 }
 .rudder-template .dataTable .btn-goto:hover,
 .rudder-template .jstree .btn-goto:hover{
@@ -1072,9 +1103,116 @@
   top: calc(50% - 13px);
 }
 .rudder-template a:hover > .btn-goto,
-.rudder-template .dataTable tr:hover > td > span >.btn-goto{
+.rudder-template .dataTable tr:hover > td > span >.btn-goto,
+.rudder-template .dataTable tr:hover td.token .btn-goto{
   opacity: 1;
 }
+
+/* === CUSTOM TOGGLE === */
+label.custom-toggle {
+  overflow: hidden;
+  vertical-align: middle;
+  margin: 0 0 0 10px;
+  position: relative;
+  max-width: 96px;
+  border-radius: 4px;
+}
+.rudder-template label > label.custom-toggle{
+  margin-top: -4px;
+}
+.rudder-template label > label.custom-toggle .custom-toggle-group > label{
+  padding: 4px 12px;
+}
+label.custom-toggle > input {
+  display: none;
+}
+label.custom-toggle .custom-toggle-group{
+  display: inline-flex;
+  margin: 0;
+  transition-duration: .4s;
+  transition-timing-function: ease;
+  position: relative;
+  left: 0;
+}
+label.custom-toggle > input:not(:checked) + .custom-toggle-group{
+  left: -84px;
+}
+label.custom-toggle .custom-toggle-group > label{
+  padding: 6px 12px;
+  margin: 0;
+  min-width: 90px;
+  max-width: 90px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: inset 0 0 6px 3px #16293220;
+  transition-duration: .2s;
+  transition-property: box-shadow;
+}
+label.custom-toggle:hover .custom-toggle-group > label{
+  box-shadow: inset 0 0 8px 4px #16293240
+}
+label.custom-toggle .custom-toggle-group > label:first-child{
+  background-color: #9bc832;
+  color: #fff;
+  padding-right: 16px;
+}
+label.custom-toggle.toggle-secondary .custom-toggle-group > label:first-child {
+  background-color: #3c8dbc;
+}
+label.custom-toggle .custom-toggle-group > label:last-child{
+  background-color: #e8eaed;
+  color: #04192299;
+  padding-left: 16px;
+}
+label.custom-toggle .custom-toggle-group > span {
+  background: #fff;
+  border: 1px solid #ccc;
+  display: inline-block;
+  min-width: 12px;
+  border-radius: 4px;
+  margin: 0 -6px;
+  position: relative;
+  z-index: 2;
+}
+label.custom-toggle .custom-toggle-group > span:before{
+ left: 0;
+ background-color: green;
+}
+label.custom-toggle .custom-toggle-group > span:after{
+ right: 0;
+ background-color: grey;
+}
+label > .warning-info{
+  padding: 5px;
+  margin-left: 10px;
+  background: transparent;
+  border: none;
+  color: #ef9600;
+}
+/* === MODAL === */
+.rudder-template .modal {
+  height: 0;
+  display: block;
+  background: none;
+  background-color: transparent !important;
+}
+.rudder-template .modal.in {
+  height: auto;
+}
+.rudder-template .modal > .modal-backdrop{
+  transition: opacity .4s ease-out;
+  height: 0;
+  opacity: 0;
+  background-color: #202e34;
+}
+.rudder-template .modal.in  > .modal-backdrop{
+  opacity: .4;
+  height: auto;
+}
+.rudder-template .modal .form-group + .form-group{
+  margin-top: 12px;
+}
+
 /* === KEYFRAMES === */
 @keyframes fadein {
   0%   {opacity:  0; transform:translateX(-100px);}
