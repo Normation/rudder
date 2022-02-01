@@ -1,0 +1,66 @@
+#####################################################################################
+# Copyright 2022 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Rudder inventory trigger
+# @description Trigger an inventory on the agent
+# @action
+# @documentation
+#
+# Trigger a Rudder inventory. This will not run the inventory
+# immediately but next time the agent runs.
+#
+# @parameter id     Id of the reporting for this method (internal identifier, needs to be unique for each use of the method)
+#
+# @class_prefix rudder_inventory_trigger
+# @class_parameter id
+
+bundle agent rudder_inventory_trigger(id)
+{
+  vars:
+      "flag_file"         string => "${g.rudder_base}/etc/force_inventory";
+      "canonified_path"   string => canonify("${flag_file}");
+
+      "old_class_prefix"  string => canonify("rudder_inventory_trigger_${id}");
+      "args"               slist => { "${id}" };
+
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("rudder_inventory_trigger_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "inner_class_prefix"      string => canonify("file_lines_present_${flag_file}");
+
+  defaults:
+      "id" string => "default", if_match_regex => "";
+
+  classes:
+      "should_report" expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting_${class_prefix}"
+                           usebundle => disable_reporting;
+      # empty flag file
+      "action"             usebundle => file_content("${flag_file}", "", "true");
+      "reenable_reporting_${class_prefix}"
+                           usebundle => enable_reporting,
+                          ifvarclass => "should_report";
+      "class copy"         usebundle => _classes_copy("file_content_${canonified_path}", "${old_class_prefix}"),
+                          ifvarclass => "file_lines_present_${canonified_path}_reached";
+      "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
+                          ifvarclass => "${inner_class_prefix}_reached";
+      "report"             usebundle => _log_v3("Trigger inventory", "${id}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
