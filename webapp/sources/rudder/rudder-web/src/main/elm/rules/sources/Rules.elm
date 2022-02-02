@@ -213,12 +213,7 @@ update msg model =
 
     SelectGroup targetId includeBool->
       let
-        groupId =
-          if String.startsWith "group:" targetId then
-            NodeGroupId (String.dropLeft 6 targetId)
-          else if String.startsWith "node:" targetId then
-            Node (String.dropLeft 5 targetId)
-          else Special targetId
+        groupId = toRuleTarget targetId
 
         updateTargets : Rule -> Rule
         updateTargets r =
