@@ -1043,6 +1043,7 @@ ul li.hide-method {
   transition-duration: .2s;
   opacity: 0;
   margin-right: 5px;
+  outline: none !important;
 }
 #methods .method:hover > .method-info > .btn-holder > .method-action {
   opacity: .6;

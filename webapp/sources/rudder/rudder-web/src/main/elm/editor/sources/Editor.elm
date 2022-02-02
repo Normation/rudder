@@ -33,22 +33,20 @@ import AgentValueParser exposing (..)
 --
 -- Port for interacting with external JS
 --
-port copy : String -> Cmd msg
-port storeDraft : Value -> Cmd msg
-port clearDraft : String  -> Cmd msg
-port getDrafts : () -> Cmd msg
-port draftsResponse: (Value -> msg) -> Sub msg
-port openManager: String -> Cmd msg
-port updateResources : (() -> msg) -> Sub msg
+port copy                : String -> Cmd msg
+port storeDraft          : Value -> Cmd msg
+port clearDraft          : String  -> Cmd msg
+port getDrafts           : () -> Cmd msg
+port draftsResponse      : (Value -> msg) -> Sub msg
+port openManager         : String -> Cmd msg
+port updateResources     : (() -> msg) -> Sub msg
 port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
---port warnNotification    : String -> Cmd msg
 port infoNotification    : String -> Cmd msg
 port pushUrl             : String -> Cmd msg
-port getUrl             : () -> Cmd msg
-
-port readUrl : (String -> msg) -> Sub msg
-
+port getUrl              : () -> Cmd msg
+port readUrl             : (String -> msg) -> Sub msg
+port clearTooltips       : String -> Cmd msg
 
 -- utility to write a understandable debug message from a get response
 debugHttpErr : Detailed.Error String -> String
@@ -106,20 +104,20 @@ updatedStoreTechnique model =
                              let
                                draft = Draft  t (Just origin) origin.id.value (Time.millisToPosix 0)
                              in
-                               (Dict.insert draft.id draft model.drafts,  storeDraft (encodeDraft draft))
+                               (Dict.insert draft.id draft model.drafts, Cmd.batch[clearTooltips "", storeDraft (encodeDraft draft)] )
             Creation id ->
               let
                draft = Draft  t Nothing id.value (Time.millisToPosix 0)
               in
-                (Dict.insert draft.id draft model.drafts,  storeDraft (encodeDraft draft))
+                (Dict.insert draft.id draft model.drafts, Cmd.batch[clearTooltips "", storeDraft (encodeDraft draft)] )
             Clone origin id ->
               let
                draft = Draft  t Nothing id.value (Time.millisToPosix 0)
               in
-                (Dict.insert draft.id draft model.drafts,  storeDraft (encodeDraft draft))
+                (Dict.insert draft.id draft model.drafts, Cmd.batch[clearTooltips "", storeDraft (encodeDraft draft)] )
       in
          ({ model | drafts = drafts }, action)
-    _ -> (model, Cmd.none)
+    _ -> (model, clearTooltips "")
 
 main =
   Browser.element
@@ -777,7 +775,7 @@ update msg model =
             (newCalls, True) -> update (GenerateId SetMissingIds) { model | mode = TechniqueDetails {t  | elems = newCalls} e newUi }
 
     MoveStarted draggedItemId ->
-      ( { model | dnd = DragDrop.startDragging model.dnd draggedItemId, dropTarget =  Nothing },Cmd.none )
+      ( { model | dnd = DragDrop.startDragging model.dnd draggedItemId, dropTarget =  Nothing }, clearTooltips "" )
 
     MoveTargetChanged dropTargetId ->
       ( { model | dnd = DragDrop.updateDropTarget model.dnd dropTargetId, dropTarget = Just dropTargetId }, Cmd.none  )
