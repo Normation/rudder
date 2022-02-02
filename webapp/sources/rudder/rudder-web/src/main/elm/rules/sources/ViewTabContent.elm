@@ -232,6 +232,7 @@ directivesTab model details =
   let
     isNewRule = Maybe.Extra.isNothing details.originRule
     rule       = details.rule
+    originRule = details.originRule
     ui = details.ui
     buildListRow : List DirectiveId -> List (Html Msg)
     buildListRow ids =
@@ -253,15 +254,24 @@ directivesTab model details =
               )
         rowDirective  : Directive -> Html Msg
         rowDirective directive =
-          li[]
-          [ a[href ( model.contextPath ++ "/secure/configurationManager/directiveManagement#" ++ directive.id.value)]
-            [ badgePolicyMode model.policyMode directive.policyMode
-            , span [class "target-name"][text directive.displayName]
-            , buildTagsList directive.tags
+          let
+            liClass = case originRule of
+              Nothing -> "new"
+              Just oR ->
+                if List.member directive.id oR.directives then
+                  ""
+                else
+                  "new"
+          in
+            li[class liClass]
+            [ a[href ( model.contextPath ++ "/secure/configurationManager/directiveManagement#" ++ directive.id.value)]
+              [ badgePolicyMode model.policyMode directive.policyMode
+              , span [class "target-name"][text directive.displayName]
+              , buildTagsList directive.tags
+              ]
+            , span [class "target-remove", onClick (UpdateRuleForm {details | rule = {rule | directives = List.Extra.remove directive.id rule.directives}})][ i [class "fa fa-times"][] ]
+            , span [class "border"][]
             ]
-          , span [class "target-remove", onClick (UpdateRuleForm {details | rule = {rule | directives = List.Extra.remove directive.id rule.directives}})][ i [class "fa fa-times"][] ]
-          , span [class "border"][]
-          ]
       in
         List.map rowDirective directives
 
@@ -347,12 +357,12 @@ directivesTab model details =
                 in
                   li [class "jstree-node jstree-leaf"]
                   [ i [class "jstree-icon jstree-ocl"][]
-                  , a [class ("jstree-anchor" ++ selectedClass)]
+                  , a [class ("jstree-anchor" ++ selectedClass), onClick (addDirectives d.id)]
                     [ badgePolicyMode model.policyMode d.policyMode
                     , span [class "treeGroupName tooltipable"][text d.displayName]
                     , buildTagsTree d.tags
                     , div [class "treeActions-container"]
-                      [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (addDirectives d.id)][]]
+                      [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept"][]]
                       ]
                     ]
                   ])
@@ -555,8 +565,9 @@ nodesTab model details =
 groupsTab : Model -> RuleDetails -> Html Msg
 groupsTab model details =
   let
-    isNewRule = Maybe.Extra.isNothing details.originRule
+    isNewRule  = Maybe.Extra.isNothing details.originRule
     rule       = details.rule
+    originRule = details.originRule
     ui = details.ui
     (includedTargets, excludedTargets) =
       case rule.targets of
@@ -585,7 +596,7 @@ groupsTab model details =
                 ]
               ]
             else
-              List.map (buildIncludeList model.groupsTree model details.ui.editGroups True) includedTargets
+              List.map (buildIncludeList originRule model.groupsTree model details.ui.editGroups True) includedTargets
             )
           ]
         ]
@@ -602,7 +613,7 @@ groupsTab model details =
                 ]
               ]
             else
-              List.map (buildIncludeList model.groupsTree model details.ui.editGroups False) excludedTargets
+              List.map (buildIncludeList originRule model.groupsTree model details.ui.editGroups False) excludedTargets
             )
           ]
         ]
@@ -640,12 +651,12 @@ groupsTab model details =
           in
             li [class "jstree-node jstree-leaf"]
             [ i [class "jstree-icon jstree-ocl"][]
-            , a [class ("jstree-anchor" ++ includeClass)]
+            , a [class ("jstree-anchor" ++ includeClass), onClick (SelectGroup item.target True)]
               [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
               , span [class "treeGroupName tooltipable"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
               , div [class "treeActions-container"]
-                [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept", onClick (SelectGroup item.target True)][]]
-                , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onClick (SelectGroup item.target False)][]]
+                [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept"][]]
+                , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onCustomClick (SelectGroup item.target False)][]]
                 ]
               ]
             ]
@@ -699,7 +710,7 @@ groupsTab model details =
                   ]
                 ]
               else
-                List.map (buildIncludeList model.groupsTree model details.ui.editGroups True) includedTargets
+                List.map (buildIncludeList originRule model.groupsTree model details.ui.editGroups True) includedTargets
               )
             ]
           , div[class "list-container"]
@@ -714,7 +725,7 @@ groupsTab model details =
                   ]
                 ]
               else
-                List.map (buildIncludeList  model.groupsTree model details.ui.editGroups False) excludedTargets
+                List.map (buildIncludeList originRule model.groupsTree model details.ui.editGroups False) excludedTargets
               )
             ]
           ]
@@ -750,7 +761,7 @@ groupsTab model details =
                     ]
                   ]
                 ]
-            , div [class "jstree jstree-default"]
+            , div [class "jstree jstree-default jstree-groups"]
               [ ul[class "jstree-container-ul jstree-children"]
                 [(case groupTreeCategory model.groupsTree of
                   Just html -> html
@@ -763,4 +774,3 @@ groupsTab model details =
             ]
           ]
         ]
-

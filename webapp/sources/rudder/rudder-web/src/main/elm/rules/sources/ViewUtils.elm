@@ -436,10 +436,9 @@ buildTooltipContent title content =
   in
     headingTag ++ title ++ contentTag ++ content ++ closeTag
 
-buildIncludeList : Category Group -> Model -> Bool -> Bool -> RuleTarget -> Html Msg
-buildIncludeList groupsTree model editMode includeBool ruleTarget =
+buildIncludeList : Maybe Rule -> Category Group -> Model -> Bool -> Bool -> RuleTarget -> Html Msg
+buildIncludeList originRule groupsTree model editMode includeBool ruleTarget =
   let
-    groupsList = getAllElems groupsTree
     id = case ruleTarget of
       NodeGroupId groupId -> groupId
       Composition _ _ -> "compo"
@@ -448,11 +447,25 @@ buildIncludeList groupsTree model editMode includeBool ruleTarget =
       Or _ -> "or"
       And _ -> "and"
 
+    groupsList = getAllElems groupsTree
+
+    isNew = case originRule of
+      Nothing -> True
+      Just oR ->
+        let
+          list = case oR.targets of
+            [Composition (Or i) (Or e)] ->
+              if includeBool then i else e
+            targets ->
+             if includeBool then targets else []
+        in
+          List.member ruleTarget list
+
     (groupName, groupTarget) = case List.Extra.find (\g -> g.id == id) groupsList of
       Just gr -> (gr.name, gr.target)
       Nothing -> (id, id)
 
-    rowIncludeGroup = li[]
+    rowIncludeGroup = li[class (if isNew then "" else "new")]
       [ span[class "fa fa-sitemap"][]
       , a[href (model.contextPath ++ "/secure/configurationManager/#" ++ "")]
         [ span [class "target-name"][text groupName]
@@ -547,3 +560,11 @@ countRecentChanges rId changes =
         Just c -> c.changes
         Nothing -> 0
     Nothing -> 0
+
+toRuleTarget : String -> RuleTarget
+toRuleTarget targetId =
+  if String.startsWith "group:" targetId then
+    NodeGroupId (String.dropLeft 6 targetId)
+  else if String.startsWith "node:" targetId then
+    Node (String.dropLeft 5 targetId)
+  else Special targetId
