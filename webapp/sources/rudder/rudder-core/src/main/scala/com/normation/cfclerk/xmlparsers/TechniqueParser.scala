@@ -218,7 +218,7 @@ class TechniqueParser(
   private[this] def parseTrackerVariableSpec(xml: Node): Either[LoadTechniqueError, TrackerVariableSpec] = {
     val trackerVariableSpecs = (xml \ TRACKINGVAR)
     if(trackerVariableSpecs.isEmpty) { //default trackerVariable variable spec for that package
-      Right(TrackerVariableSpec())
+      Right(TrackerVariableSpec(id = None))
     } else if(trackerVariableSpecs.lengthCompare(1) == 0) {
         variableSpecParser.parseTrackerVariableSpec(trackerVariableSpecs.head).chain(s"Error when parsing <${TRACKINGVAR}> tag")
     } else Left(LoadTechniqueError.Parsing(s"Only one <${TRACKINGVAR}> tag is allowed the the document, but found '${trackerVariableSpecs.size}'"))

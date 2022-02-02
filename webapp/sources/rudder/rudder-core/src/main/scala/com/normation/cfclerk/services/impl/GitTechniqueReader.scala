@@ -683,7 +683,7 @@ class GitTechniqueReader(
 
   private[this] val dummyTechnique = Technique(
       TechniqueId(TechniqueName("dummy"), TechniqueVersion.parse("1.0").getOrElse(throw new RuntimeException("Version of dummy technique is not parsable")))
-    , "dummy", "dummy", Nil, TrackerVariableSpec()
+    , "dummy", "dummy", Nil, TrackerVariableSpec(id = None)
     , SectionSpec("ROOT"), None
  )
 

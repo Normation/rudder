@@ -481,7 +481,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
   implicit def toDID(id: String) = DirectiveId(DirectiveUid(id), GitVersion.DEFAULT_REV)
   implicit def toRID(id: String) = RuleId(RuleUid(id))
   implicit def toRCID(id: String) = RuleCategoryId(id)
-  val t1 = Technique(("t1", "1.0"), "t1", "t1", Nil, TrackerVariableSpec(), SectionSpec("root"), None)
+  val t1 = Technique(("t1", "1.0"), "t1", "t1", Nil, TrackerVariableSpec(None,None), SectionSpec("root"), None)
   val d1 = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
   val d2 = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", Some(PolicyMode.Enforce))
   val d3 = Directive("d3", "1.0", Map("foo3" -> Seq("bar3")), "d3", "d3", Some(PolicyMode.Audit))

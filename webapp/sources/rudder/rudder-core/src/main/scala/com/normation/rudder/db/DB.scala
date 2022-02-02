@@ -87,7 +87,7 @@ final object DB {
     , nodeId             : String
     , directiveId        : String
     , ruleId             : String
-    , serial             : Int
+    , reportId           : String
     , component          : String
     , keyValue           : String
     , executionTimestamp : DateTime
@@ -98,13 +98,13 @@ final object DB {
 
   def insertReports(reports: List[com.normation.rudder.domain.reports.Reports]): ConnectionIO[Int] = {
     val dbreports = reports.map { r =>
-      DB.Reports[Unit]((), r.executionDate, r.nodeId.value, r.directiveId.serialize, r.ruleId.serialize, r.serial
+      DB.Reports[Unit]((), r.executionDate, r.nodeId.value, r.directiveId.serialize, r.ruleId.serialize, r.reportId
                       , r.component, r.keyValue, r.executionTimestamp, r.severity, "policy", r.message)
     }
 
     Update[DB.Reports[Unit]]("""
       insert into ruddersysevents
-        (executiondate, nodeid, directiveid, ruleid, serial, component, keyvalue, executiontimestamp, eventtype, policy, msg)
+        (executiondate, nodeid, directiveid, ruleid, reportid, component, keyvalue, executiontimestamp, eventtype, policy, msg)
       values (?,?,?, ?,?,?, ?,?,?, ?,?)
     """).updateMany(dbreports)
   }

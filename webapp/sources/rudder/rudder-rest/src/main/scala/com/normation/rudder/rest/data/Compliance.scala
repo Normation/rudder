@@ -260,7 +260,7 @@ final case class ByNodeDirectiveCompliance(
     id        : DirectiveId
   , name      : String
   , compliance: ComplianceLevel
-  , components: Map[String, ComponentStatusReport]
+  , components: List[ComponentStatusReport]
 )
 
 object ByNodeDirectiveCompliance {
@@ -472,26 +472,26 @@ object JsonCompliance {
       })
     }
 
-    private[this] def components(comps: Map[String, ComponentStatusReport], level: Int, precision: Int): Option[JsonAST.JValue] = {
+    private[this] def components(comps: List[ComponentStatusReport], level: Int, precision: Int): Option[JsonAST.JValue] = {
       if(level < 4) None
-      else Some(comps.map { case (_, component) =>
+      else Some(comps.map { case  component =>
         (
             ("name" -> component.componentName)
           ~ ("compliance" -> component.compliance.withoutPending.computePercent().compliance)
           ~ ("complianceDetails" -> percents(component.compliance, precision))
           ~ (component match {
               case component : BlockStatusReport =>
-                val sub = component.subComponents.map(c => (c.componentName, c)).toMap
-                ("components" -> components(sub, level, precision))
+
+                ("components" -> components(component.subComponents, level, precision))
               case component: ValueStatusReport => ("values" -> values(component.componentValues, level))
             })
         )
       })
     }
 
-    private[this] def values(componentValues: Map[String, ComponentValueStatusReport], level: Int): Option[JsonAST.JValue] = {
+    private[this] def values(componentValues: List[ComponentValueStatusReport], level: Int): Option[JsonAST.JValue] = {
       if(level < 5) None
-      else Some(componentValues.map { case (_, value) =>
+      else Some(componentValues.map { case value =>
           (
             ("value" -> value.componentValue)
               ~ ("reports" -> value.messages.map { report =>

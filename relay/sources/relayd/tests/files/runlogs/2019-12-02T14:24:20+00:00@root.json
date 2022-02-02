@@ -16,7 +16,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-11T15:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -29,7 +29,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-11T16:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -42,7 +42,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-11T17:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -55,7 +55,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-11T18:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -68,7 +68,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-11T19:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -81,7 +81,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-11T20:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -94,7 +94,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-11T21:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -107,7 +107,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-11T22:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -120,7 +120,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-11T23:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -133,7 +133,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-12T00:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -146,7 +146,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-12T01:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -159,7 +159,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-12T02:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -172,7 +172,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-12T03:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -185,7 +185,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-12T04:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -198,7 +198,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-12T05:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -211,7 +211,7 @@
       "policy": "DistributePolicy",
       "node_id": "root",
       "execution_datetime": "2019-12-12T06:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -224,7 +224,7 @@
       "policy": "DistributePolicy",
       "node_id": "root",
       "execution_datetime": "2019-12-12T07:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -237,7 +237,7 @@
       "policy": "DistributePolicy",
       "node_id": "root",
       "execution_datetime": "2019-12-12T08:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -250,7 +250,7 @@
       "policy": "DistributePolicy",
       "node_id": "root",
       "execution_datetime": "2019-12-12T09:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -263,7 +263,7 @@
       "policy": "DistributePolicy",
       "node_id": "root",
       "execution_datetime": "2019-12-12T10:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -276,7 +276,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T11:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -289,7 +289,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T12:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -302,7 +302,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T13:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -315,7 +315,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T14:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -328,7 +328,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T15:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -341,7 +341,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T16:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -354,7 +354,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T17:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -367,7 +367,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T18:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -380,7 +380,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T19:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -393,7 +393,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T20:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -406,7 +406,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T21:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -419,7 +419,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T22:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -432,7 +432,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-12T23:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -445,7 +445,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T00:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -458,7 +458,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T01:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -471,7 +471,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T02:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -484,7 +484,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T03:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -497,7 +497,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T04:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -510,7 +510,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T05:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -523,7 +523,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T06:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -536,7 +536,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T07:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -549,7 +549,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T08:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -562,7 +562,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T09:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -575,7 +575,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T10:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -588,7 +588,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T11:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -601,7 +601,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T12:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -614,7 +614,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T13:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -627,7 +627,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T14:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -640,7 +640,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T15:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -653,7 +653,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T16:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -666,7 +666,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T17:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -679,7 +679,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T18:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -692,7 +692,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T19:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -705,7 +705,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T20:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -718,7 +718,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T21:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -731,7 +731,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T22:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -744,7 +744,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-13T23:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -757,7 +757,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T00:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -770,7 +770,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T01:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -783,7 +783,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T02:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -796,7 +796,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T03:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -809,7 +809,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T04:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -822,7 +822,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T05:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -835,7 +835,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T06:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -848,7 +848,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T07:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -861,7 +861,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T08:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -874,7 +874,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T09:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -887,7 +887,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T10:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -900,7 +900,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T11:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -913,7 +913,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T12:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -926,7 +926,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T13:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -939,7 +939,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T14:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -952,7 +952,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T15:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -965,7 +965,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T16:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -978,7 +978,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T17:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -991,7 +991,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T18:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1004,7 +1004,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T19:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1017,7 +1017,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T20:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1030,7 +1030,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T21:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1043,7 +1043,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T22:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1056,7 +1056,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-14T23:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1069,7 +1069,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-15T00:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1082,7 +1082,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-15T01:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1095,7 +1095,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-15T02:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1108,7 +1108,7 @@
       "policy": "server-roles",
       "node_id": "root",
       "execution_datetime": "2019-12-15T03:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1121,7 +1121,7 @@
       "policy": "Inventory",
       "node_id": "root",
       "execution_datetime": "2019-12-15T04:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1134,7 +1134,7 @@
       "policy": "packageManagement",
       "node_id": "root",
       "execution_datetime": "2019-12-15T05:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1147,7 +1147,7 @@
       "policy": "packageManagement",
       "node_id": "root",
       "execution_datetime": "2019-12-15T06:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1160,7 +1160,7 @@
       "policy": "packageManagement",
       "node_id": "root",
       "execution_datetime": "2019-12-15T07:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1173,7 +1173,7 @@
       "policy": "packageManagement",
       "node_id": "root",
       "execution_datetime": "2019-12-15T08:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1186,7 +1186,7 @@
       "policy": "packageManagement",
       "node_id": "root",
       "execution_datetime": "2019-12-15T09:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1199,7 +1199,7 @@
       "policy": "packageManagement",
       "node_id": "root",
       "execution_datetime": "2019-12-15T11:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1212,7 +1212,7 @@
       "policy": "packageManagement",
       "node_id": "root",
       "execution_datetime": "2019-12-15T12:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1225,7 +1225,7 @@
       "policy": "packageManagement",
       "node_id": "root",
       "execution_datetime": "2019-12-15T13:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1238,7 +1238,7 @@
       "policy": "packageManagement",
       "node_id": "root",
       "execution_datetime": "2019-12-15T14:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1251,7 +1251,7 @@
       "policy": "packageManagement",
       "node_id": "root",
       "execution_datetime": "2019-12-15T15:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1264,7 +1264,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-15T16:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1277,7 +1277,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-15T17:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1290,7 +1290,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-15T18:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1303,7 +1303,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-15T19:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1316,7 +1316,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-15T20:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1329,7 +1329,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-15T21:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1342,7 +1342,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-15T22:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2019-12-02T14:24:20+00:00",
@@ -1355,7 +1355,7 @@
       "policy": "Common",
       "node_id": "root",
       "execution_datetime": "2019-12-15T23:51:55+00:00",
-      "serial": 0
+      "report_id": "0"
     }
   ]
 }

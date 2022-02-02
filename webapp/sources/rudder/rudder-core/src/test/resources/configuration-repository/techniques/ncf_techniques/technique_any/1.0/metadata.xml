@@ -24,9 +24,9 @@
     </FILES>
   </AGENT>
   <SECTIONS>
-    <SECTION component="true" multivalued="true" name="Test component$&amp;é)à\'&quot;">
+    <SECTION component="true" multivalued="true" id="id" name="Test component$&amp;é)à\'&quot;">
       <REPORTKEYS>
-        <VALUE>${node.properties[apache_package_name]}</VALUE>
+        <VALUE id="id">${node.properties[apache_package_name]}</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION name="Technique parameters">

@@ -69,7 +69,7 @@ CREATE TABLE RudderSysEvents (
 , nodeId             text NOT NULL CHECK (nodeId <> '')
 , directiveId        text NOT NULL CHECK (directiveId <> '')
 , ruleId             text NOT NULL CHECK (ruleId <> '')
-, serial             integer NOT NULL
+, reportId           text NOT NULL CHECK (reportId <> '')
 , component          text NOT NULL CHECK (component <> '')
 , keyValue           text
 , executionTimeStamp timestamp with time zone NOT NULL
@@ -95,7 +95,7 @@ CREATE TABLE ArchivedRudderSysEvents (
 , nodeId             text NOT NULL CHECK (nodeId <> '')
 , directiveId        text NOT NULL CHECK (directiveId <> '')
 , ruleId             text NOT NULL CHECK (ruleId <> '')
-, serial             integer NOT NULL
+, reportId           text NOT NULL CHECK (reportId <> '')
 , component          text NOT NULL CHECK (component <> '')
 , keyValue           text
 , executionTimeStamp timestamp with time zone NOT NULL

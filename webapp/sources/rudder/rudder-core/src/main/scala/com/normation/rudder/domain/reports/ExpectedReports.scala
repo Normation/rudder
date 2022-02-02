@@ -144,13 +144,9 @@ final case class BlockExpectedReport (
 
 final case class ValueExpectedReport(
     componentName             : String
-
-  //TODO: change that to have a Seq[(String, String).
-  //or even better, un Seq[ExpectedValue] where expectedValue is the pair
-  , componentsValues          : List[String]
-  , unexpandedComponentsValues: List[String]
+  , componentsValues          : List[ExpectedValue]
 ) extends  ComponentExpectedReport {
-
+/*
   /**
    * Get a normalized list of pair of (value, unexpandedvalue).
    * We have three case to consider:
@@ -172,8 +168,13 @@ final case class ValueExpectedReport(
       val unmatchedValues = componentsValues.drop(n)
       componentsValues.take(n).zip(unexpandedComponentsValues) ++ unmatchedValues.zip(unmatchedValues)
     }
-  }
+  }*/
 }
+
+sealed trait ExpectedValue
+
+case class ExpectedValueId(value : String, id : String) extends  ExpectedValue
+case class ExpectedValueMatch(value : String, unexpandedValue : String) extends  ExpectedValue
 
 final case class NodeConfigId(value: String) extends AnyVal
 
@@ -258,19 +259,32 @@ object ExpectedReportsSerialisation {
     )
   }
 
+
+  def jsonComponentExpectedReport(c : ExpectedValue): JValue = {
+    c match {
+      case v : ExpectedValueId =>
+        ( ( "value" -> v.value)
+        ~ ( "id" -> v.id )
+        )
+      case v : ExpectedValueMatch =>
+        ( ( "value" -> v.value )
+        ~ ( "unexpanded" -> v.unexpandedValue)
+        )
+    }
+  }
+
   def jsonComponentExpectedReport(c : ComponentExpectedReport): JValue = {
 
     c match {
       case c: ValueExpectedReport =>
-        (("componentName" -> c.componentName)
-          ~ ("values" -> c.componentsValues)
-          ~ ("unexpanded" -> c.unexpandedComponentsValues)
-          )
+        ( ("componentName" -> c.componentName)
+        ~ ("values" -> c.componentsValues.map(jsonComponentExpectedReport))
+        )
       case c: BlockExpectedReport =>
-        (("componentName" -> c.componentName)
-          ~ ("reportingLogic" -> (c.reportingLogic.value))
-          ~ ("subComponents" -> c.subComponents.map(jsonComponentExpectedReport))
-          )
+        ( ("componentName" -> c.componentName)
+        ~ ("reportingLogic" -> (c.reportingLogic.value))
+        ~ ("subComponents" -> c.subComponents.map(jsonComponentExpectedReport))
+        )
     }
   }
   def jsonRuleExpectedReports(rules: List[RuleExpectedReports]): JArray = {
@@ -443,22 +457,44 @@ object ExpectedReportsSerialisation {
       }
     }
 
+    def value(json : JValue) = {
+
+      ( (json \ "value").extractOpt[String]
+      , (json \ "id").extractOpt[String]
+      , (json \ "unexpanded").extractOpt[String]
+      ) match {
+        case ( Some (value),Some(id), _ ) => Full(ExpectedValueId(value,id))
+        case ( Some (value),_, Some(unexpanded) ) => Full(ExpectedValueMatch(value,unexpanded))
+        case _ => Failure("")
+      }
+    }
 
     def component(json: JValue): Box[ComponentExpectedReport] = {
       (
           (json \ "componentName" )
+        , (json \ "values")
         , (json \ "values").extractOpt[List[String]]
         , (json \ "unexpanded").extractOpt[List[String]]
         , (json \ "subComponents") match {
-        case JArray(subs) => Some(com.normation.utils.Control.sequence(subs)(component))
+        case JArray(subs) => Some(sequence(subs)(component))
         case _=> None
       }
 
         , (json \ "reportingLogic").extractOpt[String]
      ) match {
-        case (JString(name), Some(values), Some(unexpanded), None, None ) =>
-          Full(ValueExpectedReport(name, values, unexpanded))
-        case (JString(name), _, _, Some(Full(sub)), Some(composition) )=>
+        case (JString(name), values, None, _, None, None ) =>
+              for {
+                values <- values match {
+                  case JArray(arrayValues) => sequence(arrayValues)(value)
+                  case _ => Failure("")
+                }
+              } yield {
+                ValueExpectedReport(name, values.toList)
+
+              }
+        case (JString(name), _, Some(values), Some(unexpanded), None, None ) =>
+          Full(ValueExpectedReport(name, values.zip(unexpanded).map(ExpectedValueMatch.tupled)))
+        case (JString(name),_,  _, _, Some(Full(sub)), Some(composition) )=>
           for {
             reportingLogic <-  ReportingLogic.parse(composition).toBox
           } yield {

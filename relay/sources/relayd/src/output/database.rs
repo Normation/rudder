@@ -35,7 +35,7 @@ pub mod schema {
             policy -> Nullable<Text>,
             nodeid -> Text,
             executiontimestamp -> Nullable<Timestamptz>,
-            serial -> Integer,
+            reportid -> Text,
         }
     }
 
@@ -112,7 +112,7 @@ pub fn insert_runlog(pool: &PgPool, runlog: &RunLog) -> Result<RunlogInsertion, 
                     .and(policy.eq(&first_report.policy))
                     .and(executiontimestamp.eq(&first_report.start_datetime))
                     .and(executiondate.eq(&first_report.execution_datetime))
-                    .and(serial.eq(&first_report.serial))
+                    .and(reportid.eq(&first_report.report_id))
                     .and(ruleid.eq(&first_report.rule_id))
                     .and(directiveid.eq(&first_report.directive_id)),
             )

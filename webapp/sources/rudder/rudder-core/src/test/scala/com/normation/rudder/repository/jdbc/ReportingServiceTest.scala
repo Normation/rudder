@@ -257,18 +257,18 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //  val expecteds = (
 //    Map[DB.ExpectedReports[Unit], Seq[DB.ExpectedReportsNodes]]()
 //    ++ expect("r0", 1)( //r0 @ t1
-//        (1, "r0_d0", "r0_d0_c0", 1, """["r0_d0_c0_v0"]""", gen1, Some(gen2), allNodes_t1 )
-//      , (1, "r0_d0", "r0_d0_c1", 1, """["r0_d0_c1_v0"]""", gen1, Some(gen2), allNodes_t1 )
+//        (1, "r0_d0", "r0_d0_c0", "report_id", """["r0_d0_c0_v0"]""", gen1, Some(gen2), allNodes_t1 )
+//      , (1, "r0_d0", "r0_d0_c1", "report_id", """["r0_d0_c1_v0"]""", gen1, Some(gen2), allNodes_t1 )
 //    )
 //    ++ expect("r1", 1)( //r1 @ t1
-//        (2, "r1_d1", "r1_d1_c0", 1, """["r1_d1_c0_v0"]""", gen1, Some(gen2), allNodes_t1 )
+//        (2, "r1_d1", "r1_d1_c0", "report_id", """["r1_d1_c0_v0"]""", gen1, Some(gen2), allNodes_t1 )
 //    )
 //    ++ expect("r0", 2)( //r0 @ t2
-//        (3, "r0_d0", "r0_d0_c0", 1, """["r0_d0_c0_v1"]""", gen2, None, allNodes_t2 )
-//      , (3, "r0_d0", "r0_d0_c1", 1, """["r0_d0_c1_v1"]""", gen2, None, allNodes_t2 )
+//        (3, "r0_d0", "r0_d0_c0", "report_id", """["r0_d0_c0_v1"]""", gen2, None, allNodes_t2 )
+//      , (3, "r0_d0", "r0_d0_c1", "report_id", """["r0_d0_c1_v1"]""", gen2, None, allNodes_t2 )
 //    )
 //    ++ expect("r2", 1)( //r2 @ t2
-//        (4, "r2_d2", "r2_d2_c0", 1, """["r2_d2_c0_v0"]""", gen2, None, allNodes_t2 )
+//        (4, "r2_d2", "r2_d2_c0", "report_id", """["r2_d2_c0_v0"]""", gen2, None, allNodes_t2 )
 //    )
 //  )
 
@@ -278,42 +278,42 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
         // no run
     )
     + node("n1")( //run 1: no config version ; no run 2
-          ("rudder", 1, "common", "start", "", run1, "control", "Start execution")
-        , ("r0", 1, "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg")
-        , ("r0", 1, "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg")
-        , ("r1", 1, "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg")
-        , ("rudder", 1, "common", "end", "", run1, "control", "End execution")
+          ("rudder", "report_id", "common", "start", "", run1, "control", "Start execution")
+        , ("r0", "report_id", "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg")
+        , ("r0", "report_id", "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg")
+        , ("r1", "report_id", "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg")
+        , ("rudder", "report_id", "common", "end", "", run1, "control", "End execution")
     )
     + node("n2")( //run 1: config version ; no run 2
-          ("rudder", 1, "common", "start", "n2_t1", run1, "control", "Start execution")
-        , ("r0", 1, "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg")
-        , ("r0", 1, "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg")
-        , ("r1", 1, "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg")
-        , ("rudder", 1, "common", "end", "n2_t1", run1, "control", "End execution")
+          ("rudder", "report_id", "common", "start", "n2_t1", run1, "control", "Start execution")
+        , ("r0", "report_id", "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg")
+        , ("r0", "report_id", "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg")
+        , ("r1", "report_id", "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg")
+        , ("rudder", "report_id", "common", "end", "n2_t1", run1, "control", "End execution")
     )
     + node("n3")( //run 1 and run 2 : no config version
-          ("rudder", 1, "common", "start", "", run1, "control", "Start execution")
-        , ("r0", 1, "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg")
-        , ("r0", 1, "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg")
-        , ("r1", 1, "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg")
-        , ("rudder", 1, "common", "end", "", run1, "control", "End execution")
-        , ("rudder", 1, "common", "start", "", run2, "control", "Start execution")
-        , ("r0", 2, "r0_d0", "r0_d0_c0", "r0_d0_c0_v1", run2, "result_success", "msg")
-        , ("r0", 2, "r0_d0", "r0_d0_c1", "r0_d0_c1_v1", run2, "result_success", "msg")
-        , ("r2", 1, "r2_d2", "r2_d2_c0", "r2_d2_c0_v0", run2, "result_success", "msg")
-        , ("rudder", 1, "common", "end", "", run2, "control", "End execution")
+          ("rudder", "report_id", "common", "start", "", run1, "control", "Start execution")
+        , ("r0", "report_id", "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg")
+        , ("r0", "report_id", "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg")
+        , ("r1", "report_id", "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg")
+        , ("rudder", "report_id", "common", "end", "", run1, "control", "End execution")
+        , ("rudder", "report_id", "common", "start", "", run2, "control", "Start execution")
+        , ("r0", "report_id2", "r0_d0", "r0_d0_c0", "r0_d0_c0_v1", run2, "result_success", "msg")
+        , ("r0", "report_id2", "r0_d0", "r0_d0_c1", "r0_d0_c1_v1", run2, "result_success", "msg")
+        , ("r2", "report_id", "r2_d2", "r2_d2_c0", "r2_d2_c0_v0", run2, "result_success", "msg")
+        , ("rudder", "report_id", "common", "end", "", run2, "control", "End execution")
     )
     + node("n4")( //run 1 and run 2 : one config version
-          ("rudder", 1, "common", "start", "n4_t1", run1, "control", "Start execution")
-        , ("r0", 1, "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg")
-        , ("r0", 1, "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg")
-        , ("r1", 1, "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg")
-        , ("rudder", 1, "common", "end", "n4_t1", run1, "control", "End execution")
-        , ("rudder", 1, "common", "start", "n4_t1", run2, "control", "Start execution")
-        , ("r0", 2, "r0_d0", "r0_d0_c0", "r0_d0_c0_v1", run2, "result_success", "msg")
-        , ("r0", 2, "r0_d0", "r0_d0_c1", "r0_d0_c1_v1", run2, "result_success", "msg")
-        , ("r2", 1, "r2_d2", "r2_d2_c0", "r2_d2_c0_v0", run2, "result_success", "msg")
-        , ("rudder", 1, "common", "end", "n4_t1", run2, "control", "End execution")
+          ("rudder", "report_id", "common", "start", "n4_t1", run1, "control", "Start execution")
+        , ("r0", "report_id", "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg")
+        , ("r0", "report_id", "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg")
+        , ("r1", "report_id", "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg")
+        , ("rudder", "report_id", "common", "end", "n4_t1", run1, "control", "End execution")
+        , ("rudder", "report_id", "common", "start", "n4_t1", run2, "control", "Start execution")
+        , ("r0", "report_id2", "r0_d0", "r0_d0_c0", "r0_d0_c0_v1", run2, "result_success", "msg")
+        , ("r0", "report_id2", "r0_d0", "r0_d0_c1", "r0_d0_c1_v1", run2, "result_success", "msg")
+        , ("r2", "report_id", "r2_d2", "r2_d2_c0", "r2_d2_c0_v0", run2, "result_success", "msg")
+        , ("rudder", "report_id", "common", "end", "n4_t1", run2, "control", "End execution")
     )
   )
 
@@ -478,7 +478,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //           * The current config is not older than period+5
 //           * so it's pending.
 //           */
-//          nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
+//          nodeStatus("n0", None, Some("n0_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -490,7 +490,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //           * bad reports.
 //           * So we look for current config, it's still pending.
 //           */
-//        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
+//        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -500,7 +500,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //           * Here, we have a config version in the run, but we only have one run for t1.
 //           * As all serial changed for the second run, we are pending everything
 //           */
-//        , nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
+//        , nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -511,7 +511,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //           * The last run is *not* too recent, so we are pending
 //           *
 //           */
-//        , nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
+//        , nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -519,7 +519,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //          ))
 //
 //          //here, it just works as expected
-//        , nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
+//        , nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", EnforceSuccess, List("msg")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", EnforceSuccess, List("msg")))
@@ -548,17 +548,17 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //          /**
 //           * changed not to long ago => pending
 //           */
-//          nodeStatus("n0", None, Some("n0_t2"), "r2", 1,
+//          nodeStatus("n0", None, Some("n0_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
 //              )
 //          ))
 //          /*
-//           * Here, that might have been a success because we think that we still can get a run 2,
+//           * Here, that might have been a success because we think that we still can get a run "report_id2",
 //           * and so for now, all is good.
 //           * But as serial changed, and r2 is completlly new => pending
 //           */
-//        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", 1,
+//        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
 //              )
@@ -566,7 +566,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //          /*
 //           * For n2, simple pending
 //           */
-//        , nodeStatus("n2", Some(run1), Some("n2_t2"), "r2", 1,
+//        , nodeStatus("n2", Some(run1), Some("n2_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
 //              )
@@ -574,12 +574,12 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //          /*
 //           * no config version but still in pending/grace
 //           */
-//        , nodeStatus("n3", Some(run2), Some("n3_t2"), "r2", 1,
+//        , nodeStatus("n3", Some(run2), Some("n3_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
 //              )
 //          ))
-//        , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
+//        , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", EnforceSuccess, List("msg")))
 //              )
@@ -609,7 +609,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //           * n0: no run at all, so no run in the last 5 minutes but we are still
 //           * not expired => Applying
 //           */
-//          nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
+//          nodeStatus("n0", None, Some("n0_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -620,7 +620,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //           * since no config version, we are looking for a newer result.
 //           * As the grace period is still running, it's "pending"
 //           */
-//        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
+//        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -630,7 +630,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //           * Here, we have pending, because we are still in the grace period and
 //           * hoping for run with config 2 to happen
 //           */
-//        , nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
+//        , nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -641,13 +641,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //           * the oldest config is still recend and we are still in grace period
 //           * for the latest => pending
 //           */
-//        , nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
+//        , nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
 //              )
 //          ))
-//        , nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
+//        , nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", EnforceSuccess, List("msg")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", EnforceSuccess, List("msg")))
@@ -670,7 +670,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //      val result = r.openOrThrowException("'Test failed'")
 //
 //      val expected = Seq(
-//          nodeStatus("n0", None, Some("n0_t2"), "r2", 1,
+//          nodeStatus("n0", None, Some("n0_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
 //              )
@@ -678,22 +678,22 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //          /*
 //           * We got a run without config, so it can still happen
 //           */
-//        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", 1,
+//        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
 //              )
 //          ))
-//        , nodeStatus("n2", Some(run1), Some("n2_t2"), "r2", 1,
+//        , nodeStatus("n2", Some(run1), Some("n2_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
 //              )
 //          ))
-//        , nodeStatus("n3", Some(run2), Some("n3_t2"), "r2", 1,
+//        , nodeStatus("n3", Some(run2), Some("n3_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
 //              )
 //          ))
-//        , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
+//        , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", EnforceSuccess, List("msg")))
 //              )
@@ -718,13 +718,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //      val r = errorOnlyReportingService.findNodeStatusReport(NodeId("n0"))
 //      val result = r.openOrThrowException("'Test failed'")
 //      compareNodeStatus(result.report.reports, Seq(
-//          nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
+//          nodeStatus("n0", None, Some("n0_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
 //              )
 //          ))
-//        , nodeStatus("n0", None, Some("n0_t2"), "r2", 1,
+//        , nodeStatus("n0", None, Some("n0_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
 //              )
@@ -737,7 +737,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //      val r = errorOnlyReportingService.findNodeStatusReport(NodeId("n1"))
 //      val result = r.openOrThrowException("'Test failed'")
 //      compareNodeStatus(result.byRules("r0").reports, Seq(
-//          nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
+//          nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -752,7 +752,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //      val result = r.openOrThrowException("'Test failed'")
 //      val all = result.byRules("r0").reports
 //      compareNodeStatus(all, Seq(
-//          nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
+//          nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -767,7 +767,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //      val result = r.openOrThrowException("'Test failed'")
 //      val all = result.byRules("r0").reports
 //      compareNodeStatus(all, Seq(
-//          nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
+//          nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -782,13 +782,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //      val result = r.openOrThrowException("'Test failed'")
 //      val all = result.byRules("r0").reports ++ result.byRules("r2").reports
 //      compareNodeStatus(all, Seq(
-//          nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
+//          nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", EnforceSuccess, List("msg")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", EnforceSuccess, List("msg")))
 //              )
 //          ))
-//        , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
+//        , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", EnforceSuccess, List("msg")))
 //              )
@@ -808,7 +808,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //      val result = r.openOrThrowException("'Test failed'")
 //      val all = result.byRules("r0").reports
 //      compareNodeStatus(all, Seq(
-//          nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
+//          nodeStatus("n0", None, Some("n0_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -822,13 +822,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //      val r = complianceReportingService.findNodeStatusReport(NodeId("n1"))
 //      val result = r.openOrThrowException("'Test failed'")
 //      compareNodeStatus(result.report.reports, Seq(
-//          nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
+//          nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
 //              )
 //          ))
-//        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", 1,
+//        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
 //              )
@@ -852,7 +852,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //      val result = r.openOrThrowException("'Test failed'")
 //      val all = result.byRules("r0").reports
 //      compareNodeStatus(all, Seq(
-//          nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
+//          nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -867,7 +867,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //      val result = r.openOrThrowException("'Test failed'")
 //      val all = result.byRules("r0").reports
 //      compareNodeStatus(all, Seq(
-//          nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
+//          nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
@@ -881,13 +881,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //      val r = complianceReportingService.findNodeStatusReport(NodeId("n4"))
 //      val result = r.openOrThrowException("'Test failed'")
 //      compareNodeStatus(result.report.reports, Seq(
-//          nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
+//          nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", "report_id2",
 //              ("r0_d0", Seq(
 //                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", EnforceSuccess, List("msg")))
 //                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", EnforceSuccess, List("msg")))
 //              )
 //          ))
-//        , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
+//        , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", "report_id",
 //              ("r2_d2", Seq(
 //                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", EnforceSuccess, List("msg")))
 //              )
@@ -927,7 +927,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //    ids.map(id => NodeAndConfigId(NodeId(id._1), NodeConfigId(id._2))).toSet
 //  }
 
-  implicit def toReport(t:(DateTime,String, String, String, Int, String, String, DateTime, String, String)): Reports = {
+  implicit def toReport(t:(DateTime,String, String, String, String, String, String, DateTime, String, String)): Reports = {
     implicit def toRuleId(s:String) = RuleId(RuleUid(s))
     implicit def toDirectiveId(s: String) = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
     implicit def toNodeId(s: String) = NodeId(s)
@@ -975,7 +975,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //  }
 
   //         nodeId               ruleId  serial dirId   comp     keyVal   execTime   severity  msg
-  def node(nodeId:String)(lines: (String, Int,   String, String,  String,  DateTime,  String,   String)*): (String, Seq[Reports]) = {
+  def node(nodeId:String)(lines: (String, String,   String, String,  String,  DateTime,  String,   String)*): (String, Seq[Reports]) = {
     (nodeId, lines.map(t => toReport((t._6, t._1, t._3, nodeId, t._2,t._4,t._5,t._6,t._7,t._8))))
   }
 

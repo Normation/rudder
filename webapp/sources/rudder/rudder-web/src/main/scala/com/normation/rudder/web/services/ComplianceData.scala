@@ -499,7 +499,7 @@ object ComplianceData extends Loggable {
     } yield {
       val techniqueName    = fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
       val techniqueVersion = directive.techniqueVersion
-      val components       =  getComponentsComplianceDetails(directiveStatus.components.values.toSet, true)
+      val components       =  getComponentsComplianceDetails(directiveStatus.components.toSet, true)
       val (policyMode,explanation) = computeMode(directive.policyMode)
       val directiveTags    = JsonTagSerialisation.serializeTags(directive.tags)
       DirectiveComplianceLine (
@@ -534,11 +534,11 @@ object ComplianceData extends Loggable {
       case component : ValueStatusReport =>
 
       val (noExpand, values) = if(!includeMessage) {
-        (true, getValuesComplianceDetails(component.componentValues.values.toSet))
+        (true, getValuesComplianceDetails(component.componentValues.toSet))
       } else {
-        val noExpand  = component.componentValues.forall( x => x._1 == DEFAULT_COMPONENT_KEY)
+        val noExpand  = component.componentValues.forall( x => x.componentValue == DEFAULT_COMPONENT_KEY)
 
-        (noExpand, getValuesComplianceDetails(component.componentValues.values.toSet))
+        (noExpand, getValuesComplianceDetails(component.componentValues.toSet))
       }
 
       ValueComplianceLine(

@@ -161,7 +161,7 @@ class ComplianceTest extends Specification {
 
   def readReports(filename:String): Box[List[Reports]] = {
     for {
-      lines <- read(filename, List("id", "executiondate", "nodeid", "directiveid", "ruleid", "serial", "component", "keyvalue", "executiontimestamp", "eventtype", "policy", "msg"))
+      lines <- read(filename, List("id", "executiondate", "nodeid", "directiveid", "ruleid", "reportid", "component", "keyvalue", "executiontimestamp", "eventtype", "policy", "msg"))
     } yield {
       lines.map( l =>
         Reports(
@@ -169,7 +169,7 @@ class ComplianceTest extends Specification {
           , RuleId(RuleUid(l (4)))
           , DirectiveId(DirectiveUid(l(3)))
           , NodeId(l(2))
-          , l(5).toInt
+          , l(5)
           , l(6)
           , l(7)
           , dateParser.parseDateTime(l(8))
@@ -214,7 +214,7 @@ class ComplianceTest extends Specification {
       val runinfo = ComputeCompliance(runTime, config, runTime)
       val status = ExecutionBatch.getNodeStatusReports(config.nodeId, runinfo, reports, UnexpectedReportInterpretation(Set()))
 
-      status.compliance must beEqualTo(ComplianceLevel(success=18, notApplicable = 8))
+      status.compliance must beEqualTo(ComplianceLevel(success=17, notApplicable = 8))
     }
   }
 
@@ -235,7 +235,7 @@ class ComplianceTest extends Specification {
       val runinfo = ComputeCompliance(runTime, config, runTime)
       val status = ExecutionBatch.getNodeStatusReports(config.nodeId, runinfo, reports, UnexpectedReportInterpretation(Set()))
 
-      status.compliance must beEqualTo(ComplianceLevel(success=34, notApplicable = 5))
+      status.compliance must beEqualTo(ComplianceLevel(success=33, notApplicable = 5))
     }
   }
 }

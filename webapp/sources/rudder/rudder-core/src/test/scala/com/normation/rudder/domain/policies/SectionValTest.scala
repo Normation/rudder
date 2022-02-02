@@ -64,6 +64,7 @@ class SectionValTest extends Specification with Loggable {
                 InputVariableSpec(
                     name = "var1"
                   , description = ""
+                  , id = None
                 ) ::
                 Nil
           ) ::
@@ -146,18 +147,18 @@ class SectionValTest extends Specification with Loggable {
           SectionSpec(
               name = "sec0"
             , children =
-                InputVariableSpec(name = "var0", description = "" ) ::
+                InputVariableSpec(name = "var0", description = "", id = None ) ::
                 Nil
           ) ::
           SectionSpec(
               name = "sec1"
             , isMultivalued = true
             , children =
-                InputVariableSpec(name = "var1", description = "" ) ::
+                InputVariableSpec(name = "var1", description = "", id = None ) ::
                 SectionSpec(
                     name = "sec2"
                   , children =
-                      InputVariableSpec(name = "var2", description = "" ) ::
+                      InputVariableSpec(name = "var2", description = "", id = None ) ::
                       Nil
                 ) ::
                 Nil
@@ -166,16 +167,16 @@ class SectionValTest extends Specification with Loggable {
           SectionSpec(
               name = "sec3"
             , children =
-                InputVariableSpec(name = "var3", description = "" ) ::
+                InputVariableSpec(name = "var3", description = "", id = None ) ::
                 SectionSpec(
                     name = "sec4"
                   , isMultivalued = true
                   , children =
-                      InputVariableSpec(name = "var4", description = "" ) ::
+                      InputVariableSpec(name = "var4", description = "", id = None ) ::
                       SectionSpec(
                           name = "sec5"
                         , children =
-                            InputVariableSpec(name = "var5", description = "" ) ::
+                            InputVariableSpec(name = "var5", description = "", id = None ) ::
                             Nil
                       ) ::
                       Nil

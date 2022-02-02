@@ -158,22 +158,22 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   def jparse(s: String): JValue = try { parse(s) } catch { case ex: Exception => JString(s) }
 
   //two variables
-  val var1 = InputVariableSpec("var1", "").toVariable(Seq("== ${rudder.param.foo} =="))
-  val var1_double = InputVariableSpec("var1_double", "").toVariable(Seq("== ${rudder.param.foo}${rudder.param.bar} =="))
-  val var1_double_space = InputVariableSpec("var1_double_space", "").toVariable(Seq("== ${rudder.param.foo} contains ${rudder.param.bar} =="))
+  val var1 = InputVariableSpec("var1", "", id = None).toVariable(Seq("== ${rudder.param.foo} =="))
+  val var1_double = InputVariableSpec("var1_double", "", id = None).toVariable(Seq("== ${rudder.param.foo}${rudder.param.bar} =="))
+  val var1_double_space = InputVariableSpec("var1_double_space", "", id = None).toVariable(Seq("== ${rudder.param.foo} contains ${rudder.param.bar} =="))
 
-  val pathCaseInsensitive = InputVariableSpec("pathCaseInsensitive", "").toVariable(Seq("== ${RudDer.paRam.foo} =="))
+  val pathCaseInsensitive = InputVariableSpec("pathCaseInsensitive", "", id = None).toVariable(Seq("== ${RudDer.paRam.foo} =="))
 
-  val paramNameCaseSensitive = InputVariableSpec("paramNameCaseSensitive", "").toVariable(Seq("== ${rudder.param.Foo} =="))
+  val paramNameCaseSensitive = InputVariableSpec("paramNameCaseSensitive", "", id = None).toVariable(Seq("== ${rudder.param.Foo} =="))
 
-  val recurVariable = InputVariableSpec("recurParam", "").toVariable(Seq("== ${rudder.param.recurToFoo} =="))
+  val recurVariable = InputVariableSpec("recurParam", "", id = None).toVariable(Seq("== ${rudder.param.recurToFoo} =="))
 
-  val dangerVariable = InputVariableSpec("danger", "").toVariable(Seq("${rudder.param.danger}"))
+  val dangerVariable = InputVariableSpec("danger", "", id = None).toVariable(Seq("${rudder.param.danger}"))
 
-  val multilineInputVariable = InputVariableSpec("multiInput", "").toVariable(Seq("=\r= \n${rudder.param.foo} =\n="))
-  val multilineNodePropVariable = InputVariableSpec("multiNodeProp", "").toVariable(Seq("=\r= \n${node.properties[datacenter][Europe]} =\n="))
+  val multilineInputVariable = InputVariableSpec("multiInput", "", id = None).toVariable(Seq("=\r= \n${rudder.param.foo} =\n="))
+  val multilineNodePropVariable = InputVariableSpec("multiNodeProp", "", id = None).toVariable(Seq("=\r= \n${node.properties[datacenter][Europe]} =\n="))
 
-  val var2 = InputVariableSpec("var1", "", multivalued = true).toVariable(Seq(
+  val var2 = InputVariableSpec("var1", "", multivalued = true, id = None).toVariable(Seq(
       "a${rudder.node.id})"
     , "=${rudder.node.hostname}/"
     , ".${rudder.node.admin}]"
@@ -182,9 +182,9 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     , "!${rudder.node.policyserver.admin}^"
   ))
 
-  val badEmptyRudder = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.} =="))
-  val badUnclosed = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.param.foo =="))
-  val badUnknown = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.foo} =="))
+  val badEmptyRudder = InputVariableSpec("empty", "", id = None).toVariable(Seq("== ${rudder.} =="))
+  val badUnclosed = InputVariableSpec("empty", "", id = None).toVariable(Seq("== ${rudder.param.foo =="))
+  val badUnknown = InputVariableSpec("empty", "", id = None).toVariable(Seq("== ${rudder.foo} =="))
 
   val fooParam = ParameterForConfiguration("foo", "fooValue")
   val barParam = ParameterForConfiguration("bar", "barValue")

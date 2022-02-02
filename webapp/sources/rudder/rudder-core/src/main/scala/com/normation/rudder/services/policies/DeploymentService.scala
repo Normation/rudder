@@ -106,6 +106,8 @@ import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.properties._
 import com.normation.rudder.domain.reports.BlockExpectedReport
+import com.normation.rudder.domain.reports.ExpectedValueId
+import com.normation.rudder.domain.reports.ExpectedValueMatch
 import com.normation.rudder.domain.reports.ValueExpectedReport
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 
@@ -1464,11 +1466,14 @@ object RuleExpectedReportBuilder extends Loggable {
       if(section.isComponent) {
         section.reportingLogic match {
           case None =>
-            section.componentKey match {
-              case None =>
+            (section.id,section.componentKey) match {
+              case (None, None) =>
                 //a section that is a component without componentKey variable: card=1, value="None"
-                ValueExpectedReport(section.name, List(DEFAULT_COMPONENT_KEY), List(DEFAULT_COMPONENT_KEY)) :: Nil
-              case Some(varName) =>
+                ValueExpectedReport(section.name, List(ExpectedValueMatch(DEFAULT_COMPONENT_KEY, DEFAULT_COMPONENT_KEY))) :: Nil
+              case (Some(id), None) =>
+                ValueExpectedReport(section.name, List(ExpectedValueId(DEFAULT_COMPONENT_KEY, id))) :: Nil
+              case (maybeId, Some(varName)) =>
+
                 //a section with a componentKey variable: card=variable card
                 // we are maybe not in a block, but we should only take the values matching the current parent path
                 val currentPath = section.name :: path // (varName is not in parent, but in value)
@@ -1478,31 +1483,47 @@ object RuleExpectedReportBuilder extends Loggable {
                 // In historical techniques, we have only one componentKey for all technique, and all sections
                 // so we cannot search it in a specific path, and must rather look for it everywhere if it doesn't match
 
-                val lookingPath = if ( vars.expandedVars.get(refComponentId).isDefined ) {
+                val (id, innerExpandedVars, innerUnexpandedVars) = vars.expandedVars.get(refComponentId) match {
                   // ok, the componentKey is in the current path, all is great
                   // this is a technique from technique editor, or an historical technique with the right section
-                  Some(refComponentId)
-                } else {
+                  case Some(innerExpandedVars) =>
+                    (innerExpandedVars.spec.id, innerExpandedVars.values.toList, vars.originalVars.get(refComponentId).map(_.values.toList).getOrElse(Nil))
+                  case None =>
                   // get the first variable that matches if it is not in the section
                   // it is only from historical techniques
-                  vars.expandedVars.find { case (_, variable) => variable.spec.name == varName }.map(_._1)
+                    vars.expandedVars.find { case (_, variable) => variable.spec.name == varName } match {
+                      case None => (None,Nil,Nil)
+                      case Some((comp,innerExpandedVars))=>
+                        (innerExpandedVars.spec.id, innerExpandedVars.values.toList, vars.originalVars.get(comp).map(_.values.toList).getOrElse(Nil))
+                    }
                 }
-                val innerExpandedVars = lookingPath.map(comp => vars.expandedVars.get(comp).map(_.values.toList).getOrElse(Nil)).getOrElse(Nil)
-                val innerUnexpandedVars = lookingPath.map(comp => vars.originalVars.get(comp).map(_.values.toList).getOrElse(Nil)).getOrElse(Nil)
 
                 if (innerExpandedVars.size != innerUnexpandedVars.size)
                   PolicyGenerationLogger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
                     section.componentKey, directiveId.serialize, innerExpandedVars, innerUnexpandedVars))
 
+                val values = maybeId match {
+                  case None =>
+                    id match {
+                      case None =>
+                        innerExpandedVars.zip( innerUnexpandedVars).map(ExpectedValueMatch.tupled)
+                      case Some(id) =>
+                        innerExpandedVars.map(v => ExpectedValueId(v, id) )
+                    }
+                  case Some(id) =>
+                    innerExpandedVars.map(v => ExpectedValueId(v, id) )
+
+                }
                 val children = section.children.collect{case c : SectionSpec => c }.flatMap(c => sectionToExpectedReports(path)(c)).toList
 
-                ValueExpectedReport(section.name, innerExpandedVars, innerUnexpandedVars) :: children
+                ValueExpectedReport(section.name,values) :: children
             }
           case Some(rule) =>
             // here, every values in the child will match because of the contains.
             // structure of componentId is "Component Name", List("Component Name", "current block", "parent block", "great parent block")
             val currentPath = section.name :: path
             val children = section.children.collect{case c : SectionSpec => c }.flatMap(c => sectionToExpectedReports(currentPath)(c)).toList
+            logger.warn(children)
             BlockExpectedReport(section.name, rule, children) :: Nil
 
         }
@@ -1522,7 +1543,7 @@ object RuleExpectedReportBuilder extends Loggable {
                                    s"expected report = 1 for directive ${directiveId.debugString}")
 
       val trackingVarCard = getTrackingVariableCardinality
-      List(ValueExpectedReport(technique.id.name.value, trackingVarCard._1.toList, trackingVarCard._2.toList))
+      List(ValueExpectedReport(technique.id.name.value, trackingVarCard._1.toList.zip(trackingVarCard._2.toList).map(ExpectedValueMatch.tupled)))
     } else {
       allComponents
     }

@@ -134,7 +134,7 @@ object PolicyWriterServiceImpl {
           case _:FileAlreadyExistsException => // too late, does nothing
         }
         optPerms.foreach(parent.setPermissions)
-        optGroupOwner.foreach(parent.setGroup)
+        //optGroupOwner.foreach(parent.setGroup)
       }
     }
 
@@ -147,7 +147,7 @@ object PolicyWriterServiceImpl {
       case Some(opts) => src.moveTo(dest)(opts)
       case None       => FileUtils.moveDirectory(src.toJava, dest.toJava)
     }
-    optGroupOwner.foreach(dest.setGroup(_))
+    //optGroupOwner.foreach(dest.setGroup(_))
   }
 
   //some file path to write in destination agent input directory:
@@ -257,7 +257,7 @@ class PolicyWriterServiceImpl(
       }
       createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
       file.writeText(text)(Seq(WRITE, TRUNCATE_EXISTING, CREATE), charset).setPermissions(filePerms)
-      optGroupOwner.foreach(file.setGroup)
+      //optGroupOwner.foreach(file.setGroup)
     }
 
     def createParentsAndWrite(content: Array[Byte], isRootServer: Boolean) = IOResult.effect {
@@ -268,7 +268,7 @@ class PolicyWriterServiceImpl(
       }
       createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
       file.writeByteArray(content)(Seq(WRITE, TRUNCATE_EXISTING, CREATE)).setPermissions(filePerms)
-      optGroupOwner.foreach(file.setGroup)
+      //optGroupOwner.foreach(file.setGroup)
     }
   }
 
