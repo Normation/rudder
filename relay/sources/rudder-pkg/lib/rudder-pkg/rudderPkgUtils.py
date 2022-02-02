@@ -35,7 +35,14 @@ def makedirs(path):
 
 
 def run(
-    cmd, input=None, stdout=DEVNULL, stderr=DEVNULL, capture_output=False, shell=False, check=False
+    cmd,
+    input=None,
+    stdin=DEVNULL,
+    stdout=DEVNULL,
+    stderr=DEVNULL,
+    capture_output=False,
+    shell=False,
+    check=False,
 ):
     """
     Local version of the run method define in the python 3.5+ versions of the subprocess module.
@@ -44,15 +51,24 @@ def run(
     The catch part is for compatibility with older python versions (ie 2.7) that do not support
     the subprocess.run function. We should be able to remove it when we will drop the support
     for centos7 for the rudder-server-root package
+
+    The raw options does execute the command with the subprocess.run function without any special redirection.
+    It is mandatory if you want to be able to stream the output and pass inputs dynamically.
     """
     logger.debug('Execute: %s' % cmd)
     if capture_output:
         stdout = subprocess.PIPE
         stderr = subprocess.PIPE
     try:
-        process = subprocess.run(
-            args=cmd, input=input, stdout=stdout, stderr=stderr, shell=shell, check=check
-        )
+        if input is not None:
+            stdin = subprocess.PIPE
+            process = subprocess.run(
+                args=cmd, input=input, stdout=stdout, stderr=stderr, shell=shell, check=check
+            )
+        else:
+            process = subprocess.run(
+                args=cmd, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, check=check
+            )
         return (process.returncode, process.stdout, process.stderr)
     except AttributeError as e:
         if input is not None:
@@ -546,6 +562,10 @@ def extract_scripts(metadata, package_file):
 
 
 def run_script(name, script_dir, exist, exit_on_error=True):
+    """
+    Use the raw option of the run function to enable inputs and output streaming
+    for the packaging scripts if needed.
+    """
     script = script_dir + '/' + name
     if os.path.isfile(script):
         if exist is None:
@@ -554,7 +574,8 @@ def run_script(name, script_dir, exist, exit_on_error=True):
             param = 'upgrade'
         else:
             param = 'install'
-        run([script, param], check=True)
+        # Use None everywhere to branch to stdin/err/out
+        run([script, param], check=True, stdin=None, stdout=None, stderr=None)
 
 
 def jar_status(name, enable):
