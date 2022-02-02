@@ -116,9 +116,9 @@ $(document).ready(function(){
   app.ports.infoNotification.subscribe(function(str) {
     createInfoNotification(str)
   });
-  /*app.ports.warnNotification.subscribe(function(str) {
-    createWarningNotification(str)
-  });*/
+  app.ports.clearTooltips.subscribe(function(str) {
+    $(".popover").remove();
+  });
     $(document).on('mouseover','.popover-bs',function(){
       $(this).bsPopover('show');
     });
