@@ -29,25 +29,25 @@
   </AGENT>
   <SECTIONS>
     <SECTION component="true" multivalued="true" name="block component" reporting="worst-case-weighted-sum">
-      <SECTION component="true" multivalued="true" name="Customized component">
+      <SECTION component="true" multivalued="true" id="id1" name="Customized component">
         <REPORTKEYS>
-          <VALUE>${node.properties[apache_package_name]}</VALUE>
+          <VALUE id="id1">${node.properties[apache_package_name]}</VALUE>
         </REPORTKEYS>
       </SECTION>
     </SECTION>
-    <SECTION component="true" multivalued="true" name="Command execution">
+    <SECTION component="true" multivalued="true" id="id3" name="Customized component">
       <REPORTKEYS>
-        <VALUE>/bin/echo &quot;testing special characters ` è &amp;é 'à é &quot;\</VALUE>
+        <VALUE id="id3">${node.properties[apache_package_name]}</VALUE>
       </REPORTKEYS>
     </SECTION>
-    <SECTION component="true" multivalued="true" name="Customized component">
+    <SECTION component="true" multivalued="true" id="id4" name="Package install">
       <REPORTKEYS>
-        <VALUE>${node.properties[apache_package_name]}</VALUE>
+        <VALUE id="id4">openssh-server</VALUE>
       </REPORTKEYS>
     </SECTION>
-    <SECTION component="true" multivalued="true" name="Package install">
+    <SECTION component="true" multivalued="true" id="id5" name="Command execution">
       <REPORTKEYS>
-        <VALUE>openssh-server</VALUE>
+        <VALUE id="id5">/bin/echo &quot;testing special characters ` è &amp;é 'à é &quot;\</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION name="Technique parameters">

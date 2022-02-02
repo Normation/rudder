@@ -131,7 +131,7 @@ pub fn report(i: &str) -> IResult<&str, ParsedReport> {
     let (i, _) = tag("@@")(i)?;
     let (i, directive_id) = take_until("@@")(i)?;
     let (i, _) = tag("@@")(i)?;
-    let (i, serial) = map_res(take_until("@@"), |i: &str| i.parse::<i32>())(i)?;
+    let (i, report_id) = take_until("@@")(i)?;
     let (i, _) = tag("@@")(i)?;
     let (i, component) = take_until("@@")(i)?;
     let (i, _) = tag("@@")(i)?;
@@ -154,7 +154,7 @@ pub fn report(i: &str) -> IResult<&str, ParsedReport> {
                 node_id: node_id.to_string(),
                 rule_id: rule_id.to_string(),
                 directive_id: directive_id.to_string(),
-                serial,
+                report_id: report_id.to_string(),
                 component: component.to_string(),
                 key_value: key_value.to_string(),
                 start_datetime,
@@ -245,7 +245,7 @@ pub struct QueryableReport {
     pub node_id: NodeId,
     #[column_name = "executiondate"]
     pub execution_datetime: Option<DateTime<Utc>>,
-    pub serial: i32,
+    pub report_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Insertable)]
@@ -271,7 +271,8 @@ pub struct Report {
     pub node_id: NodeId,
     #[column_name = "executiondate"]
     pub execution_datetime: DateTime<FixedOffset>,
-    pub serial: i32,
+    #[column_name = "reportid"]
+    pub report_id: String,
 }
 
 impl Display for Report {
@@ -283,7 +284,7 @@ impl Display for Report {
             self.event_type,
             self.rule_id,
             self.directive_id,
-            self.serial,
+            self.report_id,
             self.component,
             self.key_value,
             self.start_datetime,
@@ -318,7 +319,7 @@ mod tests {
                     msg: "Cron daemon status was repaired".into(),
                     policy: "Common".into(),
                     node_id: "root".into(),
-                    serial: 0,
+                    report_id: "0".into(),
                     execution_datetime: DateTime::parse_from_str(
                         "2018-08-24 15:55:01+00:00",
                         "%Y-%m-%d %H:%M:%S%z"
@@ -548,7 +549,7 @@ mod tests {
                     msg: "Cron daemon status was repaired".into(),
                     policy: "Common".into(),
                     node_id: "root".into(),
-                    serial: 0,
+                    report_id: "0".into(),
                     execution_datetime: DateTime::parse_from_str(
                         "2018-08-24 15:55:01+00:00",
                         "%Y-%m-%d %H:%M:%S%z"
@@ -578,7 +579,7 @@ mod tests {
                     msg: "Cron daemon status was repaired".into(),
                     policy: "Common".into(),
                     node_id: "root".into(),
-                    serial: 0,
+                    report_id: "0".into(),
                     execution_datetime: DateTime::parse_from_str(
                         "2018-08-24 15:55:01+00:00",
                         "%Y-%m-%d %H:%M:%S%z"

@@ -317,32 +317,25 @@ class TechniqueWriter (
 
   def techniqueMetadataContent(technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean) : PureResult[XmlNode] = {
 
-    def reportingValuePerBlock (component : String, calls : Seq[MethodBlock]) : PureResult[List[NodeSeq]] = {
+    def reportingValuePerBlock (block : MethodBlock) : PureResult[NodeSeq] = {
 
       for {
-        res <- calls.toList.traverse(block =>
-          for {
             childs <- reportingSections(block.calls)
           } yield {
             if (childs.isEmpty) {
               NodeSeq.Empty
             } else {
               val reportingLogic = block.reportingLogic.value
-              <SECTION component="true" multivalued="true" name={component} reporting={reportingLogic}>
+              <SECTION component="true" multivalued="true" name={block.component} reporting={reportingLogic}>
                 {childs}
               </SECTION>
             }
-          })
-      } yield {
-        res
-      }
+          }
     }
 
-    def reportingValuePerMethod (component: String, calls :Seq[MethodCall]) : PureResult[Seq[XmlNode]] = {
+    def reportingValuePerMethod (call : MethodCall) : PureResult[Seq[XmlNode]] = {
       for {
-        spec <- calls.toList.traverse ( call =>
-          for {
-            method <- methods.get(call.methodId) match {
+        method <- methods.get(call.methodId) match {
               case None => Left(MethodNotFound(s"Cannot find method ${call.methodId.value} when writing a method call of Technique '${technique.bundleName.value}'", None))
               case Some(m) => Right(m)
             }
@@ -352,15 +345,10 @@ class TechniqueWriter (
             }
 
           } yield {
-            <VALUE>{class_param}</VALUE>
-          }
 
-        )
-      } yield {
-
-        <SECTION component="true" multivalued="true" name={component}>
+        <SECTION component="true" multivalued="true" id={call.id} name={call.component}>
           <REPORTKEYS>
-            {spec}
+            <VALUE id={call.id}>{class_param}</VALUE>
           </REPORTKEYS>
         </SECTION>
 
@@ -368,22 +356,12 @@ class TechniqueWriter (
     }
 
     def reportingSections(sections : List[MethodElem]) = {
-      val expectedReportingMethodsWithValues =
-        for {
-          (component, methodCalls) <- sections.collect{case m : MethodCall => m }.filterNot(m => m.disabledReporting || m.methodId.value.startsWith("_")).groupBy(_.component).toList.sortBy(_._1)
-        } yield {
-          (component, methodCalls)
-        }
-      val expectedGroupReportingMethodsWithValues =
-        for {
-          (component, methodCalls) <- sections.collect{case m : MethodBlock => m }.groupBy(_.component).toList.sortBy(_._1)
-        } yield {
-          (component, methodCalls)
-        }
+      val expectedReportingMethodsWithValues = sections.collect{case m : MethodCall => m }.filterNot(m => m.disabledReporting || m.methodId.value.startsWith("_"))
+      val expectedGroupReportingMethodsWithValues =sections.collect{case m : MethodBlock => m }
 
       for {
-        uniqueSection <- expectedReportingMethodsWithValues.traverse((reportingValuePerMethod _).tupled)
-        groupSection <- expectedGroupReportingMethodsWithValues.traverse((reportingValuePerBlock _).tupled)
+        uniqueSection <- expectedReportingMethodsWithValues.traverse(reportingValuePerMethod)
+        groupSection <- expectedGroupReportingMethodsWithValues.traverse(reportingValuePerBlock)
       } yield {
         groupSection ::: uniqueSection
       }
@@ -583,7 +561,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
   def reportingContext(methodCall: MethodCall, classParameterValue: String ) = {
     val component  = escapeCFEngineString(methodCall.component)
     val value = escapeCFEngineString(classParameterValue)
-    s"""_method_reporting_context("${component}", "${value}")"""
+    s"""_method_reporting_context_v4("${component}", "${value}","${methodCall.id}")"""
   }
 
 

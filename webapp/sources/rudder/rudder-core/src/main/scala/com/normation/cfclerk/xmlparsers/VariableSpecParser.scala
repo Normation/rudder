@@ -92,10 +92,11 @@ class VariableSpecParser extends Loggable {
   private[this] val reservedVariableName = DEFAULT_COMPONENT_KEY :: TRACKINGKEY :: Nil
 
   def parseTrackerVariableSpec(node:Node): Either[LoadTechniqueError, TrackerVariableSpec] = {
+    val id = (node \ ("@reporting")).headOption.map( _.text)
     if(node.label != TRACKINGVAR) {
       Left(LoadTechniqueError.Consistancy(s"Bad node: I was expecting a <${TRACKINGVAR}> and got: ${node}"))
     } else {
-      Right(TrackerVariableSpec((node \ TRACKINGVAR_SIZE).headOption.map( _.text )))
+      Right(TrackerVariableSpec((node \ TRACKINGVAR_SIZE).headOption.map( _.text ),id))
     }
   }
 
@@ -103,6 +104,7 @@ class VariableSpecParser extends Loggable {
   def parseSectionVariableSpec(parentSectionName: String, elt: Node): Either[LoadTechniqueError, (SectionVariableSpec, List[SectionVariableSpec])] = {
 
     val markerName = elt.label
+    val id = (elt \ ("@id")).headOption.map( _.text)
     if (!SectionVariableSpec.isVariable(markerName)) {
       Left(LoadTechniqueError.Consistancy(s"The node '${markerName}' is not a variable specification node: it should be one of ${SectionVariableSpec.markerNames.mkString("<", ">, <", ">")}"))
 
@@ -132,6 +134,7 @@ class VariableSpecParser extends Loggable {
         , checked = true
         , constraint = Constraint()
         , p
+        , id
       ), Nil))
     } else { //normal variable
 
@@ -178,6 +181,7 @@ class VariableSpecParser extends Loggable {
                 , checked         = checked
                 , constraint      = varPair._1
                 , Nil
+                , id
               ), varPair._2)
             }
         }
@@ -267,6 +271,7 @@ class VariableSpecParser extends Loggable {
         , constraint     = Constraint(vtype, defaultValue, mayBeEmpty, Set())
         , valueslabels   = Nil
         , providedValues = Nil
+        , id = None
       )
     }
 

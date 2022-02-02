@@ -79,7 +79,7 @@ class PolicyAgregationTest extends Specification {
 
   val policyMode = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
 
-  val trackerVariableSpec = TrackerVariableSpec(Some("card"))
+  val trackerVariableSpec = TrackerVariableSpec(Some("card"), None)
   val trackerVariable = TrackerVariable(trackerVariableSpec, Seq())
 
   val cfe = AgentConfig(AgentType.CfeCommunity, Nil, Nil, Nil, Nil)
@@ -127,7 +127,7 @@ class PolicyAgregationTest extends Specification {
 
 
   def newPolicy(technique: Technique, id: String, varName: String, values: Seq[String]) = {
-    val v = InputVariable(InputVariableSpec("card", "description for " + varName, multivalued = true), values)
+    val v = InputVariable(InputVariableSpec("card", "description for " + varName, multivalued = true, id = None), values)
     BoundPolicyDraft(
         id
       , "rule name"

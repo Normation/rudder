@@ -85,7 +85,7 @@ class ReportsTest extends DBCommon {
 
   sequential
 
-  implicit def toReport(t:(DateTime,String, String, String, Int, String, String, DateTime, String, String)) = {
+  implicit def toReport(t:(DateTime,String, String, String, String, String, String, DateTime, String, String)) = {
     implicit def toRuleId(s:String) = RuleId(RuleUid(s))
     implicit def toDirectiveId(s: String) = DirectiveId(DirectiveUid(s))
     implicit def toNodeId(s: String) = NodeId(s)
@@ -94,7 +94,7 @@ class ReportsTest extends DBCommon {
   }
 
   //         nodeId               ruleId  dirId   serial  comp     keyVal   execTime   severity  msg
-  def node(nodeId:String)(lines: (String, String, Int,    String,  String,  DateTime,  String,   String)*): (String, Seq[Reports]) = {
+  def node(nodeId:String)(lines: (String, String, String,    String,  String,  DateTime,  String,   String)*): (String, Seq[Reports]) = {
     (nodeId, lines.map(t => toReport((t._6, t._1, t._2, nodeId, t._3,t._4,t._5,t._6,t._7,t._8))))
   }
 
@@ -112,19 +112,19 @@ class ReportsTest extends DBCommon {
     val reports = (
       Map[String, Seq[Reports]]() +
       node("n0")(
-          ("r0", "d1", 0, "c1", "cv1", run1, "result_success", "End execution")
+          ("r0", "d1", "report_id0", "c1", "cv1", run1, "result_success", "End execution")
       ) +
       node("n1")(
-          ("r0", "d1", 0, "c1", "cv1", run1, "result_success", "Start execution")
-        , ("r1", "d1", 0, "c1", "cv1", run1, "result_success", "msg1")
-        , ("r1", "d1", 0, "c2", "cv2", run1, "result_success", "msg1")
+          ("r0", "d1", "report_id0", "c1", "cv1", run1, "result_success", "Start execution")
+        , ("r1", "d1", "report_id0", "c1", "cv1", run1, "result_success", "msg1")
+        , ("r1", "d1", "report_id0", "c2", "cv2", run1, "result_success", "msg1")
         //haha! run2!
-        , ("r1", "d1", 0, "c2", "cv2", run2, "result_success", "msg1")
+        , ("r1", "d1", "report_id0", "c2", "cv2", run2, "result_success", "msg1")
       ) +
       node("n2")(
-          ("r0", "d1", 0, "c1", "cv1", run1, "result_success", "End execution")
-        , ("r1", "d1", 0, "c1", "cv1", run1, "result_success", "msg1")
-        , ("r1", "d1", 0, "c2", "cv2", run1, "result_success", "msg1")
+          ("r0", "d1", "report_id0", "c1", "cv1", run1, "result_success", "End execution")
+        , ("r1", "d1", "report_id0", "c1", "cv1", run1, "result_success", "msg1")
+        , ("r1", "d1", "report_id0", "c2", "cv2", run1, "result_success", "msg1")
       )
     )
     "correctly init info" in {
@@ -156,28 +156,28 @@ class ReportsTest extends DBCommon {
       Map[String, Seq[Reports]]() +
       node("n0")(
           // ruleId  dirId serial comp  keyVal  execTime   severity      msg
-          ("rudder", "run", 0, "end", "", run1, "control", "End execution")
+          ("rudder", "run", "report_id0", "end", "", run1, "control", "End execution")
       ) +
       node("n1")(
         //run1
-          ("rudder", "run", 0, "start", "n1_run1", run1, "control", "Start execution")
-        , ("r1", "d1", 0, "c1", "cv1", run1, "result_success", "msg1")
-        , ("r1", "d1", 0, "c2", "cv2", run1, "result_success", "msg2")
-        , ("r1", "d1", 0, "c2", "cv1", run1, "result_success", "msg1")
-        , ("r1", "d1", 0, "c2", "cv3", run1, "result_success", "msg3")
-        , ("rudder", "run", 0, "end", "n1_run1", run1, "control", "End execution")
+          ("rudder", "run", "report_id0", "start", "n1_run1", run1, "control", "Start execution")
+        , ("r1", "d1", "report_id0", "c1", "cv1", run1, "result_success", "msg1")
+        , ("r1", "d1", "report_id0", "c2", "cv2", run1, "result_success", "msg2")
+        , ("r1", "d1", "report_id0", "c2", "cv1", run1, "result_success", "msg1")
+        , ("r1", "d1", "report_id0", "c2", "cv3", run1, "result_success", "msg3")
+        , ("rudder", "run", "report_id0", "end", "n1_run1", run1, "control", "End execution")
         //run2
-        , ("rudder", "run", 0, "start", "n1_run2", run2, "control", "Start execution")
-        , ("r1", "d1", 0, "c2", "cv2", run2, "result_success", "msg1")
-        , ("rudder", "run", 0, "end", "n1_run2", run2, "control", "End execution")
+        , ("rudder", "run", "report_id0", "start", "n1_run2", run2, "control", "Start execution")
+        , ("r1", "d1", "report_id0", "c2", "cv2", run2, "result_success", "msg1")
+        , ("rudder", "run", "report_id0", "end", "n1_run2", run2, "control", "End execution")
         //run3 will be ignore: no end element
-        , ("rudder", "run", 0, "start", "n1_run3", run3, "control", "Start execution")
+        , ("rudder", "run", "report_id0", "start", "n1_run3", run3, "control", "Start execution")
       ) +
       node("n2")(
         // run will be taken even without a start: only 'end' counts.
-          ("rudder", "run", 0, "end", "n2_run1", run1, "control", "End execution")
-        , ("r1", "d1", 0, "c1", "cv1", run1, "result_success", "msg1")
-        , ("r1", "d1", 0, "c2", "cv2", run1, "result_success", "msg1")
+          ("rudder", "run", "report_id0", "end", "n2_run1", run1, "control", "End execution")
+        , ("r1", "d1", "report_id0", "c1", "cv1", run1, "result_success", "msg1")
+        , ("r1", "d1", "report_id0", "c2", "cv2", run1, "result_success", "msg1")
       )
     )
     step {

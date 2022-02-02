@@ -146,9 +146,9 @@ class Section2FieldServiceTest extends Specification {
   }
 
   def allVars(): Seq[SectionVariableSpec] = {
-    SelectVariableSpec("select", "selectDesc") ::
-      SelectOneVariableSpec("selectOne", "selectOneDesc") ::
-      InputVariableSpec("input", "inputDesc") ::
+    SelectVariableSpec("select", "selectDesc", id = None) ::
+      SelectOneVariableSpec("selectOne", "selectOneDesc", id = None) ::
+      InputVariableSpec("input", "inputDesc", id = None) ::
       Nil
   }
 
@@ -163,12 +163,12 @@ class Section2FieldServiceTest extends Specification {
     def createRootSectionSpec = {
       val innerMultSect = SectionSpec("innerMultSect", isMultivalued = true, children = allVars())
       val innerSect = SectionSpec("innerSect", children = allVars())
-      val selectInMultSect = SelectVariableSpec("selectInMultSect", "selectInMultSectDesc")
+      val selectInMultSect = SelectVariableSpec("selectInMultSect", "selectInMultSectDesc", id = None)
 
       val childrenMultSect = Seq(innerMultSect, innerSect, selectInMultSect)
       val multSect = SectionSpec("multSect", isMultivalued = true, children = childrenMultSect)
 
-      val inputInRoot = InputVariableSpec("inputInRoot", "inputInRootDesc")
+      val inputInRoot = InputVariableSpec("inputInRoot", "inputInRootDesc", id = None)
 
       val rootSect = SectionSpec("rootSect", children = Seq(inputInRoot, multSect))
       rootSect

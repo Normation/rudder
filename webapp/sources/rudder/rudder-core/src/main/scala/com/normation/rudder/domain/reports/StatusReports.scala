@@ -242,15 +242,15 @@ object RuleNodeStatusReport {
 final case class DirectiveStatusReport(
     directiveId: DirectiveId
     //only one component status report by component name
-  , components : Map[String, ComponentStatusReport]
+  , components : List[ComponentStatusReport]
 ) extends StatusReport {
-  override lazy val compliance = ComplianceLevel.sum(components.map(_._2.compliance) )
+  override lazy val compliance = ComplianceLevel.sum(components.map(_.compliance) )
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
-      components.values.flatMap( _.getValues(predicate) ).toSeq.map { case(s,v) => (directiveId,s,v) }
+      components.flatMap( _.getValues(predicate) ).toSeq.map { case v => (directiveId,v.componentValue,v) }
   }
 
   override def toString() = s"""[${directiveId.serialize} =>
-                               |    ${components.values.toSeq.sortBy(_.componentName).mkString("\n    ")}
+                               |    ${components.toSeq.sortBy(_.componentName).mkString("\n    ")}
                                |]"""
 
   def withFilteredElements(
@@ -258,9 +258,9 @@ final case class DirectiveStatusReport(
     , values   : ComponentValueStatusReport => Boolean
   ): Option[DirectiveStatusReport] = {
     val cpts = (
-        components.values.filter(component(_))
+        components.filter(component(_))
         .flatMap( _.withFilteredElement(values))
-        .map(x => (x.componentName, x)).toMap
+
     )
 
     if(cpts.isEmpty) None
@@ -272,7 +272,7 @@ object DirectiveStatusReport {
 
   def merge(directives: Iterable[DirectiveStatusReport]): Map[DirectiveId, DirectiveStatusReport] = {
     directives.groupBy( _.directiveId).map { case (directiveId, reports) =>
-      val newComponents = ComponentStatusReport.merge(reports.flatMap( _.components.values))
+      val newComponents = ComponentStatusReport.merge(reports.flatMap( _.components))
       (directiveId, DirectiveStatusReport(directiveId, newComponents))
     }.toMap
   }
@@ -284,9 +284,10 @@ object DirectiveStatusReport {
  */
 sealed trait ComponentStatusReport extends  StatusReport {
   def componentName : String
-  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(String, ComponentValueStatusReport)]
+  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[ComponentValueStatusReport]
   def withFilteredElement(predicate: ComponentValueStatusReport => Boolean): Option[ComponentStatusReport]
-  def componentValues : Map[String, ComponentValueStatusReport]
+  def componentValues : List[ComponentValueStatusReport]
+  def componentValues(v : String) : List[ComponentValueStatusReport] = componentValues.filter(_.componentValue == v)
   def status : ReportType
 }
 
@@ -307,7 +308,7 @@ final case class BlockStatusReport (
       // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
       case worst:WorstReportReportingLogic =>
         val worstReport = ReportType.getWorseType(subComponents.map(_.status))
-        val allReports = getValues(_ => true).flatMap(_._2.messages.map(_ => worstReport))
+        val allReports = getValues(_ => true).flatMap(_.messages.map(_ => worstReport))
         val kept = worst match {
           case WorstReportWeightedOne => allReports.take(1)
           case WorstReportWeightedSum => allReports
@@ -318,11 +319,11 @@ final case class BlockStatusReport (
     }
   }
 
-  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(String, ComponentValueStatusReport)] = {
+  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[ComponentValueStatusReport] = {
     subComponents.flatMap(_.getValues(predicate))
   }
 
-  def componentValues    : Map[String, ComponentValueStatusReport] = ComponentValueStatusReport.merge(getValues(_ => true).map(_._2))
+  def componentValues    : List[ComponentValueStatusReport] = ComponentValueStatusReport.merge(getValues(_ => true))
   def withFilteredElement(predicate: ComponentValueStatusReport => Boolean): Option[ComponentStatusReport]  = {
     subComponents.flatMap(_.withFilteredElement(predicate)) match {
       case Nil => None
@@ -342,25 +343,25 @@ final case class BlockStatusReport (
 final case class ValueStatusReport  (
     componentName      : String
     //only one ComponentValueStatusReport by valuex.
-  , componentValues    : Map[String, ComponentValueStatusReport]
+  , componentValues    : List[ComponentValueStatusReport]
 ) extends  ComponentStatusReport {
 
-  override def toString() = s"${componentName}:${componentValues.values.toSeq.sortBy(_.componentValue).mkString("[", ",", "]")}"
+  override def toString() = s"${componentName}:${componentValues.toSeq.sortBy(_.componentValue).mkString("[", ",", "]")}"
 
-  override lazy val compliance = ComplianceLevel.sum(componentValues.map(_._2.compliance) )
+  override lazy val compliance = ComplianceLevel.sum(componentValues.map(_.compliance) )
   /*
    * Get all values matching the predicate
    */
-  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(String, ComponentValueStatusReport)] = {
-      componentValues.filter(v => predicate(v._2)).toSeq
+  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[ComponentValueStatusReport] = {
+      componentValues.filter(v => predicate(v)).toSeq
   }
 
-  def status : ReportType = ReportType.getWorseType(getValues(_ => true).map(_._2.status))
+  def status : ReportType = ReportType.getWorseType(getValues(_ => true).map(_.status))
   /*
    * Rebuild a componentStatusReport, keeping only values matching the predicate
    */
   def withFilteredElement(predicate: ComponentValueStatusReport => Boolean): Option[ComponentStatusReport] = {
-    val values = componentValues.filter { case (k,v) => predicate(v) }
+    val values = componentValues.filter { case v => predicate(v) }
     if(values.isEmpty) None
     else Some(this.copy(componentValues = values))
   }
@@ -374,13 +375,13 @@ final case class ValueStatusReport  (
  */
 object ComponentStatusReport extends Loggable {
 
-  def merge(components: Iterable[ComponentStatusReport]): Map[String, ComponentStatusReport] = {
+  def merge(components: Iterable[ComponentStatusReport]): List[ ComponentStatusReport] = {
     components.groupBy( _.componentName).flatMap { case (cptName, reports) =>
 
       val valueComponents = reports.collect{ case c : ValueStatusReport => c }.toList match {
         case Nil => None
         case r =>
-          val newValues = ComponentValueStatusReport.merge(r.flatMap( _.componentValues.values))
+          val newValues = ComponentValueStatusReport.merge(r.flatMap( _.componentValues))
           Some(ValueStatusReport(cptName, newValues))
       }
       val groupComponent= reports.collect{ case c : BlockStatusReport => c }.toList match {
@@ -395,7 +396,7 @@ object ComponentStatusReport extends Loggable {
               case (FocusReport(a), _)                                       => FocusReport(a)
             }
           )
-          Some(BlockStatusReport(cptName, reportingLogic, ComponentStatusReport.merge(r.flatMap(_.subComponents)).values.toList))
+          Some(BlockStatusReport(cptName, reportingLogic, ComponentStatusReport.merge(r.flatMap(_.subComponents)).toList))
       }
 
       (valueComponents,groupComponent) match {
@@ -406,7 +407,7 @@ object ComponentStatusReport extends Loggable {
       }
 
     }
-  }
+  }.values.toList
 }
 
 /**
@@ -437,17 +438,16 @@ object ComponentValueStatusReport extends Loggable {
    * Merge a set of ComponentValueStatusReport, grouping
    * them by component *unexpanded* value
    */
-  def merge(values: Iterable[ComponentValueStatusReport]): Map[String, ComponentValueStatusReport] = {
+  def merge(values: Iterable[ComponentValueStatusReport]): List[ ComponentValueStatusReport] = {
     val pairs = values.groupBy(_.unexpandedComponentValue).map { case (unexpanded, values) =>
       //the unexpanded value should be the same on all values.
       //if not, report an error for devs
-      (
-          unexpanded,
+
           ComponentValueStatusReport(unexpanded, unexpanded, values.toList.flatMap(_.messages))
-      )
+
 
     }
-    pairs.toMap
+    pairs.toList
   }
 }
 
@@ -575,7 +575,7 @@ object NodeStatusReportSerialization {
           ( ("componentName" -> c.componentName)
           ~ ("compliance"    -> c.compliance.computePercent().toJson)
           ~ ("numberReports" -> c.compliance.total)
-          ~ ("values"        -> c.componentValues.values.map { v =>
+          ~ ("values"        -> c.componentValues.map { v =>
               ( ("value"         -> v.componentValue)
               ~ ("compliance"    -> v.compliance.computePercent().toJson)
               ~ ("numberReports" -> v.compliance.total)
@@ -613,7 +613,7 @@ object NodeStatusReportSerialization {
             ( ("directiveId"   -> d.directiveId.serialize)
             ~ ("compliance"    -> d.compliance.computePercent().toJson)
             ~ ("numberReports" -> d.compliance.total)
-            ~ ("components"    -> d.components.values.map(componentValueToJson))
+            ~ ("components"    -> d.components.map(componentValueToJson))
             )
           })
         )

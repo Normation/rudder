@@ -341,8 +341,8 @@ class StatusReportTest extends Specification {
       parsed match {
         case n :: r :: _ :: d :: c :: v :: uv :: t :: m :: Nil =>
           Some(RuleNodeStatusReport(n, r, None, None, Map(DirectiveId(DirectiveUid(d)) ->
-            DirectiveStatusReport(d, Map(c ->
-              ValueStatusReport(c, Map(uv ->
+            DirectiveStatusReport(d, List(
+              ValueStatusReport(c, List(
                 ComponentValueStatusReport(v, uv, List(
                     MessageStatusReport(toRT(t), ?(m))
                 ))

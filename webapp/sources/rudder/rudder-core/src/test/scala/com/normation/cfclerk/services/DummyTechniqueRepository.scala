@@ -50,19 +50,19 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
   def agentCfg(bundle: String) = AgentConfig(AgentType.CfeCommunity, Nil, Nil, List(BundleName(bundle)), Nil) :: Nil
 
   var returnedVariable = collection.mutable.Set[VariableSpec]()
-  val policy1 = Technique(TechniqueId(TechniqueName("policy1"), TechniqueVersionHelper("1.0")), "policy1", "", agentCfg("one"), TrackerVariableSpec(), SectionSpec(name="root", children=Seq(InputVariableSpec("$variable1", "a variable1"))), None)
+  val policy1 = Technique(TechniqueId(TechniqueName("policy1"), TechniqueVersionHelper("1.0")), "policy1", "", agentCfg("one"), TrackerVariableSpec( id = None), SectionSpec(name="root", children=Seq(InputVariableSpec("$variable1", "a variable1", id = None))), None)
 
-  val sections = SectionSpec(name="root", children=Seq(InputVariableSpec("$variable2", "a variable2", multivalued = true), InputVariableSpec("$variable22", "a variable22")))
-  val policy2 = Technique(TechniqueId(TechniqueName("policy2"), TechniqueVersionHelper("1.0")), "policy2", "", agentCfg("two"), TrackerVariableSpec(), sections, None)
+  val sections = SectionSpec(name="root", children=Seq(InputVariableSpec("$variable2", "a variable2", multivalued = true, id = None), InputVariableSpec("$variable22", "a variable22", id = None)))
+  val policy2 = Technique(TechniqueId(TechniqueName("policy2"), TechniqueVersionHelper("1.0")), "policy2", "", agentCfg("two"), TrackerVariableSpec( id = None), sections, None)
 
-  val sections3 = SectionSpec(name="root", children=Seq(InputVariableSpec("$variable3", "a variable3")))
-  val policy3 = Technique(TechniqueId(TechniqueName("policy3"), TechniqueVersionHelper("1.0")), "policy3", "", agentCfg("three"), TrackerVariableSpec(), sections3, None)
+  val sections3 = SectionSpec(name="root", children=Seq(InputVariableSpec("$variable3", "a variable3", id = None)))
+  val policy3 = Technique(TechniqueId(TechniqueName("policy3"), TechniqueVersionHelper("1.0")), "policy3", "", agentCfg("three"), TrackerVariableSpec( id = None), sections3, None)
 
-  val sections4 = SectionSpec(name="root", children=Seq(InputVariableSpec("$variable4", "an variable4")))
-  val policy4 = Technique(TechniqueId(TechniqueName("policy4"), TechniqueVersionHelper("1.0")), "policy4", "", agentCfg("four"), TrackerVariableSpec(), sections4, None)
+  val sections4 = SectionSpec(name="root", children=Seq(InputVariableSpec("$variable4", "an variable4", id = None)))
+  val policy4 = Technique(TechniqueId(TechniqueName("policy4"), TechniqueVersionHelper("1.0")), "policy4", "", agentCfg("four"), TrackerVariableSpec( id = None), sections4, None)
 
-  val sectionsFoo = SectionSpec(name="root", children=Seq(InputVariableSpec("$bar", "bar")))
-  val foo = Technique(TechniqueId(TechniqueName("foo"), TechniqueVersionHelper("1.0")), "foo", "", agentCfg("foo"), TrackerVariableSpec(), sectionsFoo, None)
+  val sectionsFoo = SectionSpec(name="root", children=Seq(InputVariableSpec("$bar", "bar", id = None)))
+  val foo = Technique(TechniqueId(TechniqueName("foo"), TechniqueVersionHelper("1.0")), "foo", "", agentCfg("foo"), TrackerVariableSpec(id = None), sectionsFoo, None)
 
   val policyMap = Map(policy1.id -> policy1,
     policy2.id -> policy2,

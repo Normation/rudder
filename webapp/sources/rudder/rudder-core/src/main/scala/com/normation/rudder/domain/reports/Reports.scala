@@ -52,14 +52,14 @@ import com.normation.rudder.domain.policies.RuleId
  *
  * Contains : the datetime at which it was generated, the rule/directive,
  * the server on which it has been run, the severity, and the message,
- * and the serial (id of generation), the component and its key value
+ * and the reportId (id of generation), the component and its key value
  */
 sealed trait Reports {
   val executionDate      : DateTime //the execution timestamp of that report
   val ruleId             : RuleId
   val directiveId        : DirectiveId
   val nodeId             : NodeId
-  val serial             : Int
+  val reportId           : String
   val component          : String
   val keyValue           : String // component value
   val executionTimestamp : DateTime //the start run timestamp
@@ -78,7 +78,7 @@ final case class ResultSuccessReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -92,7 +92,7 @@ final case class ResultNotApplicableReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -106,7 +106,7 @@ final case class ResultRepairedReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -126,7 +126,7 @@ final case class ResultErrorReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -140,7 +140,7 @@ final case class AuditCompliantReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -154,7 +154,7 @@ final case class AuditNonCompliantReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -168,7 +168,7 @@ final case class AuditErrorReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -182,7 +182,7 @@ final case class AuditNotApplicableReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -196,7 +196,7 @@ final case class UnknownReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -210,7 +210,7 @@ final case class LogRepairedReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -224,7 +224,7 @@ final case class LogWarnReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -238,7 +238,7 @@ final case class LogInformReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -252,7 +252,7 @@ final case class LogDebugReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -266,7 +266,7 @@ final case class LogTraceReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -280,7 +280,7 @@ final case class RudderControlReport(
   , ruleId             : RuleId
   , directiveId        : DirectiveId
   , nodeId             : NodeId
-  , serial             : Int
+  , reportId           : String
   , component          : String
   , keyValue           : String
   , executionTimestamp : DateTime
@@ -298,7 +298,7 @@ object Reports {
     , ruleId            : RuleId
     , directiveId       : DirectiveId
     , nodeId            : NodeId
-    , serial            : Int
+    , reportId           : String
     , component         : String
     , componentValue    : String
     , executionTimestamp: DateTime
@@ -307,52 +307,52 @@ object Reports {
   ) : Reports = {
     severity.toLowerCase match {
       case RESULT_ERROR => new ResultErrorReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case RESULT_SUCCESS => new ResultSuccessReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case RESULT_REPAIRED => new ResultRepairedReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case RESULT_NOTAPPLICABLE => new ResultNotApplicableReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case AUDIT_COMPLIANT => new AuditCompliantReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case AUDIT_NONCOMPLIANT => new AuditNonCompliantReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case AUDIT_NOTAPPLICABLE => new AuditNotApplicableReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case AUDIT_ERROR => new AuditErrorReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
 
       case LOG_REPAIRED => new LogRepairedReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case LOG_WARN | LOG_WARNING  => new LogWarnReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case LOG_INFO | LOG_INFORM => new LogInformReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case LOG_DEBUG => new LogDebugReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case LOG_TRACE => new LogTraceReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case CONTROL => new RudderControlReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message )
+              reportId, component, componentValue, executionTimestamp, message )
 
       case _ =>
         logger.error(s"Invalid report type ${severity} for directive ${directiveId}")
         new UnknownReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, componentValue, executionTimestamp, message)
+              reportId, component, componentValue, executionTimestamp, message)
     }
   }
 
@@ -361,18 +361,18 @@ object Reports {
     , ruleId             : RuleId
     , directiveId        : DirectiveId
     , nodeId             : NodeId
-    , serial             : Int
+    , reportId           : String
     , component          : String
     , componentValue     : String
     , executionTimestamp : DateTime
     , severity           : String
     , message            : String
   ) : Reports = {
-    factory(executionDate, ruleId, directiveId, nodeId, serial, component, componentValue, executionTimestamp, severity,  message)
+    factory(executionDate, ruleId, directiveId, nodeId, reportId, component, componentValue, executionTimestamp, severity,  message)
   }
 
   def unapply(report : Reports) = Some((report.executionDate, report.ruleId,
-    report.directiveId, report.nodeId, report.serial, report.component, report.keyValue, report.executionTimestamp, report.severity, report.message))
+    report.directiveId, report.nodeId, report.reportId, report.component, report.keyValue, report.executionTimestamp, report.severity, report.message))
 
 
   val LOG_TRACE       = "log_trace"

@@ -17,33 +17,33 @@ bundle agent technique_with_blocks {
     # 
     #   file("""/tmp/block1""").absent() as file_absent__tmp_block1
     # 
-    "6077d281-ebd7-432f-bdcc-d377431f0ecc" usebundle => _method_reporting_context("File absent", "/tmp/block1");
+    "6077d281-ebd7-432f-bdcc-d377431f0ecc" usebundle => _method_reporting_context_v4("File absent", "/tmp/block1");
     "6077d281-ebd7-432f-bdcc-d377431f0ecc" usebundle => file_absent("/tmp/block1");
     # File absent:
     # 
     #   file("""/tmp/block1_1""").absent() as file_absent__tmp_block1_1
     # 
-    "0f6032bd-0735-419c-90db-ae434f47e1fd" usebundle => _method_reporting_context("File absent", "/tmp/block1_1");
+    "0f6032bd-0735-419c-90db-ae434f47e1fd" usebundle => _method_reporting_context_v4("File absent", "/tmp/block1_1");
     "0f6032bd-0735-419c-90db-ae434f47e1fd" usebundle => file_absent("/tmp/block1_1");
     # Command execution:
     # 
     #   command("""/bin/true""").execution() as command_execution__bin_true
     # 
-    "d9313380-26b2-469a-83d1-734f568d6a5a" usebundle => _method_reporting_context("Command execution", "/bin/true");
+    "d9313380-26b2-469a-83d1-734f568d6a5a" usebundle => _method_reporting_context_v4("Command execution", "/bin/true");
     "d9313380-26b2-469a-83d1-734f568d6a5a" usebundle => command_execution("/bin/true");
 
     # Command execution:
     # 
     #   command("""/bin/true #root1""").execution() as command_execution__bin_true__root1
     # 
-    "9ca0e832-7ea9-435e-add0-46b792244698" usebundle => _method_reporting_context("Command execution", "/bin/true #root1");
+    "9ca0e832-7ea9-435e-add0-46b792244698" usebundle => _method_reporting_context_v4("Command execution", "/bin/true #root1");
     "9ca0e832-7ea9-435e-add0-46b792244698" usebundle => command_execution("/bin/true #root1");
 
     # File absent:
     # 
     #   file("""/tmp/root2""").absent() as file_absent__tmp_root2
     # 
-    "eec2c63b-8811-4ea0-93b9-334ee54baea3" usebundle => _method_reporting_context("File absent", "/tmp/root2");
+    "eec2c63b-8811-4ea0-93b9-334ee54baea3" usebundle => _method_reporting_context_v4("File absent", "/tmp/root2");
     "eec2c63b-8811-4ea0-93b9-334ee54baea3" usebundle => file_absent("/tmp/root2");
 
 }

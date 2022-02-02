@@ -16,7 +16,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T12:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -29,7 +29,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T13:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -42,7 +42,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T15:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -55,7 +55,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T16:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -68,7 +68,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T17:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -81,7 +81,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T18:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -94,7 +94,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T19:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -107,7 +107,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T20:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -120,7 +120,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T21:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -133,7 +133,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T22:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -146,7 +146,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-11T23:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -159,7 +159,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T00:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -172,7 +172,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T01:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -185,7 +185,7 @@
       "policy": "DistributePolicy",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T02:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -198,7 +198,7 @@
       "policy": "DistributePolicy",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T03:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -211,7 +211,7 @@
       "policy": "DistributePolicy",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T04:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -224,7 +224,7 @@
       "policy": "DistributePolicy",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T05:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -237,7 +237,7 @@
       "policy": "DistributePolicy",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T06:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -250,7 +250,7 @@
       "policy": "DistributePolicy",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T07:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -263,7 +263,7 @@
       "policy": "Inventory",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T08:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -276,7 +276,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T09:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -289,7 +289,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T10:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -302,7 +302,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T11:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -315,7 +315,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T12:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -328,7 +328,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T13:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -341,7 +341,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T14:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -354,7 +354,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T15:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -367,7 +367,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T16:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -380,7 +380,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T17:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -393,7 +393,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T18:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -406,7 +406,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T19:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -419,7 +419,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T20:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -432,7 +432,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T21:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -445,7 +445,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T22:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -458,7 +458,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-12T23:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -471,7 +471,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T00:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -484,7 +484,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T01:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -497,7 +497,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T02:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -510,7 +510,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T03:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -523,7 +523,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T04:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -536,7 +536,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T05:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -549,7 +549,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T06:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -562,7 +562,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T07:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -575,7 +575,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T08:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -588,7 +588,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T09:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -601,7 +601,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T10:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -614,7 +614,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T11:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -627,7 +627,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T12:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -640,7 +640,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T13:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -653,7 +653,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T14:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -666,7 +666,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T15:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -679,7 +679,7 @@
       "policy": "server-roles",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T16:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -692,7 +692,7 @@
       "policy": "copyGitFile",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T17:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -705,7 +705,7 @@
       "policy": "copyFile",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T18:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -718,7 +718,7 @@
       "policy": "copyFile",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T19:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -731,7 +731,7 @@
       "policy": "Rudder_demo_user",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T20:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -744,7 +744,7 @@
       "policy": "Rudder_demo_user",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T21:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -757,7 +757,7 @@
       "policy": "Rudder_demo_user",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T22:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -770,7 +770,7 @@
       "policy": "Rudder_demo_user",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-13T23:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -783,7 +783,7 @@
       "policy": "OpenSSH server",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T00:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -796,7 +796,7 @@
       "policy": "OpenSSH server",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T01:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -809,7 +809,7 @@
       "policy": "sshConfiguration",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T02:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -822,7 +822,7 @@
       "policy": "sshConfiguration",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T03:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -835,7 +835,7 @@
       "policy": "OpenSSH server",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T04:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -848,7 +848,7 @@
       "policy": "OpenSSH server",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T05:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -861,7 +861,7 @@
       "policy": "OpenSSH server",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T06:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -874,7 +874,7 @@
       "policy": "OpenSSH server",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T07:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -887,7 +887,7 @@
       "policy": "OpenSSH server",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T08:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -900,7 +900,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T09:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -913,7 +913,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T10:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2018-08-24T15:55:01+00:00",
@@ -926,7 +926,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T11:58:13+00:00",
-      "serial": 0
+      "report_id": "0"
     },
     {
       "start_datetime": "2017-08-24T15:55:01+00:00",
@@ -939,7 +939,7 @@
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2019-05-14T12:58:04+00:00",
-      "serial": 0
+      "report_id": "0"
     }
   ]
 }

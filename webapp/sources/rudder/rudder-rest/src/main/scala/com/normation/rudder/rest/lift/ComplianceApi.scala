@@ -342,7 +342,7 @@ class ComplianceAPIService(
                       nodeId
                       , nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node")
                       , ComplianceLevel.sum(components.map(_._2.compliance))
-                      , components.sortBy(_._2.componentName).flatMap(_._2.componentValues.values)
+                      , components.sortBy(_._2.componentName).flatMap(_._2.componentValues)
                     )
                   }.toSeq
                 }
@@ -367,7 +367,7 @@ class ComplianceAPIService(
                       val byComponents: Map[String, immutable.Iterable[(NodeId, ComponentStatusReport)]] = if (computedLevel < 3) {
                         Map()
                       } else {
-                        nodeDirectives.flatMap { case (nodeId, d) => d.components.values.map(c => (nodeId, c)).toSeq }.groupBy(_._2.componentName)
+                        nodeDirectives.flatMap { case (nodeId, d) => d.components.map(c => (nodeId, c)).toSeq }.groupBy(_._2.componentName)
                       }
                       byComponents.flatMap { case (name, nodeComponents) => components(name, nodeComponents.toList)
                       }.toSeq
@@ -477,7 +477,7 @@ class ComplianceAPIService(
                     rule.id
                   , rule.name
                   , ComplianceLevel(noAnswer = rule.directiveIds.size)
-                  , rule.directiveIds.map { rid => ByNodeDirectiveCompliance(rid, directiveLib.get(rid).map(_._2.name).getOrElse("Unknown Directive"), ComplianceLevel(noAnswer = 1), Map())}.toSeq
+                  , rule.directiveIds.map { rid => ByNodeDirectiveCompliance(rid, directiveLib.get(rid).map(_._2.name).getOrElse("Unknown Directive"), ComplianceLevel(noAnswer = 1), Nil)}.toSeq
                 )
               }).toSeq
           ))

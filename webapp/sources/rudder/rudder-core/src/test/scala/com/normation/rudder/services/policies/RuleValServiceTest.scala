@@ -93,6 +93,7 @@ class RuleValServiceTest extends Specification {
         reportKeysVariableName(name)
       , "description"
       , providedValues
+      , id = None
     )
   def makeComponentSectionSpec(name:String) =
     SectionSpec(
@@ -125,7 +126,7 @@ class RuleValServiceTest extends Specification {
       , "meta" + id
       , ""
       , AgentConfig(AgentType.CfeCommunity, Nil, Nil, Nil, Nil) :: Nil
-      , TrackerVariableSpec(None)
+      , TrackerVariableSpec(None,None)
       , makeRootSectionSpec()
       , None
       , Set()

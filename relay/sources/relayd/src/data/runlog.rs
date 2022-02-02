@@ -261,7 +261,7 @@ mod tests {
             msg: "End execution".into(),
             policy: "Common".into(),
             node_id: "root".into(),
-            serial: 0,
+            report_id: "0".into(),
             execution_datetime: DateTime::parse_from_str(
                 "2018-08-24 15:55:01+00:00",
                 "%Y-%m-%d %H:%M:%S%z",
@@ -290,7 +290,7 @@ mod tests {
                         msg: "Cron daemon status was repaired".into(),
                         policy: "Common".into(),
                         node_id: "root".into(),
-                        serial: 0,
+                        report_id: "0".into(),
                         execution_datetime: DateTime::parse_from_str(
                             "2018-08-24 15:55:01+00:00",
                             "%Y-%m-%d %H:%M:%S%z"
@@ -311,7 +311,7 @@ mod tests {
                         msg: "Cron daemon status was repaired".into(),
                         policy: "Common".into(),
                         node_id: "root".into(),
-                        serial: 0,
+                        report_id: "0".into(),
                         execution_datetime: DateTime::parse_from_str(
                             "2018-08-24 15:55:01+00:00",
                             "%Y-%m-%d %H:%M:%S%z"
@@ -343,7 +343,7 @@ mod tests {
                         msg: "Cron daemon status was repaired".into(),
                         policy: "Common".into(),
                         node_id: "root".into(),
-                        serial: 0,
+                        report_id: "0".into(),
                         execution_datetime: DateTime::parse_from_str(
                             "2018-08-24 15:55:01+00:00",
                             "%Y-%m-%d %H:%M:%S%z"

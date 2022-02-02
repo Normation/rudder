@@ -7,23 +7,23 @@ bundle agent technique_by_Rudder_rudder_reporting(technique_parameter)
     "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   methods:
-    "id1" usebundle => _method_reporting_context("Customized component", "${node.properties[apache_package_name]}"),
+    "id1" usebundle => _method_reporting_context_v4("Customized component", "${node.properties[apache_package_name]}","id1"),
              unless => concat("(debian)");
     "id1" usebundle => log_na_rudder("Skipping method 'Package install version' with key parameter '${node.properties[apache_package_name]}' since condition 'any' is not reached", "${node.properties[apache_package_name]}", "${class_prefix}_package_install_version_${node.properties[apache_package_name]}", @{args}),
              unless => concat("(debian)");
     "id2" usebundle => disable_reporting,
              unless => concat("(debian.windows)");
-    "id2" usebundle => _method_reporting_context("Command execution", "Write-Host \"testing special characters ` è &é 'à é \""),
+    "id2" usebundle => _method_reporting_context_v4("Command execution", "Write-Host \"testing special characters ` è &é 'à é \"","id2"),
              unless => concat("(debian.windows)");
     "id2" usebundle => log_na_rudder("Skipping method 'Command execution' with key parameter 'Write-Host \"testing special characters ` è &é 'à é \"' since condition 'windows' is not reached", "Write-Host \"testing special characters ` è &é 'à é \"", "${class_prefix}_command_execution_Write-Host \"testing special characters ` è &é 'à é \"", @{args}),
              unless => concat("(debian.windows)");
     "id2" usebundle => enable_reporting,
              unless => concat("(debian.windows)");
-    "id3" usebundle => _method_reporting_context("Customized component", "${node.properties[apache_package_name]}"),
+    "id3" usebundle => _method_reporting_context_v4("Customized component", "${node.properties[apache_package_name]}","id3"),
              unless => concat("package_install_version_",canonify("${node.properties[apache_package_name]}"),"_repaired");
     "id3" usebundle => log_na_rudder("Skipping method 'Service start' with key parameter '${node.properties[apache_package_name]}' since condition 'package_install_version_${node.properties[apache_package_name]}_repaired' is not reached", "${node.properties[apache_package_name]}", "${class_prefix}_service_start_${node.properties[apache_package_name]}", @{args}),
              unless => concat("package_install_version_",canonify("${node.properties[apache_package_name]}"),"_repaired");
-    "id4" usebundle => _method_reporting_context("Package install", "openssh-server"),
+    "id4" usebundle => _method_reporting_context_v4("Package install", "openssh-server","id4"),
              unless => concat("redhat");
     "id4" usebundle => log_na_rudder("Skipping method 'Package install' with key parameter 'openssh-server' since condition 'redhat' is not reached", "openssh-server", "${class_prefix}_package_install_openssh-server", @{args}),
              unless => concat("redhat");

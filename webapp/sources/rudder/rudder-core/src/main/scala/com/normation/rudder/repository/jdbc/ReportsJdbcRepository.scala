@@ -64,9 +64,9 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   val archiveTable = "archivedruddersysevents"
 
   private[this] val reportsExecutionTable = "reportsexecution"
-  private[this] val common_reports_column = "executiondate, ruleid, directiveid, nodeid, serial, component, keyvalue, executiontimestamp, eventtype, msg"
+  private[this] val common_reports_column = "executiondate, ruleid, directiveid, nodeid, reportid, component, keyvalue, executiontimestamp, eventtype, msg"
   // When we want reports we already know the type (request with where clause on eventtype) we do not want eventtype in request because it will be used as value for message in corresponding case class
-  private[this] val typed_reports_column = "executiondate, ruleid, directiveid, nodeid, serial, component, keyvalue, executiontimestamp, msg"
+  private[this] val typed_reports_column = "executiondate, ruleid, directiveid, nodeid, reportid, component, keyvalue, executiontimestamp, msg"
 
   //just an utility to remove multiple spaces in query so that we can vertically align them an see what part are changing - the use
   //of greek p is to discurage use elsewhere
