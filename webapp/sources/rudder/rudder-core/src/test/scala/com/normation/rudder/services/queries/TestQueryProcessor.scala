@@ -311,7 +311,6 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(0) :: s(1) :: s(2) :: s(3) :: s(4) :: s(5) :: s(6) :: s(7) :: Nil)
 
-
     /*
      * Testing groups and physical query
      */
@@ -1240,7 +1239,7 @@ class TestQueryProcessor extends Loggable {
 
   private def testQueryResultProcessor(name:String,query:QueryTrait, nodes:Seq[NodeId], doInternalQueryTest : Boolean) = {
       val ids = nodes.sortBy( _.value )
-      val found = queryProcessor.process(query).openOrThrowException("For tests").map { _.id }.toSeq.sortBy( _.value )
+      val found = queryProcessor.process(query).openOrThrowException("For tests").sortBy( _.value )
       //also test with requiring only the expected node to check consistancy
       //(that should not change anything)
 
@@ -1262,9 +1261,7 @@ class TestQueryProcessor extends Loggable {
       if (doInternalQueryTest) {
         logger.debug("Testing with expected entries, This test should be ignored when we are looking for Nodes with NodeInfo and inventory (ie when we are looking for property and environement variable")
         val foundWithLimit =
-          (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids), lambdaAllNodeInfos = (() => nodeInfoService.getAllNodeInfos())).runNow.map {
-            _.node.id
-          }).toSeq.distinct.sortBy( _.value )
+          (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids), lambdaAllNodeInfos = (() => nodeInfoService.getAllNodeInfos())).runNow).distinct.sortBy( _.value )
 
         assertEquals(
           s"[${name}] Size differs between expected and found entries (InternalQueryProcessor, only inventory fields)\n Found: ${foundWithLimit}\n Expected: ${ids}"

@@ -88,6 +88,8 @@ class SearchNodeComponent(
 
   private[this] val queryProcessor  = RudderConfig.acceptedNodeQueryProcessor
 
+  private[this] val nodeInfoService = RudderConfig.nodeInfoService
+
   // The portlet for the server detail
   private[this] def searchNodes: NodeSeq = ChooseTemplate(
       List("templates-hidden", "server", "server_details")
@@ -191,7 +193,12 @@ class SearchNodeComponent(
       query = Some(newQuery)
       if(errors.isEmpty) {
         // ********* EXECUTE QUERY ***********
-        srvList = queryProcessor.process(newQuery)
+        srvList = (for {
+          nodeIds <- queryProcessor.process(newQuery)
+          nodeInfos <- nodeInfoService.getNodeInfosSeq(nodeIds).toBox
+        } yield {
+          nodeInfos
+        })
         initUpdate = true
         searchFormHasError = false
       } else {
