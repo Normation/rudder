@@ -222,6 +222,31 @@ final case object NodeStateComparator extends NodeCriterionType {
 }
 
 
+final case object NodeStringComparator extends NodeCriterionType {
+  override val comparators = BaseComparators.comparators
+
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
+    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else {
+      comparator match {
+        case Regex | NotRegex => validateRegex(v)
+        case x                => Right(v)
+      }
+    }
+  }
+
+  override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
+    comparator match {
+      case Equals    => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => node.hostname == value )
+      case NotEquals => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => node.hostname != value )
+      case Regex     => NodeInfoMatcher(s"Prop matches regex '${value}'", (node: NodeInfo) => node.hostname.matches(value) )
+      case NotRegex  => NodeInfoMatcher(s"Prop matches not regex '${value}'", (node: NodeInfo) => !node.hostname.matches(value) )
+      case Exists    => NodeInfoMatcher(s"Prop exists", (node: NodeInfo) => node.hostname.nonEmpty )
+      case NotExists => NodeInfoMatcher(s"Prop doesn't exists", (node: NodeInfo) => node.hostname.isEmpty )
+
+    }
+  }
+
+}
 
 /*
  * This comparator is used for "node properties"-like attribute, i.e:

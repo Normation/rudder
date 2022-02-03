@@ -192,7 +192,7 @@ class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, ge
     ObjectCriterion(OC_NODE, Seq(
         Criterion("OS",OstypeComparator)
       , Criterion(A_NODE_UUID, StringComparator)
-      , Criterion(A_HOSTNAME, StringComparator)
+      , Criterion(A_HOSTNAME, NodeStringComparator)
       , Criterion(A_OS_NAME,OsNameComparator)
       , Criterion(A_OS_FULL_NAME, OrderedStringComparator)
       , Criterion(A_OS_VERSION, OrderedStringComparator)

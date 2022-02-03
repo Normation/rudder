@@ -37,7 +37,6 @@
 package com.normation.rudder.services.queries
 
 import java.util.regex.Pattern
-
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.inventory.ldap.core._
@@ -47,8 +46,7 @@ import com.normation.rudder.domain._
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.rudder.services.nodes.LDAPNodeInfo
-import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.nodes.{LDAPNodeInfo, NodeInfoService, NodeInfoServiceCached}
 import com.normation.utils.Control.sequence
 import com.unboundid.ldap.sdk.DereferencePolicy.NEVER
 import com.unboundid.ldap.sdk.{LDAPConnection => _, SearchScope => _, _}
@@ -111,6 +109,8 @@ final case class LDAPNodeQuery(
     //that map MUST not contains node related filters
   , objectTypesFilters: Map[DnType, Map[String, List[SubQuery]]]
   , nodeInfoFilters   : Seq[NodeInfoMatcher]
+  , noFilterButTakeAllFromCache: Boolean // this is when we don't have ldapfilter, but only nodeinfo filter, so we
+                                         // need to take eveything from cache
 )
 
 /*
@@ -148,7 +148,7 @@ class AcceptedNodesLDAPQueryProcessor(
     nodeDit        : NodeDit
   , inventoryDit   : InventoryDit
   , processor      : InternalLDAPQueryProcessor
-  , nodeInfoService: NodeInfoService
+  , nodeInfoService: NodeInfoServiceCached
 ) extends QueryProcessor with Loggable {
 
   private[this] case class QueryResult(
@@ -174,7 +174,7 @@ class AcceptedNodesLDAPQueryProcessor(
     val timePreCompute =  System.currentTimeMillis
 
     for {
-      res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId).toBox
+      res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId, nodeInfoService.getAllNodesEntry).toBox
       timeres        =  (System.currentTimeMillis - timePreCompute)
       _              =  logger.debug(s"LDAP result: ${res.entries.size} entries obtained in ${timeres}ms for query ${query.toString}")
       ldapEntries    <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition).toBox
@@ -357,6 +357,8 @@ class InternalLDAPQueryProcessor(
     , select        : Seq[String] = Seq()
     , limitToNodeIds: Option[Seq[NodeId]] = None
     , debugId       : Long = 0L
+    , allNodesEntry : Option[Seq[LDAPEntry]]  = None// this is hackish, to have the list of all node if
+                                     // only nodeinfofilters, so that we don't look for all
   ) : IOResult[LdapQueryProcessorResult] = {
 
 
@@ -470,13 +472,29 @@ class InternalLDAPQueryProcessor(
       _       <- logPure.debug(s"[${debugId}] Start search for ${query.toString}")
       // Construct & normalize the data
       nq       <- normalizedQuery
-      lots     <- ldapObjectTypeSets(nq)
-      dmms     <- dnMapMapSets(nq, lots)
-      optdms   =  dnMapSets(nq, dmms)
+      // special case: no query, but we create a dummy one,
+      // identified by noFilterButTakeAllFromCache = true
+      // in this case, we skip all this part
+      optdms   <- {
+                    if (nq.noFilterButTakeAllFromCache) {
+                      None.succeed
+                    } else {
+
+                      for {
+                        lots <- ldapObjectTypeSets(nq)
+                        dmms <- dnMapMapSets(nq, lots)
+                        inneroptdms = dnMapSets(nq, dmms)
+                      } yield {
+                        inneroptdms
+                      }
+                    }
+      }
       // If dnMapSets returns a None, then it means that we are ANDing composition with an empty value
       // so we skip the last query
       results  <- optdms match {
-                    case None      =>
+                    case None  if nq.noFilterButTakeAllFromCache    =>
+                      allNodesEntry.getOrElse(Seq()).succeed
+                    case None =>
                       Seq[LDAPEntry]().succeed
                     case Some(dms) =>
                       (for {
@@ -973,17 +991,20 @@ class InternalLDAPQueryProcessor(
       subQueries       =  groupedSetFilter.view.mapValues(_.view.filterKeys { _ != "node" }.toMap).filterNot( _._2.isEmpty).toMap
     } yield {
       // at that point, it may happen that nodeFilters and otherFilters are empty
-      val mainFilters = if(groupedSetFilter.isEmpty) {
+      val (mainFilters, andAndEmpty) = if(groupedSetFilter.isEmpty) {
         query.composition match {
           // In that case, we add a "get all nodes" query and all filters will be done in node info.
-          case And => Some(Set[ExtendedFilter](LDAPFilter(BuildFilter.ALL)))
+          // we should have a specific case here, saying: it's empty, we are AND, so we AND with all the cache
+//          case And => (None, true)
+
+          case And => (Some(Set[ExtendedFilter](LDAPFilter(BuildFilter.ALL))), true)
           // In that case, We should return no Nodes from this query and we will only query nodes with filters from node info.
-          case Or => None
+          case Or => (None, false)
         }
-      } else { nodeFilters }
+      } else { (nodeFilters, false) }
 
       val nodeInfos = nodeInfoFilters.map { case QueryFilter.NodeInfo(c, comp, value) => c.matches(comp, value)}
-      LDAPNodeQuery(mainFilters, query.composition, query.transform, subQueries, nodeInfos)
+      LDAPNodeQuery(mainFilters, query.composition, query.transform, subQueries, nodeInfos, andAndEmpty)
     }
   }
 }

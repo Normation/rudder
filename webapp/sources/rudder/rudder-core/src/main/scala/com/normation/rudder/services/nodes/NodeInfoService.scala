@@ -578,6 +578,10 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     )
   }
 
+  def getAllNodesEntry() = {
+    nodeCache.map(x => x.nodeInfos.values.toSeq.map(_._1.nodeEntry))
+  }
+
   /**
    * Update cache, without doing anything with the data
    */
