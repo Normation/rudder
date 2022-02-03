@@ -42,8 +42,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.queries.CriterionComposition
-import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
@@ -53,7 +51,6 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.FindExpectedReportRepository
 import com.normation.rudder.repository.ReportsRepository
-import com.normation.rudder.services.nodes.LDAPNodeInfo
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfigData
 import net.liftweb.common.Box
@@ -131,12 +128,12 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   )
 
   object testNodeInfoService extends NodeInfoService {
-    def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : Box[Set[LDAPNodeInfo]] = ???
     def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]] = ???
     def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
     def getNodeInfos(nodesId: Set[NodeId]) : IOResult[Set[NodeInfo]] = ???
     def getNode(nodeId: NodeId): Box[Node] = ???
     def getAllNodes() : Box[Map[NodeId, Node]] = ???
+    def getAllNodeInfos():IOResult[Seq[NodeInfo]] = ???
     def getAllSystemNodeIds() : Box[Seq[NodeId]] = ???
     def getPendingNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
     def getPendingNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???

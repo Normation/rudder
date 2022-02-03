@@ -56,8 +56,6 @@ import com.normation.rudder.repository.CachedRepository
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.domain.queries.CriterionComposition
-import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.ldap.sdk.LDAPIOResult._
 import zio._
 import zio.syntax._
@@ -67,11 +65,9 @@ import com.normation.zio._
 import com.normation.ldap.sdk.syntax._
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
-import com.normation.rudder.domain.queries.And
 import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
 import com.normation.rudder.services.nodes.NodeInfoServiceCached.UpdatedNodeEntries
 import com.normation.rudder.services.nodes.NodeInfoServiceCached.buildInfoMaps
-import com.normation.rudder.services.queries.PostFilterNodeFromInfoService
 
 import scala.concurrent.duration.FiniteDuration
 import scala.collection.mutable.{Map => MutMap}
@@ -114,12 +110,6 @@ final case class LDAPNodeInfo(
 trait NodeInfoService {
 
   /**
-   * Retrieve minimal information needed for the node info, used (only) by the
-   * LDAP QueryProcessor.
-   */
-  def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : Box[Set[LDAPNodeInfo]]
-
-  /**
    * Return a NodeInfo from a NodeId. First check the ou=Node, then fetch the other data
    */
   def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]]
@@ -156,6 +146,13 @@ trait NodeInfoService {
    */
   def getAllNodes() : Box[Map[NodeId, Node]]
 
+  /**
+   * Get all nodes
+   * This returns a Seq for performance reasons - it is much faster
+   * to return a Seq than a Set, and for subsequent use it is also
+   * faster
+   */
+  def getAllNodeInfos():IOResult[Seq[NodeInfo]]
   /**
    * Get all systen node ids, for example
    * policy server node ids.
@@ -872,16 +869,9 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     cache.view.mapValues(_._2.node).toMap.succeed
   }.toBox
 
-  override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): Box[Set[LDAPNodeInfo]] = {
-    // if nodeIds is empty and composition is and, return an empty set; with or, we need to run it in all cases
-    if (nodeIds.isEmpty && composition == And) {
-      Set[LDAPNodeInfo]().succeed
-    } else {
-      withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
-        PostFilterNodeFromInfoService.getLDAPNodeInfo(nodeIds, predicates, composition, cache).succeed
-      }
-    }
-  }.toBox
+  def getAllNodeInfos():IOResult[Seq[NodeInfo]] = withUpToDateCache("all nodeinfos") { cache =>
+    cache.view.values.map(_._2).toSeq.succeed
+  }
 
   def getNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = getNodeInfoPure(nodeId).toBox
 
