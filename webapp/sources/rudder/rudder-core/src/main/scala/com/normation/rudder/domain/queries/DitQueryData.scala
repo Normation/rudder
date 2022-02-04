@@ -48,6 +48,7 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 import com.normation.rudder.domain.RudderLDAPConstants.A_STATE
 import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
+import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.services.queries.SpecialFilter
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
@@ -190,10 +191,10 @@ class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, ge
       Criterion(A_MEMORY_CAPACITY, MemoryComparator)
     )),
     ObjectCriterion(OC_NODE, Seq(
-        Criterion("OS",OstypeComparator)
-      , Criterion(A_NODE_UUID, StringComparator)
-      , Criterion(A_HOSTNAME, NodeStringComparator)
-      , Criterion(A_OS_NAME,OsNameComparator)
+        Criterion("OS",NodeOstypeComparator)
+      , Criterion(A_NODE_UUID, NodeStringComparator(node => node.node.id.value))
+      , Criterion(A_HOSTNAME, NodeStringComparator(node => node.hostname))
+      , Criterion(A_OS_NAME,NodeOsNameComparator)
       , Criterion(A_OS_FULL_NAME, OrderedStringComparator)
       , Criterion(A_OS_VERSION, OrderedStringComparator)
       , Criterion(A_OS_SERVICE_PACK, OrderedStringComparator)
@@ -205,9 +206,9 @@ class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, ge
       , Criterion(A_AGENTS_NAME, AgentComparator)
       , Criterion(A_ACCOUNT, StringComparator)
       , Criterion(A_LIST_OF_IP, StringComparator)
-      , Criterion(A_ROOT_USER, StringComparator)
+      , Criterion(A_ROOT_USER, NodeStringComparator(node => node.localAdministratorAccountName))
       , Criterion(A_INVENTORY_DATE, DateComparator)
-      , Criterion(A_POLICY_SERVER_UUID, StringComparator)
+      , Criterion(A_POLICY_SERVER_UUID, NodeStringComparator(node => node.policyServerId.value))
     )),
     ObjectCriterion(OC_SOFTWARE, Seq(
       Criterion(A_NAME, StringComparator),
