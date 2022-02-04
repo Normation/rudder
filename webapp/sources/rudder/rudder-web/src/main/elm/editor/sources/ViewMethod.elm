@@ -358,10 +358,11 @@ callBody model ui techniqueUi call pid =
                   ValidState -> ("text-primary","This method was modified")
     dragElem =  element "div"
                 |> addClass "cursorMove"
+
                 |> Dom.appendChild
                            ( element "i"
                              |> addClass "popover-bs fas"
-                             |> addClassConditional "fa-cog" (ui.mode == Closed)
+                             |> addClassConditional "fa-cog" (ui.mode == Closed && not isHovered)
                              |> addClassConditional "fa-edit" isHovered
                              |> addClassConditional "fa-check" (ui.mode == Opened)
                              |> addClass textClass
@@ -372,7 +373,7 @@ callBody model ui techniqueUi call pid =
                                   , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                                   ]
                            )
-                |> addActionStopPropagation ("click",  UIMethodAction call.id {ui | mode = Closed})
+                |> addAction ("click",  UIMethodAction call.id {ui | mode = if(ui.mode == Opened) then Closed else Opened})
     cloneIcon = element "i" |> addClass "fa fa-clone"
     cloneButton = element "button"
                   |> addClass "text-success method-action popover-bs"
