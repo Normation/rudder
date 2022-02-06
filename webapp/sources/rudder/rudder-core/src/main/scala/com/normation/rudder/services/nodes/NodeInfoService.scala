@@ -115,7 +115,7 @@ trait NodeInfoService {
    * Retrieve minimal information needed for the node info, used (only) by the
    * LDAP QueryProcessor.
    */
-  def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : IOResult[Set[LDAPNodeInfo]]
+  def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : IOResult[Seq[NodeInfo]]
 
   /**
    * Return a NodeInfo from a NodeId. First check the ou=Node, then fetch the other data
@@ -871,10 +871,10 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     cache.view.mapValues(_._2.node).toMap.succeed
   }
 
-  override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): IOResult[Set[LDAPNodeInfo]] = {
+  override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): IOResult[Seq[NodeInfo]] = {
     // if nodeIds is empty and composition is and, return an empty set; with or, we need to run it in all cases
     if (nodeIds.isEmpty && composition == And) {
-      Set[LDAPNodeInfo]().succeed
+      Seq[NodeInfo]().succeed
     } else {
       withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
         PostFilterNodeFromInfoService.getLDAPNodeInfo(nodeIds, predicates, composition, cache).succeed

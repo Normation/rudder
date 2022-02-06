@@ -168,29 +168,24 @@ class AcceptedNodesLDAPQueryProcessor(
       query:QueryTrait,
       select:Seq[String],
       limitToNodeIds:Option[Seq[NodeId]]
-  ) : Box[Seq[QueryResult]] = {
+  ) : Box[Seq[NodeInfo]] = {
 
     val debugId = if(logger.isDebugEnabled) Helpers.nextNum else 0L
     val timePreCompute =  System.currentTimeMillis
 
     for {
-      res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId, nodeInfoService.getAllNodesEntry).toBox
+      res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId, nodeInfoService.getAllNodesEntry()).toBox
       timeres        =  (System.currentTimeMillis - timePreCompute)
       _              =  logger.debug(s"LDAP result: ${res.entries.size} entries obtained in ${timeres}ms for query ${query.toString}")
-      ldapEntries    <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition).toBox
+      nodesInfos     <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition).toBox
       ldapEntryTime  =  (System.currentTimeMillis - timePreCompute - timeres)
-      _              =  logger.debug(s"[post-filter:rudderNode] Found ${ldapEntries.size} nodes when filtering for info service existence and properties (${ldapEntryTime} ms)")
+      _              =  logger.debug(s"[post-filter:rudderNode] Found ${nodesInfos.size} nodes when filtering for info service existence and properties (${ldapEntryTime} ms)")
 
     } yield {
-
-      val inNodes = ldapEntries.map { case LDAPNodeInfo(nodeEntry, nodeInv, machineInv) =>
-        QueryResult(nodeEntry, nodeInv, machineInv)
-      }
-
       if(logger.isDebugEnabled) {
-        val filtered = res.entries.map( _(A_NODE_UUID).get ).toSet -- inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }.toSet
+        val filtered = res.entries.map( _(A_NODE_UUID).get ).toSet -- nodesInfos.map( x => x.node.id.value)
         if(filtered.nonEmpty) {
-            logger.debug(s"[${debugId}] [post-filter:rudderNode] ${inNodes.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered.mkString(", ")}")
+            logger.debug(s"[${debugId}] [post-filter:rudderNode] ${nodesInfos.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered.mkString(", ")}")
         }
       }
 
@@ -200,15 +195,15 @@ class AcceptedNodesLDAPQueryProcessor(
         case NodeReturnType =>
             // we have a special case for the root node that always never to that group, even if some weird
             // scenario lead to the removal (or non addition) of them
-          val withoutServerRole = inNodes.filterNot { case QueryResult(e, inv, _) =>  e(A_NODE_UUID) == Some("root") }
+          val withoutServerRole = nodesInfos.filterNot { case x: NodeInfo =>  x.node.id.value ==("root") }
           if(logger.isDebugEnabled) {
-            val filtered = (inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }).toSet -- withoutServerRole.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }
+            val filtered = nodesInfos.filter { case x: NodeInfo =>  x.node.id.value ==("root") }
             if(!filtered.isEmpty) {
                 logger.debug("[%s] [post-filter:policyServer] %s results".format(debugId, withoutServerRole.size, filtered.mkString(", ")))
             }
           }
           withoutServerRole.toSeq
-        case NodeAndPolicyServerReturnType => inNodes.toSeq
+        case NodeAndPolicyServerReturnType => nodesInfos.toSeq
       }
     }
   }
@@ -216,28 +211,12 @@ class AcceptedNodesLDAPQueryProcessor(
   override def process(query:QueryTrait) : Box[Seq[NodeInfo]] = {
 
     //only keep the one of the form Full(...)
-    queryAndChekNodeId(query, NodeInfoService.nodeInfoAttributes, None).map { seq => seq.flatMap {
-      case QueryResult(nodeEntry, inventoryEntry,machine) =>
-        processor.ldapMapper.convertEntriesToNodeInfos(nodeEntry, inventoryEntry,machine).toBox match {
-          case Full(nodeInfo) => Seq(nodeInfo)
-          case e:EmptyBox =>
-            logger.error((e ?~! "Ignoring entry in result set").messageChain)
-            Seq()
-        }
-    } }
+    queryAndChekNodeId(query, NodeInfoService.nodeInfoAttributes, None)
   }
 
   override def processOnlyId(query:QueryTrait) : Box[Seq[NodeId]] = {
     //only keep the one of the form Full(...)
-    queryAndChekNodeId(query, Seq(A_NODE_UUID), None).map { seq => seq.flatMap {
-      case QueryResult(nodeEntry, _ , _) =>
-        nodeDit.NODES.NODE.idFromDn(nodeEntry.dn) match {
-          case Some(nodeId) => Some(nodeId)
-          case None =>
-            logger.error(s"Error when processing query ${query.toJSONString}: fetched node entry ${nodeEntry.toString()} is not a correct nodeId")
-            None
-        }
-    } }
+    queryAndChekNodeId(query, Seq(A_NODE_UUID), None).map(seq => seq.map( y => y.node.id))
   }
 
 }
@@ -249,7 +228,7 @@ class AcceptedNodesLDAPQueryProcessor(
  */
 object PostFilterNodeFromInfoService {
   val logger = LoggerFactory.getLogger("com.normation.rudder.services.queries")
-  def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, nodes: Map[NodeId, (LDAPNodeInfo, NodeInfo)]): Set[LDAPNodeInfo] = {
+  def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, nodes: Map[NodeId, (LDAPNodeInfo, NodeInfo)]): Seq[NodeInfo] = {
     def comp(a: Boolean, b: Boolean) = composition match {
         case And => a && b
         case Or  => a || b
@@ -283,7 +262,7 @@ object PostFilterNodeFromInfoService {
       }
     }
 
-    nodes.collect { case (_, (x, y)) if predicate(y, predicates) => x }.toSet
+    nodes.collect { case (_, (_, y)) if predicate(y, predicates) => y }.toSeq
   }
 }
 

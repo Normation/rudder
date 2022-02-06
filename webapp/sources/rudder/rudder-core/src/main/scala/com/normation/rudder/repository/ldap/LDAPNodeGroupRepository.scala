@@ -754,8 +754,10 @@ class WoLDAPNodeGroupRepository(
         oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError("Error when trying to check for the group %s".format(nodeGroup.id.value))
         // check if old group is the same as new group
         result       <- if (oldGroup.equals(nodeGroup)) {
+                          logger.info(s"Nothing to update for ${nodeGroup.id}")
                           None.succeed
                         } else {
+          logger.info(s"Check what changed for for ${nodeGroup.id}")
           for {
             systemCheck <- if (onlyUpdateNodes) {
               oldGroup.succeed
