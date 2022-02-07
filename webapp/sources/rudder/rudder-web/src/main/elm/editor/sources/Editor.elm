@@ -677,10 +677,18 @@ update msg model =
               let
                 newMethods =
                    case getParent clone of
-                     Nothing -> List.append t.elems [ clone ]
+                     Nothing ->
+                        let
+                          (heads, tails) = Maybe.withDefault ([],[]) (List.Extra.splitWhen (\e -> getId e == getId call) t.elems)
+                        in
+                          List.append heads (clone :: tails)
                      Just pid -> updateElemIf (getId >> (==) pid) ( \child -> case child of
                                                                                 Call _  _ -> child
-                                                                                Block p b -> Block p {b | calls = List.append b.calls [ clone ] }
+                                                                                Block p b ->
+                                                                                  let
+                                                                                    (heads, tails) = Maybe.withDefault ([],[]) (List.Extra.splitWhen (\e -> getId e == getId call) b.calls)
+                                                                                  in
+                                                                                  Block p {b | calls = List.append heads  ( clone :: tails ) }
                                                                   ) t.elems
                 technique = { t |  elems = newMethods}
                 newUi = case call of
