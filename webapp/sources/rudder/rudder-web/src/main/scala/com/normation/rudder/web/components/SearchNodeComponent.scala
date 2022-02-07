@@ -610,7 +610,7 @@ object SearchNodeComponent {
   val defaultLine : CriterionLine = {
     //in case of further modification in ditQueryData
     require(ditQueryData.criteriaMap(OC_NODE).criteria(0).name == "OS", "Error in search node criterion default line, did you change DitQueryData ?")
-    require(ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.isInstanceOf[OstypeComparator.type], "Error in search node criterion default line, did you change DitQueryData ?")
+    require(ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.isInstanceOf[NodeOstypeComparator.type], "Error in search node criterion default line, did you change DitQueryData ?")
     CriterionLine(
       objectType = ditQueryData.criteriaMap(OC_NODE)
     , attribute  = ditQueryData.criteriaMap(OC_NODE).criteria(0)

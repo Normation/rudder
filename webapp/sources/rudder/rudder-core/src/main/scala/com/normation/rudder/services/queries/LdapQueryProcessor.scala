@@ -46,7 +46,7 @@ import com.normation.rudder.domain._
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.rudder.services.nodes.{LDAPNodeInfo, NodeInfoService, NodeInfoServiceCached}
+import com.normation.rudder.services.nodes.{NodeInfoService, NodeInfoServiceCached}
 import com.normation.utils.Control.sequence
 import com.unboundid.ldap.sdk.DereferencePolicy.NEVER
 import com.unboundid.ldap.sdk.{LDAPConnection => _, SearchScope => _, _}
@@ -123,8 +123,8 @@ final case class SubQuery(subQueryId: String, dnType: DnType, objectTypeName: St
 
 
 final case class LdapQueryProcessorResult(
-    // list of entries from inventory matching the search
-    entries    : Seq[LDAPEntry]
+    // list of NodeInfo matching the search
+    entries    : Seq[NodeInfo]
     // a post filter to run on node info
   , nodeFilters: Seq[NodeInfoMatcher]
 )
@@ -174,16 +174,17 @@ class AcceptedNodesLDAPQueryProcessor(
     val timePreCompute =  System.currentTimeMillis
 
     for {
-      res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId, nodeInfoService.getAllNodesEntry()).toBox
+      allNodeInfos   <- nodeInfoService.getAllNodeInfos().toBox
+      res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId, allNodeInfos).toBox
       timeres        =  (System.currentTimeMillis - timePreCompute)
       _              =  logger.debug(s"LDAP result: ${res.entries.size} entries obtained in ${timeres}ms for query ${query.toString}")
-      nodesInfos     <- nodeInfoService.getLDAPNodeInfo(res.entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet, res.nodeFilters, query.composition).toBox
-      ldapEntryTime  =  (System.currentTimeMillis - timePreCompute - timeres)
-      _              =  logger.debug(s"[post-filter:rudderNode] Found ${nodesInfos.size} nodes when filtering for info service existence and properties (${ldapEntryTime} ms)")
+      nodesInfos     = nodeInfoService.getLDAPNodeInfo(res.entries, res.nodeFilters, query.composition, allNodeInfos)
+      filterTime     =  (System.currentTimeMillis - timePreCompute - timeres)
+      _              =  logger.debug(s"[post-filter:rudderNode] Found ${nodesInfos.size} nodes when filtering for info service existence and properties (${filterTime} ms)")
 
     } yield {
       if(logger.isDebugEnabled) {
-        val filtered = res.entries.map( _(A_NODE_UUID).get ).toSet -- nodesInfos.map( x => x.node.id.value)
+        val filtered = res.entries.map( x => x.node.id.value).diff(nodesInfos.map( x => x.node.id.value))
         if(filtered.nonEmpty) {
             logger.debug(s"[${debugId}] [post-filter:rudderNode] ${nodesInfos.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered.mkString(", ")}")
         }
@@ -228,7 +229,12 @@ class AcceptedNodesLDAPQueryProcessor(
  */
 object PostFilterNodeFromInfoService {
   val logger = LoggerFactory.getLogger("com.normation.rudder.services.queries")
-  def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, nodes: Map[NodeId, (LDAPNodeInfo, NodeInfo)]): Seq[NodeInfo] = {
+  def getLDAPNodeInfo(
+          foundNodeInfos: Seq[NodeInfo]  // the one from the search
+        , predicates    : Seq[NodeInfoMatcher]
+        , composition   : CriterionComposition
+        , allNodesInfos : Seq[NodeInfo]   // all the nodeinfo there is
+      ): Seq[NodeInfo] = {
     def comp(a: Boolean, b: Boolean) = composition match {
         case And => a && b
         case Or  => a || b
@@ -245,9 +251,10 @@ object PostFilterNodeFromInfoService {
       override def matches(node: NodeInfo): Boolean = comp(a.matches(node), b.matches(node))
     }
 
+    val foundNodeIds = foundNodeInfos.map(_.id)
     // if there is no predicates (ie no specific filter on NodeInfo), we should just keep nodes from our list
     def predicate(nodeInfo : NodeInfo, pred: Seq[NodeInfoMatcher]) = {
-      val contains = nodeIds.contains(nodeInfo.id)
+      val contains = foundNodeIds.contains(nodeInfo.id)
       if (pred.isEmpty) {
         // in that case, whatever the query composition, we can only return what was already found.
         contains
@@ -255,6 +262,9 @@ object PostFilterNodeFromInfoService {
         val combined = pred.reduceLeft(combine)
         val validPredicates =  combined.matches(nodeInfo)
         val res = comp(contains, validPredicates)
+
+        println(s"${nodeInfo.id.value}: ${if(res) "OK" else "NOK"} for [${combined.debugString}]")
+
         if(logger.isTraceEnabled()) {
           logger.trace(s"${nodeInfo.id.value}: ${if(res) "OK" else "NOK"} for [${combined.debugString}]")
         }
@@ -262,7 +272,7 @@ object PostFilterNodeFromInfoService {
       }
     }
 
-    nodes.collect { case (_, (_, y)) if predicate(y, predicates) => y }.toSeq
+    allNodesInfos.collect { case nodeinfo if predicate(nodeinfo, predicates) => nodeinfo }
   }
 }
 
@@ -273,8 +283,9 @@ object PostFilterNodeFromInfoService {
  * for pending nodes
  */
 class PendingNodesLDAPQueryChecker(
-    val checker:InternalLDAPQueryProcessor
-) extends QueryChecker {
+      val checker:InternalLDAPQueryProcessor
+    , nodeInfoService: NodeInfoService
+) extends QueryChecker with Loggable  {
 
   override def check(query:QueryTrait, limitToNodeIds:Option[Seq[NodeId]]) : Box[Seq[NodeId]] = {
     if(query.criteria.isEmpty) {
@@ -283,13 +294,24 @@ class PendingNodesLDAPQueryChecker(
       )
       Full(Seq.empty[NodeId])
     } else {
+      val timePreCompute =  System.currentTimeMillis
       for {
-        res <- checker.internalQueryProcessor(query, Seq("1.1"), limitToNodeIds).toBox
-        ids <- sequence(res.entries) { entry =>
-          checker.ldapMapper.nodeDn2OptNodeId(entry.dn).toBox ?~! "Can not get node ID from dn %s".format(entry.dn)
-        }
+        // get the pending node onfos we are considering
+        allPendingNodeInfos <- nodeInfoService.getPendingNodeInfos().toBox
+        pendingNodeInfos    = limitToNodeIds match {
+                                case None => allPendingNodeInfos.values.toSeq
+                                case Some(ids) => allPendingNodeInfos.collect { case (nodeId, nodeInfo) if ids.contains(nodeId) => nodeInfo}.toSeq
+                              }
+        res            <- checker.internalQueryProcessor(query, Seq("1.1"), limitToNodeIds, 0, pendingNodeInfos).toBox
+        timeres        =  (System.currentTimeMillis - timePreCompute)
+        _              =  logger.debug(s"LDAP result: ${res.entries.size} entries in pending nodes obtained in ${timeres}ms for query ${query.toString}")
+
+        nodesInfos     = nodeInfoService.getLDAPNodeInfo(res.entries, res.nodeFilters, query.composition, pendingNodeInfos)
+        filterTime     =  (System.currentTimeMillis - timePreCompute - timeres)
+        _              =  logger.debug(s"[post-filter:rudderNode] Found ${nodesInfos.size} nodes when filtering pending nodes for info service existence and properties (${filterTime} ms)")
+
       } yield {
-        ids
+        nodesInfos.map(_.node.id)
       }
     }
   }
@@ -336,8 +358,9 @@ class InternalLDAPQueryProcessor(
     , select        : Seq[String] = Seq()
     , limitToNodeIds: Option[Seq[NodeId]] = None
     , debugId       : Long = 0L
-    , allNodesEntry : Option[Seq[LDAPEntry]]  = None// this is hackish, to have the list of all node if
-                                     // only nodeinfofilters, so that we don't look for all
+    , allNodeInfos  : Seq[NodeInfo] // this is hackish, to have the list of all node if
+                                           // only nodeinfofilters, so that we don't look for all
+                            // it is always called, no need to be a lambda
   ) : IOResult[LdapQueryProcessorResult] = {
 
 
@@ -472,12 +495,13 @@ class InternalLDAPQueryProcessor(
       // so we skip the last query
       results  <- optdms match {
                     case None  if nq.noFilterButTakeAllFromCache    =>
-                      allNodesEntry.getOrElse(Seq()).succeed
+                      allNodeInfos.succeed
                     case None =>
-                      Seq[LDAPEntry]().succeed
+                      Seq[NodeInfo]().succeed
                     case Some(dms) =>
                       (for {
                         // Ok, do the computation here
+                        // still rely on LDAP here
                         _      <- logPure.ifTraceEnabled {
                                     ZIO.foreach_(dms) { case (dnType, dns) =>
                                       logPure.trace(s"/// ${dnType} ==> ${dns.map(_.getRDN).mkString(", ")}")
@@ -493,41 +517,40 @@ class InternalLDAPQueryProcessor(
                         rt      = nodeObjectTypes.copy(filter = finalLdapFilter)
                         _       <- logPure.debug(s"[${debugId}] |- (final query) ${rt}")
                         entries <- executeQuery(rt.baseDn, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, nq.composition, debugId)
-                      } yield entries).
+                        // convert these entries into nodeInfo
+                        nodesId  = entries.flatMap(x => x(A_NODE_UUID))
+                        nodeInfos = allNodeInfos.filter(nodeInfo => nodesId.contains(nodeInfo.node.id.value))
+                      } yield nodeInfos).
                           tapError(err => logPure.debug(s"[${debugId}] `-> error: ${err.fullMsg}")).
                           tap(seq => logPure.debug(s"[${debugId}] `-> ${seq.size} results"))
                   }
-      inverted <- query.transform match {
-                  case ResultTransformation.Identity => results.succeed
+      // No more LDAP query is required here
+      inverted = query.transform match {
+                  case ResultTransformation.Identity => results
                   case ResultTransformation.Invert   =>
-                    for {
-                      _      <- logPure.debug(s"[${debugId}] |- (need to get all nodeIds for inversion) ")
-                      allIds <- executeQuery(nodeObjectTypes.baseDn, nodeObjectTypes.scope, nodeObjectTypes.objectFilter, Some(ALL), Set(), Set(), nq.composition, debugId)
-                      ids    =  results.flatMap(x => x(A_NODE_UUID)).toSet
-                      res    =  allIds.filterNot( e => ids.contains(e.value_!(A_NODE_UUID)) )
-                      _      <- logPure.debug(s"[${debugId}] |- (invert) entries after inversion: ${res.size}")
-                    } yield {
+                      logEffect.debug(s"[${debugId}] |- (need to get all nodeIds for inversion) ")
+                      val res    = allNodeInfos.diff(results)
+                      logEffect.debug(s"[${debugId}] |- (invert) entries after inversion: ${res.size}")
                       res
                     }
-                  }
       // distinctBy computes the hashcode of the object
       // It is really expensive on LDAP entries.
       // The dn string is already computed, so the toString is a good alternative (and as also unicity)
-      postFiltered = postFilterNode(inverted.distinctBy(_.dn.toString), query.returnType, limitToNodeIds)
+      postFiltered = postFilterNode(inverted.distinctBy(_.node.id.value), query.returnType, limitToNodeIds)
     } yield {
       LdapQueryProcessorResult(postFiltered, nq.nodeInfoFilters)
     }
   }
 
   /**
-   * That method allows to post-process a list of nodes based on
+   * That method allows to post-process a list of NodeInfo based on
    * the resultType.
    * - step1: ~filter out policy server if we only want "simple" nodes~ => no, we need to do
    *   that in `queryAndChekNodeId` where we know about server roles
    * - step2: filter out nodes based on a given list of acceptable entries
    */
-  private[this] def postFilterNode(entries: Seq[LDAPEntry], returnType: QueryReturnType, limitToNodeIds:Option[Seq[NodeId]]) : Seq[LDAPEntry] = {
-
+  private[this] def postFilterNode(entries: Seq[NodeInfo], returnType: QueryReturnType, limitToNodeIds:Option[Seq[NodeId]]) : Seq[NodeInfo] = {
+// keeping this for backport option to 6.2
     val step1 = returnType match {
                   //actually, we are able at that point to know if we have a policy server,
                   //so we don't post-process anything.
@@ -536,8 +559,8 @@ class InternalLDAPQueryProcessor(
                 }
     val step2 = limitToNodeIds match {
                  case None => step1
-                 case Some(seq) => step1.filter(e =>
-                                     seq.exists(nodeId => nodeId.value == e(A_NODE_UUID).getOrElse("Missing attribute %s in node entry, that case is not supported.").format(A_NODE_UUID))
+                 case Some(seq) => step1.filter(nodeInfo =>
+                                     seq.exists(nodeId => nodeId.value == nodeInfo.node.id.value)
                                    )
                }
 

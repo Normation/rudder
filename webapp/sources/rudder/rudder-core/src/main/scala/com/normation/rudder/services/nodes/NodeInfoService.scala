@@ -112,10 +112,12 @@ final case class LDAPNodeInfo(
 trait NodeInfoService {
 
   /**
-   * Retrieve minimal information needed for the node info, used (only) by the
-   * LDAP QueryProcessor.
+   * Filter the nodeinfos that match the predicate & composition - don't rely on the cache
+   * used only by the LDAP QueryProcessor.
+   * foundNodeInfos are the nodeinfo found by ldap query
+   * allNodeInfos are all the know nodeInfos to date
    */
-  def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : IOResult[Seq[NodeInfo]]
+  def getLDAPNodeInfo(foundNodeInfos: Seq[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodeInfos: Seq[NodeInfo]): Seq[NodeInfo]
 
   /**
    * Return a NodeInfo from a NodeId. First check the ou=Node, then fetch the other data
@@ -157,6 +159,7 @@ trait NodeInfoService {
    */
   def getAllNodes() : IOResult[Map[NodeId, Node]]
 
+  def getAllNodeInfos():IOResult[Seq[NodeInfo]]
   /**
    * Get all systen node ids, for example
    * policy server node ids.
@@ -578,10 +581,6 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     )
   }
 
-  def getAllNodesEntry() = {
-    nodeCache.map(x => x.nodeInfos.values.toSeq.map(_._1.nodeEntry))
-  }
-
   /**
    * Update cache, without doing anything with the data
    */
@@ -871,14 +870,16 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     cache.view.mapValues(_._2.node).toMap.succeed
   }
 
-  override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): IOResult[Seq[NodeInfo]] = {
+  def getAllNodeInfos():IOResult[Seq[NodeInfo]] = withUpToDateCache("all nodeinfos") { cache =>
+    cache.values.map(_._2).toSeq.succeed
+  }
+
+  override def getLDAPNodeInfo(foundNodeInfos: Seq[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodeInfos: Seq[NodeInfo]): Seq[NodeInfo] = {
     // if nodeIds is empty and composition is and, return an empty set; with or, we need to run it in all cases
-    if (nodeIds.isEmpty && composition == And) {
-      Seq[NodeInfo]().succeed
+    if (foundNodeInfos.isEmpty && composition == And) {
+      Seq[NodeInfo]()
     } else {
-      withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
-        PostFilterNodeFromInfoService.getLDAPNodeInfo(nodeIds, predicates, composition, cache).succeed
-      }
+      PostFilterNodeFromInfoService.getLDAPNodeInfo(foundNodeInfos, predicates, composition, allNodeInfos)
     }
   }
 

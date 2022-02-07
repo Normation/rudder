@@ -48,7 +48,6 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 import com.normation.rudder.domain.RudderLDAPConstants.A_STATE
 import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.services.queries.SpecialFilter
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter

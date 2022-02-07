@@ -79,7 +79,6 @@ import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
-import com.normation.rudder.services.nodes.LDAPNodeInfo
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterForConfiguration
@@ -1489,6 +1488,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     }
 
     override def getAllNodes(): IOResult[Map[NodeId, Node]] = getAll().map(_.map(kv => (kv._1, kv._2.node)))
+    override def getAllNodeInfos():IOResult[Seq[NodeInfo]] = getAll().map(_.values.toSeq)
     override def getAllNodesIds(): IOResult[Set[NodeId]] = getAllNodes().map(_.keySet)
     override def getAllSystemNodeIds(): IOResult[Seq[NodeId]] = {
       nodeBase.get.map(_.collect { case (id, n)  if(n.info.isSystem) => id }.toSeq )
@@ -1513,7 +1513,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     override def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]] = getGenericAll(inventoryStatus, _fullInventory(_).map(_.node))
 
     // not implemented yet
-    override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): IOResult[Seq[NodeInfo]] = ???
+    override def getLDAPNodeInfo(nodeInfos: Seq[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodesInfos : Seq[NodeInfo]): Seq[NodeInfo] = ???
     override def getNumberOfManagedNodes: Int = ???
     override def save(serverAndMachine: FullInventory): IOResult[Seq[LDIFChangeRecord]] = ???
     override def delete(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
