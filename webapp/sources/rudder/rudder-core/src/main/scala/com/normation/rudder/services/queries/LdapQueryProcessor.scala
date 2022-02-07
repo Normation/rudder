@@ -263,8 +263,6 @@ object PostFilterNodeFromInfoService {
         val validPredicates =  combined.matches(nodeInfo)
         val res = comp(contains, validPredicates)
 
-        println(s"${nodeInfo.id.value}: ${if(res) "OK" else "NOK"} for [${combined.debugString}]")
-
         if(logger.isTraceEnabled()) {
           logger.trace(s"${nodeInfo.id.value}: ${if(res) "OK" else "NOK"} for [${combined.debugString}]")
         }
