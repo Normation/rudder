@@ -694,16 +694,16 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
               def naReport(condition : String, message : String) = {
                 val bundleCall =
                 s"""    "${promiser}" usebundle => ${reportingContext(call, classParameterValue)},
-                   |     ${promiser.map(_ => ' ')}     unless => ${condition};
+                   |     ${promiser.map(_ => ' ')}     unless => concat("${condition}");
                    |    "${promiser}" usebundle => log_na_rudder("${message}", "${escapedClassParameterValue}", "${classPrefix}", @{args}),
-                   |     ${promiser.map(_ => ' ')}     unless => ${condition};""".stripMargin('|')
+                   |     ${promiser.map(_ => ' ')}     unless => concat("${condition}");""".stripMargin('|')
 
                 if (call.disabledReporting) {
                   s"""    "${promiser}" usebundle => disable_reporting,
-                     |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
+                     |     ${promiser.map(_ => ' ')}     unless => concat("${condition}");
                      |${bundleCall}
                      |    "${promiser}" usebundle => enable_reporting,
-                     |     ${promiser.map(_ => ' ')}         if => concat("${condition}");""".stripMargin('|')
+                     |     ${promiser.map(_ => ' ')}     unless => concat("${condition}");""".stripMargin('|')
                 } else {
                   bundleCall
                 }
@@ -719,7 +719,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
                 // ... or if the condition needs rudder_reporting
                 if (methodCallNeedReporting(methods, parentBlocks)(call)) {
                   val message = s"""Skipping method '${method_info.name}' with key parameter '${escapedClassParameterValue}' since condition '${call.condition}' is not reached"""
-                  val condition = s"""concat("${canonifyCondition(call, parentBlocks)}")"""
+                  val condition = s"${canonifyCondition(call, parentBlocks)}"
                   Some((condition, message))
                 } else {
                   None
