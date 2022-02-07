@@ -1513,7 +1513,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     override def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]] = getGenericAll(inventoryStatus, _fullInventory(_).map(_.node))
 
     // not implemented yet
-    override def getLDAPNodeInfo(nodeInfos: Seq[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodesInfos : Seq[NodeInfo]): Seq[NodeInfo] = ???
+    override def getLDAPNodeInfo(nodeInfos: Set[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodesInfos : Set[NodeInfo]): Set[NodeInfo] = ???
     override def getNumberOfManagedNodes: Int = ???
     override def save(serverAndMachine: FullInventory): IOResult[Seq[LDIFChangeRecord]] = ???
     override def delete(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???

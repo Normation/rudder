@@ -124,7 +124,7 @@ final case class SubQuery(subQueryId: String, dnType: DnType, objectTypeName: St
 
 final case class LdapQueryProcessorResult(
     // list of NodeInfo matching the search
-    entries    : Seq[NodeInfo]
+    entries    : Set[NodeInfo]
     // a post filter to run on node info
   , nodeFilters: Seq[NodeInfoMatcher]
 )
@@ -168,7 +168,7 @@ class AcceptedNodesLDAPQueryProcessor(
       query:QueryTrait,
       select:Seq[String],
       limitToNodeIds:Option[Seq[NodeId]]
-  ) : Box[Seq[NodeInfo]] = {
+  ) : Box[Set[NodeInfo]] = {
 
     val debugId = if(logger.isDebugEnabled) Helpers.nextNum else 0L
     val timePreCompute =  System.currentTimeMillis
@@ -203,19 +203,19 @@ class AcceptedNodesLDAPQueryProcessor(
                 logger.debug("[%s] [post-filter:policyServer] %s results".format(debugId, withoutServerRole.size, filtered.mkString(", ")))
             }
           }
-          withoutServerRole.toSeq
-        case NodeAndPolicyServerReturnType => nodesInfos.toSeq
+          withoutServerRole
+        case NodeAndPolicyServerReturnType => nodesInfos
       }
     }
   }
 
-  override def process(query:QueryTrait) : Box[Seq[NodeInfo]] = {
+  override def process(query:QueryTrait) : Box[Set[NodeInfo]] = {
 
     //only keep the one of the form Full(...)
     queryAndChekNodeId(query, NodeInfoService.nodeInfoAttributes, None)
   }
 
-  override def processOnlyId(query:QueryTrait) : Box[Seq[NodeId]] = {
+  override def processOnlyId(query:QueryTrait) : Box[Set[NodeId]] = {
     //only keep the one of the form Full(...)
     queryAndChekNodeId(query, Seq(A_NODE_UUID), None).map(seq => seq.map( y => y.node.id))
   }
@@ -230,16 +230,16 @@ class AcceptedNodesLDAPQueryProcessor(
 object PostFilterNodeFromInfoService {
   val logger = LoggerFactory.getLogger("com.normation.rudder.services.queries")
   def getLDAPNodeInfo(
-          foundNodeInfos: Seq[NodeInfo]  // the one from the search
+          foundNodeInfos: Set[NodeInfo]  // the one from the search, need to be a Set for fast "contain"
         , predicates    : Seq[NodeInfoMatcher]
         , composition   : CriterionComposition
-        , allNodesInfos : Seq[NodeInfo]   // all the nodeinfo there is
-      ): Seq[NodeInfo] = {
+        , allNodesInfos : Set[NodeInfo]   // all the nodeinfo there is
+      ): Set[NodeInfo] = {
     def comp(a: Boolean, b: Boolean) = composition match {
         case And => a && b
         case Or  => a || b
     }
-    // utliity to combine predicates according to comp
+    // utility to combine predicates according to comp
     def combine(a: NodeInfoMatcher, b: NodeInfoMatcher) = new NodeInfoMatcher {
       override val debugString = {
         val c = composition match {
@@ -252,14 +252,20 @@ object PostFilterNodeFromInfoService {
     }
 
     val foundNodeIds = foundNodeInfos.map(_.id)
+    val combined = predicates.reduceLeft(combine)
+
     // if there is no predicates (ie no specific filter on NodeInfo), we should just keep nodes from our list
-    def predicate(nodeInfo : NodeInfo, pred: Seq[NodeInfoMatcher]) = {
-      val contains = foundNodeIds.contains(nodeInfo.id)
+    def predicate(nodeInfo : NodeInfo, pred: Seq[NodeInfoMatcher], composition: CriterionComposition) = {
+      val contains = composition match {
+        case Or  => foundNodeIds.contains(nodeInfo.id) // we combine with all
+        case And => true // we combine with all
+
+      }
+
       if (pred.isEmpty) {
         // in that case, whatever the query composition, we can only return what was already found.
         contains
       } else {
-        val combined = pred.reduceLeft(combine)
         val validPredicates =  combined.matches(nodeInfo)
         val res = comp(contains, validPredicates)
 
@@ -270,7 +276,11 @@ object PostFilterNodeFromInfoService {
       }
     }
 
-    allNodesInfos.collect { case nodeinfo if predicate(nodeinfo, predicates) => nodeinfo }
+    composition match {
+      case Or  => allNodesInfos.collect { case nodeinfo if predicate(nodeinfo, predicates, composition) => nodeinfo }
+      case And => foundNodeInfos.collect { case nodeinfo if predicate(nodeinfo, predicates, composition) => nodeinfo }
+    }
+
   }
 }
 
@@ -285,26 +295,26 @@ class PendingNodesLDAPQueryChecker(
     , nodeInfoService: NodeInfoService
 ) extends QueryChecker with Loggable  {
 
-  override def check(query:QueryTrait, limitToNodeIds:Option[Seq[NodeId]]) : Box[Seq[NodeId]] = {
+  override def check(query:QueryTrait, limitToNodeIds:Option[Seq[NodeId]]) : Box[Set[NodeId]] = {
     if(query.criteria.isEmpty) {
       LoggerFactory.getILoggerFactory.getLogger(Logger.loggerNameFor(classOf[InternalLDAPQueryProcessor])).debug(
         s"Checking a query with 0 criterium will always lead to 0 nodes: ${query}"
       )
-      Full(Seq.empty[NodeId])
+      Full(Set.empty[NodeId])
     } else {
       val timePreCompute =  System.currentTimeMillis
       for {
         // get the pending node onfos we are considering
         allPendingNodeInfos <- nodeInfoService.getPendingNodeInfos().toBox
         pendingNodeInfos    = limitToNodeIds match {
-                                case None => allPendingNodeInfos.values.toSeq
-                                case Some(ids) => allPendingNodeInfos.collect { case (nodeId, nodeInfo) if ids.contains(nodeId) => nodeInfo}.toSeq
+                                case None => allPendingNodeInfos.values.toSet
+                                case Some(ids) => allPendingNodeInfos.collect { case (nodeId, nodeInfo) if ids.contains(nodeId) => nodeInfo}.toSet
                               }
         res            <- checker.internalQueryProcessor(query, Seq("1.1"), limitToNodeIds, 0, pendingNodeInfos).toBox
         timeres        =  (System.currentTimeMillis - timePreCompute)
         _              =  logger.debug(s"LDAP result: ${res.entries.size} entries in pending nodes obtained in ${timeres}ms for query ${query.toString}")
 
-        nodesInfos     = nodeInfoService.getLDAPNodeInfo(res.entries, res.nodeFilters, query.composition, pendingNodeInfos)
+        nodesInfos     = nodeInfoService.getLDAPNodeInfo(res.entries.toSet, res.nodeFilters, query.composition, pendingNodeInfos)
         filterTime     =  (System.currentTimeMillis - timePreCompute - timeres)
         _              =  logger.debug(s"[post-filter:rudderNode] Found ${nodesInfos.size} nodes when filtering pending nodes for info service existence and properties (${filterTime} ms)")
 
@@ -356,7 +366,7 @@ class InternalLDAPQueryProcessor(
     , select        : Seq[String] = Seq()
     , limitToNodeIds: Option[Seq[NodeId]] = None
     , debugId       : Long = 0L
-    , allNodeInfos  : Seq[NodeInfo] // this is hackish, to have the list of all node if
+    , allNodeInfos  : Set[NodeInfo] // this is hackish, to have the list of all node if
                                            // only nodeinfofilters, so that we don't look for all
                             // it is always called, no need to be a lambda
   ) : IOResult[LdapQueryProcessorResult] = {
@@ -495,7 +505,7 @@ class InternalLDAPQueryProcessor(
                     case None  if nq.noFilterButTakeAllFromCache    =>
                       allNodeInfos.succeed
                     case None =>
-                      Seq[NodeInfo]().succeed
+                      Set[NodeInfo]().succeed
                     case Some(dms) =>
                       (for {
                         // Ok, do the computation here
@@ -534,7 +544,7 @@ class InternalLDAPQueryProcessor(
       // distinctBy computes the hashcode of the object
       // It is really expensive on LDAP entries.
       // The dn string is already computed, so the toString is a good alternative (and as also unicity)
-      postFiltered = postFilterNode(inverted.distinctBy(_.node.id.value), query.returnType, limitToNodeIds)
+      postFiltered = postFilterNode(inverted, query.returnType, limitToNodeIds)
     } yield {
       LdapQueryProcessorResult(postFiltered, nq.nodeInfoFilters)
     }
@@ -547,7 +557,7 @@ class InternalLDAPQueryProcessor(
    *   that in `queryAndChekNodeId` where we know about server roles
    * - step2: filter out nodes based on a given list of acceptable entries
    */
-  private[this] def postFilterNode(entries: Seq[NodeInfo], returnType: QueryReturnType, limitToNodeIds:Option[Seq[NodeId]]) : Seq[NodeInfo] = {
+  private[this] def postFilterNode(entries: Set[NodeInfo], returnType: QueryReturnType, limitToNodeIds:Option[Seq[NodeId]]) : Set[NodeInfo] = {
 // keeping this for backport option to 6.2
     val step1 = returnType match {
                   //actually, we are able at that point to know if we have a policy server,

@@ -117,7 +117,7 @@ trait NodeInfoService {
    * foundNodeInfos are the nodeinfo found by ldap query
    * allNodeInfos are all the know nodeInfos to date
    */
-  def getLDAPNodeInfo(foundNodeInfos: Seq[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodeInfos: Seq[NodeInfo]): Seq[NodeInfo]
+  def getLDAPNodeInfo(foundNodeInfos: Set[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodeInfos: Set[NodeInfo]): Set[NodeInfo]
 
   /**
    * Return a NodeInfo from a NodeId. First check the ou=Node, then fetch the other data
@@ -159,7 +159,7 @@ trait NodeInfoService {
    */
   def getAllNodes() : IOResult[Map[NodeId, Node]]
 
-  def getAllNodeInfos():IOResult[Seq[NodeInfo]]
+  def getAllNodeInfos():IOResult[Set[NodeInfo]]
   /**
    * Get all systen node ids, for example
    * policy server node ids.
@@ -870,14 +870,14 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     cache.view.mapValues(_._2.node).toMap.succeed
   }
 
-  def getAllNodeInfos():IOResult[Seq[NodeInfo]] = withUpToDateCache("all nodeinfos") { cache =>
-    cache.values.map(_._2).toSeq.succeed
+  def getAllNodeInfos():IOResult[Set[NodeInfo]] = withUpToDateCache("all nodeinfos") { cache =>
+    cache.values.map(_._2).toSet.succeed
   }
 
-  override def getLDAPNodeInfo(foundNodeInfos: Seq[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodeInfos: Seq[NodeInfo]): Seq[NodeInfo] = {
+  override def getLDAPNodeInfo(foundNodeInfos: Set[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodeInfos: Set[NodeInfo]): Set[NodeInfo] = {
     // if nodeIds is empty and composition is and, return an empty set; with or, we need to run it in all cases
     if (foundNodeInfos.isEmpty && composition == And) {
-      Seq[NodeInfo]()
+      Set[NodeInfo]()
     } else {
       PostFilterNodeFromInfoService.getLDAPNodeInfo(foundNodeInfos, predicates, composition, allNodeInfos)
     }

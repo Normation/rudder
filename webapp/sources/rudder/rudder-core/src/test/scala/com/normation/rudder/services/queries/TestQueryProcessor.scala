@@ -1217,7 +1217,7 @@ class TestQueryProcessor extends Loggable {
 
   private def testQueryResultProcessor(name:String,query:QueryTrait, nodes:Seq[NodeId], doInternalQueryTest : Boolean) = {
       val ids = nodes.sortBy( _.value )
-      val found = queryProcessor.process(query).openOrThrowException("For tests").map { _.id }.sortBy( _.value )
+      val found = queryProcessor.process(query).openOrThrowException("For tests").map { _.id }.toSeq.sortBy( _.value )
       //also test with requiring only the expected node to check consistancy
       //(that should not change anything)
 
@@ -1242,7 +1242,7 @@ class TestQueryProcessor extends Loggable {
         val foundWithLimit =
           (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids), allNodeInfos= allNodesInfos).runNow.entries.map {
             _.node.id
-          }).distinct.sortBy( _.value )
+          }).toSeq.distinct.sortBy( _.value )
 
         assertEquals(
           s"[${name}] Size differs between expected and found entries (InternalQueryProcessor, only inventory fields)\n Found: ${foundWithLimit}\n Expected: ${ids}"

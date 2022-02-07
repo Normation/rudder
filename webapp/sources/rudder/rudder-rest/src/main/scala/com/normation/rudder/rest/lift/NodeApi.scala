@@ -1054,7 +1054,7 @@ class NodeApiService6 (
           case _ => Failure(s"Invalid branch used for nodes query, expected either AcceptedInventory or PendingInventory, got ${state}")
         }
       } yield {
-        listNodes(state,detailLevel,Some(nodeIds),version)
+        listNodes(state,detailLevel,Some(nodeIds.toSeq),version)
       }
     ) match {
       case Full(resp) => {

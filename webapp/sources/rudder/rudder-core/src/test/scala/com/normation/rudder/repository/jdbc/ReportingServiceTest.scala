@@ -95,7 +95,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   }
 
   object nodeInfoService extends NodeInfoService {
-    def getLDAPNodeInfo(foundNodeInfos: Seq[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodeInfos: Seq[NodeInfo]): Seq[NodeInfo]= ???
+    def getLDAPNodeInfo(foundNodeInfos: Set[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodeInfos: Set[NodeInfo]): Set[NodeInfo]= ???
     def getNodeInfo(nodeId: NodeId) : IOResult[Option[NodeInfo]] = ???
     def getNodeInfos(nodesId: Set[NodeId]) : IOResult[Set[NodeInfo]] = ???
     def getNode(nodeId: NodeId): Box[Node] = ???
