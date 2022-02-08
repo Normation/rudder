@@ -1487,7 +1487,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     }
 
     override def getAllNodes(): IOResult[Map[NodeId, Node]] = getAll().map(_.map(kv => (kv._1, kv._2.node)))
-    override def getAllNodeInfos():IOResult[Set[NodeInfo]] = getAll().map(_.values.toSet)
+    override def getAllNodeInfos():IOResult[Seq[NodeInfo]] = getAll().map(_.values.toSeq)
     override def getAllNodesIds(): IOResult[Set[NodeId]] = getAllNodes().map(_.keySet)
     override def getAllSystemNodeIds(): IOResult[Seq[NodeId]] = {
       nodeBase.get.map(_.collect { case (id, n)  if(n.info.isSystem) => id }.toSeq )

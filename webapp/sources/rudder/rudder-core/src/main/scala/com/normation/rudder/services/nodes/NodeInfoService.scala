@@ -147,7 +147,7 @@ trait NodeInfoService {
    */
   def getAllNodes() : IOResult[Map[NodeId, Node]]
 
-  def getAllNodeInfos():IOResult[Set[NodeInfo]]
+  def getAllNodeInfos():IOResult[Seq[NodeInfo]]
   /**
    * Get all systen node ids, for example
    * policy server node ids.
@@ -858,8 +858,8 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
     cache.view.mapValues(_._2.node).toMap.succeed
   }
 
-  def getAllNodeInfos():IOResult[Set[NodeInfo]] = withUpToDateCache("all nodeinfos") { cache =>
-    cache.view.values.map(_._2).toSet.succeed
+  def getAllNodeInfos():IOResult[Seq[NodeInfo]] = withUpToDateCache("all nodeinfos") { cache =>
+    cache.view.values.map(_._2).toSeq.succeed
   }
 
   def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = withUpToDateCache(s"${nodeId.value} node info") { cache =>

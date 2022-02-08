@@ -134,7 +134,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     def getNode(nodeId: NodeId): Box[Node] = ???
     def getAllNodes() : IOResult[Map[NodeId, Node]] = ???
     def getAllNodesIds(): IOResult[Set[NodeId]] = ???
-    def getAllNodeInfos():IOResult[Set[NodeInfo]] = ???
+    def getAllNodeInfos():IOResult[Seq[NodeInfo]] = ???
     def getAllSystemNodeIds() : IOResult[Seq[NodeId]] = ???
     def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = ???
     def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
