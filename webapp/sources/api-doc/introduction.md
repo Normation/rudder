@@ -84,6 +84,13 @@ period of time to allow migration from previous versions.
         <li>Demote a relay</li>
       </ul></td>
     </tr>
+    <tr>
+      <td class="code">15</td>
+      <td class="code">7.1</td>
+      <td><ul>
+        <li>Package updates in nodes</li>
+      </ul></td>
+    </tr>
   </tbody>
 </table>
 

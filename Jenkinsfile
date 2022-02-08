@@ -14,7 +14,7 @@ pipeline {
 
     environment {
         // TODO: automate
-        RUDDER_VERSION = "7.0"
+        RUDDER_VERSION = "7.1"
     }
 
     stages {
@@ -228,7 +228,7 @@ pipeline {
                     agent {
                         dockerfile { 
                             filename 'language/Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=$RUDDER_VERSION"
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
                             // mount cache
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
@@ -405,7 +405,7 @@ pipeline {
                     agent {
                         dockerfile { 
                             filename 'language/Dockerfile'
-                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}"
+                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
                             // mount cache
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
