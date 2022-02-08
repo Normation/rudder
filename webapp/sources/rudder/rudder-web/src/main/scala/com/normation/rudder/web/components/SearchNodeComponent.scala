@@ -192,7 +192,7 @@ class SearchNodeComponent(
       query = Some(newQuery)
       if(errors.isEmpty) {
         // ********* EXECUTE QUERY ***********
-        srvList = queryProcessor.process(newQuery)
+        srvList = queryProcessor.process(newQuery).map(_.toSeq)
         initUpdate = true
         searchFormHasError = false
       } else {

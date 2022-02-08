@@ -62,6 +62,7 @@ import com.normation.errors._
 import zio._
 import zio.syntax._
 import com.normation.ldap.sdk.syntax._
+import com.normation.zio.currentTimeMillis
 
 /*
  * We have two type of filters:
@@ -173,47 +174,40 @@ class AcceptedNodesLDAPQueryProcessor(
     val debugId = if(logger.isDebugEnabled) Helpers.nextNum else 0L
     val timePreCompute =  System.currentTimeMillis
 
-    var initedCache : Option[Box[Set[NodeInfo]]] = None
-    def lambdaTest() = {
-      initedCache match {
-        case Some(value) => value
-        case None => initedCache = Some((nodeInfoService.getAllNodeInfos().toBox))
-                     initedCache.get
-      }
-    }
+//    var initedCache : Option[IOResult[Set[NodeInfo]]] = None
+//    def lambdaTest() = {
+//      initedCache match {
+//        case Some(value) => value
+//        case None => initedCache = Some((nodeInfoService.getAllNodeInfos().toBox))
+//                     initedCache.get
+//      }
+//    }
 
     for {
-      allNodeInfos   <- nodeInfoService.getAllNodeInfos().toBox // TODO: make it a lambda again, but a clever one (with a cache)
-      res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId, allNodeInfos).toBox
+    //  allNodeInfos   <- nodeInfoService.getAllNodeInfos().toBox // TODO: make it a lambda again, but a clever one (with a cache)
+      res            <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId, () => nodeInfoService.getAllNodeInfos).toBox
       timeres        =  (System.currentTimeMillis - timePreCompute)
       _              =  logger.debug(s"LDAP result: ${res.entries.size} entries obtained in ${timeres}ms for query ${query.toString}")
-      nodesInfos     = nodeInfoService.getLDAPNodeInfo(res.entries, res.nodeFilters, query.composition, allNodeInfos)
-      filterTime     =  (System.currentTimeMillis - timePreCompute - timeres)
-      _              =  logger.debug(s"[post-filter:rudderNode] Found ${nodesInfos.size} nodes when filtering for info service existence and properties (${filterTime} ms)")
+     // nodesInfos     = nodeInfoService.getLDAPNodeInfo(res.entries, res.nodeFilters, query.composition, allNodeInfos)
+    //  filterTime     =  (System.currentTimeMillis - timePreCompute - timeres)
+     // _              =  logger.debug(s"[post-filter:rudderNode] Found ${nodesInfos.size} nodes when filtering for info service existence and properties (${filterTime} ms)")
 
     } yield {
-      if(logger.isDebugEnabled) {
-        val filtered = res.entries.map( x => x.node.id.value).diff(nodesInfos.map( x => x.node.id.value))
-        if(filtered.nonEmpty) {
-            logger.debug(s"[${debugId}] [post-filter:rudderNode] ${nodesInfos.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered.mkString(", ")}")
-        }
-      }
-
-      //filter out Rudder server component if necessary
+            //filter out Rudder server component if necessary
 
       query.returnType match {
         case NodeReturnType =>
             // we have a special case for the root node that always never to that group, even if some weird
             // scenario lead to the removal (or non addition) of them
-          val withoutServerRole = nodesInfos.filterNot { case x: NodeInfo =>  x.node.id.value ==("root") }
+          val withoutServerRole = res.entries.filterNot { case x: NodeInfo =>  x.node.id.value ==("root") }
           if(logger.isDebugEnabled) {
-            val filtered = nodesInfos.filter { case x: NodeInfo =>  x.node.id.value ==("root") }
+            val filtered = res.entries.filter { case x: NodeInfo =>  x.node.id.value ==("root") }
             if(!filtered.isEmpty) {
                 logger.debug("[%s] [post-filter:policyServer] %s results".format(debugId, withoutServerRole.size, filtered.mkString(", ")))
             }
           }
           withoutServerRole
-        case NodeAndPolicyServerReturnType => nodesInfos
+        case NodeAndPolicyServerReturnType => res.entries
       }
     }
   }
@@ -261,7 +255,7 @@ object PostFilterNodeFromInfoService {
     }
 
     val foundNodeIds = foundNodeInfos.map(_.id)
-    val combined = predicates.reduceLeft(combine)
+
 
     // if there is no predicates (ie no specific filter on NodeInfo), we should just keep nodes from our list
     def predicate(nodeInfo : NodeInfo, pred: Seq[NodeInfoMatcher], composition: CriterionComposition) = {
@@ -274,6 +268,7 @@ object PostFilterNodeFromInfoService {
         // in that case, whatever the query composition, we can only return what was already found.
         contains
       } else {
+        val combined = predicates.reduceLeft(combine)
         val validPredicates =  combined.matches(nodeInfo)
         val res = comp(contains, validPredicates)
 
@@ -325,16 +320,16 @@ class PendingNodesLDAPQueryChecker(
                                 case None => allPendingNodeInfos.values.toSet
                                 case Some(ids) => allPendingNodeInfos.collect { case (nodeId, nodeInfo) if ids.contains(nodeId) => nodeInfo}.toSet
                               }
-        res            <- checker.internalQueryProcessor(query, Seq("1.1"), limitToNodeIds, 0, pendingNodeInfos).toBox
+        res            <- checker.internalQueryProcessor(query, Seq("1.1"), limitToNodeIds, 0, () => pendingNodeInfos.succeed).toBox
         timeres        =  (System.currentTimeMillis - timePreCompute)
         _              =  logger.debug(s"LDAP result: ${res.entries.size} entries in pending nodes obtained in ${timeres}ms for query ${query.toString}")
 
-        nodesInfos     = nodeInfoService.getLDAPNodeInfo(res.entries, res.nodeFilters, query.composition, pendingNodeInfos)
-        filterTime     =  (System.currentTimeMillis - timePreCompute - timeres)
-        _              =  logger.debug(s"[post-filter:rudderNode] Found ${nodesInfos.size} nodes when filtering pending nodes for info service existence and properties (${filterTime} ms)")
+       // nodesInfos     = nodeInfoService.getLDAPNodeInfo(res.entries, res.nodeFilters, query.composition, pendingNodeInfos)
+        //filterTime     =  (System.currentTimeMillis - timePreCompute - timeres)
+        //_              =  logger.debug(s"[post-filter:rudderNode] Found ${nodesInfos.size} nodes when filtering pending nodes for info service existence and properties (${filterTime} ms)")
 
       } yield {
-        nodesInfos.map(_.node.id)
+        res.entries.map(_.node.id)
       }
     }
   }
@@ -381,9 +376,8 @@ class InternalLDAPQueryProcessor(
     , select        : Seq[String] = Seq()
     , limitToNodeIds: Option[Seq[NodeId]] = None
     , debugId       : Long = 0L
-    , allNodeInfos  : Set[NodeInfo] // this is hackish, to have the list of all node if
+    , lambdaAllNodeInfos  : () => IOResult[Set[NodeInfo]] // this is hackish, to have the list of all node if
                                            // only nodeinfofilters, so that we don't look for all
-                            // it is always called, no need to be a lambda
   ) : IOResult[LdapQueryProcessorResult] = {
 
 
@@ -494,7 +488,8 @@ class InternalLDAPQueryProcessor(
 
     for {
       //log start query
-      _       <- logPure.debug(s"[${debugId}] Start search for ${query.toString}")
+      _         <- logPure.debug(s"[${debugId}] Start search for ${query.toString}")
+      timeStart <- currentTimeMillis
       // Construct & normalize the data
       nq       <- normalizedQuery
       // special case: no query, but we create a dummy one,
@@ -514,11 +509,27 @@ class InternalLDAPQueryProcessor(
                       }
                     }
       }
+
+      // Fetching all node infos if necessary
+      // This is an optimisation procedue, as it is a bit costly to fetch it, so we want to
+      // have it only if the query is an OR, and Invertion, or and AND and there ae
+      // no LDAP criteria
+      allNodesInfos <- query.composition match {
+                        case Or => lambdaAllNodeInfos()
+                        case And if nq.noFilterButTakeAllFromCache =>  lambdaAllNodeInfos()
+                        case And if query.transform == ResultTransformation.Invert => lambdaAllNodeInfos()
+                        case And if optdms.isDefined => lambdaAllNodeInfos()
+
+                        case _ => Set[NodeInfo]().succeed
+                      }
+      timefetch      <- currentTimeMillis
+      _              <-  logPure.debug(s"LDAP result: fetching if necessary all nodesInfos in in nodes obtained in ${timefetch-timeStart} ms for query ${query.toString}")
+
       // If dnMapSets returns a None, then it means that we are ANDing composition with an empty value
       // so we skip the last query
       results  <- optdms match {
                     case None  if nq.noFilterButTakeAllFromCache    =>
-                      allNodeInfos.succeed
+                      allNodesInfos.succeed
                     case None =>
                       Set[NodeInfo]().succeed
                     case Some(dms) =>
@@ -542,18 +553,47 @@ class InternalLDAPQueryProcessor(
                         entries <- executeQuery(rt.baseDn, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, nq.composition, debugId)
                         // convert these entries into nodeInfo
                         nodesId  = entries.flatMap(x => x(A_NODE_UUID))
-                        nodeInfos = allNodeInfos.filter(nodeInfo => nodesId.contains(nodeInfo.node.id.value))
+                        nodeInfos = allNodesInfos.filter(nodeInfo => nodesId.contains(nodeInfo.node.id.value))
                       } yield nodeInfos).
                           tapError(err => logPure.debug(s"[${debugId}] `-> error: ${err.fullMsg}")).
                           tap(seq => logPure.debug(s"[${debugId}] `-> ${seq.size} results"))
                   }
       // No more LDAP query is required here
+      // Do the filtering about non LDAP data here
+      timeldap      <- currentTimeMillis
+      _             <-  logPure.debug(s"LDAP result: ${results.size} entries in nodes obtained in ${timeldap-timeStart} ms for query ${query.toString}")
+
+
+      nodeInfoFiltered = query.composition match {
+                             case And if results.isEmpty =>
+                               // And and nothing returns nothing
+                               Set[NodeInfo]()
+                             case And =>
+                               // If i'm doing and AND, there is no need for the allNodes here
+                               PostFilterNodeFromInfoService.getLDAPNodeInfo(results, nq.nodeInfoFilters, query.composition, Set())
+                             case Or =>
+                               // Here we need the list of all nodes
+                               PostFilterNodeFromInfoService.getLDAPNodeInfo(results, nq.nodeInfoFilters, query.composition, allNodesInfos)
+                        }
+      timefilter     <- currentTimeMillis
+      _              <-   logPure.debug(s"[post-filter:rudderNode] Found ${nodeInfoFiltered.size} nodes when filtering for info service existence and properties (${timefilter-timeldap} ms)")
+      _              <-  logPure.ifDebugEnabled{
+                            val filtered = results.map( x => x.node.id.value).diff(nodeInfoFiltered.map( x => x.node.id.value))
+                            if(filtered.nonEmpty) {
+                              logPure.debug(s"[${debugId}] [post-filter:rudderNode] ${nodeInfoFiltered.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered.mkString(", ")}")
+                            } else {
+                              logPure.debug(s"[${debugId}] [post-filter:rudderNode] ${nodeInfoFiltered.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered.mkString(", ")}")
+
+                            }
+                         }
+
+
       // These transformation should be after nodeInfoService.getLDAPNodeInfo
       inverted = query.transform match {
-                  case ResultTransformation.Identity => results
+                  case ResultTransformation.Identity => nodeInfoFiltered
                   case ResultTransformation.Invert   =>
                       logEffect.debug(s"[${debugId}] |- (need to get all nodeIds for inversion) ")
-                      val res    = allNodeInfos.diff(results)
+                      val res    = allNodesInfos.diff(nodeInfoFiltered)
                       logEffect.debug(s"[${debugId}] |- (invert) entries after inversion: ${res.size}")
                       res
                     }

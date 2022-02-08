@@ -1238,9 +1238,8 @@ class TestQueryProcessor extends Loggable {
 
       if (doInternalQueryTest) {
         logger.debug("Testing with expected entries, This test should be ignored when we are looking for Nodes with NodeInfo and inventory (ie when we are looking for property and environement variable")
-        val allNodesInfos = nodeInfoService.getAllNodeInfos().runNow
         val foundWithLimit =
-          (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids), allNodeInfos= allNodesInfos).runNow.entries.map {
+          (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids), lambdaAllNodeInfos = (() => nodeInfoService.getAllNodeInfos())).runNow.entries.map {
             _.node.id
           }).toSeq.distinct.sortBy( _.value )
 
