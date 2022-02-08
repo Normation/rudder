@@ -55,8 +55,6 @@ import com.normation.rudder.repository.CachedRepository
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.domain.queries.CriterionComposition
-import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.ldap.sdk.LDAPIOResult._
 import zio._
 import zio.syntax._
@@ -65,11 +63,9 @@ import com.normation.zio._
 import com.normation.ldap.sdk.syntax._
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
-import com.normation.rudder.domain.queries.And
 import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
 import com.normation.rudder.services.nodes.NodeInfoServiceCached.UpdatedNodeEntries
 import com.normation.rudder.services.nodes.NodeInfoServiceCached.buildInfoMaps
-import com.normation.rudder.services.queries.PostFilterNodeFromInfoService
 
 import scala.concurrent.duration.FiniteDuration
 import scala.collection.mutable.{Map => MutMap}
@@ -110,14 +106,6 @@ final case class LDAPNodeInfo(
 )
 
 trait NodeInfoService {
-
-  /**
-   * Filter the nodeinfos that match the predicate & composition - don't rely on the cache
-   * used only by the LDAP QueryProcessor.
-   * foundNodeInfos are the nodeinfo found by ldap query
-   * allNodeInfos are all the know nodeInfos to date
-   */
-  def getLDAPNodeInfo(foundNodeInfos: Set[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodeInfos: Set[NodeInfo]): Set[NodeInfo]
 
   /**
    * Return a NodeInfo from a NodeId. First check the ou=Node, then fetch the other data
@@ -871,16 +859,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
   }
 
   def getAllNodeInfos():IOResult[Set[NodeInfo]] = withUpToDateCache("all nodeinfos") { cache =>
-    cache.values.map(_._2).toSet.succeed
-  }
-
-  override def getLDAPNodeInfo(foundNodeInfos: Set[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodeInfos: Set[NodeInfo]): Set[NodeInfo] = {
-    // if nodeIds is empty and composition is and, return an empty set; with or, we need to run it in all cases
-    if (foundNodeInfos.isEmpty && composition == And) {
-      Set[NodeInfo]()
-    } else {
-      PostFilterNodeFromInfoService.getLDAPNodeInfo(foundNodeInfos, predicates, composition, allNodeInfos)
-    }
+    cache.view.values.map(_._2).toSet.succeed
   }
 
   def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = withUpToDateCache(s"${nodeId.value} node info") { cache =>

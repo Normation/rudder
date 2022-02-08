@@ -61,7 +61,6 @@ import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution._
 import com.normation.rudder.repository.{CategoryWithActiveTechniques, ComplianceRepository, FullActiveTechniqueCategory, RoDirectiveRepository, RoRuleRepository}
-import com.normation.rudder.services.nodes.LDAPNodeInfo
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.reports.{CachedFindRuleNodeStatusReports, CachedNodeChangesServiceImpl, DefaultFindRuleNodeStatusReports, NodeChangesServiceImpl, NodeConfigurationService, NodeConfigurationServiceImpl, ReportingServiceImpl, UnexpectedReportInterpretation}
@@ -95,7 +94,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   }
 
   object nodeInfoService extends NodeInfoService {
-    def getLDAPNodeInfo(foundNodeInfos: Set[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodeInfos: Set[NodeInfo]): Set[NodeInfo]= ???
     def getNodeInfo(nodeId: NodeId) : IOResult[Option[NodeInfo]] = ???
     def getNodeInfos(nodesId: Set[NodeId]) : IOResult[Set[NodeInfo]] = ???
     def getNode(nodeId: NodeId): Box[Node] = ???

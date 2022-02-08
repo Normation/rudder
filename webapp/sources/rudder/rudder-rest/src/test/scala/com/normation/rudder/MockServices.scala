@@ -76,7 +76,6 @@ import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.zio._
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.queries.CriterionComposition
-import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
 import com.normation.rudder.services.nodes.NodeInfoService
@@ -1488,7 +1487,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     }
 
     override def getAllNodes(): IOResult[Map[NodeId, Node]] = getAll().map(_.map(kv => (kv._1, kv._2.node)))
-    override def getAllNodeInfos():IOResult[Seq[NodeInfo]] = getAll().map(_.values.toSeq)
+    override def getAllNodeInfos():IOResult[Set[NodeInfo]] = getAll().map(_.values.toSet)
     override def getAllNodesIds(): IOResult[Set[NodeId]] = getAllNodes().map(_.keySet)
     override def getAllSystemNodeIds(): IOResult[Seq[NodeId]] = {
       nodeBase.get.map(_.collect { case (id, n)  if(n.info.isSystem) => id }.toSeq )
@@ -1513,7 +1512,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     override def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]] = getGenericAll(inventoryStatus, _fullInventory(_).map(_.node))
 
     // not implemented yet
-    override def getLDAPNodeInfo(nodeInfos: Set[NodeInfo], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition, allNodesInfos : Set[NodeInfo]): Set[NodeInfo] = ???
     override def getNumberOfManagedNodes: Int = ???
     override def save(serverAndMachine: FullInventory): IOResult[Seq[LDIFChangeRecord]] = ???
     override def delete(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
@@ -1705,16 +1703,16 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       }
     }
 
-    override def process(query: QueryTrait): Box[Seq[NodeInfo]] = {
+    override def process(query: QueryTrait): Box[Set[NodeInfo]] = {
       for {
         nodes    <- nodeInfoService.nodeBase.get
         matching <- filterForLines(query.criteria, query.composition, nodes.map(_._2).toList).toIO
       } yield {
-        matching.map(_.info)
+        matching.map(_.info).toSet
       }
     }.toBox
 
-    override def processOnlyId(query: QueryTrait): Box[Seq[NodeId]] = process(query).map(_.map(_.id))
+    override def processOnlyId(query: QueryTrait): Box[Set[NodeId]] = process(query).map(_.map(_.id))
   }
 }
 

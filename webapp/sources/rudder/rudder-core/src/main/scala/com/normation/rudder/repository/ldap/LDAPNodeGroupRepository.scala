@@ -754,10 +754,8 @@ class WoLDAPNodeGroupRepository(
         oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError("Error when trying to check for the group %s".format(nodeGroup.id.value))
         // check if old group is the same as new group
         result       <- if (oldGroup.equals(nodeGroup)) {
-                          logger.info(s"Nothing to update for ${nodeGroup.id}")
                           None.succeed
                         } else {
-          logger.info(s"Check what changed for for ${nodeGroup.id}")
           for {
             systemCheck <- if (onlyUpdateNodes) {
               oldGroup.succeed
@@ -766,8 +764,8 @@ class WoLDAPNodeGroupRepository(
               case (false, true) => "You can not modify a non system group (%s) with that method".format(oldGroup.name).fail
               case _ => oldGroup.succeed
             }
-            name <- checkNameAlreadyInUse(con, nodeGroup.name, nodeGroup.id)
-            exists <- ZIO.when(name && !onlyUpdateNodes) {
+            name      <- checkNameAlreadyInUse(con, nodeGroup.name, nodeGroup.id)
+            exists    <- ZIO.when(name && !onlyUpdateNodes) {
               s"Cannot change the group name to ${nodeGroup.name} : there is already a group with the same name".fail
             }
             onlyNodes <- if (!onlyUpdateNodes) {
@@ -780,7 +778,7 @@ class WoLDAPNodeGroupRepository(
                   "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
               }
             }
-            change <- saveModifyNodeGroupDiff(existing, con, nodeGroup, modId, actor, reason)
+            change    <- saveModifyNodeGroupDiff(existing, con, nodeGroup, modId, actor, reason)
           } yield {
             change
           }

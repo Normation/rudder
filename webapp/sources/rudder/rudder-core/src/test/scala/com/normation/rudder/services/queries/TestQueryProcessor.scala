@@ -442,7 +442,7 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(2) :: Nil)
 
-    testQueries(q1 :: q2 :: q3 :: Nil, true)
+    testQueries(q1 :: q2 :: q3 :: q3bis:: Nil, true)
   }
 
   @Test def networkInterfaceElementQueries(): Unit = {
@@ -1239,7 +1239,7 @@ class TestQueryProcessor extends Loggable {
       if (doInternalQueryTest) {
         logger.debug("Testing with expected entries, This test should be ignored when we are looking for Nodes with NodeInfo and inventory (ie when we are looking for property and environement variable")
         val foundWithLimit =
-          (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids), lambdaAllNodeInfos = (() => nodeInfoService.getAllNodeInfos())).runNow.entries.map {
+          (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids), lambdaAllNodeInfos = (() => nodeInfoService.getAllNodeInfos())).runNow.map {
             _.node.id
           }).toSeq.distinct.sortBy( _.value )
 

@@ -51,7 +51,6 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.properties.NodeProperty
-import com.normation.rudder.domain.queries.OstypeComparator.osTypes
 import com.normation.rudder.services.queries._
 import com.normation.zio._
 import com.unboundid.ldap.sdk._
@@ -223,6 +222,7 @@ final case object NodeStateComparator extends NodeCriterionType {
 }
 
 final case object NodeOstypeComparator extends NodeCriterionType {
+  val osTypes = List("AIX", "BSD", "Linux", "Solaris", "Windows")
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
     if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
@@ -237,7 +237,7 @@ final case object NodeOstypeComparator extends NodeCriterionType {
 
   override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
     SHtml.select(
-      (osTypes map (e => (e,e))).toSeq
+        (osTypes map (e => (e,e))).toSeq
       , { if(osTypes.contains(value)) Full(value) else Empty}
       , func
       , attrs:_*
@@ -249,10 +249,10 @@ final case object NodeOsNameComparator extends NodeCriterionType {
   import net.liftweb.http.S
 
   val osNames = AixOS ::
-    BsdType.allKnownTypes.sortBy { _.name } :::
-    LinuxType.allKnownTypes.sortBy { _.name } :::
-    (SolarisOS :: Nil) :::
-    WindowsType.allKnownTypes
+                BsdType.allKnownTypes.sortBy { _.name } :::
+                LinuxType.allKnownTypes.sortBy { _.name } :::
+                (SolarisOS :: Nil) :::
+                WindowsType.allKnownTypes
 
 
   override def comparators = Seq(Equals, NotEquals)
@@ -640,82 +640,6 @@ final case object MachineComparator extends LDAPCriterionType {
       , { if(machineTypes.contains(value)) Full(value) else Empty}
       , func
       , attrs:_*
-    )
-}
-
-final case object OstypeComparator extends LDAPCriterionType {
-  val osTypes = List("AIX", "BSD", "Linux", "Solaris", "Windows")
-  override def comparators = Seq(Equals, NotEquals)
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
-  }
-  override def toLDAP(value:String) = Right(value)
-
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
-    val v = value match {
-      case "Windows" => OC_WINDOWS_NODE
-      case "Linux"   => OC_LINUX_NODE
-      case "Solaris" => OC_SOLARIS_NODE
-      case "AIX"     => OC_AIX_NODE
-      case "BSD"     => OC_BSD_NODE
-      case _         => OC_UNIX_NODE
-    }
-    comparator match {
-      //for equals and not equals, check value for jocker
-      case Equals => IS(v)
-      case _ => NOT(IS(v))
-    }
-  }
-
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
-    SHtml.select(
-        (osTypes map (e => (e,e))).toSeq
-      , { if(osTypes.contains(value)) Full(value) else Empty}
-      , func
-      , attrs:_*
-    )
-}
-
-final case object OsNameComparator extends LDAPCriterionType {
-  import net.liftweb.http.S
-
-  val osNames = AixOS ::
-                BsdType.allKnownTypes.sortBy { _.name } :::
-                LinuxType.allKnownTypes.sortBy { _.name } :::
-                (SolarisOS :: Nil) :::
-                WindowsType.allKnownTypes
-
-  override def comparators = Seq(Equals, NotEquals)
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
-  }
-  override def toLDAP(value:String) = Right(value)
-
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
-    val osName = comparator match {
-      //for equals and not equals, check value for jocker
-      case Equals => EQ(A_OS_NAME, value)
-      case _ => NOT(EQ(A_OS_NAME, value))
-    }
-    AND(EQ(A_OC,OC_NODE),osName)
-  }
-
-  private[this] def distribName(x: OsType): String = {
-    x match {
-      //add linux: for linux
-      case _: LinuxType   => "Linux - " + S.?("os.name."+x.name)
-      case _: BsdType     => "BSD - " + S.?("os.name."+x.name)
-      //nothing special for windows, Aix and Solaris
-      case _              => S.?("os.name."+x.name)
-    }
-  }
-
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
-    SHtml.select(
-      osNames.map(e => (e.name,distribName(e))).toSeq,
-      {osNames.find(x => x.name == value).map( _.name)},
-      func,
-      attrs:_*
     )
 }
 
