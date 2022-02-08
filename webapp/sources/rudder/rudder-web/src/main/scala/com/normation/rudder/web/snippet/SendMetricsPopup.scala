@@ -6,7 +6,7 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.domain.eventlog.ApplicationStartedEventType
 import org.joda.time.DateTime
 import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType

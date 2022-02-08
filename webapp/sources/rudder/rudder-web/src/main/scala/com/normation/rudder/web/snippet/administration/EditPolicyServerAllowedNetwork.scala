@@ -47,7 +47,7 @@ import JE._
 import scala.xml.NodeSeq
 import collection.mutable.Buffer
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.eventlog.EventLogDetails

@@ -50,7 +50,7 @@ import scala.xml._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model.{FormTracker, WBRadioField, WBSelectField, WBTextAreaField, WBTextField}
 import com.normation.rudder.repository._
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.domain.queries.And
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.rudder.domain.queries.CriterionLine

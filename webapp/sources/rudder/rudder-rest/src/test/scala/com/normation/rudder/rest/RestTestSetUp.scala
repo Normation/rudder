@@ -149,17 +149,8 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
 import com.normation.box._
-import com.normation.errors.Inconsistency
-import com.normation.inventory.ldap.core.InventoryMapper
-import com.normation.ldap.ldif.DefaultLDIFFileLogger
-import com.normation.ldap.listener.InMemoryDsConnectionProvider
-import com.normation.ldap.sdk.RoLDAPConnection
-import com.normation.rudder.db.GenerateCompliance.roLdap
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.rest.v1.RestTechniqueReload
-import com.normation.rudder.services.queries.InternalLDAPQueryProcessor
-import com.normation.rudder.services.queries.PendingNodesLDAPQueryChecker
 
 
 /*

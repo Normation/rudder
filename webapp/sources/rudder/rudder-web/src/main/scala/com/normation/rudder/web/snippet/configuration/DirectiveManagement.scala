@@ -55,7 +55,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.web.services.DisplayDirectiveTree
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import org.joda.time.DateTime
 import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.domain.policies.GlobalPolicyMode

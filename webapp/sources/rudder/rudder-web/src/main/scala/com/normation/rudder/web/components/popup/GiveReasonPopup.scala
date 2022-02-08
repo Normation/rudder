@@ -38,22 +38,25 @@
 package com.normation.rudder.web.components.popup
 
 import com.normation.rudder.web.services.ReasonBehavior._
+
 import net.liftweb.http.js._
 import JsCmds._
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,DispatchSnippet}
+import net.liftweb.http.{DispatchSnippet, SHtml}
+
 import scala.xml._
 import net.liftweb.util.Helpers._
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.rudder.web.model.{
-FormTracker, WBTextAreaField, CurrentUser
-}
+import com.normation.rudder.web.model.{FormTracker, WBTextAreaField}
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.eventlog.ModificationId
+
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.services.CurrentUser
 
 import com.normation.box._
 

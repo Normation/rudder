@@ -47,7 +47,7 @@ import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField, WBSelectField
 }
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.eventlog.ModificationId

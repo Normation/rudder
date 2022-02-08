@@ -46,7 +46,7 @@ import com.normation.rudder.domain.eventlog.ApplicationStarted
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.eventlog.ModificationId

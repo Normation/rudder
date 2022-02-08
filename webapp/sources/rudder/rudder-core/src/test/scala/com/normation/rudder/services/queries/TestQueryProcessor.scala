@@ -442,7 +442,7 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(2) :: Nil)
 
-    testQueries(q1 :: q2 :: q3 :: q3bis:: Nil, true)
+    testQueries(q1 :: q2 :: q3 :: q3bis :: Nil, true)
   }
 
   @Test def networkInterfaceElementQueries(): Unit = {

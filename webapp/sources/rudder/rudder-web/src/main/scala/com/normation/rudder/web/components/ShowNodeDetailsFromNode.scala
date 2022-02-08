@@ -47,7 +47,7 @@ import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.batch.AutomaticStartDeployment
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.common._

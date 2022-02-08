@@ -50,7 +50,7 @@ import net.liftweb.http.js._
 import JsCmds._
 import JE.{JsArray, JsRaw, JsVar, Str}
 import org.joda.time.DateTime
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig

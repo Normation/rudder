@@ -49,7 +49,7 @@ import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField
 }
 import CreateOrCloneRulePopup._
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.rule.category.RuleCategoryId

@@ -43,7 +43,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup._
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField

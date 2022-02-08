@@ -39,6 +39,7 @@ package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.policies._
 import com.normation.cfclerk.domain.Technique
+
 import net.liftweb.http.js._
 import JsCmds._
 import net.liftweb.util._
@@ -52,6 +53,7 @@ import com.normation.rudder.web.model._
 import com.normation.rudder.repository._
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup
+
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
@@ -63,6 +65,7 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.services.CurrentUser
 
 import com.normation.box._
 
