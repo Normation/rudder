@@ -295,11 +295,18 @@ class PendingNodesLDAPQueryChecker(
                                 case None => allPendingNodeInfos.values.toSeq
                                 case Some(ids) => allPendingNodeInfos.collect { case (nodeId, nodeInfo) if ids.contains(nodeId) => nodeInfo}.toSeq
                               }
-        foundNodes    <- checker.internalQueryProcessor(query, Seq("1.1"), limitToNodeIds, 0, () => pendingNodeInfos.succeed).toBox
+        foundNodes     <- checker.internalQueryProcessor(query, Seq("1.1"), limitToNodeIds, 0, () => pendingNodeInfos.succeed).toBox
         timeres        =  (System.currentTimeMillis - timePreCompute)
         _              =  logger.debug(s"LDAP result: ${foundNodes.size} entries in pending nodes obtained in ${timeres}ms for query ${query.toString}")
       } yield {
-        foundNodes.map(_.node.id)
+        //filter out Rudder server component if necessary
+        (query.returnType match {
+          case NodeReturnType =>
+            // we have a special case for the root node that always never to that group, even if some weird
+            // scenario lead to the removal (or non addition) of them
+            foundNodes.filterNot { case x: NodeInfo =>  x.node.id.value ==("root") }
+          case NodeAndPolicyServerReturnType => foundNodes
+        }).map(_.node.id)
       }
     }
   }
