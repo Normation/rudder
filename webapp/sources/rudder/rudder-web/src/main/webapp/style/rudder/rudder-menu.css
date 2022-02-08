@@ -1428,6 +1428,24 @@ label.text-fit{
   opacity: .5;
 }
 
+.badge-disabled {
+  background-color: #04192257;
+  font-size: 0.8em;
+  color: #fff;
+  font-weight: bold;
+  padding: 2px 8px;
+  margin-left: 2px;
+  border-radius: 4px;
+}
+.badge-disabled:before {
+  content: "DISABLED";
+}
+.tooltip .badge-disabled {
+  float: right;
+  position: relative;
+  top: -3px;
+  font-size: 0.9em;
+}
 /* --- LABEL --- */
 #badge-apm{
   margin-left: 5px;
