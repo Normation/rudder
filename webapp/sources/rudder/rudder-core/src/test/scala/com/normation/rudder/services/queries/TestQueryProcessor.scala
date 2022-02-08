@@ -630,18 +630,6 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s.filterNot(n => n == s(1)) )
 
-    // test query that doesn't match a software name, ie we want all nodes on which "software 1" is not
-    // installed (we don't care if there is 0 or 1000 other software)
-    // THIS DOES NOT WORK DUE TO: https://issues.rudder.io/issues/19137
-//    val q12 = TestQuery(
-//      "q12",
-//      parser("""
-//      { "select":"node", "composition":"or", "where":[
-//        { "objectType":"software", "attribute":"cn", "comparator":"notRegex", "value":"Software 1" }
-//      ] }
-//      """).openOrThrowException("For tests"),
-//      s.filterNot(n => n == s(2)) )
-
     testQueries(q0 :: q1 :: q1_ :: q2 :: q2_ :: q3 :: q3_2 :: q4 :: q5 :: q6 :: q7 :: q8 :: q9 :: q10 :: q11 :: Nil, false)
   }
 
