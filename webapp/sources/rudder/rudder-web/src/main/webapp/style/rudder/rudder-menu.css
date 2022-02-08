@@ -1403,28 +1403,11 @@ label.text-fit{
   width:auto;
   margin-left:6px;
 }
-.treeActiveTechniqueName.is-disabled:after,
-.is-disabled > a.jstree-anchor > .treeDirective:after,
-#techniqueName.is-disabled:after,
-#directiveTitle > span.is-disabled:after,
-.techniqueNode.is-disabled .treeDirective:after,
-.disableTreeNode > a:after{
-  content: "- Disabled";
-  margin-left: 2px;
-  font-weight: 300;
-  color: #000;
-  font-size: 13px;
-}
-#techniqueName.is-disabled:after
-#directiveTitle > span.is-disabled:after{
-  font-size: 18px;
-  margin-left: 8px;
-}
 
 .treeActiveTechniqueName.is-disabled,
 .techniqueNode.is-disabled .directiveNode,
-.directiveNode.is-disabled,
-.disableTreeNode > a{
+.directiveNode.is-disabled .item-name,
+.disableTreeNode > a .item-name{
   opacity: .5;
 }
 
@@ -1445,6 +1428,10 @@ label.text-fit{
   position: relative;
   top: -3px;
   font-size: 0.9em;
+}
+.jstree-anchor .badge-disabled{
+  padding: 0px 6px;
+  margin-left: 4px;
 }
 /* --- LABEL --- */
 #badge-apm{

@@ -251,7 +251,8 @@ object DisplayDirectiveTree extends Loggable {
               val deprecatedClass = if(isDeprecated){"isDeprecated"}else{""}
               s"${defaultClass} ${disabledClass} ${deprecatedClass}"
             }
-            <span class={className} data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{agentCompat.icon}{technique.name}</span> ++ btnCreateDirective
+            val disabledBadge = if(!activeTechnique.isEnabled){<span class="badge-disabled"></span>}else{NodeSeq.Empty}
+            <span class={className} data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{agentCompat.icon}{technique.name}</span> ++ disabledBadge ++ btnCreateDirective
           case None =>
             <span class="error">The technique with id ''{activeTechnique.techniqueName}'' is missing from repository</span>
         }
@@ -282,7 +283,6 @@ object DisplayDirectiveTree extends Loggable {
         val includedClass = if (included.contains(directive.id)) {"included"} else ""
         val disabled = if(directive.isEnabled) "" else "is-disabled"
         s"${disabled} ${includedClass} directiveNode"
-
       }
 
       val htmlId = s"jsTree-${directive.id.value}"
@@ -424,7 +424,12 @@ object DisplayDirectiveTree extends Loggable {
               {directive.techniqueVersion.toString}
               {deprecatedIcon}
             </span>
-            {directive.name}
+            <span class="item-name">{directive.name}</span>
+            {if(directive.isEnabled){
+              NodeSeq.Empty
+            }else{
+              <span class="badge-disabled"></span>
+            }}
             {if(isAssignedTo <= 0) {
               <span class="fa fa-warning text-warning-rudder min-size-icon"></span>
             } else {
