@@ -1,3 +1,5 @@
+= Usage
+
 There are two ways to interact with language: directly from the terminal or through the Technique Editor
 
 == Using the command line interface (CLI)
@@ -324,7 +326,7 @@ If you decided to go with the `--json-output` option, it means output will consi
 * `errors` field is an array of strings
 # TODO log field
 
-== Using the Technique Editor
+== Using the technique editor
 
 _rudderc_ is called from the _Technique Editor_ as a backend program every time a technique is saved. For now it only is a testing loop. Once fully released, every technique will directly be saved using _language_
 
