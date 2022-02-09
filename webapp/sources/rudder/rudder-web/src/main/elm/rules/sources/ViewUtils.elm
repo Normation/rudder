@@ -581,3 +581,7 @@ toRuleTarget targetId =
   else if String.startsWith "node:" targetId then
     Node (String.dropLeft 5 targetId)
   else Special targetId
+
+getDirectiveLink : String -> DirectiveId -> String
+getDirectiveLink contextPath id =
+  contextPath ++ """/secure/configurationManager/directiveManagement#{"directiveId":" """++ id.value ++ """ "} """

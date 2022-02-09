@@ -230,28 +230,28 @@ tabContent model details =
 directivesTab: Model -> RuleDetails -> Html Msg
 directivesTab model details =
   let
-    isNewRule = Maybe.Extra.isNothing details.originRule
+    isNewRule  = Maybe.Extra.isNothing details.originRule
     rule       = details.rule
     originRule = details.originRule
-    ui = details.ui
-    buildListRow : List DirectiveId -> List (Html Msg)
-    buildListRow ids =
+    ui         = details.ui
+    --Get more information about directives, to correctly sort them by displayName
+    directives =
       let
-        --Get more information about directives, to correctly sort them by displayName
-        directives =
-          let
-            knownDirectives = Dict.Extra.keepOnly (Set.fromList (List.map .value ids)) model.directives
-              |> Dict.values
-              |> List.sortWith (compareOn .displayName)
-            -- add missing directives
-            knonwIds = List.map .id knownDirectives
-          in
-            List.append
-              knownDirectives
-              ( ids
-                |> List.filter (\id -> not (List.member id knonwIds) )
-                |> List.map (\id -> (Directive id ("Missing directive with ID "++id.value) "" "" "" False False "" []))
-              )
+        knownDirectives = Dict.Extra.keepOnly (Set.fromList (List.map .value rule.directives)) model.directives
+          |> Dict.values
+          |> List.sortWith (compareOn .displayName)
+        -- add missing directives
+        knonwIds = List.map .id knownDirectives
+      in
+        List.append
+          knownDirectives
+          ( rule.directives
+            |> List.filter (\id -> not (List.member id knonwIds) )
+            |> List.map (\id -> (Directive id ("Missing directive with ID "++id.value) "" "" "" False False "" []))
+          )
+    buildListRow : List (Html Msg)
+    buildListRow =
+      let
         rowDirective  : Directive -> Html Msg
         rowDirective directive =
           let
@@ -275,9 +275,10 @@ directivesTab model details =
       in
         List.map rowDirective directives
 
-    nbDirectives = case details.originRule of
-      Just oR -> List.length oR.directives
-      Nothing -> 0
+    ruleDirectivesId = case details.originRule of
+      Just oR -> oR.directives
+      Nothing -> []
+    nbDirectives = List.length ruleDirectivesId
     fun = byDirectiveCompliance model.policyMode nodeValueCompliance
     directiveRows = List.map Tuple3.first fun.rows
     rowId = "byDirectives/"
@@ -291,6 +292,16 @@ directivesTab model details =
     (directivesChildren, order, newOrder) = case sortOrder of
        Asc -> (childrenSort, "asc", Desc)
        Desc -> (List.reverse childrenSort, "desc", Asc)
+
+    ruleDirectives = directives
+      |> List.filter (\d -> List.member d.id ruleDirectivesId)
+
+    disabledRuleDirectives = ruleDirectives
+      |> List.filter (\d -> not d.enabled)
+
+    directiveFilters = model.ui.directiveFilters
+    tableFilters     = directiveFilters.tableFilters
+    treeFilters      = directiveFilters.treeFilters
   in
     if not details.ui.editDirectives then
       div[class "tab-table-content"]
@@ -302,26 +313,71 @@ directivesTab model details =
             text ""
           )
         ]
+      , ( if List.isEmpty disabledRuleDirectives && rule.enabled then
+          text ""
+        else
+          let
+            warningMessage = case (rule.enabled, List.isEmpty disabledRuleDirectives) of
+              ( True  , False ) -> span[]
+                [ text "This rule has"
+                , b [class "badge"][ text (String.fromInt (List.length disabledRuleDirectives))]
+                , text ("disabled directive" ++ (if List.length disabledRuleDirectives > 1 then "s" else "") ++ " that will not be applied. ")
+                ]
+              ( False , False ) -> span[]
+                [ text "This rule is "
+                , b[][text "disabled"]
+                , text ", none of its directives will be applied. Plus, it has"
+                , b [class "badge"][ text (String.fromInt (List.length disabledRuleDirectives))]
+                , text ("disabled directive" ++ (if List.length disabledRuleDirectives > 1 then "s" else "") ++ ". ")
+                ]
+              ( False , True  ) -> span[][text "This rule is ", b[][text "disabled"], text ", none of its directives will be applied"]
+              _ -> text ""
+
+            (checkbox, caret, list) = (
+              if List.isEmpty disabledRuleDirectives then
+                ( text ""
+                , text ""
+                , text ""
+                )
+              else
+                ( input[type_ "checkbox", id "disabled-directives", class "toggle-checkbox"][]
+                , i[class "fa fa-caret-down"][]
+                , ul[](List.map (\d -> li[]
+                  [ a[ href (getDirectiveLink model.contextPath d.id) ]
+                    [ badgePolicyMode model.policyMode d.policyMode
+                    , text d.displayName
+                    ]
+                  ]) disabledRuleDirectives)
+                )
+              )
+          in
+            div[class "toggle-checkbox-container"]
+            [ checkbox
+            , div[ class "callout-fade callout-warning"]
+              [ label[for "disabled-directives"]
+                [ i[class "fa fa-warning"][]
+                , warningMessage
+                , caret
+                ]
+              , list
+              ]
+            ]
+        )
       , div [class "table-header"]
         [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.directiveFilters.tableFilters.filter
-        , onInput (\s ->
-          let
-            directiveFilters = model.ui.directiveFilters
-            tableFilters = directiveFilters.tableFilters
-          in
-            UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}}
-        )][]
+        , onInput (\s -> UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}} )][]
         , button [class "btn btn-primary btn-sm", onCustomClick Ignore][text "Refresh"]
         ]
-      , div[class "table-container"] [
-          table [class "dataTable compliance-table"] [
-            thead [] [
-              tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) directiveRows)
+      , div[class "table-container"] [(
+        if rule.enabled then
+          table [class "dataTable compliance-table"]
+          [ thead []
+            [ tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) directiveRows)
             ]
           , tbody [] (
             if List.length childs <= 0 then
               [ tr[]
-                [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule is not applied on any Directive."] ]
+                [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule does not apply any directive."] ]
               ]
             else if List.length directivesChildren == 0 then
               [ tr[]
@@ -331,7 +387,38 @@ directivesTab model details =
               List.concatMap (\d ->  showComplianceDetails fun d "" ui.openedRows model) directivesChildren
             )
           ]
-        ]
+        else
+          let
+            filteredDirectives = ruleDirectives
+              |> List.filter (\d -> d.enabled)
+              |> List.filter (\d -> (String.contains tableFilters.filter d.displayName) || (String.contains tableFilters.filter d.id.value) )
+              |> List.sortBy .displayName
+            sortedDirectives   = case tableFilters.sortOrder of
+              Asc  -> filteredDirectives
+              Desc -> List.reverse filteredDirectives
+            toggleSortOrder o = if o == Asc then Desc else Asc
+          in
+            table [class "dataTable"]
+            [ thead []
+              [ tr [ class "head" ]
+                [ th [onClick (UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | sortOrder = toggleSortOrder tableFilters.sortOrder}}), class ("sorting_" ++ (if tableFilters.sortOrder == Asc then "asc" else "desc"))] [ text "Directive" ]
+                ]
+              ]
+            , tbody [] (
+              if List.length ruleDirectives <= 0 then
+                [ tr[]
+                  [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule does not apply any directive."] ]
+                ]
+              else if List.length filteredDirectives == 0 then
+                [ tr[]
+                  [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No directives match your filter."] ]
+                ]
+              else
+                sortedDirectives
+                |> List.map (\d ->  tr [][ td[][ badgePolicyMode model.policyMode d.policyMode, text d.displayName, buildTagsTree d.tags ] ])
+              )
+            ]
+        )]
       ]
     else
       let
@@ -420,7 +507,7 @@ directivesTab model details =
               ]
             , ul[class "directives applied-list"]
               ( if(List.length rule.directives > 0) then
-                 (buildListRow rule.directives)
+                 buildListRow
                 else
                  [ li [class "empty"]
                    [ span [] [text "There is no directive applied."]
@@ -442,22 +529,10 @@ directivesTab model details =
                       [ button [class "btn btn-default", type_ "button"][span [class "fa fa-folder fa-folder-open"][]]
                       ]
                     , input[type_ "text", placeholder "Filter", class "form-control"
-                      , onInput (\s ->
-                        let
-                          directiveFilters = model.ui.directiveFilters
-                          treeFilters = directiveFilters.treeFilters
-                        in
-                          UpdateDirectiveFilters {directiveFilters | treeFilters = {treeFilters | filter = s}}
-                      )][]
+                      , onInput (\s -> UpdateDirectiveFilters {directiveFilters | treeFilters = {treeFilters | filter = s}} )][]
                     , div [class "input-group-btn"]
                       [ button [class "btn btn-default", type_ "button"
-                      , onClick (
-                        let
-                          directiveFilters = model.ui.directiveFilters
-                          treeFilters = directiveFilters.treeFilters
-                        in
-                          UpdateDirectiveFilters {directiveFilters | treeFilters = {treeFilters | filter = ""}}
-                      )]
+                      , onClick ( UpdateDirectiveFilters {directiveFilters | treeFilters = {treeFilters | filter = ""}} )]
                         [span [class "fa fa-times"][]]
                       ]
                     ]
@@ -528,6 +603,19 @@ nodesTab model details =
           else
             text ""
           )
+        ]
+      , if details.rule.enabled then
+        text ""
+      else
+        div[class "toggle-checkbox-container"]
+        [ div[ class "callout-fade callout-warning"]
+          [ label[]
+            [ i[class "fa fa-warning"][]
+            , text "This rule is "
+            , b[][ text "disabled"]
+            , text ", it will not be applied on any node."
+            ]
+          ]
         ]
       , div [class "table-header"]
         [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.groupFilters.tableFilters.filter

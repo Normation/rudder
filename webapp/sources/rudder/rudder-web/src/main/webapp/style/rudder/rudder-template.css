@@ -683,7 +683,10 @@
   background-color: #fcf8e3;
   color: #8a6d3b;
 }
-.rudder-template .dataTable td.empty .fa:first-child{
+.rudder-template .dataTable td.empty .fa:first-child,
+.rudder-template .callout-fade .fa:first-child,
+.rudder-template .callout-fade .rudder-label:first-child,
+.rudder-template .alert .fa:first-child{
   margin-right: 6px;
 }
 .rudder-template .dataTable td .disabled {
@@ -860,6 +863,7 @@
 .tab-table-content .table-header {
   display: flex;
   margin: 15px -15px 0 -15px;
+  width: calc(100% + 30px);
   padding: 15px;
   background-color: #F7F7F7;
   border-top: 2px solid #e5e5e5;
@@ -968,6 +972,85 @@
 }
 .rudder-template ul.skeleton-loading > ul{
   padding: 0 0 0 50px;
+}
+/* === TOGGLE CHECKBOX ===*/
+.rudder-template .toggle-checkbox-container{
+  width: 100%;
+}
+.rudder-template .toggle-checkbox{
+  display: none;
+}
+.rudder-template .toggle-checkbox-container .callout-fade{
+  padding: 0 !important;
+  margin-top: 10px;
+  width: auto;
+}
+.rudder-template .toggle-checkbox-container .callout-fade .fa-warning{
+  color: #f08004;
+}
+.rudder-template .toggle-checkbox-container .callout-fade label {
+  font-weight: normal;
+  display: block;
+  padding: 15px;
+  margin-bottom: 0;
+  position: relative;
+}
+.rudder-template .toggle-checkbox + .callout-fade label {
+  cursor: pointer;
+}
+.rudder-template .toggle-checkbox-container .callout-fade .badge{
+  color: #fff;
+  background-color: #939ca0 !important;
+  position: relative;
+  top: -1px;
+  margin-right: 3px;
+}
+.rudder-template .toggle-checkbox-container .callout-fade.callout-warning .badge{
+  background-color: #F08004 !important;
+}
+.rudder-template .toggle-checkbox + .callout-fade label .fa-caret-down{
+  position: absolute;
+  font-size: 1.8em;
+  top: calc(50% - 13px);
+  transform: rotate(-90deg);
+  display: inline-block;
+  transition-duration: .2s;
+  color: #04192288;
+  opacity: .8;
+  margin-left: 10px;
+}
+.rudder-template .toggle-checkbox + .callout-fade label:hover .fa-caret-down{
+  opacity: 1;
+}
+.rudder-template .toggle-checkbox:checked + .callout-fade label .fa-caret-down{
+  transform: rotate(0deg);
+}
+.rudder-template .toggle-checkbox + .callout-fade ul{
+  height: 0;
+  transition-duration: .2s;
+  overflow: hidden;
+  margin: 0px 0px 0px 0px;
+  border-top: 1px solid transparent;
+  max-height: 166px;
+  overflow: auto;
+}
+.rudder-template .toggle-checkbox:checked + .callout-fade ul{
+  height: auto;
+  border-top: 1px solid #eee;
+}
+.rudder-template .toggle-checkbox:checked + .callout-fade ul li{
+  list-style: none;
+}
+.rudder-template .toggle-checkbox:checked + .callout-fade ul li a{
+  padding: 6px 15px;
+  display: flex;
+  align-items: baseline;
+}
+.rudder-template .toggle-checkbox:checked + .callout-fade ul li:nth-child(even){
+  background-color: #f2f8ff;
+}
+.rudder-template .toggle-checkbox:checked + .callout-fade ul li:hover{
+  background-color: #e2f2ff !important;
 }
 /* === KEYFRAMES === */
 @keyframes fadein {
