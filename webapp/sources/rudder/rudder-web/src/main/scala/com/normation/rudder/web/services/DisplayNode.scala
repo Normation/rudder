@@ -389,34 +389,40 @@ object DisplayNode extends Loggable {
 
     val osTooltip : String = {
       s"""
-        <ul>
-          <li><b>Type:</b> ${sm.node.main.osDetails.os.kernelName}</li>
-          <li><b>Name:</b> ${S.?("os.name." + sm.node.main.osDetails.os.name)}</li>
-          <li><b>Version:</b> ${sm.node.main.osDetails.version.value}</li>
-          <li><b>Service Pack:</b> ${sm.node.main.osDetails.servicePack.getOrElse("None")}</li>
-          <li><b>Architecture Description:</b> ${sm.node.archDescription.getOrElse("None")}</li>
-        </ul>
+        <h4>Operating system details</h4>
+        <div class="tooltip-content">
+          <ul>
+            <li><b>Type:</b> ${sm.node.main.osDetails.os.kernelName}</li>
+            <li><b>Name:</b> ${S.?("os.name." + sm.node.main.osDetails.os.name)}</li>
+            <li><b>Version:</b> ${sm.node.main.osDetails.version.value}</li>
+            <li><b>Service Pack:</b> ${sm.node.main.osDetails.servicePack.getOrElse("None")}</li>
+            <li><b>Architecture:</b> ${sm.node.archDescription.getOrElse("None")}</li>
+            <li><b>Kernel version:</b> ${sm.node.main.osDetails.kernelVersion.value}</li>
+          </ul>
+        </div>
       """
     }
     val machineTooltip : String = {
       s"""
-        <ul>
-          <li><b>Total physical memory (RAM):</b> ${sm.node.ram.map(_.toStringMo).getOrElse("-")}</li>
-          <li><b>Manufacturer:</b> ${sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")}</li>
-          <li><b>Total swap space:</b> ${sm.node.swap.map( _.toStringMo).getOrElse("-")}</li>
-          <li><b>System Serial Number:</b> ${sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")}</li>
-          <li><b>Time Zone:</b>
-            ${sm.node.timezone.map(x =>
-        if(x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})"
-      ).getOrElse("unknown")}
-          </li>
-          <li>
-          ${ sm.machine.map( _.id.value).map( machineId =>
-        "<b>Machine ID:</b> " ++ {machineId}
-      ).getOrElse("""<span class="error">Machine Information are missing for that node</span>""")
-      }
-          </li>
-        </ul>
+        <h4>Operating system details</h4>
+        <div class="tooltip-content">
+          <ul>
+            <li><b>Total physical memory (RAM):</b> ${sm.node.ram.map(_.toStringMo).getOrElse("-")}</li>
+            <li><b>Manufacturer:</b> ${sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")}</li>
+            <li><b>Total swap space:</b> ${sm.node.swap.map( _.toStringMo).getOrElse("-")}</li>
+            <li><b>System Serial Number:</b> ${sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")}</li>
+            <li><b>Time Zone:</b>
+              ${sm.node.timezone.map(x =>
+                if(x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})"
+              ).getOrElse("unknown")}
+            </li>
+            <li>
+              ${ sm.machine.map( _.id.value).map( machineId =>
+                "<b>Machine ID:</b> " ++ {machineId}
+              ).getOrElse("""<span class="error">Machine Information are missing for that node</span>""")}
+            </li>
+          </ul>
+        </div>
       """
     }
 
