@@ -228,7 +228,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                        componentValue = getComponent child
                        component = if componentValue == "" then
                                      case child of
-                                       Block _ _ -> "< unamed block > "
+                                       Block _ _ -> "< unnamed block > "
                                        Call _ c -> Maybe.withDefault (c.methodName.value) (Maybe.map .name (Dict.get c.methodName.value model.methods))
                                    else
                                      componentValue
@@ -249,7 +249,6 @@ showBlockTab model parentId block uiInfo techniqueUi =
                     |> appendChild (element "a" |> addAttribute (href "#") |> appendText (labelWorst weight))
 
         availableWorst = List.map liWorst [ WorstReportWeightedOne, WorstReportWeightedSum]
-
       in
          element "div"
            |> appendChildList
@@ -258,7 +257,23 @@ showBlockTab model parentId block uiInfo techniqueUi =
                      |> appendChild
                           ( case block.reportingLogic of
                               FocusReport value ->
-                                buildSelectReporting "reporting-rule-subselect" "Focus reporting on method:" availableFocus value
+                                let
+                                   methodElem = findElemIf (\e -> (getId e).value == value) block.calls
+                                   componentValue =
+                                     case methodElem of
+                                       Just elem ->
+                                         let
+                                           name = getComponent elem
+                                         in
+                                         if(String.isEmpty name) then
+                                           case elem of
+                                             Block _ _ -> "< unnamed block > "
+                                             Call _ c -> Maybe.withDefault (c.methodName.value) (Maybe.map .name (Dict.get c.methodName.value model.methods))
+                                         else
+                                           name
+                                       Nothing -> ""
+                                in
+                                buildSelectReporting "reporting-rule-subselect" "Focus reporting on method:" availableFocus componentValue
                               (WorstReport weight) ->
                                 buildSelectReporting "reporting-rule-subselect" "Select weight of worst case:" availableWorst (labelWorst weight)
                               _ -> element "span"
