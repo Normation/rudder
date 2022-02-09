@@ -147,6 +147,12 @@ trait NodeInfoService {
    */
   def getAllNodes() : IOResult[Map[NodeId, Node]]
 
+  /**
+   * Get all nodes
+   * This returns a Seq for performance reasons - it is much faster
+   * to return a Seq than a Set, and for subsequent use it is also
+   * faster
+   */
   def getAllNodeInfos():IOResult[Seq[NodeInfo]]
   /**
    * Get all systen node ids, for example
