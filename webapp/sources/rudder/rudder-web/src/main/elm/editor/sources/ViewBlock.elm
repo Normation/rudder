@@ -362,13 +362,6 @@ blockBody model parentId block ui techniqueUi =
                    , element "span"
                      |> appendText (conditionStr block.condition)
                      |> addActionStopPropagation ("mousedown" ,DisableDragDrop )
-                     |> addAttributeList
-                        [ class "popover-bs", title (conditionStr block.condition)
-                        , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "top"
-                        , attribute "data-title" (conditionStr block.condition), attribute "data-content" "<small>Click <span class='text-info'>3</span> times to copy the whole condition below</small>"
-                        , attribute "data-template" """<div class="popover condition" role="tooltip"><div class="arrow"></div><h3 class="popover-header"></h3><div class="popover-body"></div></div>"""
-                        , attribute "data-html" "true"
-                        ]
                   ]
     methodName = case ui.mode of
                    Opened -> element "input"

@@ -1056,6 +1056,7 @@ ul li.hide-method {
 }
 #methods .method .method-info label {
   margin-bottom: 0;
+  word-break: keep-all;
 }
 .method .cursorMove {
   background-color: #ededed;
@@ -1071,6 +1072,10 @@ ul li.hide-method {
 .method .method-errors{
   position: relative;
   padding: 0;
+}
+.method .method-condition{
+  word-break: break-word;
+  padding-right: 50px;
 }
 .name-content {
   cursor: text;
