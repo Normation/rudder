@@ -661,13 +661,13 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 ${if(!activeTechnique.isEnabled){<div>This Technique is currently <b>disabled</b>.</div>}else{NodeSeq.Empty}}
               </div>
             """
-
+              val badgeDisabled = if(activeTechnique.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span>
               val tooltipid1 = Helpers.nextFuncName
               val numberDirectives = s"${activeTechnique.directives.size} directive(s) are based on that Technique"
               SHtml.a(
                 { () => onClickTemplateNode(Some(technique), Some(activeTechnique)) },
                   (
-                  <span class="treeTechniqueName bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{agentCompat.icon}{technique.name}</span>
+                  <span class="treeTechniqueName bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}><span class="item-name">{agentCompat.icon} {technique.name}</span>{badgeDisabled}</span>
                   <span class="tooltipable" tooltipid={tooltipid1} title={numberDirectives}>
                     {s" (${activeTechnique.directives.size})"}
                   </span>

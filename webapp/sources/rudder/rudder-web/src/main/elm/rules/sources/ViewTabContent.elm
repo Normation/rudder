@@ -255,18 +255,24 @@ directivesTab model details =
         rowDirective  : Directive -> Html Msg
         rowDirective directive =
           let
-            liClass = case originRule of
+            newClass = case originRule of
               Nothing -> "new"
               Just oR ->
                 if List.member directive.id oR.directives then
                   ""
                 else
                   "new"
+            (disabledClass, disabledLabel) =
+              if directive.enabled then
+                ("", text "")
+              else
+                (" is-disabled ", span[class "badge-disabled"][])
           in
-            li[class liClass]
+            li[class (newClass ++ disabledClass)]
             [ a[href ( model.contextPath ++ "/secure/configurationManager/directiveManagement#" ++ directive.id.value)]
               [ badgePolicyMode model.policyMode directive.policyMode
               , span [class "target-name"][text directive.displayName]
+              , disabledLabel
               , buildTagsList directive.tags
               ]
             , span [class "target-remove", onClick (UpdateRuleForm {details | rule = {rule | directives = List.Extra.remove directive.id rule.directives}})][ i [class "fa fa-times"][] ]
@@ -441,12 +447,18 @@ directivesTab model details =
               |> List.map  (\d ->
                 let
                   selectedClass = if (List.member d.id rule.directives) then " item-selected" else ""
+                  (disabledClass, disabledLabel) =
+                    if d.enabled then
+                      ("", text "")
+                    else
+                      (" is-disabled", span[class "badge-disabled"][])
                 in
-                  li [class "jstree-node jstree-leaf"]
+                  li [class ("jstree-node jstree-leaf directiveNode" ++ disabledClass)]
                   [ i [class "jstree-icon jstree-ocl"][]
                   , a [class ("jstree-anchor" ++ selectedClass), onClick (addDirectives d.id)]
                     [ badgePolicyMode model.policyMode d.policyMode
-                    , span [class "treeGroupName tooltipable"][text d.displayName]
+                    , span [class "item-name tooltipable"][text d.displayName]
+                    , disabledLabel
                     , buildTagsTree d.tags
                     , div [class "treeActions-container"]
                       [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept"][]]
@@ -459,7 +471,7 @@ directivesTab model details =
               [ i [class "jstree-icon jstree-ocl", onClick (UpdateDirectiveFilters (foldUnfoldCategory model.ui.directiveFilters item.name))][]
               , a [class "jstree-anchor"]
                 [ i [class "jstree-icon jstree-themeicon fa fa-gear jstree-themeicon-custom"][]
-                , span [class "treeGroupName tooltipable"][text item.name]
+                , span [class "item-name tooltipable"][text item.name]
                 ]
               , ul[class "jstree-children"](directivesList)
               ])
@@ -736,12 +748,18 @@ groupsTab model details =
               if checkIncludeOrExclude includedTargets then " item-selected"
               else if checkIncludeOrExclude excludedTargets then " item-selected excluded"
               else ""
+            (disabledClass, disabledLabel) =
+              if item.enabled then
+                ("", text "")
+              else
+                (" is-disabled", span[class "badge-disabled"][])
           in
-            li [class "jstree-node jstree-leaf"]
+            li [class ("jstree-node jstree-leaf" ++ disabledClass)]
             [ i [class "jstree-icon jstree-ocl"][]
             , a [class ("jstree-anchor" ++ includeClass), onClick (SelectGroup item.target True)]
               [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
-              , span [class "treeGroupName tooltipable"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
+              , span [class "item-name tooltipable"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
+              , disabledLabel
               , div [class "treeActions-container"]
                 [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept"][]]
                 , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onCustomClick (SelectGroup item.target False)][]]
