@@ -146,7 +146,8 @@ groupManagement.controller('GroupCtrl', ['$scope', function($scope) {
     };
 
     $scope.getTooltipContent = function(group){
-      var title = "<h4>"+group.name+"</h4>";
+      var disabled = group.isEnabled ? "" : "<span class='badge-disabled'></span>"
+      var title = "<h4>" + group.name + disabled + "</h4>";
       var desc  = group.desc != "" ? ("<div>"+group.desc+"</div>") : "<div><i class='empty'>This group has no description.</div></i>";
       return title + desc;
     }

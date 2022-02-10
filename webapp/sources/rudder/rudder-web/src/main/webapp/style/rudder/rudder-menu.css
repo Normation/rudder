@@ -1505,31 +1505,37 @@ label.text-fit{
   width:auto;
   margin-left:6px;
 }
-.treeActiveTechniqueName.is-disabled:after,
-.is-disabled > a.jstree-anchor > .treeDirective:after,
-#techniqueName.is-disabled:after,
-#directiveTitle > span.is-disabled:after,
-.techniqueNode.is-disabled .treeDirective:after,
-.disableTreeNode > a:after{
-  content: "- Disabled";
-  margin-left: 2px;
-  font-weight: 300;
-  color: #000;
-  font-size: 13px;
-}
-#techniqueName.is-disabled:after
-#directiveTitle > span.is-disabled:after{
-  font-size: 18px;
-  margin-left: 8px;
-}
 
 .treeActiveTechniqueName.is-disabled,
 .techniqueNode.is-disabled .directiveNode,
-.directiveNode.is-disabled,
-.disableTreeNode > a{
+.directiveNode.is-disabled .item-name,
+.disableTreeNode > a .item-name{
   opacity: .5;
+  color: #041922;
 }
 
+.badge-disabled {
+  background-color: #04192257;
+  font-size: 0.8em;
+  color: #fff;
+  font-weight: bold;
+  padding: 2px 8px;
+  margin-left: 4px;
+  border-radius: 4px;
+}
+.badge-disabled:before {
+  content: "DISABLED";
+}
+.tooltip .badge-disabled {
+  float: right;
+  position: relative;
+  top: -3px;
+  font-size: 0.9em;
+}
+.jstree-anchor .badge-disabled{
+  padding: 0px 6px;
+  margin-left: 4px;
+}
 /* --- LABEL --- */
 #badge-apm{
   margin-left: 5px;

@@ -101,8 +101,8 @@ object RuleEditForm {
 
 
 // these two case classes are needed to generate the JS for selected directive & target. They need to be top level else lift goes mad.
-final case class JsGroup(target: String, link:String, name: String, desc: String)
-final case class JsDirective(id: String, link:String, name: String, desc: String, techniqueName: String, techniqueVersion: String, mode: String, tags: JValue)
+final case class JsGroup(target: String, link:String, name: String, desc: String, isEnabled: Boolean)
+final case class JsDirective(id: String, link:String, name: String, desc: String, techniqueName: String, techniqueVersion: String, mode: String, tags: JValue, isEnabled: Boolean)
 
 /**
  * The form that handles Rule edition
@@ -263,6 +263,7 @@ class RuleEditForm(
           , checkLinkType
           , fg.name
           , fg.description
+          , fg.isEnabled
         ))
       }).toMap
       write(map)
@@ -286,6 +287,7 @@ class RuleEditForm(
               , d.techniqueVersion.serialize
               , d.policyMode.map(_.name).getOrElse(globalMode.mode.name)
               , JsonTagSerialisation.serializeTags(d.tags)
+              , d.isEnabled
             )
           case None => //the rule reference a non-existing directive. It will break generation. We need to make it appears
             JsDirective(
@@ -297,6 +299,7 @@ class RuleEditForm(
               , "Technique version unknown"
               , "error"
               , JArray(Nil)
+              , true
             )
         }
         (id.uid.value, details)

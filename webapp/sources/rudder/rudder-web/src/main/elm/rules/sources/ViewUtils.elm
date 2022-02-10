@@ -474,14 +474,21 @@ buildIncludeList originRule groupsTree model editMode includeBool ruleTarget =
         in
           List.member ruleTarget list
 
-    (groupName, groupTarget) = case List.Extra.find (\g -> g.id == id) groupsList of
-      Just gr -> (gr.name, gr.target)
-      Nothing -> (id, id)
+    (groupName, groupTarget, isEnabled) = case List.Extra.find (\g -> g.id == id) groupsList of
+      Just gr -> (gr.name, gr.target, gr.enabled)
+      Nothing -> (id, id, True)
 
-    rowIncludeGroup = li[class (if isNew then "" else "new")]
+    (disabledClass, disabledLabel) =
+      if isEnabled then
+        ("", text "")
+      else
+        (" is-disabled", span[class "badge-disabled"][])
+
+    rowIncludeGroup = li[class ((if isNew then "" else "new") ++ disabledClass)]
       [ span[class "fa fa-sitemap"][]
       , a[href (model.contextPath ++ "/secure/configurationManager/#" ++ "")]
         [ span [class "target-name"][text groupName]
+        , disabledLabel
         ]
       , ( if editMode then
           span [class "target-remove", onClick (SelectGroup groupTarget includeBool)][ i [class "fa fa-times"][] ]
