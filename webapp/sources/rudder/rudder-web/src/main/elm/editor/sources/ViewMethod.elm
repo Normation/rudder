@@ -402,13 +402,6 @@ callBody model ui techniqueUi call pid =
                      |> appendText (conditionStr call.condition)
                      |> addActionStopPropagation ("mousedown" , DisableDragDrop)
                      |> addActionStopPropagation ("click" , DisableDragDrop)
-                     |> addAttributeList
-                        [ class "popover-bs", title (conditionStr call.condition)
-                        , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "top"
-                        , attribute "data-title" (conditionStr call.condition), attribute "data-content" "<small>Click <span class='text-info'>3</span> times to copy the whole condition below</small>"
-                        , attribute "data-template" """<div class="popover condition" role="tooltip"><div class="arrow"></div><h3 class="popover-header"></h3><div class="popover-body"></div></div>"""
-                        , attribute "data-html" "true"
-                        ]
                   ]
     shoudHoveredMethod = case model.isMethodHovered of
                            Just methodId -> if((methodId.value == call.id.value) && ui.mode == Closed) then " hovered" else ""
