@@ -269,11 +269,12 @@ directivesTab model details =
                 (" is-disabled ", span[class "badge-disabled"][])
           in
             li[class (newClass ++ disabledClass)]
-            [ a[href ( model.contextPath ++ "/secure/configurationManager/directiveManagement#" ++ directive.id.value)]
+            [ a[href ( getDirectiveLink model.contextPath directive.id )]
               [ badgePolicyMode model.policyMode directive.policyMode
               , span [class "target-name"][text directive.displayName]
               , disabledLabel
               , buildTagsList directive.tags
+              , goToIcon
               ]
             , span [class "target-remove", onClick (UpdateRuleForm {details | rule = {rule | directives = List.Extra.remove directive.id rule.directives}})][ i [class "fa fa-times"][] ]
             , span [class "border"][]
@@ -285,7 +286,7 @@ directivesTab model details =
       Just oR -> oR.directives
       Nothing -> []
     nbDirectives = List.length ruleDirectivesId
-    fun = byDirectiveCompliance model.policyMode nodeValueCompliance
+    fun = byDirectiveCompliance model (nodeValueCompliance model)
     directiveRows = List.map Tuple3.first fun.rows
     rowId = "byDirectives/"
     (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Directive",Asc)
@@ -352,6 +353,7 @@ directivesTab model details =
                   [ a[ href (getDirectiveLink model.contextPath d.id) ]
                     [ badgePolicyMode model.policyMode d.policyMode
                     , text d.displayName
+                    , goToIcon
                     ]
                   ]) disabledRuleDirectives)
                 )
@@ -463,6 +465,7 @@ directivesTab model details =
                     , div [class "treeActions-container"]
                       [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept"][]]
                       ]
+                    , goToBtn (getDirectiveLink model.contextPath d.id)
                     ]
                   ])
           in
@@ -567,7 +570,7 @@ nodesTab : Model -> RuleDetails -> Html Msg
 nodesTab model details =
   let
     ui = details.ui
-    fun = byNodeCompliance model.policyMode
+    fun = byNodeCompliance model
     nodeRows =  List.map Tuple3.first fun.rows
     rowId = "byNodes/"
     (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Node",Asc)
@@ -656,7 +659,7 @@ nodesTab model details =
                   [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No nodes match your filter."] ]
                 ]
               else
-                List.concatMap (\d ->  showComplianceDetails fun d rowId ui.openedRows model)  nodesChildren
+                List.concatMap (\d -> showComplianceDetails fun d rowId ui.openedRows model)  nodesChildren
               )
           ]
         ]
@@ -764,6 +767,7 @@ groupsTab model details =
                 [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept"][]]
                 , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onCustomClick (SelectGroup item.target False)][]]
                 ]
+              , goToBtn (getGroupLink model.contextPath item.id)
               ]
             ]
         groupTreeCategory : Category Group -> Maybe (Html Msg)

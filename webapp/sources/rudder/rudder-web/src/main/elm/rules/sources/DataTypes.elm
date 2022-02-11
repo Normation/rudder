@@ -334,3 +334,4 @@ type Msg
   | UpdateRuleFilters      Filters
   | UpdateDirectiveFilters Filters
   | UpdateGroupFilters     Filters
+  | GoTo                   String

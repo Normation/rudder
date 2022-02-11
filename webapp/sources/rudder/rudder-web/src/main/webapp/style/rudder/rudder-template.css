@@ -1042,7 +1042,7 @@
 .rudder-template .toggle-checkbox:checked + .callout-fade ul li{
   list-style: none;
 }
-.rudder-template .toggle-checkbox:checked + .callout-fade ul li a{
+.rudder-template .toggle-checkbox:checked + .callout-fade ul > li > a{
   padding: 6px 15px;
   display: flex;
   align-items: baseline;
@@ -1052,6 +1052,28 @@
 }
 .rudder-template .toggle-checkbox:checked + .callout-fade ul li:hover{
   background-color: #e2f2ff !important;
+}
+
+/* === BTN GOTO === */
+.rudder-template .btn-goto{
+  padding: 3px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  opacity: 0;
+  transition: opacity .1s;
+}
+.rudder-template .dataTable .btn-goto:hover,
+.rudder-template .jstree .btn-goto:hover{
+  background-color: #3694d133;
+}
+.rudder-template .applied-list a > .btn-goto {
+  position: absolute;
+  right: 0;
+  top: calc(50% - 13px);
+}
+.rudder-template a:hover > .btn-goto,
+.rudder-template .dataTable tr:hover > td > span >.btn-goto{
+  opacity: 1;
 }
 /* === KEYFRAMES === */
 @keyframes fadein {

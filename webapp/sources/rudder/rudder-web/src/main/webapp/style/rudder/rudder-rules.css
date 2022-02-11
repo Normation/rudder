@@ -258,6 +258,12 @@ ul.applied-list > li.new:hover > .border{
 ul.applied-list > li:last-of-type {
   border-bottom-right-radius: 4px;
 }
+.applied-list li > a {
+  position: relative;
+  display: inline-flex;
+  padding-right: 30px;
+  align-items: baseline;
+}
 ul.applied-list > li > span.fa{
   color: #aaa;
   margin-right: 6px;
