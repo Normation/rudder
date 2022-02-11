@@ -21,10 +21,9 @@ encodeDraft draft =
   in
     object data
 
-encodeTechnique: Technique -> Value
-encodeTechnique technique =
-  object [
-    ("id"          , string technique.id.value )
+techniqueValues: Technique -> List (String, Value)
+techniqueValues technique =
+  [ ("id"          , string technique.id.value )
   , ("version"     , string technique.version )
   , ("name"        , string technique.name )
   , ("description" , string technique.description )
@@ -33,6 +32,14 @@ encodeTechnique technique =
   , ("calls"       , list encodeMethodElem technique.elems )
   , ("resources"   , list encodeResource technique.resources )
   ]
+
+encodeNewTechnique: Technique -> TechniqueId -> Value
+encodeNewTechnique technique internalId =
+  object ( ("internalId"  , string internalId.value ) :: (techniqueValues technique) )
+
+encodeTechnique: Technique -> Value
+encodeTechnique technique =
+  object (techniqueValues technique)
 
 encodeResource: Resource -> Value
 encodeResource resource =

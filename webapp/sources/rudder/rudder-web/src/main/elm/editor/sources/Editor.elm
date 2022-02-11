@@ -236,11 +236,11 @@ update msg model =
         _ ->
           selectTechnique model technique
 
-    NewTechnique id ->
+    NewTechnique internalId ->
       let
         ui = TechniqueUiInfo General Dict.empty Dict.empty [] False Unchanged Unchanged Nothing
         t = Technique (TechniqueId "") "1.0" "" "" "ncf_techniques" [] [] []
-        newModel =  { model | mode = TechniqueDetails t (Creation id) ui}
+        newModel =  { model | mode = TechniqueDetails t (Creation internalId) ui}
       in
         updatedStoreTechnique newModel
 
@@ -334,9 +334,11 @@ update msg model =
           TechniqueDetails t o ui ->
             case o of
               Edit _ ->
-               update (CallApi (saveTechnique t False)) { model | mode = TechniqueDetails t o ui }
-              _ ->
-               update (CallApi (saveTechnique t True)) { model | mode = TechniqueDetails t o ui }
+                update (CallApi (saveTechnique t False Nothing)) { model | mode = TechniqueDetails t o ui }
+              Creation internalId ->
+                update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o ui }
+              Clone _ internalId ->
+                update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o ui }
           _ -> (model, Cmd.none)
 
     DeleteTechnique (Ok (metadata, techniqueId)) ->
