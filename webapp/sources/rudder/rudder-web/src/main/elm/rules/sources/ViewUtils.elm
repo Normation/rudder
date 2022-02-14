@@ -16,6 +16,7 @@ import ComplianceUtils exposing (..)
 import Json.Decode as Decode
 import Tuple3
 import Round
+import Browser.Navigation as Nav
 
 onCustomClick : msg -> Html.Attribute msg
 onCustomClick msg =
@@ -129,12 +130,6 @@ foldedRowClass rowId tableFilters =
   else
     " row-foldable row-folded"
 
-getDirectiveName : List Directive -> DirectiveId -> String
-getDirectiveName directives directiveId =
-  case List.Extra.find (\d -> d.id == directiveId) directives of
-    Just di -> di.displayName
-    Nothing -> "Cannot find directive details"
-
 subItemOrder : ItemFun item subItem data ->  Model -> String -> (item -> item -> Order)
 subItemOrder fun model id  =
   case List.Extra.find (Tuple3.first >> (==) id) fun.rows of
@@ -163,8 +158,8 @@ valueCompliance =
     Nothing
     (always [])
 
-nodeValueCompliance :  ItemFun NodeValueCompliance ValueCompliance NodeValueCompliance
-nodeValueCompliance =
+nodeValueCompliance : Model -> ItemFun NodeValueCompliance ValueCompliance NodeValueCompliance
+nodeValueCompliance mod =
   ItemFun
     (\item model sortId ->
       let
@@ -173,7 +168,7 @@ nodeValueCompliance =
         List.sortWith sortFunction item.values
     )
     (\_ i -> i)
-    [ ("Node", .name >> text,  (\d1 d2 -> compare d1.name d2.name))
+    [ ("Node", .nodeId >> (\nId -> span[][text (getNodeHostname mod nId.value), goToBtn (getNodeLink mod.contextPath nId.value)]),  (\d1 d2 -> compare d1.name d2.name))
     , ("Compliance", .complianceDetails >> buildComplianceBar ,  (\d1 d2 -> compare d1.compliance d2.compliance))
     ]
     (.nodeId >> .value)
@@ -222,37 +217,41 @@ byComponentCompliance subFun =
         Value _ ->  (List.map Tuple3.first subFun.rows)
     )
 
-byDirectiveCompliance : String -> ItemFun value subValue valueData -> ItemFun (DirectiveCompliance value) (ComponentCompliance value) (Directive, DirectiveCompliance value)
-byDirectiveCompliance  globalPolicy subFun =
-  ItemFun
+byDirectiveCompliance : Model -> ItemFun value subValue valueData -> ItemFun (DirectiveCompliance value) (ComponentCompliance value) (Directive, DirectiveCompliance value)
+byDirectiveCompliance mod subFun =
+  let
+    globalPolicy = mod.policyMode
+    contextPath  = mod.contextPath
+  in
+    ItemFun
     (\item model sortId ->
-      let
-        sortFunction =  subItemOrder (byComponentCompliance subFun) model sortId
-      in
-        List.sortWith sortFunction item.components
+    let
+      sortFunction =  subItemOrder (byComponentCompliance subFun) model sortId
+    in
+      List.sortWith sortFunction item.components
     )
     (\m i -> (Maybe.withDefault (Directive i.directiveId i.name "" "" "" False False "" []) (Dict.get i.directiveId.value m.directives), i ))
-    [ ("Directive", \(d,i) -> span [] [ badgePolicyMode globalPolicy d.policyMode, text d.displayName, buildTagsTree d.tags ],  (\(_,d1) (_,d2) -> compare d1.name d2.name ))
+    [ ("Directive", \(d,i)  -> span [] [ badgePolicyMode globalPolicy d.policyMode, text d.displayName, buildTagsTree d.tags, goToBtn (getDirectiveLink contextPath d.id) ],  (\(_,d1) (_,d2) -> compare d1.name d2.name ))
     , ("Compliance", \(d,i) -> buildComplianceBar  i.complianceDetails,  (\(_,d1) (_,d2) -> compare d1.compliance d2.compliance ))
     ]
     (.directiveId >> .value)
     (Just (\b -> showComplianceDetails (byComponentCompliance subFun) b))
     (always (List.map Tuple3.first (byComponentCompliance subFun).rows))
 
-byNodeCompliance :  String -> ItemFun NodeCompliance (DirectiveCompliance ValueCompliance) NodeCompliance
-byNodeCompliance globalPolicy =
+byNodeCompliance :  Model -> ItemFun NodeCompliance (DirectiveCompliance ValueCompliance) NodeCompliance
+byNodeCompliance mod =
   let
-    directive = byDirectiveCompliance globalPolicy valueCompliance
+    directive = byDirectiveCompliance mod valueCompliance
   in
   ItemFun
     (\item model sortId ->
       let
-        sortFunction =  subItemOrder directive model sortId
+        sortFunction = subItemOrder directive mod sortId
       in
         List.sortWith sortFunction item.directives
     )
-    (\_ i -> i)
-    [ ("Node", .name >> text,  (\d1 d2 -> compare d1.name d2.name))
+    (\m i -> i)
+    [ ("Node", .nodeId >> (\nId -> span[][text (getNodeHostname mod nId.value), goToBtn (getNodeLink mod.contextPath nId.value)]),  (\d1 d2 -> compare d1.name d2.name))
     , ("Compliance", .complianceDetails >> buildComplianceBar,  (\d1 d2 -> compare d1.compliance d2.compliance))
     ]
     (.nodeId >> .value)
@@ -266,7 +265,7 @@ showComplianceDetails fun compliance parent openedRows model =
   let
     itemRows = List.map Tuple3.second (fun.rows)
     data = fun.data model compliance
-    detailsRows = List.map (\row -> td [] [row data]) itemRows
+    detailsRows = List.map (\row -> td [class "ok"] [row data]) itemRows
     id = fun.id compliance
     rowId = parent ++ "/" ++ id
     rowOpened = Dict.get rowId openedRows
@@ -486,9 +485,10 @@ buildIncludeList originRule groupsTree model editMode includeBool ruleTarget =
 
     rowIncludeGroup = li[class ((if isNew then "" else "new") ++ disabledClass)]
       [ span[class "fa fa-sitemap"][]
-      , a[href (model.contextPath ++ "/secure/configurationManager/#" ++ "")]
+      , a[href (getGroupLink model.contextPath id)]
         [ span [class "target-name"][text groupName]
         , disabledLabel
+        , goToIcon
         ]
       , ( if editMode then
           span [class "target-remove", onClick (SelectGroup groupTarget includeBool)][ i [class "fa fa-times"][] ]
@@ -592,3 +592,23 @@ toRuleTarget targetId =
 getDirectiveLink : String -> DirectiveId -> String
 getDirectiveLink contextPath id =
   contextPath ++ """/secure/configurationManager/directiveManagement#{"directiveId":" """++ id.value ++ """ "} """
+
+getGroupLink : String -> String -> String
+getGroupLink contextPath id =
+  contextPath ++ """/secure/nodeManager/groups#{"groupId":\"""" ++ id ++ """\"}"""
+
+getNodeLink : String -> String -> String
+getNodeLink contextPath id =
+  contextPath ++ "/secure/nodeManager/node/" ++ id
+
+getNodeHostname : Model -> String -> String
+getNodeHostname model id = (Maybe.withDefault (NodeInfo id id "" "" ) (Dict.get id model.nodes)).hostname
+
+
+goToBtn : String -> Html Msg
+goToBtn link =
+  a [ class "btn-goto", href link , onCustomClick (GoTo link)] [ i[class "fa fa-pen"][] ]
+
+goToIcon : Html Msg
+goToIcon =
+  span [ class "btn-goto" ] [ i[class "fa fa-pen"][] ]
