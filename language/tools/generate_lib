@@ -141,10 +141,12 @@ def translate_ncf_to_json(method_files, dsc_files, ncf_source):
                         raise ncf.NcfError(
                             "Incoherent resource parameters for resource '"
                             + resource_name
+                            + "', for state'"
+                            + state_data['method']
                             + "', expecting "
-                            + expected
+                            + str(expected)
                             + ' got '
-                            + new
+                            + str(new)
                         )
                 data[resource_name]['states'].append(state_data)
         except ncf.NcfError as exception:
