@@ -32,7 +32,7 @@ Syntax:
 [source, language]
 ----
 case {
-  case_expression => statement, 
+  case_expression => statement,
   default => statement ## optional unless enum is global
 }
 ----
@@ -60,3 +60,52 @@ Expressions are a composition of the following elements:
 ** implicit boolean comparison that only takes an expression (for example `!linux & !windows`)
 
 NOTE: see enum related syntax <<access-enum-content,here>>, including items and range and expression examples
+
+[#blocs]
+= Blocks
+
+Blocks are used to organize several state calls under a common statement or to modify their reporting logic.
+They are exactly similar to the one found in Rudder, in the technique editor. They can be nested and are delimited by braces `{}` without keyword.
+
+[source, language]
+----
+# Without any statement
+@component = "My block component name"
+@reporting_logic = "weighted"          ## Mandatory metadata for any block definition
+{
+  @component = "My method component name"
+  command("""my command""").execution() as my_command_succeeds
+}
+----
+
+[source, language]
+----
+# With statement
+if gdm_present_ok =>                   ## The statement must be placed before the metadata
+@component = "My block component name"
+@reporting_logic = "weighted"          ## Mandatory metadata for any block definition
+{
+  @component = "My method component name"
+  command("""my command""").execution() as my_command_succeeds
+}
+----
+
+The `reporting_logic` metadata can take the following values:
+
+* `weighted`: Keep the classical reporting
+* `focus:<state id>`: The whole block reporting will take the compliance value of the selected state
+** To choose the targeted state, add an `id` metadata to the state definition and reference its value instead of `<state id>`.
++
+----
+@component = "My block component name234"
+@id = "90fbf043-11a8-49c6-85ad-88e65ea36f9a"
+@reporting_logic = "focus:693e80c4-78f2-43c3-aace-3c6b5e0e08b8"
+{
+  @component = "My method component name"
+  @id = "693e80c4-78f2-43c3-aace-3c6b5e0e08b8"
+  command("""/bin/true""").execution() as command_execution__bin_true
+}
+----
+* `worst-case-weighted-one`: The whole block reporting will take the compliance value of the worst report (will count as 1 report in the compliance computation)
+* `worst-case-weighted-sum`: The whole block reporting will take the compliance value of the worst report, weighted by the number of methods (will count as N reports in the compliance computation, with N equals to the number of methods in the block)
+
