@@ -278,11 +278,17 @@ update msg model =
 
     UpdateTechnique technique ->
       let
+        techniqueId =
+          if(List.any (\s -> s == technique.id.value) (Dict.keys model.methods)) then
+            {- To avoid technique with the same name as generic method that cause error -}
+            TechniqueId (technique.id.value ++ "_technique")
+          else
+            technique.id
         newModel =
           case model.mode of
             TechniqueDetails _ o ui ->
 
-              { model | mode = TechniqueDetails technique o {ui |  nameState = checkTechniqueName technique model, idState = checkTechniqueId o technique model } }
+              { model | mode = TechniqueDetails {technique | id = techniqueId} o {ui |  nameState = checkTechniqueName technique model, idState = checkTechniqueId o technique model } }
             _ -> model
       in
         updatedStoreTechnique newModel
