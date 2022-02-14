@@ -58,7 +58,7 @@ import net.liftweb.http.PlainTextResponse
 class SystemApiTests extends Specification with AfterAll with Loggable {
 
   val restTestSetUp = RestTestSetUp.newEnv
-  val restTest = new RestTest(restTestSetUp)
+  val restTest = new RestTest(restTestSetUp.liftRules)
 
   "testing status REST API" should {
     "be correct" in {
