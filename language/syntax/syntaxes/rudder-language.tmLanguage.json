@@ -1,0 +1,152 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Rudder",
+    "fileTypes": [
+        "rl"
+    ],
+    "foldingStartMarker": "\\{\\s*$",
+    "foldingStopMarker": "^\\s*\\}",
+    "patterns": [
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#comment"
+        },
+        {
+            "include": "#metadata"
+        },
+        {
+            "include": "#state"
+        },
+        {
+            "include": "#resource"
+        }
+    ],
+    "repository": {
+        "comment": {
+            "captures": {
+                "1": {
+                    "name": "comment.line.number-sign.rudder-language"
+                },
+                "2": {
+                    "name": "punctuation.definition.comment.rudder-language"
+                }
+            },
+            "match": "\\s*((#).*)$"
+        },
+        "condition": {
+            "captures": {
+                "1": {
+                    "name": "keyword.control.rudder-language"
+                },
+                "2": {
+                    "name": "variable.parameter.rudder-language"
+                },
+                "3": {
+                    "name": "keyword.control.rudder-language"
+                }
+            },
+            "match": "\\b(if)\\s+(.*)\\s+(=>)"
+        },
+        "resource": {
+            "captures": {
+                "0": {
+                    "name": "meta.entity.name.function.rudder-language"
+                },
+                "1": {
+                    "name": "entity.name.type.rudder-language"
+                },
+                "2": {
+                    "name": "entity.name.function.rudder-language"
+                }
+            },
+            "match": "\\b(resource)\\s+(\\w+)\\s*\\(\\)\\s*"
+        },
+        "metadata": {
+            "captures": {
+                "1": {
+                    "name": "comment.line.at.rudder-language"
+                },
+                "2": {
+                    "name": "source.toml.embedded.rudder-language",
+                    "patterns": [
+                        {
+                            "include": "source.toml"
+                        }
+                    ]
+                }
+            },
+            "match": "\\s*(@)(.*)$",
+            "include": "source.toml"
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.rudder-language",
+                    "match": "\\b(if|return|fail|log_info|log_debug|log_warn)\\b"
+                },
+                {
+                    "name": "keyword.operator.rudder-language",
+                    "match": "\\b(=)\\b"
+                }
+            ]
+        },
+        "strings": {
+            "name": "string.quoted.double.rudder-language",
+            "begin": "\"",
+            "end": "\"",
+            "patterns": [
+                {
+                    "name": "constant.character.escape.rudder-language",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        "state": {
+            "beginCaptures": {
+                "0": {
+                    "name": "meta.entity.name.function.rudder-language"
+                },
+                "1": {
+                    "name": "entity.name.function.rudder-language"
+                },
+                "2": {
+                    "name": "entity.name.type.rudder-language"
+                },
+                "3": {
+                    "name": "entity.name.function.rudder-language"
+                },
+                "4": {
+                    "name": "meta.block.start.rudder-language"
+                }
+            },
+            "endCaptures": {
+                "0": {
+                    "name": "meta.block.end.rudder-language"
+                }
+            },
+            "begin": "\\s*(\\w+)\\s*(state)\\s*(\\w+)\\s*\\(\\)\\s*({)",
+            "end": "}",
+            "contentName": "meta.function",
+            "patterns": [
+                {
+                    "include": "#metadata"
+                },
+                {
+                    "include": "#comment"
+                },
+                {
+                    "include": "#condition"
+                },
+                {
+                    "include": "#keywords"
+                }
+            ]
+        }
+    },
+    "scopeName": "source.rudder-language"
+}

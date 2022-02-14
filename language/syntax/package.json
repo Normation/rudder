@@ -1,0 +1,34 @@
+{
+    "name": "rudder-language",
+    "displayName": "Rudder Language",
+    "description": "Rudder configuration language support",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.47.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "rudder-language",
+                "aliases": [
+                    "Rudder",
+                    "rudder-language"
+                ],
+                "extensions": [
+                    ".rl"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "rudder-language",
+                "scopeName": "source.rudder-language",
+                "path": "./syntaxes/rudder-language.tmLanguage.json"
+            }
+        ]
+    }
+}
