@@ -256,7 +256,7 @@ showTechnique model technique origin ui =
               text "Reset "
             , i [ class "fa fa-undo"] []
             ]
-          , button [ class "btn btn-success btn-save", disabled (isUnchanged || (not (isValid ui)) || ui.saving || String.isEmpty technique.name || not areMethodsMissingParameters || not areBlockOnError), onClick (CallApi (saveTechnique technique creation)) ] [
+          , button [ class "btn btn-success btn-save", disabled (isUnchanged || (not (isValid ui)) || ui.saving || String.isEmpty technique.name || not areMethodsMissingParameters || not areBlockOnError), onClick StartSaving] [
               text "Save "
             , i [ class ("fa fa-download " ++ (if ui.saving then "glyphicon glyphicon-cog fa-spin" else "")) ] []
             ]
