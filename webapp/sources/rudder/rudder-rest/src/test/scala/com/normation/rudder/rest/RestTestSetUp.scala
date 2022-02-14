@@ -418,8 +418,6 @@ class RestTestSetUp {
   val fakePersonIndentService = new PersonIdentService {
     override def getPersonIdentOrDefault(username: String) = ZIO.succeed(fakePersonIdent)
   }
-  val apiAuthorizationLevelService = new DefaultApiAuthorizationLevel(LiftApiProcessingLogger)
-  val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
   val fakeScriptLauncher = new DebugInfoService {
     override def launch() = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
   }
@@ -569,7 +567,6 @@ class RestTestSetUp {
   val authzToken = AuthzToken(EventActor("fakeToken"))
   val systemStatusPath = "api" + systemApi.Status.schema.path
 
-  val ApiVersions = ApiVersion(13 , true) :: ApiVersion(14 , false) :: Nil
 
   val nodeInfo = mockNodes.nodeInfoService
   val softDao = mockNodes.softwareDao
@@ -613,34 +610,22 @@ class RestTestSetUp {
   val techniqueSerializer : TechniqueSerializer = null
   val resourceFileService : ResourceFileService = null
   val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
-  val rudderApi = {
-    //append to list all new format api to test it
-    val modules = List(
-        systemApi
-      , new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14)
-      , new TechniqueApi(restExtractorService, techniqueAPIService6, techniqueAPIService14, ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, techniqueSerializer, uuidGen, resourceFileService)
-      , new DirectiveApi(mockDirectives.directiveRepo, restExtractorService, zioJsonExtractor, uuidGen, directiveApiService2, directiveApiService14)
-      , new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService14, uuidGen)
-      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12,  nodeApiService13, null, DeleteMode.Erase)
-      , new GroupsApi(mockNodeGroups.groupsRepo, restExtractorService, zioJsonExtractor, uuidGen, groupService2, groupService6, groupService14, groupApiInheritedProperties)
-      , new SettingsApi(restExtractorService, settingsService.configService, asyncDeploymentAgent, uuidGen, settingsService.policyServerManagementService, nodeInfo)
-    )
-    val api = new LiftHandler(apiDispatcher, ApiVersions, new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled), None)
-    modules.foreach { module =>
-      api.addModules(module.getLiftEndpoints())
-    }
-    api
-  }
 
-  val liftRules = {
-    val l = new LiftRules()
-    l.statelessDispatch.append(RestStatus)
-    l.statelessDispatch.append(rudderApi.getLiftRestApi())
-    //add other API implementation here
-    l
-  }
+  val apiModules = List(
+      systemApi
+    , new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14)
+    , new TechniqueApi(restExtractorService, techniqueAPIService6, techniqueAPIService14, ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, techniqueSerializer, uuidGen, resourceFileService)
+    , new DirectiveApi(mockDirectives.directiveRepo, restExtractorService, zioJsonExtractor, uuidGen, directiveApiService2, directiveApiService14)
+    , new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService14, uuidGen)
+    , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12,  nodeApiService13, null, DeleteMode.Erase)
+    , new GroupsApi(mockNodeGroups.groupsRepo, restExtractorService, zioJsonExtractor, uuidGen, groupService2, groupService6, groupService14, groupApiInheritedProperties)
+    , new SettingsApi(restExtractorService, settingsService.configService, asyncDeploymentAgent, uuidGen, settingsService.policyServerManagementService, nodeInfo)
+  )
 
+  val apiVersions = ApiVersion(13 , true) :: ApiVersion(14 , false) :: Nil
+  val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
+  liftRules.statelessDispatch.append(RestStatus)
 
   val baseTempDirectory = mockGitRepo.abstractRoot
 
@@ -685,14 +670,14 @@ object RestTestSetUp {
 /*
  * Provides methods to mock & test REST requests programmatically using all our services.
  */
-class RestTest(restTestSetUp: RestTestSetUp) {
+class RestTest(liftRules: LiftRules) {
 
   /*
    * Correctly build and scope mutable things to use the request in a safe
    * way in the context of LiftRules.
    */
   def doReq[T](mockReq: MockHttpServletRequest)(tests: Req => MatchResult[T]) = {
-    LiftRulesMocker.devTestLiftRulesInstance.doWith(restTestSetUp.liftRules) {
+    LiftRulesMocker.devTestLiftRulesInstance.doWith(liftRules) {
       MockWeb.useLiftRules.doWith(true) {
         MockWeb.testReq(mockReq)(tests)
       }
