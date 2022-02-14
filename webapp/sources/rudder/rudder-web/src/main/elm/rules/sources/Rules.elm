@@ -1,6 +1,7 @@
 port module Rules exposing (..)
 
 import Browser
+import Browser.Navigation as Nav
 import Dict
 import Dict.Extra
 import DataTypes exposing (..)
@@ -441,6 +442,8 @@ update msg model =
             (newModel, Cmd.none)
         _ ->
             (model, Cmd.none)
+
+    GoTo link -> (model, Nav.load link)
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
