@@ -332,7 +332,7 @@ blockBody model parentId block ui techniqueUi =
                                   , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                                   ]
                            )
-                |> addActionStopPropagation ("click",  UIBlockAction block.id {ui | mode = Closed})
+                |> addAction ("click",  UIBlockAction block.id {ui | mode = if(ui.mode == Opened) then Closed else Opened})
 
     cloneIcon = element "i" |> addClass "fa fa-clone"
     cloneButton = element "button"
