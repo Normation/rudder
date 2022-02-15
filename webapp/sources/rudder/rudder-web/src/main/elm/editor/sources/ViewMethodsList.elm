@@ -159,7 +159,7 @@ showMethodsCategories model (category, methods) =
     header = element "h5"
              |> addAttribute ( id category )
              |> appendText category
-    methodsElem = List.map (\m  -> showMethod model.methodsUI m model.dnd) methods
+    methodsElem = List.map (\m  -> showMethod model.methodsUI m model.mode model.dnd) methods
   in
     element "ul"
     |> addClass "list-unstyled"
@@ -185,11 +185,16 @@ showCategory  category allDeprecated =
       )
   ]
 
-showMethod: MethodListUI -> Method -> ( DragDrop.State DragElement DropElement) -> Element Msg
-showMethod ui method dnd =
+showMethod: MethodListUI -> Method -> Mode -> ( DragDrop.State DragElement DropElement) -> Element Msg
+showMethod ui method mode dnd =
   let
     docOpen = List.member method.id ui.docsOpen
     attributes = class ("method method-elmt " ++ (if docOpen then "doc-opened" else ""))::  id method.id.value :: []
+    methodUi =
+      case mode of
+        TechniqueDetails _ _ techUiInfo ->
+          Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged) (Dict.get method.id.value techUiInfo.callsUI)
+        _  -> (MethodCallUiInfo Closed CallParameters Unchanged)
   in
     element "li"
     |> appendChild
@@ -199,6 +204,7 @@ showMethod ui method dnd =
        |> appendChildList
           [ element "div"
             |> addClass "cursorMove"
+            |> addAction ("click",  UIMethodAction method.id {methodUi | mode = if(methodUi.mode == Opened) then Closed else Opened})
             |> appendChild
                            ( element "i"
                              |> addClass "fas fa-cog"
