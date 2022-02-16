@@ -151,49 +151,24 @@
 bundle agent package_state(name, version, architecture, provider, state)
 {
   vars:
-    pass1::
-      "canonified_name"           string => canonify("${name}");
-      "canonified_state"          string => canonify("${state}");
-
-      "old_class_prefix"          string => "package_state_${canonified_name}";
-
-      "args"                      slist  => { "${name}", "${version}", "${architecture}", "${provider}", "${state}" };
-      "report_param"              string => join("_", args);
-      "full_class_prefix"         string => canonify("package_state_${report_param}");
-      "class_prefix"              string => string_head("${full_class_prefix}", "1000");
-
-      # call is to ncf_package("${name}", "${version}", "${architecture}", "${provider}", "${state}", ""), so we have a trailing _ there
-      "full_inner_class_prefix"   string => canonify("ncf_package_${report_param}_");
-      "inner_class_prefix"        string => string_head("${full_inner_class_prefix}", "1000");
+      "class_prefix"                string => "package_state_${name}";
 
   defaults:
-      "state"                     string => "present", if_match_regex => "";
+      "state"                       string => "present", if_match_regex => "";
 
   classes:
-      "should_report"         expression => "${report_data.should_report}";
-
+      "pass3" expression => "pass2";
       "pass2" expression => "pass1";
-      "pass1" expression => "any";
+      "pass1" expression => "any";   
 
   methods:
-    pass2::
-      "disable_reporting_${class_prefix}"
-                               usebundle => disable_reporting;
-
-      "action"                 usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "${state}", "");
-
-      "reenable_reporting_${class_prefix}"
-                               usebundle => enable_reporting,
-                              ifvarclass => "should_report";
-      "class copy"             usebundle => _classes_copy("ncf_package_${canonified_state}_${canonified_name}", "${old_class_prefix}"),
-                              ifvarclass => "ncf_package_${canonified_state}_${canonified_name}_reached";
-      "new class copy"         usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
-                              ifvarclass => "${inner_class_prefix}_reached";
-
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("ncf_package");
+      "${report_data.method_id}" usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "${state}", "");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
       # For compatibility with previous version of the generic method
-      "class copy compat"      usebundle => _classes_copy("ncf_package_${canonified_state}_${canonified_name}", "package_${canonified_state}_${canonified_name}"),
-                              ifvarclass => "ncf_package_${canonified_state}_${canonified_name}_reached";
+      "${report_data.method_id}" usebundle => call_method_classes("package_${canonified_state}_${canonified_name}");
+      "${report_data.method_id}" usebundle => call_method_end("ncf_package");
 
-      "report"                 usebundle => _log_v3("${ncf_package.message}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
-
+      "${report_data.method_id}" usebundle => log_rudder_v4( "${name}", "${ncf_package.message}", "");
 }

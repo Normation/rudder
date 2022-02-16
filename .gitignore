@@ -17,3 +17,4 @@ doc/generic_methods.html
 *.pyc
 *.swp
 .ncf-exclude-cache*
+.idea

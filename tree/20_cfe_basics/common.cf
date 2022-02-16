@@ -328,3 +328,64 @@ bundle agent ncf_classes_copy(source_prefix, destination_prefix)
       "destination_not_empty"      not => strcmp("${destination_prefix}", "");
       "destination_exists"         and => { "destination_defined", "destination_not_empty" };
 }
+
+## Utility bundles to call sub methods
+# take care of dry-run and method_id management, plus allows copying the outcome
+
+bundle agent call_method(method) {
+  vars:
+    !pass1::
+      # store initial value
+      "should_report" string => "${report_data.should_report}";
+    pass3::
+      "method_id"  string => "${report_data.method_id}";
+      # store value with new method_id
+      "call_method_data.${method_id}_${method}" string => "${should_report}";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3::
+      # needs to be called in pass3 as it changes the report_data.method_id which makes it reexecute
+      "${report_data.method_id}" usebundle => method_id_push("${method}");
+      "${report_data.method_id}" usebundle => disable_reporting;
+  
+  reports:
+    pass3.debug::
+      "${configuration.debug} Entering method ${report_data.method_id} (should_report: ${call_method_data.${method_id}_${method}})";
+}
+
+bundle agent call_method_classes(copy_to_prefix) {
+  vars:
+      "prefix"                      string => canonify("${copy_to_prefix}");
+
+  methods:
+      "${report_data.method_id}" usebundle => _classes_copy("${report_data.method_id}", "${prefix}");
+}
+
+bundle agent call_method_end(method) {
+  classes:
+    pass2::
+      "should_report" expression => "${call_method_data.${report_data.method_id}_${method}}";
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass2.!pass3::
+      "${report_data.method_id}" usebundle => method_id_pop;
+    pass3::
+      "${report_data.method_id}" usebundle => enable_reporting,
+                                        if => "should_report";
+  
+  reports:
+    pass3.debug.should_report::
+      "${configuration.debug} Exiting method ${report_data.method_id}_${method}, should_report: true";
+    pass3.debug.!should_report::
+      "${configuration.debug} Exiting method ${report_data.method_id}_${method}, should_report: false";
+}
+

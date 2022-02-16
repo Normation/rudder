@@ -65,7 +65,7 @@ bundle agent check {
 
   classes:
      "ok" expression => returnszero("${file_diff_test}", "useshell"),
-     ifvarclass => "package_present_package_1_ok.package_state_package_2_ok.package_present_package_2_ok.package_state_options_package_3_ok.package_present_package_3_ok.package_present_package_4_ok.package_present_package_5_ok.package_present_package_6_ok.package_absent_package_7_ok";
+                  if => "package_present_package_1_ok.package_state_package_2_ok.package_state_options_package_3_ok.package_present_package_4_ok.package_present_package_5_ok.package_present_package_6_ok.package_absent_package_7_ok";
 
   reports:
     ok::

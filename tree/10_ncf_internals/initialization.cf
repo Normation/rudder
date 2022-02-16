@@ -41,6 +41,7 @@ bundle agent initialization
       "copy classes for reporting" usebundle => _classes_copy("ncf_internals_modules_update", "ncf_init");
       "init dry_run context" usebundle => dry_run_initialization;
       "init flag context"    usebundle => flag_initialization;
+      "init method id"       usebundle => rudder_method_id_reset;
 
   reports:
     info::

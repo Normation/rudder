@@ -62,8 +62,8 @@ bundle agent log_rudder_mode(mode, message, class_parameter, class_prefix)
 
   methods:
     known_mode.pass2::
-      "report" usebundle => _rudder_common_report("${report_data.technique_name}", "${c_class_prefix}", "${mode}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
-        classes    => classes_generic("logger_rudder_mode_${c_class_prefix}");
+      "${report_data.method_id}" usebundle => _rudder_common_report("${report_data.technique_name}", "${c_class_prefix}", "${mode}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
+                                classes    => classes_generic("logger_rudder_mode_${c_class_prefix}");
 
   reports:
     info.!known_mode.pass1::
@@ -119,17 +119,37 @@ bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix
 
   methods:
     !use_class_prefix::
-      "report" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${c_old_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
-        classes    => classes_generic("logger_rudder_${c_old_class_prefix}");
+      "${report_data.method_id}" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${c_old_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
+                                classes    => classes_generic("logger_rudder_${c_old_class_prefix}");
 
     use_class_prefix::
-      "report" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${c_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
-        classes    => classes_generic("logger_rudder_${c_class_prefix}");
+      "${report_data.method_id}" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${c_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
+                                classes    => classes_generic("logger_rudder_${c_class_prefix}");
 
   reports:
     info.!class_prefix_size_ok::
       # Since the class_prefix is too long, i'm not outputing it (it would fill several lines of text with no added value)
       "${configuration.info}: Class prefix is too long - fallbacking to old_class_prefix ${old_class_prefix} for reporting";
+}
+
+# @name Log for Rudder
+# @description Logging output for Rudder reports
+#
+# @parameter message A summary of what the message does, without potentially sensitive information
+# @parameter details Details of what is checked and what is the state of the component
+bundle agent log_rudder_v4(parameter_value, message, details)
+{
+  vars:
+      "component_key"   string => "${parameter_value}";
+    rudder_report_force_component_none::
+      "component_key" string => "None";
+
+  defaults:
+      # if class_parameter is not set, then use the component_key from report_data
+      "component_key" string => "${report_data.component_key}", if_match_regex => "";
+
+  methods:
+      "${report_data.method_id}" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${report_data.report_id}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message} ${details}");
 }
 
 # @name Log for Non Applicable call to generic method
@@ -155,11 +175,8 @@ bundle agent log_na_rudder(message, class_parameter, unique_prefix, args)
       "component_key"          string => "${report_data.component_key}", if_match_regex => "";
 
   methods:
-      "report" usebundle => _rudder_report_na("${report_data.technique_name}", "${c_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
-        classes    => classes_generic("log_na_rudder_${c_class_prefix}");
-
-
-
+      "${report_data.method_id}" usebundle => _rudder_report_na("${report_data.technique_name}", "${c_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
+                                classes    => classes_generic("log_na_rudder_${c_class_prefix}");
 }
 
 
@@ -179,7 +196,7 @@ bundle agent logger_rudder(message, old_class_prefix)
       "empty_slist" slist => { cf_null };
 
   methods:
-      "legacy logger_rudder wrapper" usebundle => log_rudder("${message}", "", "${old_class_prefix}", "", @{empty_slist});
+      "${report_data.method_id}" usebundle => log_rudder("${message}", "", "${old_class_prefix}", "", @{empty_slist});
 
   reports:
     cfengine::
@@ -228,7 +245,7 @@ bundle agent _rudder_common_report(technique_name, class_prefix, status, identif
   methods:
     # If we need to send a report, make sure we have sent the "StartRun" message first
     send_reports.!start_run_message_sent::
-      "Send start message"
+      "${report_data.method_id}"
         usebundle => _startExecution("${identifier}"),
         action    => immediate_ignore_dry_run;
 
@@ -264,60 +281,60 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
 
       # This case should NEVER happen. If it ever happens, it is a bug in CFEngine or ncf that lead to changing something in dry-run mode.
       # Hence, as we are facing a severe bug and we want to avoid changing more things, we define an abort class after displaying an error message .
-      "abort" usebundle => _abort("repaired_during_dryrun", "Repaired previous component while in dry-run mode, this is a bug. Aborting immediately."),
+      "${report_data.method_id}" usebundle => _abort("repaired_during_dryrun", "Repaired previous component while in dry-run mode, this is a bug. Aborting immediately."),
                 action  => immediate_ignore_dry_run,
              ifvarclass => "(dry_run|global_dry_run).${class_prefix}_repaired";
 
     !report::
-      "na"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "log_info", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "success"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "log_info", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
         ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "repaired"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "log_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
         ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
 
-      "error"
+      "${report_data.method_id}"
         # Make errors info as they are actually generally checks
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "log_info", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
         ifvarclass => "${class_prefix}_error";
 
 
     report.!(dry_run|global_dry_run)::
-      "na"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "success"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_success", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
         ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "repaired"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
         ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
 
-      "error"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
         ifvarclass => "${class_prefix}_error";
 
     report.(dry_run|global_dry_run)::
-      "na"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "success"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_compliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
         ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "noncompliant"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_noncompliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not correct"),
         ifvarclass => "${class_prefix}_error.!${class_prefix}_repaired";
 
-      "unexpected error"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired but should have been run in dry-run mode"),
         ifvarclass => "${class_prefix}_repaired";
 }
@@ -333,15 +350,15 @@ bundle agent _rudder_report_na(technique_name, class_prefix, identifier, compone
 
   methods:
     !report::
-      "na"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "log_info", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable");
 
     report.!(dry_run|global_dry_run)::
-      "na"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable");
 
     report.(dry_run|global_dry_run)::
-      "na"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable");
 }
 
@@ -375,32 +392,32 @@ bundle agent _rudder_common_reports_generic_hooks(technique_name, class_prefix, 
 
   methods:
     is_enforce::
-      "na"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "success"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_success", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
         ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "repaired"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
         ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
 
-      "error"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
         ifvarclass => "${class_prefix}_error";
 
     !is_enforce::
-      "na"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "success"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_compliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
         ifvarclass => "(${class_prefix}_kept|${class_prefix}_repaired).!${class_prefix}_error";
 
-      "noncompliant"
+      "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_noncompliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not correct"),
         ifvarclass => "${class_prefix}_error";
 }
@@ -471,7 +488,7 @@ bundle agent _rudder_common_report_hooks(technique_name, status, identifier, com
   methods:
     # If we need to send a report, make sure we have sent the "StartRun" message first
     pass2.send_reports.!start_run_message_sent::
-      "Send start message"
+      "${report_data.method_id}"
         usebundle => _startExecution("${identifier}"),
         action    => immediate_ignore_dry_run;
 
@@ -488,6 +505,19 @@ bundle agent _method_reporting_context(c_name, c_key)
   vars:
     "report_data.component_name" string => "${c_name}";
     "report_data.component_key"  string => "${c_key}" ;
+}
+
+bundle agent _method_reporting_context_v4(c_name, c_key, report_id)
+{
+  vars:
+    "report_data.component_name" string => "${c_name}";
+    "report_data.component_key"  string => "${c_key}" ;
+    "report_data.report_id"      string => canonify("${report_id}");
+    "report_data.method_id"      string => canonify("${report_id}");
+    "report_data.identifier"     string => "${report_data.rule_id}@@${report_data.directive_id}@@${report_data.report_id}";
+
+  methods:
+    "${report_id}" usebundle => rudder_method_id_reset;
 }
 
 bundle agent rudder_reporting_context(d_id, r_id, t_name)
@@ -517,6 +547,8 @@ bundle agent clean_reporting_context
     "report_data.canonified_directive_id" string => "";
     "report_data.rule_id"                 string => "";
     "report_data.identifier"              string => "";
+    "report_data.report_id"               string => "";
+    "report_data.method_id"               string => "";
 }
 
 bundle agent disable_reporting
@@ -598,7 +630,7 @@ body classes _rudder_always_classes_persist(always, persist)
 bundle agent rudder_common_report(technique_name, status, identifier, component_name, component_key, message)
 {
   methods:
-      "report" usebundle => rudder_common_report_index("${technique_name}", "${status}", "${identifier}", "${component_name}", "${component_key}", "${message}", "");
+      "${report_data.method_id}" usebundle => rudder_common_report_index("${technique_name}", "${status}", "${identifier}", "${component_name}", "${component_key}", "${message}", "");
 }
 
 #
@@ -657,15 +689,15 @@ bundle agent rudder_common_report_index(technique_name, status, identifier, comp
   methods:
     # If we need to send a report, make sure we have sent the "StartRun" message first
     log_reports.!start_run_message_sent::
-      "Send start message"
+      "${report_data.method_id}"
         usebundle => startExecution,
         action    => immediate;
 
     # This case should NEVER happen. If it ever happens, it is a bug in CFEngine or ncf that lead to changing something in dry-run mode.
     # Hence, as we are facing a severe bug and we want to avoid changing more things, we define an abort class after displaying an error message .
     (dry_run|global_dry_run).report_repaired::
-      "abort" usebundle => _abort("repaired_during_dryrun", "Repaired previous component while in dry-run mode, this is a bug. Aborting immediately."),
-                action  => immediate_ignore_dry_run;
+      "${report_data.method_id}" usebundle => _abort("repaired_during_dryrun", "Repaired previous component while in dry-run mode, this is a bug. Aborting immediately."),
+                                   action  => immediate_ignore_dry_run;
 
   reports:
     log_reports::
@@ -686,7 +718,7 @@ bundle agent rudder_common_report_index(technique_name, status, identifier, comp
 bundle agent rudder_common_reports_generic(technique_name, class_prefix, identifier, component_name, component_key, message_prefix)
 {
   methods:
-      "report"
+      "${report_data.method_id}"
         usebundle  => rudder_common_reports_generic_index("${technique_name}", "${class_prefix}", "${identifier}", "${component_name}", "${component_key}", "${message_prefix}", "");
 }
 
@@ -708,41 +740,41 @@ bundle agent rudder_common_reports_generic_index(technique_name, class_prefix, i
   methods:
     # This case should NEVER happen. If it ever happens, it is a bug in CFEngine or ncf that lead to changing something in dry-run mode.
     # Hence, as we are facing a severe bug and we want to avoid changing more things, we define an abort class after displaying an error message .
-      "abort" usebundle => _abort("repaired_during_dryrun", "Repaired previous component while in dry-run mode, this is a bug. Aborting immediately."),
+      "${report_data.method_id}" usebundle => _abort("repaired_during_dryrun", "Repaired previous component while in dry-run mode, this is a bug. Aborting immediately."),
                 action  => immediate_ignore_dry_run,
              ifvarclass => "(dry_run|global_dry_run).${class_prefix}_repaired";
 
     !(dry_run|global_dry_run)::
-      "na"
+      "${report_data.method_id}"
         usebundle  => rudder_common_report_index("${technique_name}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable", "${index}"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "success"
+      "${report_data.method_id}"
         usebundle  => rudder_common_report_index("${technique_name}", "result_success", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct", "${index}"),
         ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "repaired"
+      "${report_data.method_id}"
         usebundle  => rudder_common_report_index("${technique_name}", "result_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired", "${index}"),
         ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
 
-      "error"
+      "${report_data.method_id}"
         usebundle  => rudder_common_report_index("${technique_name}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired", "${index}"),
         ifvarclass => "${class_prefix}_error";
 
     dry_run|global_dry_run::
-      "na"
+      "${report_data.method_id}"
         usebundle  => rudder_common_report_index("${technique_name}", "audit_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable", "${index}"),
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "success"
+      "${report_data.method_id}"
         usebundle  => rudder_common_report_index("${technique_name}", "audit_compliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct", "${index}"),
         ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
-      "noncompliant"
+      "${report_data.method_id}"
         usebundle  => rudder_common_report_index("${technique_name}", "audit_noncompliant", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not correct", "${index}"),
         ifvarclass => "${class_prefix}_error.!${class_prefix}_repaired";
 
-      "unexpected error"
+      "${report_data.method_id}"
         usebundle  => rudder_common_report_index("${technique_name}", "audit_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired but should have been run in dry-run mode", "${index}"),
         ifvarclass => "${class_prefix}_repaired";
 
@@ -772,7 +804,7 @@ bundle agent startExecution
 bundle agent _startExecution(identifier)
 {
   methods:
-      "any" usebundle => startExecution;
+      "${report_data.method_id}" usebundle => startExecution;
 }
 
 bundle agent endExecution
@@ -815,3 +847,70 @@ bundle agent rudder_set_force_component_none(mode)
       "${configuration.debug} Enabling force None component mode";
 }
 
+bundle agent rudder_method_id_reset() {
+  vars:
+      "method_id_unique.value" string => "1";
+      "method_id_unique.stack" slist  => {};
+}
+
+# You must call pop_method_id later to remove it.
+# The start value is the report_id itself
+bundle agent method_id_push(method_id)
+{
+  vars:
+    # this must be evaluated exactly only once
+      "canon_method_id"       string => canonify("${method_id}");
+    pass3::
+      "old_value"             string => "${report_data.method_id}";
+      # copy the full slist but disable convergence detection
+      "stack"                  slist => sublist("method_id_unique.stack", "head", "99999");
+      # push the old value to the stack
+      "method_id_unique.stack" slist => { "${old_value}", @{stack} };
+      # set new value
+      "report_data.method_id" string => "${old_value}_${canon_method_id}";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  reports:
+    pass3.debug::
+      "${configuration.debug} Pushing method id ${method_id} on stack ${old_value}";
+}
+
+# Warning: push and pop must match otherwise bad things may happen
+#          if a pop occurs when the stack is empty, an abort class will be raised.
+bundle agent method_id_pop()
+{
+  vars:
+      "stack_len"                int => length("method_id_unique.stack");
+    # this must be evaluated exactly only once
+    pass2::
+      # get first value in the stack
+      "method_id"             string => nth("method_id_unique.stack", 0);
+      # compute stack length minus 1
+      "new_len_float"         string => eval("${stack_len}-1", "math", "infix");
+      "new_len"               string => format("%d", "${new_len_float}");
+      # remove first value
+      "method_id_unique.stack" slist => sublist("method_id_unique.stack", "tail", "${new_len}");
+      # set new value
+      "report_data.method_id" string => "${method_id}";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+     # initial stack length must have at least one element
+    pass1.!pass2::
+      "empty_stack" expression => islessthan("${stack_len}", "1");
+
+#  methods:
+#    pass3.empty_stack::
+#      "${report_data.method_id}" usebundle => _abort("BUG in method-id stack", "pop_method_id was called more times than push_method_id. Stopping immediately to prevent any unwanted behavior.");
+
+  reports:
+    pass3.debug::
+      "${configuration.debug} Popping method id ${method_id} from method stack (length: ${stack_len}, new length: ${new_len})";
+}

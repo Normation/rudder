@@ -44,15 +44,7 @@ body package_module ips
 bundle agent ncf_package(name, version, architecture, provider, state, options)
 {
   vars:
-      "canonified_name"    string => canonify("${name}");
-      "old_class_prefix"   string => "ncf_package_${state}_${canonified_name}";
-
-    # don't rewrite the class prefix based on defaults
-    !pass1::
-      "args"               slist  => { "${name}", "${version}", "${architecture}", "${provider}", "${state}", "${options}" };
-      "report_param"       string => join("_", args);
-      "full_class_prefix"  string => canonify("ncf_package_${report_param}");
-      "class_prefix"       string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"       string => "ncf_package_${state}_${name}";
 
     # Build string vars used for reporting
 
@@ -79,10 +71,10 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
     # Log message
     pass3.!(!state_present.version_latest)::
       "message" string => "If you tried to install a virtual package, please use in place the concrete package you want to install.${const.endl}${state_description} of package ${name}${architecture_description}${version_description}",
-        ifvarclass => "${old_class_prefix}_not_ok|${class_prefix}_not_ok";
+            ifvarclass => "${report_data.method_id}_not_ok";
 
       "message" string => "${state_description} of package ${name}${architecture_description}${version_description}",
-        ifvarclass => "!(${old_class_prefix}_not_ok|${class_prefix}_not_ok)";
+            ifvarclass => "!${report_data.method_id}_not_ok";
 
     !state_present.version_latest::
       "message" string => "${state_description} of package ${name}${architecture_description}${version_description} is not supported and";
@@ -93,7 +85,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
       "provider"     string => "default", if_match_regex => "";
       # Select the default packager for this platform if "default"
       "provider"     string => "${package_module_knowledge.platform_default}", if_match_regex => "default";
-      "state"      string => "present", if_match_regex => "";
+      "state"        string => "present", if_match_regex => "";
 
   classes:
       "version_latest"  expression => strcmp("latest", "${version}");
@@ -143,7 +135,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           architecture   => "${architecture}",
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_apt_provider.architecture_specified.!version_specified::
       "${name}"
@@ -151,7 +143,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => apt_get,
           architecture   => "${architecture}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_apt_provider.!architecture_specified.version_specified::
       "${name}"
@@ -159,14 +151,14 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => apt_get,
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_apt_provider.!architecture_specified.!version_specified::
       "${name}"
           policy         => "${state}",
           package_module => apt_get,
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     #### yum ####
 
@@ -177,7 +169,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           architecture   => "${architecture}",
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_yum_provider.architecture_specified.!version_specified::
       "${name}"
@@ -185,7 +177,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => yum,
           architecture   => "${architecture}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_yum_provider.!architecture_specified.version_specified::
       "${name}"
@@ -193,14 +185,14 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => yum,
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_yum_provider.!architecture_specified.!version_specified::
       "${name}"
           policy         => "${state}",
           package_module => yum,
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     #### zypper ####
 
@@ -211,7 +203,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           architecture   => "${architecture}",
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_zypper_provider.architecture_specified.!version_specified::
       "${name}"
@@ -219,7 +211,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => zypper,
           architecture   => "${architecture}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_zypper_provider.!architecture_specified.version_specified::
       "${name}"
@@ -227,14 +219,14 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => zypper,
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_zypper_provider.!architecture_specified.!version_specified::
       "${name}"
           policy         => "${state}",
           package_module => zypper,
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     #### zypper-pattern ####
 
@@ -245,7 +237,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           architecture   => "${architecture}",
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_zypper_pattern_provider.architecture_specified.!version_specified::
       "${name}"
@@ -253,7 +245,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => zypper_pattern,
           architecture   => "${architecture}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_zypper_pattern_provider.!architecture_specified.version_specified::
       "${name}"
@@ -261,14 +253,14 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => zypper_pattern,
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_zypper_pattern_provider.!architecture_specified.!version_specified::
       "${name}"
           policy         => "${state}",
           package_module => zypper_pattern,
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     #### pkg ####
 
@@ -279,7 +271,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           architecture   => "${architecture}",
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_pkg_provider.architecture_specified.!version_specified::
       "${name}"
@@ -287,7 +279,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => pkg,
           architecture   => "${architecture}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_pkg_provider.!architecture_specified.version_specified::
       "${name}"
@@ -295,14 +287,14 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => pkg,
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_pkg_provider.!architecture_specified.!version_specified::
       "${name}"
           policy         => "${state}",
           package_module => pkg,
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     #### slackpkg ####
 
@@ -313,7 +305,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           architecture   => "${architecture}",
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_slackpkg_provider.architecture_specified.!version_specified::
       "${name}"
@@ -321,7 +313,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => slackpkg,
           architecture   => "${architecture}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_slackpkg_provider.!architecture_specified.version_specified::
       "${name}"
@@ -329,14 +321,14 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => slackpkg,
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_slackpkg_provider.!architecture_specified.!version_specified::
       "${name}"
           policy         => "${state}",
           package_module => slackpkg,
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
      #### ips ####
 
@@ -347,7 +339,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           architecture   => "${architecture}",
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_ips_provider.architecture_specified.!version_specified::
       "${name}"
@@ -355,7 +347,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => ips,
           architecture   => "${architecture}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_ips_provider.!architecture_specified.version_specified::
       "${name}"
@@ -363,14 +355,14 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => ips,
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_ips_provider.!architecture_specified.!version_specified::
       "${name}"
           policy         => "${state}",
           package_module => ips,
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     #### nimclient ####
  
@@ -381,7 +373,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           architecture   => "${architecture}",
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_nimclient_provider.architecture_specified.!version_specified::
       "${name}"
@@ -389,7 +381,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => nimclient,
           architecture   => "${architecture}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_nimclient_provider.!architecture_specified.version_specified::
       "${name}"
@@ -397,14 +389,14 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => nimclient,
           version        => "${version}",
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_nimclient_provider.!architecture_specified.!version_specified::
       "${name}"
           policy         => "${state}",
           package_module => nimclient,
           options        => { "${options}" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");       
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");       
     #### test ####
 
     use_test_provider.architecture_specified.version_specified::
@@ -414,7 +406,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           architecture   => "${architecture}",
           version        => "${version}",
           options        => { "test_db" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_test_provider.architecture_specified.!version_specified::
       "${name}"
@@ -422,7 +414,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => test,
           architecture   => "${architecture}",
           options        => { "test_db" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_test_provider.!architecture_specified.version_specified::
       "${name}"
@@ -430,19 +422,19 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           package_module => test,
           version        => "${version}",
           options        => { "test_db" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     use_test_provider.!architecture_specified.!version_specified::
       "${name}"
           policy         => "${state}",
           package_module => test,
           options        => { "test_db" },
-          classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+          classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
   methods:
     !supported_provider::
       "force failure class" usebundle => _classes_failure("${class_prefix}");
-      "force failure class" usebundle => _classes_failure("${old_class_prefix}");
+      "force failure class" usebundle => _classes_failure("${report_data.method_id}");
 }
 
 #### Old package promises

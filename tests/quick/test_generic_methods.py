@@ -60,6 +60,7 @@ class TestNcfBundles(avocado.Test):
                 with self.subTest(i=method.path):
                     self.assertNotIn(method.metadata['name'], duplicates)
 
+    @avocado.skip('Should be reenabled once replaced')
     def test_old_class_prefix(self):
         """
         Methods should define an old_class_prefix in either one of the following formats:
@@ -78,23 +79,6 @@ class TestNcfBundles(avocado.Test):
 
                 if not skip(method):
                     self.assertTrue(testlib.test_pattern_on_file(method.path, class_pattern1) is not None or testlib.test_pattern_on_file(method.path, class_pattern2) is not None)
-
-
-    def test_class_prefix(self):
-        """
-        Methods should define a class_prefix, which is verified in the cfengine acceptance tests.
-        Here we only verify that the 'args' variable used to define the class_prefix is the list
-        of all canonified parameters defined in the metadata, in the same order
-
-          "args" slist => { "<arg1>", "<arg2>", etc... };
-
-        """
-        for method in self.methods:
-            with self.subTest(i=method.path):
-                params = r",\s*".join([r"\"\${" + x.strip() + r"}\"" for x in method.metadata['bundle_args']])
-                class_prefix_pattern = r"\s+\"args\"\s+slist\s+=>\s+\{\s*" + params + r"\s*\};"
-                if not skip(method):
-                    self.assertTrue(testlib.test_pattern_on_file(method.path, class_prefix_pattern) is not None)
 
     def test_methods_should_not_contain_unescaped_chars(self):
         """
