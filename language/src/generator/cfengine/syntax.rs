@@ -183,7 +183,7 @@ impl Promise {
             PromiseType::Methods,
             component.map(String::from),
             id.map(String::from),
-            "method_call",
+            "${report_data.method_id}",
         )
         .attribute(
             AttributeType::UseBundle,
@@ -439,12 +439,13 @@ impl Method {
         };
 
         let reporting_context = Promise::usebundle(
-            "_method_reporting_context",
+            "_method_reporting_context_v4",
             Some(&self.report_component),
             Some(id),
             vec![
                 quoted(&self.report_component),
                 quoted(&self.report_parameter),
+                quoted(id),
             ],
         )
         .comment(format!("{}:", self.report_component))
@@ -695,8 +696,9 @@ impl fmt::Display for Policy {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     #[test]
     fn format_promise() {
@@ -724,6 +726,7 @@ mod tests {
         assert_eq!(
             Bundle::agent("test").promise_group(
                 Method::new()
+                    .id("9e828562-72b5-4fe4-92bd-b23822e682e5".to_string())
                     .resource("package".to_string())
                     .state("present".to_string())
                     .parameters(vec!["vim".to_string()])
@@ -732,8 +735,7 @@ mod tests {
                     .condition("debian".to_string())
                     .build()
             ).to_string(),
-            "bundle agent test {\n\n  methods:\n    # component:\n    # \n    #   \n    # \n    \"component_${report_data.directive_id}_0\" usebundle => _method_reporting_context(\"component\", \"parameter\");\n    \"component_${report_data.directive_id}_0\" usebundle => log_na_rudder(\"\'component\' method is not available on classic Rudder agent, skip\", \"parameter\", \"${class_prefix}_package_present_parameter\", @{args});\n\n}"
-        );
+            "bundle agent test {\n\n  methods:\n    # component:\n    # \n    #   \n    # \n    \"9e828562-72b5-4fe4-92bd-b23822e682e5\" usebundle => _method_reporting_context_v4(\"component\", \"parameter\", \"9e828562-72b5-4fe4-92bd-b23822e682e5\");\n    \"9e828562-72b5-4fe4-92bd-b23822e682e5\" usebundle => log_na_rudder(\"'component' method is not available on classic Rudder agent, skip\", \"parameter\", \"${class_prefix}_package_present_parameter\", @{args});\n\n}"        );
     }
 
     #[test]

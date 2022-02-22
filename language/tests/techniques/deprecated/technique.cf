@@ -7,17 +7,13 @@ bundle agent deprecated {
 
   vars:
     "resources_dir"        string => "${this.promise_dirname}/resources";
-    "args"                  slist => {};
-    "report_param"         string => join("_", args);
-    "full_class_prefix"    string => canonify("deprecated_${report_param}");
-    "class_prefix"         string => string_head("${full_class_prefix}", "1000");
 
   methods:
     # Directory create:
     #
     #   directory("tmp").create() as directory_create_tmp
     #
-    "3a5c97e5-0b4d-4341-b880-262ccd51f453" usebundle => _method_reporting_context("Directory create", "tmp");
+    "3a5c97e5-0b4d-4341-b880-262ccd51f453" usebundle => _method_reporting_context_v4("Directory create", "tmp", "3a5c97e5-0b4d-4341-b880-262ccd51f453");
     "3a5c97e5-0b4d-4341-b880-262ccd51f453" usebundle => directory_create("tmp");
 
 }

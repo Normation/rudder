@@ -6,18 +6,14 @@
 bundle agent simplest {
 
   vars:
-    "resources_dir"        string => "${this.promise_dirname}/resources";
-    "args"                  slist => {};
-    "report_param"         string => join("_", args);
-    "full_class_prefix"    string => canonify("simplest_${report_param}");
-    "class_prefix"         string => string_head("${full_class_prefix}", "1000");
+    "resources_dir"    string => "${this.promise_dirname}/resources";
 
   methods:
     # File absent:
     # 
     #   file("""tmp""").absent() as file_absent_tmp
     # 
-    "aeca6c93-47af-41ee-ba4a-8772f4ce7dd8" usebundle => _method_reporting_context("File absent", "tmp");
+    "aeca6c93-47af-41ee-ba4a-8772f4ce7dd8" usebundle => _method_reporting_context_v4("File absent", "tmp", "aeca6c93-47af-41ee-ba4a-8772f4ce7dd8");
     "aeca6c93-47af-41ee-ba4a-8772f4ce7dd8" usebundle => file_absent("tmp");
 
 }

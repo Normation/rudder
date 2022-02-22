@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use super::Generator;
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
+
+use toml::Value as TomlValue;
+
 use crate::{
     command::CommandResult,
     error::*,
@@ -13,11 +19,8 @@ use crate::{
     // ir::{enums::EnumExpressionPart, resource::*, value::*, *},
     technique::fetch_method_parameters,
 };
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
-use toml::Value as TomlValue;
+
+use super::Generator;
 
 mod syntax;
 
@@ -73,7 +76,7 @@ impl CFEngine {
         &mut self,
         gc: &IR2,
         case: &EnumExpressionPart,
-        parentCondition: Option<Condition>,
+        parent_condition: Option<Condition>,
     ) -> Result<Condition> {
         let expr = match case {
             EnumExpressionPart::And(e1, e2) => {
@@ -132,7 +135,7 @@ impl CFEngine {
             EnumExpressionPart::NoDefault(_) => "".to_string(),
         };
 
-        let res: String = match parentCondition {
+        let res: String = match parent_condition {
             None => expr,
             Some(parent) => format!("({}).({})", parent, expr),
         };
@@ -523,19 +526,10 @@ impl Generator for CFEngine {
                 let mut bundle = Bundle::agent(id.clone())
                     .parameters(parameters.clone())
                     // Standard variables for all techniques
-                    .promise_group(vec![
-                        Promise::string("resources_dir", "${this.promise_dirname}/resources"),
-                        Promise::slist("args", parameters.clone()),
-                        Promise::string_raw("report_param", "join(\"_\", args)"),
-                        Promise::string_raw(
-                            "full_class_prefix",
-                            format!("canonify(\"{}_${{report_param}}\")", &id),
-                        ),
-                        Promise::string_raw(
-                            "class_prefix",
-                            "string_head(\"${full_class_prefix}\", \"1000\")",
-                        ),
-                    ]);
+                    .promise_group(vec![Promise::string(
+                        "resources_dir",
+                        "${this.promise_dirname}/resources",
+                    )]);
 
                 for res in state
                     .statements

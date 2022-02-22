@@ -7,17 +7,13 @@ bundle agent simple_block {
 
   vars:
     "resources_dir"        string => "${this.promise_dirname}/resources";
-    "args"                  slist => {};
-    "report_param"         string => join("_", args);
-    "full_class_prefix"    string => canonify("simple_block_${report_param}");
-    "class_prefix"         string => string_head("${full_class_prefix}", "1000");
 
   methods:
     # File absent:
     # 
     #   file("""tmp""").absent() as file_absent_tmp
     # 
-    "d58aec44-675b-48fd-985e-499ec4c5e525" usebundle => _method_reporting_context("File absent", "tmp");
+    "d58aec44-675b-48fd-985e-499ec4c5e525" usebundle => _method_reporting_context_v4("File absent", "tmp", "d58aec44-675b-48fd-985e-499ec4c5e525");
     "d58aec44-675b-48fd-985e-499ec4c5e525" usebundle => file_absent("tmp"),
                                              if => concat("debian");
     "d58aec44-675b-48fd-985e-499ec4c5e525" usebundle => _classes_noop(canonify("${class_prefix}_file_absent_tmp")),
@@ -29,7 +25,7 @@ bundle agent simple_block {
     # 
     #   file("""tmp""").present() as file_present_tmp
     # 
-    "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => _method_reporting_context("File absent", "tmp");
+    "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => _method_reporting_context_v4("File absent", "tmp", "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9");
     "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => file_present("tmp"),
                                              if => concat("debian");
     "7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9" usebundle => _classes_noop(canonify("${class_prefix}_file_present_tmp")),
