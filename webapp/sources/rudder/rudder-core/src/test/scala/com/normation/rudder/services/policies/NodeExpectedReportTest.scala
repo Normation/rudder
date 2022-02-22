@@ -43,15 +43,18 @@ import com.normation.cfclerk.domain.{AgentConfig, BundleName, SectionSpec, Secti
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.DirectiveUid
+
 import org.joda.time.DateTime
 import cats.data.NonEmptyList
 import com.normation.cfclerk.services.impl.TechniqueRepositoryImpl
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
-import net.liftweb.json._
-import net.liftweb.json.JsonAST.JArray
+import com.normation.rudder.domain.reports.ExpectedReportsSerialisation._
+
+import zio.json._
+import Version7_0._
+import com.normation.rudder.domain.reports.RuleExpectedReports
 
 /**
  * Test that a NodeConfiguration is correctly transformed to
@@ -85,6 +88,11 @@ class NodeExpectedReportTest extends Specification {
   def mv(x: String, values: String*) = {
     val v = tmvar(x).toVariable(values)
     (ComponentId(v.spec.name, v.spec.name :: "root":: Nil), v)
+  }
+
+  def parse(s: String) = s.fromJson[List[JsonRuleExpectedReports7_0]] match {
+    case Left(err) => throw new IllegalArgumentException(err)
+    case Right(v)  => v.map(_.transform)
   }
 
   def technique(x: String) = {
@@ -191,49 +199,13 @@ class NodeExpectedReportTest extends Specification {
     , overrides      = Set()
   )
 
-  def sortJs(js: JValue): JValue = js match {
-    case JObject(fields) => JObject(fields.sortBy{ case x =>
-      x.name match {
-        case "componentName" => x.value match { // special case for component name, we want also to sort by value
-          case  JString(value) => value
-          case _ => x.value.toString
-        }
-        case _ => x.name
-      }} .map { case JField(k, v) => JField(k, sortJs(v)) })
-    case JArray(array) => JArray(array.sortBy{ case x => x.values.toString }.map(e => sortJs(e))) // this toString is not optimal but it's consistent :)
-    case _ => js
-  }
 
   // compare and json of expected reports with the one produced by RuleExpectedReports.
   // things are sorted and Jnothing values are cleaned up to keep things understandable
-  def compareExpectedReportsJson(expected: JValue, policies: List[Policy]) = {
-    val json = ExpectedReportsSerialisation.jsonRuleExpectedReports(RuleExpectedReportBuilder(policies).sortBy( _.ruleId.serialize))
+  def compareExpectedReportsJson(expected: List[RuleExpectedReports], policies: List[Policy]) = {
+    val rules = RuleExpectedReportBuilder(policies).sortBy( _.ruleId.serialize)
 
-    // we must compare the sorted diff
-    val Diff(changed, added, deleted) = sortJs(expected) diff sortJs(json)
-    // we don't want to deals with JNothing trailing leaf
-    def clean(j: JValue): JValue = {
-      j match {
-        case JObject(fs) =>
-          fs.map { case JField(n, v) => JField(n, clean(v)) }.filter( _.value != JNothing) match {
-            case Nil => JNothing
-            case l   => JObject(l)
-          }
-        case JArray(ll) => ll.map(clean).filter( _ != JNothing) match {
-          case Nil => JNothing
-          case l   => JArray(l)
-        }
-        case x => x
-      }
-    }
-
-    def res(json: JValue) = json match {
-      case JNothing => ""
-      case x        => prettyRender(x)
-    }
-
-    // all that for that...
-    (res(clean(changed)) === "") and (res(clean(added)) === "") and (res(clean(deleted)) === "")
+    expected === rules
   }
 
   // Ok, now I can test
@@ -420,12 +392,42 @@ class NodeExpectedReportTest extends Specification {
                , "isSystem"   : false
                , "components":[
                    {
-                     "componentName":"File absent"
-                   , "values": [
+                     "componentName":"First block"
+                   , "reportingLogic":"weighted"
+                   , "subComponents": [
                        {
-                         "unexpanded":"/tmp/root2"
-                       , "value":"/tmp/root2"
-                       }
+                         "componentName":"inner block"
+                       , "reportingLogic":"weighted"
+                       , "subComponents": [
+                         {
+                           "componentName":"Command execution"
+                         , "values": [
+                             {
+                               "unexpanded":"/bin/true"
+                             , "value":"/bin/true"
+                             }
+                           ]
+                         }
+                       , {
+                           "componentName":"File absent"
+                         , "values":[
+                             {
+                               "unexpanded":"/tmp/block1_1"
+                             , "value":"/tmp/block1_1"
+                             }
+                           ]
+                         }
+                       ]
+                     }
+                    , {
+                       "componentName":"File absent"
+                     , "values":[
+                         {
+                           "unexpanded":"/tmp/block1"
+                         , "value":"/tmp/block1"
+                         }
+                       ]
+                     }
                      ]
                    }
                  , {
@@ -438,42 +440,12 @@ class NodeExpectedReportTest extends Specification {
                      ]
                    }
                  , {
-                     "componentName":"First block"
-                   , "reportingLogic":"weighted"
-                   , "subComponents": [
+                     "componentName":"File absent"
+                   , "values": [
                        {
-                         "componentName":"File absent"
-                       , "values":[
-                       {
-                         "unexpanded":"/tmp/block1"
-                       , "value":"/tmp/block1"
+                         "unexpanded":"/tmp/root2"
+                       , "value":"/tmp/root2"
                        }
-                     ]
-                       }
-                     , {
-                         "componentName":"inner block"
-                       , "reportingLogic":"weighted"
-                       , "subComponents": [
-                         {
-                           "componentName":"File absent"
-                         , "values":[
-                       {
-                         "unexpanded":"/tmp/block1_1"
-                       , "value":"/tmp/block1_1"
-                       }
-                     ]
-                         }
-                       , {
-                           "componentName":"Command execution"
-                         , "values": [
-                       {
-                         "unexpanded":"/bin/true"
-                       , "value":"/bin/true"
-                       }
-                       ]
-                         }
-                       ]
-                     }
                      ]
                    }
                  ]

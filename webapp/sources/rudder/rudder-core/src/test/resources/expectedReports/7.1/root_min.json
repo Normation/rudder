@@ -1,0 +1,157 @@
+{
+  "ms": {
+    "gpm": {
+      "m": "enforce",
+      "o": true
+    },
+    "gcm": "full-compliance",
+    "ghp": 1,
+    "gar": {
+      "i": 5,
+      "sm": 0,
+      "sh": 0,
+      "st": 4
+    }
+  },
+  "rs":[
+    {
+      "rid":"hasPolicyServer-root",
+      "ds":[
+        {
+          "did":"common-hasPolicyServer-root",
+          "s":true,
+          "cs":[
+            {
+              "vid":"Update",
+              "vs":[[ ] ]
+            },
+            {
+              "vid":"ncf Initialization",
+              "vs":[[ ] ]
+            },
+            {
+              "vid":"Security parameters",
+              "vs":[[ ] ]
+            },
+            {
+              "vid":"Log system for reports",
+              "vs":[[ ] ]
+            },
+            {
+              "vid":"CRON Daemon",
+              "vs":[[ ] ]
+            },
+            {
+              "vid":"Monitoring",
+              "vs":[[ ] ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rid":"32377fd7-02fd-43d0-aab7-28460a91347b",
+      "ds":[
+        {
+          "did":"dc0eaf47-356a-4a44-877d-e3873f75385b",
+          "cs":[
+            {
+              "vid":"Package",
+              "vs":[
+                ["vim","vim"]
+              ]
+            },
+            {
+              "vid":"Post-modification script",
+              "vs":[
+                ["vim","vim"]
+              ]
+            }
+          ]
+        },
+        {
+          "did":"cbc2377f-ce6d-47fe-902b-8d92a484b184",
+          "cs":[
+            {
+              "bid":"my main component",
+              "rl":"weighted",
+              "scs":[
+                {
+                  "vid":"touch file",
+                  "vs":[
+                    {
+                      "v":"cat /tmp/some/file",
+                      "id":"eff6dfff-d966-4d05-a92d-77a44f14b83c"
+                    }
+                  ]
+                },
+                {
+                  "vid":"file exists",
+                  "vs":[
+                    {
+                      "v":"/tmp/${node.properties[filename]}",
+                      "id":"87cad41f-ec88-4b32-a13c-136f15f7bf17"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rid":"policy-server-root",
+      "ds":[
+        {
+          "did":"rudder-service-apache-root",
+          "s":true,
+          "cs":[
+            {
+              "vid":"Apache service",
+              "vs":[
+                ["Enabled","Enabled"],
+                ["Started","Started"]
+              ]
+            },
+            {
+              "vid":"Apache configuration",
+              "vs":[
+                ["Allowed networks permissions","Allowed networks permissions"],
+                ["Allowed networks configuration","Allowed networks configuration"],
+                ["Remote run permissions","Remote run permissions"],
+                ["Remote run configuration","Remote run configuration"],
+                ["Webdav configuration","Webdav configuration"],
+                ["Webdav permissions","Webdav permissions"],
+                ["Logrotate","Logrotate"]
+              ]
+            },
+            {
+              "vid":"Configure apache certificate",
+              "vs":[
+                ["Permissions","Permissions"],
+                ["Apache certificate","Apache certificate"]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rid":"inventory-all",
+      "ds":[
+        {
+          "did":"inventory-all",
+          "s":true,
+          "cs":[
+            {
+              "vid":"Inventory",
+              "vs":[[ ] ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "os":[  ]
+}

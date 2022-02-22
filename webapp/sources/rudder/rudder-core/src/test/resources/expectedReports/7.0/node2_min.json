@@ -1,0 +1,240 @@
+{
+  "ms":{
+    "gpm":{
+      "m":"enforce",
+      "o":true
+    },
+    "gcm":"full-compliance",
+    "ghp":1,
+    "gar":{
+      "i":120,
+      "sm":45,
+      "sh":1,
+      "st":81
+    }
+  },
+  "rs":[
+    {
+      "rid":"server-roles",
+      "ds":[
+        {
+          "did":"server-roles-directive",
+          "s":true,
+          "cs":[
+            {
+              "vid":"Check postgresql process",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check jetty process",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check slapd process",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check apache process",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check relayd process",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check postgresql boot script",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check jetty boot script",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check slapd boot script",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check apache boot script",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check relayd boot script",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check logrotate configuration",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check configuration-repository folder",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check configuration-repository GIT lock",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check allowed networks configuration",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check rudder status",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check rudder-passwords.conf",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check pgpass file",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check LDAP credentials",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check LDAP in rudder-webapp.properties",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check SQL credentials",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check SQL in rudder-webapp.properties",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check WebDAV credentials",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Check WebDAV properties",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Relayd service configuration",
+              "vs": [ [] ]
+            },
+            {
+              "vid":"Send metrics to rudder-project",
+              "vs": [ [] ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rid":"a3a796b9-8499-4e0b-86c5-975fc5a13505",
+      "ds":[
+        {
+          "did":"a73b40e0-d83c-474f-b617-7f634d232b8b",
+          "pm":"enforce",
+          "cs":[
+            {
+              "vid":"Copy file",
+              "vs":[ ["foo/bar1" ] ]
+            },
+            {
+              "vid":"Post-modification hook",
+              "vs":[ ["foo/bar1" ] ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rid":"eff9e40d-5ccf-450a-801a-d4432a7592e4",
+      "ds":[
+        {
+          "did":"dd4a5ee8-080d-452b-bfa8-9e46b459a804",
+          "cs":[
+            {
+              "vid":"File",
+              "vs":[
+                [ "/tmp/simple-val1" ],
+                [ "/tmp/simple-val-2" ],
+                [ "/tmp/server.rudder.local","/tmp/${rudder.node.hostname}" ],
+                [ "/tmp/cfe1/${sys.hostname}" ],
+                [ "/tmp/cfe2/${sys.hostname}" ]
+              ]
+            },
+            {
+              "vid":"Enforce content by section",
+              "vs":[
+                [ "/tmp/simple-val1" ],
+                [ "/tmp/simple-val-2" ],
+                [ "/tmp/server.rudder.local","/tmp/${rudder.node.hostname}" ],
+                [ "/tmp/cfe1/${sys.hostname}" ],
+                [ "/tmp/cfe2/${sys.hostname}" ]
+              ]
+            },
+            {
+              "vid":"Line deletion regular expressions",
+              "vs":[
+                [ "/tmp/simple-val1" ],
+                [ "/tmp/simple-val-2" ],
+                [ "/tmp/server.rudder.local","/tmp/${rudder.node.hostname}" ],
+                [ "/tmp/cfe1/${sys.hostname}" ],
+                [ "/tmp/cfe2/${sys.hostname}" ]
+              ]
+            },
+            {
+              "vid":"Line replacement regular expressions",
+              "vs":[
+                [ "/tmp/simple-val1" ],
+                [ "/tmp/simple-val-2" ],
+                [ "/tmp/server.rudder.local","/tmp/${rudder.node.hostname}" ],
+                [ "/tmp/cfe1/${sys.hostname}" ],
+                [ "/tmp/cfe2/${sys.hostname}" ]
+              ]
+            },
+            {
+              "vid":"Permission adjustment",
+              "vs":[
+                [ "/tmp/simple-val1" ],
+                [ "/tmp/simple-val-2" ],
+                [ "/tmp/server.rudder.local","/tmp/${rudder.node.hostname}" ],
+                [ "/tmp/cfe1/${sys.hostname}" ],
+                [ "/tmp/cfe2/${sys.hostname}" ]
+              ]
+            },
+            {
+              "vid":"Post-modification hook",
+              "vs":[
+                [ "/tmp/simple-val1" ],
+                [ "/tmp/simple-val-2" ],
+                [ "/tmp/server.rudder.local","/tmp/${rudder.node.hostname}" ],
+                [ "/tmp/cfe1/${sys.hostname}" ],
+                [ "/tmp/cfe2/${sys.hostname}" ]
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+    "os":[
+      {
+         "p":{
+            "rid":"a3a796b9-8499-4e0b-86c5-975fc5a13505",
+            "did":"9b0dc972-f4dc-4aaa-bae6-1189cf9074b6"
+         },
+         "ob":{
+            "rid":"2278f76f-28d3-4326-8199-99561dd8c785",
+            "did":"093a494b-1073-49e9-bb1e-3c128c7f6a42"
+         }
+      },
+      {
+         "p":{
+            "rid":"32377fd7-02fd-43d0-aab7-28460a91347b",
+            "did":"093a494b-1073-49e9-bb1e-3c128c7f6a42"
+         },
+         "ob":{
+            "rid":"2278f76f-28d3-4326-8199-99561dd8c785",
+            "did":"093a494b-1073-49e9-bb1e-3c128c7f6a42"
+         }
+      }
+   ]
+}

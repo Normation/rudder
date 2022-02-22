@@ -1,239 +1,239 @@
                 nodeid                |       nodeconfigid       |         begindate          |          enddate           |                        configuration
 --------------------------------------+--------------------------+----------------------------+----------------------------+-------------------------------------------------------------
- 4f75631a-2b8b-4918-b7f0-7ad6c4a2a5cc | 20161115-171234-3e679db3 | 2016-11-15 17:12:34.333+00 | 2016-11-28 15:24:14.499+00 | {                                                          +
-                                      |                          |                            |                            |   "modes":{                                                +
-                                      |                          |                            |                            |     "globalPolicyMode":{                                   +
-                                      |                          |                            |                            |       "mode":"enforce",                                    +
-                                      |                          |                            |                            |       "overridable":true                                   +
-                                      |                          |                            |                            |     },                                                     +
-                                      |                          |                            |                            |     "globalComplianceMode":"full-compliance",              +
-                                      |                          |                            |                            |     "globalHeartbeatPeriod":1,                             +
-                                      |                          |                            |                            |     "globalAgentRunInterval":{                             +
-                                      |                          |                            |                            |       "interval":5,                                        +
-                                      |                          |                            |                            |       "startMinute":0,                                     +
-                                      |                          |                            |                            |       "splayHour":0,                                       +
-                                      |                          |                            |                            |       "splaytime":4                                        +
-                                      |                          |                            |                            |     }                                                      +
-                                      |                          |                            |                            |   },                                                       +
-                                      |                          |                            |                            |   "rules":[{                                               +
-                                      |                          |                            |                            |     "ruleId":"574d45e7-cb90-4f88-a549-7a3cfda8858f",       +
-                                      |                          |                            |                            |     "serial":0,                                            +
-                                      |                          |                            |                            |     "directives":[{                                        +
-                                      |                          |                            |                            |       "directiveId":"35818869-ab40-4a10-9dd9-5eb6f4da582b",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Users",                           +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["admin"],                                +
-                                      |                          |                            |                            |         "unexpanded":["admin"]                             +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"35818869-ab40-4a10-9dd9-5eb6f4da582b",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Home directory",                  +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["admin"],                                +
-                                      |                          |                            |                            |         "unexpanded":["admin"]                             +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"35818869-ab40-4a10-9dd9-5eb6f4da582b",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Password",                        +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["admin"],                                +
-                                      |                          |                            |                            |         "unexpanded":["admin"]                             +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"9e6998dc-d1be-4bc5-9423-7b62e0ba5f6e",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Install",                         +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"9e6998dc-d1be-4bc5-9423-7b62e0ba5f6e",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"sudoersFile",                     +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"9e6998dc-d1be-4bc5-9423-7b62e0ba5f6e",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Permissions",                     +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["admin"],                                +
-                                      |                          |                            |                            |         "unexpanded":["admin"]                             +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     }]                                                     +
-                                      |                          |                            |                            |   },{                                                      +
-                                      |                          |                            |                            |     "ruleId":"56f776fb-1b85-45bd-baff-28c982e5075c",       +
-                                      |                          |                            |                            |     "serial":0,                                            +
-                                      |                          |                            |                            |     "directives":[{                                        +
-                                      |                          |                            |                            |       "directiveId":"53020732-56de-4884-911b-02cf3d7afc96",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"ZMD process",                     +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"53020732-56de-4884-911b-02cf3d7afc96",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"RHEL/CentOS/SuSE packages",       +
-                                      |                          |                            |                            |         "cardinality":2,                                   +
-                                      |                          |                            |                            |         "values":["vim-enhanced","tree"],                  +
-                                      |                          |                            |                            |         "unexpanded":["vim-enhanced","tree"]               +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"53020732-56de-4884-911b-02cf3d7afc96",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Post-modification hook",          +
-                                      |                          |                            |                            |         "cardinality":2,                                   +
-                                      |                          |                            |                            |         "values":["vim-enhanced","tree"],                  +
-                                      |                          |                            |                            |         "unexpanded":["vim-enhanced","tree"]               +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     }]                                                     +
-                                      |                          |                            |                            |   },{                                                      +
-                                      |                          |                            |                            |     "ruleId":"dfeac95e-8d4a-4a84-a23b-a52e1594b88e",       +
-                                      |                          |                            |                            |     "serial":0,                                            +
-                                      |                          |                            |                            |     "directives":[{                                        +
-                                      |                          |                            |                            |       "directiveId":"01ddc13b-f17d-4064-b555-99d3aeceee26",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"MOTD Configuration",              +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"53020732-56de-4884-911b-02cf3d7afc96",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"ZMD process",                     +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"53020732-56de-4884-911b-02cf3d7afc96",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"RHEL/CentOS/SuSE packages",       +
-                                      |                          |                            |                            |         "cardinality":2,                                   +
-                                      |                          |                            |                            |         "values":["vim-enhanced","tree"],                  +
-                                      |                          |                            |                            |         "unexpanded":["vim-enhanced","tree"]               +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"53020732-56de-4884-911b-02cf3d7afc96",+
-                                      |                          |                            |                            |       "isSystem":false,                                    +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Post-modification hook",          +
-                                      |                          |                            |                            |         "cardinality":2,                                   +
-                                      |                          |                            |                            |         "values":["vim-enhanced","tree"],                  +
-                                      |                          |                            |                            |         "unexpanded":["vim-enhanced","tree"]               +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     }]                                                     +
-                                      |                          |                            |                            |   },{                                                      +
-                                      |                          |                            |                            |     "ruleId":"inventory-all",                              +
-                                      |                          |                            |                            |     "serial":2,                                            +
-                                      |                          |                            |                            |     "directives":[{                                        +
-                                      |                          |                            |                            |       "directiveId":"inventory-all",                       +
-                                      |                          |                            |                            |       "isSystem":true,                                     +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"inventory",                       +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":[]                                    +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     }]                                                     +
-                                      |                          |                            |                            |   },{                                                      +
-                                      |                          |                            |                            |     "ruleId":"hasPolicyServer-root",                       +
-                                      |                          |                            |                            |     "serial":2,                                            +
-                                      |                          |                            |                            |     "directives":[{                                        +
-                                      |                          |                            |                            |       "directiveId":"common-root",                         +
-                                      |                          |                            |                            |       "isSystem":true,                                     +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Red Button",                      +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"common-root",                         +
-                                      |                          |                            |                            |       "isSystem":true,                                     +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Update",                          +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"common-root",                         +
-                                      |                          |                            |                            |       "isSystem":true,                                     +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"ncf Initialization",              +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"common-root",                         +
-                                      |                          |                            |                            |       "isSystem":true,                                     +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Security parameters",             +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"common-root",                         +
-                                      |                          |                            |                            |       "isSystem":true,                                     +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Log system for reports",          +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"common-root",                         +
-                                      |                          |                            |                            |       "isSystem":true,                                     +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"CRON Daemon",                     +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"common-root",                         +
-                                      |                          |                            |                            |       "isSystem":true,                                     +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Binaries update",                 +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     },{                                                    +
-                                      |                          |                            |                            |       "directiveId":"common-root",                         +
-                                      |                          |                            |                            |       "isSystem":true,                                     +
-                                      |                          |                            |                            |       "components":[{                                      +
-                                      |                          |                            |                            |         "componentName":"Process checking",                +
-                                      |                          |                            |                            |         "cardinality":1,                                   +
-                                      |                          |                            |                            |         "values":["None"],                                 +
-                                      |                          |                            |                            |         "unexpanded":["None"]                              +
-                                      |                          |                            |                            |       }]                                                   +
-                                      |                          |                            |                            |     }]                                                     +
-                                      |                          |                            |                            |   }], "overrides": []                                                    +
+ 4f75631a-2b8b-4918-b7f0-7ad6c4a2a5cc | 20161115-171234-3e679db3 | 2016-11-15 17:12:34.333+00 | 2016-11-28 15:24:14.499+00 | {                                                           +
+                                      |                          |                            |                            |   "modes":{                                                 +
+                                      |                          |                            |                            |     "globalPolicyMode":{                                    +
+                                      |                          |                            |                            |       "mode":"enforce",                                     +
+                                      |                          |                            |                            |       "overridable":true                                    +
+                                      |                          |                            |                            |     },                                                      +
+                                      |                          |                            |                            |     "globalComplianceMode":"full-compliance",               +
+                                      |                          |                            |                            |     "globalHeartbeatPeriod":1,                              +
+                                      |                          |                            |                            |     "globalAgentRunInterval":{                              +
+                                      |                          |                            |                            |       "interval":5,                                         +
+                                      |                          |                            |                            |       "startMinute":0,                                      +
+                                      |                          |                            |                            |       "splayHour":0,                                        +
+                                      |                          |                            |                            |       "splaytime":4                                         +
+                                      |                          |                            |                            |     }                                                       +
+                                      |                          |                            |                            |   },                                                        +
+                                      |                          |                            |                            |   "rules":[{                                                +
+                                      |                          |                            |                            |     "ruleId":"574d45e7-cb90-4f88-a549-7a3cfda8858f",        +
+                                      |                          |                            |                            |     "serial":0,                                             +
+                                      |                          |                            |                            |     "directives":[{                                         +
+                                      |                          |                            |                            |       "directiveId":"35818869-ab40-4a10-9dd9-5eb6f4da582b", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Users",                            +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["admin"],                                 +
+                                      |                          |                            |                            |         "unexpanded":["admin"]                              +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"35818869-ab40-4a10-9dd9-5eb6f4da582b", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Home directory",                   +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["admin"],                                 +
+                                      |                          |                            |                            |         "unexpanded":["admin"]                              +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"35818869-ab40-4a10-9dd9-5eb6f4da582b", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Password",                         +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["admin"],                                 +
+                                      |                          |                            |                            |         "unexpanded":["admin"]                              +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"9e6998dc-d1be-4bc5-9423-7b62e0ba5f6e", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Install",                          +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"9e6998dc-d1be-4bc5-9423-7b62e0ba5f6e", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"sudoersFile",                      +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"9e6998dc-d1be-4bc5-9423-7b62e0ba5f6e", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Permissions",                      +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["admin"],                                 +
+                                      |                          |                            |                            |         "unexpanded":["admin"]                              +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     }]                                                      +
+                                      |                          |                            |                            |   },{                                                       +
+                                      |                          |                            |                            |     "ruleId":"56f776fb-1b85-45bd-baff-28c982e5075c",        +
+                                      |                          |                            |                            |     "serial":0,                                             +
+                                      |                          |                            |                            |     "directives":[{                                         +
+                                      |                          |                            |                            |       "directiveId":"53020732-56de-4884-911b-02cf3d7afc96", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"ZMD process",                      +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"53020732-56de-4884-911b-02cf3d7afc96", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"RHEL/CentOS/SuSE packages",        +
+                                      |                          |                            |                            |         "cardinality":2,                                    +
+                                      |                          |                            |                            |         "values":["vim-enhanced","tree"],                   +
+                                      |                          |                            |                            |         "unexpanded":["vim-enhanced","tree"]                +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"53020732-56de-4884-911b-02cf3d7afc96", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Post-modification hook",           +
+                                      |                          |                            |                            |         "cardinality":2,                                    +
+                                      |                          |                            |                            |         "values":["vim-enhanced","tree"],                   +
+                                      |                          |                            |                            |         "unexpanded":["vim-enhanced","tree"]                +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     }]                                                      +
+                                      |                          |                            |                            |   },{                                                       +
+                                      |                          |                            |                            |     "ruleId":"dfeac95e-8d4a-4a84-a23b-a52e1594b88e",        +
+                                      |                          |                            |                            |     "serial":0,                                             +
+                                      |                          |                            |                            |     "directives":[{                                         +
+                                      |                          |                            |                            |       "directiveId":"01ddc13b-f17d-4064-b555-99d3aeceee26", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"MOTD Configuration",               +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"53020732-56de-4884-911b-02cf3d7afc96", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"ZMD process",                      +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"53020732-56de-4884-911b-02cf3d7afc96", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"RHEL/CentOS/SuSE packages",        +
+                                      |                          |                            |                            |         "cardinality":2,                                    +
+                                      |                          |                            |                            |         "values":["vim-enhanced","tree"],                   +
+                                      |                          |                            |                            |         "unexpanded":["vim-enhanced","tree"]                +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"53020732-56de-4884-911b-02cf3d7afc96", +
+                                      |                          |                            |                            |       "isSystem":false,                                     +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Post-modification hook",           +
+                                      |                          |                            |                            |         "cardinality":2,                                    +
+                                      |                          |                            |                            |         "values":["vim-enhanced","tree"],                   +
+                                      |                          |                            |                            |         "unexpanded":["vim-enhanced","tree"]                +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     }]                                                      +
+                                      |                          |                            |                            |   },{                                                       +
+                                      |                          |                            |                            |     "ruleId":"inventory-all",                               +
+                                      |                          |                            |                            |     "serial":2,                                             +
+                                      |                          |                            |                            |     "directives":[{                                         +
+                                      |                          |                            |                            |       "directiveId":"inventory-all",                        +
+                                      |                          |                            |                            |       "isSystem":true,                                      +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"inventory",                        +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":[]                                     +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     }]                                                      +
+                                      |                          |                            |                            |   },{                                                       +
+                                      |                          |                            |                            |     "ruleId":"hasPolicyServer-root",                        +
+                                      |                          |                            |                            |     "serial":2,                                             +
+                                      |                          |                            |                            |     "directives":[{                                         +
+                                      |                          |                            |                            |       "directiveId":"common-root",                          +
+                                      |                          |                            |                            |       "isSystem":true,                                      +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Red Button",                       +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"common-root",                          +
+                                      |                          |                            |                            |       "isSystem":true,                                      +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Update",                           +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"common-root",                          +
+                                      |                          |                            |                            |       "isSystem":true,                                      +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"ncf Initialization",               +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"common-root",                          +
+                                      |                          |                            |                            |       "isSystem":true,                                      +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Security parameters",              +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"common-root",                          +
+                                      |                          |                            |                            |       "isSystem":true,                                      +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Log system for reports",           +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"common-root",                          +
+                                      |                          |                            |                            |       "isSystem":true,                                      +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"CRON Daemon",                      +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"common-root",                          +
+                                      |                          |                            |                            |       "isSystem":true,                                      +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Binaries update",                  +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     },{                                                     +
+                                      |                          |                            |                            |       "directiveId":"common-root",                          +
+                                      |                          |                            |                            |       "isSystem":true,                                      +
+                                      |                          |                            |                            |       "components":[{                                       +
+                                      |                          |                            |                            |         "componentName":"Process checking",                 +
+                                      |                          |                            |                            |         "cardinality":1,                                    +
+                                      |                          |                            |                            |         "values":["None"],                                  +
+                                      |                          |                            |                            |         "unexpanded":["None"]                               +
+                                      |                          |                            |                            |       }]                                                    +
+                                      |                          |                            |                            |     }]                                                      +
+                                      |                          |                            |                            |   }], "overrides": []                                       +
                                       |                          |                            |                            | }
 (1 ligne)
 

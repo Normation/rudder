@@ -1,0 +1,272 @@
+{
+  "modes": {
+    "globalPolicyMode": {
+      "mode": "audit",
+      "overridable": true
+    },
+    "nodePolicyMode": "enforce",
+    "globalComplianceMode": "full-compliance",
+    "globalHeartbeatPeriod": 1,
+    "globalAgentRunInterval": {
+      "interval": 5,
+      "startMinute": 0,
+      "splayHour": 0,
+      "splaytime": 4
+    },
+    "nodeAgentRunInterval": {
+      "interval": 240,
+      "startMinute": 17,
+      "splayHour": 2,
+      "splaytime": 234
+    }
+  },
+  "rules": [
+    {
+      "ruleId": "inventory-all",
+      "directives": [
+        {
+          "directiveId": "inventory-all",
+          "isSystem": true,
+          "components": [
+            {
+              "componentName": "inventory",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [ "None" ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ruleId": "hasPolicyServer-root",
+      "directives": [
+        {
+          "directiveId": "common-root",
+          "isSystem": true,
+          "components": [
+            {
+              "componentName": "Update",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            },
+            {
+              "componentName": "ncf Initialization",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            },
+            {
+              "componentName": "Security parameters",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            },
+            {
+              "componentName": "Log system for reports",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            },
+            {
+              "componentName": "CRON Daemon",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            },
+            {
+              "componentName": "Monitoring",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ruleId": "10023ce3-0775-4178-bd9f-1f3a61d81c7c",
+      "directives": [
+        {
+          "directiveId": "b6478fd4-f2de-43b0-9f04-812ec0680e4d",
+          "isSystem": false,
+          "components": [
+            {
+              "componentName": "File from local source",
+              "values": [
+                "/tmp"
+              ],
+              "unexpanded": [
+                "/tmp"
+              ]
+            }
+          ]
+        },
+        {
+          "directiveId": "37c57e98-328d-4cd2-8a71-33f2e449ba51",
+          "isSystem": false,
+          "components": [
+            {
+              "componentName": "Restart ${service}",
+              "values": [
+                "${service}"
+              ],
+              "unexpanded": [
+                "${service}"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ruleId": "32377fd7-02fd-43d0-aab7-28460a91347b",
+      "directives": [
+        {
+          "directiveId": "d2471d9b-5c7f-404e-9a03-970c36924f5c",
+          "isSystem": false,
+          "components": [
+            {
+              "componentName": "File content",
+              "values": [
+                "/tmp/audit/audit.log"
+              ],
+              "unexpanded": [
+                "/tmp/audit/audit.log"
+              ]
+            },
+            {
+              "componentName": "Permissions (non recursive)",
+              "values": [
+                "/tmp/audit/audit.log"
+              ],
+              "unexpanded": [
+                "/tmp/audit/audit.log"
+              ]
+            },
+            {
+              "componentName": "Permissions dirs",
+              "values": [
+                "/var/log/audit"
+              ],
+              "unexpanded": [
+                "/var/log/audit"
+              ]
+            }
+          ]
+        },
+        {
+          "directiveId": "86a0ef5b-1b98-4bda-8dc3-2940ad53beaa",
+          "isSystem": false,
+          "components": [
+            {
+              "componentName": "File",
+              "values": [
+                "/tmp/${sys.fqhost}"
+              ],
+              "unexpanded": [
+                "/tmp/${sys.fqhost}"
+              ]
+            },
+            {
+              "componentName": "Enforce content by section",
+              "values": [
+                "/tmp/${sys.fqhost}"
+              ],
+              "unexpanded": [
+                "/tmp/${sys.fqhost}"
+              ]
+            },
+            {
+              "componentName": "Line deletion regular expressions",
+              "values": [
+                "/tmp/${sys.fqhost}"
+              ],
+              "unexpanded": [
+                "/tmp/${sys.fqhost}"
+              ]
+            },
+            {
+              "componentName": "Line replacement regular expressions",
+              "values": [
+                "/tmp/${sys.fqhost}"
+              ],
+              "unexpanded": [
+                "/tmp/${sys.fqhost}"
+              ]
+            },
+            {
+              "componentName": "Permission adjustment",
+              "values": [
+                "/tmp/${sys.fqhost}"
+              ],
+              "unexpanded": [
+                "/tmp/${sys.fqhost}"
+              ]
+            },
+            {
+              "componentName": "Post-modification hook",
+              "values": [
+                "/tmp/${sys.fqhost}"
+              ],
+              "unexpanded": [
+                "/tmp/${sys.fqhost}"
+              ]
+            }
+          ]
+        },
+        {
+          "directiveId": "88e99dc6-c211-40fd-85a2-b1e8381fe0cb",
+          "isSystem": false,
+          "components": [
+            {
+              "componentName": "Command execution",
+              "values": [
+                "/bin/true"
+              ],
+              "unexpanded": [
+                "/bin/true"
+              ]
+            }
+          ]
+        },
+        {
+          "directiveId": "6eae3c13-1d34-4643-b136-f82c143d8aa5",
+          "isSystem": false,
+          "components": [
+            {
+              "componentName": "File replace lines",
+              "values": [
+                "/tmp/toto.txt"
+              ],
+              "unexpanded": [
+                "/tmp/${node.properties[filename]}"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "overrides": []
+}

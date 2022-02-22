@@ -1,0 +1,235 @@
+{
+  "modes":{
+    "globalPolicyMode":{
+      "mode":"enforce",
+      "overridable":true
+    },
+    "globalComplianceMode":"full-compliance",
+    "globalHeartbeatPeriod":1,
+    "globalAgentRunInterval":{
+      "interval":5,
+      "startMinute":0,
+      "splayHour":0,
+      "splaytime":4
+    }
+  },
+  "rules":[
+    {
+      "ruleId":"hasPolicyServer-root",
+      "directives":[
+        {
+          "directiveId":"common-hasPolicyServer-root",
+          "isSystem":true,
+          "components":[
+            {
+              "componentName":"Update",
+              "values":[
+                {
+                  "value":"None",
+                  "unexpanded":"None"
+                }
+              ]
+            },
+            {
+              "componentName":"ncf Initialization",
+              "values":[
+                {
+                  "value":"None",
+                  "unexpanded":"None"
+                }
+              ]
+            },
+            {
+              "componentName":"Security parameters",
+              "values":[
+                {
+                  "value":"None",
+                  "unexpanded":"None"
+                }
+              ]
+            },
+            {
+              "componentName":"Log system for reports",
+              "values":[
+                {
+                  "value":"None",
+                  "unexpanded":"None"
+                }
+              ]
+            },
+            {
+              "componentName":"CRON Daemon",
+              "values":[
+                {
+                  "value":"None",
+                  "unexpanded":"None"
+                }
+              ]
+            },
+            {
+              "componentName":"Monitoring",
+              "values":[
+                {
+                  "value":"None",
+                  "unexpanded":"None"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ruleId":"32377fd7-02fd-43d0-aab7-28460a91347b",
+      "directives":[
+        {
+          "directiveId":"dc0eaf47-356a-4a44-877d-e3873f75385b",
+          "isSystem":false,
+          "components":[
+            {
+              "componentName":"Package",
+              "values":[
+                {
+                  "value":"vim",
+                  "unexpanded":"vim"
+                }
+              ]
+            },
+            {
+              "componentName":"Post-modification script",
+              "values":[
+                {
+                  "value":"vim",
+                  "unexpanded":"vim"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "directiveId":"cbc2377f-ce6d-47fe-902b-8d92a484b184",
+          "isSystem":false,
+          "components":[
+            {
+              "componentName":"my main component",
+              "reportingLogic":"weighted",
+              "subComponents":[
+                {
+                  "componentName":"touch file",
+                  "values":[
+                    {
+                      "value":"cat /tmp/some/file",
+                      "id":"eff6dfff-d966-4d05-a92d-77a44f14b83c"
+                    }
+                  ]
+                },
+                {
+                  "componentName":"file exists",
+                  "values":[
+                    {
+                      "value":"/tmp/${node.properties[filename]}",
+                      "id":"87cad41f-ec88-4b32-a13c-136f15f7bf17"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ruleId":"policy-server-root",
+      "directives":[
+        {
+          "directiveId":"rudder-service-apache-root",
+          "isSystem":true,
+          "components":[
+            {
+              "componentName":"Apache service",
+              "values":[
+                {
+                  "value":"Enabled",
+                  "unexpanded":"Enabled"
+                },
+                {
+                  "value":"Started",
+                  "unexpanded":"Started"
+                }
+              ]
+            },
+            {
+              "componentName":"Apache configuration",
+              "values":[
+                {
+                  "value":"Allowed networks permissions",
+                  "unexpanded":"Allowed networks permissions"
+                },
+                {
+                  "value":"Allowed networks configuration",
+                  "unexpanded":"Allowed networks configuration"
+                },
+                {
+                  "value":"Remote run permissions",
+                  "unexpanded":"Remote run permissions"
+                },
+                {
+                  "value":"Remote run configuration",
+                  "unexpanded":"Remote run configuration"
+                },
+                {
+                  "value":"Webdav configuration",
+                  "unexpanded":"Webdav configuration"
+                },
+                {
+                  "value":"Webdav permissions",
+                  "unexpanded":"Webdav permissions"
+                },
+                {
+                  "value":"Logrotate",
+                  "unexpanded":"Logrotate"
+                }
+              ]
+            },
+            {
+              "componentName":"Configure apache certificate",
+              "values":[
+                {
+                  "value":"Permissions",
+                  "unexpanded":"Permissions"
+                },
+                {
+                  "value":"Apache certificate",
+                  "unexpanded":"Apache certificate"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ruleId":"inventory-all",
+      "directives":[
+        {
+          "directiveId":"inventory-all",
+          "isSystem":true,
+          "components":[
+            {
+              "componentName":"Inventory",
+              "values":[
+                {
+                  "value":"None",
+                  "unexpanded":"None"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "overrides":[
+
+  ]
+}

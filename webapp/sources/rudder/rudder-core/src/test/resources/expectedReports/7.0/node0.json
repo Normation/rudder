@@ -1,0 +1,133 @@
+{
+  "modes": {
+    "globalPolicyMode": {
+      "mode": "enforce",
+      "overridable": true
+    },
+    "globalComplianceMode": "full-compliance",
+    "globalHeartbeatPeriod": 1,
+    "globalAgentRunInterval": {
+      "interval": 15,
+      "startMinute": 0,
+      "splayHour": 0,
+      "splaytime": 4
+    }
+  },
+  "rules": [
+    {
+      "ruleId": "4bb75daa-a82f-445a-8e8e-af3e99608ffe",
+      "directives": [
+        {
+          "directiveId": "73e069ea-de00-4b5d-a00e-012709b7b462",
+          "isSystem": false,
+          "components": [
+            {
+              "componentName": "Command execution",
+              "values": [
+                "/bin/echo \"restore\""
+              ],
+              "unexpanded": [
+                "/bin/echo \"restore\""
+              ]
+            },
+            {
+              "componentName": "File absent",
+              "values": [
+                "/tmp/pasla"
+              ],
+              "unexpanded": [
+                "/tmp/pasla"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ruleId": "hasPolicyServer-root",
+      "directives": [
+        {
+          "directiveId": "common-hasPolicyServer-root",
+          "isSystem": true,
+          "components": [
+            {
+              "componentName": "Update",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            },
+            {
+              "componentName": "ncf Initialization",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            },
+            {
+              "componentName": "Security parameters",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            },
+            {
+              "componentName": "Log system for reports",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            },
+            {
+              "componentName": "CRON Daemon",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            },
+            {
+              "componentName": "Monitoring",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ruleId": "inventory-all",
+      "directives": [
+        {
+          "directiveId": "inventory-all",
+          "isSystem": true,
+          "components": [
+            {
+              "componentName": "Inventory",
+              "values": [
+                "None"
+              ],
+              "unexpanded": [
+                "None"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "overrides": []
+}

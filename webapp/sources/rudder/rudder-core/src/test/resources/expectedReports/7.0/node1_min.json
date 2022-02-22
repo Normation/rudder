@@ -1,0 +1,168 @@
+{
+  "ms": {
+    "gpm": {
+      "m": "audit",
+      "o": true
+    },
+    "npm": "enforce",
+    "gcm": "full-compliance",
+    "ghp": 1,
+    "gar": {
+      "i": 5,
+      "sm": 0,
+      "sh": 0,
+      "st": 4
+    },
+    "nar": {
+      "i": 240,
+      "sm": 17,
+      "sh": 2,
+      "st": 234
+    }
+  },
+  "rs": [
+    {
+      "rid": "inventory-all",
+      "ds": [
+        {
+          "did": "inventory-all",
+          "s": true,
+          "cs": [
+            {
+              "vid": "inventory",
+              "vs": [ [] ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rid": "hasPolicyServer-root",
+      "ds": [
+        {
+          "did": "common-root",
+          "s": true,
+          "cs": [
+            {
+              "vid": "Update",
+              "vs": [ [] ]
+            },
+            {
+              "vid": "ncf Initialization",
+              "vs": [ [] ]
+            },
+            {
+              "vid": "Security parameters",
+              "vs": [ [] ]
+            },
+            {
+              "vid": "Log system for reports",
+              "vs": [ [] ]
+            },
+            {
+              "vid": "CRON Daemon",
+              "vs": [ [] ]
+            },
+            {
+              "vid": "Monitoring",
+              "vs": [ [] ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rid": "10023ce3-0775-4178-bd9f-1f3a61d81c7c",
+      "ds": [
+        {
+          "did": "b6478fd4-f2de-43b0-9f04-812ec0680e4d",
+          "cs": [
+            {
+              "vid": "File from local source",
+              "vs": [ [ "/tmp" ] ]
+            }
+          ]
+        },
+        {
+          "did": "37c57e98-328d-4cd2-8a71-33f2e449ba51",
+          "cs": [
+            {
+              "vid": "Restart ${service}",
+              "vs": [ [ "${service}" ] ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rid": "32377fd7-02fd-43d0-aab7-28460a91347b",
+      "ds": [
+        {
+          "did": "d2471d9b-5c7f-404e-9a03-970c36924f5c",
+          "cs": [
+            {
+              "vid": "File content",
+              "vs": [ [ "/tmp/audit/audit.log" ] ]
+            },
+            {
+              "vid": "Permissions (non recursive)",
+              "vs": [ [ "/tmp/audit/audit.log" ] ]
+            },
+            {
+              "vid": "Permissions dirs",
+              "vs": [ [ "/var/log/audit" ] ]
+            }
+          ]
+        },
+        {
+          "did": "86a0ef5b-1b98-4bda-8dc3-2940ad53beaa",
+          "cs": [
+            {
+              "vid": "File",
+              "vs": [ [ "/tmp/${sys.fqhost}" ] ]
+            },
+            {
+              "vid": "Enforce content by section",
+              "vs": [ [ "/tmp/${sys.fqhost}" ] ]
+            },
+            {
+              "vid": "Line deletion regular expressions",
+              "vs": [ [ "/tmp/${sys.fqhost}" ] ]
+            },
+            {
+              "vid": "Line replacement regular expressions",
+              "vs": [ [ "/tmp/${sys.fqhost}" ] ]
+            },
+            {
+              "vid": "Permission adjustment",
+              "vs": [ [ "/tmp/${sys.fqhost}" ] ]
+            },
+            {
+              "vid": "Post-modification hook",
+              "vs": [ [ "/tmp/${sys.fqhost}" ] ]
+            }
+          ]
+        },
+        {
+          "did": "88e99dc6-c211-40fd-85a2-b1e8381fe0cb",
+          "cs": [
+            {
+              "vid": "Command execution",
+              "vs": [ ["/bin/true"] ]
+            }
+          ]
+        },
+        {
+          "did": "6eae3c13-1d34-4643-b136-f82c143d8aa5",
+          "cs": [
+            {
+              "vid": "File replace lines",
+              "vs": [ ["/tmp/toto.txt", "/tmp/${node.properties[filename]}"] ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "os": []
+}
