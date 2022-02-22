@@ -38,6 +38,7 @@
 package com.normation.rudder.services.queries
 
 import cats.implicits._
+
 import com.normation.box._
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.LDAPConstants
@@ -50,16 +51,21 @@ import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
+
 import net.liftweb.common._
 import com.normation.ldap.sdk.syntax._
+
 import com.unboundid.ldap.sdk.DereferencePolicy
 import com.unboundid.ldap.sdk.SearchRequest
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.ldap.sdk.BuildFilter._
+import com.normation.rudder.domain.logger.NodeLoggerPure
+
 import com.unboundid.ldap.sdk.Filter
 import com.unboundid.ldap.sdk.LDAPSearchException
 import com.unboundid.ldap.sdk.ResultCode
 import org.joda.time.DateTime
+
 import zio._
 import zio.syntax._
 import com.normation.errors._
@@ -235,10 +241,10 @@ class CheckPendingNodeInDynGroups(
    * A node ID which does not belong to any dyn group
    * won't be in the resulting map.
    */
-  def findDynGroups(nodeIds: Set[NodeId], groups: List[NodeGroup]): Box[Map[NodeId, Seq[NodeGroupId]]] = {
+  def findDynGroups(nodeIds: Set[NodeId], groups: List[NodeGroup]): IOResult[Map[NodeId, Seq[NodeGroupId]]] = {
 
     for {
-      mapGroupAndNodes <- processDynGroups(groups, nodeIds) ?~! s"Can not find dynamic groups for nodes: '${nodeIds.map(_.value).mkString("','")}'"
+      mapGroupAndNodes <- processDynGroups(groups, nodeIds).chainError(s"Can not find dynamic groups for nodes: '${nodeIds.map(_.value).mkString("','")}'")
     } yield {
       swapMap(mapGroupAndNodes)
     }
@@ -274,7 +280,7 @@ class CheckPendingNodeInDynGroups(
    *
    * And done ! :)
    */
-  def processDynGroups(groups: List[NodeGroup], nodeIds: Set[NodeId]): Box[List[(NodeGroupId, Set[NodeId])]] = {
+  def processDynGroups(groups: List[NodeGroup], nodeIds: Set[NodeId]): IOResult[List[(NodeGroupId, Set[NodeId])]] = {
     // a data structure to keep a group ID, set of nodes, dependencies, query and composition/
     // the query does not contain group anymore.
     NodeLogger.PendingNode.Policies.debug(s"Checking dyn-groups belonging for nodes [${nodeIds.map(_.value).mkString(", ")}]:${groups.map(g => s"${g.id.value}: ${g.name}").sorted.mkString("{", "}{", "}")}")
@@ -284,7 +290,7 @@ class CheckPendingNodeInDynGroups(
     /*
      * one step of the algo
      */
-    def recProcess(todo: List[DynGroup], blocked: List[DynGroup], done: List[(NodeGroupId, Set[NodeId])]): Box[List[(NodeGroupId, Set[NodeId])]] = {
+    def recProcess(todo: List[DynGroup], blocked: List[DynGroup], done: List[(NodeGroupId, Set[NodeId])]): IOResult[List[(NodeGroupId, Set[NodeId])]] = {
       import com.normation.rudder.domain.queries.{And => CAnd}
 
       NodeLogger.PendingNode.Policies.trace("TODO   :" + todo.debugString   )
@@ -295,7 +301,7 @@ class CheckPendingNodeInDynGroups(
 
         case (Nil, Nil, res) => // termination condition
           NodeLogger.PendingNode.Policies.trace("==> end")
-          Full(res)
+          res.succeed
 
         case (Nil, b, res) => // end of main phase: zero-ïze group dependencies in b and put them back in the other two queues
           NodeLogger.PendingNode.Policies.trace("==> unblock things")
@@ -340,7 +346,7 @@ class CheckPendingNodeInDynGroups(
 
             val newRes =  alreadyDone.map(x => (x.id, x.includeNodes.union(x.testNodes)) ) ::: ((h.id, setNodeIds) :: res)
             recProcess(tail ::: remainingNewTodos, stillBlocked, newRes)
-          }) ?~! s"Error when trying to find what nodes belong to dynamic group ${h.id}"
+          }).chainError(s"Error when trying to find what nodes belong to dynamic group ${h.id}")
       }
     }
 
@@ -379,7 +385,10 @@ class CheckPendingNodeInDynGroups(
     // start the process ! End at the end, transform the result into a map.
     val res = recProcess(nodep, withdep, Nil)
     // end result
-    res.foreach(r => NodeLogger.PendingNode.Policies.debug("Result: " + r.debugString) )
+    NodeLoggerPure.PendingNode.Policies.ifDebugEnabled(res.foldM(
+      err => NodeLoggerPure.PendingNode.Policies.debug(s"Errror when executing request: ${err.fullMsg}")
+    , r   => NodeLoggerPure.PendingNode.Policies.debug("Result: " + r.debugString)
+    )) *>
     res
   }
 

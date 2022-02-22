@@ -74,8 +74,6 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.ModifyRuleDiff
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.queries.CriterionComposition
-import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitPath
@@ -99,7 +97,6 @@ import com.normation.rudder.repository.ldap.WoLDAPRuleRepository
 import com.normation.rudder.repository.ldap.ZioTReentrantLock
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.services.eventlog.EventLogFactory
-import com.normation.rudder.services.nodes.LDAPNodeInfo
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.TechniqueAcceptationUpdater
@@ -164,7 +161,6 @@ class TestMigrateSystemTechniques7_0 extends Specification {
 
   val nodeInfoService = new NodeInfoService {
     override def getAll(): IOResult[Map[NodeId, NodeInfo]] = List(root, relay1).map(x => (x.id, x)).toMap.succeed
-    override def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition): IOResult[Set[LDAPNodeInfo]] = ???
     override def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
     override def getNodeInfos(nodeIds: Set[NodeId]): IOResult[Set[NodeInfo]] = ???
     override def getNumberOfManagedNodes: Int = ???
@@ -175,6 +171,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     override def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
     override def getDeletedNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = ???
     override def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
+    override def getAllNodeInfos(): IOResult[Seq[NodeInfo]] = ???
   }
 
   val rudderDit = new RudderDit(new DN("ou=Rudder,cn=rudder-configuration") )

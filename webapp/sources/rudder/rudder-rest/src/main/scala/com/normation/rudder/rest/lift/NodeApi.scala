@@ -1049,12 +1049,12 @@ class NodeApiService6 (
     implicit val action = s"list${state.name.capitalize}Nodes"
     ( for {
         nodeIds <-  state match {
-          case PendingInventory =>  pendingNodeQueryProcessor.check(query, None)
+          case PendingInventory =>  pendingNodeQueryProcessor.check(query, None).toBox
           case AcceptedInventory => acceptedNodeQueryProcessor.processOnlyId(query)
           case _ => Failure(s"Invalid branch used for nodes query, expected either AcceptedInventory or PendingInventory, got ${state}")
         }
       } yield {
-        listNodes(state,detailLevel,Some(nodeIds),version)
+        listNodes(state,detailLevel,Some(nodeIds.toSeq),version)
       }
     ) match {
       case Full(resp) => {

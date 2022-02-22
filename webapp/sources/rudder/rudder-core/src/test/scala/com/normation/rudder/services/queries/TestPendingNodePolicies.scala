@@ -53,15 +53,19 @@ import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.NewQuery
 import com.normation.rudder.domain.queries.QueryTrait
+
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
-import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import com.normation.rudder.domain.queries.ResultTransformation._
+
+import com.normation.box._
+import com.normation.errors._
+import zio.syntax._
 
 /**
  * Test pending node policies with group of groups
@@ -158,17 +162,17 @@ class TestPendingNodePolicies extends Specification {
 
   // a fake query checker
   val queryChecker = new QueryChecker {
-    override def check(query: QueryTrait, nodeIds: Option[Seq[NodeId]]): Box[Seq[NodeId]] = {
+    override def check(query: QueryTrait, nodeIds: Option[Seq[NodeId]]): IOResult[Set[NodeId]] = {
       // make a 0 criteria request raise an error like LDAP would do,
       // see: https://www.rudder-project.org/redmine/issues/12338
       if(query.criteria.isEmpty) {
-        Failure(s"Trying to perform an LDAP search on 0 criteria: error")
+        Inconsistency(s"Trying to perform an LDAP search on 0 criteria: error").fail
       } else {
-        Full((query match {
+        (query match {
           case x if(x == dummyQuery0) => Set.empty[NodeId]
           case x if(x == dummyQuery1) => Set(node)
           case x                      => Set(node)
-        }).intersect(nodeIds.getOrElse(Seq(node)).toSet).toSeq)
+        }).intersect(nodeIds.getOrElse(Seq(node)).toSet).succeed
       }
     }
   }
@@ -179,7 +183,7 @@ class TestPendingNodePolicies extends Specification {
     "find awaited groups" in {
       val groups = (for {
         x <- getDynGroups.getAllDynGroups()
-        y <- checkGroups.findDynGroups(Set(node), x.toList)
+        y <- checkGroups.findDynGroups(Set(node), x.toList).toBox
       } yield y) match {
         case eb: EmptyBox =>
           val e = eb ?~! "Error when processing dyngroups"

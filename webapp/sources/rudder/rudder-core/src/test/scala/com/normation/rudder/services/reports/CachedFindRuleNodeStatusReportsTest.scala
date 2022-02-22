@@ -42,8 +42,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.queries.CriterionComposition
-import com.normation.rudder.domain.queries.NodeInfoMatcher
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
@@ -53,7 +51,6 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.FindExpectedReportRepository
 import com.normation.rudder.repository.ReportsRepository
-import com.normation.rudder.services.nodes.LDAPNodeInfo
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfigData
 import net.liftweb.common.Box
@@ -132,11 +129,12 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   )
 
   object testNodeInfoService extends NodeInfoService {
-    def getLDAPNodeInfo(nodeIds: Set[NodeId], predicates: Seq[NodeInfoMatcher], composition: CriterionComposition) : IOResult[Set[LDAPNodeInfo]] = ???
     def getNodeInfo(nodeId: NodeId) : IOResult[Option[NodeInfo]] = ???
+    def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
     def getNodeInfos(nodesId: Set[NodeId]) : IOResult[Set[NodeInfo]] = ???
     def getNode(nodeId: NodeId): Box[Node] = ???
     def getAllNodes() : IOResult[Map[NodeId, Node]] = ???
+    def getAllNodeInfos():IOResult[Seq[NodeInfo]] = ???
     def getAllNodesIds(): IOResult[Set[NodeId]] = ???
     def getAllSystemNodeIds() : IOResult[Seq[NodeId]] = ???
     def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = ???
@@ -147,6 +145,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     val getAll : IOResult[Map[NodeId, NodeInfo]] = {
       nodes.map { case (n, _, _) => (n.id, n) }.toMap.succeed
     }
+
   }
 
   class TestCache extends CachedFindRuleNodeStatusReports() {
