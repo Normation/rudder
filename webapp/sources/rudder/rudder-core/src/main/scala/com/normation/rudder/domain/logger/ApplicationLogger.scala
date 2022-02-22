@@ -116,6 +116,15 @@ object NodeLoggerPure extends NamedZioLogger { parent =>
   object Cache extends NamedZioLogger {
     def loggerName: String = parent.loggerName + ".cache"
   }
+
+  object PendingNode extends NamedZioLogger {
+    // the logger for information about pending nodes (accept/refuse)
+    def loggerName: String = parent.loggerName + ".pending"
+    // the logger for info about what policies will be applied to the new node
+    object Policies extends NamedZioLogger {
+      def loggerName: String = parent.loggerName + ".policies"
+    }
+  }
 }
 
 /*

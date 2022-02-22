@@ -1666,7 +1666,8 @@ object RudderConfig extends Loggable {
         // here, we don't want to look for subgroups to show them in the form => always return an empty list
       , new DitQueryData(pendingNodesDitImpl, nodeDit, rudderDit, () => Nil.succeed)
       , ldapEntityMapper
-    )
+    ),
+    nodeInfoServiceImpl
   )
   private[this] lazy val dynGroupServiceImpl = new DynGroupServiceImpl(rudderDitImpl, roLdap, ldapEntityMapper)
 
