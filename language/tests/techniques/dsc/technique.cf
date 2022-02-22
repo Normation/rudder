@@ -8,24 +8,20 @@ bundle agent technique_dsc {
 
   vars:
     "resources_dir"        string => "${this.promise_dirname}/resources";
-    "args"                  slist => {};
-    "report_param"         string => join("_", args);
-    "full_class_prefix"    string => canonify("technique_dsc_${report_param}");
-    "class_prefix"         string => string_head("${full_class_prefix}", "1000");
 
   methods:
     # Directory check exists:
     #
     #   directory("tmp").check_exists() as directory_check_exists_tmp
     #
-    "58fc35d7-7277-49d9-a6f5-a3ecb715d694" usebundle => _method_reporting_context("Directory check exists", "tmp");
+    "58fc35d7-7277-49d9-a6f5-a3ecb715d694" usebundle => _method_reporting_context_v4("Directory check exists", "tmp", "58fc35d7-7277-49d9-a6f5-a3ecb715d694");
     "58fc35d7-7277-49d9-a6f5-a3ecb715d694" usebundle => directory_check_exists("tmp");
 
     # Command execution:
     #
     #   command("dsc").execution() as command_execution_dsc
     #
-    "c00d3129-f612-4087-84ea-c1ae9b98f9d8" usebundle => _method_reporting_context("Command execution", "dsc");
+    "c00d3129-f612-4087-84ea-c1ae9b98f9d8" usebundle => _method_reporting_context_v4("Command execution", "dsc", "c00d3129-f612-4087-84ea-c1ae9b98f9d8");
     "c00d3129-f612-4087-84ea-c1ae9b98f9d8" usebundle => command_execution("dsc");
 
 }
