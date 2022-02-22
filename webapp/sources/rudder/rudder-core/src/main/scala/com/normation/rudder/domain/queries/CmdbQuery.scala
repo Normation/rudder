@@ -955,7 +955,7 @@ final case object QueryReturnType {
   def apply(value : String) = {
     value match {
       case NodeReturnType.value => Right(NodeReturnType)
-      case NodeAndPolicyServerReturnType.value => Right(NodeAndPolicyServerReturnType)
+      case NodeAndRootServerReturnType.value => Right(NodeAndRootServerReturnType)
       case _ => Left(Inconsistency(s"Query return type '${value}' is not valid"))
     }
   }
@@ -963,7 +963,7 @@ final case object QueryReturnType {
 final case object NodeReturnType extends QueryReturnType{
   override val value = "node"
 }
-final case object NodeAndPolicyServerReturnType extends QueryReturnType{
+final case object NodeAndRootServerReturnType extends QueryReturnType{
   override val value = "nodeAndPolicyServer"
 }
 
